@@ -1,0 +1,382 @@
+//    Spirenkov Maxim, 2001
+//    Sea Dogs II
+//    WdmPlayerShip
+//
+
+#include "wdm_player_ship.h"
+
+#include <algorithm>
+#include <cmath>
+
+#include "core.h"
+#include "math_inlines.h"
+
+#include "shared/events.h"
+#include "wdm_enemy_ship.h"
+#include "wdm_islands.h"
+#include "wdm_storm.h"
+#include "world_map.h"
+
+// Construction, destruction
+
+WdmPlayerShip::WdmPlayerShip()
+{
+    wdmObjects->playerShip = this;
+    actionRadius = 16.0f;
+    stormEventTime = 0.0f;
+    goForward = false;
+
+    drawCircle = true;
+}
+
+WdmPlayerShip::~WdmPlayerShip()
+{
+    wdmObjects->playerShip = nullptr;
+}
+
+void WdmPlayerShip::PushOutFromIsland()
+{
+    // If not in the island, then don't push out
+    if (!wdmObjects->islands->CollisionTest(mtx, modelL05, modelW05, false))
+    {
+        return;
+    }
+    // spiral around the point
+    auto ang = 0.0f, angStep = PI * 0.1f;
+    const auto areaRad =
+        0.1f * 0.707f *
+        sqrtf(wdmObjects->worldSizeX * wdmObjects->worldSizeX + wdmObjects->worldSizeZ * wdmObjects->worldSizeZ);
+    const auto x = storm::math::pos(mtx).x;
+    const auto z = storm::math::pos(mtx).z;
+    for (auto r = 0.0f; r < areaRad; r += modelRadius * 0.2f, ang += angStep)
+    {
+        if (ang > 2.0f * PI)
+            ang -= 2.0f * PI;
+        const auto _x = x + r * sinf(ang);
+        const auto _z = z + r * cosf(ang);
+        glm::mat4 m = storm::math::eulerMatrix(0.0f, ay, 0.0f, _x, 0.0f, _z);
+        if (!wdmObjects->islands->CollisionTest(m, modelL05, modelW05, false))
+        {
+            Teleport(_x, _z, ay);
+            return;
+        }
+    }
+    // Didn't work out, try to randomly move
+    for (int32_t i = 0; i < 256; i++)
+    {
+        const auto _x = x + areaRad * rand() * 1.0f / RAND_MAX;
+        const auto _z = z + areaRad * rand() * 1.0f / RAND_MAX;
+        glm::mat4 m = storm::math::eulerMatrix(0.0f, ay, 0.0f, _x, 0.0f, _z);
+        if (!wdmObjects->islands->CollisionTest(m, modelL05, modelW05, false))
+        {
+            Teleport(_x, _z, ay);
+            return;
+        }
+    }
+}
+
+void WdmPlayerShip::SetActionRadius(float radius)
+{
+    if (radius < 0.0f)
+        radius = 0.0f;
+    actionRadius = radius;
+}
+
+// Calculations
+void WdmPlayerShip::Update(float dltTime)
+{
+    WdmShip::Update(dltTime);
+    Move(dltTime);
+    // Test getting into our encounter area
+    if (stormEventTime > 0.0f)
+        stormEventTime -= dltTime;
+    if (wdmObjects->isPause)
+        return;
+    // Storm
+    auto i = TestInStorm();
+    if (i >= 0)
+    {
+        if (stormEventTime <= 0.0f)
+        {
+            stormEventTime = 0.5f;
+            core.Event("WorldMap_PlayerInStorm", "fffl", storm::math::pos(mtx).x, storm::math::pos(mtx).z, ay, i);
+        }
+    }
+    wdmObjects->playarInStorm = (i == -2);
+    // The ships
+    wdmObjects->enableSkipEnemy = false;
+    for (i = 0; i < wdmObjects->ships.size(); i++)
+    {
+        // skip unnecessary
+        auto *const es = static_cast<WdmEnemyShip *>(wdmObjects->ships[i]);
+        if (static_cast<WdmShip *>(es) == this || !es->isLive || es->killMe)
+        {
+            if (wdmObjects->enemyShip == es)
+            {
+                es->isEntryPlayer = false;
+                wdmObjects->enemyShip = nullptr;
+            }
+            continue;
+        }
+        // Distance to the ship
+        const auto r = storm::math::lengthSquared(storm::math::pos(es->mtx) - storm::math::pos(mtx));
+        // Determine the testing radius
+        if (es->isEnemy)
+        {
+            if (r < actionRadius * actionRadius * 6.0f)
+            {
+                if (r < actionRadius * actionRadius)
+                {
+                    // Caught up
+                    wdmObjects->ships[i]->isSelect = true;
+                    if (es->attack)
+                        es->attack->isSelect = true;
+                    core.Event("WorldMap_ShipEncounter", "fffl", storm::math::pos(mtx).x, storm::math::pos(mtx).z, ay, i);
+                }
+                else
+                {
+                    if (!es->isEntryPlayer || (wdmObjects->enemyShip && !wdmObjects->enemyShip->isEnemy))
+                    {
+                        wdmObjects->enemyShip = es;
+                        es->isEntryPlayer = true;
+                    }
+                    if (wdmObjects->enemyShip && r < actionRadius * actionRadius * 4.0f)
+                    {
+                        wdmObjects->enableSkipEnemy = static_cast<WdmEnemyShip *>(wdmObjects->ships[i])->canSkip;
+                    }
+                }
+            }
+            else
+            {
+                if (wdmObjects->enemyShip == es)
+                {
+                    es->isEntryPlayer = false;
+                    wdmObjects->enemyShip = nullptr;
+                    wdmObjects->enableSkipEnemy = false;
+                }
+            }
+        }
+        else
+        {
+            if (!wdmObjects->enemyShip || !wdmObjects->enemyShip->isEnemy)
+            {
+                if (r < actionRadius * actionRadius)
+                {
+                    if (wdmObjects->enemyShip != es)
+                    {
+                        es->isEntryPlayer = true;
+                        wdmObjects->enemyShip = es;
+                    }
+                }
+                else
+                {
+                    if (wdmObjects->enemyShip == es)
+                    {
+                        es->isEntryPlayer = false;
+                        wdmObjects->enemyShip = nullptr;
+                    }
+                }
+            }
+        }
+    }
+    if (wdmObjects->wm && wdmObjects->wm->AttributesPointer)
+    {
+        wdmObjects->wm->AttributesPointer->SetAttributeUseFloat("playerShipX", storm::math::pos(mtx).x);
+        wdmObjects->wm->AttributesPointer->SetAttributeUseFloat("playerShipZ", storm::math::pos(mtx).z);
+        wdmObjects->wm->AttributesPointer->SetAttributeUseFloat("playerShipAY", ay);
+    }
+
+    const int32_t nOldIslandVal = wdmObjects->wm->AttributesPointer->GetAttributeAsDword("encounter_island", 0);
+    const int32_t nOldEncounterType = wdmObjects->wm->AttributesPointer->GetAttributeAsDword("encounter_type", 0);
+    // note hitting the island
+    if (wdmObjects->curIsland)
+    {
+        wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_island", 1);
+    }
+    else
+    {
+        wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_island", 0);
+    }
+    // mark hitting the encounter
+    if (wdmObjects->enemyShip)
+    {
+        switch (wdmObjects->enemyShip->shipType)
+        {
+        case wdmest_unknow:
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_UNKNOWN);
+            break;
+        case wdmest_merchant:
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_MERCHANT);
+            break;
+        case wdmest_warring:
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_WARRING);
+            break;
+        case wdmest_follow:
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_FOLLOW);
+            break;
+        default:
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_INVALID);
+        }
+    }
+    else
+    {
+        // mark hitting the storm
+        if (wdmObjects->playarInStorm)
+        {
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_STORM);
+        }
+        else
+        {
+            wdmObjects->wm->AttributesPointer->SetAttributeUseDword("encounter_type", WORLDMAP_ENCOUNTER_TYPE_INVALID);
+        }
+    }
+    if (nOldIslandVal != wdmObjects->wm->AttributesPointer->GetAttributeAsDword("encounter_island", 0) ||
+        nOldEncounterType != wdmObjects->wm->AttributesPointer->GetAttributeAsDword("encounter_type", 0))
+        core.Event("WM_UpdateCurrentAction");
+}
+
+void WdmPlayerShip::LRender(VRenderer *rs)
+{
+    WdmShip::LRender(rs);
+    if (wdmObjects->isDebug)
+    {
+        glm::mat4 mtx = storm::math::eulerMatrix(glm::vec3(0.0f), storm::math::pos(mtx));
+        wdmObjects->DrawCircle(mtx, actionRadius, 0x4f0000ff);
+    }
+}
+
+bool WdmPlayerShip::ExitFromMap()
+{
+    // looking for selected
+    int32_t found = -1;
+    for (int32_t i = 0; i < wdmObjects->ships.size(); i++)
+    {
+        wdmObjects->ships[i]->isSelect = false;
+        if (wdmObjects->ships[i] == this)
+            continue;
+        if (!wdmObjects->ships[i]->isLive)
+            continue;
+        if (wdmObjects->ships[i]->killMe)
+            continue;
+        if (wdmObjects->ships[i] == wdmObjects->enemyShip)
+        {
+            found = i;
+            wdmObjects->ships[i]->isSelect = true;
+            wdmObjects->enemyShip->isSelect = true;
+        }
+    }
+    if (found < 0)
+        return false;
+    if (wdmObjects->enemyShip->attack)
+        wdmObjects->enemyShip->attack->isSelect = true;
+    core.Event("WorldMap_ShipEncounter", "fffl", storm::math::pos(mtx).x, storm::math::pos(mtx).z, ay, found);
+    return true;
+}
+
+int32_t WdmPlayerShip::TestInStorm() const
+{
+    auto inStormZone = false;
+    auto isTornado = false;
+    for (int32_t i = 0; i < wdmObjects->storms.size(); i++)
+    {
+        if (wdmObjects->storms[i]->killMe)
+            continue;
+        if (wdmObjects->storms[i]->CheckIntersection(storm::math::pos(mtx).x, storm::math::pos(mtx).z, actionRadius))
+        {
+            wdmObjects->wm->AttributesPointer->SetAttribute("playerInStorm", "1");
+            if (wdmObjects->storms[i]->isTornado)
+            {
+                wdmObjects->wm->AttributesPointer->SetAttribute("stormWhithTornado", "1");
+            }
+            else
+            {
+                wdmObjects->wm->AttributesPointer->SetAttribute("stormWhithTornado", "0");
+            }
+            wdmObjects->wm->AttributesPointer->SetAttribute("stormId", wdmObjects->storms[i]->GetId());
+            return i;
+        }
+        float x, z;
+        wdmObjects->storms[i]->GetPosition(x, z);
+        const auto d = (storm::math::pos(mtx).x - x) * (storm::math::pos(mtx).x - x) + (storm::math::pos(mtx).z - z) * (storm::math::pos(mtx).z - z);
+        if (d < wdmObjects->stormZone * wdmObjects->stormZone)
+        {
+            if (wdmObjects->storms[i]->IsActive())
+            {
+                inStormZone = true;
+                if (wdmObjects->storms[i]->isTornado)
+                {
+                    isTornado = true;
+                }
+            }
+        }
+    }
+    if (inStormZone)
+    {
+        wdmObjects->wm->AttributesPointer->SetAttribute("playerInStorm", "1");
+        if (isTornado)
+        {
+            wdmObjects->wm->AttributesPointer->SetAttribute("stormWhithTornado", "1");
+        }
+        else
+        {
+            wdmObjects->wm->AttributesPointer->SetAttribute("stormWhithTornado", "0");
+        }
+        wdmObjects->wm->AttributesPointer->SetAttribute("stormId", "");
+        return -2;
+    }
+    wdmObjects->wm->AttributesPointer->SetAttribute("playerInStorm", "0");
+    wdmObjects->wm->AttributesPointer->SetAttribute("stormWhithTornado", "0");
+    return -1;
+}
+
+// Move the ship
+void WdmPlayerShip::Move(float dltTime)
+{
+    CONTROL_STATE cs;
+    // Forward
+    core.Controls->GetControlState("WMapShipSailUp", cs);
+    if (cs.state == CST_ACTIVE || cs.state == CST_ACTIVATED)
+        goForward = true;
+    core.Controls->GetControlState("WMapShipSailUp1", cs);
+    if (cs.state == CST_ACTIVE || cs.state == CST_ACTIVATED)
+        goForward = true;
+    if (goForward)
+        speed += WDM_SHIP_INER_ST * WDM_SHIP_MAX_SPEED * dltTime * 0.5f;
+    // Back
+    auto isBack = false;
+    core.Controls->GetControlState("WMapShipSailDown", cs);
+    if (cs.state == CST_ACTIVE)
+        isBack = true;
+    core.Controls->GetControlState("WMapShipSailDown1", cs);
+    if (cs.state == CST_ACTIVE)
+        isBack = true;
+    if (isBack)
+    {
+        goForward = false;
+        speed -= WDM_SHIP_INER_ST * WDM_SHIP_MAX_SPEED * dltTime * 0.5f;
+        if (speed < 0.0f)
+        {
+            speed = 0.0f;
+        }
+    }
+    core.Controls->GetControlState("WMapShipSailDown", cs);
+    // Turns: as hard as the control is pulled (a key all the way, the touch helm by its
+    // deflection, android_held_controls.hpp); the turn speed settles proportionally to it.
+    const auto turn = [&cs](const char *control, const char *alternative) {
+        float pull = 0.0f;
+        for (const char *name : {control, alternative})
+        {
+            core.Controls->GetControlState(name, cs);
+            if (cs.state == CST_ACTIVE)
+                pull = std::max(pull, std::clamp(std::fabs(cs.fValue), 0.0f, 1.0f));
+        }
+        return pull;
+    };
+    turnspd -= WDM_SHIP_INER_ST * WDM_SHIP_TSPEED * dltTime * turn("WMapShipTurnLeft", "WMapShipTurnLeft1");
+    turnspd += WDM_SHIP_INER_ST * WDM_SHIP_TSPEED * dltTime * turn("WMapShipTurnRight", "WMapShipTurnRight1");
+}
+
+void WdmPlayerShip::Collide()
+{
+    goForward = false;
+}

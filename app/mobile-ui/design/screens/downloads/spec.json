@@ -1,0 +1,16 @@
+{
+  "tag": "s-downloads",
+  "doc": "Download library of the github flavor: one row per set with its main action inline and the rare ones under «⋯», no side panel. Filled by the engine's launcher.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "actions": {"type": "json", "default": []},
+    "sets": {"type": "json", "default": []},
+    "empty": {"type": "bool", "default": false},
+    "emptyText": {"type": "text", "default": ""},
+    "sources": {"type": "json", "default": []},
+    "error": {"type": "text", "default": ""},
+    "sheet": {"type": "json", "default": null},
+    "dialog": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

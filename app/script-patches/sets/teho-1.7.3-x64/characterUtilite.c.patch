@@ -1,0 +1,39 @@
+--- a/PROGRAM/characters/characterUtilite.c
++++ b/PROGRAM/characters/characterUtilite.c
+@@ -1412,14 +1412,16 @@
+ 	{
+ 		if (_Money > 0)
+ 		{
+-			Log_Info("Добавлено " + _Money + " песо");
++			// grouped by a no-break space (U+00A0) as the port's interface writes amounts: «Добавлено 11 575 песо»
++			Log_Info("Добавлено " + MakeMoneyShow(_Money, "", " ") + " песо");
+ 			Statistic_AddValue(Pchar, "Money_get", _Money);
+ 		}
+ 		else
+ 		{
+ 		    if (_Money < 0)
+ 			{
+-				Log_Info("Потрачено " + abs(_Money) + " песо");
++				// grouped by a no-break space (U+00A0) as the port's interface writes amounts: «Потрачено 12 500 песо»
++				Log_Info("Потрачено " + MakeMoneyShow(abs(_Money), "", " ") + " песо");
+ 				Statistic_AddValue(Pchar, "Money_spend", abs(_Money));
+ 			}
+ 		}
+@@ -2603,7 +2605,7 @@
+ 	int iItemQuantity = 0;
+ 	if( !CheckCharacterItem(chref, itemID))
+ 	{
+-		iItemQuantity = GetCharacterItem(pchar);
++		iItemQuantity = GetCharacterItem(pchar, itemID);
+ 		if(iItemQuantity == 1 && IsEquipCharacterByItem(pchar, itemID) == true)
+ 		{
+ 			return;
+@@ -2841,7 +2843,7 @@
+ 	int iItemQuantity = 0;
+ 	if( !CheckCharacterItem(chref, itemID))
+ 	{
+-		iItemQuantity = GetCharacterItem(pchar);
++		iItemQuantity = GetCharacterItem(pchar, itemID);
+ 		if(iItemQuantity == 1 && IsEquipCharacterByArtefact(pchar, itemID))
+ 		{
+ 			return;

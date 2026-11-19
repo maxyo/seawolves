@@ -1,0 +1,101 @@
+#pragma once
+
+#include "typedef.h"
+#include "colored_mesh.hpp"
+#include "textured_mesh.hpp"
+#include <array>
+#include <string>
+#include <vector>
+
+class SKY : public Entity
+{
+  public:
+    SKY();
+    ~SKY() override;
+
+    bool Init() override;
+    void SetDevice();
+    void Realize(uint32_t Delta_Time);
+    uint32_t AttributeChanged(ATTRIBUTES *pAttribute) override;
+    uint64_t ProcessMessage(MESSAGE &message) override;
+
+    void RestoreRender();
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::loading_realize:
+            Realize(0);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        case Stage::restore_render:
+            RestoreRender();
+            break;
+        }
+    }
+
+    float CalculateAlphaForSun(const glm::vec3 &vSunPos, float fSunSize);
+
+  private:
+    enum
+    {
+        SKY_NUM_TEXTURES = 5,
+        SKY_NUM_VERTEX = 40,
+
+        ENUMSKY_FORCE_DWORD = 0x7FFFFFFF
+    };
+
+    static constexpr float kR = 2000.0f;
+    static constexpr uint32_t kNumLevels = 64U;
+    static constexpr uint32_t kNumAngles = 8U;
+
+    static constexpr uint32_t kFogVertsNum = kNumAngles *kNumLevels + 1;
+    static constexpr uint32_t kFogTrgsNum = 3 * (kNumAngles + (kNumLevels - 1) * kNumAngles * 2);
+
+    // string        sSkyDir;
+    std::vector<std::string> aSkyDirArray;
+    uint32_t dwSkyColor;
+    float fSkySpeedRotate, fSkySize, fAngleY, fSkyAngle;
+    std::string sTechSky = "Sky";
+    std::string sTechSkyBlend = "SkyBlend";
+    std::string sTechSkyBlendAlpha = "Skyblend_alpha";
+    std::string sTechSkyFog = "SkyFog";
+
+    VRenderer *pRS;
+    int32_t TexturesID[SKY_NUM_TEXTURES];
+    int32_t TexturesNextID[SKY_NUM_TEXTURES];
+    float fTimeFactor = 0.f;
+    float requestedSkyTimeFactor_ = 0.f;
+    // These identify acquired textures, independently of weather time/table changes.
+    std::array<std::string, 2> loadedSkyDirs_;
+    std::array<std::string, 2> failedSkyDirs_;
+    size_t loadedSkySetCount_ = 0;
+    size_t failedSkySetCount_ = 0;
+
+    std::unique_ptr<storm::render::TexturedMesh> skyMesh_;
+    std::unique_ptr<storm::render::ColoredMesh> fogMesh_;
+
+    Entity *pAstronomy;
+    Entity *pSunGlow;
+
+    // sky section
+    void GenerateSky(bool initialize);
+    void LoadTextures();
+    void Release();
+
+    // fog section
+    void UpdateFogSphere(bool initialize);
+
+    void FillSkyDirArray(ATTRIBUTES *pAttribute);
+    float TimeToFactor(float hours) const;
+    bool SelectSkyTextures(float factor);
+    void UpdateTimeFactor();
+    // Stars and planets (Astronomy) and the SUNGLOW sun / moon sprite (the sun only with `sun_sprite`); false when
+    // neither entity exists.
+    bool DrawSkyObjects(uint32_t Delta_Time, bool sun_sprite);
+
+    uint32_t GetPixelColor(int32_t texture, float fu, float fv) const;
+};

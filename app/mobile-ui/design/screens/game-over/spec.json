@@ -1,0 +1,9 @@
+{
+  "tag": "s-game-over",
+  "doc": "Game over over the game's death picture (state channel `gameOver`), filled by menu_game_over.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "actions": {"type": "json", "default": []},
+    "extras": {"type": "json", "default": {}}
+  }
+}

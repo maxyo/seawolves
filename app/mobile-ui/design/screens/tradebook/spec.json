@@ -1,0 +1,34 @@
+{
+  "tag": "s-tradebook",
+  "doc": "Trade book among the hero sections (interface `tradebook`), filled by hero_tradebook.cpp.",
+  "props": {
+    "title": {
+      "type": "text",
+      "default": ""
+    },
+    "sections": {
+      "type": "text",
+      "default": ""
+    },
+    "towns": {
+      "type": "json",
+      "default": []
+    },
+    "townColumns": {
+      "type": "json",
+      "default": []
+    },
+    "columns": {
+      "type": "json",
+      "default": []
+    },
+    "prices": {
+      "type": "json",
+      "default": []
+    },
+    "extras": {
+      "type": "json",
+      "default": {}
+    }
+  }
+}

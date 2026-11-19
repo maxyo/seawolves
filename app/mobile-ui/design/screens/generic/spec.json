@@ -1,0 +1,13 @@
+{
+  "tag": "s-generic",
+  "doc": "The generic auto-layout screen for interfaces without a ported screen (generic.cpp).",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "layout": {"type": "enum", "options": ["reading", "split", "settings", "settings-wide", "list", "fallback"], "default": "fallback", "class": false},
+    "left": {"type": "json", "default": []},
+    "right": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": []},
+    "danger": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

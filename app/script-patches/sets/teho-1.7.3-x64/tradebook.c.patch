@@ -1,0 +1,11 @@
+--- a/PROGRAM/interface/tradebook.c
++++ b/PROGRAM/interface/tradebook.c
+@@ -225,7 +225,7 @@
+ 		{
+             InterfaceStates.ReloadMenuExit = true;
+ 			IDoExit(RC_INTERFACE_ANY_EXIT);
+-			PostEvent("LaunchIAfterFrame",1,"sl", nodName, 2);
++			PostEvent("LaunchIAfterFrame",1,"sl", nodName, 0);
+ 			return;
+ 		}
+ 	}

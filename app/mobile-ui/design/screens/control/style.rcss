@@ -1,0 +1,4 @@
+/* s-control: one control row of a generic block or of the «Прочее» sheet. */
+s-control { display: block; }
+s-control .sc-step { display: flex; flex-direction: row; align-items: center; }
+s-control .sc-value { min-width: 96dp; text-align: center; font-size: @{type.body}dp; font-weight: bold; color: @{color.text}; }

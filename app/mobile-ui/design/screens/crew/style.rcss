@@ -1,0 +1,12 @@
+/* s-crew: the crew rows with the open quantity on top, as tall as they are (the hire has one to three rows: the
+   open row's controls are always in view), the two crews compared under them (they scroll on a short screen),
+   the deal button fixed. */
+s-crew { display: block; width: 100%; height: 100%; }
+s-crew .sw-main { flex: 1 1 0; min-width: 0; height: 100%; }
+s-crew .sw-list { flex: 0 0 auto; display: flex; flex-direction: column; }
+s-crew .sw-list c-trade-list .tl-wrap, s-crew .sw-list c-trade-list .tl-list { flex: 0 0 auto; overflow-y: visible; }
+s-crew .sw-detail { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 2dp @{space.lg}dp 0 @{space.lg}dp; }
+s-crew .sw-cols { flex: 0 0 auto; display: flex; flex-direction: row; gap: 32dp; }
+s-crew .sw-col { flex: 1 1 0; min-width: 0; }
+s-crew .sw-notes { margin-top: @{space.xs}dp; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: @{type.caption}dp; color: @{color.textMuted}; }
+s-crew .sw-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp 0 @{space.lg}dp; }

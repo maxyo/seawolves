@@ -1,0 +1,41 @@
+/* C-Panel: one of the three materials. Size it from the document (width / height). */
+c-panel {
+    position: relative; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+    width: 100%; height: 100%; color: @{color.text};
+    background-color: @{color.wood};
+    box-shadow: @{color.black/.45} 0 0 0 1dp inset, @{color.woodLight/.04} 0 1dp 0 0;
+}
+c-panel > .title { flex: 0 0 auto; margin: 0; padding: 10dp @{space.panelPadH}dp 0 @{space.panelPadH}dp; font-size: @{type.body}dp; font-weight: bold; color: @{color.textSecond}; }
+c-panel > .title.caps { font-size: @{type.caption}dp; font-weight: normal; letter-spacing: 0.04em; text-transform: uppercase; }
+c-panel > .inner { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; padding: 0; }
+c-panel.pad > .inner { padding: @{space.panelPadV}dp @{space.panelPadH}dp; }
+c-panel > .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 36dp; decorator: linear-gradient(@{color.wood/0}, @{color.wood/.95}); pointer-events: none; }
+c-panel > .edge-line { position: absolute; left: 0; top: 0; right: 0; bottom: 0; box-sizing: border-box; border: 1dp @{color.brassEdge/.62}; border-radius: 2dp; pointer-events: none; z-index: 5; }
+
+c-panel.framed { border: 1dp @{color.brassLine/.6}; box-shadow: none; }
+c-panel.edge { border-radius: 2dp; overflow: visible; box-shadow: @{color.black/.55} 0 0 0 1dp, @{color.black/.55} 0 8dp 22dp 0; }
+
+c-panel.tone-glass { background-color: @{color.glass/.86}; }
+c-panel.tone-glass > .fade { decorator: linear-gradient(@{color.glass/0}, @{color.glass/.95}); }
+/* veil: wood the game shows through, for every modal over gameplay (HUD sheets and panels); one
+   opacity for all of them. At .8 over a white sky behind the HUD scrim the body texts keep
+   ≥ 5.7:1 (text 6.6, textSecond 5.75). */
+c-panel.tone-veil { background-color: @{color.wood/.8}; }
+c-panel.tone-veil > .fade { decorator: linear-gradient(@{color.wood/0}, @{color.wood/.8}); }
+
+c-panel.tone-parchment {
+    color: @{color.ink}; background-color: transparent;
+    /* listed top layer first, like CSS backgrounds */
+    decorator: radial-gradient(ellipse farthest-corner at 18% 8%, @{color.paperLight/.45}, @{color.paperLight/0} 55%),
+        radial-gradient(ellipse farthest-corner at 88% 96%, @{color.paperShade/.2}, @{color.paperShade/0} 60%),
+        repeating-linear-gradient(0deg, @{color.inkMuted/.035} 0dp, @{color.inkMuted/.035} 1dp, @{color.black/0} 1dp, @{color.black/0} 3dp),
+        linear-gradient(@{color.paperTop}, @{color.paperBottom});
+    box-shadow: @{color.paperShade/.3} 0 0 22dp 0 inset, @{color.black/.45} 0 1dp 3dp 0;
+}
+c-panel.tone-parchment > .title { color: @{color.inkMuted}; }
+c-panel.tone-parchment > .fade { decorator: linear-gradient(@{color.paperBottom/0}, @{color.paperBottom/.95}); }
+c-panel.tone-parchment.framed { border: 1dp @{color.inkMuted/.55}; }
+
+/* aged: the sheet itself is drawn by ui-paper (torn edge, fibres, foxing, shadow) */
+c-panel.aged { color: @{color.inkAged}; decorator: none; box-shadow: none; overflow: visible; }
+c-panel.aged > .inner, c-panel.aged > .title { z-index: 3; }

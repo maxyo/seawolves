@@ -1,0 +1,1 @@
+<div class="si-box"><t-if test="picture"><div class="si-pic"><ui-game-image texture="{{picture.texture}}" uv="{{picture.uv}}"/></div><t-if test="text"><div class="si-shade"></div></t-if></t-if><t-if test="text"><div class="si-text"><div class="si-line">{{text}}</div></div></t-if></div>

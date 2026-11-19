@@ -1,0 +1,164 @@
+#pragma once
+
+#include <string>
+
+#include "collide.h"
+#include "renderer.h"
+#include "model.h"
+#include "ship_base.h"
+#include "sea_base.h"
+#include "sailors_way_points.h"
+#include "shared/sea_ai/sea_people.h"
+
+enum ManMode
+{
+    MAN_JUMP,
+    MAN_SWIM,
+    MAN_OFF,
+    MAN_WALK,
+    MAN_RUN,
+    MAN_STAY,
+    MAN_CANNONRELOAD,
+    MAN_TURNLEFT,
+    MAN_TURNRIGHT,
+    MAN_CLIMB_UP,
+    MAN_CLIMB_DOWN
+};
+
+enum ManMoveTo
+{
+    MOVE_TO_POINT,
+    MOVE_TO_CANNON,
+    MOVE_TO_TOP
+};
+
+struct ShipState
+{
+    uint32_t mode;
+    bool dead;
+    SEA_BASE *sea;
+
+    ShipState()
+        : sea(nullptr)
+    {
+        mode = SHIP_SAIL;
+        dead = false;
+    }
+};
+
+class ShipMan
+{
+  public:
+    ShipMan(const ShipMan &other) = delete;
+    ShipMan &operator=(const ShipMan &other) = delete;
+
+    // Creates the sailor's model with its geometry and the "Lo_Man" animation; throws if either
+    // cannot be loaded, so no ShipMan exists without an animated model.
+    explicit ShipMan(const std::string &modelName);
+    ~ShipMan();
+
+    ShipMan(ShipMan &&other) noexcept;
+    ShipMan & operator=(ShipMan &&other) noexcept;
+
+    // Building a matrix taking into account the current state
+    void SetPos(MODEL *ship, SHIP_BASE *ship_base, uint32_t &dltTime, ShipState &shipState);
+    void FindNextPoint(SailorsPoints &sailorsPoints, ShipState &shipState);
+    int FindRandomPoint(SailorsPoints &sailorsPoints, ShipState &shipState);
+    int FindRandomPointWithoutType(const SailorsPoints &sailorsPoints) const;
+    void ApplyTargetPoint(glm::vec3 pt, bool randomWalk);
+
+    void UpdatePos(uint32_t &dltTime, SailorsPoints &sailorsPoints, ShipState &shipState);
+    // Update animation and speed 
+    void SetAnimation(uint32_t dltTime, ShipState &shipState);
+
+    bool MoveToPosition(uint32_t &dltTime, SailorsPoints &sailorsPoints, ShipState &shipState);
+    bool RotateToAngle(uint32_t &dltTime, SailorsPoints &sailorsPoints);
+    bool Stay(uint32_t &dltTime, SailorsPoints &sailorsPoints) const;
+    bool Turn(uint32_t &dltTime, SailorsPoints &sailorsPoints);
+    bool Swim(uint32_t &dltTime, SailorsPoints &sailorsPoints, ShipState &shipState);
+    bool Jump(uint32_t &dltTime, SailorsPoints &sailorsPoints, ShipState &shipState);
+
+    void NewAction(SailorsPoints &sailorsPoints, ShipState &shipState, uint32_t &dltTime);
+    int GetNearestEmptyCannon(SailorsPoints &sailorsPoints) const;
+    
+    // The sailor's model, or nullptr once the engine has erased it. A model returned here always
+    // has its animation: the constructor loads it and nothing else sends MSG_MODEL_LOAD_ANI to it.
+    MODEL *Model() const;
+
+    glm::vec3 pos{}, ang{}; // current position
+    glm::vec3 ptTo{}, angTo{}, dir{};
+
+    glm::vec3 spos{}; // Bypassing each other
+
+    float dieTime{};
+    bool inWater{};
+    float jumpSpeedX{}, jumpSpeedY{};
+
+    Path path; // Current path
+
+    ManMode mode, lastMode; // Mode
+    int newWayPoint{}, lastWayPoint{}, targetWayPoint{}, lastTargetPoint{};
+
+    ManMoveTo moveTo{}; // Current point type
+
+    float manSpeed;
+    float rotSpeed;
+
+  private:
+    entid_t modelID{};
+};
+
+class ShipWalk
+{
+  public:
+    void ReloadCannons(int bort);
+
+    void CreateNewMan(SailorsPoints &sailorsPoints);
+
+    bool Init(entid_t _shipID, int editorMode, const char *shipType, std::vector<std::string> &&shipManModels);
+    void CheckPosition(const uint32_t &dltTime);
+    void SetMastBroken(int iMastIndex);
+    void OnHullHit(const glm::vec3 &v);
+
+    SHIP_BASE *ship;
+    MODEL *shipModel;
+
+    bool bHide;
+
+    entid_t shipID;
+
+    SailorsPoints sailorsPoints; // Points
+    ShipState shipState;         // Ship state
+
+    std::vector<ShipMan> shipMan;
+    std::vector<std::string> shipManModels_ = { "Lowcharacters\\Lo_Man_1", "Lowcharacters\\Lo_Man_2",
+                                          "Lowcharacters\\Lo_Man_3", "Lowcharacters\\Lo_Man_Kamzol_1",
+                                          "Lowcharacters\\Lo_Man_Kamzol_2", "Lowcharacters\\Lo_Man_Kamzol_3" };
+};
+
+class Sailors : public Entity
+{
+  public:
+    Sailors();
+
+    bool Init() override;
+    virtual void Realize(uint32_t dltTime);
+
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    uint32_t AttributeChanged(ATTRIBUTES *attr) override;
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+
+    VRenderer *rs;
+    std::vector<ShipWalk> shipWalk;
+    bool editorMode;
+    bool disabled;
+};

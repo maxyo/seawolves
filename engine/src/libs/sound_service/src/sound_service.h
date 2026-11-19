@@ -1,0 +1,137 @@
+#pragma once
+
+#include <string>
+#include <unordered_set>
+
+#include "storm_glm.h"
+#include "renderer.h"
+#include "probability_table.hpp"
+#include "sound_defines.h"
+#include "v_sound_service.h"
+
+#include "service_backend.hpp"
+
+class INIFILE;
+// debug....
+class SoundVisualisationEntity;
+
+class SoundService : public VSoundService
+{
+    VRenderer *rs = nullptr;
+
+    bool bShowDebugInfo;
+    bool initialized;
+
+    std::unique_ptr<storm_audio::Mixer> audio;
+    // Files reported missing once; later plays of them are not retried.
+    std::unordered_set<std::string> missingFiles;
+  public:
+    void SetDucking(float gain) override;
+    uint64_t TrimCaches() override;
+    std::unique_ptr<VSoundStream> CreatePcmStream() override;
+  private:
+    storm_audio::Vec3 listenerPos{}, listenerForward{0,0,1}, listenerUp{0,1,0};
+    void CreateEntityIfNeed();
+    // Aliases ------------------------------------------------------------
+    struct tAlias
+    {
+        std::string Name;
+        uint32_t dwNameHash;
+        
+        float fMinDistance;
+        float fMaxDistance;
+        int32_t iPrior;
+        float fVolume;
+        storm::ProbabilityTable<std::string> soundFiles;
+
+        tAlias()
+        {
+        }
+    };
+
+    std::vector<tAlias> Aliases;
+
+    const char *GetRandomName(const tAlias *alias) const;
+    int GetAliasIndexByName(const char *szAliasName);
+    void AnalyseNameStringAndAddToAlias(tAlias *_alias, const char *in_string) const;
+    void AddAlias(INIFILE &_iniFile, char *_sectionName);
+    void LoadAliasFile(const char *_filename) override;
+    void InitAliases();
+
+    // Sound Schemes------------------------------------------------------------
+    struct tSoundSchemeChannel
+    {
+        TSD_ID SoundID;
+        std::string soundName;
+        int32_t minDelayTime;
+        int32_t maxDelayTime;
+        float volume;
+        int32_t timeToNextPlay;
+        bool looped; // not working
+
+        tSoundSchemeChannel()
+        {
+            SoundID = 0;
+        }
+    };
+
+    std::vector<tSoundSchemeChannel> SoundSchemeChannels;
+
+    bool AddSoundSchemeChannel(char *in_string, bool _looped = false);
+    void ProcessSoundSchemes();
+
+    float fFXVolume;
+    float fMusicVolume;
+    float fSpeechVolume;
+
+    float fPitch;
+
+    float fadeTimeInSeconds = 0.5f;
+
+  public:
+    SoundService();
+    ~SoundService() override;
+    bool SFLB_SetScheme(const char *_schemeName);
+    bool Init() override;
+
+    uint32_t RunSection() override
+    {
+        return SECTION_EXECUTE;
+    }
+
+    void RunStart() override;
+    void RunEnd() override;
+
+    TSD_ID SoundPlay(const char *_name, eSoundType _type, eVolumeType _volumeType, bool _simpleCache = false,
+                     bool _looped = false, bool _cached = false, int32_t _time = 0,
+                     const glm::vec3 *_startPosition = nullptr, float _minDistance = -1.0f, float _maxDistance = -1.0f,
+                     int32_t _loopPauseTime = 0, float _volume = 1.0f, int32_t _prior = 128) override;
+
+    TSD_ID SoundDuplicate(TSD_ID _sourceID) override;
+    void SoundSet3DParam(TSD_ID _id, eSoundMessage _message, const void *_op) override;
+    void SoundStop(TSD_ID _id, int32_t _time = 0) override;
+    void SoundRelease(TSD_ID _id) override;
+    void SoundSetVolume(TSD_ID _id, float _volume) override;
+    bool SoundIsPlaying(TSD_ID _id) override;
+    float SoundGetPosition(TSD_ID _id) override;
+    void SoundRestart(TSD_ID _id) override;
+    void SoundResume(TSD_ID _id, int32_t _time = 0) override;
+
+    // Service functions
+    void SetMasterVolume(float _fxVolume, float _musicVolume, float _speechVolume) override;
+    void GetMasterVolume(float *_fxVolume, float *_musicVolume, float *_speechVolume) override;
+    void SetPitch(float _pitch) override;
+    float GetPitch() override;
+    void SetCameraPosition(const glm::vec3 &_cameraPosition) override;
+    void SetCameraOrientation(const glm::vec3 &_nose, const glm::vec3 &_head) override;
+
+    // Schemes routines
+    void ResetScheme() override;
+    bool SetScheme(const char *_schemeName) override;
+    bool AddScheme(const char *_schemeName) override;
+    void SetEnabled(bool _enabled) override;
+
+    void SetActiveWithFade(bool active) override;
+
+    void DebugDraw();
+};

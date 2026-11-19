@@ -1,0 +1,28 @@
+<c-screen id="header" key="header" title="{{title}}" subject="{{ json(subject) }}" tabs="{{ json(tabs) }}" stats="{{ json(stats) }}" actions="{{ json(extras.actions) }}">
+<div class="tr-main"><c-panel pad="0" gap="0" fade="{{ modal ? 1 : 0 }}" style="width: 100%; height: 100%">
+<t-if test="ships"><div class="tr-ships"><div class="tr-cmp">
+<div class="tr-cmp-row head"><div class="tr-cmp-k"></div><div class="tr-cmp-v"><div class="tr-cmp-name">{{ships.ours.title}}</div><div class="tr-cmp-sub">{{ships.ours.sub}}</div></div><div class="tr-cmp-v"><div class="tr-cmp-name">{{ships.theirs.title}}</div><div class="tr-cmp-sub">{{ships.theirs.sub}}</div></div></div>
+<div class="tr-cmp-scroll"><t-for each="ships.rows" as="r"><div class="tr-cmp-row"><c-icon icon="{{r.icon}}" size="18" tone="brass"/><div class="tr-cmp-k">{{r.k}}</div><div class="tr-cmp-v">{{r.a}}</div><div class="tr-cmp-v{{ opt(r.tone) ? ' tone-' + r.tone : '' }}">{{r.b}}</div></div></t-for></div>
+</div><div class="tr-dock"><t-if test="prize"><div class="tr-prize"><c-object-header image="{{ json(prize.image) }}" icon="ship" title="{{prize.title}}" sub="{{prize.sub}}" size="40" title-size="@{type.name}" style="width: 100%"/><c-kv items="{{ json(prize.facts) }}" size="13" style="width: 100%"/></div></t-if>
+<div class="tr-grow"></div>
+<t-if test="len(actions) > 0"><div class="tr-actions"><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" size="tile" variant="secondary" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}" style="flex: 1 1 0; min-width: 0"/></t-for></div></t-if>
+<t-if test="primary"><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}" style="width: 100%"/></t-if>
+</div></div></t-if>
+<t-if test="crew && !ships"><div class="tr-crew"><div class="tr-crew-row"><c-trade-list id="crew" label-icon="crew" label="{{crew.label}}" cols="{{ json(crew.cols) }}" rows="{{ json(crew.rows) }}" style="height: auto"/></div>
+<div class="tr-sides"><t-for each="crew.sides" as="s"><div class="tr-side"><div class="tr-side-head"><div class="tr-side-name">{{s.name}}</div><div class="tr-side-morale">{{s.morale}}</div></div><c-kv items="{{ json(s.facts) }}" size="15" style="width: 100%"/></div></t-for></div></div>
+</t-if><t-if test="!crew && !ships"><c-trade-list id="goods" dense="1" dock="1" label="{{list.label}}" cols="{{ json(list.cols) }}" rows="{{ json(list.rows) }}" deal="{{ json(deal) }}" quick="{{list.quick}}">
+<t-if test="prize && !dealing"><div class="tr-prize"><c-object-header image="{{ json(prize.image) }}" icon="ship" title="{{prize.title}}" sub="{{prize.sub}}" size="40" title-size="@{type.name}" style="width: 100%"/><c-kv items="{{ json(prize.facts) }}" size="13" style="width: 100%"/></div></t-if>
+<t-if test="extras.note && !dealing"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+<div class="tr-grow"></div>
+<t-if test="len(actions) > 0"><div class="tr-actions"><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" size="tile" variant="secondary" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}" style="flex: 1 1 0; min-width: 0"/></t-for></div></t-if>
+<t-if test="primary"><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}" style="width: 100%"/></t-if>
+</c-trade-list></t-if>
+<t-if test="crew"><t-if test="extras.note"><div class="tr-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+<t-if test="len(actions) > 0 || primary"><div class="screen-bar"><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="{{ a_i == 0 ? 'secondary' : 'quiet' }}" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}"/></t-for><t-if test="primary"><div class="grow"></div><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}"/></t-if></div></t-if></t-if>
+</c-panel></div>
+<t-if test="sheet"><c-dialog id="sheet" key="sheet" variant="sheet" title="{{sheet.title}}" closable="1" width="{{sheet.width}}"><c-captain-picker candidates="{{ json(sheet.candidates) }}" empty="{{sheet.empty}}" name="{{sheet.name}}" facts="{{ json(sheet.facts) }}" skills="{{ json(sheet.skills) }}" actions="{{ json(sheet.actions) }}"/></c-dialog></t-if>
+<t-if test="modal && !opt(modal.q) && !opt(modal.image)"><c-dialog id="modal" key="modal" variant="center" step="{{opt(modal.step)}}" title="{{modal.title}}" text="{{modal.text}}" width="520" actions="{{ json(modal.actions) }}"/></t-if>
+<t-if test="modal && !opt(modal.q) && opt(modal.image)"><c-dialog id="modal" key="modal" variant="center" step="{{opt(modal.step)}}" title="{{modal.title}}" width="520" actions="{{ json(modal.actions) }}"><div class="tr-fate"><div class="tr-fate-face"><c-game-image kind="portrait" texture="{{opt(modal.image.texture)}}" size="56" round="1" label="{{modal.title}}"/></div><div class="tr-fate-text">{{modal.text}}</div></div></c-dialog></t-if>
+<t-if test="modal && opt(modal.q)"><c-dialog id="amount" key="amount" variant="center" step="{{opt(modal.step)}}" title="{{modal.title}}" text="{{modal.text}}" width="440" actions="{{ json(modal.actions) }}"><c-quantity id="hire" props="{{ json(modal.q) }}" style="width: 100%"/></c-dialog></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

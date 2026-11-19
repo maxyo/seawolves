@@ -1,0 +1,14 @@
+# Build output of the application and of the engine.
+/app/build/
+/engine/build/
+/engine/cmake-build-*/
+*.apk
+*.apk.idsig
+*.keystore
+__pycache__/
+*.pyc
+
+# Editors.
+.vs
+.idea
+*.user

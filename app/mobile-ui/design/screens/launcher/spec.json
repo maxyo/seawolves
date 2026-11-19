@@ -1,0 +1,20 @@
+{
+  "tag": "s-launcher",
+  "doc": "Launcher of the application (setup, ready, importing, import error, the picker of found game copies), filled by the engine's launcher.cpp from the platform host's \"launcher\" channel.",
+  "props": {
+    "view": {"type": "text", "default": "setup"},
+    "title": {"type": "text", "default": ""},
+    "back": {"type": "bool", "default": false},
+    "actions": {"type": "json", "default": []},
+    "notices": {"type": "json", "default": []},
+    "setup": {"type": "json", "default": null},
+    "installed": {"type": "json", "default": null},
+    "play": {"type": "json", "default": null},
+    "files": {"type": "text", "default": ""},
+    "busy": {"type": "json", "default": null},
+    "cancel": {"type": "json", "default": null},
+    "choose": {"type": "json", "default": null},
+    "password": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

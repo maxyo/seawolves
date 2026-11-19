@@ -1,0 +1,10 @@
+<c-screen id="header" key="header" title="{{title}}" sections="{{sections}}" actions="{{ json(extras.actions) }}">
+<div class="tk-towns"><c-panel tone="parchment" pad="0" gap="0">
+<c-table id="towns" surface="parchment" columns="{{ json(townColumns) }}" rows="{{ json(towns) }}" row-height="56" empty="{{ tr('tradebook.empty') }}" empty-icon="journal" style="flex: 1 1 0; height: auto"/>
+</c-panel></div>
+<div class="tk-prices"><c-panel tone="parchment" pad="0" gap="0">
+<c-table id="prices" surface="parchment" head="1" interactive="0" columns="{{ json(columns) }}" rows="{{ json(prices) }}" row-height="48" style="flex: 1 1 0; height: auto"/>
+<t-if test="extras.note"><div class="tk-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

@@ -1,0 +1,819 @@
+#!/usr/bin/env python3
+"""Build everything that is derived from the design sources in this directory.
+
+    python3 mobile-ui/design/build.py            # regenerate the UI pack
+    python3 mobile-ui/design/build.py --check    # fail on spec/token/texture drift
+    python3 mobile-ui/design/build.py --engine-root DIR
+                                                 # another engine tree than engine/ (the UI string keys of its
+                                                 # screens are checked); --no-engine-check skips that check explicitly
+
+Sources:  tokens.json, icons.json, components/*/{spec.json,template.rml,style.rcss},
+          screens/<name>/{spec.json,template.rml,style.rcss}, base.rcss, overlay.rml, screen.rml, hud.rml, hud-layout.json,
+          gallery/*.rml, fonts/, textures/ (baked from textures-src/ by bake_textures.py)
+Outputs:  <repo>/build/ui-pack/        the runtime pack the application ships as assets/ui
+"""
+import argparse
+import hashlib
+import json
+import re
+import shutil
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]
+DEFAULT_PACK = REPO / "build" / "ui-pack"
+REF = re.compile(r"@\{([A-Za-z][A-Za-z0-9_.]*)(?:/([0-9.]+))?(?:\|([a-z]+))?\}")
+
+
+class DesignError(Exception):
+    pass
+
+
+def load_tokens():
+    tokens = json.loads((HERE / "tokens.json").read_text(encoding="utf-8"))
+    tokens.pop("$comment", None)
+    seen = {}
+    for name, value in tokens["color"].items():
+        if not re.fullmatch(r"#[0-9a-f]{6}", value):
+            raise DesignError(f"tokens.json: color.{name} must be lower-case #rrggbb, got {value}")
+        if value in seen:
+            raise DesignError(f"tokens.json: color.{name} repeats the value of color.{seen[value]}; one colour, one token")
+        seen[value] = name
+    return tokens
+
+
+def rgb(value):
+    return int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16)
+
+
+def lookup(tree, path, where):
+    node = tree
+    for part in path.split("."):
+        if not isinstance(node, dict) or part not in node:
+            raise DesignError(f"{where}: unknown token @{{{path}}}")
+        node = node[part]
+    return node
+
+
+def substitute(text, tokens, target, where, extra=None):
+    """Replaces @{group.name}, @{color.name/alpha}, @{color.name|gray} and @{…|json}. target: 'rcss'."""
+    tree = dict(tokens)
+    if extra:
+        tree.update(extra)
+
+    def replace(match):
+        path, alpha, mode = match.group(1), match.group(2), match.group(3)
+        value = lookup(tree, path, where)
+        if mode == "json":
+            return json.dumps(value, ensure_ascii=False)
+        if mode == "gray":  # baked filter: grayscale(1) of the colour (Rec. 709 luma, as RmlUi's filter computes it)
+            if not path.startswith("color."):
+                raise DesignError(f"{where}: |gray takes a colour, not @{{{path}}}")
+            r, g, b = rgb(value)
+            luma = round(0.2126 * r + 0.7152 * g + 0.0722 * b)
+            value = f"#{luma:02x}{luma:02x}{luma:02x}"
+        elif mode is not None:
+            raise DesignError(f"{where}: unknown token mode |{mode}")
+        if path.startswith("color."):
+            if alpha is None:
+                return value
+            r, g, b = rgb(value)
+            if target == "rcss":  # RCSS takes the alpha as 0-255
+                return f"rgba({r},{g},{b},{round(float(alpha) * 255)})"
+            return f"rgba({r},{g},{b},{alpha})"
+        if alpha is not None or isinstance(value, (dict, list)):
+            raise DesignError(f"{where}: @{{{match.group(0)[2:-1]}}} is not a plain value")
+        if isinstance(value, float) and value == int(value):
+            value = int(value)
+        return str(value)
+
+    return REF.sub(replace, text)
+
+
+# --------------------------------------------------------------------------- textures
+
+
+def load_bake_specs():
+    specs = json.loads((HERE / "textures-src" / "bake.json").read_text(encoding="utf-8"))
+    specs.pop("$comment", None)
+    return specs
+
+
+def bake_digest(name, spec, tokens):
+    """What a baked texture is made of: its source picture, its spec and the colours it uses."""
+    digest = hashlib.sha256((HERE / "textures-src" / name).read_bytes())
+    colours = {token: tokens["color"][token] for token, _ in spec["shade"]}
+    digest.update(json.dumps([spec, colours], sort_keys=True).encode())
+    return digest.hexdigest()
+
+
+def check_baked_textures(tokens):
+    """textures/ holds pictures baked by bake_textures.py (Pillow); fail when one is stale."""
+    recorded_path = HERE / "textures" / "baked.json"
+    recorded = json.loads(recorded_path.read_text(encoding="utf-8")) if recorded_path.exists() else {}
+    for name, spec in load_bake_specs().items():
+        if recorded.get(name) != bake_digest(name, spec, tokens) or not (HERE / "textures" / name).exists():
+            raise DesignError(f"textures/{name} is stale (textures-src/{name} or bake.json changed): run mobile-ui/design/bake_textures.py")
+
+
+# --------------------------------------------------------------------------- icons
+
+
+def icon_symbols():
+    """The one icon source: icons.json (monochrome symbols with an optional accent layer, colour tiles)."""
+    icons = json.loads((HERE / "icons.json").read_text(encoding="utf-8"))
+    shared = [
+        '<clipPath id="shade"><path d="M0 0Z"></path></clipPath>',
+        '<clipPath id="nb"><circle cx="24" cy="24" r="20.5"></circle></clipPath>',
+        '<mask id="mk-br" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48"><rect width="48" height="48" fill="#fff"></rect>'
+        '<circle cx="37" cy="37" r="14" fill="#000"></circle></mask>',
+    ]
+    symbols = []
+    for ident, icon in icons["monochrome"].items():
+        symbols.append((ident, "".join(icon["els"]), "acc" in icon))
+        if "acc" in icon:
+            symbols.append((ident + "-acc", "".join(icon["acc"]), False))
+    for ident, els in icons["colour"].items():
+        symbols.append((ident, "".join(els), False))
+    return shared, symbols
+
+
+def build_icons():
+    shared, symbols = icon_symbols()
+    wrap = lambda ident, body: f'<symbol id="{ident}" viewBox="0 0 48 48">{body}</symbol>'
+    defs = ['<svg aria-hidden="true" width="0" height="0" style="position: absolute">', "<defs>", *shared]
+    defs += [wrap(ident, body) for ident, body, _ in symbols]
+    defs += ["</defs>", "</svg>"]
+    ids = {ident for ident, _, _ in symbols}
+    pack = {"defs": "".join(shared), "symbols": {}}
+    for ident, body, accent in symbols:
+        refs = set(re.findall(r'href="#([^"]+)"', body)) | set(re.findall(r"url\(#([^)]+)\)", body))
+        entry = {"svg": wrap(ident, body)}
+        deps = sorted(ref for ref in refs if ref in ids and ref != ident)
+        if deps:
+            entry["deps"] = deps
+        if accent:
+            entry["acc"] = True
+        pack["symbols"][ident] = entry
+    return pack
+
+
+# ------------------------------------------------------------------------- strings
+
+STRING_KEY_IN_TEMPLATE = re.compile(r"""\btr\(\s*'([^']+)'\s*\)""")
+STRING_KEY_IN_CODE = re.compile(r"""\b(?:Text|StringKey)\(\s*"([^"]+)"\s*\)""")
+# The engine outside its UI library raises alerts by key (platform/android_ui_sink.hpp ui::alert).
+STRING_KEY_IN_ALERT = re.compile(r"""\bui::alert\(\s*"([^"]+)"\s*\)""")
+
+
+def load_strings(engine_root, check_engine=True):
+    """UI strings: strings/<lang>.json, one flat {key: text} table per shipped language.
+    Every language must define exactly the same keys, and every key a template (tr('key'))
+    or the engine's UI code (Text("key") / StringKey("key") under src/libs/ui/src, ui::alert("key")
+    anywhere in the engine) names must exist:
+    anything else is a build error, never a missing text at run time. Missing engine sources are an
+    error too, unless check_engine is False (--no-engine-check)."""
+    tables = {path.stem: json.loads(path.read_text(encoding="utf-8")) for path in sorted((HERE / "strings").glob("*.json"))}
+    if not tables:
+        raise DesignError("strings/: no language tables")
+    problems = []
+    keys = set().union(*(table.keys() for table in tables.values()))
+    for language, table in tables.items():
+        for key in sorted(keys - table.keys()):
+            problems.append(f"strings/{language}.json: key '{key}' is missing")
+        for key, text in table.items():
+            if not isinstance(text, str) or not text:
+                problems.append(f"strings/{language}.json: '{key}' must be a non-empty string")
+    used = {}
+    for path in sorted(HERE.glob("components/*/template.rml")) + sorted(HERE.glob("screens/*/template.rml")) + sorted(HERE.glob("gallery/*.rml")):
+        for key in STRING_KEY_IN_TEMPLATE.findall(path.read_text(encoding="utf-8")):
+            used.setdefault(key, str(path.relative_to(HERE)))
+    sources = engine_root / "src/libs/ui/src"
+    if not check_engine:
+        print("design build: UI string keys used by the engine screens are NOT checked (--no-engine-check)", file=sys.stderr)
+    elif not sources.is_dir():
+        raise DesignError(f"no engine sources at {sources}: pass --engine-root DIR (the engine tree), "
+                          "or --no-engine-check to skip checking the engine's UI string keys")
+    else:
+        for path in sorted(sources.rglob("*.cpp")):
+            for key in STRING_KEY_IN_CODE.findall(path.read_text(encoding="utf-8")):
+                used.setdefault(key, f"engine {path.relative_to(engine_root)}")
+        for path in sorted(p for part in ("libs", "apps") for suffix in ("*.cpp", "*.hpp") for p in (engine_root / "src" / part).rglob(suffix)):
+            for key in STRING_KEY_IN_ALERT.findall(path.read_text(encoding="utf-8", errors="replace")):
+                used.setdefault(key, f"engine {path.relative_to(engine_root)}")
+    for key, where in sorted(used.items()):
+        if key not in keys:
+            problems.append(f"{where}: UI string '{key}' is not defined in strings/")
+    if problems:
+        raise DesignError("\n".join(problems))
+    return tables
+
+
+def check_hud_contract(engine_root, check_engine=True):
+    """Every element an engine HUD scene may show (the engine's src/libs/ui/src/hud/layout-elements.json,
+    which its HUD host checks hold the scenes to) must be in that scene of hud-layout.json: a missing
+    one is a build error, never the error toast of a device («the layout has no element …»)."""
+    if not check_engine:
+        print("design build: the engine HUD scenes' elements are NOT checked against hud-layout.json (--no-engine-check)", file=sys.stderr)
+        return
+    contract = engine_root / "src/libs/ui/src/hud/layout-elements.json"
+    if not contract.is_file():
+        raise DesignError(f"no {contract}: the engine tree lists no HUD layout elements (pass the right --engine-root)")
+    declared = json.loads(contract.read_text(encoding="utf-8"))["scenes"]
+    scenes = json.loads((HERE / "hud-layout.json").read_text(encoding="utf-8"))["scenes"]
+
+    def ids(elements):
+        for element in elements:
+            yield element.get("id")
+            yield from ids(element.get("children", []))
+
+    problems = []
+    for scene, wanted in declared.items():
+        if scene not in scenes:
+            problems.append(f"hud-layout.json: no scene '{scene}' (the engine shows it; {contract.name})")
+            continue
+        present = set(ids(scenes[scene]["elements"]))
+        for element in wanted:
+            if element not in present:
+                problems.append(f"hud-layout.json: scene '{scene}' has no element '{element}' (the engine shows it; {contract.name})")
+    if problems:
+        raise DesignError("\n".join(problems))
+
+
+# ------------------------------------------------------------------ source checks
+
+COLOUR_LITERAL = re.compile(r"#[0-9a-fA-F]{3,8}\b|rgba?\(")
+COLOUR_ESCAPE = "colour-literal:"  # `/* colour-literal: why */` on the same line allows one
+
+
+def check_colour_literals():
+    """Colours in component and screen sources, base rules, the overlay, gallery pages and the HUD
+    layout are token references only; a raw value is a build error."""
+    sources = sorted(HERE.glob("components/*/*")) + sorted(HERE.glob("screens/*/*"))
+    sources += [HERE / "base.rcss", HERE / "overlay.rml", HERE / "screen.rml", HERE / "hud.rml", HERE / "hud-layout.json"]
+    sources += sorted(HERE.glob("gallery/*.rml"))
+    problems = []
+    for path in sources:
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if COLOUR_LITERAL.search(line) and COLOUR_ESCAPE not in line:
+                problems.append(f"{path.relative_to(HERE)}:{number}: raw colour {COLOUR_LITERAL.search(line).group(0)!r}; "
+                                "use @{color.name} (add a token to tokens.json if none fits)")
+    if problems:
+        raise DesignError("\n".join(problems))
+
+
+GENERIC_ATTRIBUTES = {"id", "class", "style", "props", "slot", "rmlui-layout-boundary"}  # engine components.cpp IsGenericAttribute
+HUD_BEHAVIORS = {"hold", "swipe"}  # behaviours a HUD layout element may add (engine behaviors.cpp)
+ATTRIBUTE = re.compile(r"""\s+([a-zA-Z_][-a-zA-Z0-9_:]*)\s*=\s*("[^"]*"|'[^']*')""")
+TAG = re.compile(r"<(c-[a-z0-9-]+)")
+
+
+def check_references(components, icon_ids):
+    """Every component tag, prop, enum value and icon id named in the gallery pages, the
+    component templates and the HUD layout must exist: a typo is a build error, never a
+    silently ignored attribute or an empty picture."""
+    specs = {spec["tag"]: spec for spec in components}
+    problems = []
+
+    def kebab(name):
+        return re.sub(r"[A-Z]", lambda m: "-" + m.group(0).lower(), name)
+
+    def icons_in(value, where):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in ("icon", "emptyIcon") and isinstance(item, str) and item and "{{" not in item and item not in icon_ids:
+                    problems.append(f"{where}: unknown icon '{item}'")
+                elif key == "flag" and isinstance(item, str) and f"nation-{item}" not in icon_ids:
+                    problems.append(f"{where}: unknown flag icon 'nation-{item}'")
+                icons_in(item, where)
+        elif isinstance(value, list):
+            for item in value:
+                icons_in(item, where)
+
+    def check_props(tag, props, where, enums=True):
+        spec = specs[tag]
+        for name, value in props.items():
+            prop = spec["props"].get(name)
+            if prop is None:
+                problems.append(f"{where}: <{tag}> has no prop '{name}'")
+                continue
+            if enums and prop.get("type") == "enum" and isinstance(value, (str, int)) and "{{" not in str(value) \
+                    and value not in prop["options"] and str(value) not in [str(o) for o in prop["options"]]:
+                problems.append(f"{where}: <{tag}> {name}={value!r} is not one of {prop['options']}")
+            if name in ("icon", "emptyIcon", "action") and isinstance(value, str) and value and "{{" not in value \
+                    and value not in icon_ids and (name != "action" or tag == "c-list-row"):
+                problems.append(f"{where}: unknown icon '{value}'")
+        icons_in(props, where)
+
+    def check_markup(path):
+        text = path.read_text(encoding="utf-8")
+        where = str(path.relative_to(HERE))
+        for match in TAG.finditer(text):
+            tag = match.group(1)
+            line = text.count("\n", 0, match.start()) + 1
+            if tag not in specs:
+                problems.append(f"{where}:{line}: unknown component <{tag}>")
+                continue
+            props, at = {}, match.end()
+            by_attribute = {kebab(name): name for name in specs[tag]["props"]}
+            while True:
+                attribute = ATTRIBUTE.match(text, at)
+                if not attribute:
+                    break
+                at = attribute.end()
+                name, value = attribute.group(1), attribute.group(2)[1:-1]
+                if name in GENERIC_ATTRIBUTES or name.startswith("data-"):
+                    if name == "props" and "{{" not in value:
+                        try:
+                            props.update(json.loads(value.replace("&#39;", "'")))
+                        except json.JSONDecodeError as error:
+                            problems.append(f"{where}:{line}: <{tag}> props is not JSON ({error})")
+                    continue
+                if name not in by_attribute:
+                    problems.append(f"{where}:{line}: <{tag}> has no prop '{name}'")
+                    continue
+                prop = by_attribute[name]
+                if specs[tag]["props"][prop].get("type") == "json" and "{{" not in value:
+                    try:
+                        value = json.loads(value)
+                    except json.JSONDecodeError as error:
+                        problems.append(f"{where}:{line}: <{tag}> {name} is not JSON ({error})")
+                        continue
+                props[prop] = value
+            check_props(tag, props, f"{where}:{line}")
+        for match in re.finditer(r'<c-icon\b[^>]*\bicon="([^"{]+)"', text):
+            if match.group(1) not in icon_ids:
+                problems.append(f"{where}: unknown icon '{match.group(1)}'")
+
+    for path in (sorted(HERE.glob("gallery/*.rml")) + sorted(HERE.glob("components/*/template.rml")) +
+                 sorted(HERE.glob("screens/*/template.rml"))):
+        check_markup(path)
+    for spec in components:
+        icons_in(spec.get("constants", {}), f"components/{spec['_folder']}/spec.json")
+
+    layout = json.loads((HERE / "hud-layout.json").read_text(encoding="utf-8"))
+
+    def check_element(element, where):
+        tag = element.get("component")
+        if tag not in specs:
+            problems.append(f"{where}: unknown component {tag!r}")
+            return
+        check_props(tag, element.get("props", {}), where + " props")
+        check_props(tag, element.get("sample", {}), where + " sample")
+        if element.get("behavior", "hold") not in HUD_BEHAVIORS:
+            problems.append(f"{where}: behavior must be one of {sorted(HUD_BEHAVIORS)}, got {element.get('behavior')!r}")
+        if not isinstance(element.get("data", {}), dict):
+            problems.append(f"{where}: data must be an object of data-* attribute values")
+        for child in element.get("children", []):
+            check_element(child, f"{where}/{child.get('id')}")
+
+    for scene, data in layout["scenes"].items():
+        for element in data["elements"]:
+            check_element(element, f"hud-layout.json: {scene}/{element.get('id')}")
+    if problems:
+        raise DesignError("\n".join(dict.fromkeys(problems)))
+
+
+# ---------------------------------------------------------------------- components
+
+
+def load_components(tokens, only=None, root="components"):
+    """Specs of components/, or of screens/: the <s-…> screens and screen parts that C++ fills."""
+    components = []
+    for folder in sorted(path for path in (HERE / root).iterdir() if path.is_dir()):
+        if only and folder.name not in only:
+            continue
+        where = f"{root}/{folder.name}"
+        spec_text = substitute((folder / "spec.json").read_text(encoding="utf-8"), tokens, "rcss", where + "/spec.json")
+        spec = json.loads(spec_text)
+        for key in ("tag", "props"):
+            if key not in spec:
+                raise DesignError(f"{where}/spec.json lacks '{key}'")
+        for name, prop in spec["props"].items():
+            if prop.get("type", "text") not in ("text", "bool", "int", "number", "enum", "json"):
+                raise DesignError(f"{where}: prop {name} has unknown type {prop.get('type')}")
+            if prop.get("type") == "enum" and not prop.get("options"):
+                raise DesignError(f"{where}: enum prop {name} lacks options")
+        spec["template"] = substitute((folder / "template.rml").read_text(encoding="utf-8"), tokens, "rcss", where + "/template.rml",
+                                      {"spec": spec.get("constants", {})})
+        style = folder / "style.rcss"
+        spec["_style"] = substitute(style.read_text(encoding="utf-8"), tokens, "rcss", where + "/style.rcss",
+                                    {"spec": spec.get("constants", {})}) if style.exists() else ""
+        spec["_folder"] = folder.name
+        components.append(spec)
+    return components
+
+
+# ------------------------------------------------------------------------ HUD layout
+
+
+def hud_length(value, where):
+    """A length of a HUD element (a size, or an edge of a stretched axis): dp, or '<n>%' of the safe area."""
+    if isinstance(value, str):
+        if not re.fullmatch(r"\d+(\.\d+)?%", value):
+            raise DesignError(f"{where} must be a number of dp or '<n>%', got {value!r}")
+        return value
+    return f"{value:g}dp"
+
+
+def hud_rcss(element, where):
+    """The position style of one HUD element inside the safe area of c-scene."""
+    h, _, v = element.get("anchor", "").partition("-")
+    if h not in ("left", "right", "center", "stretch") or v not in ("top", "bottom", "center", "stretch"):
+        raise DesignError(f"{where}: anchor must be <left|right|center|stretch>-<top|bottom|center|stretch>, got {element.get('anchor')!r}")
+    parts = ["position: absolute;"]
+    shifts = []
+    for side, axis, size, shift in ((h, ("left", "right"), "width", "X"), (v, ("top", "bottom"), "height", "Y")):
+        if side == "stretch":  # both edges: the box grows and shrinks with the screen
+            if axis[0] not in element or axis[1] not in element or size in element:
+                raise DesignError(f"{where}: a stretched axis needs '{axis[0]}' and '{axis[1]}' and no '{size}'")
+            parts.append(f"{axis[0]}: {hud_length(element[axis[0]], f'{where}: {axis[0]}')}; {axis[1]}: {hud_length(element[axis[1]], f'{where}: {axis[1]}')};")
+        elif side == "center":
+            offset = element.get(shift.lower(), 0)
+            parts.append(f"{axis[0]}: 50%;")
+            if size in element:  # a fixed box is centred exactly; otherwise by its own size
+                parts.append(f"margin-{axis[0]}: {offset - element[size] / 2:g}dp;")
+            else:
+                shifts.append(f"translate{shift}(-50%)")
+                if offset:
+                    parts.append(f"margin-{axis[0]}: {offset:g}dp;")
+        else:
+            if side not in element:
+                raise DesignError(f"{where}: anchor {element['anchor']} needs the offset '{side}'")
+            parts.append(f"{side}: {element[side]:g}dp;")
+    for size, css in (("width", "width"), ("height", "height"), ("maxWidth", "max-width"), ("maxHeight", "max-height")):
+        if size in element:
+            parts.append(f"{css}: {hud_length(element[size], f'{where}: {size}')};")
+    if shifts:
+        parts.append(f"transform: {' '.join(shifts)};")
+    return " ".join(parts)
+
+
+def hud_mirrored(element, notice_spec):
+    """The element for «Под левую руку» (the layout mirrored left to right): the anchor's side and the
+    left/right offsets swap, a centred offset changes sign; and the props that name a side follow
+    (MIRROR_PROPS): a plate's alignment, a self-placed notice's side margins, a floating stick's rest point.
+    Returns (element with the mirrored placement, the props that change)."""
+    mirrored = dict(element)
+    h, _, v = element.get("anchor", "").partition("-")
+    if h in ("left", "right"):
+        mirrored["anchor"] = ("right" if h == "left" else "left") + "-" + v
+    for side in ("left", "right"):
+        mirrored.pop(side, None)
+    if "left" in element:
+        mirrored["right"] = element["left"]
+    if "right" in element:
+        mirrored["left"] = element["right"]
+    if h == "center" and element.get("x"):
+        mirrored["x"] = -element["x"]
+    props = element.get("props", {})
+    changed = {}
+    component = element["component"]
+    if component == "c-hud-plate":
+        align = props.get("align", "left")
+        if align in ("left", "right"):
+            changed["align"] = "right" if align == "left" else "left"
+    if component == "c-notice" and props.get("place") == "hud":
+        left, right = notice_spec["safe"][props.get("scene", "land")]
+        changed["safeLeft"], changed["safeRight"] = props.get("safeRight", right), props.get("safeLeft", left)
+    if component in ("c-stick", "c-sail-lever") and props.get("floating"):
+        changed["mirrored"] = True  # its rest point counts from the zone's right edge
+    return mirrored, changed
+
+
+# Screens the HUD overlap check lays every scene out on (dp): the narrowest phone we support,
+# a tall flagship phone (3200x1440 at 3.75), the design reference and a tablet.
+HUD_CHECK_SCREENS = ((640, 360), (780, 360), (853, 384), (915, 412), (1280, 800))
+
+
+def hud_rect(element, width, height, where, notice_spec=None):
+    """The box (x0, y0, x1, y1) in dp that an element can take at its biggest on a width × height
+    safe area: its own box, the declared `extent` of a box sized by its content, and a party list
+    (`party`: max items, item size, gaps) wrapped as the plate wraps it."""
+    def length(value, full):
+        return float(value[:-1]) * full / 100 if isinstance(value, str) else float(value)
+
+    extent = element.get("extent", {})
+    if element["component"] == "c-notice" and element.get("props", {}).get("place") == "hud":
+        # self-placed: the notice spec's offset and side margins of its scene
+        scene = element["props"].get("scene", "land")
+        left, right = notice_spec["safe"][scene]
+        if "height" not in extent:
+            raise DesignError(f"{where}: a placed notice needs extent.height for the overlap check")
+        # under a top-centre plate the lines start lower (props.offset, as C-Notice's template)
+        top = element["props"].get("offset", notice_spec["offsetHud"])
+        return (left, top, width - right, top + extent["height"])
+    h, _, v = element["anchor"].partition("-")
+
+    def axis(side, size, start, end, full, cap):
+        if side == "stretch":
+            lo = length(element[start], full)
+            return lo, full - length(element[end], full)
+        span = element.get(size, extent.get(size))
+        if span is None:
+            raise DesignError(f"{where}: no {size} (nor extent.{size}) for the overlap check")
+        span = length(span, full)
+        if cap in element:
+            span = min(span, length(element[cap], full))
+        if side == "center":
+            centre = full / 2 + element.get("x" if size == "width" else "y", 0)
+            return centre - span / 2, centre + span / 2
+        if side == start:
+            lo = length(element[start], full)
+            return lo, lo + span
+        hi = full - length(element[end], full)
+        return hi - span, hi
+
+    x0, x1 = axis(h, "width", "left", "right", width, "maxWidth")
+    y0, y1 = axis(v, "height", "top", "bottom", height, "maxHeight")
+    party = element.get("party")
+    if party:
+        # a column wraps into further columns below the plate's height (a row into further rows)
+        count, (item_w, item_h), (gap_w, gap_h) = party["max"], party["item"], party["gap"]
+        if element.get("props", {}).get("direction", "column") == "column":
+            per = max(1, int((y1 - y0 + gap_h) // (item_h + gap_h)))
+            lines = -(-count // per)
+            x1 = x0 + lines * item_w + (lines - 1) * gap_w
+            y1 = y0 + min(count, per) * (item_h + gap_h) - gap_h
+        else:
+            per = max(1, int((x1 - x0 + gap_w) // (item_w + gap_w)))
+            lines = -(-count // per)
+            y1 = y0 + lines * item_h + (lines - 1) * gap_h
+            x1 = x0 + min(count, per) * (item_w + gap_w) - gap_w
+    return (x0, y0, x1, y1)
+
+
+def floating_rest(element, zone, rest_specs):
+    """The box a floating control (props.floating) shows at rest in its zone. A stick: restLeft /
+    restBottom from the zone's bottom left corner, `size` wide, as high (the helm: its capsule's
+    height). The sail lever: at the zone's bottom, restInset from its right edge, the lever's width,
+    as high as the lever is or the zone lets it be."""
+    props = element["props"]
+    if element["component"] == "c-sail-lever":
+        lever = rest_specs["c-sail-lever"]
+        x1 = zone[2] - props.get("restInset", 0)
+        height = min(zone[3] - zone[1], max(lever["minHeight"], props.get("height", lever["height"])))
+        return (x1 - lever["width"], zone[3] - height, x1, zone[3])
+    size = props["size"]
+    height = rest_specs["c-stick"]["helmHeight"] if props.get("kind") == "helm" else size
+    x0, y1 = zone[0] + props.get("restLeft", 0), zone[3] - props.get("restBottom", 0)
+    return (x0, y1 - height, x0 + size, y1)
+
+
+def hud_rest_specs(tokens):
+    """The component constants floating_rest measures a control at rest by."""
+    return {tag: json.loads(substitute((HERE / f"components/{folder}/spec.json").read_text(encoding="utf-8"), tokens, "rcss",
+                                       f"components/{folder}/spec.json"))["constants"]
+            for tag, folder in (("c-stick", "stick"), ("c-sail-lever", "sail-lever"))}
+
+
+def check_hud_overlap(layout, notice_spec, rest_specs):
+    """No two HUD elements of a scene overlap on any screen of HUD_CHECK_SCREENS, with every
+    party list at its maximum. Allowed: an `overlay` (drawn over the others for a moment, the
+    sword-move wheel), elements that `replaces` the other (never shown together), and the zone of
+    a floating control listed before the elements it lies under (drawn under them, it takes only the
+    touches they leave: the land move stick, the deck walk stick); its control at rest must stay
+    inside its zone and clear of them, but for the event lines (c-notice), which come and go. A zone
+    marked `clear` (the sea helm and sail lever: a thumb beside a button must not take them) lies
+    under nothing: it is checked as a whole box. Returns the overlaps as text; the build fails on any."""
+    areas = {name: area for name, area in layout.get("areas", {}).items() if not name.startswith("$")}
+    found = []
+    for width, height in HUD_CHECK_SCREENS:
+        for name, scene in layout["scenes"].items():
+            boxes = []
+            for element in scene["elements"]:
+                if element.get("overlay"):
+                    continue
+                where = f"hud-layout.json: {name}/{element.get('id')}"
+                placed = dict(element)
+                if "area" in element:
+                    area = areas[element["area"]]
+                    for side in area["anchor"].split("-"):
+                        placed[side] = area[side] + element[side]
+                boxes.append((element, hud_rect(placed, width, height, where, notice_spec)))
+            # a band that follows a list begins right of its last column; under its minimum width
+            # it drops under the top row (sea.cpp FollowFleet, notice spec "band")
+            rects = {e["id"]: r for e, r in boxes}
+            for k, (element, r) in enumerate(boxes):
+                after = rects[element["follows"]][2] + 8 if element.get("follows") in rects else 0
+                r = (max(r[0], after), r[1], r[2], r[3])
+                band = notice_spec.get("band", {}).get(element.get("props", {}).get("scene", "")) if element["component"] == "c-notice" else None
+                if band and r[2] - r[0] < band["min"]:
+                    drop = band["dropped"]
+                    r = (max(drop["left"], after), drop["top"], width - drop["right"], drop["top"] + r[3] - r[1])
+                boxes[k] = (element, r)
+            def meet(p, q):
+                return p[0] < q[2] and q[0] < p[2] and p[1] < q[3] and q[1] < p[3]
+
+            for i, (a, ra) in enumerate(boxes):
+                floating = a.get("props", {}).get("floating")
+                if floating:
+                    rest = floating_rest(a, ra, rest_specs)
+                    if rest[0] < ra[0] or rest[1] < ra[1] or rest[2] > ra[2] or rest[3] > ra[3]:
+                        found.append(f"{width}x{height} {name}: the {a['id']} control at rest leaves its zone")
+                zone = floating and not a.get("clear")
+                for b, rb in boxes[i + 1:]:
+                    if b["id"] in a.get("replaces", []) or a["id"] in b.get("replaces", []):
+                        continue
+                    if zone:
+                        # event lines come and go over a resting (dimmed) stick; controls and plates stay
+                        if b["component"] != "c-notice" and meet(floating_rest(a, ra, rest_specs), rb):
+                            found.append(f"{width}x{height} {name}: the {a['id']} control at rest overlaps {b['id']}")
+                    elif meet(ra, rb):
+                        found.append(f"{width}x{height} {name}: {a['id']} overlaps {b['id']}")
+    return found
+
+
+def build_hud(tokens):
+    """hud-layout.json for the pack (with the ready `rcss` of every element) and one
+    generated gallery page per scene, laid out from the same data."""
+    layout = json.loads(substitute((HERE / "hud-layout.json").read_text(encoding="utf-8"), tokens, "rcss", "hud-layout.json"))
+    notice = json.loads(substitute((HERE / "components/notice/spec.json").read_text(encoding="utf-8"), tokens, "rcss", "components/notice/spec.json"))
+    overlaps = check_hud_overlap(layout, notice["constants"], hud_rest_specs(tokens))
+    if overlaps:
+        raise DesignError("HUD elements overlap (hud-layout.json; with every party list at its maximum):\n  " + "\n  ".join(overlaps))
+    pages = {}
+
+    def tag(element, style):
+        props = dict(element.get("props", {}), **element.get("sample", {}))
+        attrs = f' id="{element["id"]}"' if "id" in element else ""
+        if props:
+            attrs += " props='" + json.dumps(props, ensure_ascii=False).replace("'", "&#39;") + "'"
+        if "behavior" in element:
+            attrs += f' data-behavior="{element["behavior"]}"'
+        for key, value in element.get("data", {}).items():
+            attrs += f' data-{key}="{value}"'
+        if style:
+            attrs += f' style="{style}"'
+        inner = "".join(tag(child, "width: 100%;") for child in element.get("children", []))
+        return f'<{element["component"]}{attrs}>{inner}</{element["component"]}>'
+
+    areas = {name: area for name, area in layout.get("areas", {}).items() if not name.startswith("$")}
+
+    def placed(element, where):
+        """An element in a shared area: its offsets are from the area's corner, and the area's
+        own offsets (one source for every scene that uses it) are added."""
+        if "area" not in element:
+            return element
+        area = areas.get(element["area"])
+        if area is None:
+            raise DesignError(f"{where}: unknown area {element['area']!r}")
+        if element.get("anchor") != area.get("anchor") or any(side in area["anchor"] for side in ("stretch", "center")):
+            raise DesignError(f"{where}: an element of area {element['area']!r} takes its anchor {area.get('anchor')!r} (left|right-top|bottom)")
+        result = dict(element)
+        for side in area["anchor"].split("-"):
+            if side not in element:
+                raise DesignError(f"{where}: anchor {element['anchor']} needs the offset '{side}'")
+            result[side] = area[side] + element[side]
+        # Inside the area: the scenes that share it fill the same place.
+        h, _, v = area["anchor"].partition("-")
+        for side, size in ((h, "width"), (v, "height")):
+            if not isinstance(element.get(size), (int, float)) or element[side] < 0 or element[side] + element[size] > area[size]:
+                raise DesignError(f"{where}: does not lie inside area {element['area']!r} ({size} {area[size]})")
+        return result
+
+    for name, scene in layout["scenes"].items():
+        lines, mirrored_lines = [], []
+        for element in scene["elements"]:
+            where = f"hud-layout.json: {name}/{element.get('id')}"
+            selfplaced = element["component"] == "c-notice" and element.get("props", {}).get("place") == "hud"
+            mirror, mirror_props = hud_mirrored(placed(element, where), notice["constants"])
+            element["rcss"] = "" if selfplaced else hud_rcss(placed(element, where), where)
+            # «Под левую руку»: the runtime takes these instead (UI host, Host::SetDisplayOptions)
+            element["rcssMirrored"] = "" if selfplaced else hud_rcss(mirror, where + " (mirrored)")
+            element["propsMirrored"] = mirror_props
+            # A top status the toasts must not cover (the cabin captain, the boarding bars): while it is
+            # shown, the host's toast stack starts below it (toastClear: its bottom from the safe top, dp).
+            element.pop("clear", None)  # the overlap check's alone
+            if element.pop("toastsBelow", False):
+                height = element.get("height", element.get("extent", {}).get("height"))
+                if not element.get("anchor", "").endswith("-top") or not isinstance(element.get("top"), (int, float)) or not isinstance(height, (int, float)):
+                    raise DesignError(f"{where}: toastsBelow needs a top anchor, a numeric top and a height (or extent height)")
+                element["toastClear"] = element["top"] + height
+            if element.get("gallery", True):
+                lines.append("  " + tag(element, element["rcss"]))
+                mirrored_lines.append("  " + tag(dict(element, props=dict(element.get("props", {}), **mirror_props)), element["rcssMirrored"]))
+        for suffix, body in (("", lines), ("-mirrored", mirrored_lines)):
+            pages[f"gallery/hud-{name}{suffix}.rml"] = (
+                "<rml>\n<head>\n"
+                f"<title>HUD: {name}{' (left-handed)' if suffix else ''}</title>\n"
+                '<link type="text/rcss" href="../kit.rcss"/>\n'
+                "</head>\n<body>\n"
+                f"<!-- Generated by build.py from hud-layout.json (scene {name}). -->\n"
+                f'<c-scene kind="{scene.get("backdrop", "land")}">\n' + "\n".join(body) + "\n</c-scene>\n</body>\n</rml>\n")
+    return json.dumps(layout, ensure_ascii=False, indent=1), pages
+
+
+# ---------------------------------------------------------------------------- pack
+
+
+def build_pack(tokens, components, icon_pack, strings, only=None):
+    files = {}
+    for language, table in strings.items():
+        files[f"strings/{language}.json"] = json.dumps(table, ensure_ascii=False, indent=1, sort_keys=True)
+    styles = [substitute((HERE / "base.rcss").read_text(encoding="utf-8"), tokens, "rcss", "base.rcss")]
+    entries = []
+    for spec in components:
+        if spec["_style"]:
+            styles.append(f"/* ---- {spec['tag']} ---- */\n{spec['_style']}")
+        entries.append({key: value for key, value in spec.items() if not key.startswith("_") and key != "doc"})
+        for prop in entries[-1]["props"].values():
+            prop.pop("doc", None)
+    files["kit.rcss"] = "\n".join(styles)
+    files["components.json"] = json.dumps({"components": entries}, ensure_ascii=False, indent=1)
+    files["icons.json"] = json.dumps(icon_pack, ensure_ascii=False)
+    files["hud-layout.json"], hud_pages = build_hud(tokens)
+    for document in ("overlay.rml", "screen.rml", "hud.rml"):
+        files[document] = substitute((HERE / document).read_text(encoding="utf-8"), tokens, "rcss", document)
+    documents = []
+    for source in sorted((HERE / "gallery").glob("*.rml")):
+        if only and source.stem not in only:
+            continue
+        files[f"gallery/{source.name}"] = substitute(source.read_text(encoding="utf-8"), tokens, "rcss", f"gallery/{source.name}")
+        documents.append(f"gallery/{source.name}")
+    if not only:
+        files.update(hud_pages)
+        documents += sorted(hud_pages)
+    fonts = tokens["font"]["bodyFiles"] + tokens["font"]["scriptFiles"]
+    files["pack.json"] = json.dumps({
+        "fonts": [f"fonts/{name}" for name in fonts],
+        "components": "components.json",
+        "icons": "icons.json",
+        "overlay": "overlay.rml",
+        "screen": "screen.rml",
+        "hud": "hud.rml",
+        "strings": {language: f"strings/{language}.json" for language in sorted(strings)},
+        "hudLayout": "hud-layout.json",
+        "gallery": documents,
+        "settings": tokens["time"],
+    }, ensure_ascii=False, indent=1)
+    return files, fonts
+
+
+def write_tree(root, files, check, stale, prune=None):
+    if prune:  # generated files whose source is gone
+        for path in sorted(root.glob(prune)):
+            if path.name not in files:
+                if check:
+                    stale.append(str(path.relative_to(REPO)))
+                else:
+                    path.unlink()
+    for name, text in files.items():
+        path = root / name
+        if check:
+            if not path.exists() or path.read_text(encoding="utf-8") != text:
+                stale.append(str(path.relative_to(REPO)))
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists() or path.read_text(encoding="utf-8") != text:
+            path.write_text(text, encoding="utf-8")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="verify the sources and the committed generated files instead of writing")
+    parser.add_argument("--pack", type=Path, default=DEFAULT_PACK, help="where to write the runtime UI pack")
+    parser.add_argument("--engine-root", type=Path, default=REPO.parent / "engine", metavar="DIR",
+                        help="engine tree whose screens are checked for undefined UI string keys (default: engine/)")
+    parser.add_argument("--no-engine-check", action="store_true",
+                        help="do not check the engine's UI string keys")
+    parser.add_argument("--only", metavar="NAMES", help="comma-separated component folders: build a partial pack with just these "
+                        "(and their gallery pages); for work on one component")
+    args = parser.parse_args()
+    try:
+        tokens = load_tokens()
+        check_colour_literals()
+        check_baked_textures(tokens)
+        problems, stale = [], []
+        only = set(args.only.split(",")) | {"icon"} if args.only else None
+        components = load_components(tokens, only)
+        icon_pack = build_icons()
+        screens = [] if only else load_components(tokens, root="screens")
+        if not only:
+            names = {ident[2:] if ident.startswith("i-") else ident for ident in icon_pack["symbols"] if not ident.endswith("-acc")}
+            check_references(components + screens, names)
+        strings = load_strings(args.engine_root, not args.no_engine_check)
+        check_hud_contract(args.engine_root, not args.no_engine_check)
+        pack, fonts = build_pack(tokens, components + screens, icon_pack, strings, only)
+    except (DesignError, json.JSONDecodeError, KeyError) as error:
+        print(f"design build failed: {error}", file=sys.stderr)
+        return 1
+    if args.check:
+        for name in stale:
+            print(f"stale: {name} (run mobile-ui/design/build.py)", file=sys.stderr)
+        return 1 if stale or problems else 0
+    if args.pack.exists():
+        shutil.rmtree(args.pack)
+    write_tree(args.pack, pack, False, stale)
+    (args.pack / "fonts").mkdir(parents=True, exist_ok=True)
+    for name in fonts:
+        shutil.copyfile(HERE / "fonts" / name, args.pack / "fonts" / name)
+    if not only or {"screen", "header"} & only:
+        shutil.copytree(HERE / "textures", args.pack / "textures", ignore=shutil.ignore_patterns("baked.json"))
+    print(f"pack: {len(pack)} files, {len(components)} components, {len(icon_pack['symbols'])} icon symbols -> {args.pack}")
+    return 0  # drift is reported above and fails only --check
+
+
+if __name__ == "__main__":
+    sys.exit(main())

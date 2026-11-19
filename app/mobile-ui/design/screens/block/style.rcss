@@ -1,0 +1,10 @@
+/* s-block: one block of the generic layout. Only the main and the detail block scroll. */
+s-block { display: block; flex: 0 0 auto; box-sizing: border-box; }
+s-block.scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-block.kind-table.scroll { display: flex; flex-direction: column; overflow: hidden; }
+s-block.kind-rows { padding: 0 @{space.lg}dp; }
+s-block .sb-tabs { padding: @{space.sm}dp @{space.md}dp; }
+s-block .sb-text { padding: @{space.lg}dp 14dp; }
+s-block .sb-card { padding: @{space.sm}dp @{space.md}dp; }
+s-block .sb-p { font-size: @{type.body}dp; line-height: 1.45; color: @{color.ink}; margin-bottom: 10dp; }
+s-block .sb-label { padding: @{space.md}dp @{space.md}dp 0 @{space.md}dp; }

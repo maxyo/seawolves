@@ -1,0 +1,8 @@
+{
+  "tag": "s-note",
+  "doc": "Screen part: the parchment note that holds texts a screen does not know (two lines; a tap opens the reading sheet).",
+  "props": {
+    "text": {"type": "text", "default": ""}
+  },
+  "behaviors": ["press"]
+}

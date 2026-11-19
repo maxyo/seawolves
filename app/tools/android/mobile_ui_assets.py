@@ -1,0 +1,87 @@
+"""Allowlist and fingerprint the open-source Android interface layer."""
+import hashlib
+import json
+from pathlib import Path
+
+
+def collect(root: Path):
+    files = {}
+    for path in sorted(root.rglob('*')):
+        if not path.is_file():
+            continue
+        name = path.relative_to(root).as_posix()
+        lower = name.lower()
+        if lower.startswith('design/'):
+            continue  # UI design sources; their generated pack is packaged by collect_ui_pack
+        allowed = name == 'SOURCE.json' or (
+            lower.startswith(('program/interface/', 'program/controls/')) and path.suffix.lower() in ('.c', '.h')
+        ) or (lower.startswith('resource/ini/interfaces/') and path.suffix.lower() == '.ini')
+        if path.is_symlink() or not allowed:
+            raise ValueError('Ineligible mobile UI payload: ' + name)
+        data = path.read_bytes()
+        if len(data) > 2 * 1024 * 1024:
+            raise ValueError('UI source exceeds per-file limit: ' + name)
+        files[name] = data
+    # The scripts are GPL-3.0 (NOTICE): the layer carries the text, kept once in the repository's LICENSES/.
+    files['LICENSE'] = (root.resolve().parents[1] / 'LICENSES/GPL-3.0-only.txt').read_bytes()
+    if sum(map(len, files.values())) > 16 * 1024 * 1024:
+        raise ValueError('UI layer exceeds total limit')
+    manifest = json.dumps({name: hashlib.sha256(data).hexdigest() for name, data in files.items()},
+                          sort_keys=True, indent=2).encode() + b'\n'
+    files['manifest.json'] = manifest
+    return files
+
+
+def collect_ui_pack(repo: Path, engine: Path, gallery: bool):
+    """Generate the UI pack from mobile-ui/design and return its files (path -> bytes).
+
+    Only generated text, the icon pack, the OFL fonts and our own material textures
+    (mobile-ui/design/textures): the generator has no game data. The debug gallery pages
+    only go with the gallery activity (gallery=True).
+    """
+    import subprocess
+    import sys
+    pack = repo / 'build/ui-pack'
+    # The engine sources let the design build check the UI string keys its screens use.
+    subprocess.run([sys.executable, str(repo / 'mobile-ui/design/build.py'), '--pack', str(pack),
+                    '--engine-root', str(engine)], check=True)
+    files = {}
+    for path in sorted(pack.rglob('*')):
+        if not path.is_file():
+            continue
+        name = path.relative_to(pack).as_posix()
+        if name.startswith('gallery/') and not gallery:
+            continue
+        texture = name.startswith('textures/') and path.suffix.lower() == '.jpg'
+        if path.is_symlink() or not (texture or path.suffix.lower() in ('.json', '.rml', '.rcss', '.ttf')):
+            raise ValueError('Ineligible UI pack file: ' + str(path))
+        files[name] = path.read_bytes()
+    if not gallery:
+        index = json.loads(files['pack.json'])
+        index['gallery'] = []
+        files['pack.json'] = json.dumps(index, ensure_ascii=False, indent=1).encode()
+    return files
+
+
+def collect_shaders(engine: Path):
+    """Engine-owned GPL technique sources (text only), never game assets."""
+    import subprocess
+    files = {}
+    for path in sorted((engine / 'src/techniques').rglob('*')):
+        if not path.is_file():
+            continue
+        if path.is_symlink() or path.suffix.lower() not in ('.fx', '.h', '.sha'):
+            raise ValueError('Ineligible engine shader: ' + str(path))
+        files['RESOURCE/techniques/' + path.relative_to(engine / 'src/techniques').as_posix()] = path.read_bytes()
+    if not any(n.endswith('.fx') for n in files):
+        raise ValueError('Missing engine techniques')
+    files['LICENSE'] = (engine / 'LICENSE.txt').read_bytes()
+    revision = subprocess.check_output(['git', '-C', str(engine), 'rev-parse', 'HEAD'], text=True).strip()
+    files['SOURCE.json'] = json.dumps({'repository': 'https://github.com/maxyo/seawolves',
+        'revision': revision, 'source': 'engine/src/techniques', 'license': 'GPL-3.0-only',
+        'purpose': 'Open engine technique sources; no commercial game assets'}, indent=2).encode()
+    if sum(map(len, files.values())) > 16 * 1024 * 1024:
+        raise ValueError('Engine shader layer exceeds size limit')
+    files['manifest.json'] = json.dumps({n: hashlib.sha256(d).hexdigest() for n,d in files.items()},
+                                       sort_keys=True, indent=2).encode() + b'\n'
+    return files

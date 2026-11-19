@@ -1,0 +1,16 @@
+{
+  "tag": "s-table-game",
+  "doc": "Tavern mini-games on the felt (interfaces boal_dice, boal_cards), filled by extra_games.cpp: opponent with his line, the bank, the opponent's row on top, ours below, the cup or the deck, the buttons in the right column.",
+  "props": {
+    "kind": {"type": "enum", "options": ["dice", "cards"], "default": "dice"},
+    "title": {"type": "text", "default": ""},
+    "stats": {"type": "json", "default": []},
+    "locked": {"type": "bool", "default": false, "class": false},
+    "table": {"type": "json", "default": {}},
+    "top": {"type": "json", "default": {}},
+    "bottom": {"type": "json", "default": {}},
+    "pack": {"type": "json", "default": []},
+    "buttons": {"type": "json", "default": []},
+    "extras": {"type": "json", "default": {}}
+  }
+}

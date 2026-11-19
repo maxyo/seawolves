@@ -1,0 +1,87 @@
+{
+ "screen": "launcher",
+ "language": "russian",
+ "launcher": {
+  "phase": "busy",
+  "starting": false,
+  "files": false,
+  "library": true,
+  "hasGame": false,
+  "problem": "",
+  "import": {
+   "recovering": false,
+   "cancelling": false,
+   "canCancel": true,
+   "stage": "choosing",
+   "bytes": 0,
+   "total": 0,
+   "files": 0,
+   "choices": [
+    {
+     "id": "0",
+     "name": "Корсары: Каждому своё",
+     "version": "ver. 1.7.3 (26.11.21) x64",
+     "languages": [
+      "russian",
+      "english"
+     ],
+     "defaultLanguage": "russian",
+     "bytes": 13636426547,
+     "files": 41873,
+     "patches": [],
+     "place": "game.7z › Game",
+     "missing": [],
+     "identified": true,
+     "patchSet": {
+      "id": "teho-1.7.3-x64",
+      "version": "ver. 1.7.3 (26.11.21) x64"
+     },
+     "testedVersions": [
+      "ver. 1.7.3 (26.11.21) x64"
+     ]
+    },
+    {
+     "id": "1",
+     "name": "Older game",
+     "version": "ver. 1.6.0",
+     "languages": [
+      "english"
+     ],
+     "defaultLanguage": "english",
+     "bytes": 12884901888,
+     "files": 40112,
+     "patches": [
+      "patch-1.6.1"
+     ],
+     "place": "game.7z › old › Older game",
+     "missing": [],
+     "identified": true,
+     "patchSet": null,
+     "testedVersions": [
+      "ver. 1.7.3 (26.11.21) x64"
+     ]
+    },
+    {
+     "id": "2",
+     "name": "Game",
+     "version": "",
+     "languages": [],
+     "defaultLanguage": "",
+     "bytes": 0,
+     "files": 0,
+     "patches": [],
+     "place": "game.7z › extra.part1.rar › Game",
+     "missing": [
+      "extra.part2.rar",
+      "extra.part3.rar"
+     ],
+     "identified": false,
+     "patchSet": null,
+     "testedVersions": [
+      "ver. 1.7.3 (26.11.21) x64"
+     ]
+    }
+   ]
+  }
+ }
+}

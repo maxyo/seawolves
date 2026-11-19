@@ -1,0 +1,76 @@
+/* C-Notice: box (blocking), inline (hints in panels), toast (floating line), log (engine messages),
+   hint (the HUD's steady contextual line at the bottom). Max 2 lines. */
+c-notice { display: block; width: 100%; color: @{color.text}; }
+c-notice .ntc-outer { display: flex; flex-direction: row; justify-content: center; width: 100%; }
+c-notice .ntc-text { flex: 1 1 0; min-width: 0; overflow: hidden; }
+c-notice .ntc-slot { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 8dp; }
+c-notice .ntc-action { flex: 0 0 auto; }
+
+/* HUD toasts / logs: the component covers its positioned parent, the line is pinned inside */
+c-notice.place-hud { position: absolute; left: 0; top: 0; right: 0; bottom: 0; width: auto; z-index: 30; pointer-events: none; }
+c-notice.place-hud .ntc-outer { position: absolute; left: 0; right: 0; width: auto; }
+
+/* box: flat fill + 3 dp tone bar on the left, no frame */
+c-notice.box .ntc-body { display: flex; flex-direction: row; align-items: center; gap: 10dp; box-sizing: border-box; width: 100%; min-height: @{spec.boxHeight}dp; padding: 8dp 12dp 8dp 14dp;
+    font-size: @{spec.font.box}dp; line-height: 1.4; background-color: @{color.black/.26}; box-shadow: @{color.brassLine/.6} 3dp 0 0 0 inset; }
+c-notice.box.compact .ntc-body { font-size: @{spec.font.compact}dp; }
+c-notice.box .ntc-text { max-height: 2.8em; }
+c-notice.box.tone-warn .ntc-body { box-shadow: @{color.brassLine} 3dp 0 0 0 inset; }
+c-notice.box.tone-danger .ntc-body { background-color: @{color.wax/.24}; box-shadow: @{color.wax} 3dp 0 0 0 inset; }
+c-notice.box.tone-ok .ntc-body { box-shadow: @{color.okDeep} 3dp 0 0 0 inset; }
+c-notice.box.paper .ntc-body { color: @{color.ink}; background-color: @{color.inkMuted/.12}; box-shadow: @{color.inkRule} 3dp 0 0 0 inset; }
+c-notice.box.paper.tone-danger .ntc-body { background-color: @{color.wax/.1}; box-shadow: @{color.wax} 3dp 0 0 0 inset; }
+c-notice.box.paper.tone-ok .ntc-body { box-shadow: @{color.leaf} 3dp 0 0 0 inset; }
+
+/* inline: icon + one 13 dp line */
+c-notice.inline .ntc-body { display: flex; flex-direction: row; align-items: center; gap: 8dp; box-sizing: border-box; width: 100%; min-height: @{spec.inlineHeight}dp;
+    font-size: @{spec.font.compact}dp; line-height: 1.35; color: @{color.textSecond}; }
+c-notice.inline .ntc-text { white-space: nowrap; text-overflow: ellipsis; }
+c-notice.inline.tone-danger .ntc-body { color: @{color.danger}; }
+c-notice.inline.paper .ntc-body { color: @{color.ink}; }
+c-notice.inline.paper.tone-info .ntc-body { color: @{color.inkMuted}; }
+
+/* toast, log and hint lines: no plate (the HUD rule: no plates under HUD text), the text and its
+   icon carry an outline, a glow and a shadow that keep them readable over any picture (as c-hud-plate's
+   bare text); the tone is the icon's */
+c-notice.toast, c-notice.log, c-notice.hint { pointer-events: none; }
+c-notice .ntc-pill { display: flex; flex: 0 1 auto; min-width: 0; flex-direction: row; align-items: center; gap: 8dp; box-sizing: border-box;
+    min-height: @{spec.toastHeight}dp; padding: 4dp 8dp; font-size: @{spec.font.toast}dp; line-height: 1.35; color: @{color.text};
+    font-effect: outline(1dp @{color.black}), glow(3dp @{color.black/.8}), shadow(0dp 1dp @{color.black}); }
+c-notice .ntc-pill .ntc-text { flex: 0 1 auto; max-height: 2.7em; }
+/* a toast line takes a finger (its timer stops while held, behaviour toast); one that leads to a
+   screen ends in a small ›, and a tap opens it (no caption, HUD rules) */
+c-notice .ntc-pill[data-toast] { pointer-events: auto; }
+c-notice .ntc-open { flex: 0 0 auto; font-size: @{type.name}dp; line-height: 1; color: @{color.brass}; }
+c-notice .ntc-pill.opens.pressed { color: @{color.textSelected}; }
+c-notice.compact .ntc-pill { min-height: @{spec.toastCompactHeight}dp; padding: 2dp 8dp; font-size: @{spec.font.compact}dp; }
+
+c-notice.log .ntc-outer { flex-direction: column; align-items: center; justify-content: flex-start; gap: @{spec.gap.log}dp; }
+c-notice.log .ntc-pill.line { min-height: @{spec.logHeight}dp; padding: 2dp 8dp; font-size: @{spec.font.compact}dp; line-height: 1.3; max-width: 100%; }
+/* the line's ui-clamp asks for its text's one-line width (natural) as a flex item, as the header's name does: in a
+   block it was sized from what it showed, so in this shrink-to-fit pill a lone word cut itself down to «…» */
+c-notice.log .ntc-pill.line .ntc-text { display: flex; flex-direction: column; white-space: nowrap; text-overflow: ellipsis; }
+c-notice.log.place-hud .ntc-pill.line .ntc-text { white-space: normal; max-height: 2.6em; }
+
+/* hint: one steady line (where the door leads, whom the talk button talks to), centred in its
+   HUD box; it fades in and out (the HUD sets `leaving` and removes it time.toastLeave later) */
+c-notice.hint { display: block; width: auto; height: 100%; opacity: 1; animation: @{time.toastEnter}s cubic-out ntc-hint-enter; transition: opacity @{time.toastLeave}s cubic-out; }
+c-notice.hint .ntc-outer { height: 100%; align-items: center; }
+c-notice.hint .ntc-pill { min-height: @{spec.hintHeight}dp; font-size: @{spec.font.hint}dp; max-width: 100%; }
+c-notice.hint .ntc-pill .ntc-text { white-space: nowrap; text-overflow: ellipsis; }
+c-notice.hint.leaving { opacity: 0; }
+@keyframes ntc-hint-enter { from { opacity: 0; } to { opacity: 1; } }
+
+/* Toasts and log lines come in softly and go softly (the host removes one time.toastLeave
+   after it set `leaving`); the height runs to and from zero so the stack closes up without a jump.
+   The exit is a transition from the shown values (a class with a keyframe animation would show
+   its end values for a frame before the animation starts). */
+@keyframes ntc-enter {
+    from { opacity: 0; transform: translateY(-6dp) scale(0.96); max-height: 0dp; }
+    to { opacity: 1; transform: translateY(0dp) scale(1); max-height: @{spec.motionHeight}dp; }
+}
+c-notice.toast, c-notice.log .ntc-pill.line { max-height: @{spec.motionHeight}dp; margin-bottom: 0dp; transform: translateY(0dp) scale(1);
+    animation: @{time.toastEnter}s cubic-out ntc-enter; transition: opacity transform max-height margin-bottom @{time.toastLeave}s cubic-out; }
+c-notice.toast.leaving, c-notice.log .ntc-pill.line.leaving { overflow: hidden; opacity: 0; transform: translateY(-6dp) scale(0.96); max-height: 0dp; }
+c-notice.toast.leaving { margin-bottom: -@{spec.gap.toasts}dp; }
+c-notice.log .ntc-pill.line.leaving { margin-bottom: -@{spec.gap.log}dp; }

@@ -1,0 +1,56 @@
+//    Spirenkov Maxim aka Sp-Max Shaman, 2001
+//
+//    CharacterAnimationKipper
+
+#include "character_animation_kipper.h"
+#include "entity.h"
+#include "core.h"
+#include "renderer.h"
+
+CharacterAnimationKipper::CharacterAnimationKipper()
+{
+    asr = nullptr;
+    aniMan = nullptr;
+    aniWoman = nullptr;
+    for (int32_t i = 0; i < sizeof(lockTextures) / sizeof(int32_t); i++)
+        lockTextures[i] = -1;
+    numLTextures = 0;
+    rs = nullptr;
+}
+
+CharacterAnimationKipper::~CharacterAnimationKipper()
+{
+    delete aniMan;
+    delete aniWoman;
+    if (rs)
+    {
+        for (int32_t i = 0; i < sizeof(lockTextures) / sizeof(int32_t); i++)
+            if (lockTextures[i] >= 0)
+                rs->TextureRelease(lockTextures[i]);
+    }
+}
+
+bool CharacterAnimationKipper::Init()
+{
+    // check that the it's the only one
+    auto &&entities = core.GetEntityIds("CharacterAnimationKipper");
+    for (auto eid : entities)
+    {
+        if (core.GetEntityPointer(eid) == this)
+            continue;
+
+        core.Trace("CharacterAnimationKipper::Init() -> CharacterAnimationKipper already created");
+        return false;
+    }
+
+    rs = static_cast<VRenderer *>(core.GetService("renderer"));
+    if (!rs)
+        throw std::runtime_error("No service: renderer");
+    auto *asr = static_cast<AnimationService *>(core.GetService("AnimationServiceImp"));
+    if (!asr)
+        throw std::runtime_error("Anumation service not created!");
+    aniMan = asr->CreateAnimation("man");
+    aniWoman = asr->CreateAnimation("towngirl");
+    return true;
+}
+

@@ -1,0 +1,109 @@
+#include <algorithm>
+#include <platform/android_interface_draw.hpp>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <optional>
+#include <string>
+#include <thread>
+
+// Compile actual renderer/font methods against a counting GPU to check that
+// suppression preserves techniques, font metrics and buffer-update work.
+using D3DPRIMITIVETYPE = int;
+constexpr int D3DPT_TRIANGLELIST = 0, FONT_CHAR_FVF = 0;
+constexpr int D3DRS_SRCBLEND = 0, D3DRS_DESTBLEND = 1;
+constexpr int D3DBLEND_ZERO = 0, D3DBLEND_INVSRCALPHA = 1, D3DBLEND_SRCALPHA = 2;
+#define CHECKD3DERR(value) (value)
+struct FONT_CHAR_VERTEX { int unused; };
+struct Device
+{
+    int draws = 0;
+    void SetFVF(int) {}
+    void SetStreamSource(int, void *, int, int) {}
+    void SetRenderState(int, int) {}
+    int DrawPrimitiveUP(int, uint32_t, const void *, uint32_t) { ++draws; return 0; }
+    void DrawPrimitive(int, int, int) { ++draws; }
+};
+struct Renderer
+{
+    Device *d3d9;
+    int dwNumDrawPrimitive = 0, passes = 0, starts = 0, fvfSets = 0;
+    int SetFVF(uint32_t) { ++fvfSets; return 0; }
+    bool TechniqueExecuteStart(const char *) { ++starts; passes = 0; return true; }
+    bool TechniqueExecuteNext() { return ++passes < 3; }
+    void TextureSet(int, int) {}
+    void DrawPrimitiveUP(D3DPRIMITIVETYPE, uint32_t, uint32_t, const void *, uint32_t, const char *);
+};
+struct FONT_PRINT_OVERRIDES
+{
+    std::optional<bool> shadow;
+    std::optional<float> scale;
+    std::optional<uint32_t> color;
+    std::optional<float> outline;
+};
+namespace utf8 { int Utf8StringLength(const char *s) { return std::strlen(s); } }
+constexpr size_t MAX_SYMBOLS = 512; // font.cpp's vertex buffer capacity; Print clamps to it
+struct FONT
+{
+    Renderer &renderService_;
+    Device &device_;
+    std::string techniqueName_ = "font";
+    int textureHandle_ = 0;
+    void *vertexBuffer_ = nullptr;
+    bool drawShadows_ = true;
+    float scale_ = 1;
+    uint32_t color_ = 0;
+    int shadowOffsetX_ = 1, shadowOffsetY_ = 1, updates = 0;
+    int UpdateVertexBuffer(int, int, char *, int count, float, uint32_t) { ++updates; return count * 9; }
+    int32_t Print(int32_t, int32_t, char *, const FONT_PRINT_OVERRIDES &);
+};
+#include "renderer.inc"
+#include "font.inc"
+
+int main()
+{
+    using namespace storm::android;
+    Device device;
+    Renderer renderer{&device};
+    FONT font{renderer, device};
+    char text[] = "hello";
+    auto frame = [&] {
+        renderer.DrawPrimitiveUP(0, 0, 1, nullptr, 0, "interface");
+        assert(renderer.passes == 3); // Technique cleanup still occurs.
+        assert(font.Print(0, 0, text, {}) == 45); // Layout measurements survive.
+        assert(renderer.passes == 3);
+    };
+    frame();
+    assert(device.draws == 5 && renderer.dwNumDrawPrimitive == 3 && font.updates == 2);
+    {
+        NativeInterfaceDrawScope scope(true);
+        assert(NativeInterfaceDrawSuppressed());
+        frame();
+        assert(device.draws == 5 && renderer.dwNumDrawPrimitive == 3 && font.updates == 4);
+        assert(renderer.fvfSets == 2 && renderer.starts == 4);
+        // An outlined print (the world map's labels) is suppressed alike: eight outline passes update, none draws.
+        assert(font.Print(0, 0, text, {.outline = 2.0f}) == 45);
+        assert(device.draws == 5 && font.updates == 4 + 10);
+        {
+            NativeInterfaceDrawScope nested(false);
+            assert(NativeInterfaceDrawSuppressed());
+        }
+        assert(NativeInterfaceDrawSuppressed());
+        std::thread other([] { assert(!NativeInterfaceDrawSuppressed()); });
+        other.join();
+    }
+    assert(!NativeInterfaceDrawSuppressed());
+    frame(); // Subsequent world rendering is unaffected.
+    assert(device.draws == 10 && renderer.dwNumDrawPrimitive == 6 && font.updates == 16);
+    // Unsuppressed, the outline darkens under eight copies around the glyphs before the text itself.
+    assert(font.Print(0, 0, text, {.outline = 2.0f}) == 45);
+    assert(device.draws == 10 + 10 && font.updates == 16 + 10);
+    try
+    {
+        NativeInterfaceDrawScope scope(true);
+        throw 1;
+    }
+    catch (int) {}
+    assert(!NativeInterfaceDrawSuppressed());
+}

@@ -1,0 +1,16 @@
+/* s-alchemy: recipes left (a third), the recipe card, its components, the batches and the craft button right. */
+s-alchemy { display: block; width: 100%; height: 100%; }
+s-alchemy .al-left { flex: 0 0 34%; min-width: 0; height: 100%; }
+s-alchemy .al-right { flex: 1 1 0; min-width: 0; height: 100%; }
+s-alchemy .al-list { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+s-alchemy .al-card { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.md}dp; padding: @{space.md}dp @{space.lg}dp; }
+s-alchemy .al-parts { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+s-alchemy .al-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp 0 @{space.lg}dp; }
+s-alchemy .al-q { flex: 0 0 auto; padding: @{space.sm}dp @{space.lg}dp; border-top: 1dp @{color.brassLine/.22}; }
+
+/* Icon header explanations retain full touch targets on a short phone. Make room for
+   the ingredient row by removing decoration spacing around the recipe and batches. */
+@media (max-height: 380dp) {
+    s-alchemy .al-card { padding-top: 0; padding-bottom: 0; }
+    s-alchemy .al-q { padding-top: 6dp; padding-bottom: 6dp; }
+}

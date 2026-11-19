@@ -1,0 +1,227 @@
+name: CI
+# Host checks of the application and of the engine on pull requests and on main. No emulator runs here: a green
+# run says nothing about installation or gameplay on a device.
+#
+# The jobs that build something run only when their part of the tree changed (job "changes"). The job "required"
+# always runs and fails when any of them failed: it is the one status check to require in branch protection, and
+# a job skipped for unchanged paths does not block a pull request.
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.paths.outputs.app }}
+      engine: ${{ steps.paths.outputs.engine }}
+      workflows: ${{ steps.paths.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Sort the changed files into the parts of the tree
+        id: paths
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          # The application's checks read the engine too: the UI library the pack contract builds, the
+          # application contract, the string keys of its screens, the licences the APK packages.
+          app='^(app/|VERSION$|CHANGELOG\.md$|NOTICE$|LICENSE$|LICENSES/|engine/(src|cmake|third_party|tools/android|tools/ccache)/|\.github/workflows/ci\.yml$)'
+          engine='^(engine/|\.github/workflows/ci\.yml$)'
+          workflows='^\.github/'
+          if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            # Three dots: what this branch changed since it left the base, not what the base gained meanwhile.
+            git diff --name-only "$BASE...HEAD" > "$RUNNER_TEMP/changed"
+          else
+            echo "No base commit to compare with (a new branch or a forced push): every part counts as changed"
+            git ls-files > "$RUNNER_TEMP/changed"
+          fi
+          for part in app engine workflows; do
+            if grep -Eq "${!part}" "$RUNNER_TEMP/changed"; then
+              echo "$part=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$part=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+          cat "$GITHUB_OUTPUT"
+
+  workflows:
+    name: Workflow lint
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.7
+          ACTIONLINT_SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -sSfL -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
+  app:
+    name: Application host checks
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      # app/tests/ui_pack_contract builds the engine's UI library (engine/src/libs/ui): the engine compiles
+      # only through ccache; its pinned dependency archives and the compiler cache are kept between runs.
+      # The build has no render backend (STORM_UI_RENDER_BACKEND=OFF): no bgfx, shaderc, X11 or OpenGL.
+      - name: Install the UI host build tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ccache ninja-build
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt') }}-
+      - name: Run application host checks
+        run: python3 app/tools/android/run_host_tests.py
+
+  engine:
+    name: Engine host checks
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    # Warm caches: a few minutes. A bgfx pin change rebuilds shaderc and bgfx once (cold).
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: engine
+    env:
+      CCACHE_MAXSIZE: 2G  # the Actions cache holds 10 GB per repository
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install host packages
+        run: |
+          sudo apt-get update
+          # libx11-dev, libgl-dev: bgfx.cmake configures the bgfx runtime (needed by the renderer check,
+          # tests/renderer_bgfx, and by the shaderc project that shares it) with X11 and OpenGL on Linux;
+          # libegl-dev, libgles-dev: the host renderer runs the GLES 3.0 backend through EGL;
+          # libegl-mesa0: Mesa's EGL (llvmpipe) for tests/renderer_bgfx/skinning_check (draws in xvfb).
+          # libvulkan1, mesa-vulkan-drivers: the Vulkan loader and Mesa's lavapipe, for the Vulkan pass of
+          # tests/renderer_bgfx (the same checks on bgfx's Vulkan backend).
+          sudo apt-get install -y --no-install-recommends libsdl2-2.0-0 xvfb ninja-build ffmpeg clang-18 libclang-rt-18-dev ccache \
+            libx11-dev libgl-dev libegl-dev libgles-dev libegl-mesa0 libvulkan1 mesa-vulkan-drivers
+      - name: Cache pinned dependency sources
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            engine/build/host-ci/sources
+            engine/build/host-ci/glm
+          key: host-sources-${{ hashFiles('engine/tools/android/engine_sources.py', 'engine/tools/android/ci_dependencies.sh', 'engine/cmake/glm.cmake') }}
+      # Fetched bgfx/glm sources and the host shaderc of the bgfx pin (both built once per pin
+      # into ~/.cache/storm-deps) and the Storm ccache (tools/ccache/README.md).
+      - name: Cache shared dependencies and compiler output
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: host-storm-${{ hashFiles('engine/src/libs/renderer_bgfx/cmake/bgfx_pin.cmake', 'engine/src/libs/renderer_bgfx/cmake/bx_pin.cmake', 'engine/src/libs/renderer_bgfx/patches/*', 'engine/src/libs/renderer_bgfx/host-tools/CMakeLists.txt', 'engine/cmake/glm.cmake') }}-${{ github.sha }}
+          restore-keys: host-storm-${{ hashFiles('engine/src/libs/renderer_bgfx/cmake/bgfx_pin.cmake', 'engine/src/libs/renderer_bgfx/cmake/bx_pin.cmake', 'engine/src/libs/renderer_bgfx/patches/*', 'engine/src/libs/renderer_bgfx/host-tools/CMakeLists.txt', 'engine/cmake/glm.cmake') }}-
+      - name: Cache the FFmpeg build (tools/ffmpeg/build.py)
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: engine/build/host-ci/ffmpeg-cache
+          key: host-ffmpeg-${{ hashFiles('engine/tools/ffmpeg/build.py', 'engine/tools/android/engine_sources.py') }}
+      - name: Run host checks
+        # Clang, like the NDK that builds the shipped engine.
+        env:
+          CXX: clang++-18
+          STORM_ALLOW_COLD_BUILD: CI runner, the restored cache may predate this commit
+        run: xvfb-run -a python3 tools/ci/run_host_tests.py
+
+  engine-ui:
+    name: Engine UI runtime host build
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: engine
+    env:
+      CCACHE_MAXSIZE: 1G
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install host packages
+        run: |
+          sudo apt-get update
+          # libx11-dev, libgl-dev: the UI decodes .tx textures with bimg from the renderer's bgfx pin, and
+          # bgfx.cmake configures (does not build) the bgfx runtime with X11 and OpenGL on Linux.
+          # libegl1, libegl-mesa0, libgles2, libgl1-mesa-dri: storm_ui_shot draws through bgfx's GLES 3.0
+          # renderer on Mesa's surfaceless EGL (llvmpipe) in the ui_whole_frame test.
+          # libegl-dev, libgles-dev: storm_ui_shot and storm_ui_unit link -lEGL -lGLESv2.
+          sudo apt-get install -y --no-install-recommends ninja-build ccache libx11-dev libgl-dev \
+            libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libegl-dev libgles-dev
+      - name: Cache fetched UI dependencies and compiler output
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: engine-ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt', 'engine/src/libs/renderer_bgfx/cmake/bgfx_pin.cmake', 'engine/src/libs/renderer_bgfx/cmake/bx_pin.cmake') }}-${{ github.sha }}
+          restore-keys: engine-ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt', 'engine/src/libs/renderer_bgfx/cmake/bgfx_pin.cmake', 'engine/src/libs/renderer_bgfx/cmake/bx_pin.cmake') }}-
+      - name: Build and test
+        run: |
+          cmake -S src/libs/ui -B build/ui-host -G Ninja -DCMAKE_BUILD_TYPE=Release
+          tools/ccache/warmth begin build/ui-host
+          cmake --build build/ui-host --parallel
+          STORM_ALLOW_COLD_BUILD="CI runner, the restored cache may predate this commit" tools/ccache/warmth end build/ui-host
+          ctest --test-dir build/ui-host --output-on-failure
+
+  required:
+    name: Required checks
+    needs: [changes, workflows, app, engine, engine-ui]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless every job passed or was skipped for unchanged paths
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          # "changes" itself must succeed: a failed path sort skips every job after it.
+          echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null

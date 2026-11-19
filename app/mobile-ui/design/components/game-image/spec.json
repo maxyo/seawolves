@@ -1,0 +1,21 @@
+{
+  "tag": "c-game-image",
+  "props": {
+    "kind": {"type": "enum", "options": ["portrait", "item", "emblem"], "default": "portrait"},
+    "texture": {"type": "text", "default": ""},
+    "cell": {"type": "int", "default": 0},
+    "uv": {"type": "text", "default": ""},
+    "size": {"type": "int", "default": 0},
+    "label": {"type": "text", "default": ""},
+    "icon": {"type": "text", "default": "chest"},
+    "round": {"type": "bool", "default": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "selected": {"type": "bool", "default": false},
+    "disabled": {"type": "bool", "default": false}
+  },
+  "constants": {
+    "size": {"portrait": 64, "item": 64, "emblem": 72},
+    "emblemAspect": 1.15,
+    "iconRatio": 0.56
+  }
+}

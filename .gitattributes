@@ -1,0 +1,2 @@
+# Script patches are byte-exact diffs of CRLF game scripts: never convert line ends.
+*.patch -text

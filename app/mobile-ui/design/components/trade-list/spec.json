@@ -1,0 +1,39 @@
+{
+  "tag": "c-trade-list",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "labelIcon": {"type": "text", "default": "chest"},
+    "cols": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": []},
+    "deal": {"type": "json", "default": null},
+    "dense": {"type": "bool", "default": false},
+    "dock": {"type": "bool", "default": false},
+    "rowTap": {"type": "bool", "default": true, "doc": "false: the rows only show something (a recipe's components): no tap, no press feedback"},
+    "filters": {"type": "json", "default": []},
+    "quick": {"type": "text", "default": ""}
+  },
+  "classes": {
+    "prices": "len(cols) > 3"
+  },
+  "behaviors": ["press", "columns", "reveal"],
+  "constants": {
+    "pressRoot": false,
+    "row": @{size.rowTrade},
+    "rowDense": @{size.row},
+    "pictureDense": 32,
+    "quickHit": @{size.touchMin},
+    "dockMin": 300,
+    "dockNarrow": 264,
+    "narrowBelow": 700,
+    "compactBelow": 820,
+    "shortBelow": 380,
+    "dockMax": 360,
+    "picture": @{size.tokenSm},
+    "icon": @{size.iconGlyph},
+    "font": {"name": @{type.name}, "meta": @{type.caption}, "cell": @{type.body}, "cellBold": @{type.name}, "head": @{type.caption}},
+    "gap": 14,
+    "colMin": 56,
+    "padLeft": 14,
+    "padRight": 16
+  }
+}

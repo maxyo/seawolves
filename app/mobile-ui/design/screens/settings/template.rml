@@ -1,0 +1,16 @@
+<c-screen id="header" key="header" title="{{title}}" actions="{{ json(extras.actions) }}">
+<div class="se-rail"><c-panel pad="0" gap="0"><div class="se-rail-in"><c-tabs id="tabs" look="rail" items="{{ json(tabs) }}"/></div></c-panel></div>
+<div class="se-main"><c-panel pad="0" gap="0">
+<div class="se-page"><t-for each="sections" as="s"><div class="se-section">
+<t-if test="s.title"><c-label text="{{s.title}}"/></t-if>
+<div class="se-cols"><t-for each="s.columns" as="c"><div class="se-col">
+<t-if test="c.title"><c-label text="{{c.title}}"/></t-if>
+<t-for each="c.rows" as="r"><t-if test="r.kind == 'action'"><c-button id="{{r.id}}" variant="ghost" icon="{{r.icon}}" label="{{r.title}}"/><t-else/><c-setting id="{{r.id}}" control="{{r.kind}}" label="{{r.label}}" hint="{{opt(r.hint)}}" on="{{ opt(r.on) ? 1 : 0 }}" value="{{ or(r.value, 0) }}" display="{{opt(r.display)}}" options="{{ has(r, 'options') ? json(r.options) : '[]' }}" selected="{{ or(r.selected, 0) }}" stack="{{ opt(r.stack) ? 1 : 0 }}" stretch="{{ opt(r.stack) ? 1 : 0 }}" restart="{{ opt(r.restart) ? 1 : 0 }}" line="{{ r_last ? 0 : 1 }}" disabled="{{ r.disabled ? 1 : 0 }}" reason="{{r.reason}}"/></t-if></t-for>
+</div></t-for></div>
+</div></t-for>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</div>
+<t-if test="done"><div class="screen-bar"><div class="grow"></div><c-button id="done" variant="primary" label="{{done.label}}" disabled="{{ done.disabled ? 1 : 0 }}" reason="{{done.reason}}" busy="{{ done.busy ? 1 : 0 }}" style="width: 150dp"/></div></t-if>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

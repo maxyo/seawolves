@@ -1,0 +1,9 @@
+<div class="tt-shade"></div>
+<nav class="tt-nav" style="right: {{ 36 + safe.right }}dp;">
+<t-if test="primary"><c-button id="{{primary.id}}" variant="primary" size="lg" icon="play" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}"/></t-if>
+<t-for each="buttons" as="b"><c-button id="{{b.id}}" label="{{b.label}}" busy="{{ b.busy ? 1 : 0 }}"/></t-for>
+<t-if test="exit"><c-button id="{{exit.id}}" variant="quiet" label="{{exit.label}}" busy="{{ exit.busy ? 1 : 0 }}"/></t-if>
+</nav>
+<t-if test="about"><div class="tt-about" style="left: {{ 8 + safe.left }}dp; bottom: {{ 2 + safe.bottom }}dp;"><c-button id="{{about.id}}" variant="ghost" size="sm" label="{{about.label}}"/></div></t-if>
+<t-if test="len(extras.actions) > 0"><div class="tt-more"><c-icon-button id="extras-more" icon="more" label="{{ tr('common.other') }}"/></div></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>

@@ -1,0 +1,57 @@
+--- a/PROGRAM/interface/option_sl.c
++++ b/PROGRAM/interface/option_sl.c
+@@ -374,22 +374,42 @@
+ 	}
+ }
+ 
++// Android (no profiles): one set of options, the root "options" file, for the title screen, a new game and
++// every loaded save (LoadGame re-reads it over the save's InterfaceStates).
+ void ReadSavedOptions(ref gopt)
+ {
+-	string sFileName = "options";
+-	if( CheckAttribute(&PlayerProfile,"name") && PlayerProfile.name!="" ) {
+-		sFileName = "save\"+PlayerProfile.name+"\options\options";
+-	}
+-	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_LOADOPTIONS, sFileName, gopt);
+-}
+-
++	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_LOADOPTIONS, "options", gopt);
++	if( !CheckAttribute(gopt,"GlobalOptions") ) MigrateProfileOptions(gopt);
++}
++
++// The game kept a set per profile (save\<profile>\options\options, written in a game) beside the title
++// screen's. Once, the set of the last new game's profile (StartGameParam.PlayerProfile, else the game's
++// default "Player") is laid over the title screen's and becomes the one set.
++void MigrateProfileOptions(ref gopt)
++{
++	string sProfile = "Player";
++	if( CheckAttribute(gopt,"StartGameParam.PlayerProfile") && gopt.StartGameParam.PlayerProfile!="" ) {
++		sProfile = gopt.StartGameParam.PlayerProfile;
++	}
++	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_LOADOPTIONS, "save\"+sProfile+"\options\options", gopt);
++	trace("Options: one set from now on, profile " + sProfile + "'s options (if any) laid over the title screen's");
++	SaveSavedOptions(gopt);
++}
++
++// Keeps the new game's parameters (SaveStartGameParam) that share the file.
+ void SaveSavedOptions(ref gopt)
+ {
+-	string sFileName = "options";
+-	if( CheckAttribute(&PlayerProfile,"name") && PlayerProfile.name!="" ) {
+-		sFileName = "save\"+PlayerProfile.name+"\options\options";
+-	}
+-	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_SAVEOPTIONS, sFileName, gopt);
++	object stored;
++	aref arSrc, arDst;
++	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_LOADOPTIONS, "options", &stored);
++	if( CheckAttribute(&stored,"StartGameParam") ) {
++		makearef(arSrc, stored.StartGameParam);
++		gopt.StartGameParam = "";
++		makearef(arDst, gopt.StartGameParam);
++		CopyAttributes(arDst, arSrc);
++	}
++	gopt.GlobalOptions = true;
++	SendMessage(&GameInterface, "lsa", MSG_INTERFACE_SAVEOPTIONS, "options", gopt);
+ }
+ 
+ void GetControlsOptions(ref optref)

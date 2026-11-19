@@ -1,0 +1,9 @@
+/* s-emblems: a horizontal ribbon of sailcloth swatches; it scrolls by swipe, a fade marks more on the right. */
+s-emblems { display: block; position: relative; width: 100%; }
+s-emblems .se-scroll { overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
+s-emblems scrollbarhorizontal, s-emblems scrollbarhorizontal sliderbar { height: 0dp; min-width: 0dp; background-color: transparent; }
+s-emblems .se-ribbon { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-start; gap: 16dp; padding: 6dp 2dp; }
+s-emblems .se-card { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6dp; padding: 8dp; border: 2dp transparent; }
+s-emblems .se-card.sel { border-color: @{color.brass}; background-color: @{color.brassGlow/.12}; }
+s-emblems .se-cap { height: 22dp; font-size: @{type.caption}dp; color: @{color.brass}; }
+s-emblems .se-fade { position: absolute; top: 0; bottom: 0; right: 0; width: 40dp; decorator: linear-gradient(90deg, @{color.wood/0}, @{color.wood/.95}); }

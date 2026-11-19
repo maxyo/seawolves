@@ -1,0 +1,4 @@
+/* s-actions: bottom action bar; the primary button stays bottom-right. */
+s-actions { display: flex; flex: 0 0 auto; flex-direction: row; align-items: center; gap: @{space.sm}dp; box-sizing: border-box; padding: @{space.sm}dp @{space.md}dp; }
+s-actions .sa-grow { flex: 1 1 0; }
+s-actions c-button { min-width: 120dp; }

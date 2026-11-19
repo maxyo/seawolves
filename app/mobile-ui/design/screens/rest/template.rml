@@ -1,0 +1,3 @@
+<c-dialog id="rest" key="rest" title="{{title}}" closable="1" width="440" actions="{{ json(actions) }}"><c-tabs id="hours" look="segment" stretch="1" items="{{ json(hours) }}"/><t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if></c-dialog>
+<t-if test="len(extras.actions) > 0"><div class="rs-more"><c-icon-button id="extras-more" icon="more" label="{{ tr('common.other') }}"/></div></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>

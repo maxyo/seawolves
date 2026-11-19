@@ -1,0 +1,14 @@
+--- a/PROGRAM/sea_ai/sea.c
++++ b/PROGRAM/sea_ai/sea.c
+@@ -902,7 +902,10 @@
+ 		// Ugeen --> генерация параметров	для спецэнкаунтеров
+ 		if (iEncounterType == ENCOUNTER_TYPE_BARREL || iEncounterType == ENCOUNTER_TYPE_BOAT)
+ 		{	
+-			iFantomIndex = seaFantoms[seaFantomsNum];
++			// The fantom Fantom_GenerateEncounterExt just made is the last one (CreateSeaFantom counted it); the entry
++			// past it is a stale slot of an earlier sea, by now any live character (a quest NPC, ...), which this
++			// would turn into the barrel / boat captain.
++			iFantomIndex = seaFantoms[seaFantomsNum - 1];
+ 			rFantom = &Characters[iFantomIndex];
+ 			rFantom.id = iFantomIndex;
+ 			rFantom.index = iFantomIndex;

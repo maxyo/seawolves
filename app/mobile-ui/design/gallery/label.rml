@@ -1,0 +1,23 @@
+<rml>
+<head>
+<title>Подзаголовок</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Label</div>
+<div class="g-note">дерево: текст + aside · line · без aside · с кнопкой справа</div>
+<div class="g-row g-wood">
+  <div style="width: 320dp"><c-label text="Офицеры на должностях" aside="3 из 9"/></div>
+  <div style="width: 320dp"><c-label text="Офицеры на должностях" aside="3 из 9" line="1"/></div>
+  <div style="width: 320dp"><c-label text="Грузы в трюме"/></div>
+  <div style="width: 320dp"><c-label text="Пассажиры" line="1"><c-button id="l-more" label="ещё 12" variant="ghost" size="sm"/></c-label></div>
+</div>
+<div class="g-note">пергамент</div>
+<div class="g-row g-paper">
+  <div style="width: 320dp"><c-label surface="parchment" text="Вахтенный журнал" aside="7 окт. 1654" line="1"/></div>
+  <div style="width: 320dp"><c-label surface="parchment" text="Вахтенный журнал" aside="7 окт. 1654"/></div>
+</div>
+</div>
+</body>
+</rml>

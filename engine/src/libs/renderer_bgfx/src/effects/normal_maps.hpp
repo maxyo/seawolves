@@ -1,0 +1,242 @@
+// Normal maps for the per-pixel lighting's relief (FX_LIGHT_NORMALMAP, fx/normal_map.hpp, fx/relief_store.hpp).
+//
+// Renderer::TextureLoad reports each texture's name and game file (SetEffectsTextureSource) right after its levels are
+// filled. While kLightingNormalMap is on, fx::ReliefClassifier decides from the path (and, for "bump" names, the
+// pixels) whether the texture gets relief:
+//   * colour textures of the relief classes (every surface the parallax can work on): their maps are made by PBRify's models
+//     in the game process (effects/relief_generator.hpp) the first time a draw that reads the map draws the texture
+//     without one (upload: the draw's own choice of relief, gloss and the characters' relief at the current settings),
+//     into the relief directory, and kept there. A texture that is loaded but not drawn so, is not looked up. Until its
+//     map is ready the texture has no relief; the "effects relief:" line says how many wait.
+//   * grey height ("bump") textures: their values are heights, and a normal derived from their brightness is not used
+//     for shading, so they get no entry and no map (a log line says so). Original RGB normal textures remain available
+//     to the game's own shader bindings.
+// Gloss maps (fx/gloss_map.hpp) follow the same path for the colour textures of a gloss class whose relief class has no
+// height (TexStore::gloss_map): an entry at the load, looked up when a draw with Settings::gloss on reads it,
+// requested from the relief generator (PBRify's roughness network) when the relief directory has none, stored
+// there as EAC RG11 with mips (R the metal mask, G the gloss), read and uploaded when a draw first asks (fading in like
+// the relief).
+// Maps are EAC RG11 with mips, read on a texture worker and uploaded when a draw first needs them (a smaller preset
+// drops their top mips); with the parallax, the cavity or the gloss on, the colour textures' material texture (EAC RG11:
+// R height, G gloss; the same mips, in the same file) is uploaded beside them. A texture whose relief class has a height
+// takes its gloss from that material, not from a gloss map of its own. The relief fades in over kReliefFade. Turning the option off releases them. Every texture of
+// a relief class gets its entry when it is loaded, relief on or off; it is looked up (and requested) only when a draw
+// reads it. A new scene (begin_scene) or settings that change which draws read the maps forget which textures were
+// drawn so and drop the generator's queue: the next draws ask again. One line per scene says what was looked up.
+#pragma once
+
+#include "effects/generation_priority.hpp"
+
+#include "storm/fx/gloss_map.hpp"
+#include "storm/fx/normal_map.hpp"
+#include "storm/fx/parallax_exclusions.hpp"
+
+#include <bgfx/bgfx.h>
+
+#include "storm_render_types.h"
+
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <span>
+#include <string>
+#include <vector>
+
+namespace storm::fx
+{
+class Lighting;
+}
+namespace storm::texture { struct CacheTask; }
+namespace storm::shim
+{
+struct TexStore;
+}
+
+namespace storm::effects
+{
+
+struct ReliefSetup;
+// The relief directory and the generator's model (render::ConfigureRelief). An empty directory: no relief at all
+// (logged once).
+void ConfigureRelief(ReliefSetup setup);
+
+// The parallax's exclusion lists (fx/parallax_exclusions.hpp): the shipped one, and the user's file `user_file` (empty: none).
+// Both are loaded and logged here; the debug view's toggles write the user file. Before the first texture is loaded.
+void ConfigureParallaxExclusions(const std::filesystem::path &user_file);
+// What the debug view shows for a texture by its normalized name: whether it draws with the parallax, and why not.
+struct ParallaxInfo
+{
+    bool found = false;           // a relief texture of that name is loaded
+    bool uploaded = false;        // its maps are on the GPU
+    bool parallax = false;        // it draws with the parallax
+    float coverage = 1.0f;        // the share of trusted texels
+    int trust_width = 0, trust_height = 0;
+    std::vector<uint8_t> trust;   // its mask (R8, 255 trusted)
+    const char *reason = "";      // when no parallax: why
+};
+inline constexpr std::chrono::milliseconds kReliefFade{300};
+
+// One texture's normal map (TexStore::normal_map) or gloss map (TexStore::gloss_map: `gloss` is not None), owned by its
+// TexStore.
+struct NormalMapEntry
+{
+    enum State : int
+    {
+        Unqueued, // not looked up (yet, or again): no draw has read it, its request was dropped (a new scene, the
+                  // settings), or its map left the cache since: the next draw that reads it looks it up
+        Pending,  // on a texture worker (being looked up, read or derived)
+        Stored,   // in the relief directory
+        Waiting,  // a colour texture whose map (or gloss map) the relief generator is making
+        Missing,  // a colour texture without a map that will not get one: the generator is unavailable (logged)
+        Derived,  // `map` is ready for the upload
+        Uploaded, // `handle` is valid
+        Failed,
+    };
+    GenerationPriority priority; // nearest player distance across observed instances
+    GenerationScreenSize screen; // projected size ×3 on characters; only breaks equal fresh distance ranks
+    uint16_t queued_scene = 0;
+    uint64_t queued_after = 0; // generator admission counter, under its queue mutex
+    std::atomic<int> state{Unqueued};
+    std::shared_ptr<texture::CacheTask> cache_task; // game thread; queued task retains its own ticket
+    std::atomic<bool> wanted{false}; // a draw asked for it: the worker keeps the map in memory for the upload
+    std::atomic<uint32_t> drawn{0};  // the frame a draw that reads it last asked for it, 0: none in this scene since the
+                                     // settings changed (the generator makes those on screen first)
+    std::string name;                // normalized texture path, for the logs
+    fx::ReliefClass relief = fx::ReliefClass::None;
+    fx::GlossClass gloss = fx::GlossClass::None; // a gloss map's class
+    fx::GlossClass material_gloss = fx::GlossClass::None; // a relief map's: the gloss class of its material's G
+    uint64_t key = 0;     // fx::ReliefKey
+    std::filesystem::path file; // the game file the texture was loaded from (the generator and the derivation read it)
+    fx::NormalMap map;    // written by the worker before `state` becomes Derived
+    bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle material = BGFX_INVALID_HANDLE; // the uploaded material texture (R height, G gloss)
+    float depth = 0.0f;     // the height's 0..1 span in texels of the uploaded top mip
+    float trust_coverage = 1.0f; // the share of trusted texels (fx/parallax_trust.hpp)
+    std::vector<uint8_t> trust;  // the mask at a quarter of the map's size, for the debug view
+    int trust_width = 0, trust_height = 0;
+    int width = 0, height_texels = 0; // the uploaded top mip
+    size_t bytes = 0; // of the uploaded textures
+    size_t material_bytes = 0; // of them the material's
+    std::chrono::steady_clock::time_point uploaded{}; // its relief fades in from here
+    bool failure_reported = false;
+    bool no_height_reported = false;
+    ~NormalMapEntry();
+};
+
+class NormalMaps
+{
+  public:
+    // `max_size`: larger side of the uploaded top mip (Settings::normal_map_size); `material`: the material textures are
+    // uploaded too (the parallax, the cavity or the gloss reads them); `characters`: the characters' draws read their
+    // relief and gloss (Settings::character_relief). Turning the option off or changing the size or `material` releases
+    // the uploaded maps; they come back from the relief directory when drawn again. A change of what the draws read
+    // (`enabled`, `characters`, or the gloss) drops the generator's queue: the next draws that read a map ask again.
+    void configure(bool enabled, int max_size, bool material, bool characters);
+    // Main thread, a new scene (render::BeginScenePipelines): logs what the previous scene looked up and why, forgets
+    // which textures were drawn and drops the generator's queue (the new scene's draws ask for theirs).
+    void begin_scene(const char *scene);
+    // Main thread, right after the texture's levels were filled. `file`: the game file it was read from.
+    void on_texture_loaded(shim::TexStore &store, const char *path, const std::filesystem::path &file);
+    // The uploaded map of the texture, or invalid: no relief for it, its map still being made, read or derived (relief
+    // appears later), or failed (logged). `fade`: 0..1, the share of its relief while it fades in.
+    struct Relief
+    {
+        bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
+        float fade = 0.0f;
+        bgfx::TextureHandle material = BGFX_INVALID_HANDLE; // the material texture, for a class with a height
+        float depth = 0.0f;                                 // its height's span in texels of the top mip
+        bool parallax = true;                               // the parallax draws (trust coverage, exclusion lists)
+        int width = 0, height_texels = 0;                 // the top mip
+    };
+    Relief handle(shim::TexStore &store, fx::Lighting &lighting);
+    struct Selection
+    {
+        Relief map;
+        const NormalMapEntry *entry = nullptr;
+        int stage = -1;
+    };
+    // Enabled stages only (disabled stages are null). A pending/failed detail map cannot hide a ready colour map.
+    // If neither is ready, retain the preferred entry so the probe can explain the missing relief.
+    Selection select(shim::TexStore *colour, shim::TexStore *detail, fx::Lighting &lighting);
+
+    // Gloss maps: as configure() and handle(), for Settings::gloss and Settings::gloss_map_size.
+    void configure_gloss(bool enabled, int max_size);
+    Relief gloss(shim::TexStore &store, fx::Lighting &lighting);
+
+    // The debug view (render::ParallaxProbe): a loaded relief texture by its normalized name; and the user's toggle of its
+    // parallax, which appends the choice to the user file and logs it (false: the file cannot be written).
+    ParallaxInfo parallax_info(const std::string &name);
+    bool toggle_parallax(const std::string &name, bool &parallax_now);
+
+    struct Stats
+    {
+        uint32_t resident = 0;  // uploaded maps
+        size_t bytes = 0;       // their GPU memory (with the materials)
+        uint32_t materials = 0; // of them with a material texture uploaded
+        size_t material_bytes = 0;
+        uint32_t unqueued = 0;  // loaded, not looked up (no draw read them, or their request was dropped)
+        uint32_t waiting = 0;   // loaded colour textures of a relief class whose map is being made
+        uint32_t missing = 0;   // loaded colour textures of a relief class that get no map (generator unavailable)
+        uint32_t gloss_resident = 0, gloss_unqueued = 0, gloss_waiting = 0, gloss_missing = 0;
+        size_t gloss_bytes = 0;
+    };
+    Stats stats();
+    // Pump only a current-location texture whose map a draw of this scene has read (drawn): one no draw read is not
+    // applicable (0) and starts nothing. 0 ready/not applicable, 1 pending, 2 retryable producer failure, 3 upload
+    // failure requiring scene reload. Stored is not ready.
+    int prepare_scene(shim::TexStore &store, fx::Lighting &lighting, bool *inference_pending = nullptr);
+    void retry_scene(shim::TexStore &store);
+    // Every few seconds, when the stats changed: one "effects relief:" line.
+    void end_frame();
+
+  private:
+    // The draw takes the parallax: not excluded, and the trust coverage reaches kParallaxMinCoverage.
+    bool parallax_allowed(const NormalMapEntry &entry);
+    void load_exclusions();
+    fx::ParallaxExclusions exclusions_;
+    bool exclusions_loaded_ = false;
+    void release(NormalMapEntry &entry);
+    void read_stored(const std::shared_ptr<NormalMapEntry> &entry);
+    // On a texture worker: Stored when the directory has its map, else requested from the generator.
+    void look_up(const std::shared_ptr<NormalMapEntry> &entry);
+    // The same for a gloss map: Stored, or requested from the generator.
+    void look_up_gloss(const std::shared_ptr<NormalMapEntry> &entry);
+    // `draw`: a draw reads it now (it is marked drawn); else the loading screen pumps one a draw read before.
+    Relief upload(const std::shared_ptr<NormalMapEntry> &entry, fx::Lighting &lighting, int max_size, bool draw = true);
+    bool reads(const NormalMapEntry &entry) const; // its product is on: a draw that asks for it reads it
+    void forget_drawn(const char *why);            // drawn = 0 everywhere, the generator's queue dropped
+    void add_gloss(shim::TexStore &store, const std::string &name, std::span<const uint8_t> probe, uint32_t pw, uint32_t ph,
+                   const std::filesystem::path &file);
+
+    bool enabled_ = false;
+    int max_size_ = 1024;
+    bool material_ = false;
+    bool characters_ = false;
+    // What this scene looked up (look_up / look_up_gloss, counted on the texture workers), for begin_scene's line.
+    struct SceneTally
+    {
+        std::array<std::atomic<uint32_t>, 9> relief_requested{}, relief_stored{}; // by fx::ReliefClass
+        std::atomic<uint32_t> gloss_requested{0}, gloss_stored{0};
+    };
+    std::shared_ptr<SceneTally> tally_ = std::make_shared<SceneTally>();
+    std::string scene_;
+    fx::ReliefClassifier classifier_;
+    bool format_reported_ = false;
+    bool directory_reported_ = false;
+    std::vector<std::weak_ptr<NormalMapEntry>> entries_; // for configure() and stats()
+    bool gloss_enabled_ = false;
+    int gloss_max_size_ = fx::kGlossMapSize;
+    std::vector<std::weak_ptr<NormalMapEntry>> gloss_entries_;
+    std::vector<std::string> gloss_logged_; // names whose gloss class was logged
+    uint32_t frames_ = 0;
+    uint32_t frame_ = 1; // for NormalMapEntry::drawn
+    std::chrono::steady_clock::time_point now_ = std::chrono::steady_clock::now(); // this frame's, for the fade
+    Stats logged_{};
+    uint32_t logged_made_ = 0;
+    std::string logged_device_;
+};
+
+} // namespace storm::effects

@@ -1,0 +1,4 @@
+/* s-hud: the HUD layer over the 3D scene. Children are placed absolutely inside the safe area. */
+s-hud { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; color: @{color.text}; }
+s-hud > .hud { position: absolute; }
+s-hud > .hud > .dim { opacity: @{spec.dimOpacity}; }

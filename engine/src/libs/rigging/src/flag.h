@@ -1,0 +1,172 @@
+#pragma once
+
+#include "renderer.h"
+#include "geos.h"
+#include "storm_glm.h"
+#include "model.h"
+
+#include <filesystem>
+
+#define FLAGLXVERTEX_FORMAT (D3DFVF_XYZ | D3DFVF_TEX1 | D3DFVF_TEXTUREFORMAT2)
+
+struct FLAGLXVERTEX
+{
+    glm::vec3 pos;
+    float tu, tv;
+};
+
+class FLAG : public Entity
+{
+    // parameters obtained from INI file //
+    // texture numbers
+    int ENGLISH_FLAG_TEX;
+    int SPANISH_FLAG_TEX;
+    int FRENCH_FLAG_TEX;
+    int PIRATE_FLAG_TEX;
+
+    float FLAGVECTORLEN; // flag segment length
+    float ALFA_DEPEND;   // the rate of change of the swing angle
+    float BETA_DEPEND;   // rotation rate
+    float ALFA_RAND;     // the maximum value of the random change in the angle Alpha
+    float BETA_RAND;     // the maximum value of the random change in the angle Beta
+    float fWindAm;       // Flag swing amplitude
+    float fRotAm;        // Flag rotation amplitude
+    float DOWNVAL;       // the value of the decrement on Y
+    float fAlfaMax;      // maximum angle (for the end of the flag)
+    float fAlfaStep;
+    float fBetaMax; // maximum angle (for the end of the flag)
+    float fBetaStep;
+    int FlagTextureQuantity;
+    int FlagTextureQuantityRow;
+    float fWindMaxValue;
+    int MinSegmentQuantity;
+
+    bool bUse;
+    bool bFirstRun;
+    bool verticesNeedUpdate_ = true;
+    VRenderer *RenderService;
+    std::string textureName_;
+    int32_t texl;
+
+    struct WIND
+    {
+        float base; // amplitude of wind fluctuations from 0 to 1.0
+        struct
+        {
+            float x, y, z;
+        } ang;
+    };
+
+    WIND globalWind;
+
+  public:
+    FLAG();
+    ~FLAG() override;
+    void SetDevice();
+    bool Init() override;
+    void Execute(uint32_t Delta_Time);
+    void Realize(uint32_t Delta_Time);
+    uint64_t ProcessMessage(MESSAGE &message) override;
+
+    void LoadingPrepare();
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::execute:
+            Execute(delta);
+            break;
+        case Stage::loading_prepare:
+            LoadingPrepare();
+            break;
+        case Stage::loading_realize:
+            Realize(0);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+
+    uint32_t AttributeChanged(ATTRIBUTES *attributes) override;
+
+  private:
+    struct FLAGDATA
+    {
+        uint16_t vectQuant; // number of segmentes(square) into flags
+
+        bool triangle;
+        bool isSpecialFlag;
+        bool isShip;
+
+        glm::vec3 spos;      // start flags position
+        glm::vec3 dv;        // delta flags start position to along
+        glm::vec3 dhv, ddhv; // delta from position to flag top&bottom and delta for this value
+
+        glm::vec3 curpos, dHV;
+        int lineNum;
+        int windIdx, curIdx;
+        bool bDecreaze;
+
+        uint32_t sv, nv; // start vertex into buffer and quantity vertex
+        uint32_t st, nt; // start treangle into buffer and quantity vertex
+
+        int flagNum; // number of flag
+        int grNum;   // number of flag group
+        NODE *nod;
+        glm::mat4 *pMatWorld;
+
+        int texNumC = 0;
+        int texNumR = 0;
+
+        FLAGDATA *next;
+
+        float Alfa;
+        float Beta;
+
+        int HostGroup;
+        bool bDeleted;
+        bool bDisabled = false;
+    };
+
+    int flagQuantity;
+    FLAGDATA **flist;
+
+    struct GROUPDATA
+    {
+        int nation;
+        entid_t model_id;
+        bool bDeleted;
+        bool isShip;
+        entid_t ship_id{};
+        ATTRIBUTES *char_attributes = nullptr;
+    };
+
+    int groupQuantity;
+    GROUPDATA *gdata;
+
+    void FirstRun();
+    void SetTextureCoordinate();
+    void SetTreangle() const;
+    void DoMove(FLAGDATA *pr, float delta_time) const;
+    void AddLabel(GEOS::LABEL &gl, NODE *nod, bool isSpecialFlag, bool isShip, int groupNumber);
+    void SetAll();
+    void LoadIni();
+    void GroupSTORM_DELETE(entid_t m_id);
+    void DoSTORM_DELETE();
+    void SetAdd(int flagNum);
+    void ResolveTextures(int group);
+    void MoveOtherHost(entid_t newm_id, int32_t flagNum, entid_t oldm_id);
+    void UpdateTexture(const std::string_view &texturePath);
+
+    FLAGLXVERTEX *vertBuf;
+    uint16_t *indxBuf;
+
+    glm::mat4 rootMatrix;
+
+    int32_t vBuf, iBuf;
+    uint32_t nVert, nIndx;
+    bool bYesDeleted;
+    int wFlagLast;
+};

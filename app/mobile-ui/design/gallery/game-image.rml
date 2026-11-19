@@ -1,0 +1,41 @@
+<rml>
+<head>
+<title>Игровое изображение</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-GameImage</div>
+<div class="g-note">Слот настоящей игровой картинки: без файлов игры виден нейтральный держатель места</div>
+<div class="g-row g-wood" style="align-items: center">
+  <c-game-image kind="portrait" texture="INTERFACES/PORTRAITS/128/face_201" size="56" label="Шарль де Мор"/>
+  <c-game-image kind="portrait" round="1" texture="INTERFACES/PORTRAITS/128/face_220" size="56" label="Лонгвэй"/>
+  <c-game-image kind="item" texture="INTERFACES/items6" cell="8" icon="pistol" size="56" label="Строевой пистоль"/>
+  <c-game-image kind="item" texture="INTERFACES/items19" cell="1" icon="potion" size="56" selected="1" label="Лечебное зелье"/>
+  <c-game-image kind="emblem" texture="Ships/Gerald/fra_1" size="64" label="Герб Франции"/>
+  <c-game-image kind="emblem" texture="Ships/Gerald/fra_1" size="64" selected="1" label="Герб Франции"/>
+  <c-game-image kind="portrait" texture="INTERFACES/PORTRAITS/128/face_205" selected="1" label="Тичингиту"/>
+</div>
+<div class="g-note">Без текстуры (всегда держатель места), размеры 40 / 64 / 72, disabled</div>
+<div class="g-row g-wood" style="align-items: center">
+  <c-game-image kind="portrait" size="40"/>
+  <c-game-image kind="portrait" round="1" size="40"/>
+  <c-game-image kind="item" icon="sabre" size="40"/>
+  <c-game-image kind="portrait"/>
+  <c-game-image kind="item" icon="spyglass"/>
+  <c-game-image kind="emblem"/>
+  <c-game-image kind="portrait" disabled="1"/>
+  <c-game-image kind="item" icon="pistol" disabled="1"/>
+  <c-game-image kind="portrait" texture="INTERFACES/PORTRAITS/128/face_201" disabled="1"/>
+</div>
+<div class="g-row g-paper" style="align-items: center">
+  <c-game-image kind="portrait" surface="parchment" texture="INTERFACES/PORTRAITS/128/face_201" size="56"/>
+  <c-game-image kind="portrait" surface="parchment" round="1" size="56"/>
+  <c-game-image kind="item" surface="parchment" texture="INTERFACES/items6" cell="8" icon="pistol" size="56"/>
+  <c-game-image kind="item" surface="parchment" icon="potion" size="56" selected="1"/>
+  <c-game-image kind="emblem" surface="parchment" size="64"/>
+  <c-game-image kind="item" surface="parchment" icon="chest" size="56" disabled="1"/>
+</div>
+</div>
+</body>
+</rml>

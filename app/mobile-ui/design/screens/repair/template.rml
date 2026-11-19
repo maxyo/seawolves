@@ -1,0 +1,15 @@
+<c-screen id="header" key="header" title="{{title}}" subject="{{ json(subject) }}" actions="{{ json(extras.actions) }}">
+<div class="rp-main"><c-panel pad="0" gap="0" style="width: 100%; height: 100%">
+<div class="rp-parts"><t-for each="parts" as="p"><div class="rp-part{{ p.disabled ? ' off' : '' }}">
+<div class="rp-name"><c-icon icon="{{p.icon}}" size="28" tone="brass"/><div class="rp-words"><div class="rp-title">{{p.label}}</div><div class="rp-now">{{p.now}}</div></div></div>
+<div class="rp-q"><c-quantity id="{{p.id}}" props="{{ json(p.q) }}" style="width: 100%"/></div>
+<div class="rp-need{{ p.short ? ' short' : '' }}">{{p.need}}</div>
+</div></t-for></div>
+<t-if test="extras.note"><div class="rp-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+<div class="screen-bar"><t-for each="stock" as="s"><div class="rp-stock"><c-icon icon="{{s.icon}}" size="24" tone="brass"/><div class="rp-stock-text">{{s.label}} {{s.value}}</div></div></t-for>
+<div class="grow"></div>
+<t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="quiet" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}"/></t-for>
+<t-if test="primary"><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}" style="width: 220dp"/></t-if></div>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

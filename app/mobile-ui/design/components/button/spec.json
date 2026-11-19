@@ -1,0 +1,31 @@
+{
+  "tag": "c-button",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "variant": {"type": "enum", "options": ["primary", "secondary", "quiet", "danger", "ghost"], "default": "secondary"},
+    "size": {"type": "enum", "options": ["sm", "md", "lg", "tile"], "default": "md"},
+    "icon": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "disabled": {"type": "bool", "default": false},
+    "reason": {"type": "text", "default": ""},
+    "showReason": {"type": "bool", "default": false, "class": false},
+    "pressed": {"type": "bool", "default": false, "class": false},
+    "busy": {"type": "bool", "default": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "hold": {"type": "bool", "default": false},
+    "holdProgress": {"type": "number", "default": 0},
+    "shake": {"type": "bool", "default": false}
+  },
+  "classes": {
+    "pressed": "(pressed || (hold && holdProgress > 0 && holdProgress < 100)) && !disabled",
+    "done": "hold && !disabled && holdProgress >= 100"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "height": {"sm": @{size.buttonSm}, "md": @{size.buttonMd}, "lg": @{size.buttonLg}, "tile": @{size.buttonTile}},
+    "touch": @{size.touch},
+    "font": {"sm": @{type.body}, "md": @{type.body}, "lg": @{type.name}, "tile": @{type.body}},
+    "holdMode": "confirm",
+    "tileLines": 2
+  }
+}

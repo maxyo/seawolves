@@ -1,0 +1,14 @@
+{
+  "tag": "c-kv",
+  "props": {
+    "items": {"type": "json", "default": [], "doc": "[{k, v, tone?, d?, dTone?}]: d is a difference shown beside the value (+N / −N), dTone ok|danger colours it"},
+    "cols": {"type": "enum", "options": [1, 2], "default": 1},
+    "size": {"type": "enum", "options": [13, 15], "default": 13},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
+  },
+  "constants": {
+    "font": {"13": @{type.caption}, "15": @{type.body}},
+    "columnGap": @{space.lg},
+    "rowGap": @{space.xs}
+  }
+}

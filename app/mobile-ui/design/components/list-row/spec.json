@@ -1,0 +1,50 @@
+{
+  "tag": "c-list-row",
+  "props": {
+    "icon": {"type": "text", "default": ""},
+    "image": {"type": "json", "default": null},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "title": {"type": "text", "default": ""},
+    "meta": {"type": "text", "default": ""},
+    "metaTone": {"type": "enum", "options": ["", "ok", "danger", "dim", "gold"], "default": "", "class": false},
+    "showReason": {"type": "bool", "default": false, "class": false},
+    "value": {"type": "text", "default": ""},
+    "valueTone": {"type": "enum", "options": ["", "ok", "danger", "dim", "gold"], "default": "", "class": false},
+    "index": {"type": "text", "default": ""},
+    "dense": {"type": "bool", "default": false},
+    "selected": {"type": "bool", "default": false},
+    "inert": {"type": "bool", "default": false, "doc": "the row only shows something: no tap of its own, no press feedback; its action, menu and slotted controls still take taps"},
+    "disabled": {"type": "bool", "default": false},
+    "reason": {"type": "text", "default": ""},
+    "hold": {"type": "bool", "default": false, "class": false},
+    "tip": {"type": "text", "default": ""},
+    "tipPlace": {"type": "enum", "options": ["above", "below"], "default": "above", "class": false},
+    "pressed": {"type": "bool", "default": false, "class": false},
+    "busy": {"type": "bool", "default": false},
+    "chevron": {"type": "bool", "default": false, "class": false},
+    "menu": {"type": "bool", "default": false, "class": false},
+    "action": {"type": "text", "default": ""},
+    "actionLabel": {"type": "text", "default": ""},
+    "progress": {"type": "number", "default": 0},
+    "cooldown": {"type": "number", "default": 0},
+    "wrap": {"type": "bool", "default": false, "class": false},
+    "lines": {"type": "int", "default": 0},
+    "layout": {"type": "enum", "options": ["row", "tile"], "default": "row"}
+  },
+  "classes": {
+    "pressed": "pressed && !disabled",
+    "clamp": "lines != 0 || wrap"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "holdMode": "tooltip",
+    "height": {"row": @{size.rowTrade}, "dense": @{size.row}, "tile": 64},
+    "token": {"row": @{size.tokenSm}, "tile": 32},
+    "icon": {"row": 24, "tile": 28, "action": @{size.iconGlyph}, "menu": 24, "chevron": 18},
+    "hit": @{size.touch},
+    "font": {"title": @{type.body}, "meta": @{type.caption}, "value": @{type.body}},
+    "titleLine": 1.3,
+    "wrapLines": 3,
+    "progressWidth": 96
+  }
+}

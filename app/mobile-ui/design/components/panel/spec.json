@@ -1,0 +1,18 @@
+{
+  "tag": "c-panel",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "caps": {"type": "bool", "default": false, "class": false},
+    "pad": {"type": "bool", "default": true},
+    "gap": {"type": "int", "default": @{space.md}},
+    "fade": {"type": "bool", "default": false, "class": false},
+    "tone": {"type": "enum", "options": ["wood", "parchment", "glass", "veil"], "default": "wood"},
+    "framed": {"type": "bool", "default": false},
+    "aged": {"type": "bool", "default": false, "class": false},
+    "edge": {"type": "bool", "default": false},
+    "seed": {"type": "int", "default": 11}
+  },
+  "classes": {
+    "aged": "aged && tone == 'parchment'"
+  }
+}

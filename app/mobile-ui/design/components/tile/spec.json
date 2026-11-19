@@ -1,0 +1,26 @@
+{
+  "tag": "c-tile",
+  "props": {
+    "icon": {"type": "text", "default": ""},
+    "label": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "selected": {"type": "bool", "default": false},
+    "disabled": {"type": "bool", "default": false},
+    "empty": {"type": "bool", "default": false},
+    "layout": {"type": "enum", "options": ["row", "column"], "default": "row"},
+    "size": {"type": "int", "default": 32},
+    "image": {"type": "json", "default": null},
+    "reason": {"type": "text", "default": ""},
+    "pressed": {"type": "bool", "default": false, "class": false}
+  },
+  "classes": {
+    "pressed": "pressed && !disabled"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "minHeight": 56,
+    "font": {"label": @{type.body}, "sub": @{type.caption}},
+    "imageExtra": 4,
+    "labelLines": 2
+  }
+}

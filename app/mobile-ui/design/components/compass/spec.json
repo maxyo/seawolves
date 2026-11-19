@@ -1,0 +1,34 @@
+{
+  "tag": "c-compass",
+  "props": {
+    "date": {"type": "text", "default": ""},
+    "time": {"type": "text", "default": ""},
+    "course": {"type": "number", "default": 0},
+    "windFrom": {"type": "number", "default": 0},
+    "wind": {"type": "number", "default": 0},
+    "sky": {"type": "enum", "options": ["none", "sun", "moon"], "default": "none"},
+    "skyAt": {"type": "number", "default": 0},
+    "moon": {"type": "int", "default": 4},
+    "weather": {"type": "enum", "options": ["none", "clear", "clouds", "rain", "storm", "tornado"], "default": "none"},
+    "days": {"type": "text", "default": ""},
+    "daysTone": {"type": "enum", "options": ["normal", "danger"], "default": "normal"},
+    "expanded": {"type": "bool", "default": false},
+    "label": {"type": "text", "default": ""}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "width": 160,
+    "rose": 88,
+    "ticks": [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+    "needle": {"tip": 27.26, "half": 3.27, "tail": 13.2},
+    "orbit": 52,
+    "dome": [-90, -60, -30, 0, 30, 60, 90],
+    "body": 24,
+    "weather": 24,
+    "sky": 20,
+    "windHead": 8.85,
+    "windScale": 0.3866,
+    "font": {"date": @{type.caption}, "days": @{type.body}, "rose": 11}
+  }
+}

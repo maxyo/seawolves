@@ -1,0 +1,24 @@
+--- a/PROGRAM/reload.c
++++ b/PROGRAM/reload.c
+@@ -83,6 +83,12 @@
+ // boal 03.10.06 блок предыстории
+ bool LoadMainCharacterInFirstLocationGroup(string location_id, string sGroup, string emerge_locator)
+ {
++	return LoadMainCharacterInFirstLocationGroupPrepared(location_id, sGroup, emerge_locator, true);
++}
++
++// The caller may finish constructing its initial world before completing loading.
++bool LoadMainCharacterInFirstLocationGroupPrepared(string location_id, string sGroup, string emerge_locator, bool finishLoading)
++{
+ 	int lindex;
+ 	ReloadProgressStart();
+ 	//Find location
+@@ -103,7 +109,7 @@
+ 	LoadLocation(&Locations[lindex]);
+ 	//Fader
+ 	PostEvent("LoadSceneSound", 500);
+-	ReloadProgressEnd();
++	if (finishLoading) ReloadProgressEnd();
+ 	return true;
+ }
+ 

@@ -1,0 +1,23 @@
+{
+  "look": "Regarder : glisser à droite",
+  "download_title": "Téléchargements",
+  "download_working": "Préparation des fichiers…",
+  "download_magnet_set": "Téléchargement par lien",
+  "download_pause": "Pause",
+  "download_error": "Erreur",
+  "download_copying": "Copie en cours",
+  "download_inspecting": "Vérification en cours",
+  "download_metadata": "Recherche du contenu",
+  "download_checking": "Vérification des fichiers",
+  "download_awaiting_selection": "Choisissez les fichiers",
+  "download_downloading": "Téléchargement en cours",
+  "download_pausing": "Mise en pause",
+  "download_paused": "En pause",
+  "download_complete": "Téléchargé",
+  "download_interrupted": "Interrompu, vous pouvez reprendre",
+  "download_ready_to_import": "Téléchargé, prêt à installer",
+  "graphics_preset_measured": "Graphismes : %s — choisis pour cet appareil",
+  "settings_not_saved": "Les réglages graphiques n'ont pas été enregistrés",
+  "cache_clear_not_marked": "Impossible de marquer le cache pour le vider",
+  "interface_error": "Erreur de l'interface"
+}

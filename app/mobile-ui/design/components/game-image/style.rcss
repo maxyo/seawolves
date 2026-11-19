@@ -1,0 +1,53 @@
+/* C-GameImage: the slot of a real game picture. The placeholder (frame, hatch, faint
+   silhouette) is drawn here; ui-game-image covers it once the picture is decoded from the
+   player's game files and marks .gi-box with `has-image` (or `image-missing` when it
+   cannot be had). No game picture is ever stored. */
+c-game-image { display: inline-block; flex: 0 0 auto; line-height: 0; vertical-align: middle; }
+c-game-image .gi-box {
+    position: relative; box-sizing: border-box; overflow: hidden; border-radius: 2dp;
+    border: 1dp @{color.brassLine/.55};
+    decorator: linear-gradient(160deg, @{color.slotTop}, @{color.slotLow});
+    box-shadow: @{color.black/.35} 0 1dp 3dp 0;
+}
+c-game-image .gi-hatch { position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    decorator: repeating-linear-gradient(135deg, @{color.white/.035} 0dp, @{color.white/.035} 6dp, @{color.white/0} 6dp, @{color.white/0} 12dp);
+    box-shadow: @{color.black/.35} 0 0 0 1dp inset; }
+c-game-image .gi-sil { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+c-game-image .gi-sil .gi-head, c-game-image .gi-sil .gi-bust { position: absolute; background-color: @{color.brassLine/.2}; }
+c-game-image .gi-box.has-image .gi-sil, c-game-image .gi-box.has-image .gi-hatch, c-game-image .gi-box.has-image .gi-inline { display: none; }
+/* the picture could not be had (logged with texture, cell and reason): red frame and
+   red hatching, unlike the neutral loading placeholder */
+c-game-image .gi-box.image-missing { border: 1dp @{color.dangerFill}; }
+c-game-image .gi-box.image-missing .gi-hatch { decorator: repeating-linear-gradient(135deg, @{color.dangerFill/.3} 0dp, @{color.dangerFill/.3} 3dp, @{color.dangerFill/0} 3dp, @{color.dangerFill/0} 9dp); }
+
+c-game-image.surface-parchment .gi-box { border-color: @{color.inkMuted/.6}; decorator: linear-gradient(160deg, @{color.slotPaperTop}, @{color.slotPaperLow}); }
+c-game-image.surface-parchment .gi-sil .gi-head, c-game-image.surface-parchment .gi-sil .gi-bust { background-color: @{color.paperGlyph/.22}; }
+
+/* item: the game's square atlas cell */
+c-game-image.kind-item .gi-box { decorator: linear-gradient(160deg, @{color.atlasTop}, @{color.atlasLow}); }
+c-game-image.kind-item.surface-parchment .gi-box { decorator: linear-gradient(160deg, @{color.atlasPaperTop}, @{color.atlasPaperLow}); }
+c-game-image .gi-inline { position: absolute; left: 2dp; top: 2dp; right: 2dp; bottom: 2dp; box-sizing: border-box; border: 1dp @{color.black/.3}; }
+/* the faint item glyph is ink in grey: the grey is baked (|gray), not a grayscale filter (an offscreen layer per slot every frame) */
+c-game-image .gi-sil.item { display: flex; align-items: center; justify-content: center; opacity: 0.32; }
+c-game-image .gi-sil.item ui-icon { color: @{color.ink|gray}; }
+
+/* emblem: sail cloth with a slightly curved bottom edge */
+c-game-image.kind-emblem .gi-box { overflow: visible; border-width: 0; border-radius: 0; decorator: none; box-shadow: none; }
+c-game-image .gi-cloth { position: absolute; left: 0; top: 0; right: 0; bottom: 12%; box-sizing: border-box;
+    border-left: 1dp @{color.brassLine/.55}; border-right: 1dp @{color.brassLine/.55}; border-top: 1dp @{color.brassLine/.55};
+    border-top-left-radius: 3dp; border-top-right-radius: 3dp;
+    decorator: linear-gradient(90deg, @{color.black/.08}, @{color.black/0} 18%, @{color.black/0} 82%, @{color.black/.08}), linear-gradient(180deg, @{color.sailclothTop}, @{color.sailcloth});
+    box-shadow: @{color.black/.4} 0 2dp 5dp 0; }
+c-game-image .gi-hem { position: absolute; left: 0; right: 0; bottom: 0; height: 12%;
+    decorator: radial-gradient(ellipse 50% 100% at 50% 0%, @{color.sailcloth} 0%, @{color.sailclothHem} 90%, @{color.brassLine/.55} 90%, @{color.brassLine/.55} 100%, @{color.brassLine/0} 100%); }
+c-game-image .gi-sil .gi-mark { position: absolute; box-sizing: border-box; border: 2dp @{color.sailclothMark/.278}; transform: rotate(45deg); }
+c-game-image .gi-sil .gi-dot { position: absolute; background-color: @{color.sailclothMark/.278}; }
+
+c-game-image.selected .gi-box { border: 2dp @{color.brass}; }
+c-game-image.kind-emblem.selected .gi-box { border-width: 0; }
+c-game-image.selected .gi-cloth { border-left: 2dp @{color.brass}; border-right: 2dp @{color.brass}; border-top: 2dp @{color.brass}; }
+c-game-image.disabled { opacity: 0.45; filter: grayscale(0.7); }
+c-game-image.selected .gi-hem { decorator: radial-gradient(ellipse 50% 100% at 50% 0%, @{color.sailcloth} 0%, @{color.sailclothHem} 84%, @{color.brass} 84%, @{color.brass} 100%, @{color.brass/0} 100%); }
+c-game-image .gi-box.image-missing .gi-cloth { border-left-color: @{color.dangerFill}; border-right-color: @{color.dangerFill}; border-top-color: @{color.dangerFill}; }
+c-game-image .gi-box.image-missing .gi-sil .gi-mark { border-color: @{color.dangerFill/.6}; }
+c-game-image .gi-box.image-missing .gi-sil .gi-dot { background-color: @{color.dangerFill/.6}; }

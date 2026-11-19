@@ -1,0 +1,76 @@
+/* C-Button. Only brass (primary) has a gradient; danger is sealing wax. */
+@keyframes c-button-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+c-button {
+    position: relative; display: flex; flex-direction: row; align-items: center; justify-content: center;
+    box-sizing: border-box; height: @{spec.height.md}dp; padding: 0 16dp; gap: 8dp;
+    font-size: @{spec.font.md}dp; line-height: 1.2; border: 1dp transparent;
+    background-color: @{color.woodRaised}; color: @{color.text};
+    box-shadow: @{color.black/.28} 0 -2dp 0 0 inset;
+}
+c-button.size-sm { height: @{spec.height.sm}dp; font-size: @{spec.font.sm}dp; }
+c-button.size-lg { height: @{spec.height.lg}dp; font-size: @{spec.font.lg}dp; }
+c-button.size-tile { height: @{spec.height.tile}dp; font-size: @{spec.font.tile}dp; }
+/* The touch target is size.touch (48 dp) for every button: md and larger are that tall (what is seen is what
+   is hit); the inline sm keeps its 44 dp face and reaches 48 dp with this invisible band (template). */
+c-button .hit { position: absolute; left: 0; right: 0; }
+c-button .text { display: flex; flex-direction: column; align-items: center; flex: 0 1 auto; min-width: 0; overflow: hidden; }
+c-button .label { white-space: nowrap; }
+/* a tile is a choice in a narrow grid: a long name wraps to two lines and steps down to the smallest type size; only a longer one ends in an ellipsis */
+c-button.size-tile .text { align-items: stretch; }
+c-button.size-tile .label { white-space: normal; text-align: center; line-height: 1.15; }
+c-button.size-tile .sub { text-align: center; }
+c-button .sub { font-size: @{type.caption}dp; font-weight: normal; line-height: 1.12; white-space: nowrap; color: @{color.textSecond}; }
+c-button .sub.reason { font-style: italic; color: @{color.textReason}; }
+c-button .slot { display: inline-block; }
+/* hold to confirm: a fill sweeps across the whole button while the finger stays; released early, the button shakes
+   (an animation, no caption) */
+c-button .hold-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: @{radius.sm}dp; background-color: @{color.flash/.45}; pointer-events: none; }
+c-button.variant-danger .hold-fill { background-color: @{color.onWax/.35}; }
+c-button .spinner { flex: 0 0 auto; box-sizing: border-box; width: 16dp; height: 16dp; border-radius: 8dp; border: 2dp @{color.brass/.25}; border-top-color: @{color.brass}; animation: 0.8s linear infinite c-button-spin; }
+c-button.size-lg .spinner, c-button.size-tile .spinner { width: 20dp; height: 20dp; border-radius: 10dp; }
+
+/* looks */
+c-button.variant-primary { border-color: @{color.brassRim}; decorator: linear-gradient(@{color.brassTop}, @{color.brassMid} 55%, @{color.brassLow}); background-color: transparent; color: @{color.onBrass}; font-weight: bold; box-shadow: none; }
+c-button.variant-primary .sub { color: @{color.onBrassSub}; }
+c-button.variant-primary .spinner { border-color: @{color.onBrass/.25}; border-top-color: @{color.onBrass}; }
+c-button.variant-quiet { background-color: transparent; color: @{color.textSecond}; box-shadow: none; }
+c-button.variant-ghost { border-width: 0; background-color: transparent; color: @{color.brass}; box-shadow: none; font-effect: shadow(0dp 1dp @{color.black}); }
+c-button.variant-danger { border-color: @{color.waxEdge}; background-color: @{color.wax}; color: @{color.onWax}; font-weight: bold; box-shadow: @{color.black/.3} 0 -2dp 0 0 inset; }
+c-button.variant-danger .sub { color: @{color.onWaxSub}; }
+c-button.variant-danger .spinner { border-top-color: @{color.onWax}; }
+
+/* parchment surface */
+c-button.surface-parchment.variant-primary { border-color: @{color.brassRimPaper}; }
+c-button.surface-parchment.variant-secondary { background-color: @{color.inkMuted/.16}; color: @{color.ink}; box-shadow: none; }
+c-button.surface-parchment.variant-quiet { color: @{color.inkMuted}; }
+c-button.surface-parchment.variant-ghost { color: @{color.inkLink}; font-effect: none; }
+c-button.surface-parchment .sub { color: @{color.inkMuted}; }
+c-button.surface-parchment.variant-danger .sub { color: @{color.onWaxSub}; }
+c-button.surface-parchment.variant-primary .sub { color: @{color.onBrassSub}; }
+
+/* pressed (also while the hold ring runs) */
+c-button.pressed { transform: translateY(1dp); background-color: @{color.woodPressed}; box-shadow: @{color.black/.45} 0 2dp 3dp 0 inset; }
+c-button.variant-primary.pressed { decorator: linear-gradient(@{color.brassMid}, @{color.brassLow} 60%, @{color.brassDeep}); background-color: transparent; box-shadow: @{color.black/.45} 0 2dp 4dp 0 inset; }
+c-button.variant-ghost.pressed { color: @{color.textSelected}; background-color: transparent; box-shadow: none; }
+c-button.variant-quiet.pressed { background-color: @{color.woodLight/.08}; color: @{color.text}; box-shadow: none; }
+c-button.variant-danger.pressed { background-color: @{color.waxPressed}; box-shadow: @{color.black/.5} 0 2dp 4dp 0 inset; }
+c-button.surface-parchment.variant-secondary.pressed { background-color: @{color.inkMuted/.28}; box-shadow: @{color.black/.2} 0 2dp 3dp 0 inset; }
+c-button.surface-parchment.variant-ghost.pressed { color: @{color.inkLinkPressed}; }
+c-button.surface-parchment.variant-quiet.pressed { background-color: @{color.inkMuted/.12}; color: @{color.ink}; }
+
+/* hold completed: short flash */
+c-button.done { box-shadow: @{color.ringStart} 0 0 0 2dp, @{color.flash/.75} 0 0 14dp 2dp; background-color: @{color.holdDone}; color: @{color.onWax}; }
+c-button.variant-primary.done { background-color: transparent; color: @{color.onBrass}; }
+c-button.variant-danger.done { background-color: @{color.waxFlash}; }
+
+/* disabled: flat opaque dark, hairline, muted text; the reason is a toast on tap */
+c-button.disabled { border-color: @{color.brassLine/.2}; background-color: @{color.woodDisabled}; decorator: none; color: @{color.textMuted}; font-weight: normal; box-shadow: none; font-effect: none; transform: none; }
+c-button.disabled .sub { color: @{color.textSecond}; }
+c-button.disabled .sub.reason { color: @{color.textReason}; }
+c-button.disabled.variant-quiet, c-button.disabled.variant-ghost { border-color: transparent; background-color: transparent; }
+c-button.surface-parchment.disabled { border-color: transparent; background-color: @{color.inkMuted/.08}; color: @{color.inkDisabled}; }
+c-button.surface-parchment.disabled.variant-quiet, c-button.surface-parchment.disabled.variant-ghost { background-color: transparent; color: @{color.inkDisabledQuiet}; }
+c-button.surface-parchment.disabled .sub { color: @{color.inkMuted}; }
+
+c-button.shake { animation: 0.36s cubic-in-out 2 ui-refused; border-color: @{color.dangerLine}; }

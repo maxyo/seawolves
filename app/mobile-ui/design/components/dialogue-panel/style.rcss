@@ -1,0 +1,31 @@
+/* C-DialoguePanel: the dialogue window on aged parchment. Speaker in the script font (the
+   one exception to the header-only rule), the NPC line in ink read a page at a time
+   (<ui-pages>: mode paged), then the replies with its final page: each in full (wrapped, never cut),
+   in two columns, a lone reply across the whole width (C-ListRow, ids <key>-reply-<i>); replies taller
+   than their share of the panel scroll; «Дальше ›» (id <key>-next) while pages remain: text
+   only, in the speech's ink, bottom right under the speech (as in the original game), a 48 dp hit
+   area, pressed = darker ink and an underline (no fill, no frame).
+   speech / replies show one of the two states. The host gives position and size. */
+c-dialogue-panel { display: block; position: relative; box-sizing: border-box; width: 100%; height: 100%; }
+c-dialogue-panel .dp-head { flex: 0 0 auto; display: flex; flex-direction: column; gap: 1dp; }
+c-dialogue-panel .dp-speaker { font-family: "@{font.script}"; font-size: @{type.speaker}dp; font-weight: normal; line-height: 1.05;
+    color: @{color.inkAged}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+c-dialogue-panel .dp-flourish { width: 150dp; height: 4dp; border-bottom: 1.3dp @{color.penStroke/.549}; border-bottom-right-radius: 150dp 4dp; }
+c-dialogue-panel .dp-body { position: relative; flex: 1 1 0; min-height: 0; }
+/* The page: every line exactly as <ui-pages> measured it. */
+c-dialogue-panel .dp-text { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; white-space: nowrap;
+    font-size: @{type.name}dp; line-height: 26dp; color: @{color.inkAged}; }
+c-dialogue-panel .dp-text.with-next { bottom: @{spec.next.reserve}dp; }
+c-dialogue-panel .dp-replies { position: absolute; left: 0; right: 0; bottom: 0; max-height: 60%; overflow-y: auto;
+    display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-end; padding-top: 4dp; border-top: 1dp @{color.paperRule/.4}; }
+c-dialogue-panel .dp-cell { flex: 0 0 auto; width: 50%; box-sizing: border-box; }
+c-dialogue-panel .dp-cell.left { padding-right: 14dp; }
+c-dialogue-panel .dp-cell.right { padding-left: 14dp; }
+c-dialogue-panel .dp-cell.whole { width: 100%; }
+c-dialogue-panel .dp-next { position: absolute; right: 0; bottom: 0; }
+c-dialogue-panel c-button.dp-next-button.variant-ghost { height: @{spec.next.height}dp; min-width: @{spec.next.height}dp; padding: 0 2dp 0 16dp;
+    font-size: @{type.name}dp; color: @{color.inkAged}; }
+c-dialogue-panel c-button.dp-next-button.variant-ghost.pressed { color: @{color.inkLinkPressed}; text-decoration: underline; transform: none; }
+/* Pages remain: the replies wait (still laid out, so the pager can measure them). */
+c-dialogue-panel ui-pages.more ~ .dp-replies { visibility: hidden; pointer-events: none; }
+c-dialogue-panel ui-pages.last ~ .dp-next { display: none; }

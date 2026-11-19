@@ -1,0 +1,23 @@
+<rml>
+<head>
+<title>Игровая сцена</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Scene</div>
+<div class="g-note">land (по умолчанию) на весь экран с дочерним элементом, затем остальные виды: sea · battle · map · deck · tavern · night · title</div>
+<div style="width: 100vw; height: 100vh; margin: 0 -16dp 12dp -16dp"><c-scene><div style="position: absolute; left: 16dp; bottom: 16dp">land · дочерний HUD-элемент слева внизу</div><div style="position: absolute; right: 16dp; top: 16dp">справа вверху</div></c-scene></div>
+<div class="g-row">
+  <div style="width: 286dp; height: 129dp"><c-scene kind="sea"><div style="position: absolute; left: 8dp; top: 8dp">sea</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="battle"><div style="position: absolute; left: 8dp; top: 8dp">battle</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="map"><div style="position: absolute; left: 8dp; top: 8dp">map</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="deck"><div style="position: absolute; left: 8dp; top: 8dp">deck</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="tavern"><div style="position: absolute; left: 8dp; top: 8dp">tavern</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="night"><div style="position: absolute; left: 8dp; top: 8dp">night</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="title"><div style="position: absolute; left: 8dp; top: 8dp">title</div></c-scene></div>
+  <div style="width: 286dp; height: 129dp"><c-scene kind="land"><div style="position: absolute; left: 8dp; top: 8dp">land</div></c-scene></div>
+</div>
+</div>
+</body>
+</rml>

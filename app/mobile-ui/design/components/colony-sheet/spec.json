@@ -1,0 +1,26 @@
+{
+  "tag": "c-colony-sheet",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "nation": {"type": "text", "default": "nation-france"},
+    "sub": {"type": "text", "default": ""},
+    "closeLabel": {"type": "text", "default": "", "defaultKey": "colony.close"},
+    "tabs": {"type": "json", "default": []},
+    "siege": {"type": "text", "default": ""},
+    "exports": {"type": "json", "default": []},
+    "imports": {"type": "json", "default": []},
+    "facts": {"type": "json", "default": []},
+    "expanded": {"type": "bool", "default": false, "class": false},
+    "date": {"type": "text", "default": ""},
+    "custom": {"type": "bool", "default": false},
+    "key": {"type": "text", "default": "colony"}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "headMin": 56,
+    "token": @{size.tokenSm},
+    "goodsIcon": 18,
+    "font": {"title": @{type.title}, "sub": @{type.caption}, "body": @{type.body}, "small": @{type.caption}}
+  }
+}

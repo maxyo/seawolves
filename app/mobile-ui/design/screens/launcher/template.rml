@@ -1,0 +1,33 @@
+<c-screen id="header" key="header" title="{{title}}" back="{{ back ? 1 : 0 }}" layout="{{ view == 'choose' ? 'row' : 'free' }}" actions="{{ json(actions) }}">
+<t-if test="view == 'setup'"><div class="ln-column">
+<t-for each="notices" as="n"><t-if test="opt(n.dismiss)"><c-notice tone="{{n.tone}}" text="{{n.text}}" style="width: 100%"><c-icon-button id="{{n.dismiss}}" icon="close" label="{{ tr('common.close') }}" look="bare"/></c-notice><t-else/><c-notice tone="{{n.tone}}" lead="{{opt(n.lead)}}" text="{{n.text}}" style="width: 100%"/></t-if></t-for>
+<t-if test="installed"><div class="ln-card"><c-panel pad="0" gap="0"><c-list-row id="installed" inert="1" icon="check" title="{{installed.title}}" meta="{{installed.meta}}"><div class="ln-delete"><c-button id="delete-game" label="{{installed.delete}}" variant="danger" hold="1" size="sm" style="width: 100%"/></div></c-list-row><t-if test="installed.untested"><div class="ln-untested"><c-notice tone="warn" text="{{installed.untested}}" compact="1"/></div></t-if></c-panel></div></t-if>
+<div class="ln-card"><c-panel pad="0" gap="0">
+<div class="ln-prompt">{{setup.prompt}}</div>
+<c-list-row id="folder" icon="load" title="{{setup.folder}}" chevron="1"/>
+<c-list-row id="archive" icon="archive" title="{{setup.archive}}" meta="{{setup.archiveMeta}}" chevron="1"/>
+<div class="ln-links"><c-button id="help" label="{{setup.help}}" variant="ghost" size="sm"/><t-if test="setup.library"><c-button id="library" label="{{setup.library}}" variant="ghost" size="sm" icon="jolly-roger"/></t-if></div>
+</c-panel></div>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</div></t-if>
+<t-if test="view == 'ready'">
+<div class="ln-ready"><t-if test="len(notices) > 0"><div class="ln-notices"><t-for each="notices" as="n"><t-if test="opt(n.dismiss)"><c-notice tone="{{n.tone}}" text="{{n.text}}" style="width: 100%"><c-icon-button id="{{n.dismiss}}" icon="close" label="{{ tr('common.close') }}" look="bare"/></c-notice><t-else/><c-notice tone="{{n.tone}}" lead="{{opt(n.lead)}}" text="{{n.text}}" style="width: 100%"/></t-if></t-for></div></t-if>
+<div class="ln-center"><c-button id="play" label="{{play.label}}" variant="primary" size="lg" icon="play" busy="{{ play.busy ? 1 : 0 }}" style="width: 300dp"/></div></div>
+<div class="ln-corner"><c-button id="files" label="{{files}}" variant="quiet" icon="archive"/></div>
+</t-if>
+<t-if test="view == 'busy'">
+<div class="ln-progress"><c-panel gap="10">
+<div class="ln-line"><div class="ln-name">{{busy.title}}</div><div class="ln-status">{{busy.status}}</div></div>
+<c-bar label="" text="" value="{{ busy.percent >= 0 ? busy.percent : 0 }}" kind="brass" height="8" mode="{{ busy.percent >= 0 ? 'menu' : 'indeterminate' }}" style="width: 100%"/>
+</c-panel></div>
+<t-if test="cancel"><div class="ln-corner bare"><c-button id="cancel" label="{{cancel.label}}" disabled="{{ cancel.disabled ? 1 : 0 }}" busy="{{ cancel.busy ? 1 : 0 }}"/></div></t-if>
+</t-if>
+<t-if test="view == 'choose'"><c-panel pad="0" gap="0">
+<t-if test="choose.untested"><div class="ln-untested top"><c-notice tone="warn" text="{{choose.untested}}" compact="1"/></div></t-if>
+<c-table id="roots" preset="picker" columns="{{ json(choose.columns) }}" rows="{{ json(choose.rows) }}" primary="{{ json(choose.primary) }}" row-height="56" style="width: 100%; flex: 1 1 0; min-height: 0"/>
+</c-panel></t-if>
+<t-if test="password"><c-dialog id="password" key="password" variant="top" preset="confirm" title="{{password.title}}" subtitle="{{password.subtitle}}" confirm="{{password.confirm}}" width="560">
+<c-field id="password-field" label="{{password.label}}" style="width: 100%"/>
+</c-dialog></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

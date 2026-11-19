@@ -1,0 +1,23 @@
+{
+  "look": "Камера: проведите справа",
+  "download_title": "Загрузки",
+  "download_working": "Готовим файлы…",
+  "download_magnet_set": "Загрузка по ссылке",
+  "download_pause": "Пауза",
+  "download_error": "Ошибка",
+  "download_copying": "Копируется",
+  "download_inspecting": "Проверяется",
+  "download_metadata": "Узнаём, что внутри",
+  "download_checking": "Проверка файлов",
+  "download_awaiting_selection": "Выберите файлы",
+  "download_downloading": "Скачивается",
+  "download_pausing": "Ставим на паузу",
+  "download_paused": "На паузе",
+  "download_complete": "Скачано",
+  "download_interrupted": "Прервано, можно продолжить",
+  "download_ready_to_import": "Скачано — можно устанавливать",
+  "graphics_preset_measured": "Графика: %s — подобрана под это устройство",
+  "settings_not_saved": "Настройки графики не сохранены",
+  "cache_clear_not_marked": "Не удалось отметить кэш для очистки",
+  "interface_error": "Ошибка интерфейса"
+}

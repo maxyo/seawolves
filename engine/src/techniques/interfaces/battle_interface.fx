@@ -1,0 +1,357 @@
+technique battle_icons
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_alphacutcolor
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = true;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = diffuse;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_rectangle
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+        addressu[0] = clamp;
+        addressv[0] = clamp;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_msg
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = true;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = modulate;
+        AlphaArg1[0] = texture;
+        AlphaArg2[0] = diffuse;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_tf_rectangle
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = tfactor;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_texure_blend_tf
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = Modulate;
+        AlphaArg1[0] = tfactor;
+        AlphaArg2[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_island
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+// The minimap's land on Android (battle_navigator_android.cpp): the texture's alpha is the
+// smoothed land of the island's depth map; the alpha test at its middle cuts a sharp coast at
+// any zoom from the bilinear field, the colour is the land's.
+technique battle_island_land
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        AlphaBlendEnable = false;
+        AlphaTestEnable = true;
+        AlphaRef = 128;
+        AlphaFunc = greaterequal;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_only_tfactor
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = tfactor;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = tfactor;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_only_color
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = true;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = diffuse;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = diffuse;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_island_gettexture
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = false;
+        ZEnable = true;
+        ColorVertex = true;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_colorRectangle
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = true;
+
+        ColorOp[0] = selectarg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}
+
+technique battle_tex_col_Rectangle
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = false;
+        AlphaBlendEnable = true;
+        ZEnable = false;
+        ColorVertex = true;
+
+        ColorOp[0] = modulate2x;
+        ColorArg1[0] = texture;
+        ColorArg2[0] = diffuse;
+
+        AlphaOp[0] = modulate;
+        AlphaArg1[0] = texture;
+        AlphaArg2[0] = diffuse;
+
+        ColorOp[1] = disable;
+    }
+}
+
+technique battle_shippointer
+{
+    pass p0
+    {
+        CullMode = none;
+        Lighting = false;
+        FogEnable = false;
+        SrcBlend = srcalpha;
+        DestBlend = invsrcalpha;
+        AlphaTestEnable = true;
+        AlphaBlendEnable = true;
+        ZEnable = true;
+        ColorVertex = false;
+
+        ColorOp[0] = SelectArg1;
+        ColorArg1[0] = texture;
+
+        AlphaOp[0] = SelectArg1;
+        AlphaArg1[0] = texture;
+
+        ColorOp[1] = disable;
+        AlphaOp[1] = disable;
+    }
+}

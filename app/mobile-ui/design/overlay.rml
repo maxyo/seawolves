@@ -1,0 +1,13 @@
+<rml>
+<head>
+<link type="text/rcss" href="kit.rcss"/>
+<style>
+/* Always above the screen document; never takes a touch. */
+body { pointer-events: none; z-index: 1000; }
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div id="tooltip"></div>
+</body>
+</rml>

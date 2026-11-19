@@ -1,0 +1,17 @@
+{
+  "tag": "s-hud-spyglass",
+  "doc": "HUD part: the spyglass target card, laid by the HUD over any scene while the telescope is raised; takes no touches. Top left of the safe area, right of the spyglass button (left 84 dp; the sea HUD hides the fleet column under it): token, name, nation flag + nation · type, class; hull and sails bars; cannons, speed, distance, charge, crew; the captain (portrait, role, skills) or one line when the telescope cannot make him out. `empty` = the telescope shows no target: nothing is drawn. Fields the telescope cannot show are left out by the engine.",
+  "props": {
+    "empty": {"type": "bool", "default": true},
+    "fort": {"type": "bool", "default": false, "class": false},
+    "icon": {"type": "text", "default": "ship"},
+    "name": {"type": "text", "default": ""},
+    "nation": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "bars": {"type": "json", "default": []},
+    "facts": {"type": "json", "default": []},
+    "captain": {"type": "json", "default": null},
+    "unknown": {"type": "text", "default": ""}
+  },
+  "constants": {"width": 300, "left": 84, "top": 10, "token": 56, "portrait": 40, "flag": 20}
+}

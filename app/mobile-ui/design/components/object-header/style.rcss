@@ -1,0 +1,18 @@
+/* C-ObjectHeader: picture + name + one subline of a detail card. Children go where `place`
+   says: end (trailing action), name (right after the name), below (under the subline). */
+c-object-header { display: block; box-sizing: border-box; width: 100%; color: @{color.text}; }
+c-object-header > .oh { display: flex; flex-direction: row; align-items: center; box-sizing: border-box; width: 100%; }
+c-object-header.align-start > .oh { align-items: flex-start; }
+c-object-header > .oh > .oh-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+c-object-header.place-name > .oh > .oh-text { flex: 0 0 auto; }
+c-object-header.place-below > .oh > .oh-text { gap: 4dp; }
+c-object-header > .oh > .oh-text > .oh-name { display: flex; flex-direction: row; align-items: center; }
+c-object-header > .oh > .oh-text .oh-title { font-weight: bold; }
+c-object-header > .oh > .oh-text > .oh-name > .oh-title { flex: 0 0 auto; white-space: nowrap; }
+c-object-header > .oh > .oh-text > .oh-name > .oh-slot { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; }
+c-object-header > .oh > .oh-text > .oh-sub { color: @{color.textSecond}; }
+c-object-header > .oh > .oh-text > .oh-sub.tight { margin-top: -8dp; }
+c-object-header > .oh > .oh-text > .oh-below { display: flex; flex-direction: column; }
+c-object-header > .oh > .oh-end { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; }
+c-object-header.surface-parchment { color: @{color.ink}; }
+c-object-header.surface-parchment > .oh > .oh-text > .oh-sub { color: @{color.inkMuted}; }

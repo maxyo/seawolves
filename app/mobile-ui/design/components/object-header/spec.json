@@ -1,0 +1,20 @@
+{
+  "tag": "c-object-header",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "image": {"type": "json", "default": null},
+    "icon": {"type": "text", "default": ""},
+    "size": {"type": "int", "default": @{size.tokenLg}},
+    "titleSize": {"type": "int", "default": @{type.title}},
+    "subSize": {"type": "int", "default": @{type.caption}},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "place": {"type": "enum", "options": ["end", "name", "below"], "default": "end"},
+    "gap": {"type": "int", "default": 12},
+    "align": {"type": "enum", "options": ["center", "start"], "default": "center"},
+    "label": {"type": "text", "default": ""}
+  },
+  "constants": {
+    "iconRatio": 0.57
+  }
+}

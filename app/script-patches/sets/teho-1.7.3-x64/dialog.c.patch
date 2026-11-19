@@ -1,0 +1,13 @@
+--- a/PROGRAM/dialog.c
++++ b/PROGRAM/dialog.c
+@@ -78,6 +78,10 @@
+ 	startDialogMainCounter = 0;
+ 	SetEventHandler("frame", "StartDialogMain", 1);
+ 	SetTimeScale(0.0);
++	// The dialog pauses time and the engine resumes it at x1 when it closes:
++	// drop the acceleration state with it (storm-devs/storm-engine#148).
++	TimeScaleCounter = 0;
++	if (IsPerkIntoList("TimeSpeed")) DelPerkFromActiveList("TimeSpeed");
+ 	if (locCameraCurMode == LOCCAMERA_FOLLOW && !CheckAttribute(loadedLocation, "lockCamAngle") && mainChr.location.group != "sit") // для квестов
+ 	{
+ 		SetCameraDialogMode(Character);  // boal

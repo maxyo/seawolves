@@ -1,0 +1,18 @@
+--- a/PROGRAM/seadogs.c
++++ b/PROGRAM/seadogs.c
+@@ -747,7 +747,6 @@
+ 	
+ 	LoadGameOptions();
+ 
+-	ReloadProgressEnd();
+ 
+     // fix by Hokkins
+     BattleInterface.ShifInfoVisible = InterfaceStates.enabledshipmarks;
+@@ -777,6 +776,7 @@
+ 			Log_TestInfo("Обновлен партикл огня");
+ 		}
+ 	}
++	ReloadProgressEnd(); // Include restored world particles in the loading transaction.
+ }
+ 
+ void NewGame()

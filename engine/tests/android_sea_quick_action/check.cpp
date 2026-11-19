@@ -1,0 +1,129 @@
+#include "platform/android_sea_quick_action.hpp"
+#include <cassert>
+#include <iostream>
+using namespace storm::android;
+
+static SeaQuickActionFrame frame(std::string action = "Map", std::string target = "sea:42")
+{
+    return {19, true, true, true, "main:17", std::move(action), "Native caption", std::move(target)};
+}
+static std::string request(const SeaQuickActionState &state, const std::string &verb, const std::string &value)
+{
+    return "1\t" + std::to_string(state.activity()) + "\t" + std::to_string(state.revision()) + "\t" + verb + "\t" + value;
+}
+
+int main()
+{
+    SeaQuickActionState state;
+    state.update(frame());
+    assert(state.valid() && !state.covered(19));
+    assert(state.json().find("\"available\":true,\"action\":\"Map\",\"label\":\"Native caption\"") != std::string::npos);
+
+    // nothing is activated, and nothing native is hidden, before the control is drawn
+    assert(!state.offer(request(state, "activate", "Map"), 10));
+    assert(state.offer(request(state, "ack", "1"), 20));
+    assert(state.covered(19) && !state.covered(20));
+    assert(state.offer(request(state, "ack", "1"), 700) && state.covered(19)); // no lease: the word lasts
+
+    // exactly the offered action, once
+    assert(!state.offer(request(state, "activate", "Moor"), 701));
+    const auto tap = request(state, "activate", "Map");
+    const auto revision = state.revision();
+    state.update(frame()); // the same frame sampled again keeps the revision
+    assert(state.revision() == revision);
+    assert(state.offer(tap, 702) && !state.offer(tap, 703));
+    assert(state.consume(704) == "Map" && !state.consume(705));
+    assert(!state.offer(tap, 706) && !state.covered(19)); // the tap's echo is stale; the control must be drawn again
+    assert(state.offer(request(state, "ack", "1"), 707) && state.offer(request(state, "activate", "Map"), 708));
+
+    // another target under the same name: the queued tap must not fire, the old tap authority expires
+    state.update(frame("Map", "another target"));
+    assert(!state.consume(709) && !state.covered(19));
+    assert(!state.offer(tap, 710));
+
+    // a tap that waited too long, and a control that went away
+    assert(state.offer(request(state, "ack", "1"), 800) && state.offer(request(state, "activate", "Map"), 801));
+    assert(!state.consume(801 + SeaQuickActionState::activateMs + 1));
+    assert(state.offer(request(state, "ack", "1"), 3000) && state.offer(request(state, "activate", "Map"), 3001));
+    assert(state.offer(request(state, "ack", "0"), 3002) && !state.covered(19) && !state.consume(3003));
+
+    // Moor with the world map beside it: either one can be tapped, once, for the drawn frame only
+    {
+        SeaQuickActionState both;
+        auto moor = frame("Moor");
+        moor.map = true;
+        moor.mapLabel = "Map caption";
+        both.update(moor);
+        assert(both.json().find("\"action\":\"Moor\"") != std::string::npos &&
+               both.json().find("\"map\":true,\"mapLabel\":\"Map caption\"") != std::string::npos);
+        assert(!both.offer(request(both, "activate", "Map"), 10)); // not drawn yet
+        assert(both.offer(request(both, "ack", "1"), 11));
+        assert(!both.offer(request(both, "activate", "Board"), 12));
+        assert(both.offer(request(both, "activate", "Map"), 13) && !both.offer(request(both, "activate", "Moor"), 14));
+        assert(both.consume(15) == "Map");
+        assert(both.offer(request(both, "ack", "1"), 16) && both.offer(request(both, "activate", "Moor"), 17) && both.consume(18) == "Moor");
+        // without the map permission Map is refused, and the JSON says so
+        moor.map = false;
+        both.update(moor);
+        assert(both.json().find("\"map\":false") != std::string::npos);
+        assert(both.offer(request(both, "ack", "1"), 19) && !both.offer(request(both, "activate", "Map"), 20));
+    }
+
+    // a new Activity owns nothing of the old one
+    assert(state.offer(request(state, "ack", "1"), 4000));
+    const auto old = request(state, "ack", "1");
+    state.resetActivity();
+    assert(!state.covered(19) && !state.offer(old, 4001));
+
+    // One coverage rule: while the UI presents the sea HUD the native icon is off, whatever the UI
+    // answered; a tap is accepted only for a control the UI said is drawn.
+    hudPresenters.sea = true;
+    state.update(frame("Moor"));
+    assert(state.covered(19) && !state.covered(20));
+    assert(state.offer(request(state, "ack", "0"), 4100) && state.covered(19)); // not drawn by the UI: still no native icon
+    state.update(frame("Board"));
+    assert(state.covered(19) && !state.offer(request(state, "activate", "Board"), 4101)); // not answered drawn: no tap
+    assert(state.offer(request(state, "ack", "1"), 60000) && state.covered(19) && state.offer(request(state, "activate", "Board"), 60001));
+    hudPresenters.sea = false;
+
+    // Runtime failure cannot restore the native icon or authorize an undrawn action.
+    {
+        SeaQuickActionState silent;
+        assert(hudPresenters.declare("sea"));
+        silent.update(frame("Moor"));
+        assert(silent.covered(19));
+        assert(!hudPresenters.lost().empty() && hudPresenters.sea && silent.covered(19));
+        assert(!silent.offer(request(silent, "activate", "Moor"), 60000));
+        assert(hudPresenters.declare("sea"));
+        assert(silent.offer(request(silent, "ack", "1"), 60001));
+        assert(silent.offer(request(silent, "activate", "Moor"), 60002));
+        hudPresenters = {};
+    }
+
+    for (const auto *id : {"Map", "Moor", "Board", "LandTroops", "Reload"})
+    {
+        SeaQuickActionState one;
+        one.update(frame(id));
+        assert(one.offer(request(one, "ack", "1"), 1) && one.offer(request(one, "activate", id), 2) && one.consume(3) == id);
+    }
+    for (const auto *id : {"Nothing", "Closed", "EnterToSea", "Unknown", ""})
+    {
+        SeaQuickActionState one;
+        one.update(frame(id));
+        assert(!one.valid() && !one.offer(request(one, "ack", "1"), 1) && !one.covered(19));
+        assert(one.json().find("\"available\":false,\"action\":\"\"") != std::string::npos);
+    }
+    {
+        auto incomplete = frame();
+        incomplete.complete = false;
+        SeaQuickActionState one;
+        one.update(incomplete);
+        assert(!one.valid() && !one.offer(request(one, "ack", "1"), 1));
+    }
+    for (const auto *bad : {"", "1", "1\t1\t1\tack", "2\t1\t1\tack\t1", "1\t1\t1\tack\t2", "1\t1\t1\tack\t1\t1", "1\tx\t1\tack\t1"})
+        assert(!state.offer(bad, 5000));
+    SeaQuickActionState wrap; // SDL ticks wrap around
+    wrap.update(frame());
+    assert(wrap.offer(request(wrap, "ack", "1"), UINT32_MAX - 300) && wrap.offer(request(wrap, "activate", "Map"), 100) && wrap.consume(200) == "Map");
+    std::cout << "sea quick action: coverage until answered otherwise, runtime failure keeps native HUD disabled, touch HUD recovery, exact single activation, stale target and tap, activity, unknown actions PASS\n";
+}

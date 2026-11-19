@@ -1,0 +1,3 @@
+<t-if test="danger"><c-button id="{{danger.id}}" label="{{danger.label}}" variant="danger" hold="1" disabled="{{ danger.disabled ? 1 : 0 }}" reason="{{danger.reason}}" busy="{{ danger.busy ? 1 : 0 }}" surface="{{danger.surface}}"/></t-if>
+<div class="sa-grow"></div>
+<t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="{{a.variant}}" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}" surface="{{a.surface}}"/></t-for>

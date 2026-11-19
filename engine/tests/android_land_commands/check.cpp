@@ -1,0 +1,68 @@
+#include <platform/android_land_commands.hpp>
+#include <cassert>
+#include <iostream>
+using namespace storm::android;
+std::string request(const LandCommandsState &s,const std::string &verb,const std::string &id="") {
+    return "1\t"+std::to_string(s.sceneEpoch())+"\t"+std::to_string(s.revision())+"\t"+std::to_string(s.activityGeneration())+"\t"+verb+"\t"+id;
+}
+LandCommandsFrame fixture() {
+    LandCommandsFrame f;f.available=true;f.active=true;f.selectedItemId="i0";
+    // Identical native captions must keep different source/target identities.
+    f.items={{"i0","command","Открыть","BI_OutDoor","door:reload1",true,1},
+        {"i1","command","Открыть","BI_UseBox","box:treasure",true,1},
+        {"i2","cancel","Отмена","","cancel",true,1}};
+    return f;
+}
+int main() {
+    LandCommandsState s;s.resetActivity();auto f=fixture();s.update("bli:1:player:2:scene:3:target:4",f);
+    assert(s.frame().items[0].source!=s.frame().items[1].source);
+    assert(!s.offer(request(s,"activateItem","i1"),100)); // selection acknowledgement required
+    assert(s.offer(request(s,"selectItem","i1"),100));
+    assert(!s.offer(request(s,"activateItem","i0"),100)); // no overlapping actions
+    assert(s.take(101)->id=="i1");s.invalidate();f.selectedItemId="i1";s.update("bli:1:player:2:scene:3:target:4",f);
+    assert(s.offer(request(s,"activateItem","i1"),100));assert(s.take(101));s.invalidate();assert(!s.take(101));
+    assert(!s.offer(request(s,"executeScript","BI_UseBox"),100));
+    assert(!s.offer(request(s,"selectRecipient","i1"),100));
+    assert(!s.offer(request(s,"open","r0"),100));
+    assert(!s.offer(request(s,"back","i1"),100));
+    assert(!s.offer(request(s,"close")+"\textra",100));
+    // Coverage is an event, not a lease: it lasts however long the next UI frame takes.
+    // No coverage words: the stock list never draws under the touch HUD (android_hud_presenter.hpp).
+    assert(!s.offer(request(s,"ack","1"),100));
+    const auto stale=request(s,"activateItem","i1");assert(s.offer(stale,600));
+    f.items[1].identity="box:different-chest-same-caption";s.update("bli:1:player:2:scene:3:target:4",f);
+    assert(!s.take(601)&&!s.offer(stale,601));
+    for(auto owner:{"bli:9:player:2:scene:3:target:4","bli:9:player:7:scene:3:target:4","bli:9:player:7:scene:8:target:4","bli:9:player:7:scene:8:target:6"}) {
+        auto old=request(s,"activateItem","i1");s.update(owner,f);assert(!s.offer(old,602));
+    }
+    f.items[1].enabled=false;f.items[1].cooldown=.25;s.update("cooldown",f);assert(!s.offer(request(s,"activateItem","i1"),100));
+    auto revision=s.revision();f.items[1].cooldown=.5;s.update("cooldown",f);assert(revision==s.revision());
+    f.items[1].enabled=true;f.items[1].cooldown=1;s.update("cooldown",f);assert(revision!=s.revision());
+    auto removed=request(s,"activateItem","i1");f.items.erase(f.items.begin()+1);f.selectedItemId="i0";s.update("cooldown",f);assert(!s.offer(removed,100));
+    assert(s.offer(request(s,"activateItem","i0"),100));assert(!s.take(1601)); // too old by the game frame
+    auto beforeActivity=request(s,"close");s.resetActivity();assert(!s.offer(beforeActivity,100));
+    f.complete=false;s.update("incomplete",f);
+    assert(!s.offer(request(s,"activateItem","i0"),100));assert(s.offer(request(s,"close"),100));assert(s.take(101));
+    f=fixture();f.items[0].label="";s.update("missing",f);assert(!s.frame().complete&&s.frame().available);assert(s.defect()&&std::string(s.defect()).find("text")!=std::string::npos);
+    f=fixture();f.items[0].source=std::string(513,'a');s.update("invalid-source",f);assert(!s.frame().complete);
+    f=fixture();f.items[0].label="\xc2\x85";s.update("invalid-utf8",f);assert(!s.frame().complete);
+    f=fixture();for(int i=3;i<257;++i)f.items.push_back({"i"+std::to_string(i),"travel","Route","actual-source","location:locator",true,1});
+    s.update("oversize",f);assert(!s.frame().complete&&s.frame().items.empty()&&s.json().size()<=65536);assert(s.defect()&&std::string(s.defect()).find("256 items")!=std::string::npos);
+    f=fixture();f.active=false;f.items.clear();f.selectedItemId.clear();s.update("closed",f);assert(!s.defect());
+    assert(s.offer(request(s,"open"),100));assert(!s.take(1601));
+    assert(s.offer(request(s,"open"),0xfffffff0u));assert(s.take(0x10u));
+    // "open" into a root command: only one the scripts offer now; the JSON carries what is offered and the pictures
+    f.offered={"BI_FastReload","BI_TalkSelf"};s.update("closed",f);
+    assert(!s.offer(request(s,"open","BI_SelfRepair"),100));
+    assert(s.offer(request(s,"open","BI_FastReload"),100));{auto open=s.take(101);assert(open&&open->verb=="open"&&open->id=="BI_FastReload");}
+    assert(s.json().find(",\"offered\":[\"BI_FastReload\",\"BI_TalkSelf\"],\"here\":null,\"activation\":")!=std::string::npos);
+    f=fixture();f.items[0].picture="landtarget_slb:2";s.update("picture",f);
+    assert(s.json().find("\"source\":\"BI_OutDoor\",\"picture\":\"landtarget_slb:2\"")!=std::string::npos);
+    f.items[0].picture=std::string(129,'a');s.update("picture-long",f);assert(!s.frame().complete);
+    // the travel stage's place of the hero: its picture and name, or null
+    f=fixture();f.herePicture="landtarget_slb:1";f.hereLabel="Верфь";s.update("here",f);
+    assert(s.frame().complete&&s.json().find(",\"here\":{\"picture\":\"landtarget_slb:1\",\"label\":\"Верфь\"},")!=std::string::npos);
+    f.hereLabel="";s.update("here-nameless",f);assert(!s.frame().complete);
+    s.update({},{});assert(!s.offer(request(s,"open"),100));
+    std::cout<<"PASS: land selection acknowledgement, duplicate-caption identity, stale target/scene/activity, removed/disabled entries, cooldown, completeness, bounds, no coverage words, queue age and duplicate rejection, open into an offered command, offered list and pictures in the JSON\n";
+}

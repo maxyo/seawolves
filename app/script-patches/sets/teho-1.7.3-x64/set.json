@@ -1,0 +1,473 @@
+{
+  "id": "teho-1.7.3-x64",
+  "game": "Корсары: Каждому своё",
+  "version": "ver. 1.7.3 (26.11.21) x64",
+  "identify": [
+    {
+      "path": "PROGRAM/_LSC_on_off.h",
+      "sha256": "21cfb85673547747f70b95cba4dd441c5eefcc6fbdaf6fecc3f5d8342f4f2491"
+    }
+  ],
+  "targets": [
+    {
+      "path": "PROGRAM/dialog.c",
+      "base_sha256": "0f122655606ba30fcab5f9934596fe8c02325a56e7eaaa42c6605a09f92bac27",
+      "result_sha256": "79d44dfe68b9bc36bcadf2535d9020000c7c2a7bc9af5c47448ee39a4f28c561",
+      "patch": "dialog.c.patch"
+    },
+    {
+      "path": "PROGRAM/sea_ai/sea.c",
+      "base_sha256": "55bbf1e8fb5cb974fa7e5a1e0d31f56baf1f96308f4dd961194d6e06aa03915e",
+      "result_sha256": "5c6d3e5fed1980664f4ebb0dc9d184c600ee6f6a1e7206a7c20d666c2d425303",
+      "patch": "sea.c.patch"
+    },
+    {
+      "path": "PROGRAM/battle_interface/BattleInterface.c",
+      "base_sha256": "09cf5450a9476eb868e708f7ed4dbf89c61f3fd698d8dbbb33664935f99b2f93",
+      "result_sha256": "46032675b1e75faade486e60a37fde0f9795367b4202aeea2105c2850d5baf65",
+      "patch": "BattleInterface.c.patch"
+    },
+    {
+      "path": "PROGRAM/locations/init/QuestLocations.c",
+      "base_sha256": "718e21f3f35a8b1f9282baa6f7357207c67f2521324501d9c09580b0eb39e0a2",
+      "result_sha256": "0173f688aee8d5a9e38335266ed6a40604bc63cf8502116dd9a4d1340f279c15",
+      "patch": "QuestLocations.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/character.c",
+      "base_sha256": "f4e3c4c312190014b72e493708c2553d766360b81d5def27b1080c93be9c5915",
+      "result_sha256": "9d27f580513bf159ee567359f55333d9f898d6debdd0805881b36f9a4df6d93b",
+      "patch": "character.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/character_all.c",
+      "base_sha256": "927692063da53ee7e2651900f8a9792ca163b2d06cd7f9c4e98dbb3afef84428",
+      "result_sha256": "9f03d7775d2a5bd865b27a4640d3569437d5e3305c10f836f108f733b3fa6412",
+      "patch": "character_all.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/items.c",
+      "base_sha256": "db9befc7372467a37161ad018909b4f2bbf0d1ff7fc6300a088bcb2374823d67",
+      "result_sha256": "6a2cbfd0aa912f418729ccaf2282d78c702997c3d88444d1ba2c8f82f5a4b889",
+      "patch": "items.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/questbook.c",
+      "base_sha256": "2c1f9d461912871f59c63f8760f0c3a24ddc819462fde11762b705e8e24395f3",
+      "result_sha256": "43bdea291731951c84edb56e9350fd6ed18919798f91de86ebbabb539018d731",
+      "patch": "questbook.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/ship.c",
+      "base_sha256": "5b1dc32cb8b01942aa0d7837a8d3bee27ddfaf62172f3a75f01d082d8cf3b480",
+      "result_sha256": "bc6f4a3bbf1f83f2c35032167f886612dd43cc4c6b9950111ad2a375ffc3be98",
+      "patch": "ship.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/NationRelation.c",
+      "base_sha256": "acca41d81f016c1df74329ef8d71e4ba7bb6edd41da712e0b83327ce919c1962",
+      "result_sha256": "e36a21f87a517edb22ff845b1c66b68658879d695d1486c9ce49996c3160839c",
+      "patch": "NationRelation.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/tradebook.c",
+      "base_sha256": "e38c934c01aa2bb59f7fd0273ab4eccfdef8af681082293f81d7604745a6b87b",
+      "result_sha256": "c18d285f5e0788117f83a51255d6f0c28a52d58af18890abe2c60705a512c9f7",
+      "patch": "tradebook.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/interface.c",
+      "base_sha256": "649a68259a6b31aa3e0274f88c820cf48bbab844a8ebc299f7f30ea2a68d8be5",
+      "result_sha256": "b2fb0664aef2f3bf477a9bd55542bea0be98d4b3b65e55fbbc4b4450fedda30c",
+      "patch": "interface.c.patch"
+    },
+    {
+      "path": "PROGRAM/characters/RPGUtilite.c",
+      "base_sha256": "5b62dac991bebb321ad2406f9281b98a34f3c2e872acb8b9104728326f489662",
+      "result_sha256": "3b5ff94f286a15955d5c1cdf9d3159e21fb51b47e6d10974928a168808cc4cef",
+      "patch": "RPGUtilite.c.patch"
+    },
+    {
+      "path": "PROGRAM/Encounters/encounters_map.c",
+      "base_sha256": "396b15b2b4e81cc2acdffd014e065446807212dfeb958d1bcb86993624f1bb26",
+      "result_sha256": "47eef9d1cd2d35bf0716d287f2147c5f6de822fe92845011d8d14d91d90cbf13",
+      "patch": "encounters_map.c.patch"
+    },
+    {
+      "path": "PROGRAM/reload.c",
+      "base_sha256": "30543ed1595f7a11e7f0e63c237c9b840943272dbd90ae839411be0059a1a224",
+      "result_sha256": "9069381e0bb0cdd66e9b28d0a8099b26836907ad980a8ccb1d1520514ed575de",
+      "patch": "reload.c.patch"
+    },
+    {
+      "path": "PROGRAM/quests/quests_reaction.c",
+      "base_sha256": "3c027999d4bea5149017f30b46f7d2c4ddbb39c15835866e0e8bc0b8d54ecaba",
+      "result_sha256": "77f6693d416c4b95c447ba9b0d319f4e84e84594086c848bfc13d01f1236739a",
+      "patch": "quests_reaction.c.patch"
+    },
+    {
+      "path": "PROGRAM/seadogs.c",
+      "base_sha256": "123e3f3c4564571e23010eb33bc9f84e22bcaf6a5154be6b079488c22e8108b2",
+      "result_sha256": "24da2f74ace674f624ab1ca40d035acf9a07a3c87dac48a0b99f4abe8e23a212",
+      "patch": "seadogs.c.patch"
+    },
+    {
+      "path": "PROGRAM/scripts/PsHero.c",
+      "base_sha256": "6d56fa8dd252923820ac91f730b11a2e7c1ea48ab8f75102507a72536cba10f1",
+      "result_sha256": "29abd2622dc5a54216e94b847e169eb6f9ade21071baa59d1fa08d540c20d371",
+      "patch": "PsHero.c.patch"
+    },
+    {
+      "path": "PROGRAM/weather/WhrWeather.c",
+      "base_sha256": "8090f5a4b871ae120bb27aa8c6cb63b2c408c2c9542463d1c49d238e2230fb1e",
+      "result_sha256": "8c0c8eb51f0a524a89413418b231d985751b6f44cc0e9a29bd9e33e9db5f7a6e",
+      "patch": "WhrWeather.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/option_sl.c",
+      "base_sha256": "73624a42880b211ade15b387f2c2d1fb549f2019b2ec503cb28738679ea8c961",
+      "result_sha256": "e8c1cabb57ef2537f10cbd0c76d273079cdd9cb5207e243d6a883ce52e5a4525",
+      "patch": "option_sl.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Governor/Puancie.c",
+      "base_sha256": "67e5a8a01c8e5bfcca6a7d80b65e92caeea3a5fe53228b152031a80aa31a97db",
+      "result_sha256": "4cd5887264049db4d8c00a3924bb05e7b2cbe6dc54d60e5fd346d282900e15ec",
+      "patch": "Puancie.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/selectCharacter.c",
+      "base_sha256": "dadcf57b1176007b570b4100719f43055c33c518f43febde215f4c339fcc2c21",
+      "result_sha256": "fb70151a0463e650f187987a83e6f9b0dabcc2b9e35302de09ddf198d9c6f527",
+      "patch": "selectCharacter.c.patch"
+    },
+    {
+      "path": "PROGRAM/characters/characterUtilite.c",
+      "base_sha256": "aaf497e2b44b957e05df2596797540892750ed1bbd8028621080471da2e58fd2",
+      "result_sha256": "e2beb5c720ae0b8bdce93a130005b114b8e44dd85a78fce87c7e6a50502d0b74",
+      "patch": "characterUtilite.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Waitress_dialog.c",
+      "base_sha256": "178de8994f5b9d06bb0e6530db4fb363fb53522748fe3fabbf42ca3b343750d0",
+      "result_sha256": "1527284e7109ef61503e03312819199bb91d4bae90ad71eb750bf60a7a4a2d49",
+      "patch": "Waitress_dialog.c.patch"
+    },
+    {
+      "path": "PROGRAM/sea_ai/AIShip.c",
+      "base_sha256": "2349f74448dac1f38402ac90131d32fa1205f8351e2862e66154079009459174",
+      "result_sha256": "218debe7ce403eb3a43b89e9820204e67e52096cca46f196c62090adf2e07971",
+      "patch": "AIShip.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/itemstrade.c",
+      "base_sha256": "7bd96e329619eaff71091273530b0576a340f28a0a943c76335406d53e94a614",
+      "result_sha256": "fa4e767427aaee337e1743558c55fcf25fd3a2a73d3e162d8fdaeb32f5913424",
+      "patch": "itemstrade.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Enc_Officer_dialog.c",
+      "base_sha256": "a5d2440587ea6d10b5886b6bb21e4c34c33af182ed0f7887ba0251dfe999350a",
+      "result_sha256": "69823ba0b4f49454e5373ac023d27a9ce6bbbefe18dd48c7ae88373269e6bb34",
+      "patch": "Enc_Officer_dialog.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Common_Tavern.c",
+      "base_sha256": "f3f5a402ee14defaaa6918ba14adcbf823995d44c16776a5482499f86b98a6da",
+      "result_sha256": "d3da7ff878d67d09fa06b1e71e73a05d1856547145d7ee61bbbc9614b5a7eaa0",
+      "patch": "Common_Tavern.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Common_church.c",
+      "base_sha256": "4c9c462910089009cba27e85e6796a7825a1ab135b0e8dde4ec5f455243700ab",
+      "result_sha256": "82bd213e940db03cf4cff4e728a78673ccb69ae230a7f50b96b2ab3df360c43a",
+      "patch": "Common_church.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/HouseEnc_dialog.c",
+      "base_sha256": "b073d6f03e91197c5855a6bc7fc1caccebf0d041ac093e6d773dc9eb6497f8a2",
+      "result_sha256": "a25fd6c6992ae5276036418eae8f8d5dd03ef81d879093d2d52fb84d9454b8b1",
+      "patch": "HouseEnc_dialog.c.patch"
+    },
+    {
+      "path": "PROGRAM/dialogs/russian/Common_Shipyard.c",
+      "base_sha256": "d7d0dc68055e43908ab4bad51bdb2e1eed62ff31b82a72406c9876d9c1506e08",
+      "result_sha256": "126fe26be222903c1f9f0851900751ae026286c2474b89127b2d05b3a2a2915d",
+      "patch": "Common_Shipyard.c.patch"
+    },
+    {
+      "path": "PROGRAM/locations/locations_loader.c",
+      "base_sha256": "ce271954cb500a96ee1b55d057a7fea0494354f53c883692f031f5d46c1055fe",
+      "result_sha256": "1e1bbc1c559bbdda9e78b05d0d738a6205db4c185bfbdf2c33a529241bb74e1c",
+      "patch": "locations_loader.c.patch"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "dialog-time-acceleration",
+      "title": "Time acceleration state is reset when a dialog pauses time",
+      "targets": [
+        "PROGRAM/dialog.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Time acceleration stayed on, or came back wrong, after a dialogue paused time. Upstream report: https://github.com/storm-devs/storm-engine/issues/148",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "sea-special-encounter-slot",
+      "title": "A barrel or boat encounter at sea no longer takes over another character (quest NPCs vanished, e.g. Bertrand Pinett in «Цена молчания»)",
+      "targets": [
+        "PROGRAM/sea_ai/sea.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "A barrel or boat encounter at sea was created in the slot of another character and replaced it, so quest NPCs disappeared. Player report: https://steamcommunity.com/app/223330/discussions/1/724651198970420375/",
+      "save_compatibility": "Code only. A character already overwritten in an existing save stays lost; the fix prevents new losses."
+    },
+    {
+      "id": "town-flag-without-town",
+      "title": "Locations outside any town (Amelia's house in the dunes of Portobello) load without script errors",
+      "targets": [
+        "PROGRAM/battle_interface/BattleInterface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Loading a location that belongs to no town (Amelia_house) logged «RUNTIME ERROR in Loc_ai/LAi_utilites.c(2999)»: GetCityNation was called with the invalid town index -1",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "ship-deck-loading-image",
+      "title": "The ship's deck (Ship_deck) loads with the open-sea loading picture instead of a missing one",
+      "targets": [
+        "PROGRAM/locations/init/QuestLocations.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Ship_deck named the loading picture LOADING\\ART\\OPEN_SEA_CLEAR.TGA, which the game does not ship (on PC too), so the loading screen had no picture; it now names loading\\seaStand.tga, the picture reload.c uses for sea loads",
+      "save_compatibility": "Location data is initialised with a new game; a save made before keeps the old (missing) picture name for this location. No new globals or attributes."
+    },
+    {
+      "id": "tab-switch-countdown",
+      "title": "Switching between the character, ship, journal, trade book, nations and items tabs no longer waits two extra frames",
+      "targets": [
+        "PROGRAM/interface/character.c",
+        "PROGRAM/interface/character_all.c",
+        "PROGRAM/interface/items.c",
+        "PROGRAM/interface/questbook.c",
+        "PROGRAM/interface/ship.c",
+        "PROGRAM/interface/NationRelation.c",
+        "PROGRAM/interface/tradebook.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Every tab switch posted LaunchIAfterFrame with a countdown of 2 frames, although ILaunchAfterFrame (interface.c) already waits until InterfaceStates.Launched is false, i.e. until the old interface has ended (InterfaceDoExit); the countdown only added two frames to each switch",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "autosave-rotation",
+      "title": "The autosave before a boarding uses the three rotating autosave records instead of one record that looked like the player's own",
+      "targets": [
+        "PROGRAM/interface/interface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "interface.c AutoSaveContinue rewrote the single file \"<profile> AutoSave\" before every boarding; in a save list that names every record «<hero> · <location>» that record looked like a save the player made, and it was replaced at the next boarding",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged; an existing \"<profile> AutoSave\" file stays and is listed as an autosave."
+    },
+    {
+      "id": "items-weight-lookup",
+      "title": "The carried weight is found from the character's own items: the ship screen and the hero screens open without a long stall",
+      "targets": [
+        "PROGRAM/characters/RPGUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "GetItemsWeight looked through all TOTAL_ITEMS (1000) Items[] with a CheckAttribute each, 64-120 times when the ship screen opens (131k-245k CheckAttribute calls, a stall of several hundred milliseconds); the same sum is now taken, in the same Items[] order, from the character's own items",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "skill-steps-trace",
+      "title": "The character screen explains every skill and characteristic: base, each modifier with its source, result",
+      "targets": [
+        "PROGRAM/characters/RPGUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "The effective skills and characteristics come from one computation (GetCharacterSkillSimple, GetCharacterSPECIALSimple) with no way to tell its parts, so a player could not see why a value dropped; while chr.SkillTrace exists the computation records its running value after each step (SkillTraceAt), so the screen's breakdown is that computation itself (mobile-ui android_hero.c AndroidSkillSteps)",
+      "save_compatibility": "Code only; no new globals. chr.SkillTrace is set and removed inside one interface call and is never saved. Existing saves load unchanged."
+    },
+    {
+      "id": "worldmap-random-pirate-frequency",
+      "title": "Random pirate events on the world map follow the player's pirate frequency setting (20%, 50% or 100% of the game's); quest encounters and fleet sizes stay unchanged",
+      "targets": [
+        "PROGRAM/Encounters/encounters_map.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect of the game: a balance setting of the port («Частота пиратов на карте», default 20% of the game's frequency; 100% is the unchanged game). Valid random pirate events are thinned, rather than the shared population cap or the scheduler's accumulating probability. The kept share comes from the engine's PirateEncounterPercent() (library PirateFrequencyScriptLib)",
+      "save_compatibility": "Code only; no globals or saved attributes added. Existing fleets stay until their normal expiry. New random pirate events are kept with the chosen probability (20/50/100%, read at every event, so a change counts at once), including whole pirate battles; their non-pirate opponents are omitted with the battle. Quest events bypass this rule. Shared population cap can change the realized density ratio."
+    },
+    {
+      "id": "stock-loading-initialization-tail",
+      "title": "Complete stock location loading after initial actors and restored particles are created",
+      "targets": [
+        "PROGRAM/reload.c",
+        "PROGRAM/quests/quests_reaction.c",
+        "PROGRAM/seadogs.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "The first actor of the story (Sharlie) and the campfire particles restored from a save were created after the point where loading is declared complete, so the scene could be shown before they existed",
+      "save_compatibility": "Code only; existing helper signature preserved, no new globals or saved attributes. Initial dialogue starts after the same stock loading transaction completes."
+    },
+    {
+      "id": "interface-exit-time-reset",
+      "title": "Closing any screen resets time acceleration to x1; the next press of the time button gives x2",
+      "targets": [
+        "PROGRAM/interface/interface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "interface.c Start_InterfaceDoExit set x2 (GetSeaTimeScale) whenever the TimeSpeed perk was active and left TimeScaleCounter at x4 or x8, so the next press of the time button gave an unexpected speed; closing a screen now gives x1 with the counter at 0 and the perk off, as the game's own x1 resets do (EndAboveForm, quick_save.c)",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "pgg-travel-target",
+      "title": "Captains of the free brotherhood (PGG) no longer start in San Andres, a town without sea routes, and always find a town to sail to",
+      "targets": [
+        "PROGRAM/scripts/PsHero.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "PGG_FindRandomTownByNation picked any colony with a sea entrance, including the hidden Spanish colony SanAndres (Providence), which has no NullCharacter.TravelMap routes (characters/TravelMap.c); a Spanish PGG placed there failed in PGG_FindTargetTown when it took a sea task (missed attribute: t0 / null ap at PsHero.c 924-934; its error branch only set the missing t0) and was left without a target town. Same in sd-teho-public. Towns are now chosen only among those with routes, and a PGG in a town without routes (e.g. dismissed there as an officer) sails from a town of its nation that has them, with the original trace",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged; a PGG already placed in SanAndres sails from another town of its nation at its next sea task."
+    },
+    {
+      "id": "menu-weather-sky",
+      "title": "The title screen sky matches the title screen weather instead of the time of day of the last game",
+      "targets": [
+        "PROGRAM/weather/WhrWeather.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "CreateWeatherEnvironment picks the blend weather (FindBlendWeather) before the main-menu block locks iCurWeatherNum to InterfaceStates.mainmenuweather, so the lock left iBlendWeatherNum set; FillSkyDir then built the 24-hour sky set at the game's current time (WhrSky.c). After a night session the title screen kept the day lighting of its locked weather under the night sky (dark). The main-menu lock now clears the blend weather like the other weather locks (iBlendWeatherNum = -1), so the sky is the locked weather's own. Same in sd-teho-public",
+      "save_compatibility": "Code only; no new globals or saved attributes. Affects only the title screen scene."
+    },
+    {
+      "id": "global-game-options",
+      "title": "The game's options are one set for the title screen and every game: a change on either settings screen holds everywhere, and a loaded save no longer brings its own",
+      "targets": [
+        "PROGRAM/interface/option_sl.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "option_sl.c read and wrote the root \"options\" file on the title screen (option_screen.c drops PlayerProfile.name there) and save/<profile>/options/options in a game, and LoadGame re-applied the profile file over the save; the two settings screens showed different values and a change on the title screen never reached a game. The title screen's write also dropped the new game's parameters (StartGameParam: last profile, difficulty) kept in the same file. Now every read and write uses the root file and keeps StartGameParam; the first read (no GlobalOptions in the file) lays the options of the profile named by StartGameParam.PlayerProfile (else \"Player\", the only profile the Android new-game screen uses) over the title screen's and writes the result as the one set",
+      "save_compatibility": "Code only; no new globals or saved attributes (GlobalOptions is written to the options file, not to saves). Existing saves load unchanged and take the one set of options on load, as they took their profile's before. Old profile option files stay on disk unread."
+    },
+    {
+      "id": "puancie-jail-actor",
+      "title": "De Poincy leaves Charles's prison cell at the start of the story without a script error",
+      "targets": [
+        "PROGRAM/dialogs/russian/Governor/Puancie.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Puancie.c node Puancie_Jail_9 called LAi_SetActorType(sld) with the local sld never assigned (error.log: seadogs.c(1264) uninitialized reference and Puancie.c(319) LAi_SetActorType stack error on every new game with the tutorial); the actor is de Poincy (npchar), whom the next line sends out of the prison. Same in sd-teho-public",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "difficulty-arrow-ends",
+      "title": "The new game's difficulty arrows go out at the easiest and the hardest level, where a press changes nothing",
+      "targets": [
+        "PROGRAM/interface/selectCharacter.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "LEFTCHANGE_COMPLEX / RIGHTCHANGE_COMPLEX stay clickable at MOD_SKILL_ENEMY_RATE 2 and 10 although their handlers then do nothing, so the arrow looks usable at the ends (every other selector of the port dims there). TmpI_ShowLevelComplexity, which every change and the opening call, now sets each arrow clickable only while a step that way exists. Same in sd-teho-public",
+      "save_compatibility": "Code only (an interface script); no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "spent-money-grouped",
+      "title": "The «Потрачено N песо» and «Добавлено N песо» lines group the thousands of the sum, as the port's interface writes amounts",
+      "targets": [
+        "PROGRAM/characters/characterUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect of the game: a presentation change. AddMoneyToCharacter, the only place that shows the spent- and added-money lines, wrote the sum ungrouped («Потрачено 12500 песо», «Добавлено 11575 песо») while the port's interface groups amounts by a no-break space («12 500», the header's and hero screens' figures); the lines now go through the game's own MakeMoneyShow (interface/utilite.c) with a no-break space between the groups. Same in sd-teho-public",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "waitress-encgirl-unset",
+      "title": "The tavern waitress's greeting no longer reads a quest attribute that is not set",
+      "targets": [
+        "PROGRAM/dialogs/russian/Waitress_dialog.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "The waitress's greeting (case 2, Addon-2016) compares pchar.GenQuest.EncGirl without CheckAttribute; with the attribute unset (no «girl to the tavern» quest ever started) every such greeting logs «RUNTIME ERROR in dialogs\\russian\\Waitress_dialog.c(97): missed attribute: encgirl / no rAP data». The condition now treats an unset attribute as «not HorseToTavern», which is what the comparison meant.",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "aiship-shooter-without-group",
+      "title": "A ship deciding whether to flee no longer reads the sea group of a shooter that has none, nor divides by zero",
+      "targets": [
+        "PROGRAM/sea_ai/AIShip.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "«RUNTIME ERROR in sea_ai\\AIShip.c(1514): missed attribute: seaai, null ap, no rAP data» and «AIShip.c(1518): Divide by zero»: Ship_CheckSituation read characters[Ship.LastBallCharacter].SeaAI.Group.Name of a shooter without a sea group (0 live ships) and divided by that count before checking it",
+      "save_compatibility": "Code only; one new local variable, no globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "itemstrade-empty-list",
+      "title": "The items trade screen no longer reads the first row of an empty list",
+      "targets": [
+        "PROGRAM/interface/itemstrade.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "CalculateInfoData calls ShowGoodsInfo(GameInterface.TABLE_LIST.tr1.index) without checking the table has a row; switching to a character whose trade list is empty logs «RUNTIME ERROR in interface\\itemstrade.c(227): missed attribute: tr1». The info is now shown only when the first row exists, as the game's ship screen does (ShowItemInfo: «нет товара вообще»).",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "call-argument-count",
+      "title": "Dialogue lines, the starting sloop and officer equipment no longer call game functions with a wrong number of arguments",
+      "targets": [
+        "PROGRAM/dialogs/russian/Enc_Officer_dialog.c",
+        "PROGRAM/dialogs/russian/Common_Tavern.c",
+        "PROGRAM/dialogs/russian/Common_church.c",
+        "PROGRAM/dialogs/russian/HouseEnc_dialog.c",
+        "PROGRAM/dialogs/russian/Common_Shipyard.c",
+        "PROGRAM/characters/characterUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "«RUNTIME ERROR in dialogs\\russian\\Enc_Officer_dialog.c(271): function 'RandPhraseSimple' stack error» and its like; the engine's compile-time argument check lists every such call: RandPhraseSimple (2 arguments) given 3 phrases in Enc_Officer_dialog.c(271) and Common_Tavern.c(802) → LinkRandPhrase; LinkRandPhrase (3) given 2 in Common_church.c(556, 593) → RandPhraseSimple; NPCharRepPhrase(ref, bad, good) without the character in HouseEnc_dialog.c(236, 260) → pchar, as the lines above; GenerateShipHand without its character for the starting sloop in Common_Shipyard.c(2131) → pchar, as the lugger above; GetCharacterItem(pchar) without the item in EquipOfficerByItem/EquipOfficerByArtefact (characterUtilite.c) → itemID. A script function takes its last arguments: too many leave the first on the stack (\"a\" + F(x, y, z) adds the result to x), too few take the caller's last local as an argument and drop it from the caller's frame",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "port-ship-locators-overflow",
+      "title": "Ships at anchor in a port with more ships than anchorages no longer break the port's loading script",
+      "targets": [
+        "PROGRAM/locations/locations_loader.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "«RUNTIME ERROR in locations\\locations_loader.c(1166): incorrect argument index» followed by «Invalid conversation»: LocLoadShips marks a ship without a free ships/ships_other locator to be skipped (bContinue) but still calls GetAttributeN(locators, index) past the last locator; the call returns nothing, so the assignment takes the function's own last stack slot («Invalid conversation») and the frame loses a value. GetAttributeN is now called only when a locator is left; the ship is skipped as before",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "interface-exit-overload-check",
+      "title": "Leaving a screen decides again whether the hero is overloaded: after lightening his load or putting on a carrying amulet he runs again at once",
+      "targets": [
+        "PROGRAM/interface/interface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "An overloaded hero (GetItemsWeight > GetMaxItemsWeight) gets the walk animation as his run (characters.c CheckAndSetOverloadMode); the game decides it again only when the chest or item exchange screen closes, a quest asks or the hero is set up in a new location, so after lightening the load in the items screen (potions, food, a destroyed item) or equipping a carrying amulet (totem_06, obereg_3) he kept walking at full stick until the next location. Start_InterfaceDoExit now runs the same check for the hero as the player in a loaded location.",
+      "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    }
+  ]
+}

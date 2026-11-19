@@ -1,0 +1,48 @@
+<rml>
+<head>
+<title>Кнопка-значок</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-IconButton</div>
+<div class="g-note">bare (default): rest · danger · pressed · danger pressed · disabled (tap = toast) · back · menu</div>
+<div class="g-row g-wood">
+  <c-icon-button id="ib-info" icon="info" label="Сведения"/>
+  <c-icon-button id="ib-trash" icon="trash" label="Удалить" danger="1"/>
+  <c-icon-button icon="close" label="Закрыть" pressed="1"/>
+  <c-icon-button icon="trash" label="Удалить" danger="1" pressed="1"/>
+  <c-icon-button id="ib-disabled" icon="more" label="Ещё" disabled="1" reason="Нет доступных действий"/>
+  <c-icon-button icon="back" label="Назад"/>
+  <c-icon-button icon="menu" label="Меню"/>
+</div>
+<div class="g-row g-paper">
+  <c-icon-button id="ib-paper" surface="parchment" icon="info" label="Сведения"/>
+  <c-icon-button surface="parchment" icon="trash" label="Удалить" danger="1"/>
+  <c-icon-button surface="parchment" icon="close" label="Закрыть" pressed="1"/>
+  <c-icon-button surface="parchment" icon="trash" label="Удалить" danger="1" pressed="1"/>
+  <c-icon-button surface="parchment" icon="more" label="Ещё" disabled="1"/>
+  <c-icon-button surface="parchment" icon="back" label="Назад" look="engraved"/>
+  <c-icon-button surface="parchment" icon="back" label="Назад" look="engraved" pressed="1"/>
+</div>
+<div class="g-note">header: ribbon (red · blue · green · black · pressed · disabled) · engraved (rest · pressed · danger · disabled)</div>
+<div class="g-row g-wood" style="height: 84dp;">
+  <c-icon-button id="ib-ribbon" icon="back" label="Назад" look="ribbon"/>
+  <c-icon-button icon="back" label="Назад" look="ribbon" ribbon-color="blue"/>
+  <c-icon-button icon="back" label="Назад" look="ribbon" ribbon-color="green"/>
+  <c-icon-button icon="close" label="Закрыть" look="ribbon" ribbon-color="black"/>
+  <c-icon-button icon="back" label="Назад" look="ribbon" pressed="1"/>
+  <c-icon-button icon="back" label="Назад" look="ribbon" disabled="1"/>
+  <c-icon-button id="ib-engraved" icon="back" label="Назад" look="engraved"/>
+  <c-icon-button icon="back" label="Назад" look="engraved" pressed="1"/>
+  <c-icon-button icon="trash" label="Удалить" look="engraved" danger="1"/>
+  <c-icon-button icon="back" label="Назад" look="engraved" disabled="1"/>
+</div>
+<div class="g-note">над сценой</div>
+<div class="g-row g-scene">
+  <c-icon-button icon="info" look="bare"/>
+  <c-icon-button icon="back" look="engraved"/>
+</div>
+</div>
+</body>
+</rml>

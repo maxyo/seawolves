@@ -1,0 +1,107 @@
+Seawolves
+Copyright (C) 2026 maxyo and the Seawolves contributors
+https://github.com/maxyo/seawolves
+
+An unofficial fan port. It is not affiliated with, endorsed by or connected to
+the rights holders of «Корсары: Каждому своё» (Sea Dogs: To Each His Own) or of
+the Sea Dogs / «Корсары» series. Their names and trademarks belong to their
+owners and are used here only to say which game the app runs.
+
+LICENCE
+-------
+The whole repository is licensed under the GNU General Public License,
+version 3 (LICENSE; the same text is LICENSES/GPL-3.0-only.txt):
+
+  GPL-3.0-or-later   the Android application: app/ and the files at the root,
+                     except the two directories named in the next line
+  GPL-3.0-only       engine/ (the native engine, as Storm Engine was released),
+                     app/mobile-ui/PROGRAM/ (interface scripts that run with
+                     the game's scripts) and app/script-patches/ (fixes to the
+                     game's published scripts)
+
+The fonts in app/mobile-ui/design/fonts are separate works under the SIL Open
+Font License 1.1 (LICENSES/OFL-1.1.txt). Third-party libraries and models built
+into the engine keep their own licences, listed in engine/third_party/licenses.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+NO GAME CONTENT
+---------------
+This repository and the APKs built from it contain no game content: no game
+models, textures, sounds, music, videos, fonts, saves, quest or dialogue texts
+or other resources of «Корсары: Каждому своё», and no links to download the
+game. None of that is covered by the licence above. Players use their own legally obtained
+copy of the game; the app copies it from a folder, archive or installer the
+player chooses, on the player's own device.
+
+The only game-related material here comes from what the developers published
+under GPL-3.0 in storm-devs/sd-teho-public
+(https://github.com/storm-devs/sd-teho-public): the game's scripts and its
+interface texts.
+
+  app/mobile-ui/PROGRAM/interface/mainmenu.c   adapted from that repository's
+      program/interface/mainmenu.c (revision and changes: app/mobile-ui/SOURCE.json)
+  app/script-patches/sets/**                   unified diffs against its scripts;
+      each fix records its licence and source in set.json, and packaging
+      refuses a fix under any licence other than GPL-3.0
+  engine/src/libs/ui/tests/**, engine/tests/**  test data for the interface
+      checks; some of it carries short interface labels (names of items, skills,
+      buttons, one-line prompts) as that repository's resource/ini/texts spell
+      them. The longer texts in the test data are invented for the tests.
+
+THE ENGINE
+----------
+The native engine (engine/) is a fork of Storm Engine
+(https://github.com/storm-devs/storm-engine), Copyright (C) the Storm Engine
+authors and the storm-devs contributors, licensed under GPL-3.0. Changes made
+for this port are Copyright (C) 2026 maxyo and the Seawolves contributors, under
+the same licence.
+
+Fork point: storm-devs/storm-engine, branch develop, commit
+a68f43df197a50c5177f40209abc109f01f4b114 (2023-11-25, "Merge pull request #512
+from q4a/ci-clang-upd"). Everything under engine/ that differs from that commit
+was changed for this port in 2026; the upstream history up to the fork point is
+in the upstream repository.
+
+The engine's third-party libraries and models and their licences are listed in
+engine/third_party/licenses, engine/android/archive/licenses and
+engine/src/libs/renderer_bgfx/fx/THIRD_PARTY.md. Every APK carries those notices
+in assets/licenses and shows them on its About screen. The SDL Java sources
+compiled into the APK come from the SDL release the engine pins (zlib licence).
+
+FONTS, ICONS AND TEXTURES OUTSIDE engine/
+-----------------------------------------
+Third-party:
+
+  app/mobile-ui/design/fonts/NotoSerif-Regular.ttf, NotoSerif-Bold.ttf,
+  NotoSerif-Italic.ttf
+      Noto Serif, Copyright 2022 The Noto Project Authors
+      (https://github.com/notofonts/latin-greek-cyrillic), SIL OFL 1.1;
+      notice: app/mobile-ui/design/fonts/OFL-NotoSerif.txt
+  app/mobile-ui/design/fonts/GreatVibes-Regular.ttf
+      Great Vibes, Copyright 2015 The Great Vibes Pro Project Authors
+      (https://github.com/googlefonts/great-vibes), SIL OFL 1.1;
+      notice: app/mobile-ui/design/fonts/OFL-GreatVibes.txt
+
+  The fonts are shipped as separate, unmodified font files.
+
+Made for this project (GPL-3.0-or-later, like the application; none of it is
+taken from, traced from or derived from game assets):
+
+  app/android/game/icon/*, app/android/game/res/mipmap-*/ic_launcher*,
+  app/android/game/res/drawable/ic_launcher_*.xml
+      the launcher icon, drawn as SVG (app/android/game/icon) and rendered to
+      the other files by app/tools/android/app_icon.py
+  app/android/game/res/drawable/ic_notification_download.xml,
+  ic_notification_pause.xml
+      the notification icons, drawn as vector drawables
+  app/mobile-ui/design/icons.json
+      the interface icon set, drawn as SVG paths
+  app/mobile-ui/design/textures-src/oak.jpg, lapis.jpg and the files baked from
+  them in app/mobile-ui/design/textures/
+      the oak and lapis interface materials. Both pictures were generated with
+      an image model (OpenAI gpt-image through ChatGPT, October 2026) from a
+      text description, then reduced in size; app/mobile-ui/design/bake_textures.py
+      bakes the shading into them.

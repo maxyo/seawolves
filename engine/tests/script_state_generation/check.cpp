@@ -1,0 +1,232 @@
+#include "attributes.h"
+#include "script_state.hpp"
+#include "mobile_facts_cache.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <vector>
+
+namespace
+{
+int failures = 0;
+
+class Codec final : public VSTRING_CODEC
+{
+  public:
+    uint32_t GetNum() override
+    {
+        return static_cast<uint32_t>(names_.size());
+    }
+    uint32_t Convert(const char *text) override
+    {
+        return Convert(text, static_cast<int32_t>(std::string(text).size()));
+    }
+    uint32_t Convert(const char *text, int32_t length) override
+    {
+        const std::string name(text, length);
+        for (uint32_t i = 0; i < names_.size(); ++i)
+            if (names_[i] == name)
+                return i;
+        names_.push_back(name);
+        return static_cast<uint32_t>(names_.size() - 1);
+    }
+    const char *Convert(uint32_t code) override
+    {
+        return names_[code].c_str();
+    }
+    std::optional<uint32_t> Find(std::string_view name) const override
+    {
+        for (uint32_t i = 0; i < names_.size(); ++i)
+            if (names_[i] == name)
+                return i;
+        return std::nullopt;
+    }
+    void VariableChanged() override
+    {
+    }
+
+  private:
+    std::vector<std::string> names_;
+};
+
+// `what` changes script state iff `changes`.
+template <typename F> void Expect(bool changes, const char *what, F &&write)
+{
+    const auto before = storm::ScriptStateGeneration();
+    write();
+    const bool changed = storm::ScriptStateGeneration() != before;
+    if (changed != changes)
+    {
+        std::fprintf(stderr, "FAIL %s: %s\n", what, changed ? "counted as a change" : "not counted");
+        ++failures;
+    }
+}
+} // namespace
+
+int main()
+{
+    Codec codec;
+    ATTRIBUTES root(codec);
+    ATTRIBUTES *chr = nullptr;
+    // No adapter has run: nothing is cached, no change is looked at (gameplay without an interface).
+    Expect(false, "a change before any adapter ran", [&] { root.SetAttribute("before", "1"); });
+    {
+        const storm::ScriptStateReads reads; // an adapter reads root
+        (void)root.GetAttributesNum();
+    }
+    Expect(true, "create", [&] { chr = root.CreateSubAClass(&root, "chr.ship"); });
+    Expect(true, "set a new attribute", [&] { chr->SetAttribute("type", "12"); });
+    Expect(false, "set the same value", [&] { chr->SetAttribute("type", "12"); });
+    Expect(true, "set a different value", [&] { chr->SetAttribute("type", "13"); });
+    Expect(true, "clear a value", [&] { chr->SetAttribute("type", static_cast<const char *>(nullptr)); });
+    Expect(false, "clear a cleared value", [&] { chr->SetAttribute("type", static_cast<const char *>(nullptr)); });
+    Expect(true, "SetValue new", [&] { chr->SetValue(std::string_view("x")); });
+    Expect(false, "SetValue same", [&] { chr->SetValue(std::string_view("x")); });
+    Expect(false, "SetValue same (char *)", [&] { chr->SetValue("x"); });
+    Expect(true, "SetValue nullptr", [&] { chr->SetValue(static_cast<const char *>(nullptr)); });
+    Expect(true, "dword write", [&] { chr->SetAttributeUseDword("crew", 40); });
+    Expect(false, "same dword", [&] { chr->SetAttributeUseDword("crew", 40); });
+    Expect(true, "float write", [&] { chr->SetAttributeUseFloat("hp", 0.5f); });
+    Expect(true, "rename", [&] { chr->SetName("vessel"); });
+    Expect(false, "rename code to itself", [&] { chr->SetNameCode(chr->GetThisNameCode()); });
+    Expect(false, "reads", [&] {
+        (void)root.FindAClass(&root, "chr.vessel.crew");
+        (void)chr->GetAttributeAsDword("crew");
+        (void)chr->GetAttribute("hp");
+        (void)root.GetAttributesNum();
+        (void)root.Copy();
+    });
+    Expect(false, "verify an existing child", [&] { (void)chr->VerifyAttributeClass("crew"); });
+    Expect(true, "verify creates a child", [&] { (void)chr->VerifyAttributeClass("morale"); });
+    Expect(false, "CreateSubAClass of an existing path", [&] { (void)root.CreateSubAClass(&root, "chr.vessel.crew"); });
+    Expect(true, "delete a child", [&] { root.DeleteAttributeClassX(chr->GetAttributeClass("crew")); });
+    Expect(false, "delete nothing", [&] { root.DeleteAttributeClassX(nullptr); });
+    Expect(true, "delete all children", [&] { chr->DeleteAttributeClassX(chr); });
+    Expect(false, "delete all of nothing", [&] { chr->DeleteAttributeClassX(chr); });
+    Expect(true, "move-assign a tree", [&] {
+        ATTRIBUTES other(codec);
+        other.SetAttribute("a", "1");
+        *chr = std::move(other);
+    });
+    // The moved-in children belong to the target: a write under them after the source is gone walks up
+    // through their parent, which must be the target, not the destroyed source (a crash on device, ASan here).
+    Expect(true, "write under children moved in from a destroyed tree", [&] {
+        {
+            ATTRIBUTES source(codec);
+            source.CreateSubAClass(&source, "deck.lantern");
+            *chr = std::move(source);
+        }
+        chr->FindAClass(chr, "deck.lantern")->SetAttribute("on", "1");
+    });
+    if (chr->FindAClass(chr, "deck")->GetParent() != chr)
+        ++failures, std::fputs("FAIL a moved-in child does not name its new parent\n", stderr);
+    {
+        ATTRIBUTES built(codec);
+        built.CreateSubAClass(&built, "x.y");
+        ATTRIBUTES moved(std::move(built));
+        if (moved.FindAClass(&moved, "x")->GetParent() != &moved)
+            ++failures, std::fputs("FAIL a move-constructed tree's child names the old tree\n", stderr);
+    }
+
+    // Deletion is scoped to the receiver, follows moved ownership, and preserves sibling order.
+    {
+        ATTRIBUTES tree(codec), foreign(codec);
+        auto *branch = tree.CreateSubAClass(&tree, "sea.update");
+        auto *first = branch->CreateAttribute("first", "1");
+        auto *middle = branch->CreateAttribute("middle", "2");
+        auto *last = branch->CreateAttribute("last", "3");
+        if (foreign.DeleteAttributeClassX(middle) || branch->DeleteAttributeClassX(&tree)
+            || !tree.DeleteAttributeClassX(middle) || branch->GetAttributesNum() != 2
+            || branch->GetAttributeClass(0) != first || branch->GetAttributeClass(1) != last)
+            ++failures, std::fputs("FAIL scoped deletion or sibling order\n", stderr);
+        ATTRIBUTES moved(std::move(tree));
+        if (!moved.DeleteAttributeClassX(last) || branch->GetAttributesNum() != 1)
+            ++failures, std::fputs("FAIL deletion after ownership move\n", stderr);
+        if (branch->DeleteAttributeClassX(branch) || branch->GetAttributesNum() != 0)
+            ++failures, std::fputs("FAIL self deletion must clear children and retain legacy false result\n", stderr);
+    }
+
+    // Only the trees read under ScriptStateReads count from then on.
+    ATTRIBUTES weather(codec);
+    weather.CreateSubAClass(&weather, "Wind.Angle");
+    {
+        const storm::ScriptStateReads reads;
+        (void)root.FindAClass(&root, "chr.vessel");
+    }
+    Expect(false, "a tree nobody read (the weather each frame)", [&] { weather.SetAttribute("Speed", "4.2"); });
+    Expect(false, "the same, deep", [&] { weather.FindAClass(&weather, "Wind.Angle")->SetValue(std::string_view("0.5")); });
+    Expect(true, "a read tree, deep", [&] { root.FindAClass(&root, "chr")->SetAttribute("money", "7"); });
+    {
+        const storm::ScriptStateReads reads;
+        (void)weather.GetAttribute("Speed");
+        (void)root.GetAttributesNum();
+    }
+    Expect(true, "a tree read in the last scope", [&] { weather.SetAttribute("Speed", "5"); });
+    Expect(true, "a watched tree destroyed", [&] {
+        ATTRIBUTES *temp = nullptr;
+        {
+            auto *object = new ATTRIBUTES(codec);
+            temp = object;
+            const storm::ScriptStateReads reads;
+            (void)root.GetAttributesNum();
+            (void)temp->GetAttributesNum();
+        }
+        delete temp;
+    });
+    Expect(false, "an unread tree destroyed", [&] { delete new ATTRIBUTES(codec); });
+    Expect(false, "an adapter's own writes (inside ScriptStateReads)", [&] {
+        const storm::ScriptStateReads reads;
+        root.SetAttribute("AndroidFacts", "new rows");
+        ATTRIBUTES local(codec); // a script's local object, read and gone within the adapter
+        local.SetAttribute("x", "1");
+        (void)local.GetAttribute("x");
+    });
+    Expect(true, "earlier reads still count (one set per opening)", [&] { weather.SetAttribute("Speed", "6"); });
+    storm::ScriptStateForget();
+    Expect(false, "after ScriptStateForget nothing read counts", [&] { weather.SetAttribute("Speed", "7"); root.SetAttribute("m", "1"); });
+    // A scope inside another (the facts adapter inside the interface model's collection) is part of
+    // the outer one: its reads count once the outer one ends, its writes never.
+    Expect(false, "writes inside nested scopes", [&] {
+        const storm::ScriptStateReads outer;
+        {
+            const storm::ScriptStateReads inner;
+            (void)weather.GetAttribute("Speed");
+            root.SetAttribute("AndroidFacts", "nested rows");
+        }
+        weather.SetAttribute("Speed", "8"); // the outer scope still runs: an adapter's own write
+    });
+    Expect(true, "a tree read in a nested scope counts after the outer one", [&] { weather.SetAttribute("Speed", "9"); });
+    storm::ScriptStateForget();
+    {
+        const storm::ScriptStateReads reads;
+        (void)root.GetAttributesNum();
+    }
+
+    // The facts cache: the same key finds the facts, any part of the key changing recollects.
+    storm::mobile::FactsCache<std::vector<std::string>> cache;
+    using Key = decltype(cache)::Key;
+    Key key{7, 3, "russian", storm::ScriptStateGeneration()};
+    if (cache.Find(key))
+        ++failures, std::fputs("FAIL an empty cache found facts\n", stderr);
+    // Collecting writes the adapter's own facts; the stored generation is the one after that.
+    root.SetAttribute("AndroidFacts", "rows");
+    key.state = storm::ScriptStateGeneration();
+    cache.Store(key, {"row"});
+    const auto now = [&] { return Key{7, 3, "russian", storm::ScriptStateGeneration()}; };
+    if (!cache.Find(now()) || cache.Find(now())->front() != "row")
+        ++failures, std::fputs("FAIL unchanged input does not find the facts (its own writes counted)\n", stderr);
+    for (const Key &other : {Key{8, 3, "russian", key.state}, Key{7, 4, "russian", key.state}, Key{7, 3, "english", key.state}})
+        if (cache.Find(other))
+            ++failures, std::fputs("FAIL a new opening, subject or language reused the facts\n", stderr);
+    root.SetAttribute("money", "100");
+    if (cache.Find(now()))
+        ++failures, std::fputs("FAIL an attribute write reused the facts\n", stderr);
+    if (cache.Collections() != 1)
+        ++failures, std::fputs("FAIL collections counted wrong\n", stderr);
+
+    if (failures)
+        return EXIT_FAILURE;
+    std::puts("PASS script state generation: changing writes count, reads and same-value writes do not; facts cache follows it");
+    return EXIT_SUCCESS;
+}

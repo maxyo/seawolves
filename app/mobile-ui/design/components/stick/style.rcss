@@ -1,0 +1,30 @@
+/* C-Stick: touch-only control. At rest a hint at 30 % opacity (restOpacity), fully visible
+   under the finger. The behaviour writes value / valueY (−100…100) and active.
+   floating: the component's box is the zone that takes the thumb; the stick rests at
+   restLeft / restBottom of the zone (from its right edge when mirrored: «Под левую руку») and appears under the finger (atX / atY) while held.
+   fixed: the zone is off for a while (the sea helm in first person): the stick works where it rests. */
+c-stick { display: inline-block; flex: 0 0 auto; }
+c-stick.floating { display: block; }
+c-stick.floating > .wrap { position: absolute; }
+c-stick .wrap { display: flex; flex-direction: column; align-items: center; gap: 6dp; }
+c-stick .caption { font-size: @{type.caption}dp; font-style: italic; white-space: nowrap; color: @{color.text}; font-effect: glow(2dp @{color.black}), shadow(0dp 1dp @{color.black}); }
+
+/* move / look: run-zone ring, inner guide circle, knob */
+c-stick .ring { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; box-sizing: border-box;
+    border-radius: @{radius.pill}dp; border: 1dp @{color.brassLine/.55}; background-color: @{color.hudGhost/.22}; }
+c-stick.running .ring { border: 2dp @{color.brassLit}; box-shadow: @{color.brassLit/.6} 0 0 12dp 0; }
+/* the design draws this circle dashed; RCSS borders are solid, so it is fainter instead */
+c-stick .inner { position: absolute; box-sizing: border-box; border-radius: @{radius.pill}dp; border: 1dp @{color.brassLine/.28}; }
+c-stick .ring .knob { position: absolute; border-radius: @{radius.pill}dp; background-color: @{color.text/.85}; }
+
+/* helm: horizontal capsule, value −100…100 = knob offset from the centre */
+c-stick .track { position: relative; flex: 0 0 auto; box-sizing: border-box; height: @{spec.helmHeight}dp; border-radius: 32dp;
+    border: 1dp @{color.brassLine/.6}; background-color: @{color.hudGhost/.239}; box-shadow: @{color.black/.4} 0 1dp 4dp 0; }
+c-stick .helm-fill { position: absolute; top: 28dp; height: 6dp; border-radius: 3dp; decorator: linear-gradient(90deg, @{color.brassTop/.2}, @{color.brassTop/.7}); }
+c-stick .chev { position: absolute; top: 25dp; width: 10dp; height: 10dp; transform: rotate(45deg); }
+c-stick .chev.left { left: 14dp; border-left: 2dp @{color.brass/.7}; border-bottom: 2dp @{color.brass/.7}; }
+c-stick .chev.right { right: 14dp; border-top: 2dp @{color.brass/.7}; border-right: 2dp @{color.brass/.7}; }
+c-stick .tick { position: absolute; left: 50%; top: 10dp; bottom: 10dp; width: 1dp; background-color: @{color.brassLine/.35}; }
+c-stick .track .knob { position: absolute; top: 5dp; box-sizing: border-box; width: @{spec.helmKnob}dp; height: @{spec.helmKnob}dp; border-radius: @{radius.pill}dp;
+    border: 1.5dp @{color.brass}; decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop/.95}, @{color.brassLow/.95});
+    box-shadow: @{color.black/.5} 0 2dp 5dp 0; }

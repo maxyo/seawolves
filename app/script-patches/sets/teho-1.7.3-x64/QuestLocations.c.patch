@@ -1,0 +1,11 @@
+--- a/PROGRAM/locations/init/QuestLocations.c
++++ b/PROGRAM/locations/init/QuestLocations.c
+@@ -50,7 +50,7 @@
+ 	/// Корабельная палуба  для карта - море
+ 	////////////////////////////////////////////////////////////
+ 	Locations[n].id = "Ship_deck";
+-	Locations[n].image = "loading\art\open_sea_clear.tga";
++	Locations[n].image = "loading\seaStand.tga";
+ 	locations[n].id.label = "Boarding deck";
+ 	//Sound
+ 	Locations[n].type = "deck";

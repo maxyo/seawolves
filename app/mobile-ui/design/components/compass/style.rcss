@@ -1,0 +1,36 @@
+/* C-Compass: the world-map instruments, bare on the map: the brass rose (course needle, wind
+   streamer from windFrom) under the sky dome (the sun by day, the moon in its phase by night, crossing
+   from the east horizon to the west; the weather in front of it), then date · time and provisions «N дн.».
+   The whole box is one button: a tap reports `toggle` and flips `expanded` (details). */
+c-compass { display: block; box-sizing: border-box; width: @{spec.width}dp; color: @{color.text}; line-height: 1.3;
+    font-effect: outline(1dp @{color.black}), glow(3dp @{color.black/.8}), shadow(0dp 1dp @{color.black}); }
+c-compass > .cp-box { display: flex; flex-direction: column; align-items: center; gap: 3dp; padding: 0 2dp 4dp 2dp; }
+c-compass > .cp-box > .cp-rose { position: relative; flex: 0 0 auto; width: @{spec.rose}dp; height: @{spec.rose}dp; margin-top: @{spec.sky}dp; }
+c-compass > .cp-box > .cp-date { font-size: @{spec.font.date}dp; line-height: 18dp; white-space: nowrap; }
+c-compass .cp-face { position: absolute; left: 1dp; top: 1dp; width: 86dp; height: 86dp; border-radius: 43dp;
+    decorator: linear-gradient(135deg, @{color.bezelLight}, @{color.bezel} 35%, @{color.brassRimPaper} 70%, @{color.bezelShine}); box-shadow: @{color.black/.5} 0 1dp 3dp 0; }
+c-compass .cp-face > .cp-dial { position: absolute; left: 3dp; top: 3dp; width: 80dp; height: 80dp; border-radius: 40dp;
+    decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.dialTop}, @{color.dialLow}); }
+c-compass .cp-arm { position: absolute; left: 44dp; top: 44dp; width: 0; height: 0; }
+c-compass .cp-tick { position: absolute; left: -0.6dp; top: -38dp; width: 1.2dp; height: 4dp; background-color: @{color.brassLine}; }
+c-compass .cp-dot { position: absolute; left: -1.5dp; width: 3dp; height: 3dp; border-radius: 1.5dp; background-color: @{color.brassLine/.75}; box-shadow: @{color.black/.7} 0 0 2dp 0; }
+c-compass .cp-dot.horizon { left: -3dp; width: 6dp; height: 3dp; background-color: @{color.brassLine}; }
+c-compass .cp-letter { position: absolute; width: 20dp; height: 14dp; font-size: @{spec.font.rose}dp; line-height: 14dp; text-align: center; color: @{color.textSecond}; font-effect: none; }
+c-compass .cp-letter.n { left: 34dp; top: 12dp; color: @{color.brass}; }
+c-compass .cp-letter.e { left: 60dp; top: 38dp; }
+c-compass .cp-letter.s { left: 34dp; top: 64dp; }
+c-compass .cp-letter.w { left: 8dp; top: 38dp; }
+c-compass .cp-wind { position: absolute; left: -1.2dp; width: 2.4dp;
+    decorator: repeating-linear-gradient(180deg, @{color.windStreamer} 0dp, @{color.windStreamer} 4dp, @{color.windStreamer/0} 4dp, @{color.windStreamer/0} 7dp); }
+c-compass .cp-wind-dot { position: absolute; left: -3dp; width: 6dp; height: 6dp; border-radius: 3dp; background-color: @{color.windStreamer}; }
+c-compass .cp-needle { position: absolute; left: -3.27dp; width: 0; height: 0; border-left: 3.27dp transparent; border-right: 3.27dp transparent; }
+c-compass .cp-needle.tip { border-bottom: 27.26dp @{color.brass}; }
+c-compass .cp-needle.tail { top: 0; border-top: 13.2dp @{color.brass}; }
+c-compass .cp-hub { position: absolute; left: 41dp; top: 41dp; width: 6dp; height: 6dp; box-sizing: border-box; border-radius: 3dp; border: 0.8dp @{color.dialHub}; background-color: @{color.brassTop}; }
+c-compass .cp-sky { position: absolute; width: @{spec.body}dp; height: @{spec.body}dp; }
+c-compass .cp-sky ui-icon { icon-shadow: @{color.black/.6} 0dp 0dp 2dp; }
+c-compass .cp-sky > .cp-weather { position: absolute; left: -8dp; top: 6dp; width: @{spec.weather}dp; height: @{spec.weather}dp; }
+c-compass .cp-sky.east > .cp-weather { left: 10dp; }
+c-compass > .cp-box > .cp-days { display: flex; flex-direction: row; align-items: center; gap: 6dp; font-size: @{spec.font.days}dp; line-height: 20dp; }
+c-compass.days-tone-danger > .cp-box > .cp-days { color: @{color.danger}; }
+c-compass > .cp-box.pressed > .cp-rose { transform: scale(0.97); }

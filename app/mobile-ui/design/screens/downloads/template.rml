@@ -1,0 +1,22 @@
+<c-screen id="header" key="header" title="{{title}}" actions="{{ json(actions) }}">
+<c-panel pad="0" gap="0">
+<t-if test="error"><div class="dl-error"><c-notice tone="danger" text="{{error}}" style="width: 100%"/></div></t-if>
+<t-if test="empty"><div class="dl-empty">{{emptyText}}</div>
+<t-for each="sources" as="s"><c-list-row id="{{s.id}}" icon="{{s.icon}}" title="{{s.title}}" meta="{{s.meta}}" chevron="1"/></t-for>
+<t-else/><div class="dl-list"><t-for each="sets" as="r"><c-list-row id="set-{{r.id}}" inert="1" icon="{{r.icon}}" title="{{r.title}}" meta="{{r.meta}}" meta-tone="{{r.metaTone}}" progress="{{r.progress}}" action="{{r.action}}" action-label="{{r.actionLabel}}" menu="{{ r.menu ? 1 : 0 }}" busy="{{ r.busy ? 1 : 0 }}"><t-if test="r.button"><div class="dl-button"><c-button id="{{r.button.id}}" label="{{r.button.label}}" variant="{{r.button.variant}}" size="sm" style="width: 100%"/></div></t-if></c-list-row></t-for></div></t-if>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</c-panel>
+<t-if test="sheet"><c-dialog id="sheet" key="sheet" variant="sheet" title="{{sheet.title}}" closable="1" actions="{{ json(sheet.actions) }}"/></t-if>
+<t-if test="dialog"><t-if test="dialog.kind == 'magnet'"><c-dialog id="dialog" key="dialog" variant="top" preset="confirm" title="{{dialog.title}}" confirm="{{dialog.confirm}}" cancel="{{dialog.cancel}}" width="560">
+<c-field id="magnet-field" label="{{dialog.label}}" value="{{dialog.value}}" placeholder="{{dialog.placeholder}}" style="width: 100%"/>
+</c-dialog></t-if>
+<t-if test="dialog.kind == 'sources'"><c-dialog id="dialog" key="dialog" title="{{dialog.title}}" closable="1" width="560">
+<div class="dl-rows"><t-for each="sources" as="s"><c-list-row id="{{s.id}}" icon="{{s.icon}}" title="{{s.title}}" meta="{{s.meta}}" chevron="1"/></t-for></div>
+</c-dialog></t-if>
+<t-if test="dialog.kind == 'pick'"><c-dialog id="dialog" key="dialog" title="{{dialog.title}}" closable="1" width="560">
+<div class="dl-rows"><t-for each="dialog.rows" as="s"><c-list-row id="{{s.id}}" icon="{{s.icon}}" title="{{s.title}}" meta="{{s.meta}}" chevron="1"/></t-for></div>
+</c-dialog></t-if>
+<t-if test="dialog.kind == 'info'"><c-dialog id="dialog" key="dialog" title="{{dialog.title}}" text="{{dialog.text}}" width="560" actions="{{ json(dialog.actions) }}"/></t-if>
+</t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

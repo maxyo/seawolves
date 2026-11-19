@@ -1,0 +1,514 @@
+#include "storm/fx/normal_map.hpp"
+
+#include "image_field.hpp"
+#include "name_rules.hpp"
+#include "storm/fx/log.hpp"
+#include "fnv_hash.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <cstring>
+
+namespace storm::fx
+{
+namespace
+{
+using namespace img;
+
+const char *const kClassNames[] = {"none", "height map", "stone", "wood", "building", "plaster", "metal", "prop", "character"};
+
+using rules::Match;
+
+struct Rule
+{
+    const char *folder; // only paths in this folder ("" = any)
+    Match match;
+    const char *pattern;
+    ReliefClass relief;
+    const char *text; // the rule as logged
+    bool (*accept)(std::string_view) = nullptr; // optional additional name constraint
+};
+
+bool ResidenceInterior(std::string_view path)
+{
+    const size_t slash = path.rfind('/');
+    std::string_view name = slash == std::string_view::npos ? path : path.substr(slash + 1);
+    if (!name.starts_with("residence"))
+        return false;
+    name.remove_prefix(9);
+    while (!name.empty() && ((name.front() >= '0' && name.front() <= '9') || name.front() == '_'))
+        name.remove_prefix(1);
+    return name == "ins" || name == "inside" || name == "tex";
+}
+
+// TEHO's RESOURCE/Textures, first match wins. Location textures lie in the root folder under descriptive names
+// (English, Russian transliterations, a few French); ships in Ships/<type>/Hull<n>/. Written from the texture list of
+// the game. Every surface gets relief (the parallax wherever it can work); the rules with no relief name what
+// it cannot work on or would be wrong for (their text is the reason in the logs and the census). A texture no rule
+// names is a prop (the last rule).
+constexpr ReliefClass N = ReliefClass::None, S = ReliefClass::Stone, W = ReliefClass::Wood, B = ReliefClass::Building,
+                      P = ReliefClass::Plaster, M = ReliefClass::Metal, O = ReliefClass::Prop,
+                      C = ReliefClass::Character;
+#define STORM_RULE(folder, match, pattern, relief) {folder, Match::match, pattern, relief, folder pattern}
+const Rule kRules[] = {
+    // The characters' atlases (one per model: clothes, armour, skin and hair, the skin faded out per vertex).
+    STORM_RULE("characters/", Folder, "", C),
+    // Folders of things without relief: UI, sky and weather, light maps, effects, the
+    // grass cards, animals, flags.
+    STORM_RULE("interfaces/", Folder, "", N),
+    STORM_RULE("battle_interface/", Folder, "", N),
+    STORM_RULE("mainmenu/", Folder, "", N),
+    STORM_RULE("loading/", Folder, "", N),
+    STORM_RULE("fonts/", Folder, "", N),
+    STORM_RULE("dialog/", Folder, "", N),
+    STORM_RULE("crosshair/", Folder, "", N),
+    STORM_RULE("tips/", Folder, "", N),
+    STORM_RULE("quest_signs/", Folder, "", N),
+    STORM_RULE("weather/", Folder, "", N),
+    STORM_RULE("lighting/", Folder, "", N), // the locations' baked light maps
+    STORM_RULE("worldmap/", Folder, "", N),
+    STORM_RULE("grass/", Folder, "", N),
+    STORM_RULE("animals/", Folder, "", N),
+    STORM_RULE("flags/", Folder, "", N),
+    STORM_RULE("shipsflares/", Folder, "", N),
+    STORM_RULE("locefx/", Folder, "", N),
+    STORM_RULE("tornado/", Folder, "", N),
+    STORM_RULE("texturesequence/", Folder, "", N),
+    // Ships: sails, wakes and the alpha-tested rigging have none; metal fittings and guns are metal; hulls, decks and
+    // boats are planks.
+    STORM_RULE("ships/", Contains, "parus", N),
+    STORM_RULE("ships/", Contains, "trail", N),
+    STORM_RULE("ships/", Contains, "alpha", N),
+    STORM_RULE("ships/", Contains, "col", N),
+    STORM_RULE("ships/", Contains, "metal", M),
+    STORM_RULE("ships/", Contains, "cannon", M),
+    STORM_RULE("ships/", Contains, "gun", M),
+    STORM_RULE("ships/", Folder, "", W),
+    // Weapons held or lying about.
+    STORM_RULE("ammo/", Folder, "", M),
+
+    // Names. Buildings whose names start like an excluded word come first.
+    // These are complete building atlases (masonry, plaster, wood and window patches), not window overlays or
+    // wooden props. Keep their normal maps and the same bounded, masked parallax as the other house atlases.
+    STORM_RULE("", Exact, "foudation_win_door", B),
+    STORM_RULE("", Exact, "foudation_win2door", B),
+    STORM_RULE("", Exact, "hut1_walls", B),
+    STORM_RULE("", Exact, "hut2_walls", B),
+    STORM_RULE("", Exact, "hut3_walls", B),
+    STORM_RULE("", Exact, "hut4_walls", B),
+    STORM_RULE("", Exact, "barn2_wall", B),
+    STORM_RULE("", Exact, "hut1", B),
+    STORM_RULE("", Exact, "hut2", B),
+    STORM_RULE("", Exact, "hut3", B),
+    STORM_RULE("", Exact, "hut4", B),
+    STORM_RULE("", Exact, "barn2", B),
+    STORM_RULE("", Contains, "windmill", B),
+    STORM_RULE("", Contains, "fonar", M), // lanterns
+    STORM_RULE("", Contains, "lighthouse", S),
+    // Not surfaces with relief: occlusion / reflection / mask maps, windows and glass, light, fire, smoke, water,
+    // foliage cards, cloth, bones, signs, UI and effect sheets.
+    STORM_RULE("", Prefix, "occl", N),
+    STORM_RULE("", Prefix, "refl", N),
+    STORM_RULE("", Contains, "mask", N),
+    STORM_RULE("", Prefix, "wind", N), // windows lit at night (windTavern1, windBigHouse01...)
+    STORM_RULE("", Contains, "window", N),
+    STORM_RULE("", Contains, "glass", N),
+    STORM_RULE("", Contains, "win_", N),
+    STORM_RULE("", Contains, "_win", N),
+    STORM_RULE("", Contains, "alpha", N),
+    STORM_RULE("", Contains, "alfa", N),
+    STORM_RULE("", Contains, "light", N),
+    STORM_RULE("", Contains, "lamp", N),
+    STORM_RULE("", Contains, "candle", N),
+    STORM_RULE("", Contains, "corona", N),
+    STORM_RULE("", Contains, "fire", N),
+    STORM_RULE("", Contains, "bonfire", N),
+    STORM_RULE("", Contains, "flash", N),
+    STORM_RULE("", Contains, "spark", N),
+    STORM_RULE("", Contains, "smoke", N),
+    STORM_RULE("", Contains, "shadow", N),
+    STORM_RULE("", Contains, "sky", N),
+    STORM_RULE("", Prefix, "sea", N),
+    STORM_RULE("", Contains, "water", N),
+    STORM_RULE("", Contains, "under", N), // underwater
+    STORM_RULE("", Contains, "caust", N),
+    STORM_RULE("", Contains, "foam", N),
+    STORM_RULE("", Contains, "splash", N),
+    STORM_RULE("", Contains, "fall", N), // waterfalls
+    STORM_RULE("", Contains, "river", N),
+    STORM_RULE("", Contains, "lava", N),
+    STORM_RULE("", Contains, "reef", N),
+    STORM_RULE("", Contains, "coral", N),
+    STORM_RULE("", Contains, "algae", N),
+    STORM_RULE("", Contains, "leaf", N),
+    STORM_RULE("", Contains, "leaves", N),
+    STORM_RULE("", Contains, "palm", N),
+    STORM_RULE("", Contains, "tree", N),
+    STORM_RULE("", Contains, "plant", N), // also Plantation: its walls are atlases with foliage
+    STORM_RULE("", Contains, "flower", N),
+    STORM_RULE("", Contains, "flora", N),
+    STORM_RULE("", Contains, "fern", N),
+    STORM_RULE("", Contains, "grass", P), // grass ground (the grass cards: grass/)
+    STORM_RULE("", Contains, "back", N), // background cards (back_jungle, back_mountains)
+    STORM_RULE("", Contains, "sail", N),
+    STORM_RULE("", Contains, "flag", N),
+    STORM_RULE("", Contains, "rope", N),
+    STORM_RULE("", Contains, "nets", N),
+    STORM_RULE("", Contains, "web", N),
+    STORM_RULE("", Contains, "chain", M),
+    STORM_RULE("", Contains, "canopy", N),
+    STORM_RULE("", Contains, "vant", N), // shrouds
+    STORM_RULE("", Contains, "metal", M),
+    STORM_RULE("", Contains, "iron", M),
+    STORM_RULE("", Contains, "gold", M),
+    STORM_RULE("", Contains, "gundeck", W),
+    STORM_RULE("", Contains, "cannon", M),
+    STORM_RULE("", Contains, "gun", M),
+    STORM_RULE("", Contains, "skin", N),
+    STORM_RULE("", Contains, "telo", N),   // body
+    STORM_RULE("", Contains, "golova", N), // head
+    STORM_RULE("", Prefix, "eye", N),
+    STORM_RULE("", Contains, "sign", N),
+    STORM_RULE("", Contains, "painting", N),
+    STORM_RULE("", Contains, "freska", N),
+    STORM_RULE("", Contains, "map", N),
+    STORM_RULE("", Contains, "menu", N),
+    STORM_RULE("", Contains, "particles", N),
+    STORM_RULE("", Contains, "blood", N),
+    STORM_RULE("", Contains, "bird", N),
+    STORM_RULE("", Contains, "seagull", N),
+    STORM_RULE("", Contains, "fish", N),
+
+    // Floors and woven surfaces stay shallow, including compound building/stone names.
+    // Exclusions above still win (UI, alpha cards, paintings, foliage and effects).
+    STORM_RULE("", Contains, "floor", P),
+    STORM_RULE("", Contains, "parquet", P),
+    STORM_RULE("", Contains, "cloth", P),
+    STORM_RULE("", Contains, "carpet", P),
+    STORM_RULE("", Contains, "fabric", P),
+    // These stock interior atlases mix floors/rugs with furniture and wall patches.
+    // Classify the whole atlas shallow; exterior Residence* masonry remains Building.
+    {"", Match::Prefix, "residence", P, "residence + interior suffix", ResidenceInterior},
+    STORM_RULE("", Exact, "smallresidence", P),
+    STORM_RULE("", Exact, "pirate_residence", P),
+
+    // Weapons and tools (before the wood: "rapier" holds "pier").
+    STORM_RULE("", Contains, "pistol", M),
+    STORM_RULE("", Contains, "blade", M),
+    STORM_RULE("", Contains, "sabre", M),
+    STORM_RULE("", Contains, "rapier", M),
+    STORM_RULE("", Contains, "sword", M),
+    STORM_RULE("", Contains, "katana", M),
+    STORM_RULE("", Contains, "anchor", M),
+
+    // Stone and brick.
+    STORM_RULE("", Contains, "stone", S),
+    STORM_RULE("", Contains, "brick", S),
+    STORM_RULE("", Contains, "rock", S),
+    STORM_RULE("", Contains, "skala", S), // rock
+    STORM_RULE("", Contains, "pierre", S),
+    STORM_RULE("", Contains, "cobble", S),
+    STORM_RULE("", Contains, "town_cob", S),
+    STORM_RULE("", Contains, "beton", S),
+    STORM_RULE("", Contains, "fort", S),
+    STORM_RULE("", Contains, "castle", S),
+    STORM_RULE("", Contains, "cave", S),
+    STORM_RULE("", Contains, "grot", S),
+    STORM_RULE("", Contains, "crypt", S),
+    STORM_RULE("", Contains, "temple", S),
+    STORM_RULE("", Contains, "pyramid", S),
+    STORM_RULE("", Contains, "piramid", S),
+    STORM_RULE("", Contains, "incas", S),
+    STORM_RULE("", Contains, "tenochtitlan", S),
+    STORM_RULE("", Contains, "stal", S), // stalactites, stalagmites
+    STORM_RULE("", Contains, "tile", S),
+    STORM_RULE("", Contains, "border", S),
+    STORM_RULE("", Contains, "stair", S),
+    STORM_RULE("", Contains, "steps", S),
+    STORM_RULE("", Contains, "arch", S),
+    STORM_RULE("", Contains, "ruin", S),
+    STORM_RULE("", Contains, "grave", S),
+    STORM_RULE("", Contains, "cemetery", S),
+    STORM_RULE("", Contains, "fontain", S),
+    STORM_RULE("", Contains, "mayak", S), // lighthouse
+    STORM_RULE("", Contains, "prison", S),
+    STORM_RULE("", Contains, "mine", S),
+    STORM_RULE("", Contains, "kamin", S), // fireplace
+
+    // Wood and planks.
+    STORM_RULE("", Contains, "wood", W),
+    STORM_RULE("", Contains, "plank", W),
+    STORM_RULE("", Contains, "deck", W),
+    STORM_RULE("", Contains, "board", W),
+    STORM_RULE("", Contains, "balk", W), // beams
+    STORM_RULE("", Contains, "derevo", W),
+    STORM_RULE("", Contains, "door", W),
+    STORM_RULE("", Contains, "gate", W),
+    STORM_RULE("", Contains, "pier", W),
+    STORM_RULE("", Contains, "prichal", W), // pier
+    STORM_RULE("", Contains, "hold", W),
+    STORM_RULE("", Contains, "cabin", W),
+    STORM_RULE("", Contains, "boat", W),
+    STORM_RULE("", Prefix, "dm_", W), // deck models of the ships
+    STORM_RULE("", Prefix, "cap", W), // captain's cabins and decks
+    STORM_RULE("", Contains, "furniture", W),
+    STORM_RULE("", Contains, "chest", W),
+    STORM_RULE("", Contains, "barrel", W),
+    STORM_RULE("", Contains, "ladder", W),
+    STORM_RULE("", Contains, "grating", W),
+    STORM_RULE("", Contains, "lafet", W), // gun carriages
+    STORM_RULE("", Contains, "roof", W),
+    STORM_RULE("", Contains, "hut", W),
+    STORM_RULE("", Contains, "barn", W),
+    STORM_RULE("", Contains, "objects_tex", W), // town props: crates, barrels, carts
+
+    // Buildings: one atlas per house, tavern or church with its stone, plaster, beams and doors.
+    STORM_RULE("", Prefix, "flh", B), // Flemish houses
+    STORM_RULE("", Prefix, "sph", B), // Spanish houses
+    STORM_RULE("", Contains, "shipyard", B),
+    STORM_RULE("", Contains, "house", B),
+    STORM_RULE("", Contains, "residence", B),
+    STORM_RULE("", Contains, "tavern", B),
+    STORM_RULE("", Contains, "store", B),
+    STORM_RULE("", Contains, "bank", B),
+    STORM_RULE("", Contains, "church", B),
+    STORM_RULE("", Contains, "barracks", B),
+    STORM_RULE("", Contains, "brothel", B),
+    STORM_RULE("", Contains, "usurer", B),
+    STORM_RULE("", Contains, "estate", B),
+    STORM_RULE("", Contains, "arsenal", B),
+    STORM_RULE("", Contains, "college", B),
+    STORM_RULE("", Contains, "office", B),
+    STORM_RULE("", Contains, "home", B),
+    STORM_RULE("", Contains, "village", B),
+    STORM_RULE("", Contains, "quarter", B),
+    STORM_RULE("", Contains, "town", B),
+    STORM_RULE("", Contains, "wall", B),
+
+    // Plaster and ground.
+    STORM_RULE("", Contains, "celling", P), // ceilings
+    STORM_RULE("", Contains, "potolok", P), // ceiling
+    STORM_RULE("", Contains, "ground", P),
+    STORM_RULE("", Contains, "grnd", P),
+    STORM_RULE("", Contains, "land", P),
+    STORM_RULE("", Contains, "sand", P),
+    STORM_RULE("", Contains, "pesok", P), // sand
+    STORM_RULE("", Contains, "beach", P),
+    STORM_RULE("", Contains, "shore", P),
+    STORM_RULE("", Contains, "dirt", P),
+    STORM_RULE("", Contains, "path", P),
+    STORM_RULE("", Contains, "tropa", P), // path
+    STORM_RULE("", Contains, "jungle", P),
+    // Everything else: props of the locations and the ships, items, island textures.
+    {"", Match::Prefix, "", O, "(no other rule: a prop)"},
+
+};
+#undef STORM_RULE
+} // namespace
+
+const char *ReliefClassName(ReliefClass relief)
+{
+    return kClassNames[static_cast<int>(relief)];
+}
+
+NormalMapOptions HeightMapOptions()
+{
+    NormalMapOptions options;
+    options.strength = 2.0f;
+    return options;
+}
+
+uint64_t NormalMapCacheKey(const NormalMapOptions &options)
+{
+    uint32_t strength;
+    std::memcpy(&strength, &options.strength, sizeof(strength));
+    uint64_t key = storm::hash::kFnvOffset;
+    for (uint64_t part : {uint64_t{kNormalMapVersion}, uint64_t{strength}, uint64_t{options.wrap},
+                          static_cast<uint64_t>(options.pre_blur), static_cast<uint64_t>(options.max_size)})
+        key = storm::hash::fnvRound(key, part);
+    return key;
+}
+
+void NormalMapSize(int width, int height, const NormalMapOptions &options, int &out_width, int &out_height)
+{
+    out_width = width;
+    out_height = height;
+    while (std::max(out_width, out_height) > std::max(options.max_size, 1))
+    {
+        out_width = std::max(out_width / 2, 1);
+        out_height = std::max(out_height / 2, 1);
+    }
+}
+
+size_t NormalMapLevelBytes(NormalMapFormat format, int width, int height)
+{
+    const size_t blocks = static_cast<size_t>((width + 3) / 4) * ((height + 3) / 4), texels = static_cast<size_t>(width) * height;
+    switch (format)
+    {
+    case NormalMapFormat::Rg8: return texels * 2;
+    case NormalMapFormat::EacRg11: return blocks * 16;
+    }
+    return 0;
+}
+
+size_t NormalMapBytes(int width, int height, NormalMapFormat format)
+{
+    size_t bytes = 0;
+    for (;;)
+    {
+        bytes += NormalMapLevelBytes(format, width, height);
+        if (width == 1 && height == 1)
+            return bytes;
+        width = std::max(width / 2, 1);
+        height = std::max(height / 2, 1);
+    }
+}
+
+NormalMap DeriveNormalMap(std::span<const uint8_t> rgba, int width, int height, const NormalMapOptions &options)
+{
+    NormalMap map;
+    if (width <= 0 || height <= 0 || rgba.size() < static_cast<size_t>(width) * height * 4)
+        return map;
+    Field field{width, height, options.wrap, {}};
+    field.values.resize(static_cast<size_t>(width) * height);
+    for (size_t i = 0; i < field.values.size(); ++i)
+        field.values[i] = rgba[i * 4] / 255.0f;
+    int top_width, top_height;
+    NormalMapSize(width, height, options, top_width, top_height);
+    // The strength is given at kNormalMapReferenceSize: a map derived smaller (a lower preset) has the same relief, only
+    // less detail.
+    int reference_width, reference_height;
+    NormalMapOptions reference = options;
+    reference.max_size = kNormalMapReferenceSize;
+    NormalMapSize(width, height, reference, reference_width, reference_height);
+    const float texel_ratio = static_cast<float>(top_width) / static_cast<float>(reference_width);
+    while (field.width != top_width || field.height != top_height)
+        field = Halve(field);
+    for (int pass = 0; pass < options.pre_blur; ++pass)
+        field = Blur(field);
+    map.width = field.width;
+    map.height = field.height;
+    map.rg.reserve(NormalMapBytes(map.width, map.height));
+
+    // Slope scale of the top mip; each smaller mip has texels twice as large, so the same world slope is
+    // half as many height units per texel.
+    float scale = options.strength * texel_ratio;
+    for (;;)
+    {
+        ++map.mip_count;
+        const std::vector<int> xs = field.Indices(field.width, 1), ys = field.Indices(field.height, 1);
+        const float *v = field.values.data();
+        const size_t w = static_cast<size_t>(field.width);
+        for (int y = 0; y < field.height; ++y)
+        {
+            const float *above = v + ys[static_cast<size_t>(y)] * w, *row = v + ys[static_cast<size_t>(y) + 1] * w,
+                        *below = v + ys[static_cast<size_t>(y) + 2] * w;
+            for (int x = 0; x < field.width; ++x)
+            {
+                // Scharr: [-1 0 1] derivative, [3 10 3] / 16 smoothing across.
+                const int l = xs[static_cast<size_t>(x)], c = xs[static_cast<size_t>(x) + 1], r = xs[static_cast<size_t>(x) + 2];
+                const float du = (3.0f * (above[r] - above[l]) + 10.0f * (row[r] - row[l]) + 3.0f * (below[r] - below[l])) / 32.0f;
+                const float dv = (3.0f * (below[l] - above[l]) + 10.0f * (below[c] - above[c]) + 3.0f * (below[r] - above[r])) / 32.0f;
+                float nx = -du * scale, ny = -dv * scale;
+                const float inv = 1.0f / std::sqrt(nx * nx + ny * ny + 1.0f);
+                nx *= inv;
+                ny *= inv;
+                map.rg.push_back(static_cast<uint8_t>(std::lround(std::clamp(0.5f + 0.5f * nx, 0.0f, 1.0f) * 255.0f)));
+                map.rg.push_back(static_cast<uint8_t>(std::lround(std::clamp(0.5f + 0.5f * ny, 0.0f, 1.0f) * 255.0f)));
+            }
+        }
+        if (field.width == 1 && field.height == 1)
+            break;
+        field = Halve(field);
+        scale *= 0.5f;
+    }
+    return map;
+}
+
+void DropTopMips(NormalMap &map, int max_size)
+{
+    size_t offset = 0;
+    while (map.mip_count > 1 && std::max(map.width, map.height) > max_size)
+    {
+        offset += NormalMapLevelBytes(map.format, map.width, map.height);
+        map.width = std::max(map.width / 2, 1);
+        map.height = std::max(map.height / 2, 1);
+        map.depth *= 0.5f;
+        --map.mip_count;
+    }
+    map.rg.erase(map.rg.begin(), map.rg.begin() + static_cast<std::ptrdiff_t>(offset));
+    if (!map.material.empty())
+        map.material.erase(map.material.begin(), map.material.begin() + static_cast<std::ptrdiff_t>(offset));
+}
+
+std::string NormalizeTexturePath(std::string_view path)
+{
+    std::string out;
+    for (char c : path)
+        if (!std::isspace(static_cast<unsigned char>(c)) || !out.empty())
+            out.push_back(c == '\\' ? '/' : static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    // A leading separator ("\\WorldMap\\sea\\ani\\wave_0000": how the world map names its textures) is no part of the
+    // path: left in, no folder rule matched and the world map's sea frames and clouds fell to the last rule (a prop).
+    out.erase(0, out.find_first_not_of('/') == std::string::npos ? out.size() : out.find_first_not_of('/'));
+    for (std::string_view prefix : {"resource/textures/", "textures/"})
+        if (out.compare(0, prefix.size(), prefix) == 0)
+            out.erase(0, prefix.size());
+    for (std::string_view extension : {".tx", ".tga"})
+        if (out.size() > extension.size() && out.compare(out.size() - extension.size(), extension.size(), extension) == 0)
+            out.resize(out.size() - extension.size());
+    return out;
+}
+
+bool NameSuggestsHeightMap(std::string_view normalized_path)
+{
+    const size_t slash = normalized_path.rfind('/');
+    const std::string_view name = slash == std::string_view::npos ? normalized_path : normalized_path.substr(slash + 1);
+    return name.find("bump") != std::string_view::npos;
+}
+
+bool IsGrayscale(std::span<const uint8_t> rgba)
+{
+    if (rgba.size() < 4)
+        return false;
+    // DXT stores colours as 5:6:5, so a grey image comes back with channel differences of a few steps.
+    size_t far_off = 0;
+    uint64_t total = 0;
+    const size_t pixels = rgba.size() / 4;
+    for (size_t i = 0; i < pixels; ++i)
+    {
+        const int r = rgba[4 * i], g = rgba[4 * i + 1], b = rgba[4 * i + 2];
+        const int spread = std::max({r, g, b}) - std::min({r, g, b});
+        total += static_cast<uint64_t>(spread);
+        far_off += spread > 24;
+    }
+    return total <= pixels * 8 && far_off * 100 <= pixels;
+}
+
+ReliefVerdict ClassifyTextureName(std::string_view path)
+{
+    for (const Rule &rule : kRules)
+        if (rules::Matches(path, rule.folder, rule.match, rule.pattern) && (!rule.accept || rule.accept(path)))
+            return {rule.relief, rule.text, rule.match == Match::Folder};
+    return {};
+}
+
+ReliefVerdict ReliefClassifier::Classify(std::string_view path, std::span<const uint8_t> rgba)
+{
+    const std::string name = NormalizeTexturePath(path);
+    ReliefVerdict verdict = ClassifyTextureName(name);
+    // A grey "bump" texture is a height map, except in the folders without relief (the sea's animated bump frames).
+    if (!(verdict.by_folder && verdict.relief == ReliefClass::None) && NameSuggestsHeightMap(name) && IsGrayscale(rgba))
+        verdict = {ReliefClass::HeightMap, "bump + grey", false};
+    if (std::find(logged_.begin(), logged_.end(), name) == logged_.end())
+    {
+        logged_.push_back(name);
+        if (verdict.rule)
+            Log(LogLevel::Debug, "texture %s: relief %s (rule %s)", name.c_str(), ReliefClassName(verdict.relief), verdict.rule);
+        else
+            Log(LogLevel::Debug, "texture %s: no relief (no rule knows it)", name.c_str());
+    }
+    return verdict;
+}
+
+} // namespace storm::fx

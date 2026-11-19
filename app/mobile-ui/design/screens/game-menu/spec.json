@@ -1,0 +1,11 @@
+{
+  "tag": "s-game-menu",
+  "doc": "Pause menu over the paused game (interface `game_menu`), filled by menu_game.cpp.",
+  "props": {
+    "line": {"type": "text", "default": ""},
+    "resume": {"type": "json", "default": null},
+    "buttons": {"type": "json", "default": []},
+    "confirm": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

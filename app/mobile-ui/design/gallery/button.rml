@@ -1,0 +1,49 @@
+<rml>
+<head>
+<title>Кнопка</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Button</div>
+<div class="g-row g-wood">
+  <c-button id="b-primary" style="width: 150dp" label="Купить" variant="primary" sub="−500"/>
+  <c-button id="b-secondary" style="width: 150dp" label="Продать" icon="money"/>
+  <c-button id="b-quiet" style="width: 110dp" label="Отмена" variant="quiet"/>
+  <c-button id="b-ghost" style="width: 110dp" label="ещё 12" variant="ghost"/>
+  <c-button id="b-danger" style="width: 150dp" label="За борт" variant="danger" hold="1"/>
+</div>
+<div class="g-row g-wood">
+  <c-button style="width: 150dp" label="Купить" variant="primary" pressed="1"/>
+  <c-button style="width: 150dp" label="Продать" pressed="1"/>
+  <c-button style="width: 150dp" label="За борт" variant="danger" hold="1" hold-progress="60"/>
+  <c-button style="width: 150dp" label="За борт" variant="danger" hold="1" hold-progress="100"/>
+  <c-button style="width: 150dp" label="Загрузка" busy="1"/>
+</div>
+<div class="g-row g-wood">
+  <c-button id="b-disabled" style="width: 170dp" label="Нанять" disabled="1" reason="Не хватает денег" sub="1 250"/>
+  <c-button style="width: 170dp" label="Нанять" variant="primary" disabled="1" reason="Нет мест в команде" show-reason="1"/>
+  <c-button style="width: 120dp" label="Малая" size="sm"/>
+  <c-button style="width: 200dp" label="В море" size="lg" variant="primary" icon="ship"/>
+  <c-button style="width: 130dp" label="Выбор" size="tile" sub="×10"/>
+  <c-button style="width: 166dp" label="Портовое управление" icon="portoffice" size="tile"/>
+  <c-button style="width: 166dp" label="Резиденция генерал-губернатора колонии" icon="residence" size="tile"/>
+</div>
+<div class="g-row g-paper">
+  <c-button style="width: 150dp" label="Принять" variant="primary" surface="parchment"/>
+  <c-button style="width: 150dp" label="Подробнее" surface="parchment" icon="info"/>
+  <c-button style="width: 110dp" label="Отмена" variant="quiet" surface="parchment"/>
+  <c-button style="width: 110dp" label="ещё" variant="ghost" surface="parchment"/>
+  <c-button style="width: 150dp" label="Сжечь" variant="danger" surface="parchment"/>
+  <c-button style="width: 150dp" label="Нельзя" surface="parchment" disabled="1"/>
+</div>
+<div class="g-title">C-Panel</div>
+<div class="g-row">
+  <div style="width: 200dp; height: 120dp"><c-panel title="Дерево"><div>Смолёное дерево</div></c-panel></div>
+  <div style="width: 200dp; height: 120dp"><c-panel tone="parchment" title="Пергамент"><div>Запись в журнале</div></c-panel></div>
+  <div style="width: 240dp; height: 120dp"><c-panel tone="parchment" aged="1" seed="5"><div>Старое письмо с рваным краем</div></c-panel></div>
+  <div style="width: 180dp; height: 120dp"><c-panel tone="glass" edge="1" title="Стекло"><div>Лист над HUD</div></c-panel></div>
+</div>
+</div>
+</body>
+</rml>

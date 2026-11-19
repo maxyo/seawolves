@@ -1,0 +1,4 @@
+<div class="oh" style="gap: {{gap}}dp;"><c-row-image class="oh-pic" image="{{ json(image) }}" icon="{{icon}}" size="{{size}}" icon-size="{{ round(size * spec.iconRatio) }}" tone="{{ surface == 'parchment' ? 'ink' : 'brass' }}" surface="{{surface}}" label="{{ or(label, title) }}"/><div class="oh-text">
+<t-if test="place == 'name'"><div class="oh-name"><div class="oh-title" style="font-size: {{titleSize}}dp;">{{title}}</div><t-if test="children"><div class="oh-slot" slot="1"></div></t-if></div><t-if test="sub"><div class="oh-sub tight" style="font-size: {{subSize}}dp;">{{sub}}</div></t-if>
+<t-else/><div class="oh-title" style="font-size: {{titleSize}}dp;">{{title}}</div><t-if test="sub"><div class="oh-sub" style="font-size: {{subSize}}dp;">{{sub}}</div></t-if><t-if test="place == 'below' && children"><div class="oh-below" slot="1"></div></t-if></t-if>
+</div><t-if test="place == 'end' && children"><div class="oh-end" slot="1"></div></t-if></div>

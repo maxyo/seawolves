@@ -1,0 +1,5 @@
+{
+  "$comment": "Pack textures with their static shade baked in (bake_textures.py writes textures/<name>; build.py fails when one is stale). A shade is the linear-gradient the element drew over its cover image every frame: top colour/alpha to bottom colour/alpha over the element's padding box. box: that box in dp at the design size (915x412), which fixes how `cover` maps the element onto the picture; on other aspects the same linear shade runs on past the box.",
+  "oak.jpg": {"shade": [["oakShade", 0.349], ["oakShade", 0.502]], "box": [915, 412]},
+  "lapis.jpg": {"shade": [["lapisShadeTop", 0.251], ["lapisShadeLow", 0.549]], "box": [915, 46]}
+}

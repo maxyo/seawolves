@@ -1,0 +1,43 @@
+/* s-shipyard: one list (our ships, the yard's offers) on the left, the ship being looked at on the right:
+   its figures in two columns of cells, the deal's buttons at the card's bottom; the game's windows as sheets over both. */
+s-shipyard { display: block; width: 100%; height: 100%; }
+s-shipyard .sy-left { flex: 1 1 0; min-width: 260dp; height: 100%; }
+s-shipyard .sy-right { flex: 1.25 1 0; min-width: 320dp; max-width: 600dp; height: 100%; }
+s-shipyard .sy-list { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+s-shipyard .sy-sec { flex: 0 0 auto; box-sizing: border-box; width: 100%; padding: 0 @{space.lg}dp; background-color: @{color.black/.22}; border-bottom: 1dp @{color.brassLine/.25}; }
+s-shipyard .sy-list c-list-row { flex: 0 0 auto; }
+s-shipyard .sy-none { padding: @{space.xxl}dp; }
+s-shipyard .sy-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp; }
+s-shipyard .sy-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.sm}dp; }
+s-shipyard .sy-text { white-space: pre-wrap; font-size: @{type.caption}dp; line-height: 1.4; color: @{color.textSecond}; }
+/* a figure: icon, caption over the value; our ship's value beside an offer's, muted */
+s-shipyard .sy-stats { flex: 0 0 auto; display: flex; flex-direction: row; flex-wrap: wrap; }
+s-shipyard .sy-stat { flex: 0 0 auto; box-sizing: border-box; width: 50%; height: 40dp; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; padding: 0 6dp 0 2dp; border-bottom: 1dp @{color.brassLine/.14}; }
+s-shipyard .sy-stat-text { flex: 1 1 0; min-width: 0; }
+s-shipyard .sy-stat-k { font-size: @{type.min}dp; line-height: 15dp; color: @{color.textMuted}; white-space: nowrap; }
+s-shipyard .sy-stat-v { font-size: @{type.body}dp; line-height: 19dp; font-weight: bold; color: @{color.text}; white-space: nowrap; overflow: hidden; }
+s-shipyard .sy-stat-v .tone-ok { color: @{color.ok}; }
+s-shipyard .sy-stat-v .tone-danger { color: @{color.danger}; }
+s-shipyard .sy-stat-own { margin-left: @{space.sm}dp; font-size: @{type.caption}dp; font-weight: normal; color: @{color.textMuted}; }
+s-shipyard .sy-bar { flex: 0 0 auto; display: flex; flex-direction: row; gap: @{space.sm}dp; }
+s-shipyard .sy-empty { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: @{space.sm}dp; }
+s-shipyard .sy-empty-text { font-size: @{type.body}dp; color: @{color.textMuted}; text-align: center; padding: @{space.sm}dp; }
+s-shipyard .sy-sheet-scroll { max-height: 240dp; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.xs}dp; }
+s-shipyard .sy-help { white-space: pre-wrap; font-size: @{type.body}dp; line-height: 1.4; padding: @{space.xs}dp 0; }
+/* a narrow phone: our ship's values would be cut mid-number; the colour of the offer's value still tells better from worse */
+@media (max-width: 720dp) { s-shipyard .sy-stat-own { display: none; } }
+/* the cannons window as the stock one: the game's deck plan, bow to the left; the guns of each side beside it
+   (starboard above, port below, bow left, stern right) */
+s-shipyard .sy-plan { display: flex; flex-direction: column; align-items: center; gap: 2dp; padding: @{space.sm}dp 0; }
+s-shipyard .sy-plan-mid { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: @{space.sm}dp; width: 100%; }
+s-shipyard .sy-deck { position: relative; flex: 0 0 auto; width: 300dp; height: 118dp; border-radius: @{radius.md}dp; decorator: linear-gradient(180deg, @{color.paperTop}, @{color.paperBottom}); }
+s-shipyard .sy-deck ui-game-image { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-shipyard .sy-gun { display: flex; flex-direction: column; align-items: center; }
+s-shipyard .sy-gun.end { flex: 0 0 64dp; }
+s-shipyard .sy-gun.row { flex-direction: row; align-items: baseline; gap: @{space.sm}dp; }
+s-shipyard .sy-gun-n { font-weight: bold; font-size: @{type.name}dp; line-height: 26dp; color: @{color.text}; }
+s-shipyard .sy-gun-k { font-size: @{type.caption}dp; line-height: 18dp; color: @{color.textSecond}; white-space: nowrap; }
+/* the game's windows as sheets: from the top of the ship card (header 48 dp + the panel's gap) to the bottom, so the
+   sheet never cuts the card's figures mid-line and never covers the header's purse */
+s-shipyard c-dialog#sheet { align-items: stretch; padding-top: 58dp; }
+s-shipyard c-dialog#sheet > .outer > .box { height: 100%; overflow-y: auto; }

@@ -1,0 +1,31 @@
+<rml>
+<head>
+<title>Поле ввода</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Field</div>
+<div class="g-note">дерево: в фокусе · без фокуса + счётчик · подсказка · ошибка · кнопка справа · многострочное</div>
+<div class="g-row g-wood">
+  <div style="width: 360dp"><c-field id="f-name" label="Имя сохранения" value="Сен-Пьер верфь" focused="1"/></div>
+  <div style="width: 360dp"><c-field id="f-counter" label="Имя сохранения" value="Сен-Пьер верфь" counter="14 / 40"/></div>
+  <div style="width: 360dp"><c-field label="Имя корабля" placeholder="Введите имя"/></div>
+  <div style="width: 360dp"><c-field label="Имя сохранения" value="Мартиника / море" focused="1" counter="16 / 40" error="Знак «/» нельзя использовать"/></div>
+  <div style="width: 360dp"><c-field label="Код" value="A7F2-QQ91" focused="1"><c-button id="f-paste" label="Вставить"/></c-field></div>
+  <div style="width: 360dp"><c-field label="Имя сохранения" value="Очень длинное имя сохранения, которое не помещается в поле ввода целиком"/></div>
+  <div style="width: 360dp"><c-field label="Заметка" multiline="1" focused="1" value="Зайти к ростовщику.
+Продать сахар в Порт-Ройале."/></div>
+  <div style="width: 360dp"><c-field label="Заметка" multiline="1" placeholder="Текст заметки"/></div>
+</div>
+<div class="g-note">пергамент</div>
+<div class="g-row g-paper">
+  <div style="width: 360dp"><c-field surface="parchment" label="Имя сохранения" value="Сен-Пьер верфь" focused="1"/></div>
+  <div style="width: 360dp"><c-field surface="parchment" label="Имя сохранения" value="Сен-Пьер верфь" counter="14 / 40"/></div>
+  <div style="width: 360dp"><c-field surface="parchment" label="Имя корабля" placeholder="Введите имя"/></div>
+  <div style="width: 360dp"><c-field surface="parchment" label="Имя сохранения" value="Мартиника / море" focused="1" error="Знак «/» нельзя использовать"/></div>
+  <div style="width: 360dp"><c-field surface="parchment" label="Заметка" multiline="1" value="Зайти к ростовщику."/></div>
+</div>
+</div>
+</body>
+</rml>

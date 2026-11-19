@@ -1,0 +1,3 @@
+<div class="head"><div class="label">{{label}}</div><div class="counter">{{counter}}</div></div>
+<div class="line"><div class="box" data-action="focus" data-value="{{value}}"{{{ disabled ? ' data-disabled="1"' : '' }}}><div class="text{{ value ? '' : ' empty' }}">{{ value ? value : placeholder }}</div><t-if test="focused"><div class="caret"></div></t-if></div><t-if test="children"><div class="slot" slot="1"></div></t-if></div>
+<t-if test="error"><div class="error"><c-icon icon="warning" size="16" tone="danger"/><div>{{error}}</div></div></t-if>

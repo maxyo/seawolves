@@ -1,0 +1,39 @@
+/* s-transfer: the cargo list (or the crew row with both crews compared) takes the height; the cargo's dock holds the open amount, the ship actions and the take-all button (the crew tab keeps the actions in a bar). */
+s-transfer { display: block; width: 100%; height: 100%; }
+s-transfer .tr-main { flex: 1 1 0; min-width: 0; height: 100%; }
+s-transfer .tr-crew { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+s-transfer .tr-crew-row { flex: 0 0 auto; display: flex; flex-direction: column; }
+/* the crew list as tall as its row: the open row's quantity controls are always in view (as the hire's, s-crew) */
+s-transfer .tr-crew-row c-trade-list .tl-wrap, s-transfer .tr-crew-row c-trade-list .tl-list { flex: 0 0 auto; overflow-y: visible; }
+s-transfer .tr-sides { display: flex; flex-direction: row; gap: 32dp; padding: @{space.md}dp @{space.lg}dp; }
+s-transfer .tr-side { flex: 1 1 0; min-width: 0; }
+s-transfer .tr-side-head { display: flex; flex-direction: row; align-items: baseline; gap: @{space.md}dp; margin-bottom: @{space.sm}dp; }
+s-transfer .tr-side-name { font-size: @{type.name}dp; font-weight: bold; color: @{color.text}; }
+s-transfer .tr-side-morale { flex: 1 1 0; text-align: right; font-size: @{type.body}dp; color: @{color.textMuted}; }
+s-transfer .tr-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp 0 @{space.lg}dp; }
+s-transfer .tr-grow { flex: 1 1 0; min-height: 0; }
+/* the ship actions side by side, their captions in two lines: the dock keeps the open amount, them and the take-all button on one phone screen */
+s-transfer .tr-actions { flex: 0 0 auto; display: flex; flex-direction: row; gap: @{space.sm}dp; }
+s-transfer c-trade-list c-button { flex-shrink: 0; }
+/* the ships tab: the figures of both ships row by row beside the same dock as the cargo's */
+s-transfer .tr-ships { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; }
+s-transfer .tr-cmp { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+s-transfer .tr-cmp-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-transfer .tr-cmp-row { display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; box-sizing: border-box; min-height: 31dp; padding: 0 @{space.lg}dp; border-bottom: 1dp @{color.brassLine/.14}; font-size: @{type.body}dp; }
+s-transfer .tr-cmp-row.head { min-height: 44dp; border-bottom: 1dp @{color.brassLine/.3}; }
+s-transfer .tr-cmp-k { flex: 1 1 0; min-width: 0; color: @{color.textSecond}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+s-transfer .tr-cmp-v { flex: 0 0 auto; width: 30%; text-align: right; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: @{color.text}; }
+s-transfer .tr-cmp-v.tone-ok { color: @{color.ok}; }
+s-transfer .tr-cmp-v.tone-danger { color: @{color.danger}; }
+s-transfer .tr-cmp-name { font-size: @{type.small}dp; overflow: hidden; text-overflow: ellipsis; }
+s-transfer .tr-cmp-sub { font-size: @{type.caption}dp; font-weight: normal; color: @{color.textMuted}; overflow: hidden; text-overflow: ellipsis; }
+s-transfer .tr-dock { flex: 0 0 auto; box-sizing: border-box; width: 36%; min-width: 300dp; max-width: 360dp; display: flex; flex-direction: column; gap: @{space.sm}dp; padding: @{space.panelPadV}dp @{space.panelPadH}dp; border-left: 1dp @{color.brassLine/.3}; }
+s-transfer .tr-dock c-button { flex-shrink: 0; }
+s-transfer .tr-prize { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6dp; }
+/* on a low screen the dock's content scrolls rather than push the take-all button out */
+s-transfer c-trade-list .tl-slot, s-transfer .tr-dock { overflow-y: auto; }
+@media (max-width: 700dp) { s-transfer .tr-dock { min-width: 264dp; width: 264dp; padding-left: @{space.md}dp; padding-right: @{space.md}dp; } }
+/* the surrendered captain's face beside the question */
+s-transfer .tr-fate { display: flex; flex-direction: row; align-items: center; gap: @{space.lg}dp; width: 100%; }
+s-transfer .tr-fate-face { flex: 0 0 auto; position: relative; width: 56dp; height: 56dp; }
+s-transfer .tr-fate-text { flex: 1 1 0; min-width: 0; font-size: @{type.body}dp; line-height: 1.36; color: @{color.text}; }

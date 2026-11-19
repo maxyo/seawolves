@@ -1,0 +1,215 @@
+#include "ai_helper.h"
+#include "ai_fort.h"
+#include "shared/events.h"
+
+AIHelper Helper;
+
+VRenderer *AIHelper::pRS = nullptr;
+ISLAND_BASE *AIHelper::pIsland = nullptr;
+COLLIDE *AIHelper::pCollide = nullptr;
+ATTRIBUTES *AIHelper::pASeaCameras = nullptr;
+
+float AIHelper::fGravity = 9.81f;
+
+AIHelper::AIHelper()
+    : dwRelationSize(0)
+{
+    pRelations = nullptr;
+}
+
+AIHelper::~AIHelper()
+{
+    Uninit();
+}
+
+bool AIHelper::Uninit()
+{
+    pIsland = nullptr;
+    pASeaCameras = nullptr;
+    aCharacters.clear();
+    aMainCharacters.clear();
+    dwRelationSize = 0;
+    delete[] pRelations;
+    pRelations = nullptr;
+    scriptRelations_.reset();
+    return true;
+}
+
+bool AIHelper::SetDevice()
+{
+    pRS = static_cast<VRenderer *>(core.GetService("renderer"));
+    Assert(pRS);
+    pCollide = static_cast<COLLIDE *>(core.GetService("COLL"));
+    Assert(pCollide);
+
+    return true;
+}
+
+bool AIHelper::Init() const
+{
+    pIsland = static_cast<ISLAND_BASE *>(core.GetEntityPointer(core.GetEntityId("island")));
+
+    return true;
+}
+
+ATTRIBUTES *AIHelper::GetMainCharacter(ATTRIBUTES *pACharacter)
+{
+    const auto it = std::find(aCharacters.begin(), aCharacters.end(), pACharacter); //~!~
+    return it != aCharacters.end() ? aMainCharacters[it - aCharacters.begin()] : nullptr;
+}
+
+void AIHelper::AddCharacter(ATTRIBUTES *pACharacter, ATTRIBUTES *pAMainCharacter)
+{
+    const auto it = std::find(aCharacters.begin(), aCharacters.end(), pACharacter); //~!~
+    if (it != aCharacters.end())
+    {
+        aMainCharacters[it - aCharacters.begin()] = pAMainCharacter;
+        return;
+    }
+    aCharacters.push_back(pACharacter);
+    aMainCharacters.push_back(pAMainCharacter);
+}
+
+void AIHelper::CalculateRelations()
+{
+    uint32_t x, y;
+
+    delete[] pRelations;
+    pRelations = nullptr;
+    dwRelationSize = aCharacters.size();
+    pRelations = new uint32_t[SQR(dwRelationSize)];
+    for (y = 0; y < dwRelationSize; y++)
+        for (x = 0; x < dwRelationSize; x++)
+            if (x != y)
+            {
+                auto *pData =
+                    core.Event(GET_RELATION_EVENT, "ll", GetIndex(aMainCharacters[y]), GetIndex(aMainCharacters[x]));
+                Assert(pData);
+                *GetRelation(y, x) = ScriptRelationNumbers().ToEngine(pData->GetInt());
+            }
+            else
+            {
+                *GetRelation(y, x) = RELATION_FRIEND;
+            }
+}
+
+uint32_t AIHelper::FindIndex(ATTRIBUTES *pACharacter) const
+{
+    const auto it = std::find(aCharacters.begin(), aCharacters.end(), pACharacter);
+    return it != aCharacters.end() ? it - aCharacters.begin() : -1;
+}
+
+uint32_t *AIHelper::GetRelation(uint32_t x, uint32_t y) const
+{
+    Assert(x < dwRelationSize && y < dwRelationSize);
+    return &pRelations[x + y * dwRelationSize];
+}
+
+uint32_t AIHelper::GetRelationSafe(ATTRIBUTES *pA1, ATTRIBUTES *pA2) const
+{
+    Assert(pA1 && pA2);
+    if (dwRelationSize == 0)
+        return RELATION_NEUTRAL;
+    const auto dw1 = FindIndex(pA1);
+    if (dw1 == INVALID_ARRAY_INDEX)
+        return RELATION_NEUTRAL;
+    const auto dw2 = FindIndex(pA2);
+    if (dw2 == INVALID_ARRAY_INDEX)
+        return RELATION_NEUTRAL;
+    return *GetRelation(dw1, dw2);
+}
+
+const storm::sea_ai::ScriptRelations &AIHelper::ScriptRelationNumbers()
+{
+    if (!scriptRelations_)
+        scriptRelations_ = storm::sea_ai::ScriptRelations::Read(
+            [](const char *name) { return core.GetScriptIntegerDefine(name); });
+    return *scriptRelations_;
+}
+
+int32_t AIHelper::GetScriptRelationSafe(ATTRIBUTES *pA1, ATTRIBUTES *pA2)
+{
+    return ScriptRelationNumbers().ToScript(GetRelationSafe(pA1, pA2));
+}
+
+uint32_t AIHelper::GetRelation(ATTRIBUTES *pA1, ATTRIBUTES *pA2) const
+{
+    Assert(pA1 && pA2);
+    const auto dw1 = FindIndex(pA1);
+    Assert(dw1 != INVALID_ARRAY_INDEX);
+    const auto dw2 = FindIndex(pA2);
+    Assert(dw2 != INVALID_ARRAY_INDEX);
+    return *GetRelation(dw1, dw2);
+}
+
+bool AIHelper::isFriend(ATTRIBUTES *pA1, ATTRIBUTES *pA2) const
+{
+    return GetRelationSafe(pA1, pA2) == RELATION_FRIEND;
+}
+
+bool AIHelper::isEnemy(ATTRIBUTES *pA1, ATTRIBUTES *pA2) const
+{
+    return GetRelationSafe(pA1, pA2) == RELATION_ENEMY;
+}
+
+bool AIHelper::isNeutral(ATTRIBUTES *pA1, ATTRIBUTES *pA2) const
+{
+    return GetRelationSafe(pA1, pA2) == RELATION_NEUTRAL;
+}
+
+VAI_INNEROBJ *AIHelper::FindAIInnerObj(ATTRIBUTES *pACharacter)
+{
+    VAI_INNEROBJ *pObj = nullptr;
+    if (AIFort::pAIFort)
+        pObj = AIFort::pAIFort->FindFort(pACharacter);
+    if (!pObj)
+        pObj = AIShip::FindShip(pACharacter);
+    return pObj;
+}
+
+void AIHelper::Print(float x, float y, float fScale, const char *pFormat, ...)
+{
+    char cBuffer[2048];
+
+    va_list args;
+    va_start(args, pFormat);
+    vsnprintf(cBuffer, sizeof(cBuffer), pFormat, args);
+    va_end(args);
+
+    pRS->ExtPrint(FONT_DEFAULT, 0xFFFFFFFF, 0x00000000, PR_ALIGN_CENTER, false, fScale, 0, 0, static_cast<int32_t>(x),
+                  static_cast<int32_t>(y), cBuffer);
+}
+
+void AIHelper::Save(CSaveLoad *pSL)
+{
+    pSL->SaveFloat(fGravity);
+    pSL->SaveDword(dwRelationSize);
+    pSL->SaveBuffer((const char *)pRelations, dwRelationSize * dwRelationSize * sizeof(uint32_t));
+
+    pSL->SaveAPointer("seacameras", pASeaCameras);
+
+    pSL->SaveDword(aCharacters.size());
+    for (auto &aCharacter : aCharacters)
+        pSL->SaveAPointer("character", aCharacter);
+
+    pSL->SaveDword(aMainCharacters.size());
+    for (auto &aMainCharacter : aMainCharacters)
+        pSL->SaveAPointer("character", aMainCharacter);
+}
+
+void AIHelper::Load(CSaveLoad *pSL)
+{
+    fGravity = pSL->LoadFloat();
+    dwRelationSize = pSL->LoadDword();
+    pSL->LoadBuffer((char **)&pRelations);
+
+    pASeaCameras = pSL->LoadAPointer("seacameras");
+
+    auto dwNum = pSL->LoadDword();
+    for (uint32_t i = 0; i < dwNum; i++)
+        aCharacters.push_back(pSL->LoadAPointer("character"));
+
+    dwNum = pSL->LoadDword();
+    for (uint32_t i = 0; i < dwNum; i++)
+        aMainCharacters.push_back(pSL->LoadAPointer("character"));
+}

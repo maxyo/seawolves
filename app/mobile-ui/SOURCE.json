@@ -1,0 +1,14 @@
+{
+  "license": "GPL-3.0-only",
+  "repository": "https://github.com/storm-devs/sd-teho-public",
+  "branch": "develop-rus",
+  "revision": "09f89728124f7181648fc39576e4e5b7fbfc6972",
+  "files": [
+    {
+      "upstream": "program/interface/mainmenu.c",
+      "upstream_sha256": "a01b8df859e965aee5c985e53c88a1b17f5bbe2debf25c9171e23b068522be5a",
+      "adapted": "PROGRAM/interface/mainmenu.c",
+      "changes": "Adapted for Android by the Seawolves contributors: the title scene and its events are kept; the 3D menu labels are replaced by the touch title screen, «Продолжить» loads the newest record (AndroidContinue), the store client's update check is removed."
+    }
+  ]
+}

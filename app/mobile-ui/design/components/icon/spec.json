@@ -1,0 +1,9 @@
+{
+  "tag": "c-icon",
+  "constants": {"boxSize": "size"},
+  "props": {
+    "icon": {"type": "text", "default": "compass"},
+    "size": {"type": "int", "default": 24},
+    "tone": {"type": "enum", "options": ["duo", "brass", "ink", "inkDeep", "wax", "leaf", "dim", "danger", "paper", "green", "blue", "gold", "color"], "default": "duo", "class": false}
+  }
+}

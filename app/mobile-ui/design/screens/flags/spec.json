@@ -1,0 +1,10 @@
+{
+  "tag": "s-flags",
+  "doc": "Screen part of s-nations: the nations' flags as round enamel tokens in one row; a tap reports `pick <id>` (the selected one is the flag the ship will raise).",
+  "props": {
+    "flags": {"type": "json", "default": []},
+    "disabled": {"type": "bool", "default": false}
+  },
+  "behaviors": ["press"],
+  "constants": {"pressRoot": false, "token": 40, "hit": @{size.touch}}
+}

@@ -1,0 +1,114 @@
+//    Spirenkov Maxim, 2001
+//    Sea Dogs II
+//    WdmRenderModel
+//
+
+#include "geometry.h"
+
+#include "wdm_render_model.h"
+
+#define WDM_MODEL_TECH "WdmModelDrawStd"
+#define WDM_MODEL_TECHA "WdmModelDrawStdA"
+
+// Construction, destruction
+
+WdmRenderModel::WdmRenderModel()
+{
+    geo = nullptr;
+    alpha = 1.0f;
+    tech = WDM_MODEL_TECH;
+    techa = WDM_MODEL_TECHA;
+    center = glm::vec3(0.0f);
+    radius = 0.0f;
+
+    drawCircle = false;
+}
+
+WdmRenderModel::~WdmRenderModel()
+{
+}
+
+bool WdmRenderModel::Load(const char *modelName)
+{
+    geo = wdmObjects->CreateGeometry(modelName);
+    if (geo)
+    {
+        GEOS::INFO ginfo;
+        geo->GetInfo(ginfo);
+        center = glm::vec3(ginfo.boxcenter.x, ginfo.boxcenter.y, ginfo.boxcenter.z);
+        radius = sqrtf(ginfo.boxsize.x * ginfo.boxsize.x + ginfo.boxsize.z * ginfo.boxsize.z) * 0.51f;
+        return true;
+    }
+    return false;
+}
+
+void WdmRenderModel::PRender(VRenderer *rs)
+{
+    LRender(rs);
+}
+
+void WdmRenderModel::MRender(VRenderer *rs)
+{
+    auto m(mtx);
+    m[0][1] = -m[0][1];
+    m[1][1] = -m[1][1];
+    m[2][1] = -m[2][1];
+    m[3][1] = -m[3][1];
+    rs->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(m));
+    Render(rs);
+}
+
+void WdmRenderModel::LRender(VRenderer *rs)
+{
+    rs->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(mtx));
+    Render(rs);
+
+}
+
+void WdmRenderModel::SetTech(const char *t, const char *ta)
+{
+    if (t)
+        tech = t;
+    else
+        tech = WDM_MODEL_TECH;
+    if (ta)
+        techa = ta;
+    else
+        techa = WDM_MODEL_TECHA;
+}
+
+void WdmRenderModel::Render(VRenderer *rs) const
+{
+    if (!geo)
+        return;
+    auto a = alpha * 255.0f;
+    if (wdmObjects->isDebug && a < 80.0f)
+        a = 80.0f;
+    if (a < 1.0f)
+        return;
+    // draw
+    if (a >= 255.0f)
+    {
+        a = 255.0f;
+        wdmObjects->gs->SetTechnique(tech);
+    }
+    else
+    {
+        wdmObjects->gs->SetTechnique(techa);
+        rs->SetRenderState(D3DRS_TEXTUREFACTOR, (static_cast<int32_t>(a) << 24) | 0xffffff);
+    }
+    // Check for visibility
+    auto *const plane = rs->GetPlanes();
+    static glm::mat4 mtx;
+    rs->GetTransform(D3DTS_WORLD, storm::math::d3dMatrix(mtx));
+    const auto v = storm::math::transformPoint(mtx, center);
+    for (int32_t i = 0; i < 4; i++)
+    {
+        auto &p = plane[i];
+        const auto dist = v.x * p.Nx + v.y * p.Ny + v.z * p.Nz - p.D;
+        if (dist < -radius)
+            return;
+    }
+    geo->Draw(nullptr, 0, nullptr);
+    wdmObjects->gs->SetTechnique("");
+}

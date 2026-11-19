@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in the app or in the game on Android does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Please do not attach or link game files: a report file and, when the bug needs
+        it, a save are enough. По-русски писать можно.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you got instead. A screenshot or a short video helps.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Where in the game it happens and how to get there. If it depends on a save, attach it (About → Send a save).
+      placeholder: |
+        1. Load the attached save
+        2. Walk into the tavern
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Report file
+      description: In the launcher, About → Share a report («О программе» → «Поделиться отчётом»). Save the file and drag it here.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone and GPU
+      description: The model, its chip or GPU, and the Android version
+      placeholder: Galaxy S24, Snapdragon 8 Gen 3 (Adreno 750), Android 16
+    validations:
+      required: true
+  - type: dropdown
+    id: flavor
+    attributes:
+      label: Build
+      description: Which build of the app you installed (About shows the version and the variant)
+      options:
+        - GitHub release
+        - Google Play
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The version line of the About screen
+      placeholder: 1.0.0-beta.1 (100004100)
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Game version
+      description: >-
+        The line of the report file that starts with "script patch set" or says "no script patch set identifies
+        this game". It tells whether your copy is the supported version, ver. 1.7.3 (26.11.21) x64.
+      placeholder: 'script patch set teho-1.7.3-x64 (Корсары: Каждому своё ver. 1.7.3 (26.11.21) x64): 23 fix(es) applied, 0 not applied'
+    validations:
+      required: true

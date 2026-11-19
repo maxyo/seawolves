@@ -1,0 +1,17 @@
+<rml>
+<head>
+<title>Карточка корабля</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-ShipCard</div>
+<div class="g-note">рейка 220 dp: жетон, имя + перо, капитан, корпус · команда · паруса; без пера и без капитана; без парусов (полоса не рисуется); снизу — дочерние элементы</div>
+<div class="g-row">
+  <div style="width: 220dp; height: 330dp"><c-ship-card id="sc-main" key="sc-main" image='{"kind":"token","icon":"ship-lugger","enamel":"teal"}' title="Ласточка" sub="Люггер · 7 класс" captain="капитан Пьер Маршан" hull='{"value":100,"text":"100%"}' crew='{"value":100,"text":"24","mark":25}' sails='{"value":100,"text":"100%"}'/></div>
+  <div style="width: 220dp; height: 330dp"><c-ship-card icon="ship-brig" title="Аделина" sub="Бриг · 4 класс" rename="0" hull='{"value":62,"text":"62%"}' crew='{"value":40,"text":"64","mark":55}' sails='{"value":85,"text":"85%"}'><c-button id="sc-trade" label="Обмен" variant="secondary"/></c-ship-card></div>
+  <div style="width: 220dp; height: 330dp"><c-ship-card image='{"kind":"token","icon":"ship-galleon","enamel":"red"}' title="Санта-Мария" sub="Галеон · 2 класс" captain="капитан Диего де Монтойя · враг" rename="0" hull='{"value":30,"text":"30%"}' crew='{"value":75,"text":"210"}'/></div>
+</div>
+</div>
+</body>
+</rml>

@@ -1,0 +1,23 @@
+{
+  "look": "Umschauen: rechts wischen",
+  "download_title": "Downloads",
+  "download_working": "Dateien werden vorbereitet…",
+  "download_magnet_set": "Download per Link",
+  "download_pause": "Pause",
+  "download_error": "Fehler",
+  "download_copying": "Wird kopiert",
+  "download_inspecting": "Wird geprüft",
+  "download_metadata": "Inhalt wird ermittelt",
+  "download_checking": "Dateien werden geprüft",
+  "download_awaiting_selection": "Dateien wählen",
+  "download_downloading": "Wird heruntergeladen",
+  "download_pausing": "Wird pausiert",
+  "download_paused": "Pausiert",
+  "download_complete": "Heruntergeladen",
+  "download_interrupted": "Unterbrochen, du kannst fortsetzen",
+  "download_ready_to_import": "Heruntergeladen, bereit zur Installation",
+  "graphics_preset_measured": "Grafik: %s — für dieses Gerät gewählt",
+  "settings_not_saved": "Grafikeinstellungen wurden nicht gespeichert",
+  "cache_clear_not_marked": "Der Cache konnte nicht zum Leeren vorgemerkt werden",
+  "interface_error": "Fehler der Oberfläche"
+}

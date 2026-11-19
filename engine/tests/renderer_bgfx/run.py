@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""Build the bgfx renderer library (shim + embedded shaders), run its texture transcode tests and
+the draw/state counter check of a fixed synthetic frame (perf_check.cpp, bgfx Noop backend) and the
+GPU skinning parity check against the CPU kernel (skinning_check.cpp), the texture formats on the GPU
+(texture_format_check.cpp) and the other checks that draw, in an SDL window (needs an X display, e.g. xvfb-run):
+on OpenGL ES, then again on Vulkan where the host has a Vulkan device; the texture-lifetime checks also under
+AddressSanitizer (a second tree, <build-dir>/asan).
+
+Uses the pinned bgfx (src/libs/renderer_bgfx/cmake/bgfx_pin.cmake), the shared host shaderc
+of that pin (STORM_SHADERC overrides it) and the Storm ccache launcher (tools/ccache/README.md); the kept
+build directory makes repeated runs incremental. Offline: set FETCHCONTENT_SOURCE_DIR_STORM_{BGFX,BX,BIMG,BGFX_CMAKE} in the
+environment.
+"""
+
+import argparse
+import os
+from pathlib import Path
+import subprocess
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument('--sdl-source', type=Path, required=True)
+p.add_argument('--build-dir', type=Path, required=True)
+a = p.parse_args()
+here = Path(__file__).resolve().parent
+build = a.build_dir.resolve()
+build.mkdir(parents=True, exist_ok=True)
+sdl = build / 'sdl-include'
+sdl.mkdir(exist_ok=True)
+if not (sdl / 'SDL2').exists():
+    (sdl / 'SDL2').symlink_to(a.sdl_source.resolve() / 'include', target_is_directory=True)
+configure = [
+    'cmake',
+    '-S',
+    str(here),
+    '-B',
+    str(build),
+    '-G',
+    'Ninja',
+    '-DCMAKE_BUILD_TYPE=Release',
+    f'-DSTORM_SDL_INCLUDE={sdl}',
+]
+for name in (
+    'STORM_SHADERC',
+    'FETCHCONTENT_SOURCE_DIR_STORM_BGFX',
+    'FETCHCONTENT_SOURCE_DIR_STORM_BX',
+    'FETCHCONTENT_SOURCE_DIR_STORM_BIMG',
+    'FETCHCONTENT_SOURCE_DIR_STORM_BGFX_CMAKE',
+):
+    if os.environ.get(name):
+        configure.append(f'-D{name}={os.environ[name]}')
+# Each vertex port declares the constant registers it reads (PORT_VSC_COUNT); the shim uploads the count
+# of its ports table (src/shim/ports.cpp). They must agree and cover every register the port reads.
+import re
+
+shim = here.parents[1] / 'src/libs/renderer_bgfx'
+table = dict(re.findall(r'"(vs_port_\w+)", 0, (\d+)[,}]', (shim / 'src/shim/ports.cpp').read_text()))
+for source in sorted((shim / 'shaders/ports').glob('vs_port_*.sc')):
+    text = source.read_text()
+    declared = int(re.search(r'#define PORT_VSC_COUNT (\d+)', text)[1])
+    used = max(int(i) for i in re.findall(r'u_vsc\[(\d+)\]', text)) + 1
+    if declared < used or int(table.get(source.stem, -1)) != declared:
+        raise SystemExit(
+            f'{source.name}: PORT_VSC_COUNT {declared}, highest constant register used {used - 1}, '
+            f'ports.cpp vsc_count {table.get(source.stem)}'
+        )
+subprocess.run(configure, check=True, stdout=subprocess.DEVNULL)
+warmth = here.parents[1] / 'tools/ccache/warmth'
+subprocess.run([str(warmth), 'begin', str(build)], check=True)
+subprocess.run(
+    [
+        'cmake',
+        '--build',
+        str(build),
+        '--target',
+        'storm_bgfx',
+        'storm_texture_tests',
+        'storm_eac_encoder_tests',
+        'perf_check',
+        'program_family_check',
+        'skinning_check',
+        'uniform_commit_check',
+        'msrtt_reuse_check',
+        'point_sprite_check',
+        'point_size_spirv_check',
+        'preset_switch_check',
+        'sea_edge_check',
+        'program_cache_check',
+        'render_thread_check',
+        'surface_lifecycle_check',
+        'storm_fx_core_check',
+        'storm_fx_aggregate_check',
+        'storm_fx_wave_storage_check',
+        'storm_fx_wave_idle_check',
+        'storm_fx_wave_source_check',
+        'storm_fx_wake_check',
+        'ao_volume_check',
+        'storm_relief_check',
+        'storm_relief_device_choice_check',
+        'storm_relief_finalizer_check',
+        'storm_relief_tx_check',
+        'grass_vertex_check',
+        'coast_foam_vertex_check',
+        'sea_surface_vertex_check',
+        'cutout_caster_check',
+        'lamp_shadow_check',
+        'shadow_casters_check',
+        'sun_layers_check',
+        'sun_relight_check',
+        'lamp_lifetime_check',
+        'relief_switch_check',
+        'scene_readiness_check',
+        'scene_resources_check',
+        'scene_retry_check',
+        'scene_texture_failure_check',
+        'texture_format_check',
+        'upscale_swap_check',
+        'texture_fade_check',
+        'realize_budget_check',
+        'backend_select_check',
+        'view_schedule_check',
+        'buffer_pool_check',
+        'thumbnail_check',
+        'pipeline_prewarm_check',
+        'pipeline_stress_check',
+        'wet_surfaces_check',
+        'msaa_resolve_check',
+    ],
+    check=True,
+)
+subprocess.run([str(warmth), 'end', str(build)], check=True)
+# The texture-lifetime checks again with the renderer's code under AddressSanitizer (CMakeLists.txt STORM_CHECK_ASAN):
+# a texture the game frees while the effects still know it (lamp caches, cut-out casters, the town light's lightmaps)
+# must not be read. On OpenGL ES only: the lifetimes do not depend on the backend.
+asan_build = build / 'asan'
+ASAN_CHECKS = ['cutout_caster_check', 'lamp_lifetime_check', 'sun_relight_check']
+subprocess.run(
+    configure[:4] + [str(asan_build)] + configure[5:] + ['-DSTORM_CHECK_ASAN=ON'], check=True, stdout=subprocess.DEVNULL
+)
+subprocess.run(['cmake', '--build', str(asan_build), '--target', *ASAN_CHECKS], check=True)
+asan_env = dict(os.environ, ASAN_OPTIONS='detect_leaks=0:halt_on_error=1')
+# Every check is its own process: they run in parallel (STORM_CHECK_JOBS, default 6), the draws on OpenGL ES
+# and on Vulkan at once, longest first. A failing check's output is printed.
+import concurrent.futures
+
+jobs = int(os.environ.get('STORM_CHECK_JOBS', '6'))
+plain = [
+    [str(build / 'lamp_lifetime_check')],
+    [str(build / 'renderer_bgfx' / 'storm_texture_tests')],
+    [str(build / 'perf_check')],
+    [str(build / 'program_family_check')],
+    [str(build / 'backend_select_check')],
+    [str(build / 'view_schedule_check')],
+    [str(build / 'texture_fade_check')],
+    [str(build / 'realize_budget_check')],
+    [str(build / 'renderer_bgfx' / 'storm_eac_encoder_tests')],
+    [
+        'python3',
+        str(here / 'vertex_input_spirv_check.py'),
+        str(build / 'renderer_bgfx' / 'shaders-gen' / 'storm_shaders'),
+    ],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_core_check')],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_aggregate_check')],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_wave_storage_check')],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_wave_idle_check')],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_wave_source_check')],
+    [str(build / 'renderer_bgfx' / 'fx' / 'storm_fx_wake_check')],
+    [str(build / 'relief_switch_check')],
+    *[
+        [str(build / name)]
+        for name in (
+            'scene_readiness_check',
+            'scene_resources_check',
+            'scene_retry_check',
+            'scene_texture_failure_check',
+        )
+    ],
+    [
+        'ctest',
+        '--test-dir',
+        str(build),
+        '--output-on-failure',
+        '--no-tests=error',
+        '-R',
+        '^(scene_(post_handoff|nested_progress|hidden_work|stock_(transaction|scheduler|progress|progress_rate|consumers)))_check$',
+    ],
+    [str(build / 'relief' / 'storm_relief_check'), (build / 'relief_models_path.txt').read_text()],
+    # The CPU networks' memory bound on the game's largest ×2 and relief jobs (relief backend.hpp kCpuNetworkBytes).
+    [str(build / 'relief' / 'storm_relief_check'), (build / 'relief_models_path.txt').read_text(), '--memory'],
+    [str(build / 'relief' / 'storm_relief_device_choice_check'), str(build / 'device-choice-fixture')],
+    [str(build / 'relief' / 'storm_relief_finalizer_check'), str(build / 'finalizer-fixture')],
+    [str(build / 'relief' / 'storm_relief_tx_check'), str(build / 'tx-fixture')],
+]
+# The checks that draw, on OpenGL ES.
+gpu_checks = [
+    'skinning_check',
+    'uniform_commit_check',
+    'point_sprite_check',
+    'preset_switch_check',
+    'sea_edge_check',
+    'program_cache_check',
+    'render_thread_check',
+    'surface_lifecycle_check',
+    'ao_volume_check',
+    'grass_vertex_check',
+    'coast_foam_vertex_check',
+    'sea_surface_vertex_check',
+    'cutout_caster_check',
+    'lamp_shadow_check',
+    'shadow_casters_check',
+    'sun_layers_check',
+    'sun_relight_check',
+    'texture_format_check',
+    'upscale_swap_check',
+    'buffer_pool_check',
+    'thumbnail_check',
+    'pipeline_prewarm_check',
+    'pipeline_stress_check',
+    'wet_surfaces_check',
+    'msaa_resolve_check',
+]
+# The same checks on Vulkan (STORM_CHECK_BACKEND, check_backend.hpp), where the host has a Vulkan device (CI: Mesa's
+# lavapipe). uniform_commit_check stays on OpenGL ES: it counts the GL backend's glUniform calls. Every run must
+# say that it ran on Vulkan: a check that ended on OpenGL ES (the shim's logged exception for a Vulkan that does
+# not start) fails here. Without any Vulkan device the pass is skipped, and said so.
+vulkan_env = dict(os.environ, STORM_CHECK_BACKEND='vulkan')
+vulkan_checks = [name for name in gpu_checks if name != 'uniform_commit_check']
+# msrtt_reuse_check needs EXT_multisampled_render_to_texture, which Mesa's llvmpipe lacks: with STORM_VIRTUALGL (as the
+# scene sweep and the boot stage use) it runs on the host GPU through VirtualGL; otherwise it prints SKIP and why.
+msrtt_env = dict(os.environ)
+if os.environ.get('STORM_VIRTUALGL'):
+    vgl = Path(os.environ['STORM_VIRTUALGL']) / 'usr/lib'
+    msrtt_env.update(
+        VGL_DISPLAY='egl',
+        LD_PRELOAD=':'.join(
+            filter(None, (str(vgl / 'libdlfaker.so'), str(vgl / 'libvglfaker.so'), os.environ.get('LD_PRELOAD')))
+        ),
+    )
+SLOW = ('ao_volume_check', 'render_thread_check', 'program_cache_check', 'cutout_caster_check')
+
+
+# The checks wait on progress (preparation, bakes, workers), never on a frame or time budget; DEADLOCK_GUARD is not
+# a time budget but the point at which a check that cannot finish is reported, with the last line (step) it printed.
+# The ctest command has a guard per test (CMakeLists.txt TIMEOUT).
+DEADLOCK_GUARD = 300  # seconds, per check process
+
+
+def run_check(command, env=None):
+    guard = None if command[0] == 'ctest' else DEADLOCK_GUARD
+    try:
+        return subprocess.run(
+            command,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            errors='replace',
+            timeout=guard,
+        )
+    except subprocess.TimeoutExpired as hung:
+        output = (hung.output or b'').decode(errors='replace')
+        steps = output.strip().splitlines()
+        return subprocess.CompletedProcess(
+            command,
+            1,
+            output + f'\nFAIL: no progress for {guard} s (a deadlock) at {steps[-1] if steps else "start"}\n',
+        )
+
+
+failures = []
+with concurrent.futures.ThreadPoolExecutor(jobs) as pool:
+    order = sorted(gpu_checks, key=lambda name: name not in SLOW)
+    vk = {name: pool.submit(run_check, [str(build / name)], vulkan_env) for name in order if name in vulkan_checks}
+    gl = {name: pool.submit(run_check, [str(build / name)]) for name in order}
+    other = [(command, pool.submit(run_check, command)) for command in plain]
+    other.append(
+        ([str(build / 'msrtt_reuse_check')], pool.submit(run_check, [str(build / 'msrtt_reuse_check')], msrtt_env))
+    )
+    asan = {name: pool.submit(run_check, [str(asan_build / name)], asan_env) for name in ASAN_CHECKS}
+    for command, future in other:
+        if future.result().returncode != 0:
+            failures.append((Path(command[0]).name, future.result()))
+    for name, future in asan.items():
+        if future.result().returncode != 0:
+            failures.append((f'{name} under ASan', future.result()))
+    for name in gpu_checks:
+        if gl[name].result().returncode != 0:
+            failures.append((name, gl[name].result()))
+    vulkan = 'not run'
+    for name in vulkan_checks:
+        done = vk[name].result()
+        choice = next(
+            (line for line in done.stdout.splitlines() if 'render backend: ' in line and '(render_backend = ' in line),
+            '',
+        )
+        if (
+            name == vulkan_checks[0]
+            and 'render backend: OpenGL ES' in choice
+            and re.search(
+                r'no Vulkan loader|reports no physical device|vkCreateInstance failed|older than 1\.1', choice
+            )
+        ):
+            vulkan = 'SKIPPED, this host has no Vulkan device: ' + choice.split('): ', 1)[-1]
+            print(f'Vulkan checks {vulkan}', flush=True)
+            break
+        if done.returncode != 0 or 'render backend: Vulkan' not in choice:
+            failures.append((f'{name} on Vulkan ({choice or "no render backend line"})', done))
+            continue
+        vulkan = choice.split('Vulkan device: ', 1)[-1]
+for name, done in failures:
+    print(f'--- {name}: exit {done.returncode}\n{done.stdout[-6000:]}', flush=True)
+if failures:
+    raise SystemExit('FAIL: ' + ', '.join(name for name, _ in failures))
+print(
+    'PASS: storm_bgfx builds; storm_texture_tests; perf_check; program_family_check; backend_select_check; view_schedule_check; fx core_check; relief_switch_check; relief_check; relief_check --memory; relief_device_choice_check; relief_finalizer_check; relief_tx_check; '
+    f'on OpenGL ES: {" ".join(gpu_checks)}; under ASan: {" ".join(ASAN_CHECKS)}; on Vulkan ({vulkan}): {" ".join(vulkan_checks)}',
+    flush=True,
+)

@@ -1,0 +1,23 @@
+{
+  "look": "Guardare: scorri a destra",
+  "download_title": "Download",
+  "download_working": "Preparazione dei file…",
+  "download_magnet_set": "Download da link",
+  "download_pause": "Pausa",
+  "download_error": "Errore",
+  "download_copying": "Copia in corso",
+  "download_inspecting": "Controllo in corso",
+  "download_metadata": "Ricerca del contenuto",
+  "download_checking": "Verifica dei file",
+  "download_awaiting_selection": "Scegli i file",
+  "download_downloading": "Download in corso",
+  "download_pausing": "Messa in pausa",
+  "download_paused": "In pausa",
+  "download_complete": "Scaricato",
+  "download_interrupted": "Interrotto, puoi riprendere",
+  "download_ready_to_import": "Scaricato, pronto da installare",
+  "graphics_preset_measured": "Grafica: %s — scelta per questo dispositivo",
+  "settings_not_saved": "Le impostazioni grafiche non sono state salvate",
+  "cache_clear_not_marked": "Impossibile segnare la cache da svuotare",
+  "interface_error": "Errore dell'interfaccia"
+}

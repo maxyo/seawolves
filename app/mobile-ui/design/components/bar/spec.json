@@ -1,0 +1,28 @@
+{
+  "tag": "c-bar",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "value": {"type": "int", "default": 0},
+    "text": {"type": "text", "default": ""},
+    "kind": {"type": "enum", "options": ["health", "crew", "sails", "energy", "brass", "danger", "xp"], "default": "health"},
+    "icon": {"type": "text", "default": ""},
+    "height": {"type": "int", "default": null},
+    "labelWidth": {"type": "int", "default": 64},
+    "labelSize": {"type": "int", "default": @{type.min}},
+    "textTone": {"type": "enum", "options": ["", "gold", "danger", "ok", "dim"], "default": ""},
+    "mode": {"type": "enum", "options": ["menu", "hud", "info", "inside", "indeterminate", "interactive"], "default": "menu"},
+    "mark": {"type": "int", "default": null},
+    "target": {"type": "int", "default": null},
+    "active": {"type": "bool", "default": false},
+    "after": {"type": "int", "default": null},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
+  },
+  "behaviors": ["range"],
+  "constants": {
+    "height": {"menu": 6, "hud": 8, "inside": 18, "min": 2, "hudMin": 4},
+    "font": @{type.min},
+    "icon": {"menu": 16, "hud": 18},
+    "knob": 20,
+    "knobHit": @{size.touchMin}
+  }
+}

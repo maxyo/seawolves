@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <!-- Seawolves launcher background: crimson radial gradient, lighter towards the upper left. -->
+  <defs>
+    <radialGradient id="crimson" gradientUnits="userSpaceOnUse" cx="40" cy="36" r="82">
+      <stop offset="0" stop-color="#B02A2C"/>
+      <stop offset="0.55" stop-color="#74151A"/>
+      <stop offset="1" stop-color="#33070A"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#crimson)" d="M0,0 H108 V108 H0 Z"/>
+</svg>
