@@ -38,7 +38,7 @@ jobs:
       STORM_CI_WORK: /mnt/storm-android-ci
       CCACHE_DIR: /mnt/ccache-storm
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
@@ -204,7 +204,7 @@ jobs:
     env:
       STORM_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.rehearse_tag }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
