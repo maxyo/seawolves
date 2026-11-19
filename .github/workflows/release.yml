@@ -153,7 +153,7 @@ jobs:
           python3 app/tools/android/release_signing.py --apksigner "$STORM_CI_WORK/tools/buildtools-36/android-16/apksigner" \
             app/build/dist/*.apk app/build/dist-play/*.apk
       - name: Retain the release APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-release-apk
           path: app/build/dist/
@@ -162,7 +162,7 @@ jobs:
       # Google Play flavor (import through the system picker only, no download library), signed with the same
       # release key. It is never attached to a GitHub release.
       - name: Retain the Google Play flavor APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-play-apk
           path: app/build/dist-play/
@@ -171,7 +171,7 @@ jobs:
       # Unstripped native libraries for crash symbolication (matched by build ID), one zip per flavor.
       # Kept as a CI artifact only; the publication job never reads it.
       - name: Retain the native debug symbols
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-native-debug-symbols
           path: |
@@ -235,7 +235,7 @@ jobs:
           cat app/build/release/RELEASE-NOTES.md >> "$GITHUB_STEP_SUMMARY"
       - name: Retain the staged release of a rehearsal
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-release-draft
           path: app/build/release/
