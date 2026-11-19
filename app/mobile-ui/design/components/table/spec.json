@@ -1,0 +1,38 @@
+{
+  "tag": "c-table",
+  "props": {
+    "columns": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": []},
+    "rowHeight": {"type": "int", "default": 0},
+    "head": {"type": "bool", "default": false, "class": false},
+    "caps": {"type": "bool", "default": false},
+    "fade": {"type": "bool", "default": true, "class": false},
+    "interactive": {"type": "bool", "default": true},
+    "selectable": {"type": "bool", "default": true, "class": false, "runtime": true},
+    "zeroDash": {"type": "bool", "default": true, "class": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "more": {"type": "int", "default": 0, "class": false},
+    "empty": {"type": "text", "default": ""},
+    "emptyIcon": {"type": "text", "default": "chest"},
+    "preset": {"type": "enum", "options": ["", "picker"], "default": "", "class": false},
+    "path": {"type": "text", "default": ""},
+    "primary": {"type": "json", "default": null},
+    "showReason": {"type": "bool", "default": false, "class": false}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "rowMin": @{size.row},
+    "rowRead": 40,
+    "arrow": @{size.touchMin},
+    "headMin": 32,
+    "pathMin": 36,
+    "font": {"cell": @{type.body}, "sub": @{type.caption}, "head": @{type.caption}, "tag": @{type.caption}},
+    "icon": {"cell": 22, "only": 24, "arrow": 24, "badge": 12, "empty": 36},
+    "image": 32,
+    "tokenMax": @{size.tokenSm},
+    "fade": {"plain": 28, "more": 40},
+    "padH": 14,
+    "gap": 10
+  }
+}

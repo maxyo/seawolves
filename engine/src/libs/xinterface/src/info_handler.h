@@ -1,0 +1,44 @@
+#pragma once
+
+#include "renderer.h"
+
+class InfoHandler : public Entity
+{
+    VRenderer *m_rs;
+    bool gameOver_ = false; // shows the game's death picture: the portable UI draws the game-over screen
+
+  public:
+    InfoHandler();
+    ~InfoHandler() override;
+    bool Init() override;
+    void Execute(uint32_t delta_time);
+    void Realize(uint32_t delta_time) const;
+    uint64_t ProcessMessage(MESSAGE &message) override;
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::execute:
+            Execute(delta);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+
+  protected:
+    void StringToBufer(char *outStr, int sizeBuf, const char *inStr, int copySize) const;
+    const char *GetCutString(const char *pstr, int nOutWidth, float fScale) const;
+    bool DoPreOut();
+
+    int32_t tex; // renderer texture id of the captured screen
+
+    struct
+    {
+        float x, y, z, rhw;
+        float u, v;
+    } drawbuf_base[6];
+};
+

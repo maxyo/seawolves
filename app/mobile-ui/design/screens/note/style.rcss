@@ -1,0 +1,4 @@
+/* s-note: extra texts of a specialised screen, under its main block. */
+s-note { display: block; }
+s-note .sn-row { display: flex; flex-direction: row; align-items: center; gap: 10dp; }
+s-note .sn-text { flex: 1 1 0; min-width: 0; max-height: 44dp; overflow: hidden; font-size: @{type.body}dp; line-height: 1.45; color: @{color.ink}; }

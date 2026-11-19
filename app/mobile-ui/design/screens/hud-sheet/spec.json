@@ -1,0 +1,14 @@
+{
+  "tag": "s-hud-sheet",
+  "doc": "HUD part: the land action sheet: one sheet pinned right, next to the «Действия» button. A tap on a row acts at once; the root stage has only ✕, nested stages have ←; a tap on the scrim closes. `rows` = [{id, title, icon, disabled, pressed, chevron, cooldown, heading, here}] (`here`: the tile of the place the hero stands in, marked without text); `layout` rows (52 dp rows), dense (44 dp rows under headings; `headings` = how many) or tiles (two columns of place tiles). The sheet is as tall as its rows (constants) and never taller than the safe area; then the rows scroll.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "back": {"type": "bool", "default": false, "class": false},
+    "layout": {"type": "enum", "options": ["rows", "dense", "tiles"], "default": "rows", "class": false},
+    "rows": {"type": "json", "default": []},
+    "headings": {"type": "int", "default": 0, "class": false}
+  },
+  "behaviors": ["press"],
+  "constants": {"pressRoot": false, "width": 360, "top": 10, "right": 12, "bottom": 10,
+    "header": @{size.header}, "row": @{size.rowTrade}, "dense": @{size.row}, "densePad": 18, "heading": 36, "tile": 60, "tilesPad": 30}
+}

@@ -1,0 +1,1160 @@
+#include "ifs.h"
+
+#include <cctype>
+
+#include "core_impl.h"
+#include "fs.h"
+
+#include <spdlog/spdlog.h>
+#include "vma.hpp"
+
+#define COMMENT ';'
+#define SECTION_A '['
+#define SECTION_B ']'
+#define INI_EQUAL '='
+#define VOIDSYMS_NUM 2
+const char INI_LINEFEED[3] = {0xd, 0xa, 0};
+const char INI_VOIDSYMS[VOIDSYMS_NUM] = {0x20, 0x9};
+
+KEY_NODE::KEY_NODE()
+{
+    key_name = nullptr;
+    key_val = nullptr;
+    name_size = 0;
+    val_size = 0;
+    l_PTR = nullptr;
+    r_PTR = nullptr;
+    flags = 0;
+}
+
+KEY_NODE::~KEY_NODE()
+{
+    delete[] key_name;
+    delete[] key_val;
+}
+
+void KEY_NODE::SetName(const char *name)
+{
+    if (name == nullptr)
+        return;
+    delete[] key_name;
+    key_name = nullptr;
+    name_size = strlen(name) + 1;
+
+    key_name = new char[name_size];
+    if (key_name == nullptr)
+        throw std::runtime_error("Failed to allocate memory");
+    strcpy_s(key_name, name_size, name);
+}
+
+void KEY_NODE::SetValue(const char *value)
+{
+    if (value == nullptr)
+        return;
+    delete[] key_val;
+    key_val = nullptr;
+    val_size = strlen(value) + 1;
+
+    key_val = new char[val_size];
+    if (key_val == nullptr)
+        throw std::runtime_error("Failed to allocate memory");
+    strcpy_s(key_val, val_size, value);
+}
+
+char *KEY_NODE::GetName()
+{
+    return key_name;
+}
+
+char *KEY_NODE::GetValue()
+{
+    return key_val;
+}
+
+KEY_NODE *KEY_NODE::GetRightNode()
+{
+    return r_PTR;
+}
+
+void KEY_NODE::SetLeftNode(KEY_NODE *node)
+{
+    l_PTR = node;
+}
+
+void KEY_NODE::SetRightNode(KEY_NODE *node)
+{
+    r_PTR = node;
+}
+
+void KEY_NODE::Add(KEY_NODE **Root, KEY_NODE **Top)
+{
+    if (*Root == nullptr)
+    {
+        // first node, root and top pointed to this node
+        *Root = this;
+        *Top = this;
+        return;
+    }
+    // attach node to the topmost node
+    (*Top)->SetRightNode(this);
+    // set node left link to previous top node
+    SetLeftNode(*Top);
+    *Top = this;
+}
+
+void KEY_NODE::Deattach(KEY_NODE **Root, KEY_NODE **Top)
+{
+    if (l_PTR)
+        l_PTR->SetRightNode(r_PTR);
+    if (r_PTR)
+        r_PTR->SetLeftNode(l_PTR);
+    if (*Root == this)
+        *Root = r_PTR;
+    if (*Top == this)
+        *Top = l_PTR;
+}
+
+uint32_t KEY_NODE::SetFlags(uint32_t _flags)
+{
+    flags = flags | _flags;
+    return flags;
+}
+
+
+SECTION::SECTION()
+{
+    Root = nullptr;
+    Top = nullptr;
+    Name = nullptr;
+    l_PTR = nullptr;
+    r_PTR = nullptr;
+}
+
+SECTION::~SECTION()
+{
+    while (Root)
+    {
+        auto *const old_root = Root;
+        Root->Deattach(&Root, &Top);
+        delete old_root;
+    }
+    delete[] Name;
+}
+
+void SECTION::SetName(const char *name)
+{
+    delete[] Name;
+    if (name == nullptr)
+    {
+        Name = nullptr;
+    }
+    else
+    {
+        const auto len = strlen(name) + 1;
+        Name = new char[len];
+        if (Name == nullptr)
+            throw std::runtime_error("Failed to allocate memory");
+        strcpy_s(Name, len, name);
+    }
+}
+
+char *SECTION::GetName()
+{
+    return Name;
+}
+
+KEY_NODE *SECTION::AddNode()
+{
+    auto *node = new KEY_NODE;
+    if (node == nullptr)
+        throw std::runtime_error("node creation error");
+    node->Add(&Root, &Top);
+    // The caller names the node after this call; rebuild the index on the next lookup.
+    indexValid_ = false;
+    return node;
+}
+
+// First key node per name, with the same case folding as storm::iEquals.
+// Font descriptions do one lookup per code point (~8k) in a section of a few
+// thousand keys; a linear scan per lookup made that quadratic.
+KEY_NODE *SECTION::FindFirstKey(const char *key_name)
+{
+    const auto fold = [](const char *text) {
+        std::string key(text);
+        for (char &c : key)
+            c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        return key;
+    };
+    if (!indexValid_)
+    {
+        index_.clear();
+        for (auto *node = Root; node; node = node->GetRightNode())
+        {
+            if ((node->SetFlags(0) & KNF_KEY) && node->GetName() != nullptr)
+                index_.try_emplace(fold(node->GetName()), node); // keep the first occurrence
+        }
+        indexValid_ = true;
+    }
+    const auto found = index_.find(fold(key_name));
+    return found == index_.end() ? nullptr : found->second;
+}
+
+void SECTION::DelNode(KEY_NODE *_node)
+{
+    auto *node = Root;
+    while (node)
+    {
+        if (node == _node)
+        {
+            node->Deattach(&Root, &Top);
+            delete node;
+            indexValid_ = false;
+            index_.clear(); // never keep a pointer to a deleted node
+            return;
+        }
+        node = node->GetRightNode();
+    }
+}
+
+KEY_NODE *SECTION::FindKey(KEY_NODE *from, const char *key_name, const char *key_value)
+{
+    KEY_NODE *node;
+
+    if (Root == nullptr)
+        return nullptr;
+
+    if (key_name == nullptr)
+        return nullptr;
+
+    if (from == nullptr)
+        node = Root;
+    else
+        node = from;
+
+    // Plain "first key with this name" lookups go through the index.
+    if (node == Root && key_value == nullptr)
+        return FindFirstKey(key_name);
+
+    while (node)
+    {
+        const auto flags = node->SetFlags(0);
+        if (flags & KNF_KEY)
+        {
+            if (storm::iEquals(key_name, node->GetName()))
+            {
+                if (key_value == nullptr)
+                    return node;
+
+                auto *const char_PTR = node->GetValue();
+                if (char_PTR != nullptr)
+                {
+                    if (storm::iEquals(key_value, char_PTR))
+                        return node;
+                }
+            }
+        }
+        node = node->GetRightNode();
+    }
+    return nullptr;
+}
+
+KEY_NODE *SECTION::FindKey(const char *key_name, const char *key_value)
+{
+    return FindKey(Root, key_name, key_value);
+}
+
+KEY_NODE *SECTION::FindKey(const char *key_name)
+{
+    return FindKey(Root, key_name, nullptr);
+}
+
+SECTION *SECTION::GetRightNode()
+{
+    return r_PTR;
+}
+
+void SECTION::SetLeftNode(SECTION *node)
+{
+    l_PTR = node;
+}
+
+void SECTION::SetRightNode(SECTION *node)
+{
+    r_PTR = node;
+}
+
+void SECTION::Add(SECTION **SRoot, SECTION **STop)
+{
+    if (*SRoot == nullptr)
+    {
+        *SRoot = this;
+        *STop = this;
+        return;
+    }
+    (*STop)->SetRightNode(this);
+    SetLeftNode(*STop);
+    *STop = this;
+}
+
+void SECTION::Deattach(SECTION **SRoot, SECTION **STop)
+{
+    if (l_PTR)
+        l_PTR->SetRightNode(r_PTR);
+    if (r_PTR)
+        r_PTR->SetLeftNode(l_PTR);
+    if (*SRoot == this)
+        *SRoot = r_PTR;
+    if (*STop == this)
+        *STop = l_PTR;
+}
+
+KEY_NODE *SECTION::GetRoot()
+{
+    return Root;
+}
+
+
+IFS::IFS(VFILE_SERVICE *_fs)
+{
+    fs = _fs;
+    FileName = nullptr;
+    bDataChanged = false;
+    Reference = 0;
+    SectionRoot = nullptr;
+    SectionTop = nullptr;
+    SectionSNode = nullptr;
+}
+
+IFS::~IFS()
+{
+    FlushFile();
+    delete[] FileName;
+    while (SectionRoot)
+    {
+        auto *const old_root = SectionRoot;
+        SectionRoot->Deattach(&SectionRoot, &SectionTop);
+        delete old_root;
+    }
+}
+
+void IFS::IncReference()
+{
+    Reference++;
+}
+
+void IFS::DecReference()
+{
+    Reference--;
+}
+
+int32_t IFS::GetReference()
+{
+    return Reference;
+}
+
+bool IFS::VoidSym(char symbol)
+{
+    for (uint32_t n = 0; n < VOIDSYMS_NUM; n++)
+    {
+        if (symbol == INI_VOIDSYMS[n])
+            return true;
+    }
+    return false;
+}
+
+bool IFS::LoadFile(const char *_file_name)
+{
+    if (_file_name == nullptr)
+    {
+        return false;
+    }
+    auto fileS = fs->_CreateFile(_file_name, std::ios::binary | std::ios::in);
+    if (!fileS.is_open())
+    {
+        spdlog::trace("Unable to load file: {}", _file_name);
+        return false;
+    }
+
+    const auto file_size = fs->_GetFileSize(_file_name);
+
+    auto *const file_data = new char[file_size + 1]; // +1 for zero at the end
+    if (file_data == nullptr)
+    {
+        fs->_CloseFile(fileS);
+        return false;
+    }
+    file_data[file_size] = 0;
+
+    if (!fs->_ReadFile(fileS, file_data, file_size))
+    {
+        delete[] file_data;
+        fs->_CloseFile(fileS);
+        return false;
+    }
+
+    fs->_CloseFile(fileS);
+
+    const uint32_t name_size = strlen(_file_name) + 1;
+
+    FileName = new char[name_size];
+
+    if (FileName == nullptr)
+    {
+        delete[] file_data;
+        fs->_CloseFile(fileS);
+        return false;
+    }
+    strcpy_s(FileName, name_size, _file_name);
+
+    Format(file_data, file_size + 1);
+
+    delete[] file_data;
+
+    return true;
+}
+
+void IFS::Format(char *file_data, int32_t file_size)
+{
+    int32_t n, z;
+    int32_t backcount;
+    int32_t forecount;
+
+    auto *Current_Section = new SECTION;
+    Current_Section->Add(&SectionRoot, &SectionTop);
+
+    char *data_PTR = nullptr;
+    int32_t lines = 0;
+
+    // terminate each line by zero symbol
+    for (n = 0; n < file_size; n++)
+    {
+        if (file_data[n] == INI_LINEFEED[0] || file_data[n] == INI_LINEFEED[1] || file_data[n] == INI_LINEFEED[2])
+        {
+            file_data[n] = 0;
+            if (n > 0 && file_data[n - 1] != 0)
+                lines++;
+        }
+    }
+
+    int32_t offset = 0;
+    for (data_PTR = file_data; data_PTR < file_data + file_size; data_PTR += offset)
+    {
+        while (data_PTR < file_data + file_size && *data_PTR == '\0')
+            data_PTR++; // separator zero
+
+        if (data_PTR >= file_data + file_size)
+            break; // end of file
+
+        offset = 0;
+        for (; data_PTR[offset]; offset++)
+        {
+        }
+
+        for (int32_t i = 0; data_PTR[i]; i++)
+        {
+            if (VoidSym(data_PTR[i]))
+                continue; // skip void syms
+
+            if (data_PTR[i] == SECTION_A)
+            {
+                // section header
+                for (z = i + 1; data_PTR[z]; z++)
+                {
+                    if (data_PTR[z] == SECTION_B)
+                    {
+                        data_PTR[z] = 0;
+
+                        Current_Section = new SECTION;
+                        Current_Section->Add(&SectionRoot, &SectionTop);
+                        Current_Section->SetName(&data_PTR[i + 1]);
+                        break;
+                    }
+                }
+                break;
+            }
+
+            auto *node = Current_Section->AddNode();
+
+            if (data_PTR[i] == COMMENT)
+            {
+                node->SetName(&data_PTR[i]);
+                node->SetFlags(KNF_COMMENTARY);
+                break;
+            }
+
+            auto keyname_set = false;
+
+            // this is real key
+            node->SetFlags(KNF_KEY);
+
+            for (z = 0; data_PTR[z]; z++)
+            {
+                if (data_PTR[z] == INI_EQUAL)
+                {
+                    data_PTR[z] = 0;
+                    for (backcount = (z - 1); backcount > 0; backcount--)
+                    {
+                        if (VoidSym(data_PTR[backcount]))
+                            data_PTR[backcount] = 0;
+                        else
+                            break;
+                    }
+                    node->SetName(&data_PTR[i]); // set key name
+                    keyname_set = true;
+
+                    auto keyval_found = false;
+                    z++;
+                    for (; data_PTR[z]; z++)
+                    {
+                        if (VoidSym(data_PTR[z]))
+                            continue;
+                        keyval_found = true;
+                        break;
+                    }
+                    for (forecount = z; data_PTR[forecount]; forecount++)
+                    {
+                    }
+                    for (backcount = (forecount - 1); backcount > 0; backcount--)
+                    {
+                        if (VoidSym(data_PTR[backcount]))
+                            data_PTR[backcount] = 0;
+                        else
+                            break;
+                    }
+                    if (keyval_found)
+                    {
+                        node->SetValue(&data_PTR[z]);
+                    }
+                    break;
+                }
+            }
+            if (!keyname_set)
+                node->SetName(&data_PTR[i]); // key without value
+            break;
+        }
+    }
+}
+
+namespace
+{
+bool Inside(const std::filesystem::path &root, const std::filesystem::path &path)
+{
+    std::error_code error;
+    const auto relative = std::filesystem::weakly_canonical(path, error).lexically_relative(
+        std::filesystem::weakly_canonical(root, error));
+    return !error && !relative.empty() && *relative.begin() != "..";
+}
+
+// The game folder is read-only data: the working directory and the executable's directory on the host, the selected
+// game folder on Android. The player's own folders (user data, cache) are never "the game", wherever they are.
+bool UnderGameFolder(VFILE_SERVICE *fs, const std::filesystem::path &path)
+{
+    if (Inside(fs::GetStashPath(), path) || Inside(fs::GetCachePath(), path))
+        return false;
+#ifdef __ANDROID__
+    return Inside(fs->_GetExecutableDirectory(), path);
+#else
+    std::error_code error;
+    return Inside(std::filesystem::current_path(error), path) || Inside(fs->_GetExecutableDirectory(), path);
+#endif
+}
+} // namespace
+
+bool IFS::FlushFile()
+{
+    uint32_t write_size;
+    char buff[2];
+
+    if (bDataChanged == false)
+    {
+        return true;
+    }
+
+    // Write the new contents beside the file and rename over it. The previous
+    // the process died or a write failed in between.
+    const std::string target = fs->ConvertPathResource(FileName);
+    if (UnderGameFolder(fs, std::filesystem::u8path(target)))
+    {
+        // Game files are never modified. The change stays in memory for this run only. No caller is exempt: the lighter
+        // dev tool (src/libs/lighter, compiled with the engine) saves its settings through this too and is refused as well.
+        spdlog::error("Refusing to write the ini '{}' (resolved '{}') into the game folder; its changes are dropped",
+                      FileName, target);
+        bDataChanged = false;
+        return false;
+    }
+    const std::string pending = target + ".storm-tmp";
+    auto fileS = fio->_CreateFile(pending.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
+    if (!fileS.is_open())
+    {
+        throw std::runtime_error("cant create file");
+    }
+    const std::filesystem::path pendingPath = std::filesystem::u8path(fs->ConvertPathResource(pending.c_str()));
+
+    try
+    {
+
+
+        auto *section_node = SectionRoot;
+        while (section_node)
+        {
+            if (section_node->GetName() != nullptr)
+            {
+                buff[0] = SECTION_A;
+                if (!fs->_WriteFile(fileS, buff, 1))
+                {
+                    throw std::runtime_error("Failed to write to file");
+                }
+
+                write_size = strlen(section_node->GetName());
+                if (!fs->_WriteFile(fileS, section_node->GetName(), write_size))
+                {
+                    throw std::runtime_error("Failed to write to file");
+                }
+
+                buff[0] = SECTION_B;
+                if (!fs->_WriteFile(fileS, buff, 1))
+                {
+                    throw std::runtime_error("Failed to write to file");
+                }
+
+                buff[0] = INI_LINEFEED[0];
+                buff[1] = INI_LINEFEED[1];
+                if (!fs->_WriteFile(fileS, buff, 2))
+                {
+                    throw std::runtime_error("Failed to write to file");
+                }
+            }
+
+            auto *node = section_node->GetRoot();
+            while (node)
+            {
+                const auto flags = node->SetFlags(0);
+                if (flags & KNF_COMMENTARY)
+                {
+                    write_size = strlen(node->GetName());
+                    if (!fs->_WriteFile(fileS, node->GetName(), write_size))
+                    {
+                        throw std::runtime_error("Failed to write to file");
+                    }
+                    buff[0] = INI_LINEFEED[0];
+                    buff[1] = INI_LINEFEED[1];
+                    if (!fs->_WriteFile(fileS, buff, 2))
+                    {
+                        throw std::runtime_error("Failed to write to file");
+                    }
+                }
+                else if (flags & KNF_KEY)
+                {
+                    write_size = strlen(node->GetName());
+                    if (!fs->_WriteFile(fileS, node->GetName(), write_size))
+                    {
+                        throw std::runtime_error("Failed to write to file");
+                    }
+                    if (node->GetValue() != nullptr)
+                    {
+                        if (!fs->_WriteFile(fileS, &INI_VOIDSYMS[0], 1))
+                        {
+                            throw std::runtime_error("Failed to write to file");
+                        }
+                        buff[0] = INI_EQUAL;
+                        if (!fs->_WriteFile(fileS, buff, 1))
+                        {
+                            throw std::runtime_error("Failed to write to file");
+                        }
+                        if (!fs->_WriteFile(fileS, &INI_VOIDSYMS[0], 1))
+                        {
+                            throw std::runtime_error("Failed to write to file");
+                        }
+                        write_size = strlen(node->GetValue());
+                        if (!fs->_WriteFile(fileS, node->GetValue(), write_size))
+                        {
+                            throw std::runtime_error("Failed to write to file");
+                        }
+                    }
+                    buff[0] = INI_LINEFEED[0];
+                    buff[1] = INI_LINEFEED[1];
+                    if (!fs->_WriteFile(fileS, buff, 2))
+                    {
+                        throw std::runtime_error("Failed to write to file");
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("invalid key flag");
+                }
+                node = node->GetRightNode();
+            }
+            section_node = section_node->GetRightNode();
+
+            buff[0] = INI_LINEFEED[0];
+            buff[1] = INI_LINEFEED[1];
+            if (!fs->_WriteFile(fileS, buff, 2))
+            {
+                throw std::runtime_error("Failed to write to file");
+            }
+        }
+    }
+    catch (...)
+    {
+        fs->_CloseFile(fileS);
+        std::error_code ignored;
+        std::filesystem::remove(pendingPath, ignored);
+        throw;
+    }
+
+    fs->_FlushFileBuffers(fileS);
+    fs->_CloseFile(fileS);
+    std::error_code error;
+    if (fileS.fail())
+    {
+        std::filesystem::remove(pendingPath, error);
+        throw std::runtime_error("Failed to write to file");
+    }
+    std::filesystem::rename(pendingPath, std::filesystem::u8path(target), error);
+    if (error)
+    {
+        std::error_code ignored;
+        std::filesystem::remove(pendingPath, ignored);
+        throw std::runtime_error("cant replace file: " + error.message());
+    }
+
+    return false;
+}
+
+KEY_NODE *IFS::FindKey(const char *section_name, const char *key_name)
+{
+    return FindKey(section_name, key_name, nullptr);
+}
+
+KEY_NODE *IFS::FindKey(const char *section_name, const char *key_name, const char *key_value)
+{
+    if (SectionRoot == nullptr)
+        return nullptr;
+    auto *snode = FindSection(section_name);
+    if (snode == nullptr)
+        return nullptr;
+    return snode->FindKey(key_name, key_value);
+
+}
+
+
+SECTION *IFS::FindSection(const char *section_name)
+{
+    if (SectionRoot == nullptr)
+        return nullptr;
+    auto *node = SectionRoot;
+
+    while (node)
+    {
+        if (section_name == nullptr)
+        {
+            if (node->GetName() == nullptr)
+                return node;
+            return nullptr;
+        }
+        if (node->GetName() != nullptr)
+            if (storm::iEquals(section_name, node->GetName()))
+                return node;
+        node = node->GetRightNode();
+    }
+    return nullptr;
+}
+
+SECTION *IFS::FindSection(const char *section_name, SECTION *snode)
+{
+    if (SectionRoot == nullptr)
+        return nullptr;
+
+    // atempt to search by section node pointer
+    auto *node = SectionRoot;
+    while (node)
+    {
+        if (node == snode)
+        {
+            // if node exist and name is correct return ok
+            if (section_name != nullptr)
+            {
+                if (storm::iEquals(section_name, node->GetName()))
+                    return node;
+            }
+            else
+            {
+                if (node->GetName() == nullptr)
+                    return node;
+            }
+            break;
+        }
+
+        node = node->GetRightNode();
+    }
+
+    // full search by name
+    node = SectionRoot;
+    while (node)
+    {
+        if (section_name == nullptr)
+        {
+            if (node->GetName() == nullptr)
+                return node;
+        }
+        if (node->GetName() != nullptr)
+            if (storm::iEquals(section_name, node->GetName()))
+                return node;
+        node = node->GetRightNode();
+    }
+    return nullptr;
+}
+
+SECTION *IFS::CreateSection(const char *section_name)
+{
+    auto *node = FindSection(section_name);
+    if (node)
+        return node;
+
+    node = new SECTION;
+    if (node == nullptr)
+        throw std::runtime_error("section creation error");
+    node->Add(&SectionRoot, &SectionTop);
+    node->SetName(section_name);
+    bDataChanged = true;
+    return node;
+}
+
+void IFS::DeleteSection(const char *section_name)
+{
+    auto *node = FindSection(section_name);
+    if (!node)
+        return;
+    if (SectionSNode == node)
+    {
+        SectionSNode = SectionSNode->GetRightNode();
+    }
+    node->Deattach(&SectionRoot, &SectionTop);
+    delete node;
+    bDataChanged = true;
+}
+
+bool IFS::TestSection(const char *section_name)
+{
+    auto *const node = FindSection(section_name);
+    if (node)
+        return true;
+    return false;
+}
+
+bool IFS::TestKey(const char *section_name, const char *key_name, const char *key_value)
+{
+    auto *node = FindSection(section_name);
+    if (node == nullptr)
+        return false;
+    if (node->FindKey(key_name, key_value) != nullptr)
+        return true;
+    return false;
+}
+
+void IFS::DeleteKey(const char *section_name, const char *key_name)
+{
+    DeleteKey(section_name, key_name, nullptr);
+}
+
+void IFS::DeleteKey(const char *section_name, const char *key_name, const char *key_value)
+{
+    auto *node = FindSection(section_name);
+    if (node)
+    {
+        auto *const knode = node->FindKey(key_name, key_value);
+        if (knode)
+        {
+            node->DelNode(knode);
+            bDataChanged = true;
+        }
+    }
+}
+
+void IFS::ReadString(SEARCH_DATA *sd, const char *section_name, const char *key_name, char *buffer,
+                     uint32_t buffer_size)
+{
+    ReadString(sd, section_name, key_name, buffer, buffer_size, nullptr);
+}
+
+bool IFS::ReadString(SEARCH_DATA *sd, const char *section_name, const char *key_name, char *buffer,
+                     uint32_t buffer_size, const char *def_string)
+{
+    auto *node = FindKey(section_name, key_name);
+    if (node == nullptr)
+    {
+        sd->Key = nullptr;
+        sd->Section = nullptr;
+        if (def_string == nullptr)
+        {
+            core_internal.Trace("Warning! IniFile Read String: section=%s, key=%s", section_name, key_name);
+            if (buffer)
+                buffer[0] = 0;
+        }
+        else if (buffer)
+            strcpy_s(buffer, buffer_size, def_string);
+        return false;
+    }
+
+    sd->Key = node;
+    sd->Section = FindSection(section_name);
+
+    if (buffer == nullptr)
+        throw std::runtime_error("zero buffer");
+    auto *const char_PTR = node->GetValue();
+    if (char_PTR == nullptr)
+    {
+        if (def_string == nullptr)
+            throw std::runtime_error("no key value");
+        strcpy_s(buffer, buffer_size, def_string);
+        return false;
+    }
+
+    uint32_t write_size = strlen(char_PTR) + 1;
+    // commented out because it didn't let to load new ani
+
+    strcpy_s(buffer, buffer_size, node->GetValue());
+    return true;
+}
+
+bool IFS::ReadStringNext(SEARCH_DATA *sd, const char *section_name, const char *key_name, char *buffer,
+                         uint32_t buffer_size)
+{
+    auto *snode = FindSection(section_name, sd->Section);
+    if (snode == nullptr)
+        return false;
+
+    auto start = false;
+    auto *node = snode->GetRoot();
+    while (node)
+    {
+        if (start == true)
+        {
+            if (storm::iEquals(node->GetName(), key_name))
+            {
+                if (buffer == nullptr)
+                    throw std::runtime_error("zero buffer");
+
+                auto *const char_PTR = node->GetValue();
+                if (char_PTR == nullptr)
+                {
+                    buffer[0] = 0;
+                    return true;
+                }
+
+                const uint32_t write_size = strlen(char_PTR) + 1;
+                if (write_size > buffer_size)
+                    throw std::runtime_error("buffer size too small");
+
+                strcpy_s(buffer, buffer_size, node->GetValue());
+                sd->Key = node;
+                sd->Section = snode;
+                return true;
+            }
+        }
+        if (sd->Key == node)
+            start = true;
+        node = node->GetRightNode();
+    }
+    sd->Key = nullptr;
+    sd->Section = nullptr;
+    return false;
+}
+
+int32_t IFS::GetInt(SEARCH_DATA *sd, const char *section_name, const char *key_name)
+{
+    char buffer[256];
+    ReadString(sd, section_name, key_name, buffer, sizeof(buffer));
+    return static_cast<int32_t>(atoll(buffer));
+}
+
+int32_t IFS::GetInt(SEARCH_DATA *sd, const char *section_name, const char *key_name, int32_t def_val)
+{
+    char buffer[256];
+    if (ReadString(sd, section_name, key_name, buffer, sizeof(buffer), ""))
+        return static_cast<int32_t>(atoll(buffer));
+    return def_val;
+}
+
+bool IFS::GetIntNext(SEARCH_DATA *sd, const char *section_name, const char *key_name, int32_t *val)
+{
+    char buffer[256];
+    if (ReadStringNext(sd, section_name, key_name, buffer, sizeof(buffer)))
+    {
+        *val = atol(buffer);
+        return true;
+    }
+    return false;
+}
+
+double IFS::GetDouble(SEARCH_DATA *sd, const char *section_name, const char *key_name)
+{
+    char buffer[256];
+    ReadString(sd, section_name, key_name, buffer, sizeof(buffer));
+    return atof(buffer);
+}
+
+double IFS::GetDouble(SEARCH_DATA *sd, const char *section_name, const char *key_name, double def_val)
+{
+    char buffer[256];
+    if (ReadString(sd, section_name, key_name, buffer, sizeof(buffer), ""))
+        return atof(buffer);
+    return def_val;
+}
+
+bool IFS::GetDoubleNext(SEARCH_DATA *sd, const char *section_name, const char *key_name, double *val)
+{
+    char buffer[256];
+    if (ReadStringNext(sd, section_name, key_name, buffer, sizeof(buffer)))
+    {
+        *val = atof(buffer);
+        return true;
+    }
+    return false;
+}
+
+float IFS::GetFloat(SEARCH_DATA *sd, const char *section_name, const char *key_name)
+{
+    char buffer[256];
+    ReadString(sd, section_name, key_name, buffer, sizeof(buffer));
+    return static_cast<float>(atof(buffer));
+}
+
+float IFS::GetFloat(SEARCH_DATA *sd, const char *section_name, const char *key_name, float def_val)
+{
+    char buffer[256];
+    if (ReadString(sd, section_name, key_name, buffer, sizeof(buffer), ""))
+        return static_cast<float>(atof(buffer));
+    return def_val;
+}
+
+bool IFS::GetFloatNext(SEARCH_DATA *sd, const char *section_name, const char *key_name, float *val)
+{
+    char buffer[256];
+    if (ReadStringNext(sd, section_name, key_name, buffer, sizeof(buffer)))
+    {
+        *val = static_cast<float>(atof(buffer));
+        return true;
+    }
+    return false;
+}
+
+void IFS::AddString(const char *section_name, const char *key_name, const char *string)
+{
+    if (key_name == nullptr)
+        throw std::runtime_error("zero key");
+    auto *snode = FindSection(section_name);
+    if (snode == nullptr)
+        CreateSection(section_name);
+    snode = FindSection(section_name);
+    if (snode == nullptr)
+        throw std::runtime_error("section create error");
+
+    auto *node = snode->AddNode();
+    node->SetName(key_name);
+    if (string)
+        node->SetValue(string);
+    node->SetFlags(KNF_KEY);
+    bDataChanged = true;
+}
+
+void IFS::WriteString(const char *section_name, const char *key_name, const char *string)
+{
+    if (string == nullptr)
+        throw std::runtime_error("zero key value");
+
+    auto *snode = CreateSection(section_name);
+    // do not free it. it gets linked to root node
+    if (snode == nullptr)
+        throw std::runtime_error("section create error");
+    auto *node = snode->FindKey(key_name);
+    if (node != nullptr)
+    {
+        node->SetValue(string);
+        bDataChanged = true;
+        return; //-V773
+    }
+    AddString(section_name, key_name, string);
+}
+
+void IFS::WriteLong(const char *section_name, const char *key_name, int32_t value)
+{
+    char buffer[256];
+    sprintf(buffer, "%d", value);
+    WriteString(section_name, key_name, buffer);
+}
+
+void IFS::WriteDouble(const char *section_name, const char *key_name, double value)
+{
+    char buffer[256];
+    sprintf_s(buffer, "%g", value);
+    WriteString(section_name, key_name, buffer);
+}
+
+bool IFS::GetSectionName(char *section_name_buffer, int32_t buffer_size)
+{
+    if (SectionRoot == nullptr)
+        return false;
+    auto *node = SectionRoot;
+    node = node->GetRightNode(); // skip zero section (unnamed)
+    if (node == nullptr)
+        return false;
+
+    if (section_name_buffer == nullptr)
+        throw std::runtime_error("zero buffer");
+    const int32_t len = strlen(node->GetName());
+    if (len > buffer_size)
+        throw std::runtime_error("buffer too small");
+    strcpy_s(section_name_buffer, buffer_size, node->GetName());
+    SectionSNode = node;
+    return true;
+}
+
+bool IFS::GetSectionNameNext(char *section_name_buffer, int32_t buffer_size)
+{
+    if (SectionRoot == nullptr)
+        return false;
+    if (section_name_buffer == nullptr)
+        throw std::runtime_error("zero buffer");
+    auto *node = SectionRoot;
+    while (node)
+    {
+        if (node == SectionSNode)
+        {
+            node = node->GetRightNode();
+            if (node == nullptr)
+            {
+                SectionSNode = nullptr;
+                return false;
+            }
+            const int32_t len = strlen(node->GetName());
+            if (len > buffer_size)
+                throw std::runtime_error("buffer too small");
+            strcpy_s(section_name_buffer, buffer_size, node->GetName());
+            SectionSNode = node;
+            return true;
+        }
+        node = node->GetRightNode();
+    }
+    return false;
+}
+
+void IFS::Flush()
+{
+    FlushFile();
+}
+
+bool IFS::Reload()
+{
+    while (SectionRoot)
+    {
+        auto *const old_root = SectionRoot;
+        SectionRoot->Deattach(&SectionRoot, &SectionTop);
+        delete old_root;
+    }
+    bDataChanged = false;
+    SectionRoot = nullptr;
+    SectionTop = nullptr;
+    SectionSNode = nullptr;
+    return LoadFile(FileName);
+}

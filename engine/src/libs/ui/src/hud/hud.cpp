@@ -1,0 +1,997 @@
+// The HUD core: which scene draws the current gameplay mode, when it is visible, and the
+// way its events and timed work run. Scenes are in their own files (land.cpp).
+#include "hud.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <exception>
+
+namespace storm::ui::hud
+{
+
+std::unique_ptr<Scene> CreateLandScene(Hud &hud);
+std::unique_ptr<Scene> CreateSeaScene(Hud &hud);
+std::unique_ptr<Scene> CreateWorldMapScene(Hud &hud);
+
+namespace
+{
+
+constexpr double kIdle = 3600.0;
+constexpr size_t kLines = 3;
+constexpr double kDialogueWait = 0.5; // s: a dialogue hides the HUD by then even if its panel has not come
+// s: a dialogue no screen shows for this long is ended (WatchDialogue). Measured: the panel follows
+// the game's dialogue start in 0.1–0.6 s on the emulator (DialogMain, 3 frames, the dialogue file
+// compiled); 3 s leaves a slow phone's first dialogue load room.
+constexpr double kDialogueLost = 3.0;
+// s: a HUD component that threw is retried this long after its first failure, twice as late after
+// each further one, at most kRetryMost (Disable).
+constexpr double kRetryFirst = 2.0;
+constexpr double kRetryMost = 60.0;
+constexpr double kLeaveSeconds = 0.22; // a line animates out this long (pack time.toastLeave), then goes
+// The layout scene under the spyglass when no ported scene owns the mode (the platform still
+// draws the sea HUD): the overlay alone, no elements.
+constexpr const char *kSpyglassLayout = "sea";
+// Where no scene draws the HUD: only the game-menu button (hud-layout.json scene "menu").
+constexpr const char *kMenuLayout = "menu";
+
+const char *const kLandModes[] = {"explore", "melee"};
+const char *const kSeaModes[] = {"sailing", "naval"};
+const char *const kWorldMapModes[] = {"worldmap"};
+
+// The HUD scenes by gameplay mode.
+const SceneEntry kScenes[] = {
+    {"land", kLandModes, CreateLandScene, "land"},
+    {"sea", kSeaModes, CreateSeaScene, "sea"},
+    {"world-map", kWorldMapModes, CreateWorldMapScene, "worldmap"},
+};
+
+} // namespace
+
+std::span<const SceneEntry> Scenes()
+{
+    return kScenes;
+}
+
+void BuildTimeScale(Hud &hud, const Gameplay &gameplay, double scale, View &view, Input &input)
+{
+    static const char *const kSteps[] = {"TimeScaleX1", "TimeScaleX2", "TimeScaleX4", "TimeScaleX8"};
+    if (scale < 0.0)
+        return;
+    for (const char *step : kSteps)
+        if (!gameplay.Has(step))
+            return;
+    char text[16];
+    std::snprintf(text, sizeof(text), "%.2f", scale);
+    std::string badge = text;
+    while (badge.back() == '0')
+        badge.pop_back();
+    if (badge.back() == '.')
+        badge.pop_back();
+    const int current = scale < 1.5 ? 0 : scale < 3.0 ? 1 : scale < 6.0 ? 2 : 3;
+    view.elements["time"] = Json{{"badge", "×" + badge}, {"variant", current ? "active" : "normal"}};
+    input.On("time", "click", [&hud, next = std::string(kSteps[(current + 1) % 4])](const Event &) {
+        const Gameplay &now = hud.Current().gameplay;
+        if (hud.Interactive() && now.Has(next))
+            hud.Send("gameplay", std::to_string(now.revision) + "\t" + next);
+    });
+}
+
+int StickStrength(double deflection)
+{
+    constexpr double kCurve = 1.6; // response exponent: half the travel past the dead zone is about a third of the push
+    const double past = (std::clamp(std::fabs(deflection), 0.0, 100.0) - kStickDead) / (100.0 - kStickDead);
+    if (past <= 0.0)
+        return 0;
+    return std::max(1, static_cast<int>(std::lround(std::pow(past, kCurve) * 100.0)));
+}
+
+void HoldSet::Hold(const std::string &control, bool down, int strength)
+{
+    const Gameplay &gameplay = hud_.Current().gameplay;
+    Held &held = held_[control];
+    if (down && (!hud_.Interactive() || !gameplay.Has(control)))
+        down = false;
+    if (!down)
+        strength = 0;
+    if (held.down == down && held.strength == strength)
+        return;
+    if (down && !held.down)
+        ++held.press;
+    held.down = down;
+    held.strength = strength;
+    Send(control, held, gameplay);
+}
+
+void HoldSet::Helm(const std::string &value, const std::string &left, const std::string &right)
+{
+    const double position = std::clamp(std::strtod(value.c_str(), nullptr), -100.0, 100.0);
+    const int strength = StickStrength(position);
+    const int turn = position < 0.0 ? -strength : strength;
+    if (turn == turn_)
+        return;
+    turn_ = turn;
+    turning_ = turn < 0 ? left : turn > 0 ? right : std::string();
+    // The side let go first, so that the engine never sees both held.
+    Hold(turn < 0 ? right : left, false);
+    Hold(turn < 0 ? left : right, turn != 0, std::abs(turn));
+}
+
+void HoldSet::Forget(const States &states)
+{
+    for (auto &[control, held] : held_)
+        if (held.down && (!hud_.Interactive() || !states.gameplay.Has(control)))
+            held = {false, 0, held.press};
+    if (!turning_.empty() && !held_[turning_].down)
+    {
+        turn_ = 0; // the next pull of the helm is said again
+        turning_.clear();
+    }
+}
+
+void HoldSet::Release(const Gameplay &gameplay)
+{
+    for (auto &[control, held] : held_)
+        if (held.down)
+        {
+            held = {false, 0, held.press};
+            Send(control, held, gameplay);
+        }
+    turn_ = 0;
+    turning_.clear();
+}
+
+void HoldSet::Send(const std::string &control, const Held &held, const Gameplay &gameplay)
+{
+    std::string value = std::to_string(gameplay.revision) + "\t" + control + "\t" + (held.down ? "1" : "0");
+    if (held.down && held.strength)
+        value += "\t" + std::to_string(held.strength);
+    // Within one engine loop only the newest strength of a press counts, but a press and its
+    // release both reach the engine: a push shorter than a frame still acts (HeldControls).
+    hud_.Send("hold", value, held.down ? "hold-" + control + "-" + std::to_string(held.press) : std::string());
+}
+
+std::string Lower(std::string text)
+{
+    for (char &c : text)
+        if (c >= 'A' && c <= 'Z')
+            c = static_cast<char>(c - 'A' + 'a');
+    return text;
+}
+
+void Hud::RequestSubject(const SubjectRequest &request)
+{
+    subject_ = request;
+    subject_->until = Now() + kSubjectSeconds;
+}
+
+std::optional<SubjectRequest> Hud::TakeSubject(const std::string &screen)
+{
+    if (!subject_ || subject_->screen != screen)
+        return std::nullopt;
+    std::optional<SubjectRequest> taken;
+    if (Now() <= subject_->until)
+        taken = subject_;
+    else
+        Log("HUD: the " + screen + " screen opened after its subject request lapsed; it shows its own first subject");
+    subject_.reset();
+    return taken;
+}
+
+Json MemberCell(const std::string &name, const Picture &picture, std::initializer_list<MemberBar> bars, bool tap)
+{
+    Json cell = {{"name", name}, {"texture", picture.texture}, {"uv", picture.uv}, {"bars", Json::array()}};
+    for (const MemberBar &bar : bars)
+        if (bar.share >= 0.0)
+            cell["bars"].push_back(Json{{"kind", bar.kind}, {"value", static_cast<int>(std::lround(std::clamp(bar.share, 0.0, 1.0) * 100.0))}});
+    if (tap)
+        cell["tap"] = true;
+    return cell;
+}
+
+std::string ReadPicture(const Json &value, Picture &out)
+{
+    const auto texture = value.is_object() ? value.find("texture") : value.end();
+    const auto uv = value.is_object() ? value.find("uv") : value.end();
+    if (texture == value.end() || !texture->is_string() || uv == value.end() || !uv->is_array() || uv->size() != 4)
+        return "picture: expected {texture, uv: [left, top, right, bottom]}";
+    const std::string name = texture->get<std::string>();
+    if (name.empty() || name.size() > 128 || name.find_first_of("\\:\"") != std::string::npos ||
+        std::any_of(name.begin(), name.end(), [](unsigned char c) { return c < 32 || c == 127; }))
+        return "picture: bad texture name";
+    double rect[4];
+    for (size_t i = 0; i < 4; ++i)
+    {
+        if (!(*uv)[i].is_number())
+            return "picture: uv is not four numbers";
+        rect[i] = (*uv)[i].get<double>();
+        if (!std::isfinite(rect[i]) || rect[i] < 0.0 || rect[i] > 1.0)
+            return "picture: uv outside 0..1";
+    }
+    if (rect[2] <= rect[0] || rect[3] <= rect[1])
+        return "picture: empty uv rectangle";
+    char text[96];
+    std::snprintf(text, sizeof text, "%.6g,%.6g,%.6g,%.6g", rect[0], rect[1], rect[2], rect[3]);
+    out = {name, text};
+    return {};
+}
+
+void Input::On(const std::string &id, const std::string &verb, Handler handler)
+{
+    handlers_[id + "\n" + verb] = std::move(handler);
+}
+
+void Input::Ignore(const std::string &id, const std::string &verb)
+{
+    handlers_[id + "\n" + verb] = [](const Event &) {};
+}
+
+void Fan::Build(Json props, const std::vector<Option> &options, View &view, Input &input, const std::function<void()> &opened)
+{
+    if (options.empty())
+        open_ = false; // nothing to choose from
+    props["variant"] = open_ ? "active" : "normal";
+    view.elements[button_] = std::move(props);
+    if (options.empty())
+    {
+        input.Ignore(button_, "click");
+        return;
+    }
+    input.On(button_, "click", [this, opened](const Event &) {
+        open_ = !open_;
+        until_ = hud_.Now() + kSeconds;
+        if (open_ && opened)
+            opened();
+        hud_.Rebuild();
+    });
+    if (!open_)
+        return;
+    view.back = true; // Back folds it
+    for (size_t i = 0; i < options.size(); ++i)
+    {
+        const std::string slot = button_ + "-" + std::to_string(i + 1);
+        view.elements[slot] = options[i].props;
+        if (!options[i].pick)
+        {
+            input.Ignore(slot, ""); // a tap on it, or the disabled look's "refused": nothing to do
+            continue;
+        }
+        input.On(slot, "click", [this, pick = options[i].pick](const Event &) {
+            open_ = false;
+            pick();
+            hud_.Rebuild();
+        });
+    }
+}
+
+bool Fan::Back()
+{
+    if (!open_)
+        return false;
+    open_ = false;
+    hud_.Rebuild();
+    return true;
+}
+
+void Fan::Expire(double now, double &next)
+{
+    if (!open_)
+        return;
+    if (now >= until_)
+    {
+        open_ = false;
+        hud_.Rebuild();
+    }
+    else
+        next = std::min(next, until_ - now);
+}
+
+Hud::Hud(Mount &mount, std::span<const SceneEntry> scenes) : mount_(mount), scenes_(scenes)
+{
+}
+
+template <class Call> bool Hud::Guarded(const std::string &component, const char *where, Call &&call)
+{
+    std::string what;
+    try
+    {
+        call();
+        return true;
+    }
+    catch (const std::exception &error)
+    {
+        what = error.what();
+    }
+    catch (...)
+    {
+        what = "an exception that is not a std::exception";
+    }
+    if (disabling_) // a held control of the scene being disabled threw while ending: said, nothing more to turn off
+        mount_.Error("HUD " + component + " threw in " + where + " while it was being turned off: " + what);
+    else
+        Disable(component, where, what);
+    return false;
+}
+
+void Hud::Disable(const std::string &component, const char *where, const std::string &what)
+{
+    const bool scene = entry_ && component == entry_->name;
+    Failure &failure = failures_[component];
+    ++failure.count;
+    const double delay = std::min(kRetryMost, kRetryFirst * double(1u << std::min(failure.count - 1, 8)));
+    failure.retry_at = mount_.Now() + delay;
+    failure.waiting = true;
+    char retry[32];
+    std::snprintf(retry, sizeof retry, "%.0f", delay);
+    mount_.Error("HUD " + component + " threw in " + where + ": " + what + "; it is off, retried in " + retry + " s (failure " +
+                 std::to_string(failure.count) + ")" + (scene ? "; its modes show the game-menu button until then" : ""));
+    if (scene)
+    {
+        // The throw has unwound out of the scene. Held controls end first (their cancel events
+        // reach the scene's bindings, as on a scene change); then the scene goes.
+        disabling_ = true;
+        mount_.HideHud();
+        disabling_ = false;
+        scene_.reset();
+        entry_ = nullptr;
+        input_.handlers_.clear();
+    }
+    failing_ = true;
+    changed_ = true;
+}
+
+Hud::~Hud() = default;
+
+void Hud::Reject(const std::string &channel, const std::string &why)
+{
+    Error("state channel " + channel + ": " + why);
+}
+
+void Hud::Error(const std::string &line)
+{
+    if (reported_.insert(line).second)
+        mount_.Error(line);
+}
+
+void Hud::Send(const std::string &verb, const std::string &value, const std::string &slot)
+{
+    Action action;
+    action.screen = "hud";
+    action.node = slot;
+    action.verb = verb;
+    action.value = value;
+    mount_.Send(action);
+}
+
+Json Hud::LogLines() const
+{
+    Json lines = Json::array();
+    for (size_t i = lines_.size(); i-- > 0;)
+        lines.push_back(Json{{"text", lines_[i].text}, {"tone", lines_[i].tone}, {"key", std::to_string(lines_[i].key)}, {"leaving", lines_[i].leaving >= 0.0},
+                             {"open", !lines_[i].target.empty()}});
+    return lines;
+}
+
+bool Hud::Notice(const std::string &text, const std::string &tone, const std::string &target)
+{
+    if (!visible_ || text.empty() || !view_.log)
+        return false;
+    for (Line &line : lines_)
+        if (line.base == text && line.leaving < 0.0)
+        {
+            line.text = RepeatedText(text, ++line.count);
+            line.target = target;
+            if (line.held >= 0.0)
+                line.held = ToastSeconds(text);
+            else
+                line.until = mount_.Now() + ToastSeconds(text);
+            changed_ = true;
+            return true;
+        }
+    // At most kLines shown: the oldest shown line starts to leave.
+    const double now = mount_.Now();
+    if (std::count_if(lines_.begin(), lines_.end(), [](const Line &line) { return line.leaving < 0.0; }) >= static_cast<long>(kLines))
+        for (Line &line : lines_)
+            if (line.leaving < 0.0)
+            {
+                line.leaving = now;
+                break;
+            }
+    lines_.push_back({text, tone.empty() ? "info" : tone, now + ToastSeconds(text), text, 1, ++next_line_key_});
+    lines_.back().target = target;
+    changed_ = true;
+    return true;
+}
+
+bool Hud::OnEvent(const Event &event)
+{
+    if (!visible_)
+        return false;
+    if (event.id == "log" && (event.verb == "hold" || event.verb == "release"))
+    {
+        // A finger on an event line stops its timer; lifting it gives the line the time it had left.
+        const double now = mount_.Now();
+        for (Line &line : lines_)
+            if (std::to_string(line.key) == event.value && line.leaving < 0.0)
+            {
+                if (event.verb == "hold" && line.held < 0.0)
+                    line.held = std::max(0.0, line.until - now);
+                else if (event.verb == "release" && line.held >= 0.0)
+                {
+                    line.until = now + line.held;
+                    line.held = -1.0;
+                }
+            }
+        return true;
+    }
+    if (event.id == "log" && event.verb == "open")
+    {
+        // The tap opens where the line leads and dismisses it.
+        for (Line &line : lines_)
+            if (std::to_string(line.key) == event.value && line.leaving < 0.0 && !line.target.empty())
+            {
+                if (Interactive())
+                    Open(line.target);
+                line.leaving = mount_.Now();
+                line.held = -1.0;
+                changed_ = true;
+            }
+        return true;
+    }
+    auto found = input_.handlers_.find(event.id + "\n" + event.verb);
+    if (found == input_.handlers_.end())
+        found = input_.handlers_.find(event.id + "\n");
+    if (found == input_.handlers_.end())
+    {
+        Error("HUD scene " + std::string(entry_ ? entry_->name : "?") + ": event '" + event.id + " " + event.verb + "' has no binding");
+        return false;
+    }
+    // The handler may ask for a rebuild, which replaces the handlers: keep this one alive.
+    const Input::Handler handler = found->second;
+    Guarded(SceneName(), "the handler of event", [&] { handler(event); });
+    return true;
+}
+
+void Hud::Open(const std::string &target)
+{
+    const auto [kind, subject] = [&] {
+        const size_t colon = target.find(':');
+        return std::pair{target.substr(0, colon), colon == std::string::npos ? std::string() : target.substr(colon + 1)};
+    }();
+    if (kind == "character" && !subject.empty())
+    {
+        SubjectRequest request{"character", std::atoi(subject.c_str())};
+        request.tab = "perks";
+        RequestSubject(request);
+        Send("shortcut", "characterscreen");
+    }
+    else if (kind == "journal" && !subject.empty())
+    {
+        SubjectRequest request{"journal"};
+        request.quest = subject;
+        RequestSubject(request);
+        Send("shortcut", "journalscreen");
+    }
+    else if (kind == "items")
+        Send("shortcut", "itemsscreen");
+    else
+        Error("HUD: an event line leads to '" + target + "', which no screen opens");
+}
+
+// The platform host hears when the HUD appears and disappears: what it draws itself over a
+// game without a HUD (a pause button) depends on it.
+void Hud::Present(bool visible, bool menu_only)
+{
+    if (visible == visible_ && menu_only == menu_only_)
+        return;
+    visible_ = visible;
+    menu_only_ = menu_only;
+    Send("presence", !visible ? "hidden" : menu_only ? "menu" : "shown");
+}
+
+void Hud::ExpectTransition(const std::string &what)
+{
+    transition_activation_ = {};
+    transition_accepted_ = false;
+    transition_until_ = mount_.Now() + kTransitionWait;
+    transition_what_ = what;
+    changed_ = true;
+}
+
+void Hud::ExpectLandTransition(const std::string &what, const LandCommands &commands, const std::string &id)
+{
+    ExpectTransition(what);
+    transition_activation_ = {commands.activation.serial, commands.scene, commands.revision, commands.activity, id, {}, false};
+}
+
+// A scene change hides the HUD: nothing of it may show over the fader or between a closing
+// panel and the fader. The engine reports the
+// fader in its own frame (gameplay blocked "transition"), before the loading screen is up (the
+// presentation's loading flag), which is not waited for.
+bool Hud::InTransition(double now)
+{
+    const std::string &why = states_.gameplay.blocked;
+    if (why == "transition" || why == "loading")
+    {
+        transition_until_ = -1.0; // the game took over
+        return true;
+    }
+    if (transition_until_ < 0.0)
+        return false;
+    if (!transition_activation_.id.empty())
+    {
+        const auto &commands = states_.land_commands;
+        const auto &sent = transition_activation_;
+        const LandCommands::Activation *answer = nullptr;
+        const auto consider = [&](const LandCommands::Activation &receipt) {
+            if (receipt.serial > sent.serial && receipt.scene == sent.scene && receipt.revision == sent.revision &&
+                receipt.activity == sent.activity && receipt.id == sent.id &&
+                (!answer || (!answer->accepted && (receipt.accepted || receipt.serial > answer->serial)))) answer = &receipt;
+        };
+        consider(commands.activation);
+        for (const auto &receipt : commands.activations) consider(receipt);
+        if (answer)
+        {
+            if (!answer->accepted)
+            {
+                Error("HUD: " + transition_what_ + " was refused before native dispatch: " + answer->reason);
+                transition_until_ = -1.0;
+                transition_activation_ = {};
+                return false;
+            }
+            transition_accepted_ = true; // dispatch is not proof that PlayerFastTravel started a reload
+        }
+        if (!commands.known || commands.activity != sent.activity || commands.scene != sent.scene)
+        {
+            transition_until_ = -1.0;
+            transition_activation_ = {};
+            return false; // a newer owner can never be hidden or released by this tap's late receipt
+        }
+    }
+    if (now < transition_until_)
+        return true;
+    Error("HUD: " + transition_what_ + (transition_activation_.id.empty() ? " was to change the scene" :
+          transition_accepted_ ? " was dispatched natively, but its script started no transition" : " received no native activation receipt") +
+          " in " + std::to_string(kTransitionWait) + " s; the HUD is back");
+    transition_until_ = -1.0;
+    return false;
+}
+
+void Hud::Refresh()
+{
+    changed_ = false;
+    failing_ = false;
+    const SceneEntry *entry = nullptr;
+    for (const SceneEntry &candidate : scenes_)
+        for (const char *mode : candidate.modes)
+            if (states_.gameplay.mode == mode && !Off(candidate.name)) // a scene that threw waits for its retry
+                entry = &candidate;
+    bool holds = false;
+    if (!entry && scene_ && states_.gameplay.mode == "unknown")
+        Guarded(SceneName(), "Holds", [&] { holds = scene_->Holds(states_); });
+    if (holds)
+        entry = entry_;
+    if (entry != entry_)
+    {
+        if (scene_)
+            Guarded(SceneName(), "Suspended", [&] {
+                scene_->Released(states_);
+                // Removing held controls emits their cancel/up/change events. Keep the old scene
+                // and bindings alive until those pointers end; ShowHud below installs another map.
+                mount_.HideHud();
+                scene_->Suspended(states_);
+            });
+        scene_.reset();
+        entry_ = entry;
+        if (entry_)
+            Guarded(entry_->name, "create", [&] { scene_ = entry_->create(*this); });
+    }
+
+    const Presentation &shown = states_.presentation;
+    const bool live = shown.known && shown.live;
+    if (!live || interface_ || !shown.screen.empty())
+    {
+        transition_until_ = -1.0;
+        transition_activation_ = {};
+    }
+    if (scene_ && live_ && !live)
+        Guarded(SceneName(), "Suspended", [&] {
+            scene_->Released(states_);
+            scene_->Suspended(states_);
+        });
+    live_ = live;
+
+    // The raised telescope is drawn over any scene, and also where no scene is ported yet.
+    const bool spyglass = states_.spyglass.known && states_.spyglass.on;
+    // Over a free game the HUD is up; where no scene draws it (a cut-scene, a mode no scene
+    // owns: a blocked game) the layout "menu" still gives the one game-menu button, as every
+    // scene has it. The game decides what its menu offers there (save disabled and why).
+    // A dialogue: the game says so a frame or two before the dialogue panel's first state; the HUD
+    // stays until the panel covers the game (interface_), so both change in one frame. A dialogue
+    // whose panel does not come hides it after kDialogueWait.
+    const double now = mount_.Now();
+    if (!shown.dialogue)
+        dialogue_since_ = -1.0;
+    else if (dialogue_since_ < 0.0)
+        dialogue_since_ = now;
+    // A HUD that is not on the screen (an interface covered it and closed into the dialogue) is not brought back
+    // for those frames: it would flash between the interface and the panel.
+    const bool dialogue = shown.dialogue && (!visible_ || now - dialogue_since_ >= kDialogueWait);
+    const bool free = shown.known && shown.screen.empty() && !shown.loading && !dialogue && !interface_ && !InTransition(now);
+    const bool full = free && (scene_ || spyglass) && !shown.cinematic;
+    if (!free)
+    {
+        Conceal();
+        return;
+    }
+
+    // A blocked game ("unknown" mode) names no language: the last one stays.
+    if (!states_.gameplay.language.empty() && states_.gameplay.language != language_)
+    {
+        language_ = states_.gameplay.language;
+        mount_.SetLanguage(language_);
+    }
+    View view;
+    Input input;
+    if (!full && visible_ && !menu_only_ && scene_)
+    {
+        // The scene's HUD gives way to the menu button (a cut-scene starts): as when hidden.
+        Guarded(SceneName(), "Hidden", [&] {
+            scene_->Released(states_);
+            scene_->Hidden(states_);
+        });
+    }
+    Present(true, !full); // Build may read LogLines and send input
+    if (!full)
+    {
+        view.layout = kMenuLayout;
+        view.elements["pause"] = Json::object();
+        input.On("pause", "click", [this](const Event &) { Send("shortcut", "mainmenu"); });
+    }
+    else if (scene_)
+        Guarded(SceneName(), "Build", [&] { scene_->Build(states_, view, input); });
+    else
+        view.layout = kSpyglassLayout;
+    if (full && spyglass && !Off("spyglass"))
+        Guarded("spyglass", "SpyglassProps", [&] {
+            view.overlay_props = SpyglassProps(states_.spyglass, *this);
+            view.overlay = "s-hud-spyglass";
+        });
+    if (failing_)
+        return; // a component went off: the next Refresh builds the HUD without it (changed_ is set)
+    input_ = std::move(input);
+    if (!mount_.ShowHud(view))
+    {
+        // The pack cannot draw this view: reported by the mount; nothing half-drawn stays.
+        Conceal();
+        return;
+    }
+    view_ = std::move(view);
+}
+
+void Hud::Conceal()
+{
+    if (visible_)
+    {
+        if (scene_)
+            Guarded(SceneName(), "Released", [&] { scene_->Released(states_); });
+        mount_.HideHud();
+    }
+    Present(false, false);
+    input_.handlers_.clear();
+    lines_.clear();
+    view_ = View();
+    if (scene_)
+        Guarded(SceneName(), "Hidden", [&] { scene_->Hidden(states_); });
+}
+
+double Hud::Tick()
+{
+    const double now = mount_.Now();
+    if (last_tick_ >= 0.0 && now - last_tick_ > 10.0)
+    {
+        mount_.Log("HUD: resuming after a UI tick gap over 10 s; redeclaring presenters and refreshing current view");
+        declared_ = false;
+        changed_ = true;
+    }
+    last_tick_ = now;
+    if (!declared_)
+    {
+        declared_ = true;
+        for (const SceneEntry &entry : scenes_)
+            if (entry.presents)
+                Send("hudowner", entry.presents);
+        Send("hudowner", "spyglass"); // the Hud lays the spyglass overlay over any scene
+    }
+    // A component that threw comes back at its retry (Disable).
+    double retry = kIdle;
+    for (auto &[component, failure] : failures_)
+    {
+        if (!failure.waiting)
+            continue;
+        if (now >= failure.retry_at)
+        {
+            failure.waiting = false;
+            mount_.Log("HUD " + component + ": retried after failure " + std::to_string(failure.count));
+            changed_ = true;
+        }
+        else
+            retry = std::min(retry, failure.retry_at - now);
+    }
+    const bool interface = mount_.InterfaceActive();
+    if (interface != interface_)
+    {
+        interface_ = interface;
+        changed_ = true;
+    }
+    // An expired line animates out first, then goes.
+    for (Line &line : lines_)
+        if (line.leaving < 0.0 && line.held < 0.0 && now >= line.until)
+        {
+            line.leaving = now;
+            changed_ = true;
+        }
+    const size_t before = lines_.size();
+    lines_.erase(std::remove_if(lines_.begin(), lines_.end(), [now](const Line &line) { return line.leaving >= 0.0 && now >= line.leaving + kLeaveSeconds; }),
+                 lines_.end());
+    if (lines_.size() != before)
+        changed_ = true;
+    // A handler or the scene's timed work may ask for another build: settle within the call.
+    double next = kIdle;
+    for (int pass = 0; pass < 4; ++pass)
+    {
+        if (changed_)
+            Refresh();
+        next = kIdle;
+        if (scene_)
+            Guarded(SceneName(), "Tick", [&] { next = scene_->Tick(states_, now); });
+        if (!changed_)
+            break;
+    }
+    if (changed_)
+        next = 0.0;
+    for (const Line &line : lines_)
+        if (line.held < 0.0)
+            next = std::min(next, std::max(0.0, (line.leaving >= 0.0 ? line.leaving + kLeaveSeconds : line.until) - now));
+    next = std::min(next, WatchDialogue(now));
+    next = std::min(next, retry);
+    if (transition_until_ >= 0.0)
+    {
+        if (now >= transition_until_)
+        {
+            Refresh(); // reports the change that did not come and shows the HUD again
+            next = 0.0;
+        }
+        else
+            next = std::min(next, transition_until_ - now);
+    }
+    // A dialogue whose panel has not come: the HUD goes at kDialogueWait.
+    if (visible_ && states_.presentation.dialogue && dialogue_since_ >= 0.0 && !interface_)
+    {
+        if (now >= dialogue_since_ + kDialogueWait)
+        {
+            Error("HUD: the game's dialogue has no dialogue panel after " + std::to_string(kDialogueWait) + " s; the HUD is hidden");
+            Refresh();
+            next = 0.0;
+        }
+        else
+            next = std::min(next, dialogue_since_ + kDialogueWait - now);
+    }
+    return next;
+}
+
+// The softlock safety net: the game in a dialogue (its panel's state, or a game blocked by its
+// dialogRun) while no screen is mounted means a dialogue the player cannot see or answer and that
+// nothing else ends. After kDialogueLost: an ERROR, the player's notice, and the engine ends it
+// ("dialogue-lost", engine android_dialogue_watchdog.hpp). Never the fix: each trigger is a bug.
+double Hud::WatchDialogue(double now)
+{
+    const Presentation &shown = states_.presentation;
+    const bool blocked = states_.gameplay.blocked == "dialogue";
+    // A game interface open (shown.screen) or loading is not this: the dialogue waits under it.
+    const bool unseen = shown.known && (shown.dialogue || blocked) && shown.screen.empty() && !shown.loading && !mount_.ScreenMounted();
+    if (!unseen)
+    {
+        unseen_since_ = -1.0;
+        unseen_ended_ = false;
+        return kIdle;
+    }
+    if (unseen_since_ < 0.0)
+        unseen_since_ = now;
+    if (unseen_ended_)
+        return kIdle;
+    if (now < unseen_since_ + kDialogueLost)
+        return unseen_since_ + kDialogueLost - now;
+    unseen_ended_ = true;
+    char seconds[16];
+    std::snprintf(seconds, sizeof(seconds), "%.1f", now - unseen_since_);
+    const std::string report = std::string("no dialogue panel for ") + seconds + " s (panel state " + (shown.dialogue ? "active" : "none") +
+                               ", gameplay blocked '" + states_.gameplay.blocked + "')";
+    mount_.Error("dialogue watchdog: the game is in a dialogue nobody sees: " + report + "; the engine ends it");
+    Send("dialogue-lost", report);
+    return kIdle;
+}
+
+void Hud::Drawn()
+{
+    if (visible_ && !menu_only_ && scene_ && !changed_)
+        Guarded(SceneName(), "Drawn", [&] { scene_->Drawn(states_); });
+    // The spyglass overlay is on the screen, or not: said once per raise of the telescope (and
+    // again when that changes); the engine keeps the word for the raise (android_spyglass.hpp).
+    const Spyglass &spyglass = states_.spyglass;
+    if (!spyglass.known || !spyglass.on)
+    {
+        spyglass_answer_.clear();
+        return;
+    }
+    if (changed_)
+        return; // the view is not settled yet: answer for what is drawn
+    const bool covering = visible_ && !view_.overlay.empty();
+    const std::string answer = std::to_string(spyglass.generation) + "\t" + (covering ? "1" : "0");
+    if (answer == spyglass_answer_)
+        return;
+    spyglass_answer_ = answer;
+    Send("spyglass", answer, "spyglass-ack");
+}
+
+void Hud::Released()
+{
+    if (scene_)
+        Guarded(SceneName(), "Released", [&] { scene_->Released(states_); });
+}
+
+bool Hud::Back()
+{
+    bool used = false;
+    if (visible_ && !menu_only_ && scene_)
+        Guarded(SceneName(), "Back", [&] { used = scene_->Back(states_); });
+    return used;
+}
+
+// --- layout -----------------------------------------------------------------------------
+
+namespace
+{
+
+bool ParseElement(const Json &source, LayoutElement &out, const std::string &where, std::string *error)
+{
+    const auto text = [&source](const char *key) {
+        const auto found = source.find(key);
+        return found != source.end() && found->is_string() ? found->get<std::string>() : std::string();
+    };
+    out.id = text("id");
+    out.component = text("component");
+    out.rcss = text("rcss");
+    out.rcss_mirrored = text("rcssMirrored");
+    out.behavior = text("behavior");
+    if (const auto clear = source.find("toastClear"); clear != source.end())
+    {
+        if (!clear->is_number() || clear->get<double>() <= 0.0)
+        {
+            *error = where + ": 'toastClear' must be a positive number of dp";
+            return false;
+        }
+        out.toast_clear = clear->get<float>();
+    }
+    if (out.id.empty() || out.component.empty())
+    {
+        *error = where + ": an element needs 'id' and 'component'";
+        return false;
+    }
+    if (!out.rcss.empty() && out.rcss_mirrored.empty())
+    {
+        *error = where + "/" + out.id + ": a placed element needs 'rcssMirrored' (a pack built before «Под левую руку»)";
+        return false;
+    }
+    for (const char *key : {"props", "data", "propsMirrored"})
+    {
+        const auto found = source.find(key);
+        if (found == source.end())
+            continue;
+        if (!found->is_object())
+        {
+            *error = where + "/" + out.id + ": '" + key + "' must be an object";
+            return false;
+        }
+        const std::string name(key);
+        (name == "props" ? out.props : name == "data" ? out.data : out.props_mirrored) = *found;
+    }
+    const auto children = source.find("children");
+    if (children != source.end())
+    {
+        if (!children->is_array())
+        {
+            *error = where + "/" + out.id + ": 'children' must be a list";
+            return false;
+        }
+        for (const Json &child : *children)
+        {
+            LayoutElement parsed;
+            if (!child.is_object() || !ParseElement(child, parsed, where + "/" + out.id, error))
+            {
+                if (error->empty())
+                    *error = where + "/" + out.id + ": a child is not an object";
+                return false;
+            }
+            out.children.push_back(std::move(parsed));
+        }
+    }
+    return true;
+}
+
+const LayoutElement *FindElement(const std::vector<LayoutElement> &elements, const std::string &id)
+{
+    for (const LayoutElement &element : elements)
+    {
+        if (element.id == id)
+            return &element;
+        if (const LayoutElement *child = FindElement(element.children, id))
+            return child;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+bool ParseLayout(const Json &file, Layout &out, std::string *error)
+{
+    std::string problem;
+    out.clear();
+    const auto scenes = file.is_object() ? file.find("scenes") : file.end();
+    if (!file.is_object() || file.value("version", 0) != 2 || scenes == file.end() || !scenes->is_object())
+        problem = "hud-layout.json: expected version 2 with 'scenes'";
+    else
+        for (const auto &scene : scenes->items())
+        {
+            const auto elements = scene.value().is_object() ? scene.value().find("elements") : scene.value().end();
+            if (!scene.value().is_object() || elements == scene.value().end() || !elements->is_array())
+            {
+                problem = "hud-layout.json: scene " + scene.key() + " has no 'elements'";
+                break;
+            }
+            std::vector<LayoutElement> parsed;
+            for (const Json &element : *elements)
+            {
+                LayoutElement item;
+                if (!element.is_object() || !ParseElement(element, item, "hud-layout.json: " + scene.key(), &problem))
+                {
+                    if (problem.empty())
+                        problem = "hud-layout.json: scene " + scene.key() + " holds something that is not an element";
+                    break;
+                }
+                parsed.push_back(std::move(item));
+            }
+            if (!problem.empty())
+                break;
+            out[scene.key()] = std::move(parsed);
+        }
+    if (problem.empty())
+        return true;
+    out.clear();
+    if (error)
+        *error = problem;
+    return false;
+}
+
+std::string CheckView(const Layout &layout, const View &view)
+{
+    const auto scene = layout.find(view.layout);
+    if (scene == layout.end())
+        return "HUD: the pack has no layout scene '" + view.layout + "'";
+    if (!view.elements.is_object())
+        return "HUD scene " + view.layout + ": the element props are not an object";
+    for (const auto &item : view.elements.items())
+    {
+        if (!FindElement(scene->second, item.key()))
+            return "HUD scene " + view.layout + ": the layout has no element '" + item.key() + "'";
+        if (!item.value().is_object())
+            return "HUD scene " + view.layout + ": the props of '" + item.key() + "' are not an object";
+    }
+    for (const std::string &id : view.dimmed)
+        if (!FindElement(scene->second, id))
+            return "HUD scene " + view.layout + ": the layout has no element '" + id + "' to dim";
+    return {};
+}
+
+} // namespace storm::ui::hud

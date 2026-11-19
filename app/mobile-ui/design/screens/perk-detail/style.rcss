@@ -1,0 +1,35 @@
+/* s-perk-detail: fills the detail panel; the middle scrolls, the button stays. The perk (icon and stock caption), then
+   its description with what it needs at its start («Требует» and small icons in the text's flow) and what it opens at
+   its end; each icon in the tree's state style (brass ring and check learned, warm glow open, faded with a lock
+   locked; the other group's glyph on the corner) jumps to that perk, its name on a long press, through an invisible
+   48 dp touch box that may lie over the text. «Изучить» is learned by a hold; a disabled one shakes when tapped. */
+s-perk-detail { display: flex; flex-direction: column; gap: 6dp; width: 100%; height: 100%; min-height: 0; }
+s-perk-detail .pd-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4dp; }
+s-perk-detail .pd-top { height: 0; }
+s-perk-detail .pd-head { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 8dp; padding-bottom: 4dp; border-bottom: 1dp @{color.brassLine/.35}; }
+s-perk-detail .pd-head-pic { flex: 0 0 auto; }
+s-perk-detail .pd-head-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+s-perk-detail .pd-title { width: 100%; max-height: 38dp; font-size: @{type.body}dp; font-weight: bold; line-height: 1.2; color: @{color.text}; }
+s-perk-detail .pd-group { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 4dp; font-size: @{type.min}dp; color: @{color.brass}; }
+s-perk-detail .pd-text { font-size: @{type.body}dp; line-height: 1.6; color: @{color.text}; white-space: pre-line; }
+s-perk-detail .pd-word { color: @{color.brass}; font-weight: bold; margin-right: 4dp; }
+s-perk-detail .pd-note { font-size: @{type.caption}dp; line-height: 1.35; color: @{color.ok}; }
+/* an icon in the text: 30 dp in the line, its touch box 48 dp around it */
+s-perk-detail .pd-dep { display: inline-block; position: relative; width: 30dp; height: 30dp; margin: 0 2dp; vertical-align: middle; }
+s-perk-detail .pd-hit { position: absolute; left: -9dp; top: -9dp; width: 48dp; height: 48dp; }
+s-perk-detail .pd-dep-pic { position: absolute; left: 3dp; top: 3dp; width: 24dp; height: 24dp; }
+s-perk-detail .pd-halo { position: absolute; left: 0; top: 0; width: 30dp; height: 30dp; border-radius: 15dp; box-sizing: border-box; }
+s-perk-detail .pd-dep.st-learned .pd-halo { border: 2dp @{color.brassMid}; }
+s-perk-detail .pd-dep.st-open .pd-halo { border: 2dp @{color.brassGlow}; box-shadow: @{color.brassGlow/.6} 0 0 6dp 1dp; }
+s-perk-detail .pd-dep.st-locked .pd-dep-pic, s-perk-detail .pd-dep.st-unavailable .pd-dep-pic { opacity: 0.55; }
+/* a prerequisite not learned yet: faded with a lock and a dim red ring, whatever its own state; a refused «Изучить»
+   makes these pulse for a moment */
+s-perk-detail .pd-dep.unmet .pd-dep-pic { opacity: 0.55; }
+s-perk-detail .pd-dep.unmet .pd-halo { border: 2dp @{color.dangerLine/.7}; box-shadow: none; }
+s-perk-detail .pd-dep.nudge .pd-halo { animation: 0.8s cubic-in-out 1 pd-pulse; border-color: @{color.dangerLine}; }
+@keyframes pd-pulse { 0% { transform: scale(1); } 30% { transform: scale(1.35); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+s-perk-detail .pd-dep.pressed .pd-halo { background-color: @{color.brassGlow/.3}; }
+s-perk-detail .pd-mark { position: absolute; left: 19dp; top: 18dp; width: 12dp; height: 12dp; border-radius: 6dp; display: flex; align-items: center; justify-content: center;
+    background-color: @{color.inkAged}; border: 1dp @{color.paperLight/.8}; }
+s-perk-detail .pd-gmark { position: absolute; left: -2dp; top: -2dp; width: 12dp; height: 12dp; border-radius: 6dp; display: flex; align-items: center; justify-content: center;
+    background-color: @{color.lapis}; border: 1dp @{color.brassMid}; }

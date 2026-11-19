@@ -1,0 +1,2 @@
+<div class="qs-plate"><div class="qs-spin"></div><div class="qs-texts"><div class="qs-title">{{title}}</div><t-if test="text"><div class="qs-text">{{text}}</div></t-if></div></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>

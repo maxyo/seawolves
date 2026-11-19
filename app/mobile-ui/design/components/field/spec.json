@@ -1,0 +1,22 @@
+{
+  "tag": "c-field",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "value": {"type": "text", "default": ""},
+    "placeholder": {"type": "text", "default": ""},
+    "counter": {"type": "text", "default": ""},
+    "error": {"type": "text", "default": ""},
+    "focused": {"type": "bool", "default": false},
+    "disabled": {"type": "bool", "default": false, "doc": "the text cannot be edited now (it was sent): a tap shakes the box instead of opening the editor"},
+    "multiline": {"type": "bool", "default": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "height": @{size.touchMin},
+    "heightMultiline": 88,
+    "font": 17,
+    "fontLabel": @{type.caption}
+  }
+}

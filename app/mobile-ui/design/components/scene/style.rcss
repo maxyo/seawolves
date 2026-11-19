@@ -1,0 +1,16 @@
+/* C-Scene: a stand-in for the 3D scene under the HUD (debug gallery; the
+   game draws the real scene). Fills its parent; children are placed absolutely inside the
+   HUD layer, which is the safe area (host Host::SetSafeArea). */
+c-scene {
+    position: relative; display: block; box-sizing: border-box; overflow: hidden;
+    width: 100%; height: 100%; color: @{color.text};
+    decorator: radial-gradient(ellipse 70% 60% at 50% 38%, @{color.sceneLand0} 0%, @{color.sceneLand1} 50%, @{color.sceneLand2} 100%);
+}
+c-scene > .hud { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+c-scene.kind-sea { decorator: linear-gradient(180deg, @{color.woodSteel} 0%, @{color.woodLine} 38%, @{color.woodSelected} 52%, @{color.woodDeep} 100%); }
+c-scene.kind-battle { decorator: linear-gradient(180deg, @{color.sceneBattle0} 0%, @{color.sceneBattle1} 34%, @{color.sceneBattle2} 52%, @{color.sceneBattle3} 100%); }
+c-scene.kind-map { decorator: radial-gradient(ellipse 80% 70% at 50% 50%, @{color.sceneMap0} 0%, @{color.sceneMap1} 60%, @{color.sceneMap2} 100%); }
+c-scene.kind-deck { decorator: linear-gradient(180deg, @{color.sceneDeck0} 0%, @{color.sceneDeck1} 45%, @{color.sceneDeck2} 60%, @{color.sceneDeck3} 100%); }
+c-scene.kind-tavern { decorator: radial-gradient(ellipse 70% 60% at 50% 40%, @{color.sceneTavern0} 0%, @{color.sceneTavern1} 55%, @{color.sceneTavern2} 100%); }
+c-scene.kind-night { decorator: radial-gradient(ellipse 70% 60% at 50% 30%, @{color.sceneNight0} 0%, @{color.sceneNight1} 60%, @{color.sceneNight2} 100%); }
+c-scene.kind-title { decorator: linear-gradient(170deg, @{color.sceneTitle0} 0%, @{color.sceneTitle1} 30%, @{color.sceneTitle2} 55%, @{color.sceneTitle3} 80%, @{color.sceneTitle4} 100%); }

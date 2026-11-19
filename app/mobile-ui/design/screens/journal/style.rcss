@@ -1,0 +1,23 @@
+/* s-journal: the sections rail, the entries list and the open entry on parchment; assets and
+   statistics: the game's tables side by side on one parchment sheet. */
+s-journal { display: block; width: 100%; height: 100%; }
+s-journal .jo-cols { display: flex; flex-direction: row; gap: @{space.md}dp; width: 100%; height: 100%; }
+s-journal .jo-rail { flex: 0 0 auto; width: 20%; min-width: 150dp; max-width: 220dp; height: 100%; }
+s-journal .jo-list { flex: 1 1 0; min-width: 0; max-width: 360dp; height: 100%; }
+s-journal .jo-tabs { flex: 0 0 auto; border-bottom: 1dp @{color.brassLine/.35}; }
+s-journal .jo-table { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+s-journal .jo-table c-table { width: 100%; height: 100%; }
+s-journal .jo-entry { flex: 1.4 1 0; min-width: 0; height: 100%; }
+s-journal .jo-entry-title { flex: 0 0 auto; font-size: @{type.title}dp; font-weight: bold; color: @{color.ink}; padding-bottom: @{space.sm}dp; border-bottom: 1dp @{color.ink/.2}; }
+s-journal .jo-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.md}dp; }
+s-journal .jo-item { display: flex; flex-direction: column; gap: 2dp; }
+s-journal .jo-date { font-size: @{type.caption}dp; font-style: italic; color: @{color.ink/.7}; }
+s-journal .jo-text { font-size: @{type.body}dp; line-height: 1.45; color: @{color.ink}; white-space: pre-wrap; }
+s-journal .jo-dateline { font-size: @{type.caption}dp; color: @{color.ink/.7}; }
+/* no entry open: what the reading pane is for, as an empty list says it (c-table .tb-empty on parchment) */
+s-journal .jo-empty { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10dp; padding: 16dp;
+    text-align: center; font-size: @{type.body}dp; color: @{color.inkMuted}; }
+s-journal .jo-sheet { flex: 1 1 0; min-width: 0; height: 100%; }
+s-journal .jo-tables { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; gap: @{space.lg}dp; }
+s-journal .jo-tbl { flex: 1 1 0; min-width: 260dp; }
+s-journal .jo-none { font-size: @{type.body}dp; color: @{color.ink/.7}; padding: @{space.md}dp; }

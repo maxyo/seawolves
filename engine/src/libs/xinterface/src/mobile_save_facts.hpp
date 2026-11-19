@@ -1,0 +1,48 @@
+// What the menus show of saves and of the game in progress, read from the engine and the
+// script (the pure parsing is in mobile_save_list.hpp): the facts of each record of the save
+// list, the identity of the game in progress (AndroidSaveIdentity script handler), the pause
+// menu's line and the record «Продолжить» loads.
+#pragma once
+#include "mobile_save_list.hpp"
+
+#include <array>
+#include <map>
+#include <optional>
+#include <string>
+
+namespace storm::mobile
+{
+// "<hero>@<location>@<play time>@<HH:MM  DD.MM.YYYY>" of the game in progress, from the app
+// script's handler (mobile-ui/PROGRAM/interface/android_save_identity.c); nothing without a
+// game or handler (an error line, once).
+std::optional<std::array<std::string, 4>> CurrentSaveIdentity();
+
+// The context of row `index` of the save list (SaveListCapability::collect): the record's
+// facts (SaveFacts), or for the new record the hero, location and play time of the game in
+// progress. One validated extension read per file time supplies description and thumbnail presence.
+std::map<std::string, std::string> SaveRowContext(const SaveListSnapshot &state, size_t index);
+
+// The pause menu's line «<hero> · <location> · <date>»: the game in progress
+// as the ANDROID_GAME text, its parts as context (hero, location, gameDate, gameTime). Asked
+// once per opening of the menu.
+std::optional<MobileWidget> GameIdentityWidget(uint64_t opening);
+
+// The pause menu's quick load (the game's F9, interface.c MakeQuickLoad): the ANDROID_QUICK_LOAD text naming
+// the record it loads, "SAVE\\<PlayerProfile.name>\\<name> QuickSave <PlayerProfile.QuickSaveIndex>"; nothing
+// while that record does not exist (no quick save yet) or the script has no profile.
+std::optional<MobileWidget> QuickLoadWidget();
+
+// Every profile's records (SAVE\\<profile>\\<file>, the game's profile folders without
+// "netsave"), newest first: the rows of the save list when loading.
+std::vector<SaveRecord> SaveRecordsOfAllProfiles();
+
+// The record «Продолжить» loads on the title screen: the newest record of
+// any profile, as the ANDROID_CONTINUE text «<hero> · <location>» (its file name when the
+// description cannot be read) with the record's facts as context; nothing without records.
+// Scanned once per opening of the screen.
+std::optional<MobileWidget> ContinueWidget(uint64_t opening);
+
+// The record ContinueWidget names for this opening of the title screen, the one «Продолжить»
+// loads directly (main:Continue → AndroidContinue script handler); nothing without records.
+std::optional<SaveRecord> ContinueRecord(uint64_t opening);
+} // namespace storm::mobile

@@ -1,0 +1,4 @@
+/* s-flags: one row of flag tokens spread over the width, each with a full touch target. */
+s-flags { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+s-flags .sf-hit { flex: 0 0 auto; width: @{spec.hit}dp; height: @{spec.hit}dp; display: flex; align-items: center; justify-content: center; border-radius: @{spec.hit}dp; }
+s-flags .sf-hit.pressed { background-color: @{color.brassLine/.2}; }

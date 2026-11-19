@@ -1,0 +1,4 @@
+<div class="hm-caption">{{caption}}</div>
+<ui-wheel class="hm-wheel" size="{{spec.size}}" inner="{{spec.inner}}" bounds="{{spec.bounds}}" selected="{{selected}}">
+<t-for each="moves" as="m"><div class="hm-move" data-sector="{{m.sector}}" data-size="{{ m.sector == 'centre' ? spec.icon.centre : spec.icon.sector }}"><c-icon icon="{{m.icon}}" size="{{ m.sector == 'centre' ? spec.icon.centre : spec.icon.sector }}" tone="{{ m.disabled ? 'dim' : 'duo' }}"/></div></t-for>
+</ui-wheel>

@@ -1,0 +1,54 @@
+#pragma once
+
+#include "storm_glm.h"
+#include "cannon_trace.h"
+#include "blast.h"
+#include "renderer.h"
+#include "geometry.h"
+#include "vma.hpp"
+
+using GEOPARTICLE = struct
+{
+    glm::vec3 pos;
+    glm::vec3 ang;
+    glm::vec3 ang_speed;
+    glm::vec3 dir;
+    GEOS *geo;
+    float speed;
+    bool bDouble;
+    bool bEffect;
+};
+
+class BLAST : public Entity
+{
+    VRenderer *rs;
+    VGEOMETRY *gs;
+    std::vector<GEOPARTICLE> Item;
+    CANNON_TRACE_BASE *pSea;
+    entid_t sea_eid;
+    float AngleDeviation;
+    uint32_t ItemsNum;
+    glm::mat4 Center;
+    entid_t Splash;
+
+  public:
+    ~BLAST() override;
+    BLAST();
+    bool Init() override;
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    uint32_t AttributeChanged(ATTRIBUTES *) override;
+    void Realize(uint32_t Delta_Time);
+    void ProcessTime(uint32_t Delta_Time);
+    void SetBlastCenter(glm::vec3 pos, glm::vec3 ang);
+    void AddGeometry(char *name, int32_t num);
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+};

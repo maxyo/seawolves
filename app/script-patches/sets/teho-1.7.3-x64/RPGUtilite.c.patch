@@ -1,0 +1,256 @@
+--- a/PROGRAM/characters/RPGUtilite.c
++++ b/PROGRAM/characters/RPGUtilite.c
+@@ -215,6 +215,18 @@
+     }
+     return  sumSkill;
+ }
++// Seawolves: the character screen explains a skill or a characteristic (android_hero.c AndroidSkillSteps). While
++// chr.SkillTrace names a skill or characteristic (that script sets it around one call and removes it),
++// GetCharacterSkillSimple and GetCharacterSPECIALSimple of that name record their running value after each of their
++// steps: the explanation is this computation itself. Otherwise each step costs one bool test.
++void SkillTraceAt(ref chr, string step, int value)
++{
++	aref steps;
++	makearef(steps, chr.SkillTrace);
++	string key = "s" + GetAttributesNum(steps);
++	steps.(key) = step;
++	steps.(key).value = value;
++}
+ // с пенальти и вещами +1
+ int GetCharacterSPECIAL(ref _refCharacter, string skillName)
+ {
+@@ -234,22 +246,30 @@
+         return 3;
+     }
+ 	int skillN = sti(_refCharacter.SPECIAL.(skillName));
++	bool bTrace = CheckAttribute(_refCharacter, "SkillTrace"); // Seawolves: SkillTraceAt
++	if (bTrace) { if (_refCharacter.SkillTrace != skillName) bTrace = false; } // not the nested S/E of GetMaxItemsWeight
++	if (bTrace) SkillTraceAt(_refCharacter, "base", skillN);
+     // Health
+     if (sti(_refCharacter.index) == GetMainCharacterIndex() && MOD_SKILL_ENEMY_RATE > 1) // не халява
+     {
+         skillN = skillN + GetHealthNum(_refCharacter) - 6; // max -5
+     }
++    if (bTrace) SkillTraceAt(_refCharacter, "health", skillN);
+     
+ 	skillN += ApplySPECIALCirassPenalty(_refCharacter, skillName);
++	if (bTrace) SkillTraceAt(_refCharacter, "suit", skillN);
+ 	skillN += ApplySPECIALMangarosaPotion(_refCharacter, skillName); // Jason
++	if (bTrace) SkillTraceAt(_refCharacter, "mangarosa", skillN);
+ 	
+ 	if(CheckAttribute(_refCharacter, "GenQuest.EnergyPenalty")) 
+ 	{
+ 		skillN += ApplySPECIALQuestPenalty(_refCharacter, skillName); // Jason
+ 	}
++	if (bTrace) SkillTraceAt(_refCharacter, "curse", skillN);
+ 	
+ 	if (skillN <= 1) skillN = 1;
+ 	if( skillN > SPECIAL_MAX ) skillN = SPECIAL_MAX;
++	if (bTrace) SkillTraceAt(_refCharacter, "limit", skillN);
+ 
+ 	return skillN;
+ }
+@@ -1186,6 +1206,9 @@
+ {
+ 	if( !CheckAttribute(_refCharacter,"Skill."+skillName) ) return 1;
+ 	int skillN = sti(_refCharacter.Skill.(skillName));
++	bool bTrace = CheckAttribute(_refCharacter, "SkillTrace"); // Seawolves: SkillTraceAt
++	if (bTrace) { if (_refCharacter.SkillTrace != skillName) bTrace = false; } // not the nested S/E of GetMaxItemsWeight
++	if (bTrace) SkillTraceAt(_refCharacter, "base", skillN);
+ 
+ 	bool   bHero = (sti(_refCharacter.index) == GetMainCharacterIndex());
+ 	
+@@ -1200,53 +1223,80 @@
+                 skillN = skillN + 5*(GetHealthNum(_refCharacter) - 6); // max -5
+             }
+         }
++        if (bTrace) SkillTraceAt(_refCharacter, "health", skillN);
+ 		
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FORTUNE, 		"SkullAztec", 	-20);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:SkullAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_LEADERSHIP, 	"SkullAztec", 	 10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:SkullAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_PISTOL, 		"KnifeAztec", 	-30);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:KnifeAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_F_LIGHT, 		"KnifeAztec", 	-20);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:KnifeAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FENCING, 		"KnifeAztec", 	-20);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:KnifeAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_F_HEAVY, 		"KnifeAztec", 	-20);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:KnifeAztec", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FORTUNE, 		  "mineral8",   -10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:mineral8", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FORTUNE, 		 "mineral14",   -10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:mineral14", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FORTUNE, 			 "Coins",   -50);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:Coins", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_LEADERSHIP, 	 "mineral30",   -10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:mineral30", skillN);
+ 		skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_LEADERSHIP, 	 "mineral31", 	-10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:mineral31", skillN);
+     	skillN += SetCharacterSkillByItem(_refCharacter, skillName, SKILL_FORTUNE,       "mineral31", 	-10);
++    	if (bTrace) SkillTraceAt(_refCharacter, "item:mineral31", skillN);
+ 		
+ 		skillN += SetCharacterSkillByEquippedItem(_refCharacter, skillName, SKILL_SAILING, "obereg_7", 10);
++		if (bTrace) SkillTraceAt(_refCharacter, "item:obereg_7", skillN);
+ 
+ 		// Warship 25.10.08 Новый учет одежды
+ 		skillN += SetCharacterSkillBySuit(_refCharacter, skillName);
++		if (bTrace) SkillTraceAt(_refCharacter, "suit", skillN);
+ 	
+ 		//Jason: учет негенерируемых клинков
+ 		skillN += SetCharacterSkillByQuestBlade(_refCharacter, skillName);
++		if (bTrace) SkillTraceAt(_refCharacter, "blade", skillN);
+ 		skillN += SetCharacterSkillByMangarosa(_refCharacter, skillName);
++		if (bTrace) SkillTraceAt(_refCharacter, "mangarosa", skillN);
+ 	
+ 		//Jason: учет специальных атрибутов
+ 		if(CheckAttribute(_refCharacter, "GenQuest.BladePenalty")) 
+ 			{
+ 				skillN += SetCharacterSkillByPenalty(_refCharacter, skillName);
+ 			}
++			if (bTrace) SkillTraceAt(_refCharacter, "curse", skillN);
+ 		//Jason: Калеуче
+ 		if(IsCharacterEquippedArtefact(_refCharacter, "kaleuche_amulet2"))
+ 		{
+ 			skillN += SetCharacterSkillByTuttuat(_refCharacter, skillName);
+ 		}
++		if (bTrace) SkillTraceAt(_refCharacter, "item:kaleuche_amulet2", skillN);
+ 		//navy --> действие алкоголя
+ 		if (CheckAttribute(_refCharacter, "chr_ai.drunk.skill." + skillName))
+ 		{
+ 			skillN += sti(_refCharacter.chr_ai.drunk.skill.(skillName));
+ 		}
++		if (bTrace) SkillTraceAt(_refCharacter, "drunk", skillN);
+ 		//<--
+ 		// ugeen - должно быть в конце, множители к скиллам по наличию артефактов
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,   SKILL_ACCURACY, "indian_9", 1.10));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:indian_9", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,      SKILL_SNEAK, "obereg_4", 1.15));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:obereg_4", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,    SKILL_FORTUNE, "obereg_5", 1.15));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:obereg_5", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName, SKILL_LEADERSHIP, "obereg_6", 1.15));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:obereg_6", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,   SKILL_COMMERCE, "obereg_8", 1.15));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:obereg_8", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,    SKILL_FORTUNE, "amulet_7", 0.50));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:amulet_7", skillN);
+ 		skillN = makeint(skillN * AddMultiplySkillByEquippedItem(_refCharacter, skillName,      SKILL_SNEAK, "amulet_6", 0.50));
++		if (bTrace) SkillTraceAt(_refCharacter, "item:amulet_6", skillN);
+ 		
+ 		if(!IsDay())
+ 		{
+@@ -1255,22 +1305,26 @@
+ 				skillN = skillN * 2; // получи фашист гранату по ночам !!!!
+ 			}
+ 		}
++		if (bTrace) SkillTraceAt(_refCharacter, "item:totem_12", skillN);
+ 		
+ 		if(CheckCharacterPerk(_refCharacter, "HT2") && skillName == SKILL_SNEAK)
+ 		{
+ 			skillN = skillN * 1.15;
+ 		}
++		if (bTrace) SkillTraceAt(_refCharacter, "herotype", skillN); // HT2: a HeroType_2 hero (initNewMainCharacter)
+ 		
+     	// boal учет перегруза 19.01.2004 -->
+     	if ( GetItemsWeight(_refCharacter) > GetMaxItemsWeight(_refCharacter) && !IsEquipCharacterByArtefact(_refCharacter, "totem_06"))
+     	{
+    	        skillN -= 20;
+     	}
++    	if (bTrace) SkillTraceAt(_refCharacter, "overload", skillN);
+     	// boal учет перегруза 19.01.2004 <--
+ 	}
+ 	// boal <--
+ 	if (skillN <= 1) skillN = 1;
+ 	if( skillN > SKILL_MAX ) skillN = SKILL_MAX;
++	if (bTrace) SkillTraceAt(_refCharacter, "limit", skillN);
+ 
+ 	return skillN;
+ }
+@@ -1578,6 +1632,64 @@
+ 	return ret;
+ }
+ // boal Вес предметов 19.01.2004 -->
++// The weight of the items the character carries: what the loop over all TOTAL_ITEMS Items[]
++// summed (ugeen: the map atlas does not count), found from the character's own items instead.
++// Their Items[] indices are put in ascending order first, so the float sum is the one the loop
++// made in the same order. More kinds of items than the order holds: the loop itself.
++#define ITEMS_WEIGHT_KINDS 256
++float GetItemsWeightNow(ref _chref)
++{
++	float Amount = 0;
++	int j, k, idx, n;
++	string itemID;
++	ref itm;
++	if (!CheckAttribute(_chref, "items")) return Amount;
++	aref list;
++	makearef(list, _chref.items);
++	n = GetAttributesNum(list);
++	if (n > ITEMS_WEIGHT_KINDS)
++	{
++		trace("GetItemsWeight: " + n + " kinds of items, more than " + ITEMS_WEIGHT_KINDS + ": all Items[] are looked through");
++		for (j=0; j<TOTAL_ITEMS; j++)
++		{
++			makeref(itm,Items[j]);
++			if(CheckAttribute(itm, "ID"))
++			{
++				itemID = itm.id;
++				if (CheckAttribute(_chref, "items."+itemID) && itemID != "MapsAtlas")
++				{
++					Amount += sti(_chref.items.(itemID))*stf(itm.Weight);
++				}
++			}
++		}
++		return Amount;
++	}
++	int order[ITEMS_WEIGHT_KINDS];
++	int m = 0;
++	for (j = 0; j < n; j++)
++	{
++		idx = FindItem(GetAttributeName(GetAttributeN(list, j)));
++		if (idx < 0) continue;
++		for (k = m; k > 0; k--)
++		{
++			if (order[k-1] < idx) break;
++			order[k] = order[k-1];
++		}
++		order[k] = idx;
++		m++;
++	}
++	for (k = 0; k < m; k++)
++	{
++		makeref(itm,Items[order[k]]);
++		itemID = itm.id;
++		if (itemID != "MapsAtlas")      // ugeen - атлас карт не учитываем !!
++		{
++			Amount += sti(_chref.items.(itemID))*stf(itm.Weight);
++		}
++	}
++	return Amount;
++}
++
+ float GetItemsWeight(ref _chref)
+ {
+     float   Amount = 0;
+@@ -1587,19 +1699,7 @@
+ 
+     if (bCabinStarted || bAbordageStarted || !bSeaActive || !CheckAttribute(_chref, "ItemsWeight"))
+     {
+-        for (j=0; j<TOTAL_ITEMS; j++)
+-    	{
+-    		makeref(itm,Items[j]);
+-			
+-			if(CheckAttribute(itm, "ID"))
+-			{
+-				itemID = itm.id;
+-				if (CheckAttribute(_chref, "items."+itemID) && itemID != "MapsAtlas")      // ugeen - атлас карт не учитываем !!
+-				{
+-					Amount += sti(_chref.items.(itemID))*stf(itm.Weight);
+-				}
+-			}
+-        }
++        Amount = GetItemsWeightNow(_chref);
+         _chref.ItemsWeight = Amount; // оптимицация тормозов в бою на море
+     }
+     else

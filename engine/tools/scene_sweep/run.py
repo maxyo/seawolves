@@ -1,0 +1,1340 @@
+#!/usr/bin/env python3
+"""Load every scene of the game in parallel headless engines and report what broke.
+
+An on-demand tool for engine and renderer work; not part of the routine checks
+(see README.md). Needs the player's game files, a Linux host engine built with
+-DSTORM_SCENE_SWEEP=ON, Xvfb and Pillow. The engines draw with OpenGL ES on the host's GPU through VirtualGL
+(--render gles-gpu, the phones' default backend), or with Vulkan on the GPU (--render vulkan), or with Mesa
+llvmpipe on the CPU (--render llvmpipe).
+
+  python3 tools/scene_sweep/run.py --game <game dir> --engine build/host/engine --out <report dir>
+
+  --jobs N            parallel engines (default: from free cores and memory)
+  --only PATTERN ...  scenes by shell pattern on "kind:name" or by category, e.g. 'loc:*_town' tavern map:world
+  --failed            only the scenes that failed in the previous report of --out
+  --changed           only scenes whose scripts or models changed since that report, plus its failures
+  --baseline FILE     an earlier report.json: exit non-zero only for scenes that pass there and fail now
+  --smoke             one scene of every category (a quick check after an engine change)
+  --fail-fast         stop at the first failing scene
+  --list              print the scene inventory and exit
+  --render MODE       gles-gpu (default; needs --virtualgl or $STORM_VIRTUALGL), vulkan or llvmpipe
+  --save FILE         boot into this save (loaded from the main menu) instead of a new game
+  --scenario NAME     test scenario scenarios/NAME.c applied while --save loads (scenarios/README.md)
+"""
+
+import argparse
+import collections
+import datetime
+import fnmatch
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import resource
+import shutil
+import signal
+import stat
+import struct
+import subprocess
+import sys
+import threading
+import time
+
+sys.dont_write_bytecode = True  # no __pycache__ in the source tree
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import inventory  # noqa: E402
+import scenarios  # noqa: E402
+
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    sys.exit('Pillow is required: python3 -m pip install Pillow')
+
+HERE = Path(__file__).resolve().parent
+REPOSITORY = HERE.parents[1]
+# The application: app/, next to engine/ in the repository.
+APPLICATION = REPOSITORY.parent / 'app'
+
+# Log lines that fail the scene they were written in. (log file pattern, line pattern, reason)
+LOG_RULES = [
+    (r'error\.log', r'.', 'script error'),
+    (r'.', r'Engine stopped: ', 'fatal engine error'),
+    (r'.', r"Can't load texture .*[^\\/\s]\.tx", 'missing texture'),  # the game also asks for textures with no name
+    (
+        r'.',
+        r"Invalid model|Can't load model|can't open file|can't open geometry file|Can't find model|No geometry",
+        'missing model',
+    ),
+    (
+        r'.',
+        r"(?i)(?:cannot|can['`]t|unable to) (?:open (?:animation |ini )?file|load (?:animation|font|grass data file)|loaded patch data file)"
+        r"|Audio (?:decode|load/play) failed|not found: resource[\\/]",
+        'missing resource',
+    ),
+    (r'compile\.log', r'Main character <.*> error teleportation', 'teleport failed'),  # characters_login.c
+    (r'.', r'\[(critical|error)\]', 'engine error'),
+    # The renderer's lines: in system.log once the engine set its log sink (storm/render/log.hpp), on stdout before.
+    # The renderer marks every line that reports a failure "ERROR: ..." (its level); words such as "failed" elsewhere
+    # in a line are a path, a count ("0 failed") or a description, not the line's verdict. "WARNING: ..." is a known
+    # defect that is not a failure (a texture the game's data names but does not ship: KnownMissingGameTexture).
+    (r'.', r'\[storm-bgfx\] ERROR\b', 'renderer error'),
+    # An engine built with sanitizers (tools/ci/boot_stage.py): ASan stops the engine, UBSan reports and goes on.
+    (r'.', r'ERROR: AddressSanitizer|ERROR: LeakSanitizer|runtime error: ', 'sanitizer'),
+]
+FATAL = re.compile(r'Engine stopped: (.*)')
+# The renderer each engine runs, from its log: the bgfx backend and the device the program cache is for.
+RENDER_BACKEND = re.compile(r'\[storm-bgfx\] bgfx renderer=(Vulkan|OpenGL ES)')
+RENDER_DEVICE = re.compile(
+    r'\[storm-bgfx\] program cache: .*? binaries \(.*?\) for (.*?)(?: \| pipeline cache.*)?$', re.MULTILINE
+)
+SOFTWARE_DEVICE = re.compile(r'(?i)llvmpipe|lavapipe|softpipe|swiftshader')
+# --render: what each engine draws with. The default is the phones' backend on the host's GPU.
+RENDER_DESCRIPTIONS = {
+    'gles-gpu': "OpenGL ES on the host's GPU through VirtualGL",
+    'vulkan': "Vulkan on the host's GPU",
+    'llvmpipe': 'OpenGL ES on Mesa llvmpipe (CPU)',
+}
+RENDER_MODES = tuple(RENDER_DESCRIPTIONS)
+DEFAULT_RENDER = 'gles-gpu'
+# Defects of the game's own data the engine reports and cannot fix (known_defects.json): reported as KNOWN.
+KNOWN_DEFECTS = json.loads((HERE / 'known_defects.json').read_text(encoding='utf-8'))['defects']
+
+
+def classify(scene, reasons):
+    """Splits a scene's reasons into (failing, known): a reason is known when an entry whose scene pattern matches
+    this scene ("*": any scene, a defect of the game's timed scripts shows wherever the sweep happens to be;
+    "loc:OldWorld_*": the scenes of one unshipped island) matches it."""
+    failing, known = [], []
+    for reason in reasons:
+        match = next(
+            (
+                defect
+                for defect in KNOWN_DEFECTS
+                if fnmatch.fnmatchcase(scene, defect['scene']) and defect['error'] in reason
+            ),
+            None,
+        )
+        (known if match else failing).append(f"{reason} [known: {match['file']}]" if match else reason)
+    return failing, known
+
+
+def status_of(scene, reasons):
+    failing, known = classify(scene, reasons)
+    return 'fail' if failing else 'known' if known else 'pass'
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--game', type=Path, required=True, help='game directory (PROGRAM, RESOURCE, engine.ini)')
+    parser.add_argument('--engine', type=Path, help='host engine binary built with -DSTORM_SCENE_SWEEP=ON')
+    parser.add_argument('--out', type=Path, help='report directory (report.json, summary.txt, shots/, contact/)')
+    parser.add_argument(
+        '--relief-models',
+        type=Path,
+        help="the relief networks' folder (engine.ini relief_models); default: the one the engine's build "
+        'made (relief_models_path.txt beside --engine). Without one the engines make no relief maps',
+    )
+    parser.add_argument('--jobs', type=int)
+    parser.add_argument(
+        '--single-session',
+        action='store_true',
+        help='run exactly one engine without retries; preserve --only order (requires --jobs 1)',
+    )
+    parser.add_argument('--only', nargs='+', default=[])
+    parser.add_argument('--failed', action='store_true')
+    parser.add_argument('--changed', action='store_true')
+    parser.add_argument('--baseline', type=Path)
+    parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--fail-fast', action='store_true')
+    parser.add_argument('--list', action='store_true')
+    parser.add_argument('--size', default='1280x720', help='window size (default 1280x720)')
+    parser.add_argument(
+        '--timeout',
+        type=int,
+        default=240,
+        help='seconds a scene may go without progress (loaded, a variant prepared or captured, the '
+        "engine's periodic preparation report) before the engine is killed",
+    )
+    parser.add_argument(
+        '--render',
+        choices=RENDER_MODES,
+        default=DEFAULT_RENDER,
+        help="gles-gpu: OpenGL ES on the host's GPU through VirtualGL (the phones' default backend); "
+        "vulkan: Vulkan on the host's GPU; llvmpipe: OpenGL ES on Mesa llvmpipe on the CPU, about "
+        '100x slower per frame',
+    )
+    parser.add_argument(
+        '--virtualgl',
+        type=Path,
+        default=os.environ.get('STORM_VIRTUALGL'),
+        help='VirtualGL directory for --render gles-gpu (an unpacked official .deb: opt/ and usr/; '
+        'default $STORM_VIRTUALGL), see README.md',
+    )
+    parser.add_argument('--gl-threads', type=int, default=2, help='llvmpipe rasteriser threads per engine')
+    parser.add_argument(
+        '--variants',
+        default='',
+        help="graphics option sets separated by ';' (e.g. 'fx_preset=0;fx_preset=2,fx_bloom=0'): every "
+        "game scene is captured once per set (shots/<scene>@v<i>.jpg, report 'variants')",
+    )
+    parser.add_argument(
+        '--lossless',
+        action='store_true',
+        help='save the shots as PNG instead of JPEG (comparison sheets of fine texture detail)',
+    )
+    parser.add_argument(
+        '--settle',
+        type=int,
+        default=300,
+        help='ms each scene renders after its fader before the capture; frame time and the renderer '
+        'counters are means over this window (raise it for performance measurements)',
+    )
+    parser.add_argument(
+        '--program-cache',
+        type=Path,
+        metavar='DIR',
+        help='the engines keep their program and pipeline cache (ProgramCache) in DIR across runs and '
+        'sweeps (made if missing), instead of starting cold: for warm-cache measurements; '
+        'with --jobs 1',
+    )
+    parser.add_argument(
+        '--script-cache',
+        type=Path,
+        metavar='DIR',
+        help="the engines keep their compiled-script cache (Cache) in DIR across runs and sweeps (made if "
+        "missing): the boot skips compiling the game's scripts while they are unchanged; with --jobs 1",
+    )
+    parser.add_argument(
+        '--techniques',
+        type=Path,
+        default=REPOSITORY / 'src/techniques',
+        help="the engine's techniques, laid over the game's as the APK build does",
+    )
+    parser.add_argument('--keep-work', action='store_true', help='keep the per-engine game copies and logs')
+    parser.add_argument(
+        '--save',
+        type=Path,
+        help='a save file of this game: every engine loads it from the main menu (scene save:boot) '
+        'instead of starting a new game; the hero must be on land (the sea scenes return there)',
+    )
+    parser.add_argument(
+        '--scenario',
+        metavar='NAME',
+        help='test scenario scenarios/<NAME>.c (scenarios/README.md): applied while --save loads, the '
+        'scene scenario:NAME waits for its save; the save is copied to <out>/saves/',
+    )
+    patches = parser.add_mutually_exclusive_group()
+    patches.add_argument(
+        '--script-patches',
+        type=Path,
+        metavar='DIR',
+        help="the application's script-patches folder (sets/<set>/set.json): the engines run the game's "
+        'scripts with the fixes the APK ships, as the players do; default: ../app/script-patches, '
+        "the repository's",
+    )
+    patches.add_argument(
+        '--no-script-patches',
+        action='store_true',
+        help="sweep the game's scripts without the application's fixes (not what the players run)",
+    )
+    arguments = parser.parse_args()
+    if not arguments.list and not arguments.no_script_patches and arguments.script_patches is None:
+        if not (APPLICATION / 'script-patches').is_dir():
+            parser.error(
+                'the scripts the players run carry the application\'s script patches: pass --script-patches '
+                '<repository>/app/script-patches (none next to this engine tree), or '
+                '--no-script-patches to sweep the game\'s scripts as they are'
+            )
+        arguments.script_patches = APPLICATION / 'script-patches'
+    if arguments.single_session and arguments.jobs not in (None, 1):
+        parser.error('--single-session requires --jobs 1')
+    if arguments.single_session:
+        arguments.jobs = 1
+    if not arguments.list and not (arguments.engine and arguments.out):
+        parser.error('--engine and --out are required')
+    if arguments.save and not arguments.save.is_file():
+        parser.error(f'--save {arguments.save}: no such file')
+    if arguments.save:
+        arguments.save = arguments.save.resolve()
+    if arguments.scenario and not arguments.save:
+        parser.error('--scenario needs --save: the scenario is applied while the start save loads')
+    if arguments.scenario and arguments.jobs not in (None, 1):
+        parser.error('--scenario runs one engine (--jobs 1)')
+    if arguments.scenario:
+        arguments.jobs = 1
+    if not arguments.list and arguments.render == 'gles-gpu':
+        library = arguments.virtualgl and arguments.virtualgl.resolve() / 'usr/lib'
+        if not library or not all((library / name).is_file() for name in ('libdlfaker.so', 'libvglfaker.so')):
+            parser.error(
+                '--render gles-gpu needs VirtualGL: unpack the official .deb (`dpkg -x VirtualGL_<v>_amd64.deb '
+                'DIR`) and pass --virtualgl DIR or set STORM_VIRTUALGL=DIR (README.md, Renderer); '
+                '--render vulkan or llvmpipe need no VirtualGL'
+            )
+        arguments.virtualgl = arguments.virtualgl.resolve()
+    return arguments
+
+
+def default_jobs():
+    """Half of the cores nobody is using, at least a quarter of all cores, within free memory."""
+    cores = os.cpu_count()
+    idle = cores - os.getloadavg()[0]
+    available = next(int(line.split()[1]) for line in open('/proc/meminfo') if line.startswith('MemAvailable')) // 1024
+    return max(1, min(int(max(cores / 4, idle / 2)), available // 2048))
+
+
+def file_digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def game_snapshot(game):
+    """Inode, size, modification time and mode of every file of the player's game. The engines run on hard-linked
+    copies of it: a write or a chmod through a link would change the player's file and every other sweep's copy."""
+    snapshot = {}
+    pending = [game]
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            for entry in entries:
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(entry.path)
+                else:
+                    status = entry.stat(follow_symlinks=False)
+                    snapshot[entry.path] = (status.st_ino, status.st_size, status.st_mtime_ns, status.st_mode)
+    return snapshot
+
+
+class LinkError(Exception):
+    """The sweep was about to write or delete through a symbolic link, or outside its own copy."""
+
+
+def refuse_links(root):
+    """The game copy must hold no symbolic link at all: cp -al copies a link as a link, and anything the sweep
+    deletes or writes through one (RESOURCE/techniques, save, engine.ini) lands in the player's game or another
+    shared folder. Fails loudly with every link found."""
+    links = [str(root)] if os.path.islink(root) else []
+    for directory, directories, files in os.walk(root):
+        for name in directories + files:
+            if os.path.islink(os.path.join(directory, name)):
+                links.append(os.path.join(directory, name))
+    if links:
+        raise LinkError(
+            f'the game copy {root} holds symbolic links (copy the real folder, not a link to it): '
+            + ', '.join(links[:10])
+            + (f' and {len(links) - 10} more' if len(links) > 10 else '')
+        )
+
+
+def inside(root, path):
+    """`path` itself and every parent up to `root` are no symbolic links and stay inside `root`; returns `path`.
+    Every path the sweep deletes, unlinks or writes in its copy goes through this check."""
+    root = Path(os.path.realpath(root))
+    path = Path(path)
+    current = path
+    while True:
+        if current.is_symlink():
+            raise LinkError(f'refusing to change {path}: {current} is a symbolic link')
+        if current == root or current.parent == current:
+            break
+        current = current.parent
+    if Path(os.path.realpath(path)) != root and root not in Path(os.path.realpath(path)).parents:
+        raise LinkError(f'refusing to change {path}: it resolves outside {root}')
+    return path
+
+
+def writable_directories(root):
+    """cp -a keeps the source's directory modes (a read-only game folder gives a read-only copy). The copy's
+    directories are its own inodes, so they are made writable; its files are hard links shared with the
+    source and keep their modes (a chmod of one would change the player's file)."""
+    for directory, _, _ in os.walk(root):
+        make_directory_writable(Path(directory))
+
+
+def make_directory_writable(path):
+    """The sweep's only chmod: a directory of its own copy. A regular file is refused whatever its link count
+    (a copy's file is a hard link of the player's file, a chmod changes both)."""
+    status = os.lstat(path)
+    if not stat.S_ISDIR(status.st_mode):
+        raise LinkError(f'refusing to chmod {path}: not a directory (files of the copy keep their modes)')
+    if not status.st_mode & 0o200:
+        os.chmod(path, status.st_mode | 0o700)
+
+
+def own_file(root, path):
+    """A file of the copy the sweep is about to write: no link on the way, inside the copy, and unlinked first so
+    the write creates a new inode. A file still there after the unlink, or a new one with other names (nlink > 1),
+    is refused: writing it would change the player's file."""
+    path = inside(root, path)
+    path.unlink(missing_ok=True)
+    if path.exists():
+        raise LinkError(f'refusing to write {path}: it is still there after the unlink')
+    return path
+
+
+def check_own_file(path):
+    """After the sweep wrote `path`: it must be the copy's own inode."""
+    if os.lstat(path).st_nlink != 1:
+        raise LinkError(f'{path} was written but is shared with another folder (nlink {os.lstat(path).st_nlink})')
+
+
+def check_game_unchanged(game, snapshot, when):
+    now = game_snapshot(game)
+    changed = sorted(
+        set(now) ^ set(snapshot) | {path for path in now.keys() & snapshot.keys() if now[path] != snapshot[path]}
+    )
+    if changed:
+        raise RuntimeError(
+            f'the game directory {game} changed {when} ({len(changed)} files: '
+            f'{", ".join(changed[:5])}): a write through the hard link of a copy, or another program'
+        )
+
+
+def derive_script_patches(arguments):
+    """The game's scripts the players run: the application's patch layer, packaged by its own APK packager
+    (tools/android/script_patch_assets.py) and applied by the engine's applier (tools/script_patches). Returns
+    {game-relative path: derived file} for the per-engine copies and a digest of the layer. Fails loudly when the
+    layer is damaged or a fix does not apply to this game."""
+    if arguments.no_script_patches:
+        print("script patches: none (--no-script-patches): the game's scripts as they are, not what the players run")
+        return {}, None
+    source = arguments.script_patches.resolve()
+    packager = source.parent / 'tools/android/script_patch_assets.py'
+    if not packager.is_file():
+        sys.exit(f'--script-patches {source}: no APK packager {packager} (app/tools/android of the repository)')
+    spec = importlib.util.spec_from_file_location('script_patch_assets', packager)
+    assets = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(assets)
+    files, _ = assets.collect(source)
+    work = arguments.out / 'script-patches'
+    layer, derived = work / 'layer', work / 'derived'
+    shutil.rmtree(layer, ignore_errors=True)
+    for name, data in files.items():
+        (layer / name).parent.mkdir(parents=True, exist_ok=True)
+        (layer / name).write_bytes(data)
+    tool = work / 'script_patch_tool'
+    subprocess.run(
+        [
+            os.environ.get('CXX', 'c++'),
+            '-std=c++20',
+            '-O1',
+            '-I',
+            str(REPOSITORY / 'src/libs/util/include'),
+            str(REPOSITORY / 'tools/script_patches/script_patch_tool.cpp'),
+            '-o',
+            str(tool),
+        ],
+        check=True,
+    )
+    # Patched scripts are written only when their text changed (their times stay: --script-cache holds).
+    applied = subprocess.run(
+        [str(tool), 'apply', str(layer), str(arguments.game), str(derived)], capture_output=True, text=True
+    )
+    if applied.returncode:
+        sys.exit(
+            f'script patches from {source} do not apply to {arguments.game} (exit {applied.returncode}):\n'
+            f'{applied.stdout}{applied.stderr}'
+        )
+    patched = {}
+    for path in derived.rglob('*'):
+        if path.is_file():
+            relative = path.relative_to(derived)
+            actual = inventory.find_case_insensitive(arguments.game, str(relative))
+            if actual is None:
+                sys.exit(f'script patches: {relative} has no file in {arguments.game}')
+            patched[str(actual.relative_to(arguments.game))] = path
+    digest = hashlib.sha256(files['manifest.json']).hexdigest()
+    print(f'script patches: {len(patched)} scripts from {source} (layer {digest[:12]})')
+    return patched, digest
+
+
+def select(scenes, arguments, previous, build):
+    chosen = scenes
+    if arguments.only:
+        chosen = [
+            scene
+            for scene in chosen
+            if any(fnmatch.fnmatchcase(scene.id, pattern) or scene.category == pattern for pattern in arguments.only)
+        ]
+        if arguments.single_session:
+            chosen.sort(
+                key=lambda scene: next(
+                    index
+                    for index, pattern in enumerate(arguments.only)
+                    if fnmatch.fnmatchcase(scene.id, pattern) or scene.category == pattern
+                )
+            )
+    if arguments.smoke:
+        chosen = inventory.first_of_each_category(chosen)
+    if arguments.failed or arguments.changed:
+        if previous is None:
+            sys.exit(f'--failed and --changed need the previous report in {arguments.out}/report.json')
+        old = previous['scenes']
+        failed = {name for name, result in old.items() if result['status'] not in ('pass', 'known')}
+        if arguments.failed:
+            chosen = [scene for scene in chosen if scene.id in failed]
+        elif previous['build'] != build:
+            print('engine, renderer or sweep script changed since the previous report: every scene counts as changed')
+        else:
+            chosen = [
+                scene
+                for scene in chosen
+                if scene.id in failed or scene.id not in old or old[scene.id]['fingerprint'] != scene.fingerprint
+            ]
+    return chosen
+
+
+def make_shards(scenes, jobs):
+    """Round-robin, with the scenes that are entered from land spread between land scenes."""
+    land = [scene for scene in scenes if scene.kind in inventory.LAND_KINDS]
+    other = [scene for scene in scenes if scene.kind not in inventory.LAND_KINDS]
+    shards = []
+    for index in range(jobs):
+        mine, extra = land[index::jobs], other[index::jobs]
+        for position, scene in enumerate(extra):
+            mine.insert((position + 1) * len(mine) // (len(extra) + 1) + position, scene)
+        if mine:
+            shards.append(mine)
+    return shards
+
+
+class LogTail:
+    """New complete lines of the engine's logs since the previous call."""
+
+    def __init__(self, stdout, logs):
+        self.stdout, self.logs, self.offsets = stdout, logs, {}
+
+    def collect(self, final=False):
+        lines = []
+        for path in [self.stdout, *sorted(self.logs.glob('*.log'))] if self.logs.is_dir() else [self.stdout]:
+            with open(path, 'rb') as stream:
+                stream.seek(self.offsets.get(path, 0))
+                data = stream.read()
+            if not final:
+                data = data[: data.rfind(b'\n') + 1]
+            self.offsets[path] = self.offsets.get(path, 0) + len(data)
+            name = 'stdout' if path == self.stdout else path.name
+            lines += [(name, line) for line in data.decode('utf-8', 'replace').splitlines()]
+        return lines
+
+
+def log_reasons(lines):
+    reasons = collections.Counter()
+    for name, line in lines:
+        for files, pattern, reason in LOG_RULES:
+            if re.search(files, name) and re.search(pattern, line):
+                text = re.sub(r'^\[[^\]]*\] \[\w+\] \[\w+\] ', '', line).strip()
+                reasons[f'{reason}: {text[:200]}'] += 1
+                break
+    return [text if count == 1 else f'{text} (x{count})' for text, count in reasons.items()]
+
+
+def read_frame(path, size):
+    """The Xvfb framebuffer (an XWD file) as an image."""
+    width, height = size
+    for _ in range(50):
+        data = path.read_bytes()
+        header = struct.unpack('>25I', data[:100])
+        offset, line = header[0] + header[19] * 12, header[12]
+        if header[4] == width and header[5] == height and header[11] == 32 and len(data) >= offset + line * height:
+            return Image.frombuffer('RGB', size, data[offset : offset + line * height], 'raw', 'BGRX', line, 1).copy()
+        time.sleep(0.05)
+    raise RuntimeError(f'{path} is not a {width}x{height} 32-bit framebuffer')
+
+
+# The game's own HUD, which every scene but the boot ones shows: the hero's portrait at the top left (gold rim) and,
+# at sea, the compass at the top right (gold ring). Boxes in fractions of the frame; calibrated on 1280x720 sweeps:
+# a drawn element has 6-8 % gold pixels in its box, a missing one none.
+NO_HUD_KINDS = ('menu', 'newgame')
+SEA_HUD_KINDS = ('sea', 'battle', 'dusk', 'dawn', 'moon', 'skynight', 'skyday', 'ship', 'wake', 'storm')
+PORTRAIT_BOX = (0.0, 0.0, 0.08, 0.14)
+COMPASS_BOX = (0.86, 0.0, 1.0, 0.22)
+HUD_GOLD_MIN = 0.02
+# A dialogue hides the portrait and shows its parchment panel across the bottom.
+DIALOGUE_BOX = (0.06, 0.86, 0.94, 0.95)
+DIALOGUE_TAN_MIN = 0.4
+
+
+def share(image, box, test, size=(80, 40)):
+    """The fraction of the pixels of `box` (fractions of the frame), resampled to `size`, for which test(r, g, b)."""
+    width, height = image.size
+    crop = image.crop((int(box[0] * width), int(box[1] * height), int(box[2] * width), int(box[3] * height)))
+    data = crop.convert('RGB').resize(size).tobytes()
+    return sum(1 for i in range(0, len(data), 3) if test(data[i], data[i + 1], data[i + 2])) / (len(data) // 3)
+
+
+def gold(r, g, b):
+    return r > 140 and g > 100 and b < 120 and r - b > 60
+
+
+def tan(r, g, b):
+    return r > 110 and g > 80 and b < 110 and r > g > b and r - b > 40
+
+
+def black(r, g, b):
+    return r <= 6 and g <= 6 and b <= 6
+
+
+def frame_reasons(image, previous_digest, kind):
+    """Detects frames that cannot be a rendered scene. Returns (reasons, digest)."""
+    small = image.convert('L').resize((160, 90))
+    digest = hashlib.sha1(small.tobytes()).hexdigest()
+    # The HUD is drawn even when the scene is not: judge the middle of the frame.
+    middle = small.crop((16, 18, 144, 72))
+    low, high = middle.getextrema()
+    histogram = middle.histogram()
+    reasons = []
+    if sum(histogram[:13]) >= 0.99 * sum(histogram):
+        reasons.append('black frame')
+    elif high - low <= 8:
+        reasons.append('blank frame (a single colour)')
+    # Part of the scene not drawn: the lower part black at both sides under a lit upper part (a sea or ground that
+    # is missing; a dark interior is dark everywhere).
+    elif (
+        share(image, (0.0, 0.55, 0.33, 0.95), black) >= 0.95
+        and share(image, (0.67, 0.55, 1.0, 0.95), black) >= 0.95
+        and share(image, (0.0, 0.05, 1.0, 0.45), black) <= 0.2
+    ):
+        reasons.append('black lower part under a lit upper part (part of the scene not drawn)')
+    if kind not in NO_HUD_KINDS:
+        missing = []
+        if share(image, PORTRAIT_BOX, gold) < HUD_GOLD_MIN and (
+            kind in SEA_HUD_KINDS or share(image, DIALOGUE_BOX, tan) < DIALOGUE_TAN_MIN
+        ):
+            missing.append('portrait')
+        if kind in SEA_HUD_KINDS and share(image, COMPASS_BOX, gold) < HUD_GOLD_MIN:
+            missing.append('compass')
+        if missing:
+            reasons.append(f'HUD not drawn ({" and ".join(missing)} missing)')
+    if previous_digest is not None and digest == previous_digest:
+        reasons.append('frame identical to the previous scene (nothing new was drawn)')
+    return reasons, digest
+
+
+def display_in_use(number):
+    if Path(f'/tmp/.X11-unix/X{number}').exists() or Path(f'/tmp/.X{number}-lock').exists():
+        return True
+    return f'@/tmp/.X11-unix/X{number}\n' in Path('/proc/net/unix').read_text()
+
+
+def start_display(directory, size):
+    """A private X server whose screen is a file in `directory`, its messages in xvfb.log.
+    Called from one thread: servers started at the same moment with -displayfd alone can
+    end up sharing a number with one that is shutting down."""
+    for number in range(1200, 1400):
+        if display_in_use(number):
+            continue
+        # The server writes its number to -displayfd again on later server generations and
+        # exits when nobody can read it: the read end stays open as long as the server runs.
+        read_end, write_end = os.pipe()
+        with open(directory / 'xvfb.log', 'ab') as log:
+            server = subprocess.Popen(
+                [
+                    'Xvfb',
+                    f':{number}',
+                    '-displayfd',
+                    str(write_end),
+                    '-screen',
+                    '0',
+                    f'{size[0]}x{size[1]}x24',
+                    '-fbdir',
+                    str(directory),
+                    '-nolisten',
+                    'tcp',
+                ],
+                pass_fds=[write_end],
+                stdout=log,
+                stderr=subprocess.STDOUT,
+            )
+        os.close(write_end)
+        ready = os.read(read_end, 32)  # empty when the server exits instead of starting
+        if ready.strip():
+            server.displayfd = read_end
+            return number, server
+        os.close(read_end)
+        server.wait()
+    raise RuntimeError('no free X display between :1200 and :1399')
+
+
+class Shard(threading.Thread):
+    def __init__(self, index, scenes, arguments, context):
+        super().__init__(name=f'shard-{index}')
+        self.index, self.arguments, self.context = index, arguments, context
+        self.queue = [scene.id for scene in scenes]
+        self.work = arguments.out / 'work' / f'shard-{index:02d}'
+        self.size = tuple(int(part) for part in arguments.size.split('x'))
+        self.results = {}
+        self.work.mkdir(parents=True)
+        self.display, self.display_server = start_display(self.work, self.size)
+        self.boot_failures = 0
+        self.runs = 0
+
+    # --- results -------------------------------------------------------------------------
+    def record(self, scene, reasons, **metrics):
+        entry = self.results.setdefault(scene, {'reasons': [], 'shard': self.index})
+        entry['reasons'] += [reason for reason in reasons if reason not in entry['reasons']]
+        entry.update({key: value for key, value in metrics.items() if value is not None})
+        entry['status'] = status_of(scene, entry['reasons'])
+        if entry['status'] == 'fail':
+            self.context['failed'].set()
+        self.context['progress'](scene, entry)
+
+    # --- one engine process --------------------------------------------------------------
+    def prepare(self, run):
+        game = run / 'game'
+        # Hard links: no extra disk space, and the engine's resource index does not follow symlinks.
+        subprocess.run(['cp', '-al', str(self.arguments.game), str(game)], check=True)
+        refuse_links(game)
+        writable_directories(game)
+        source = self.arguments.game
+
+        def own(relative):
+            """A file of the copy the sweep or the game writes: unlinked first, so the write lands in the copy."""
+            return own_file(game, game / relative)
+
+        for name in ('engine.ini', 'options'):  # the game rewrites both
+            own(name)
+        # The player's profiles: a profile named like the sweep's new game stops it at "the profile exists" (and the
+        # game would write into the player's hard-linked saves).
+        shutil.rmtree(inside(game, inventory.find_case_insensitive(game, 'save') or game / 'save'), ignore_errors=True)
+        if self.arguments.save:
+            # Its own file in the copy (never a link to the player's save): the game may write next to it.
+            saves = game / 'save/sweep'
+            saves.mkdir(parents=True)
+            shutil.copyfile(self.arguments.save, inside(game, saves / 'boot'))
+        if (source / 'options').exists():
+            shutil.copyfile(
+                source / 'options', own('options')
+            )  # not copy(): the game's read-only mode would stop its writes
+        settings = inventory.read_script(source / 'engine.ini')
+        for key, value in (
+            ('full_screen', 0),
+            ('screen_x', self.size[0]),
+            ('screen_y', self.size[1]),
+            ('vsync', 0),
+            ('show_fps', 0),
+            # Sanitizer builds under VirtualGL run several times slower than a phone: only a real hang
+            # is a stall here (diagnostics stall_watchdog.hpp).
+            ('stall_watchdog_seconds', 60),
+            ('render_backend', 'vulkan' if self.arguments.render == 'vulkan' else 'gles'),
+            *((('relief_models', self.arguments.relief_models.resolve()),) if self.arguments.relief_models else ()),
+        ):
+            settings, count = re.subn(rf'(?mi)^{key}\s*=.*$', f'{key} = {value}', settings)
+            if not count:
+                settings = f'{key} = {value}\n' + settings
+        own('engine.ini').write_text(settings)
+        techniques = inside(game, inventory.find_case_insensitive(game, 'RESOURCE/techniques'))
+        shutil.rmtree(techniques)
+        shutil.copytree(self.arguments.techniques, techniques)
+        # copy2: its modification time stays, so the scripts' cache key (path, size, time of every file) holds.
+        shutil.copy2(HERE / 'scene_sweep.c', own('PROGRAM/scene_sweep.c'))
+        if self.arguments.scenario:
+            # The game's migration hook runs it while the save loads (scenarios.py): files of the copy only.
+            existing = os.listdir(inside(game, inventory.find_case_insensitive(game, 'PROGRAM/migrations')))
+            program = inventory.find_case_insensitive(game, 'PROGRAM')
+            for relative, text in scenarios.install(self.arguments.scenario, existing, trigger=False).items():
+                target = inside(game, program / relative)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(text.encode('cp1251', errors='replace'))
+            # The save record's hero and place come from the application's script (scenarios/scenario.c Scenario_Save).
+            shutil.copyfile(
+                self.context['save_identity'], own(f'{program.relative_to(game)}/interface/android_save_identity.c')
+            )
+        patched = self.context.get('script_patches', {})
+        for relative, derived in patched.items():
+            shutil.copy2(derived, own(relative))
+        os.link(self.context['engine'], own('engine'))  # resources are looked up next to the executable
+        for written in ('engine.ini', 'options', 'PROGRAM/scene_sweep.c', *patched):
+            if (game / written).exists():
+                check_own_file(game / written)
+        control = run / 'control'
+        control.mkdir()
+        (control / 'scenes.txt').write_text(''.join(scene + '\n' for scene in self.queue))
+        return game, control
+
+    def run_engine(self):
+        """Runs one engine over the queue. Returns when it exits or is killed."""
+        self.runs += 1
+        run = self.work / f'run-{self.runs}'
+        run.mkdir()
+        game, control = self.prepare(run)
+        # The engine's cache root on Linux is its SDL pref path, $XDG_DATA_HOME/Akella/Sea Dogs.
+        stash = run / 'data/Akella/Sea Dogs'
+        if self.arguments.program_cache:
+            stash.mkdir(parents=True, exist_ok=True)
+            self.arguments.program_cache.mkdir(parents=True, exist_ok=True)
+            (stash / 'ProgramCache').symlink_to(self.arguments.program_cache.resolve(), target_is_directory=True)
+        if self.arguments.script_cache and self.arguments.script_cache.is_dir():
+            # Copied in and out, not linked: the engine resets a stale cache by deleting its folder.
+            shutil.copytree(self.arguments.script_cache, stash / 'Cache')
+        environment = dict(
+            os.environ,
+            DISPLAY=f':{self.display}',
+            XDG_DATA_HOME=str(run / 'data'),
+            SDL_VIDEODRIVER='x11',
+            SDL_AUDIODRIVER='dummy',
+            STORM_SCENE_SWEEP_DIR=str(control),
+            STORM_SCENE_SWEEP_SETTLE_MS=str(self.arguments.settle),
+            # The script fails a scene that does not load with its own reason before the kill.
+            STORM_SCENE_SWEEP_LOAD_TIMEOUT_MS=str(max(10, self.arguments.timeout - 30) * 1000),
+            # ... and a variant whose wait=<product> is still generating, as long after it became active.
+            STORM_SCENE_SWEEP_WAIT_TIMEOUT_MS=str(max(10, self.arguments.timeout - 30) * 1000),
+            STORM_SCENE_SWEEP_VARIANTS=self.arguments.variants,
+            STORM_SCENE_SWEEP_SAVE='SAVE\\sweep\\boot' if self.arguments.save else '',
+        )
+        if self.arguments.render == 'llvmpipe':
+            environment.update(LIBGL_ALWAYS_SOFTWARE='1', LP_NUM_THREADS=str(self.arguments.gl_threads))
+        elif self.arguments.render == 'gles-gpu':
+            library = self.arguments.virtualgl / 'usr/lib'
+            # The caller's own preloads stay (tools/vm_verify --state: its random number source).
+            environment.update(
+                VGL_DISPLAY='egl',
+                LD_PRELOAD=':'.join(
+                    filter(
+                        None, (f'{library}/libdlfaker.so', f'{library}/libvglfaker.so', os.environ.get('LD_PRELOAD'))
+                    )
+                ),
+                LD_LIBRARY_PATH=':'.join(filter(None, (str(library), os.environ.get('LD_LIBRARY_PATH')))),
+            )
+        stdout = run / 'stdout.log'
+        with open(stdout, 'wb') as output:
+            engine = subprocess.Popen(
+                [str(game / 'engine')],
+                cwd=game,
+                env=environment,
+                stdout=output,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+                preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)),
+            )
+        try:
+            self.watch(engine, run, control, stdout)
+        finally:
+            if engine.poll() is None:
+                os.killpg(engine.pid, signal.SIGKILL)
+            engine.wait()
+            if self.arguments.script_cache and (stash / 'Cache/state').is_file():
+                shutil.rmtree(self.arguments.script_cache, ignore_errors=True)
+                shutil.copytree(stash / 'Cache', self.arguments.script_cache)
+            if self.arguments.scenario:
+                for record in (game / 'save').glob(f'*/scenario-{self.arguments.scenario}'):
+                    (self.arguments.out / 'saves').mkdir(exist_ok=True)
+                    shutil.copyfile(record, self.arguments.out / 'saves' / record.name)
+            if not self.arguments.keep_work:
+                shutil.rmtree(inside(run, game))
+        check_game_unchanged(self.arguments.game, self.context['game'], f'during engine run {run}')
+
+    def watch(self, engine, run, control, stdout):
+        events = control / 'events.log'
+        tail = LogTail(stdout, run / 'data/Akella/Sea Dogs/Logs')
+        position = 0
+        current = None  # scene between its "begin" and "end"/"fail"
+        # `ended`: when the last scene ended (or the engine started): the time between scenes counts from there.
+        begun = loaded = ended = time.monotonic()
+        # The kill timeout counts from the scene's last event: a scene with many variants (each preparing its programs,
+        # a minute on a cold cache) is not a hung engine while the engine reports progress.
+        # The engine's "variant <i> preparing|active|waiting|settled" events are progress too (the capture carries the
+        # variant's preparation time and the background products still generating).
+        progress = begun
+        booted = False
+        finished = False
+        pending = []  # log lines not yet attributed to a scene
+        previous_frame = None
+        metrics = {}
+        fatal_checked = 0
+        render_checked = False
+
+        def close(scene, reasons):
+            nonlocal current, pending, ended
+            reasons = reasons + metrics.pop('capture_reasons', []) + log_reasons(pending)
+            self.record(scene, reasons, seconds=round(time.monotonic() - begun, 2), **metrics)
+            pending = []
+            current = None
+            ended = time.monotonic()
+            if scene in self.queue:
+                self.queue.remove(scene)
+
+        while True:
+            exited = engine.poll() is not None
+            data = events.read_bytes()[position:] if events.exists() else b''
+            data = data[: data.rfind(b'\n') + 1]
+            position += len(data)
+            for line in data.decode().splitlines():
+                stamp, kind, *rest = line.split(' ', 2)
+                rest = rest[0] if rest else ''
+                progress = time.monotonic()
+                if kind == 'begin':
+                    # begin_ms: when the scene began, in ms since its engine started (menu:main: the boot's time).
+                    current, begun, metrics = rest, time.monotonic(), {'begin_ms': int(stamp)}
+                elif kind == 'loaded':
+                    loaded = time.monotonic()
+                    metrics['load_ms'] = round((loaded - begun) * 1000)
+                elif kind == 'steady':
+                    # From loaded to the scene shown: the loading fader (held while Vulkan pipelines are prepared).
+                    metrics.setdefault('reveal_ms', round((time.monotonic() - loaded) * 1000))
+                elif kind == 'window':
+                    # The frame times of a window that was not captured (incomplete), first window first.
+                    values = dict(item.split('=') for item in rest.split())
+                    metrics.setdefault('first_window', {k: float(v) for k, v in values.items()})
+                elif kind == 'capture':
+                    rest, _, renderer = rest.partition(' renderer: ')
+                    values = dict(item.split('=') for item in rest.split())
+                    pending += tail.collect()
+                    if not render_checked:  # the boot's lines, before the first capture (menu:main)
+                        self.check_renderer(pending)
+                        render_checked = True
+                    image = read_frame(self.work / 'Xvfb_screen0', self.size)
+                    variant = values.get('variant')
+                    suffix = '.png' if self.arguments.lossless else '.jpg'
+                    shot = Path('shots') / (current.replace(':', '/') + (f'@v{variant}' if variant else '') + suffix)
+                    target = self.arguments.out / shot
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(target, **({} if self.arguments.lossless else {'quality': 82}))
+                    status = Path(f'/proc/{engine.pid}/status').read_text()
+                    metrics.setdefault(
+                        'first_window', {k: float(values[k]) for k in ('frames', 'p50', 'p95', 'p99', 'max')}
+                    )
+                    measured = dict(
+                        frame_ms=round(float(values['frame_ms']), 1),
+                        draws=int(values['draws']),
+                        **(
+                            dict(
+                                prepare_ms=round(float(values['prepare_ms'])),
+                                programs=int(values['programs']),
+                                settle_ms=round(float(values['settle_ms'])),
+                                # Products still generating at the capture (the variant did not wait).
+                                background=[] if values['background'] == 'none' else values['background'].split('+'),
+                            )
+                            if variant is not None
+                            else {}
+                        ),
+                        frame_p95_ms=float(values['p95']),
+                        frame_p99_ms=float(values['p99']),
+                        frame_max_ms=float(values['max']),
+                        rss_mb=int(re.search(r'VmRSS:\s+(\d+)', status)[1]) // 1024,
+                        shot=str(shot),
+                        # Per-frame means of the renderer counters (storm/render/perf_stats.hpp).
+                        renderer={key: float(value) for key, value in (item.split('=') for item in renderer.split())},
+                    )
+                    kind = current.split(':', 1)[0]
+                    if variant is None or variant == '0':
+                        # Later variants show the same scene: only the first is checked against the previous scene.
+                        reasons, previous_frame = frame_reasons(image, previous_frame, kind)
+                        metrics.update(measured)
+                        metrics.setdefault('capture_reasons', []).extend(reasons)
+                    else:
+                        reasons, _ = frame_reasons(image, None, kind)
+                        metrics.setdefault('capture_reasons', []).extend(
+                            f'variant {variant}: {reason}' for reason in reasons
+                        )
+                    if variant is not None:
+                        metrics.setdefault('variants', {})[variant] = measured
+                    (control / 'ack').touch()
+                elif kind == 'incomplete':
+                    # A window in which draws waited for their pipelines (Vulkan): the script renders another.
+                    metrics['incomplete_windows'] = metrics.get('incomplete_windows', 0) + 1
+                    metrics['incomplete_ms'] = metrics.get('incomplete_ms', 0) + int(rest.rsplit(' ', 1)[1])
+                elif kind == 'end':
+                    close(rest, [])
+                    booted = booted or rest == inventory.boot_scenes(self.arguments.save)[-1]
+                elif kind == 'fail':
+                    scene, reason = rest.split(' ', 1)
+                    pending += tail.collect()
+                    close(scene, [reason])
+                elif kind == 'tables':
+                    found = {key: int(value) for key, value in (item.split('=') for item in rest.split())}
+                    if found != self.context['tables']:
+                        self.context['table_mismatch'] = (
+                            f'the game built {found} but the inventory parsed {self.context["tables"]} from the scripts'
+                        )
+                elif kind in ('done', 'abort'):
+                    finished = True
+            if self.display_server.poll() is not None:
+                os.killpg(engine.pid, signal.SIGKILL)
+                engine.wait()
+                pending += tail.collect()
+                self.display_died(current)
+            if exited:
+                break
+            now = time.monotonic()
+            problem = None
+            if now - fatal_checked > 1:
+                fatal_checked = now
+                fatal = FATAL.search(stdout.read_text(errors='replace')[-4000:])
+                if fatal:
+                    problem = f'fatal engine error: {fatal[1]}'
+            if not problem and now - (progress if current else ended) > self.arguments.timeout:
+                problem = f'timeout: no progress within {self.arguments.timeout} s'
+            if not problem and self.context['stop'].is_set():
+                return
+            if problem:
+                os.killpg(engine.pid, signal.SIGKILL)
+                engine.wait()
+                pending += tail.collect()
+                self.abnormal(current, problem, booted, close)
+                return
+            time.sleep(0.02)
+
+        pending += tail.collect(final=True)
+        code = engine.returncode
+        how = f'killed by signal {signal.Signals(-code).name}' if code < 0 else f'exit code {code}'
+        if finished and code == 0:
+            if pending and log_reasons(pending):
+                self.record('exit:shutdown', log_reasons(pending))
+        elif finished:
+            self.record('exit:shutdown', [f'crash at engine shutdown: {how}'] + log_reasons(pending))
+        else:
+            self.abnormal(current, f'crash: engine {how}', booted, close)
+
+    def check_renderer(self, lines):
+        """The engine runs the renderer the sweep asked for (--render): OpenGL ES or Vulkan on a hardware GPU, or OpenGL
+        ES on llvmpipe. Anything else (no GPU, VirtualGL not interposing, the Vulkan driver missing, a software
+        device) is a harness error: the frame times and pictures of a sweep must never silently come from another
+        renderer."""
+        text = '\n'.join(line for _, line in lines)
+        backend = RENDER_BACKEND.search(text)
+        device = RENDER_DEVICE.search(text)
+        if not backend or not device:
+            raise RuntimeError(
+                'the engine logged no renderer ("bgfx renderer=" and the program cache device) before its first capture'
+            )
+        render = f'{backend[1]} on {device[1]}'
+        mode = self.arguments.render
+        wanted, software = {
+            'gles-gpu': ('OpenGL ES', False),
+            'vulkan': ('Vulkan', False),
+            'llvmpipe': ('OpenGL ES', True),
+        }[mode]
+        on_software = bool(SOFTWARE_DEVICE.search(device[1]))
+        if backend[1] != wanted or on_software != software or (software and 'llvmpipe' not in device[1]):
+            raise RuntimeError(
+                f'--render {mode} asks for {wanted} on '
+                f"{'llvmpipe' if software else 'a hardware GPU'}, the engine runs {render} (see "
+                f'"render backend:" in {self.work}/run-{self.runs}/data/Akella/Sea Dogs/Logs/system.log)'
+            )
+        with self.context['lock']:
+            self.context['render'].add(render)
+
+    def display_died(self, current):
+        """The shard's X server exited under the engine: a harness failure, never the scene's."""
+        log = (self.work / 'xvfb.log').read_text(errors='replace').strip().splitlines()[-3:]
+        raise RuntimeError(
+            f'X server :{self.display} of shard {self.index} exited with code '
+            f'{self.display_server.returncode} during {current or "the boot"}: {" | ".join(log)}'
+        )
+
+    def abnormal(self, current, problem, booted, close):
+        """The engine died or was killed while `current` (or the boot) was running."""
+        if not booted:
+            self.boot_failures += 1
+        scene = current or (self.queue[0] if booted and self.queue else inventory.boot_scenes(self.arguments.save)[0])
+        if current is None:
+            problem += ' (between scenes)'
+        close(scene, [problem])
+
+    def run(self):
+        try:
+            self.sweep()
+        except Exception as error:  # a harness failure must fail the sweep, not vanish with the thread
+            self.context['errors'].append(f'shard {self.index}: {type(error).__name__}: {error}')
+            self.context['stop'].set()
+        finally:
+            self.display_server.terminate()
+            self.display_server.wait()
+            os.close(self.display_server.displayfd)
+
+    def sweep(self):
+        while self.queue and not self.context['stop'].is_set():
+            self.run_engine()
+            if self.arguments.single_session:
+                for scene in self.queue:
+                    self.record(scene, ['not run: the single engine session ended before this scene'])
+                self.queue.clear()
+                break
+            if self.boot_failures >= 2:
+                for scene in self.queue:
+                    self.record(scene, ['not run: the engine failed twice before the game was up'])
+                self.queue.clear()
+
+
+def contact_sheets(out, scenes, results):
+    """Thumbnails of every captured frame, failures framed in red, 48 per sheet."""
+    directory = out / 'contact'
+    shutil.rmtree(inside(out, directory), ignore_errors=True)
+    directory.mkdir()
+    columns, rows, width, height, label = 6, 8, 320, 180, 14
+    shown = [scene for scene in scenes if results.get(scene.id, {}).get('shot')]
+    groups = [('failures', [scene for scene in shown if results[scene.id]['status'] not in ('pass', 'known')])]
+    groups += [('all', sorted(shown, key=lambda scene: (scene.category, scene.id)))]
+    for name, members in groups:
+        for page in range(0, len(members), columns * rows):
+            sheet = Image.new('RGB', (columns * width, rows * (height + label)), (24, 24, 24))
+            draw = ImageDraw.Draw(sheet)
+            for index, scene in enumerate(members[page : page + columns * rows]):
+                x, y = index % columns * width, index // columns * (height + label)
+                sheet.paste(Image.open(out / results[scene.id]['shot']).resize((width, height)), (x, y))
+                failed = results[scene.id]['status'] not in ('pass', 'known')
+                if failed:
+                    draw.rectangle((x, y, x + width - 1, y + height - 1), outline=(255, 32, 32), width=3)
+                draw.text((x + 3, y + height + 1), scene.id[:52], fill=(255, 96, 96) if failed else (220, 220, 220))
+            sheet.save(directory / f'{name}-{page // (columns * rows) + 1:02d}.jpg', quality=80)
+
+
+def summarize(report, scenes, baseline):
+    results = report['scenes']
+    lines = []
+    ran = [scene for scene in scenes if scene.id in results]
+    failed = [scene for scene in ran if results[scene.id]['status'] not in ('pass', 'known')]
+    known = [scene for scene in ran if results[scene.id]['status'] == 'known']
+    extra = [
+        name
+        for name in results
+        if name not in {scene.id for scene in scenes} and results[name]['status'] not in ('pass', 'known')
+    ]
+    meta = report['meta']
+    lines.append(
+        f"Scene sweep {meta['started']}: {len(ran)} scenes, {len(ran) - len(failed) - len(known)} passed, "
+        f"{len(known)} known game data defects, {len(failed)} failed in {meta['wall_seconds']} s with "
+        f"{meta['jobs']} engines ({meta['render'] or 'no renderer logged'})"
+    )
+    lines.append('')
+    lines.append(f"{'category':<24}{'scenes':>7}{'failed':>7}")
+    categories = collections.Counter(scene.category for scene in ran)
+    bad = collections.Counter(scene.category for scene in failed)
+    for category, count in sorted(categories.items(), key=lambda item: (-item[1], item[0])):
+        lines.append(f'{category:<24}{count:>7}{bad[category]:>7}')
+
+    def failing(name):
+        return classify(name, results[name]['reasons'])[0]
+
+    kinds = collections.Counter(reason.split(':')[0] for scene in failed for reason in failing(scene.id))
+    kinds.update(reason.split(':')[0] for name in extra for reason in failing(name))
+    if kinds:
+        lines += ['', 'Failure kinds (scenes can have several):']
+        lines += [f'{count:>6}  {kind}' for kind, count in kinds.most_common()]
+        texts = collections.Counter(
+            re.sub(r' \(x\d+\)$', '', reason) for scene in failed for reason in failing(scene.id)
+        )
+        lines += ['', 'Top errors:'] + [f'{count:>6}  {text}' for text, count in texts.most_common(25)]
+    slow = sorted(
+        (scene for scene in ran if 'load_ms' in results[scene.id]), key=lambda scene: -results[scene.id]['load_ms']
+    )
+    if slow:
+        loads = sorted(results[scene.id]['load_ms'] for scene in slow)
+        lines += ['', f'Load time: median {loads[len(loads) // 2]} ms, slowest:']
+        lines += [f"{results[scene.id]['load_ms']:>8} ms  {scene.id}" for scene in slow[:10]]
+    regressions = None
+    if baseline is not None:
+        regressions = [
+            name
+            for name, result in results.items()
+            if result['status'] not in ('pass', 'known') and baseline['scenes'].get(name, {}).get('status') == 'pass'
+        ]
+        lines += ['', f'Against the baseline: {len(regressions)} scenes pass there and fail here']
+        theirs = baseline['build'].get('renderer', 'llvmpipe')  # reports before the GPU default: llvmpipe
+        if theirs != report['build']['renderer']:
+            lines.append(f"(the baseline rendered with {theirs}, this sweep with {report['build']['renderer']})")
+        lines += [f'  {name}' for name in regressions]
+    if known:
+        lines += ['', 'KNOWN game data defects (known_defects.json; not failures, not hidden):']
+        for scene in known:
+            lines.append(f'  {scene.id}')
+            lines += [f'      {reason}' for reason in classify(scene.id, results[scene.id]['reasons'])[1][:6]]
+    if failed or extra:
+        lines += ['', 'Failing scenes:']
+        for name in [scene.id for scene in failed] + extra:
+            lines.append(f'  {name}')
+            lines += [f'      {reason}' for reason in failing(name)[:6]]
+    return '\n'.join(lines) + '\n', (regressions if baseline is not None else [scene.id for scene in failed] + extra)
+
+
+def main():
+    arguments = parse_arguments()
+    arguments.game = arguments.game.resolve()
+    scenes = inventory.build(arguments.game)
+    if arguments.list:
+        chosen = select(scenes, arguments, None, None)
+        for category, count in sorted(
+            collections.Counter(scene.category for scene in chosen).items(), key=lambda item: -item[1]
+        ):
+            print(f'{count:>6}  {category}')
+        print(f'{len(chosen):>6}  total (+ {", ".join(inventory.boot_scenes(arguments.save))} in every engine)')
+        if arguments.only:
+            print('\n'.join(scene.id for scene in chosen))
+        return 0
+    arguments.out = arguments.out.resolve()
+    arguments.engine = arguments.engine.resolve()
+    if arguments.relief_models is not None and not arguments.relief_models.is_dir():
+        sys.exit(f'--relief-models {arguments.relief_models}: not a directory')
+    if arguments.relief_models is None:
+        made = arguments.engine.parent / 'relief_models_path.txt'
+        built = Path(made.read_text().strip()) if made.exists() else None
+        if built is not None and built.is_dir():
+            arguments.relief_models = built
+        else:
+            # The build names its folder at configure time; the networks are copied there only by the target
+            # storm_relief_model_files (the engine target does not need them).
+            print(
+                'no relief models (--relief-models, or the engine build\'s '
+                + (f'{built}, not made: ninja storm_relief_model_files' if built else 'relief_models_path.txt')
+                + '): the engines make no relief maps, wait=relief returns at once'
+            )
+    for tool in ('Xvfb', 'cp'):
+        if not shutil.which(tool):
+            sys.exit(f'{tool} not found')
+    arguments.out.mkdir(parents=True, exist_ok=True)
+    if os.stat(arguments.out).st_dev != os.stat(arguments.game).st_dev:
+        sys.exit('--out must be on the same filesystem as --game: the per-engine game copies are hard links')
+    report_path = arguments.out / 'report.json'
+    previous = json.loads(report_path.read_text()) if report_path.exists() else None
+    # Pictures and frame times of the two renderers differ: a report of one is no previous report for the other.
+    script_patches, patch_digest = derive_script_patches(arguments)
+    build = {
+        'engine': file_digest(arguments.engine),
+        'script': file_digest(HERE / 'scene_sweep.c'),
+        'script_patches': patch_digest,
+        'renderer': arguments.render,
+        **({'save': file_digest(arguments.save)} if arguments.save else {}),
+    }
+    if arguments.scenario:
+        scenarios.check_name(arguments.scenario)
+        application = arguments.script_patches.parent if arguments.script_patches else APPLICATION
+        save_identity = application / 'mobile-ui/PROGRAM/interface/android_save_identity.c'
+        if not save_identity.is_file():
+            sys.exit(
+                f'--scenario: the application\'s {save_identity} is missing (the save records name the '
+                f'hero and place with it); pass --script-patches <application>/script-patches'
+            )
+        scene = inventory.Scene(
+            f'scenario:{arguments.scenario}', 'scenario', file_digest(scenarios.SCENARIOS / f'{arguments.scenario}.c')
+        )
+        scenes, chosen = [scene], [scene]
+        build['scenario'] = file_digest(scenarios.SCENARIOS / 'scenario.c')
+    else:
+        chosen = select(scenes, arguments, previous, build)
+    if not chosen:
+        print('no scenes selected')
+        return 0
+    jobs = min(arguments.jobs or default_jobs(), len(chosen))
+    if (arguments.program_cache or arguments.script_cache) and jobs != 1:
+        sys.exit('--program-cache, --script-cache: one engine at a time uses the cache (--jobs 1)')
+    shutil.rmtree(inside(arguments.out, arguments.out / 'work'), ignore_errors=True)
+    (arguments.out / 'work').mkdir()
+    # One copy of the engine per sweep, hard-linked into every game copy: the build directory
+    # can be rebuilt incrementally while the sweep runs.
+    engine = shutil.copy(arguments.engine, arguments.out / 'work' / 'engine')
+
+    done = collections.Counter()
+    lock = threading.Lock()
+    context = {
+        'stop': threading.Event(),
+        'failed': threading.Event(),
+        'errors': [],
+        'table_mismatch': None,
+        'tables': inventory.tables(arguments.game),
+        'engine': engine,
+        'game': game_snapshot(arguments.game),
+        'lock': lock,
+        'render': set(),
+        'script_patches': script_patches,
+    }
+    if arguments.scenario:
+        context['save_identity'] = save_identity
+
+    def progress(scene, entry):
+        with lock:
+            done[entry['status']] += 1
+            if entry['status'] == 'known':
+                print(f"KNOWN {scene}: {'; '.join(classify(scene, entry['reasons'])[1][:3])}", flush=True)
+            elif entry['status'] != 'pass':
+                print(f"FAIL {scene}: {'; '.join(entry['reasons'][:3])}", flush=True)
+                if arguments.fail_fast:
+                    context['stop'].set()
+            elif sum(done.values()) % 50 == 0:
+                print(f"{sum(done.values())} results, {done['fail']} failed", flush=True)
+
+    context['progress'] = progress
+    print(f'{len(chosen)} scenes on {jobs} engines, rendering with {RENDER_DESCRIPTIONS[arguments.render]}', flush=True)
+    started = time.monotonic()
+    queues = [chosen] if arguments.single_session else make_shards(chosen, jobs)
+    shards = [Shard(index, queue, arguments, context) for index, queue in enumerate(queues)]
+    # SIGTERM (the boot stage's budget, timeout(1)) reaches this process, not the engines (their own process
+    # groups): stop the workers so each one kills and reaps its engine instead of leaving it running.
+    signal.signal(signal.SIGTERM, lambda *_: context['stop'].set())
+    for shard in shards:
+        shard.start()
+    try:
+        for shard in shards:
+            shard.join()
+    except KeyboardInterrupt:
+        context['stop'].set()
+        for shard in shards:
+            shard.join()
+        raise
+    if context['errors']:
+        sys.exit('scene sweep harness error: ' + '; '.join(context['errors']))
+    if not arguments.keep_work:
+        shutil.rmtree(inside(arguments.out, arguments.out / 'work'), ignore_errors=True)
+
+    # Merge: scenes are unique to a shard; the boot scenes and exit ran in every engine.
+    results = {}
+    for shard in shards:
+        for name, entry in shard.results.items():
+            if name in results:
+                results[name]['reasons'] += [
+                    reason for reason in entry['reasons'] if reason not in results[name]['reasons']
+                ]
+                results[name]['status'] = status_of(name, results[name]['reasons'])
+            else:
+                results[name] = entry
+    known = {scene.id: scene for scene in scenes}
+    for name, entry in results.items():
+        entry['category'] = known[name].category if name in known else 'engine'
+        entry['fingerprint'] = known[name].fingerprint if name in known else ''
+    for scene in chosen:
+        if scene.id not in results:
+            results[scene.id] = {
+                'status': 'skipped',
+                'reasons': ['not run: the sweep stopped early'],
+                'category': scene.category,
+                'fingerprint': scene.fingerprint,
+            }
+    if context['table_mismatch']:
+        results['inventory:tables'] = {
+            'status': 'fail',
+            'reasons': [context['table_mismatch']],
+            'category': 'engine',
+            'fingerprint': '',
+        }
+    if (arguments.failed or arguments.changed) and previous and previous['build'] == build:
+        results = {**previous['scenes'], **results}  # keep the report complete after a partial run
+    report = {
+        'meta': {
+            'started': datetime.datetime.now().astimezone().isoformat(timespec='seconds'),
+            'wall_seconds': round(time.monotonic() - started),
+            'jobs': jobs,
+            'size': arguments.size,
+            'engine_sessions': sum(shard.runs for shard in shards),
+            'cores': os.cpu_count(),
+            'load_average': round(os.getloadavg()[0], 1),
+            'engine': str(arguments.engine),
+            'game': str(arguments.game),
+            'save': str(arguments.save) if arguments.save else None,
+            'script_patches': str(arguments.script_patches) if arguments.script_patches else None,
+            'render': ' / '.join(sorted(context['render'])),
+        },
+        'build': build,
+        'scenes': dict(sorted(results.items())),
+    }
+    report_path.write_text(json.dumps(report, indent=1, ensure_ascii=False) + '\n')
+    baseline = json.loads(arguments.baseline.read_text()) if arguments.baseline else None
+    boot = [inventory.Scene(name, 'engine') for name in inventory.boot_scenes(arguments.save)]
+    summary, failing = summarize(report, boot + [scene for scene in scenes if scene.id in results], baseline)
+    (arguments.out / 'summary.txt').write_text(summary)
+    contact_sheets(arguments.out, boot + scenes, results)
+    print(summary)
+    print(f'report: {report_path}')
+    return 1 if failing else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

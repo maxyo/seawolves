@@ -1,0 +1,13 @@
+{
+  "tag": "s-repair",
+  "doc": "Self repair (interface `repair`): hull, masts and sails as amount rows with the materials they take, the ship selector in the header, filled by extra_repair.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "parts": {"type": "json", "default": []},
+    "stock": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": []},
+    "primary": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

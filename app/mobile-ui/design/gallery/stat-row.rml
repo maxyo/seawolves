@@ -1,0 +1,25 @@
+<rml>
+<head>
+<title>Строка показателя</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-StatRow</div>
+<div class="g-note">подпись · тонкая полоса · слово; одна для опыта команды, морали, уровня навыка (kind crew | brass | xp | health | sails)</div>
+<div class="g-row">
+  <div class="g-wood" style="width: 420dp">
+    <c-stat-row id="sr-crew" label="Матросы" value="62" word="опытные"/>
+    <c-stat-row label="Канониры" value="35" word="обученные" kind="brass"/>
+    <c-stat-row label="Солдаты" value="88" word="ветераны" kind="xp"/>
+    <c-stat-row label="Мораль" value="18" word="ропщут" kind="health" line="0"/>
+  </div>
+  <div class="g-paper" style="width: 420dp">
+    <c-stat-row surface="parchment" label="Матросы" value="62" word="опытные"/>
+    <c-stat-row surface="parchment" label="Паруса" value="74" word="целы" kind="sails"/>
+    <c-stat-row surface="parchment" label="Очень длинная подпись строки" value="40" word="средне" label-width="90" word-width="70" height="52"/>
+  </div>
+</div>
+</div>
+</body>
+</rml>

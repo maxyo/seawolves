@@ -1,0 +1,11 @@
+--- a/PROGRAM/interface/NationRelation.c
++++ b/PROGRAM/interface/NationRelation.c
+@@ -323,7 +323,7 @@
+ 		{
+             InterfaceStates.ReloadMenuExit = true;
+ 			IDoExit(RC_INTERFACE_ANY_EXIT);
+-			PostEvent("LaunchIAfterFrame",1,"sl", nodName, 2);
++			InterfaceStates.LaunchAfterExit = nodName;
+ 			return;
+ 		}
+ 	}

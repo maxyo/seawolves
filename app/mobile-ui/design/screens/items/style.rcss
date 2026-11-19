@@ -1,0 +1,33 @@
+/* s-items: slots keep a narrow column, the list takes the width, the parchment detail a
+   readable column; the map sheet: the game's picture and its text. */
+s-items { display: block; width: 100%; height: 100%; }
+s-items .it-cols { display: flex; flex-direction: row; gap: @{space.md}dp; width: 100%; height: 100%; }
+/* the ten slots in two columns of five, all on the screen at once: a tile is a fifth of the height (never under a touch row) */
+s-items .it-slots { flex: 0 0 auto; width: 180dp; height: 100%; }
+s-items .it-grid { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; gap: 4dp; padding: 6dp; }
+s-items .it-slot { flex: 0 0 auto; box-sizing: border-box; width: 82dp; height: 18.4%; min-height: @{size.touchMin}dp; max-height: 76dp; padding: 2dp; gap: 0; }
+s-items .it-slot .ti-label, s-items .it-slot .ti-sub { font-size: @{type.min}dp; }
+/* the list and the detail side by side at every width: on a narrow phone (640 dp) the slots and the detail give
+   the list one full column of items */
+s-items .it-pair { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: row; gap: @{space.md}dp; }
+s-items .it-list { flex: 1 1 0; min-width: 0; height: 100%; }
+s-items .it-tabs { flex: 0 0 auto; padding: 0 4dp; border-bottom: 1dp @{color.brassLine/.35}; overflow-x: hidden; overflow-y: hidden; }
+/* The four game filters share the available list width even on compact landscape screens. */
+s-items .it-tabs c-tabs.look-segment.stretch .tabs-tab { flex: 1 1 auto; min-width: 0; padding: 0 4dp; }
+s-items .it-table { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-items .it-note { flex: 0 0 auto; padding: @{space.sm}dp @{space.md}dp; }
+s-items .it-detail { flex: 0 0 auto; width: 30%; min-width: 236dp; max-width: 360dp; height: 100%; }
+s-items .it-detail c-button { width: 100%; }
+@media (max-width: @{spec.narrowBelow}dp) {
+    s-items .it-cols, s-items .it-pair { gap: @{space.sm}dp; }
+    s-items .it-slots { width: 152dp; }
+    s-items .it-slot { width: 68dp; padding: 2dp 0; }
+    s-items .it-detail { min-width: 0; width: 212dp; }
+}
+s-items .it-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-items .it-text { font-size: @{type.body}dp; line-height: 1.45; white-space: pre-wrap; }
+s-items .it-text.ink { color: @{color.ink}; }
+s-items .it-actions { flex: 0 0 auto; display: flex; flex-direction: row; justify-content: flex-end; gap: @{space.sm}dp; }
+s-items .it-map { flex: 1 1 0; min-width: 0; height: 100%; }
+s-items .it-map-pic { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: @{space.md}dp; }
+s-items .it-map-text { flex: 0 0 auto; width: 32%; min-width: 240dp; max-width: 360dp; height: 100%; }

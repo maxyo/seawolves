@@ -1,0 +1,22 @@
+{
+  "tag": "s-about",
+  "doc": "About and licences: application, version, source revisions (GPL-3.0 corresponding source) and every bundled notice; the studio's wordmark (Dustoff, a picture) under the licence note; a notice opens verbatim on parchment; «Отправить сохранение» lists the player's saves to share one (or all of them, «Все сохранения», when there are several); «Восстановить сохранение» opens the system file picker, asks when a save of that name is already there (dialog: replace / keep both / cancel) and shows the result (dialog). Filled by the engine's launcher.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "name": {"type": "text", "default": ""},
+    "version": {"type": "text", "default": ""},
+    "purpose": {"type": "text", "default": ""},
+    "facts": {"type": "json", "default": []},
+    "sources": {"type": "json", "default": []},
+    "shareLog": {"type": "json", "default": {}},
+    "shareSave": {"type": "json", "default": {}},
+    "restoreSave": {"type": "json", "default": {}},
+    "dialog": {"type": "json", "default": null},
+    "saves": {"type": "json", "default": null},
+    "note": {"type": "text", "default": ""},
+    "noticesTitle": {"type": "text", "default": ""},
+    "notices": {"type": "json", "default": []},
+    "license": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

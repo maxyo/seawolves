@@ -1,0 +1,32 @@
+{
+  "tag": "s-hero",
+  "doc": "Hero section «Персонаж» (interface lscchar_all) and the card of another character (interface character), hero_character.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "headerSection": {"type": "text", "default": ""},
+    "tabs": {"type": "json", "default": []},
+    "tab": {"type": "text", "default": "skills"},
+    "subject": {"type": "json", "default": null},
+    "card": {"type": "json", "default": {}},
+    "special": {"type": "json", "default": {}},
+    "personal": {"type": "json", "default": {}},
+    "ship": {"type": "json", "default": {}},
+    "points": {"type": "bool", "default": false, "class": false},
+    "perksEmpty": {"type": "text", "default": ""},
+    "tree": {"type": "json", "default": null},
+    "perkInfo": {"type": "text", "default": ""},
+    "perkInfoNudge": {"type": "bool", "default": false, "class": false},
+    "detail": {"type": "json", "default": null},
+    "posts": {"type": "json", "default": []},
+    "postsCount": {"type": "text", "default": ""},
+    "freePosts": {"type": "json", "default": []},
+    "passengers": {"type": "json", "default": []},
+    "passengersCount": {"type": "text", "default": ""},
+    "dialog": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  },
+  "constants": {
+    "lineMin": 240,
+    "specialMin": 176
+  }
+}

@@ -1,0 +1,31 @@
+<rml>
+<head>
+<title>Стик</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Stick</div>
+<div class="g-note">helm: покой 30 % · под пальцем, value 85 · value −60 · покой 50 % (карта мира) · первый запуск с подписью</div>
+<div class="g-row g-scene" style="align-items: flex-end; gap: 20dp; padding: 16dp">
+  <c-stick id="st-helm" kind="helm" size="200"/>
+  <c-stick kind="helm" size="200" active="1" value="85"/>
+  <c-stick kind="helm" size="200" active="1" value="-60"/>
+</div>
+<div class="g-row g-scene" style="align-items: flex-end; gap: 20dp; padding: 16dp">
+  <c-stick kind="helm" size="200" rest-opacity="0.5"/>
+  <c-stick kind="helm" size="200" onboarding="1" caption="Руль: ведите влево и вправо"/>
+</div>
+<div class="g-note">move: покой · под пальцем (смещён) · бег (внешнее кольцо светится) · 88 dp · look рисуется только при первом запуске</div>
+<div class="g-row g-scene" style="align-items: flex-end; gap: 24dp; padding: 16dp">
+  <c-stick id="st-move" kind="move" size="112"/>
+  <c-stick kind="move" size="112" active="1" value="53" value-y="-35"/>
+  <c-stick kind="move" size="112" active="1" running="1" value="89" value-y="-77"/>
+  <c-stick kind="move" size="88" active="1" running="1" value="89" value-y="-77"/>
+  <c-stick kind="look" size="112"/>
+  <c-stick kind="look" size="112" onboarding="1" caption="Камера: ведите пальцем"/>
+  <c-stick kind="move" size="112" onboarding="1" caption="Ходьба"/>
+</div>
+</div>
+</body>
+</rml>

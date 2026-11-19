@@ -1,0 +1,81 @@
+<rml>
+<head>
+<title>Строка списка</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-ListRow</div>
+<div class="g-note">Объекты с жетоном, приказы с голым значком, выбранная, недоступная (причина — тостом по нажатию)</div>
+<div class="g-row">
+  <div class="g-wood" style="width: 400dp">
+    <c-list-row id="lr-hero" image='{"kind":"token","icon":"hero","enamel":"teal"}' title="Шарль де Мор" meta="капитан · Сен-Пьер" value="ранг 1" chevron="1"/>
+    <c-list-row id="lr-ship" image='{"kind":"token","icon":"ship","enamel":"red"}' title="Люггер «Аделина»" meta="6 класс · 16 орудий" selected="1"/>
+    <c-list-row id="lr-anchor" icon="anchor" title="Встать на якорь" meta="приказ — значок без жетона"/>
+    <c-list-row id="lr-trade" icon="commerce" title="Торговать" disabled="1" reason="магазин закрыт до утра"/>
+    <c-list-row icon="commerce" title="Торговать" disabled="1" reason="магазин закрыт до утра" show-reason="1"/>
+    <c-list-row icon="anchor" title="Встать на якорь" meta="нажатая" pressed="1"/>
+  </div>
+  <div class="g-wood" style="width: 400dp">
+    <c-list-row id="lr-dl" icon="download" title="Корсары: КСЕ · 3,4 ГБ" meta="загрузка" progress="42" action="pause" action-label="Пауза"/>
+    <c-list-row id="lr-item" image='{"kind":"token","icon":"sabre","enamel":"red"}' title="Карцолета" meta="Рапиры · надето" value="×1" selected="1" menu="1"/>
+    <c-list-row id="lr-save" icon="save" title="Быстрое сохранение" disabled="1" reason="нельзя во время боя"/>
+    <c-list-row icon="ship" title="Флейт «Аделина» отходит от причала, пассажиры на борту" lines="2" meta="квест · Сен-Пьер" meta-tone="ok" cooldown="35" pressed="1"/>
+    <c-list-row icon="load" title="Загрузка сохранения" meta="подождите" busy="1"/>
+    <c-list-row image='{"kind":"token","icon":"potion","enamel":"teal"}' title="Лечебное зелье" meta="перезарядка" value="12 с" value-tone="dim" cooldown="60"/>
+  </div>
+</div>
+<div class="g-note">Тона meta / value, dense, index, image: жетон, портрет и игровая картинка, длинный текст: одна строка (hold = подсказка по долгому нажатию) и wrap</div>
+<div class="g-row">
+  <div class="g-wood" style="width: 400dp">
+    <c-list-row id="lr-portrait" image='{"kind":"portrait","texture":"INTERFACES/PORTRAITS/128/face_205"}' title="Тичингиту" meta="абордажник" chevron="1"/>
+    <c-list-row id="lr-image" image='{"kind":"item","texture":"INTERFACES/items6","cell":8,"icon":"pistol"}' title="Строевой пистоль" meta="Пистолеты · вес 1.2" value="1 200" value-tone="gold"/>
+    <c-list-row image='{"kind":"item","texture":"INTERFACES/items19","cell":1,"icon":"potion"}' title="Лечебное зелье" meta="недоступно" disabled="1" cooldown="40"/>
+    <c-list-row icon="money" title="Долг ростовщику" meta="просрочен" meta-tone="danger" value="−1 240" value-tone="danger" dense="1"/>
+    <c-list-row icon="quest" title="Задание выполнено" meta="награда получена" meta-tone="ok" value="+500" value-tone="ok" dense="1"/>
+    <c-list-row icon="journal" title="Запись" meta="золотой тон" meta-tone="gold" value="12" value-tone="gold" dense="1"/>
+  </div>
+  <div class="g-wood" style="width: 400dp">
+    <c-list-row id="lr-hold" icon="talk" title="Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу. Познакомишь?" hold="1"/>
+    <c-list-row id="lr-hold-below" icon="talk" title="Короткая строка, подсказка снизу" tip="Полный текст подсказки, показанный под строкой" tip-place="below" hold="1"/>
+    <c-list-row icon="quest" title="Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу. Познакомишь? И ещё одна длинная фраза." wrap="1"/>
+    <c-list-row icon="talk" title="Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу. Познакомишь? Платят хорошо." lines="2"/>
+    <c-list-row index="1" title="Без значка, с номером" dense="1"/>
+    <c-list-row icon="lock" title="Голый значок — сокращение icon" dense="1"/>
+  </div>
+</div>
+<div class="g-note">layout tile (сетка 2 колонки): обычная, выбранная, недоступная с причиной (showReason), нажатая, с перезарядкой</div>
+<div class="g-row g-wood">
+  <div style="width: 130dp; height: 76dp"><c-list-row id="lr-tile" layout="tile" icon="tavern" title="Таверна"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row layout="tile" icon="shipyard" title="Верфь" selected="1"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row id="lr-tile-off" layout="tile" icon="church" title="Церковь" disabled="1" reason="закрыта до утра"/></div>
+  <div style="width: 130dp; height: 96dp"><c-list-row layout="tile" icon="church" title="Церковь" disabled="1" reason="закрыта до утра" show-reason="1"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row layout="tile" icon="store" title="Магазин" pressed="1"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row layout="tile" icon="energy" title="Рывок" cooldown="45"/></div>
+</div>
+<div class="g-note">На пергаменте: реплики диалога (dense, index), выбранная = подчёркивание, недоступная, нажатая, плитки</div>
+<div class="g-row">
+  <div class="g-paper" style="width: 400dp">
+    <c-list-row id="lr-p1" surface="parchment" dense="1" index="1" title="Поднять флаг Испании и подойти" selected="1"/>
+    <c-list-row id="lr-p2" surface="parchment" dense="1" index="2" title="Уйти под ветер"/>
+    <c-list-row id="lr-p3" surface="parchment" title="Налей-ка мне рому и расскажи, что нового в городе."/>
+    <c-list-row id="lr-p4" surface="parchment" title="Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу. Познакомишь?" hold="1"/>
+    <c-list-row surface="parchment" title="Нажатая реплика" pressed="1"/>
+  </div>
+  <div class="g-paper" style="width: 400dp">
+    <c-list-row surface="parchment" icon="journal" title="Запись в журнале" meta="12 мая 1665" value="×2" chevron="1"/>
+    <c-list-row image='{"kind":"portrait","texture":"INTERFACES/PORTRAITS/128/face_220"}' surface="parchment" title="Лонгвэй" meta="штурман" meta-tone="ok" menu="1"/>
+    <c-list-row id="lr-p-off" surface="parchment" icon="commerce" title="Торговать" disabled="1" reason="магазин закрыт до утра" show-reason="1"/>
+    <c-list-row surface="parchment" icon="download" title="Загрузка" meta="осталось 2 мин" meta-tone="danger" progress="70" action="pause"/>
+    <c-list-row image='{"kind":"token","icon":"sabre","enamel":"red"}' surface="parchment" title="Карцолета" meta="золотой тон" meta-tone="gold" value="1 200" value-tone="gold" busy="1"/>
+  </div>
+</div>
+<div class="g-row g-paper">
+  <div style="width: 130dp; height: 76dp"><c-list-row surface="parchment" layout="tile" icon="tavern" title="Таверна"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row surface="parchment" layout="tile" icon="shipyard" title="Верфь" selected="1"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row surface="parchment" layout="tile" icon="church" title="Церковь" disabled="1" reason="закрыта до утра"/></div>
+  <div style="width: 130dp; height: 76dp"><c-list-row surface="parchment" layout="tile" icon="store" title="Магазин" pressed="1"/></div>
+</div>
+</div>
+</body>
+</rml>

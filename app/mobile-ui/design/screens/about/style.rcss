@@ -1,0 +1,30 @@
+/* s-about: the application column keeps 330 dp, the notices take the rest; a notice reads on parchment, 760 dp measure. */
+s-about { display: block; width: 100%; height: 100%; }
+s-about .ab-info { flex: 0 0 330dp; height: 100%; }
+s-about .ab-list { flex: 1 1 0; min-width: 0; height: 100%; }
+s-about .ab-titles { line-height: 1.25; }
+s-about .ab-app { font-size: @{type.title}dp; font-weight: bold; color: @{color.text}; }
+s-about .ab-version { font-size: @{type.body}dp; color: @{color.textSecond}; }
+s-about .ab-purpose { margin-top: 4dp; font-size: @{type.body}dp; color: @{color.text}; }
+/* The application column scrolls on short screens (780x360: the source rows and «Поделиться отчётом» are below the fold). */
+s-about .ab-info c-panel > .inner { overflow-y: auto; }
+s-about .ab-info c-panel > .inner > * { flex-shrink: 0; }
+s-about .ab-info c-list-row { width: 100%; }
+s-about .ab-grow { flex: 1 1 0; }
+/* The studio's wordmark under the licence note: a picture only (no link), its caps no taller than the
+   application's name; images/dustoff.png is 258x48 px, drawn 3x for phone densities. */
+s-about .ab-studio { flex: 0 0 auto; width: 86dp; height: 16dp; decorator: image(images/dustoff.png contain); }
+s-about .ab-note { margin: 0; font-size: @{type.caption}dp; line-height: 1.4; color: @{color.textSecond}; }
+s-about .ab-list-title { flex: 0 0 auto; padding: 10dp 14dp 4dp 14dp; font-size: @{type.body}dp; font-weight: bold; color: @{color.textSecond}; }
+s-about .ab-rows { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-about .ab-rows c-list-row { width: 100%; }
+s-about .ab-text { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 14dp 26dp 24dp 26dp; color: @{color.ink}; }
+s-about .ab-head { line-height: 1.2; margin-bottom: 10dp; }
+s-about .ab-name { font-size: @{type.title}dp; font-weight: bold; }
+s-about .ab-kind { margin-left: 12dp; font-size: @{type.caption}dp; color: @{color.inkMuted}; }
+s-about .ab-para { display: block; margin: 0 0 10dp 0; max-width: 760dp; font-size: @{type.body}dp; line-height: 1.5; white-space: pre-wrap; }
+/* «Отправить сохранение»: the player's saves in one scrolling column; the empty state as the tables have it. */
+s-about .ab-saves { flex: 1 1 0; min-width: 0; height: 100%; }
+s-about .ab-hint { flex: 0 0 auto; margin: 0; padding: 12dp 14dp 6dp 14dp; font-size: @{type.body}dp; line-height: 1.4; color: @{color.textSecond}; }
+s-about .ab-empty { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10dp; padding: 16dp;
+    font-size: @{type.body}dp; color: @{color.textSecond}; }

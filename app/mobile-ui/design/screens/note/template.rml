@@ -1,0 +1,1 @@
+<c-card tone="parchment" pad="8"><div class="sn-row"><c-icon icon="scroll" size="20" tone="ink"/><div class="sn-text">{{text}}</div></div></c-card>

@@ -1,0 +1,30 @@
+{
+  "tag": "c-stick",
+  "props": {
+    "kind": {"type": "enum", "options": ["move", "look", "helm"], "default": "move"},
+    "size": {"type": "int"},
+    "active": {"type": "bool", "default": false},
+    "running": {"type": "bool", "default": false},
+    "value": {"type": "number", "default": 0},
+    "valueY": {"type": "number", "default": 0},
+    "floating": {"type": "bool", "default": false},
+    "fixed": {"type": "bool", "default": false},
+    "floatAxis": {"type": "enum", "options": ["xy", "y"], "default": "xy", "class": false},
+    "restLeft": {"type": "int", "default": 0},
+    "mirrored": {"type": "bool", "default": false, "class": false},
+    "restBottom": {"type": "int", "default": 0},
+    "atX": {"type": "number", "default": 0},
+    "atY": {"type": "number", "default": 0},
+    "onboarding": {"type": "bool", "default": false},
+    "caption": {"type": "text", "default": ""},
+    "restOpacity": {"type": "number", "default": @{material.hudRestAlpha}}
+  },
+  "behaviors": ["stick"],
+  "constants": {
+    "size": {"move": 112, "helm": 200},
+    "helmHeight": 64,
+    "helmKnob": @{size.stickKnob},
+    "helmInset": 8,
+    "moveKnobShare": 0.32
+  }
+}

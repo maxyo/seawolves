@@ -1,0 +1,919 @@
+#include "loading_transaction.hpp"
+//    Spirenkov Maxim
+//
+//    LocationCamera
+
+#include "location_camera.h"
+#include <cmath>
+#ifdef __ANDROID__
+#include <platform/android_camera.hpp>
+#include <platform/android_camera_zoom.hpp>
+#include <algorithm>
+#endif
+
+#include "core.h"
+
+#include "character.h"
+#include "location.h"
+#include "entity.h"
+#include "sea_base.h"
+#include "shared/messages.h"
+
+//#define CAMERA_VIEW_TEST_ENABLE
+#define CAMERA_VIEW_TEST_R 3
+#define CAMERA_VIEW_TEST_ANG 30
+
+//#define LOCATIONCAMERA_DEBUG
+
+#define LOCATIONCAMERA_RADIUS 0.5f      // Camera size
+#define LOCATIONCAMERA_DISTQUANTUM 0.1f // Step with which you can move the camera
+
+#define LOCATIONCAMERA_DISTALPHA_MAX 1.6f // Distance from the character at which it is necessary to fade out alpha
+#define LOCATIONCAMERA_DISTALPHA_MIN 0.8f // Distance from the character at which it is necessary to fade out alpha
+
+#define LOCATIONCAMERA_DEFAULT_PERSPECTIVE (1.57f + 1.0f) * 0.5f
+
+LocationCamera::LocationCamera()
+{
+    // Camera parameters
+    ax = 0.4f;
+    vAx = 0.0f;
+    axmin = -1.0f;
+    axmax = 0.75f;
+    teleport_dist = 12.0f;
+    lookHeight = 0.8f;
+    radius = 3.0f;
+#ifdef __ANDROID__
+    gameRadius = radius;
+    radius = gameRadius * storm::android::cameraZoom.land;
+#endif
+    rotInertia = 5.0f;
+    radInertia = 7.0f;
+    // Camera values
+    isSleep = false;
+    kMorph = 1.0f;
+    wmode = cwm_follow;
+    camPos = glm::vec3(0.0f);
+    lookTo = glm::vec3(0.0f);
+    fromLook = glm::vec3(0.0f);
+    freeAx = freeAy = 0.0f;
+    cf.SetLocationCamera(this);
+    isTeleport = true;
+    character = nullptr;
+    lockAx = false;
+    isViewExecute = false;
+    location = nullptr;
+    isLockFPMode = false;
+    isLookMode = false;
+    isSpecialMode = false;
+    dAx = dAy = 0.0f;
+    dynamic_fog.isOn = false;
+
+    m_bTrackMode = false;
+
+    cameraPerspective = LOCATIONCAMERA_DEFAULT_PERSPECTIVE;
+}
+
+LocationCamera::~LocationCamera()
+{
+    StoreRestoreDynamicFov(true);
+}
+
+bool LocationCamera::Init()
+{
+    // renderer
+    rs = static_cast<VRenderer *>(core.GetService("renderer"));
+    if (!rs)
+        throw std::runtime_error("No service: renderer");
+
+    core.SetLayerType(EXECUTE, layer_type_t::execute);
+    core.AddToLayer(EXECUTE, GetId(), 0);
+
+    core.SetLayerType(REALIZE, layer_type_t::realize);
+    core.AddToLayer(REALIZE, GetId(), 100000);
+
+    // The sea
+    sea = core.GetEntityId("sea");
+
+    // try to get the location
+    loc = core.GetEntityId("location");
+
+    rs->SetPerspective(cameraPerspective);
+
+    StoreRestoreDynamicFov(false);
+
+    return true;
+}
+
+// Apply the already-configured stock camera before resource discovery. No controls,
+// character locks, track events, morph time, dynamic-FOV time or Execute(0).
+void LocationCamera::PrimeLoadingCamera()
+{
+    if (!storm::loading::active || isSleep || !Set()) return;
+    if (storm::loading::first_frame) {
+        if (wmode == cwm_follow && !isLookMode && !isLockFPMode) {
+            cf.Update(0.0f); // BornCamera if needed; MoveCamera(0) has no integration/input
+        } else if (wmode == cwm_topos) {
+            lookTo = pos + glm::vec3(0.0f, lheight, 0.0f);
+            camPos = fromLook;
+        } else if (wmode == cwm_follow) {
+            ExecuteLook(0.0f); // pure current bone/locator transform; no input/time integration
+        }
+    }
+    rs->SetCamera(camPos, lookTo, glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
+#ifndef LOCATIONCAMERA_DEBUG
+void LocationCamera::Execute(uint32_t delta_time)
+#else
+void LocationCamera::Realize(uint32_t delta_time)
+#endif
+{
+    if (m_bTrackMode)
+    {
+        ProcessTrackCamera();
+        if (m_bTrackMode)
+            return;
+    }
+
+    // Camera mode
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("ChrCamSpecMode", cs);
+    isSpecialMode = cs.state == CST_ACTIVE;
+    // Time period
+    const auto dltTime = delta_time * 0.001f;
+    if (isSleep)
+        return;
+    if (!Set())
+        return;
+    // Controls
+    const auto oldAx = ax;
+    core.Controls->GetControlState("ChrCamTurnV", cs);
+    dAx = -cs.lValue * 0.05f; //*0.005f;
+    if (character->IsDead())
+        dAx = 0.0f;
+#ifdef __ANDROID__
+    // A vertical drag pitches the camera as the native pitch did at 60 fps on the reference 3200 px wide screen (dragPitch), but
+    // directly, at any frame rate (the native pitch has inertia per frame, twice the turn at half the frame
+    // rate, and a speed limit that ate fast drags).
+    dragAx = character->IsDead() ? 0.0f : -storm::android::dragPitch(cs.fValue, static_cast<float>(core.GetWindow()->GetWindowSize().width));
+#endif
+    auto kvax = 8.0f * dltTime;
+    if (isLookMode && !character->IsFight())
+    {
+        vAx += 3.0f * dAx;
+        ax += vAx * dltTime;
+        kvax *= 2.6f;
+        if (kvax > 1.0f)
+            kvax = 1.0f;
+        vAx -= kvax * vAx;
+    }
+    else
+    {
+#ifdef __ANDROID__
+        ax += dragAx;
+        vAx = 0.0f;
+#else
+        vAx += 10.0f * dAx * dltTime;
+        ax += vAx * dltTime;
+        if (kvax > 1.0f)
+            kvax = 1.0f;
+        vAx -= kvax * vAx;
+#endif
+    }
+    if (vAx > 2.0f)
+        vAx = 2.0f;
+    if (vAx < -2.0f)
+        vAx = -2.0f;
+    if (ax < axmin)
+        ax = axmin;
+    if (ax > axmax)
+        ax = axmax;
+    character->LockRotate(false);
+    core.Controls->GetControlState("ChrTurnH", cs);
+    dAy = cs.lValue * 0.005f;
+    if (dAy > 1.0f)
+        dAy = 1.0f;
+    if (dAy < -1.0f)
+        dAy = -1.0f;
+    if (character->IsDead())
+        dAy = 0.0f;
+#ifdef __ANDROID__
+    core.Controls->GetControlState("ChrTurnH", cs);
+    dragAy = character->IsDead() ? 0.0f : storm::android::dragYaw(cs.fValue, static_cast<float>(core.GetWindow()->GetWindowSize().width));
+#endif
+
+    if (location->IsPaused())
+        return;
+
+    character->SetCameraAlpha(1.0f);
+    character->LockIdle(false);
+    character->LockMove(false);
+    character->LookFromEyes(false);
+    // Execute the current mode
+    auto isELook = false;
+
+    if (!isLockFPMode)
+    {
+        switch (wmode)
+        {
+        case cwm_follow: // Follow The Character
+
+            //*
+            if (!character->IsFight() && !character->IsDialog() && !character->IsDead())
+            {
+                core.Controls->GetControlState("ChrCamCameraSwitch", cs);
+                if (cs.state == CST_ACTIVATED)
+                    isLookMode = !isLookMode;
+                isELook = isLookMode;
+            } // else isLookMode = false;
+
+            //*/
+            /*
+            if(cs.state == CST_ACTIVE && !character->IsFight() && !character->IsSwim())
+            {
+              isELook = true;
+            }//*/
+
+            if (lockAx)
+            {
+                isELook = isLookMode = false;
+                ax = lAx;
+            }
+            else
+            {
+                if (core.Controls->GetControlState("ChrCamNormalize", cs))
+                {
+                    if (cs.state == CST_ACTIVATED)
+                    {
+                        if (!isELook)
+                            ax = 0.2f;
+                        else
+                            ax = 0.0f;
+                    }
+                }
+            }
+
+            if (isELook)
+            {
+                if (!isViewExecute)
+                {
+                    oldPos = camPos;
+                    oldLookTo = lookTo;
+                }
+                if (kMorph >= 1.0f)
+                    character->SetCameraAlpha(0.0f);
+                character->LockIdle(true);
+                ExecuteLook(dltTime);
+                isViewExecute = true;
+                character->LookFromEyes(true);
+            }
+            else
+            {
+                if (isSpecialMode)
+                {
+                    // recalculate the angle change for the special mode
+                    core.Controls->GetControlState("ChrCamTurnH", cs);
+                    dAy = cs.lValue * 0.05f;
+                    if (dAy > 1.0f)
+                        dAy = 1.0f;
+                    if (dAy < -1.0f)
+                        dAy = -1.0f;
+                    if (character->IsDead())
+                        dAy = 0.0f;
+                }
+#ifdef __ANDROID__
+                // The pinch of the camera look scales the follow radius (platform/android_camera_zoom.hpp);
+                // CameraFollow eases to it and still keeps it out of the walls.
+                if (const float scale = storm::android::cameraZoom.take(); scale != 1.0f)
+                {
+                    storm::android::cameraZoom.land = storm::android::pinchLandZoom(storm::android::cameraZoom.land, scale);
+                    radius = gameRadius * storm::android::cameraZoom.land;
+                }
+#endif
+                if (isViewExecute)
+                {
+                    oldPos = camPos;
+                    oldLookTo = lookTo;
+                    for (int32_t i = 0; i < 10; i++)
+                        cf.Update(0.1f);
+                }
+                cf.Update(dltTime * character->CameraTurnSpeed());
+                isViewExecute = false;
+            }
+
+#ifdef CAMERA_VIEW_TEST_ENABLE
+            {
+                float r = (float)(CAMERA_VIEW_TEST_R);
+                float ang = (float)(CAMERA_VIEW_TEST_ANG);
+
+                float h = r * sinf(ang * PI / 180.0f);
+                r = r * cosf(ang * PI / 180.0f);
+                character->GetPosition(lookTo);
+                glm::vec3 v = glm::vec3(-r * sinf(character->GetAY()), h, -r * cosf(character->GetAY()));
+                camPos = lookTo + v;
+            }
+#endif
+            break;
+        case cwm_topos: // Locator view
+            ExecuteTopos(dltTime);
+#ifdef __ANDROID__
+            if (!forcedPos && character->IsDialog())
+                FrameDialogue();
+#endif
+            ax = oldAx;
+            vAx = 0.0f;
+            break;
+        case cwm_free: // Free flying camera
+            character->LockMove(true);
+            ExecuteFree(dltTime);
+            break;
+        }
+    }
+    else
+    {
+        ExecuteLook(dltTime);
+        isViewExecute = true;
+    }
+
+    cf.DrawDebug();
+
+    // Position morphing
+    if (kMorph < 1.0f)
+    {
+        if (!isTeleport)
+        {
+            camPos = oldPos + (camPos - oldPos) * kMorph;
+            lookTo = oldLookTo + (lookTo - oldLookTo) * kMorph;
+            kMorph += dltTime * 1.0f;
+        }
+        else
+        {
+            oldPos = camPos;
+            oldLookTo = lookTo;
+        }
+        isTeleport = false;
+    }
+    auto realPos = camPos;
+    auto *sb = static_cast<SEA_BASE *>(core.GetEntityPointer(sea));
+    if (sb && wmode != cwm_free && location->IsSwimming())
+    {
+        const auto seaY = sb->WaveXZ(camPos.x, camPos.z) + 1.0f;
+        if (realPos.y < seaY)
+            realPos.y = seaY;
+    }
+
+    auto vUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    if (dynamic_fog.isOn)
+        ProcessDynamicFov(core.GetDeltaTime() * .001f, realPos, lookTo, vUp);
+
+#ifdef __ANDROID__
+    // Keep a stable horizontal camera heading even before the movement stick is held.
+    UpdateMovementHeading();
+#endif
+    rs->SetCamera(realPos, lookTo, vUp);
+
+#ifdef CAMERA_VIEW_TEST_ENABLE
+    // Set the new camera position
+    rs->SetCamera(camPos, lookTo, vUp);
+#endif
+}
+
+#ifdef __ANDROID__
+void LocationCamera::UpdateMovementHeading()
+{
+    const auto view = lookTo - camPos;
+    const float horizontal = std::hypot(view.x, view.z);
+    // At the vertical pole screen-forward has no horizontal direction. Keep
+    // the last camera heading, never the actor heading (which the stick turns).
+    if (std::isfinite(horizontal) && std::isfinite(view.y) &&
+        horizontal > .001f && horizontal > .001f * std::fabs(view.y))
+        movementForward = glm::vec3(view.x / horizontal, 0.0f, view.z / horizontal);
+}
+#endif
+
+#ifndef LOCATIONCAMERA_DEBUG
+void LocationCamera::Realize(uint32_t delta_time)
+#else
+void LocationCamera::Execute(uint32_t delta_time)
+#endif
+{
+    /*
+    glm::mat4 mtx;
+    rs->GetTransform(D3DTS_VIEW, mtx);
+    mtx.Transposition();
+    float dst = location->Trace(glm::vec3(mtx.Pos()), glm::vec3(mtx.Pos() + (mtx.Vz()*100.0f)));
+    rs->Print(10, 10, "%f", dst);
+    */
+}
+
+uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
+{
+    switch (message.Long())
+    {
+    case MSG_CAMERA_SETTARGET:
+        chr = message.EntityID();
+        if (core.GetEntityPointer(chr) == nullptr)
+        {
+            core.Trace("LocationCamera -> MSG_CAMERA_SETTARGET -> invalidate character id");
+            return 0;
+        }
+        return 1;
+    case MSG_CAMERA_FOLLOW:
+        forcedPos = false;
+        if (wmode != cwm_follow)
+        {
+            oldPos = camPos;
+            oldLookTo = lookTo;
+            kMorph = 0.0f;
+        }
+        wmode = cwm_follow;
+        return 1;
+    case MSG_CAMERA_TOPOS:
+        forcedPos = false;
+#ifdef __ANDROID__
+        dialogueFrom.reset();
+#endif
+        fromLook.x = message.Float();
+        fromLook.y = message.Float();
+        fromLook.z = message.Float();
+        if (!message.Long())
+        {
+            oldPos = camPos;
+            oldLookTo = lookTo;
+            kMorph = 0.0f;
+        }
+        else
+            kMorph = 1.0f;
+        wmode = cwm_topos;
+        return 1;
+    case MSG_CAMERA_MOVE:
+        lockAx = true;
+        lAx = message.Float();
+        return 1;
+    case MSG_CAMERA_FREE:
+        forcedPos = false;
+        wmode = cwm_free;
+        kMorph = 1.0f;
+        return 1;
+    case MSG_CAMERA_SLEEP:
+        isSleep = message.Long() != 0;
+        return 1;
+    case MSG_CAMERA_SET_RADIUS:
+        radius = message.Float();
+#ifdef __ANDROID__
+        gameRadius = radius;
+        radius = gameRadius * storm::android::cameraZoom.land;
+#endif
+        return 1;
+    case MSG_CAMERA_SET_PERSPECTIVE:
+        cameraPerspective = message.Float();
+        rs->SetPerspective(cameraPerspective);
+        return 1;
+    // internal
+    case -1: {
+        const auto fSpeed = message.Float();
+        const auto fTime = message.Float();
+        const auto fMin = message.Float();
+        const auto fMax = message.Float();
+        const auto fAngSpeed = message.Float();
+        const auto fAngMax = message.Float();
+        TurnOnDynamicFov(fSpeed, fTime, fMin, fMax, fAngSpeed, fAngMax);
+        return 1;
+    }    
+
+    case -2: {
+        const std::string &trackname = message.String();
+        const auto fTrackTime = message.Float();
+        LoadCameraTrack(trackname.c_str(), fTrackTime);
+        auto *pA = message.AttributePointer();
+        return 1;
+    }
+
+    case -3:
+        TurnOffTrackCamera();
+        return 1;
+
+    case -4:
+        // from point to point
+        fromLook.x = message.Float();
+        fromLook.y = message.Float();
+        fromLook.z = message.Float();
+        if (!message.Long())
+        {
+            oldPos = camPos;
+            oldLookTo = lookTo;
+            kMorph = 0.0f;
+        }
+        else
+            kMorph = 1.0f;
+        wmode = cwm_topos;
+
+        pos.x = message.Float();
+        pos.y = message.Float();
+        pos.z = message.Float();
+        forcedPos = true;
+
+        return 1;
+
+    default:
+        ;
+    }
+
+    return 0;
+}
+
+// Changing an attribute
+uint32_t LocationCamera::AttributeChanged(ATTRIBUTES *apnt)
+{
+    // Reading out attributes
+    if (!AttributesPointer)
+        return 0;
+
+    return 0;
+}
+
+// Prepare data
+bool LocationCamera::Set()
+{
+    // Character pointer
+    auto *c = static_cast<Character *>(core.GetEntityPointer(chr));
+    if (!c)
+        return false;
+    // Character characteristics
+    if (!forcedPos)
+    {
+        c->GetPosition(pos);
+    }
+    chay = c->GetAY();
+    height = c->GetHeight();
+    lheight = height * lookHeight;
+    chradius = c->GetRadius();
+    character = c;
+    location = static_cast<Location *>(core.GetEntityPointer(loc));
+    return location != nullptr;
+}
+
+// First-person View Camera
+void LocationCamera::ExecuteLook(float dltTime)
+{
+    // Determine the camera placement point
+    if (!character->Model() || !character->Model()->GetNode(0) || !character->Model()->GetNode(0)->geo)
+        return;
+    glm::mat4 m;
+    if (EyeLocator(*character, m))
+        camPos = storm::math::pos(m) - storm::math::vz(m) * 0.3f;
+    else
+        camPos = pos + glm::vec3(0.0f, height, 0.0f);
+    // Determine where we are looking at
+    lookTo.x = camPos.x + cosf(ax) * sinf(chay);
+    lookTo.y = camPos.y - sinf(ax);
+    lookTo.z = camPos.z + cosf(ax) * cosf(chay);
+}
+
+// The world matrix of a character's eye locator ("camera" in his model, on his animated head).
+bool LocationCamera::EyeLocator(Character &chr, glm::mat4 &m)
+{
+    auto *mdl = chr.Model();
+    auto *node = mdl ? mdl->GetNode(0) : nullptr;
+    auto *ani = mdl ? mdl->GetAnimation() : nullptr;
+    if (!node || !node->geo || !ani)
+        return false;
+    const int32_t strIndex = node->geo->FindLabelN(0, node->geo->FindName("camera"));
+    if (strIndex < 0)
+        return false;
+    GEOS::LABEL lb;
+    // Locator matrix
+    node->geo->GetLabel(strIndex, lb);
+    glm::mat4 mtl;
+    storm::math::vx(mtl) = glm::vec3(lb.m[0][0], lb.m[0][1], lb.m[0][2]);
+    storm::math::vy(mtl) = glm::vec3(lb.m[1][0], lb.m[1][1], lb.m[1][2]);
+    storm::math::vz(mtl) = glm::vec3(lb.m[2][0], lb.m[2][1], lb.m[2][2]);
+    storm::math::pos(mtl) = glm::vec3(lb.m[3][0], lb.m[3][1], lb.m[3][2]);
+    // Bone matrix
+    auto ml = ani->GetAnimationMatrix(lb.bones[0]) * mtl;
+    storm::math::pos(ml).x *= -1.0f;
+    storm::math::vx(ml).x *= -1.0f;
+    storm::math::vy(ml).x *= -1.0f;
+    storm::math::vz(ml).x *= -1.0f;
+    m = mdl->mtx * ml;
+    return true;
+}
+
+#ifdef __ANDROID__
+// The dialogue close-up (the game's SetCameraDialogMode: a point beside the hero, the speaker's look
+// point as the target). The speaker's face, from his eye locator (seated or standing), is put above
+// the dialogue sheet (dialogueLookElevation). The camera is kept out of the geometry: of the game's
+// point and its mirror across the line from the hero to the speaker, the first the face sees is
+// taken (once per placement); a wall or pillar still in the camera's half of the view pulls the
+// camera in front of it (bars or a counter near the speaker stay in the shot, as in the game).
+void LocationCamera::FrameDialogue()
+{
+    glm::mat4 eye;
+    glm::vec3 face;
+    if (EyeLocator(*character, eye))
+        face = storm::math::pos(eye);
+    else
+    {
+        if (!eyeless)
+            core.Trace("LocationCamera: dialogue speaker without an eye locator, framed at 0.93 of his height");
+        eyeless = true;
+        face = pos + glm::vec3(0.0f, height * 0.93f, 0.0f);
+    }
+    const auto clearance = [&](const glm::vec3 &from) { return std::min(1.0f, location->Trace(face, from)); };
+    if (!dialogueFrom)
+    {
+        dialogueFrom = fromLook;
+        auto *hero = static_cast<Character *>(core.GetEntityPointer(core.GetEntityId("Player")));
+        glm::vec3 heroPos;
+        if (hero && hero != character && clearance(fromLook) < 1.0f)
+        {
+            hero->GetPosition(heroPos);
+            glm::vec2 axis(pos.x - heroPos.x, pos.z - heroPos.z);
+            if (const float l = glm::length(axis); l > 0.01f)
+            {
+                axis /= l;
+                const glm::vec2 rel(fromLook.x - heroPos.x, fromLook.z - heroPos.z);
+                const glm::vec2 mirrored = axis * (2.0f * glm::dot(rel, axis)) - rel;
+                const glm::vec3 other(heroPos.x + mirrored.x, fromLook.y, heroPos.z + mirrored.y);
+                if (clearance(other) > clearance(fromLook))
+                    dialogueFrom = other;
+            }
+        }
+    }
+    const glm::vec3 view = *dialogueFrom - face;
+    const float length = glm::length(view);
+    camPos = *dialogueFrom;
+    if (const float k = clearance(*dialogueFrom); k < 1.0f && k >= 0.5f && length > 0.01f)
+        camPos = face + view * std::max(0.15f, k - LOCATIONCAMERA_RADIUS * 0.5f / length);
+    glm::mat4 projection;
+    rs->GetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(projection));
+    const glm::vec3 toFace = face - camPos;
+    const float flat = std::hypot(toFace.x, toFace.z);
+    if (flat < 0.01f)
+        return;
+    const float elevation = storm::android::dialogueLookElevation(std::atan2(toFace.y, flat), projection[1][1]);
+    const float distance = glm::length(toFace);
+    lookTo = camPos + glm::vec3(toFace.x / flat * std::cos(elevation), std::sin(elevation), toFace.z / flat * std::cos(elevation)) * distance;
+}
+#endif
+
+// Execution of a camera observing from a point
+void LocationCamera::ExecuteTopos(float dltTime)
+{
+    // Where are we looking at
+    lookTo = pos + glm::vec3(0.0f, lheight, 0.0f);
+    // Where are we looking from
+    camPos = fromLook;
+}
+
+// Free flying camera execution
+void LocationCamera::ExecuteFree(float dltTime)
+{
+    if (core.Controls->GetKeyState(VK_NUMLOCK) < 0)
+        return;
+
+    const auto pi = 3.14159265359f;
+    freeAx -= dAx * 0.1f;
+    freeAy += dAy * 1.0f;
+    if (freeAx < -pi * 0.4f)
+        freeAx = -pi * 0.4f;
+    if (freeAx > pi * 0.4f)
+        freeAx = pi * 0.4f;
+    if (freeAy > pi * 2.0f)
+        freeAy -= pi * 2.0f;
+    if (freeAy < -pi * 2.0f)
+        freeAy += pi * 2.0f;
+    lookTo.x = cosf(freeAx) * sinf(freeAy);
+    lookTo.y = sinf(freeAx);
+    lookTo.z = cosf(freeAx) * cosf(freeAy);
+    if (core.Controls->GetDebugAsyncKeyState(VK_CONTROL) < 0)
+        dltTime *= 10.0f;
+    if (core.Controls->GetDebugAsyncKeyState(VK_SHIFT) < 0)
+        dltTime *= 4.0f;
+    if (core.Controls->GetDebugAsyncKeyState(VK_LBUTTON) < 0)
+        camPos += 5.0f * lookTo * dltTime;
+    if (core.Controls->GetDebugAsyncKeyState(VK_RBUTTON) < 0)
+        camPos -= 5.0f * lookTo * dltTime;
+    lookTo += camPos;
+}
+
+// Trace the ray through the location
+float LocationCamera::Trace(const glm::vec3 &src, const glm::vec3 &dst) const
+{
+    if (!location)
+        return 2.0f;
+    return location->Trace(src, dst);
+}
+
+void LocationCamera::TurnOnDynamicFov(float fSpeed, float fTime, float fRelationMin, float fRelationMax,
+                                      float fAngSpeed, float fAngMax)
+{
+    dynamic_fog.fMinFov = cameraPerspective * fRelationMin;
+    dynamic_fog.fMaxFov = cameraPerspective * fRelationMax;
+    if (!dynamic_fog.isOn)
+    {
+        dynamic_fog.fCurFov = cameraPerspective;
+        dynamic_fog.bFogUp = true;
+        dynamic_fog.fCurAngle = 0.f;
+        dynamic_fog.bAngleUp = true;
+    }
+    dynamic_fog.isOn = true;
+    dynamic_fog.fFogChangeSpeed = fSpeed * cameraPerspective;
+    dynamic_fog.fFogTimeCur = 0;
+    dynamic_fog.fFogTimeMax = fTime;
+
+    dynamic_fog.fAngleSpeed = fAngSpeed;
+    dynamic_fog.fMaxAngle = fAngMax;
+}
+
+void LocationCamera::ProcessDynamicFov(float fDeltaTime, const glm::vec3 &vFrom, const glm::vec3 &vTo, glm::vec3 &vUp)
+{
+    if (dynamic_fog.fFogTimeMax > 0.f)
+        dynamic_fog.fFogTimeCur += fDeltaTime;
+    if (dynamic_fog.fFogTimeMax > 0.f && dynamic_fog.fFogTimeCur >= dynamic_fog.fFogTimeMax)
+    {
+        rs->SetPerspective(cameraPerspective);
+        dynamic_fog.isOn = false;
+    }
+    else
+    {
+        if (dynamic_fog.bFogUp)
+        {
+            dynamic_fog.fCurFov += dynamic_fog.fFogChangeSpeed * fDeltaTime;
+            if (dynamic_fog.fCurFov >= dynamic_fog.fMaxFov)
+            {
+                dynamic_fog.fCurFov = dynamic_fog.fMaxFov;
+                dynamic_fog.bFogUp = false;
+            }
+        }
+        else
+        {
+            dynamic_fog.fCurFov -= dynamic_fog.fFogChangeSpeed * fDeltaTime;
+            if (dynamic_fog.fCurFov <= dynamic_fog.fMinFov)
+            {
+                dynamic_fog.fCurFov = dynamic_fog.fMinFov;
+                dynamic_fog.bFogUp = true;
+            }
+        }
+        rs->SetPerspective(dynamic_fog.fCurFov);
+
+        if (dynamic_fog.bAngleUp)
+        {
+            dynamic_fog.fCurAngle += dynamic_fog.fAngleSpeed * fDeltaTime;
+            if (dynamic_fog.fCurAngle >= dynamic_fog.fMaxAngle)
+            {
+                dynamic_fog.fCurAngle = dynamic_fog.fMaxAngle;
+                dynamic_fog.bAngleUp = false;
+            }
+        }
+        else
+        {
+            dynamic_fog.fCurAngle -= dynamic_fog.fAngleSpeed * fDeltaTime;
+            if (dynamic_fog.fCurAngle <= -dynamic_fog.fMaxAngle)
+            {
+                dynamic_fog.fCurAngle = -dynamic_fog.fMaxAngle;
+                dynamic_fog.bAngleUp = true;
+            }
+        }
+
+        const auto v = vTo - vFrom;
+        const auto fAng = atan2f(v.x, v.z);
+        glm::mat4 mrot = storm::math::eulerMatrix(0.f, 0.f, dynamic_fog.fCurAngle);
+        mrot = storm::math::rotationY(fAng) * mrot;
+        vUp = storm::math::transformPoint(mrot, vUp);
+    }
+}
+
+void LocationCamera::StoreRestoreDynamicFov(bool bStore)
+{
+    if (!AttributesPointer)
+        return;
+    auto *pA = AttributesPointer->GetAttributeClass("DynamicFov");
+    if (!pA)
+        pA = AttributesPointer->CreateSubAClass(AttributesPointer, "DynamicFov");
+    if (!pA)
+        return;
+
+    if (bStore)
+    {
+        // store
+        pA->SetAttributeUseDword("ison", dynamic_fog.isOn);
+        if (dynamic_fog.isOn)
+        {
+            pA->SetAttributeUseFloat("minfov", dynamic_fog.fMinFov);
+            pA->SetAttributeUseFloat("maxfov", dynamic_fog.fMaxFov);
+            pA->SetAttributeUseFloat("curfov", dynamic_fog.fCurFov);
+            pA->SetAttributeUseDword("fogup", dynamic_fog.bFogUp);
+            pA->SetAttributeUseFloat("speed", dynamic_fog.fFogChangeSpeed);
+            pA->SetAttributeUseFloat("timecur", dynamic_fog.fFogTimeCur);
+            pA->SetAttributeUseFloat("timemax", dynamic_fog.fFogTimeMax);
+
+            pA->SetAttributeUseFloat("curangle", dynamic_fog.fCurAngle);
+            pA->SetAttributeUseFloat("maxangle", dynamic_fog.fMaxAngle);
+            pA->SetAttributeUseFloat("speedangle", dynamic_fog.fAngleSpeed);
+            pA->SetAttributeUseDword("angleup", dynamic_fog.bAngleUp);
+        }
+    }
+    else
+    {
+        // restore
+        dynamic_fog.isOn = pA->GetAttributeAsDword("ison", false) != 0;
+        if (dynamic_fog.isOn)
+        {
+            dynamic_fog.fMinFov = pA->GetAttributeAsFloat("minfov", cameraPerspective);
+            dynamic_fog.fMaxFov = pA->GetAttributeAsFloat("maxfov", cameraPerspective);
+            dynamic_fog.fCurFov = pA->GetAttributeAsFloat("curfov", cameraPerspective);
+            dynamic_fog.bFogUp = pA->GetAttributeAsDword("fogup", true) != 0;
+            dynamic_fog.fFogChangeSpeed = pA->GetAttributeAsFloat("speed", 0.1f);
+            dynamic_fog.fFogTimeCur = pA->GetAttributeAsFloat("timecur", 0.f);
+            dynamic_fog.fFogTimeMax = pA->GetAttributeAsFloat("timemax", 0.f);
+
+            dynamic_fog.fCurAngle = pA->GetAttributeAsFloat("curangle", 0.f);
+            dynamic_fog.fMaxAngle = pA->GetAttributeAsFloat("maxangle", 0.f);
+            dynamic_fog.fAngleSpeed = pA->GetAttributeAsFloat("speedangle", 0.1f);
+            dynamic_fog.bAngleUp = pA->GetAttributeAsDword("angleup", true) != 0;
+        }
+    }
+}
+
+bool LocationCamera::LoadCameraTrack(const char *pcTrackFile, float fTrackTime)
+{
+    m_fTrackCurTime = 0.f;
+    m_fTrackMaxTime = fTrackTime;
+    m_fPauseTime = 0.f;
+    m_nCurPauseIndex = -1;
+    m_bTrackMode = false;
+
+    if (!m_track.Load(pcTrackFile))
+        return false;
+
+    m_bTrackMode = true;
+    m_sCurTrackName = pcTrackFile;
+
+    // setting the camera to the beginning of the track
+    glm::vec3 pos;
+    glm::quat ang;
+    m_track.GetPoint(0.f, pos, ang);
+    auto view = glm::mat4_cast(ang);
+    storm::math::vx(view) = storm::math::negated(storm::math::vx(view));
+    storm::math::vz(view) = storm::math::negated(storm::math::vz(view));
+    storm::math::invertRigid(view);
+    storm::math::pos(view) = storm::math::transformPoint(view, storm::math::negated(pos));
+    rs->SetView(view);
+    rs->SetPerspective(cameraPerspective);
+
+    return true;
+}
+
+void LocationCamera::TurnOffTrackCamera()
+{
+    m_bTrackMode = false;
+    if (m_fTrackCurTime >= m_fTrackMaxTime)
+    {
+        kMorph = 0.f;
+
+        glm::vec3 pos;
+        glm::quat ang;
+        m_track.GetPoint(0.99999f, pos, ang);
+        auto view = glm::mat4_cast(ang);
+        storm::math::vx(view) = storm::math::negated(storm::math::vx(view));
+        storm::math::vz(view) = storm::math::negated(storm::math::vz(view));
+        storm::math::invertRigid(view);
+
+        oldPos = pos;
+        oldLookTo = storm::math::inverseTransformNormal(view, glm::vec3(0.f, 0.f, 1.f));
+    }
+    core.Event("TrackCameraOff", "s", m_sCurTrackName.c_str());
+}
+
+void LocationCamera::ProcessTrackCamera()
+{
+    const auto fTrackTime = TrackPauseProcess();
+
+    if (fTrackTime >= m_fTrackMaxTime)
+    {
+        TurnOffTrackCamera();
+        return;
+    }
+
+    glm::vec3 pos;
+    glm::quat ang;
+    m_track.GetPoint(fTrackTime / m_fTrackMaxTime, pos, ang);
+    auto view = glm::mat4_cast(ang);
+    storm::math::vx(view) = storm::math::negated(storm::math::vx(view));
+    storm::math::vz(view) = storm::math::negated(storm::math::vz(view));
+    storm::math::invertRigid(view);
+    storm::math::pos(view) = storm::math::transformPoint(view, storm::math::negated(pos));
+    rs->SetView(view);
+    rs->SetPerspective(cameraPerspective);
+}
+
+float LocationCamera::TrackPauseProcess()
+{
+    auto fOldTime = m_fTrackCurTime;
+    m_fTrackCurTime += core.GetDeltaTime() * 0.001f;
+
+    return m_fTrackCurTime;
+
+}

@@ -1,0 +1,20 @@
+<c-screen id="header" key="header" title="{{ map ? map.title : title }}" sections="{{headerSection}}" subject="{{ map ? 'null' : json(subject) }}" stats="{{ map ? '[]' : json(stats) }}" actions="{{ json(extras.actions) }}">
+<t-if test="map"><div class="it-cols">
+<c-panel class="it-map" tone="parchment" pad="0"><div class="it-map-pic"><c-row-image image="{{ json(map.image) }}" icon="map" size="320" icon-size="96" label="{{map.title}}" surface="parchment" style="width: 100%; height: 100%"/></div></c-panel>
+<c-panel class="it-map-text" tone="parchment" gap="8"><c-object-header title="{{map.title}}" surface="parchment" style="width: 100%"/><div class="it-scroll"><div class="it-text ink">{{map.text}}</div></div></c-panel>
+</div><t-else/><div class="it-cols">
+<c-panel class="it-slots" pad="0"><div class="it-grid"><t-for each="slots" as="s"><c-tile id="slot-{{s.id}}" class="it-slot" icon="{{s.icon}}" image="{{ json(opt(s.image)) }}" label="{{s.label}}" sub="{{opt(s.sub)}}" empty="{{ opt(s.empty) ? 1 : 0 }}" selected="{{ s.selected ? 1 : 0 }}" layout="column" size="26"/></t-for></div></c-panel>
+<div class="it-pair"><c-panel class="it-list" pad="0" gap="0">
+<t-if test="len(tabs) > 1"><div class="it-tabs"><c-tabs id="item-tabs" look="segment" stretch="1" items="{{ json(tabs) }}"/></div></t-if>
+<div class="it-table"><s-item-grid id="items" rows="{{ json(rows) }}" empty="{{empty}}"/></div>
+<t-if test="extras.note"><div class="it-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+</c-panel>
+<c-panel class="it-detail" tone="parchment" gap="8"><t-if test="detail">
+<c-object-header image="{{ json(detail.image) }}" title="{{detail.title}}" sub="{{detail.sub}}" surface="parchment" style="width: 100%"/>
+<t-if test="len(detail.facts) > 0"><c-kv items="{{ json(detail.facts) }}" surface="parchment" style="width: 100%"/></t-if>
+<div class="it-scroll"><div class="it-text ink">{{detail.text}}</div></div>
+<t-if test="detail.action"><t-if test="opt(detail.action.sub)"><div id="item-removal-warning" class="it-text ink">{{opt(detail.action.sub)}}</div></t-if><div class="it-actions"><c-button id="{{detail.action.id}}" label="{{detail.action.label}}" variant="{{ detail.action.variant }}" hold="{{ detail.action.hold ? 1 : 0 }}" surface="parchment" disabled="{{ detail.action.disabled ? 1 : 0 }}" reason="{{detail.action.reason}}" busy="{{ detail.action.busy ? 1 : 0 }}"/></div></t-if>
+</t-if></c-panel></div>
+</div></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

@@ -1,0 +1,879 @@
+#include "spyglass.h"
+#include "bi_utils.h"
+#include "../image/image.h"
+#include "../image/img_render.h"
+#include "../sea/ships_list.h"
+#include "controls.h"
+#include "core.h"
+#include "entity.h"
+#include "message.h"
+#include "shared/battle_interface/msg_control.h"
+#include "shared/events.h"
+#include "shared/messages.h"
+
+#ifdef __ANDROID__
+#include "platform/android_camera_zoom.hpp"
+#include "platform/android_ui.hpp"
+
+namespace
+{
+// How long a shown target may go without the UI's card before that is reported.
+constexpr uint32_t kAndroidCardWaitMs = 1500;
+} // namespace
+#include <tuple>
+#endif
+
+void ISPYGLASS::ImageParam::Release()
+{
+    STORM_DELETE(pImage);
+}
+
+void ISPYGLASS::ImageParam::LoadFromAttr(BIImageRender *pImgRender, ATTRIBUTES *pA, const char *pcDefName,
+                                         int32_t nDefLeftPos, int32_t nDefTopPos, int32_t nDefRightPos, int32_t nDefBottomPos,
+                                         int32_t nPrior)
+{
+    sTextureName = BIUtils::GetStringFromAttr(pA, "texture", pcDefName);
+    dwColor = BIUtils::GetIntFromAttr(pA, "color", 0xFF808080);
+    FULLRECT(rUV);
+    BIUtils::ReadRectFromAttr(pA, "uv", rUV, rUV);
+    rPos.left = nDefLeftPos;
+    rPos.top = nDefTopPos;
+    rPos.right = nDefRightPos;
+    rPos.bottom = nDefBottomPos;
+    BIUtils::ReadRectFromAttr(pA, "pos", rPos, rPos);
+    pImage = static_cast<BIImage *>(
+        pImgRender->CreateImage(BIType_square, sTextureName.c_str(), dwColor, rUV, rPos, nPrior));
+    Assert(pImage);
+}
+
+void ISPYGLASS::ImageParam::ChangeIcon(BIImageRender *pImgRender, const char *pcTextureName, FRECT &frUV)
+{
+    rUV = frUV;
+    if (sTextureName == pcTextureName)
+    {
+        pImage->SetUV(frUV);
+    }
+    else
+    {
+        const auto nPrior = pImage ? pImage->GetPrioritet() : ImagePrioritet_DefaultValue;
+        STORM_DELETE(pImage);
+        sTextureName = pcTextureName;
+        pImage = static_cast<BIImage *>(
+            pImgRender->CreateImage(BIType_square, sTextureName.c_str(), dwColor, rUV, rPos, nPrior));
+    }
+}
+
+void ISPYGLASS::TextParam::LoadFromAttr(VRenderer *rs, ATTRIBUTES *pA, const char *pcDefText, int32_t nDefXPos,
+                                        int32_t nDefYPos)
+{
+    this->rs = rs;
+    nFontID = BIUtils::GetFontIDFromAttr(pA, "font", rs, "interface_normal");
+    BIUtils::ReadPosFromAttr(pA, "pos", pos.x, pos.y, nDefXPos, nDefYPos);
+    fScale = BIUtils::GetFloatFromAttr(pA, "scale", 1.f);
+    dwColor = BIUtils::GetIntFromAttr(pA, "color", 0xFFFFFFFF);
+    nAlign = BIUtils::GetAlignmentFromAttr(pA, "align", PR_ALIGN_LEFT);
+    sText = BIUtils::GetStringFromAttr(pA, "text", pcDefText);
+}
+
+void ISPYGLASS::TextParam::Print() const
+{
+    if (rs && !sText.empty())
+        rs->ExtPrint(nFontID, dwColor, 0, nAlign, true, fScale, 0, 0, pos.x, pos.y, "%s", sText.c_str());
+}
+
+ISPYGLASS::ISPYGLASS()
+{
+    rs = nullptr;
+    m_pImgRender = nullptr;
+    m_bIsOn = false;
+    m_bIsPresentShipInfo = false;
+    m_nInfoCharacterIndex = -1;
+
+    m_pFortObj = nullptr;
+
+    m_fInfoKeepDelay = 0.f;
+    m_fMaxInfoKeepDelay = 1.5f;
+}
+
+ISPYGLASS::~ISPYGLASS()
+{
+    Release();
+}
+
+bool ISPYGLASS::Init()
+{
+    if ((rs = static_cast<VRenderer *>(core.GetService("renderer"))) == nullptr)
+    {
+        throw std::runtime_error("Can`t create render service");
+    }
+
+    m_pImgRender = new BIImageRender(rs);
+    Assert(m_pImgRender);
+
+    m_Lens.LoadFromAttr(m_pImgRender, GetAttr("lens"), "battle_interface\\spyglass\\eye_badTub.tga", 0, 0, 1024, 768,
+                        8000);
+#ifndef __ANDROID__
+    // Only the lens belongs to the native Android telescope; the touch HUD owns all info.
+    m_ShipImage.LoadFromAttr(m_pImgRender, GetAttr("shipsign.ship"), "battle_interface\\ship_icons1.tga", 80, 600, 144,
+                             664, 9000);
+    m_ShipBack.LoadFromAttr(m_pImgRender, GetAttr("shipsign.back"), "battle_interface\\shipbackicon.tga", 80, 600, 208,
+                            728, 10000);
+    m_ShipHP.LoadFromAttr(m_pImgRender, GetAttr("shipsign.hp"), "battle_interface\\ShipState.tga", 80, 600, 208, 728,
+                          10000);
+    m_ShipSP.LoadFromAttr(m_pImgRender, GetAttr("shipsign.sp"), "battle_interface\\ShipState.tga", 80, 600, 208, 728,
+                          10000);
+    m_Class.LoadFromAttr(m_pImgRender, GetAttr("shipsign.class"), "battle_interface\\ShipClass.tga", 80, 600, 208, 728,
+                         10000);
+    m_Nation.LoadFromAttr(m_pImgRender, GetAttr("info.nation"), "flagall.tga", 210, 600, 274, 632, 10000);
+    m_Cannon.LoadFromAttr(m_pImgRender, GetAttr("info.cannon"), "battle_interface\\list_icon2.tga", 320, 600, 384, 664,
+                          10000);
+    m_Sail.LoadFromAttr(m_pImgRender, GetAttr("info.speed"), "battle_interface\\list_icon2.tga", 420, 600, 484, 664,
+                        10000);
+    m_Charge.LoadFromAttr(m_pImgRender, GetAttr("info.charge"), "battle_interface\\list_icon2.tga", 520, 600, 584, 664,
+                          10000);
+    m_SailTo.LoadFromAttr(m_pImgRender, GetAttr("info.sailto"), "battle_interface\\list_icon2.tga", 620, 600, 684, 664,
+                          10000); // boal
+
+    // captain image data
+    m_CaptainBack.LoadFromAttr(m_pImgRender, GetAttr("captain.back"), "battle_interface\\shipbackicon.tga", 816, 600,
+                               944, 728, 10000);
+    m_CaptainFace.LoadFromAttr(m_pImgRender, GetAttr("captain.face"), "battle_interface\\portraits\\face_0.tga", 816,
+                               600, 880, 664, 9000);
+    m_ImgCaptainFencing.LoadFromAttr(m_pImgRender, GetAttr("captain.fencing"), "interfaces\\skills.tga", 680, 600, 764,
+                                     664, 10000);
+    m_ImgCaptainCannon.LoadFromAttr(m_pImgRender, GetAttr("captain.cannon"), "interfaces\\skills.tga", 552, 600, 616,
+                                    664, 10000);
+    m_ImgCaptainAccuracy.LoadFromAttr(m_pImgRender, GetAttr("captain.accuracy"), "interfaces\\skills.tga", 424, 600,
+                                      488, 664, 10000);
+    m_ImgCaptainNavigation.LoadFromAttr(m_pImgRender, GetAttr("captain.navigation"), "interfaces\\skills.tga", 296, 600,
+                                        360, 664, 10000);
+    m_ImgCaptainBoarding.LoadFromAttr(m_pImgRender, GetAttr("captain.boarding"), "interfaces\\skills.tga", 168, 600,
+                                      232, 664, 10000);
+
+#endif
+    // captain text data
+    m_TextCaptainName.LoadFromAttr(rs, GetAttr("captext.capname"), "?", 210, 640);
+    m_TextCaptainFencing.LoadFromAttr(rs, GetAttr("captext.fencing"), "", 210, 640);
+    m_TextCaptainCannon.LoadFromAttr(rs, GetAttr("captext.cannon"), "", 210, 640);
+    m_TextCaptainAccuracy.LoadFromAttr(rs, GetAttr("captext.accuracy"), "", 210, 640);
+    m_TextCaptainNavigation.LoadFromAttr(rs, GetAttr("captext.navigation"), "", 210, 640);
+    m_TextCaptainBoarding.LoadFromAttr(rs, GetAttr("captext.boarding"), "", 210, 640);
+
+    m_txtShipType.LoadFromAttr(rs, GetAttr("text.shiptype"), "Caravella", 210, 640);
+    m_txtShipName.LoadFromAttr(rs, GetAttr("text.shipname"), "Noname", 210, 660);
+    m_txtCannons.LoadFromAttr(rs, GetAttr("text.cannons"), "14/16", 390, 610);
+    m_txtShipSpeed.LoadFromAttr(rs, GetAttr("text.speed"), "6.3", 490, 610);
+    m_txtSailTo.LoadFromAttr(rs, GetAttr("text.sailto"), "6.3", 590, 610); // boal
+    m_txtShipCrew.LoadFromAttr(rs, GetAttr("text.crew"), "", 144, 700);
+
+    FillUVArrayFromAttributes(m_aNationUV, GetAttr("nationuvarray"));
+    FillUVArrayFromAttributes(m_aChargeUV, GetAttr("chargeuvarray"));
+    FillUVArrayFromAttributes(m_aSailUV, GetAttr("sailuvarray"));
+
+    glm::vec3 pos, ang;
+    rs->GetCamera(pos, ang, m_Camera.fOldPerspective);
+
+    return true;
+}
+
+void ISPYGLASS::Execute(uint32_t delta_time)
+{
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("TelescopeIn", cs);
+    if (cs.state == CST_ACTIVATED)
+        core.Event("MSG_TELESCOPE_REQUEST", "l", 1);
+    core.Controls->GetControlState("TelescopeOut", cs);
+    if (cs.state == CST_ACTIVATED)
+        core.Event("MSG_TELESCOPE_REQUEST", "l", 0);
+
+#ifdef __ANDROID__
+    // A missing touch card is an error; the legacy information stays disabled.
+    const uint32_t now = SDL_GetTicks();
+    if (!storm::android::spyglass.shows())
+        m_dwAndroidShownSince = 0;
+    else if (m_dwAndroidShownSince == 0)
+        m_dwAndroidShownSince = now ? now : 1;
+    else if (!storm::android::spyglass.covered() && now - m_dwAndroidShownSince >= kAndroidCardWaitMs &&
+             m_nAndroidWarnedGeneration != storm::android::spyglass.generation())
+    {
+        m_nAndroidWarnedGeneration = storm::android::spyglass.generation();
+        spdlog::error("Spyglass: a target has been shown for {} ms but the portable UI drew no card for it ({}); the "
+                     "touch HUD recovery required; legacy info remains disabled",
+                     kAndroidCardWaitMs, storm::android::spyglass.awaiting() ? "no answer on the spyglass channel" : "it answered without the overlay");
+    }
+#endif
+    if (m_bIsOn)
+    {
+        UpdateCamera();
+        auto bFindNewTarget = false;
+        if (m_Camera.fCurUpdatingTime >= m_Camera.fUpdateTime)
+            bFindNewTarget = true;
+        if (m_nInfoCharacterIndex >= 0 && m_fInfoKeepDelay > 0.f)
+        {
+            m_fInfoKeepDelay -= 0.001f * delta_time;
+            if (m_fInfoKeepDelay <= 0.f)
+                bFindNewTarget = true;
+        }
+        if (bFindNewTarget)
+        {
+            m_Camera.fCurUpdatingTime = 0.f;
+            FindNewTargetShip();
+        }
+    }
+}
+
+void ISPYGLASS::Realize(uint32_t delta_time) const
+{
+    if (m_bIsOn)
+    {
+        rs->MakePostProcess();
+        if (m_pImgRender)
+            m_pImgRender->Render();
+
+#ifndef __ANDROID__
+        if (m_bIsPresentShipInfo)
+        {
+            m_txtShipType.Print();
+            m_txtShipName.Print();
+            m_txtCannons.Print();
+            m_txtShipSpeed.Print();
+            m_txtSailTo.Print(); // boal
+            m_txtShipCrew.Print();
+
+            m_TextCaptainName.Print();
+            m_TextCaptainFencing.Print();
+            m_TextCaptainCannon.Print();
+            m_TextCaptainAccuracy.Print();
+            m_TextCaptainNavigation.Print();
+            m_TextCaptainBoarding.Print();
+        }
+#endif
+    }
+}
+
+uint64_t ISPYGLASS::ProcessMessage(MESSAGE &message)
+{
+    auto nMsgCode = message.Long();
+
+    switch (nMsgCode)
+    {
+    case MSG_TELESCOPE_REQUEST: {
+        auto nIsOn = message.Long();
+        TurnOnTelescope(nIsOn != 0);
+    }
+    break;
+
+    case MSG_TELESCOPE_SET_TYPE: // "lsfll"
+    {
+        const std::string &param = message.String();
+        auto fZoomScale = message.Float();
+        auto fActivateTime = message.Long() * .001f;
+        auto fUpdateTime = message.Long() * .001f;
+        ChangeTelescopeType(param.c_str(), fZoomScale, fActivateTime, fUpdateTime);
+        m_pFortObj = nullptr;
+    }
+    break;
+
+    case MSG_ISG_UPDATE: // "lsslllfflllllllllllss"
+    {
+        const std::string &shipname = message.String();
+        const std::string &shiptype = message.String();
+        auto fRelativeHP = message.Long() * .01f;
+        auto fRelativeSP = message.Long() * .01f;
+        auto nShipCrew = message.Long();
+        auto fShipSpeed = message.Float();
+        auto fSailTo = message.Float(); // boal
+        auto nCurCannons = message.Long();
+        auto nMaxCannons = message.Long();
+        auto nCharge = message.Long();
+        auto nNation = message.Long();
+
+        auto nSailState = message.Long();
+        auto nFace = message.Long();
+        auto nFencingSkl = message.Long();
+        auto nCannonSkl = message.Long();
+        auto nAccuracySkl = message.Long();
+        auto nNavigationSkl = message.Long();
+        auto nBoardingSkl = message.Long();
+        const std::string &captainname = message.String();
+        const std::string &facetexture = message.String();
+        auto nShipClass = message.Long();
+        ChangeTargetData(shipname.c_str(), shiptype.c_str(), fRelativeHP, fRelativeSP, nShipCrew, fShipSpeed, fSailTo,
+                         nCurCannons, nMaxCannons, nCharge, nNation, nSailState, nFace, nFencingSkl, nCannonSkl,
+                         nAccuracySkl, nNavigationSkl, nBoardingSkl, captainname.c_str(), facetexture.c_str(),
+                         nShipClass);
+    }
+    break;
+
+    case MSG_ISG_SET_SHIPICON: // "sffff"
+    {
+        FRECT frUV;
+        const std::string &texturename = message.String();
+        frUV.left = message.Float();
+        frUV.top = message.Float();
+        frUV.right = message.Float();
+        frUV.bottom = message.Float();
+#ifndef __ANDROID__
+        m_ShipImage.ChangeIcon(m_pImgRender, texturename.c_str(), frUV);
+#endif
+    }
+    break;
+    case MSG_ISG_SET_CHARICON: // "sffff"
+    {
+        FRECT frUV;
+        const std::string &captexturename = message.String();
+        frUV.left = message.Float();
+        frUV.top = message.Float();
+        frUV.right = message.Float();
+        frUV.bottom = message.Float();
+#ifndef __ANDROID__
+        m_CaptainBack.ChangeIcon(m_pImgRender, captexturename.c_str(), frUV);
+#endif
+    }
+    break;
+    }
+    return 0;
+}
+
+void ISPYGLASS::Release()
+{
+    TurnOnTelescope(false);
+
+    m_Lens.Release();
+    m_ShipImage.Release();
+    m_ShipBack.Release();
+    m_ShipHP.Release();
+    m_ShipSP.Release();
+    m_Class.Release();
+    m_Nation.Release();
+    m_Cannon.Release();
+    m_Sail.Release();
+    m_Charge.Release();
+    m_SailTo.Release(); // boal
+    m_txtShipType.Release();
+    m_txtShipName.Release();
+    m_txtCannons.Release();
+    m_txtShipSpeed.Release();
+    m_txtSailTo.Release(); // boal
+
+    m_CaptainBack.Release();
+    m_CaptainFace.Release();
+    m_TextCaptainName.Release();
+    m_ImgCaptainFencing.Release();
+    m_TextCaptainFencing.Release();
+    m_ImgCaptainCannon.Release();
+    m_TextCaptainCannon.Release();
+    m_ImgCaptainAccuracy.Release();
+    m_TextCaptainAccuracy.Release();
+    m_ImgCaptainNavigation.Release();
+    m_TextCaptainNavigation.Release();
+    m_ImgCaptainBoarding.Release();
+    m_TextCaptainBoarding.Release();
+
+    STORM_DELETE(m_pImgRender);
+}
+
+ATTRIBUTES *ISPYGLASS::GetAttr(const char *pcAttrName) const
+{
+    if (AttributesPointer)
+        return AttributesPointer->FindAClass(AttributesPointer, pcAttrName);
+    return nullptr;
+}
+
+void ISPYGLASS::TurnOnTelescope(bool bTurnOn)
+{
+    if (bTurnOn == m_bIsOn)
+        return;
+    m_bIsOn = bTurnOn;
+#ifdef __ANDROID__
+    storm::android::spyglass.turn(bTurnOn);
+    storm::android::publishSpyglass();
+#endif
+    if (m_bIsOn)
+    {
+        m_Camera.bIsActive = false;
+        m_Camera.bIsGrow = true;
+        m_Camera.fCurActivateTime = 0.f;
+        m_Camera.fCurUpdatingTime = m_Camera.fUpdateTime;
+#ifdef __ANDROID__
+        glm::vec3 pos, ang;
+        rs->GetCamera(pos, ang, m_Camera.fRaisedFromPerspective);
+#endif
+
+        m_pFortObj = nullptr;
+
+        core.Event(TELESCOPE_ACTIVE, "l", 1);
+        core.Event("BI_VISIBLE", "l", 0);
+    }
+    else
+    {
+        m_bIsPresentShipInfo = false;
+        m_nInfoCharacterIndex = -1;
+        m_Camera.bIsActive = false;
+        m_Camera.bIsGrow = true;
+        m_Camera.fCurUpdatingTime = 0.f;
+
+        core.Event(TELESCOPE_ACTIVE, "l", 0);
+        core.Event("BI_VISIBLE", "l", 1);
+    }
+}
+
+void ISPYGLASS::SetShipInfo(int32_t nCharIndex)
+{
+    m_nInfoCharacterIndex = nCharIndex;
+    if (m_nInfoCharacterIndex < 0)
+        m_bIsPresentShipInfo = false;
+    else
+        m_bIsPresentShipInfo = true;
+
+    core.Event("SetTelescopeInfo", "l", m_nInfoCharacterIndex);
+
+#ifdef __ANDROID__
+    if (m_nInfoCharacterIndex < 0)
+    {
+        storm::android::spyglass.clear();
+        storm::android::publishSpyglass();
+    }
+#endif
+#ifndef __ANDROID__
+    ApplyInfoColors();
+#endif
+}
+
+#ifndef __ANDROID__
+// Desktop target information keeps its original colors; Android only draws the touch card.
+void ISPYGLASS::ApplyInfoColors()
+{
+    const bool lit = m_bIsPresentShipInfo;
+    const auto paint = [lit](ImageParam &image, uint32_t shown) {
+        if (image.pImage)
+            image.pImage->SetColor(lit ? shown : shown & 0xFFFFFF);
+    };
+    for (ImageParam *image : {&m_ShipImage, &m_ShipBack, &m_ShipHP, &m_ShipSP, &m_Class, &m_Nation, &m_Cannon, &m_Sail,
+                              &m_Charge, &m_SailTo})
+        paint(*image, image->dwColor);
+    paint(m_CaptainBack, m_CaptainBack.dwColor);
+    for (ImageParam *image : {&m_CaptainFace, &m_ImgCaptainFencing, &m_ImgCaptainCannon, &m_ImgCaptainAccuracy,
+                              &m_ImgCaptainNavigation, &m_ImgCaptainBoarding})
+        paint(*image, lit ? image->dwColor : 0xFFFFFF);
+}
+#endif
+
+void ISPYGLASS::FindNewTargetShip()
+{
+    // get trace ray
+    glm::mat4 mtxv;
+    rs->GetTransform(D3DTS_VIEW, (D3DMATRIX *)&mtxv);
+    glm::vec3 src, dst;
+    src = storm::math::inverseTransformPoint(mtxv, glm::vec3(0.0f, 0.0f, 0.0f));
+    dst = storm::math::inverseTransformPoint(mtxv, glm::vec3(0.0f, 0.0f, 10000.f));
+
+    // find ships
+    int32_t nFindedCharIndex = -1;
+    auto fFindedDistance = 2.f;
+    auto *pMainSD = g_ShipList.GetMainCharacterShip();
+    for (auto *pSD = g_ShipList.GetShipRoot(); pSD; pSD = pSD->next)
+    {
+        if (pMainSD == pSD)
+            continue;
+        auto fTrace = pSD->pShip->Trace(src, dst);
+        if (fTrace <= 1.f && fTrace < fFindedDistance)
+        {
+            nFindedCharIndex = pSD->characterIndex;
+            fFindedDistance = fTrace;
+        }
+    }
+
+    // find fort
+    auto *pFort = GetFort();
+    if (pFort)
+    {
+        float fTrace = pFort->Trace(src, dst);
+        if (fTrace <= 1.f && fTrace < fFindedDistance)
+        {
+            fFindedDistance = fTrace;
+            ATTRIBUTES *pA = pFort->GetACharacter();
+            if (pA)
+                nFindedCharIndex = pA->GetAttributeAsDword("index", -1);
+        }
+    }
+
+    if (nFindedCharIndex == -1)
+    {
+        if (m_nInfoCharacterIndex != -1 && m_fInfoKeepDelay > 0.f)
+        {
+            SetShipInfo(m_nInfoCharacterIndex);
+        }
+        else
+        {
+            // find by ship sphere
+            fFindedDistance = -1.f;
+            for (SHIP_DESCRIBE_LIST::SHIP_DESCR *pSD = g_ShipList.GetShipRoot(); pSD; pSD = pSD->next)
+            {
+                if (pMainSD == pSD)
+                    continue;
+                if (storm::math::intersectSegmentSphere(src, dst, pSD->pShip->GetPos(), 40.f))
+                {
+                    float fTrace = storm::math::lengthSquared(pSD->pShip->GetPos() - src);
+                    if (fFindedDistance < 0.f || fTrace < fFindedDistance)
+                    {
+                        nFindedCharIndex = pSD->characterIndex;
+                        fFindedDistance = fTrace;
+                    }
+                }
+            }
+            //
+            SetShipInfo(nFindedCharIndex);
+        }
+    }
+    else
+    {
+        m_fInfoKeepDelay = m_fMaxInfoKeepDelay;
+        SetShipInfo(nFindedCharIndex);
+    }
+}
+
+void ISPYGLASS::ChangeTelescopeType(const char *pcTextureName, float fZoomScale, float fActivateTime, float fUpdateTime)
+{
+    m_Camera.fActivateTime = fActivateTime;
+    m_Camera.fUpdateTime = fUpdateTime;
+    if (fZoomScale > 0.f)
+        m_Camera.fSpyGlassPerspective = m_Camera.fOldPerspective / fZoomScale;
+    else
+        m_Camera.fSpyGlassPerspective = m_Camera.fOldPerspective;
+#ifdef __ANDROID__
+    m_Camera.fGlassMagnification = m_Camera.fMagnification = fZoomScale > 0.f ? fZoomScale : 1.f;
+#endif
+
+    m_Camera.bIsActive = false;
+    m_Camera.bIsGrow = true;
+}
+
+void ISPYGLASS::UpdateCamera()
+{
+    if (!m_bIsOn)
+        return;
+    const float fTime = core.GetDeltaTime() * .001f;
+    m_Camera.fCurUpdatingTime += fTime;
+#ifdef __ANDROID__
+    // The pinch of the camera look: the telescope's zoom, from no magnification to the glass's own.
+    if (const float scale = storm::android::cameraZoom.take(); scale != 1.f)
+    {
+        const float glass = m_Camera.fGlassMagnification;
+        m_Camera.fMagnification =
+            storm::android::pinchMagnification(m_Camera.fMagnification, scale, std::min(1.f, glass), std::max(1.f, glass));
+        m_Camera.fSpyGlassPerspective = m_Camera.fOldPerspective / m_Camera.fMagnification;
+    }
+#endif
+
+    if (!m_Camera.bIsActive)
+    {
+        m_Camera.fCurActivateTime += fTime;
+        if (m_Camera.fCurActivateTime >= m_Camera.fActivateTime)
+        {
+            m_Camera.fCurActivateTime = 0.f; // counter to zero
+            if (m_Camera.bIsGrow)
+                m_Camera.bIsActive = true;        // now working fully
+            m_Camera.bIsGrow = !m_Camera.bIsGrow; // ready immediately
+        }
+    }
+
+    if (m_Camera.bIsActive)
+        rs->SetPerspective(m_Camera.fSpyGlassPerspective);
+    else
+    {
+        float fPerspect = m_Camera.fOldPerspective;
+        if (m_Camera.bIsGrow)
+        {
+#ifdef __ANDROID__
+            fPerspect = storm::android::telescopeGrowPerspective(m_Camera.fRaisedFromPerspective, m_Camera.fSpyGlassPerspective,
+                                                                 m_Camera.fCurActivateTime / m_Camera.fActivateTime);
+#else
+            fPerspect = m_Camera.fOldPerspective + (m_Camera.fSpyGlassPerspective - m_Camera.fOldPerspective) *
+                                                       (m_Camera.fCurActivateTime / m_Camera.fActivateTime);
+#endif
+        }
+        else
+        {
+            fPerspect = m_Camera.fOldPerspective - (m_Camera.fSpyGlassPerspective - m_Camera.fOldPerspective) *
+                                                       (1.f - m_Camera.fCurActivateTime / m_Camera.fActivateTime);
+        }
+        rs->SetPerspective(fPerspect);
+    }
+}
+
+void ISPYGLASS::ChangeTargetData(const char *pcShipName, const char *pcShipType, float fRelativeHP, float fRelativeSP,
+                                 int32_t nShipCrew, float fShipSpeed, float fSailTo, int32_t nCurCannons, int32_t nMaxCannons,
+                                 int32_t nCharge, int32_t nNation, int32_t nSailState, int32_t nFace, int32_t nFencing, int32_t nCannon,
+                                 int32_t nAccuracy, int32_t nNavigation, int32_t nBoarding, const char *pcCaptainName,
+                                 const char *pcFaceTexture, int32_t nShipClass)
+{
+    char param[256];
+
+    m_txtShipName.sText = pcShipName;
+    m_txtShipType.sText = pcShipType;
+
+    // distance to -->
+    if (fSailTo >= 0.f)
+    {
+        sprintf_s(param, sizeof(param), "%.1f", fSailTo);
+        m_txtSailTo.sText = param;
+    }
+    else
+    {
+        m_txtSailTo.sText = "";
+    }
+    // boal <--
+    if (fShipSpeed >= 0.f)
+    {
+        sprintf_s(param, sizeof(param), "%.1f", fShipSpeed);
+        m_txtShipSpeed.sText = param;
+    }
+    else
+    {
+        m_txtShipSpeed.sText = "";
+    }
+
+    if (nCurCannons >= 0 && nMaxCannons >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d/%d", nCurCannons, nMaxCannons);
+        m_txtCannons.sText = param;
+        if (m_Cannon.pImage)
+            m_Cannon.pImage->CutSide(0.f, 0.f, 0.f, 0.f); // show
+    }
+    else
+    {
+        m_txtCannons.sText = "";
+        if (m_Cannon.pImage)
+            m_Cannon.pImage->CutSide(0.f, 1.f, 0.f, 0.f); // hide
+    }
+
+    if (nShipClass > 0)
+    {
+        float fCutVal = 1.f;
+        switch (nShipClass)
+        {
+        case 1:
+            fCutVal = 1.f - 13.f / 64.f;
+            break;
+        case 2:
+            fCutVal = 1.f - 22.f / 64.f;
+            break;
+        case 3:
+            fCutVal = 1.f - 32.f / 64.f;
+            break;
+        case 4:
+            fCutVal = 1.f - 40.f / 64.f;
+            break;
+        case 5:
+            fCutVal = 1.f - 50.f / 64.f;
+            break;
+        case 6:
+            fCutVal = 0.f;
+            break;
+        case 7:
+            fCutVal = 0.f;
+            break;
+        }
+        if (m_Class.pImage)
+            m_Class.pImage->CutSide(0.f, fCutVal, 0.f, 0.f);
+    }
+    else
+    {
+        if (m_Class.pImage)
+            m_Class.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+
+    if (nShipCrew >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nShipCrew);
+        m_txtShipCrew.sText = param;
+    }
+    else
+    {
+        m_txtShipCrew.sText = "";
+    }
+
+    if (fRelativeHP < 0)
+        fRelativeHP = 0.f;
+    if (m_ShipHP.pImage)
+        m_ShipHP.pImage->CutSide(0.f, 0.f, 1.f - fRelativeHP, 0.f);
+    if (fRelativeSP < 0)
+        fRelativeSP = 0.f;
+    if (m_ShipSP.pImage)
+        m_ShipSP.pImage->CutSide(0.f, 0.f, 1.f - fRelativeSP, 0.f);
+
+    if (nNation >= 0 && nNation < m_aNationUV.size())
+    {
+        if (m_Nation.pImage)
+        {
+            m_Nation.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+            m_Nation.pImage->SetUV(m_aNationUV[nNation]);
+        }
+    }
+    else
+    {
+        if (m_Nation.pImage)
+            m_Nation.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+
+    if (nCharge >= 0 && nCharge < m_aChargeUV.size())
+    {
+        if (m_Charge.pImage)
+        {
+            m_Charge.pImage->CutSide(0.f, 0.f, 0.f, 0.f); // show
+            m_Charge.pImage->SetUV(m_aChargeUV[nCharge]);
+        }
+    }
+    else
+    {
+        if (m_Charge.pImage)
+            m_Charge.pImage->CutSide(0.f, 1.f, 0.f, 0.f); // hide
+    }
+
+    if (nSailState >= 0 && nSailState < m_aSailUV.size())
+    {
+        if (m_Sail.pImage)
+        {
+            m_Sail.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+            m_Sail.pImage->SetUV(m_aSailUV[nSailState]);
+        }
+    }
+    else
+    {
+        if (m_Sail.pImage)
+            m_Sail.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+
+    if (m_CaptainFace.pImage)
+    {
+        if (nFace >= 0)
+            sprintf_s(param, sizeof(param), "battle_interface\\portraits\\face_%d.tga", nFace);
+        else
+            sprintf_s(param, sizeof(param), "%s", pcFaceTexture);
+        FRECT frUV;
+        frUV.left = 0.f;
+        frUV.right = 1.f;
+        frUV.top = 0.f;
+        frUV.bottom = 1.f;
+        m_CaptainFace.ChangeIcon(m_pImgRender, param, frUV);
+    }
+    // further edit the skill icons to hide / show
+    if (nFencing >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nFencing);
+        m_TextCaptainFencing.sText = param;
+        if (m_ImgCaptainFencing.pImage)
+            m_ImgCaptainFencing.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+    }
+    else
+    {
+        m_TextCaptainFencing.sText.clear();
+        if (m_ImgCaptainFencing.pImage)
+            m_ImgCaptainFencing.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+
+    if (nCannon >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nCannon);
+        m_TextCaptainCannon.sText = param;
+        if (m_ImgCaptainCannon.pImage)
+            m_ImgCaptainCannon.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+    }
+    else
+    {
+        m_TextCaptainCannon.sText.clear();
+        if (m_ImgCaptainCannon.pImage)
+            m_ImgCaptainCannon.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+    if (nAccuracy >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nAccuracy);
+        m_TextCaptainAccuracy.sText = param;
+        if (m_ImgCaptainAccuracy.pImage)
+            m_ImgCaptainAccuracy.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+    }
+    else
+    {
+        m_TextCaptainAccuracy.sText.clear();
+        if (m_ImgCaptainAccuracy.pImage)
+            m_ImgCaptainAccuracy.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+    if (nNavigation >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nNavigation);
+        m_TextCaptainNavigation.sText = param;
+        if (m_ImgCaptainNavigation.pImage)
+            m_ImgCaptainNavigation.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+    }
+    else
+    {
+        m_TextCaptainNavigation.sText.clear();
+        if (m_ImgCaptainNavigation.pImage)
+            m_ImgCaptainNavigation.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+    if (nBoarding >= 0)
+    {
+        sprintf_s(param, sizeof(param), "%d", nBoarding);
+        m_TextCaptainBoarding.sText = param;
+        if (m_ImgCaptainBoarding.pImage)
+            m_ImgCaptainBoarding.pImage->CutSide(0.f, 0.f, 0.f, 0.f);
+    }
+    else
+    {
+        m_TextCaptainBoarding.sText.clear();
+        if (m_ImgCaptainBoarding.pImage)
+            m_ImgCaptainBoarding.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
+    }
+    m_TextCaptainName.sText = pcCaptainName;
+#ifdef __ANDROID__
+    storm::android::SpyglassTarget target;
+    // The script sends a fort with the fort icon, no class and no sails.
+    target.fort = nShipClass <= 0 && nSailState < 0;
+    target.name = pcShipName;
+    target.type = pcShipType;
+    target.shipClass = nShipClass > 0 ? nShipClass : -1;
+    target.hull = static_cast<int>(fRelativeHP * 100.f + .5f);
+    target.sails = target.fort ? -1 : static_cast<int>(fRelativeSP * 100.f + .5f);
+    target.crew = nShipCrew;
+    target.speed = fShipSpeed;
+    target.distance = fSailTo;
+    target.cannons = nMaxCannons >= 0 ? nCurCannons : -1;
+    target.cannonsMax = nCurCannons >= 0 ? nMaxCannons : -1;
+    target.charge = nCharge;
+    target.nation = nNation;
+    target.sail = nSailState;
+    std::tie(target.cannonType, target.captain) = storm::android::spyglassCaptainLine(pcCaptainName ? pcCaptainName : "");
+    if (nFace >= 0)
+        target.portrait = "INTERFACES/PORTRAITS/128/face_" + std::to_string(nFace);
+    const int32_t skills[] = {nFencing, nCannon, nAccuracy, nNavigation, nBoarding};
+    for (int i = 0; i < 5; ++i)
+        target.skills[i] = skills[i];
+    storm::android::spyglass.target(target);
+    storm::android::publishSpyglass();
+#endif
+}
+
+void ISPYGLASS::FillUVArrayFromAttributes(std::vector<FRECT> &m_aUV, ATTRIBUTES *pA) const
+{
+    m_aUV.clear();
+    if (!pA)
+        return;
+    for (int32_t n = 0; n < static_cast<int32_t>(pA->GetAttributesNum()); n++)
+    {
+        FRECT rUV;
+        rUV.left = rUV.top = 0.f;
+        rUV.right = rUV.bottom = 1.f;
+        BIUtils::ReadRectFromAttr(pA, pA->GetAttributeName(n), rUV, rUV);
+        m_aUV.push_back(rUV);
+    }
+}
+
+VAI_OBJBASE *ISPYGLASS::GetFort()
+{
+    if (!m_pFortObj)
+    {
+        m_pFortObj = static_cast<VAI_OBJBASE *>(core.GetEntityPointer(core.GetEntityId("AIFORT")));
+    }
+    return m_pFortObj;
+}

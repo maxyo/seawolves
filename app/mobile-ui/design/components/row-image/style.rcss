@@ -1,0 +1,2 @@
+/* c-row-image: lays out as its single picture. */
+c-row-image { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; line-height: 0; }

@@ -1,0 +1,23 @@
+{
+  "look": "Look: swipe on the right",
+  "download_title": "Downloads",
+  "download_working": "Getting files ready…",
+  "download_magnet_set": "Download from a link",
+  "download_pause": "Pause",
+  "download_error": "Error",
+  "download_copying": "Copying",
+  "download_inspecting": "Checking",
+  "download_metadata": "Finding out what's inside",
+  "download_checking": "Checking files",
+  "download_awaiting_selection": "Pick the files",
+  "download_downloading": "Downloading",
+  "download_pausing": "Pausing",
+  "download_paused": "Paused",
+  "download_complete": "Downloaded",
+  "download_interrupted": "Interrupted, you can resume",
+  "download_ready_to_import": "Downloaded, ready to install",
+  "graphics_preset_measured": "Graphics: %s — chosen for this device",
+  "settings_not_saved": "Graphics settings were not saved",
+  "cache_clear_not_marked": "The cache could not be marked for clearing",
+  "interface_error": "Interface error"
+}

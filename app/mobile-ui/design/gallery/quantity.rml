@@ -1,0 +1,43 @@
+<rml>
+<head>
+<title>Количество</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Quantity</div>
+<div class="g-row g-wood">
+  <div style="width: 520dp"><c-quantity id="q-main" value="120" max="600" unit="ц" all="1"/></div>
+</div>
+<div class="g-row g-wood">
+  <div style="width: 520dp"><c-quantity id="q-signed" value="-60" min="-200" max="140" unit="шт." summary="+300 песо" pressed="-10"/></div>
+  <div style="width: 330dp"><c-quantity id="q-signed-pos" value="40" min="-200" max="140" unit="шт." summary="−200 песо" dense="1"/></div>
+</div>
+<div class="g-row g-wood">
+  <div style="width: 440dp"><c-quantity id="q-small" value="7" max="12" unit="чел." steps="[1, 10]" active="1" label="Нанять"/></div>
+  <div style="width: 400dp"><c-quantity id="q-disabled" value="0" max="0" summary="-" dense="1" disabled="1" reason="Трюм полон"/></div>
+</div>
+<div class="g-note">marks: пороги на шкале (минимум команды каждого корабля)</div>
+<div class="g-row g-wood">
+  <div style="width: 640dp"><c-quantity id="q-marks" props='{"value":96,"min":0,"max":154,"zones":true,"origin":96,"lessLabel":"Отдать","moreLabel":"Взять","label":"Корабль 1","unit":"чел.","summary":"-","steps":[1,10],"marks":[{"at":9,"label":"мин. 9"},{"at":133,"label":"мин. 21"}]}'/></div>
+</div>
+<div class="g-row g-wood">
+  <div style="width: 440dp"><c-quantity id="q-max" value="600" max="600" unit="ц" all="1"/></div>
+  <div style="width: 400dp"><c-quantity id="q-min" value="0" max="320" unit="ц" pressed="+10" dense="1" all="1" all-label="Макс"/></div>
+</div>
+<div class="g-row g-paper">
+  <div style="width: 520dp"><c-quantity id="q-paper" surface="parchment" value="250" max="1000" unit="песо" all="1" all-label="Макс"/></div>
+  <div style="width: 330dp"><c-quantity surface="parchment" value="-30" min="-100" max="100" summary="-" dense="1" pressed="+1" active="1"/></div>
+</div>
+<div class="g-row g-scene">
+  <div style="width: 520dp"><c-quantity id="q-glass" surface="glass" value="40" max="320" unit="ц" pressed="+100"/></div>
+  <div style="width: 330dp"><c-quantity surface="glass" value="80" min="-100" max="100" summary="-" dense="1"/></div>
+</div>
+<div class="g-row g-wood">
+  <div style="width: 262dp"><c-quantity id="q-stack" stack="1" value="20" max="100" unit="шт." all="1" summary="−2 ц"/></div>
+  <div style="width: 262dp"><c-quantity stack="1" value="35" max="100" unit="шт." label="Продать"/></div>
+  <c-quantity id="q-width" width="300" value="5" max="40" unit="чел." all="1"/>
+</div>
+</div>
+</body>
+</rml>

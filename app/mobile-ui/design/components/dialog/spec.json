@@ -1,0 +1,46 @@
+{
+  "tag": "c-dialog",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "text", "default": ""},
+    "consequence": {"type": "text", "default": ""},
+    "text": {"type": "text", "default": ""},
+    "icon": {"type": "text", "default": ""},
+    "preset": {"type": "enum", "options": ["", "confirm", "danger"], "default": "", "class": false},
+    "confirm": {"type": "text", "default": ""},
+    "cancel": {"type": "text", "default": "", "defaultKey": "common.cancel"},
+    "variant": {"type": "enum", "options": ["center", "top", "sheet", "sequence"], "default": "center"},
+    "step": {"type": "text", "default": ""},
+    "tone": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "width": {"type": "int", "default": 0},
+    "actions": {"type": "json", "default": []},
+    "scrim": {"type": "bool", "default": true, "class": false},
+    "subtitle": {"type": "text", "default": ""},
+    "closable": {"type": "bool", "default": false, "class": false},
+    "aged": {"type": "bool", "default": false, "class": false},
+    "edge": {"type": "bool", "default": false, "class": false},
+    "framed": {"type": "bool", "default": false, "class": false},
+    "seed": {"type": "int", "default": 17},
+    "key": {"type": "text", "default": "dialog"}
+  },
+  "classes": {
+    "aged": "aged && tone == 'parchment'",
+    "edge": "edge || framed"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "width": {"center": 440, "top": 440, "sequence": 440, "sheet": 360},
+    "font": {"title": @{type.title}, "body": @{type.body}, "small": @{type.caption}},
+    "iconSize": 32,
+    "actionGap": @{space.dangerGap},
+    "steps": {
+      "1/1": [1],
+      "1/2": [1, 0], "2/2": [1, 1],
+      "1/3": [1, 0, 0], "2/3": [1, 1, 0], "3/3": [1, 1, 1],
+      "1/4": [1, 0, 0, 0], "2/4": [1, 1, 0, 0], "3/4": [1, 1, 1, 0], "4/4": [1, 1, 1, 1],
+      "1/5": [1, 0, 0, 0, 0], "2/5": [1, 1, 0, 0, 0], "3/5": [1, 1, 1, 0, 0], "4/5": [1, 1, 1, 1, 0], "5/5": [1, 1, 1, 1, 1],
+      "1/6": [1, 0, 0, 0, 0, 0], "2/6": [1, 1, 0, 0, 0, 0], "3/6": [1, 1, 1, 0, 0, 0], "4/6": [1, 1, 1, 1, 0, 0], "5/6": [1, 1, 1, 1, 1, 0], "6/6": [1, 1, 1, 1, 1, 1]
+    }
+  }
+}

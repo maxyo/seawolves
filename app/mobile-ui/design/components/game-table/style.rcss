@@ -1,0 +1,27 @@
+/* C-GameTable: the green felt of the tavern mini-games (dice, cards). Opponent chip top-left,
+   the bank at (bankX, bankY); the children are the play area, absolutely positioned over
+   the felt. The host gives width and height. */
+c-game-table { display: block; position: relative; box-sizing: border-box; width: 100%; height: 100%; color: @{color.text};
+    background-color: @{color.wood}; box-shadow: @{color.black/.45} 0 0 0 1dp inset; }
+c-game-table > .gt-felt { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden;
+    decorator: radial-gradient(ellipse farthest-corner at 50% 48%, @{color.feltTop}, @{color.felt} 65%, @{color.feltLow}); }
+/* the dark wooden edge with a thin brass line inside, over the felt and under the play area */
+c-game-table > .gt-felt > .gt-rim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; box-sizing: border-box; border: 5dp @{color.tableRim/.851}; pointer-events: none; }
+c-game-table > .gt-felt > .gt-rim > .gt-line { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: 1dp @{color.brassLine/.5};
+    decorator: radial-gradient(ellipse closest-side at 50% 50%, @{color.black/0} 70%, @{color.black/.35}); }
+c-game-table > .gt-felt > .gt-chip { position: absolute; left: 16dp; top: 14dp; max-width: 300dp; display: flex; flex-direction: row; align-items: flex-start; gap: 10dp; }
+c-game-table > .gt-felt > .gt-chip > .gt-who { flex: 0 1 auto; min-width: 0; }
+c-game-table > .gt-felt > .gt-chip > .gt-who > .gt-name { font-size: @{type.body}dp; font-weight: bold; line-height: 20dp; }
+c-game-table > .gt-felt > .gt-chip > .gt-who > .gt-line { margin-top: 4dp; padding: 6dp 10dp; border-radius: 0 8dp 8dp 8dp; background-color: @{color.feltShade/.451};
+    font-size: @{type.body}dp; line-height: 1.35; font-style: italic; }
+c-game-table > .gt-felt > .gt-bank { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 6dp; }
+c-game-table > .gt-felt > .gt-bank > .gt-coins { display: flex; flex-direction: row; align-items: flex-end; gap: 6dp; }
+c-game-table > .gt-felt > .gt-bank > .gt-coins > .gt-stack { position: relative; width: 30dp; }
+c-game-table > .gt-felt > .gt-bank > .gt-coins > .gt-stack > .gt-coin { position: absolute; left: 0; width: 30dp; height: 16dp; box-sizing: border-box; border-radius: 8dp;
+    border: 1dp @{color.coinSilverEdge}; decorator: radial-gradient(circle farthest-corner at 38% 32%, @{color.white}, @{color.coinSilverTop} 45%, @{color.coinSilverLow}); box-shadow: @{color.black/.6} 0 1dp 2dp 0; }
+c-game-table.coins-gold > .gt-felt > .gt-bank > .gt-coins > .gt-stack > .gt-coin { border-color: @{color.coinGoldEdge}; decorator: radial-gradient(circle farthest-corner at 38% 32%, @{color.brassRim}, @{color.coinGoldTop} 45%, @{color.coinGoldLow}); }
+c-game-table > .gt-felt > .gt-bank > .gt-label { font-size: @{type.body}dp; white-space: nowrap; color: @{color.textSecond}; font-effect: shadow(0dp 1dp @{color.black/.8}); }
+c-game-table > .gt-felt > .gt-bank > .gt-label > .gt-value { font-weight: bold; color: @{color.brass}; }
+c-game-table.bank-tone-win > .gt-felt > .gt-bank > .gt-label > .gt-value { color: @{color.okPale}; }
+c-game-table.bank-tone-loss > .gt-felt > .gt-bank > .gt-label > .gt-value { color: @{color.danger}; }
+c-game-table > .gt-felt > .gt-play { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }

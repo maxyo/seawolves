@@ -1,0 +1,17 @@
+<rml>
+<head>
+<title>Миникарта</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Minimap</div>
+<div class="g-note">без панели: «место · время», диск 100 dp (касание — следующий масштаб), «N уз · ветер N уз»; метки по x / y внутри диска; курс поворачивает свой корабль</div>
+<div class="g-row g-scene" style="height: 170dp; gap: 24dp">
+  <c-minimap id="mm-sea" place="Мартиника" speed="4,2" date="7 октября 1654 · 09:06" markers='[{"x":70,"y":26,"tone":"enemy"},{"x":22,"y":62,"tone":"ally"}]'/>
+  <c-minimap place="Открытое море" speed="11,3" date="12 мая 1665 · 23:40" heading="135" markers='[{"x":30,"y":30,"tone":"enemy"},{"x":60,"y":70,"tone":"enemy"},{"x":80,"y":50,"tone":"neutral"}]'/>
+  <c-minimap place="" speed="0,0" date="1 января 1666 · 06:12"/>
+</div>
+</div>
+</body>
+</rml>

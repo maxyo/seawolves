@@ -1,0 +1,22 @@
+{
+  "tag": "s-nations",
+  "doc": "Hero section «Нации» (interface nationrelation, hero_nations.cpp): relations matrix with its legend, the hero's reputation, the flag the ship raises, the game's help as a parchment sheet.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "headerSection": {"type": "text", "default": ""},
+    "columns": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": []},
+    "legend": {"type": "json", "default": []},
+    "reputationTitle": {"type": "text", "default": ""},
+    "reputation": {"type": "json", "default": []},
+    "helpReputation": {"type": "bool", "default": false, "class": false},
+    "helpFlag": {"type": "bool", "default": false, "class": false},
+    "flagTitle": {"type": "text", "default": ""},
+    "flag": {"type": "json", "default": null},
+    "flags": {"type": "json", "default": []},
+    "flagsDisabled": {"type": "bool", "default": false, "class": false},
+    "apply": {"type": "json", "default": null},
+    "help": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

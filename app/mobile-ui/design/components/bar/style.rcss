@@ -1,0 +1,61 @@
+/* C-Bar: a brass instrument that measures. ONE number on the right; limits are marks, not text. */
+@keyframes c-bar-stripes { from { margin-left: -40dp; } to { margin-left: -20dp; } }
+
+c-bar { display: flex; flex-direction: row; align-items: center; gap: 8dp; width: 100%; font-size: @{spec.font}dp; color: @{color.text}; pointer-events: none; }
+c-bar.mode-interactive .track { pointer-events: auto; }
+c-bar .label { flex: 0 0 auto; overflow: hidden; color: @{color.textSecond}; }
+/* a label steps down to the smallest type size before it is cut (ui-clamp min-size) */
+c-bar .label ui-clamp { white-space: nowrap; }
+c-bar .text { flex: 0 0 auto; min-width: 32dp; white-space: nowrap; text-align: right; }
+c-bar .text.tone-gold { color: @{color.brass}; }
+c-bar .text.tone-danger { color: @{color.danger}; }
+c-bar .text.tone-ok { color: @{color.ok}; }
+c-bar .text.tone-dim { color: @{color.textMuted}; }
+
+c-bar .track { position: relative; flex: 1 1 0; min-width: 24dp; box-sizing: content-box; background-color: @{color.black/.5}; border: 1dp @{color.brassLine/.35}; }
+c-bar .hit { position: absolute; left: 0; right: 0; top: -19dp; bottom: -19dp; }
+c-bar .fill { position: absolute; left: 0; top: 0; bottom: 0; decorator: linear-gradient(@{color.barHealthTop}, @{color.barHealthLow}); }
+c-bar .after { position: absolute; top: 0; bottom: 0; z-index: 1; }
+c-bar .after.up { opacity: 0.4; decorator: linear-gradient(@{color.barHealthTop}, @{color.barHealthLow}); }
+c-bar .after.down { decorator: repeating-linear-gradient(-45deg, @{color.danger/.55} 0dp, @{color.danger/.55} 4dp, @{color.black/0} 4dp, @{color.black/0} 8dp); }
+c-bar .target { position: absolute; left: 0; top: 0; bottom: 0; background-color: @{color.brass/.28}; }
+c-bar .dash { position: absolute; right: 0; top: 0; bottom: 0; width: 1dp; decorator: repeating-linear-gradient(180deg, @{color.brass} 0dp, @{color.brass} 3dp, @{color.brass/0} 3dp, @{color.brass/0} 5dp); }
+c-bar .mark { position: absolute; top: -3dp; bottom: -3dp; width: 2dp; z-index: 2; background-color: @{color.text}; }
+c-bar .in-text { position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; justify-content: center; text-align: center; white-space: nowrap;
+    font-size: @{spec.font}dp; line-height: 1.2; color: @{color.text}; font-effect: glow(1dp 1dp 0dp 1dp @{color.black}); }
+c-bar .at { position: absolute; top: 50%; width: 0; height: 0; z-index: 3; }
+c-bar .knob-hit { position: absolute; left: -22dp; top: -22dp; width: @{spec.knobHit}dp; height: @{spec.knobHit}dp; display: flex; flex-direction: row; align-items: center; justify-content: center; }
+c-bar .knob { box-sizing: border-box; width: @{spec.knob}dp; height: @{spec.knob}dp; border-radius: 10dp; border: 1dp @{color.brassRim};
+    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop}, @{color.brassLow}); box-shadow: @{color.black/.6} 0 1dp 3dp 0; }
+c-bar.active .knob { box-shadow: @{color.black/.6} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
+
+/* kinds */
+/* the game's own convention (its ship signs): sails blue, crew cream */
+c-bar.kind-sails .fill, c-bar.kind-sails .after.up, c-bar.kind-energy .fill, c-bar.kind-energy .after.up { decorator: linear-gradient(@{color.skyDeep}, @{color.barBlueLow}); }
+c-bar.kind-crew .fill, c-bar.kind-crew .after.up { decorator: linear-gradient(@{color.barCreamTop}, @{color.barCreamLow}); }
+c-bar.kind-brass .fill, c-bar.kind-brass .after.up { decorator: linear-gradient(@{color.brassTop}, @{color.barBrassLow}); }
+c-bar.kind-danger .fill, c-bar.kind-danger .after.up { decorator: linear-gradient(@{color.dangerLine}, @{color.dangerDeep}); }
+c-bar.kind-xp .fill, c-bar.kind-xp .after.up { decorator: linear-gradient(@{color.brass}, @{color.barXpLow}); }
+
+/* indeterminate: running stripes, no value */
+c-bar .fill.stripes { right: 0; overflow: hidden; decorator: none; }
+c-bar .run { display: block; width: 2000dp; height: 100%; margin-left: -40dp; animation: 1s linear infinite c-bar-stripes;
+    decorator: repeating-linear-gradient(-45deg, @{color.brass/.75} 0dp, @{color.brass/.75} 7dp, @{color.barXpLow/.451} 7dp, @{color.barXpLow/.451} 14dp); }
+
+/* bare (HUD rule): the coloured bar only, thin dark outline */
+c-bar.mode-hud .track { border-width: 0; border-radius: 2dp; overflow: hidden; background-color: @{color.black/.38}; box-shadow: @{color.black/.6} 0 0 0 1dp, @{color.black/.55} 0 1dp 3dp 0; }
+
+/* parchment: sepia track, ink text, darker pale fills */
+c-bar.surface-parchment { color: @{color.ink}; }
+c-bar.surface-parchment .label { color: @{color.ink}; }
+c-bar.surface-parchment .track { background-color: @{color.sepiaTrack/.18}; border-color: @{color.inkMuted/.4}; }
+c-bar.surface-parchment .mark { background-color: @{color.ink}; }
+c-bar.surface-parchment .target { background-color: @{color.paperShade/.22}; }
+c-bar.surface-parchment .dash { decorator: repeating-linear-gradient(180deg, @{color.inkMuted} 0dp, @{color.inkMuted} 3dp, @{color.inkMuted/0} 3dp, @{color.inkMuted/0} 5dp); }
+c-bar.surface-parchment.kind-crew .fill, c-bar.surface-parchment.kind-crew .after.up { decorator: linear-gradient(@{color.barCreamPaperTop}, @{color.barCreamPaperLow}); }
+c-bar.surface-parchment.kind-brass .fill, c-bar.surface-parchment.kind-brass .after.up, c-bar.surface-parchment.kind-xp .fill, c-bar.surface-parchment.kind-xp .after.up { decorator: linear-gradient(@{color.barBrassPaperTop}, @{color.inkRule}); }
+c-bar.surface-parchment .text.tone-gold { color: @{color.inkLink}; }
+c-bar.surface-parchment .text.tone-danger { color: @{color.wax}; }
+c-bar.surface-parchment .text.tone-ok { color: @{color.leaf}; }
+c-bar.surface-parchment .text.tone-dim { color: @{color.inkMuted}; }
+c-bar.surface-parchment.bare .track { background-color: @{color.black/.38}; }

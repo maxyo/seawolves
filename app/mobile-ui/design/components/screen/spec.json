@@ -1,0 +1,37 @@
+{
+  "tag": "c-screen",
+  "props": {
+    "title": {"type": "text", "default": "", "defaultKey": "common.screen"},
+    "subtitle": {"type": "text", "default": ""},
+    "showSubtitle": {"type": "bool", "default": false, "class": false},
+    "back": {"type": "bool", "default": true, "class": false},
+    "close": {"type": "bool", "default": false, "class": false},
+    "layout": {"type": "enum", "options": ["row", "column", "free"], "default": "row"},
+    "header": {"type": "bool", "default": true, "class": false},
+    "backDisabled": {"type": "bool", "default": false, "class": false},
+    "script": {"type": "bool", "default": true, "class": false},
+    "sections": {"type": "enum", "options": ["", "hero", "ship", "journal", "tradebook", "nations", "items"], "default": "", "class": false},
+    "subject": {"type": "json", "default": null},
+    "tabs": {"type": "json", "default": []},
+    "stats": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": []},
+    "key": {"type": "text", "default": "header"}
+  },
+  "classes": {
+    "section-tabs": "sections != '' && len(tabs) > 1"
+  },
+  "constants": {
+    "gap": @{space.md},
+    "padTop": @{space.md},
+    "padSide": @{space.lg},
+    "padBottom": @{space.lg},
+    "tabsPadTop": @{space.sm},
+    "tabsGap": @{space.sm},
+    "headerPadLeft": 16,
+    "headerPadRight": 12,
+    "headerPadBack": 2,
+    "headerPadClose": 2,
+    "subjectsWidth": 380,
+    "subjectsMaxHeight": 260
+  }
+}

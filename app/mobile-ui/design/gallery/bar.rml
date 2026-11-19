@@ -1,0 +1,55 @@
+<rml>
+<head>
+<title>Шкала</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Bar</div>
+<div class="g-row">
+  <div class="g-wood col" style="width: 300dp; gap: 8dp;">
+    <c-bar label="Корпус" value="84" text="84%"/>
+    <c-bar label="Команда" value="40" mark="25" text="40" kind="crew"/>
+    <c-bar label="Паруса" value="90" text="90%" kind="sails"/>
+    <c-bar label="Мораль" value="55" text="55" kind="brass" text-tone="gold"/>
+    <c-bar label="Течь" value="18" text="18%" kind="danger" text-tone="danger"/>
+    <c-bar label="Опыт" value="62" text="2 624" kind="xp" text-tone="dim" icon="exp"/>
+  </div>
+  <div class="g-wood col" style="width: 300dp; gap: 10dp;">
+    <c-bar label="Корпус" value="64" after="84" text="64 - 84%"/>
+    <c-bar label="Корпус" value="64" after="40" text="64 - 40%" text-tone="danger"/>
+    <c-bar id="bar-crew" label="Команда" value="40" target="70" mark="25" mode="interactive" text="40 / 64" kind="crew"/>
+    <c-bar id="bar-value" label="Запас" value="30" mode="interactive" kind="brass" text="30%" text-tone="ok"/>
+    <c-bar value="42" mode="inside" text="1,4 / 3,4 ГБ · 42%" kind="brass"/>
+    <c-bar label="Распаковка" mode="indeterminate" kind="brass"/>
+  </div>
+  <div class="g-wood col" style="width: 220dp; gap: 8dp;">
+    <c-bar label="Длинная подпись шкалы" label-width="120" label-size="15" value="50" text="50" height="10"/>
+    <c-bar value="33" text="33%" height="2" kind="xp"/>
+    <c-bar mode="info" icon="hull" value="71" text="71%"/>
+    <c-bar mode="info" icon="crew" value="48" text="120" kind="crew"/>
+  </div>
+</div>
+<div class="g-row">
+  <div class="g-paper col" style="width: 300dp; gap: 8dp;">
+    <c-bar surface="parchment" label="Корпус" value="64" after="84" text="64 - 84%"/>
+    <c-bar surface="parchment" label="Команда" value="40" mark="25" text="40" kind="crew"/>
+    <c-bar surface="parchment" label="Паруса" value="90" text="90%" kind="sails"/>
+    <c-bar surface="parchment" label="Мораль" value="55" target="75" text="55" text-tone="danger" kind="brass"/>
+    <c-bar surface="parchment" label="Опыт" value="62" text="2 624" kind="xp" text-tone="gold" icon="exp"/>
+  </div>
+  <div class="g-scene col" style="width: 160dp; gap: 5dp;">
+    <c-bar mode="hud" value="82" height="8"/>
+    <c-bar mode="hud" value="90" kind="crew" height="8"/>
+    <c-bar mode="hud" value="95" kind="sails" height="8"/>
+    <c-bar mode="hud" value="57"/>
+    <c-bar mode="hud" value="31" kind="crew" height="4"/>
+  </div>
+  <div class="g-scene col" style="width: 220dp; gap: 8dp;">
+    <c-bar mode="info" icon="hull" value="71" text="71%"/>
+    <c-bar mode="info" icon="sail-full" value="90" text="90%" kind="sails"/>
+  </div>
+</div>
+</div>
+</body>
+</rml>

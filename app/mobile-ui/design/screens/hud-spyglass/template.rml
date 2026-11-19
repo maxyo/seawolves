@@ -1,0 +1,8 @@
+<t-if test="!empty"><div class="sg-card">
+<div class="sg-head"><c-token icon="{{icon}}" enamel="{{ fort ? 'iron' : 'red' }}" size="{{spec.token}}"/><div class="sg-titles"><div class="sg-name">{{name}}</div><div class="sg-sub"><t-if test="nation"><c-icon icon="{{nation}}" size="{{spec.flag}}" tone="color"/></t-if><div class="sg-sub-text">{{sub}}</div></div></div></div>
+<t-for each="bars" as="b"><c-bar icon="{{b.icon}}" label="{{b.label}}" value="{{b.value}}" kind="{{b.tone}}" text="{{b.value}}%" mode="info" label-width="0" style="width: 100%"/></t-for>
+<t-if test="len(facts) > 0"><div class="sg-facts"><t-for each="facts" as="f"><div class="sg-fact"><div class="sg-k">{{f.k}}</div><div class="sg-v">{{f.v}}</div></div></t-for></div></t-if>
+<t-if test="captain"><div class="sg-captain"><div class="sg-who"><c-game-image kind="portrait" texture="{{captain.portrait}}" size="{{spec.portrait}}" label="{{captain.name}}"/><div class="sg-who-text"><div class="sg-cap-name">{{captain.name}}</div><div class="sg-cap-role">{{captain.role}}</div></div></div>
+<t-if test="len(captain.skills) > 0"><div class="sg-skills"><t-for each="captain.skills" as="k"><div class="sg-skill"><c-icon icon="{{k.icon}}" size="20" tone="brass"/><div class="sg-skill-label">{{k.label}}</div><div class="sg-skill-value">{{k.value}}</div></div></t-for></div></t-if></div></t-if>
+<t-if test="unknown"><div class="sg-unknown"><c-icon icon="spyglass" size="20" tone="brass"/><div class="sg-unknown-text">{{unknown}}</div></div></t-if>
+</div></t-if>

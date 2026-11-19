@@ -1,0 +1,89 @@
+/* C-Header: the one screen header. Great Vibes lives only here, in the screen title.
+   Parts report: section <key>, tab <index>, subject-prev, subject-list, subject-next; the nested icon buttons report `click` under the
+   ids <key>-back, <key>-close, <key>-action-<i>.
+   Every rule is a child chain so that nothing leaks into the nested components. */
+c-header {
+    position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; flex: 0 0 auto;
+    box-sizing: border-box; width: 100%; height: @{spec.height}dp; gap: 12dp; padding: 0 12dp 0 16dp;
+    border-bottom: 2dp @{color.headerRule}; color: @{color.text}; line-height: 1.36;
+    /* the lapis picture carries its shade (textures-src/bake.json) and covers the plate */
+    decorator: image(textures/lapis.jpg cover);
+    box-shadow: @{color.headerShadow} 0 1dp 0 0, @{color.black/.5} 0 3dp 6dp 0;
+}
+c-header.has-back { padding: 0 12dp 0 2dp; } /* the ribbon's edge at the content's 12 dp (c-screen padSide) */
+c-header.close { padding: 0 2dp 0 16dp; }
+
+/* the title gives way to the subject and the figures: it steps down (script to scriptMin) before it is cut */
+c-header > .titles { display: flex; flex-direction: row; align-items: baseline; gap: 10dp; min-width: 0; flex: 0 1 auto; font-effect: shadow(0dp 1dp @{color.black/.8}); }
+c-header > .titles.grow { flex: 1 1 0; }
+/* six-section headers share one geometry: a title slot of a fixed share of the row (at most titleSlot), so the
+   sections stand at the same x on all six screens whatever the subject's name and the figures; a long title
+   wraps to two lines and steps down (title max-height below). On a short row the subject gives way. */
+c-header.sectioned > .titles { flex: 0 0 auto; width: @{spec.titleShare}%; max-width: @{spec.titleSlot}dp; overflow: hidden; }
+c-header > .titles > .title { max-height: @{spec.titleTwoLines}dp; }
+c-header.long-title > .titles > .title.script { font-size: @{spec.font.scriptLong}dp; }
+c-header > .titles > .title { flex: 0 1 auto; min-width: 0; font-size: @{spec.font.plain}dp; font-weight: normal; line-height: 1.1; }
+/* a growing title box (no tabs, no sections: a map reading over the items screen) gives its title all its room, so a
+   title stepped down in a narrower slot fits itself to the new width instead of keeping the width of what it showed */
+c-header > .titles.grow > .title { flex: 1 1 0; }
+c-header > .titles > .title.script { font-family: "@{font.script}"; font-size: @{spec.font.script}dp; line-height: 1.25; }
+c-header > .titles > .subtitle { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: @{spec.font.subtitle}dp; color: @{color.textSecond}; }
+c-header > .spacer { flex: 1 1 0; min-width: 0; }
+c-header > .slot { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 12dp; }
+
+/* the six sections */
+c-header > .sections { display: flex; flex-direction: row; align-self: stretch; flex: 0 0 auto; }
+c-header > .sections > .section { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: @{spec.sectionWidth}dp; border-bottom: 2dp transparent; opacity: 0.82; }
+c-header > .sections > .section.selected { opacity: 1; border-bottom: 2dp @{color.brassLit}; decorator: linear-gradient(@{color.brass/0}, @{color.brass/.28}); }
+c-header > .sections > .section.pressed { opacity: 1; background-color: @{color.brass/.14}; }
+
+/* tabs */
+c-header > .tabs { display: flex; flex-direction: row; align-self: stretch; flex: 0 0 auto; margin-left: 4dp; }
+c-header > .tabs > .tab { display: flex; flex-direction: row; align-items: center; box-sizing: border-box; padding: 0 12dp; border-bottom: 2dp transparent; font-size: @{spec.font.tab}dp; white-space: nowrap; color: @{color.textSecond}; font-effect: shadow(0dp 1dp @{color.black}); }
+c-header > .tabs > .tab.selected { border-bottom: 2dp @{color.brass}; color: @{color.textSelected}; decorator: linear-gradient(@{color.brass/0}, @{color.brass/.2}); }
+c-header > .tabs > .tab.pressed { background-color: @{color.brass/.14}; }
+c-header > .tabs > .tab.disabled { opacity: 0.5; background-color: transparent; }
+c-header > .tabs > .tab > .count { margin-left: 6dp; font-size: @{spec.font.label}dp; color: @{color.textMuted}; }
+c-header > .tabs > .tab > .badge { margin-left: 6dp; min-width: 18dp; height: 18dp; padding: 0 5dp; box-sizing: border-box; border-radius: 9dp; background-color: @{color.wax}; color: @{color.onWax}; font-size: @{spec.font.label}dp; line-height: 18dp; text-align: center; font-effect: none; }
+
+/* whose screen this is: the name asks for its one-line width (ui-clamp natural) and gets it before the spacer
+   (a tiny shrink factor; a sectioned title keeps its slot); short of that it wraps to two lines and steps down to the smallest type size,
+   and is cut only for an absurd length. A tap on the name opens the list; the chevron goes on a narrow row, and
+   a lone subject (both arrows off) has no arrows. */
+c-header > .subject { display: flex; flex-direction: row; align-self: stretch; flex: 0 @{spec.subjectShrink} auto; min-width: 0; border-left: 1dp @{color.brassLine/.35}; border-right: 1dp @{color.brassLine/.35}; background-color: @{color.lapisInset/.278}; font-effect: shadow(0dp 1dp @{color.black/.8}); }
+c-header > .subject > .arrow { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: @{spec.subjectArrow}dp; }
+c-header > .subject > .arrow.off { opacity: 0.35; }
+c-header > .subject > .who { display: flex; flex-direction: row; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8dp; box-sizing: border-box; padding: 0 6dp 0 8dp; border-left: 1dp @{color.brassLine/.25}; border-right: 1dp @{color.brassLine/.25}; }
+c-header > .subject > .who > .who-text { display: flex; flex-direction: column; align-items: stretch; flex: 0 1 auto; min-width: 0; overflow: hidden; line-height: 1.15; }
+c-header > .subject > .who > .who-text > .who-label { font-size: @{type.body}dp; }
+/* above the sub line a two-line name must leave it room: two lines of the smallest type size */
+c-header > .subject > .who > .who-text.with-sub > .who-label { max-height: @{spec.whoTwoLines}dp; }
+c-header > .subject > .who > .who-text > .who-sub { font-size: @{spec.font.label}dp; white-space: nowrap; color: @{color.textSecond}; }
+c-header > .subject > .pressed { background-color: @{color.brass/.14}; }
+@media (max-width: @{spec.narrowBelow}dp) {
+    c-header > .subject > .who > .who-more { display: none; }
+    c-header > .subject > .arrow { width: @{spec.subjectArrowNarrow}dp; }
+    /* the row's gaps and the name's padding give their width to the name too */
+    c-header { gap: 6dp; }
+    c-header > .subject > .who { padding: 0 4dp; }
+}
+c-header > .subject > .arrow.off.pressed { background-color: transparent; }
+
+
+/* stats: at most two */
+c-header > .stat { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex: 0 0 auto; line-height: 1.12; font-size: @{spec.font.stat}dp; font-effect: shadow(0dp 1dp @{color.black/.8}); }
+c-header > .stat.big { font-size: @{spec.font.statBig}dp; }
+c-header > .stat > .stat-label { font-size: @{spec.font.label}dp; letter-spacing: 0.03em; color: @{color.textSecond}; }
+c-header > .stat > .stat-row { display: flex; flex-direction: row; align-items: center; gap: 5dp; }
+c-header > .stat > .stat-row > .stat-value { white-space: nowrap; color: @{color.text}; }
+c-header > .stat > .stat-row > .stat-value.tone-gold { color: @{color.brass}; }
+c-header > .stat > .stat-row > .stat-value.tone-danger { color: @{color.danger}; }
+c-header > .stat > .stat-row > .stat-value.tone-ok { color: @{color.ok}; }
+c-header > .stat > .stat-row > .stat-preview { display: flex; flex-direction: row; align-items: center; gap: 5dp; white-space: nowrap; font-weight: bold; color: @{color.textSelected}; }
+c-header > .stat > .stat-row > .stat-preview.pv-ok { color: @{color.ok}; }
+c-header > .stat > .stat-row > .stat-preview.pv-danger { color: @{color.danger}; }
+/* the body font has no arrow glyph: the "back" icon turned round */
+c-header > .stat > .stat-row > .stat-preview > .stat-arrow { transform: rotate(180deg); }
+c-header > .stat > .stat-row > .stat-preview > .stat-arrow ui-icon { color: @{color.textSelected}; }
+c-header > .stat > .stat-row > .stat-preview.pv-ok > .stat-arrow ui-icon { color: @{color.ok}; }
+c-header > .stat > .stat-row > .stat-preview.pv-danger > .stat-arrow ui-icon { color: @{color.danger}; }

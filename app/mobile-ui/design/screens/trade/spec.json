@@ -1,0 +1,18 @@
+{
+  "tag": "s-trade",
+  "doc": "Commerce: the one buy / sell / transfer layout of store, contraband, cannons, items trade, storage and chests: the goods list (filter chips, sortable columns, a quick take for free transfers) and the dock on the right with the open deal and the place's buttons. Filled by trade_commerce.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "stats": {"type": "json", "default": []},
+    "list": {"type": "json", "default": {}},
+    "deal": {"type": "json", "default": null},
+    "info": {"type": "bool", "default": false, "class": false},
+    "dealing": {"type": "bool", "default": false, "class": false},
+    "infoLabel": {"type": "text", "default": ""},
+    "place": {"type": "json", "default": null},
+    "primary": {"type": "json", "default": null},
+    "actions": {"type": "json", "default": []},
+    "extras": {"type": "json", "default": {}}
+  }
+}

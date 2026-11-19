@@ -1,0 +1,45 @@
+{
+  "tag": "c-map-view",
+  "doc": "A game picture to look at closely: the map interfaces and the treasure map of the items screen. texture/uv name the picture in the player's game files (ui-game-image); base [w, h] is the size the game measures it in, view [x0, y0, x1, y1] the part shown first, markers [{texture, uv?, x, y, w, h}] the game's pictures on it (centre and size in base units). Pan with one finger, pinch or the zoom buttons; a tap reports `point x,y` in base units (behaviour panzoom). room names the layout around the view (a sheet open beside it): a change refits the view once the layout has run.",
+  "props": {
+    "texture": {
+      "type": "text",
+      "default": ""
+    },
+    "uv": {
+      "type": "text",
+      "default": ""
+    },
+    "base": {
+      "type": "json",
+      "default": [
+        1000,
+        1000
+      ]
+    },
+    "view": {
+      "type": "json",
+      "default": []
+    },
+    "markers": {
+      "type": "json",
+      "default": []
+    },
+    "zoom": {
+      "type": "bool",
+      "default": true,
+      "class": false
+    },
+    "room": {
+      "type": "text",
+      "default": ""
+    }
+  },
+  "behaviors": [
+    "panzoom"
+  ],
+  "constants": {
+    "zoomGlyph": 26,
+    "markerScale": 1.0
+  }
+}

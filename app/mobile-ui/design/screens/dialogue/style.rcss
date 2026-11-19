@@ -1,0 +1,10 @@
+/* s-dialogue: the dialogue panel at the bottom of the scene, inside the safe area; a taller
+   screen gives the speech more lines (52 % of the height, never less than the design for its
+   number of replies). A speech that would not fit beside its replies first makes the sheet grow
+   (data-grow: <ui-pages> sets its min-height inline), up to 88 %; only then does it page. */
+s-dialogue { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-dialogue .sd-sheet { position: absolute; left: 12dp; right: 12dp; bottom: 12dp; height: 52%; max-height: 88%; min-height: 206dp; }
+s-dialogue .sd-sheet.replies-some { min-height: 244dp; }
+s-dialogue .sd-sheet.replies-many { min-height: 284dp; }
+s-dialogue .sd-field { display: block; width: 100%; }
+s-dialogue .sd-error { margin-top: 8dp; font-size: @{type.body}dp; color: @{color.danger}; }

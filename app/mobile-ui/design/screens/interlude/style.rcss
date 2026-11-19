@@ -1,0 +1,11 @@
+/* s-interlude: the dark interlude over the whole screen (tap anywhere). */
+s-interlude { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: @{color.scrim/.96}; decorator: radial-gradient(circle farthest-corner at 50% 50%, @{color.wood/.55} 0%, @{color.scrim/.96} 75%); }
+/* the game's frame box (750:560) as tall as the screen: the picture stretched to it, as the game draws it */
+s-interlude .si-box { position: relative; flex: 0 0 auto; height: 100vh; width: @{spec.boxWidthVh}vh; max-width: 100%; }
+s-interlude .si-pic { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-interlude .si-pic ui-game-image { display: block; width: 100%; height: 100%; }
+/* a light shade under the line only; the line's own glow keeps it readable over light paint */
+s-interlude .si-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; decorator: radial-gradient(circle farthest-corner at 50% 50%, @{color.scrim/.45} 0%, @{color.scrim/.1} 70%); }
+/* the game's INFO_TEXT margins inside the box; the line wraps and is centred */
+s-interlude .si-text { position: absolute; left: @{spec.insetX}%; right: @{spec.insetX}%; top: @{spec.insetY}%; bottom: @{spec.insetY}%; display: flex; justify-content: center; align-items: center; }
+s-interlude .si-line { text-align: center; font-style: italic; font-size: 28dp; line-height: 1.3; color: @{color.text}; white-space: pre-line; font-effect: glow(3dp @{color.black/.85}), shadow(0dp 2dp @{color.black}); }

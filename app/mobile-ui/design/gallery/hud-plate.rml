@@ -1,0 +1,42 @@
+<rml>
+<head>
+<title>Плашка HUD</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-HudPlate</div>
+<div class="g-note">Голая группа (по умолчанию) · tone gold · tone danger · location · location справа · plate · plate + gold · plate + danger · expandable (касание — раскрыть)</div>
+<div class="g-row g-scene" style="align-items: flex-start; gap: 12dp">
+  <c-hud-plate style="width: 150dp"><c-bar mode="hud" value="82" kind="health" height="8" style="width: 100%"/><c-bar mode="hud" value="95" kind="sails" height="8" style="width: 100%"/><c-bar mode="hud" value="90" kind="crew" height="8" style="width: 100%"/><div>4 уз · ветер 9 уз</div></c-hud-plate>
+  <c-hud-plate style="width: 130dp" tone="gold"><div>Золото 1 250</div></c-hud-plate>
+  <c-hud-plate style="width: 130dp" tone="danger"><div>Корпус 27%</div></c-hud-plate>
+  <c-hud-plate variant="location" text="Мартиника · 09:06" style="width: 170dp"/>
+  <c-hud-plate variant="location" align="right" text="Сен-Пьер, улицы · 11:15" style="width: 210dp"/>
+</div>
+<div class="g-row g-scene" style="align-items: flex-start; gap: 12dp">
+  <c-hud-plate plate="1" title="Курс" style="width: 130dp"><div>130° · ветер 82%</div></c-hud-plate>
+  <c-hud-plate plate="1" tone="gold" title="Провиант" style="width: 130dp"><div>18 дней</div></c-hud-plate>
+  <c-hud-plate plate="1" tone="danger" title="Команда" style="width: 130dp"><div>Бунт близко</div></c-hud-plate>
+  <c-hud-plate plate="1" align="center" title="По центру" style="width: 130dp"><div>12:31</div></c-hud-plate>
+  <c-hud-plate id="hp-expand" plate="1" expandable="1" title="Приборы" style="width: 150dp"><div>Курс 130°</div></c-hud-plate>
+  <c-hud-plate plate="1" expandable="1" expanded="1" title="Приборы" style="width: 150dp"><div>Курс 130°</div><div>Ветер 82%</div><div>Провиант 18 дн.</div></c-hud-plate>
+</div>
+<div class="g-note">officers (суша: герой и офицеры, круглый портрет, здоровье и энергия дугами вокруг): ряд (3) · колонка 6 с переносом (max-height 160) · fleet (эскадра: круглая картинка корабля, корпус · команда · паруса дугами вокруг): колонка (3, один под огнём) · колонка 7 с переносом (max-height 248) · ряд · max 2. Картинки берутся из файлов игры; без них остаётся заглушка.</div>
+<div class="g-row g-scene" style="align-items: flex-start; gap: 20dp">
+  <c-hud-plate variant="officers" direction="row" pad="0" style="width: 170dp" officers='[{"name":"Шарль де Мор","texture":"INTERFACES/PORTRAITS/128/face_201","bars":[{"kind":"health","value":84},{"kind":"energy","value":62}],"tap":true},{"name":"Тичингиту","texture":"INTERFACES/PORTRAITS/128/face_205","bars":[{"kind":"health","value":40},{"kind":"energy","value":70}],"tap":true},{"name":"Лонгвэй","texture":"","bars":[{"kind":"health","value":12},{"kind":"energy","value":20}],"tap":true}]'/>
+  <c-hud-plate variant="officers" pad="0" max-height="160" style="width: 110dp" officers='[{"name":"Шарль де Мор","texture":"INTERFACES/PORTRAITS/128/face_201","bars":[{"kind":"health","value":84},{"kind":"energy","value":62}],"tap":true},{"name":"Тичингиту","texture":"INTERFACES/PORTRAITS/128/face_205","bars":[{"kind":"health","value":40},{"kind":"energy","value":70}],"tap":true},{"name":"Лонгвэй","texture":"","bars":[{"kind":"health","value":12},{"kind":"energy","value":20}],"tap":true},{"name":"Элен МакАртур","texture":"INTERFACES/PORTRAITS/128/face_250","bars":[{"kind":"health","value":90},{"kind":"energy","value":50}],"tap":true},{"name":"Ян Свенсон","texture":"INTERFACES/PORTRAITS/128/face_213","bars":[{"kind":"health","value":70},{"kind":"energy","value":60}],"tap":true},{"name":"Жан Пикар","texture":"INTERFACES/PORTRAITS/128/face_5","bars":[{"kind":"health","value":22},{"kind":"energy","value":10}],"tap":true}]'/>
+  <c-hud-plate id="hp-fleet" variant="fleet" pad="0" max-height="232" style="width: 56dp" ships='[{"name":"Аделина","texture":"battle_interface/ship_icons2","uv":"0.5,0.125,0.5625,0.1875","bars":[{"kind":"health","value":82},{"kind":"crew","value":90},{"kind":"sails","value":95}],"tap":true},{"name":"Сокол","texture":"battle_interface/ship_icons2","uv":"0.25,0.0625,0.3125,0.125","bars":[{"kind":"health","value":30},{"kind":"crew","value":80},{"kind":"sails","value":90}],"tap":true},{"name":"Ласточка","texture":"battle_interface/ship_icons2","uv":"0.625,0,0.6875,0.0625","bars":[{"kind":"health","value":95},{"kind":"crew","value":100},{"kind":"sails","value":100}],"tap":true}]'/>
+  <c-hud-plate variant="fleet" pad="0" max-height="248" style="width: 124dp" ships='[{"name":"Аделина","texture":"battle_interface/ship_icons2","uv":"0.5,0.125,0.5625,0.1875","bars":[{"kind":"health","value":82},{"kind":"crew","value":90},{"kind":"sails","value":95}],"tap":true},{"name":"Сокол","texture":"battle_interface/ship_icons2","uv":"0.25,0.0625,0.3125,0.125","bars":[{"kind":"health","value":30},{"kind":"crew","value":80},{"kind":"sails","value":90}],"tap":true},{"name":"Ласточка","texture":"battle_interface/ship_icons2","uv":"0.625,0,0.6875,0.0625","bars":[{"kind":"health","value":95},{"kind":"crew","value":100},{"kind":"sails","value":100}],"tap":true},{"name":"Мария","texture":"battle_interface/ship_icons2","uv":"0.5,0,0.5625,0.0625","bars":[{"kind":"health","value":41},{"kind":"crew","value":60},{"kind":"sails","value":70}],"tap":true},{"name":"Гарпия","texture":"battle_interface/ship_icons2","uv":"0.375,0,0.4375,0.0625","bars":[{"kind":"health","value":66},{"kind":"crew","value":70},{"kind":"sails","value":80}],"tap":true},{"name":"Фортуна","texture":"battle_interface/ship_icons2","uv":"0.375,0.0625,0.4375,0.125","bars":[{"kind":"health","value":88},{"kind":"crew","value":90},{"kind":"sails","value":90}],"tap":true},{"name":"Вьюн","texture":"battle_interface/ship_icons2","uv":"0,0,0.0625,0.0625","bars":[{"kind":"health","value":23},{"kind":"crew","value":30},{"kind":"sails","value":40}],"tap":true}]'/>
+  <c-hud-plate variant="fleet" direction="row" pad="0" style="width: 200dp" ships='[{"name":"Аделина","texture":"battle_interface/ship_icons2","uv":"0.5,0.125,0.5625,0.1875","bars":[{"kind":"health","value":82},{"kind":"crew","value":90},{"kind":"sails","value":95}],"tap":true},{"name":"Сокол","texture":"battle_interface/ship_icons2","uv":"0.25,0.0625,0.3125,0.125","bars":[{"kind":"health","value":30},{"kind":"crew","value":80},{"kind":"sails","value":90}],"tap":true},{"name":"Ласточка","texture":"battle_interface/ship_icons2","uv":"0.625,0,0.6875,0.0625","bars":[{"kind":"health","value":95},{"kind":"crew","value":100},{"kind":"sails","value":100}],"tap":true}]'/>
+  <c-hud-plate variant="fleet" pad="0" max="2" style="width: 56dp" ships='[{"name":"Аделина","texture":"battle_interface/ship_icons2","uv":"0.5,0.125,0.5625,0.1875","bars":[{"kind":"health","value":82},{"kind":"crew","value":90},{"kind":"sails","value":95}],"tap":true},{"name":"Сокол","texture":"battle_interface/ship_icons2","uv":"0.25,0.0625,0.3125,0.125","bars":[{"kind":"health","value":30},{"kind":"crew","value":80},{"kind":"sails","value":90}],"tap":true},{"name":"Ласточка","texture":"battle_interface/ship_icons2","uv":"0.625,0,0.6875,0.0625","bars":[{"kind":"health","value":95},{"kind":"crew","value":100},{"kind":"sails","value":100}],"tap":true}]'/>
+</div>
+<div class="g-note">states: ряд состояний 26 dp сразу под полосами (суша) · справа · state-size 28</div>
+<div class="g-row g-scene" style="align-items: flex-start; gap: 20dp">
+  <c-hud-plate pad="6" style="width: 196dp" states='[{"icon":"potion","fill":70,"label":"Зелье"},{"icon":"skull","fill":40,"fillTone":"danger","badge":"4","label":"Отравление"},{"icon":"energy","fill":90,"fillTone":"effect","label":"Прилив сил"},{"icon":"eye","fill":25,"fillTone":"cooldown","label":"Скрытность"}]'><c-bar mode="hud" icon="health" value="84" text="84" kind="health" style="width: 100%"/><c-bar mode="hud" icon="energy" value="62" kind="energy" style="width: 100%"/></c-hud-plate>
+  <c-hud-plate pad="6" align="right" style="width: 150dp" states='[{"icon":"rum","fill":45,"fillTone":"effect","label":"Опьянение"},{"icon":"skull","fill":40,"fillTone":"danger","label":"Отравление"}]'><div>Справа</div></c-hud-plate>
+  <c-hud-plate pad="6" state-size="28" style="width: 150dp" states='[{"icon":"rum","fill":45,"fillTone":"effect"},{"icon":"potion","fill":80}]'><div>28 dp</div></c-hud-plate>
+</div>
+</div>
+</body>
+</rml>

@@ -1,0 +1,8 @@
+<c-screen id="header" key="header" title="{{title}}" subject="{{ json(subject) }}" actions="{{ json(extras.actions) }}">
+<div class="sg-main"><c-panel pad="0" gap="0" style="width: 100%; height: 100%">
+<div class="sg-list"><c-trade-list id="goods" label="{{list.label}}" cols="{{ json(list.cols) }}" rows="{{ json(list.rows) }}" style="flex: 1 1 0; height: auto"/></div>
+<t-if test="extras.note"><div class="sg-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+<t-if test="contraband || primary"><div class="screen-bar"><t-if test="contraband"><c-setting id="contraband" control="toggle" label="{{contraband.label}}" on="{{ contraband.on ? 1 : 0 }}" disabled="{{ contraband.disabled ? 1 : 0 }}" reason="{{contraband.reason}}" line="0" style="width: 420dp; flex-shrink: 1; min-width: 0"/></t-if><div class="grow"></div><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="secondary" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}"/></t-for><t-if test="primary"><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}"/></t-if></div></t-if>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

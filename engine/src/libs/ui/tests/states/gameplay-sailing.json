@@ -1,0 +1,27 @@
+{
+ "schemaVersion": 1,
+ "revision": 9,
+ "mode": "sailing",
+ "language": "russian",
+ "inputOwner": "",
+ "analogMovement": false,
+ "movementGeneration": 0,
+ "capabilities": [
+  "Ship_TurnLeft",
+  "Ship_TurnRight",
+  "Ship_SailUp",
+  "Ship_SailDown",
+  "Ship_Fire",
+  "Sea_CameraSwitch",
+  "hk_charge1",
+  "hk_charge2",
+  "hk_charge3",
+  "hk_charge4",
+  "BICommandsActivate",
+  "BIFastCommand",
+  "TimeScaleX1",
+  "TimeScaleX2",
+  "TimeScaleX4",
+  "TimeScaleX8"
+ ]
+}

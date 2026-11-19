@@ -1,0 +1,40 @@
+--- a/PROGRAM/interface/interface.c
++++ b/PROGRAM/interface/interface.c
+@@ -1507,7 +1507,21 @@
+ 
+ void Start_InterfaceDoExit()
+ {
+-	if(IsPerkIntoList("TimeSpeed")) {SetTimeScale(GetSeaTimeScale());}
++	// Leaving an interface resets time acceleration to x1, the scale and its counter
++	// together; the stock x2 (GetSeaTimeScale) left TimeScaleCounter at the old step.
++	if(IsPerkIntoList("TimeSpeed"))
++	{
++		SetTimeScale(1.0);
++		TimeScaleCounter = 0;
++		DelPerkFromActiveList("TimeSpeed");
++	}
++	// A screen may have changed what the hero carries or wears (items, amulets, potions, a store): the
++	// walk-only gait of an overloaded hero (CheckAndSetOverloadMode) is decided again on leaving it, as
++	// the chest and item exchange screens already do, so dropping or selling the load gives the run back
++	// at once instead of after the next location. Only for the hero as the player: other types keep
++	// the walk their script set; only while the hero is in a location (his entity), never on the title screen.
++	ref overloadHero = GetMainCharacter();
++	if (IsEntity(overloadHero) && CheckAttribute(overloadHero, "chr_ai.type") && overloadHero.chr_ai.type == "player") CheckAndSetOverloadMode(overloadHero);
+ 	SetEventHandler("frame","InterfaceDoExit",1);
+ }
+ 
+@@ -2270,8 +2284,12 @@
+ {
+ 	DelEventHandler("makescrshot","AutoSaveContinue");
+ 
+-	string curSave = PlayerProfile.name + " AutoSave";
+-	SendMessage(&GameInterface,"ls",MSG_INTERFACE_DELETE_SAVE_FILE,curSave);
++	// The autosave goes to the three records every autosave rotates through, the one written longest ago
++	// (MSG_INTERFACE_AUTOSAVE_RECORD 45301: "lse" profile, out record name), not to the single
++	// "<profile> AutoSave", which the save list could not tell from the player's own records.
++	string curSave = "";
++	SendMessage(&GameInterface,"lse",45301,PlayerProfile.name,&curSave);
++	Trace("Autosave (boarding): SAVE\" + PlayerProfile.name + "\" + curSave);
+ 	string sSaveDescriber = GetSaveDataString(GetCurLocationName());
+ 
+ 	SetEventHandler("evntSave","SaveGame",1);

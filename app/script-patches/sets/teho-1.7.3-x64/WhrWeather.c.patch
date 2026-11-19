@@ -1,0 +1,10 @@
+--- a/PROGRAM/weather/WhrWeather.c
++++ b/PROGRAM/weather/WhrWeather.c
+@@ -385,6 +385,7 @@
+ 		{
+ 			iCurWeatherNum = iTestWeather;
+ 			bQuestlockWeather = true;
++			iBlendWeatherNum = -1; // залоченная погода
+ 		}
+ 	}
+ 	if (startGameWeather)

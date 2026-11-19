@@ -1,0 +1,64 @@
+<rml>
+<head>
+<title>Уведомление</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Notice</div>
+<div class="g-note">box: info · warn + action · danger + lead · ok · compact · two lines (never a third)</div>
+<div class="g-row">
+  <div class="g-wood col" style="width: 400dp; gap: 8dp;">
+    <c-notice text="Нет связи с сервером."/>
+    <c-notice id="n-action" tone="warn" text="Нет доступа к папке игры." action="Разрешить"/>
+    <c-notice tone="danger" lead="Ошибка." text="Файл сохранения повреждён."/>
+    <c-notice tone="ok" text="Ресурсы распакованы." compact="1"/>
+    <c-notice tone="warn" text="На устройстве осталось мало места: для распаковки ресурсов игры нужно ещё 1,2 ГБ свободной памяти, иначе установка не завершится и её придётся начать заново."/>
+  </div>
+  <div class="g-paper col" style="width: 400dp; gap: 8dp;">
+    <c-notice surface="parchment" text="Цены обновятся при заходе в порт."/>
+    <c-notice surface="parchment" tone="warn" text="Нужен навык «Торговля» 30." action="Учитель"/>
+    <c-notice surface="parchment" tone="danger" text="Письмо подделано: печать губернатора сломана."/>
+    <c-notice surface="parchment" tone="ok" text="Задание выполнено."/>
+  </div>
+</div>
+<div class="g-note">inline: info · warn · danger · ok (wood, parchment)</div>
+<div class="g-row">
+  <div class="g-wood col" style="width: 400dp; gap: 4dp;">
+    <c-notice variant="inline" text="Цены обновятся при заходе в порт"/>
+    <c-notice variant="inline" tone="warn" text="Нужен навык «Торговля» 30"/>
+    <c-notice variant="inline" tone="danger" text="Срок истекает через 2 дня"/>
+    <c-notice variant="inline" tone="ok" text="Сохранено"/>
+  </div>
+  <div class="g-paper col" style="width: 400dp; gap: 4dp;">
+    <c-notice surface="parchment" variant="inline" text="Цены обновятся при заходе в порт"/>
+    <c-notice surface="parchment" variant="inline" tone="warn" text="Нужен навык «Торговля» 30"/>
+    <c-notice surface="parchment" variant="inline" tone="danger" text="Срок истекает через 2 дня"/>
+    <c-notice surface="parchment" variant="inline" tone="ok" text="Задание выполнено"/>
+  </div>
+</div>
+<div class="g-note">toast (place none): info · warn · danger · ok · compact · log</div>
+<div class="g-row">
+  <div class="g-wood col" style="width: 400dp; gap: 8dp;">
+    <c-notice variant="toast" text="Не хватает денег"/>
+    <c-notice variant="toast" tone="warn" text="Трюм почти полон"/>
+    <c-notice variant="toast" tone="danger" text="Корабль получил пробоину"/>
+    <c-notice variant="toast" tone="ok" text="Игра сохранена"/>
+    <c-notice variant="toast" compact="1" tone="ok" text="Сохранено"/>
+  </div>
+  <div class="g-wood col" style="width: 400dp; gap: 8dp;">
+    <c-notice variant="log" lines='["Взято: ром 60 шт.", {"text": "Корабль «Аделина» получил пробоину", "tone": "danger"}, {"text": "Сохранено", "tone": "ok"}, "четвёртая строка не рисуется"]'/>
+    <c-notice variant="toast" text="Флейт «Аделина» отходит от причала, пассажиры на борту, груз принят полностью, капитан ждёт приказа об отплытии до заката"/>
+  </div>
+</div>
+<div class="g-note">placed in a scene: hud toast (land band) · hud log stacked under it (offset) · the bottom hint</div>
+<div class="g-row">
+  <div class="g-scene" style="position: relative; height: 240dp; padding: 0;">
+    <c-notice place="hud" tone="ok" text="Взято: ром 60 шт."/>
+    <c-notice variant="log" place="hud" scene="land" offset="48" lines='["Взято: ром 60 шт.", {"text": "Корабль «Аделина» получил пробоину", "tone": "danger"}]'/>
+    <c-notice variant="hint" icon="door" text="Таверна" style="position: absolute; left: 0; right: 0; bottom: 16dp; height: 32dp;"/>
+  </div>
+</div>
+</div>
+</body>
+</rml>

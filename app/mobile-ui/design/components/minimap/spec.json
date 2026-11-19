@@ -1,0 +1,25 @@
+{
+  "tag": "c-minimap",
+  "props": {
+    "place": {"type": "text", "default": ""},
+    "speed": {"type": "text", "default": ""},
+    "date": {"type": "text", "default": ""},
+    "heading": {"type": "number", "default": 0},
+    "markers": {"type": "json", "default": []},
+    "native": {"type": "bool", "default": false},
+    "readout": {"type": "bool", "default": true, "class": false},
+    "zoomLabel": {"type": "text", "default": "", "defaultKey": "minimap.zoom"},
+    "label": {"type": "text", "default": ""}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "width": 172,
+    "height": 150,
+    "disc": {"left": 36, "top": 24, "size": 100},
+    "line2Top": 130,
+    "dot": 6,
+    "speedSlot": 27,
+    "font": @{type.caption}
+  }
+}

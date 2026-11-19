@@ -1,0 +1,14 @@
+{
+  "tag": "s-new-game",
+  "doc": "New game (interface `selectcharacter`), filled by menu_new_game.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "rows": {"type": "json", "default": []},
+    "toggles": {"type": "json", "default": []},
+    "hero": {"type": "json", "default": {}},
+    "setup": {"type": "json", "default": null},
+    "start": {"type": "json", "default": null},
+    "modal": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

@@ -1,0 +1,13 @@
+<c-screen id="header" key="header" title="{{title}}" actions="{{ json(extras.actions) }}">
+<div class="sg-cols sg-{{layout}}">
+<div class="sg-left"><c-panel tone="{{ layout == 'reading' ? 'parchment' : 'wood' }}" aged="{{ layout == 'reading' ? 1 : 0 }}" pad="0" gap="0" style="width: 100%; height: 100%">
+<div class="sg-flow"><t-for each="left" as="b"><s-block block="{{ json(b) }}"/></t-for></div>
+<t-if test="len(right) == 0 && (len(actions) > 0 || danger)"><s-actions actions="{{ json(actions) }}" danger="{{ json(danger) }}"/></t-if>
+</c-panel></div>
+<t-if test="len(right) > 0"><div class="sg-right"><c-panel tone="parchment" pad="0" gap="0" style="width: 100%; height: 100%">
+<div class="sg-flow"><t-for each="right" as="b"><s-block block="{{ json(b) }}"/></t-for></div>
+<t-if test="len(actions) > 0 || danger"><s-actions actions="{{ json(actions) }}" danger="{{ json(danger) }}"/></t-if>
+</c-panel></div></t-if>
+</div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

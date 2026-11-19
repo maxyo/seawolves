@@ -1,0 +1,12 @@
+/* s-item-grid: rows of 44 dp wrapping into columns of at least 190 dp; the name takes two lines before it is cut. */
+s-item-grid { display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; width: 100%; }
+s-item-grid .ig-row { flex: 1 1 @{spec.column}dp; min-width: 0; box-sizing: border-box; height: @{spec.row}dp; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp;
+    padding: 0 @{space.md}dp 0 @{space.sm}dp; border: 1dp @{color.black/0}; border-bottom-color: @{color.brassLine/.14}; }
+/* the selected row: the slot tiles' selection (C-Tile .selected), a brass rim on the row's own box; every row has the
+   1 dp rim (clear) so the selection moves nothing */
+s-item-grid .ig-row.sel { border-color: @{color.brass}; background-color: @{color.brassGlow/.22}; }
+s-item-grid .ig-row.pressed { background-color: @{color.brassGlow/.3}; }
+s-item-grid .ig-pic { flex: 0 0 auto; width: @{spec.picture}dp; height: @{spec.picture}dp; display: flex; align-items: center; justify-content: center; }
+s-item-grid .ig-name { flex: 1 1 0; min-width: 0; font-size: @{type.body}dp; line-height: 1.15; color: @{color.text}; }
+s-item-grid .ig-count { flex: 0 0 auto; font-size: @{type.small}dp; color: @{color.textSecond}; white-space: nowrap; }
+s-item-grid .ig-empty { width: 100%; padding: @{space.xxl}dp; text-align: center; font-size: @{type.body}dp; color: @{color.textMuted}; }

@@ -1,0 +1,20 @@
+--- a/PROGRAM/locations/locations_loader.c
++++ b/PROGRAM/locations/locations_loader.c
+@@ -1163,7 +1163,7 @@
+ 					Trace("LocLoadShips: need (ships): " + iCurNumShips + ", but max_num_ships: " + iNumShips);
+ 					bContinue = true; 
+ 				}
+-				locator = GetAttributeN(locator_ships, iCurNumShips);
++				if (!bContinue) locator = GetAttributeN(locator_ships, iCurNumShips);
+ 				iCurNumShips++;
+ 			break;
+ 			case 1:
+@@ -1172,7 +1172,7 @@
+ 					Trace("LocLoadShips: need (ships_other): " + iCurNumOtherShips + ", but max_num_ships_other: " + iNumOtherShips);
+ 					bContinue = true; 
+ 				}
+-				locator = GetAttributeN(locator_otherships, iCurNumOtherShips);
++				if (!bContinue) locator = GetAttributeN(locator_otherships, iCurNumOtherShips);
+ 				iCurNumOtherShips++;
+ 			break;
+ 		}

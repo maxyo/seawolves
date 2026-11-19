@@ -1,0 +1,13 @@
+/* s-new-game: the game options on the left, the hero and «Начать игру» in the column on the right. */
+s-new-game { display: block; width: 100%; height: 100%; }
+s-new-game .ng-main { flex: 1 1 0; min-width: 0; height: 100%; }
+/* the panel pads 14 dp on every side (as the hero panel); the list keeps 6 dp for its scrollbar */
+s-new-game .ng-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 0 6dp @{space.sm}dp 0; }
+s-new-game .ng-grid { display: flex; flex-direction: row; flex-wrap: wrap; column-gap: 48dp; margin-top: @{space.xs}dp; }
+/* two toggle columns only where a label keeps two lines at most beside its toggle (260 dp a cell), else one;
+   a column narrower than one cell shrinks it (a min-width spilled the toggles past the panel's edge) */
+s-new-game .ng-cell { flex: 1 1 260dp; min-width: 0; }
+s-new-game .ng-side { flex: 0 0 320dp; height: 100%; }
+s-new-game .ng-info { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.md}dp; }
+s-new-game .ng-side c-button { flex: 0 0 auto; }
+s-new-game .ng-desc { flex: 0 0 auto; padding: 0 @{space.sm}dp; font-size: 14dp; line-height: 1.35; color: @{color.textSecond}; }

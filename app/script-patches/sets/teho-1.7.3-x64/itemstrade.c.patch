@@ -1,0 +1,14 @@
+--- a/PROGRAM/interface/itemstrade.c
++++ b/PROGRAM/interface/itemstrade.c
+@@ -224,7 +224,10 @@
+ void CalculateInfoData()
+ {
+     AddToTable();
+-	ShowGoodsInfo(sti(GameInterface.TABLE_LIST.tr1.index));
++	if (CheckAttribute(&GameInterface, "TABLE_LIST.tr1.index")) // нет товара вообще
++	{
++		ShowGoodsInfo(sti(GameInterface.TABLE_LIST.tr1.index));
++	}
+ }
+ 
+ void AddToTable()

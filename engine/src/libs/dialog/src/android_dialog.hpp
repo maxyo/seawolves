@@ -1,0 +1,145 @@
+#pragma once
+#ifdef __ANDROID__
+#include <platform/android_ui.hpp>
+#include <platform/android_dialogue_input.hpp>
+#include <core.h>
+#include <string_compare.hpp>
+#include <v_data.h>
+
+#include <cstdlib>
+#include <optional>
+
+namespace storm::android {
+// Runtime dialogue data only; neither dialogue strings nor game files are bundled.
+inline const void *dialogueOwner = nullptr;
+inline std::string dialogueSnapshot;
+inline std::string dialogueIdentity;
+inline uint64_t dialogueGeneration = 0;
+inline std::string dialogueJsonString(std::string_view value) {
+    std::string out = "\"";
+    for (const unsigned char c : value) {
+        if (c == '\\' || c == '"') { out += '\\'; out += c; }
+        else if (c == '\n') out += "\\n";
+        else if (c == '\r') out += "\\r";
+        else if (c == '\t') out += "\\t";
+        else if (c >= 32) out += c;
+    }
+    return out + '"';
+}
+inline std::string dialogueJsonString(const char *value) { return dialogueJsonString(std::string_view(value ? value : "")); }
+// State channel "dialogue" of the portable UI (the engine's UI host draws it); the activity
+// only learns whether a dialogue covers the game (its presentation state and controls).
+inline bool dialogueShown = false;
+inline void sendDialogue(const std::string &json) {
+    ui::state("dialogue", json);
+    const bool active = json.rfind("{\"active\":true", 0) == 0;
+    if (active == dialogueShown) return;
+    dialogueShown = active;
+    ui::dialogue(active);
+    auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+    auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
+    if (!env || !activity) return;
+    auto type = env->GetObjectClass(activity);
+    auto method = type ? env->GetMethodID(type, "showDialogue", "(Z)V") : nullptr;
+    if (method) env->CallVoidMethod(activity, method, static_cast<jboolean>(active));
+    else spdlog::error("dialogue: GameActivity.showDialogue(boolean) is missing");
+    if (env->ExceptionCheck()) { env->ExceptionDescribe(); env->ExceptionClear(); }
+    if (type) env->DeleteLocalRef(type);
+    env->DeleteLocalRef(activity);
+}
+inline void closeDialogue(const void *owner) {
+    if (dialogueOwner != owner) return;
+    sendDialogue("{\"active\":false}");
+    dialogueOwner = nullptr; dialogueSnapshot.clear(); dialogueIdentity.clear(); dialogueActions.clear();
+}
+inline size_t dialogueEditIndex(ATTRIBUTES *links) {
+    // DlgLinkDescribe retains the last editable link when rebuilding a node.
+    size_t index = size_t(-1);
+    if (links) for (size_t i = 0; i < links->GetAttributesNum(); ++i) {
+        auto *link = links->GetAttributeClass(i);
+        if (link && link->GetAttribute("edit")) index = i;
+    }
+    return index;
+}
+inline std::string dialogueIdentityField(const char *value) {
+    if (!value) return "-:";
+    const std::string_view text(value);
+    return std::to_string(text.size()) + ':' + std::string(text);
+}
+// Game data read by the dialogue snapshot; defined in dialog.cpp (the host checks supply fixtures).
+std::optional<int64_t> dialogueHeroMoney(); // the hero's money, if the script has it
+const char *gameLanguage();                 // the string service's language, or nullptr
+inline bool publishDialogue(const void *owner, ATTRIBUTES *attrs, const char *speaker) {
+    if (!attrs) { closeDialogue(owner); return false; }
+    auto *links = attrs->GetAttributeClass("Links");
+    const auto editIndex = dialogueEditIndex(links);
+    // Hidden routing metadata participates in generation changes, even if all
+    // displayed text is identical. It is never accepted from the Android UI.
+    std::string identity = dialogueIdentityField(attrs->GetAttribute("CurrentNode"));
+    // The game's language: the UI picks its own strings (buttons, editor) by it.
+    const char *language = gameLanguage();
+    std::string body = "\"language\":" + dialogueJsonString(language) + ",\"speaker\":" + dialogueJsonString(speaker) + ",\"text\":" + dialogueJsonString(attrs->GetAttribute("Text")) + ",\"choices\":[";
+    bool first = true;
+    if (links) for (size_t i=0; i<links->GetAttributesNum(); ++i) {
+        auto *link = links->GetAttributeClass(i);
+        identity += ',' + std::to_string(i) + ':';
+        if (link) identity += dialogueIdentityField(link->GetAttribute("go")) +
+            dialogueIdentityField(link->GetAttribute("edit"));
+        if (!link || !link->GetAttribute("go") || !link->HasValue()) continue;
+        if (!first) body += ',';
+        first = false;
+        body += "{\"index\":" + std::to_string(i) + ",\"text\":" + dialogueJsonString(link->GetValue());
+        if (i == editIndex) body += ",\"editable\":true,\"maxCodePoints\":" + std::to_string(dialogueEditMaxCodePoints);
+        body += '}';
+    }
+    body += ']';
+    // An answer the player types may be an amount (a bet, a deposit): the hero's money is
+    // the upper bound the number panel offers. Absent when the script data has none.
+    if (editIndex != size_t(-1))
+        if (const auto money = dialogueHeroMoney()) body += ",\"money\":" + std::to_string(*money);
+    if (dialogueOwner == owner && dialogueSnapshot == body && dialogueIdentity == identity) return true;
+    auto generation = dialogueGeneration + 1;
+    sendDialogue("{\"active\":true,\"generation\":" + std::to_string(generation) + ',' + body + '}');
+    dialogueOwner=owner; dialogueSnapshot=body; dialogueIdentity=identity; dialogueGeneration=generation; dialogueActions.clear();
+    return true;
+}
+inline void rejectDialogueEdit(unsigned index, std::string_view error) {
+    // Always acknowledge a valid submission failure, including identical retries.
+    sendDialogue("{\"active\":true,\"generation\":" + std::to_string(dialogueGeneration) + ',' +
+        dialogueSnapshot + ",\"editIndex\":" + std::to_string(index) + ",\"editError\":" +
+        dialogueJsonString(error) + '}');
+}
+template<class FitsWidth>
+inline ATTRIBUTES *takeDialogueChoice(const void *owner, ATTRIBUTES *attrs, FitsWidth fitsWidth) {
+    while (!dialogueActions.empty()) {
+        auto request=std::move(dialogueActions.front()); dialogueActions.pop_front();
+        const auto input = parseDialogueInput(request);
+        if (!input || dialogueOwner != owner || input->generation != dialogueGeneration || !attrs) continue;
+        auto *links=attrs->GetAttributeClass("Links");
+        if (!links || input->index >= links->GetAttributesNum()) continue;
+        auto *link=links->GetAttributeClass(input->index);
+        if (!link || !link->GetAttribute("go") || !link->HasValue()) continue;
+        const bool editable = input->index == dialogueEditIndex(links);
+        if (editable != input->text.has_value()) continue;
+        if (editable) {
+            auto error = dialogueEditError(*input->text);
+            if (error.empty() && !fitsWidth(*input->text)) error = "too_long";
+            if (!error.empty()) { rejectDialogueEdit(input->index, error); continue; }
+            const std::string text(*input->text);
+            const char *mode = link->GetAttribute("edit");
+            const auto slot = link->GetAttributeAsDword("edit", 0);
+            if (!storm::iEquals(mode, "string") && slot < 10) {
+                auto *data = static_cast<VDATA *>(core.GetScriptVariable("dialogEditStrings"));
+                if (!data || !data->Set(text.c_str(), slot)) {
+                    rejectDialogueEdit(input->index, "unavailable");
+                    continue;
+                }
+            }
+            attrs->SetAttribute("value", text);
+        }
+        dialogueActions.clear(); dialogueSnapshot.clear(); dialogueIdentity.clear(); return link;
+    }
+    return nullptr;
+}
+} // namespace storm::android
+#endif

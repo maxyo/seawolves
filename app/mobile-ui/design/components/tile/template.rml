@@ -1,0 +1,4 @@
+<t-if test="empty && !selected"><div class="ti-dash ti-dash-t"></div><div class="ti-dash ti-dash-b"></div><div class="ti-dash ti-dash-l"></div><div class="ti-dash ti-dash-r"></div></t-if>
+<c-row-image image="{{ json(image) }}" icon="{{icon}}" size="{{ in(image_kind(image, icon), 'item', 'portrait', 'emblem') ? size + spec.imageExtra : size }}" icon-size="{{size}}" tone="{{ disabled ? 'dim' : selected ? 'duo' : empty ? 'dim' : 'brass' }}" label="{{label}}" disabled="{{ empty || disabled ? 1 : 0 }}"/>
+<div class="ti-text"><ui-clamp class="ti-label" lines="{{spec.labelLines}}" min-size="@{type.min}" text="{{label}}"/><t-if test="sub"><ui-clamp class="ti-sub" lines="1" min-size="@{type.min}" text="{{sub}}"/></t-if></div>
+<t-if test="children"><div class="ti-slot" slot="1"></div></t-if>

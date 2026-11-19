@@ -1,0 +1,55 @@
+<rml>
+<head>
+<title>Кнопка HUD</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-HudButton</div>
+<div class="g-note">Варианты: normal, primary, combat, active, ghost · нажатая · удержание 60 % · удержание завершено · выключена</div>
+<div class="g-row g-scene" style="align-items: center; gap: 16dp">
+  <c-hud-button id="hb-normal" icon="menu" size="48" label="Меню"/>
+  <c-hud-button id="hb-primary" icon="moor" size="64" variant="primary" label="Причалить"/>
+  <c-hud-button id="hb-combat" icon="grapple" size="64" variant="combat" label="Абордаж"/>
+  <c-hud-button id="hb-active" icon="ammo" size="52" variant="active" label="Выбрано"/>
+  <c-hud-button id="hb-ghost" icon="eye" size="48" variant="ghost" label="Камера"/>
+  <c-hud-button icon="menu" size="48" pressed="1" label="Меню (нажата)"/>
+  <c-hud-button icon="talk" size="64" variant="primary" pressed="1" label="Говорить"/>
+  <c-hud-button id="hb-hold" icon="brander" size="52" variant="combat" hold="1" label="Брандер"/>
+  <c-hud-button icon="brander" size="52" variant="combat" hold="1" hold-progress="60" label="Брандер"/>
+  <c-hud-button icon="brander" size="52" variant="combat" hold="1" hold-progress="100" label="Брандер"/>
+  <c-hud-button id="hb-disabled" icon="sabre" size="52" disabled="1" label="Оружие"/>
+  <c-hud-button icon="cannon" size="76" variant="primary" label="Огонь"/>
+  <c-hud-button icon="sabre" size="84" variant="combat" label="Удар"/>
+</div>
+<div class="g-note">Заполнение снизу вверх: reload 40 · reload + «0» · cooldown 40 · active 75 · danger 55 · effect 30 · 100 (без линии) · цифры: gold, danger, «0» (выключена)</div>
+<div class="g-row g-scene" style="align-items: center; gap: 16dp">
+  <c-hud-button id="hb-fill" icon="ammo" size="64" badge="88" fill="40" fill-tone="reload" label="Ядра 88, перезарядка 40%"/>
+  <c-hud-button icon="pistol" size="64" variant="combat" badge="0" reloading="1" fill="70" label="Выстрел: перезарядка"/>
+  <c-hud-button icon="energy" size="64" fill="40" fill-tone="cooldown" label="Рывок"/>
+  <c-hud-button icon="potion" size="64" badge="3" fill="75" fill-tone="active" label="Зелье 3"/>
+  <c-hud-button icon="skull" size="64" fill="55" fill-tone="danger" label="Яд"/>
+  <c-hud-button icon="reload" size="64" fill="30" fill-tone="effect" label="Быстрая перезарядка"/>
+  <c-hud-button icon="cannon" size="76" variant="primary" fill="100" fill-tone="reload" label="Огонь: заряжено"/>
+  <c-hud-button icon="ammo" size="52" badge="88" label="Ядра"/>
+  <c-hud-button icon="ammo" size="52" badge="12" badge-tone="danger" label="Ядра"/>
+  <c-hud-button id="hb-zero" icon="ammo" size="64" badge="0" label="Ядра: нет"/>
+  <c-hud-button icon="potion" size="52" badge="0" hidden-when-disabled="1" label="Скрыта"/>
+</div>
+<div class="g-note">Подписей нет (force-label — только задокументированное исключение) · перезарядка при 0 · индикаторы 40 dp · состояния 26 dp</div>
+<div class="g-row g-scene" style="align-items: center; gap: 16dp">
+  <c-hud-button id="hb-choice" icon="grape" size="52" badge="40" label="Картечь"/>
+  <c-hud-button icon="moor" size="64" variant="primary" force-label="1" label="Причалить"/>
+  <c-hud-button icon="ammo" size="52" badge="0" reloading="1" fill="35" label="Перезарядка"/>
+  <c-hud-button icon="perk-instantrepair" size="44" indicator="1" fill="40" label="Мгновенный ремонт"/>
+  <c-hud-button indicator="1" icon="potion" badge="12с" fill="60" label="Зелье: ещё 12 с"/>
+  <c-hud-button indicator="1" icon="skull" badge="4" label="Яд: 4 хода"/>
+  <c-hud-button indicator="1" icon="energy" label="Прилив сил"/>
+  <c-hud-button state="1" icon="potion" fill="70" label="Зелье"/>
+  <c-hud-button state="1" icon="skull" fill="40" fill-tone="danger" badge="4" label="Яд"/>
+  <c-hud-button state="1" icon="energy" fill="90" fill-tone="effect" label="Прилив сил"/>
+  <c-hud-button state="1" size="28" icon="eye" fill="25" fill-tone="cooldown" label="Скрытность"/>
+</div>
+</div>
+</body>
+</rml>

@@ -1,0 +1,10 @@
+/* C-StatRow: one stat line, label · thin bar · word (crew experience, morale). One style everywhere. */
+c-stat-row { display: block; width: 100%; color: @{color.text}; }
+c-stat-row > .sr-row { display: flex; flex-direction: row; align-items: center; gap: @{spec.gap}dp; box-sizing: border-box; width: 100%; font-size: @{spec.font}dp; }
+c-stat-row.line > .sr-row { border-bottom: 1dp @{color.brassLine/.14}; }
+c-stat-row > .sr-row > .sr-label { flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+c-stat-row > .sr-row > .sr-bar { flex: 1 1 0; min-width: 0; }
+c-stat-row > .sr-row > .sr-word { flex: 0 0 auto; white-space: nowrap; text-align: right; color: @{color.brass}; }
+c-stat-row.surface-parchment { color: @{color.ink}; }
+c-stat-row.surface-parchment.line > .sr-row { border-bottom-color: @{color.inkMuted/.28}; }
+c-stat-row.surface-parchment > .sr-row > .sr-word { color: @{color.inkLink}; }

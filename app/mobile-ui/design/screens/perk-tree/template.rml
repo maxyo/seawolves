@@ -1,0 +1,8 @@
+<t-if test="!tree"><div class="pt-empty">{{empty}}</div></t-if>
+<t-if test="tree"><div class="pt-scroll"><div class="pt-canvas" style="width: {{tree.width}}dp; height: {{tree.height}}dp;">
+<ui-links class="pt-links" links="{{tree.links}}" thickness="2"/>
+<t-for each="tree.nodes" as="n"><t-if test="n.reveal"><div class="pt-reveal" data-reveal="{{n.reveal}}" data-reveal-snap="1" style="top: {{n.revealTop}}dp;"></div></t-if><div class="pt-node st-{{n.state}}{{ n.selected ? ' sel' : '' }}" style="left: {{n.left}}dp; top: {{n.top}}dp;" data-action="row" data-value="{{n.id}}" data-tip="{{n.name}}">
+<div class="pt-halo"></div><div class="pt-pic"><c-row-image image="{{ json(n.image) }}" icon="{{ n.image ? '' : 'rank' }}" size="{{spec.icon}}" icon-size="28" round="1" surface="parchment" tone="{{ (n.state == 'locked' || n.state == 'unavailable') ? 'dim' : 'brass' }}" label="{{n.name}}" disabled="{{ (n.state == 'locked' || n.state == 'unavailable') ? 1 : 0 }}"/></div>
+<t-if test="n.state == 'learned'"><div class="pt-mark"><c-icon icon="check" size="11" tone="green"/></div></t-if><t-if test="n.state == 'locked'"><div class="pt-mark"><c-icon icon="lock" size="10" tone="paper"/></div></t-if><t-if test="n.state == 'unavailable'"><div class="pt-mark"><c-icon icon="warning" size="10" tone="paper"/></div></t-if><t-if test="n.other"><div class="pt-gmark"><c-icon icon="{{n.groupIcon}}" size="11" tone="paper"/></div></t-if>
+</div></t-for>
+</div></div></t-if>

@@ -1,0 +1,32 @@
+<c-screen id="header" key="header" title="{{title}}" actions="{{ json(extras.actions) }}">
+<t-if test="license"><c-panel tone="parchment" pad="0" gap="0" fade="1"><div class="ab-text">
+<div class="ab-head"><span class="ab-name">{{license.name}}</span><t-if test="license.kind"><span class="ab-kind">{{license.kind}}</span></t-if></div>
+<t-for each="license.paragraphs" as="t"><p class="ab-para">{{t}}</p></t-for>
+</div></c-panel>
+<t-else/>
+<t-if test="saves"><div class="ab-saves"><c-panel pad="0" gap="0">
+<t-if test="len(saves.rows) > 0"><p class="ab-hint">{{saves.hint}}</p>
+<div class="ab-rows"><t-for each="saves.rows" as="s"><c-list-row id="{{s.id}}" icon="{{s.icon}}" title="{{s.title}}" meta="{{s.meta}}" chevron="1"/></t-for></div>
+<t-else/><div class="ab-empty"><c-icon icon="save" size="36" tone="brass"/><div>{{saves.empty}}</div></div></t-if>
+</c-panel></div>
+<t-else/>
+<div class="ab-info"><c-panel gap="10">
+<div class="ab-titles"><div class="ab-app">{{name}}</div><div class="ab-version">{{version}}</div><div class="ab-purpose">{{purpose}}</div></div>
+<c-kv items="{{ json(facts) }}" style="width: 100%"/>
+<t-for each="sources" as="s"><c-list-row id="{{s.id}}" icon="download" title="{{s.title}}" meta="{{s.meta}}" dense="1" chevron="1"/></t-for>
+<c-list-row id="{{shareLog.id}}" icon="letter" title="{{shareLog.title}}" dense="1" chevron="1"/>
+<c-list-row id="{{shareSave.id}}" icon="save" title="{{shareSave.title}}" dense="1" chevron="1"/>
+<c-list-row id="{{restoreSave.id}}" icon="load" title="{{restoreSave.title}}" meta="{{restoreSave.meta}}" dense="1" chevron="1"/>
+<div class="ab-grow"></div>
+<p class="ab-note">{{note}}</p>
+<div class="ab-studio"></div>
+</c-panel></div>
+<div class="ab-list"><c-panel pad="0" gap="0">
+<div class="ab-list-title">{{noticesTitle}}</div>
+<div class="ab-rows"><t-for each="notices" as="n"><c-list-row id="{{n.id}}" title="{{n.title}}" value="{{n.value}}" dense="1" chevron="1"/></t-for></div>
+</c-panel></div>
+</t-if>
+</t-if>
+<t-if test="dialog"><c-dialog id="restore" key="restore" icon="{{dialog.icon}}" title="{{dialog.title}}" text="{{dialog.text}}" actions="{{ json(dialog.actions) }}" width="520"/></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

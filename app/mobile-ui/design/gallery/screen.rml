@@ -1,0 +1,35 @@
+<rml>
+<head>
+<title>Экран меню</title>
+<link type="text/rcss" href="../kit.rcss"/>
+<style>
+.s-cell { position: relative; width: 100vw; height: 100vh; margin: 0 -16dp 12dp -16dp; }
+</style>
+</head>
+<body class="gallery">
+<div class="g-page" style="padding-top: 0">
+<div class="s-cell"><c-screen id="s-row" key="s-row" title="Экран">
+  <c-panel title="layout row" style="flex: 1 1 0; width: auto"><div>Панели рядом; отступы 10 / 12 / 12, зазор 10</div></c-panel>
+  <c-panel tone="parchment" title="Пергамент" style="flex: 0 0 300dp; width: auto"><div>Вторая панель</div></c-panel>
+</c-screen></div>
+<div class="g-title">layout column · заголовок с разделами, субъектом, вкладками (свойства шапки проходят насквозь)</div>
+<div class="s-cell"><c-screen id="s-col" key="s-col" title="Корабль" layout="column" sections="ship" subject='{"label":"Аделина","sub":"2 из 3"}' tabs='[{"label":"Обзор","selected":true},{"label":"Трюм"}]'>
+  <c-panel title="Верхняя" style="flex: 1 1 0; height: auto"><div>layout column</div></c-panel>
+  <c-panel title="Нижняя" style="flex: 0 0 120dp; height: auto"><div>вторая панель</div></c-panel>
+</c-screen></div>
+<div class="g-title">layout free · крестик вместо «назад» · stats · подзаголовок</div>
+<div class="s-cell"><c-screen id="s-free" key="s-free" title="Приказы" layout="free" close="1" script="0" subtitle="эскадра" show-subtitle="1" stats='[{"icon":"crew","value":"64 / 120"}]'>
+  <div style="position: absolute; left: 40dp; top: 30dp; width: 300dp; height: 200dp"><c-panel title="layout free"><div>Абсолютное размещение, без отступов</div></c-panel></div>
+  <div style="position: absolute; right: 0; bottom: 0; width: 200dp; height: 100dp"><c-panel tone="glass"><div>В углу</div></c-panel></div>
+</c-screen></div>
+<div class="g-title">header="0" · диалог поверх экрана</div>
+<div class="s-cell"><c-screen header="0">
+  <c-panel title="Без шапки" style="flex: 1 1 0; width: auto"><div>header="0"</div></c-panel>
+</c-screen></div>
+<div class="s-cell"><c-screen id="s-dlg" key="s-dlg" title="Сохранения">
+  <c-panel title="Список" style="flex: 1 1 0; width: auto"><div>Диалог перекрывает весь экран вместе с шапкой</div></c-panel>
+  <c-dialog id="s-dialog" key="s-dialog" title="Удалить" subject="Мартиника — море" consequence="Запись нельзя восстановить." preset="danger" confirm="Удалить"/>
+</c-screen></div>
+</div>
+</body>
+</rml>

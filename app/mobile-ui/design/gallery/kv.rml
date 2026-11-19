@@ -1,0 +1,28 @@
+<rml>
+<head>
+<title>Подпись и значение</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-KV</div>
+<div class="g-note">дерево: 1 колонка 13 · 1 колонка 15 · тона gold / dim / danger / ok · длинная подпись переносится</div>
+<div class="g-row g-wood">
+  <div style="width: 260dp"><c-kv items='[{"k":"Вес","v":"10"},{"k":"Пачка","v":"20"},{"k":"Продажа","v":"3"},{"k":"Покупка","v":"5"}]'/></div>
+  <div style="width: 260dp"><c-kv size="15" items='[{"k":"Скорость","v":"13 уз из 15"},{"k":"Манёвр.","v":"34 из 59"},{"k":"Трюм","v":"189 из 700 ц"}]'/></div>
+  <div style="width: 200dp"><c-kv items='[{"k":"Цена","v":"1 200","tone":"gold"},{"k":"Тип","v":"лёгкое","tone":"dim"},{"k":"Течь","v":"12 %","tone":"danger"},{"k":"Мораль","v":"высокая","tone":"ok"},{"k":"Наибольшая дальность стрельбы орудий","v":"650"}]'/></div>
+</div>
+<div class="g-note">2 колонки (панель шире 300 dp)</div>
+<div class="g-row g-wood">
+  <div style="width: 420dp"><c-kv cols="2" items='[{"k":"Вес","v":"2.4"},{"k":"Урон","v":"10–20"},{"k":"Цена","v":"1 200","tone":"gold"},{"k":"Тип","v":"лёгкое"}]'/></div>
+  <div style="width: 380dp"><c-kv cols="2" size="15" items='[{"k":"Вес","v":"2.4"},{"k":"Урон","v":"10–20"},{"k":"Цена","v":"1 200","tone":"gold"}]'/></div>
+</div>
+<div class="g-note">пергамент</div>
+<div class="g-row g-paper">
+  <div style="width: 260dp"><c-kv surface="parchment" items='[{"k":"Расстояние","v":"2 мили"},{"k":"Орудия","v":"40","tone":"danger"}]'/></div>
+  <div style="width: 260dp"><c-kv surface="parchment" size="15" items='[{"k":"Награда","v":"5 000","tone":"gold"},{"k":"Срок","v":"12 дней","tone":"dim"},{"k":"Репутация","v":"+3","tone":"ok"}]'/></div>
+  <div style="width: 300dp"><c-kv surface="parchment" cols="2" items='[{"k":"Вес","v":"2.4"},{"k":"Урон","v":"10–20"},{"k":"Цена","v":"1 200","tone":"gold"},{"k":"Тип","v":"лёгкое"}]'/></div>
+</div>
+</div>
+</body>
+</rml>

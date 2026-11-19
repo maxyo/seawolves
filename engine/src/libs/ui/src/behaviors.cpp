@@ -1,0 +1,1411 @@
+// Touch behaviours shared by the components. A component lists them in its spec; the
+// template marks the parts they act on with data-* attributes:
+//
+//   press   data-action="verb" [data-value] [data-disabled data-reason] [data-hold]
+//           [data-step="±n" | data-set="n" | data-toggle="prop" | data-select="arrayProp"
+//            data-index="i"] [data-prop="value"]
+//           Without a marked part the whole component is the button (verb "click") unless
+//           the spec sets constants.pressRoot to false, or the prop `inert` is set (a row that only shows
+//           something: its marked parts and slotted controls still take taps). On a game interface a press start asks
+//           for the interface's click unless constants.pressSound is false.
+//           A hold (prop hold / data-hold) fills a <ui-ring> or the width of a [data-hold-fill] part; a
+//           release before it is full, and a tap on a disabled control without a reason, put the class
+//           "shake" on the part (or the component) for a moment; that tap also reports `refused`.
+//   range   data-range="prop" on the track (props min, max, step)
+//   stick   data-stick="x|xy" on the travel area, data-knob on the knob; prop `floating`:
+//           the component's box is the zone, the travel area goes under the finger (atX, atY);
+//           prop `floatAxis` "y": it moves only up to the finger's height, its left stays where
+//           it rests (the helm). A floating axis is pushed from where the finger landed; an axis
+//           that does not float is absolute: its value is the finger's offset from the travel
+//           area's middle from the first contact on. The prop `fixed` turns a floating zone off
+//           for a while: the stick takes touches only where it rests, as one that does not float.
+//   lever   data-lever="steps|continuous" on the rail (prop value / dir)
+//   columns data-col="i" on the head and row cells of column i: every cell of a column gets
+//           the width of its widest content (the cells are laid out shrink-to-fit first,
+//           then given a common min-width), so numeric columns line up without the
+//           screen guessing widths
+//
+//   reveal  data-reveal="key" on a part that opens (a row with its amount under it): a key new
+//           in a render is scrolled into its closest scrolling box, whole and clear of the fade;
+//           data-reveal-snap on the part jumps there at once (a box whose whole content was replaced)
+//
+//   panzoom data-panzoom on the viewport (clips), data-plane on the picture plane inside it;
+//           props base [w, h] and view [x0, y0, x1, y1] (the part shown first) in the units the
+//           game measures the picture in. One finger pans, two pinch; a tap reports
+//           `point x,y` in those units; parts marked data-zoom="in|out" zoom one step around
+//           the centre. The view is the component's own: nothing goes to the engine for it.
+//           A change of the prop `room` (the layout around the view) refits it to the new size.
+//
+//   toast   data-toast="key" on each toast line (C-Notice toast / log): a finger on a line
+//           reports `hold <key>` (its timer stops) and lifting it `release <key>`; a line
+//           marked data-open also reports `open <key>` when the finger lifts on it
+//
+// Two more are given to single elements with data-behavior="…" (HUD layout), on top of
+// what their component has:
+//   hold    reports `down` and `up`: a control that acts for as long as it is held
+//   swipe   a drag from the element picks one of several moves by direction and reports
+//           `open <id>`, `preview <id>`, then `commit <id>` or `cancel`:
+//           data-swipe-ids="a,b,…" with data-swipe-bounds="deg,deg,…" (one more bound than
+//           ids, clockwise from the positive x axis, y down), data-swipe-centre="id" inside
+//           data-swipe-dead dp
+#include "components.h"
+#include "elements.h"
+#include "touch_motion.h"
+
+#include <RmlUi/Core/EventListener.h>
+#include <RmlUi/Core/Transform.h>
+#include <RmlUi/Core/TransformPrimitive.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <unordered_map>
+
+namespace storm::ui
+{
+
+namespace
+{
+
+// Timings come from the design tokens (pack.json "settings"); these are the fallbacks.
+double HoldSeconds(ComponentElement &self)
+{
+    return self.Host().Setting("holdConfirmMs", 800.0) / 1000.0; // hold-to-confirm ring
+}
+double DoneSeconds(ComponentElement &self)
+{
+    return self.Host().Setting("holdFlashMs", 280.0) / 1000.0; // completion flash
+}
+double TooltipSeconds(ComponentElement &self)
+{
+    return self.Host().Setting("tooltipMs", 400.0) / 1000.0; // long press before the tooltip opens
+}
+double RefuseSeconds(ComponentElement &self)
+{
+    return self.Host().Setting("refuseMs", 720.0) / 1000.0; // the shake of a refused modal
+}
+
+Rml::Element *ClosestWith(Rml::Element *from, Rml::Element *root, const char *attribute)
+{
+    for (Rml::Element *element = from; element; element = element->GetParentNode())
+    {
+        if (element->HasAttribute(attribute))
+            return element;
+        if (element == root)
+            break;
+    }
+    return nullptr;
+}
+
+Rml::Element *FindWith(Rml::Element *root, const char *attribute)
+{
+    Rml::ElementList found;
+    root->QuerySelectorAll(found, Rml::String("[") + attribute + "]");
+    return found.empty() ? nullptr : found.front();
+}
+
+std::string Attr(Rml::Element *element, const char *name, const char *fallback = "")
+{
+    return element->GetAttribute<Rml::String>(name, fallback);
+}
+
+// Where the element's border box is on the screen: its layout box moved by the transforms on it
+// and its ancestors (a translate exactly, others as at the box's corner), so pointers meet what is drawn.
+Rml::Rectanglef BorderBox(Rml::Element *element)
+{
+    Rml::Vector2f origin = element->GetAbsoluteOffset(Rml::BoxArea::Border);
+    if (Rml::Vector2f local = origin; element->GetTransformState() && element->Project(local))
+        origin += origin - local;
+    return Rml::Rectanglef::FromPositionSize(origin, element->GetBox().GetSize(Rml::BoxArea::Border));
+}
+
+bool Inside(Rml::Element *element, Rml::Vector2f point, float slop)
+{
+    const Rml::Rectanglef box = BorderBox(element);
+    return point.x >= box.Left() - slop && point.x <= box.Right() + slop && point.y >= box.Top() - slop && point.y <= box.Bottom() + slop;
+}
+
+double Number(const Json &value, double fallback = 0.0)
+{
+    return value.is_number() ? value.get<double>() : fallback;
+}
+
+// The part of min…max an amount may take: the props `floor` and `ceiling` (c-quantity: what is already done, what
+// the purse allows) narrow it when set.
+std::pair<double, double> Reach(ComponentElement &self, double low, double high)
+{
+    const double lo = std::min(low, high), hi = std::max(low, high);
+    const double floor = std::clamp(Number(self.Prop("floor"), lo), lo, hi);
+    return {floor, std::clamp(Number(self.Prop("ceiling"), hi), floor, hi)};
+}
+
+void AllWith(Rml::Element *root, const char *attribute, std::vector<Rml::Element *> &out)
+{
+    Rml::ElementList found;
+    root->QuerySelectorAll(found, Rml::String("[") + attribute + "]");
+    out.insert(out.end(), found.begin(), found.end());
+}
+
+std::vector<std::string> Split(const std::string &text)
+{
+    std::vector<std::string> parts;
+    size_t at = 0;
+    while (at <= text.size())
+    {
+        size_t end = text.find(',', at);
+        if (end == std::string::npos)
+            end = text.size();
+        parts.push_back(text.substr(at, end - at));
+        at = end + 1;
+    }
+    return parts;
+}
+
+// The whole component is a button too (no marked part under the finger): constants.pressRoot, not prop `inert`.
+bool PressesRoot(const ComponentElement &self)
+{
+    return Truthy(self.Spec().constants.value("pressRoot", Json(true))) && !self.Flag("inert");
+}
+
+class PressBehavior final : public Behavior
+{
+  public:
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (part_ || done_until_ > 0.0)
+            return false;
+        Rml::Element *part = ClosestWith(pointer.target, &self, "data-action");
+        if (!part)
+        {
+            if (!PressesRoot(self))
+                return false;
+            part = &self;
+        }
+        part_ = part;
+        part_alive_ = part->GetObserverPtr();
+        pointer_ = pointer.id;
+        if (self.Flag("busy"))
+            return true;
+        SetPressed(self, true);
+        down_at_ = self.Host().Now();
+        const bool disabled = Disabled(self);
+        if (!disabled)
+            self.Host().PressStarted(self);
+        holding_ = !disabled && HoldMode(self) == Hold::Confirm;
+        tooltip_pending_ = HoldMode(self) == Hold::Tooltip;
+        tooltip_open_ = false;
+        if (holding_ || tooltip_pending_)
+            self.RequestTicks(*this, true);
+        return true;
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool cancelled) override
+    {
+        if (!part_ || pointer.id != pointer_)
+            return;
+        Rml::Element *part = part_;
+        const bool was_holding = holding_;
+        const bool tooltip_was_open = tooltip_open_;
+        Release(self);
+        if (cancelled || self.Flag("busy") || tooltip_was_open)
+            return;
+        if (!Inside(part, pointer.position, 12.0f * self.Host().Density()))
+            return;
+        if (part == &self ? self.Flag("disabled") : part->HasAttribute("data-disabled"))
+        {
+            const std::string reason =
+                part == &self ? ToText(self.Prop("reason")) + ToText(self.Prop("disabledReason")) : Attr(part, "data-reason");
+            if (!reason.empty())
+                self.Host().Toast(reason, "info");
+            else
+            {
+                // No reason to show: the control says "not now" by shaking, and reports `refused` so the screen can
+                // point at what is missing (the root's id, or the part's data-action, as a tap would).
+                Shake(self, part);
+                if (part == &self)
+                    self.Emit("refused");
+                else if (const std::string verb = Attr(part, "data-action"); !verb.empty())
+                    self.Emit("refused", verb);
+            }
+            return;
+        }
+        if (was_holding)
+        {
+            // Released before the hold filled the control: nothing happens, and the control says so by shaking
+            // (class "shake" on the part or the whole component, as a refused modal shakes; a component may show
+            // its hold hint while it carries the class).
+            Shake(self, part);
+            return;
+        }
+        Activate(self, part);
+    }
+
+    // A modal that must be answered was tapped beside (Router: Bindings::Modal without a
+    // cancel): the component carries the class "refused" for a moment (C-Dialog shakes its box).
+    bool Refused(ComponentElement &self) override
+    {
+        if (refused_until_ > 0.0)
+            return true; // still shaking: the same refusal
+        self.SetLive("refused", true);
+        refused_until_ = self.Host().Now() + RefuseSeconds(self);
+        self.RequestTicks(*this, true);
+        return true;
+    }
+
+    void Tick(ComponentElement &self, double now) override
+    {
+        if (shake_until_ > 0.0 && now >= shake_until_)
+        {
+            shake_until_ = 0.0;
+            if (shaking_)
+                shaking_->SetClass("shake", false);
+            shaking_ = {};
+            StopTicksWhenIdle(self);
+        }
+        if (refused_until_ > 0.0 && now >= refused_until_)
+        {
+            refused_until_ = 0.0;
+            self.SetLive("refused", false);
+            StopTicksWhenIdle(self);
+        }
+        if (done_until_ > 0.0 && now >= done_until_)
+        {
+            done_until_ = 0.0;
+            self.SetLive("done", false);
+            SetRing(self, &self, self.Prop("holdProgress"));
+            StopTicksWhenIdle(self);
+            return;
+        }
+        if (!part_)
+            return;
+        if (holding_)
+        {
+            const double progress = std::min(1.0, (now - down_at_) / HoldSeconds(self));
+            SetRing(self, part_, progress * 100.0);
+            if (progress >= 1.0)
+            {
+                Rml::Element *part = part_;
+                holding_ = false;
+                SetPressed(self, false);
+                part_ = nullptr;
+                self.SetLive("done", true);
+                done_until_ = now + DoneSeconds(self);
+                Activate(self, part);
+            }
+        }
+        else if (tooltip_pending_ && now - down_at_ >= TooltipSeconds(self))
+        {
+            tooltip_pending_ = false;
+            tooltip_open_ = true;
+            std::string text = part_ != &self ? Attr(part_, "data-tip") : ToText(self.Prop("tip"));
+            if (text.empty())
+                text = ToText(self.Prop("title"));
+            self.Host().Tooltip(part_, text, ToText(self.Prop("tipPlace")) == "below");
+        }
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        const size_t before = out.size();
+        AllWith(&self, "data-action", out);
+        if (out.size() == before && PressesRoot(self))
+            out.push_back(&self);
+    }
+
+    void Taps(ComponentElement &self, std::vector<Tap> &taps) const override
+    {
+        const auto untouchable = [](Rml::Element *element) { return element->GetComputedValues().pointer_events() == Rml::Style::PointerEvents::None; };
+        if (self.Flag("busy") || untouchable(&self))
+            return; // pointer-events: none (inherited) is a row that only shows something
+        Rml::ElementList parts;
+        self.QuerySelectorAll(parts, "[data-action]");
+        for (Rml::Element *part : parts)
+        {
+            Rml::Element *owner = part->GetParentNode();
+            while (owner && !dynamic_cast<ComponentElement *>(owner))
+                owner = owner->GetParentNode();
+            if (owner != &self || part->HasAttribute("data-disabled") || untouchable(part))
+                continue; // a nested component's own part, or one that only says why not
+            if (const std::string verb = Attr(part, "data-action", "click"); !verb.empty())
+                taps.push_back({part, verb, Attr(part, "data-value"), part->HasAttribute("data-hold")});
+        }
+        if (PressesRoot(self) && !self.Flag("disabled"))
+            taps.push_back({&self, "click", {}, self.Flag("hold") && self.Spec().constants.value("holdMode", std::string("confirm")) != "tooltip"});
+    }
+
+    void Rebuilt(ComponentElement &self) override
+    {
+        // The inner tree is patched in place; a pressed part usually survives. If it was
+        // replaced, the press is over.
+        if (part_ && part_ != &self && (!part_alive_ || tooltip_pending_ || tooltip_open_))
+        {
+            // A morph may reuse the anchor for another row. Tooltips belong to
+            // the old render even when the element itself survives.
+            if (!part_alive_)
+                part_ = nullptr;
+            Release(self);
+        }
+        if (part_ == &self && holding_)
+            return;
+        StopTicksWhenIdle(self);
+    }
+
+  private:
+    enum class Hold
+    {
+        None,
+        Confirm,
+        Tooltip
+    };
+
+    Hold HoldMode(ComponentElement &self) const
+    {
+        if (part_ != &self)
+            return !Attr(part_, "data-tip").empty() ? Hold::Tooltip : part_->HasAttribute("data-hold") ? Hold::Confirm : Hold::None;
+        if (!self.Flag("hold"))
+            return Hold::None;
+        if (self.Spec().constants.value("holdMode", std::string("confirm")) != "tooltip")
+            return Hold::Confirm;
+        // A tooltip repeats the title only when the title was cut to fit (an explicit tip
+        // always opens); otherwise a long press is a plain press.
+        if (ToText(self.Prop("tip")).empty() && ClampedTextIn(&self) == 0)
+            return Hold::None;
+        return Hold::Tooltip;
+    }
+
+    bool Disabled(ComponentElement &self) const
+    {
+        return part_ == &self ? self.Flag("disabled") : part_->HasAttribute("data-disabled");
+    }
+
+    void SetPressed(ComponentElement &self, bool on)
+    {
+        if (!part_)
+            return;
+        if (part_ == &self)
+            self.SetLive("pressed", on);
+        else
+            part_->SetClass("pressed", on);
+    }
+
+    void Shake(ComponentElement &self, Rml::Element *part)
+    {
+        if (shaking_)
+            shaking_->SetClass("shake", false);
+        part->SetClass("shake", true);
+        shaking_ = Rml::ObserverPtr<Rml::Element>(part->GetObserverPtr());
+        shake_until_ = self.Host().Now() + RefuseSeconds(self);
+        self.RequestTicks(*this, true);
+    }
+
+    // The hold's progress: the value of a <ui-ring>, or the width of a part marked data-hold-fill (a fill that
+    // sweeps across the whole control), in the part or else in the component.
+    static void SetRing(ComponentElement &self, Rml::Element *part, const Json &percent)
+    {
+        const float value = static_cast<float>(Number(percent));
+        Rml::Element *ring = part ? part->QuerySelector("ui-ring") : nullptr;
+        if (!ring)
+            ring = self.QuerySelector("ui-ring");
+        if (ring)
+            ring->SetAttribute("value", value);
+        Rml::Element *fill = part ? part->QuerySelector("[data-hold-fill]") : nullptr;
+        if (!fill)
+            fill = self.QuerySelector("[data-hold-fill]");
+        if (fill)
+            fill->SetProperty(Rml::PropertyId::Width, Rml::Property(std::clamp(value, 0.0f, 100.0f), Rml::Unit::PERCENT));
+    }
+
+    void Release(ComponentElement &self)
+    {
+        if (holding_)
+            SetRing(self, part_, self.Prop("holdProgress"));
+        if (tooltip_open_)
+            self.Host().Tooltip(nullptr, {}, false);
+        SetPressed(self, false);
+        part_ = nullptr;
+        holding_ = false;
+        tooltip_pending_ = false;
+        tooltip_open_ = false;
+        StopTicksWhenIdle(self);
+    }
+
+    void StopTicksWhenIdle(ComponentElement &self)
+    {
+        if (!part_ && done_until_ == 0.0 && refused_until_ == 0.0 && shake_until_ == 0.0)
+            self.RequestTicks(*this, false);
+    }
+
+    // Applies the optimistic local change the part asks for, then reports to the game.
+    static void Activate(ComponentElement &self, Rml::Element *part)
+    {
+        if (part == &self)
+        {
+            self.Emit("click");
+            return;
+        }
+        const std::string verb = Attr(part, "data-action", "click");
+        if (verb.empty()) // a tooltip-only part has no tap action
+            return;
+        std::string value = Attr(part, "data-value");
+        const std::string prop = Attr(part, "data-prop", "value");
+        if (part->HasAttribute("data-step") || part->HasAttribute("data-set"))
+        {
+            const double low = Number(self.Prop("min"), 0.0);
+            const double high = Number(self.Prop("max"), 100.0);
+            double next = part->HasAttribute("data-set") ? part->GetAttribute<float>("data-set", 0.0f)
+                                                         : Number(self.Prop(prop)) + part->GetAttribute<float>("data-step", 0.0f);
+            const auto [reach_low, reach_high] = Reach(self, low, high);
+            next = std::clamp(next, reach_low, reach_high);
+            value = ToText(Json(next));
+            self.SetProps(Json{{prop, next}});
+        }
+        else if (part->HasAttribute("data-toggle"))
+        {
+            const std::string flag = Attr(part, "data-toggle");
+            const bool next = !self.Flag(flag);
+            value = next ? "1" : "0";
+            self.SetProps(Json{{flag, next}});
+        }
+        else if (part->HasAttribute("data-select"))
+        {
+            const std::string list = Attr(part, "data-select");
+            const int index = part->GetAttribute<int>("data-index", 0);
+            Json items = self.Prop(list);
+            if (items.is_array())
+            {
+                for (size_t i = 0; i < items.size(); ++i)
+                    if (items[i].is_object() && !items[i].contains("divider"))
+                        items[i]["selected"] = static_cast<int>(i) == index;
+                self.SetProps(Json{{list, items}});
+            }
+            if (value.empty())
+                value = std::to_string(index);
+        }
+        self.Emit(verb, value);
+    }
+
+    Rml::Element *part_ = nullptr;
+    Rml::ObserverPtr<Rml::Element> part_alive_;
+    int pointer_ = -1;
+    double down_at_ = 0.0;
+    double done_until_ = 0.0;
+    double refused_until_ = 0.0;
+    double shake_until_ = 0.0;                // a hold released early shakes its part until then
+    Rml::ObserverPtr<Rml::Element> shaking_;  // that part
+    bool holding_ = false;
+    bool tooltip_pending_ = false;
+    bool tooltip_open_ = false;
+};
+
+// Horizontal slider: the finger position maps straight to the value, and the knob (the element
+// with data-range-knob inside the track, which the template places at the value) stays under the
+// finger while it drags: a value has steps, the finger has none, and a knob drawn at the value
+// alone moved in jumps of a step. It returns to the value's place on release.
+class RangeBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &pointer) const override
+    {
+        return pointer.target && ClosestWith(pointer.target, nullptr, "data-range") != nullptr;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        Rml::Element *track = ClosestWith(pointer.target, &self, "data-range");
+        if (!track || active_)
+            return false;
+        if (self.Flag("disabled"))
+        {
+            const std::string reason = ToText(self.Prop("disabledReason")) + ToText(self.Prop("reason"));
+            if (!reason.empty())
+                self.Host().Toast(reason, "info");
+            return true;
+        }
+        active_ = true;
+        pointer_ = pointer.id;
+        prop_ = Attr(track, "data-range", "value");
+        if (prop_.empty())
+            prop_ = "value";
+        const Rml::Rectanglef box = BorderBox(track);
+        const float inset = track->GetAttribute<float>("data-inset", 0.0f) * self.Host().Density();
+        left_ = box.Left() + inset;
+        width_ = std::max(1.0f, box.Width() - 2.0f * inset);
+        Apply(self, pointer.position.x, true);
+        return true;
+    }
+
+    void Move(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (active_ && pointer.id == pointer_)
+            Apply(self, pointer.position.x, true);
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool) override
+    {
+        if (!active_ || pointer.id != pointer_)
+            return;
+        active_ = false;
+        if (Rml::Element *knob = Knob(self))
+            knob->RemoveProperty(Rml::PropertyId::Transform);
+        self.SetProps(Json{{"active", false}});
+        self.Emit("commit", ToText(self.Prop(prop_)));
+    }
+
+    // A re-render sets the knob's style again (its place at the value): the offset to the finger is put back.
+    void Rebuilt(ComponentElement &self) override
+    {
+        Follow(self);
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        AllWith(&self, "data-range", out);
+    }
+
+  private:
+    void Apply(ComponentElement &self, float x, bool active)
+    {
+        const double low = Number(self.Prop("min"), 0.0);
+        const double high = Number(self.Prop("max"), 100.0);
+        const double step = std::max(1e-6, Number(self.Prop("step"), 1.0));
+        const auto [reach_low, reach_high] = Reach(self, low, high);
+        // The finger past a floor or a ceiling holds the knob there.
+        const double span = high != low ? high - low : 1.0;
+        const double t = std::clamp(double((x - left_) / width_), (reach_low - low) / span, (reach_high - low) / span);
+        const double value = std::clamp(low + std::round(t * (high - low) / step) * step, reach_low, reach_high);
+        const bool changed = Number(self.Prop(prop_), low - 1.0) != value;
+        at_ = float(t);
+        if (self.Flag("active") != active)
+            self.SetProps(Json{{prop_, value}, {"active", active}});
+        else if (changed)
+        {
+            // Under the finger the value's own texts and marks follow at once (the template's
+            // data-live-* parts), without a render of the control; the model's next revision
+            // brings the same value (Refresh made it the shown one), a branch change renders.
+            self.SetPropQuiet(prop_, value);
+            if (!self.Refresh())
+                self.SetProps(Json{{prop_, value}});
+        }
+        Follow(self);
+        if (changed)
+            self.Emit("change", ToText(Json(value)));
+    }
+
+    Rml::Element *Knob(ComponentElement &self) const
+    {
+        Rml::ElementList found;
+        self.QuerySelectorAll(found, "[data-range] [data-range-knob]");
+        return found.empty() ? nullptr : found.front();
+    }
+
+    // Moves the knob from the value's place (where the template put it) to the finger's: a
+    // transform, which lays nothing out.
+    void Follow(ComponentElement &self)
+    {
+        Rml::Element *knob = active_ ? Knob(self) : nullptr;
+        if (!knob)
+            return;
+        const double low = Number(self.Prop("min"), 0.0), high = Number(self.Prop("max"), 100.0);
+        const double value = std::clamp(Number(self.Prop(prop_), low), std::min(low, high), std::max(low, high));
+        const float value_at = high != low ? float((value - low) / (high - low)) : 0.0f;
+        knob->SetProperty(Rml::PropertyId::Transform,
+                          Rml::Transform::MakeProperty({Rml::Transforms::TranslateX{(at_ - value_at) * width_, Rml::Unit::PX}}));
+    }
+
+    bool active_ = false;
+    int pointer_ = -1;
+    std::string prop_;
+    float left_ = 0.0f;
+    float width_ = 1.0f;
+    float at_ = 0.0f; // where the finger is along the track, 0…1
+};
+
+// A stick whose box is a zone that takes the thumb anywhere (prop `floating`), unless the
+// zone is off for a while (prop `fixed`: the stick works only where it rests).
+bool Floats(const ComponentElement &self)
+{
+    return self.Flag("floating") && !self.Flag("fixed");
+}
+
+// A zone that is off lets a finger beside its stick through to what lies under it (the deck
+// walk zone): only the parts marked `attribute` are hit then.
+void ZoneTouches(ComponentElement &self, const char *attribute)
+{
+    if (!self.Flag("floating"))
+        return;
+    if (Floats(self))
+    {
+        self.RemoveProperty(Rml::PropertyId::PointerEvents);
+        return;
+    }
+    self.SetProperty(Rml::PropertyId::PointerEvents, Rml::Property(Rml::Style::PointerEvents::None));
+    std::vector<Rml::Element *> parts;
+    AllWith(&self, attribute, parts);
+    for (Rml::Element *part : parts)
+        part->SetProperty(Rml::PropertyId::PointerEvents, Rml::Property(Rml::Style::PointerEvents::Auto));
+}
+
+// Helm capsule (x only) and movement stick (x and y). Springs back on release.
+// With the prop `floating` the component's box is a zone: the stick appears under the
+// finger that lands anywhere in it and returns to its place of rest on release. With
+// `floatAxis` "y" it comes only to the finger's height and keeps its left. Along an axis the
+// stick floats on, the finger's landing point is the middle it is pushed from; along an axis it
+// does not float on (x with floatAxis "y", both on a stick that does not float or is `fixed`),
+// the middle is the travel area's own, so a finger that lands right of it turns right at once.
+class StickBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &) const override
+    {
+        return true;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        Rml::Element *area = FindWith(&self, "data-stick");
+        if (!area || active_)
+            return false;
+        active_ = true;
+        pointer_ = pointer.id;
+        both_ = Attr(area, "data-stick") == "xy";
+        const Rml::Rectanglef box = BorderBox(area);
+        const float knob = area->GetAttribute<float>("data-knob-size", 52.0f) * self.Host().Density();
+        centre_ = box.Center();
+        reach_ = {std::max(1.0f, (box.Width() - knob) * 0.5f), std::max(1.0f, (box.Height() - knob) * 0.5f)};
+        if (Floats(self))
+        {
+            // The base comes to the finger and stays there for this gesture; the template places it
+            // by `atX` / `atY`, dp from the top left corner of the zone. With floatAxis "y" it comes
+            // only to the finger's height and never below where it rests (its rest keeps it clear
+            // of the screen's bottom edge, where the system gestures are).
+            const bool vertical = ToText(self.Prop("floatAxis")) == "y"; // an enum prop: xy | y
+            const Rml::Vector2f placed = vertical ? Rml::Vector2f(centre_.x, std::min(pointer.position.y, centre_.y)) : pointer.position;
+            centre_ = vertical ? Rml::Vector2f(centre_.x, pointer.position.y) : pointer.position;
+            const Rml::Vector2f corner = (placed - box.Size() * 0.5f - BorderBox(&self).TopLeft()) / self.Host().Density();
+            self.SetProps(Json{{"atX", std::round(corner.x)}, {"atY", std::round(corner.y)}});
+        }
+        Apply(self, pointer.position);
+        return true;
+    }
+
+    void Move(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (active_ && pointer.id == pointer_)
+            Apply(self, pointer.position);
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool) override
+    {
+        if (!active_ || pointer.id != pointer_)
+            return;
+        active_ = false;
+        self.SetProps(Json{{"value", 0}, {"valueY", 0}, {"active", false}});
+        self.Emit("change", both_ ? "0,0" : "0");
+    }
+
+    void Rebuilt(ComponentElement &self) override
+    {
+        ZoneTouches(self, "data-stick");
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        if (Floats(self)) // the whole box of the component is the zone the stick appears in
+            out.push_back(&self);
+        else
+            AllWith(&self, "data-stick", out);
+    }
+
+  private:
+    void Apply(ComponentElement &self, Rml::Vector2f at)
+    {
+        Rml::Vector2f offset = {(at.x - centre_.x) / reach_.x, both_ ? (at.y - centre_.y) / reach_.y : 0.0f};
+        if (both_)
+        {
+            const float length = offset.Magnitude();
+            if (length > 1.0f)
+                offset /= length;
+        }
+        else
+            offset.x = std::clamp(offset.x, -1.0f, 1.0f);
+        const double x = std::round(offset.x * 100.0f), y = std::round(offset.y * 100.0f);
+        if (Number(self.Prop("value")) == x && Number(self.Prop("valueY")) == y && self.Flag("active"))
+            return;
+        self.SetProps(Json{{"value", x}, {"valueY", y}, {"active", true}});
+        self.Emit("change", both_ ? ToText(Json(x)) + "," + ToText(Json(y)) : ToText(Json(x)));
+    }
+
+    bool active_ = false;
+    bool both_ = false;
+    int pointer_ = -1;
+    Rml::Vector2f centre_;
+    Rml::Vector2f reach_ = {1.0f, 1.0f};
+};
+
+// Sail lever. steps: the knob snaps to one of the positions under the finger.
+// continuous: pushing up or down from where the finger landed holds SailUp / SailDown.
+class LeverBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &) const override
+    {
+        return true;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        Rml::Element *rail = FindWith(&self, "data-lever");
+        if (!rail || active_)
+            return false;
+        active_ = true;
+        pointer_ = pointer.id;
+        continuous_ = Attr(rail, "data-lever") == "continuous";
+        steps_ = std::max(2, rail->GetAttribute<int>("data-steps", 3));
+        const Rml::Rectanglef box = BorderBox(rail);
+        const float knob = rail->GetAttribute<float>("data-knob-size", 48.0f) * self.Host().Density();
+        top_ = box.Top() + knob * 0.5f;
+        travel_ = std::max(1.0f, box.Height() - knob);
+        Apply(self, pointer);
+        return true;
+    }
+
+    void Move(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (active_ && pointer.id == pointer_)
+            Apply(self, pointer);
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool) override
+    {
+        if (!active_ || pointer.id != pointer_)
+            return;
+        active_ = false;
+        if (continuous_)
+        {
+            if (!ToText(self.Prop("dir")).empty())
+                self.Emit("hold", "");
+            self.SetProps(Json{{"dir", ""}, {"active", false}});
+        }
+        else
+            self.SetProps(Json{{"active", false}});
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        AllWith(&self, "data-lever", out);
+    }
+
+  private:
+    void Apply(ComponentElement &self, const Pointer &pointer)
+    {
+        if (continuous_)
+        {
+            const float dead = 10.0f * self.Host().Density();
+            const float dy = pointer.position.y - pointer.start.y;
+            const std::string dir = dy < -dead ? "up" : dy > dead ? "down" : "";
+            if (ToText(self.Prop("dir")) != dir || !self.Flag("active"))
+            {
+                const bool changed = ToText(self.Prop("dir")) != dir;
+                self.SetProps(Json{{"dir", dir}, {"active", true}});
+                if (changed)
+                    self.Emit("hold", dir);
+            }
+            return;
+        }
+        const float t = 1.0f - std::clamp((pointer.position.y - top_) / travel_, 0.0f, 1.0f);
+        const double value = std::round(t * static_cast<float>(steps_ - 1));
+        const bool changed = Number(self.Prop("value"), -1.0) != value;
+        if (changed || !self.Flag("active"))
+            self.SetProps(Json{{"value", value}, {"active", true}});
+        if (changed)
+            self.Emit("change", ToText(Json(value)));
+    }
+
+    bool active_ = false;
+    bool continuous_ = false;
+    int pointer_ = -1;
+    int steps_ = 3;
+    float top_ = 0.0f;
+    float travel_ = 1.0f;
+};
+
+// A control that acts while it is held (block): `down` on the press, `up` on the release
+// or when the gesture is taken away. The finger may wander; it never becomes a scroll.
+class HoldBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &) const override
+    {
+        return true;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (held_ || self.Flag("disabled"))
+            return !held_;
+        held_ = true;
+        pointer_ = pointer.id;
+        self.Emit("down");
+        return true;
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool) override
+    {
+        if (!held_ || pointer.id != pointer_)
+            return;
+        held_ = false;
+        self.Emit("up");
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        out.push_back(&self);
+    }
+
+  private:
+    bool held_ = false;
+    int pointer_ = -1;
+};
+
+// A toast line under a finger: held (paused) while touched, opened by a tap when it leads
+// somewhere (data-open).
+class ToastBehavior final : public Behavior
+{
+  public:
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (part_)
+            return false;
+        Rml::Element *part = ClosestWith(pointer.target, &self, "data-toast");
+        if (!part)
+            return false;
+        part_ = part;
+        part_alive_ = part->GetObserverPtr();
+        pointer_ = pointer.id;
+        key_ = Attr(part, "data-toast");
+        if (part->HasAttribute("data-open"))
+            part->SetClass("pressed", true);
+        self.Emit("hold", key_);
+        return true;
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool cancelled) override
+    {
+        if (!part_ || pointer.id != pointer_)
+            return;
+        Rml::Element *part = part_alive_ ? part_ : nullptr;
+        part_ = nullptr;
+        if (part)
+            part->SetClass("pressed", false);
+        self.Emit("release", key_);
+        if (!cancelled && part && part->HasAttribute("data-open") && Inside(part, pointer.position, 12.0f * self.Host().Density()))
+            self.Emit("open", key_);
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        AllWith(&self, "data-toast", out);
+    }
+
+  private:
+    Rml::Element *part_ = nullptr;
+    Rml::ObserverPtr<Rml::Element> part_alive_;
+    int pointer_ = -1;
+    std::string key_;
+};
+
+// One finger picks one of several moves: the direction of the drag from where it went
+// down selects a sector, staying near that point selects the centre. Only the release
+// commits; a cancelled gesture commits nothing.
+class SwipeBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &) const override
+    {
+        return true;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (active_ || self.Flag("disabled"))
+            return !active_;
+        ids_ = Split(Attr(&self, "data-swipe-ids"));
+        bounds_.clear();
+        for (const std::string &bound : Split(Attr(&self, "data-swipe-bounds")))
+            bounds_.push_back(std::strtof(bound.c_str(), nullptr));
+        centre_ = Attr(&self, "data-swipe-centre");
+        if (ids_.empty() || bounds_.size() != ids_.size() + 1 || centre_.empty())
+        {
+            Rml::Log::Message(Rml::Log::LT_ERROR, "Behaviour swipe on %s: data-swipe-ids, -bounds (one more than ids) and -centre are required",
+                              self.GetAddress().c_str());
+            return true;
+        }
+        dead_ = self.GetAttribute<float>("data-swipe-dead", 20.0f) * self.Host().Density();
+        active_ = true;
+        pointer_ = pointer.id;
+        selected_ = centre_;
+        self.Emit("open", selected_);
+        return true;
+    }
+
+    void Move(ComponentElement &self, const Pointer &pointer) override
+    {
+        if (!active_ || pointer.id != pointer_)
+            return;
+        const std::string selected = Selection(pointer.position - pointer.start);
+        if (selected == selected_)
+            return;
+        selected_ = selected;
+        self.Emit("preview", selected_);
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool cancelled) override
+    {
+        if (!active_ || pointer.id != pointer_)
+            return;
+        active_ = false;
+        if (cancelled)
+            self.Emit("cancel");
+        else
+            self.Emit("commit", Selection(pointer.position - pointer.start));
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        out.push_back(&self);
+    }
+
+  private:
+    std::string Selection(Rml::Vector2f drag) const
+    {
+        if (drag.Magnitude() < dead_)
+            return centre_;
+        float angle = std::atan2(drag.y, drag.x) * 180.0f / 3.14159265f;
+        while (angle < bounds_.front())
+            angle += 360.0f;
+        for (size_t i = 0; i < ids_.size(); ++i)
+            if (angle >= bounds_[i] && angle < bounds_[i + 1])
+                return ids_[i];
+        return centre_;
+    }
+
+    bool active_ = false;
+    int pointer_ = -1;
+    float dead_ = 0.0f;
+    std::string centre_, selected_;
+    std::vector<std::string> ids_;
+    std::vector<float> bounds_;
+};
+
+class PanZoomBehavior final : public Behavior
+{
+  public:
+    bool Exclusive(const Pointer &) const override
+    {
+        return true;
+    }
+
+    bool Down(ComponentElement &self, const Pointer &pointer) override
+    {
+        Rml::Element *port = FindWith(&self, "data-panzoom");
+        if (!port || fingers_.size() >= 2 || !Ready(self, port))
+            return false;
+        if (fingers_.empty())
+        {
+            moved_ = false;
+            fling_[0].Stop(), fling_[1].Stop(); // a finger stops a picture in motion
+            tracker_.Clear();
+            tracker_.Add(pointer.time, {pointer.position.x, pointer.position.y});
+            Rml::Element *zoom = ClosestWith(pointer.target, &self, "data-zoom");
+            zoom_ = zoom ? Attr(zoom, "data-zoom") : std::string();
+            zoom_box_ = zoom ? BorderBox(zoom) : Rml::Rectanglef();
+        }
+        fingers_.push_back({pointer.id, pointer.position});
+        if (fingers_.size() == 2)
+        {
+            moved_ = true; // a pinch is never a tap
+            zoom_.clear();
+            pinch_distance_ = std::max(1.0f, (fingers_[0].at - fingers_[1].at).Magnitude());
+            pinch_scale_ = scale_;
+            pinch_anchor_ = (Middle() - BorderBox(port).TopLeft() - offset_) / scale_; // base point under the fingers
+        }
+        return true;
+    }
+
+    void Move(ComponentElement &self, const Pointer &pointer) override
+    {
+        Finger *finger = Find(pointer.id);
+        Rml::Element *port = FindWith(&self, "data-panzoom");
+        if (!finger || !port || !ready_)
+            return;
+        const Rml::Vector2f last = finger->at;
+        finger->at = pointer.position;
+        if (fingers_.size() == 2)
+        {
+            const float distance = std::max(1.0f, (fingers_[0].at - fingers_[1].at).Magnitude());
+            scale_ = std::clamp(pinch_scale_ * distance / pinch_distance_, min_scale_, max_scale_);
+            offset_ = Middle() - BorderBox(port).TopLeft() - pinch_anchor_ * scale_;
+            Apply(self);
+            return;
+        }
+        if (!zoom_.empty())
+            return;
+        tracker_.Add(pointer.time, {pointer.position.x, pointer.position.y});
+        const float slop = 8.0f * self.Host().Density();
+        if (!moved_ && (pointer.position - pointer.start).SquaredMagnitude() <= slop * slop)
+            return;
+        moved_ = true;
+        offset_ += pointer.position - last; // 1:1 with the finger at every zoom (offset_ is in screen pixels)
+        Apply(self);
+    }
+
+    void Up(ComponentElement &self, const Pointer &pointer, bool cancelled) override
+    {
+        if (!Find(pointer.id))
+            return;
+        const bool panned = fingers_.size() == 1 && moved_ && zoom_.empty();
+        fingers_.erase(std::remove_if(fingers_.begin(), fingers_.end(), [&](const Finger &f) { return f.id == pointer.id; }), fingers_.end());
+        if (fingers_.size() == 1) // the pinch ends: the finger left pans on from where it is (no velocity of the pinch)
+            tracker_.Clear();
+        if (panned && !cancelled && ready_)
+            Throw(self, pointer);
+        if (!fingers_.empty() || moved_ || cancelled)
+            return;
+        Rml::Element *port = FindWith(&self, "data-panzoom");
+        if (!port || !ready_)
+            return;
+        if (!zoom_.empty())
+        {
+            const float slop = 12.0f * self.Host().Density();
+            const Rml::Vector2f at = pointer.position;
+            if (at.x >= zoom_box_.Left() - slop && at.x <= zoom_box_.Right() + slop && at.y >= zoom_box_.Top() - slop &&
+                at.y <= zoom_box_.Bottom() + slop)
+            {
+                const Rml::Vector2f centre = BorderBox(port).Size() * 0.5f;
+                const Rml::Vector2f anchor = (centre - offset_) / scale_;
+                scale_ = std::clamp(scale_ * (zoom_ == "out" ? 1.0f / kStep : kStep), min_scale_, max_scale_);
+                offset_ = centre - anchor * scale_;
+                Apply(self);
+            }
+            zoom_.clear();
+            return;
+        }
+        const Rml::Vector2f at = (pointer.position - BorderBox(port).TopLeft() - offset_) / scale_;
+        if (at.x < 0.0f || at.y < 0.0f || at.x > base_.x || at.y > base_.y)
+            return;
+        char value[48];
+        std::snprintf(value, sizeof value, "%.1f,%.1f", at.x, at.y);
+        self.Emit("point", value);
+    }
+
+    // Ticks while the picture coasts after a pan (placed where the fling is at this frame's
+    // time), and after a rebuild, when the viewport may change size (a sheet opens beside it)
+    // once the layout has run: a few frames re-check it.
+    void Tick(ComponentElement &self, double now) override
+    {
+        Rml::Element *port = FindWith(&self, "data-panzoom");
+        if (fling_[0].Active() || fling_[1].Active())
+        {
+            const Rml::Vector2f wanted = {fling_[0].Active() ? fling_[0].Advance(now) : offset_.x, fling_[1].Active() ? fling_[1].Advance(now) : offset_.y};
+            offset_ = wanted;
+            Apply(self);
+            for (int i = 0; i < 2; ++i)
+                if (offset_[i] != wanted[i]) // held at an edge: that axis is done
+                    fling_[i].Stop();
+        }
+        const bool settled = !port || (Ready(self, port) && --settle_ <= 0);
+        if (settled && !fling_[0].Active() && !fling_[1].Active())
+            self.RequestTicks(*this, false);
+    }
+
+    void Rebuilt(ComponentElement &self) override
+    {
+        // A new picture (or measure) starts at the game's view; anything else keeps the
+        // player's pan and zoom on the rebuilt plane.
+        const std::string key = ToText(self.Prop("texture")) + "|" + ToText(self.Prop("base"));
+        if (key != key_)
+        {
+            key_ = key;
+            ready_ = false;
+        }
+        if (ready_)
+            Apply(self);
+        settle_ = 3;
+        self.RequestTicks(*this, true); // fitted (again) once the viewport has its size
+    }
+
+    void Regions(ComponentElement &self, std::vector<Rml::Element *> &out) const override
+    {
+        AllWith(&self, "data-panzoom", out);
+    }
+
+  private:
+    static constexpr float kStep = 1.6f;
+
+    // A pan released in motion coasts on (the lists' fling, touch_motion.h).
+    void Throw(ComponentElement &self, const Pointer &pointer)
+    {
+        tracker_.Lift(pointer.time);
+        const touch::Point velocity = tracker_.Velocity();
+        const float density = self.Host().Density();
+        bool thrown = false;
+        for (int i = 0; i < 2; ++i)
+            if (std::fabs(velocity[i]) >= kMinFlingDp * density)
+            {
+                fling_[i].Start(pointer.time, offset_[i], std::clamp(velocity[i], -kMaxFlingDp * density, kMaxFlingDp * density), density);
+                thrown = true;
+            }
+        if (thrown)
+            self.RequestTicks(*this, true);
+    }
+
+    struct Finger
+    {
+        int id;
+        Rml::Vector2f at;
+    };
+
+    Finger *Find(int id)
+    {
+        for (Finger &finger : fingers_)
+            if (finger.id == id)
+                return &finger;
+        return nullptr;
+    }
+    Rml::Vector2f Middle() const
+    {
+        return (fingers_[0].at + fingers_[1].at) * 0.5f;
+    }
+
+    // Fits the game's view into the viewport the first time it has a size (and again when
+    // that size changes): the whole picture is the least zoom, eight times that the most.
+    bool Ready(ComponentElement &self, Rml::Element *port)
+    {
+        const Rml::Vector2f size = BorderBox(port).Size();
+        if (size.x < 1.0f || size.y < 1.0f)
+            return false;
+        if (ready_ && size == port_size_)
+            return true;
+        const Json base = self.Prop("base"), view = self.Prop("view");
+        base_ = {static_cast<float>(Number(base.is_array() && base.size() == 2 ? base[0] : Json(), 1.0)),
+                 static_cast<float>(Number(base.is_array() && base.size() == 2 ? base[1] : Json(), 1.0))};
+        base_ = {std::max(base_.x, 1.0f), std::max(base_.y, 1.0f)};
+        Rml::Vector2f lo = {0.0f, 0.0f}, hi = base_;
+        if (view.is_array() && view.size() == 4)
+        {
+            lo = {static_cast<float>(Number(view[0])), static_cast<float>(Number(view[1]))};
+            hi = {static_cast<float>(Number(view[2], base_.x)), static_cast<float>(Number(view[3], base_.y))};
+        }
+        if (ready_) // the viewport changed size: keep the centre and the zoom relative to the fit
+        {
+            const Rml::Vector2f centre = (port_size_ * 0.5f - offset_) / scale_;
+            lo = centre - port_size_ * 0.5f / scale_;
+            hi = centre + port_size_ * 0.5f / scale_;
+        }
+        min_scale_ = std::min(size.x / base_.x, size.y / base_.y);
+        max_scale_ = min_scale_ * 8.0f;
+        const Rml::Vector2f span = {std::max(hi.x - lo.x, 1.0f), std::max(hi.y - lo.y, 1.0f)};
+        scale_ = std::clamp(std::min(size.x / span.x, size.y / span.y), min_scale_, max_scale_);
+        offset_ = size * 0.5f - (lo + hi) * 0.5f * scale_;
+        port_size_ = size;
+        ready_ = true;
+        Apply(self);
+        return true;
+    }
+
+    // Keeps the picture over the viewport (centred while it is smaller) and lays the plane out.
+    void Apply(ComponentElement &self)
+    {
+        const Rml::Vector2f plane = base_ * scale_;
+        const auto fit = [](float offset, float plane_size, float port_size) {
+            return plane_size <= port_size ? (port_size - plane_size) * 0.5f : std::clamp(offset, port_size - plane_size, 0.0f);
+        };
+        offset_ = {fit(offset_.x, plane.x, port_size_.x), fit(offset_.y, plane.y, port_size_.y)};
+        Rml::Element *element = FindWith(&self, "data-plane");
+        if (!element)
+            return;
+        // The position by a transform: a pan lays nothing out (left / top would lay out the
+        // whole document on every frame of it). Only a new zoom sizes the plane.
+        char transform[64];
+        std::snprintf(transform, sizeof transform, "translate(%.2fpx, %.2fpx)", offset_.x, offset_.y);
+        element->SetProperty("transform", transform);
+        if (element->GetProperty<float>("width") != plane.x || element->GetProperty<float>("height") != plane.y)
+        {
+            element->SetProperty(Rml::PropertyId::Width, Rml::Property(plane.x, Rml::Unit::PX));
+            element->SetProperty(Rml::PropertyId::Height, Rml::Property(plane.y, Rml::Unit::PX));
+        }
+    }
+
+    std::vector<Finger> fingers_;
+    VelocityTracker tracker_; // the panning finger
+    Fling fling_[2];          // the offset coasting along x / y after a pan
+    std::string zoom_; // "in" / "out" while the finger is on a zoom part
+    Rml::Rectanglef zoom_box_;
+    bool moved_ = false;
+    bool ready_ = false;
+    int settle_ = 0;
+    std::string key_;
+    Rml::Vector2f base_ = {1.0f, 1.0f};
+    Rml::Vector2f port_size_;
+    Rml::Vector2f offset_;
+    float scale_ = 1.0f, min_scale_ = 1.0f, max_scale_ = 8.0f;
+    float pinch_distance_ = 1.0f, pinch_scale_ = 1.0f;
+    Rml::Vector2f pinch_anchor_;
+};
+
+template <typename T> std::unique_ptr<Behavior> Make()
+{
+    return std::make_unique<T>();
+}
+
+} // namespace
+
+
+// Columns sized by their content. The cells must be flex columns that do not stretch
+// their children (align-items other than stretch), so each child keeps its natural width:
+// what the cells' minimum widths set here does not change what is measured. The layout
+// around the component decides its width (a table fills its place), not the columns.
+// Measured once a layout pass is over (LaidOut): the host lays the document out again in
+// the same frame when a width changed, so a resize, a density change or new rows are drawn
+// aligned from their first frame.
+class ColumnsBehavior final : public Behavior
+{
+  public:
+    bool LaidOut(ComponentElement &self) override
+    {
+        bool changed = false;
+        // A vertical scrollbar narrows only the body. Match the header's layout width
+        // to that viewport so its columns retain the same horizontal positions.
+        Rml::Element *head = self.QuerySelector("[data-columns-head]");
+        Rml::Element *body = self.QuerySelector("[data-columns-body]");
+        if (head && body && body->GetClientWidth() > 0)
+            changed = SetPixels(head, Rml::PropertyId::Width, body->GetClientWidth()) || changed;
+        Rml::ElementList cells;
+        self.QuerySelectorAll(cells, "[data-col]");
+        std::unordered_map<int, float> widest;
+        // Icon-only captions must not shrink the interactive columns below the design's
+        // minimum. Apply it to the entire column so headers and numeric cells stay aligned.
+        const float minimum = self.Spec().constants.value("colMin", 0.0f) * self.Host().Density();
+        for (Rml::Element *cell : cells)
+        {
+            float natural = 0.0f;
+            for (int i = 0; i < cell->GetNumChildren(); ++i)
+                natural = std::max(natural, cell->GetChild(i)->GetBox().GetSize(Rml::BoxArea::Border).x);
+            // Not laid out (hidden): measured at the layout that shows it.
+            if (cell->GetNumChildren() > 0 && natural <= 0.0f)
+                return changed;
+            float &width = widest[cell->GetAttribute<int>("data-col", 0)];
+            width = std::max({width, natural, minimum});
+        }
+        for (Rml::Element *cell : cells)
+            changed = SetPixels(cell, Rml::PropertyId::MinWidth, std::ceil(widest[cell->GetAttribute<int>("data-col", 0)])) ||
+                      changed;
+        return changed;
+    }
+
+  private:
+    // Our measured pixel value, replaced (also by a smaller one) when it differs by half a pixel.
+    static bool SetPixels(Rml::Element *element, Rml::PropertyId id, float pixels)
+    {
+        const Rml::Property *current = element->GetLocalProperty(id);
+        if (current && current->unit == Rml::Unit::PX && std::fabs(current->Get<float>() - pixels) <= 0.5f)
+            return false;
+        element->SetProperty(id, Rml::Property(pixels, Rml::Unit::PX));
+        return true;
+    }
+};
+
+// A part that opens is brought into view: a key of data-reveal that was not in the previous
+// render (a list row that opened its amount under itself) is scrolled into its closest scrolling
+// box once it is laid out (Rebuilt runs inside the context update that lays it out, so the next
+// Tick sees its final box). The scroll is the least move that shows the whole part (its top when
+// it is taller than the box), clear of the bottom edge's fade (.scroll-fade) while more content
+// follows. A key that stays open never scrolls again: the amount changing under the finger or
+// the player's own scroll away from the row are left alone.
+class RevealBehavior final : public Behavior
+{
+  public:
+    void Rebuilt(ComponentElement &self) override
+    {
+        std::vector<Rml::Element *> parts;
+        AllWith(&self, "data-reveal", parts);
+        std::set<std::string> keys;
+        for (Rml::Element *part : parts)
+            keys.insert(Attr(part, "data-reveal"));
+        for (const std::string &key : keys)
+            if (!shown_.count(key))
+                pending_.insert(key);
+        for (auto it = pending_.begin(); it != pending_.end();)
+            it = keys.count(*it) ? std::next(it) : pending_.erase(it);
+        shown_ = std::move(keys);
+        self.RequestTicks(*this, !pending_.empty());
+    }
+
+    void Tick(ComponentElement &self, double) override
+    {
+        if (pending_.empty())
+            return;
+        std::vector<Rml::Element *> parts;
+        AllWith(&self, "data-reveal", parts);
+        for (Rml::Element *part : parts)
+            if (pending_.erase(Attr(part, "data-reveal")))
+                Reveal(part);
+        pending_.clear();
+        self.RequestTicks(*this, false);
+    }
+
+  private:
+    static void Reveal(Rml::Element *part)
+    {
+        Rml::Element *box = part->GetParentNode();
+        for (; box; box = box->GetParentNode())
+        {
+            const auto overflow = box->GetComputedValues().overflow_y();
+            if (overflow == Rml::Style::Overflow::Auto || overflow == Rml::Style::Overflow::Scroll)
+                break;
+        }
+        if (!box)
+            return; // not in a scrolling box: always in view
+        const float view = box->GetClientHeight();
+        const float range = box->GetScrollHeight() - view;
+        if (range <= 0.5f)
+            return;
+        const float scroll = box->GetScrollTop();
+        // The part's edges in the box's content (its border box against the box's padding edge).
+        const float top = part->GetAbsoluteOffset(Rml::BoxArea::Border).y - box->GetAbsoluteOffset(Rml::BoxArea::Padding).y + scroll;
+        const float bottom = top + part->GetBox().GetSize(Rml::BoxArea::Border).y;
+        float fade = 0.0f;
+        for (int i = 0; i < box->GetNumChildren(); ++i)
+            if (box->GetChild(i)->IsClassSet("scroll-fade"))
+                fade = box->GetChild(i)->GetOffsetHeight();
+        const float below = bottom < box->GetScrollHeight() - 0.5f ? fade : 0.0f; // the fade covers what is not the end
+        float target = scroll;
+        if (top < scroll)
+            target = top;
+        else if (bottom + below > scroll + view)
+            target = std::min(top, bottom + below - view);
+        target = std::clamp(target, 0.0f, range);
+        if (std::fabs(target - scroll) >= 0.5f)
+            box->ScrollTo({box->GetScrollLeft(), target},
+                          part->HasAttribute("data-reveal-snap") ? Rml::ScrollBehavior::Instant : Rml::ScrollBehavior::Smooth);
+    }
+
+    std::set<std::string> shown_, pending_;
+};
+
+void RegisterBuiltinBehaviors()
+{
+    RegisterBehavior("reveal", &Make<RevealBehavior>);
+    RegisterBehavior("press", &Make<PressBehavior>);
+    RegisterBehavior("toast", &Make<ToastBehavior>);
+    RegisterBehavior("range", &Make<RangeBehavior>);
+    RegisterBehavior("stick", &Make<StickBehavior>);
+    RegisterBehavior("lever", &Make<LeverBehavior>);
+    RegisterBehavior("columns", &Make<ColumnsBehavior>);
+    RegisterBehavior("hold", &Make<HoldBehavior>);
+    RegisterBehavior("swipe", &Make<SwipeBehavior>);
+    RegisterBehavior("panzoom", &Make<PanZoomBehavior>);
+}
+
+} // namespace storm::ui

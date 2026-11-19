@@ -1,0 +1,13 @@
+{
+  "tag": "s-goods-order",
+  "doc": "The treasurer's purchase list (goodstransfer): what to buy per good for the selected ship, filled by extra_goods.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "list": {"type": "json", "default": {}},
+    "contraband": {"type": "json", "default": null},
+    "primary": {"type": "json", "default": null},
+    "actions": {"type": "json", "default": []},
+    "extras": {"type": "json", "default": {}}
+  }
+}

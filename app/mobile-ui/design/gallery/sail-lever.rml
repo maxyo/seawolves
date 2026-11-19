@@ -1,0 +1,26 @@
+<rml>
+<head>
+<title>Рычаг парусов</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-SailLever</div>
+<div class="g-note">steps: 2 (полные) · 1 (половина) · 0 под пальцем · живой · continuous: 35 · 70 под пальцем вверх · 70 вниз · 0 · 100 · высота 124 (карта мира) · живой</div>
+<div class="g-row g-scene" style="align-items: flex-start; gap: 10dp; padding: 16dp">
+  <c-sail-lever value="2"/>
+  <c-sail-lever value="1"/>
+  <c-sail-lever value="0" active="1"/>
+  <c-sail-lever id="sl-steps" value="2" label="Паруса: полные"/>
+  <div style="width: 30dp"></div>
+  <c-sail-lever mode="continuous" value="35"/>
+  <c-sail-lever mode="continuous" value="70" props='{"active": true, "dir": "up"}' />
+  <c-sail-lever mode="continuous" value="70" props='{"active": true, "dir": "down"}' />
+  <c-sail-lever mode="continuous" value="0"/>
+  <c-sail-lever mode="continuous" value="100"/>
+  <c-sail-lever mode="continuous" value="70" height="124"/>
+  <c-sail-lever id="sl-cont" mode="continuous" value="50"/>
+</div>
+</div>
+</body>
+</rml>

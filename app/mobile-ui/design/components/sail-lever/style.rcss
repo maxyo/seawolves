@@ -1,0 +1,28 @@
+/* C-SailLever: bare on the scene: thin brass rail + 48 dp glass knob with the sail icon.
+   steps: the knob sits on value 0 | 1 | 2 (bottom → top), the other positions are small dim icons.
+   continuous: value 0–100 = current speed, brass fill from the bottom up to the knob.
+   The lever keeps its height, or less when its box is stretched between two anchors on a
+   short screen (then it sits at the bottom of the box and shrinks): positions are in %
+   of the knob's travel (.track = the lever minus one knob). */
+c-sail-lever { display: flex; flex-direction: column; justify-content: flex-end; flex: 0 0 auto; width: @{spec.width}dp; }
+c-sail-lever .lever { position: relative; flex: 0 1 auto; min-height: 0; width: @{spec.width}dp; }
+c-sail-lever .track { position: absolute; left: 0; right: 0; top: 0; bottom: @{spec.knob}dp; }
+c-sail-lever .rail { position: absolute; left: 26dp; top: 16dp; bottom: 16dp; width: 4dp; border-radius: 2dp; background-color: @{color.brassLine/.45}; box-shadow: @{color.black/.35} 0 0 0 1dp; }
+c-sail-lever .fill { position: absolute; left: 25dp; bottom: -32dp; margin-top: 24dp; width: 6dp; border-radius: 3dp;
+    decorator: linear-gradient(0deg, @{color.ringEnd/.95}, @{color.ringEnd/.55}); box-shadow: @{color.ringEnd/.45} 0 0 6dp 0; }
+c-sail-lever .mark { position: absolute; left: 18dp; width: 20dp; height: 20dp; margin-top: 14dp; opacity: 0.6; }
+c-sail-lever .mark ui-icon { icon-shadow: @{color.black} 0dp 1dp 1dp; } /* baked into the glyph raster: no filter layer */
+c-sail-lever .dir { position: absolute; left: 22dp; width: 12dp; height: 12dp; transform: rotate(45deg); }
+c-sail-lever .dir.up { border-top: 2dp @{color.ringStart/.9}; border-left: 2dp @{color.ringStart/.9}; }
+c-sail-lever .dir.down { border-bottom: 2dp @{color.ringStart/.9}; border-right: 2dp @{color.ringStart/.9}; }
+c-sail-lever .knob { position: absolute; left: 4dp; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+    width: @{spec.knob}dp; height: @{spec.knob}dp; border-radius: @{radius.pill}dp; border: 2dp @{color.brass};
+    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.leverGlassTop/.82}, @{color.leverGlassLow/.878});
+    box-shadow: @{color.black/.5} 0 2dp 4dp 0; }
+/* the knob under the finger: denser glass and a glow */
+c-sail-lever.active .knob { decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.leverGlassTop/.949}, @{color.leverGlassLow/.969});
+    box-shadow: @{color.black/.5} 0 2dp 4dp 0, @{color.ringStart/.25} 0 0 0 4dp, @{color.flash/.5} 0 0 12dp 0; }
+c-sail-lever .mark.top { top: 0; margin-top: 0; }
+c-sail-lever .mark.bottom { bottom: 0; margin-top: 0; }
+c-sail-lever .dir.up { margin-top: -18dp; }
+c-sail-lever .dir.down { margin-top: 54dp; }

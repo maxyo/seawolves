@@ -1,0 +1,17 @@
+{
+  "tag": "s-hud-moves",
+  "doc": "HUD part: the sword-move wheel that opens around the strike button while the finger is down on it. Five sectors and the centre, glyphs only; the chosen move is named once above the wheel. `moves` = [{id, icon, sector: '<index>'|'centre', disabled}], `selected` = the sector of the chosen move. The sector edges are the same angles the strike button's swipe uses (hud-layout.json, data swipe-bounds).",
+  "props": {
+    "moves": {"type": "json", "default": []},
+    "selected": {"type": "text", "default": "centre"},
+    "caption": {"type": "text", "default": ""}
+  },
+  "constants": {
+    "size": 228,
+    "inner": 28,
+    "bounds": "-135,-67.5,-22.5,45,135,225",
+    "icon": {"sector": 30, "centre": 26},
+    "captionHeight": 24,
+    "captionGap": 10
+  }
+}

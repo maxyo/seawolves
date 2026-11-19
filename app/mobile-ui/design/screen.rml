@@ -1,0 +1,10 @@
+<rml>
+<head>
+<link type="text/rcss" href="kit.rcss"/>
+<style>
+/* Host document of a game interface: the engine mounts one <s-…> screen here (id "screen"). */
+body { box-sizing: border-box; }
+</style>
+</head>
+<body></body>
+</rml>

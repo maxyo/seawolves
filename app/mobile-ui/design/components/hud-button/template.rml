@@ -1,0 +1,11 @@
+<t-if test="!((disabled || (badge == '0' && !countOnly && !reloading && !indicator && !state)) && hiddenWhenDisabled)">
+<div class="disc" style="width: {{ or(size, state ? spec.size.state : indicator ? spec.size.indicator : spec.size.normal) }}dp; height: {{ or(size, state ? spec.size.state : indicator ? spec.size.indicator : spec.size.normal) }}dp;{{ badge != '' && !state ? ' padding-bottom: ' + round(or(size, indicator ? spec.size.indicator : spec.size.normal) * 0.2) + 'dp;' : '' }}">
+<div class="fill-clip"><div data-tween="@{time.fill}" class="fill tone-{{ or(fillTone, indicator || state ? 'active' : 'reload') }}{{ clamp(or(fill, 0), 0, 100) >= 100 ? ' full' : '' }}" style="height: {{ clamp(or(fill, 0), 0, 100) }}%;"><div class="level"></div></div></div>
+<c-icon icon="{{icon}}" size="{{ state ? round(or(size, spec.size.state) * 0.62) : round(or(size, indicator ? spec.size.indicator : spec.size.normal) * (badge != '' || variant == 'ghost' ? 0.5 : 0.55)) }}" tone="{{ (disabled || (badge == '0' && !countOnly && !reloading && !indicator && !state)) ? 'dim' : (variant == 'ghost' ? 'paper' : 'duo') }}"/>
+<t-if test="hold && !(disabled || (badge == '0' && !countOnly && !reloading)) && !indicator && !state"><ui-ring class="ring" shape="circle" value="{{holdProgress}}" thickness="2"/></t-if>
+<div class="slot" slot="1"></div>
+<t-if test="cue && !disabled && !indicator && !state"><div class="cue"></div></t-if>
+<t-if test="badge != ''"><t-if test="state"><div class="badge">{{badge}}</div><t-else/><div class="badge" style="bottom: {{ max(1, round(or(size, indicator ? spec.size.indicator : spec.size.normal) * 0.05)) }}dp; font-size: {{ or(size, indicator ? spec.size.indicator : spec.size.normal) >= 60 ? 15 : 13 }}dp;">{{badge}}</div></t-if></t-if>
+</div>
+<t-if test="!indicator && !state && forceLabel"><div class="caption">{{label}}</div></t-if>
+</t-if>

@@ -1,0 +1,39 @@
+<rml>
+<head>
+<title>Настройка</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Setting</div>
+<div class="g-row">
+  <div class="g-wood" style="width: 400dp;">
+    <c-setting id="s-slider" control="slider" label="Громкость" value="60" display="60%"/>
+    <c-setting id="s-steps" control="slider" label="Размер интерфейса" value="40" display="Мельче — Крупнее" steps="1" restart="1"/>
+    <c-setting control="slider" label="Музыка" hint="звуковой пакет не установлен" value="0" pressed="1"/>
+    <c-setting id="s-slider-off" control="slider" label="Чувствительность" value="70" disabled="1" reason="Сначала включите гироскоп" line="0"/>
+  </div>
+  <div class="g-wood" style="width: 400dp;">
+    <c-setting id="s-toggle" control="toggle" label="Вращение неба"/>
+    <c-setting id="s-toggle-off" control="toggle" label="Вибрация" on="0" restart="1"/>
+    <c-setting control="toggle" label="Вращение неба" pressed="1"/>
+    <c-setting id="s-disabled" control="toggle" label="Тени" hint="Mali-G52" on="0" disabled="1" reason="Не поддерживается устройством" line="0"/>
+  </div>
+</div>
+<div class="g-row">
+  <div class="g-wood" style="width: 400dp;">
+    <c-setting id="s-check" control="check" label="Показывать урон"/>
+    <c-setting id="s-check-off" control="check" label="Автосохранение" on="0"/>
+    <c-setting id="s-radio" control="radio" label="Русский"/>
+    <c-setting id="s-radio-off" control="radio" label="English" on="0" line="0"/>
+  </div>
+  <div class="g-wood" style="width: 400dp;">
+    <c-setting id="s-seg" control="segment" label="Сглаживание" options='["Нет", "2×", "4×"]' selected="1"/>
+    <c-setting id="s-seg-stack" control="segment" label="Трава" options='["Нет", "Мало", "Средне", "Много"]' selected="2" stack="1" stretch="1"/>
+    <c-setting id="s-button" control="button" label="Кэш игры" hint="1,4 ГБ" display="Очистить кэш"/>
+    <c-setting id="s-none" control="none" label="Папка игры" hint="/storage/emulated/0/seawolves" line="0"><c-button id="s-none-btn" label="Изменить" size="sm"/></c-setting>
+  </div>
+</div>
+</div>
+</body>
+</rml>

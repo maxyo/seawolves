@@ -1,0 +1,297 @@
+// Spec-driven components: every <c-…> tag is described by one entry of the UI pack's
+// components.json (props, template, behaviours).
+#pragma once
+
+#include "template.h"
+
+#include "storm_ui/ui.h"
+
+#include <RmlUi/Core.h>
+#include <memory>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace storm::ui
+{
+
+class ComponentElement;
+struct RmlNode; // components.cpp: a template render as a light tree
+
+struct PropSpec
+{
+    enum class Type
+    {
+        Text,
+        Bool,
+        Int,
+        Number,
+        Enum,
+        Json
+    };
+    std::string name;      // camelCase, as in components.json
+    std::string attribute; // kebab-case RML attribute
+    Type type = Type::Text;
+    Json fallback;
+    bool as_class = false; // bool → "name", enum → "name-value" on the root element
+    std::vector<Json> options; // enum values
+};
+
+struct ComponentSpec
+{
+    std::string tag;
+    std::vector<PropSpec> props;
+    std::string body; // template
+    std::vector<std::string> behaviors;
+    Json constants; // sizes and other numbers of the component ("spec" in templates)
+    // Root classes computed from props: class name -> template expression.
+    std::vector<std::pair<std::string, std::string>> class_rules;
+    const PropSpec *FindAttribute(const std::string &attribute) const;
+};
+
+// One entry of components.json.
+std::unique_ptr<ComponentSpec> ParseComponentSpec(const Json &entry);
+// Attributes every component accepts besides its props: id, class, style, props, slot, data-*.
+bool IsGenericAttribute(const std::string &attribute);
+// Empty when `value` is acceptable for the prop, else what is wrong (enum value not listed).
+std::string CheckPropValue(const PropSpec &prop, const Json &value);
+// Logs and marks (class "ui-error", drawn only under a ui-debug root) every <c-…> element under `root` that has no spec;
+// returns how many it found. Nested components check their own content.
+int ReportUnknownComponents(Rml::Element *root);
+
+// Services the host gives to components and behaviours.
+class Services
+{
+  public:
+    virtual ~Services() = default;
+    virtual double Now() const = 0;
+    virtual float Density() const = 0;
+    // Safe-area insets in dp: {left, top, right, bottom}.
+    virtual Json SafeArea() const = 0;
+    // A number from pack.json "settings" (timings from the design tokens).
+    virtual double Setting(const std::string &name, double fallback) const = 0;
+    virtual void Emit(ComponentElement &source, const std::string &verb, const std::string &value) = 0;
+    virtual void Toast(const std::string &text, const std::string &tone) = 0;
+    // Shows the long-press tooltip next to `anchor`; an empty text hides it.
+    virtual void Tooltip(Rml::Element *anchor, const std::string &text, bool below) = 0;
+    // Keeps Tick() coming to this component until it asks to stop.
+    virtual void RequestTicks(ComponentElement &component, bool enable) = 0;
+    virtual void Forget(ComponentElement &component) = 0;
+    // The counters of the frame being made (rebuilds, layout).
+    virtual FrameStats &Counters() = 0;
+    // A press started on an interactive element: the gesture's one interface click (a game
+    // interface's sound; the actions the press sends later are silent in the engine).
+    virtual void PressStarted(ComponentElement &component) = 0;
+};
+
+struct Pointer
+{
+    int id = 0;
+    Rml::Vector2f position;   // context coordinates, physical pixels
+    Rml::Vector2f start;      // where it went down
+    Rml::Element *target = nullptr; // element under the finger at down
+    double time = 0.0;              // when the newest sample (position) happened, host clock
+};
+
+// A tap a component offers (Behavior::Taps): the part a pointer goes down on, the verb and value it reports, and
+// whether it acts only when held (hold-to-confirm).
+struct Tap
+{
+    Rml::Element *part = nullptr;
+    std::string verb;
+    std::string value;
+    bool hold = false;
+};
+
+class Behavior
+{
+  public:
+    virtual ~Behavior() = default;
+    // True when the behaviour keeps the pointer for itself (drags): such a pointer never
+    // scrolls a list and never reaches other elements.
+    virtual bool Exclusive(const Pointer &) const
+    {
+        return false;
+    }
+    virtual bool Down(ComponentElement &, const Pointer &)
+    {
+        return false;
+    }
+    virtual void Move(ComponentElement &, const Pointer &)
+    {
+    }
+    // `cancelled`: the finger left for a scroll or the system took the gesture.
+    virtual void Up(ComponentElement &, const Pointer &, bool /*cancelled*/)
+    {
+    }
+    virtual void Tick(ComponentElement &, double /*now*/)
+    {
+    }
+    // After a layout pass that laid the component out or followed its rebuild: its boxes are
+    // final (SettleLaidOutComponents). True when the behaviour changed styles from them; the
+    // host lays the document out again before drawing, so the first frame shows the result.
+    virtual bool LaidOut(ComponentElement &)
+    {
+        return false;
+    }
+    virtual void Rebuilt(ComponentElement &)
+    {
+    }
+    // The elements a pointer may go down on for this behaviour to take it. A layer over
+    // the game claims touches only there (Host::WantsTouch).
+    virtual void Regions(ComponentElement &, std::vector<Rml::Element *> &) const
+    {
+    }
+    // The taps the component offers now (press: each enabled part with its data-action, the component itself
+    // with "click"). The host checks a game interface's screen maps every one of them; the pack check taps them.
+    virtual void Taps(ComponentElement &, std::vector<Tap> &) const
+    {
+    }
+    // What the player asked of the component was refused (a scrim tap on a modal that must be
+    // answered): true when the behaviour shows it (press: the live class "refused" for a moment).
+    virtual bool Refused(ComponentElement &)
+    {
+        return false;
+    }
+};
+
+using BehaviorFactory = std::unique_ptr<Behavior> (*)();
+void RegisterBehavior(const std::string &name, BehaviorFactory factory);
+void RegisterBuiltinBehaviors();
+
+class ComponentElement final : public Rml::Element
+{
+  public:
+    ComponentElement(const Rml::String &tag, const ComponentSpec &spec, Services &services);
+    ~ComponentElement() override;
+
+    const Json &Props() const
+    {
+        return props_;
+    }
+    Json Prop(const std::string &name) const;
+    bool Flag(const std::string &name) const
+    {
+        return Truthy(Prop(name));
+    }
+    // Merges the given props and rebuilds on the next update.
+    void SetProps(const Json &props);
+    // Changes one prop without rebuilding the inner tree (drag feedback); the behaviour
+    // updates the affected elements itself.
+    void SetPropQuiet(const std::string &name, Json value);
+    // After quiet prop changes: the template's live parts follow them without a render
+    // (data-live-*); false when its shape changed and it must render (components.cpp).
+    bool Refresh();
+    // Live state classes ("pressed", "active", "done") owned by behaviours.
+    void SetLive(const std::string &name, bool on);
+    void Emit(const std::string &verb, const std::string &value = {});
+    Services &Host()
+    {
+        return services_;
+    }
+    const ComponentSpec &Spec() const
+    {
+        return spec_;
+    }
+    bool HasBehaviors() const
+    {
+        return !behaviors_.empty();
+    }
+    // Elements of this component that take a pointer (see Behavior::Regions).
+    void TouchRegions(std::vector<Rml::Element *> &out);
+    // The taps it offers now (Behavior::Taps).
+    void Taps(std::vector<Tap> &taps);
+    // Shows that what the player asked was refused (Behavior::Refused); false when nothing of it can.
+    bool Refuse();
+
+    // Pointer routing (called by the host).
+    bool PointerExclusive(const Pointer &pointer) const;
+    bool PointerDown(const Pointer &pointer);
+    void PointerMove(const Pointer &pointer);
+    void PointerUp(const Pointer &pointer, bool cancelled);
+    void Tick(double now);
+    // SettleLaidOutComponents: Behavior::LaidOut of every behaviour.
+    bool SettleLayout();
+    // Independent subscriptions: one behavior cannot stop another owner.
+    void RequestTicks(Behavior &owner, bool enable);
+    void RebuildNow();
+    // Makes the slot content equal to the children of `content` (taken from it), the
+    // content a parent template passes now; content that appears or disappears rebuilds
+    // the component, since its template may have a slot only `t-if children`.
+    void SyncSlot(Rml::Element *content);
+
+  protected:
+    void OnAttributeChange(const Rml::ElementAttributes &changed) override;
+    void OnUpdate() override;
+    void OnLayout() override;
+
+  private:
+    void ApplyClasses();
+    bool Forward();
+    void ApplyBoxSize(const Json &scope);
+    // A wrong prop, enum value or template: logged with the element and drawn as the
+    // striped "ui-error" marker instead of a silent default.
+    void ReportError(const std::string &what);
+    // Queued for SettleLaidOutComponents once per layout pass.
+    void NoteLaidOut();
+
+    const ComponentSpec &spec_;
+    Services &services_;
+    Json props_ = Json::object();
+    std::vector<std::unique_ptr<Behavior>> behaviors_;
+    std::set<Behavior *> ticking_behaviors_;
+    std::vector<std::string> prop_classes_;
+    std::vector<std::string> live_classes_;
+    std::vector<std::string> applied_classes_;
+    std::string extra_behavior_; // added by data-behavior
+    float box_size_ = -2.0f;      // constants.boxSize applied (dp), -1 = none
+    bool dirty_ = true;
+    bool laid_out_noted_ = false;
+    bool built_ = false;
+    bool built_children_ = false; // `children` of the last build
+    std::string built_rml_;        // what the template gave at the last build
+    // built_rml_ as a light tree (components.cpp RmlNode): the next build patches only what
+    // changed against it. Not ok: the render had something the parser does not take.
+    std::vector<RmlNode> built_tree_;
+    bool built_tree_ok_ = false;
+    Json rendered_values_; // the props the live tree shows (last render, Forward or Refresh)
+    std::set<std::string> set_since_render_; // props set since rendered_values_ (Forward compares only these)
+    Json rendered_extras_; // and the density, safe area and slot it was rendered with
+    bool shapes_pending_ = false; // a render whose data-live-shape values are still to be noted
+    TemplateMemo memo_; // loop items of the last render (RenderTemplate)
+    bool pending_slot_ = false;   // slot_content_ replaces the slot on the next build
+    std::vector<Rml::ElementPtr> slot_content_;
+    bool error_ = false; // ReportError happened since the last rebuild
+};
+
+class ComponentRegistry
+{
+  public:
+    explicit ComponentRegistry(Services &services) : services_(services)
+    {
+    }
+    // Parses components.json and registers one element instancer per component tag.
+    void Load(const Json &pack);
+    const ComponentSpec *Find(const std::string &tag) const;
+
+  private:
+    class Instancer;
+    Services &services_;
+    std::unordered_map<std::string, std::unique_ptr<ComponentSpec>> specs_;
+    std::vector<std::unique_ptr<Rml::ElementInstancer>> instancers_;
+};
+
+// The element that holds the component's children, once it is built; null without a slot.
+Rml::Element *ComponentSlot(ComponentElement &component);
+
+// The component that takes a pointer going down on `element`: the closest ancestor-or-self
+// with a behaviour that keeps the pointer for itself (drags, holds), else the closest one
+// with any behaviour.
+ComponentElement *InteractiveComponentAt(Rml::Element *element, const Pointer &pointer);
+
+// After a context update: Behavior::LaidOut of every component laid out (or rebuilt) in it.
+// True when one changed styles: the host updates the context again before drawing.
+bool SettleLaidOutComponents();
+
+} // namespace storm::ui

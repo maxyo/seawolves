@@ -1,0 +1,11 @@
+--- a/PROGRAM/interface/character_all.c
++++ b/PROGRAM/interface/character_all.c
+@@ -168,7 +168,7 @@
+ 		{
+             InterfaceStates.ReloadMenuExit = true;
+ 			IDoExit(RC_INTERFACE_ANY_EXIT);
+-			PostEvent("LaunchIAfterFrame",1,"sl", nodName, 2);
++			InterfaceStates.LaunchAfterExit = nodName;
+ 			return;
+ 		}
+ 	}

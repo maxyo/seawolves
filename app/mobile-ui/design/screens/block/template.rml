@@ -1,0 +1,6 @@
+<t-if test="block.kind == 'table'"><c-table id="{{block.id}}" columns="{{ json(block.columns) }}" rows="{{ json(block.rows) }}" head="{{ block.head ? 1 : 0 }}" interactive="{{ block.interactive ? 1 : 0 }}" surface="{{block.surface}}" fade="0" style="flex: 1 1 0; height: auto"/></t-if>
+<t-if test="block.kind == 'list'"><t-for each="block.rows" as="r"><s-control row="{{ json(r) }}" surface="{{block.surface}}"/></t-for></t-if>
+<t-if test="block.kind == 'tabs'"><div class="sb-tabs"><c-tabs id="{{block.id}}" look="segment" stretch="1" items="{{ json(block.items) }}" surface="{{block.surface}}"/></div></t-if>
+<t-if test="block.kind == 'controls'"><t-for each="block.rows" as="r"><s-control row="{{ json(r) }}" surface="{{block.surface}}"/></t-for></t-if>
+<t-if test="block.kind == 'text'"><t-if test="block.surface == 'parchment'"><div class="sb-text"><t-for each="block.paragraphs" as="p"><div class="sb-p">{{p}}</div></t-for></div><t-else/><div class="sb-card"><c-card tone="parchment" pad="10" gap="8"><t-for each="block.paragraphs" as="p"><div class="sb-p">{{p}}</div></t-for></c-card></div></t-if></t-if>
+<t-if test="block.kind == 'label'"><div class="sb-label"><c-label text="{{block.text}}" surface="{{block.surface}}"/></div></t-if>

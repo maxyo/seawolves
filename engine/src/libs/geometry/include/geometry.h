@@ -1,0 +1,54 @@
+#pragma once
+
+#include "geos.h"
+#include "dynamic_vertex_stream.hpp"
+#include "vertex_source_lifetime.hpp"
+#include "service.h"
+#include "vma.hpp"
+
+class ANIMATION
+{
+  public:
+    virtual ~ANIMATION(){};
+    virtual float SetTime(float time) = 0;
+    virtual void SetMatrix() = 0;
+};
+
+// Animated (GEOS::AVERTEX0) vertices. gpuSkinning: return a buffer of the AVERTEX0 sources for the
+// renderer's skinned vertex shader (stride sizeof(AVERTEX0), the pose bound by the callee);
+// otherwise skin on the CPU into GEOS::VERTEX0 (the caustic pass, whose shader port has no skinning).
+using VERTEX_TRANSFORM = storm::render::VertexBufferId (*)(void *context, const void *vb, const std::shared_ptr<storm::render::VertexSourceLifetime>& lifetime, int32_t startVrt, int32_t nVerts, int32_t totVerts, bool gpuSkinning);
+
+class VGEOMETRY : public SERVICE
+{
+  public:
+    class ANIMATION_VB
+    {
+      public:
+        int32_t nvertices;
+        int32_t fvf;
+        int32_t stride;
+        void *buff;
+        std::shared_ptr<storm::render::VertexSourceLifetime> lifetime;
+    };
+
+    ~VGEOMETRY() override{};
+    virtual GEOS *CreateGeometry(const char *file_name, const char *light_file_name, int32_t flags,
+                                 const char *lmPath = nullptr) = 0;
+    // The same model for a load the game starts while it is played (a character walking in): its files (the model,
+    // its vertex colours, the textures not loaded yet) are read on the background reader thread and the model is
+    // built from them in a later frame (RunStart). Until then the returned geometry is Pending(). The texture path is
+    // the one set now. nullptr when the model file does not exist (as CreateGeometry, reported).
+    virtual GEOS *CreateGeometryDeferred(const char *file_name, const char *light_file_name, int32_t flags,
+                                         const char *lmPath = nullptr) = 0;
+    virtual void DeleteGeometry(GEOS *) = 0;
+    virtual ANIMATION *LoadAnimation(const char *anim) = 0;
+    virtual void SetTechnique(const char *name) = 0;
+    virtual void SetVBConvertFunc(VERTEX_TRANSFORM _transform_func, void *context = nullptr) = 0;
+    virtual ANIMATION_VB GetAnimationVBDesc(int32_t avb) = 0;
+
+    virtual const char *GetTexturePath() = 0;
+    virtual void SetTexturePath(const char *) = 0;
+
+    virtual void SetCausticMode(bool bSet = false) = 0;
+};

@@ -1,0 +1,11 @@
+--- a/PROGRAM/dialogs/russian/Governor/Puancie.c
++++ b/PROGRAM/dialogs/russian/Governor/Puancie.c
+@@ -316,7 +316,7 @@
+ 		
+ 		case "Puancie_Jail_9":
+ 			DialogExit();
+-			LAi_SetActorType(sld);
++			LAi_SetActorType(npchar);
+ 			LAi_ActorGoToLocation(npchar, "reload", "reload1", "none", "", "", "Sharlie_GoFromPrison", 5);
+ 			NextDiag.CurrentNode = "First time";
+ 		break;

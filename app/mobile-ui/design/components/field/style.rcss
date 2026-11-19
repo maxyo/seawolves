@@ -1,0 +1,32 @@
+/* C-Field: text field. Focus = a 2 dp brass line under it; an error = red text below.
+   The box reports `focus <current value>` on tap; the host opens its native editor over
+   the field and feeds the text back with SetProps({value, focused}).
+   Every rule is a child chain so that nothing leaks into the trailing button. */
+c-field { display: flex; flex-direction: column; gap: @{space.xs}dp; box-sizing: border-box; width: 100%; line-height: 1.36; color: @{color.text}; }
+c-field > .head { display: flex; flex-direction: row; justify-content: space-between; gap: @{space.sm}dp; font-size: @{spec.fontLabel}dp; color: @{color.textSecond}; }
+c-field > .head > .label { flex: 0 1 auto; min-width: 0; }
+c-field > .head > .counter { flex: 0 0 auto; white-space: nowrap; }
+c-field > .line { display: flex; flex-direction: row; align-items: stretch; gap: @{space.sm}dp; }
+c-field > .line > .box {
+    flex: 1 1 0; min-width: 0; min-height: @{spec.height}dp; box-sizing: border-box;
+    display: flex; flex-direction: row; align-items: center; padding: 8dp 12dp;
+    background-color: @{color.black/.32}; box-shadow: @{color.brassLine/.4} 0 -1dp 0 0 inset;
+}
+c-field > .line > .box > .text { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: @{spec.font}dp; color: @{color.text}; }
+c-field > .line > .box > .text.empty { color: @{color.textMuted}; }
+c-field > .line > .box > .caret { flex: 0 0 auto; width: 2dp; height: 20dp; margin-left: 1dp; background-color: @{color.brass}; }
+c-field > .line > .slot { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; }
+c-field > .error { display: flex; flex-direction: row; align-items: center; gap: 6dp; font-size: @{type.caption}dp; color: @{color.danger}; }
+
+c-field.focused > .line > .box { box-shadow: @{color.brass} 0 -2dp 0 0 inset; }
+c-field.multiline > .line > .box { min-height: @{spec.heightMultiline}dp; align-items: flex-start; }
+c-field.multiline > .line > .box > .text { white-space: pre-wrap; }
+
+c-field.surface-parchment { color: @{color.ink}; }
+c-field.surface-parchment > .head { color: @{color.inkMuted}; }
+c-field.surface-parchment > .line > .box { background-color: @{color.inkMuted/.1}; box-shadow: @{color.inkMuted/.5} 0 -1dp 0 0 inset; }
+c-field.surface-parchment.focused > .line > .box { box-shadow: @{color.inkMuted} 0 -2dp 0 0 inset; }
+c-field.surface-parchment > .line > .box > .text { color: @{color.ink}; }
+c-field.surface-parchment > .line > .box > .text.empty { color: @{color.inkDisabled}; }
+c-field.surface-parchment > .line > .box > .caret { background-color: @{color.ink}; }
+c-field.surface-parchment > .error { color: @{color.wax}; }

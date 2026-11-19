@@ -1,0 +1,11 @@
+--- a/PROGRAM/interface/questbook.c
++++ b/PROGRAM/interface/questbook.c
+@@ -335,7 +335,7 @@
+ 		{
+             InterfaceStates.ReloadMenuExit = true;
+ 			IDoExit(RC_INTERFACE_ANY_EXIT);
+-			PostEvent("LaunchIAfterFrame",1,"sl", nodName, 2);
++			InterfaceStates.LaunchAfterExit = nodName;
+ 			return;
+ 		}
+ 	}

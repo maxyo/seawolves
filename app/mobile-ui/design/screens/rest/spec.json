@@ -1,0 +1,10 @@
+{
+  "tag": "s-rest",
+  "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by rest.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "hours": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": []},
+    "extras": {"type": "json", "default": {}}
+  }
+}
