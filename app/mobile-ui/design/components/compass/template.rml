@@ -1,0 +1,13 @@
+<div class="cp-box" data-action="toggle" data-toggle="expanded">
+<div class="cp-rose"><t-for each="spec.dome" as="a"><div class="cp-arm" style="transform: rotate({{a}}deg);"><div class="cp-dot{{ a == -90 || a == 90 ? ' horizon' : '' }}" style="top: {{ -spec.orbit - 1.5 }}dp;"></div></div></t-for>
+<div class="cp-face"><div class="cp-dial"></div></div>
+<t-for each="spec.ticks" as="a"><div class="cp-arm" style="transform: rotate({{a}}deg);"><div class="cp-tick"></div></div></t-for>
+<div class="cp-letter n">{{ tr('compass.north') }}</div><div class="cp-letter e">{{ tr('compass.east') }}</div><div class="cp-letter s">{{ tr('compass.south') }}</div><div class="cp-letter w">{{ tr('compass.west') }}</div>
+<div class="cp-arm" style="transform: rotate({{ or(windFrom, 0) }}deg);"><div class="cp-wind" style="top: {{ -spec.windHead }}dp; height: {{ spec.windHead + clamp(or(wind, 0), 0, 100) * spec.windScale }}dp;"></div><div class="cp-wind-dot" style="top: {{ -spec.windHead - 3 }}dp;"></div></div>
+<div class="cp-arm" style="transform: rotate({{ or(course, 0) }}deg);"><div class="cp-needle tip" style="top: {{ -spec.needle.tip }}dp;"></div><div class="cp-needle tail"></div></div>
+<div class="cp-hub"></div>
+<t-if test="sky != 'none'"><div class="cp-arm" style="transform: rotate({{ clamp(or(skyAt, 0), -90, 90) }}deg);"><div class="cp-sky{{ or(skyAt, 0) > 0 ? ' east' : '' }}" style="left: {{ 0 - spec.body / 2 }}dp; top: {{ 0 - spec.orbit - spec.body / 2 }}dp; transform: rotate({{ 0 - clamp(or(skyAt, 0), -90, 90) }}deg);"><c-icon icon="{{ sky == 'sun' ? 'c-sky-sun' : 'c-sky-moon-' + str(clamp(or(moon, 0), 0, 7)) }}" size="{{spec.body}}" tone="color"/><t-if test="in(weather, 'clouds', 'rain', 'storm', 'tornado')"><div class="cp-weather"><c-icon icon="{{ 'c-sky-' + weather }}" size="{{spec.weather}}" tone="color"/></div></t-if></div></div></t-if>
+</div>
+<div class="cp-date">{{ date + (date && time ? ' · ' : '') + time }}</div>
+<t-if test="days != ''"><div class="cp-days"><c-icon icon="food" size="20" tone="brass"/><div>{{days}} {{ tr('common.days_short') }}</div></div></t-if>
+</div>

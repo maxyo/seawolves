@@ -1,0 +1,3 @@
+# The relief model files are read byte for byte by ncnn: never convert them. The tree-wide rules: ../.gitattributes.
+*.ncnn.bin binary
+*.ncnn.param -text

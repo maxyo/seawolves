@@ -1,0 +1,20 @@
+--- a/PROGRAM/dialogs/russian/HouseEnc_dialog.c
++++ b/PROGRAM/dialogs/russian/HouseEnc_dialog.c
+@@ -233,7 +233,7 @@
+ 				link.l1 = NPCharRepPhrase(pchar,
+ 					RandPhraseSimple("Похоже, тебе жить надоело...", "Хех, и не живётся же спокойно мирным гражданам " + XI_ConvertString("Colony" + npchar.city + "Gen") + "!"), 
+ 					RandPhraseSimple("Отправляйся в ад!", "Хех, жить тебе осталось несколько секунд..."));
+-				link.l1.go = NPCharRepPhrase("exit_setOwner", "fight");
++				link.l1.go = NPCharRepPhrase(pchar, "exit_setOwner", "fight");
+ 				break;
+ 			}
+ 				dialog.text = NPCStringReactionRepeat("Приветсвую вас! Меня зовут " + GetFullName(npchar) + ". Я здесь заведую всем, так что не вздумай прихватить что-то с собой...", 
+@@ -257,7 +257,7 @@
+ 				link.l1 = NPCharRepPhrase(pchar,
+ 					RandPhraseSimple("Похоже, тебе жить надоело...", "Хех, и не живётся же спокойно мирным гражданам " + XI_ConvertString("Colony" + npchar.city + "Gen") + "!"), 
+ 					RandPhraseSimple("Отправляйся в ад!", "Хех, жить тебе осталось несколько секунд..."));
+-				link.l1.go = NPCharRepPhrase("exit_setOwner", "fight");
++				link.l1.go = NPCharRepPhrase(pchar, "exit_setOwner", "fight");
+ 				break;
+ 			}
+ 			dialog.text = NPCStringReactionRepeat("Я здесь заведую всем, так что не вздумай прихватить что-то с собой...", 

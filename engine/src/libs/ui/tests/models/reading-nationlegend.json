@@ -1,0 +1,14 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":2,
+"screenRevision":4,
+"screen":"nationlegend",
+"widgets":[
+{"node":"INFO_CAPTION","type":"text","label":"События","index":-1,"order":1},
+{"node":"Nat1","type":"image","index":-1,"order":2,"enabled":false,"images":[{"handle":5,"imageRevision":5,"width":128,"height":128,"source":{"kind":"atlas","group":"NATIONS","image":"England"}}]},
+{"node":"RelNat","type":"image","index":-1,"order":3,"enabled":false,"images":[{"handle":5,"imageRevision":5,"width":128,"height":128,"source":{"kind":"atlas","group":"RELATIONS","image":"Enemy"}}]},
+{"node":"Nat2","type":"image","index":-1,"order":4,"enabled":false,"images":[{"handle":5,"imageRevision":5,"width":128,"height":128,"source":{"kind":"atlas","group":"NATIONS","image":"Spain"}}]},
+{"node":"INFO_TEXT","type":"text","label":"Две державы воюют.","index":-1,"order":5},
+{"node":"B_OK","type":"button","label":"Ok","index":-1,"order":6}
+]}

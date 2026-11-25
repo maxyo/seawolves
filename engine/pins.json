@@ -1,0 +1,236 @@
+{
+  "ndk": {
+    "version": "r30",
+    "url": "https://dl.google.com/android/repository/android-ndk-{version}-linux.zip",
+    "sha256": "753611f410d002cfcd3f3dc2ef49aad532089d3180b436c060a90bf0fcb64df2"
+  },
+  "android-platform": {
+    "version": "36_r02",
+    "url": "https://dl.google.com/android/repository/platform-{version}.zip",
+    "sha256": "37607369a28c5b640b3a7998868d45898ebcb777565a0e85f9acf36f29631d2e"
+  },
+  "android-build-tools": {
+    "version": "36",
+    "url": "https://dl.google.com/android/repository/build-tools_r{version}_linux.zip",
+    "sha256": "5d9ac77fb6ff43d9da518a337b4fcf8f9097113df531d99ccefe80ef7ce8250b"
+  },
+  "android-cmdline-tools": {
+    "version": "23.0",
+    "url": "https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip",
+    "sha256": "0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8"
+  },
+  "sdl": {
+    "version": "2.0.18",
+    "git": "https://github.com/libsdl-org/SDL.git",
+    "commit": "2e9821423a237a1206e3c09020778faacfe430be"
+  },
+  "glm": {
+    "version": "1.0.3",
+    "commit": "8d1fd52e5ab5590e2c81768ace50c72bae28f2ed",
+    "url": "https://codeload.github.com/g-truc/glm/tar.gz/{commit}",
+    "sha256": "36eefbae41503e6822e8d9e1b4cc85c6a6621f17676f6258aaf0a64c2de0a09c"
+  },
+  "ncnn": {
+    "version": "20261020",
+    "url": "https://github.com/Tencent/ncnn/releases/download/{version}/ncnn-{version}-full-source.zip",
+    "sha256": "699d9acc67489eee0993a551ca1ebc247bbf0f4e33babe1dec810e6a9a52b988"
+  },
+  "tracy": {
+    "version": "0.14.1",
+    "git": "https://github.com/wolfpld/tracy.git",
+    "commit": "30997d5ca6bb632cc10807a1da8a6d3de0aeeb3c"
+  },
+  "fmt": {
+    "version": "12.1.0",
+    "commit": "407c905e45ad75fc29bf0f9bb7c5c2fd3475976f",
+    "url": "https://codeload.github.com/fmtlib/fmt/tar.gz/{commit}",
+    "sha256": "2bc1fe4a5b6d5d6a614239b4ca1d520e66e152a02d3d262684d26dfd6ab3438a"
+  },
+  "spdlog": {
+    "version": "1.17.0",
+    "commit": "79524ddd08a4ec981b7fea76afd08ee05f83755d",
+    "url": "https://codeload.github.com/gabime/spdlog/tar.gz/{commit}",
+    "sha256": "c6dee844e35a54cc80e3ab76aae2310763e0b49c7397549dfa4d4657d9737138"
+  },
+  "fast_float": {
+    "version": "3.4.0",
+    "commit": "b7f9d6ca3980de0f47251921f307e88c894f6daa",
+    "url": "https://codeload.github.com/fastfloat/fast_float/tar.gz/{commit}",
+    "sha256": "4398e2161806edfb47567900d61a1d16b6e8a5462712b0c286dc95cc87ce5725"
+  },
+  "mimalloc": {
+    "version": "2.0.3",
+    "commit": "f412df7a2b64421e1f1d61fde6055a6ea288e8f5",
+    "url": "https://codeload.github.com/microsoft/mimalloc/tar.gz/{commit}",
+    "sha256": "eab3b7f47c84e6ba2070cec8e1ceffb66429e1516fde8dd6bacbba1948e49f7a"
+  },
+  "catch2": {
+    "version": "2.13.7",
+    "commit": "c4e3767e265808590986d5db6ca1b5532a7f3d13",
+    "url": "https://codeload.github.com/catchorg/Catch2/tar.gz/{commit}",
+    "sha256": "b5700c6d267fbc5112547d0215c7be3190159b253574272fbaead57ed440b57e"
+  },
+  "ffmpeg": {
+    "version": "n8.1.3",
+    "commit": "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+    "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/{commit}",
+    "sha256": "a406fe831cbb605f5fe50e43eb566e502ae63ff3b3206bfa744e4b31b8bb73ac"
+  },
+  "miniaudio": {
+    "version": "0.11.23",
+    "url": "https://codeload.github.com/mackron/miniaudio/tar.gz/{version}",
+    "sha256": "1062155cc5882b55c48cb37f57a4dc783669e83ae0838535c62b206eeb1587a6"
+  },
+  "innoextract": {
+    "version": "1.9",
+    "url": "https://constexpr.org/innoextract/files/innoextract-{version}.tar.gz",
+    "sha256": "6344a69fc1ed847d4ed3e272e0da5998948c6b828cb7af39c6321aba6cf88126"
+  },
+  "libarchive": {
+    "version": "3.8.10",
+    "url": "https://www.libarchive.org/downloads/libarchive-{version}.tar.xz",
+    "sha256": "56cad765459d5ee25a3b761f90c47d99379d28297fbfb72d908880d6b875fb96"
+  },
+  "xz": {
+    "version": "5.8.4",
+    "url": "https://github.com/tukaani-project/xz/releases/download/v{version}/xz-{version}.tar.xz",
+    "sha256": "4ce24038fd4221e0d13bc1a2de7a4db56e90b92b3bf75321f6c14be73f65de4b"
+  },
+  "bzip2": {
+    "version": "1.0.8",
+    "url": "https://sourceware.org/pub/bzip2/bzip2-{version}.tar.gz",
+    "sha256": "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269"
+  },
+  "boost": {
+    "version": "1.90.0",
+    "url": "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.bz2",
+    "sha256": "49551aff3b22cbc5c5a9ed3dbc92f0e23ea50a0f7325b0d198b705e8ee3fc305"
+  },
+  "zlib": {
+    "version": "1.3.2",
+    "url": "https://zlib.net/fossils/zlib-{version}.tar.gz",
+    "sha256": "bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16"
+  },
+  "libtorrent": {
+    "version": "2.0.15",
+    "commit": "1eb18faeae156d8dbbab42935c082f8b81f50989",
+    "url": "https://codeload.github.com/arvidn/libtorrent/tar.gz/{commit}",
+    "sha256": "192fedf8a8d8bf88d097a7956612d0890e2f01a622ca3a00918ef0835c67a257"
+  },
+  "try_signal": {
+    "version": "the libtorrent submodule",
+    "commit": "105cce59972f925a33aa6b1c3109e4cd3caf583d",
+    "url": "https://codeload.github.com/arvidn/try_signal/tar.gz/{commit}",
+    "sha256": "6f111b0d77429a8051be4faed06cf23fb03cf6ee233967c84fdd9d8d3b42ba8e"
+  },
+  "openssl": {
+    "version": "3.5.9",
+    "url": "https://www.openssl.org/source/openssl-{version}.tar.gz",
+    "sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a"
+  },
+  "pbrify-normal": {
+    "version": "1x-PBRify_NormalV3",
+    "commit": "b35b7f4c924936803bf79e868302d7f8f643d302",
+    "url": "https://huggingface.co/fernandotonon/QtMeshEditor-models/resolve/{commit}/{version}.onnx",
+    "sha256": "19d78f555f994219e2692876ab0fb6c3e4382503952dbe72d74db89d24870ba4",
+    "ncnn_param_sha256": "6f6d55ceb44b7b0387e4c6cab96a10ee548ce0939e24d19de3189659627f5c9c",
+    "ncnn_bin_sha256": "bc13e7082ffb70533a7e3cc91f1e99be0346fad3913b952d863e3f6d0bfc58cf"
+  },
+  "pbrify-height": {
+    "version": "1x-PBRify_Height",
+    "commit": "b35b7f4c924936803bf79e868302d7f8f643d302",
+    "url": "https://huggingface.co/fernandotonon/QtMeshEditor-models/resolve/{commit}/{version}.onnx",
+    "sha256": "2b14afd583148cb5b0a554bf86a009b6a898aadc00d213aa3ec2544e17c835f5",
+    "ncnn_param_sha256": "6f6d55ceb44b7b0387e4c6cab96a10ee548ce0939e24d19de3189659627f5c9c",
+    "ncnn_bin_sha256": "d54154e6179a217891516c7c8a00033a10c8447074728f89f234b7d49b6c5226"
+  },
+  "pbrify-roughness": {
+    "version": "1x-PBRify_RoughnessV2",
+    "commit": "b35b7f4c924936803bf79e868302d7f8f643d302",
+    "url": "https://huggingface.co/fernandotonon/QtMeshEditor-models/resolve/{commit}/{version}.onnx",
+    "sha256": "8a8de1bbeab70df8b2550bdc11fddd5a315a12eeb47d561ce55b38551ea52131",
+    "ncnn_param_sha256": "6f6d55ceb44b7b0387e4c6cab96a10ee548ce0939e24d19de3189659627f5c9c",
+    "ncnn_bin_sha256": "3fe407f25ac9f0d0585209483f8e4920f5d8698129e86b666fe1ffd9edf9c908"
+  },
+  "pbrify-upscale": {
+    "version": "1.7.2",
+    "url": "https://github.com/Kim2091/PBRify_Remix/releases/download/v{version}/PBRify_Remix-{version}.zip",
+    "sha256": "d787a88f644c542620f869e0c61e71f795488020fcece9a97e774ca2c2cecb0b",
+    "ncnn_param_sha256": "2cbb837676788bcb187766e8e47f35cb312f1e63ca341a09a84ab02b1c90ebdd",
+    "ncnn_bin_sha256": "a0a97f7dd9400708ff5fc784c6c96e62cc47a357d102939ea01a5ebed19e97be"
+  },
+  "xxhash": {
+    "version": "0.8.3",
+    "url": "https://github.com/Cyan4973/xxHash/archive/refs/tags/v{version}.tar.gz",
+    "sha256": "aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80"
+  },
+  "bgfx-cmake": {
+    "version": "be0ef0d",
+    "git": "https://github.com/bkaradzic/bgfx.cmake.git",
+    "commit": "be0ef0d69a9ce609de99dd420f1182c0888cc8f1"
+  },
+  "bgfx": {
+    "version": "API 166",
+    "git": "https://github.com/bkaradzic/bgfx.git",
+    "commit": "eebf5686a8c5f1c77e1af2dad17b5746ba17da8f"
+  },
+  "bx": {
+    "version": "57548da",
+    "git": "https://github.com/bkaradzic/bx.git",
+    "commit": "57548da89a07771c5b0f8a6711149be70e08a329"
+  },
+  "bimg": {
+    "version": "2217718",
+    "git": "https://github.com/bkaradzic/bimg.git",
+    "commit": "22177183239e18d7af603e6915156371cc38d18d"
+  },
+  "swappy": {
+    "version": "2.1.3",
+    "url": "https://dl.google.com/android/maven2/androidx/games/games-frame-pacing/{version}/games-frame-pacing-{version}.aar",
+    "sha256": "a9f83e0cf47d694ed2cea0ae995d5cf7411060d9d4b680610430d03d6b20ea27"
+  },
+  "bvh": {
+    "version": "ad9f7ee",
+    "commit": "ad9f7ee3fa54014cef8e789a8d45a3c2e7a117d0",
+    "url": "https://codeload.github.com/madmann91/bvh/tar.gz/{commit}",
+    "sha256": "e4c66620e358265c4c81f9442de7a43fab129b079f5145ed417d9e87e8564db5"
+  },
+  "smaa": {
+    "version": "71c806a",
+    "commit": "71c806a838bdd7d517df19192a20f0c61b3ca29d",
+    "url": "https://codeload.github.com/iryoku/smaa/tar.gz/{commit}",
+    "sha256": "046a435f5713f8bfe8148fe6305c2abf1409fc2122bee6070061c675e1e55f57"
+  },
+  "fidelityfx-fsr": {
+    "version": "a21ffb8",
+    "commit": "a21ffb8f6c13233ba336352bdff293894c706575",
+    "url": "https://codeload.github.com/GPUOpen-Effects/FidelityFX-FSR/tar.gz/{commit}",
+    "sha256": "b529a31d21971ee9f2a3231bbe17e31d183ccbb7fb6e3f7b0508b2624f61c2d9"
+  },
+  "meshoptimizer": {
+    "version": "1.3",
+    "commit": "9e1f07b159d3cb777f1c67ed31fc11fd117986f4",
+    "url": "https://codeload.github.com/zeux/meshoptimizer/tar.gz/{commit}",
+    "sha256": "e753b45fbc410031bd69cb278180ae31fa0d5430d0c3e662e3a3b100467ce0b3"
+  },
+  "freetype": {
+    "version": "2.14.3",
+    "url": "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-3.tar.gz",
+    "sha256": "dc49de6b01a266eef4876a4dd34d9842c475d3e28ff2eff63bd2fb760ab56261"
+  },
+  "lunasvg": {
+    "version": "3.5.0",
+    "url": "https://github.com/sammycage/lunasvg/archive/refs/tags/v{version}.tar.gz",
+    "sha256": "1abf1472ee6c4d19797916e8cc3c2e4b628e0d81178ffac60bdb0d457e32c690"
+  },
+  "nlohmann-json": {
+    "version": "3.12.0",
+    "url": "https://github.com/nlohmann/json/releases/download/v{version}/json.tar.xz",
+    "sha256": "42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa"
+  },
+  "rmlui": {
+    "version": "6.3",
+    "url": "https://github.com/mikke89/RmlUi/archive/refs/tags/{version}.tar.gz",
+    "sha256": "d977298bb6147610e5984d5db85ddf284020d655a8713913f6982074f1dbdede"
+  }
+}

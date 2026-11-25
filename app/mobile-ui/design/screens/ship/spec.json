@@ -1,0 +1,24 @@
+{
+  "tag": "s-ship",
+  "doc": "Hero section «Корабль» (interface ship), hero_ship.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "headerSection": {"type": "text", "default": ""},
+    "tabs": {"type": "json", "default": []},
+    "tab": {"type": "text", "default": "overview"},
+    "subject": {"type": "json", "default": null},
+    "card": {"type": "json", "default": {}},
+    "left": {"type": "json", "default": []},
+    "right": {"type": "json", "default": []},
+    "empty": {"type": "text", "default": ""},
+    "crew": {"type": "json", "default": null},
+    "facts": {"type": "json", "default": []},
+    "crewActions": {"type": "json", "default": []},
+    "list": {"type": "json", "default": {}},
+    "load": {"type": "json", "default": {}},
+    "cargoActions": {"type": "json", "default": []},
+    "dialog": {"type": "json", "default": null},
+    "sheet": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

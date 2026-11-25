@@ -1,0 +1,123 @@
+/* C-Quantity: THE quantity control. One 44 dp line [«Все»] «−−− −− −» [number + slider] «+ ++ +++» [«Все»]; trade zones: sell left, buy right. */
+c-quantity { display: block; width: 100%; color: @{color.text}; }
+c-quantity.disabled { opacity: 0.55; }
+c-quantity .wrap { position: relative; display: flex; flex-direction: row; align-items: center; gap: 2dp; box-sizing: border-box; width: 100%; height: @{spec.height}dp; }
+c-quantity .grp { display: flex; flex-direction: row; flex: 0 0 auto; }
+
+/* steps: bare glyphs, each a 44×44 hit area (dense: 36×44) */
+c-quantity .step { display: block; flex: 0 0 auto; box-sizing: border-box; width: @{spec.step}dp; height: @{spec.height}dp; border-radius: 24dp;
+    text-align: center; white-space: nowrap; font-weight: bold; font-size: @{spec.glyphFont}dp; line-height: @{spec.height}dp; letter-spacing: 1dp;
+    color: @{color.brass}; font-effect: shadow(0dp 1dp @{color.black}); }
+c-quantity.dense .step { width: @{spec.stepDense}dp; font-size: @{spec.glyphFontDense}dp; }
+c-quantity .step.pressed { color: @{color.textSelected}; transform: translateY(1dp);
+    decorator: radial-gradient(circle farthest-corner at center, @{color.brass/.26}, @{color.brass/0} 70%); }
+c-quantity .step.dim { color: @{color.brass/.32}; font-effect: none; decorator: none; transform: none; }
+
+/* middle: number line + slider; the whole middle drags, the number opens the keypad */
+c-quantity .mid { position: relative; flex: 1 1 0; min-width: 96dp; height: @{spec.height}dp; box-sizing: border-box; padding: 0 10dp; }
+c-quantity .drag { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+c-quantity .rail { position: absolute; left: 10dp; right: 10dp; top: 24dp; height: 24dp; }
+c-quantity .line { position: relative; z-index: 1; display: flex; flex-direction: row; align-items: flex-end; gap: 5dp; height: 22dp; white-space: nowrap; pointer-events: none; }
+c-quantity .cap { flex: 0 0 auto; font-size: @{spec.captionFont}dp; line-height: 22dp; color: @{color.textSecond}; font-effect: shadow(0dp 1dp @{color.black}); }
+c-quantity .num { flex: 0 0 auto; margin-right: -2dp; font-weight: bold; font-size: @{spec.numberFont}dp; line-height: 22dp; color: @{color.text}; font-effect: shadow(0dp 1dp @{color.black}); }
+c-quantity .num.pos { color: @{color.ok}; }
+c-quantity .num.neg { color: @{color.danger}; }
+/* a deal's line keeps its places while the amount changes: the caption («В трюме», «Купить», «Продать») is right-aligned in
+   one slot and the number (tabular digits) has the width of the largest amount, so nothing shifts between samples */
+c-quantity.zoned .line > .cap { box-sizing: border-box; min-width: @{spec.captionSlot}dp; text-align: right; }
+c-quantity .num.slot { text-align: left; }
+c-quantity.zoned .line > .cap.unit { min-width: 0; text-align: left; } /* the unit follows its number */
+c-quantity .gap { flex: 1 1 0; }
+/* the price line steps down to the smallest type size before it is cut (ui-clamp min-size) */
+c-quantity .sum { flex: 1 1 0; min-width: 0; white-space: nowrap; text-align: right; } /* takes the line's rest: a clamp sized by its own text would only ever shrink */
+
+c-quantity .track { position: absolute; left: 0; right: 0; top: 9dp; height: 4dp; border-radius: 2dp; background-color: @{color.black/.45}; }
+c-quantity .fill { position: absolute; top: 9dp; height: 4dp; border-radius: 2dp; decorator: linear-gradient(90deg, @{color.sliderFill}, @{color.ringEnd}); }
+c-quantity.signed .fill { decorator: none; background-color: @{color.danger}; }
+c-quantity.signed .fill.pos { background-color: @{color.ok}; }
+c-quantity .zero { position: absolute; top: 4dp; height: 14dp; width: 2dp; margin-left: -1dp; background-color: @{color.textSecond}; }
+/* floor / ceiling: the reachable part of min…max. A tick where the amount cannot go lower (what is already done) and
+   where it cannot go higher (the purse), the rail past the ceiling dimmed */
+c-quantity .bound { position: absolute; top: 5dp; height: 12dp; width: 2dp; margin-left: -1dp; background-color: @{color.textSecond}; }
+c-quantity .bound.limit { background-color: @{color.gold}; }
+c-quantity .beyond { position: absolute; top: 9dp; height: 4dp; border-radius: 0 2dp 2dp 0; background-color: @{color.danger/.5}; }
+c-quantity.surface-parchment .bound { background-color: @{color.inkMuted}; }
+c-quantity.surface-parchment .bound.limit { background-color: @{color.wax}; }
+c-quantity.surface-parchment .beyond { background-color: @{color.wax/.45}; }
+c-quantity .at { position: absolute; top: 1dp; width: 0; height: 0; }
+c-quantity .knob { position: absolute; left: -10dp; top: 0; width: @{spec.knob}dp; height: @{spec.knob}dp; border-radius: 10dp; box-sizing: border-box;
+    border: 1.5dp @{color.brass}; decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop/.98}, @{color.brassLow/.98});
+    box-shadow: @{color.black/.5} 0 1dp 3dp 0; }
+c-quantity.active .knob { left: -12dp; top: -2dp; width: @{spec.knobActive}dp; height: @{spec.knobActive}dp; border-radius: 12dp;
+    box-shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
+
+/* marks: a threshold on the scale (the least crew a ship sails with): a notch under the track, its label below */
+c-quantity .mark { position: absolute; top: 13dp; width: 0; height: 0; pointer-events: none; }
+c-quantity .mark-notch { position: absolute; left: -1dp; top: 0; width: 2dp; height: 5dp; background-color: @{color.brass}; }
+c-quantity .mark-label { position: absolute; left: -40dp; top: 4dp; width: 80dp; text-align: center; white-space: nowrap; font-size: @{type.min}dp; line-height: 14dp; color: @{color.brass}; font-effect: shadow(0dp 1dp @{color.black}); }
+
+/* «Все» */
+c-quantity .all { display: block; flex: 0 0 auto; height: @{spec.height}dp; padding: 0 10dp; font-size: @{spec.allFont}dp; line-height: @{spec.height}dp; white-space: nowrap;
+    color: @{color.brass}; text-decoration: underline; font-effect: shadow(0dp 1dp @{color.black}); }
+c-quantity .all.pressed { color: @{color.textSelected}; }
+c-quantity .all.dim { color: @{color.brass/.32}; font-effect: none; }
+
+/* stack: «Все» · number + slider · «Все» on top, «−−− −− −   + ++ +++» below (a narrow dock holds both ends of the deal within the thumb's reach) */
+c-quantity.stack .wrap { height: 96dp; padding-top: @{spec.height}dp; justify-content: space-between; }
+c-quantity.stack .mid { position: absolute; left: 0; right: 0; top: 0; padding: 0 12dp; }
+c-quantity.stack .rail { left: 12dp; right: 12dp; }
+c-quantity.stack .all { position: absolute; top: 0; right: 0; padding: 0 6dp; }
+c-quantity.stack .all.less { left: 0; right: auto; }
+c-quantity.stack .mid { right: 44dp; }
+c-quantity.stack.zoned .mid { left: 44dp; }
+
+/* parchment: ink */
+c-quantity.surface-parchment { color: @{color.ink}; }
+c-quantity.surface-parchment .step, c-quantity.surface-parchment .all { color: @{color.inkMuted}; font-effect: none; }
+c-quantity.surface-parchment .step.pressed { color: @{color.ink}; decorator: radial-gradient(circle farthest-corner at center, @{color.paperShade/.22}, @{color.paperShade/0} 70%); }
+c-quantity.surface-parchment .all.pressed { color: @{color.ink}; }
+c-quantity.surface-parchment .step.dim, c-quantity.surface-parchment .all.dim { color: @{color.inkMuted/.35}; decorator: none; }
+c-quantity.surface-parchment .cap { color: @{color.inkMuted}; font-effect: none; }
+c-quantity.surface-parchment .num { color: @{color.ink}; font-effect: none; }
+c-quantity.surface-parchment .num.pos { color: @{color.leaf}; }
+c-quantity.surface-parchment .num.neg { color: @{color.wax}; }
+c-quantity.surface-parchment .track { background-color: @{color.sepiaTrack/.2}; }
+c-quantity.surface-parchment .fill { decorator: linear-gradient(90deg, @{color.sliderPaperTop}, @{color.sliderPaperLow}); }
+c-quantity.surface-parchment.signed .fill { decorator: none; background-color: @{color.wax}; }
+c-quantity.surface-parchment.signed .fill.pos { background-color: @{color.leaf}; }
+c-quantity.surface-parchment .zero { background-color: @{color.inkMuted}; }
+c-quantity.surface-parchment .knob { border-color: @{color.paperGlyph}; decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.knobPaperTop}, @{color.knobPaperLow}); }
+c-quantity.surface-parchment.active .knob { box-shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.paperShade/.22} 0 0 0 6dp; }
+
+/* glass (HUD): light glyphs with a dark outline */
+c-quantity.surface-glass .step, c-quantity.surface-glass .all { color: @{color.iconDuo}; font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
+c-quantity.surface-glass .step.pressed, c-quantity.surface-glass .all.pressed { color: @{color.textSelected}; }
+c-quantity.surface-glass .step.dim, c-quantity.surface-glass .all.dim { color: @{color.iconDuo/.35}; font-effect: none; }
+c-quantity.surface-glass .cap { color: @{color.textSecond}; font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
+c-quantity.surface-glass .num { font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
+c-quantity.surface-glass .track { background-color: @{color.glassTrack/.549}; box-shadow: @{color.black/.35} 0 0 0 1dp; }
+c-quantity.surface-glass .zero { background-color: @{color.textSecond}; }
+
+/* zones (trade): one slider for both directions. What we hold is the origin (the mark);
+   left of it the amount we give / sell (danger), right of it what we take / buy (ok). */
+c-quantity .zone { position: absolute; top: 9dp; height: 4dp; }
+c-quantity .zone.less { border-radius: 2dp 0 0 2dp; background-color: @{color.danger/.35}; }
+c-quantity .zone.more { border-radius: 0 2dp 2dp 0; background-color: @{color.ok/.35}; }
+c-quantity .fill.zoned { decorator: none; }
+c-quantity .fill.zoned.less { background-color: @{color.danger}; }
+c-quantity .fill.zoned.more { background-color: @{color.ok}; }
+c-quantity.zoned .zero { background-color: @{color.text}; }
+c-quantity .grp.less .step, c-quantity .all.less { color: @{color.danger}; }
+c-quantity .grp.more .step, c-quantity.zoned .all { color: @{color.ok}; }
+c-quantity.zoned .all.less { color: @{color.danger}; }
+c-quantity .grp.less .step.dim, c-quantity .grp.more .step.dim, c-quantity.zoned .all.dim { color: @{color.brass/.32}; }
+c-quantity .grp.less .step.pressed, c-quantity .grp.more .step.pressed { color: @{color.textSelected}; }
+c-quantity .cap.op { font-weight: bold; }
+c-quantity .cap.op.less, c-quantity .num.less { color: @{color.danger}; }
+c-quantity .cap.op.more, c-quantity .num.more { color: @{color.ok}; }
+c-quantity.surface-parchment .zone.less { background-color: @{color.wax/.3}; }
+c-quantity.surface-parchment .zone.more { background-color: @{color.leaf/.3}; }
+c-quantity.surface-parchment .fill.zoned.less { background-color: @{color.wax}; }
+c-quantity.surface-parchment .cap.op.less, c-quantity.surface-parchment .num.less { color: @{color.wax}; }
+c-quantity.surface-parchment .cap.op.more, c-quantity.surface-parchment .num.more { color: @{color.leaf}; }
+c-quantity.surface-parchment .fill.zoned.more { background-color: @{color.leaf}; }

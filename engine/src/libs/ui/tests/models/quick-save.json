@@ -1,0 +1,12 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":1,
+"screenRevision":1,
+"screen":"quick_save",
+"widgets":[
+{"node":"INFO_WINDOW_FADER","type":"image","index":-1,"order":0},
+{"node":"INFO_FRAME","type":"image","index":-1,"order":0},
+{"node":"INFO_TEXT","type":"text","label":"Идёт сохранение...","index":-1,"order":0},
+{"node":"INFO_WINDOW_CAPTION","type":"text","label":"Быстрое сохранение","index":-1,"order":0}
+]}

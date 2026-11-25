@@ -1,0 +1,11 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":2,
+"screenRevision":4,
+"screen":"colonyinfo",
+"widgets":[
+{"node":"Nat1","type":"image","index":-1,"order":1,"enabled":false,"images":[{"handle":5,"imageRevision":5,"width":128,"height":128,"source":{"kind":"atlas","group":"NATIONS","image":"Spain"}}]},
+{"node":"INFO_TEXT","type":"text","label":"Эскадра осадила город. Десять дней на снятие осады.","index":-1,"order":2},
+{"node":"B_OK","type":"button","label":"Ok","index":-1,"order":3}
+]}

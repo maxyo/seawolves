@@ -1,0 +1,11 @@
+--- a/PROGRAM/dialogs/russian/Common_Shipyard.c
++++ b/PROGRAM/dialogs/russian/Common_Shipyard.c
+@@ -2128,7 +2128,7 @@
+ 			pchar.questTemp.Sharlie.Ship = "sloop";
+ 			pchar.questTemp.Sharlie = "crew";
+ 			//стартовый шлюп
+-			pchar.Ship.Type = GenerateShipHand(SHIP_SLOOP, 6, 700, 50, 790, 20000, 13.1, 50.1, 1.25);
++			pchar.Ship.Type = GenerateShipHand(pchar, SHIP_SLOOP, 6, 700, 50, 790, 20000, 13.1, 50.1, 1.25);
+ 			SetBaseShipData(pchar);
+ 			ResetShipCannonsDamages(pchar);
+ 			SetShipCannonsDamagesNull(pchar);

@@ -1,0 +1,164 @@
+#pragma once
+
+#include "storm_glm.h"
+#include "renderer.h"
+#include "geos.h"
+#include "vma.hpp"
+
+#include <filesystem>
+
+class NODE;
+
+#define VANT_EDGE 5 // number of edges in the rope section
+
+#define VANTVERTEX_FORMAT (D3DFVF_XYZ | D3DFVF_TEX1 | D3DFVF_TEXTUREFORMAT2)
+
+struct VANTVERTEX
+{
+    glm::vec3 pos;
+    float tu, tv;
+};
+
+class VANT_BASE : public Entity
+{
+  public:
+    VANT_BASE();
+    ~VANT_BASE() override;
+    void SetDevice();
+    bool Init() override;
+    void Realize(uint32_t Delta_Time);
+    void Execute(uint32_t Delta_Time);
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    virtual void LoadIni() = 0;
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::execute:
+            Execute(delta);
+            break;
+        case Stage::loading_prepare:
+            if (bRunFirstTime) FirstRun();
+            else if (bUse) doMove();
+            break;
+        case Stage::loading_realize:
+            Realize(0);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+
+    VRenderer *RenderService;
+
+  protected:
+    // parameters obtained from INI file //
+    int ROPE_QUANT;        // number of ropes
+    float ROPE_WIDTH;      // rope thickness
+    float upWidth;         // upper triangle width
+    float upHeight;        // the height of the upper triangle
+    float treangXl;        // triangle texture coordinates
+    float treangXr;        //
+    float treangYu;        //
+    float treangYd;        //
+    float balkYu;          // beam texture coordinates
+    float balkYd;          //
+    float ropeXl;          // vertical rope texture coordinates
+    float ropeXr;          //
+    float vRopeXl;         // xBeg horizontal rope texture coordinates
+    float vRopeXr;         //
+    float vRopeHeight;     // vertical rope height
+    float hRopeHeight;     // horizontal rope height
+    float fBalkHeight;     // beam height relative to triangle height
+    float fBalkWidth;      //
+    float fVantMaxDist;    // the square of the distance from which the guys are not visible
+    float ZERO_CMP_VAL;    // Guy motion sampling step
+    float MAXFALL_CMP_VAL; // the maximum change in the guy position at which the guy stops being displayed
+
+    bool bUse;
+    bool bRunFirstTime;
+    bool bYesDeleted;
+    int wVantLast;
+    char *TextureName;
+    int32_t texl;
+    int VantId;
+
+    struct VANTDATA
+    {
+        bool bDeleted;
+        glm::vec3 pUp, pLeft, pRight;
+        glm::mat4 *pUpMatWorld, *pDownMatWorld;
+        uint32_t sv, nv, st, nt;
+
+        int vantNum;
+        glm::vec3 pos[VANT_EDGE];
+
+        glm::vec3 pUpOld, pLeftOld, pUpStart, pLeftStart;
+        int HostGroup;
+    };
+
+    int vantQuantity;
+    VANTDATA **vlist;
+
+    struct GROUPDATA
+    {
+        bool bDeleted;
+        int vantQuantity;
+        int *vantIdx;
+        int32_t sVert, nVert;
+        int32_t sIndx, nIndx;
+
+        glm::mat4 *pMatWorld;
+        entid_t model_id;
+        entid_t shipEI;
+    };
+
+    int groupQuantity;
+    GROUPDATA *gdata;
+
+    void SetVertexes() const;
+    void SetIndex() const;
+    void AddLabel(GEOS::LABEL &lbl, NODE *nod);
+    void SetAdd(int firstNum);
+    void doMove();
+    bool VectCmp(glm::vec3 v1, glm::vec3 v2, float minCmpVal);
+    void FirstRun();
+    void DoSTORM_DELETE();
+
+    VANTVERTEX *vertBuf;
+
+    int32_t vBuf, iBuf;
+    uint32_t nVert, nIndx;
+};
+
+class VANT : public VANT_BASE
+{
+  public:
+    VANT(){};
+
+    ~VANT() override{};
+
+    void LoadIni() override;
+};
+
+class VANTL : public VANT_BASE
+{
+  public:
+    VANTL(){};
+
+    ~VANTL() override{};
+
+    void LoadIni() override;
+};
+
+class VANTZ : public VANT_BASE
+{
+  public:
+    VANTZ(){};
+
+    ~VANTZ() override{};
+
+    void LoadIni() override;
+};

@@ -1,0 +1,832 @@
+//    Spirenkov Maxim aka Sp-Max Shaman, 2001
+//
+//    Player
+
+#include "player.h"
+#include "android_motion.hpp"
+#include <platform/android_haptics.hpp>
+#include "storm/render/effects.hpp"
+
+#include "location.h"
+#include "location_camera.h"
+#include "collide.h"
+#include "shared/messages.h"
+#ifdef __ANDROID__
+#include <platform/android_ui.hpp>
+#include <platform/android_movement.hpp>
+#include <platform/android_combat_input.hpp>
+#endif
+
+Player::Player()
+{
+    baterfl = {};
+    lastChange = 10.0f;
+    task.task = npct_none;
+    activatedDialog = false;
+    CmdNone();
+    isSpecialMode = false;
+    isSetBlock = false;
+    kSMReload = 1.0f;
+    locCam = nullptr;
+    shootgunMode = false;
+}
+
+Player::~Player()
+{
+    storm::render::ClearEffectsPlayerPosition(this);
+    entid_t peid;
+    if (peid = core.GetEntityId("ShootGunParticles"))
+        core.EraseEntity(peid);
+}
+
+bool Player::PostInit()
+{
+    auto *const location = GetLocation();
+    if (!location->supervisor.player)
+        location->supervisor.player = this;
+    baterfl = core.GetEntityId("Animals");
+    return NPCharacter::PostInit();
+}
+
+void Player::Reset()
+{
+    if (fgtCurType == fgt_block && !isSetBlock)
+        fgtCurType = fgt_none;
+    NPCharacter::Reset();
+}
+
+// Move the character to the desired position
+void Player::Move(float dltTime)
+{
+#ifdef __ANDROID__
+    androidMotion = false;
+    androidMotionApplied = false;
+    // Poll even during a scripted task: hard context invalidation and lease
+    // expiry must not leave a sample waiting to resume after that task ends.
+    const auto androidAxes = GetId() == core.GetEntityId("Player") ?
+        storm::android::movementInput.read() : std::nullopt;
+    storm::location::PlayerMotion::takeAxes(*this, androidAxes);
+#endif
+    kSMReload += dltTime * 0.7f;
+    if (kSMReload > 1.0f)
+        kSMReload = 1.0f;
+    if (!locCam)
+    {
+        entid_t lcam;
+        if (lcam = core.GetEntityId("LocationCamera"))
+        {
+            locCam = static_cast<LocationCamera *>(core.GetEntityPointer(lcam));
+        }
+    }
+    else
+    {
+        locCam->LockFPMode(shootgunMode);
+    }
+
+    const auto oldSGMode = shootgunMode;
+    shootgunMode = false;
+    auto *vd = core.Event("EventSGMode");
+    if (vd)
+    {
+        int32_t data = 0;
+        if (vd->Get(data))
+            shootgunMode = (data != 0);
+    }
+    if (oldSGMode != shootgunMode)
+    {
+        if (shootgunMode)
+        {
+            core.Send_Message(effects, "s", "SGInited");
+            tuner.alpha = 0.0f;
+            tuner.camAlpha = 0.0f;
+            isFight = true;
+        }
+        else
+        {
+            core.Send_Message(effects, "s", "SGRelease");
+            tuner.alpha = 1.0f;
+            tuner.camAlpha = 1.0f;
+            isFight = false;
+        }
+    }
+
+    /*
+    if(core.Controls->GetAsyncKeyState(VK_SPACE) < 0)
+    {
+      impulse.y += 5.0f;
+      impulse.y *= 2;
+    }*/
+
+    if (task.task == npct_none)
+    {
+        isEnableJump = true;
+        Rotate(dltTime);
+#ifdef __ANDROID__
+        // The HUD's dash button (combat action "dash", engine-only control "ChrRecoil"): the
+        // backstep of pulling the stick back.
+        if (IsFight() && storm::android::combatInput.merge("ChrRecoil", 0) == 3)
+            Recoil();
+#endif
+        if (lastChange > 0.3f)
+        {
+#ifdef __ANDROID__
+            if (androidAxes && command.cmd == aicmd_none && !shootgunMode && !isJump)
+                storm::location::PlayerMotion::stickGait(*this, *androidAxes);
+            else
+#endif
+                storm::location::PlayerMotion::controlsGait(*this, dltTime);
+        }
+        else
+            lastChange += dltTime;
+        if (!shootgunMode)
+        {
+            if (IsChangeFightMode())
+            {
+                isSetBlock = false;
+                SetFightMode(!IsFight());
+            }
+            if (IsFight())
+            {
+                if (IsDoBlock())
+                {
+                    // boal -->
+                    if (fgtCurType == fgt_attack_fast || fgtCurType == fgt_attack_force ||
+                        fgtCurType == fgt_attack_round || fgtCurType == fgt_attack_break ||
+                        fgtCurType == fgt_attack_feint || fgtCurType == fgt_parry)
+                    {
+                        StopFightAnimation();
+                    }
+                    // boal <--
+                    Block();
+                }
+                else if (IsDoParry())
+                {
+                    // boal -->
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak ||
+                        fgtCurType == fgt_hit_attack)
+                    {
+                        StopFightAnimation();
+                    }
+                    // boal <--
+                    Parry();
+                }
+                else if (IsDoAttackForce())
+                {
+                    // boal -->
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak)
+                    {
+                        StopFightAnimation();
+                    }
+                    // boal <--
+                    Attack(FindAttackCharacter(), fgt_attack_force);
+                }
+                else if (IsDoAttackFast())
+                {
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak)
+                    {
+                        StopFightAnimation();
+                    }
+                    Attack(FindAttackCharacter(), fgt_attack_fast);
+                }
+                else if (IsDoAttackRound())
+                {
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak ||
+                        fgtCurType == fgt_hit_attack)
+                    {
+                        StopFightAnimation();
+                    }
+                    Attack(FindAttackCharacter(), fgt_attack_round);
+                }
+                else if (IsDoAttackBreak())
+                {
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak)
+                    {
+                        StopFightAnimation();
+                    }
+                    Attack(FindAttackCharacter(), fgt_attack_break);
+                }
+                else if (IsDoAttackFeint())
+                {
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak ||
+                        fgtCurType == fgt_hit_attack)
+                    {
+                        StopFightAnimation();
+                    }
+                    Attack(FindAttackCharacter(), fgt_attack_feint);
+                }
+                else if (IsFire())
+                {
+                    if (fgtCurType == fgt_block || fgtCurType == fgt_blockhit || fgtCurType == fgt_blockbreak ||
+                        fgtCurType == fgt_hit_attack)
+                    {
+                        StopFightAnimation();
+                    }
+                    Fire();
+                }
+            }
+        }
+        else
+        {
+            tuner.alpha = 0.0f;
+            tuner.camAlpha = 0.0f;
+            isFight = true;
+            if (kSMReload >= 1.0f)
+                if (IsFire())
+                    FireFromShootgun();
+        }
+    }
+    else
+        isEnableJump = false;
+    NPCharacter::Move(dltTime);
+}
+
+void Player::Update(float dltTime)
+{
+    auto aDialog = false;
+    if (task.task == npct_none)
+    {
+        if (!IsFight())
+        {
+            CONTROL_STATE cs;
+            core.Controls->GetControlState("ChrAction", cs);
+            if (cs.state == CST_ACTIVATED)
+            {
+                aDialog = true;
+#ifdef __ANDROID__
+                storm::android::traceContextAction("primary-poll", "ChrAction", "player=" + std::to_string(GetId()));
+#endif
+            }
+            if (activatedDialog)
+            {
+                auto *chr = FindDialogCharacter();
+#ifdef __ANDROID__
+                storm::android::traceContextAction("dialog-target", "ChrAction",
+                    "target=" + std::to_string(chr && chr->AttributesPointer ? chr->AttributesPointer->GetAttributeAsDword("index", -1) : uint32_t(-1)));
+#endif
+                if (chr)
+                {
+                    Assert(AttributesPointer);
+                    Assert(chr->AttributesPointer);
+                    const int32_t first = AttributesPointer->GetAttributeAsDword("index", -1);
+                    const int32_t next = chr->AttributesPointer->GetAttributeAsDword("index", -1);
+                    if (first >= 0 && next >= 0)
+                    {
+#ifdef __ANDROID__
+                        storm::android::traceContextAction("dialog-dispatch", "dlgReady",
+                            "target=" + std::to_string(next) + " player=" + std::to_string(first));
+#endif
+                        core.Event("dlgReady", "ll", next, first);
+                    }
+                    else
+                    {
+                        core.Trace("Incorrect character index! Dialog not activated...");
+                    }
+                }
+            }
+
+            core.Controls->GetControlState("ChrJump", cs);
+            if (cs.state == CST_ACTIVATED)
+            {
+                StartJump();
+            }
+        }
+        else
+        {
+            if (IsFireFindTarget())
+            {
+                float kDist;
+                auto *c = FindGunTarget(kDist, CheckShotOnlyEnemyTest());
+                if (c)
+                    c->Select();
+            }
+        }
+    }
+
+    NPCharacter::Update(dltTime);
+    storm::render::SetEffectsPlayerPosition({curPos.x, curPos.y, curPos.z}, this,
+                                            storm::render::EffectsPlayerRole::Character);
+    activatedDialog = aDialog;
+    core.Send_Message(baterfl, "lff", MSG_ANIMALS_BUTTERFLIES_XYZ, curPos.x, curPos.z);
+    // go through characters in search of enemies to the player
+    if (const auto eid = core.GetEntityId("CharactersGroups"))
+    {
+        auto *const location = GetLocation();
+        for (size_t i = 0; i < location->supervisor.character.size(); i++)
+        {
+            auto *const chr = location->supervisor.character[i].c;
+            if (chr != this && chr)
+            {
+                chr->isPlayerEnemy = (core.Send_Message(eid, "sii", "IsEnemy", GetId(), chr->GetId()) != 0);
+            }
+        }
+    }
+}
+
+#ifdef __ANDROID__
+void Player::StopAndroidMovement()
+{
+    storm::location::PlayerMotion::StopAndroidMovement(*this);
+}
+#endif
+
+// Save parameters
+void Player::SetSaveData(ATTRIBUTES *sdata)
+{
+    if (!sdata)
+        return;
+    sdata->SetAttributeUseDword("isFight", isFight);
+}
+
+// Restore parameters
+void Player::GetSaveData(ATTRIBUTES *sdata)
+{
+    if (!sdata)
+        return;
+    if (task.task == npct_none)
+    {
+        SetFightMode(sdata->GetAttributeAsDword("isFight", isFight) != 0, false);
+    }
+}
+
+void Player::Rotate(float dltTime)
+{
+    CONTROL_STATE cs;
+#ifdef __ANDROID__
+    // Mobile camera mode: out of a fight the drag turns the camera only (CameraFollow), never
+    // the hero; feeding it into the hero's yaw would fight the stick and re-orbit the camera.
+    if (MobileCameraOrbit() && (!locCam || locCam->IsThirdPersonFollow())) return;
+#endif
+    if (!isSpecialMode)
+    {
+#ifdef __ANDROID__
+        // The drag turns the fighter as it turns the camera out of a fight (dragYaw: the native 0.01 per pixel of the reference 3200 px wide screen).
+        const auto a = storm::android::dragYaw(GetRotateH(), static_cast<float>(core.GetWindow()->GetWindowSize().width));
+#else
+        auto a = GetRotateH() * 0.01f;
+        if (a > 0.3f)
+            a = 0.3f;
+        if (a < -0.3f)
+            a = -0.3f;
+#endif
+        Turn(GetAY() + a);
+    }
+    else
+    {
+        if (!lockRotate)
+        {
+            const auto dx = GetRotateH() * 0.067f;
+            core.Controls->GetControlState("ChrTurnV", cs);
+            auto dz = cs.fValue * 0.067f;
+            if (core.Controls->GetControlState("ChrTurnV1", cs))
+                dz += cs.fValue * 0.067f;
+            if (core.Controls->GetControlState("ChrTurnV2", cs))
+                dz += cs.fValue * 0.067f;
+            if (dx * dx + dz * dz > 0.1f)
+            {
+                // Rotate the vector relative to the camera
+                glm::mat4 mtx;
+                auto *const location = GetLocation();
+                location->GetRS()->GetTransform(D3DTS_VIEW, storm::math::d3dMatrix(mtx));
+                storm::math::transpose3x3(mtx);
+                storm::math::vy(mtx) = glm::vec3(0.0f, 1.0f, 0.0f);
+                storm::math::vx(mtx).y = 0.0f;
+                storm::math::vz(mtx).y = 0.0f;
+                storm::math::vx(mtx) = storm::math::normalizeOrZero(glm::vec3(storm::math::vx(mtx)));
+                storm::math::vz(mtx) = storm::math::normalizeOrZero(glm::vec3(storm::math::vz(mtx)));
+                storm::math::pos(mtx) = glm::vec3(0.0f);
+                const auto res = storm::math::transformPoint(mtx, glm::vec3(dx, 0.0f, dz));
+                Turn(res.x, res.z);
+            }
+        }
+    }
+}
+
+bool Player::GoForward(float dltTime)
+{
+    CONTROL_STATE cs;
+    if (!isSpecialMode)
+    {
+        auto res = false;
+        core.Controls->GetControlState("ChrForward", cs);
+        if (cs.lValue != 0)
+            res = true;
+        if (core.Controls->GetControlState("ChrForward1", cs) && cs.lValue != 0)
+            res = true;
+        if (core.Controls->GetControlState("ChrForward2", cs) && cs.lValue != 0)
+            res = true;
+        return res;
+    }
+    const auto dx = GetRotateH() * 0.067f;
+    core.Controls->GetControlState("ChrTurnV", cs);
+    auto dz = cs.fValue * 0.067f;
+    if (core.Controls->GetControlState("ChrTurnV1", cs))
+        dz += cs.fValue * 0.067f;
+    if (core.Controls->GetControlState("ChrTurnV2", cs))
+        dz += cs.fValue * 0.067f;
+    if (IsMove())
+    {
+        return dx * dx + dz * dz > 0.1f;
+    }
+    return dx * dx + dz * dz > 0.2f;
+}
+
+bool Player::GoBack(float dltTime) const
+{
+    if (!isSpecialMode)
+    {
+        CONTROL_STATE cs;
+        auto res = false;
+        core.Controls->GetControlState("ChrBackward", cs);
+        if (cs.lValue != 0)
+            res = true;
+        if (core.Controls->GetControlState("ChrBackward1", cs) && cs.lValue != 0)
+            res = true;
+        if (core.Controls->GetControlState("ChrBackward2", cs) && cs.lValue != 0)
+            res = true;
+        return res;
+    }
+    return false;
+}
+
+bool Player::IsRunMode(float dltTime)
+{
+    CONTROL_STATE cs;
+    if (!isSpecialMode)
+    {
+        core.Controls->GetControlState("ChrRun", cs);
+        return !(cs.lValue != 0);
+    }
+    const auto dx = GetRotateH() * 0.067f;
+    core.Controls->GetControlState("ChrTurnV", cs);
+    auto dz = cs.fValue * 0.067f;
+    if (core.Controls->GetControlState("ChrTurnV1", cs))
+        dz += cs.fValue * 0.067f;
+    if (core.Controls->GetControlState("ChrTurnV2", cs))
+        dz += cs.fValue * 0.067f;
+    if (IsMove() && IsRun())
+    {
+        return dx * dx + dz * dz > 0.4f;
+    }
+    return dx * dx + dz * dz > 0.6f;
+}
+
+void Player::StrafeWhenMove(float dltTime)
+{
+    storm::location::PlayerMotion::StrafeWhenMove(*this, dltTime);
+}
+
+void Player::StrafeWhenStop(float dltTime)
+{
+    storm::location::PlayerMotion::StrafeWhenStop(*this, dltTime);
+}
+
+bool Player::IsDoBlock()
+{
+#ifdef __ANDROID__
+    // A modal/actor can skip the release frame. Reconcile both real controls
+    // instead of retaining a latch after all physical/virtual input is gone.
+    CONTROL_STATE primary{}, secondary{};
+    core.Controls->GetControlState("ChrBlock", primary);
+    core.Controls->GetControlState("ChrBlock2", secondary);
+    const auto held = [](const CONTROL_STATE &state) {
+        return state.state == CST_ACTIVATED || state.state == CST_ACTIVE;
+    };
+    isSetBlock = IsFight() && (held(primary) || held(secondary));
+    return isSetBlock;
+#else
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("ChrBlock", cs);
+    if (cs.state == CST_ACTIVATED)
+    {
+        isSetBlock = true;
+    }
+    else if (cs.state == CST_INACTIVATED)
+    {
+        isSetBlock = false;
+    }
+    else if (cs.state == CST_INACTIVE)
+    {
+        core.Controls->GetControlState("ChrBlock2", cs);
+        if (cs.state == CST_ACTIVATED)
+        {
+            isSetBlock = true;
+        }
+        else if (cs.state == CST_INACTIVATED)
+        {
+            isSetBlock = false;
+        }
+    }
+    if (!IsFight())
+    {
+        isSetBlock = false;
+    }
+    return isSetBlock;
+#endif
+}
+
+bool Player::IsDoParry()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrParry", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrParry2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsDoAttackForce()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrAttackForce", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrAttackForce2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsDoAttackFast()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrAttackFast", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrAttackFast2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsDoAttackRound()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrAttackRound", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrAttackRound2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsDoAttackBreak()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrAttackBreak", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrAttackBreak2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsDoAttackFeint()
+{
+    CONTROL_STATE cs;
+    auto bPressed = false;
+    core.Controls->GetControlState("ChrAttackFient", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    core.Controls->GetControlState("ChrAttackFient2", cs);
+    if (cs.state == CST_ACTIVATED)
+        bPressed = true;
+    return bPressed;
+}
+
+bool Player::IsFire()
+{
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("ChrFire", cs);
+    return (cs.state == CST_ACTIVATED);
+}
+
+bool Player::IsChangeFightMode()
+{
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("ChrFightMode", cs);
+    return (cs.state == CST_ACTIVATED);
+}
+
+// Find an attacking enemy
+Player *Player::FindAttackCharacter()
+{
+    auto *const location = GetLocation();
+    // Find the surrounding characters
+    auto fndCharacter = location->supervisor.FindCharacters(this, CHARACTER_ATTACK_DIST * 1.1f);
+    if (fndCharacter.empty())
+        return nullptr;
+    // Choosing the best
+    float minDst;
+    int32_t task = -1;
+    auto isFgt = false;
+    const auto isEnemy = false;
+    auto enemyCos = -1.0f;
+    const auto cdx = sinf(ay);
+    const auto cdz = cosf(ay);
+    int32_t j = -1;
+    for (size_t i = 0; i < fndCharacter.size(); i++)
+    {
+        auto &fc = fndCharacter[i];
+        // do not look at non-combatants
+        auto *chr = static_cast<Player *>(fc.c);
+        if (chr == this)
+            continue;
+        // skip the dead
+        if (chr->liveValue < 0 || chr->deadName)
+            continue;
+        // filter out uninteresting
+        if (isEnemy) // ~!~
+        {
+            if (chr->task.task != npct_fight || core.GetEntityPointer(chr->task.target) != this)
+                continue;
+        }
+        if (isFgt)
+        {
+            if (!chr->isFight)
+                continue;
+        }
+        else
+        {
+            if (chr->isFight)
+            {
+                j = -1;
+                isFgt = true;
+            }
+        }
+        /*
+                if(chr->task.task == npct_fight &&
+                    core.GetEntityPointer(chr->task.target) == this)
+                {
+                    j = -1;
+                    isEnemy = true;
+                }
+                */
+        // skip non-enemies
+        if constexpr (!isEnemy) // ~!~
+        {
+            if (const auto eid = core.GetEntityId("CharactersGroups"))
+            {
+                if (!core.Send_Message(eid, "sii", "IsEnemy", GetId(), chr->GetId()))
+                    continue;
+            }
+        }
+        // This bastard climbs on us
+        if (j >= 0)
+        {
+            auto cs = -1.0f;
+            if (fc.d2 > 0.0f)
+                cs = (fc.dx * cdx + fc.dz * cdz) / sqrtf(fc.d2);
+            if (cs > enemyCos)
+            {
+                j = i;
+                minDst = fc.d2;
+                enemyCos = cs;
+            }
+        }
+        else
+        {
+            j = i;
+            minDst = fc.d2;
+            if (fc.d2 > 0.0f)
+                enemyCos = (fc.dx * cdx + fc.dz * cdz) / sqrtf(fc.d2);
+            else
+                enemyCos = -1.0f;
+        }
+    }
+    if (j >= 0)
+        return static_cast<Player *>(fndCharacter[j].c);
+    return nullptr;
+}
+
+void Player::FireFromShootgun()
+{
+    kSMReload = 0.0f;
+    if (const auto peid = core.GetEntityId("sound"))
+    {
+        core.Send_Message(peid, "lsllll", MSG_SOUND_PLAY, "OBJECTS\\sgboom.wav", 4, false, false, false);
+    }
+    // Get the position from where to shoot
+    auto dx = sinf(ay);
+    auto dz = cosf(ay);
+    glm::mat4 mtx;
+    auto *const location = GetLocation();
+    location->GetRS()->GetTransform(D3DTS_VIEW, storm::math::d3dMatrix(mtx));
+    storm::math::invertRigid(mtx);
+    const auto src = storm::math::pos(mtx) + storm::math::vz(mtx) * 0.7f;
+    core.Send_Message(effects, "sffffff", "SGFireParticles", src.x, src.y - 0.35f, src.z, storm::math::vz(mtx).x, storm::math::vz(mtx).y,
+                      storm::math::vz(mtx).z);
+
+    auto *collide = static_cast<COLLIDE *>(core.GetService("COLL"));
+    if (!collide)
+    {
+        return;
+    }
+    struct ChrsDmg
+    {
+        Character *chr;
+        float dmg;
+    };
+    ChrsDmg chrs[16];
+    int32_t numChrs = 0;
+
+    const auto ids = core.GetEntityIds(SUN_TRACE);
+    for (int32_t i = 0; i < 6; i++)
+    {
+        // Get the position where the buckshot will fall
+        const auto r = rand() * 3.0f / RAND_MAX;
+        const auto a = rand() * 6.283185307f / (RAND_MAX + 1.0f);
+        auto dst = storm::math::transformPoint(mtx, glm::vec3(r * sinf(a), r * cosf(a), 25.0f));
+        if (collide)
+        {
+            auto id = GetId();
+            const auto dist = collide->Trace(ids, src, dst, &id, 0);
+            if (dist <= 1.0f && dist > (0.2f / 25.0f))
+            {
+                auto dir = storm::math::normalizeOrZero(src - dst);
+                dst = src + (dst - src) * dist;
+                // Got somewhere
+                auto *const e = core.GetEntityPointer(collide->GetObjectID());
+                if (e && e != this)
+                {
+                    int32_t nm;
+                    size_t n;
+                    for (n = 0, nm = location->supervisor.character.size(); n < nm; n++)
+                    {
+                        auto *c = static_cast<Player *>(location->supervisor.character[n].c);
+                        if (c->Model() == e)
+                        {
+                            core.Send_Message(effects, "sffffff", "SGBloodParticles", dst.x, dst.y, dst.z, dir.x, dir.y,
+                                              dir.z);
+                            c->impulse -= dir * (1.5f + rand() * (1.0f / RAND_MAX));
+                            c->impulse.y += 1.5f + rand() * (1.0f / RAND_MAX);
+                            int32_t j;
+                            for (j = 0; j < numChrs; j++)
+                            {
+                                if (chrs[j].chr == c)
+                                {
+                                    chrs[j].dmg *= 2.0f;
+                                    break;
+                                }
+                            }
+                            if (j >= numChrs && numChrs < 16)
+                            {
+                                chrs[numChrs].chr = c;
+                                chrs[numChrs++].dmg = 1.0f;
+                            }
+                            break;
+                        }
+                    }
+                    if (n >= nm)
+                        core.Send_Message(effects, "sffffff", "SGEnvParticles", dst.x, dst.y, dst.z, dir.x, dir.y,
+                                          dir.z);
+                }
+                else
+                    core.Send_Message(effects, "sffffff", "SGEnvParticles", dst.x, dst.y, dst.z, dir.x, dir.y, dir.z);
+            }
+        }
+    }
+    for (int32_t i = 0; i < numChrs; i++)
+    {
+        core.Event("Location_CharacterSGFire", "iif", GetId(), chrs[i].chr->GetId(), chrs[i].dmg);
+    }
+}
+
+float Player::GetRotateH()
+{
+    CONTROL_STATE cs;
+    core.Controls->GetControlState("ChrCamSpecMode", cs);
+    auto dx = 0.f;
+    if (cs.state != CST_ACTIVE)
+    {
+        core.Controls->GetControlState("ChrTurnH", cs);
+        dx = cs.fValue;
+    }
+    if (core.Controls->GetControlState("ChrTurnH1", cs))
+        dx += cs.fValue;
+    if (core.Controls->GetControlState("ChrTurnHR", cs))
+    {
+        if (cs.state == CST_ACTIVE)
+            dx += 12.0f;
+    }
+    if (core.Controls->GetControlState("ChrTurnHL", cs))
+    {
+        if (cs.state == CST_ACTIVE)
+            dx -= 12.0f;
+    }
+    return dx;
+}
+
+void Player::HitChild(bool isInBlock)
+{
+    NPCharacter::HitChild(isInBlock);
+    storm::android::haptic(isInBlock ? storm::android::Haptic::Block : storm::android::Haptic::Hit);
+}

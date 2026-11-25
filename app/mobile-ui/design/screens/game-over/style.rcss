@@ -1,0 +1,8 @@
+/* s-game-over: the defeat's title centred on the darkened screen, under it what the game offers next
+   (load, settings, its title screen). */
+s-game-over { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-game-over .go-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: @{color.black/.9}; }
+s-game-over .go-text { position: absolute; left: 0; right: 0; top: 30%; display: flex; flex-direction: column; align-items: center; }
+s-game-over .go-actions { display: flex; flex-direction: column; align-items: center; gap: @{space.sm}dp; margin-top: @{space.lg}dp; }
+s-game-over .go-title { font-size: 30dp; font-weight: bold; color: @{color.text}; text-align: center; font-effect: shadow(0dp 2dp @{color.black}); }
+s-game-over .go-rule { width: 120dp; height: 1dp; margin-top: 14dp; background-color: @{color.dangerDeep}; }

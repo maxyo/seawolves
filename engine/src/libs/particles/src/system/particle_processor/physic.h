@@ -1,0 +1,32 @@
+#pragma once
+
+//
+// Poisition - The position in which the particle is located
+// Velocity - Current speed
+// Forces - forces acting on a particle
+// UMass - fabsf (masses)
+// Drag - medium resistance (0 no resistance .. 1 full stop)
+// TimeScale - time scaling ...
+inline void SolvePhysic(glm::vec3 &Position, glm::vec3 &Velocity, const glm::vec3 &Forces, float UMass, float Drag,
+                        float TimeScale)
+{
+    auto Acceleration = glm::vec3(0.0f);
+    if (UMass)
+        Acceleration = Forces / UMass;
+
+    Velocity += Acceleration * TimeScale;
+
+    Position += ((Velocity * Drag) * TimeScale);
+}
+
+// Add the force of gravity to the current forces ...
+inline void AddGravityForce(glm::vec3 &Forces, float Mass, float GravK)
+{
+    GravK *= 0.01f;
+    if (GravK < 0)
+        GravK = 0.0f;
+    if (GravK > 1.0f)
+        GravK = 1.0f;
+
+    Forces += glm::vec3(0.0f, -9.8f * Mass * GravK, 0.0f);
+}

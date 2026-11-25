@@ -1,0 +1,33 @@
+/* C-KV: key–value list. RCSS has no grid: each pair is a flex row; with cols=2 the pairs
+   take half the width each and wrap. */
+c-kv {
+    display: flex; flex-direction: row; flex-wrap: wrap; row-gap: @{spec.rowGap}dp; box-sizing: border-box;
+    width: 100%; font-size: @{spec.font.13}dp; line-height: 1.36; color: @{color.text};
+}
+c-kv.size-15 { font-size: @{spec.font.15}dp; }
+c-kv > .pair { display: flex; flex-direction: row; align-items: flex-start; gap: @{spec.columnGap}dp; box-sizing: border-box; width: 100%; }
+c-kv.cols-2 > .pair { width: 50%; }
+c-kv.cols-2 > .pair.left { padding-right: 6dp; }
+c-kv.cols-2 > .pair.right { padding-left: 6dp; }
+/* A key that cannot fit is cut with an ellipsis instead of running under its value. */
+c-kv .k { flex: 1 1 0; min-width: 0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: @{color.textMuted}; }
+c-kv .v { flex: 0 0 auto; text-align: right; white-space: nowrap; font-weight: bold; color: @{color.text}; }
+c-kv .v.tone-gold { color: @{color.brass}; }
+c-kv .v.tone-dim { color: @{color.textMuted}; }
+c-kv .v.tone-danger { color: @{color.danger}; }
+c-kv .v.tone-ok { color: @{color.ok}; }
+/* the difference against another object (an item against the worn one), beside the value */
+c-kv .d { font-weight: normal; color: @{color.textMuted}; }
+c-kv .d.tone-ok { color: @{color.ok}; }
+c-kv .d.tone-danger { color: @{color.danger}; }
+
+c-kv.surface-parchment { color: @{color.ink}; }
+c-kv.surface-parchment .k { color: @{color.inkMuted}; }
+c-kv.surface-parchment .v { color: @{color.ink}; }
+c-kv.surface-parchment .v.tone-gold { color: @{color.inkLink}; }
+c-kv.surface-parchment .v.tone-dim { color: @{color.inkMuted}; }
+c-kv.surface-parchment .v.tone-danger { color: @{color.wax}; }
+c-kv.surface-parchment .v.tone-ok { color: @{color.leaf}; }
+c-kv.surface-parchment .d { color: @{color.inkMuted}; }
+c-kv.surface-parchment .d.tone-ok { color: @{color.leaf}; }
+c-kv.surface-parchment .d.tone-danger { color: @{color.wax}; }

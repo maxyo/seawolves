@@ -1,0 +1,10 @@
+<c-screen id="header" key="header" title="{{title}}" stats="{{ json(stats) }}" actions="{{ json(extras.actions) }}">
+<div class="ss-main"><c-panel pad="0" gap="0" style="width: 100%; height: 100%">
+<div class="ss-strip"><c-icon-button id="emblem-prev" icon="chevron-left" label="{{ tr('common.previous') }}" look="bare" disabled="{{ prev ? 0 : 1 }}"/>
+<div class="ss-ribbon"><s-emblems id="emblems" items="{{ json(emblems) }}" applied-label="{{appliedLabel}}"/></div>
+<c-icon-button id="emblem-next" icon="chevron-right" label="{{ tr('common.next') }}" look="bare" disabled="{{ next ? 0 : 1 }}"/></div>
+<t-if test="extras.note"><div class="ss-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+<t-if test="primary"><div class="screen-bar"><div class="grow"></div><c-button id="primary" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}" style="width: 240dp"/></div></t-if>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

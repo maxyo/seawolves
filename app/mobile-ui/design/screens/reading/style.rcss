@@ -1,0 +1,11 @@
+/* s-reading: a parchment card centred over the running game, or the interlude (s-interlude). */
+s-reading { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-reading .rd-note { position: absolute; left: 12dp; right: 12dp; bottom: 12dp; z-index: 30; }
+s-reading .rd-more { position: absolute; top: 8dp; right: 8dp; z-index: 30; }
+s-reading .rd-notice { display: flex; flex-direction: row; align-items: center; gap: 16dp; }
+s-reading .rd-notice-text { flex: 1 1 0; font-size: 17dp; line-height: 1.45; color: @{color.ink}; white-space: pre-line; }
+s-reading .rd-flags { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 14dp; }
+s-reading .rd-flag { display: flex; flex-direction: row; align-items: center; gap: 6dp; font-size: @{type.body}dp; font-weight: bold; color: @{color.ink}; }
+s-reading .rd-flag.war { color: @{color.wax}; }
+s-reading .rd-news { display: flex; flex-direction: column; gap: 12dp; }
+s-reading .rd-news > .rd-notice-text { flex: 0 0 auto; }

@@ -1,0 +1,151 @@
+// The neural ×2 textures on the GPU (fx/upscale.hpp, Settings::upscale: «Апскейл текстур ×2»), resident for the
+// textures drawn near the camera. Design: renderer_bgfx/README.md, "Neural ×2 textures".
+#pragma once
+
+#include "effects/generation_priority.hpp"
+#include "effects/loading_upload.hpp"
+
+#include "storm/fx/upscale.hpp"
+#include "storm/render/effects.hpp"
+
+#include <bgfx/bgfx.h>
+
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace storm::texture
+{
+struct CacheTask;
+}
+namespace storm::shim
+{
+struct TexStore;
+}
+
+namespace storm::effects
+{
+
+// Requests of the ×2 the generator keeps at most; more wait for the next plan.
+inline constexpr size_t kUpscaleQueue = 32;
+
+struct UpscaleEntry
+{
+    enum State : int
+    {
+        Unknown,  // not looked up yet
+        Pending,  // on a texture worker: looked up or read
+        Stored,   // its file is in the upscale directory
+        Missing,  // no file: requested when chosen
+        Waiting,  // the generator is making it
+        Read,     // `ktx` holds the file for the upload
+        Resident, // `handle` is valid
+        Failed,   // logged; drawn at its own size
+    };
+    uint64_t upload_generation = 0; // game thread: claimed by prepare_scene for the current location
+    bool selected = false;          // actual current budget plan; queried only on the game thread
+    GenerationPriority priority;    // nearest player distance across observed instances
+    uint16_t queued_scene = 0;
+    uint64_t queued_after = 0; // generator admission counter, under its queue mutex
+    std::atomic<int> state{Unknown};
+    std::shared_ptr<texture::CacheTask> cache_task; // game thread; queued task retains its own ticket
+    std::string name;                               // normalized texture path
+    std::filesystem::path file;
+    fx::UpscaleTarget target = fx::UpscaleTarget::None;
+    uint64_t key = 0;
+    uint32_t width = 0, height = 0; // of the texture (the ×2 is twice that)
+    uint64_t bytes = 0;             // GPU memory of the ×2: estimated from the texture's format until it is read
+    float nearest = -1.0f;          // nearest draw since the last plan, metres; -1 not drawn
+    float last_distance = -1.0f;    // the last plan's distance of a drawn entry
+    std::chrono::steady_clock::time_point last_drawn{}; // when a plan last found it drawn
+    std::vector<uint8_t> ktx;                           // written by the worker before `state` becomes Read
+    bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
+    ~UpscaleEntry();
+};
+
+class Upscales
+{
+  public:
+    // Main thread, after the renderer started (bgfx caps). `enabled`: Settings::upscale. Switching it off releases
+    // every ×2; the entries stay (switching it on finds them).
+    // `budget_mb`: Settings::upscale_budget_mb (0: from the device's RAM).
+    void configure(bool enabled, uint16_t budget_mb);
+    // The same setting again (the directory is known now: ConfigureUpscaleDirectory).
+    void reconfigure()
+    {
+        configure(wanted_, wanted_budget_mb_);
+    }
+    // Main thread, right after the texture's levels were filled (effects SetEffectsTextureSource).
+    void on_texture_loaded(shim::TexStore &store, const std::string &name, const std::filesystem::path &file);
+    // A draw binding `store` at `distance` metres: the ×2 to bind instead, or invalid.
+    bgfx::TextureHandle replacement(shim::TexStore &store, float distance);
+    // Whether draws must report their distance (any entry and the option on).
+    bool active() const
+    {
+        return enabled_;
+    }
+    bool planned() const
+    {
+        return !enabled_ || planned_;
+    }
+    void begin_scene();
+    // Only the budget-selected subset (drawn near the camera) is requested and must be resident; an unselected one
+    // starts nothing (one requested before is waited for).
+    int prepare_scene(shim::TexStore &store, uint64_t generation = 0);
+    // On: the last plan (they run twice a second) found every texture it chose resident at ×2 (render::UpscaleSettled).
+    bool settled() const;
+    // The device's answer once resolve() ran (render::UpscaleAvailability).
+    render::UpscaleSupport support() const
+    {
+        return !configured_ ? render::UpscaleSupport::Unknown
+               : supported_ ? render::UpscaleSupport::Supported
+                            : render::UpscaleSupport::Unsupported;
+    }
+    void end_frame(LoadingUploadScope scope = {});
+
+    struct Stats
+    {
+        uint32_t entries = 0, resident = 0, reading = 0, upload_pending = 0, waiting = 0, missing = 0, failed = 0;
+        uint64_t bytes = 0, budget = 0;
+        int limited = 0;
+    };
+    Stats stats() const;
+
+  private:
+    bool resolve(); // the directory, the tier and the budget, once the directory is known
+    void plan();
+    void look_up(const std::shared_ptr<UpscaleEntry> &entry, bool read);
+    void release(UpscaleEntry &entry);
+
+    bool enabled_ = false;
+    bool wanted_ = false; // Settings::upscale
+    uint16_t wanted_budget_mb_ = 0;
+    bool configured_ = false;
+    bool directory_reported_ = false;
+    bool supported_ = false;
+    bool bc_ = false;
+    uint32_t max_size_ = 0;
+    uint64_t budget_ = 0;
+    std::filesystem::path directory_;
+    std::vector<std::weak_ptr<UpscaleEntry>> entries_;
+    std::chrono::steady_clock::time_point next_plan_{};
+    bool planned_ = false; // a plan ran since the option was switched on
+    int outstanding_ = 0;  // textures the last plan chose that were not resident yet
+    uint32_t frames_since_on_ = 0;
+    uint32_t frames_since_plan_ = 0;
+    int limited_ = 0;
+    int logged_limited_ = -1;
+    Stats logged_{};
+    std::chrono::steady_clock::time_point next_log_{};
+    bool size_reported_ = false;
+};
+
+Upscales &upscales();
+// The upscale directory (render::ConfigureRelief), before the first texture is loaded.
+void ConfigureUpscaleDirectory(const std::filesystem::path &directory);
+
+} // namespace storm::effects

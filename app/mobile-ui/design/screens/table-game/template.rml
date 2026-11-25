@@ -1,0 +1,14 @@
+<c-screen id="header" key="header" title="{{title}}" stats="{{ json(stats) }}" back-disabled="{{ locked ? 1 : 0 }}" actions="{{ json(extras.actions) }}">
+<div class="tg-main">
+<div class="tg-table"><c-game-table opponent="{{table.opponent}}" portrait="{{table.portrait}}" line="{{table.line}}" bank="{{table.bank}}" bank-label="{{table.bankLabel}}" bank-tone="{{ or(table.bankTone, 'gold') }}" coins="{{ or(table.coins, 'silver') }}" bank-x="46%" bank-y="50%">
+<div class="tg-top"><s-pieces id="top" pieces="{{ json(top.pieces) }}" label="{{top.label}}" size="{{ or(top.size, 44) }}" below="{{ opt(top.below) ? 1 : 0 }}"/></div>
+<div class="tg-pack"><s-pieces id="pack" pieces="{{ json(pack) }}" size="{{ kind == 'cards' ? 90 : 80 }}"/></div>
+<div class="tg-bottom"><s-pieces id="bottom" pieces="{{ json(bottom.pieces) }}" label="{{bottom.label}}" size="{{ or(bottom.size, 60) }}" costs="{{ opt(bottom.costs) ? 1 : 0 }}"/></div>
+</c-game-table></div>
+<div class="tg-side"><div class="tg-grow"></div>
+<t-for each="buttons" as="b"><c-button id="{{b.id}}" variant="{{b.variant}}" size="{{ b.variant == 'primary' ? 'lg' : 'md' }}" label="{{b.label}}" sub="{{b.sub}}" disabled="{{ b.disabled ? 1 : 0 }}" reason="{{b.reason}}" busy="{{ b.busy ? 1 : 0 }}" style="width: 100%"/></t-for>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</div>
+</div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

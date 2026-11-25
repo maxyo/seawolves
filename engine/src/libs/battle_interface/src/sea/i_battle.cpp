@@ -1,0 +1,538 @@
+#include <platform/android_ui.hpp>
+#include "string_compare.hpp"
+#include <stdio.h>
+
+#include "i_battle.h"
+#ifdef __ANDROID__
+#include "../../../xinterface/src/string_service.h"
+#endif
+
+#include "core.h"
+#include "vma.hpp"
+
+#include "ship_pointer.h"
+#include "battle_ship_sign.h"
+#include "island_descr.h"
+#include "math_inlines.h"
+
+#include "../land/i_boarding_status.h"
+#include "../land/battle_land.h"
+
+#include "../active_perk_shower.h"
+#include "../log_and_action.h"
+#include "../world_map_interface/interface.h"
+#include "../spyglass/spyglass.h"
+#include "../timer/timer.h"
+
+#include "shared/battle_interface/msg_control.h"
+
+#include "ship_info_images.h"
+#include "string_compare.hpp"
+
+CREATE_CLASS(BATTLE_INTERFACE)
+
+CREATE_CLASS(ILogAndActions)
+
+CREATE_CLASS(IBoardingStatus)
+
+CREATE_CLASS(BATTLE_LAND_INTERFACE)
+
+CREATE_CLASS(ISPYGLASS)
+
+CREATE_CLASS(SHIPPOINTER)
+
+CREATE_CLASS(ActivePerkShower)
+
+CREATE_CLASS(BITimer)
+
+CREATE_CLASS(WM_INTERFACE)
+
+
+SHIP_DESCRIBE_LIST g_ShipList;
+ISLAND_DESCRIBER g_IslandDescr;
+
+#define MINIMAP_ZOOM_IN "MiniMapZoomIn"
+#define MINIMAP_ZOOM_OUT "MiniMapZoomOut"
+
+BATTLE_INTERFACE::BATTLE_INTERFACE()
+{
+    g_IslandDescr.ReleaseAll();
+    g_ShipList.ReleaseAll();
+    m_pShipIcon = nullptr;
+    rs = nullptr;
+    m_bShowCommandMenu = true;
+    m_bShowBattleNavigator = true;
+    m_bYesShowAll = false;
+    m_bVisible = true;
+    m_fBlinkSpeed = 0.f;
+    m_fCurBlinkTime = 0.f;
+    m_bNeedIslandSet = true;
+    m_bMyShipView = false;
+    m_bShowBattleBorder = false;
+    m_pShipInfoImages = nullptr;
+}
+
+BATTLE_INTERFACE::~BATTLE_INTERFACE()
+{
+    STORM_DELETE(m_pShipIcon);
+    STORM_DELETE(m_pShipInfoImages);
+}
+
+bool BATTLE_INTERFACE::Init()
+{
+    BIUtils::idBattleInterface = GetId();
+
+    if ((rs = static_cast<VRenderer *>(core.GetService("renderer"))) == nullptr)
+    {
+        throw std::runtime_error("Can`t create render service");
+    }
+
+    LoadIniFile();
+
+    return true;
+}
+
+void BATTLE_INTERFACE::Execute(uint32_t delta_time)
+{
+    m_fCurBlinkTime += delta_time * m_fBlinkSpeed;
+    if (m_fCurBlinkTime > PIm2)
+        m_fCurBlinkTime -= PIm2;
+    BIUtils::g_dwBlinkColor = static_cast<uint32_t>(255 * fabsf(sinf(m_fCurBlinkTime))) & 0xFF;
+    CheckSeaState();
+    if (m_bYesShowAll && m_bVisible)
+    {
+        CONTROL_STATE cs;
+
+        if (m_bShowBattleNavigator)
+        {
+            core.Controls->GetControlState(MINIMAP_ZOOM_IN, cs);
+            if (cs.state == CST_ACTIVE)
+                BattleNavigator.DecrementScale();
+            core.Controls->GetControlState(MINIMAP_ZOOM_OUT, cs);
+            if (cs.state == CST_ACTIVE)
+                BattleNavigator.IncrementScale();
+        }
+
+        if (m_bShowCommandMenu && m_pShipIcon)
+        {
+            if (!m_pShipIcon->IsActive())
+            {
+                core.Controls->GetControlState(BI_COMMANDS_ACTIVATE_SEA, cs);
+                if (cs.state == CST_ACTIVATED)
+                {
+                    m_pShipIcon->SetActive(true);
+                }
+            }
+            else
+            {
+                m_pShipIcon->MakeControl();
+            }
+        }
+        if (m_bShowBattleNavigator)
+            BattleNavigator.Update();
+
+    }
+}
+
+void BATTLE_INTERFACE::Realize(uint32_t delta_time)
+{
+#ifdef __ANDROID__
+    m_androidCaptionsDrawn = false;
+#endif
+    if (core.Controls->GetDebugAsyncKeyState('K') < 0)
+        return;
+    if (m_bNeedIslandSet)
+    {
+        core.Trace("Island Set");
+        BattleNavigator.SetIsland();
+        m_bNeedIslandSet = false;
+    }
+
+    if (m_bYesShowAll)
+    {
+        if (m_bVisible)
+        {
+            rs->MakePostProcess();
+            // The bars and relation icons over ships and forts are drawn in the scene: the touch HUD
+            // has nothing in their place, so they show under it (a world-space layer).
+#ifdef __ANDROID__
+            const bool shipBars = !storm::android::legacyDrawRefused("ship bars");
+#else
+            constexpr bool shipBars = true;
+#endif
+            if (shipBars && m_bShowBattleNavigator && m_pShipInfoImages)
+                m_pShipInfoImages->Draw();
+
+#ifndef __ANDROID__
+            if (m_bShowBattleNavigator)
+                m_ImagesInfo.Draw();
+
+            if (m_bShowCommandMenu)
+                m_pShipIcon->Draw();
+#endif
+#ifdef __ANDROID__
+            // The touch orders panel covers the open command menu: the native navigator and its
+            // readouts step aside with the menu (the panel brings its own ship list and bars).
+            const bool navigatorShown = m_bShowBattleNavigator && !(AndroidCommandActive() && storm::android::seaOrders.covered());
+#else
+            const bool navigatorShown = m_bShowBattleNavigator;
+#endif
+            if (navigatorShown)
+            {
+#ifdef __ANDROID__
+                m_androidCaptionsDrawn = true;
+#endif
+                BattleNavigator.Draw();
+            }
+
+#ifndef __ANDROID__
+            if (navigatorShown)
+            {
+                BIUtils::PrintTextInfoArray(m_TextArray);
+                m_LinesInfo.Draw();
+                if (m_bShowBattleBorder)
+                    m_BattleBorder.Draw();
+            }
+#endif
+        }
+    }
+    else
+    {
+        m_bYesShowAll = true;
+    }
+}
+
+void BATTLE_INTERFACE::LoadIniFile()
+{
+    m_fBlinkSpeed = .003f;
+    if (AttributesPointer != nullptr)
+        m_fBlinkSpeed = AttributesPointer->GetAttributeAsFloat("blindSpeed", m_fBlinkSpeed);
+    m_fCurBlinkTime = 0;
+
+    BattleNavigator.Init(rs, this);
+
+    ATTRIBUTES *pA = nullptr;
+    if (AttributesPointer != nullptr)
+    {
+        m_bShowCommandMenu = AttributesPointer->GetAttributeAsDword("ShowCommands", 1) != 0;
+        m_bShowBattleNavigator = AttributesPointer->GetAttributeAsDword("ShowNavigator", 1) != 0;
+        pA = AttributesPointer->FindAClass(AttributesPointer, "MessageIcons");
+
+        BIUtils::FillTextInfoArray(rs, AttributesPointer->GetAttributeClass("TextInfo"), m_TextArray);
+        m_LinesInfo.Init(rs, AttributesPointer->GetAttributeClass("LineInfo"));
+
+        m_BattleBorder.Init(rs, AttributesPointer->GetAttributeClass("battleborder"));
+
+        m_ImagesInfo.Init(rs, AttributesPointer->GetAttributeClass("imageslist"));
+    }
+
+
+    STORM_DELETE(m_pShipIcon);
+    m_pShipIcon = new BIShipIcon(GetId(), rs);
+    Assert(m_pShipIcon);
+    m_pShipIcon->Init(AttributesPointer,
+                      AttributesPointer ? AttributesPointer->GetAttributeClass("ShipIcon") : nullptr);
+
+    m_pShipInfoImages =
+        new ShipInfoImages(rs, AttributesPointer ? AttributesPointer->GetAttributeClass("ShipInfoImages") : nullptr);
+    if (m_pShipInfoImages)
+    {
+        m_pShipInfoImages->SetVisible(
+            AttributesPointer ? (AttributesPointer->GetAttributeAsDword("ShifInfoVisible", 0) != 0) : false);
+    }
+}
+
+uint32_t BATTLE_INTERFACE::AttributeChanged(ATTRIBUTES *pAttr)
+{
+    return 0;
+}
+
+uint64_t BATTLE_INTERFACE::ProcessMessage(MESSAGE &message)
+{
+    switch (message.Long())
+    {
+    case BI_MSG_SET_ISLAND:
+        m_bNeedIslandSet = true;
+        g_IslandDescr.SetIsland(message.AttributePointer());
+        m_bMyShipView = false;
+        break;
+    case BI_IN_CREATE_SHIP: // "laallll"
+    {
+        const auto chIdx = message.Long();
+        auto *const pChAttr = message.AttributePointer();
+        auto *const pShipAttr = message.AttributePointer();
+        const auto bMyShip = (message.Long() != 0L);
+        const auto relation = message.Long();
+        const uint32_t dwShipColor = message.ParamValid() ? message.Long() : 0;
+        const bool bTransferableShip = message.ParamValid() ? (message.Long() != 0) : bMyShip;
+        g_ShipList.Add(AttributesPointer ? AttributesPointer->GetAttributeAsDword("MainChrIndex", -1) : -1, chIdx,
+                       pChAttr, pShipAttr, bMyShip, bTransferableShip, relation, dwShipColor);
+        if (m_pShipIcon)
+            m_pShipIcon->SetUpdate();
+    }
+    break;
+    case BI_IN_DELETE_SHIP: // "ll"
+        g_ShipList.Release(message.Long());
+        if (m_pShipIcon)
+            m_pShipIcon->SetUpdate();
+        break;
+    case BI_IN_DEAD_SHIP: // "l"
+        g_ShipList.ShipSink(message.Long());
+        if (m_pShipIcon)
+            m_pShipIcon->SetUpdate();
+        break;
+    case BI_IN_SET_COMMAND_MODE: // "lllll"
+    {
+        auto comMode = message.Long();
+        auto startTextureNumber = message.Long();
+        auto startPictureNumber = message.Long();
+        auto characterNum = message.Long();
+        auto commandState = message.Long();
+    }
+    break;
+    case BI_SET_VISIBLE: // "ll"
+        m_bVisible = (0 != message.Long());
+        break;
+    case BI_SET_ISLAND_LOCATORS: // "la"
+        g_IslandDescr.SetIsland(message.AttributePointer());
+        break;
+    case BI_MSG_NOT_ENOUGH_BALLS_FLAG: // "l"
+        BattleNavigator.SetEnoughBalls(message.Long() != 0);
+        break;
+    case BI_MSG_REFRESH:
+        g_ShipList.Refresh();
+        g_IslandDescr.Refresh();
+        if (m_pShipIcon)
+            m_pShipIcon->SetUpdate();
+        break;
+
+    case BI_MSG_SET_MSG_ICONS:
+        break;
+
+    case BI_MSG_ADD_NEWTEXTURE: {
+        const std::string &param = message.String();
+        const int hQ = message.Long();
+        const int vQ = message.Long();
+        return m_pShipIcon->AddTexture(param.c_str(), hQ, vQ);
+    }
+    break;
+
+    case MSG_BATTLE_LAND_MAKE_COMMAND: {
+        const std::string &param = message.String();
+        if (storm::iEquals(param, "cancel"))
+        {
+            if (m_pShipIcon)
+                m_pShipIcon->ExecuteCommand(BIShipIcon::Command_cancel);
+        }
+    }
+    break;
+    }
+    return 0;
+}
+
+void BATTLE_INTERFACE::CheckSeaState()
+{
+    auto *main_sd = g_ShipList.GetMainCharacterShip();
+    if (main_sd == nullptr)
+        return;
+
+    int32_t nReloadTargetIndex = -1;
+    auto sqrRadius = core.Entity_GetAttributeAsFloat(BIUtils::idBattleInterface, "boardRadius", 0.f);
+    sqrRadius *= sqrRadius;
+    auto minReloadRadius = sqrRadius;
+    auto sqrFreeDistance = core.Entity_GetAttributeAsFloat(BIUtils::idBattleInterface, "freeDistance", 500.f);
+    sqrFreeDistance *= sqrFreeDistance;
+
+    auto bSailTo = false, bLandTroops = false, bMap = true;
+    auto bAttack = false, bDefend = false, bReload = false;
+
+    for (auto *ps = g_ShipList.GetShipRoot(); ps != nullptr; ps = ps->next)
+    {
+        if (ps == main_sd)
+            continue;
+        bSailTo = true;
+        if (ps->isTransferableShip)
+        {
+            float curRad;
+            if ((curRad = storm::math::lengthSquared(ps->pShip->GetPos() - main_sd->pShip->GetPos())) < sqrRadius)
+            {
+                bReload = true;
+                if (curRad < minReloadRadius)
+                {
+                    minReloadRadius = curRad;
+                    nReloadTargetIndex = ps->characterIndex;
+                }
+            }
+        }
+        if (ps->isMyShip)
+            bDefend = true;
+        else
+        {
+            if (ps->relation == BI_RELATION_ENEMY)
+            {
+                if (!ps->isDead)
+                {
+                    bAttack = true;
+                    float fdist;
+                    if ((fdist = storm::math::lengthSquared(ps->pShip->GetPos() - main_sd->pShip->GetPos())) < sqrFreeDistance)
+                        bMap = false;
+                }
+            }
+        }
+    }
+
+    if (g_IslandDescr.GetFirstLocator() != nullptr)
+        bSailTo = true;
+
+    if (g_IslandDescr.GetFirstEnemyFort() != nullptr)
+        bAttack = true;
+
+    core.Event(BI_EVENT_SET_SEA_STATE, "lllllll", bSailTo, bLandTroops, bMap, bAttack, bDefend, bReload,
+               nReloadTargetIndex);
+    m_bShowBattleBorder = !bMap;
+}
+
+#ifdef __ANDROID__
+bool BATTLE_INTERFACE::AndroidOrdersShown() const
+{
+    return m_bYesShowAll && m_bVisible && m_bShowCommandMenu && m_pShipIcon;
+}
+
+bool BATTLE_INTERFACE::TakeAndroidOrdersChanged()
+{
+    return m_pShipIcon && m_pShipIcon->TakeAndroidChanged();
+}
+
+bool BATTLE_INTERFACE::ReadAndroidOrders(storm::android::SeaOrdersFrame &frame)
+{
+    if (!AndroidOrdersShown()) return false;
+    m_pShipIcon->ReadAndroidOrders(frame);
+    return frame.available;
+}
+
+bool BATTLE_INTERFACE::ExecuteAndroidOrder(const storm::android::HudMenuRequest &request)
+{
+    return m_bYesShowAll && m_bVisible && m_bShowCommandMenu && m_pShipIcon && m_pShipIcon->ExecuteAndroidOrder(request);
+}
+
+void BATTLE_INTERFACE::CloseAndroidOrders()
+{
+    if (m_pShipIcon) m_pShipIcon->CloseAndroidOrders();
+}
+
+bool BATTLE_INTERFACE::AndroidCommandActive() const
+{
+    return (m_pShipIcon && m_pShipIcon->IsActive()) ||
+        (AttributesPointer && AttributesPointer->GetAttributeAsDword("ComState", 0));
+}
+
+bool BATTLE_INTERFACE::AndroidCaptionsVisible() const
+{
+    return m_androidCaptionsDrawn && m_bYesShowAll && m_bVisible && m_bShowBattleNavigator &&
+        !AndroidCommandActive();
+}
+
+void BATTLE_INTERFACE::ReadAndroidCaptions(storm::android::ShipTelemetryFrame &frame, uint64_t mainShipId) const
+{
+    frame.captionsVisible = AndroidCaptionsVisible();
+    if (!frame.captionsVisible) return;
+    BattleNavigator.ReadAndroidSpeeds(frame, mainShipId);
+    for (const auto &text : m_TextArray)
+    {
+        if (text.nFont == -1) continue;
+        const auto *value = text.pARefresh ? text.pARefresh->GetAttribute("text") : text.sText.c_str();
+        if (!value) continue;
+        if (storm::iEquals(text.sourceName, "Date"))
+        {
+            auto *strings = static_cast<VSTRSERVICE *>(core.GetService("STRSERVICE"));
+            const auto *prefix = strings ? strings->GetString("Date:") : nullptr;
+            if (prefix) frame.dateTimeText = storm::android::scriptCaption(storm::android::shipDateTimeText(value, prefix), "ship");
+        }
+        else if (storm::iEquals(text.sourceName, "Location"))
+            frame.locationText = storm::android::scriptCaption(value, "ship");
+    }
+}
+
+std::optional<storm::android::ShipPicture> BATTLE_INTERFACE::AndroidShipPicture(int32_t characterIndex) const
+{
+    return m_pShipIcon ? m_pShipIcon->AndroidShipPicture(characterIndex) : std::nullopt;
+}
+
+std::optional<storm::android::ShipPicture> storm::android::seaShipPicture(int characterIndex)
+{
+    auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface));
+    return battle ? battle->AndroidShipPicture(characterIndex) : std::nullopt;
+}
+
+void storm::android::readShipCaptions(ShipTelemetryFrame &frame, uint64_t mainShipId)
+{
+    if (auto *battleInterface = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface)))
+        battleInterface->ReadAndroidCaptions(frame, mainShipId);
+}
+#endif
+
+#ifdef __ANDROID__
+void storm::android::pollSeaOrders(bool ready)
+{
+    auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface));
+    auto *main = g_ShipList.GetMainCharacterShip();
+    const bool available = ready && battle && main && main->pShip && !main->isDead;
+    const bool changed = battle && battle->TakeAndroidOrdersChanged();
+    if (seaOrdersRefresh.due(available, battle ? battle->GetId() : 0,
+            main && main->pShip ? main->pShip->GetId() : 0, main ? main->characterIndex : -1,
+            battle && battle->AndroidCommandActive(), battle && battle->AndroidOrdersShown(), changed))
+        refreshSeaOrders(ready);
+}
+
+void storm::android::refreshSeaOrders(bool ready)
+{
+    auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface));
+    if (!ready || !battle)
+    {
+        if (battle && battle->AndroidCommandActive()) battle->CloseAndroidOrders();
+        seaOrders.update({}, {});
+        return;
+    }
+    auto *main = g_ShipList.GetMainCharacterShip();
+    if (!main || !main->pShip || main->isDead)
+    {
+        battle->CloseAndroidOrders();
+        seaOrders.update({}, {});
+        return;
+    }
+    const auto key = std::to_string(battle->GetId()) + ":" + std::to_string(main->pShip->GetId()) + ":" + std::to_string(main->characterIndex);
+    SeaOrdersFrame frame;
+    if (auto *strings = static_cast<VSTRSERVICE *>(core.GetService("STRSERVICE")))
+        if (const auto *language = strings->GetLanguage()) frame.language = language;
+    battle->ReadAndroidOrders(frame);
+    if (!frame.available) battle->CloseAndroidOrders();
+    seaOrders.update(key, std::move(frame));
+}
+
+bool storm::android::executeSeaOrder(const HudMenuRequest &request)
+{
+    if (request.scene != seaOrders.sceneEpoch() || request.revision != seaOrders.revision() ||
+        !seaOrders.frame().available) return false;
+    // The closed-menu snapshot is read only on invalidation. Read recipients
+    // and command predicates now; never dispatch against an obsolete identity.
+    refreshSeaOrders(true);
+    if (request.scene != seaOrders.sceneEpoch() || request.revision != seaOrders.revision() ||
+        !seaOrders.frame().available) return false;
+    auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface));
+    if (!battle) return false;
+    const bool executed = battle->ExecuteAndroidOrder(request);
+    // Even idempotent selection consumes this revision, preventing a duplicated
+    // confirmation from running against another stage or dispatching twice.
+    seaOrders.invalidate();
+    seaOrdersRefresh.force();
+    return executed;
+}
+
+void storm::android::closeSeaOrders()
+{
+    if (auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface)))
+        if (battle->AndroidCommandActive()) battle->CloseAndroidOrders();
+    seaOrders.update({}, {});
+    seaOrdersRefresh.force();
+}
+#endif

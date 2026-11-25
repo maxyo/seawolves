@@ -1,0 +1,115 @@
+/* C-TradeList: the one buy / sell / transfer list. Head line (column captions, or the filter chips in
+   place of the name caption), rows of at least 52 dp (dense: 44): picture + name + meta + right-aligned
+   numeric columns, an optional quick action at the row's end. The row line is the pressable part.
+   A row with `q` opens a C-Quantity under itself; with `dock` the list never moves instead: the open row
+   shows in the dock on the right (object, text, the stacked quantity; a row the game only marks, without
+   an open amount, shows as the object alone), over the component's own content
+   (the deal button, the place's actions), which stays at the dock's bottom. */
+c-trade-list { display: flex; flex-direction: row; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; color: @{color.text}; font-size: @{spec.font.cell}dp; }
+
+c-trade-list .tl-main { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+c-trade-list .tl-head { flex: 0 0 auto; display: flex; flex-direction: row; align-items: flex-end; box-sizing: border-box; gap: @{spec.gap}dp;
+    padding: 6dp @{spec.padRight}dp 6dp @{spec.padLeft}dp; font-size: @{spec.font.head}dp; line-height: 1.2; color: @{color.textMuted}; border-bottom: 1dp @{color.brassLine/.25}; }
+c-trade-list .tl-h0 { flex: 0 0 auto; width: @{spec.picture}dp; }
+c-trade-list .tl-hname { display: flex; align-items: center; align-self: stretch; min-height: @{spec.quickHit}dp; flex: 1 1 0; min-width: @{spec.colMin}dp; white-space: nowrap; overflow: hidden; }
+/* Numeric columns: each is as wide as its widest caption or cell (behaviour `columns`
+   sets the common min-width), right-aligned, never narrower than colMin. */
+c-trade-list .tl-hcol { flex: 0 0 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-height: @{spec.quickHit}dp; min-width: @{spec.colMin}dp; text-align: right; white-space: nowrap; }
+/* Icon headers retain their captions for long-press explanations; numbers set column widths. */
+c-trade-list .tl-hicon { margin-bottom: 2dp; }
+c-trade-list .tl-hrow { display: flex; flex-direction: row; align-items: center; gap: 3dp; }
+/* a caption never outgrows its numbers by much: the game's long ones («Товара в магазине») take two lines, the name column keeps the width */
+c-trade-list .tl-hrow > div { max-width: 76dp; max-height: 32dp; overflow: hidden; white-space: normal; text-align: right; line-height: 1.15; }
+c-trade-list .tl-hcol.sorted { color: @{color.brass}; }
+c-trade-list .tl-hcol.pressed { color: @{color.textSelected}; }
+c-trade-list .tl-hq { flex: 0 0 auto; width: @{spec.quickHit}dp; }
+/* The row quick action sits outside tl-line, without a column gap. */
+c-trade-list .tl-head > .tl-hq { margin-left: -@{spec.gap}dp; }
+/* filter chips: the head line grows to a touch row, the captions stay on its base line */
+c-trade-list .tl-chips { flex: 1 1 0; min-width: 0; display: flex; flex-direction: row; align-self: stretch; margin: -6dp 0 -6dp -10dp; overflow: hidden; }
+c-trade-list .tl-chip { flex: 0 1 auto; min-width: 0; box-sizing: border-box; height: 40dp; padding: 0 @{space.lg}dp; font-size: @{type.small}dp; line-height: 40dp; color: @{color.textSecond}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 2dp @{color.brass/0}; }
+c-trade-list .tl-chip.sel { color: @{color.textSelected}; font-weight: bold; background-color: @{color.brassGlow/.14}; border-bottom-color: @{color.brass}; }
+c-trade-list .tl-chip.pressed { background-color: @{color.brassGlow/.3}; }
+c-trade-list .tl-chip.off { color: @{color.glyphDisabled}; }
+
+/* Basis 0, not auto: with an auto basis RmlUi sizes the scrolling list by its content, so it
+   never overflows and cannot be scrolled (seen on the device with the 28 goods of a store). */
+c-trade-list .tl-wrap { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+c-trade-list .tl-list { flex: 1 1 0; min-height: 0; overflow-x: hidden; overflow-y: auto; }
+c-trade-list .tl-item { position: relative; border-bottom: 1dp @{color.brassLine/.14}; }
+c-trade-list .tl-item.last { border-bottom-width: 0; }
+c-trade-list .tl-item.sel { border-bottom-width: 1dp; background-color: @{color.brassGlow/.12}; box-shadow: @{color.brass} 3dp 0 0 0 inset; }
+c-trade-list .tl-row { display: flex; flex-direction: row; align-items: stretch; }
+c-trade-list .tl-line { flex: 1 1 0; min-width: 0; display: flex; flex-direction: row; align-items: center; box-sizing: border-box; gap: @{spec.gap}dp; min-height: @{spec.row}dp; padding: 0 @{spec.padRight}dp 0 @{spec.padLeft}dp; }
+c-trade-list .tl-line.pressed { background-color: @{color.brassGlow/.3}; }
+c-trade-list .tl-pic { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: @{spec.picture}dp; height: @{spec.picture}dp; }
+c-trade-list .tl-who { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+c-trade-list .tl-name { font-size: @{spec.font.name}dp; font-weight: bold; color: @{color.text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+c-trade-list .tl-name.dim { color: @{color.textMuted}; }
+c-trade-list .tl-meta { font-size: @{spec.font.meta}dp; color: @{color.textMuted}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+c-trade-list .tl-meta.tone-danger { color: @{color.danger}; }
+c-trade-list .tl-meta.tone-ok { color: @{color.ok}; }
+c-trade-list .tl-meta.tone-gold { color: @{color.brass}; }
+
+c-trade-list .tl-cell { flex: 0 0 auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-end; min-width: @{spec.colMin}dp; line-height: 1.15; white-space: nowrap; text-align: right; color: @{color.text}; }
+c-trade-list .tl-cell.bold { font-size: @{spec.font.cellBold}dp; font-weight: bold; }
+c-trade-list .tl-cell.tone-dim { color: @{color.textMuted}; }
+c-trade-list .tl-cell.tone-danger { color: @{color.danger}; }
+c-trade-list .tl-cell.tone-ok { color: @{color.ok}; }
+c-trade-list .tl-cell.tone-gold { color: @{color.brass}; }
+c-trade-list .tl-sub { font-size: @{spec.font.meta}dp; font-weight: normal; color: @{color.textMuted}; }
+
+c-trade-list .tl-quick { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: @{spec.quickHit}dp; min-height: @{spec.quickHit}dp; }
+c-trade-list .tl-quick.pressed { background-color: @{color.brassGlow/.3}; }
+
+/* dense: 44 dp rows, the meta beside the name */
+c-trade-list.dense .tl-head { padding-left: 10dp; padding-right: 10dp; gap: 10dp; }
+c-trade-list.dense .tl-head > .tl-hq { margin-left: -10dp; }
+c-trade-list.dense .tl-h0 { width: @{spec.pictureDense}dp; }
+c-trade-list.dense .tl-line { min-height: @{spec.rowDense}dp; gap: 10dp; padding: 0 10dp; }
+c-trade-list.dense .tl-pic { width: @{spec.pictureDense}dp; height: @{spec.pictureDense}dp; }
+c-trade-list.dense .tl-who { flex-direction: row; align-items: baseline; gap: 6dp; }
+c-trade-list.dense .tl-name { flex: 0 1 auto; min-width: 0; font-size: @{spec.font.cell}dp; }
+c-trade-list.dense .tl-meta { flex: 0 1000 auto; min-width: 0; }
+c-trade-list.dense .tl-cell.bold { font-size: @{spec.font.cell}dp; }
+
+/* dock */
+c-trade-list .tl-dock { flex: 0 0 auto; box-sizing: border-box; height: 100%; overflow: hidden; width: 36%; min-width: @{spec.dockMin}dp; max-width: @{spec.dockMax}dp; display: flex; flex-direction: column; gap: @{space.sm}dp;
+    padding: @{space.panelPadV}dp @{space.panelPadH}dp; border-left: 1dp @{color.brassLine/.3}; }
+c-trade-list .tl-deal { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6dp; }
+c-trade-list .tl-deal.idle { opacity: 0.7; }
+c-trade-list .tl-text { font-size: @{type.small}dp; line-height: 1.3; color: @{color.textSecond}; }
+c-trade-list .tl-text.pressed { color: @{color.textSelected}; }
+/* the open row's facts under its name: the prices, the weight (an icon, no word), what they are for */
+c-trade-list .tl-facts { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: @{space.md}dp; row-gap: 2dp; font-size: @{type.body}dp; line-height: 24dp; }
+c-trade-list .tl-fact { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 4dp; white-space: nowrap; color: @{color.text}; }
+c-trade-list .tl-fact.tone-gold { color: @{color.brass}; font-weight: bold; }
+c-trade-list .tl-fact.tone-dim { color: @{color.textMuted}; font-size: @{type.small}dp; }
+c-trade-list .tl-sep { height: 1dp; background-color: @{color.brassLine/.25}; }
+c-trade-list .tl-slot { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; }
+
+/* a phone of 780 dp: the chips of the name column keep their words («В трюме», «Выгодно»): closer chips, closer columns */
+@media (max-width: @{spec.compactBelow}dp) {
+    c-trade-list .tl-chip { padding: 0 7dp; }
+    c-trade-list.prices.dense .tl-head, c-trade-list.prices.dense .tl-line { gap: 7dp; }
+    c-trade-list.prices.dense .tl-head > .tl-hq { margin-left: -7dp; }
+}
+
+/* a short screen (360 dp): the dock's open row keeps the deal and the place's buttons in view with its facts line */
+@media (max-height: @{spec.shortBelow}dp) {
+    c-trade-list .tl-dock { gap: @{space.xs}dp; padding-top: @{space.sm}dp; padding-bottom: @{space.sm}dp; }
+    c-trade-list .tl-deal { gap: 2dp; }
+    c-trade-list .tl-facts { line-height: 20dp; }
+}
+
+/* a narrow phone (640 dp): the dock gives the list what it can, and a list with both prices drops the other
+   side's stock (the slider's far end is all of it) so that the name keeps its width */
+@media (max-width: @{spec.narrowBelow}dp) {
+    c-trade-list .tl-dock { min-width: @{spec.dockNarrow}dp; width: @{spec.dockNarrow}dp; padding-left: @{space.md}dp; padding-right: @{space.md}dp; }
+    c-trade-list.prices .tl-hcol[data-col="1"], c-trade-list.prices .tl-cell[data-col="1"] { display: none; }
+    c-trade-list.dense .tl-head, c-trade-list.dense .tl-line { gap: 6dp; padding-left: 6dp; padding-right: 6dp; }
+    c-trade-list .tl-chip { padding: 0 8dp; }
+    c-trade-list.dense .tl-head > .tl-hq { margin-left: -6dp; }
+}
+
+c-trade-list .tl-expand { box-sizing: border-box; padding: 0 @{spec.padRight}dp 8dp 68dp; }

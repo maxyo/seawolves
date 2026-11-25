@@ -1,0 +1,18 @@
+# Builds only the host bgfx shaderc from the engine's bgfx pin. ../cmake/storm_shaderc.cmake
+# builds it once per machine and pin for every engine build; no need to build it by hand.
+cmake_minimum_required(VERSION 3.21)
+project(storm_bgfx_host_tools LANGUAGES C CXX)
+include("${CMAKE_CURRENT_LIST_DIR}/../../../../cmake/StormBuildCache.cmake")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set(BGFX_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BGFX_INSTALL OFF CACHE BOOL "" FORCE)
+set(BGFX_CUSTOM_TARGETS OFF CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TOOLS ON CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TOOLS_SHADER ON CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TOOLS_GEOMETRY OFF CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TOOLS_TEXTURE OFF CACHE BOOL "" FORCE)
+set(BGFX_BUILD_TOOLS_BIN2C OFF CACHE BOOL "" FORCE)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/bgfx_fetch.cmake")
+storm_bgfx_add()
+add_custom_target(storm_shaderc ALL DEPENDS shaderc)

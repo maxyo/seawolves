@@ -1,0 +1,310 @@
+name: CI
+# Host checks of the application and of the engine on pull requests and on main.
+#
+# The jobs that build something run only when their part of the tree changed (job "changes"). The job "required"
+# always runs and fails when any of them failed: it is the one status check to require in branch protection, and
+# a job skipped for unchanged paths does not block a pull request.
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.paths.outputs.app }}
+      engine: ${{ steps.paths.outputs.engine }}
+      workflows: ${{ steps.paths.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Sort the changed files into the parts of the tree
+        id: paths
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          # The application's checks read the engine too: the UI library the pack contract builds, the
+          # application contract, the string keys of its screens, the licences the APK packages.
+          declare -A pattern=(
+            [app]='^(app/|VERSION$|CHANGELOG\.md$|NOTICE$|LICENSE$|LICENSES/|engine/(src|cmake|third_party|tools/android|tools/ccache)/|\.github/workflows/ci\.yml$)'
+            [engine]='^(engine/|\.github/workflows/ci\.yml$)'
+            [workflows]='^\.github/'
+          )
+          if git cat-file -e "$BASE^{commit}" 2>/dev/null && git merge-base "$BASE" HEAD > /dev/null 2>&1; then
+            # Three dots: what this branch changed since it left the base, not what the base gained meanwhile.
+            git diff --name-only "$BASE...HEAD" > "$RUNNER_TEMP/changed"
+          else
+            echo "No base commit with a common ancestor (a new branch, or a forced push of another history): every part counts as changed"
+            git ls-files > "$RUNNER_TEMP/changed"
+          fi
+          for part in app engine workflows; do
+            if grep -Eq "${pattern[$part]}" "$RUNNER_TEMP/changed"; then
+              echo "$part=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$part=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+          cat "$GITHUB_OUTPUT"
+
+  workflows:
+    name: Workflow lint
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.7
+          ACTIONLINT_SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -sSfL -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          # actionlint quietly skips the run: scripts when shellcheck is missing; the runner image has it.
+          shellcheck="$(command -v shellcheck)" || { echo '::error::shellcheck is not on the runner'; exit 1; }
+          "$shellcheck" --version
+          "$RUNNER_TEMP/actionlint" -color -shellcheck "$shellcheck"
+
+  app:
+    name: Application host checks
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      # app/tests/ui_pack_contract builds the engine's UI library (engine/src/libs/ui) through ccache; its
+      # pinned dependency archives and the compiler cache are kept between runs.
+      # The build has no render backend (STORM_UI_RENDER_BACKEND=OFF): no bgfx, shaderc, X11 or OpenGL.
+      - name: Install the UI host build tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ccache ninja-build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt') }}-
+      - name: Run application host checks
+        run: python3 app/tools/android/run_host_tests.py
+
+  # The engine's host checks in three jobs: the renderer checks (two builds of the bgfx renderer, ASan for one) and
+  # the archive and torrent libraries (each builds its pinned dependencies) take longer than all the others together.
+  # Every check runs in exactly one of them: "checks" runs whatever the other two do not name, and the C/C++ format
+  # check (cxx_format) in a step of its own after fetching the NDK's clang-format.
+  engine:
+    name: Engine host checks (${{ matrix.part }})
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    # Warm caches: a few minutes each. A bgfx pin change rebuilds shaderc and bgfx once (cold).
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: checks
+            select: --skip renderer_bgfx archive torrent cxx_format
+            # ffmpeg: the audio and video checks make their test clips with it. libsdl2-2.0-0: the input checks open
+            # an SDL window.
+            packages: libsdl2-2.0-0 ffmpeg
+          - part: renderer
+            # ci_affected also here: the gate plans from a build with the renderer's checks, which only this part has.
+            select: --only renderer_bgfx ci_affected
+            # libx11-dev, libgl-dev: bgfx.cmake configures the bgfx runtime (and the shaderc project that shares it)
+            # with X11 and OpenGL on Linux; libegl-dev, libgles-dev: the host renderer runs the GLES 3.0 backend
+            # through EGL; libegl-mesa0: Mesa's EGL (llvmpipe), the checks draw in xvfb; libvulkan1,
+            # mesa-vulkan-drivers: the Vulkan loader and Mesa's lavapipe for the Vulkan pass (the same checks on bgfx's
+            # Vulkan backend).
+            packages: >-
+              libsdl2-2.0-0 libx11-dev libgl-dev libegl-dev libgles-dev libegl-mesa0 libvulkan1
+              mesa-vulkan-drivers
+          - part: native
+            select: --only archive torrent --skip renderer_bgfx
+            # p7zip-full: the archive fixtures; perl, make: OpenSSL's build. JDK 17 (setup-java): both JNI checks.
+            # libsdl2-2.0-0: every part builds all of the checks' programs, and the input checks link SDL.
+            packages: p7zip-full perl make libsdl2-2.0-0
+    defaults:
+      run:
+        working-directory: engine
+    env:
+      CCACHE_MAXSIZE: 2G  # the Actions cache holds 10 GB per repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        if: matrix.part == 'native'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install host packages
+        env:
+          PACKAGES: ${{ matrix.packages }}
+        run: |
+          sudo apt-get update
+          # Clang 18 and its sanitizer runtimes compile every check (CXX below); ninja and ccache build them; the
+          # checks run in xvfb.
+          # shellcheck disable=SC2086  # PACKAGES is a list of package names
+          sudo apt-get install -y --no-install-recommends clang-18 libclang-rt-18-dev ninja-build ccache xvfb $PACKAGES
+      - name: Install the Python packages of the host checks
+        run: python3 -m pip install -r tools/ci/requirements.txt
+      # The host check project (tests/CMakeLists.txt) needs CMake 3.28: the runner's must have it.
+      - name: Check the CMake version
+        run: |
+          version=$(cmake --version | sed -n '1s/^cmake version //p')
+          if [[ "$(printf '3.28\n%s\n' "$version" | sort -V | head -1)" != 3.28 ]]; then
+            echo "::error::CMake $version on the runner; the host checks need CMake 3.28 or newer"
+            exit 1
+          fi
+          echo "CMake $version"
+      # Both caches are restored here and saved after the checks, also when a check failed (actions/cache alone
+      # saves only after a passing job): what was fetched or compiled stays valid, and the next run does not start
+      # cold. A cache that was restored whole (its key matched) is not saved again.
+      # The pinned downloads of this part: the FFmpeg build (tools/ffmpeg/build.py). The pinned sources
+      # (engine/pins.json, the archive and torrent libraries' too) are fetched into ~/.cache/storm-deps, kept with the
+      # compiler cache.
+      - name: Restore the pinned downloads
+        id: pinned
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/build/host-ci/ffmpeg-cache
+          key: host-pinned-${{ matrix.part }}-${{ hashFiles('engine/pins.json', 'engine/tools/ffmpeg/build.py') }}
+      # Fetched sources (bgfx, engine/pins.json) and the host shaderc of the bgfx pin (both built once per pin into
+      # ~/.cache/storm-deps) and the Storm ccache (tools/ccache/README.md): a new entry per commit, the latest one
+      # of the pins restored.
+      - name: Restore the compiler cache
+        id: compiler
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: host-${{ matrix.part }}-${{ hashFiles('engine/src/libs/renderer_bgfx/cmake/bgfx_fetch.cmake', 'engine/src/libs/renderer_bgfx/patches/*', 'engine/src/libs/renderer_bgfx/host-tools/CMakeLists.txt', 'engine/pins.json') }}-${{ github.sha }}
+          restore-keys: host-${{ matrix.part }}-${{ hashFiles('engine/src/libs/renderer_bgfx/cmake/bgfx_fetch.cmake', 'engine/src/libs/renderer_bgfx/patches/*', 'engine/src/libs/renderer_bgfx/host-tools/CMakeLists.txt', 'engine/pins.json') }}-
+      - name: Run host checks
+        # Clang, like the NDK that builds the shipped engine.
+        env:
+          CXX: clang++-18
+          SELECT: ${{ matrix.select }}
+        run: |
+          # shellcheck disable=SC2086  # SELECT is an option and check names
+          xvfb-run -a python3 tools/ci/run_host_tests.py $SELECT
+      # The C/C++ format check uses the clang-format of the pinned NDK (tools/format/cxx_format.py): --fetch
+      # downloads the NDK archive once and keeps clang-format alone, cached per NDK pin.
+      - name: Restore the NDK's clang-format
+        if: ${{ matrix.part == 'checks' && !cancelled() }}
+        id: clang_format
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/build/android-ci/tools/clang-format-*
+          key: clang-format-${{ hashFiles('engine/pins.json') }}
+      - name: Check the C/C++ format
+        if: ${{ matrix.part == 'checks' && !cancelled() }}
+        run: |
+          python3 tools/format/cxx_format.py --fetch --check
+          rm -f build/android-ci/downloads/android-ndk-*-linux.zip
+      - name: Save the NDK's clang-format
+        if: ${{ matrix.part == 'checks' && !cancelled() && steps.clang_format.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/build/android-ci/tools/clang-format-*
+          key: ${{ steps.clang_format.outputs.cache-primary-key }}
+      - name: Save the pinned downloads
+        if: ${{ !cancelled() && steps.pinned.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/build/host-ci/ffmpeg-cache
+          key: ${{ steps.pinned.outputs.cache-primary-key }}
+      - name: Save the compiler cache
+        if: ${{ !cancelled() && steps.compiler.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: ${{ steps.compiler.outputs.cache-primary-key }}
+
+  engine-ui:
+    name: Engine UI runtime host build
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: engine
+    env:
+      CCACHE_MAXSIZE: 1G
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install host packages
+        run: |
+          sudo apt-get update
+          # libx11-dev, libgl-dev: the UI decodes .tx textures with bimg from the renderer's bgfx pin, and
+          # bgfx.cmake configures (does not build) the bgfx runtime with X11 and OpenGL on Linux.
+          # libegl1, libegl-mesa0, libgles2, libgl1-mesa-dri: storm_ui_shot draws through bgfx's GLES 3.0
+          # renderer on Mesa's surfaceless EGL (llvmpipe) in the ui_whole_frame test.
+          # libegl-dev, libgles-dev: storm_ui_shot and storm_ui_unit link -lEGL -lGLESv2.
+          sudo apt-get install -y --no-install-recommends ninja-build ccache libx11-dev libgl-dev \
+            libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libegl-dev libgles-dev
+      - name: Cache fetched UI dependencies and compiler output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/storm-deps
+            ~/.cache/ccache-storm
+          key: engine-ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt', 'engine/src/libs/renderer_bgfx/cmake/bgfx_fetch.cmake', 'engine/pins.json') }}-${{ github.sha }}
+          restore-keys: engine-ui-host-${{ hashFiles('engine/src/libs/ui/CMakeLists.txt', 'engine/src/libs/renderer_bgfx/cmake/bgfx_fetch.cmake', 'engine/pins.json') }}-
+      - name: Build and test
+        run: |
+          cmake -S src/libs/ui -B build/ui-host -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/ui-host --parallel
+          ctest --test-dir build/ui-host --output-on-failure
+
+  required:
+    name: Required checks
+    needs: [changes, workflows, app, engine, engine-ui]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless every job passed or was skipped for unchanged paths
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          # "changes" itself must succeed: a failed path sort skips every job after it.
+          echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null

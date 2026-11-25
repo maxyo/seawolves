@@ -1,0 +1,55 @@
+// Internal helpers shared by the bgfx passes of the fx package.
+#pragma once
+
+#include "storm/fx/settings.hpp"
+
+#include <bgfx/bgfx.h>
+#include <storm_glm.h>
+
+#include <array>
+
+namespace storm::fx::detail
+{
+
+// Program from two embedded shader blobs (names as in shaders/shaders.cmake).
+// Returns an invalid handle when a name is unknown.
+bgfx::ProgramHandle LoadProgram(const char *vertex, const char *fragment);
+
+// One triangle covering the view. `uv` (0..1 over the view, already oriented for sampling a render target)
+// goes to a_texcoord0 unless `corner_data` supplies three values per corner (bottom-left, bottom-right,
+// top-left of the view, extrapolated to the triangle). `flip_v` mirrors the image vertically.
+// False means no draw was submitted (transient vertex capacity exhausted).
+bool SubmitScreenTriangle(bgfx::ViewId view, bgfx::ProgramHandle program, uint64_t state, bool flip_v = false,
+                          const std::array<glm::vec3, 3> *corner_data = nullptr);
+
+template <typename Handle> void Destroy(Handle &handle)
+{
+    if (bgfx::isValid(handle))
+        bgfx::destroy(handle);
+    handle = BGFX_INVALID_HANDLE;
+}
+
+// Sequential view rendering into `target` (invalid = back buffer). `clear`: the pass writes every pixel (or SMAA's
+// edges need zeros): cleared at the start, so a tile GPU does not load the old contents.
+void SetupView(bgfx::ViewId view, const char *name, bgfx::FrameBufferHandle target, uint16_t width, uint16_t height,
+               bool clear = false);
+
+// Device capabilities the passes depend on; fx::DetectSupport() reports the same answers.
+bool SupportsLut3d();
+bool SupportsShadowMap();
+// The depth format of the lamps' shadow faces: D24 where it renders and samples, else D32F, else none.
+LampDepth LampDepthFormat();
+bool SupportsAoVolume();
+bool SupportsNormalMap(bgfx::TextureFormat::Enum format);
+uint8_t MsaaSamples(); // 1, 2 or 4
+bool SupportsSmaa();
+// `format` can be rendered to and sampled.
+bool SupportsRenderTarget(bgfx::TextureFormat::Enum format);
+// The format of SMAA's edge target: RG8 where it renders, else RGBA8.
+bgfx::TextureFormat::Enum SmaaEdgeFormat();
+
+inline constexpr uint32_t kClampLinear = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_W_CLAMP;
+inline constexpr uint32_t kClampPoint =
+    kClampLinear | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
+
+} // namespace storm::fx::detail

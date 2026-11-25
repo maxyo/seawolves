@@ -1,0 +1,17 @@
+{
+ "screen": "launcher",
+ "language": "russian",
+ "launcher": {
+  "phase": "ready",
+  "starting": false,
+  "files": false,
+  "hasGame": true,
+  "problem": "",
+  "result": {
+   "key": "start_no_space",
+   "args": [
+    350
+   ]
+  }
+ }
+}

@@ -1,0 +1,36 @@
+# bgfx, bx, bimg and bgfx.cmake at their pins (engine/pins.json), shared by the engine build (bgfx_upstream.cmake) and
+# host-tools/ (host shaderc). bgfx.cmake supplies only the CMake scripts and takes BGFX_DIR / BX_DIR / BIMG_DIR.
+# Local fixes on top of the pin: patches/bgfx-*.patch, applied in the bgfx tree.
+# Offline: -DFETCHCONTENT_SOURCE_DIR_STORM_BGFX=<pinned, patched bgfx checkout> and
+# -DFETCHCONTENT_SOURCE_DIR_STORM_{BGFX_CMAKE,BX,BIMG}=<pinned checkouts>.
+# CONFIGURE_DEPENDS + the patches as configure dependencies: adding, removing or editing a patch
+# reconfigures every existing build directory on its next build, which updates only the changed files of
+# its patched view (storm_patched_view in cmake/StormBuildCache.cmake); its path stays the same.
+include(FetchContent)
+file(GLOB storm_bgfx_patches CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../patches/bgfx-*.patch")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${storm_bgfx_patches})
+storm_fetch_pin(storm_bgfx_cmake bgfx-cmake STORM_POPULATE_ONLY)
+storm_fetch_pin(storm_bgfx bgfx STORM_POPULATE_ONLY STORM_PATCHES . ${storm_bgfx_patches})
+storm_fetch_pin(storm_bx bx STORM_POPULATE_ONLY)
+storm_fetch_pin(storm_bimg bimg STORM_POPULATE_ONLY)
+
+# Populates the pinned trees and adds the bgfx.cmake targets once per build (EXCLUDE_FROM_ALL: only targets
+# that something links get built). Sets STORM_BGFX_SOURCE_DIR to the patched bgfx tree.
+macro(storm_bgfx_add)
+    FetchContent_GetProperties(storm_bgfx_cmake)
+    if(NOT storm_bgfx_cmake_POPULATED)
+        FetchContent_MakeAvailable(storm_bgfx_cmake storm_bgfx storm_bx storm_bimg)
+        # bgfx.cmake keeps BGFX_DIR / BX_DIR / BIMG_DIR in the cache; they must follow the current pin, or a
+        # warm build directory keeps compiling the previous trees.
+        foreach(storm_part BGFX BX BIMG)
+            string(TOLOWER "${storm_part}" storm_dir)
+            set(storm_source "${storm_${storm_dir}_SOURCE_DIR}")
+            if(DEFINED CACHE{${storm_part}_DIR} AND NOT "$CACHE{${storm_part}_DIR}" STREQUAL "${storm_source}")
+                message(STATUS "bgfx source tree changed: ${storm_part}_DIR moves from $CACHE{${storm_part}_DIR} to ${storm_source}")
+            endif()
+            set(${storm_part}_DIR "${storm_source}" CACHE STRING "Location of ${storm_dir} (the pinned copy)" FORCE)
+        endforeach()
+        add_subdirectory("${storm_bgfx_cmake_SOURCE_DIR}" "${storm_bgfx_cmake_BINARY_DIR}" EXCLUDE_FROM_ALL)
+    endif()
+    set(STORM_BGFX_SOURCE_DIR "${storm_bgfx_SOURCE_DIR}" CACHE INTERNAL "")
+endmacro()

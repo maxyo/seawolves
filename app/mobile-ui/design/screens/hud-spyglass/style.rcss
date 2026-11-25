@@ -1,0 +1,25 @@
+/* s-hud-spyglass: the target card over the HUD, left top of the safe area; touches pass through. */
+s-hud-spyglass { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
+s-hud-spyglass .sg-card { position: absolute; left: @{spec.left}dp; top: @{spec.top}dp; width: @{spec.width}dp; box-sizing: border-box;
+    padding: 9dp 14dp; display: flex; flex-direction: column; gap: 6dp;
+    background-color: @{color.hudPlate}; border: 1dp @{color.brassLine/.35}; color: @{color.text}; }
+s-hud-spyglass .sg-head { display: flex; flex-direction: row; align-items: center; gap: 12dp; }
+s-hud-spyglass .sg-titles { flex: 1 1 0; min-width: 0; }
+s-hud-spyglass .sg-name { font-size: @{type.name}dp; font-weight: bold; color: @{color.text}; }
+s-hud-spyglass .sg-sub { display: flex; flex-direction: row; align-items: center; gap: 6dp; margin-top: 2dp; }
+s-hud-spyglass .sg-sub-text { flex: 1 1 0; min-width: 0; font-size: @{type.caption}dp; color: @{color.textSecond}; }
+s-hud-spyglass .sg-facts { display: flex; flex-direction: row; flex-wrap: wrap; column-gap: 14dp; row-gap: 2dp; }
+s-hud-spyglass .sg-fact { width: 128dp; display: flex; flex-direction: row; align-items: baseline; }
+s-hud-spyglass .sg-k { flex: 1 1 0; font-size: @{type.caption}dp; color: @{color.textMuted}; }
+s-hud-spyglass .sg-v { font-size: @{type.caption}dp; font-weight: bold; color: @{color.text}; }
+s-hud-spyglass .sg-captain { padding: 6dp 10dp; background-color: @{color.woodDeep/.6}; display: flex; flex-direction: column; gap: 4dp; }
+s-hud-spyglass .sg-who { display: flex; flex-direction: row; align-items: center; gap: 10dp; }
+s-hud-spyglass .sg-who-text { flex: 1 1 0; min-width: 0; }
+s-hud-spyglass .sg-cap-name { font-size: @{type.body}dp; font-weight: bold; color: @{color.text}; }
+s-hud-spyglass .sg-cap-role { font-size: @{type.caption}dp; color: @{color.textMuted}; }
+s-hud-spyglass .sg-skills { display: flex; flex-direction: row; flex-wrap: wrap; column-gap: 12dp; row-gap: 4dp; }
+s-hud-spyglass .sg-skill { display: flex; flex-direction: row; align-items: center; gap: 4dp; }
+s-hud-spyglass .sg-skill-label { font-size: @{type.caption}dp; color: @{color.textSecond}; }
+s-hud-spyglass .sg-skill-value { font-size: @{type.caption}dp; font-weight: bold; color: @{color.text}; }
+s-hud-spyglass .sg-unknown { display: flex; flex-direction: row; align-items: center; gap: 8dp; }
+s-hud-spyglass .sg-unknown-text { font-size: @{type.caption}dp; color: @{color.textSecond}; }

@@ -1,0 +1,40 @@
+<rml>
+<head>
+<title>Жетон</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Token</div>
+<div class="g-note">Три эмали и пергамент, 40 dp (строки) и 56 dp (панели деталей)</div>
+<div class="g-row g-wood" style="align-items: center">
+  <c-token icon="hero" enamel="teal"/>
+  <c-token icon="sabre" enamel="red"/>
+  <c-token icon="lock" enamel="iron"/>
+  <c-token icon="rum" enamel="parchment"/>
+  <c-token icon="ship" enamel="teal" size="56"/>
+  <c-token icon="sabre" enamel="red" size="56"/>
+  <c-token icon="lock" enamel="iron" size="56"/>
+  <c-token icon="c-amulet" enamel="parchment" size="56"/>
+</div>
+<div class="g-note">round, disabled, selected (латунное кольцо), current (своя нация)</div>
+<div class="g-row g-wood" style="align-items: center">
+  <c-token icon="hero" enamel="teal" round="1"/>
+  <c-token icon="nation-france" enamel="iron" round="1" size="56"/>
+  <c-token icon="hero" enamel="teal" disabled="1"/>
+  <c-token icon="sabre" enamel="red" disabled="1"/>
+  <c-token icon="rum" enamel="parchment" disabled="1"/>
+  <c-token icon="nation-france" enamel="iron" round="1" selected="1"/>
+  <c-token icon="nation-england" enamel="iron" round="1" current="1"/>
+  <c-token icon="ship" enamel="teal" selected="1"/>
+</div>
+<div class="g-row g-paper" style="align-items: center">
+  <c-token icon="hero" enamel="teal"/>
+  <c-token icon="sabre" enamel="red"/>
+  <c-token icon="lock" enamel="iron"/>
+  <c-token icon="rum" enamel="parchment"/>
+  <c-token icon="ship" enamel="teal" size="56"/>
+</div>
+</div>
+</body>
+</rml>

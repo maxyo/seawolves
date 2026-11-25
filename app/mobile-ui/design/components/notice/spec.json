@@ -1,0 +1,46 @@
+{
+  "tag": "c-notice",
+  "props": {
+    "text": {"type": "text", "default": ""},
+    "lead": {"type": "text", "default": ""},
+    "tone": {"type": "enum", "options": ["info", "warn", "danger", "ok"], "default": "info"},
+    "icon": {"type": "text", "default": ""},
+    "variant": {"type": "enum", "options": ["box", "inline", "toast", "log", "hint"], "default": "box", "class": false},
+    "compact": {"type": "bool", "default": false, "class": false},
+    "place": {"type": "enum", "options": ["none", "hud"], "default": "none"},
+    "offset": {"type": "int", "default": null},
+    "scene": {"type": "enum", "options": ["land", "sea", "map"], "default": "land", "class": false},
+    "safeLeft": {"type": "int", "default": null},
+    "safeRight": {"type": "int", "default": null},
+    "action": {"type": "text", "default": ""},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood", "class": false},
+    "lines": {"type": "json", "default": []},
+    "leaving": {"type": "bool", "default": false}
+  },
+  "behaviors": ["toast"],
+  "classes": {
+    "box": "variant == 'box' && place != 'hud'",
+    "inline": "variant == 'inline'",
+    "toast": "variant == 'toast' || (variant == 'box' && place == 'hud')",
+    "log": "variant == 'log'",
+    "hint": "variant == 'hint'",
+    "compact": "compact || variant == 'log' || place == 'hud'",
+    "paper": "surface == 'parchment' && in(variant, 'box', 'inline') && place != 'hud'"
+  },
+  "constants": {
+    "toastHeight": @{size.touchMin},
+    "toastCompactHeight": 32,
+    "logHeight": 30,
+    "hintHeight": 32,
+    "boxHeight": @{size.touchMin},
+    "inlineHeight": 24,
+    "font": {"toast": @{type.body}, "box": @{type.small}, "compact": @{type.caption}, "hint": @{type.body}},
+    "offsetHud": 8,
+    "safe": {"sea": [76, 364], "land": [238, 320], "map": [137, 305]},
+    "band": {"sea": {"min": 240, "dropped": {"top": 66, "left": 74, "right": 190}}},
+    "maxLines": 2,
+    "maxLogLines": 3,
+    "motionHeight": 64,
+    "gap": {"toasts": 6, "log": 4}
+  }
+}

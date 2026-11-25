@@ -1,0 +1,17 @@
+<rml>
+<head>
+<title>Карточка героя</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-HeroCard</div>
+<div class="g-note">рейка 156 dp: портрет, имя, ранг, здоровье и энергия, свободные очки, строки состояния; без очков и строк; кнопка снизу</div>
+<div class="g-row">
+  <div style="width: 156dp; height: 330dp"><c-hero-card portrait="INTERFACES/PORTRAITS/128/face_201" title="Шарль де Мор" sub="Ранг 1 · герой" health='{"value":100,"text":"140"}' energy='{"value":90,"text":"36"}' free="2" lines='[{"k":"Здоровье","v":"отличное","tone":"ok"},{"k":"Авторитет","v":"нормальный"}]'/></div>
+  <div style="width: 156dp; height: 330dp"><c-hero-card portrait="INTERFACES/PORTRAITS/128/face_205" title="Тичингиту" sub="Ранг 7 · абордажник" health='{"value":35,"text":"52"}' energy='{"value":60,"text":"24"}' lines='[{"k":"Здоровье","v":"ранен","tone":"danger"},{"k":"Жалованье","v":"120","tone":"gold","after":" в мес."}]'/></div>
+  <div style="width: 156dp; height: 330dp"><c-hero-card title="Новый герой" sub="Ранг 1" health='{"value":100,"text":"100"}' energy='{"value":100,"text":"30"}' free="5"><c-button id="hc-done" label="Готово" variant="primary"/></c-hero-card></div>
+</div>
+</div>
+</body>
+</rml>

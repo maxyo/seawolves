@@ -1,0 +1,58 @@
+/* C-Tabs. look: bar (header) | segment (inside a panel) | rail (settings, journal) | icons.
+   A single tab is not a choice: with fewer than two items nothing is drawn. */
+c-tabs { display: flex; flex-direction: row; box-sizing: border-box; width: 100%; gap: 4dp; border-bottom: 1dp @{color.brassLine/.35}; color: @{color.textSecond}; font-size: @{spec.font.label}dp; }
+c-tabs.single { display: none; }
+
+c-tabs .tabs-tab { position: relative; display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; box-sizing: border-box; gap: 8dp;
+    height: @{spec.height.bar}dp; padding: 0 14dp; border-bottom: 2dp transparent; color: @{color.textSecond}; }
+c-tabs .tabs-tab.sel { border-bottom-color: @{color.brass}; background-color: @{color.brassGlow/.14}; color: @{color.text}; }
+c-tabs .tabs-tab.pressed { background-color: @{color.brassGlow/.3}; }
+c-tabs .tabs-tab.off { opacity: 0.5; }
+c-tabs .tabs-ico { position: relative; display: flex; flex: 0 0 auto; }
+c-tabs .tabs-label { flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+c-tabs .tabs-lt { display: inline-block; }
+c-tabs .tabs-count { flex: 0 0 auto; font-size: @{spec.font.count}dp; color: @{color.textMuted}; }
+c-tabs .tabs-badge { flex: 0 0 auto; box-sizing: border-box; min-width: @{spec.badge}dp; height: @{spec.badge}dp; padding: 0 5dp; border-radius: 9dp;
+    background-color: @{color.wax}; color: @{color.onWax}; font-size: @{spec.font.count}dp; font-weight: normal; line-height: @{spec.badge}dp; text-align: center;
+    box-shadow: @{color.black/.5} 0 1dp 2dp 0; }
+c-tabs .tabs-badge.abs { position: absolute; right: -10dp; top: -7dp; }
+c-tabs .tabs-divider { flex: 0 0 auto; width: 1dp; align-self: stretch; margin: 6dp 4dp; background-color: @{color.brassLine/.4}; }
+c-tabs .tabs-hit { position: absolute; left: 0; right: 0; top: -1dp; bottom: -1dp; }
+
+/* segment: flat pill row, no frame */
+c-tabs.look-segment { display: inline-flex; width: auto; align-self: flex-start; gap: 0; border-bottom-width: 0; border-radius: 2dp; background-color: @{color.black/.28}; }
+c-tabs.look-segment.stretch { display: flex; width: 100%; align-self: auto; }
+c-tabs.look-segment .tabs-tab { height: @{spec.height.segment}dp; min-width: 56dp; justify-content: center; border-bottom-width: 0; border-left: 1dp @{color.brassLine/.45}; }
+c-tabs.look-segment .tabs-tab.first { border-left-width: 0; }
+c-tabs.look-segment.stretch .tabs-tab { flex: 1 1 0; padding: 0 8dp; }
+c-tabs.look-segment .tabs-tab.sel { background-color: @{color.brassGlow/.25}; }
+c-tabs.look-segment .tabs-tab.pressed { background-color: @{color.brassGlow/.34}; }
+
+/* rail: vertical list */
+c-tabs.look-rail { flex-direction: column; gap: 0; border-bottom-width: 0; }
+c-tabs.look-rail.compact { max-width: @{spec.compactWidth}dp; }
+c-tabs.look-rail .tabs-tab { width: 100%; height: auto; min-height: @{spec.height.rail}dp; padding: 0 12dp; border-left: 2dp transparent; border-bottom: 1dp @{color.brassLine/.14}; }
+c-tabs.look-rail.compact .tabs-tab { padding: 0 8dp; gap: 6dp; }
+c-tabs.look-rail .tabs-tab.sel { border-left-color: @{color.brass}; border-bottom-color: @{color.brassLine/.14}; background-color: @{color.brassGlow/.2}; color: @{color.textSelected}; }
+c-tabs.look-rail .tabs-label { flex: 1 1 0; min-width: 0; }
+c-tabs.look-rail .tabs-divider, c-tabs.look-icons .tabs-divider { width: auto; height: 1dp; align-self: stretch; margin: 6dp 12dp; }
+
+/* icons: vertical column of icons */
+c-tabs.look-icons { flex-direction: column; gap: 0; width: @{spec.iconsWidth}dp; border-bottom-width: 0; }
+c-tabs.look-icons .tabs-tab { width: @{spec.iconsWidth}dp; height: @{spec.height.icons}dp; justify-content: center; padding: 0; border-bottom-width: 0; border-left: 2dp transparent; }
+c-tabs.look-icons .tabs-tab.sel { border-left-color: @{color.brass}; background-color: @{color.brassGlow/.2}; }
+
+/* parchment: ink text, selected = 2 dp ink underline, sepia rules */
+c-tabs.surface-parchment { border-bottom-color: @{color.inkMuted/.35}; }
+c-tabs.surface-parchment .tabs-tab { color: @{color.inkMuted}; }
+c-tabs.surface-parchment .tabs-tab.sel { color: @{color.ink}; font-weight: bold; background-color: transparent; border-bottom-color: @{color.ink}; }
+c-tabs.surface-parchment .tabs-tab.pressed { background-color: @{color.inkMuted/.2}; }
+c-tabs.surface-parchment .tabs-count { color: @{color.inkMuted}; font-weight: normal; }
+c-tabs.surface-parchment .tabs-divider { background-color: @{color.inkMuted/.35}; }
+c-tabs.surface-parchment.look-segment { background-color: @{color.inkMuted/.08}; box-shadow: @{color.inkMuted/.35} 0 -1dp 0 0 inset; }
+c-tabs.surface-parchment.look-segment .tabs-tab { border-left-color: @{color.inkMuted/.35}; }
+c-tabs.surface-parchment.look-segment .tabs-tab.sel { background-color: @{color.inkMuted/.14}; box-shadow: @{color.ink} 0 -2dp 0 0 inset; }
+c-tabs.surface-parchment.look-icons .tabs-tab.sel { background-color: @{color.inkMuted/.14}; border-left-color: @{color.ink}; }
+c-tabs.surface-parchment.look-rail .tabs-tab { border-bottom-color: @{color.inkMuted/.22}; }
+c-tabs.surface-parchment.look-rail .tabs-tab.sel { background-color: @{color.inkMuted/.12}; border-left-color: @{color.ink}; border-bottom-color: @{color.inkMuted/.22}; }
+c-tabs.surface-parchment.look-rail .tabs-tab.sel .tabs-lt { padding: 4dp 0 4dp 0; border-bottom: 2dp @{color.ink}; }

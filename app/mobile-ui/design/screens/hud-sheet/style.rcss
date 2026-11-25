@@ -1,0 +1,28 @@
+/* s-hud-sheet: a modal sheet over the HUD, pinned to the right edge of the safe area. It is
+   as tall as its rows (height from the template) and never taller than the safe area; then
+   the rows scroll. */
+s-hud-sheet { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+/* the scrim dims the whole screen, beyond the safe area the sheet sits in */
+s-hud-sheet > .hs-scrim { position: absolute; background-color: @{color.scrim/.28}; }
+s-hud-sheet > .hs-place { position: absolute; top: @{spec.top}dp; right: @{spec.right}dp; bottom: @{spec.bottom}dp; width: @{spec.width}dp;
+    display: flex; flex-direction: column; align-items: stretch; }
+s-hud-sheet c-panel.hs-panel { flex: 0 0 auto; max-height: 100%; }
+s-hud-sheet .hs-header { flex: 0 0 auto; width: 100%; }
+s-hud-sheet .hs-list { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+s-hud-sheet .hs-list.hs-dense { padding-top: 18dp; }
+s-hud-sheet .hs-heading { padding: 10dp 12dp 2dp 12dp; }
+s-hud-sheet .hs-list.hs-tiles { flex-direction: row; flex-wrap: wrap; align-content: flex-start; box-sizing: border-box; padding: 22dp 8dp 8dp 8dp; }
+s-hud-sheet .hs-tile { box-sizing: border-box; width: 50%; padding: 4dp; }
+s-hud-sheet .hs-tile c-button { width: 100%; }
+/* place tiles: one alignment for every tile: the icon in a fixed column at the
+   tile's left, the name left-aligned after it, whatever the name's length */
+s-hud-sheet .hs-tile c-button { justify-content: flex-start; padding: 0 10dp 0 14dp; gap: 12dp; }
+s-hud-sheet .hs-tile c-button c-icon { flex: 0 0 auto; }
+s-hud-sheet .hs-tile c-button .text { flex: 1 1 0; align-items: flex-start; }
+s-hud-sheet .hs-tile c-button .label { text-align: left; }
+/* the tile of the place the hero stands in: not a choice (disabled, a tap shakes it), marked without
+   text: a warm brass-lit fill, unlike the flat dark of a disabled button, a brass edge and the hero's mark in
+   its corner, inside the button so it shakes with it (it takes no taps: a tap reaches the tile) */
+s-hud-sheet .hs-tile.hs-here c-button.disabled { border-color: @{color.brassEdge/.75}; background-color: @{color.brassGlow/.34}; color: @{color.text}; }
+s-hud-sheet .hs-tile.hs-here c-button.disabled ui-icon.tone-dim { color: @{color.iconBrass}; }
+s-hud-sheet .hs-here-mark { position: absolute; top: 7dp; right: 7dp; pointer-events: none; }

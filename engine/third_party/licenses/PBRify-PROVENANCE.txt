@@ -1,0 +1,34 @@
+PBRify models shipped in the APK as the assets pbrify-normal.ncnn.param/.bin, pbrify-height.ncnn.param/.bin,
+pbrify-roughness.ncnn.param/.bin and pbrify-upscale.ncnn.param/.bin, ncnn graphs (fp16 weights) of PBRify's normal,
+height and roughness networks and of its 4x upscaler, for the relief and gloss maps and the neural x2 textures the game
+makes on the device from the player's own game files (src/libs/relief). No game texture, map or upscaled texture is
+shipped.
+
+Author:    Kim2091, PBRify_Remix (https://github.com/Kim2091/PBRify_Remix): the SPAN models 1x-PBRify_NormalV3,
+           1x-PBRify_Height and 1x-PBRify_RoughnessV2, released under CC0-1.0 (PBRify-CC0-1.0.txt).
+Training:  OpenModelDB (openmodeldb.info/models/1x-PBRify-RoughnessV2, read 2026-11-14) lists the training dataset
+           as "ambientCG + UltraSharpV2" (ambientCG's materials are CC0; UltraSharpV2 is Kim2091's upscaling model and
+           its data). No separate licence is stated for the training data; the models themselves are CC0-1.0.
+Export:    ONNX re-exports of those models by fernandotonon, QtMeshEditor-models
+           (https://huggingface.co/fernandotonon/QtMeshEditor-models), listed there as CC0-1.0. I/O 1x3xHxW float
+           0..1, free size. The revision and the SHA-256 of each file: the pins pbrify-normal, pbrify-height and
+           pbrify-roughness in engine/pins.json of github.com/maxyo/seawolves (checked when the build downloads them).
+Modified:  by src/libs/relief/model/make_ncnn_models.py: converted by pnnx (ncnn's converter) into ncnn graphs with
+           fp16 weights, pbrify-normal/height/roughness.ncnn.param and .bin; their SHA-256 are in the same pins
+           (ncnn_param_sha256, ncnn_bin_sha256, checked at build time). The modified files stay CC0-1.0.
+Use:       run with ncnn (BSD-3-Clause, ncnn-BSD-3-Clause.txt) on the player's device (GPU or CPU), in the game process.
+
+Upscaler (pbrify-upscale.ncnn.param/.bin):
+Author:    Kim2091, PBRify_Remix release (pin pbrify-upscale in engine/pins.json: its version, URL and SHA-256), its
+           file Extras/Old_Models/4x-PBRify_UpscalerSPANV4.pth, a 4x SPAN network, released under CC0-1.0 (the
+           release's LICENSE; PBRify-CC0-1.0.txt).
+Training:  the release's EXTRA_INFO.md: textures from ambientCG and PolyHaven (both CC0), degraded and DXT1-compressed,
+           trained with traiNNer-redux. OpenModelDB (openmodeldb.info/models/4x-PBRify-UpscalerSPANV4, read 2026-11-14)
+           lists the dataset as "ambientCG + UltraSharpV2" and the licence as CC0-1.0 (UltraSharpV2 is Kim2091's own
+           upscaling model and its data; no separate licence is stated for it). The model itself is CC0-1.0.
+Modified:  by src/libs/relief/model/make_upscale_model.py: exported to ONNX (opset 17, I/O 1x3xHxW float 0..1 and
+           1x3x4Hx4W) with spandrel, converted by pnnx into an ncnn graph with fp16 weights. Kept in the source tree
+           (engine/src/libs/relief/model of github.com/maxyo/seawolves) and checked at build time against the
+           SHA-256 of the pin pbrify-upscale. The modified files stay CC0-1.0.
+Use:       the game upscales a texture 4x with it on the player's device and box-filters the result to 2x in linear
+           light (fx/upscale.hpp); the 2x textures are a cache in the app's cache directory.

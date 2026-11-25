@@ -1,0 +1,12 @@
+/* s-generic: the generic layout templates. Columns only; every block is a shared component. */
+s-generic { display: block; width: 100%; height: 100%; }
+s-generic .sg-cols { flex: 1 1 0; min-width: 0; display: flex; flex-direction: row; justify-content: center; gap: @{space.md}dp; }
+s-generic .sg-left, s-generic .sg-right { flex: 1 1 0; min-width: 0; height: 100%; }
+s-generic .sg-split > .sg-left { flex: 62 1 0; }
+s-generic .sg-split > .sg-right { flex: 38 1 0; }
+s-generic .sg-settings-wide > .sg-left { flex: 58 1 0; }
+s-generic .sg-settings-wide > .sg-right { flex: 42 1 0; }
+s-generic .sg-settings > .sg-left { flex: 0 1 560dp; }
+s-generic .sg-reading > .sg-left { flex: 0 1 640dp; }
+s-generic .sg-flow { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+s-generic .sg-fallback .sg-flow, s-generic .sg-settings .sg-flow, s-generic .sg-settings-wide .sg-flow, s-generic .sg-reading .sg-flow { display: block; overflow-y: auto; }

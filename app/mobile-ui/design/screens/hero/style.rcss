@@ -1,0 +1,39 @@
+/* s-hero: the identity rail is as wide as its card (c-hero-card); the skill columns share the rest (PIRATES narrower);
+   perks: the tree takes the width, the detail panel a readable column; officers: one panel. */
+s-hero { display: block; width: 100%; height: 100%; }
+s-hero .he-cols { display: flex; flex-direction: row; gap: @{space.md}dp; width: 100%; height: 100%; }
+s-hero .he-rail { flex: 0 0 auto; height: 100%; }
+s-hero .he-main { flex: 1 1 0; min-width: 0; height: 100%; }
+/* the three tables side by side where each keeps its width (a name beside its value, bar and arrows), else they
+   wrap and the panel scrolls as a whole (the tables size to their rows) */
+s-hero .he-grid { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+s-hero .he-col { flex: 1 1 @{spec.lineMin}dp; min-width: 0; display: flex; flex-direction: column; }
+s-hero .he-col c-table { width: 100%; height: auto; }
+s-hero .he-col c-table .tb-wrap, s-hero .he-col c-table .tb-body { flex: 0 0 auto; overflow-y: visible; }
+s-hero .he-special { flex: 1 1 @{spec.specialMin}dp; max-width: 190dp; }
+s-hero .he-grid.points .he-special { max-width: 184dp; }
+s-hero .he-line { border-left: 1dp @{color.brassLine/.35}; }
+s-hero .he-note { flex: 0 0 auto; padding: @{space.sm}dp @{space.md}dp; }
+/* free points and the progress to the next one, always over the tree */
+s-hero .he-perkinfo { flex: 0 0 auto; height: 24dp; padding: 0 12dp; font-size: @{type.caption}dp; line-height: 24dp; color: @{color.inkMuted}; white-space: nowrap;
+    border-bottom: 1dp @{color.inkRule/.5}; }
+/* a refused «Изучить» for want of points: the line pulses for a moment */
+s-hero .he-perkinfo.nudge { animation: 0.8s cubic-in-out 1 he-pulse; color: @{color.dangerDeep}; }
+@keyframes he-pulse { 0% { background-color: @{color.dangerLine/0}; } 35% { background-color: @{color.dangerLine/.45}; } 100% { background-color: @{color.dangerLine/0}; } }
+s-hero .he-perks { flex: 1 1 0; min-height: 0; }
+/* perks: the tree pane as wide as the engine's canvas (perk_tree::Layout::width 496 dp, its scrollbar and frame);
+   the panel takes the rest */
+s-hero .he-main.he-tree { flex: 0 0 auto; width: 506dp; }
+s-hero .he-detail { flex: 1 1 0; min-width: 224dp; height: 100%; }
+s-hero .he-officers { flex: 1 1 0; min-width: 0; height: 100%; }
+s-hero .he-off-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.sm}dp; }
+s-hero .he-grid3, s-hero .he-grid6 { flex: 0 0 auto; display: flex; flex-direction: row; flex-wrap: wrap; gap: @{space.sm}dp; }
+s-hero .he-cell3 { flex: 0 0 auto; width: 32.3%; }
+s-hero .he-cell6 { flex: 0 0 auto; width: 15.8%; min-width: 96dp; height: 72dp; }
+s-hero .he-cands { display: flex; flex-direction: column; max-height: 260dp; overflow-y: auto; }
+s-hero .he-empty { padding: @{space.md}dp 0; font-size: @{type.body}dp; color: @{color.ink}; }
+/* a skill's description: what its value is made of (c-kv), then the game's text, both in the dialog's one scroll; the
+   text as c-dialog writes its own. A source's words may be long (the navigation line, an item's name in German): they
+   wrap instead of being cut. */
+s-hero c-kv.he-steps .k { white-space: normal; overflow: visible; }
+s-hero .he-help { font-size: @{type.body}dp; line-height: 1.45; white-space: pre-line; color: @{color.ink}; }

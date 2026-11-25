@@ -1,0 +1,11 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":5,
+"screenRevision":7,
+"screen":"boal_frame",
+"widgets":[
+{"node":"BACKSCROLLPICT","type":"image","index":-1,"order":1,"enabled":false,"images":[{"handle":1,"imageRevision":1,"tintArgb":4286611584,"source":{"kind":"texture","image":"loading/imgback"}}]},
+{"node":"SCROLLPICT","type":"image","index":-1,"order":2,"enabled":false,"images":[{"handle":1,"imageRevision":1,"tintArgb":4286611584,"source":{"kind":"texture","image":"loading/inside/kiss"}}]},
+{"node":"INFO_TEXT","type":"text","label":"Минула целая неделя... Вы со своим штурманом добрались до Барбадоса","value":"1","index":0,"order":3}
+]}

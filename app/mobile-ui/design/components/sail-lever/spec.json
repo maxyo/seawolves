@@ -1,0 +1,20 @@
+{
+  "tag": "c-sail-lever",
+  "props": {
+    "mode": {"type": "enum", "options": ["steps", "continuous"], "default": "steps"},
+    "value": {"type": "int"},
+    "height": {"type": "int", "default": @{size.leverHeight}},
+    "active": {"type": "bool", "default": false},
+    "dir": {"type": "enum", "options": ["", "up", "down"], "default": ""},
+    "label": {"type": "text", "default": ""}
+  },
+  "behaviors": ["lever"],
+  "constants": {
+    "width": @{size.leverWidth},
+    "height": @{size.leverHeight},
+    "minHeight": 112,
+    "markHide": 75,
+    "knob": @{size.leverKnob},
+    "steps": [{"icon": "sail-furled"}, {"icon": "sail-half"}, {"icon": "sail-full"}]
+  }
+}

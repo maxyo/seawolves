@@ -1,0 +1,735 @@
+Vulkan: what each render pass of a frame loads from memory, stores and resolves, why it ends, and the fragment shader
+invocations of its draws, read through include/bgfx/storm_vk_traffic.h (bgfx::getVkPassTraffic).
+
+On a tile GPU a render pass costs its attachments' traffic: a load op LOAD reads the attachment into tile memory, a store
+op STORE writes it back, a resolve attachment writes the single-sample picture. bgfx decides these per pass from the
+views' clear and discard flags and ends a pass at another frame buffer, another rect, a blit, a compute dispatch or the
+per-view profiler; a multisampled depth that is sampled later is resolved by its render pass or, on a device without
+VK_KHR_depth_stencil_resolve, by a pass of its own (bgfx's shader reads sample 0) whenever its frame buffer is left.
+Nothing reported any of it, so a change that cut the scene's pass or stored its samples was invisible until a phone
+ran slower.
+
+- Each render pass gets a record: the name of the view that began it (Views), its render area and samples, the views it
+  ran through, the bytes its load ops read, its store ops write and its resolve attachments write (colour and
+  depth/stencil apart, from the ops getRenderPass gave the VkRenderPass and the formats' sample sizes), and why it
+  ended. bgfx's depth resolve, the sRGB resolve pass and vkCmdResolveImage get records of their own (the sampled
+  read counts as loaded).
+- Draws count by class: depth only (no colour write), blended, alpha-tested (alpha to coverage, or a fragment shader
+  with OpKill, OpTerminateInvocation or OpDemoteToHelperInvocation) and opaque. With STORM_VK_PIPELINE_STATISTICS=1 in the
+  environment at init (host measurements: lavapipe or a desktop GPU; the device must have pipelineStatisticsQuery), a
+  pipeline statistics query around each run of draws of one class counts their fragment shader invocations; the
+  results are read when the frame's command buffer is reused, and the frame is published then. A pass with more runs
+  than the queries of a frame reports that class as not counted (UINT64_MAX).
+- getVkPassTraffic copies the last published frame under a mutex; everything else runs on the render thread.
+
+The counters are read by the renderer's "render passes:" line (detailed diagnostics) and by
+tests/renderer_bgfx/scene_passes_check.cpp.
+diff --git a/include/bgfx/storm_vk_traffic.h b/include/bgfx/storm_vk_traffic.h
+new file mode 100644
+index 0000000..844073b
+--- /dev/null
++++ b/include/bgfx/storm_vk_traffic.h
+@@ -0,0 +1,78 @@
++/*
++ * Storm Engine patch (renderer_bgfx/patches/bgfx-vulkan-traffic-counters.patch): the render passes the Vulkan backend
++ * ran in a frame, what each loaded from memory, stored and resolved, why it ended, and with
++ * STORM_VK_PIPELINE_STATISTICS=1 in the environment at bgfx::init the fragment shader invocations of its draws.
++ */
++#ifndef BGFX_STORM_VK_TRAFFIC_H_HEADER_GUARD
++#define BGFX_STORM_VK_TRAFFIC_H_HEADER_GUARD
++
++#include <stdint.h>
++
++namespace bgfx
++{
++	struct VkPassKind
++	{
++		enum Enum : uint8_t
++		{
++			Views,        // views of the frame (name: the view that began it)
++			DepthResolve, // a multisampled depth resolved by bgfx's shader (sample 0) when its frame buffer is left
++			ResolveCopy,  // a multisampled colour resolved by vkCmdResolveImage after its pass
++			FormatResolve,// a multisampled colour resolved by a pass of its own into another format (sRGB)
++
++			Count
++		};
++	};
++
++	struct VkPassEnd
++	{
++		enum Enum : uint8_t
++		{
++			Target,   // the next view draws into another frame buffer
++			Rect,     // the next view has another rect
++			Blit,     // the next view starts with a blit
++			Compute,  // a compute dispatch
++			Profiler, // the per-view timer queries (BGFX_DEBUG_PROFILER) end the pass at every view
++			FrameEnd, // the last pass of the frame
++			Own,      // a resolve pass: ends where it begins
++
++			Count
++		};
++	};
++
++	struct VkDrawClass
++	{
++		enum Enum : uint8_t
++		{
++			Opaque,   // no blending, a fragment shader without discard, no alpha to coverage
++			Discards, // no blending, a fragment shader that can discard or alpha to coverage: alpha-tested
++			Blended,
++			DepthOnly, // no colour write (a depth pre-pass, a shadow map)
++			Count
++		};
++	};
++
++	struct VkPassTraffic
++	{
++		char     name[64];      // Views: the bgfx name of the view that began it
++		uint32_t frameBuffer;   // the frame buffer's handle index; UINT32_MAX: a swap chain's or a resolve's own
++		uint32_t width;         // render area
++		uint32_t height;
++		uint8_t  samples;
++		uint8_t  kind;          // VkPassKind
++		uint8_t  end;           // VkPassEnd
++		uint16_t views;         // views it ran through
++		uint64_t loaded[2];     // bytes read into the pass (load op LOAD; a resolve's sampled read): [0] colour, [1] depth/stencil
++		uint64_t stored[2];     // bytes written at its end (store op STORE)
++		uint64_t resolved[2];   // single-sample bytes written by a resolve (resolve attachments, resolve copies)
++		uint32_t draws[VkDrawClass::Count];
++		uint64_t invocations[VkDrawClass::Count]; // fragment shader invocations; UINT64_MAX: not counted
++	};
++
++	/// The render passes of the last frame whose results are complete, in submission order: at most `_max` are copied
++	/// to `_out`; returns how many there were. `_frame` receives the frame number bgfx::frame() returned for it
++	/// (0: none yet). Any thread.
++	uint32_t getVkPassTraffic(VkPassTraffic* _out, uint32_t _max, uint32_t* _frame);
++
++} // namespace bgfx
++
++#endif // BGFX_STORM_VK_TRAFFIC_H_HEADER_GUARD
+diff --git a/src/renderer_vk.cpp b/src/renderer_vk.cpp
+index b4728b2..590a076 100644
+--- a/src/renderer_vk.cpp
++++ b/src/renderer_vk.cpp
+@@ -10,6 +10,11 @@
+ #	include "renderer_vk.h"
+ #	include "video_vk.h"
+ #	include <atomic>
++#	include <bgfx/storm_vk_traffic.h> // Storm Engine patch (bgfx-vulkan-traffic-counters.patch)
++#	include <deque>
++#	include <mutex>
++#	include <unordered_map>
++#	include <vector>
+ #	if BX_PLATFORM_LINUX || BX_PLATFORM_ANDROID
+ #		include <sys/resource.h> // Storm Engine patch (bgfx-vulkan-pipeline-cache.patch): setpriority
+ #		include <sys/syscall.h>
+@@ -1653,6 +1658,338 @@ VK_IMPORT_DEVICE
+ 			;
+ 	}
+ 
++	// Storm (bgfx-vulkan-traffic-counters.patch): what each render pass of a frame loads from memory, stores and
++	// resolves, why it ends, and with STORM_VK_PIPELINE_STATISTICS=1 the fragment shader invocations of its draws by
++	// class (include/bgfx/storm_vk_traffic.h). A frame is published once its queries have results. Render thread,
++	// except the published frame.
++	struct StormTraffic
++	{
++		static constexpr uint32_t kQueries = 4096; // statistics queries per frame in flight (one per run of a class)
++
++		struct Ops // a render pass as getRenderPass made it: its attachments, then its resolve attachments
++		{
++			uint8_t num;
++			uint8_t numResolve;
++			VkAttachmentDescription ad[BGFX_CONFIG_MAX_FRAME_BUFFER_ATTACHMENTS * 2];
++		};
++
++		struct Query
++		{
++			uint32_t frameNum;
++			uint16_t pass;
++			uint8_t  drawClass;
++		};
++
++		struct Frame
++		{
++			uint32_t frameNum;
++			uint32_t pending; // its queries without a result yet
++			bool     submitted;
++			std::vector<VkPassTraffic> passes;
++		};
++
++		std::unordered_map<::VkRenderPass, Ops> ops;
++		std::deque<Frame> frames; // not published yet, in submission order; the last one may be being recorded
++		bool statistics = false;
++		VkQueryPool pool[BGFX_CONFIG_MAX_FRAME_LATENCY] = {};
++		std::vector<Query> queries[BGFX_CONFIG_MAX_FRAME_LATENCY]; // what each query of a pool counts, in order
++		int32_t open = -1; // the class of the query open in the current pass
++		bool inPass = false;
++		std::mutex mutex;
++		std::vector<VkPassTraffic> published;
++		uint32_t publishedFrame = 0;
++	};
++
++	static StormTraffic s_stormTraffic;
++
++	// Bytes of one sample of an attachment in `_format`: the depth part, or with `_stencil` the stencil part, of a
++	// depth/stencil format; a colour format's own size.
++	static uint32_t stormSampleBytes(VkFormat _format, bool _stencil)
++	{
++		switch (_format)
++		{
++		case VK_FORMAT_D16_UNORM:           return _stencil ? 0 : 2;
++		case VK_FORMAT_X8_D24_UNORM_PACK32: return _stencil ? 0 : 4;
++		case VK_FORMAT_D32_SFLOAT:          return _stencil ? 0 : 4;
++		case VK_FORMAT_S8_UINT:             return _stencil ? 1 : 0;
++		case VK_FORMAT_D16_UNORM_S8_UINT:   return _stencil ? 1 : 2;
++		case VK_FORMAT_D24_UNORM_S8_UINT:   return _stencil ? 1 : 3;
++		case VK_FORMAT_D32_SFLOAT_S8_UINT:  return _stencil ? 1 : 4;
++		default: break;
++		}
++
++		if (_stencil)
++		{
++			return 0;
++		}
++
++		for (uint32_t ii = 0; ii < TextureFormat::Count; ++ii)
++		{
++			if (_format == s_textureFormat[ii].m_fmt
++			||  _format == s_textureFormat[ii].m_fmtSrgb)
++			{
++				return bimg::getBitsPerPixel(bimg::TextureFormat::Enum(ii) ) / 8;
++			}
++		}
++
++		BX_ASSERT(false, "Storm traffic: no size for VkFormat %d", _format);
++		return 0;
++	}
++
++	static bool stormIsDepth(VkFormat _format)
++	{
++		switch (_format)
++		{
++		case VK_FORMAT_D16_UNORM:
++		case VK_FORMAT_X8_D24_UNORM_PACK32:
++		case VK_FORMAT_D32_SFLOAT:
++		case VK_FORMAT_S8_UINT:
++		case VK_FORMAT_D16_UNORM_S8_UINT:
++		case VK_FORMAT_D24_UNORM_S8_UINT:
++		case VK_FORMAT_D32_SFLOAT_S8_UINT:
++			return true;
++		default:
++			return false;
++		}
++	}
++
++	// STORM_VK_PIPELINE_STATISTICS=1 at init: the host measurements that count fragment shader invocations.
++	static bool stormStatisticsAsked()
++	{
++		const char* value = getenv("STORM_VK_PIPELINE_STATISTICS");
++		return NULL != value && 0 == bx::strCmp(value, "1");
++	}
++
++	static void stormPublishReady()
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		while (!st.frames.empty()
++		&&     st.frames.front().submitted
++		&&     0 == st.frames.front().pending)
++		{
++			std::lock_guard<std::mutex> lock(st.mutex);
++			st.published.swap(st.frames.front().passes);
++			st.publishedFrame = st.frames.front().frameNum;
++			st.frames.pop_front();
++		}
++	}
++
++	// A render pass begins: what its load ops read and what its store ops and resolve attachments will write.
++	static void stormPassBegin(VkPassKind::Enum _kind, const char* _name, uint32_t _frameBuffer, ::VkRenderPass _renderPass, uint32_t _width, uint32_t _height)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (st.frames.empty() )
++		{
++			return; // a pass outside a frame's submit (initialisation)
++		}
++
++		VkPassTraffic pass;
++		bx::memSet(&pass, 0, sizeof(pass) );
++		bx::strCopy(pass.name, sizeof(pass.name), _name);
++		pass.frameBuffer = _frameBuffer;
++		pass.width   = _width;
++		pass.height  = _height;
++		pass.kind    = uint8_t(_kind);
++		pass.end     = VkPassEnd::Own;
++		pass.views   = VkPassKind::Views == _kind ? 1 : 0;
++		pass.samples = 1;
++
++		for (uint32_t ii = 0; ii < VkDrawClass::Count; ++ii)
++		{
++			pass.invocations[ii] = st.statistics ? 0 : UINT64_MAX;
++		}
++
++		const auto it = st.ops.find(_renderPass);
++		BX_ASSERT(it != st.ops.end(), "Storm traffic: a render pass getRenderPass did not make");
++
++		if (it != st.ops.end() )
++		{
++			const StormTraffic::Ops& ops = it->second;
++			const uint64_t area = uint64_t(_width) * _height;
++
++			for (uint32_t ii = 0, num = ops.num + ops.numResolve; ii < num; ++ii)
++			{
++				const VkAttachmentDescription& ad = ops.ad[ii];
++				const uint64_t samples = uint64_t(ad.samples);
++				const bool depth = stormIsDepth(ad.format);
++				const uint64_t bytes   = area * samples * stormSampleBytes(ad.format, false);
++				const uint64_t stencil = area * samples * stormSampleBytes(ad.format, true);
++
++				if (ii >= ops.num)
++				{
++					pass.resolved[depth] += bytes + stencil; // a depth resolve writes depth and stencil (sample 0)
++					continue;
++				}
++
++				pass.samples = uint8_t(ad.samples);
++				pass.loaded[depth] += (VK_ATTACHMENT_LOAD_OP_LOAD   == ad.loadOp         ? bytes   : 0)
++				                    + (VK_ATTACHMENT_LOAD_OP_LOAD   == ad.stencilLoadOp  ? stencil : 0);
++				pass.stored[depth] += (VK_ATTACHMENT_STORE_OP_STORE == ad.storeOp        ? bytes   : 0)
++				                    + (VK_ATTACHMENT_STORE_OP_STORE == ad.stencilStoreOp ? stencil : 0);
++			}
++		}
++
++		st.frames.back().passes.push_back(pass);
++		st.inPass = true;
++		st.open   = -1;
++	}
++
++	// The open statistics query ends (before its render pass does).
++	static void stormEndQuery(VkCommandBuffer _commandBuffer, uint32_t _frameInFlight)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (0 <= st.open)
++		{
++			vkCmdEndQuery(_commandBuffer, st.pool[_frameInFlight], uint32_t(st.queries[_frameInFlight].size() - 1) );
++			st.open = -1;
++		}
++	}
++
++	static void stormPassEnd(VkCommandBuffer _commandBuffer, uint32_t _frameInFlight, VkPassEnd::Enum _end)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (!st.inPass)
++		{
++			return;
++		}
++
++		stormEndQuery(_commandBuffer, _frameInFlight);
++		st.frames.back().passes.back().end = uint8_t(_end);
++		st.inPass = false;
++	}
++
++	// A draw of the current pass, of `_state` with a fragment shader that can (`_discards`) discard.
++	static void stormDraw(VkCommandBuffer _commandBuffer, uint32_t _frameInFlight, uint64_t _state, bool _discards)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (!st.inPass)
++		{
++			return;
++		}
++
++		const VkDrawClass::Enum drawClass = 0 == (_state & (BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A) ) ? VkDrawClass::DepthOnly
++			: 0 != (_state & BGFX_STATE_BLEND_MASK)                                                     ? VkDrawClass::Blended
++			: _discards || 0 != (_state & BGFX_STATE_BLEND_ALPHA_TO_COVERAGE)                           ? VkDrawClass::Discards
++			:                                                                                             VkDrawClass::Opaque;
++		StormTraffic::Frame& frame = st.frames.back();
++		VkPassTraffic& pass = frame.passes.back();
++		++pass.draws[drawClass];
++
++		if (!st.statistics
++		||  st.open == int32_t(drawClass)
++		||  UINT64_MAX == pass.invocations[drawClass])
++		{
++			return;
++		}
++
++		stormEndQuery(_commandBuffer, _frameInFlight);
++		std::vector<StormTraffic::Query>& queries = st.queries[_frameInFlight];
++
++		if (queries.size() == StormTraffic::kQueries)
++		{
++			pass.invocations[drawClass] = UINT64_MAX; // more runs than queries: reported as not counted
++			return;
++		}
++
++		queries.push_back({ frame.frameNum, uint16_t(frame.passes.size() - 1), uint8_t(drawClass) });
++		++frame.pending;
++		vkCmdBeginQuery(_commandBuffer, st.pool[_frameInFlight], uint32_t(queries.size() - 1), 0);
++		st.open = int32_t(drawClass);
++	}
++
++	// A resolve pass reads what it resolves as a texture: added to the pass's loads.
++	static void stormSampledRead(uint64_t _bytes)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (st.inPass)
++		{
++			st.frames.back().passes.back().loaded[1] += _bytes;
++		}
++	}
++
++	// A vkCmdResolveImage reads every sample and writes the single-sample image.
++	static void stormResolveCopy(uint32_t _width, uint32_t _height, uint32_t _samples, uint32_t _bytes)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (st.frames.empty() )
++		{
++			return;
++		}
++
++		VkPassTraffic pass;
++		bx::memSet(&pass, 0, sizeof(pass) );
++		bx::strCopy(pass.name, sizeof(pass.name), "resolve copy");
++		pass.frameBuffer = UINT32_MAX;
++		pass.width       = _width;
++		pass.height      = _height;
++		pass.samples     = uint8_t(_samples);
++		pass.kind        = VkPassKind::ResolveCopy;
++		pass.end         = VkPassEnd::Own;
++		pass.loaded[0]   = uint64_t(_width) * _height * _samples * _bytes;
++		pass.resolved[0] = uint64_t(_width) * _height * _bytes;
++
++		for (uint32_t ii = 0; ii < VkDrawClass::Count; ++ii)
++		{
++			pass.invocations[ii] = st.statistics ? 0 : UINT64_MAX;
++		}
++
++		st.frames.back().passes.push_back(pass);
++	}
++
++	// A command buffer of `_frameInFlight` begins (its fence waited): the queries recorded in it last time have results.
++	static void stormCollect(VkDevice _device, VkCommandBuffer _commandBuffer, uint32_t _frameInFlight)
++	{
++		StormTraffic& st = s_stormTraffic;
++
++		if (!st.statistics)
++		{
++			return;
++		}
++
++		std::vector<StormTraffic::Query>& queries = st.queries[_frameInFlight];
++
++		if (!queries.empty() )
++		{
++			std::vector<uint64_t> results(queries.size(), 0);
++			const VkResult result = vkGetQueryPoolResults(_device, st.pool[_frameInFlight], 0, uint32_t(queries.size() )
++				, results.size() * sizeof(uint64_t), results.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
++			BX_ASSERT(VK_SUCCESS == result, "Storm traffic: vkGetQueryPoolResults %d", result);
++
++			for (size_t ii = 0; ii < queries.size(); ++ii)
++			{
++				const StormTraffic::Query& query = queries[ii];
++
++				for (StormTraffic::Frame& frame : st.frames)
++				{
++					if (frame.frameNum == query.frameNum)
++					{
++						uint64_t& invocations = frame.passes[query.pass].invocations[query.drawClass];
++
++						if (UINT64_MAX != invocations)
++						{
++							invocations = VK_SUCCESS == result ? invocations + results[ii] : UINT64_MAX;
++						}
++
++						--frame.pending;
++						break;
++					}
++				}
++			}
++
++			queries.clear();
++		}
++
++		vkCmdResetQueryPool(_commandBuffer, st.pool[_frameInFlight], 0, StormTraffic::kQueries);
++		stormPublishReady();
++	}
++
+ 	struct RendererContextVK : public RendererContextI
+ 	{
+ 		RendererContextVK()
+@@ -2494,7 +2831,11 @@ VK_IMPORT_INSTANCE
+ 					.textureCompressionASTC_LDR              = VK_FALSE,
+ 					.textureCompressionBC                    = supportedFeatures.textureCompressionBC,
+ 					.occlusionQueryPrecise                   = supportedFeatures.occlusionQueryPrecise,
+-					.pipelineStatisticsQuery                 = VK_FALSE,
++					// Storm (bgfx-vulkan-traffic-counters.patch): the fragment shader invocations of each render pass's draws.
++					.pipelineStatisticsQuery                 = true
++						&& supportedFeatures.pipelineStatisticsQuery
++						&& stormStatisticsAsked()
++						,
+ 					.vertexPipelineStoresAndAtomics          = supportedFeatures.vertexPipelineStoresAndAtomics,
+ 					.fragmentStoresAndAtomics                = supportedFeatures.fragmentStoresAndAtomics,
+ 					.shaderTessellationAndGeometryPointSize  = VK_FALSE,
+@@ -3233,6 +3574,26 @@ VK_IMPORT_DEVICE
+ 				goto error;
+ 			}
+ 
++			if (m_deviceFeatures.pipelineStatisticsQuery)
++			{
++				// Storm (bgfx-vulkan-traffic-counters.patch): reset here once, then by stormCollect before each reuse.
++				VkQueryPoolCreateInfo qpci;
++				qpci.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
++				qpci.pNext = NULL;
++				qpci.flags = 0;
++				qpci.queryType  = VK_QUERY_TYPE_PIPELINE_STATISTICS;
++				qpci.queryCount = StormTraffic::kQueries;
++				qpci.pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT;
++
++				for (uint32_t ii = 0; ii < m_maxFrameLatency; ++ii)
++				{
++					VK_CHECK(vkCreateQueryPool(m_device, &qpci, m_allocatorCb, &s_stormTraffic.pool[ii]) );
++					vkCmdResetQueryPool(m_commandBuffer, s_stormTraffic.pool[ii], 0, StormTraffic::kQueries);
++				}
++
++				s_stormTraffic.statistics = true;
++			}
++
+ 			g_internalData.context = m_device;
+ 			return true;
+ 
+@@ -3330,6 +3691,17 @@ VK_IMPORT_DEVICE
+ 			}
+ 			m_occlusionQuery.shutdown();
+ 
++			for (VkQueryPool& pool : s_stormTraffic.pool)
++			{
++				if (VK_NULL_HANDLE != pool)
++				{
++					release(pool);
++					pool = VK_NULL_HANDLE;
++				}
++			}
++
++			s_stormTraffic.statistics = false;
++
+ 			preReset();
+ 
+ 			m_pipelineStateCache.invalidate();
+@@ -5090,6 +5462,14 @@ VK_IMPORT_DEVICE
+ 
+ 			m_renderPassCache.add(hashKey, renderPass);
+ 
++			{
++				// Storm (bgfx-vulkan-traffic-counters.patch): its load, store and resolve ops, for the traffic counters.
++				StormTraffic::Ops& ops = s_stormTraffic.ops[::VkRenderPass(renderPass)];
++				ops.num        = _num;
++				ops.numResolve = uint8_t(numAttachments - _num);
++				bx::memCopy(ops.ad, ad, sizeof(VkAttachmentDescription) * numAttachments);
++			}
++
+ 			// Storm Engine patch (bgfx-vulkan-pipeline-cache.patch): what made it, for the recipes of its pipelines.
+ 			if (NULL == stormRenderPassInfo(hashKey) )
+ 			{
+@@ -5654,11 +6034,15 @@ VK_IMPORT_DEVICE
+ 				};
+ 
+ 				vkCmdBeginRenderPass(_commandBuffer, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
++				// Storm (bgfx-vulkan-traffic-counters.patch): the shader reads sample 0 of the multisampled depth.
++				stormPassBegin(VkPassKind::DepthResolve, "depth resolve", UINT32_MAX, renderPass, width, height);
++				stormSampledRead(uint64_t(width) * height * stormSampleBytes(_texture.m_format, false) );
+ 				vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+ 				vkCmdSetViewport(_commandBuffer, 0, 1, &vp);
+ 				vkCmdSetScissor(_commandBuffer, 0, 1, &rc);
+ 				vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program.m_pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+ 				vkCmdDraw(_commandBuffer, 3, 1, 0, 0);
++				stormPassEnd(_commandBuffer, m_cmd.m_currentFrameInFlight, VkPassEnd::Own);
+ 				vkCmdEndRenderPass(_commandBuffer);
+ 
+ 				release(framebuffer);
+@@ -8404,6 +8788,24 @@ VK_DESTROY
+ 			, &m_module
+ 			) );
+ 
++		// Storm (bgfx-vulkan-traffic-counters.patch): a fragment shader with OpKill, OpTerminateInvocation or
++		// OpDemoteToHelperInvocation can discard: its draws count as alpha-tested.
++		m_stormDiscards = false;
++
++		if (VK_SHADER_STAGE_FRAGMENT_BIT == shaderStage)
++		{
++			const uint32_t* code = (const uint32_t*)shaderCode->data;
++			const uint32_t  num  = shaderCode->size / 4;
++
++			for (uint32_t ii = 5; ii < num && !m_stormDiscards; )
++			{
++				const uint32_t opcode = code[ii] & 0xffff;
++				const uint32_t words  = code[ii] >> 16;
++				m_stormDiscards = 252 == opcode || 4416 == opcode || 5380 == opcode;
++				ii += bx::max<uint32_t>(words, 1);
++			}
++		}
++
+ 		release(shaderCode);
+ 
+ 		bx::memSet(m_attrMask,  0, sizeof(m_attrMask) );
+@@ -10021,6 +10423,7 @@ VK_DESTROY
+ 				};
+ 
+ 				g_stormResolveCopies.fetch_add(1, std::memory_order_relaxed);
++				stormResolveCopy(m_width, m_height, m_sampler.Sample * numLayers, stormSampleBytes(m_format, false) );
+ 				vkCmdResolveImage(
+ 					  _commandBuffer
+ 					, m_textureImage
+@@ -10285,6 +10688,8 @@ VK_DESTROY
+ 			};
+ 
+ 			vkCmdBeginRenderPass(_commandBuffer, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
++			stormPassBegin(VkPassKind::FormatResolve, "format resolve", UINT32_MAX, renderPass, width, height);
++			stormPassEnd(_commandBuffer, s_renderVK->m_cmd.m_currentFrameInFlight, VkPassEnd::Own);
+ 			vkCmdEndRenderPass(_commandBuffer);
+ 
+ 			release(framebuffer);
+@@ -12578,6 +12983,7 @@ VK_DESTROY
+ 			m_currentFence = commandList.m_fence;
+ 
+ 			s_renderVK->m_occlusionQuery.reset(m_currentFrameInFlight, m_activeCommandBuffer);
++			stormCollect(device, m_activeCommandBuffer, m_currentFrameInFlight); // Storm (bgfx-vulkan-traffic-counters.patch)
+ 		}
+ 
+ 		if (NULL != _outCommandBuffer)
+@@ -13268,6 +13674,8 @@ VK_DESTROY
+ 		}
+ 
+ 		stormTakePrewarms(_render->m_frameNum); // Storm Engine patch (bgfx-vulkan-pipeline-cache.patch)
++		s_stormTraffic.frames.push_back({ _render->m_frameNum, 0, false, {} }); // Storm (bgfx-vulkan-traffic-counters.patch)
++		s_stormTraffic.inPass = false;
+ 
+ 		BGFX_VK_PROFILER_BEGIN_LITERAL("rendererSubmit", kColorFrame);
+ 
+@@ -13437,6 +13845,7 @@ VK_DESTROY
+ 					{
+ 						if ( beginRenderPass )
+ 						{
++							stormPassEnd(m_commandBuffer, m_cmd.m_currentFrameInFlight, VkPassEnd::Target);
+ 							vkCmdEndRenderPass(m_commandBuffer);
+ 							beginRenderPass = false;
+ 						}
+@@ -13471,6 +13880,11 @@ VK_DESTROY
+ 					||  profiler.m_enabled
+ 					   ) )
+ 					{
++						stormPassEnd(m_commandBuffer, m_cmd.m_currentFrameInFlight
++							, renderView->m_fbh.idx != fbh.idx                ? VkPassEnd::Target
++							: !renderView->m_rect.isEqual(viewState.m_rect) ? VkPassEnd::Rect
++							:                                                 VkPassEnd::Profiler
++							);
+ 						vkCmdEndRenderPass(m_commandBuffer);
+ 						beginRenderPass = false;
+ 					}
+@@ -13482,6 +13896,7 @@ VK_DESTROY
+ 
+ 					if (beginRenderPass && bs.hasItem(view) )
+ 					{
++						stormPassEnd(m_commandBuffer, m_cmd.m_currentFrameInFlight, VkPassEnd::Blit);
+ 						vkCmdEndRenderPass(m_commandBuffer);
+ 						beginRenderPass = false;
+ 					}
+@@ -13693,6 +14108,8 @@ VK_DESTROY
+ 
+ 							vkCmdBeginRenderPass(m_commandBuffer, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+ 							beginRenderPass = true;
++							stormPassBegin(VkPassKind::Views, getViewName(_render, view), NULL == fb.m_nwh ? fbh.idx : UINT32_MAX
++								, renderPass, renderArea.m_width, renderArea.m_height);
+ 
+ 							if (partialColorClear)
+ 							{
+@@ -13703,6 +14120,11 @@ VK_DESTROY
+ 						}
+ 						else
+ 						{
++							if (s_stormTraffic.inPass)
++							{
++								++s_stormTraffic.frames.back().passes.back().views; // Storm: the pass goes on
++							}
++
+ 							if (BGFX_CLEAR_NONE != clr.m_flags)
+ 							{
+ 								Rect clearRect;
+@@ -13742,6 +14164,7 @@ VK_DESTROY
+ 
+ 						if (beginRenderPass)
+ 						{
++							stormPassEnd(m_commandBuffer, m_cmd.m_currentFrameInFlight, VkPassEnd::Compute);
+ 							vkCmdEndRenderPass(m_commandBuffer);
+ 							beginRenderPass = false;
+ 						}
+@@ -14275,6 +14698,12 @@ VK_DESTROY
+ 						m_occlusionQuery.begin(draw.m_occlusionQuery);
+ 					}
+ 
++					{
++						// Storm (bgfx-vulkan-traffic-counters.patch): the draw's class, its invocations.
++						const ShaderVK* fsh = m_program[key.m_program.idx].m_fsh;
++						stormDraw(m_commandBuffer, m_cmd.m_currentFrameInFlight, draw.m_stateFlags, NULL != fsh && fsh->m_stormDiscards);
++					}
++
+ 					const uint8_t primIndex = uint8_t( (draw.m_stateFlags & BGFX_STATE_PT_MASK) >> BGFX_STATE_PT_SHIFT);
+ 					const PrimInfo& prim = s_primInfo[primIndex];
+ 
+@@ -14403,6 +14832,7 @@ VK_DESTROY
+ 
+ 			if (beginRenderPass)
+ 			{
++				stormPassEnd(m_commandBuffer, m_cmd.m_currentFrameInFlight, VkPassEnd::FrameEnd);
+ 				vkCmdEndRenderPass(m_commandBuffer);
+ 				beginRenderPass = false;
+ 			}
+@@ -14703,6 +15133,9 @@ VK_DESTROY
+ 			}
+ 		}
+ 
++		s_stormTraffic.frames.back().submitted = true; // Storm (bgfx-vulkan-traffic-counters.patch)
++		stormPublishReady();
++
+ 		kick();
+ 	}
+ 
+@@ -14787,6 +15220,21 @@ VK_DESTROY
+ 		return vk::s_stormDepthResolve;
+ 	}
+ 
++	uint32_t getVkPassTraffic(VkPassTraffic* _out, uint32_t _max, uint32_t* _frame)
++	{
++		vk::StormTraffic& st = vk::s_stormTraffic;
++		std::lock_guard<std::mutex> lock(st.mutex);
++		const uint32_t num = uint32_t(st.published.size() );
++
++		for (uint32_t ii = 0; ii < num && ii < _max; ++ii)
++		{
++			_out[ii] = st.published[ii];
++		}
++
++		*_frame = st.publishedFrame;
++		return num;
++	}
++
+ } // namespace bgfx
+ 
+ #else
+diff --git a/src/renderer_vk.h b/src/renderer_vk.h
+index 015e288..83fadc7 100644
+--- a/src/renderer_vk.h
++++ b/src/renderer_vk.h
+@@ -556,6 +556,7 @@ VK_DESTROY_FUNC(DescriptorSet);
+ 	struct ShaderVK
+ 	{
+ 		char m_stormName[48] = {}; // Storm Engine patch (bgfx-vulkan-pipeline-cache.patch): bgfx::setName
++		bool m_stormDiscards = false; // Storm Engine patch (bgfx-vulkan-traffic-counters.patch): can discard
+ 
+ 		ShaderVK()
+ 			: m_module(VK_NULL_HANDLE)

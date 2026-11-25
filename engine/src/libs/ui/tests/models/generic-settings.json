@@ -1,0 +1,24 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":1,
+"screenRevision":7,
+"screen":"mod_options",
+"widgets":[
+{"node":"TITLE","type":"heading","label":"Настройки мода","index":-1},
+{"node":"CHECK_OPTIONS","type":"check","label":"Показывать подсказки","value":"1","index":0,"actions":["toggle"]},
+{"node":"CHECK_OPTIONS","type":"check","label":"Быстрые бои","value":"0","index":1,"actions":["toggle"]},
+{"node":"STR_DIFF","type":"text","label":"Сложность","index":-1},
+{"node":"CHECK_DIFF","type":"check","label":"Юнга","value":"0","index":0,"actions":["toggle"],"exclusive":true},
+{"node":"CHECK_DIFF","type":"check","label":"Капитан","value":"1","index":1,"actions":["toggle"],"exclusive":true},
+{"node":"CHECK_DIFF","type":"check","label":"Адмирал","value":"0","index":2,"actions":["toggle"],"exclusive":true},
+{"node":"STR_VOL","type":"text","label":"Громкость колокола","index":-1},
+{"node":"SLIDE_VOL","type":"slider","value":"30","index":-1,"actions":["set"],"max":50,"step":5},
+{"node":"STR_NAME","type":"text","label":"Имя корабля","index":-1},
+{"node":"EDIT_NAME","type":"edit","value":"Аделина","index":-1},
+{"node":"STR_FLAG","type":"text","label":"Флаг","index":-1},
+{"node":"FLAG_CHANGER","type":"stepper","value":"Англия","index":-1,"actions":["left","right"]},
+{"node":"B_DELETE","type":"button","label":"Удалить настройки","index":-1,"actions":["press"]},
+{"node":"B_OK","type":"button","label":"Готово","index":-1,"actions":["press"]},
+{"node":"B_CANCEL","type":"button","label":"Отмена","index":-1,"actions":["press"]}
+]}

@@ -1,0 +1,35 @@
+/* C-Tile: tappable picture tile. Flat fill, no frame; `empty` is the only dashed look in the kit. */
+c-tile {
+    position: relative; display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+    box-sizing: border-box; width: 100%; height: 100%; min-height: @{spec.minHeight}dp; gap: 10dp; padding: 8dp 10dp;
+    border: 1dp transparent; background-color: @{color.woodLight/.06}; color: @{color.text};
+}
+c-tile.layout-column { flex-direction: column; justify-content: center; gap: 6dp; padding: 8dp 4dp; text-align: center; }
+c-tile .ti-text { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; overflow: hidden; line-height: 1.25; }
+c-tile.layout-column .ti-text { align-items: stretch; width: 100%; }
+/* a short name wraps to two lines, then steps down to the smallest type size; never "…" at phone width */
+c-tile .ti-label { font-size: @{spec.font.label}dp; }
+c-tile.layout-column .ti-label, c-tile.layout-column .ti-sub { text-align: center; }
+c-tile .ti-sub { font-size: @{spec.font.sub}dp; color: @{color.textMuted}; }
+c-tile .ti-slot { display: block; flex: 0 0 auto; }
+
+c-tile.pressed { background-color: @{color.brassGlow/.3}; box-shadow: @{color.black/.35} 0 2dp 4dp 0 inset; }
+c-tile.selected { border-color: @{color.brass}; background-color: @{color.brassGlow/.22}; box-shadow: none; }
+c-tile.selected .ti-label { color: @{color.textSelected}; }
+c-tile.disabled { border-color: transparent; background-color: @{color.black/.3}; box-shadow: none; }
+c-tile.disabled .ti-label { color: @{color.textMuted}; }
+c-tile.empty { border-color: transparent; background-color: transparent; box-shadow: none; }
+c-tile.empty .ti-label { color: @{color.textMuted}; }
+c-tile.empty.pressed { background-color: @{color.brassGlow/.14}; }
+/* a selected empty slot is selected like any other tile: the solid rim replaces the dashed one (the template drops it) */
+c-tile.empty.selected { border-color: @{color.brass}; background-color: @{color.brassGlow/.22}; }
+c-tile.empty.selected .ti-label { color: @{color.textSelected}; }
+
+/* RCSS borders are solid only: the dashed rim is four hairlines with a repeating gradient. */
+c-tile .ti-dash { position: absolute; pointer-events: none; }
+c-tile .ti-dash-t, c-tile .ti-dash-b { left: -1dp; right: -1dp; height: 1dp; decorator: repeating-linear-gradient(90deg, @{color.brassLine/.5} 0dp, @{color.brassLine/.5} 3dp, @{color.black/0} 3dp, @{color.black/0} 5dp); }
+c-tile .ti-dash-l, c-tile .ti-dash-r { top: -1dp; bottom: -1dp; width: 1dp; decorator: repeating-linear-gradient(180deg, @{color.brassLine/.5} 0dp, @{color.brassLine/.5} 3dp, @{color.black/0} 3dp, @{color.black/0} 5dp); }
+c-tile .ti-dash-t { top: -1dp; }
+c-tile .ti-dash-b { bottom: -1dp; }
+c-tile .ti-dash-l { left: -1dp; }
+c-tile .ti-dash-r { right: -1dp; }

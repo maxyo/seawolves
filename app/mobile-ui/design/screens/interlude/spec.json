@@ -1,0 +1,10 @@
+{
+  "tag": "s-interlude",
+  "doc": "Screen part of s-reading: the interlude `boal_frame` over the whole screen. The game's frame box (SCROLLPICT 25,20–775,580 of boal_frame.ini, 750:560) as tall as the screen holds the `picture` (a game texture, or null), stretched to the box as the game draws it, and the `text` inside the game's INFO_TEXT margins (60,50–740,550), wrapped and centred; a picture without a line is shown unshaded. A tap anywhere reports `click` (the game's own way out), silently as the game's Esc (no interface click: a frame whose Esc the quest locks would click for nothing).",
+  "props": {
+    "text": {"type": "text", "default": ""},
+    "picture": {"type": "json", "default": null}
+  },
+  "behaviors": ["press"],
+  "constants": {"boxWidthVh": 133.93, "insetX": 4.67, "insetY": 5.36, "pressSound": false}
+}

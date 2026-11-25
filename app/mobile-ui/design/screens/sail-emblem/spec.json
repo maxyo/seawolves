@@ -1,0 +1,14 @@
+{
+  "tag": "s-sail-emblem",
+  "doc": "Sail emblem at the shipyard (sailsgerald), filled by extra_sails.cpp: the ribbon of emblems with ‹ ›, one contextual primary (paint the chosen emblem, or take the current one off).",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "stats": {"type": "json", "default": []},
+    "emblems": {"type": "json", "default": []},
+    "appliedLabel": {"type": "text", "default": ""},
+    "prev": {"type": "bool", "default": false, "class": false},
+    "next": {"type": "bool", "default": false, "class": false},
+    "primary": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

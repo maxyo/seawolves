@@ -1,0 +1,31 @@
+/* C-Minimap: the sea minimap, bare on the scene. «place · N уз», the 100 dp disc
+   (a tap reports `zoom`), under it «date · time» (as under the world-map compass). The wind is
+   a picture in the disc, not text. `native`: the engine draws its radar (land, ships as
+   silhouettes, wind streamer) into the disc under the UI, so the disc is only the tap area. */
+c-minimap { position: relative; display: block; box-sizing: border-box; width: @{spec.width}dp; height: @{spec.height}dp; color: @{color.text}; line-height: 1.3;
+    font-effect: outline(1dp @{color.black}), glow(3dp @{color.black/.8}), shadow(0dp 1dp @{color.black}); }
+c-minimap > .mm-line { position: absolute; left: 0; right: 0; height: 18dp; overflow: hidden; font-size: @{spec.font}dp; line-height: 18dp; text-align: center; white-space: nowrap; }
+c-minimap > .mm-line.top { top: 4dp; }
+c-minimap > .mm-line.bottom { top: @{spec.line2Top}dp; color: @{color.textSecond}; }
+c-minimap > .mm-disc { position: absolute; left: @{spec.disc.left}dp; top: @{spec.disc.top}dp; width: @{spec.disc.size}dp; height: @{spec.disc.size}dp; box-sizing: border-box;
+    border-radius: 50dp; border: 1dp @{color.brassLine/.7};
+    decorator: radial-gradient(circle closest-side at center, @{color.radarTop/.353}, @{color.radarLow/.502});
+    box-shadow: @{color.black/.45} 0 0 0 1dp, @{color.black/.5} 0 1dp 4dp 0; }
+c-minimap > .mm-disc.pressed { border-color: @{color.brass}; }
+c-minimap > .mm-disc > .mm-own { position: absolute; left: 45dp; top: 44dp; width: 0; height: 0; transform-origin: 50% 60%;
+    border-left: 4dp transparent; border-right: 4dp transparent; border-bottom: 9dp @{color.text}; }
+c-minimap > .mm-disc > .mm-dot { position: absolute; width: @{spec.dot}dp; height: @{spec.dot}dp; border-radius: 3dp; background-color: @{color.brass}; }
+c-minimap > .mm-disc > .mm-dot.tone-enemy { background-color: @{color.dangerFill}; }
+c-minimap > .mm-disc > .mm-dot.tone-ally { background-color: @{color.radarAlly}; }
+c-minimap.native > .mm-disc { border: 0; decorator: none; box-shadow: none; }
+/* the place asks for its natural width (natural="1"); a long one steps its font down, and only
+   then ends in an ellipsis, inside the minimap's width; the speed always stays */
+c-minimap > .mm-line.top { display: flex; flex-direction: row; justify-content: center; }
+c-minimap > .mm-line.top > .mm-place { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+c-minimap > .mm-line.top > .mm-speed { flex: 0 0 auto; display: flex; align-items: center; white-space: pre; }
+/* Reuse the ship-and-wake speed glyph; keep the readout inside its existing
+   18 dp line above the radar tap area. Only the place may shrink. */
+/* the speed: tenths («7,4») beside its icon, no unit, left-aligned beside its icon in the
+   width of «88,8» so the digits stand still as it changes */
+c-minimap .mm-speed-value { flex: 0 0 auto; box-sizing: border-box; min-width: @{spec.speedSlot}dp; text-align: left; }
+c-minimap .mm-speed-icon { flex: 0 0 auto; width: 16dp; height: 16dp; margin-right: 3dp; line-height: 0; pointer-events: none; }

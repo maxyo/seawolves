@@ -1,0 +1,9 @@
+/* s-trade: one layout for every buy / sell / transfer screen: the goods list and, in its dock, the place's note and buttons under the open deal. */
+s-trade { display: block; width: 100%; height: 100%; }
+s-trade .st-main { flex: 1 1 0; min-width: 0; height: 100%; }
+s-trade .st-info { flex: 0 0 auto; display: flex; flex-direction: row; }
+s-trade .st-grow { flex: 1 1 0; min-height: 0; }
+s-trade .st-actions { flex: 0 0 auto; display: flex; flex-direction: row; flex-wrap: wrap; gap: @{space.sm}dp; }
+s-trade c-trade-list c-button { flex-shrink: 0; }
+s-trade .st-place { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6dp; }
+s-trade .st-place-title { font-size: @{type.name}dp; font-weight: bold; color: @{color.text}; }

@@ -1,0 +1,41 @@
+#pragma once
+
+#include "ball_splash_defines.h"
+#include "storm_glm.h"
+#include "t_splash.h"
+#include "renderer.h"
+#include "geometry.h"
+#include "sea_base.h"
+
+class BALLSPLASH : public Entity
+{
+  public:
+    BALLSPLASH();
+    ~BALLSPLASH() override;
+
+    bool Init() override;
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    virtual void Realize(uint32_t dTime);
+    virtual void Execute(uint32_t dTime);
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::execute:
+            Execute(delta);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        }
+    }
+
+  private:
+    void InitializeSplashes();
+    TSplash *TryToAddSplash(const glm::vec3 &_pos, const glm::vec3 &_dir);
+
+    TSplash splashes[MAX_SPLASHES];
+    VRenderer *renderer;
+    SEA_BASE *sea;
+};

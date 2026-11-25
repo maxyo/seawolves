@@ -1,0 +1,28 @@
+/* s-nations: the matrix takes the width, the reputation and flag column keeps a readable
+   width; rows share the height, so a taller screen gives roomier rows, not a bigger UI. */
+s-nations { display: block; width: 100%; height: 100%; }
+s-nations .na-cols { display: flex; flex-direction: row; gap: @{space.md}dp; width: 100%; height: 100%; }
+s-nations .na-matrix { flex: 1 1 0; min-width: 0; height: 100%; }
+s-nations .na-side { flex: 0 0 auto; width: 34%; min-width: 280dp; max-width: 420dp; height: 100%; }
+s-nations .na-grid { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 0 @{space.md}dp; }
+s-nations .na-row { flex: 1 1 0; min-height: 36dp; max-height: 72dp; display: flex; flex-direction: row; align-items: stretch; border-bottom: 1dp @{color.brassLine/.22}; }
+s-nations .na-head { flex: 0 0 auto; min-height: 48dp; border-bottom: 1dp @{color.brassLine/.35}; }
+s-nations .na-axis { flex: 1.6 1 0; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; }
+s-nations .na-name { flex: 1 1 0; min-width: 0; font-size: @{type.body}dp; color: @{color.text}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+s-nations .na-cell { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; }
+s-nations .na-cell.self { background-color: @{color.black/.25}; }
+s-nations .na-dot { width: 4dp; height: 4dp; border-radius: 2dp; background-color: @{color.brassLine/.6}; }
+s-nations .na-legend { flex: 0 0 auto; display: flex; flex-direction: row; justify-content: space-around; padding: @{space.sm}dp @{space.md}dp; }
+s-nations .na-key { display: flex; flex-direction: row; align-items: center; gap: @{space.xs}dp; }
+s-nations .na-key-text { font-size: @{type.caption}dp; color: @{color.textSecond}; }
+s-nations .na-title { flex: 0 0 auto; height: 32dp; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+s-nations .na-title c-icon-button { margin: -8dp -8dp -8dp 0; }
+s-nations .na-reps { flex: 0 0 auto; display: flex; flex-direction: column; }
+s-nations .na-rep { flex: 0 0 auto; height: 30dp; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; }
+s-nations .na-rep-value { flex: 0 0 auto; white-space: nowrap; font-size: @{type.body}dp; color: @{color.textSecond}; }
+s-nations .na-side-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.xs}dp; }
+s-nations .na-apply { flex: 0 0 auto; width: 100%; }
+s-nations .na-note { flex: 0 0 auto; padding: 0 @{space.md}dp @{space.sm}dp @{space.md}dp; }
+s-nations .na-rep-bar { flex: 1 1 0; min-width: 48dp; }
+s-nations .na-rep-value.tone-ok { color: @{color.ok}; }
+s-nations .na-rep-value.tone-danger { color: @{color.danger}; }

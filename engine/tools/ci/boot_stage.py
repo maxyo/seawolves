@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""The engine boot stage of the gate: an ASan+UBSan host engine boots the game, loads a save and three scenes.
+
+  tools/ci/boot_stage.py [--budget S] [--build DIR] [--out DIR] [--save FILE] [--game DIR] [--no-build]
+
+What ships starts here as on a phone, through the seams the host checks replace with stubs (the script VM, the
+entity lifetimes, the renderer, the techniques, the save loader): the scene sweep (tools/scene_sweep, one engine)
+boots to the main menu, loads the save (scene save:boot: the town Сен-Пьер of the canonical save), then sails out
+(sea:Martinique) and enters a tavern (loc:FortFrance_tavern, through the town again). It fails on a crash, a
+sanitizer report (ASan stops the engine, UBSan lines fail the scene), a fatal engine error, script errors, missing
+resources, a black or HUD-less frame, or the time budget. Three scenes from a save, not the all-scenes sweep:
+tools/scene_sweep/README.md.
+
+Inputs (each missing one fails the stage loudly, nothing is skipped):
+- STORM_VIRTUALGL: the VirtualGL directory (--render gles-gpu: OpenGL ES on the host GPU, the phones' backend);
+- STORM_GAME_DIR (or --game): an installed copy of the game;
+- STORM_BOOT_SAVE (or --save): a save whose hero stands in the town of Martinique (Сен-Пьер), the start of the
+  three scenes.
+
+The build directory (default <worktree>/build/boot-asan, RelWithDebInfo, -fsanitize=address,undefined,
+-DSTORM_SCENE_SWEEP=ON) is kept and rebuilt incrementally through ccache; it builds the engine and the relief networks the
+sweep gives it (<build>/relief_models). Times are logged per step and per scene.
+"""
+
+import argparse
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+root = Path(__file__).resolve().parents[2]
+SCENES = ('sea:Martinique', 'loc:FortFrance_tavern')  # after save:boot (the town); the save is on Martinique
+SANITIZE = '-fsanitize=address,undefined -fno-omit-frame-pointer'
+# halt_on_error: an ASan report ends the run (the sweep reports the crash with the report in the engine log).
+# detect_leaks=0: the engine frees much of its state at exit by ending the process. verify_asan_link_order=0:
+# VirtualGL's faker libraries are preloaded before the statically linked ASan runtime (they do not allocate first).
+ASAN_OPTIONS = 'halt_on_error=1:detect_leaks=0:verify_asan_link_order=0:print_summary=1'
+# ubsan.supp: the known reports, each with its cause; any other UBSan report fails the scene it was written in.
+UBSAN_OPTIONS = f"print_stacktrace=1:report_error_type=1:suppressions={root / 'tools/ci/ubsan.supp'}"
+
+
+def log(text):
+    print(f'boot: {text}', flush=True)
+
+
+def fail(text):
+    sys.exit(f'BOOT STAGE FAILED: {text}')
+
+
+def run(command, **kwargs):
+    return subprocess.run([str(c) for c in command], cwd=root, **kwargs)
+
+
+def build(directory):
+    """Configures the sanitizer build once (it reconfigures itself when an input of its configure changes, the pins
+    among them) and builds the engine."""
+    if not (directory / 'CMakeCache.txt').exists():
+        launcher = root / 'tools/ccache/launcher'
+        command = [
+            'cmake',
+            '-S',
+            root,
+            '-B',
+            directory,
+            '-G',
+            'Ninja',
+            '-DCMAKE_BUILD_TYPE=RelWithDebInfo',
+            '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+            '-DCMAKE_C_COMPILER=clang',
+            '-DCMAKE_CXX_COMPILER=clang++',
+            f'-DCMAKE_C_COMPILER_LAUNCHER={launcher}',
+            f'-DCMAKE_CXX_COMPILER_LAUNCHER={launcher}',
+            f'-DCMAKE_C_FLAGS={SANITIZE}',
+            f'-DCMAKE_CXX_FLAGS={SANITIZE}',
+            '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined',
+            '-DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=address,undefined',
+            '-DSTORM_SCENE_SWEEP=ON',
+        ]
+        if run(command).returncode:
+            fail(f'configuring {directory} failed')
+    command = ['ninja', '-C', directory, 'engine', 'storm_relief_model_files']
+    if run(command).returncode:
+        fail(f'{" ".join(map(str, command))} failed')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '--budget',
+        type=int,
+        default=int(os.environ.get('STORM_BOOT_BUDGET', 300)),
+        help='seconds the sweep may take (the build is not counted; default 300, $STORM_BOOT_BUDGET)',
+    )
+    parser.add_argument('--build', type=Path, default=root / 'build/boot-asan')
+    parser.add_argument('--out', type=Path, default=root / 'build/gate/boot')
+    parser.add_argument(
+        '--game',
+        type=Path,
+        default=os.environ.get('STORM_GAME_DIR'),
+        help='the installed game (default $STORM_GAME_DIR)',
+    )
+    parser.add_argument(
+        '--save',
+        type=Path,
+        default=os.environ.get('STORM_BOOT_SAVE'),
+        help='the save the stage loads (default $STORM_BOOT_SAVE)',
+    )
+    parser.add_argument('--no-build', action='store_true', help='use the engine already built in --build')
+    args = parser.parse_args()
+    vgl = os.environ.get('STORM_VIRTUALGL')
+    if not vgl or not all((Path(vgl) / 'usr/lib' / name).is_file() for name in ('libdlfaker.so', 'libvglfaker.so')):
+        fail(
+            'STORM_VIRTUALGL is not set to a VirtualGL directory (usr/lib/libvglfaker.so): the boot stage renders '
+            'with OpenGL ES on the host GPU through VirtualGL (tools/scene_sweep/README.md, Renderer)'
+        )
+    if args.game is None:
+        fail('no game: set STORM_GAME_DIR (or --game) to an installed copy of the game')
+    if args.save is None:
+        fail('no save: set STORM_BOOT_SAVE (or --save) to a save whose hero stands in the town of Martinique')
+    if not args.game.is_dir():
+        fail(f'the game is missing: {args.game} (STORM_GAME_DIR)')
+    if not args.save.is_file():
+        fail(f'the save is missing: {args.save} (STORM_BOOT_SAVE)')
+    started = time.monotonic()
+    if not args.no_build:
+        build(args.build.resolve())
+    built = time.monotonic()
+    engine = args.build.resolve() / 'engine'
+    if not engine.is_file():
+        fail(f'no engine in {args.build}')
+    log(f'build {built - started:.0f} s')
+    args.out.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, ASAN_OPTIONS=ASAN_OPTIONS, UBSAN_OPTIONS=UBSAN_OPTIONS)
+    command = [
+        sys.executable,
+        root / 'tools/scene_sweep/run.py',
+        '--game',
+        args.game,
+        '--engine',
+        engine,
+        '--out',
+        args.out,
+        '--save',
+        args.save,
+        '--only',
+        *SCENES,
+        '--jobs',
+        '1',
+        '--single-session',
+        '--render',
+        'gles-gpu',
+        '--virtualgl',
+        vgl,
+        '--timeout',
+        str(min(240, args.budget)),
+        # The engine's gate: the application's script patches are checked with the application.
+        '--no-script-patches',
+        # Compiled scripts kept between runs (rebuilt when the game's scripts change): 20 s of the ASan boot.
+        '--script-cache',
+        args.build.resolve() / 'script-cache',
+    ]
+    report = args.out / 'report.json'
+    report.unlink(missing_ok=True)  # a failed launch must never reuse a previous successful report
+    sweep = subprocess.Popen([str(c) for c in command], cwd=root, env=env, start_new_session=True)
+    try:
+        code = sweep.wait(timeout=args.budget)
+    except subprocess.TimeoutExpired:
+        os.killpg(sweep.pid, signal.SIGTERM)
+        try:
+            sweep.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            os.killpg(sweep.pid, signal.SIGKILL)
+            sweep.wait()
+        fail(f'over its time budget: the sweep took more than {args.budget} s (--budget, STORM_BOOT_BUDGET)')
+    swept = time.monotonic()
+    if report.exists():
+        result = json.loads(report.read_text())
+        scenes = result['scenes']
+        for name, entry in scenes.items():
+            load = f", load {entry['load_ms'] / 1000:.1f} s" if 'load_ms' in entry else ''
+            began = f", began {entry['begin_ms'] / 1000:.1f} s after the engine started" if 'begin_ms' in entry else ''
+            log(
+                f"{entry['status'].upper():5} {name}: {entry.get('seconds', '-')} s{load}{began}"
+                + (f" ({'; '.join(entry['reasons'][:3])})" if entry['reasons'] else '')
+            )
+    log(f'sweep {swept - built:.0f} s (budget {args.budget} s), total {swept - started:.0f} s; report {report}')
+    if code:
+        fail(f'the sweep failed (exit {code}): {args.out}/summary.txt')
+    if not report.is_file():
+        fail(f'the sweep produced no report: {report}')
+    if result.get('meta', {}).get('engine_sessions') != 1:
+        fail('the sweep must report exactly one engine session')
+    required = {'menu:main', 'save:boot', *SCENES}
+    missing = required - scenes.keys()
+    if missing:
+        fail(f'the sweep did not check required scenes: {sorted(missing)}')
+    log('passed')
+
+
+if __name__ == '__main__':
+    main()

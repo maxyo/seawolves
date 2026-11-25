@@ -1,0 +1,28 @@
+/* C-HeroCard: identity rail of the hero section (wood panel): portrait, name, rank, the roles the person holds,
+   health and energy bars, free points, state lines; the children sit at the bottom. One column of spec.width; where
+   this person's card would be cut in it (a short screen, many posts: the behaviour `fit`), the identity and the
+   figures stand side by side in a wider card. */
+c-hero-card {
+    position: relative; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+    width: @{spec.width}dp; height: 100%; gap: @{space.sm}dp; padding: 8dp 2dp 12dp 2dp;
+    color: @{color.text}; background-color: @{color.wood};
+    box-shadow: @{color.black/.45} 0 0 0 1dp inset, @{color.woodLight/.04} 0 1dp 0 0;
+}
+c-hero-card > .hc-main { display: flex; flex-direction: column; gap: @{space.sm}dp; }
+c-hero-card > .hc-main > .hc-id { display: flex; flex-direction: column; gap: @{space.sm}dp; }
+c-hero-card > .hc-main > .hc-id > .hc-pic { display: flex; flex-direction: row; justify-content: center; }
+c-hero-card > .hc-main > .hc-id > .hc-names { padding: 0 8dp; text-align: center; line-height: 1.25; }
+c-hero-card > .hc-main > .hc-id > .hc-names > .hc-title { font-size: @{type.name}dp; font-weight: bold; }
+c-hero-card > .hc-main > .hc-id > .hc-names > .hc-sub,
+c-hero-card > .hc-main > .hc-id > .hc-names > .hc-roles { font-size: @{type.caption}dp; color: @{color.textSecond}; }
+c-hero-card > .hc-main > .hc-body { display: flex; flex-direction: column; gap: @{space.sm}dp; padding: 0 8dp; }
+c-hero-card > .hc-main > .hc-body > .hc-lines { font-size: @{type.caption}dp; line-height: 1.45; color: @{color.textSecond}; }
+c-hero-card > .hc-main > .hc-body > .hc-lines > .hc-line > .hc-v { color: @{color.text}; }
+c-hero-card > .hc-main > .hc-body > .hc-lines > .hc-line > .hc-v.tone-ok { color: @{color.ok}; }
+c-hero-card > .hc-main > .hc-body > .hc-lines > .hc-line > .hc-v.tone-danger { color: @{color.danger}; }
+c-hero-card > .hc-main > .hc-body > .hc-lines > .hc-line > .hc-v.tone-gold { color: @{color.brass}; }
+c-hero-card > .hc-fill { flex: 1 1 0; }
+c-hero-card > .hc-slot { flex: 0 0 auto; display: flex; flex-direction: column; gap: @{space.sm}dp; padding: 0 8dp; }
+c-hero-card.roomy { width: @{spec.widthRoomy}dp; }
+c-hero-card.roomy > .hc-main { flex-direction: row; align-items: flex-start; }
+c-hero-card.roomy > .hc-main > .hc-id, c-hero-card.roomy > .hc-main > .hc-body { flex: 1 1 0; min-width: 0; }

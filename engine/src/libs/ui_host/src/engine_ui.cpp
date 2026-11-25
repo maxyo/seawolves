@@ -1,0 +1,280 @@
+#include "engine_ui.hpp"
+#include "app_ui_names.hpp"
+
+namespace storm::android::ui
+{
+// The host's own lines: ui.log (its errors in error.log too) and logcat under kTag, like the UI library's lines
+// (Config::on_log writes those to the same files; the library puts them in logcat itself).
+spdlog::logger &Log()
+{
+    static const std::shared_ptr<spdlog::logger> logger = [] {
+        std::vector<spdlog::sink_ptr> sinks = storm::logging::fileSinks("ui");
+        sinks.push_back(std::make_shared<spdlog::sinks::android_sink_mt>(kTag, true));
+        auto made = std::make_shared<spdlog::logger>("ui", sinks.begin(), sinks.end());
+        made->flush_on(spdlog::level::warn);
+        return made;
+    }();
+    return *logger;
+}
+
+// A debug trace switched on by its own logcat tag (Loggable): logcat only.
+std::shared_ptr<spdlog::logger> Trace(const char *tag)
+{
+    auto trace = std::make_shared<spdlog::logger>(tag, std::make_shared<spdlog::sinks::android_sink_mt>(tag, true));
+    trace->set_level(spdlog::level::debug);
+    return trace;
+}
+spdlog::logger &TraceStates()
+{
+    static const std::shared_ptr<spdlog::logger> trace = Trace("StormUiState");
+    return *trace;
+}
+spdlog::logger &TraceInputs()
+{
+    static const std::shared_ptr<spdlog::logger> trace = Trace("StormUiInput");
+    return *trace;
+}
+
+double MonotonicMs()
+{
+    return storm::ui::jni::MonotonicSeconds() * 1000.0;
+}
+
+void EngineUi::Tick(uint64_t input_epoch)
+{
+    ++loop_;
+    if (!host_ && !failed_)
+        Start();
+    std::vector<Step> work;
+    size_t dropped = 0;
+    std::optional<bool> live;
+    {
+        const std::lock_guard lock(inbox_mutex_);
+        auto taken = inbox_.take(input_epoch);
+        work = std::move(taken.steps);
+        dropped = taken.dropped;
+        live = std::exchange(live_, std::nullopt);
+    }
+    if (dropped)
+        Log().info("{} touch samples dropped: sent before the input went off", dropped);
+    if (live)
+    {
+        presentation_.live = *live;
+        presentation_.live_known = true;
+        PublishPresentation();
+    }
+    if (!host_)
+        return; // nothing of it applies to a host that is not there (touches of no UI)
+    for (auto &[request, applied, reason] : std::exchange(answers_, {}))
+        host_->Answer(request, applied, reason);
+    const double now_ms = MonotonicMs();
+    for (Step &step : work)
+    {
+        if (step.call)
+        {
+            step.call(*host_);
+            continue;
+        }
+        // With the trace every sample: where, and how long ago it happened (input latency).
+        if (trace_input_)
+            TraceInput("touch", std::to_string(step.phase) + " " + std::to_string(int(step.x)) + "," +
+                                    std::to_string(int(step.y)) + " sampled at " +
+                                    std::to_string(int64_t(step.time_ms)) + " ms, age " +
+                                    std::to_string(int(now_ms - step.time_ms)) + " ms");
+        if (step.phase == static_cast<int>(storm::ui::TouchPhase::Up))
+            tap_loop_ = loop_;
+        // The sample's own time on the host's clock: how long ago it happened. The moves of
+        // this iteration are samples: each pointer is placed once, below, for this frame.
+        const auto phase = static_cast<storm::ui::TouchPhase>(step.phase);
+        host_->Touch(phase == storm::ui::TouchPhase::Move ? storm::ui::TouchPhase::Sample : phase, step.pointer, step.x,
+                     step.y, host_->Now() - (now_ms - step.time_ms) / 1000.0);
+    }
+    host_->PlaceTouches(host_->Now());
+    PublishInterfaceActive();
+}
+
+void EngineUi::Shutdown()
+{
+    if (auto *owner = storm::render::FrameOwner::Get(); owner && backend_)
+    {
+        owner->RemoveClient(backend_.get());
+        owner->RemoveClient(&prewarm_);
+        if (trace_input_)
+            owner->RemoveClient(&frame_trace_);
+    }
+    {
+        const std::lock_guard lock(host_mutex_);
+        host_.reset();
+    }
+    backend_.reset();
+    files_.reset();
+    if (auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv()); env && assets_)
+        env->DeleteGlobalRef(assets_);
+    assets_ = nullptr;
+    failed_ = true; // no new host after this
+}
+
+void EngineUi::OnAction(const storm::ui::Action &action)
+{
+    using storm::ui::hud::Presence;
+    using storm::ui::hud::Shortcut;
+    if (action.command &&
+        (std::holds_alternative<Shortcut>(*action.command) || std::holds_alternative<Presence>(*action.command)))
+    {
+        const auto *shortcut = std::get_if<Shortcut>(&*action.command);
+        const std::string verb = shortcut ? app::hud_input::shortcut : app::hud_input::presence;
+        const std::string value = shortcut ? shortcut->name : std::get<Presence>(*action.command).state;
+        CallActivity(upcall::GameActivity::onUiHudInput, [&](JNIEnv *env, jobject activity, jmethodID method) {
+            const JavaStrings texts(env, {&verb, &value}, "onUiHudInput");
+            if (!texts.ok())
+                return false;
+            env->CallVoidMethod(activity, method, texts[0], texts[1]);
+            return true;
+        });
+        return;
+    }
+    if (storm::ui::AnsweredAction(action))
+    {
+        // A widget of the open interface: the action itself goes to the interface (XINTERFACE::DoControl
+        // applies and answers it), with the wire its node reads.
+        in_action_ = true;
+        TraceInput("action", action.screen + " " + action.node + " " + action.verb + " request " +
+                                 std::to_string(action.request));
+        if (action.screen != screen_)
+            Answer(action.request, false, "the interface " + action.screen + " is not open");
+        else
+            storm::android::uiWidgetActions.push_back(
+                {action.screen, action.node, storm::ui::WidgetWire(action), action.index, action.request});
+        in_action_ = false;
+        return;
+    }
+    if (trace_input_)
+        TraceInput("action",
+                   action.screen + " " + action.node + " " + action.verb + " -> " + storm::ui::EngineCommand(action));
+    if (action.command)
+    {
+        commands_.push(*action.command, action.node); // a node names a latest-value slot
+        return;
+    }
+    if (std::string command = storm::ui::EngineCommand(action); !command.empty())
+    {
+        commands_.push(std::move(command), {});
+        return;
+    }
+    CallActivity(upcall::GameActivity::onUiAction, [&](JNIEnv *env, jobject activity, jmethodID method) {
+        const JavaStrings texts(env, {&action.node, &action.verb, &action.value}, "onUiAction");
+        if (!texts.ok())
+            return false;
+        env->CallVoidMethod(activity, method, texts[0], texts[1], texts[2]);
+        return true;
+    });
+}
+
+void EngineUi::Record(const storm::ui::InterfaceModel &model) const
+{
+    if (screen_.empty() || !record_models_)
+        return;
+    const std::string json = storm::ui::InterfaceModelJson(model);
+    const char *external = SDL_AndroidGetExternalStoragePath();
+    if (!external)
+        return;
+    std::error_code error;
+    const std::filesystem::path folder = std::filesystem::path(external) / "ui-models";
+    std::filesystem::create_directories(folder, error);
+    std::ofstream out(folder / (screen_ + ".json"), std::ios::binary);
+    out.write(json.data(), std::streamsize(json.size()));
+    if (!out)
+        Log().error("Cannot record the interface {} in {}", screen_, folder.string());
+}
+
+void state(std::string_view channel, std::string json)
+{
+    EngineUi::Get().State(channel, std::move(json));
+}
+
+void state(storm::ui::HudState state)
+{
+    EngineUi::Get().State(std::move(state));
+}
+
+void dialogueState(storm::ui::Dialogue dialogue)
+{
+    EngineUi::Get().DialogueState(std::move(dialogue));
+}
+
+void screen(const std::string &screen, uint64_t revision, double release_ms, double load_ms)
+{
+    EngineUi::Get().Screen(screen, revision, release_ms, load_ms);
+}
+
+void language(std::string game_language)
+{
+    EngineUi::Get().Language(std::move(game_language));
+}
+
+void interfaceGone()
+{
+    EngineUi::Get().InterfaceGone();
+}
+
+void interfaceModel(storm::ui::InterfaceModel &&model)
+{
+    EngineUi::Get().Interface(std::move(model));
+}
+
+void toast(std::string text, std::string target)
+{
+    EngineUi::Get().GameMessage(std::move(text), std::move(target));
+}
+
+void answer(uint64_t request, bool applied, std::string reason)
+{
+    EngineUi::Get().Answer(request, applied, std::move(reason));
+}
+
+void loading(bool active)
+{
+    EngineUi::Get().Loading(active);
+}
+
+void cinematic(bool active)
+{
+    EngineUi::Get().Cinematic(active);
+}
+
+void dialogue(bool active)
+{
+    EngineUi::Get().Dialogue(active);
+}
+
+void locationLoad(bool blocks)
+{
+    EngineUi::Get().LocationLoad(blocks);
+}
+
+void alert(std::string string_key)
+{
+    EngineUi::Get().AlertString(string_key);
+}
+
+void tick(uint64_t input_epoch)
+{
+    EngineUi::Get().Tick(input_epoch);
+}
+
+std::vector<Command> takeCommands()
+{
+    return EngineUi::Get().TakeCommands();
+}
+
+uint64_t generation()
+{
+    return EngineUi::Get().Generation();
+}
+
+void shutdown()
+{
+    EngineUi::Get().Shutdown();
+}
+
+} // namespace storm::android::ui

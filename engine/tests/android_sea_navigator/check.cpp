@@ -1,0 +1,384 @@
+#include <platform/android_sea_navigator.hpp>
+#include <platform/android_ship_telemetry.hpp>
+#include <limits>
+#include <iostream>
+
+#include <catch2/catch.hpp>
+using namespace storm::android;
+using namespace storm::android::sea_nav;
+using Verb = storm::ui::hud::Navigator::Verb;
+// A HUD command about the radar of ship state (revision, HUD revision, navigator generation).
+static storm::ui::hud::Navigator nav(uint64_t revision, uint64_t hud, uint64_t generation, Verb verb,
+                                     uint64_t layout = 0, std::array<long, 7> geometry = {})
+{
+    return {revision, hud, generation, verb, layout, geometry};
+}
+static bool near(float a, float b)
+{
+    return std::abs(a - b) < .001;
+}
+struct Bounds
+{
+    float left = std::numeric_limits<float>::max(), top = left;
+    float right = std::numeric_limits<float>::lowest(), bottom = right;
+    void add(Point p)
+    {
+        left = std::fmin(left, p.x);
+        right = std::fmax(right, p.x);
+        top = std::fmin(top, p.y);
+        bottom = std::fmax(bottom, p.y);
+    }
+    float width() const
+    {
+        return right - left;
+    }
+    float height() const
+    {
+        return bottom - top;
+    }
+};
+static float distance(Point a, Point b)
+{
+    return std::hypot(a.x - b.x, a.y - b.y);
+}
+static float dot(Point a, Point b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+static float distanceToSegment(Point p, Point a, Point b)
+{
+    Point delta{b.x - a.x, b.y - a.y};
+    const float t = std::clamp(dot({p.x - a.x, p.y - a.y}, delta) / dot(delta, delta), 0.f, 1.f);
+    return distance(p, {a.x + t * delta.x, a.y + t * delta.y});
+}
+static void checkStroke(const Stroke &s, float width)
+{
+    const auto quad = strokeQuad(s);
+    REQUIRE(quad);
+    REQUIRE(near(distance((*quad)[0], (*quad)[1]), width));
+    REQUIRE(near(distance((*quad)[2], (*quad)[3]), width));
+}
+static void checkReadability()
+{
+    // Final 96dp circle has identical ink at standard and compact viewports.
+    // Exercise physical density and a scaled/offset renderer viewport together:
+    // sizing must use density * aperture scale, never aperture radius / 120.
+    for (int density : {1000, 1500, 2000, 3000})
+        for (int width : {960, 1280})
+            for (float scale : {.5f, 1.f, 1.5f})
+            {
+                const float dp = density * .001f;
+                const int height = width == 960 ? 540 : 720;
+                const SeaNavigatorLayout layout{
+                    1, width, height, width - int(62 * dp), int(90 * dp), int(48 * dp), density, 1};
+                const auto circle = aperture(layout, 13, 17, int(width * scale), int(height * scale));
+                REQUIRE(circle);
+                REQUIRE((near(circle->x, 13 + layout.x * scale) && near(circle->y, 17 + layout.y * scale)));
+                const auto metrics = primitiveMetrics(layout, *circle);
+                REQUIRE((near(metrics.dp, dp * scale) && near(metrics.radius, 48 * metrics.dp)));
+                const Point center{circle->x, circle->y};
+                // Both alphabets, every cardinal and sixteen ship headings. Measure
+                // actual filled stroke quads, including slanted segment ink and caps.
+                for (bool russian : {false, true})
+                    for (int heading = 0; heading < 16; ++heading)
+                        for (int i = 0; i < 4; ++i)
+                        {
+                            const float angle = i * pi * .5f - heading * pi / 8;
+                            const auto offset = polar(angle, metrics.cardinalRadius());
+                            const Point origin{center.x + offset.x, center.y + offset.y};
+                            const auto glyph = cardinalGlyph(origin, i, russian, metrics);
+                            REQUIRE(glyph.size);
+                            Bounds bounds;
+                            for (size_t j = 0; j < glyph.size; ++j)
+                            {
+                                const auto &s = glyph.strokes[j];
+                                checkStroke(s, metrics.dp);
+                                const auto quad = strokeQuad(s);
+                                REQUIRE(quad);
+                                for (auto p : *quad)
+                                {
+                                    bounds.add(p);
+                                    const float damageInner =
+                                        circle->radius * 110 / 120 -
+                                        std::max(9 * circle->radius / 120, metrics.functionalStroke()) * .5f;
+                                    REQUIRE(distance(p, center) <
+                                            damageInner); // letters do not cover the four damage/charge tracks
+                                }
+                                for (size_t k = 0; k < 4; ++k)
+                                    REQUIRE(distanceToSegment(center, (*quad)[k], (*quad)[(k + 1) % 4]) + .001f >=
+                                            31 * metrics.dp);
+                            }
+                            REQUIRE(bounds.height() + .001f >= 8 * metrics.dp);
+                            REQUIRE(
+                                (bounds.width() + .001f >= 5 * metrics.dp && bounds.width() <= 7 * metrics.dp + .001f));
+                            // Upright text: the ink envelope does not rotate with its azimuth.
+                            const auto upright = cardinalGlyph(center, i, russian, metrics);
+                            Bounds reference;
+                            for (size_t j = 0; j < upright.size; ++j)
+                            {
+                                const auto quad = strokeQuad(upright.strokes[j]);
+                                REQUIRE(quad);
+                                for (auto p : *quad)
+                                    reference.add(p);
+                            }
+                            REQUIRE(
+                                (near(bounds.width(), reference.width()) && near(bounds.height(), reference.height())));
+                        }
+                const auto own = hull(center, 0, metrics.hullLength(), metrics.hullWidth());
+                Bounds ownInk;
+                for (auto p : own)
+                    ownInk.add(p);
+                REQUIRE((ownInk.height() + .001f >= 8 * metrics.dp && ownInk.width() + .001f >= 5 * metrics.dp));
+                for (int heading = 0; heading < 16; ++heading)
+                {
+                    const float angle = heading * pi / 8;
+                    const auto forward = polar(angle, 1);
+                    const auto head = arrowHead(center, angle, metrics.bearingTipRadius(), metrics.arrowLength(),
+                                                metrics.arrowWidth());
+                    for (auto p : head)
+                        REQUIRE(distance(p, center) <= 30 * metrics.dp + .001f);
+                    const Point base{(head[1].x + head[2].x) * .5f, (head[1].y + head[2].y) * .5f};
+                    REQUIRE(dot({head[0].x - base.x, head[0].y - base.y}, forward) + .001f >= 6 * metrics.dp);
+                    REQUIRE(distance(head[1], head[2]) + .001f >= 4 * metrics.dp);
+                    const auto course = chevron(center, angle, metrics.bearingTipRadius(), metrics.chevronLength(),
+                                                metrics.chevronWidth());
+                    REQUIRE(distance(course[0], course[2]) + .001f >= 5 * metrics.dp);
+                    const Point midpoint{(course[0].x + course[2].x) * .5f, (course[0].y + course[2].y) * .5f};
+                    REQUIRE(dot({course[1].x - midpoint.x, course[1].y - midpoint.y}, forward) + .001f >=
+                            5 * metrics.dp);
+                    checkStroke({course[0], course[1], metrics.functionalStroke()}, metrics.dp);
+                    checkStroke({course[1], course[2], metrics.functionalStroke()}, metrics.dp);
+                    for (auto edge : std::array<Stroke, 2>{{{course[0], course[1], metrics.functionalStroke()},
+                                                            {course[1], course[2], metrics.functionalStroke()}}})
+                    {
+                        const auto quad = strokeQuad(edge);
+                        REQUIRE(quad);
+                        for (auto p : *quad)
+                            REQUIRE(distance(p, center) <= 30 * metrics.dp + .001f);
+                    }
+                    const auto contact = hull(center, angle, metrics.contactLength(), metrics.contactWidth());
+                    REQUIRE(near(distance(contact[1], contact[3]), 3 * metrics.dp));
+                    const Point stern{(contact[1].x + contact[3].x) * .5f, (contact[1].y + contact[3].y) * .5f};
+                    REQUIRE(near(distance(contact[0], stern), 4 * metrics.dp));
+                }
+                // Each functional arc has a real 1dp radial ink width, including the
+                // unknown-bort path; background fill still ends at the aperture edge.
+                for (int bort = 0; bort < 4; ++bort)
+                {
+                    const float begin = bort * pi * .5f - 31 * pi / 180, end = bort * pi * .5f + 31 * pi / 180;
+                    const auto track =
+                        arcQuad(center, begin, end, circle->radius * 110 / 120, metrics.functionalStroke());
+                    REQUIRE(near(distance(track[0], track[1]), metrics.dp));
+                    REQUIRE(near(distance(track[2], track[3]), metrics.dp));
+                    for (auto p : track)
+                        REQUIRE(distance(p, center) < circle->radius);
+                }
+                const auto fill = arcQuad(center, 0, .1f, circle->radius * .5f, circle->radius);
+                REQUIRE((near(distance(fill[0], center), 0) && near(distance(fill[3], center), 0)));
+                REQUIRE((near(distance(fill[1], center), circle->radius) &&
+                         near(distance(fill[2], center), circle->radius)));
+                checkStroke(
+                    {center, {center.x + 10 * metrics.dp, center.y + 20 * metrics.dp}, metrics.functionalStroke()},
+                    metrics.dp);
+                checkStroke({center, {center.x + 10 * metrics.dp, center.y}, metrics.decorativeStroke()},
+                            .75f * metrics.dp);
+            }
+    REQUIRE(!strokeQuad({{0, 0}, {0, 0}, 1}));
+}
+TEST_CASE("android_sea_navigator")
+{
+    checkReadability();
+    SeaNavigatorBridge bridge;
+    const auto layout = nav(4, 8, 2, Verb::Prepare, 9, {1280, 720, 1124, 228, 132, 2000, 1});
+    REQUIRE(!bridge.offer(nav(4, 8, 2, Verb::In), 4, 8, 2));
+    REQUIRE(bridge.offer(layout, 4, 8, 2));
+    REQUIRE(bridge.layout(4, 8, 2)->id == 9); // no lease: the aperture lasts for the owner
+    const auto *physical = bridge.layout(4, 8, 2);
+    auto half = aperture(*physical, 0, 0, 640, 360);
+    REQUIRE((half && near(half->x, 562) && near(half->y, 114) && near(half->radius, 66)));
+    auto full = aperture(*physical, 0, 0, 1280, 720);
+    REQUIRE((full && near(full->x, 1124) && near(full->radius, 132)));
+    REQUIRE(!aperture(*physical, 0, 0, 640, 480));
+    REQUIRE(!aperture(*physical, 0, 0, 0, 0));
+    REQUIRE(!bridge.layout(5, 8, 2));
+    REQUIRE(!bridge.layout(4, 9, 2));
+    REQUIRE(!bridge.layout(4, 8, 3));
+    REQUIRE(!bridge.offer(layout, 5, 8, 2));
+    REQUIRE(!bridge.offer(nav(4, 8, 2, Verb::Prepare, 9, {1280, 720, 1200, 228, 132, 2000, 1}), 4, 8, 2));
+    REQUIRE(bridge.offer(nav(4, 8, 2, Verb::In), 4, 8, 2));
+    REQUIRE(bridge.takeZoom(4, 8, 2) == -1);
+    REQUIRE(bridge.takeZoom(4, 8, 2) == 0);
+    REQUIRE(bridge.offer(nav(4, 8, 2, Verb::Out), 4, 8, 2));
+    REQUIRE(bridge.takeZoom(4, 9, 2) == 0);
+    REQUIRE(bridge.offer(nav(4, 8, 2, Verb::In), 4, 8, 2));
+    REQUIRE(bridge.offer(nav(4, 8, 2, Verb::Clear), 4, 8, 2));
+    REQUIRE(bridge.takeZoom(4, 8, 2) == 0);
+    SeaNavigatorBridge ownership;
+    REQUIRE(ownership.offer(layout, 4, 8, 2));
+    REQUIRE(!ownership.offer(nav(4, 8, 2, Verb::Visible, 9), 4, 8, 2)); // preparing geometry is not actual native draw
+    ownership.didDraw(9);
+    REQUIRE(ownership.offer(nav(4, 8, 2, Verb::Visible, 9), 4, 8, 2));
+    REQUIRE(ownership.presented(4, 8, 2, 9));
+    REQUIRE(ownership.offer(layout, 4, 8, 2)); // the same aperture again does not revoke the visible owner
+    REQUIRE(ownership.presented(4, 8, 2, 9));
+    REQUIRE(!ownership.offer(nav(4, 8, 2, Verb::Prepare, 9, {1280, 720, 1120, 228, 132, 2000, 1}), 4, 8, 2));
+    REQUIRE(std::string_view(ownership.result()) == "layout-id-reused");
+    REQUIRE(ownership.offer(layout, 4, 8, 2));
+    REQUIRE(ownership.presented(4, 8, 2, 9)); // no lease: visible stays visible however long
+    REQUIRE(ownership.offer(nav(4, 8, 2, Verb::Visible, 9), 4, 8, 2));
+    REQUIRE(ownership.presented(4, 8, 2, 9));
+    REQUIRE(!ownership.presented(4, 9, 2, 9));
+    REQUIRE(!ownership.presented(5, 8, 2, 9));
+    REQUIRE(!ownership.presented(4, 8, 3, 9));
+    REQUIRE(ownership.offer(nav(4, 8, 2, Verb::Prepare, 10, {1280, 720, 1124, 228, 132, 2000, 1}), 4, 8, 2));
+    REQUIRE(!ownership.presented(4, 8, 2, 9));
+    REQUIRE(!ownership.offer(nav(4, 8, 2, Verb::Visible, 10), 4, 8, 2));
+    ownership.didDraw(10);
+    REQUIRE(ownership.offer(nav(4, 8, 2, Verb::Visible, 10), 4, 8, 2));
+    ownership.clear();
+    REQUIRE(!ownership.presented(4, 8, 2, 10));
+    REQUIRE(ownership.offer(layout, 4, 8, 2));
+    ownership.didDraw(9);
+    REQUIRE(ownership.offer(nav(4, 8, 2, Verb::Visible, 9), 4, 8, 2));
+    REQUIRE(ownership.presented(4, 8, 2, 9));
+    // Clear and re-prepare change the aperture without a fallback to the native compass.
+    REQUIRE((ownership.offer(nav(4, 9, 2, Verb::Clear), 4, 9, 2) && !ownership.layout(4, 9, 2)));
+    REQUIRE(ownership.offer(nav(5, 8, 2, Verb::Prepare, 11, {1280, 720, 1124, 228, 132, 2000, 1}), 5, 8, 2));
+    // Reproduce runtime 2015 -> 991/1951 caption ACK churn while the same
+    // complete navigator remains visible. Freshness is not ownership.
+    ShipTelemetryFrame live;
+    live.valid = true;
+    live.ship.entityId = 42;
+    live.ship.hull = ShipMetric{90, 100};
+    live.ship.crew = ShipMetric{90, 100};
+    live.ship.sails = ShipMetric{90, 100};
+    live.sailState = 0;
+    live.ammo = "balls";
+    live.ammoType = 0;
+    live.ammoCount = 88;
+    live.captionsVisible = true;
+    live.shipSpeedKnots = 0;
+    live.windSpeed = 8.6;
+    live.powderCount = 208;
+    live.dateTimeText = "date";
+    live.locationText = "island";
+    ShipTelemetryState liveState;
+    liveState.update(4, live);
+    const auto hud = liveState.hudRevision();
+
+    SeaNavigatorBridge liveBridge;
+    REQUIRE(liveBridge.offer(nav(4, hud, 2, Verb::Prepare, 1, {960, 540, 844, 171, 99, 1500, 1}), 4, hud, 2));
+    liveBridge.didDraw(1);
+    REQUIRE(liveBridge.offer(nav(4, hud, 2, Verb::Visible, 1), 4, hud, 2));
+    for (int reading = 0; reading < 4; ++reading)
+    {
+        live.windSpeed = *live.windSpeed + .1;
+        live.shipSpeedKnots = *live.shipSpeedKnots + .1;
+        liveState.update(4, live);
+        REQUIRE(liveState.hudRevision() == hud); // live readings keep the HUD revision
+        REQUIRE(liveBridge.presented(liveState.revision(), liveState.hudRevision(), 2, 1));
+    }
+    live.windSpeed.reset();
+    liveState.update(4, live);
+    REQUIRE(!liveBridge.presented(liveState.revision(), liveState.hudRevision(), 2, 1)); // real source loss revokes
+    auto north = project(0, 100, 0, 400, 1, 80);
+    REQUIRE((north && near(north->x, 0) && near(north->y, -20)));
+    auto turn = project(0, 100, pi / 2, 400, 1, 80);
+    REQUIRE((turn && near(turn->x, -20) && near(turn->y, 0)));
+    auto east = project(100, 0, pi / 2, 400, 1, 80);
+    REQUIRE((east && near(east->x, 0) && near(east->y, -20)));
+    REQUIRE(project(400, 0, 0, 400, 1, 80));
+    REQUIRE(!project(401, 0, 0, 400, 1, 80));
+    {
+        auto edge = keepInside({0, -80}, 80, 6);
+        REQUIRE((near(edge.x, 0) && near(edge.y, -74)));
+        auto diagonal = keepInside({60, 60}, 80, 10);
+        REQUIRE((near(std::hypot(diagonal.x, diagonal.y), 70) && near(diagonal.x, diagonal.y)));
+        auto centre = keepInside({10, -20}, 80, 6);
+        REQUIRE((near(centre.x, 10) && near(centre.y, -20)));
+        auto origin = keepInside({0, 0}, 80, 6);
+        REQUIRE((near(origin.x, 0) && near(origin.y, 0)));
+    }
+    auto zoomed = project(0, 100, 0, 400, .5f, 80);
+    REQUIRE((zoomed && near(zoomed->y, -40)));
+    REQUIRE(!project(0, 0, 0, 400, 0, 80));
+    REQUIRE(!project(0, 0, std::numeric_limits<float>::quiet_NaN(), 400, 1, 80));
+    REQUIRE(near(zoom(.015f, .01f, .01f, 2, true), .01f));
+    REQUIRE(near(zoom(1.995f, .01f, .01f, 2, false), 2));
+    Bort absent{};
+    REQUIRE(!valid(absent));
+    Bort b{true, .5f, .25f, pi / 2, 1, 400};
+    REQUIRE((valid(b) && near(readyFraction(b), .375f)));
+    b.damage = 1;
+    REQUIRE((valid(b) && near(readyFraction(b), 0)));
+    b.charge = 0;
+    REQUIRE(valid(b));
+    b.damage = -1;
+    REQUIRE(!valid(b));
+    { // A ship without bow guns keeps the ship type's cannonf side and an empty
+        // damages class, but the cannon controller writes no numbers for it. That side is absent, not unknown: the
+        // minimap draws with the other three (it was handed back to the placeholder disc).
+        constexpr float nan = std::numeric_limits<float>::quiet_NaN();
+        const BortSource gunless{true, true, 0, nan, nan, 0, pi / 6, nan},
+            armed{true, true, 5, 0, 1, pi / 2, 1.4f, 445};
+        REQUIRE((!bort(gunless).present && bort(armed).present && valid(bort(armed))));
+        REQUIRE((!bort({false, true, 5, 0, 0, 0, 1, 400}).present && !bort({true, false, 5, 0, 0, 0, 1, 400}).present));
+        REQUIRE(usable({bort(gunless), bort(armed), bort(armed), bort(armed)}));
+        // A side with guns whose numbers are missing still stops the minimap (and is logged by the navigator).
+        REQUIRE(!usable({bort({true, true, 2, nan, nan, 0, pi / 6, nan}), bort(armed), bort(armed), bort(armed)}));
+        REQUIRE(usable({}));
+    }
+    ShipTelemetryFrame frame;
+    frame.valid = true;
+    frame.navigatorPowderWarning = false;
+    frame.navigatorAmmoWarning = false;
+    frame.navigatorGeneration = 42;
+    frame.navigatorLayoutId = 9;
+    ShipTelemetryState telemetry;
+    telemetry.update(1, frame);
+    REQUIRE((!telemetry.hud().powder_out && telemetry.hud().navigator_generation == 42 &&
+             telemetry.hud().navigator_layout == 9));
+    frame.navigatorPowderWarning = true;
+    telemetry.update(1, frame);
+    REQUIRE(telemetry.hud().powder_out);
+    {
+        // The land: a round island of radius 20 cells; its field's coast lies within half a cell of
+        // the circle all round, closed (every end point shared by two segments), and the narrow
+        // spit of one cell is smoothed away rather than drawn as a jagged line.
+        const uint32_t n = 64;
+        std::vector<uint8_t> land(n * n);
+        for (uint32_t z = 0; z < n; ++z)
+            for (uint32_t x = 0; x < n; ++x)
+                land[z * n + x] = std::hypot(x + .5f - 32.f, z + .5f - 32.f) < 20.f;
+        const auto field = landField(land, n);
+        REQUIRE((field.size() == n * n && field[32 * n + 32] == 255 && field[0] == 0));
+        size_t segments = 0;
+        float worst = 0;
+        std::vector<std::pair<int, int>> ends;
+        coastSegments(field, int(n), -1, int(n), -1, int(n), [&](float ax, float az, float bx, float bz) {
+            ++segments;
+            for (auto [x, z] : {std::pair{ax, az}, std::pair{bx, bz}})
+            {
+                worst = std::max(worst, std::abs(std::hypot(x + .5f - 32.f, z + .5f - 32.f) - 20.f));
+                ends.emplace_back(int(std::lround(x * 1000)), int(std::lround(z * 1000)));
+            }
+        });
+        REQUIRE((segments > 60 && worst < .5f));
+        std::sort(ends.begin(), ends.end());
+        for (size_t i = 0; i < ends.size(); i += 2)
+            REQUIRE((i + 1 < ends.size() && ends[i] == ends[i + 1]));
+        std::vector<uint8_t> spit(n * n);
+        for (uint32_t x = 10; x < 50; ++x)
+            spit[32 * n + x] = 1;
+        size_t spitSegments = 0;
+        coastSegments(landField(spit, n), int(n), -1, int(n), -1, int(n),
+                      [&](float, float, float, float) { ++spitSegments; });
+        REQUIRE(spitSegments == 0);
+        REQUIRE(landField(land, n + 1).empty());
+    }
+    std::cout << "PASS minimap land field and closed coast, production vector ink minima at 96dp across "
+                 "viewport/density/heading transforms, presentation and geometry kept per owner without a lease, "
+                 "native-draw proof and structural invalidation, navigator owner/source/viewport, "
+                 "requests, zoom cancel/guards, native projection and bort damage composition, gunless sides absent, "
+                 "absent versus false warning\n";
+}

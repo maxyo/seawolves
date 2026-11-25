@@ -1,0 +1,39 @@
+/* s-ship: overview = the ship card rail (220 dp) and the figures on parchment in two columns;
+   crew = the bars panel and a side column (280 dp) with food, upkeep and the buttons;
+   cargo = one panel: the goods list over the screen bar (deadweight, the drop buttons). */
+s-ship { display: block; width: 100%; height: 100%; }
+s-ship .sh-cols { display: flex; flex-direction: row; gap: @{space.md}dp; width: 100%; height: 100%; }
+s-ship .sh-rail { flex: 0 0 auto; width: 220dp; height: 100%; overflow-y: auto; }
+s-ship .sh-card { width: 100%; min-height: 100%; }
+s-ship .sh-main { flex: 1 1 0; min-width: 0; height: 100%; }
+/* the figures: two columns where each keeps 280 dp (a label beside its value), else one under the
+   other; the parchment scrolls as a whole (the tables size to their rows) */
+s-ship .sh-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; column-gap: 24dp; padding: 8dp 16dp; }
+s-ship .sh-col { flex: 1 1 280dp; min-width: 0; display: flex; flex-direction: column; }
+s-ship .sh-col c-table { width: 100%; height: auto; }
+s-ship .sh-col c-table .tb-wrap, s-ship .sh-col c-table .tb-body { flex: 0 0 auto; overflow-y: visible; }
+s-ship .sh-empty { flex: 1 1 0; padding: @{space.lg}dp; font-size: @{type.body}dp; color: @{color.textSecond}; }
+s-ship c-panel.tone-parchment .sh-empty { color: @{color.inkMuted}; }
+s-ship .sh-note { flex: 0 0 auto; padding: @{space.sm}dp @{space.md}dp; }
+s-ship .sh-crewhead { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 14dp; padding: 12dp 14dp; border-bottom: 1dp @{color.brassLine/.35}; }
+s-ship .sh-count { flex: 0 0 auto; font-size: @{type.title}dp; font-weight: bold; color: @{color.text}; }
+s-ship .sh-limits { flex: 0 0 auto; font-size: @{type.body}dp; color: @{color.textSecond}; white-space: nowrap; }
+s-ship .sh-crewbar { flex: 1 1 0; min-width: 0; }
+s-ship .sh-pad { flex: 0 0 auto; padding: 0 14dp; }
+s-ship .sh-morale { margin-top: 8dp; border-top: 2dp @{color.brassLine/.35}; }
+s-ship .sh-side { flex: 0 0 auto; width: 280dp; height: 100%; }
+s-ship .sh-grow { flex: 1 1 0; }
+s-ship .sh-acts { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8dp; padding: 12dp 14dp; }
+s-ship .sh-full { flex: 1 1 0; min-width: 0; height: 100%; }
+s-ship .sh-list { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+s-ship .sh-load { flex: 0 1 auto; width: 420dp; min-width: 160dp; }
+s-ship .sh-drop { flex: 0 0 auto; width: 240dp; }
+s-ship .sh-rule { height: 1dp; margin: 4dp 0; background-color: @{color.ink/.25}; }
+/* the cannons window: the calibre (the guns in the hold, «Установить всё» under them) beside the guns per side; on a
+   short screen the pair gives way so the dialog's title and buttons stay: the list and the sides scroll on their own */
+s-ship c-dialog.sh-gunsheet > .outer > .box { height: 84vh; max-height: 440dp; }
+s-ship c-dialog.sh-gunsheet > .outer > .box > .body { flex: 1 1 0; min-height: 0; }
+s-ship .sh-guns { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; gap: @{space.lg}dp; }
+s-ship .sh-calibres { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; }
+s-ship .sh-stock { flex: 1 1 0; min-height: 0; width: 100%; }
+s-ship .sh-sides { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; overflow-y: auto; }

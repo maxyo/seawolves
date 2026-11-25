@@ -1,0 +1,49 @@
+Glyphs come by blocks for RmlUi 6.3: a font face handle loads the Latin-1 supplement with ASCII, and a character
+missing from it brings the rest of its block of 128 code points along (AppendGlyph), so the handle regenerates its
+layer textures once per script instead of once per new letter. Our own; upstream appends one glyph at a time.
+
+--- a/Source/Core/FontEngineDefault/FontFaceHandleDefault.cpp
++++ b/Source/Core/FontEngineDefault/FontFaceHandleDefault.cpp
+@@ -36,6 +36,14 @@
+ 	if (!FreeType::InitialiseFaceHandle(ft_face, font_size, glyphs, metrics, load_default_glyphs))
+ 		return false;
+ 
++	// With ASCII (loaded by InitialiseFaceHandle), the Latin-1 supplement: the no-break space every Russian line
++	// holds after a one-letter word, the guillemets, the accented letters of the European languages. A face that met
++	// them only in its first line of such text regenerated its layer textures for them (see AppendGlyph).
++	if (load_default_glyphs)
++		for (char32_t code = 0xA0; code <= 0xFF; ++code)
++			if (glyphs.find((Character)code) == glyphs.end())
++				FreeType::AppendGlyph(ft_face, font_size, (Character)code, glyphs);
++
+ 	has_kerning = FreeType::HasKerning(ft_face);
+ 	FillKerningPairCache();
+ 
+@@ -278,7 +286,26 @@
+ bool FontFaceHandleDefault::AppendGlyph(Character character)
+ {
+ 	bool result = FreeType::AppendGlyph(ft_face, metrics.size, character, glyphs);
+-	return result;
++	if (!result)
++		return false;
++
++	// A new glyph regenerates every layer texture of the handle, and the font effects (outline, glow, shadow) of
++	// those are drawn on the CPU: a game log line with a letter not seen before cost a frame of tens of
++	// milliseconds, again for every new letter. The rest of the character's block of 128 code points (the Cyrillic
++	// letters, the Latin-1 supplement) comes with it, so a script costs one regeneration per handle. ASCII and the
++	// Latin-1 supplement are loaded at initialisation; ideographic scripts (from U+2E80) keep the one-glyph growth.
++	const char32_t code = (char32_t)character;
++	if (code >= 0x80 && code < 0x2E80)
++	{
++		const char32_t first = code & ~char32_t(0x7F);
++		for (char32_t other = first; other < first + 0x80; ++other)
++		{
++			if (other == code || (other >= 0x80 && other < 0xA0) || glyphs.find((Character)other) != glyphs.end())
++				continue;
++			FreeType::AppendGlyph(ft_face, metrics.size, (Character)other, glyphs);
++		}
++	}
++	return true;
+ }
+ 
+ void FontFaceHandleDefault::FillKerningPairCache()

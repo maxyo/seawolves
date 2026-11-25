@@ -1,0 +1,1 @@
+<div class="hud" slot="1" style="left: {{safe.left}}dp; top: {{safe.top}}dp; right: {{safe.right}}dp; bottom: {{safe.bottom}}dp;"></div>

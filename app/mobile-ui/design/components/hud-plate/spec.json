@@ -1,0 +1,38 @@
+{
+  "tag": "c-hud-plate",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "align": {"type": "enum", "options": ["left", "right", "center"], "default": "left"},
+    "pad": {"type": "int"},
+    "tone": {"type": "enum", "options": ["normal", "danger", "gold"], "default": "normal"},
+    "variant": {"type": "enum", "options": ["plate", "location", "officers", "fleet", "boarding"], "default": "plate"},
+    "text": {"type": "text", "default": ""},
+    "officers": {"type": "json", "default": []},
+    "expandable": {"type": "bool", "default": false},
+    "expanded": {"type": "bool", "default": false},
+    "plate": {"type": "bool", "default": false},
+    "direction": {"type": "enum", "options": ["column", "row"], "default": "column"},
+    "ships": {"type": "json", "default": []},
+    "max": {"type": "int"},
+    "maxHeight": {"type": "int", "default": 248},
+    "maxWidth": {"type": "int", "default": 360},
+    "states": {"type": "json", "default": []},
+    "stateSize": {"type": "int", "default": @{size.hudState}},
+    "ours": {"type": "int", "default": 0},
+    "theirs": {"type": "int", "default": 0},
+    "oursCount": {"type": "int", "default": null},
+    "theirsCount": {"type": "int", "default": null}
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "pressRoot": false,
+    "pad": {"plate": 8, "location": 6, "officers": 8, "fleet": 8, "boarding": 0},
+    "portrait": 50,
+    "shipToken": 56,
+    "gap": 6,
+    "arc": 2,
+    "arcGap": 1,
+    "officerDanger": 25,
+    "shipDanger": 35
+  }
+}

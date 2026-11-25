@@ -1,0 +1,25 @@
+/* C-Screen: a full menu screen = oak ground + C-Header + the content. Fills its parent
+   (the document). Overlays (C-Dialog) go in the children and cover the screen.
+   With `sections` the header keeps its one geometry: the tabs become the first content
+   row (C-Tabs bar, id <key>-tabs, reports `select <index>`). Safe area: one rule for header
+   and content. The oak and the header plate run edge to edge; the header's
+   parts and the content are inset by the same safe insets (inline paddings in the
+   template), so the ribbon's left edge and the panels' left edge line up at padSide. */
+c-screen > .frame { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+c-screen {
+    position: relative; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+    width: 100%; height: 100%; color: @{color.text};
+    /* the oak picture carries its shade (textures-src/bake.json) and covers the screen: one fill, no background under it */
+    decorator: image(textures/oak.jpg cover);
+}
+c-screen > .frame > .main { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; box-sizing: border-box; gap: @{spec.gap}dp; padding: @{spec.padTop}dp @{spec.padSide}dp @{spec.padBottom}dp @{spec.padSide}dp; }
+c-screen.layout-column > .frame > .main { flex-direction: column; }
+c-screen.layout-free > .frame > .main { position: relative; display: block; padding: 0; }
+c-screen > .frame > .tabs-row { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; gap: @{spec.tabsGap}dp; padding: @{spec.tabsPadTop}dp @{spec.padSide}dp @{spec.padBottom}dp @{spec.padSide}dp; }
+c-screen > .frame > .tabs-row > .tabs-strip { flex: 0 0 auto; background-color: @{color.wood}; box-shadow: @{color.black/.45} 0 0 0 1dp inset; }
+c-screen > .frame > .tabs-row > .main { flex: 1 1 0; min-height: 0; display: flex; flex-direction: row; gap: @{spec.gap}dp; }
+c-screen.layout-column > .frame > .tabs-row > .main { flex-direction: column; }
+c-screen.layout-free > .frame > .tabs-row > .main { position: relative; }
+/* the subject list: a tap on the header's name (subject.open) lists every subject, a row picks one; the rows stack as
+   blocks, each as tall as its lines (a flex column would squeeze them into the list's height) */
+c-screen > c-dialog > .outer > .box > .body > .subjects { display: block; max-height: @{spec.subjectsMaxHeight}dp; overflow-y: auto; }

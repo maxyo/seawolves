@@ -1,0 +1,410 @@
+#pragma once
+
+// Engine -> host OS integration hooks. Platform-neutral interface; the Android
+// implementation talks to the app's Java side, every other platform is a no-op.
+
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <optional>
+#include <functional>
+#include <utility>
+
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_system.h>
+#include <android/log.h>
+#include <jni.h>
+#include "app_upcalls.hpp"
+#endif
+
+namespace storm::platform
+{
+// Synchronous stock loading transaction: OS service only, never a game/script tick.
+// Registration and calls belong to the game thread. Input event watches may read
+// the active flag from a producer thread, so it is atomic.
+enum class LoadingPlatformState
+{
+    Continue,
+    Suspended,
+    Cancel,
+    Quit,
+    Unavailable
+};
+// Input implementation drops pre-transaction pending presses without dispatching them.
+void CancelLoadingPlatformInput();
+using LoadingPlatformPump = std::function<LoadingPlatformState(uint64_t)>;
+inline LoadingPlatformPump loadingPlatformPump;
+inline std::atomic<unsigned> loadingPlatformDepth{0};
+inline std::atomic<uint64_t> loadingPlatformEpoch{0};
+inline uint64_t LoadingPlatformTransactionEpoch()
+{
+    return loadingPlatformEpoch.load();
+}
+inline bool LoadingPlatformTransactionActive()
+{
+    return loadingPlatformDepth.load() != 0;
+}
+class LoadingPlatformTransaction
+{
+  public:
+    LoadingPlatformTransaction()
+    {
+        // Sequentially consistent ordering pairs the active boundary with the
+        // epoch observed by a producer before entering the input queue mutex.
+        loadingPlatformDepth.fetch_add(1);
+        loadingPlatformEpoch.fetch_add(1);
+    }
+    ~LoadingPlatformTransaction()
+    {
+        loadingPlatformEpoch.fetch_add(1);
+        loadingPlatformDepth.fetch_sub(1);
+    }
+    LoadingPlatformTransaction(const LoadingPlatformTransaction &) = delete;
+    LoadingPlatformTransaction &operator=(const LoadingPlatformTransaction &) = delete;
+};
+class LoadingPlatformRegistration
+{
+  public:
+    explicit LoadingPlatformRegistration(LoadingPlatformPump callback) : previous_(std::move(loadingPlatformPump))
+    {
+        loadingPlatformPump = std::move(callback);
+    }
+    ~LoadingPlatformRegistration()
+    {
+        reset();
+    }
+    void reset()
+    {
+        if (!registered_)
+            return;
+        loadingPlatformPump = std::move(previous_);
+        registered_ = false;
+    }
+    LoadingPlatformRegistration(const LoadingPlatformRegistration &) = delete;
+    LoadingPlatformRegistration &operator=(const LoadingPlatformRegistration &) = delete;
+
+  private:
+    LoadingPlatformPump previous_;
+    bool registered_ = true;
+};
+inline LoadingPlatformState PumpLoadingPlatform(uint64_t generation)
+{
+    if (!LoadingPlatformTransactionActive() || !loadingPlatformPump)
+        return LoadingPlatformState::Unavailable;
+    return loadingPlatformPump(generation);
+}
+
+// The stock loader owns the game thread until preparation finishes. Its host
+// controller must run there, not only in the outer game loop. These are resource
+// scheduling notifications, never permission to dispatch scripts or simulation.
+enum class LoadingSchedulePhase
+{
+    Poll,
+    FrameStarted,
+    FramePresented,
+    Suspended,
+    Ended
+};
+using LoadingSchedulePump = std::function<unsigned(uint64_t, LoadingSchedulePhase)>;
+inline LoadingSchedulePump loadingSchedulePump;
+class LoadingScheduleRegistration
+{
+  public:
+    explicit LoadingScheduleRegistration(LoadingSchedulePump callback) : previous_(std::move(loadingSchedulePump))
+    {
+        loadingSchedulePump = std::move(callback);
+    }
+    ~LoadingScheduleRegistration()
+    {
+        loadingSchedulePump = std::move(previous_);
+    }
+    LoadingScheduleRegistration(const LoadingScheduleRegistration &) = delete;
+    LoadingScheduleRegistration &operator=(const LoadingScheduleRegistration &) = delete;
+
+  private:
+    LoadingSchedulePump previous_;
+};
+inline unsigned PumpLoadingSchedule(uint64_t generation, LoadingSchedulePhase phase)
+{
+    if (!LoadingPlatformTransactionActive() || !loadingSchedulePump)
+        return 0;
+    return loadingSchedulePump(generation, phase);
+}
+
+// Time the game thread blocked in presents since the last FrameWorkClock lap: the frame pacing waiting for the
+// frame's vsync slot (renderer_bgfx shim/frame_pacing.cpp), which is not work. Game thread only.
+inline std::chrono::nanoseconds presentWait{0};
+
+inline void presentWaited(std::chrono::nanoseconds wait)
+{
+    presentWait += wait;
+}
+
+// CPU work of one main-loop iteration that ran a frame: the wall time between two
+// loop tops minus the time its presents waited (presentWait). Iterations that did not
+// run a frame (backgrounded, paused) report nothing. Game thread only.
+class FrameWorkClock
+{
+  public:
+    using Clock = std::chrono::steady_clock;
+
+    // Call at the top of every loop iteration. Returns the previous iteration's work
+    // if it ran a frame.
+    std::optional<Clock::duration> lap(Clock::time_point now)
+    {
+        std::optional<Clock::duration> work;
+        if (started_ && frame_)
+            work = std::max(Clock::duration::zero(),
+                            now - start_ - std::chrono::duration_cast<Clock::duration>(presentWait));
+        start_ = now;
+        started_ = true;
+        frame_ = false;
+        presentWait = std::chrono::nanoseconds::zero();
+        return work;
+    }
+
+    // The current iteration runs a frame.
+    void frame()
+    {
+        frame_ = true;
+    }
+
+  private:
+    Clock::time_point start_{};
+    bool started_ = false;
+    bool frame_ = false;
+};
+
+// Number of save files being written right now; readable from any thread. The
+// Android host's bounded exit wait keeps waiting while it is non-zero, so its
+// deliberate process kill never lands in the middle of a save (the atomic save
+// would keep the previous file, but the new one would be lost).
+inline std::atomic<int> savesInProgress{0};
+
+class SaveInProgress
+{
+  public:
+    SaveInProgress()
+    {
+        savesInProgress.fetch_add(1, std::memory_order_acq_rel);
+    }
+    ~SaveInProgress()
+    {
+        savesInProgress.fetch_sub(1, std::memory_order_acq_rel);
+    }
+    SaveInProgress(const SaveInProgress &) = delete;
+    SaveInProgress &operator=(const SaveInProgress &) = delete;
+};
+
+inline bool saveInProgress()
+{
+    return savesInProgress.load(std::memory_order_acquire) > 0;
+}
+
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+// Feeds the app's ADPF PerformanceHint session through static methods of GamePerformance (upcall::GamePerformance):
+// reportFrameWork and updateTargetWork (nanoseconds), gameThread and addThread (the Linux tids of the game thread and
+// the renderer's thread).
+// The class and methods are resolved once through the activity's class loader (FindClass
+// on a native thread would only see the system loader) and cached as a global ref, so a
+// call is one static call without allocations. If the class or a method is missing, or
+// a call throws, the reason is logged once and the hint stays disabled. Game thread only.
+class FrameWorkHint
+{
+  public:
+    void report(std::chrono::nanoseconds work)
+    {
+        call(&FrameWorkHint::report_, work);
+    }
+
+    void target(std::chrono::nanoseconds target)
+    {
+        call(&FrameWorkHint::target_, target);
+    }
+
+    // The game thread itself, by its Linux tid.
+    void game_thread(int tid)
+    {
+        thread(&FrameWorkHint::game_, tid);
+    }
+
+    // A thread that shares the frame's work with the game thread (bgfx's render thread), by its Linux tid.
+    void thread(int tid)
+    {
+        thread(&FrameWorkHint::thread_, tid);
+    }
+
+  private:
+    enum class State
+    {
+        Unresolved,
+        Ready,
+        Disabled
+    };
+
+    void thread(jmethodID FrameWorkHint::*method, int tid)
+    {
+        if (state_ == State::Disabled)
+            return;
+        auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+        if (!env)
+            return disable("no JNIEnv for the game thread");
+        if (state_ == State::Unresolved && !resolve(env))
+            return;
+        env->CallStaticVoidMethod(class_, this->*method, static_cast<jint>(tid));
+        if (env->ExceptionCheck())
+        {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+            disable(method == &FrameWorkHint::game_ ? "GamePerformance.gameThread threw"
+                                                    : "GamePerformance.addThread threw");
+        }
+    }
+
+    void call(jmethodID FrameWorkHint::*method, std::chrono::nanoseconds value)
+    {
+        if (state_ == State::Disabled)
+            return;
+        // SDL attaches the calling thread on first use and caches the env per thread.
+        auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+        if (!env)
+            return disable("no JNIEnv for the game thread");
+        if (state_ == State::Unresolved && !resolve(env))
+            return;
+        env->CallStaticVoidMethod(class_, this->*method, static_cast<jlong>(value.count()));
+        if (env->ExceptionCheck())
+        {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+            disable(method == &FrameWorkHint::report_ ? "GamePerformance.reportFrameWork threw"
+                                                      : "GamePerformance.updateTargetWork threw");
+        }
+    }
+
+    bool resolve(JNIEnv *env)
+    {
+        namespace performance = android::upcall::GamePerformance;
+        auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
+        if (!activity)
+        {
+            disable("no activity");
+            return false;
+        }
+        jclass found = nullptr;
+        if (auto activityClass = env->GetObjectClass(activity))
+        {
+            auto classClass = env->FindClass("java/lang/Class");
+            auto getClassLoader =
+                classClass ? env->GetMethodID(classClass, "getClassLoader", "()Ljava/lang/ClassLoader;") : nullptr;
+            auto loader = getClassLoader ? env->CallObjectMethod(activityClass, getClassLoader) : nullptr;
+            auto loaderClass = loader && !env->ExceptionCheck() ? env->GetObjectClass(loader) : nullptr;
+            auto loadClass = loaderClass
+                                 ? env->GetMethodID(loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;")
+                                 : nullptr;
+            auto name = loadClass ? env->NewStringUTF(performance::className) : nullptr;
+            found = name ? static_cast<jclass>(env->CallObjectMethod(loader, loadClass, name)) : nullptr;
+            for (jobject local : {static_cast<jobject>(name), static_cast<jobject>(loaderClass), loader,
+                                  static_cast<jobject>(classClass), static_cast<jobject>(activityClass)})
+                if (local)
+                    env->DeleteLocalRef(local);
+        }
+        env->DeleteLocalRef(activity);
+        if (env->ExceptionCheck())
+            env->ExceptionClear();
+        if (!found)
+        {
+            disable("class org.stormengine.port.GamePerformance not found");
+            return false;
+        }
+        report_ =
+            env->GetStaticMethodID(found, performance::reportFrameWork.name, performance::reportFrameWork.signature);
+        if (env->ExceptionCheck())
+            env->ExceptionClear();
+        target_ =
+            env->GetStaticMethodID(found, performance::updateTargetWork.name, performance::updateTargetWork.signature);
+        if (env->ExceptionCheck())
+            env->ExceptionClear();
+        game_ = env->GetStaticMethodID(found, performance::gameThread.name, performance::gameThread.signature);
+        if (env->ExceptionCheck())
+            env->ExceptionClear();
+        thread_ = env->GetStaticMethodID(found, performance::addThread.name, performance::addThread.signature);
+        if (env->ExceptionCheck())
+            env->ExceptionClear();
+        if (report_ && target_ && game_ && thread_)
+            class_ = static_cast<jclass>(env->NewGlobalRef(found));
+        env->DeleteLocalRef(found);
+        if (!class_)
+        {
+            disable("static GamePerformance.reportFrameWork(J)V, updateTargetWork(J)V, gameThread(I)V or "
+                    "addThread(I)V not found");
+            return false;
+        }
+        state_ = State::Ready;
+        __android_log_print(ANDROID_LOG_INFO, "StormPerformance", "Reporting frame work to the ADPF hint session");
+        return true;
+    }
+
+    void disable(const char *reason)
+    {
+        state_ = State::Disabled;
+        __android_log_print(ANDROID_LOG_WARN, "StormPerformance", "Frame work reporting disabled: %s", reason);
+    }
+
+    State state_ = State::Unresolved;
+    jclass class_ = nullptr;
+    jmethodID report_ = nullptr;
+    jmethodID target_ = nullptr;
+    jmethodID game_ = nullptr;
+    jmethodID thread_ = nullptr;
+};
+
+inline FrameWorkHint &frameWorkHint()
+{
+    static FrameWorkHint hint;
+    return hint;
+}
+#endif
+
+// Reports the CPU work of the last frame to the host's performance hint. Game thread only.
+inline void reportFrameWork(std::chrono::nanoseconds work)
+{
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+    frameWorkHint().report(work);
+#else
+    (void)work;
+#endif
+}
+
+// The game thread (the caller), by its Linux tid: the host's performance hint is opened for it. Game thread only.
+inline void frameWorkGameThread(int tid)
+{
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+    frameWorkHint().game_thread(tid);
+#else
+    (void)tid;
+#endif
+}
+
+// A thread that does part of every frame's work besides the game thread (the renderer's): the host's performance
+// hint covers it too. Game thread only.
+inline void frameWorkThread(int tid)
+{
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+    frameWorkHint().thread(tid);
+#else
+    (void)tid;
+#endif
+}
+
+// The work duration the host's performance hint aims at: the frame pacing's preferred swap interval. Game thread only.
+inline void frameWorkTarget(std::chrono::nanoseconds target)
+{
+#if defined(__ANDROID__) && !defined(STORM_INPUT_HOST_TEST)
+    frameWorkHint().target(target);
+#else
+    (void)target;
+#endif
+}
+} // namespace storm::platform

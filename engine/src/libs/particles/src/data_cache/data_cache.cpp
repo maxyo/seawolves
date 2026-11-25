@@ -1,0 +1,112 @@
+#include "data_cache.h"
+
+#include <algorithm>
+#include <cctype>
+
+#include "core.h"
+#include "string_compare.hpp"
+
+#include "v_file_service.h"
+#include "vma.hpp"
+
+bool ReadingAlreadyComplete;
+
+// Constructor / destructor
+DataCache::DataCache(IParticleManager *pManager)
+{
+    Master = pManager;
+}
+
+DataCache::~DataCache()
+{
+    ResetCache();
+}
+
+// Put data for the system in the cache
+void DataCache::CacheSystem(const char *FileName)
+{
+
+    auto path = std::filesystem::path() / "resource" / "particles" / FileName;
+    auto pathStr = path.extension().string();
+    if (!storm::iEquals(pathStr, ".xps"))
+        path += ".xps";
+    pathStr = path.string();
+    std::ranges::for_each(pathStr, [](char &c) { c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    // MessageBoxA(NULL, (LPCSTR)path.c_str(), "", MB_OK); //~!~
+
+    auto sysFile = fio->_CreateFile(pathStr.c_str(), std::ios::binary | std::ios::in);
+
+    if (!sysFile.is_open())
+    {
+        core.Trace("Particles: '%s' File not found !!!", pathStr.c_str());
+        return;
+    }
+
+    const auto FileSize = fio->_GetFileSize(pathStr.c_str());
+
+    auto *pMemBuffer = new uint8_t[FileSize];
+    fio->_ReadFile(sysFile, pMemBuffer, FileSize);
+
+    // Create data from file ...
+    CreateDataSource(pMemBuffer, FileSize, pathStr.c_str());
+
+    delete[] pMemBuffer;
+
+    fio->_CloseFile(sysFile);
+}
+
+// Reset cache
+void DataCache::ResetCache()
+{
+    for (auto n = 0; n < Cache.size(); n++)
+    {
+        if (Cache[n].pData)
+            Cache[n].pData->Release();
+    }
+
+    Cache.clear();
+}
+
+// Get a pointer to data for a particle system
+DataSource *DataCache::GetParticleSystemDataSource(const char *FileName)
+{
+    std::filesystem::path path = FileName;
+    auto pathStr = path.extension().string();
+    if (!storm::iEquals(pathStr, ".xps"))
+        path += ".xps";
+    pathStr = path.string();
+    std::ranges::for_each(pathStr, [](char &c) { c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+
+    for (auto n = 0; n < Cache.size(); n++)
+    {
+        if (Cache[n].FileName == pathStr)
+            return Cache[n].pData;
+    }
+
+    return nullptr;
+}
+
+void DataCache::CreateDataSource(void *pBuffer, uint32_t BufferSize, const char *SourceFileName)
+{
+    LoadedDataSource NewDataSource;
+    NewDataSource.FileName = SourceFileName;
+    NewDataSource.pData = new DataSource(Master);
+    Cache.push_back(NewDataSource);
+
+
+    auto *ReadFile = new MemFile;
+    ReadFile->OpenRead(pBuffer, BufferSize);
+    NewDataSource.pData->Load(ReadFile);
+    ReadFile->Close();
+    delete ReadFile;
+}
+
+uint32_t DataCache::GetCachedCount() const
+{
+    return Cache.size();
+}
+
+const char *DataCache::GetCachedNameByIndex(uint32_t Index)
+{
+    return Cache[Index].FileName.c_str();
+}

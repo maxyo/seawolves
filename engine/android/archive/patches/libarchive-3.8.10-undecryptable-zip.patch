@@ -1,0 +1,24 @@
+diff --git a/libarchive/archive_read_support_format_zip.c b/libarchive/archive_read_support_format_zip.c
+--- a/libarchive/archive_read_support_format_zip.c
++++ b/libarchive/archive_read_support_format_zip.c
+@@ -3332,7 +3332,8 @@ read_decryption_header(struct archive_read *a)
+ 
+ 	/*return (ARCHIVE_OK);
+ 	 * This is not fully implemented yet.*/
+-	archive_set_error(&a->archive, ARCHIVE_ERRNO_FILE_FORMAT,
++	/* ENOTSUP: no passphrase can open it (Storm Android archive reader). */
++	archive_set_error(&a->archive, ENOTSUP,
+ 	    "Encrypted file is unsupported");
+ 	return (ARCHIVE_FAILED);
+ truncated:
+@@ -3479,7 +3480,9 @@ init_WinZip_AES_decryption(struct archive_read *a)
+ 		r = archive_pbkdf2_sha1(passphrase, strlen(passphrase),
+ 		    p, salt_len, 1000, derived_key, key_len * 2 + 2);
+ 		if (r != 0) {
+-			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
++			/* ENOTSUP: no passphrase can open it (Storm Android archive reader). */
++			archive_set_error(&a->archive,
++			    r == CRYPTOR_STUB_FUNCTION ? ENOTSUP : ARCHIVE_ERRNO_MISC,
+ 			    r == CRYPTOR_STUB_FUNCTION ? "Decryption is unsupported due "
+ 				"to lack of crypto library" : "Failed to process passphrase");
+ 			return (ARCHIVE_FAILED);

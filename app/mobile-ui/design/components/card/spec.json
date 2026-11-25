@@ -1,0 +1,18 @@
+{
+  "tag": "c-card",
+  "props": {
+    "selected": {"type": "bool", "default": false},
+    "dashed": {"type": "bool", "default": false},
+    "disabled": {"type": "bool", "default": false},
+    "tone": {"type": "enum", "options": ["raised", "plain", "danger", "parchment"], "default": "raised"},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "pad": {"type": "int", "default": @{space.md}},
+    "gap": {"type": "int", "default": 6}
+  },
+  "classes": {
+    "paper": "surface == 'parchment' || tone == 'parchment'"
+  },
+  "constants": {
+    "selectedBar": 3
+  }
+}

@@ -1,0 +1,464 @@
+#include "shim/program_cache.hpp"
+
+#include "shim/device.hpp"
+
+#include "shim/pipeline_sets.hpp"
+#include "shim/shim.hpp"
+#include "texture/core/cache.hpp"
+
+#include <algorithm>
+#include <cinttypes>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <system_error>
+#include <vector>
+#ifdef STORM_TRACY
+#include <tracy/TracyC.h>
+#endif
+
+namespace storm::shim
+{
+
+namespace
+{
+namespace fs = std::filesystem;
+// The recorded pipelines of the scenes (pipeline_sets.hpp), next to the pipeline cache in the device's directory.
+constexpr char kPipelineSetsFile[] = "pipelines.bin";
+
+constexpr char kMagic[8] = {'S', 'T', 'P', 'R', 'O', 'G', 'B', 'N'};
+constexpr uint32_t kVersion = 1;
+
+struct Header
+{
+    char magic[8];
+    uint32_t version;
+    uint32_t size;     // of the binary that follows
+    uint64_t key;      // device key
+    uint64_t id;       // bgfx's program id
+    uint64_t checksum; // texture::hash64 of the binary
+};
+static_assert(sizeof(Header) == 40);
+
+uint64_t checksum(const void *data, size_t size)
+{
+    return texture::hash64(data, size, 0x5354505247u);
+}
+} // namespace
+
+ProgramCache &ProgramCache::instance()
+{
+    static ProgramCache cache;
+    return cache;
+}
+
+void ProgramCache::configure(const render::ProgramCacheConfig &config)
+{
+    std::lock_guard lock(mutex_);
+    config_ = config;
+    configured_ = !config.directory.empty();
+}
+
+void ProgramCache::attach_device(const std::string &device, bool vulkan)
+{
+    std::lock_guard lock(mutex_);
+    entries_.clear();
+    total_bytes_ = 0;
+    served_.clear();
+    served_checksums_.clear();
+    vulkan_ = vulkan;
+    device_dir_.clear();
+    if (!configured_)
+    {
+        if (render::Once(unconfigured_logged_))
+            render::Log().info("program cache: no directory configured (render::ConfigureProgramCache): every program "
+                               "is linked at every start");
+        PipelineSets::instance().attach({}, vulkan);
+        return;
+    }
+    key_ = checksum(device.data(), device.size());
+    char name[17];
+    snprintf(name, sizeof(name), "%016" PRIx64, key_);
+    std::error_code error;
+    fs::create_directories(config_.directory / name, error);
+    if (error)
+    {
+        render::Log().error("program cache: cannot create {} ({}): every program is linked at every start",
+                            (config_.directory / name).string(), error.message());
+        PipelineSets::instance().attach({}, vulkan);
+        return;
+    }
+    device_dir_ = config_.directory / name;
+    // Binaries of another GPU, driver or bgfx version can never load again.
+    for (const auto &item : fs::directory_iterator(config_.directory, error))
+        if (item.is_directory() && item.path().filename() != name)
+        {
+            fs::remove_all(item.path(), error);
+            render::Log().info("program cache: removed the binaries of another device or driver ({})",
+                               item.path().filename().string());
+        }
+    for (const auto &item : fs::directory_iterator(device_dir_, error))
+    {
+        const std::string file = item.path().filename().string();
+        if (vulkan && file == kPipelineSetsFile)
+            continue;
+        uint64_t id = 0;
+        char rest = 0;
+        if (!item.is_regular_file() || std::sscanf(file.c_str(), "%" SCNx64 ".bi%c", &id, &rest) != 2 || rest != 'n')
+        {
+            fs::remove_all(item.path(), error); // a temporary of an interrupted write, or a stranger
+            continue;
+        }
+        Entry entry;
+        entry.bytes = item.file_size(error);
+        entry.used = item.last_write_time(error);
+        entries_[id] = entry;
+        total_bytes_ += entry.bytes;
+    }
+    stats_.entries = static_cast<uint32_t>(entries_.size());
+    stats_.bytes = total_bytes_;
+    render::Log().info("program cache: {}, {} binaries ({:.1f} MB of {:.0f} MB) for {}", device_dir_.string(),
+                       entries_.size(), total_bytes_ / 1048576.0, config_.max_bytes / 1048576.0, device);
+    evict();
+    PipelineSets::instance().attach(vulkan ? device_dir_ : fs::path{}, vulkan);
+}
+
+void ProgramCache::detach_device()
+{
+    std::lock_guard lock(mutex_);
+    if (writer_.joinable())
+        writer_.join();
+    PipelineSets::instance().detach();
+    device_dir_.clear();
+    entries_.clear();
+    pending_.clear();
+    served_.clear();
+    served_checksums_.clear();
+}
+
+render::ProgramCacheStats ProgramCache::stats()
+{
+    std::lock_guard lock(mutex_);
+    return stats_;
+}
+
+void ProgramCache::log_activity()
+{
+    std::lock_guard lock(mutex_);
+    if (stats_.loaded == logged_.loaded && stats_.stored == logged_.stored && stats_.invalid == logged_.invalid)
+        return;
+    // Statistics only: every unusable binary already logged its own ERROR line (forget). No problem words here, so
+    // log checks such as tools/scene_sweep (keywords error/fail/invalid/...) do not take the summary for a failure.
+    render::Log().info("program cache: {} loaded, {} linked and stored ({} over binaries the driver refused), {} "
+                       "removed as unusable this frame; {} binaries, {:.1f} MB",
+                       stats_.loaded - logged_.loaded, stats_.stored - logged_.stored,
+                       stats_.replaced - logged_.replaced, stats_.invalid - logged_.invalid, stats_.entries,
+                       stats_.bytes / 1048576.0);
+    logged_ = stats_;
+}
+
+fs::path ProgramCache::file_of(uint64_t id) const
+{
+    char name[24];
+    snprintf(name, sizeof(name), "%016" PRIx64 ".bin", id);
+    return device_dir_ / name;
+}
+
+void ProgramCache::forget(uint64_t id, const char *why)
+{
+    render::Log().error("program cache: binary {:016x} {}: removed, the program is linked", id, why);
+    std::error_code error;
+    fs::remove(file_of(id), error);
+    if (const auto it = entries_.find(id); it != entries_.end())
+    {
+        total_bytes_ -= it->second.bytes;
+        entries_.erase(it);
+    }
+    ++stats_.invalid;
+    stats_.entries = static_cast<uint32_t>(entries_.size());
+    stats_.bytes = total_bytes_;
+}
+
+void ProgramCache::evict()
+{
+    while (total_bytes_ > config_.max_bytes && !entries_.empty())
+    {
+        const auto oldest = std::min_element(entries_.begin(), entries_.end(), [](const auto &a, const auto &b) {
+            return a.second.used < b.second.used;
+        });
+        std::error_code error;
+        fs::remove(file_of(oldest->first), error);
+        total_bytes_ -= oldest->second.bytes;
+        entries_.erase(oldest);
+    }
+    stats_.entries = static_cast<uint32_t>(entries_.size());
+    stats_.bytes = total_bytes_;
+}
+
+uint32_t ProgramCache::cacheReadSize(uint64_t id)
+{
+    std::lock_guard lock(mutex_);
+    pending_.clear();
+    pending_id_ = 0;
+    if (device_dir_.empty() || !entries_.contains(id))
+        return 0;
+    std::error_code missing;
+    if (!fs::exists(file_of(id), missing))
+    {
+        // The app cache is emptied by the system (low storage, «Очистить кэш») while the game runs: not a defect.
+        render::Log().info(
+            "program cache: binary {:016x} is gone (the system cleared the cache): the program is linked again", id);
+        total_bytes_ -= entries_[id].bytes;
+        entries_.erase(id);
+        stats_.entries = static_cast<uint32_t>(entries_.size());
+        stats_.bytes = total_bytes_;
+        return 0;
+    }
+    std::ifstream in(file_of(id), std::ios::binary);
+    Header header{};
+    if (!in.read(reinterpret_cast<char *>(&header), sizeof(header)))
+    {
+        forget(id, "is truncated (no header)");
+        return 0;
+    }
+    if (std::memcmp(header.magic, kMagic, sizeof(kMagic)) != 0 || header.version != kVersion)
+    {
+        forget(id, "has another format");
+        return 0;
+    }
+    if (header.key != key_ || header.id != id)
+    {
+        forget(id, "belongs to another device or program");
+        return 0;
+    }
+    pending_.resize(header.size);
+    if (header.size == 0 || !in.read(reinterpret_cast<char *>(pending_.data()), header.size) ||
+        checksum(pending_.data(), pending_.size()) != header.checksum)
+    {
+        pending_.clear();
+        forget(id, "is truncated or corrupt (checksum)");
+        return 0;
+    }
+    pending_id_ = id;
+    return header.size;
+}
+
+bool ProgramCache::cacheRead(uint64_t id, void *data, uint32_t size)
+{
+    std::lock_guard lock(mutex_);
+    if (id != pending_id_ || size != pending_.size())
+    {
+        render::Log().error("program cache: bgfx read {:016x} ({} bytes) without its size query: the program is linked",
+                            id, size);
+        return false;
+    }
+    std::memcpy(data, pending_.data(), size);
+    if (vulkan_)
+        served_checksums_[id] = checksum(pending_.data(), pending_.size());
+    pending_.clear();
+    pending_id_ = 0;
+    // Most recently used: kept longest by evict().
+    std::error_code error;
+    const auto now = fs::file_time_type::clock::now();
+    fs::last_write_time(file_of(id), now, error);
+    entries_[id].used = now;
+    served_.insert(id);
+    ++stats_.loaded;
+    return true;
+}
+
+void ProgramCache::cacheWrite(uint64_t id, const void *data, uint32_t size)
+{
+    std::lock_guard lock(mutex_);
+    if (device_dir_.empty() || !data || size == 0)
+        return;
+    // OpenGL: one binary per program, many of them: none may take more than a quarter of the cache. Vulkan: the
+    // device's pipeline cache is the only entry (every pipeline of every scene, ~30 KB each on Adreno: 19 MB after
+    // ~640 pipelines), so it may fill the cache; refused only when it would not fit at all.
+    const uint64_t entry_limit = vulkan_ ? config_.max_bytes : config_.max_bytes / 4;
+    if (sizeof(Header) + uint64_t(size) > entry_limit) // with its header, as evict() counts it
+    {
+        render::Log().error("program cache: {} {:016x} of {} bytes exceeds {} ({:.1f} MB): not stored, it is compiled "
+                            "again at the next start",
+                            vulkan_ ? "the pipeline cache" : "binary", id, size,
+                            vulkan_ ? "the whole cache" : "a quarter of the cache", config_.max_bytes / 1048576.0);
+        return;
+    }
+    if (vulkan_)
+    {
+        PipelineSets::instance().save(); // the scenes' recorded pipelines go with the pipeline cache
+        // The device's pipeline cache, saved again: unchanged when nothing new was compiled since it was loaded.
+        // (The file may be gone meanwhile, the app cache cleared: then it is written again.)
+        const auto served = served_checksums_.find(id);
+        std::error_code missing;
+        if (served != served_checksums_.end() && served->second == checksum(data, size) &&
+            fs::exists(file_of(id), missing))
+            return;
+        if (served != served_checksums_.end())
+        {
+            // The driver's cache differs from what was loaded (it added pipelines, or its header check refused the
+            // data).
+            ++stats_.replaced;
+            served_checksums_.erase(served);
+        }
+    }
+    else if (served_.erase(id))
+    {
+        // bgfx linked a program this run loaded: the driver rejected the binary (logged by bgfx).
+        render::Log().info("program cache: binary {:016x} was rejected by the driver: replaced by the new link", id);
+        ++stats_.replaced;
+    }
+    std::error_code made;
+    if (fs::create_directories(device_dir_, made))
+        render::Log().info("program cache: {} was gone (the system cleared the cache): made again",
+                           device_dir_.string());
+    Header header{};
+    std::memcpy(header.magic, kMagic, sizeof(kMagic));
+    header.version = kVersion;
+    header.size = size;
+    header.key = key_;
+    header.id = id;
+    header.checksum = checksum(data, size);
+    const fs::path file = file_of(id);
+    const auto write = [file, id, header](const void *bytes) {
+        fs::path temporary = file;
+        temporary += ".tmp";
+        {
+            std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+            out.write(reinterpret_cast<const char *>(&header), sizeof(header));
+            out.write(static_cast<const char *>(bytes), header.size);
+            if (!out)
+            {
+                render::Log().error("program cache: cannot write {}: binary {:016x} not stored", temporary.string(),
+                                    id);
+                std::error_code error;
+                fs::remove(temporary, error);
+                return false;
+            }
+        }
+        std::error_code error;
+        fs::rename(temporary, file, error);
+        if (error)
+        {
+            render::Log().error("program cache: cannot store {} ({})", file.string(), error.message());
+            fs::remove(temporary, error);
+            return false;
+        }
+        return true;
+    };
+    if (vulkan_)
+    {
+        // Megabytes, from the render thread between two frames: the file is written off it. One write at a time;
+        // the one before has long finished (bgfx saves seconds apart).
+        if (writer_.joinable())
+            writer_.join();
+        writer_ = std::thread(
+            [write, copy = std::vector<uint8_t>(static_cast<const uint8_t *>(data),
+                                                static_cast<const uint8_t *>(data) + size)] { write(copy.data()); });
+    }
+    else if (!write(data))
+        return;
+    if (const auto it = entries_.find(id); it != entries_.end())
+        total_bytes_ -= it->second.bytes;
+    Entry &entry = entries_[id];
+    entry.bytes = sizeof(header) + size;
+    entry.used = fs::file_time_type::clock::now();
+    total_bytes_ += entry.bytes;
+    ++stats_.stored;
+    evict();
+}
+
+void ProgramCache::fatal(const char *file, uint16_t line, bgfx::Fatal::Enum code, const char *str)
+{
+    if (code == bgfx::Fatal::DebugCheck)
+    {
+        render::Log().warn("bgfx debug check ({}:{}): {}", file, line, str);
+        return;
+    }
+    // At error level (error.log flushes at once, before the abort below), and on Vulkan recorded for this driver:
+    // a driver that ended the game once is not started on Vulkan again (Context::vulkan_failed).
+    render::Log().error("bgfx FATAL ({}:{}): {}", file, line, str);
+    if (vulkan_)
+        Context::instance().vulkan_failed(std::string("bgfx FATAL: ") + str);
+    std::abort(); // bgfx's contract: the callback must not return from a fatal error
+}
+
+#ifdef STORM_TRACY
+namespace
+{
+// Zones bgfx opened on this thread: its API scopes on the game thread, its backend scopes on the render thread.
+thread_local std::vector<TracyCZoneCtx> bgfx_zones;
+} // namespace
+
+void ProgramCache::profilerBegin(const char *name, uint32_t abgr, const char *file, uint16_t line)
+{
+    // bgfx's 0xAABBGGRR as Tracy's 0xRRGGBB. The source location is copied: bgfx's names may be built per call.
+    const uint32_t rgb = ((abgr & 0xffu) << 16) | (abgr & 0xff00u) | ((abgr >> 16) & 0xffu);
+    const uint64_t location =
+        ___tracy_alloc_srcloc_name(line, file, std::strlen(file), "bgfx", 4, name, std::strlen(name), rgb);
+    bgfx_zones.push_back(___tracy_emit_zone_begin_alloc(location, 1));
+}
+
+void ProgramCache::profilerBeginLiteral(const char *name, uint32_t abgr, const char *file, uint16_t line)
+{
+    profilerBegin(name, abgr, file, line);
+}
+
+void ProgramCache::profilerEnd()
+{
+    if (bgfx_zones.empty())
+        return;
+    ___tracy_emit_zone_end(bgfx_zones.back());
+    bgfx_zones.pop_back();
+}
+#else
+void ProgramCache::profilerBegin(const char *, uint32_t, const char *, uint16_t)
+{
+}
+
+void ProgramCache::profilerBeginLiteral(const char *, uint32_t, const char *, uint16_t)
+{
+}
+
+void ProgramCache::profilerEnd()
+{
+}
+#endif
+
+void ProgramCache::traceVargs(const char *, uint16_t, const char *format, va_list args)
+{
+    char text[1024];
+    vsnprintf(text, sizeof(text), format, args);
+    size_t length = strlen(text);
+    while (length > 0 && (text[length - 1] == '\n' || text[length - 1] == '\r'))
+        text[--length] = '\0';
+    render::Log().info("{}", text);
+}
+
+void ProgramCache::screenShot(const char *, uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, const void *,
+                              uint32_t, bool)
+{
+    render::Log().error("bgfx delivered a screenshot, which the renderer never requests: dropped");
+}
+
+void ProgramCache::captureBegin(uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, bool)
+{
+    render::Log().error("bgfx started a frame capture, which the renderer never enables (BGFX_RESET_CAPTURE): ignored");
+}
+
+} // namespace storm::shim
+
+namespace storm::render
+{
+void ConfigureProgramCache(const ProgramCacheConfig &config)
+{
+    shim::ProgramCache::instance().configure(config);
+}
+
+ProgramCacheStats CurrentProgramCacheStats()
+{
+    return shim::ProgramCache::instance().stats();
+}
+} // namespace storm::render

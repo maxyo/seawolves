@@ -1,0 +1,42 @@
+<rml>
+<head>
+<title>Плитка</title>
+<link type="text/rcss" href="../kit.rcss"/>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Tile</div>
+<div class="g-note">Обычная · выбранная · недоступная (причина — тостом) · пустая · нажатая</div>
+<div class="g-row g-wood">
+  <div style="width: 150dp; height: 56dp"><c-tile id="t-normal" icon="sabre" label="Клинок" sub="надето"/></div>
+  <div style="width: 150dp; height: 56dp"><c-tile id="t-selected" icon="pistol" label="Пистоль" selected="1"/></div>
+  <div style="width: 150dp; height: 56dp"><c-tile id="t-disabled" icon="spyglass" label="Труба" disabled="1" reason="Нужен ранг 5"/></div>
+  <div style="width: 150dp; height: 56dp"><c-tile id="t-empty" icon="plus" label="Амулет" sub="пусто" empty="1"/></div>
+  <div style="width: 150dp; height: 56dp"><c-tile icon="sabre" label="Клинок" pressed="1"/></div>
+</div>
+<div class="g-note">С жетоном (эмали), layout column, size</div>
+<div class="g-row g-wood">
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"token","icon":"tavern","enamel":"teal"}' label="Таверна"/></div>
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"token","icon":"sabre","enamel":"red"}' label="Абордаж" sub="×3" selected="1"/></div>
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"token","icon":"lock","enamel":"iron"}' label="Закрыто" disabled="1"/></div>
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"token","icon":"rum","enamel":"parchment"}' label="Ром" sub="60"/></div>
+</div>
+<div class="g-row g-wood">
+  <div style="width: 104dp; height: 92dp"><c-tile icon="sabre" label="Клинок" sub="надето" layout="column"/></div>
+  <div style="width: 104dp; height: 92dp"><c-tile icon="pistol" label="Пистоль" layout="column" selected="1"/></div>
+  <div style="width: 104dp; height: 92dp"><c-tile icon="spyglass" label="Труба" layout="column" disabled="1"/></div>
+  <div style="width: 104dp; height: 92dp"><c-tile icon="plus" label="Амулет" sub="пусто" layout="column" empty="1"/></div>
+  <div style="width: 104dp; height: 92dp"><c-tile image='{"kind":"token","icon":"ship","enamel":"teal"}' size="40" label="Корабль" layout="column"/></div>
+  <div style="width: 104dp; height: 92dp"><c-tile image='{"kind":"token","icon":"tavern","enamel":"teal"}' label="Очень длинное название" layout="column"/></div>
+</div>
+<div class="g-note">С игровой картинкой (image = {kind, texture, cell}): предмет и герб паруса</div>
+<div class="g-row g-wood">
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"item","texture":"INTERFACES/items6","cell":8,"icon":"pistol"}' label="Строевой пистоль" sub="1 200"/></div>
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"item","texture":"INTERFACES/items19","cell":1,"icon":"potion"}' label="Лечебное зелье" selected="1"/></div>
+  <div style="width: 180dp; height: 64dp"><c-tile image='{"kind":"item","texture":"INTERFACES/items6","cell":3,"icon":"sabre"}' label="Недоступно" disabled="1"/></div>
+  <div style="width: 104dp; height: 104dp"><c-tile image='{"kind":"emblem","texture":"Ships/Gerald/fra_1"}' size="44" label="Франция" layout="column"/></div>
+  <div style="width: 104dp; height: 104dp"><c-tile image='{"kind":"emblem","texture":"Ships/Gerald/fra_1"}' size="44" label="Франция" layout="column" selected="1"/></div>
+</div>
+</div>
+</body>
+</rml>

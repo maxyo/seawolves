@@ -1,0 +1,18 @@
+{
+  "tag": "s-journal",
+  "doc": "Hero section «Судовой журнал» (interface questbook, hero_journal.cpp): sections rail, entries with the open text on parchment, the game's tables.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "headerSection": {"type": "text", "default": ""},
+    "date": {"type": "text", "default": ""},
+    "section": {"type": "text", "default": "quests"},
+    "sections": {"type": "json", "default": []},
+    "subtabs": {"type": "json", "default": []},
+    "list": {"type": "json", "default": []},
+    "empty": {"type": "text", "default": ""},
+    "entry": {"type": "json", "default": null},
+    "tables": {"type": "json", "default": []},
+    "noTables": {"type": "text", "default": ""},
+    "extras": {"type": "json", "default": {}}
+  }
+}

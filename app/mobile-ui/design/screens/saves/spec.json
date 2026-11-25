@@ -1,0 +1,12 @@
+{
+  "tag": "s-saves",
+  "doc": "Saves (interface `save_load`), filled by menu_saves.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "columns": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": []},
+    "detail": {"type": "json", "default": null},
+    "confirm": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

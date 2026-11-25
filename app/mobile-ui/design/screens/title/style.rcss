@@ -1,0 +1,7 @@
+/* s-title: the menu column on the right over the game's own menu scene, «О программе» bottom-left. */
+s-title { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+/* the scrim is clear over the left 35 %: the element starts there (no fill where it draws nothing) */
+s-title .tt-shade { position: absolute; left: 35%; top: 0; right: 0; bottom: 0; decorator: linear-gradient(90deg, @{color.scrim/0}, @{color.scrim/.55}); }
+s-title .tt-nav { position: absolute; top: 0; bottom: 0; width: 320dp; display: flex; flex-direction: column; justify-content: center; gap: @{space.sm}dp; }
+s-title .tt-about { position: absolute; }
+s-title .tt-more { position: absolute; top: 8dp; right: 8dp; }

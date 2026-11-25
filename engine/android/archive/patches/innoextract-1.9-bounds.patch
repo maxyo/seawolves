@@ -1,0 +1,105 @@
+diff --git a/src/setup/info.cpp b/src/setup/info.cpp
+--- a/src/setup/info.cpp
++++ b/src/setup/info.cpp
+@@ -20,6 +20,8 @@
+ 
+ #include "setup/info.hpp"
+ 
++#include "inno_bounds.hpp"
++
+ #include <cassert>
+ #include <istream>
+ #include <sstream>
+@@ -53,6 +55,9 @@ template <class Entry>
+ void info::load_entries(std::istream & is, entry_types entries, size_t count,
+                         std::vector<Entry> & result, entry_types::enum_type entry_type) {
+ 	
++	// Bounded for untrusted installers (android/archive/inno_bounds.hpp).
++	storm_archive::inno_charge(count * sizeof(Entry));
++	if(count > 200000) throw storm_archive::Failure(STORM_ARCHIVE_LIMIT, "Inno entry limit exceeded");
+ 	result.clear();
+ 	if(entries & entry_type) {
+ 		result.resize(count);
+@@ -77,6 +82,8 @@ void load_wizard_images(std::istream & is, const setup::version & version,
+ 		count = util::load<boost::uint32_t>(is);
+ 	}
+ 	
++	// Bounded for untrusted installers (android/archive/inno_bounds.hpp).
++	if(count > 1000) throw storm_archive::Failure(STORM_ARCHIVE_LIMIT, "Inno image limit exceeded");
+ 	if(entries & (info::WizardImages | info::NoSkip)) {
+ 		images.resize(count);
+ 		for(size_t i = 0; i < count; i++) {
+diff --git a/src/stream/lzma.cpp b/src/stream/lzma.cpp
+--- a/src/stream/lzma.cpp
++++ b/src/stream/lzma.cpp
+@@ -20,6 +20,8 @@
+ 
+ #include "stream/lzma.hpp"
+ 
++#include "inno_bounds.hpp"
++
+ #include <boost/cstdint.hpp>
+ 
+ #include <lzma.h>
+@@ -31,6 +33,8 @@ namespace stream {
+ 
+ static lzma_stream * init_raw_lzma_stream(lzma_vli filter, lzma_options_lzma & options) {
+ 	
++	// The reader's codec memory is bounded (android/archive/memory.cpp, inno_bounds.hpp).
++	if(options.dict_size > 512 * 1024 * 1024) throw storm_archive::Failure(STORM_ARCHIVE_MEMORY, "Inno dictionary exceeds the memory limit");
+ 	options.preset_dict = NULL;
+ 	
+ 	lzma_stream * strm = new lzma_stream;
+diff --git a/src/stream/slice.cpp b/src/stream/slice.cpp
+--- a/src/stream/slice.cpp
++++ b/src/stream/slice.cpp
+@@ -20,6 +20,8 @@
+ 
+ #include "stream/slice.hpp"
+ 
++#include <boost/filesystem/directory.hpp>
++
+ #include <sstream>
+ #include <cstring>
+ #include <limits>
+@@ -104,7 +106,7 @@ bool slice_reader::open_file(const path_type & file) {
+ 		throw slice_error("could not read slice magic number in \"" + file.string() + "\"");
+ 	}
+ 	bool found = false;
+-	for(size_t i = 0; boost::size(slice_ids); i++) {
++	for(size_t i = 0; i < boost::size(slice_ids); i++) {
+ 		if(!std::memcmp(magic, slice_ids[i], 8)) {
+ 			found = true;
+ 			break;
+diff --git a/src/util/load.cpp b/src/util/load.cpp
+--- a/src/util/load.cpp
++++ b/src/util/load.cpp
+@@ -22,6 +22,8 @@
+ 
+ #include <algorithm>
+ 
++#include "inno_bounds.hpp"
++
+ #include <boost/lexical_cast.hpp>
+ 
+ namespace util {
+@@ -29,6 +31,9 @@ namespace util {
+ void binary_string::load(std::istream & is, std::string & target) {
+ 	
+ 	boost::uint32_t length = util::load<boost::uint32_t>(is);
++	// Bounded for untrusted installers (android/archive/inno_bounds.hpp).
++	storm_archive::inno_charge(length);
++	if(length > 16 * 1024 * 1024) throw storm_archive::Failure(STORM_ARCHIVE_LIMIT, "Inno string limit exceeded");
+ 	if(is.fail()) {
+ 		return;
+ 	}
+@@ -47,6 +52,9 @@ void binary_string::load(std::istream & is, std::string & target) {
+ void binary_string::skip(std::istream & is) {
+ 	
+ 	boost::uint32_t length = util::load<boost::uint32_t>(is);
++	// Bounded for untrusted installers (android/archive/inno_bounds.hpp).
++	storm_archive::inno_charge(length);
++	if(length > 16 * 1024 * 1024) throw storm_archive::Failure(STORM_ARCHIVE_LIMIT, "Inno string limit exceeded");
+ 	if(is.fail()) {
+ 		return;
+ 	}

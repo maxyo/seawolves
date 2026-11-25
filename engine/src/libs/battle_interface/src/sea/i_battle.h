@@ -1,0 +1,100 @@
+#pragma once
+
+#include "bi_utils.h"
+#include "bi_defines.h"
+#include "battle_navigator.h"
+#include "renderer.h"
+#ifdef __ANDROID__
+#include <platform/android_sea_orders.hpp>
+#include <platform/android_ship_telemetry.hpp>
+#include <optional>
+#endif
+
+class BIShipIcon;
+class ShipInfoImages;
+
+class BATTLE_INTERFACE : public Entity
+{
+    VRenderer *rs;
+
+  public:
+    BATTLE_INTERFACE();
+    ~BATTLE_INTERFACE() override;
+    bool Init() override;
+    void Execute(uint32_t delta_time);
+    void Realize(uint32_t delta_time);
+#ifdef __ANDROID__
+    bool AndroidCommandActive() const;
+    bool AndroidCaptionsVisible() const;
+    void ReadAndroidCaptions(storm::android::ShipTelemetryFrame &frame, uint64_t mainShipId) const;
+    // The interface shows its command menu (all shown, visible, ShowCommands): the orders exist.
+    bool AndroidOrdersShown() const;
+    // The ship icons were told their list changed since the last call (BIShipIcon::TakeAndroidChanged).
+    bool TakeAndroidOrdersChanged();
+    bool ReadAndroidOrders(storm::android::SeaOrdersFrame &frame);
+    bool ExecuteAndroidOrder(const storm::android::HudMenuRequest &request);
+    void CloseAndroidOrders();
+    std::optional<storm::android::ShipPicture> AndroidShipPicture(int32_t characterIndex) const;
+#endif
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    uint32_t AttributeChanged(ATTRIBUTES *pAttr) override;
+
+    void ProcessStage(Stage stage, uint32_t delta) override
+    {
+        switch (stage)
+        {
+        case Stage::execute:
+            Execute(delta);
+            break;
+        case Stage::realize:
+            Realize(delta);
+            break;
+        case Stage::lost_render:
+            LostRender();
+            break;
+        case Stage::restore_render:
+            RestoreRender();
+            break;
+        }
+    }
+
+    void LostRender()
+    {
+        BattleNavigator.LostRender();
+    };
+
+    void RestoreRender()
+    {
+        BattleNavigator.RestoreRender();
+    };
+
+  protected:
+    BATTLE_NAVIGATOR BattleNavigator; // navigation icons
+    BIShipIcon *m_pShipIcon; // icons of commands and target pointers in the combat menu
+    bool m_bShowCommandMenu;
+    bool m_bShowBattleNavigator;
+    bool m_bYesShowAll;
+    bool m_bVisible;
+#ifdef __ANDROID__
+    bool m_androidCaptionsDrawn = false;
+#endif
+
+    float m_fBlinkSpeed;
+    float m_fCurBlinkTime;
+
+    bool m_bNeedIslandSet;
+
+    bool m_bMyShipView;
+
+    std::vector<BITextInfo> m_TextArray;
+    BILinesInfo m_LinesInfo;
+    bool m_bShowBattleBorder;
+    BIBorderInfo m_BattleBorder;
+    BIImagesInfo m_ImagesInfo;
+
+    ShipInfoImages *m_pShipInfoImages;
+
+  protected:
+    void LoadIniFile();
+    void CheckSeaState();
+};

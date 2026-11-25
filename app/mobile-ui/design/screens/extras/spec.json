@@ -1,0 +1,12 @@
+{
+  "tag": "s-extras",
+  "doc": "Screen part shared by every screen: the «Прочее» sheet under the header «⋯» (widgets the screen does not know) and the reading sheet for long texts. Filled by Router::ExtrasView.",
+  "props": {
+    "extras": {"type": "json", "default": {}}
+  },
+  "classes": {
+    "shown": "extras.open || extras.reading"
+  },
+  "behaviors": ["press"],
+  "constants": {"pressRoot": false}
+}

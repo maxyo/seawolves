@@ -1,0 +1,87 @@
+// The town light (Средняя / Высокая): the real hour's sun and the sky's occlusion on the game's lightmaps, as a light
+// ratio the lightmapped draws multiply them by. Design: fx/README.md, "Town light".
+#pragma once
+
+#include <storm_glm.h>
+#include "storm/fx/visibility.hpp"
+#include "storm/fx/sun_fit.hpp"
+
+#include <array>
+#include <cstdint>
+#include <span>
+#include <vector>
+
+namespace storm::fx
+{
+
+struct LightmapTexels
+{
+    int width = 0, height = 0;
+    std::vector<uint32_t> texel;     // y * width + x of each covered texel
+    std::vector<glm::vec3> position; // its world position (on the surface)
+    std::vector<glm::vec3> normal;   // the surface's unit normal there (the side the lightmap lights)
+    std::vector<uint32_t> gutter; // texels outside every triangle: [2i] the texel, [2i + 1] the covered one it copies
+};
+
+// The texels of lightmap `lightmap` (`triangle_lightmap` per triangle) at `width` x `height`.
+LightmapTexels RasterizeLightmap(std::span<const glm::vec3> positions, std::span<const std::array<float, 2>> uvs,
+                                 std::span<const uint32_t> indices, std::span<const uint32_t> triangle_lightmap,
+                                 uint32_t lightmap, int width, int height, int gutter = 2);
+
+// 0..1 per texel: the share of the sky (cosine weighted around +y, within the probes' near reach) at each texel, read
+// from the place's probes (fx/place_probes.hpp `near_sky`, per cell of `volume`) one cell off the surface.
+std::vector<uint8_t> TexelSky(const LightmapTexels &texels, const VisibilityVolume &volume,
+                              const std::vector<uint8_t> &near_sky);
+// 0..1 per texel: the sun's direct light on it, the share of `sun` (unit, towards the sun) the texel sees (over
+// `samples` rays spread across the sun's disk and the texel) times the cosine to its normal; 0 facing away.
+std::vector<uint8_t> SunVisibility(const Occluders &occluders, const LightmapTexels &texels, const glm::vec3 &sun,
+                                   float texel_metres, int samples = 4, unsigned threads = 1);
+
+// How the game's lightmap was lit: its luminance = a + b sun + c sky on its texels (the sun's visibility along the
+// direction it was baked with, the sky's visibility). The rest is its paint: the ground's colours (grass, sand, the
+// paths) are painted into the same texture.
+struct TownLightTone
+{
+    float a = 0.0f, b = 0.0f, c = 0.0f;
+    float r2 = 0.0f;    // how much of the game lightmap's luminance the least squares explain
+    uint32_t edges = 0; // shadow edge pairs b was measured at (too few: b from the least squares)
+    bool valid = false;
+    // The sky the game's lightmap behaves as if it had, per bin of our sky visibility (bin centres (i + 0.5) / 8): the
+    // mean of (luminance - a - b sun) / c over the bin's texels, at least our own (kept where a bin has too few
+    // texels). The game painted its narrow alleys and gaps between houses nearly as bright as the open street: with
+    // this as the lighting it was baked with, our sky darkens them as much as they are closed.
+    static constexpr int kSkyBins = 8;
+    float game_sky[kSkyBins] = {0.0625f, 0.1875f, 0.3125f, 0.4375f, 0.5625f, 0.6875f, 0.8125f, 0.9375f};
+    float GameSky(float k) const;
+};
+
+// The game lightmap's lighting (`rgba`: its texels, RGBA8 at the same size) from its sun visibility along the direction
+// it was baked with and its sky visibility.
+TownLightTone CalibrateTownLight(const LightmapTexels &texels, std::span<const uint8_t> rgba,
+                                 std::span<const uint8_t> sun, std::span<const uint8_t> sky);
+
+// The town's walls and props without a lightmap (Средняя / Высокая): their baked vertex colours carry the game's own
+// sun (along the direction its lightmaps were baked with) and its ambient, which knows nothing of how closed a
+// place is (alleys, gaps between houses read as bright as the open street). They are relit per pixel like our
+// lightmaps (ff_town_wall.sh, u_fxTownWall): our sun with its shadow and our sky from the visibility volume now, over
+// the game's sun and the game's sky then, both with the lightmaps' tone (a + b sun + c sky).
+// The game's sky on the walls is measured here: over the vertices in the shade of the bake's sun, their mean
+// luminance per bin of our sky (read one cell off the surface, as the shader does) relative to the open ones,
+// turned into the sky the tone gives that luminance (at least ours: where the game's walls darken as much as our
+// sky closes, nothing changes).
+struct TownWallTone
+{
+    static constexpr int kSkyBins = TownLightTone::kSkyBins;
+    float game_sky[kSkyBins] = {0.0625f, 0.1875f, 0.3125f, 0.4375f, 0.5625f, 0.6875f, 0.8125f, 0.9375f};
+    float relative[kSkyBins] = {}; // the shaded vertices' luminance per bin over the open ones' (the log)
+    uint32_t count[kSkyBins] = {};
+    uint32_t vertices = 0, shaded = 0;
+    bool valid = false; // enough shaded open vertices to compare with
+};
+// `colors`: D3DCOLOR per position; `skip`: per triangle, 1 for those under a lightmap (relit as texels).
+TownWallTone CalibrateTownWalls(std::span<const glm::vec3> positions, std::span<const uint32_t> colors,
+                                std::span<const uint32_t> indices, std::span<const uint8_t> skip,
+                                const VisibilityVolume &volume, const TownLightTone &tone, const glm::vec3 &bake,
+                                const Occluders &occluders, unsigned threads = 1);
+
+} // namespace storm::fx

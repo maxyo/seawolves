@@ -1,0 +1,16 @@
+{
+  "tag": "c-row-image",
+  "doc": "The one row image of list rows, tiles, table cells, trade rows, object headers and ship cards (runtime helper). image = {kind: icon|token|item|portrait|emblem, icon, enamel, texture, cell}; `icon` alone = a bare icon; nothing = draws nothing.",
+  "props": {
+    "image": {"type": "json", "default": null},
+    "icon": {"type": "text", "default": ""},
+    "size": {"type": "int", "default": @{size.tokenSm}},
+    "iconSize": {"type": "int", "default": 24},
+    "tone": {"type": "text", "default": "brass", "class": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood", "class": false},
+    "label": {"type": "text", "default": ""},
+    "round": {"type": "bool", "default": false, "class": false},
+    "selected": {"type": "bool", "default": false, "class": false},
+    "disabled": {"type": "bool", "default": false, "class": false}
+  }
+}

@@ -1,0 +1,19 @@
+<t-if test="kind != 'look' || onboarding">
+<div class="wrap" style="{{ (active || onboarding || running) ? '' : 'filter: opacity(' + clamp(or(restOpacity, 0.3), 0.3, 1) + ');' }}{{ floating ? (active && !fixed ? ' left: ' + atX + 'dp; top: ' + atY + 'dp;' : (mirrored ? ' right: ' : ' left: ') + restLeft + 'dp; bottom: ' + restBottom + 'dp;') : '' }}">
+<t-if test="kind == 'helm'">
+<div class="track" data-stick="x" data-knob-size="{{ spec.helmKnob + 2 * spec.helmInset }}" style="width: {{ or(size, spec.size.helm) }}dp;">
+<t-if test="(active || onboarding) && value != 0"><div class="helm-fill" style="{{ value >= 0 ? 'left: 50%' : 'right: 50%' }}; width: {{ abs(clamp(value, -100, 100)) / 100 * (or(size, spec.size.helm) / 2 - spec.helmKnob / 2 - spec.helmInset) }}dp;"></div></t-if>
+<div class="chev left"></div><div class="chev right"></div>
+<div class="tick"></div>
+<div class="knob" style="left: {{ or(size, spec.size.helm) / 2 - spec.helmKnob / 2 + clamp(value, -100, 100) / 100 * (or(size, spec.size.helm) / 2 - spec.helmKnob / 2 - spec.helmInset) }}dp;"><c-icon icon="helm" size="{{spec.helmKnob}}" tone="brass"/></div>
+</div>
+<t-else/>
+<div class="ring" {{{ kind == 'move' ? 'data-stick="xy"' : '' }}} data-knob-size="{{ round(or(size, spec.size.move) * spec.moveKnobShare) }}" style="width: {{ or(size, spec.size.move) }}dp; height: {{ or(size, spec.size.move) }}dp;">
+<div class="inner" style="left: {{ round(or(size, spec.size.move) * 0.2) }}dp; top: {{ round(or(size, spec.size.move) * 0.2) }}dp; right: {{ round(or(size, spec.size.move) * 0.2) }}dp; bottom: {{ round(or(size, spec.size.move) * 0.2) }}dp;"></div>
+<t-if test="kind == 'move'"><div class="knob" style="width: {{ round(or(size, spec.size.move) * spec.moveKnobShare) }}dp; height: {{ round(or(size, spec.size.move) * spec.moveKnobShare) }}dp; left: {{ (or(size, spec.size.move) - round(or(size, spec.size.move) * spec.moveKnobShare)) / 2 * (1 + clamp(value, -100, 100) / 100) - 1 }}dp; top: {{ (or(size, spec.size.move) - round(or(size, spec.size.move) * spec.moveKnobShare)) / 2 * (1 + clamp(valueY, -100, 100) / 100) - 1 }}dp;"></div></t-if>
+<t-if test="kind == 'look'"><c-icon icon="eye" size="{{ round(or(size, spec.size.move) * 0.36) }}" tone="paper"/></t-if>
+</div>
+</t-if>
+<t-if test="onboarding && caption"><div class="caption">{{caption}}</div></t-if>
+</div>
+</t-if>

@@ -1,0 +1,14 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":1,
+"screenRevision":3,
+"screen":"map",
+"widgets":[
+{"node":"MAP_CAPTION","type":"text","label":"Вахтенный","index":-1,"order":1},
+{"node":"INFO_PICTURE","type":"image","index":-1,"order":2,"enabled":false,"images":[{"handle":11,"imageRevision":11,"tintArgb":4286611584}]},
+{"node":"INFO_TEXT","type":"text","label":"По курсу два торговца.","index":-1,"order":3},
+{"node":"INFO_TEXT_QUESTION","type":"text","label":"Что делаем?","index":-1,"order":4},
+{"node":"B_OK","type":"button","label":"Напасть","index":-1,"order":5},
+{"node":"B_CANCEL","type":"button","label":"Плыть дальше","index":-1,"order":6,"enabled":false}
+]}

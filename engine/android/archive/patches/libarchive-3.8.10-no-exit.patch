@@ -1,0 +1,38 @@
+diff --git a/libarchive/archive_entry.c b/libarchive/archive_entry.c
+--- a/libarchive/archive_entry.c
++++ b/libarchive/archive_entry.c
+@@ -1562,7 +1562,7 @@ archive_entry_copy_mac_metadata(struct archive_entry *entry,
+ 	} else {
+ 		metadata = malloc(s);
+ 		if (metadata == NULL)
+-			abort();
++			__archive_errx(1, "Out of memory");
+ 		memcpy(metadata, p, s);
+ 		free(entry->mac_metadata);
+ 		entry->mac_metadata = metadata;
+diff --git a/libarchive/archive_util.c b/libarchive/archive_util.c
+--- a/libarchive/archive_util.c
++++ b/libarchive/archive_util.c
+@@ -187,19 +187,12 @@ archive_copy_error(struct archive *dest, struct archive *src)
+ 	dest->error = dest->error_string.s;
+ }
+ 
++/* Storm Android adaptation: unwind to the owning reader; never exit APK. */
++__LA_NORETURN extern void storm_archive_libarchive_fatal(int, const char *);
+ void
+ __archive_errx(int retvalue, const char *msg)
+ {
+-	static const char msg1[] = "Fatal Internal Error in libarchive: ";
+-	size_t s;
+-
+-	s = write(2, msg1, strlen(msg1));
+-	(void)s; /* UNUSED */
+-	s = write(2, msg, strlen(msg));
+-	(void)s; /* UNUSED */
+-	s = write(2, "\n", 1);
+-	(void)s; /* UNUSED */
+-	exit(retvalue);
++	storm_archive_libarchive_fatal(retvalue, msg);
+ }
+ 
+ /*

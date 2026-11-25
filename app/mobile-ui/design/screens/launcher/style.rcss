@@ -1,0 +1,29 @@
+/* s-launcher: one column of 600 dp in the middle (setup, notices), the progress card in the centre, corner buttons bottom-left. */
+s-launcher { display: block; width: 100%; height: 100%; }
+/* setup: scrolls when its notices and cards are taller than a short landscape phone (360 dp) */
+s-launcher .ln-column { position: absolute; left: 0; right: 0; top: 0; bottom: 0; margin: 0 auto; width: 600dp; max-width: 92%; box-sizing: border-box; padding: 18dp 0 12dp 0;
+    overflow-y: auto; display: flex; flex-direction: column; gap: 12dp; }
+s-launcher .ln-column > * { flex-shrink: 0; }
+/* ready: the notices on top, «Играть» centred in the room they leave (never under them) */
+s-launcher .ln-ready { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; }
+s-launcher .ln-notices { flex: 0 0 auto; margin-top: 12dp; width: 600dp; max-width: 92%; max-height: 60%; overflow-y: auto; display: flex; flex-direction: column; gap: 12dp; }
+s-launcher .ln-notices > * { flex-shrink: 0; }
+/* a result shows whole: the reader's detail (an entry or file names, long and without spaces) on lines of its own */
+s-launcher c-notice.box .ntc-text { max-height: none; white-space: pre-line; word-break: break-word; }
+s-launcher .ln-card { width: 100%; }
+s-launcher .ln-card c-panel, s-launcher .ln-progress c-panel { height: auto; }
+s-launcher .ln-card c-panel > .inner, s-launcher .ln-progress c-panel > .inner { flex: 0 0 auto; }
+s-launcher .ln-card c-list-row { width: 100%; }
+s-launcher .ln-delete { flex: 0 0 140dp; width: 140dp; }
+/* a copy that is not the version the script fixes were tested for: said under the installed game, above the copies to choose (never blocking) */
+s-launcher .ln-untested { flex: 0 0 auto; padding: 0 12dp 10dp 12dp; }
+s-launcher .ln-untested.top { padding: 8dp 8dp 6dp 8dp; }
+s-launcher .ln-prompt { padding: 12dp 16dp 8dp 16dp; font-size: @{type.name}dp; line-height: 1.4; color: @{color.text}; border-bottom: 1dp @{color.brassLine/.14}; }
+s-launcher .ln-links { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 2dp 6dp; border-top: 1dp @{color.brassLine/.35}; }
+s-launcher .ln-center { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+s-launcher .ln-corner { position: absolute; left: 12dp; bottom: 10dp; padding: 0 4dp; background-color: @{color.wood}; box-shadow: @{color.black/.45} 0 0 0 1dp; }
+s-launcher .ln-corner.bare { bottom: 12dp; padding: 0; background-color: transparent; box-shadow: none; }
+s-launcher .ln-progress { position: absolute; left: 0; right: 0; top: 34%; margin: 0 auto; width: 600dp; max-width: 92%; }
+s-launcher .ln-line { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12dp; }
+s-launcher .ln-name { font-size: @{type.title}dp; font-weight: bold; color: @{color.text}; }
+s-launcher .ln-status { font-size: @{type.body}dp; color: @{color.textSecond}; }

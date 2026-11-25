@@ -1,0 +1,17 @@
+{
+  "tag": "s-crew",
+  "doc": "Crew hire (interface `hirecrew`), filled by trade_crew.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "stats": {"type": "json", "default": []},
+    "list": {"type": "json", "default": {}},
+    "shipLabel": {"type": "text", "default": ""},
+    "tavernLabel": {"type": "text", "default": ""},
+    "ship": {"type": "json", "default": {"groups": []}},
+    "tavern": {"type": "json", "default": {"groups": []}},
+    "notes": {"type": "text", "default": ""},
+    "primary": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

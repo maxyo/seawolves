@@ -1,0 +1,40 @@
+<rml>
+<head>
+<title>Диалог</title>
+<link type="text/rcss" href="../kit.rcss"/>
+<style>
+.d-full { position: relative; width: 100vw; height: 100vh; margin: 0 -16dp 12dp -16dp; overflow: hidden; }
+.d-cell { position: relative; width: 430dp; height: 290dp; overflow: hidden; }
+</style>
+</head>
+<body class="gallery">
+<div class="g-page" style="padding-top: 0">
+<div class="d-full"><c-scene><c-dialog id="d-delete" key="d-delete" title="Удалить" subject="Мартиника — море" consequence="Запись нельзя восстановить." preset="danger" confirm="Удалить" icon="trash" width="460"/></c-scene></div>
+<div class="g-title">C-Dialog · preset danger · пергамент + sub · sheet + шаги + удержание 60 % · top + крестик без затемнения</div>
+<div class="g-row">
+  <div class="d-cell"><c-scene><c-dialog title="Удалить" subject="Мартиника — море" consequence="Запись нельзя восстановить." preset="danger" confirm="Удалить" width="290"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="sea"><c-dialog id="d-pay" key="d-pay" tone="parchment" title="День зарплаты" consequence="Команде причитается 1 240 песо." actions='[{"label":"Не платить","variant":"quiet"},{"label":"Заплатить","variant":"primary","sub":"−1 240"}]' width="290"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="sea"><c-dialog id="d-sheet" key="d-sheet" variant="sheet" step="2/3" title="Цель: «Аделина»" consequence="Брандер сгорит вместе с командой." actions='[{"label":"Назад","variant":"quiet"},{"label":"Поджечь","variant":"danger","hold":true,"holdProgress":60}]' width="280"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="title"><c-dialog id="d-top" key="d-top" tone="parchment" variant="top" title="Исторические события" closable="1" consequence="Крестик на пергаменте — чернилами." width="400" scrim="0"/></c-scene></div>
+</div>
+<div class="g-title">preset confirm · значок + подзаголовок + text · sequence + дочернее поле · недоступное действие с причиной</div>
+<div class="g-row">
+  <div class="d-cell"><c-scene kind="tavern"><c-dialog id="d-confirm" key="d-confirm" title="Выйти в море?" preset="confirm" confirm="Выйти" width="300"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="deck"><c-dialog icon="nation-france" title="Губернатор" subtitle="Сен-Пьер" text="Рад видеть вас, капитан.
+Есть поручение для надёжного человека." closable="1" actions='[{"label":"Выслушать","variant":"primary"}]' width="380"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="night"><c-dialog id="d-seq" key="d-seq" variant="sequence" step="1/3" title="Имя корабля" width="400" actions='[{"label":"Отмена","variant":"quiet"},{"label":"Далее","variant":"primary","icon":"chevron-right"}]'><c-field label="Имя" value="Аделина" focused="1" counter="7 / 24"/></c-dialog></c-scene></div>
+  <div class="d-cell"><c-scene kind="battle"><c-dialog id="d-dis" key="d-dis" title="Нанять команду" consequence="Матросы просят плату вперёд." width="400" actions='[{"label":"Отмена","variant":"quiet"},{"label":"Нанять","variant":"primary","sub":"−1 250","disabled":true,"reason":"Не хватает денег"}]'/></c-scene></div>
+</div>
+<div class="g-title">пергамент: aged (seed 17 / 5) · edge · дерево edge · framed · значок на пергаменте + шаги</div>
+<div class="g-row">
+  <div class="d-cell"><c-scene kind="tavern"><c-dialog tone="parchment" aged="1" title="Вахтенный" text="Капитан, на горизонте парус.
+Флага пока не разобрать." actions='[{"label":"Позже","variant":"quiet"},{"label":"На палубу","variant":"primary"}]' width="360"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="tavern"><c-dialog tone="parchment" aged="1" seed="5" title="Письмо" consequence="Сургуч сломан, чернила расплылись." preset="danger" confirm="Сжечь" cancel="Оставить" width="340"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="land"><c-dialog tone="parchment" edge="1" title="Сколько ставите?" consequence="Ставка не больше 500 песо." actions='[{"label":"Уйти","variant":"quiet"},{"label":"Поставить","variant":"primary","sub":"−100"}]' width="340"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="land"><c-dialog edge="1" title="Сколько ставите?" consequence="Ставка не больше 500 песо." actions='[{"label":"Уйти","variant":"quiet"},{"label":"Поставить","variant":"primary","sub":"−100"}]' width="340"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="map"><c-dialog framed="1" variant="sheet" title="Курс на Мартинику" consequence="Путь займёт 3 дня." actions='[{"label":"Отмена","variant":"quiet"},{"label":"В путь","variant":"primary"}]'/></c-scene></div>
+  <div class="d-cell"><c-scene kind="sea"><c-dialog tone="parchment" icon="journal" step="3/3" variant="sequence" title="Запись в журнале" subtitle="7 окт. 1654" text="Взяли на абордаж испанский галеон." actions='[{"label":"Закрыть"}]' width="380"/></c-scene></div>
+</div>
+</div>
+</body>
+</rml>

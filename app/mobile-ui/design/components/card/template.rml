@@ -1,0 +1,2 @@
+<div class="inner" slot="1" style="gap: {{gap}}dp; padding: {{pad}}dp;"></div>
+<t-if test="dashed"><div class="dash top"></div><div class="dash bottom"></div><div class="dash left"></div><div class="dash right"></div></t-if>

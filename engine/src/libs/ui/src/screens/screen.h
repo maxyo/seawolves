@@ -1,0 +1,521 @@
+// Screens: C++ code that turns an InterfaceModel into the props of a pack screen
+// (an <s-…> component of mobile-ui/design/screens) and component events back into
+// engine actions. See README.md in this directory for how to add one.
+#pragma once
+
+#include "../template.h"
+#include "storm_ui/interface_model.h"
+#include "storm_ui/ui.h"
+
+#include <functional>
+#include <memory>
+#include <set>
+#include <span>
+#include <map>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace storm::ui
+{
+// The delay in seconds a screen or HUD part answers when nothing of it needs another frame.
+inline constexpr double kIdle = 3600.0;
+} // namespace storm::ui
+
+namespace storm::ui::hud
+{
+class Hud; // ../hud/hud.h
+}
+
+namespace storm::ui::screens
+{
+
+// Marks a UI string key kept in a table and looked up later with Bindings::Text, so the
+// pack build (mobile-ui/design/build.py) can check that the key is defined.
+constexpr const char *StringKey(const char *key)
+{
+    return key;
+}
+
+// One entry of a screen's KNOWN list: a node it draws by design and the widget type it
+// expects there. `required` marks the REQUIRED subset. A node ending in '*' matches by prefix.
+struct NodeRule
+{
+    const char *node;
+    const char *type;
+    bool required = false;
+};
+
+// What a component reported: the id of the nearest element that has one, the verb and value.
+struct Event
+{
+    std::string id;
+    std::string verb;
+    std::string value;
+};
+
+// Never shown anywhere: scroll bars, backgrounds, empty and debug nodes.
+bool Hidden(const Widget &widget);
+
+// Result of admission.
+struct Admission
+{
+    const InterfaceModel *model = nullptr;
+    bool accepted = false;              // every REQUIRED node is present with its type
+    std::string missing;                // REQUIRED nodes that are absent or mistyped: "TABLE_LIST(choice), …"
+    std::vector<const Widget *> known;  // KNOWN node with the expected type
+    std::vector<const Widget *> extras; // everything else that is not hidden
+
+    const Widget *One(std::string_view node) const;
+    std::vector<const Widget *> All(std::string_view node) const;
+    // The rows of a game table. The engine exports a table as its rows, and an empty table as
+    // one "table" widget (no rows, the headers), so a screen can require the table either way:
+    // NodeRule {"TABLE_LIST", "choice|table", true}.
+    std::vector<const Widget *> Rows(std::string_view node) const;
+    std::string Label(std::string_view node) const;
+};
+Admission Admit(const InterfaceModel &model, std::span<const NodeRule> rules);
+
+class Router;
+
+// A HUD tap that opens a game screen on a subject (hud::Hud::RequestSubject). `character` is the person's character
+// index (character screen), `position` the ship's place in the squadron, flagship 0 (ship screen).
+struct SubjectRequest
+{
+    std::string screen; // character | ship | journal
+    int character = -1;
+    int position = -1;
+    std::string tab;   // character: the tab to show ("perks"), "" = the screen's own
+    std::string quest; // journal: the quest to open (its QuestInfo id)
+    double until = 0.0;
+};
+
+// What the screens of one router share across interfaces.
+struct SharedState
+{
+    // The menus run from the title screen (no game in progress): the title screen sets it, the pause menu clears
+    // it. Loading a record then needs no question.
+    bool from_title = false;
+    // What the title screen opens once, as if tapped ("Load", "Options", "Continue"): the death screen's choice,
+    // or the host's (channel titleIntent).
+    std::string title_intent;
+    // The application's last state of its own screens (channel launcher).
+    Json app = Json::object();
+};
+
+// Given to Screen::Build: connects element ids of the view to what happens on their events.
+class Bindings
+{
+  public:
+    using Handler = std::function<void(const Event &)>;
+
+    // Runs `handler` for events of the element `id`; an empty verb takes every verb.
+    void On(const std::string &id, const std::string &verb, Handler handler);
+    // Events of `id` with this verb are expected and need no action (drag progress, …).
+    // An event that is neither bound nor ignored is reported as an error.
+    void Ignore(const std::string &id, const std::string &verb);
+    // True when this build bound a handler for exactly `id` `verb` (On, Ignore, Forward).
+    bool Bound(const std::string &id, const std::string &verb) const
+    {
+        return handlers_.count(id + '\x1f' + verb) > 0;
+    }
+    // An event of `id` sends this verb of the widget to the engine.
+    void Forward(const std::string &id, const Widget &widget, const std::string &verb);
+    // Local feedback: `predict` changes the view to what the event `id` `verb` leads to without a decision of the
+    // game, from the frame of the tap until the game has answered the widget action its handler sent; a different
+    // answer is shown and logged. See src/screens/README.md, "Answering a tap at once".
+    using Prediction = std::function<void(const Event &, Json &view)>;
+    void Predict(const std::string &id, const std::string &verb, Prediction predict);
+    // For predictions. Patch: sets `key` of every object in the view whose "id" is `id`; false when there is none.
+    // SelectOnly: the entry `chosen` of a list of {selected} entries (rows, tabs) is the selected one, no other.
+    static bool Patch(Json &view, const std::string &id, const char *key, const Json &value);
+    static void SelectOnly(Json &entries, size_t chosen);
+    // The view shows the modal `id` (a c-dialog, or a sheet with a scrim of its own): declared in
+    // every Build that shows it, the topmost last. Every modal goes through here, so all of them
+    // answer the scrim and the back key the same way: `cancel` is the modal's way back without
+    // consequences (what its ✕ / «Отмена» does), run by a tap on its scrim (`dismiss`) and by the
+    // back key. A modal that must be answered by its own buttons (a mandatory choice of the game,
+    // a hold-to-confirm question) passes nullptr: the scrim and the back key are then refused
+    // (Surface::Refuse: the modal shakes, a log line), never ignored quietly.
+    void Modal(const std::string &id, Handler cancel);
+
+    // --- inside handlers ---
+    // Sends a widget verb to the engine. `value` is the row identity or the new value.
+    void Send(const Widget &widget, const std::string &verb, const std::string &value = {},
+              const std::string &guard = {});
+    // The same, but a newer value for the same widget and verb replaces one still waiting
+    // (drags): at most one goes out per flush interval.
+    // `lead`, when given, goes out right before the value in the same flush (a reset the
+    // value depends on, e.g. the trade amount's "0"): the engine never sees one without the other.
+    void SendLatest(const Widget &widget, const std::string &verb, const std::string &value,
+                    const std::string &guard = {}, const std::optional<std::string> &lead = std::nullopt);
+    // Sends after `seconds` unless a newer SendAfter for the same widget and verb arrives
+    // first, which replaces it and restarts the wait (settling a drag before it applies).
+    void SendAfter(double seconds, const Widget &widget, const std::string &verb, const std::string &value = {},
+                   const std::string &guard = {}, const std::optional<std::string> &lead = std::nullopt);
+    // True while a SendLatest / SendAfter of this widget and verb has not gone out yet.
+    bool Waiting(const Widget &widget, const std::string &verb) const;
+    // A setting of the application itself, not of the game (renderer options): an Action
+    // without a screen that the platform host keeps (the Android host: GraphicsSettings).
+    void SendHost(const std::string &node, const std::string &value);
+    // The player's way out: the screen's exit button when it has one, else the global back.
+    void Back(const Widget *exit_button);
+    // The game's quick save or quick load key ("save" / "load": controls QuickSave, QuickLoad), pressed by the
+    // engine once no interface is open any more (engine command quick:<which>); the game's checks decide.
+    void QuickGame(const std::string &which);
+    // Opens the native text editor over the field; the accepted text is sent as `edit`.
+    void EditText(const Event &event, const Widget &widget, const std::string &title, bool numeric,
+                  bool secret = false);
+    // The same editor, but the accepted text goes to `accepted` (the screen checks it, keeps
+    // a draft, sends it itself); nothing happens when the player cancels.
+    void AskText(const Event &event, const std::string &text, const std::string &title, bool numeric,
+                 std::function<void(const std::string &)> accepted);
+    // Shows a long text on a parchment sheet over the screen.
+    void Read(const std::string &title, const std::string &text);
+    void Toast(const std::string &text);
+    // A notice the view shows in place (a C-Notice: {tone, text, lead?}), returned for the view. Every notice of a
+    // view goes through here: it is logged when it appears (Surface::Shown), once while it stays.
+    Json Notice(Json notice);
+    // Any other text of the view that tells the player about a problem or a result (an error line, an error
+    // dialog's text): logged the same way, when it appears.
+    void Shown(const std::string &tone, const std::string &text);
+    // A player action the log should record (an irreversible one such as learning a perk): an info line.
+    void Log(const std::string &text);
+    // Something the screen cannot do as designed: an error line (a toast in debug hosts).
+    void Error(const std::string &text);
+    // The same error line, once per screen and `key` (a defect the screen meets on every build).
+    void ErrorOnce(const std::string &key, const std::string &text);
+    // Local state of the screen changed: build the view again from the same model.
+    void Rebuild();
+    // The game's answer to what the screen asked is not complete in this model: more of it comes in a later game
+    // frame. Said by the build that knows it: a prediction stays until then and the action is not settled yet.
+    void Await();
+    // The subject a HUD tap asked this screen to open on (hud::Hud::RequestSubject), taken once.
+    std::optional<SubjectRequest> TakeSubject(const std::string &screen);
+    // Builds the view again after `seconds` even if no new model comes (local state that
+    // expires, such as the amount the player set being preferred over the game's for a moment).
+    void RebuildAfter(double seconds);
+
+    // The UI string `key` of the pack's string table (mobile-ui/design/strings) in the
+    // language of the open interface. Every text the player reads that the game does not
+    // send comes from there, never from a literal.
+    std::string Text(const std::string &key) const;
+
+    // --- inside Build ---
+    // True from the moment an event of `id` (and `value`, for rows) sent something to the
+    // engine until the next model revision: the element shows busy while the game has not
+    // answered, so a second tap cannot send the same thing twice.
+    bool Pending(const std::string &id, const std::string &value = {}) const;
+    double Now() const;
+    // The engine's answers to widget actions (Router::Answer). RequestFloor: the number the next
+    // widget action gets. AnsweredSince: whether every widget action numbered from `floor` on went out
+    // and was answered: Refused when one was refused, Applied when all were applied and the model that
+    // followed the last answer arrived (it shows their result), Waiting otherwise.
+    enum class Answers
+    {
+        Waiting,
+        Applied,
+        Refused,
+    };
+    uint64_t RequestFloor() const;
+    Answers AnsweredSince(uint64_t floor) const;
+    SharedState &Shared();
+
+  private:
+    friend class Router;
+    explicit Bindings(Router &router) : router_(router)
+    {
+    }
+    Router &router_;
+    std::unordered_map<std::string, Handler> handlers_;
+    std::unordered_map<std::string, Prediction> predictions_; // by "<id>\x1f<verb>", of the view on the screen
+};
+
+class Screen
+{
+  public:
+    virtual ~Screen() = default;
+    // Tag of the pack screen this implementation fills ("s-store").
+    virtual const char *Component() const = 0;
+    // KNOWN and REQUIRED nodes. Empty for the generic layout, which takes every widget.
+    virtual std::span<const NodeRule> Nodes() const = 0;
+    // Maps the admitted widgets to the props of the pack screen and binds its elements.
+    // Called for every model revision and after Bindings::Rebuild(); the instance lives
+    // while the same screen stays open, so members hold local state (filters, open sheets).
+    virtual Json Build(const Admission &admitted, Bindings &bindings) = 0;
+    // True while the screen shows something of its own that the back key closes (a local
+    // modal); Back is then called instead of the engine's back.
+    virtual bool OwnsBack() const
+    {
+        return false;
+    }
+    virtual void Back(Bindings &)
+    {
+    }
+};
+
+struct ScreenEntry
+{
+    const char *id; // interface id
+    std::unique_ptr<Screen> (*create)();
+};
+// Screens ported to C++, keyed by interface id (registry.cpp).
+std::span<const ScreenEntry> PortedScreens();
+
+// The launcher's results ("launcher.result.<key>" of the string tables, launcher.cpp) and whether the application
+// sends a detail with it (the reader's entry or file names), which its text places by {1}.
+struct LauncherResult
+{
+    const char *key;
+    bool detail;
+};
+std::span<const LauncherResult> LauncherResults();
+std::unique_ptr<Screen> CreateGenericScreen();
+
+// A named state channel of the game (gameplay, combat, dialogue, …): consumers get the
+// engine's JSON for it. Zone authors register one consumer per channel in registry.cpp.
+class StateConsumer
+{
+  public:
+    virtual ~StateConsumer() = default;
+    virtual const char *Channel() const = 0;
+    virtual void OnState(const Json &state, Router &router) = 0;
+    // A game interface that covered this channel's screen closed: the screen comes back when
+    // the channel's state still asks for it.
+    virtual void Resume(Router &router)
+    {
+    }
+};
+std::vector<std::unique_ptr<StateConsumer>> CreateStateConsumers();
+// The consumer of channel "dialogue": it shows the struct the engine hands over (Router::SetDialogue) and reads the
+// channel's JSON of fixtures into it.
+class DialogueConsumer : public StateConsumer
+{
+  public:
+    virtual void Show(const Dialogue &dialogue, Router &router) = 0;
+};
+
+// What the router needs from the host; unit tests give it a fake.
+class Surface
+{
+  public:
+    virtual ~Surface() = default;
+    // Mounts the pack screen `tag` (or keeps it when already mounted) and sets its props.
+    virtual void Show(const std::string &tag, const Json &props) = 0;
+    virtual void Hide() = 0;
+    virtual void Send(const Action &action) = 0;
+    // `anchor` is the id of the element the editor belongs to; the host fills the rectangle.
+    virtual void RequestText(TextRequest request, const std::string &anchor) = 0;
+    virtual void Toast(const std::string &text) = 0;
+    // Something the player asked for failed: a danger toast that stays several seconds and
+    // survives the change of screen (never the HUD's log).
+    virtual void Alert(const std::string &text) = 0;
+    // The game language of the interface being shown ("russian"); tr() in templates and
+    // Text() follow it.
+    virtual void SetLanguage(const std::string &game_language) = 0;
+    virtual std::string Text(const std::string &key) = 0;
+    virtual void Log(const std::string &line) = 0;
+    // Logs a text put on the screen (the log line every shown text has): `source` is where it came from.
+    virtual void Shown(const std::string &source, const std::string &tone, const std::string &text) const = 0;
+    // Something is wrong with the data or the pack: an error log line, and in debug hosts
+    // a visible notice. Never a quiet drop.
+    virtual void Error(const std::string &line) = 0;
+    // The modal `id` must be answered by its buttons and refused a scrim tap or the back key:
+    // the element shows it (C-Dialog shakes); the router has logged it.
+    virtual void Refuse(const std::string &id) = 0;
+    virtual double Now() const = 0;
+};
+
+class Router
+{
+  public:
+    // `screens`: the ported screens by interface id, `generic`: the generic layout; unit tests give their own.
+    explicit Router(Surface &surface, std::span<const ScreenEntry> screens = PortedScreens(),
+                    std::unique_ptr<Screen> (*generic)() = CreateGenericScreen);
+    ~Router();
+
+    void SetInterface(const InterfaceModel &model);
+    void CloseInterface();
+    // The game closed its interface `screen`: it goes, unless a state channel's screen replaced
+    // it (a dialogue the closing interface's script started); a channel screen it covered comes back.
+    void CloseGameInterface(const std::string &screen);
+    void SetState(const std::string &channel, const Json &state);
+    void SetDialogue(const Dialogue &dialogue);
+    // Builds the screen in use again now (a state consumer whose state the screen reads, e.g. titleIntent).
+    void RebuildActive();
+    // False when no screen is mounted or the event belongs to nothing bound.
+    bool OnEvent(const Event &event);
+    // True when the mounted screen maps the event `id` `verb` (OnEvent would run a handler).
+    bool Maps(const std::string &id, const std::string &verb) const;
+    void SubmitText(const std::string &token, const std::string &text, bool accepted);
+    // True while the screen shows a modal (Bindings::Modal) or something else of its own
+    // (Screen::OwnsBack): the back key is the UI's.
+    bool WantsBack() const;
+    // The platform's back: the topmost modal's cancel (Bindings::Modal, also the «Прочее» and
+    // reading sheets) first, then the screen's own back (Screen::OwnsBack), then what the
+    // screen's ← does, the engine's back when the screen binds no ←.
+    void Back();
+    // The modals the view shows now, the topmost last (Bindings::Modal), and whether each has a cancel.
+    std::vector<std::pair<std::string, bool>> Modals() const;
+    // The engine's answer to the widget action `request` (Host::Answer): a refusal ends the busy mark
+    // of the press at once (logged); applied, the mark ends with the model that follows.
+    void Answer(uint64_t request, bool applied, const std::string &reason);
+    // Flushes throttled sends and expired pending marks; returns seconds until it must be
+    // called again (a large number when idle).
+    double Tick();
+    // The HUD that the HUD channel consumers fill; null in a host without one.
+    void AttachHud(hud::Hud *hud)
+    {
+        hud_ = hud;
+    }
+    hud::Hud *Hud() const
+    {
+        return hud_;
+    }
+    // For consumers: something is wrong with the data of their channel.
+    void ReportError(const std::string &line);
+    SharedState &Shared()
+    {
+        return shared_;
+    }
+    // For consumers: a short notice for the player, the UI string `key` (and what it is about).
+    void Alert(const std::string &key, const std::string &subject);
+    bool Active() const
+    {
+        return screen_ != nullptr;
+    }
+    // The game has not finished answering what the screen sent: a widget action it has not answered, a send that
+    // waits for its turn, an applied answer whose model has not come yet, or a screen that awaits more
+    // (Bindings::Await). The flicker check does not take an action for settled meanwhile.
+    bool Answering() const;
+    // How many events were predicted so far (Bindings::Predict): the host tells the flicker check which actions
+    // must show their feedback in the frame of the tap.
+    uint64_t Predicted() const
+    {
+        return predicted_count_;
+    }
+    // The model the mounted screen was built from.
+    const InterfaceModel &Model() const
+    {
+        return model_;
+    }
+    // Name of the screen implementation in use: the interface id or "generic".
+    const std::string &Using() const
+    {
+        return using_;
+    }
+    // Why the ported screen of the last interface could not draw it (its REQUIRED nodes that
+    // were missing or mistyped: the interface was closed, CloseOnDefect); empty otherwise.
+    const std::string &Rejection() const
+    {
+        return rejection_;
+    }
+
+  private:
+    friend class Bindings;
+    struct PendingMark
+    {
+        std::string id, value;
+        uint64_t revision = 0;
+        double until = 0.0;
+        bool answers = false;  // its event sent widget actions: the engine's answers end it (`until` is then an error)
+        bool answered = false; // all of them were applied: it ends with the next model
+    };
+    // A widget action sent and not answered yet, and the mark (event id, value) it belongs to.
+    struct Request
+    {
+        std::string id, value, node;
+        bool marked = false;
+    };
+    struct Answered
+    {
+        bool applied = false;
+        bool model_after = false; // a model arrived after the answer
+    };
+    struct Waiting
+    {
+        Action action;
+        double due = 0.0;
+        std::optional<Action> lead; // goes out right before `action`
+    };
+
+    // The exception boundary of screen code: one throw in a screen, a handler or a
+    // state consumer must not end the game session. Runs `call`; a std::exception (or anything
+    // else thrown) is reported by Failed and false returned.
+    template <class Call> bool Guarded(const std::string &where, Call &&call);
+    // A screen threw: an error line naming the screen, the interface, the call and the exception,
+    // (shown as a toast in debug builds only: Config::show_errors), and the interface is closed
+    // through the engine's back. No replacement layout is built for a screen that threw.
+    void Failed(const std::string &where, const std::string &what);
+    // A ported screen cannot draw its interface (a thrown screen, REQUIRED nodes missing or
+    // mistyped once the first model settled): the defect `line` (an error line, unless
+    // `logged` says it was already reported for this node set) and the interface closes through
+    // the engine's back. Nothing else draws it.
+    void CloseOnDefect(const std::string &line, bool logged);
+    // The boundary of state consumer code: a throw is an error line and the state is dropped
+    // (the screen in use stays: a channel's data is not the screen's). False when it threw.
+    bool Consume(const std::string &channel, const char *what, const std::function<void()> &call);
+    void Build();
+    void BuildView();
+    void Emit(Action action);
+    bool MarkOpen(const std::string &id, const std::string &value) const;
+    // A predicted event whose answer from the game is still to come (Bindings::Predict).
+    struct Predicting
+    {
+        Event event;
+        Bindings::Prediction predict;
+        uint64_t floor = 0; // the first widget action its handler sent
+        double since = 0.0;
+    };
+    // The game has answered every widget action sent from `floor` on, and the model after the answers is here.
+    bool AnsweredFrom(uint64_t floor) const;
+    // Applies the open predictions to `view`; those the game has answered are compared with it and end.
+    void Predict(Json &view);
+    Json ExtrasView(const Admission &admitted, Json rows);
+    Action Make(const Widget &widget, const std::string &verb, const std::string &value,
+                const std::string &guard) const;
+
+    Surface &surface_;
+    std::span<const ScreenEntry> screens_;
+    std::unique_ptr<Screen> (*generic_)();
+    hud::Hud *hud_ = nullptr;
+    InterfaceModel model_;
+    std::unique_ptr<Screen> screen_;
+    std::string using_;
+    Bindings bindings_;
+    std::vector<std::pair<std::string, Bindings::Handler>> modals_; // Bindings::Modal of the view shown, topmost last
+    std::vector<std::unique_ptr<StateConsumer>> consumers_;
+    std::vector<PendingMark> pending_;
+    std::vector<Predicting> predicting_;
+    uint64_t predicted_count_ = 0;
+    std::vector<Waiting> waiting_;
+    uint64_t next_request_ = 0;
+    std::map<uint64_t, Request> outstanding_;
+    std::map<uint64_t, Answered> answers_; // the latest answers, for the amount drafts (AnsweredSince)
+    SharedState shared_;
+    std::set<std::string> logged_; // once per (screen, node set): extras, generic use, rejection lines; ErrorOnce keys
+    // The notices (Bindings::Notice) of the view on the screen and of the one being built: a notice is logged when
+    // it appears, not again at every build while it stays.
+    std::set<std::string> notices_shown_, notices_building_;
+    std::string rejection_;
+    // Shared «Прочее» sheet and reading sheet.
+    bool extras_open_ = false;
+    std::string reading_title_, reading_text_;
+    // Text editor in flight.
+    std::string edit_token_;
+    Action edit_action_;
+    std::function<void(const std::string &)> edit_handler_; // Bindings::AskText
+    int edit_serial_ = 0;
+    // Event being handled: sends made by its handler mark it pending.
+    const Event *current_ = nullptr;
+    bool sent_in_event_ = false;
+    bool rebuild_ = false;
+    bool awaiting_ = false; // Bindings::Await in the current build
+    double last_flush_ = -1.0;
+    double rebuild_at_ = 0.0;   // Bindings::RebuildAfter
+    double opened_at_ = 0.0;    // when the open interface was opened
+    double settle_until_ = 0.0; // a rejected first model waits until then (kSettle)
+};
+
+} // namespace storm::ui::screens

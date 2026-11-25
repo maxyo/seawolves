@@ -1,0 +1,149 @@
+#include "data_color.h"
+
+#include "../../i_common/graph_time.h"
+#include "storm_assert.h"
+#include "vma.hpp"
+
+// constructor / destructor
+DataColor::DataColor() : ZeroColor(storm::math::colorFromARGB(0xFFFFFFFF))
+{
+}
+
+DataColor::~DataColor()
+{
+}
+
+// Get the value (Current time, Total lifetime, Random factor [0..1])
+glm::vec4 DataColor::GetValue(float Time, float LifeTime, float K_rand)
+{
+    // The time for a color chart is always relative ...
+    Time = (Time / LifeTime);
+
+    uint32_t Count = ColorGraph.size();
+    uint32_t StartIndex = 0;
+    for (auto n = StartIndex; n < (Count - 1); n++)
+    {
+        auto FromTime = ColorGraph[n].Time;
+        auto ToTime = ColorGraph[n + 1].Time;
+
+        // If the time is in the correct range ...
+        if ((Time >= FromTime) && (Time <= ToTime))
+        {
+            auto SegmentDeltaTime = ColorGraph[n + 1].Time - ColorGraph[n].Time;
+            auto ValueDeltaTime = Time - ColorGraph[n].Time;
+            auto blend_k = 0.0f;
+            if (SegmentDeltaTime > 0.001f)
+                blend_k = ValueDeltaTime / SegmentDeltaTime;
+
+            auto ValueFirstMax = ColorGraph[n].MaxValue;
+            auto ValueSecondMax = ColorGraph[n + 1].MaxValue;
+            auto ValueFirstMin = ColorGraph[n].MinValue;
+            auto ValueSecondMin = ColorGraph[n + 1].MinValue;
+
+            // Only the colour is interpolated; the result is opaque.
+            const auto MaxVal = storm::math::lerp(glm::vec3(ValueFirstMax), glm::vec3(ValueSecondMax), blend_k);
+            const auto MinVal = storm::math::lerp(glm::vec3(ValueFirstMin), glm::vec3(ValueSecondMin), blend_k);
+
+            return glm::vec4(storm::math::lerp(MinVal, MaxVal, K_rand), 1.0f);
+        }
+    }
+
+    return ZeroColor;
+}
+
+// Sets the "default"
+// two indices, Min = Max = Value
+void DataColor::SetDefaultValue(const glm::vec4 &Value)
+{
+    ColorGraph.clear();
+
+    ColorVertex pMinVertex;
+    pMinVertex.Time = MIN_GRAPH_TIME;
+    pMinVertex.MinValue = Value;
+    pMinVertex.MaxValue = Value;
+    ColorGraph.push_back(pMinVertex);
+
+    ColorVertex pMaxVertex;
+    pMinVertex.Time = 1.0f;
+    pMinVertex.MinValue = Value;
+    pMinVertex.MaxValue = Value;
+    ColorGraph.push_back(pMinVertex);
+}
+
+// Set values
+void DataColor::SetValues(const ColorVertex *Values, uint32_t Count)
+{
+    ColorGraph.clear();
+    for (uint32_t n = 0; n < Count; n++)
+    {
+        ColorGraph.push_back(Values[n]);
+    }
+}
+
+void DataColor::Load(MemFile *File)
+{
+    uint32_t dwColorCount = 0;
+    File->ReadType(dwColorCount);
+
+    for (uint32_t n = 0; n < dwColorCount; n++)
+    {
+        auto Time = 0.0f;
+        File->ReadType(Time);
+
+        glm::vec4 clrMax;
+        File->ReadType(clrMax);
+
+        glm::vec4 clrMin;
+        File->ReadType(clrMin);
+
+        ColorVertex pColor;
+        pColor.Time = Time;
+        pColor.MinValue = clrMin;
+        pColor.MaxValue = clrMax;
+        ColorGraph.push_back(pColor);
+    }
+
+    static char AttribueName[128];
+    uint32_t NameLength = 0;
+    File->ReadType(NameLength);
+    Assert(NameLength < 128);
+    File->Read(AttribueName, NameLength);
+
+    SetName(AttribueName);
+}
+
+void DataColor::SetName(const char *szName)
+{
+    Name = szName;
+}
+
+const char *DataColor::GetName() const
+{
+    return Name.c_str();
+}
+
+void DataColor::Write(MemFile *File)
+{
+    uint32_t dwColorCount = ColorGraph.size();
+    File->WriteType(dwColorCount);
+
+    for (uint32_t n = 0; n < dwColorCount; n++)
+    {
+        auto Time = ColorGraph[n].Time;
+        File->WriteType(Time);
+
+        auto clrMax = ColorGraph[n].MaxValue;
+        File->WriteType(clrMax);
+
+        auto clrMin = ColorGraph[n].MinValue;
+        File->WriteType(clrMin);
+    }
+
+    // save name
+    uint32_t NameLength = Name.size();
+    auto NameLengthPlusZero = NameLength + 1;
+    File->WriteType(NameLengthPlusZero);
+    Assert(NameLength < 128);
+    File->Write(Name.c_str(), NameLength);
+    File->WriteZeroByte();
+}

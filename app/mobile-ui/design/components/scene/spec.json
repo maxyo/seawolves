@@ -1,0 +1,6 @@
+{
+  "tag": "c-scene",
+  "props": {
+    "kind": {"type": "enum", "options": ["land", "sea", "battle", "map", "deck", "tavern", "night", "title"], "default": "land"}
+  }
+}

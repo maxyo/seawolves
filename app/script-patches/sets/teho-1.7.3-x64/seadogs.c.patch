@@ -1,0 +1,33 @@
+--- a/PROGRAM/seadogs.c
++++ b/PROGRAM/seadogs.c
+@@ -578,6 +578,14 @@
+ 			LaunchMapViewScreen(); // Смотрим атлас карт
+ 			break;
+ 	}
++	// A section of the character menu chosen in the interface that has just ended opens now, in this frame:
++	// ILaunchAfterFrame (interface.c) launches it at once, or waits while another interface is open.
++	if(CheckAttribute(&InterfaceStates,"LaunchAfterExit"))
++	{
++		string nextInterface = InterfaceStates.LaunchAfterExit;
++		DeleteAttribute(&InterfaceStates,"LaunchAfterExit");
++		Event("LaunchIAfterFrame","sl",nextInterface,0);
++	}
+ }
+ 
+ void EngineLayersOffOn(bool on)
+@@ -747,7 +755,6 @@
+ 	
+ 	LoadGameOptions();
+ 
+-	ReloadProgressEnd();
+ 
+     // fix by Hokkins
+     BattleInterface.ShifInfoVisible = InterfaceStates.enabledshipmarks;
+@@ -777,6 +784,7 @@
+ 			Log_TestInfo("Обновлен партикл огня");
+ 		}
+ 	}
++	ReloadProgressEnd(); // Include restored world particles in the loading transaction.
+ }
+ 
+ void NewGame()

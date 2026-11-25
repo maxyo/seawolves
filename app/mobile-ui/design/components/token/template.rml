@@ -1,0 +1,1 @@
+<div class="tk-face enamel-{{enamel}}" style="width: {{size}}dp; height: {{size}}dp; border-width: {{ size >= spec.bezel.thickFrom ? spec.bezel.thick : spec.bezel.thin }}dp; border-radius: {{ round ? size / 2 : round(size * spec.cornerRatio) }}dp;"><c-icon icon="{{icon}}" size="{{ round(size * spec.iconRatio) }}" tone="{{ enamel == 'parchment' ? 'color' : 'duo' }}"/></div>

@@ -1,0 +1,67 @@
+/* C-Dialog: modal dialog with a scrim; covers its nearest positioned ancestor (the
+   screen). A tap on the scrim reports `dismiss`; the screen declares every dialog it shows
+   with Bindings::Modal, which runs the dialog's cancel for it, or refuses it for a dialog
+   that must be answered: the box then shakes (class `refused`, set by the press behaviour).
+   The buttons are nested components and report `click` under the ids <key>-action-<i>
+   (or the action's own `id`), <key>-cancel / <key>-confirm (preset) and <key>-close.
+   Every rule is a child chain so that nothing leaks into the nested components. */
+c-dialog {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; flex-direction: row; justify-content: center; align-items: center; box-sizing: border-box;
+    color: @{color.text}; line-height: 1.36;
+}
+c-dialog.variant-top { align-items: flex-start; padding-top: 24dp; }
+c-dialog.variant-sheet { justify-content: flex-end; align-items: flex-end; padding: 0 12dp 12dp 0; }
+c-dialog > .scrim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+c-dialog > .scrim.on { background-color: @{color.scrim/.741}; }
+c-dialog.variant-sheet > .scrim.on { background-color: @{color.scrim/.502}; }
+
+c-dialog > .outer { position: relative; display: block; flex: 0 1 auto; min-width: 0; margin: 0 12dp; }
+c-dialog.variant-sheet > .outer { margin: 0 0 0 12dp; }
+c-dialog.refused > .outer { animation: 0.36s cubic-in-out 2 ui-refused; }
+c-dialog.edge > .outer { border-radius: 2dp; box-shadow: @{color.black/.55} 0 0 0 1dp, @{color.black/.55} 0 8dp 22dp 0; }
+
+c-dialog > .outer > .box {
+    position: relative; display: flex; flex-direction: column; box-sizing: border-box; gap: 12dp; padding: 16dp 18dp;
+    max-height: 84vh; /* with the padding about 90 % of the screen: a long text scrolls, the title and the actions stay
+                         on the screen (a percentage on the auto-height wrapper does not constrain RmlUi's text layout) */
+    background-color: @{color.wood};
+    box-shadow: @{color.black/.5} 0 0 0 1dp inset, @{color.black/.6} 0 8dp 24dp 0;
+}
+c-dialog > .outer > .box > .step, c-dialog > .outer > .box > .head, c-dialog > .outer > .box > .consequence,
+c-dialog > .outer > .box > .actions { flex: 0 0 auto; }
+c-dialog > .outer > .box > .step { display: flex; flex-direction: row; align-items: center; gap: 6dp; font-size: @{spec.font.small}dp; color: @{color.textSecond}; }
+c-dialog > .outer > .box > .step > .dot { flex: 0 0 auto; box-sizing: border-box; width: 8dp; height: 8dp; border-radius: 4dp; border: 1dp @{color.brassLine/.6}; }
+c-dialog > .outer > .box > .step > .dot.on { border-width: 0; background-color: @{color.brass}; }
+c-dialog > .outer > .box > .step > .step-text { margin-left: 4dp; }
+c-dialog > .outer > .box > .head { display: flex; flex-direction: row; align-items: center; gap: 12dp; }
+c-dialog > .outer > .box > .head > .titles { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+c-dialog > .outer > .box > .head > .titles > .title { font-size: @{spec.font.title}dp; font-weight: bold; line-height: 1.3; }
+c-dialog > .outer > .box > .head > .titles > .subtitle { font-size: @{spec.font.small}dp; color: @{color.textMuted}; }
+c-dialog > .outer > .box > .consequence { margin: -4dp 0 0 0; font-size: @{spec.font.body}dp; line-height: 1.4; color: @{color.textSecond}; }
+c-dialog > .outer > .box > .text { flex: 0 1 auto; min-height: 0; overflow-y: auto; font-size: @{spec.font.body}dp; line-height: 1.45; white-space: pre-line; color: @{color.textSecond}; }
+/* as .text: a body taller than the box shrinks to it and scrolls, the title and the actions stay on the screen
+   (RmlUi lets a column flex item shrink below its content only when it is a scroll container) */
+c-dialog > .outer > .box > .body { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12dp; }
+c-dialog > .outer > .box > .actions { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: @{spec.actionGap}dp; margin-top: 4dp; } /* long game labels wrap to a second row instead of leaving the box */
+c-dialog > .outer > .box > .actions > c-button { flex: 0 0 auto; }
+c-dialog > .outer > .edge-line { position: absolute; left: 0; top: 0; right: 0; bottom: 0; box-sizing: border-box; border: 1dp @{color.brassEdge/.62}; border-radius: 2dp; z-index: 5; pointer-events: none; }
+
+/* parchment: story and in-world notes */
+c-dialog.tone-parchment > .outer > .box {
+    color: @{color.ink}; background-color: transparent;
+    decorator: radial-gradient(ellipse farthest-corner at 18% 8%, @{color.paperLight/.45}, @{color.paperLight/0} 55%),
+        radial-gradient(ellipse farthest-corner at 88% 96%, @{color.paperShade/.22}, @{color.paperShade/0} 60%),
+        repeating-linear-gradient(0deg, @{color.inkMuted/.035} 0dp, @{color.inkMuted/.035} 1dp, @{color.black/0} 1dp, @{color.black/0} 3dp),
+        linear-gradient(@{color.paperTop}, @{color.paperBottom});
+    box-shadow: @{color.paperShade/.32} 0 0 22dp 0 inset, @{color.black/.6} 0 8dp 24dp 0;
+}
+c-dialog.tone-parchment > .outer > .box > .step,
+c-dialog.tone-parchment > .outer > .box > .head > .titles > .subtitle,
+c-dialog.tone-parchment > .outer > .box > .consequence { color: @{color.inkMuted}; }
+c-dialog.tone-parchment > .outer > .box > .text { color: @{color.ink}; }
+c-dialog.tone-parchment > .outer > .box > .step > .dot { border-color: @{color.inkMuted/.6}; }
+c-dialog.tone-parchment > .outer > .box > .step > .dot.on { background-color: @{color.inkMuted}; }
+
+/* aged: the sheet itself is drawn by ui-paper (torn edge, fibres, foxing, shadow) */
+c-dialog.aged > .outer > .box { color: @{color.inkAged}; decorator: none; box-shadow: none; }

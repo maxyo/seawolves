@@ -1,0 +1,67 @@
+#include "data_position.h"
+#include "vma.hpp"
+
+// constructor / destructor
+DataPosition::DataPosition()
+{
+    Value = glm::vec3(0, 0, 0);
+}
+
+DataPosition::~DataPosition()
+{
+}
+
+// Get value (Current time, Random factor [0..1])
+const glm::vec3 &DataPosition::GetValue() const
+{
+    return Value;
+}
+
+// Set value
+void DataPosition::SetValue(const glm::vec3 &val)
+{
+    Value = val;
+}
+
+void DataPosition::Load(MemFile *File)
+{
+    glm::vec3 vValue;
+    File->ReadType(vValue.x);
+    File->ReadType(vValue.y);
+    File->ReadType(vValue.z);
+    SetValue(vValue);
+
+    static char AttribueName[128];
+    uint32_t NameLength = 0;
+    File->ReadType(NameLength);
+    Assert(NameLength < 128);
+    File->Read(AttribueName, NameLength);
+
+    SetName(AttribueName);
+}
+
+void DataPosition::SetName(const char *szName)
+{
+    Name = szName;
+}
+
+const char *DataPosition::GetName() const
+{
+    return Name.c_str();
+}
+
+void DataPosition::Write(MemFile *File) const
+{
+    auto vValue = GetValue();
+    File->WriteType(vValue.x);
+    File->WriteType(vValue.y);
+    File->WriteType(vValue.z);
+
+    // save name
+    const uint32_t NameLength = Name.size();
+    auto NameLengthPlusZero = NameLength + 1;
+    File->WriteType(NameLengthPlusZero);
+    Assert(NameLength < 128);
+    File->Write(Name.c_str(), NameLength);
+    File->WriteZeroByte();
+}

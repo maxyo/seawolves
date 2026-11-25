@@ -1,0 +1,59 @@
+#include "storm/fx/sky.hpp"
+
+#include "gpu_util.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+
+namespace storm::fx
+{
+using namespace detail;
+
+Sky::~Sky()
+{
+    Shutdown();
+}
+
+void Sky::Shutdown()
+{
+    Destroy(u_aerial_);
+    resources_ = false;
+}
+
+void Sky::Update(const WeatherInput &weather, float camera_height)
+{
+    camera_height_ = camera_height;
+    if (next_.valid() && next_.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    {
+        state_ = next_.get();
+        weather_ = next_weather_;
+    }
+    if (!state_valid_)
+    {
+        weather_ = weather;
+        state_ = ComputeSky(weather);
+        state_valid_ = true;
+    }
+    else if (!next_.valid() && SkyNeedsRebuild(weather_, weather))
+    {
+        next_weather_ = weather;
+        next_ = std::async(std::launch::async, [weather] { return ComputeSky(weather); });
+    }
+}
+
+void Sky::EnsureResources()
+{
+    if (resources_)
+        return;
+    resources_ = true;
+    u_aerial_ = bgfx::createUniform("u_fxAerial", bgfx::UniformType::Vec4, 3);
+}
+
+void Sky::BindAerial(const std::array<float, 16> &view)
+{
+    EnsureResources();
+    bgfx::setUniform(u_aerial_, ComputeAerial(state_, camera_height_, view).u_fxAerial.data(), 3);
+}
+
+} // namespace storm::fx

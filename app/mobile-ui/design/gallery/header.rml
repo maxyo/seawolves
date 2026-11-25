@@ -1,0 +1,30 @@
+<rml>
+<head>
+<title>Шапка</title>
+<link type="text/rcss" href="../kit.rcss"/>
+<style>
+.h-cell { width: 100vw; height: 78dp; margin: 0 -16dp; }
+</style>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-Header</div>
+<div class="g-note">разделы + stats с предпросмотром (метка / значок)</div>
+<div class="h-cell"><c-header id="h-ship" key="h-ship" title="Магазин" sections="ship" stats='[{"label":"Трюм","value":"189","preview":"289","previewTone":"neutral"},{"icon":"money","value":"1 500","preview":"1 000","tone":"gold","previewTone":"danger"}]'/></div>
+<div class="g-note">субъект + вкладки (бейдж, счётчик, недоступная) + stat</div>
+<div class="h-cell"><c-header id="h-skills" key="h-skills" title="Умения" subject='{"label":"Шарль де Мор","sub":"1 из 4","prev":false}' tabs='[{"label":"Личные","selected":true,"badge":3},{"label":"Корабельные","count":12},{"label":"Особые","disabled":true,"reason":"Откроются на 5 ранге"}]' stats='[{"label":"Очки","value":"3","tone":"gold"}]'/></div>
+<div class="g-note">лист поверх HUD: крестик вместо «назад», заголовок без скрипта, stat со значком</div>
+<div class="h-cell"><c-header id="h-orders" key="h-orders" title="Приказы" close="1" script="0" stats='[{"icon":"crew","value":"64 / 120"}]'/></div>
+<div class="g-note">подзаголовок (showSubtitle) + действия + тона stats ok / danger, предпросмотр ok</div>
+<div class="h-cell"><c-header id="h-store" key="h-store" title="Верфь" subtitle="Сен-Пьер, Мартиника" show-subtitle="1" stats='[{"label":"Корпус","value":"62 %","tone":"danger","preview":"100 %","previewTone":"ok"},{"label":"Команда","value":"120","tone":"ok"}]' actions='[{"icon":"info","label":"Справка"},{"icon":"settings","label":"Настройки"}]'/></div>
+<div class="g-note">назад недоступен · без кнопки назад · дочерний элемент справа</div>
+<div class="h-cell"><c-header title="Абордаж" back-disabled="1"/></div>
+<div class="h-cell"><c-header title="Главное меню" back="0"><c-button id="h-child" label="Продолжить" variant="primary" size="sm"/></c-header></div>
+<div class="g-note">одна геометрия шести разделов: заголовок в слоте 166 dp, значки всегда на одном x; субъект «N из M» справа; длинный заголовок 27 dp</div>
+<div class="h-cell"><c-header id="h-fit" key="h-fit" title="Корабль" sections="ship" subject='{"label":"Аделина","sub":"2 из 3"}'/></div>
+<div class="h-cell"><c-header title="Персонаж" sections="hero" subject='{"label":"Шарль де Мор","sub":"1 из 4"}'/></div>
+<div class="h-cell"><c-header title="Торговая книга" sections="tradebook" subject='{"label":"Сен-Пьер","sub":"3 из 12","list":false}'/></div>
+<div class="h-cell"><c-header title="Журнал" sections="journal"/></div>
+</div>
+</body>
+</rml>

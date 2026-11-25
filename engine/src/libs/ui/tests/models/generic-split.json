@@ -1,0 +1,20 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":1,
+"screenRevision":7,
+"screen":"mod_bounty",
+"widgets":[
+{"node":"TITLE","type":"heading","label":"Доска розыска","index":-1},
+{"node":"TABLE_TARGETS","type":"choice","label":"Жак Малыш\tТортуга\t4000","value":"1","index":0,"rowId":"t0","actions":["select"],"cells":[{"text":"Жак Малыш"},{"text":"Тортуга"},{"text":"4000"}],"columnHeaders":["Цель","Где видели","Награда"]},
+{"node":"TABLE_TARGETS","type":"choice","label":"Эль Гато\tМаракайбо\t2500","value":"0","index":1,"rowId":"t1","actions":["select"],"cells":[{"text":"Эль Гато"},{"text":"Маракайбо"},{"text":"2500"}],"columnHeaders":["Цель","Где видели","Награда"]},
+{"node":"TABLE_TARGETS","type":"choice","label":"Капитан Блад\tБарбадос\t6000","value":"0","index":2,"rowId":"t2","actions":["select"],"cells":[{"text":"Капитан Блад"},{"text":"Барбадос"},{"text":"6000"}],"columnHeaders":["Цель","Где видели","Награда"]},
+{"node":"TABLE_TARGETS","type":"choice","label":"Одноглазый Пит\tБелиз\t1200","value":"0","index":3,"rowId":"t3","actions":["select"],"cells":[{"text":"Одноглазый Пит"},{"text":"Белиз"},{"text":"1200"}],"columnHeaders":["Цель","Где видели","Награда"]},
+{"node":"TABLE_TARGETS","type":"choice","label":"Братья Кордова\tКартахена\t3800","value":"0","index":4,"enabled":false,"rowId":"t4","cells":[{"text":"Братья Кордова"},{"text":"Картахена"},{"text":"3800"}],"columnHeaders":["Цель","Где видели","Награда"],"unavailableReason":"Контракт уже взят"},
+{"node":"INFO_TEXT","type":"text","label":"Губернатор Тортуги платит за головы тех, кто грабит его торговые суда. Награда выдаётся в резиденции.\nЖивыми — вдвое дороже. Контракт действует тридцать дней; одновременно можно держать не больше двух.","index":-1},
+{"node":"B_MORE","type":"button","label":"Подробнее","index":-1,"actions":["press"]},
+{"node":"B_TAKE","type":"button","label":"Взять","index":-1,"actions":["press"]},
+{"node":"EXIT_BTN","type":"button","label":"Выход","index":-1,"actions":["press"]},
+{"node":"SCROLL_TARGETS","type":"image","index":-1},
+{"node":"MAIN_BACK","type":"image","index":-1}
+]}

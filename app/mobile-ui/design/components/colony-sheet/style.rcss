@@ -1,0 +1,26 @@
+/* C-ColonySheet: the colony sheet next to a map. Wood side panel (head: nation token,
+   name, subline, bare close), optional segment tabs, a parchment document card. The panel
+   and card are drawn here (not nested c-panel / c-card) so that `custom` children reach the
+   card. Reports: <key>-close click, <key>-tabs select, `facts` (toggles `expanded`). */
+c-colony-sheet { display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; width: 100%; height: 100%; color: @{color.text};
+    background-color: @{color.wood}; box-shadow: @{color.black/.45} 0 0 0 1dp inset, @{color.woodLight/.04} 0 1dp 0 0; line-height: 1.3; }
+c-colony-sheet > .cs-head { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: 10dp; box-sizing: border-box; min-height: @{spec.headMin}dp; padding: 4dp 0 4dp 10dp; }
+c-colony-sheet > .cs-head > .cs-names { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+c-colony-sheet > .cs-head > .cs-names > .cs-title { font-size: @{spec.font.title}dp; font-weight: bold; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+c-colony-sheet > .cs-head > .cs-names > .cs-sub { font-size: @{spec.font.sub}dp; color: @{color.textMuted}; }
+c-colony-sheet > .cs-tabs { flex: 0 0 auto; padding: 0 8dp 8dp 8dp; }
+c-colony-sheet > .cs-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: 0 8dp 8dp 8dp; }
+c-colony-sheet > .cs-body > .cs-card { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8dp; box-sizing: border-box; padding: 12dp; overflow: hidden;
+    color: @{color.ink};
+    decorator: radial-gradient(ellipse farthest-corner at 20% 10%, @{color.paperLight/.4}, @{color.paperLight/0} 60%), linear-gradient(@{color.paperTop}, @{color.paperBottom});
+    box-shadow: @{color.paperShade/.28} 0 0 14dp 0 inset; }
+c-colony-sheet .cs-card > .cs-custom { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8dp; }
+c-colony-sheet .cs-card > .cs-siege { display: flex; flex-direction: row; align-items: center; gap: 8dp; font-size: @{spec.font.body}dp; font-weight: bold; color: @{color.wax}; }
+c-colony-sheet .cs-card > .cs-group { display: flex; flex-direction: column; gap: 3dp; padding-top: 6dp; border-top: 1dp @{color.inkMuted/.28}; }
+c-colony-sheet .cs-card > .cs-group > .cs-cap { font-size: @{spec.font.small}dp; color: @{color.inkMuted}; }
+c-colony-sheet .cs-card > .cs-group > .cs-goods { display: flex; flex-direction: row; flex-wrap: wrap; gap: 2dp 14dp; font-size: @{spec.font.body}dp; line-height: 22dp; }
+c-colony-sheet .cs-card > .cs-group > .cs-goods > .cs-good { display: flex; flex-direction: row; align-items: center; gap: 5dp; }
+c-colony-sheet .cs-card > .cs-toggle { display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: @{size.touchMin}dp; border-top: 1dp @{color.inkMuted/.28}; font-size: @{spec.font.body}dp; }
+c-colony-sheet .cs-card > .cs-toggle.pressed { background-color: @{color.inkMuted/.14}; }
+c-colony-sheet .cs-card > c-kv { width: 100%; }
+c-colony-sheet .cs-card > .cs-date { margin-top: auto; font-size: @{spec.font.small}dp; color: @{color.inkMuted}; }

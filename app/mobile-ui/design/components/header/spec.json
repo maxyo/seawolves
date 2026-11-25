@@ -1,0 +1,49 @@
+{
+  "tag": "c-header",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subtitle": {"type": "text", "default": ""},
+    "showSubtitle": {"type": "bool", "default": false, "class": false},
+    "back": {"type": "bool", "default": true, "class": false},
+    "close": {"type": "bool", "default": false},
+    "backDisabled": {"type": "bool", "default": false, "class": false},
+    "script": {"type": "bool", "default": true, "class": false},
+    "sections": {"type": "enum", "options": ["", "hero", "ship", "journal", "tradebook", "nations", "items"], "default": "", "class": false},
+    "subject": {"type": "json", "default": null},
+    "tabs": {"type": "json", "default": []},
+    "stats": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": []},
+    "key": {"type": "text", "default": "header"}
+  },
+  "classes": {
+    "has-back": "!close && back",
+    "sectioned": "sections != ''",
+    "long-title": "sections != '' && len(title) > spec.longTitle"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "layoutBoundary": true,
+    "pressRoot": false,
+    "height": @{size.header},
+    "sectionWidth": @{size.touchMin},
+    "subjectArrow": @{size.touch},
+    "subjectArrowNarrow": @{size.touchMin},
+    "subjectWidth": 320,
+    "subjectGrow": 1000,
+    "whoTwoLines": 31,
+    "titleSlot": 166,
+    "titleShare": 14,
+    "titleTwoLines": 46,
+    "narrowBelow": 820,
+    "longTitle": 12,
+    "font": {"script": @{type.script}, "scriptLong": @{type.scriptLong}, "scriptMin": 15, "plain": @{type.title}, "tab": @{type.body}, "subtitle": @{type.body}, "label": @{type.caption}, "stat": @{type.body}, "statBig": @{type.name}},
+    "sections": [
+      {"key": "hero", "icon": "hero", "labelKey": "header.hero"},
+      {"key": "ship", "icon": "ship", "labelKey": "header.ship"},
+      {"key": "journal", "icon": "journal", "labelKey": "header.journal"},
+      {"key": "tradebook", "icon": "commerce", "labelKey": "header.tradebook"},
+      {"key": "nations", "icon": "flag", "labelKey": "header.nations"},
+      {"key": "items", "icon": "chest", "labelKey": "header.items"}
+    ]
+  }
+}

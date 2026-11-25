@@ -1,0 +1,6 @@
+{
+  "tag": "s-hud",
+  "doc": "The HUD layer of the game (hud.rml): the safe area of the screen, transparent. The engine's HUD mount (src/libs/ui/src/hud) puts the elements of a hud-layout.json scene into it, each with the `rcss` of the layout; an element marked `dim` is drawn subdued (the combat cluster under the open sword-move wheel).",
+  "props": {},
+  "constants": {"dimOpacity": 0.55}
+}

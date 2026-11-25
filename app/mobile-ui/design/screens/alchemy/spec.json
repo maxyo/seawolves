@@ -1,0 +1,13 @@
+{
+  "tag": "s-alchemy",
+  "doc": "Alchemy (interface `alchemy`): the known recipes on the left, the shown recipe's components and the number of batches on the right, filled by extra_alchemy.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "recipes": {"type": "json", "default": {}},
+    "recipe": {"type": "json", "default": null},
+    "parts": {"type": "json", "default": {}},
+    "q": {"type": "json", "default": null},
+    "primary": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

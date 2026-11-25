@@ -1,0 +1,19 @@
+--- a/PROGRAM/quests/quests_reaction.c
++++ b/PROGRAM/quests/quests_reaction.c
+@@ -2952,7 +2952,7 @@
+ ///  Jason  								Бремя гасконца
+ //////////////////////////////////////////////////////////////////////////////////////////////////
+ 	case "Sharlie_Start":
+-		LoadMainCharacterInFirstLocationGroup("My_Campus", "rld", "loc2");
++		LoadMainCharacterInFirstLocationGroupPrepared("My_Campus", "rld", "loc2", false);
+ 		sld = GetCharacter(NPC_GenerateCharacter("Sh_startsailor", "citiz_39", "man", "man", 10, FRANCE, 0, false, "quest"));
+ 		FantomMakeCoolFighter(sld, 10, 10, 10, "blade_10", "pistol1", "bullet", 10);
+ 		sld.Dialog.Filename = "Quest\Sharlie\OtherNPC.c";
+@@ -2962,6 +2962,7 @@
+ 		sld.greeting = "start_sailor";
+ 		ChangeCharacterAddressGroup(sld, "My_Campus", "rld", "aloc2");
+ 		LAi_SetActorType(sld);
++		ReloadProgressEnd(); // All initial actors exist; prepare before starting dialogue.
+ 		LAi_ActorDialogNow(sld, pchar, "", -1);
+ 		chrDisableReloadToLocation = true;//закрыть локацию на всякий
+ 	break;

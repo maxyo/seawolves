@@ -1,0 +1,8 @@
+/* s-downloads: the sets fill the panel; a row keeps its main action inline (button 170 dp), the rare ones under «⋯». */
+s-downloads { display: block; width: 100%; height: 100%; }
+s-downloads .dl-list { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+s-downloads .dl-list c-list-row, s-downloads .dl-rows c-list-row { width: 100%; }
+s-downloads .dl-button { flex: 0 0 170dp; width: 170dp; }
+s-downloads .dl-empty { padding: 20dp 24dp 10dp 24dp; font-size: @{type.name}dp; color: @{color.text}; }
+s-downloads .dl-error { padding: 8dp 12dp 0 12dp; }
+s-downloads .dl-rows { display: flex; flex-direction: column; margin: -4dp 0; }

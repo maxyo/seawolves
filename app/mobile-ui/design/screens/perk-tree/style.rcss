@@ -1,0 +1,26 @@
+/* s-perk-tree: a vertical tree of perk icons on the parchment, on a canvas of the engine's fixed width
+   (perk_tree::Layout, 496 dp) centred in the pane; vertical scrolling only. Each icon sits in an invisible
+   touch box of one slot (62 x 56 dp); the state is a ring, a glow and a mark on the icon, never a card.
+   Curved links are one <ui-links> drawing under the icons. */
+s-perk-tree { display: block; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; }
+s-perk-tree .pt-scroll { width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden; }
+s-perk-tree .pt-canvas { position: relative; margin: 0 auto; }
+s-perk-tree .pt-links { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;
+    links-color: @{color.paperShade/.3}; links-met-color: @{color.paperShade/.6}; links-focus-color: @{color.coinGoldLow}; }
+s-perk-tree .pt-reveal { position: absolute; left: 0; width: 1dp; height: 88dp; pointer-events: none; } /* the box and 16 dp around it */
+s-perk-tree .pt-node { position: absolute; width: 62dp; height: 56dp; }
+s-perk-tree .pt-pic { position: absolute; left: 9dp; top: 6dp; width: @{spec.icon}dp; height: @{spec.icon}dp; }
+/* the ring around the icon: brass for learned (with the green check), a warm glow for one open to learn, none for a
+   faded locked one; the selected perk in a gold glow. Links: the selected perk's in gold, the others sepia. */
+s-perk-tree .pt-halo { position: absolute; left: 5dp; top: 2dp; width: 52dp; height: 52dp; border-radius: 26dp; box-sizing: border-box; }
+s-perk-tree .pt-node.st-learned .pt-halo { border: 2dp @{color.brassMid}; }
+s-perk-tree .pt-node.st-open .pt-halo { border: 2dp @{color.brassGlow}; box-shadow: @{color.brassGlow/.6} 0 0 9dp 1dp; }
+s-perk-tree .pt-node.st-locked .pt-pic, s-perk-tree .pt-node.st-unavailable .pt-pic { opacity: 0.55; }
+s-perk-tree .pt-node.sel .pt-halo { border: 3dp @{color.coinGoldTop}; box-shadow: @{color.flash/.9} 0 0 12dp 3dp; }
+s-perk-tree .pt-node.pressed .pt-halo { background-color: @{color.brassGlow/.25}; }
+/* marks on the icon: the state (bottom right), the other group's glyph (top left) */
+s-perk-tree .pt-mark { position: absolute; left: 39dp; top: 36dp; width: 17dp; height: 17dp; border-radius: 9dp; display: flex; align-items: center; justify-content: center;
+    background-color: @{color.inkAged}; border: 1dp @{color.paperLight/.8}; }
+s-perk-tree .pt-gmark { position: absolute; left: 4dp; top: 0; width: 18dp; height: 18dp; border-radius: 9dp; display: flex; align-items: center; justify-content: center;
+    background-color: @{color.lapis}; border: 1dp @{color.brassMid}; }
+s-perk-tree .pt-empty { width: 100%; padding: @{space.xxl}dp; text-align: center; font-size: @{type.body}dp; color: @{color.inkMuted}; }

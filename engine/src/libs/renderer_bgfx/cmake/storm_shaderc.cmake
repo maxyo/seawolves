@@ -1,0 +1,128 @@
+# Host shader compiler for the embedded shaders (host and cross builds alike): built from
+# host-tools/ once per machine into ${STORM_DEPS_CACHE}/shaderc-<key>, under a lock so concurrent
+# builds of any worktree share one build. -DSTORM_SHADERC=<binary> overrides it explicitly.
+# The key covers the pins (bgfx, bx, bimg, bgfx-cmake), host-tools/CMakeLists.txt and only the bgfx patches that
+# change shaderc: a patch counts when it changes a file that a shaderc build of this pin compiled or
+# included (${STORM_DEPS_CACHE}/shaderc-inputs-<pin key>.txt, recorded from Ninja's dependency log
+# after every shaderc build), when it creates a file, or when no build of the pin has been recorded
+# yet. A renderer-only patch therefore reuses the existing shaderc.
+set(STORM_SHADERC "" CACHE FILEPATH "Explicit host bgfx shaderc built from the pinned sources (host-tools/)")
+if(STORM_SHADERC)
+    if(NOT EXISTS "${STORM_SHADERC}")
+        message(FATAL_ERROR "STORM_SHADERC=${STORM_SHADERC} does not exist")
+    endif()
+    set(storm_shaderc "${STORM_SHADERC}")
+else()
+    set(storm_shaderc_pin_key "")
+    foreach(pin bgfx-cmake bgfx bx bimg)
+        storm_pin(${pin} commit commit)
+        string(APPEND storm_shaderc_pin_key "${commit}")
+    endforeach()
+    file(SHA256 "${CMAKE_CURRENT_LIST_DIR}/../host-tools/CMakeLists.txt" digest)
+    string(APPEND storm_shaderc_pin_key "${digest}")
+    string(SHA256 storm_shaderc_pin_key "${storm_shaderc_pin_key}")
+    string(SUBSTRING "${storm_shaderc_pin_key}" 0 16 storm_shaderc_pin_key)
+    set(storm_shaderc_inputs "${STORM_DEPS_CACHE}/shaderc-inputs-${storm_shaderc_pin_key}.txt")
+    file(GLOB storm_shaderc_patches "${CMAKE_CURRENT_LIST_DIR}/../patches/bgfx-*.patch")
+    # Sets storm_shaderc_key from the inputs recorded so far. The recorded paths are relative to the
+    # patched bgfx tree, where the patches apply.
+    function(storm_shaderc_compute_key)
+        set(key "${storm_shaderc_pin_key}")
+        set(inputs "")
+        if(EXISTS "${storm_shaderc_inputs}")
+            file(STRINGS "${storm_shaderc_inputs}" inputs)
+        endif()
+        foreach(patch ${storm_shaderc_patches})
+            storm_patch_paths("${patch}" paths created)
+            set(relevant FALSE)
+            if(NOT inputs OR created)
+                set(relevant TRUE)
+            endif()
+            foreach(path ${paths})
+                if(path IN_LIST inputs)
+                    set(relevant TRUE)
+                endif()
+            endforeach()
+            if(relevant)
+                file(SHA256 "${patch}" digest)
+                get_filename_component(patch_name "${patch}" NAME)
+                string(APPEND key ";${patch_name};${digest}")
+            endif()
+        endforeach()
+        string(SHA256 key "${key}")
+        string(SUBSTRING "${key}" 0 16 key)
+        set(storm_shaderc_key "${key}" PARENT_SCOPE)
+    endfunction()
+    storm_shaderc_compute_key()
+    file(MAKE_DIRECTORY "${STORM_DEPS_CACHE}")
+    while(TRUE)
+        set(storm_shaderc_dir "${STORM_DEPS_CACHE}/shaderc-${storm_shaderc_key}")
+        set(storm_shaderc "${storm_shaderc_dir}/shaderc")
+        if(EXISTS "${storm_shaderc}")
+            break()
+        endif()
+        file(LOCK "${storm_shaderc_dir}.lock" TIMEOUT 7200)
+        # A build that held the lock may have recorded new inputs, which can change the key.
+        set(locked_key "${storm_shaderc_key}")
+        storm_shaderc_compute_key()
+        if(NOT storm_shaderc_key STREQUAL locked_key)
+            file(LOCK "${storm_shaderc_dir}.lock" RELEASE)
+            continue()
+        endif()
+        if(NOT EXISTS "${storm_shaderc}")
+            message(STATUS "Building the host shaderc once for this bgfx pin and its shaderc patches: ${storm_shaderc_dir}")
+            set(build "${storm_shaderc_dir}/build")
+            # The build lies outside the workspace (CCACHE_BASEDIR of tools/ccache/launcher): its own directory
+            # is the base, so its compile commands name the sources relative to it (_deps/...) and every
+            # shaderc build of the pin shares the cache entries of the files its patches do not change.
+            foreach(step
+                    "-S;${CMAKE_CURRENT_LIST_DIR}/../host-tools;-B;${build};-G;Ninja;-DCMAKE_BUILD_TYPE=Release;-DSTORM_DEPS_CACHE=${STORM_DEPS_CACHE}"
+                    "--build;${build}")
+                execute_process(COMMAND "${CMAKE_COMMAND}" -E env "CCACHE_BASEDIR=${build}" "${CMAKE_COMMAND}" ${step}
+                    RESULT_VARIABLE result)
+                if(NOT result EQUAL 0)
+                    message(FATAL_ERROR "Building the host shaderc in ${build} failed")
+                endif()
+            endforeach()
+            # Record every file of the patched bgfx tree this build compiled or included.
+            load_cache("${build}" READ_WITH_PREFIX storm_shaderc_ CMAKE_MAKE_PROGRAM)
+            execute_process(COMMAND "${storm_shaderc_CMAKE_MAKE_PROGRAM}" -C "${build}" -t deps
+                RESULT_VARIABLE result OUTPUT_VARIABLE deps ERROR_VARIABLE deps_error)
+            if(NOT result EQUAL 0)
+                message(FATAL_ERROR "Cannot read the dependency log of ${build}: ${deps_error}")
+            endif()
+            string(REGEX MATCHALL "_deps/storm_bgfx-patched-[0-9a-f]+/[^\n]+" used "${deps}")
+            list(TRANSFORM used REPLACE "^_deps/storm_bgfx-patched-[0-9a-f]+/" "")
+            if(NOT used)
+                message(FATAL_ERROR "The dependency log of ${build} names no file of the bgfx sources: the shaderc "
+                    "patch classification (${CMAKE_CURRENT_LIST_FILE}) no longer matches the build layout")
+            endif()
+            file(LOCK "${storm_shaderc_inputs}.lock" GUARD FILE TIMEOUT 600)
+            if(EXISTS "${storm_shaderc_inputs}")
+                file(STRINGS "${storm_shaderc_inputs}" recorded)
+                list(APPEND used ${recorded})
+            endif()
+            list(REMOVE_DUPLICATES used)
+            list(SORT used)
+            list(JOIN used "\n" used)
+            file(WRITE "${storm_shaderc_inputs}.part" "${used}\n")
+            file(RENAME "${storm_shaderc_inputs}.part" "${storm_shaderc_inputs}")
+            file(LOCK "${storm_shaderc_inputs}.lock" RELEASE)
+            file(COPY_FILE "${build}/shaderc" "${storm_shaderc}.part")
+            file(RENAME "${storm_shaderc}.part" "${storm_shaderc}")
+            # Only the binary is used; the objects stay in ccache.
+            file(REMOVE_RECURSE "${build}")
+        endif()
+        file(LOCK "${storm_shaderc_dir}.lock" RELEASE)
+        break()
+    endwhile()
+endif()
+message(STATUS "Host shaderc: ${storm_shaderc}")
+set(STORM_SHADERC_COMMAND "${storm_shaderc}" CACHE INTERNAL "")
+# Every shader compile runs through the content-addressed result cache shared by all build directories
+# (shaderc_cache.py; STORM_NO_SHADER_CACHE="<reason>" turns it off, loudly). Hits/misses: shader-cache-stats.log.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(STORM_SHADERC_LAUNCHER "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/shaderc_cache.py"
+    --stats "${CMAKE_BINARY_DIR}/shader-cache-stats.log" CACHE INTERNAL "")
+set(STORM_SHADERC_LAUNCHER_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/shaderc_cache.py" CACHE INTERNAL "")
+set(STORM_SHADERC_DEPENDS "${storm_shaderc}" CACHE INTERNAL "")

@@ -1,0 +1,1 @@
+<t-if test="tone == 'color'"><ui-icon name="{{icon}}" size="{{size}}" plain="1"/><t-else/><ui-icon name="{{icon}}" size="{{size}}" class="tone-{{tone}}"/></t-if>

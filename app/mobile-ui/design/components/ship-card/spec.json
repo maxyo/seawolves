@@ -1,0 +1,24 @@
+{
+  "tag": "c-ship-card",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "captain": {"type": "text", "default": ""},
+    "rename": {"type": "bool", "default": true, "class": false},
+    "hull": {"type": "json", "default": null},
+    "crew": {"type": "json", "default": null},
+    "sails": {"type": "json", "default": null},
+    "image": {"type": "json", "default": null},
+    "icon": {"type": "text", "default": "ship-lugger"},
+    "renameLabel": {"type": "text", "default": "", "defaultKey": "ship.rename"},
+    "labelWidth": {"type": "int", "default": 90},
+    "key": {"type": "text", "default": "ship"}
+  },
+  "constants": {
+    "bars": [
+      {"prop": "hull", "labelKey": "ship.hull", "kind": "health"},
+      {"prop": "crew", "labelKey": "ship.crew", "kind": "crew"},
+      {"prop": "sails", "labelKey": "ship.sails", "kind": "sails"}
+    ]
+  }
+}

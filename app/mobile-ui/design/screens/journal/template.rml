@@ -1,0 +1,22 @@
+<c-screen id="header" key="header" title="{{title}}" sections="{{headerSection}}" actions="{{ json(extras.actions) }}">
+<div class="jo-cols">
+<c-panel class="jo-rail" pad="0" gap="0"><t-for each="sections" as="s"><c-list-row id="section-{{s.id}}" title="{{s.label}}" value="{{opt(s.count)}}" selected="{{ s.selected ? 1 : 0 }}" dense="1"/></t-for></c-panel>
+<t-if test="section == 'quests' || section == 'docs'">
+<c-panel class="jo-list" pad="0" gap="0">
+<t-if test="len(subtabs) > 1"><div class="jo-tabs"><c-tabs id="journal-tabs" look="segment" stretch="1" items="{{ json(subtabs) }}"/></div></t-if>
+<div class="jo-table"><c-table id="entries" columns='[{"label": "", "w": "1fr"}]' rows="{{ json(list) }}" row-height="52" empty="{{empty}}" empty-icon="journal"/></div>
+</c-panel>
+<c-panel class="jo-entry" tone="parchment" gap="8"><t-if test="entry">
+<div class="jo-entry-title">{{entry.title}}</div>
+<div class="jo-scroll"><t-for each="entry.entries" as="e"><div class="jo-item"><t-if test="e.date"><div class="jo-date">{{e.date}}</div></t-if><div class="jo-text">{{e.text}}</div></div></t-for></div>
+<t-else/><t-if test="date"><div class="jo-dateline">{{date}}</div></t-if><t-if test="len(list) > 0"><div class="jo-empty"><c-icon icon="journal" size="36" tone="ink"/><div>{{ tr('journal.pick') }}</div></div></t-if></t-if></c-panel>
+<t-else/>
+<c-panel class="jo-sheet" tone="parchment" gap="8">
+<t-if test="len(subtabs) > 1"><c-tabs id="journal-tabs" look="bar" surface="parchment" items="{{ json(subtabs) }}"/></t-if>
+<div class="jo-tables"><t-if test="len(tables) == 0"><div class="jo-none">{{noTables}}</div></t-if><t-for each="tables" as="t"><div class="jo-tbl"><c-table id="{{t.id}}" head="1" interactive="{{ opt(t.interactive) == false ? 0 : 1 }}" columns="{{ json(t.columns) }}" rows="{{ json(t.rows) }}" surface="parchment" fade="0" style="width: 100%; height: {{t.height}}dp;"/></div></t-for></div>
+</c-panel>
+</t-if>
+</div>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

@@ -1,0 +1,71 @@
+shaderc: the position output of every vertex shader is decorated Invariant (SPIR-V for Vulkan; spirv-cross writes it
+as `invariant gl_Position;` for OpenGL ES). The renderer's depth pre-pass draws a scene draw twice, depth only with a
+fragment shader that writes nothing and then in colour with the draw's own one, and the colour draw passes only where
+its depth is the one the first copy laid (src/shim/draw.cpp, Device::submit_prepass). The two are different programs
+with the same vertex shader: without the decoration a driver may compile the position of each program differently
+(another fused multiply-add, another order), and a depth one ULP apart leaves a hole. The decoration is added after
+glslang, on the module's BuiltIn Position (a variable or the gl_PerVertex member); neither HLSL, which the SPIR-V path
+compiles, nor bgfx's shader language can declare it.
+
+diff --git a/tools/shaderc/shaderc.h b/tools/shaderc/shaderc.h
+index 40aeb2f..3e88cd0 100644
+--- a/tools/shaderc/shaderc.h
++++ b/tools/shaderc/shaderc.h
+@@ -148,6 +148,27 @@ namespace bgfx
+ 		uint32_t uav;
+ 	};
+ 
++	/// Storm Engine patch (renderer_bgfx/patches/bgfx-shaderc-invariant-position.patch): the vertex position of a
++	/// SPIR-V module is decorated Invariant, so two programs with the same vertex shader compute the same depth.
++	inline void stormInvariantPosition(std::vector<uint32_t>& _spirv)
++	{
++		for (size_t ii = 5; ii < _spirv.size() && 0 != (_spirv[ii] >> 16); ii += _spirv[ii] >> 16)
++		{
++			const uint32_t words = _spirv[ii] >> 16;
++			const uint32_t op    = _spirv[ii] & 0xffff;
++			// OpDecorate %var BuiltIn Position, or OpMemberDecorate %block %member BuiltIn Position (gl_PerVertex).
++			if ( (71 == op && 4 == words && 11 == _spirv[ii+2] && 0 == _spirv[ii+3])
++			||   (72 == op && 5 == words && 11 == _spirv[ii+3] && 0 == _spirv[ii+4]) )
++			{
++				std::vector<uint32_t> invariant(_spirv.begin() + ii, _spirv.begin() + ii + words - 1);
++				invariant[0] = ( (words - 1) << 16) | op;
++				invariant.back() = 18; // Invariant
++				_spirv.insert(_spirv.begin() + ii + words, invariant.begin(), invariant.end() );
++				return;
++			}
++		}
++	}
++
+ 	struct Options
+ 	{
+ 		Options();
+diff --git a/tools/shaderc/shaderc_glsl.cpp b/tools/shaderc/shaderc_glsl.cpp
+index 6c26d9d..c09c89f 100644
+--- a/tools/shaderc/shaderc_glsl.cpp
++++ b/tools/shaderc/shaderc_glsl.cpp
+@@ -200,6 +200,10 @@ namespace bgfx { namespace glsl
+ 			spvOptions.disableOptimizer = true;
+ 
+ 			glslang::GlslangToSpv(*program->getIntermediate(stage), spirv, &spvOptions);
++			if ('v' == _options.shaderType)
++			{
++				stormInvariantPosition(spirv);
++			}
+ 
+ 			spvtools::Optimizer opt(SPV_ENV_OPENGL_4_5);
+ 
+diff --git a/tools/shaderc/shaderc_spirv.cpp b/tools/shaderc/shaderc_spirv.cpp
+index 739cdef..76264d3 100644
+--- a/tools/shaderc/shaderc_spirv.cpp
++++ b/tools/shaderc/shaderc_spirv.cpp
+@@ -761,6 +761,10 @@ namespace bgfx { namespace spirv
+ 				options.emitNonSemanticShaderDebugSource = _options.debugInformation;
+ 
+ 				glslang::GlslangToSpv(*intermediate, spirv, &options);
++				if ('v' == _options.shaderType)
++				{
++					stormInvariantPosition(spirv);
++				}
+ 
+ 				spvtools::Optimizer opt(getSpirvTargetVersion(_version, _messageWriter));
+ 

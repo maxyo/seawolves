@@ -1,0 +1,604 @@
+#ifdef __ANDROID__
+#ifdef __ANDROID__
+#include <platform/android_hud_presenter.hpp>
+#endif
+#include "platform/android_worldmap.hpp"
+#include <SDL2/SDL_timer.h>
+#endif
+#include <platform/android_ui.hpp>
+#include "log_and_action.h"
+#include "sea_quick_action_source.hpp"
+#include "reload_place_source.hpp"
+#include "game_message_target.hpp"
+#include "controls.h"
+#include "core.h"
+#include <spdlog/spdlog.h>
+#include "message.h"
+#include "string_compare.hpp"
+#include "shared/battle_interface/log_msg.h"
+#include <stdio.h>
+
+#define BI_FAST_COMMANDS "BIFastCommand"
+
+//#define SPECIAL_VERSION
+
+void CalculateTexturePos(FRECT &texRect, int hort, int vert, int numt)
+{
+    const auto vn = numt / hort;
+    const auto hn = numt - vn * hort;
+    texRect.right = (texRect.left = static_cast<float>(hn) / hort) + 1.f / hort;
+    texRect.bottom = (texRect.top = static_cast<float>(vn) / vert) + 1.f / vert;
+}
+
+ILogAndActions::ILogAndActions()
+{
+    rs = nullptr;
+    m_idIconTexture = -1;
+    m_sRoot = nullptr;
+    m_fontID = -1;
+    m_fFontScale = 1.f;
+    m_bShowActiveCommand = false;
+    m_bShowLogStrings = false;
+    m_bThatRealAction = false;
+    m_nStringBegin = 0;
+    m_bDontShowAll = false;
+    m_sOldActionName[0] = 0;
+    m_sActionName[0] = 0;
+    m_nTimeCounter = 0;
+}
+
+ILogAndActions::~ILogAndActions()
+{
+    Release();
+}
+
+bool ILogAndActions::Init()
+{
+    if ((rs = static_cast<VRenderer *>(core.GetService("renderer"))) == nullptr)
+    {
+        throw std::runtime_error("Can`t create render service");
+    }
+    D3DVIEWPORT9 vp;
+    rs->GetViewport(&vp);
+    core.Event("SetWindowSize", "lll", static_cast<int32_t>(vp.Width), static_cast<int32_t>(vp.Height), false);
+    return true;
+}
+
+void ILogAndActions::Execute(uint32_t delta_time)
+{
+#ifdef __ANDROID__
+    const bool available = m_bThatRealAction && !m_bDontShowAll && m_bShowActiveCommand && !storm::iEquals(m_sActionName,"Closed");
+    static int lastFlags = -1;
+    static std::string lastAction;
+    const int flags = (m_bThatRealAction ? 1 : 0) | (m_bShowActiveCommand ? 2 : 0) | (m_bDontShowAll ? 4 : 0);
+    if (flags != lastFlags || lastAction != m_sActionName)
+    {
+        lastFlags = flags; lastAction = m_sActionName;
+        storm::android::traceContextAction("state", m_sActionName,
+            "flags(real=1,show=2,hidden=4)=" + std::to_string(flags) + " available=" + (available ? "1" : "0"));
+    }
+    storm::android::worldMapHud.contextActionOwner=core.GetEntityId("WorldMap");
+    storm::android::worldMapHud.contextAction=available?m_sActionName:"";
+    // At sea the action goes out typed, with its target fenced by a revision (seaQuickAction);
+    // the plain context action channel is for the land and the world map.
+    auto quick = storm::android::readSeaQuickAction(GetId(), AttributesPointer, m_sActionName, available);
+    const bool sea = quick.sea;
+    storm::android::seaQuickAction.update(std::move(quick));
+    if (const auto action = storm::android::seaQuickAction.consume()) {
+        storm::android::traceContextAction("sea-quick-dispatch", *action, "current=" + std::string(m_sActionName));
+        core.Event("BI_FastCommand", "s", action->c_str()); return;
+    }
+    storm::android::publishContextAction(available && !sea ? m_sActionName : "");
+    {
+        // the bottom hint names where the door leads and whether it is locked (the game's "Closed"
+        // quick action: a reload locator whose link is closed now, characters_events.c); read again
+        // only when the action or its locator changes
+        static std::string reloadKey, reloadPlace;
+        const bool shown = m_bThatRealAction && !m_bDontShowAll && m_bShowActiveCommand && !sea;
+        const bool locked = shown && storm::iEquals(m_sActionName, "Closed");
+        const bool reload = locked || (available && !sea && storm::iEquals(m_sActionName, "Reload"));
+        const char *locator = nullptr;
+        auto *waiting = reload ? static_cast<VDATA *>(core.GetScriptVariable("chrWaitReloadLocator")) : nullptr;
+        const std::string key = reload ? std::string("reload:") + (waiting && waiting->Get(locator) && locator ? locator : "") : std::string();
+        if (key != reloadKey) { reloadKey = key; reloadPlace = reload ? storm::android::reloadPlace() : std::string(); }
+        storm::android::publishReloadPlace(reloadPlace, locked);
+    }
+    if (!storm::android::requestedContextAction.empty()) {
+        const bool accepted = !sea && available && storm::android::requestedContextAction == m_sActionName;
+        storm::android::traceContextAction(accepted ? "dispatch" : "reject", storm::android::requestedContextAction,
+            "current=" + std::string(m_sActionName));
+        storm::android::requestedContextAction.clear();
+        if (accepted) { core.Event("BI_FastCommand", "s", m_sActionName); return; }
+    }
+#endif
+    if (m_bDontShowAll)
+        return;
+
+    CONTROL_STATE cs;
+    core.Controls->GetControlState(BI_FAST_COMMANDS, cs);
+    if (cs.state == CST_ACTIVATED)
+        core.Event("BI_FastCommand", "s", m_sActionName);
+
+    // fade out lines
+    const auto colDelta = delta_time * m_fBlendSpeed;
+    STRING_DESCR *prev_sd = nullptr;
+    STRING_DESCR *sd;
+    for (sd = m_sRoot; sd != nullptr;)
+    {
+        if (sd->alpha <= 255.f)
+            if ((sd->alpha -= colDelta) <= 0)
+            {
+                if (prev_sd == nullptr)
+                    m_sRoot = sd->next;
+                else
+                    prev_sd->next = sd->next;
+                delete[] sd->str;
+                sd->str = nullptr;
+                STORM_DELETE(sd);
+                sd = m_sRoot;
+                continue;
+            }
+        prev_sd = sd;
+        sd = sd->next;
+    }
+
+    // move lines to free positions
+    const auto delta = delta_time * m_fShiftSpeed;
+    auto top = 0.f;
+    for (sd = m_sRoot; sd != nullptr; sd = sd->next)
+    {
+        if (sd->offset > top)
+        {
+            sd->offset -= delta;
+            if (sd->offset < top)
+                sd->offset = top;
+        }
+        top += m_nStringOffset;
+    }
+}
+
+uint64_t ILogAndActions::ProcessMessage(MESSAGE &message)
+{
+    switch (message.Long())
+    {
+    case LOG_ADD_STRING: {
+        const auto stringImmortal = message.Long() != 0;
+        const std::string &param = message.String();
+        if (stringImmortal)
+        {
+            // find the last element of the list
+            STRING_DESCR *last;
+            for (last = m_sRoot; last != nullptr; last = last->next)
+                if (last->alpha > 255.f)
+                    break;
+            if (last == nullptr)
+                SetString(param.c_str(), true);
+            else
+            {
+                delete[] last->str;
+                last->str = nullptr;
+                if (param[0] != 0)
+                {
+                    const auto len = param.size() + 1;
+                    if ((last->str = new char[len]) == nullptr)
+                    {
+                        throw std::runtime_error("allocate memory error");
+                    }
+                    strcpy_s(last->str, len, param.c_str());
+                }
+                else
+                {
+                    if (last == m_sRoot)
+                        m_sRoot = m_sRoot->next;
+                    else
+                    {
+                        for (auto *prev = m_sRoot; prev != nullptr && prev->next != last; prev = prev->next)
+                            if (prev != nullptr && prev->next == last) //~!~
+                            {
+                                prev->next = last->next;
+                                break;
+                            }
+                    }
+                    STORM_DELETE(last);
+                }
+            }
+        }
+        else
+            SetString(param.c_str(), false);
+    }
+    break;
+    case LOG_SET_ACTIVE_ACTION: {
+        const std::string &param = message.String();
+        SetAction(param.c_str());
+    }
+    break;
+    case LOG_AND_ACTIONS_INIT: {
+        m_sOldActionName[0] = '0';
+        const auto bfc = message.Long();
+        const auto bls = message.Long();
+        Create(bfc != 0, bls != 0);
+    }
+    break;
+    case LOG_AND_ACTIONS_CHANGE: {
+        m_sOldActionName[0] = '0';
+        const auto bfc = message.Long();
+        const auto bls = message.Long();
+        ActionChange(bfc != 0, bls != 0);
+    }
+    break;
+    case LI_SET_VISIBLE:
+        m_bDontShowAll = (message.Long() == 0);
+        break;
+    case LI_CLEAR_STRINGS:
+        while (m_sRoot != nullptr)
+        {
+            auto *const p = m_sRoot;
+            m_sRoot = p->next;
+            delete[] p->str;
+            p->str = nullptr;
+            delete p;
+        }
+        break;
+    case LI_OTHER_MSG: {
+        const std::string &param = message.String();
+        if (storm::iEquals(param, "SetTimeScale"))
+        {
+            core.SetTimeScale(message.Float());
+        }
+    }
+    break;
+    }
+    return 0;
+}
+
+void ILogAndActions::Realize(uint32_t delta_time)
+{
+#ifdef SPECIAL_VERSION
+    if (core.Controls->GetDebugAsyncKeyState(VK_F8) >= 0)
+    {
+        m_nTimeCounter += core.GetDeltaTime();
+        if (m_nTimeCounter > 10000)
+        {
+            m_nTimeCounter = 0;
+        }
+        int32_t nA = 0;
+        if (m_nTimeCounter < 500)
+        {
+            nA = (int32_t)(255.f * m_nTimeCounter / 500.f);
+        }
+        else if (m_nTimeCounter < 2000)
+        {
+            nA = 255;
+        }
+        else if (m_nTimeCounter < 2500)
+        {
+            nA = (int32_t)(255.f * (2500 - m_nTimeCounter) / 500.f);
+        }
+        rs->ExtPrint(m_fontID, ARGB(nA, 255, 255, 255), 0, PR_ALIGN_CENTER, false, 3.9f, 800, 600, 400, 300,
+                     "¬≈–—»я ƒЋя ѕ–≈——џ");
+    }
+#endif
+    if (core.Controls->GetDebugAsyncKeyState('K') < 0)
+        return;
+    if (rs == nullptr)
+        return;
+    if (m_bDontShowAll)
+        return;
+#ifdef __ANDROID__
+    // The quick action, its hints and the log lines are the touch HUD's.
+    if (storm::android::legacyDrawRefused("log and actions")) return;
+#endif
+
+    rs->MakePostProcess();
+
+    // Show Active Action
+    if (m_bShowActiveCommand)
+    {
+        glm::mat4 matw;
+        rs->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(matw));
+        // show icon
+        if ((m_idIconTexture != -1L) && m_bThatRealAction)
+        {
+            rs->TextureSet(0, m_idIconTexture);
+            rs->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, BI_ONETEX_VERTEX_FORMAT, 2, m_IconVertex,
+                                sizeof(BI_ONETEXTURE_VERTEX), "battle_rectangle");
+            m_ActionHint1.Print();
+            m_ActionHint2.Print();
+        }
+    }
+
+    // Show log strings
+    if (m_bShowLogStrings)
+    {
+        if (m_sRoot == nullptr)
+            return;
+        auto *ptr = m_sRoot;
+        int32_t nAlign = PR_ALIGN_LEFT;
+        auto strX = m_nWindowLeft;
+        if (m_nWindowRight >= 0)
+        {
+            strX = m_nWindowRight;
+            nAlign = PR_ALIGN_RIGHT;
+        }
+        auto strY = m_nStringBegin;
+        while (ptr != nullptr)
+        {
+            if (ptr->alpha <= 255.f)
+                rs->ExtPrint(m_fontID, m_dwColor + (static_cast<int32_t>(ptr->alpha) << 24), 0, nAlign, true, m_fFontScale,
+                             0, 0, strX, m_nWindowUp + static_cast<int32_t>(ptr->offset), "%s", ptr->str);
+            else
+                rs->ExtPrint(m_fontID, m_dwColor + 0xFF000000, 0, nAlign, true, m_fFontScale, 0, 0, strX,
+                             m_nWindowUp + static_cast<int32_t>(ptr->offset), "%s", ptr->str);
+            strY += m_nStringOffset;
+            ptr = ptr->next;
+        }
+    }
+}
+
+void ILogAndActions::Create(bool bFastComShow, bool bLogStringShow)
+{
+    m_bShowActiveCommand = bFastComShow;
+    m_bShowLogStrings = bLogStringShow;
+
+    // Set parameters for the active action icon
+    auto *pA = AttributesPointer->GetAttributeClass("ActiveActions");
+    if (pA != nullptr)
+    {
+        m_idIconTexture = rs->TextureCreate(pA->GetAttribute("TextureName"));
+        m_horzDiv = pA->GetAttributeAsDword("horzQ", 1);
+        m_vertDiv = pA->GetAttributeAsDword("vertQ", 1);
+        m_nIconWidth = pA->GetAttributeAsDword("width", 64);
+        m_nIconHeight = pA->GetAttributeAsDword("height", 64);
+        m_nIconLeft = pA->GetAttributeAsDword("left", 0);
+        m_nIconUp = pA->GetAttributeAsDword("top", 0);
+
+        m_ActionHint1.Init(rs, pA->GetAttributeClass("text1"));
+        m_ActionHint2.Init(rs, pA->GetAttributeClass("text2"));
+    }
+    else
+    {
+        m_idIconTexture = -1L;
+        m_horzDiv = 1;
+        m_vertDiv = 1;
+        m_nIconWidth = 64;
+        m_nIconHeight = 64;
+        m_nIconLeft = 0;
+        m_nIconUp = 0;
+    }
+    // build a rectangle for drawing the active action
+    m_IconVertex[0].w = m_IconVertex[1].w = m_IconVertex[2].w = m_IconVertex[3].w = .5f;
+    m_IconVertex[0].pos.z = m_IconVertex[1].pos.z = m_IconVertex[2].pos.z = m_IconVertex[3].pos.z = 1.f;
+    m_IconVertex[0].pos.x = m_IconVertex[1].pos.x = static_cast<float>(m_nIconLeft);
+    m_IconVertex[2].pos.x = m_IconVertex[3].pos.x = static_cast<float>(m_nIconLeft + m_nIconWidth);
+    m_IconVertex[0].pos.y = m_IconVertex[2].pos.y = static_cast<float>(m_nIconUp);
+    m_IconVertex[1].pos.y = m_IconVertex[3].pos.y = static_cast<float>(m_nIconUp + m_nIconHeight);
+    m_IconVertex[0].tu = m_IconVertex[1].tu = 0.f;
+    m_IconVertex[2].tu = m_IconVertex[3].tu = 1.f / static_cast<float>(m_horzDiv);
+    m_IconVertex[0].tv = m_IconVertex[2].tv = 0.f;
+    m_IconVertex[1].tv = m_IconVertex[3].tv = 1.f / static_cast<float>(m_vertDiv);
+
+    // set parameters for the previous action lines
+    pA = AttributesPointer->GetAttributeClass("Log");
+    if (pA != nullptr)
+    {
+        m_nWindowWidth = pA->GetAttributeAsDword("width", 200);
+        m_nWindowHeight = pA->GetAttributeAsDword("height", 128);
+        m_nWindowLeft = pA->GetAttributeAsDword("left", -1);
+        m_nWindowRight = pA->GetAttributeAsDword("right", -1);
+        m_nWindowUp = pA->GetAttributeAsDword("up", 0);
+        m_fontID = rs->LoadFont(pA->GetAttribute("font"));
+        m_fFontScale = pA->GetAttributeAsFloat("fontscale", 1.f);
+        m_dwColor = pA->GetAttributeAsDword("color", 0x00FFFFFF);
+        m_nStringOffset = pA->GetAttributeAsDword("offsetString", 24);
+        m_fShiftSpeed = pA->GetAttributeAsFloat("speed", 1.f / 50.f);
+        m_fBlendSpeed = pA->GetAttributeAsFloat("color_speed", 1.f / 50.f);
+    }
+    else
+    {
+        m_nWindowWidth = 200;
+        m_nWindowHeight = 128;
+        m_nWindowLeft = 64;
+        m_nWindowUp = 0;
+        m_fontID = -1L;
+        m_fFontScale = 1.f;
+        m_dwColor = 0x00FFFFFF;
+        m_nStringBegin = 0;
+        m_nStringOffset = 24;
+        m_fShiftSpeed = 1.f / 50.f;
+        m_fBlendSpeed = 1.f / 50.f;
+    }
+}
+
+void ILogAndActions::ActionChange(bool bFastComShow, bool bLogStringShow)
+{
+    m_bShowActiveCommand = bFastComShow;
+    m_bShowLogStrings = bLogStringShow;
+
+    m_bThatRealAction = false;
+
+    // Delete the old parameters
+    TEXTURE_RELEASE(rs, m_idIconTexture);
+
+    // Set parameters for the active action icon
+    ATTRIBUTES *pA = AttributesPointer->GetAttributeClass("ActiveActions");
+    if (pA != nullptr)
+    {
+        m_idIconTexture = rs->TextureCreate(pA->GetAttribute("TextureName"));
+        m_horzDiv = pA->GetAttributeAsDword("horzQ", 1);
+        m_vertDiv = pA->GetAttributeAsDword("vertQ", 1);
+        m_nIconWidth = pA->GetAttributeAsDword("width", 64);
+        m_nIconHeight = pA->GetAttributeAsDword("height", 64);
+        m_nIconLeft = pA->GetAttributeAsDword("left", 0);
+        m_nIconUp = pA->GetAttributeAsDword("top", 0);
+
+        m_ActionHint1.Init(rs, pA->GetAttributeClass("text1"));
+        m_ActionHint2.Init(rs, pA->GetAttributeClass("text2"));
+    }
+    else
+    {
+        m_idIconTexture = -1L;
+        m_horzDiv = 1;
+        m_vertDiv = 1;
+        m_nIconWidth = 64;
+        m_nIconHeight = 64;
+        m_nIconLeft = 0;
+        m_nIconUp = 0;
+    }
+    // build a rectangle for drawing the active action
+    m_IconVertex[0].w = m_IconVertex[1].w = m_IconVertex[2].w = m_IconVertex[3].w = .5f;
+    m_IconVertex[0].pos.z = m_IconVertex[1].pos.z = m_IconVertex[2].pos.z = m_IconVertex[3].pos.z = 1.f;
+    m_IconVertex[0].pos.x = m_IconVertex[1].pos.x = static_cast<float>(m_nIconLeft);
+    m_IconVertex[2].pos.x = m_IconVertex[3].pos.x = static_cast<float>(m_nIconLeft + m_nIconWidth);
+    m_IconVertex[0].pos.y = m_IconVertex[2].pos.y = static_cast<float>(m_nIconUp);
+    m_IconVertex[1].pos.y = m_IconVertex[3].pos.y = static_cast<float>(m_nIconUp + m_nIconHeight);
+    m_IconVertex[0].tu = m_IconVertex[1].tu = 0.f;
+    m_IconVertex[2].tu = m_IconVertex[3].tu = 1.f / static_cast<float>(m_horzDiv);
+    m_IconVertex[0].tv = m_IconVertex[2].tv = 0.f;
+    m_IconVertex[1].tv = m_IconVertex[3].tv = 1.f / static_cast<float>(m_vertDiv);
+}
+
+void ILogAndActions::Release()
+{
+#ifdef __ANDROID__
+    storm::android::publishContextAction("");
+    if (storm::android::seaQuickAction.frame().host == GetId()) storm::android::seaQuickAction.update({});
+#endif
+    TEXTURE_RELEASE(rs, m_idIconTexture);
+
+    rs->UnloadFont(m_fontID);
+    while (m_sRoot != nullptr)
+    {
+        STRING_DESCR *p = m_sRoot;
+        m_sRoot = p->next;
+        delete[] p->str;
+        p->str = nullptr;
+        delete p;
+    }
+    m_ActionHint1.Release();
+    m_ActionHint2.Release();
+    rs = nullptr;
+}
+
+void ILogAndActions::SetString(const char *str, bool immortal)
+{
+    if (str == nullptr)
+        return;
+#ifdef __ANDROID__
+    // Passing lines are the portable UI's toasts, and so are lasting ones while the touch HUD
+    // presents the game (the legacy log does not draw then); otherwise lasting lines stay here.
+    if (!immortal || storm::android::hudPresenters.any())
+    {
+        storm::android::publishGameMessage(str, storm::android::gameMessageTarget());
+        return;
+    }
+#endif
+
+    // find the last element of the list
+    STRING_DESCR *last = m_sRoot;
+    if (last != nullptr)
+        while (last->next != nullptr)
+            last = last->next;
+
+    // Return if such a line already exists and it is last
+    if (last != nullptr && last->str != nullptr && storm::iEquals(last->str, str))
+        return;
+    // The line this legacy log draws (the portable UI logs the lines it shows itself).
+    spdlog::info("shown {} (game log, legacy HUD): {}", immortal ? "lasting" : "info", str);
+
+    // create a new line descriptor
+    auto *newDescr = new STRING_DESCR;
+    if (newDescr == nullptr)
+    {
+        throw std::runtime_error("Allocate memory error");
+    }
+    // it will be the last on the list
+    newDescr->next = nullptr;
+    // add the specified string to it
+    const auto len = strlen(str) + 1;
+    if ((newDescr->str = new char[len]) == nullptr)
+    {
+        throw std::runtime_error("Allocate memory error");
+    }
+    strcpy_s(newDescr->str, len, str);
+    // set the maximum visibility
+    if (immortal)
+        newDescr->alpha = 10000.f;
+    else
+        newDescr->alpha = 255.f;
+
+    // if the list is empty, put the string as the root
+    if (last == nullptr)
+    {
+        newDescr->offset = static_cast<float>(m_nStringBegin);
+        m_sRoot = newDescr;
+    }
+    // otherwise add it to the end of the list
+    else
+    {
+        newDescr->offset = last->offset + m_nStringOffset;
+        last->next = newDescr;
+        if (newDescr->offset + m_nStringOffset > m_nWindowHeight)
+        {
+            const int32_t offsetDelta = static_cast<int32_t>(newDescr->offset) + m_nStringOffset - m_nWindowHeight;
+            for (STRING_DESCR *tmpDescr = m_sRoot; tmpDescr != nullptr;)
+            {
+                if ((tmpDescr->offset -= offsetDelta) < 0)
+                {
+                    m_sRoot = tmpDescr->next;
+                    delete[] tmpDescr->str;
+                    tmpDescr->str = nullptr;
+                    delete tmpDescr;
+                    tmpDescr = m_sRoot;
+                    continue;
+                }
+                tmpDescr = tmpDescr->next;
+            }
+        }
+    }
+}
+
+void ILogAndActions::SetAction(const char *actionName)
+{
+    m_bThatRealAction=false;
+    ATTRIBUTES *pA;
+
+    if (actionName == nullptr)
+        return;
+    if ((strlen(actionName) + 1) > sizeof(m_sActionName))
+    {
+        core.Trace("Action name: %s  - overup size of name");
+        return;
+    }
+    pA = AttributesPointer->GetAttributeClass("ActiveActions");
+    if (pA != nullptr)
+        pA = pA->GetAttributeClass(actionName);
+    if (pA == nullptr)
+        return;
+    strcpy_s(m_sActionName, actionName);
+    // set texture coordinates for this action icon
+    FRECT texRect;
+    const int32_t curIconNum = pA->GetAttributeAsDword("IconNum", 0);
+    if (curIconNum == -1)
+    {
+        m_bThatRealAction = false;
+        return;
+    }
+    m_bThatRealAction = true;
+    CalculateTexturePos(texRect, m_horzDiv, m_vertDiv, curIconNum);
+    m_IconVertex[1].tu = m_IconVertex[0].tu = texRect.left;
+    m_IconVertex[2].tu = m_IconVertex[3].tu = texRect.right;
+    m_IconVertex[0].tv = m_IconVertex[2].tv = texRect.top;
+    m_IconVertex[1].tv = m_IconVertex[3].tv = texRect.bottom;
+
+    pA = AttributesPointer->GetAttributeClass("ActiveActions");
+    if (pA)
+    {
+        m_ActionHint1.Init(rs, pA->GetAttributeClass("text1"));
+        m_ActionHint2.Init(rs, pA->GetAttributeClass("text2"));
+    }
+    else
+    {
+        m_ActionHint1.Init(rs, nullptr);
+        m_ActionHint2.Init(rs, nullptr);
+    }
+}

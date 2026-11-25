@@ -1,0 +1,33 @@
+--- a/miniaudio.h
++++ b/miniaudio.h
+@@ -70838,14 +70838,6 @@
+     }
+ 
+ done:
+-    /* If we failed to initialize the data buffer we need to free it. */
+-    if (result != MA_SUCCESS) {
+-        if (nodeAlreadyExists == MA_FALSE) {
+-            ma_resource_manager_data_buffer_node_remove(pResourceManager, pDataBufferNode);
+-            ma_free(pDataBufferNode, &pResourceManager->config.allocationCallbacks);
+-        }
+-    }
+-
+     /*
+     The init notification needs to be uninitialized. This will be used if the node does not already
+     exist, and we've specified ASYNC | WAIT_INIT.
+@@ -70856,6 +70848,15 @@
+         }
+     }
+ 
++    /* If we failed to initialize the data buffer we need to free it. */
++    if (result != MA_SUCCESS) {
++        if (nodeAlreadyExists == MA_FALSE) {
++            ma_resource_manager_data_buffer_node_remove(pResourceManager, pDataBufferNode);
++            ma_free(pDataBufferNode, &pResourceManager->config.allocationCallbacks);
++            pDataBufferNode = NULL;
++        }
++    }
++
+     if (ppDataBufferNode != NULL) {
+         *ppDataBufferNode = pDataBufferNode;
+     }

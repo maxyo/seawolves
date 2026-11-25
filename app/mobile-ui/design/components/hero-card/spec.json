@@ -1,0 +1,21 @@
+{
+  "tag": "c-hero-card",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "sub": {"type": "text", "default": ""},
+    "roles": {"type": "text", "default": ""},
+    "portrait": {"type": "text", "default": "INTERFACES/PORTRAITS/128/face_201"},
+    "health": {"type": "json", "default": null},
+    "energy": {"type": "json", "default": null},
+    "free": {"type": "text", "default": ""},
+    "lines": {"type": "json", "default": []},
+    "freeLabel": {"type": "text", "default": "", "defaultKey": "common.free"}
+  },
+  "behaviors": ["press", "fit"],
+  "constants": {
+    "pressRoot": false,
+    "portrait": @{size.tokenLg},
+    "width": 156,
+    "widthRoomy": 316
+  }
+}

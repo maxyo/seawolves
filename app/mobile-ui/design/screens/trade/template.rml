@@ -1,0 +1,13 @@
+<c-screen id="header" key="header" title="{{title}}" subject="{{ json(subject) }}" stats="{{ json(stats) }}" actions="{{ json(extras.actions) }}">
+<div class="st-main"><c-panel pad="0" gap="0" style="width: 100%; height: 100%">
+<c-trade-list id="goods" dense="1" dock="1" label="{{list.label}}" cols="{{ json(list.cols) }}" rows="{{ json(list.rows) }}" deal="{{ json(deal) }}" filters="{{ json(list.filters) }}" quick="{{list.quick}}">
+<t-if test="place && !dealing"><div class="st-place"><div class="st-place-title">{{place.title}}</div><c-kv items="{{ json(place.facts) }}" size="15" style="width: 100%"/></div></t-if>
+<t-if test="info"><div class="st-info"><c-icon-button id="info" icon="info" label="{{infoLabel}}" look="bare"/></div></t-if>
+<t-if test="extras.note && !dealing"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+<div class="st-grow"></div>
+<t-if test="len(actions) > 0"><div class="st-actions"><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="secondary" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}" style="flex: 1 1 auto"/></t-for></div></t-if>
+<t-if test="primary"><c-button id="primary" rmlui-layout-boundary="" variant="primary" label="{{primary.label}}" sub="{{primary.sub}}" disabled="{{ primary.disabled ? 1 : 0 }}" reason="{{primary.reason}}" busy="{{ primary.busy ? 1 : 0 }}" style="width: 100%"/></t-if>
+</c-trade-list>
+</c-panel></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

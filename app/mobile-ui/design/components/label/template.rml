@@ -1,0 +1,1 @@
+<div class="text">{{text}}</div><div class="fill"></div><t-if test="aside"><div class="aside">{{aside}}</div></t-if><t-if test="children"><div class="slot" slot="1"></div></t-if>

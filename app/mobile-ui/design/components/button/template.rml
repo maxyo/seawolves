@@ -1,0 +1,5 @@
+<t-if test="spec.height[size] < spec.touch"><div class="hit" style="top: {{ (spec.height[size] - spec.touch) / 2 }}dp; bottom: {{ (spec.height[size] - spec.touch) / 2 }}dp;"></div></t-if>
+<t-if test="hold && !disabled"><div class="hold-fill" data-hold-fill="1" style="width: {{holdProgress}}%;"></div></t-if>
+<t-if test="busy && !disabled"><div class="spinner"></div></t-if>
+<t-if test="icon && !(busy && !disabled)"><c-icon icon="{{icon}}" size="{{ spec.height[size] > 50 ? 22 : 18 }}" tone="{{ disabled ? 'dim' : variant == 'primary' ? 'ink' : variant == 'danger' ? 'paper' : surface == 'parchment' ? 'ink' : variant == 'ghost' ? 'brass' : 'duo' }}"/></t-if>
+<div class="text"><t-if test="size == 'tile'"><ui-clamp class="label" min-size="@{type.min}" lines="{{ sub || (disabled && showReason && reason) ? 1 : spec.tileLines }}" text="{{label}}"/><t-else/><div class="label">{{label}}</div></t-if><t-if test="disabled && showReason && reason"><div class="sub reason">{{reason}}</div><t-else/><t-if test="sub"><div class="sub">{{sub}}</div></t-if></t-if></div><t-if test="children"><div class="slot" slot="1"></div></t-if>

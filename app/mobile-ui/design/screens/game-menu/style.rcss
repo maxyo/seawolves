@@ -1,0 +1,9 @@
+/* s-game-menu: the actions centred over the dimmed, paused scene (no header: «Продолжить» is the way out). */
+s-game-menu { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+s-game-menu .gm-scrim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: @{color.scrim/.5}; }
+s-game-menu .gm-nav { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: @{space.md}dp; }
+s-game-menu .gm-nav > c-button, s-game-menu .gm-grid, s-game-menu .gm-nav > s-note { width: 400dp; flex: 0 0 auto; }
+s-game-menu .gm-line { flex: 0 0 auto; width: 400dp; text-align: center; font-size: 15dp; color: @{color.textSecond}; padding-bottom: 6dp; font-effect: shadow(0dp 1dp @{color.black}); }
+s-game-menu .gm-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: @{space.md}dp; }
+s-game-menu .gm-cell { flex: 1 1 195dp; }
+s-game-menu .gm-more { position: absolute; top: 8dp; right: 8dp; }

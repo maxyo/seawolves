@@ -1,0 +1,47 @@
+/* C-IconButton: an icon is the whole button. Always a 48×48 hit area; default look is bare. */
+c-icon-button { position: relative; display: flex; flex: 0 0 auto; flex-direction: row; align-items: center; justify-content: center;
+    box-sizing: border-box; width: @{spec.hit}dp; height: @{spec.hit}dp; border-radius: 24dp; }
+c-icon-button.disabled { opacity: @{material.disabledOpacity}; }
+c-icon-button .face { display: flex; flex-direction: row; align-items: center; justify-content: center; }
+c-icon-button .glyph { display: flex; flex-direction: row; align-items: center; justify-content: center; }
+
+/* bare: pressed = soft round glow, darker, a little smaller */
+c-icon-button.look-bare.pressed { decorator: radial-gradient(circle closest-side at center, @{color.brass/.3}, @{color.brass/0} 96%); }
+c-icon-button.look-bare.pressed .face { transform: scale(0.9); filter: brightness(0.8); }
+c-icon-button.look-bare.surface-parchment.pressed { decorator: radial-gradient(circle closest-side at center, @{color.paperShade/.32}, @{color.paperShade/0} 96%); }
+c-icon-button.look-bare.surface-parchment.pressed .face { filter: none; }
+c-icon-button.surface-parchment.look-bare.pressed ui-icon.tone-ink, c-icon-button.surface-parchment.look-engraved.pressed ui-icon.tone-ink { color: @{color.inkDeep}; }
+c-icon-button.disabled.pressed { decorator: none; }
+c-icon-button.disabled.pressed .face { transform: none; filter: none; }
+
+/* engraved: brass glyph cut into the header */
+/* the cut-in shadow is baked into the glyph raster (icon-shadow), not a drop-shadow filter (an offscreen layer per button) */
+c-icon-button.look-engraved .face ui-icon { icon-shadow: @{color.black/.8} 0dp 1dp 1dp; }
+c-icon-button.look-engraved.surface-parchment .face ui-icon { icon-shadow: @{color.paperLight/.55} 0dp 1dp 0dp; }
+c-icon-button.look-engraved.pressed .face { transform: translateY(1dp) scale(0.96); }
+
+
+/* ribbon: satin bookmark hanging over the header edge; only the 48 dp inside the header is the hit area.
+   It ends 56 dp down: 8 dp over the edge, inside the content's top padding (c-screen padTop 10),
+   never over a panel. */
+c-icon-button.look-ribbon { margin-left: 6dp; border-radius: 0; }
+c-icon-button.look-ribbon .face { position: absolute; left: 4dp; top: 0; box-sizing: border-box; width: @{spec.ribbonWidth}dp; height: 46dp; padding-top: 11dp;
+    align-items: flex-start; pointer-events: none; filter: drop-shadow(@{color.black/.6} 2dp 3dp 2dp);
+    decorator: linear-gradient(90deg, @{color.black/.5} 0%, @{color.black/0} 20%, @{color.satinSheen/.239} 40%, @{color.satinSheen/.059} 52%, @{color.black/0} 62%, @{color.black/.42} 100%),
+        linear-gradient(180deg, @{color.ribbonFold} 0dp, @{color.ribbonFoldEdge} 2dp, @{color.ribbonRedDeep} 3dp, @{color.ribbonRed} 14dp, @{color.ribbonRedMid} 35dp, @{color.ribbonRedLow} 46dp); }
+c-icon-button.look-ribbon .tail { position: absolute; left: 0; top: 46dp; width: 0; height: 0; border-left: 20dp @{color.ribbonRedTailL}; border-right: 20dp @{color.ribbonRedTailR}; border-bottom: 10dp transparent; }
+c-icon-button.look-ribbon .stitch { position: absolute; top: 5dp; height: 49dp; width: 1dp;
+    decorator: repeating-linear-gradient(180deg, @{color.brass/.75} 0dp, @{color.brass/.75} 3dp, @{color.brass/0} 3dp, @{color.brass/0} 5dp); }
+c-icon-button.look-ribbon .stitch.left { left: 4dp; }
+c-icon-button.look-ribbon .stitch.right { right: 4dp; }
+c-icon-button.look-ribbon .glyph ui-icon { icon-shadow: @{color.black/.65} 0dp 1dp 0dp; }
+c-icon-button.look-ribbon.pressed .face { transform: translateY(1dp) scale(0.96); }
+c-icon-button.look-ribbon.ribbon-color-blue .face { decorator: linear-gradient(90deg, @{color.black/.5} 0%, @{color.black/0} 20%, @{color.satinSheen/.239} 40%, @{color.satinSheen/.059} 52%, @{color.black/0} 62%, @{color.black/.42} 100%),
+        linear-gradient(180deg, @{color.ribbonFold} 0dp, @{color.ribbonFoldEdge} 2dp, @{color.ribbonBlueDeep} 3dp, @{color.ribbonBlue} 14dp, @{color.ribbonBlueMid} 35dp, @{color.ribbonBlueLow} 46dp); }
+c-icon-button.look-ribbon.ribbon-color-blue .tail { border-left-color: @{color.ribbonBlueTailL}; border-right-color: @{color.ribbonBlueTailR}; }
+c-icon-button.look-ribbon.ribbon-color-green .face { decorator: linear-gradient(90deg, @{color.black/.5} 0%, @{color.black/0} 20%, @{color.satinSheen/.239} 40%, @{color.satinSheen/.059} 52%, @{color.black/0} 62%, @{color.black/.42} 100%),
+        linear-gradient(180deg, @{color.ribbonFold} 0dp, @{color.ribbonFoldEdge} 2dp, @{color.ribbonGreenDeep} 3dp, @{color.ribbonGreen} 14dp, @{color.ribbonGreenMid} 35dp, @{color.ribbonGreenLow} 46dp); }
+c-icon-button.look-ribbon.ribbon-color-green .tail { border-left-color: @{color.ribbonGreenTailL}; border-right-color: @{color.ribbonGreenTailR}; }
+c-icon-button.look-ribbon.ribbon-color-black .face { decorator: linear-gradient(90deg, @{color.black/.5} 0%, @{color.black/0} 20%, @{color.satinSheen/.239} 40%, @{color.satinSheen/.059} 52%, @{color.black/0} 62%, @{color.black/.42} 100%),
+        linear-gradient(180deg, @{color.ribbonFold} 0dp, @{color.ribbonFoldEdge} 2dp, @{color.ribbonBlackDeep} 3dp, @{color.ribbonBlack} 14dp, @{color.ribbonBlackMid} 35dp, @{color.ribbonBlackLow} 46dp); }
+c-icon-button.look-ribbon.ribbon-color-black .tail { border-left-color: @{color.ribbonBlackTailL}; border-right-color: @{color.ribbonBlackTailR}; }

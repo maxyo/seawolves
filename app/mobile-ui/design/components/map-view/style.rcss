@@ -1,0 +1,13 @@
+/* C-MapView: a game picture in a clipping viewport. The panzoom behaviour sizes the plane in
+   px (width, height: a zoom) and moves it by a transform (a pan lays nothing out); markers sit
+   on it in % of the picture and keep their dp size at every zoom. The zoom plate sits at the right bottom. */
+c-map-view { display: block; position: relative; flex: 1 1 0; min-width: 0; min-height: 0; }
+c-map-view .mv-port { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; clip: always;
+    border: 1dp @{color.brassLine/.55}; decorator: linear-gradient(160deg, @{color.slotPaperTop}, @{color.slotPaperLow}); }
+c-map-view .mv-plane { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+c-map-view .mv-marker { position: absolute; pointer-events: none; }
+c-map-view .mv-zoom { position: absolute; right: @{space.md}dp; bottom: @{space.md}dp; width: @{size.touch}dp;
+    display: flex; flex-direction: column; align-items: center; border-radius: 2dp;
+    background-color: @{color.scrim/.55}; }
+c-map-view .mv-zbtn { width: @{size.touch}dp; height: @{size.touch}dp; display: flex; align-items: center; justify-content: center; }
+c-map-view .mv-rule { width: 60%; height: 1dp; background-color: @{color.brassLine/.55}; }

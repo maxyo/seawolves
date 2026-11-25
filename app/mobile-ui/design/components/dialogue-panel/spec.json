@@ -1,0 +1,20 @@
+{
+  "tag": "c-dialogue-panel",
+  "props": {
+    "speaker": {"type": "text", "default": ""},
+    "text": {"type": "text", "default": ""},
+    "mode": {"type": "enum", "options": ["speech", "replies", "paged"], "default": "speech"},
+    "page": {"type": "int", "default": 0},
+    "next": {"type": "bool", "default": true, "class": false},
+    "seed": {"type": "int", "default": 11},
+    "replies": {"type": "json", "default": []},
+    "nextLabel": {"type": "text", "default": "", "defaultKey": "dialogue.next"},
+    "gap": {"type": "int", "default": null},
+    "key": {"type": "text", "default": "dialogue"}
+  },
+  "constants": {
+    "gap": {"speech": 6, "replies": 4},
+    "next": {"height": 48, "reserve": 44},
+    "replyLines": 2
+  }
+}

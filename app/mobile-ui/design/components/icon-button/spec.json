@@ -1,0 +1,24 @@
+{
+  "tag": "c-icon-button",
+  "props": {
+    "icon": {"type": "text", "default": "back"},
+    "label": {"type": "text", "default": ""},
+    "look": {"type": "enum", "options": ["bare", "engraved", "ribbon"], "default": "bare"},
+    "disabled": {"type": "bool", "default": false},
+    "reason": {"type": "text", "default": ""},
+    "danger": {"type": "bool", "default": false},
+    "pressed": {"type": "bool", "default": false, "class": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
+    "ribbonColor": {"type": "enum", "options": ["red", "blue", "green", "black"], "default": "red"}
+  },
+  "classes": {
+    "pressed": "pressed && !disabled"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "hit": @{size.iconButton},
+    "glyph": {"bare": @{size.iconGlyph}, "engraved": 28, "ribbon": 20},
+    "ribbonWidth": 40,
+    "ribbonHeight": 72
+  }
+}

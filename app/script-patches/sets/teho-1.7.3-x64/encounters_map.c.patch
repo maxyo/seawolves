@@ -1,0 +1,48 @@
+--- a/PROGRAM/Encounters/encounters_map.c
++++ b/PROGRAM/Encounters/encounters_map.c
+@@ -1,4 +1,7 @@
+ #define ENCOUNTER_GROUP		"egroup__"
++// PirateEncounterPercent(): the player's world-map pirate frequency (Android app settings).
++native int PirateEncounterPercent();
++#libriary "PirateFrequencyScriptLib"
+ 
+ int FindFreeMapEncounterSlot()
+ {
+@@ -144,6 +147,37 @@
+ 		}
+ 	}
+ 
++	// The player's pirate frequency: PirateEncounterPercent() random pirate events in a hundred
++	// are kept (20, 50 or 100 = the game as it is), a whole pirate battle counted as one.
++	// Quest encounters and the scheduler's attempt/reset cadence stay unchanged.
++	bool bPirateEncounter = false;
++	bool bQuestEncounter = false;
++	if (iEncounter1 != -1)
++	{
++		bPirateEncounter = sti(rEncounter1.nation) == PIRATE;
++		bQuestEncounter = CheckAttribute(rEncounter1, "qID");
++	}
++	if (iEncounter2 != -1)
++	{
++		if (sti(rEncounter2.nation) == PIRATE) bPirateEncounter = true;
++		if (CheckAttribute(rEncounter2, "qID")) bQuestEncounter = true;
++	}
++	if (bPirateEncounter && !bQuestEncounter)
++	{
++		int iPirateKeep = PirateEncounterPercent();
++		if (iPirateKeep < 100)
++		{
++			if (rand(99) >= iPirateKeep)
++			{
++				if (iEncounter1 != -1) ManualReleaseMapEncounter(iEncounter1);
++				if (iEncounter2 != -1) ManualReleaseMapEncounter(iEncounter2);
++				iEncounter1 = -1;
++				iEncounter2 = -1;
++				return false;
++			}
++		}
++	}
++
+ 	int i1 = iEncounter1;
+ 	int i2 = iEncounter2;
+ 

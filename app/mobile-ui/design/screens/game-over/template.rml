@@ -1,0 +1,4 @@
+<div class="go-shade"></div>
+<div class="go-text"><div class="go-title">{{title}}</div><div class="go-rule"></div>
+<div class="go-actions"><t-for each="actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="{{ a_i == 0 ? 'primary' : 'secondary' }}" busy="{{ a.busy ? 1 : 0 }}" style="width: 220dp"/></t-for></div></div>
+<s-extras id="extras" extras="{{ json(extras) }}"/>

@@ -1,0 +1,10 @@
+<div class="gm-scrim"></div>
+<div class="gm-nav">
+<t-if test="line"><div class="gm-line">{{line}}</div></t-if>
+<t-if test="resume"><c-button id="resume" variant="primary" size="lg" icon="play" label="{{resume.label}}" disabled="{{ resume.disabled ? 1 : 0 }}" reason="{{resume.reason}}" busy="{{ resume.busy ? 1 : 0 }}"/></t-if>
+<div class="gm-grid"><t-for each="buttons" as="b"><div class="gm-cell"><c-button id="{{b.id}}" label="{{b.label}}" disabled="{{ b.disabled ? 1 : 0 }}" reason="{{b.reason}}" busy="{{ b.busy ? 1 : 0 }}" hold="{{ opt(b.hold) ? 1 : 0 }}" style="width: 100%"/></div></t-for></div>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</div>
+<t-if test="len(extras.actions) > 0"><div class="gm-more"><c-icon-button id="extras-more" icon="more" label="{{ tr('common.other') }}"/></div></t-if>
+<t-if test="confirm"><c-dialog id="confirm" key="confirm" preset="{{confirm.preset}}" title="{{confirm.title}}" text="{{confirm.text}}" confirm="{{confirm.yes}}" cancel="{{confirm.no}}" width="460"/></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>

@@ -1,0 +1,100 @@
+#include "bone_palettes.hpp"
+
+#include "perf.hpp"
+#include "shim.hpp"
+
+#include <algorithm>
+#include <cstring>
+
+namespace storm::shim
+{
+
+uint32_t BonePalettes::capacity_rows()
+{
+    if (capacity_ == 0)
+    {
+        // 4096 bone rows (about 60 characters of 64 bones), within the GLES 3.0 minimum texture size the caps allow.
+        capacity_ = std::min<uint32_t>(4096, bgfx::getCaps()->limits.maxTextureSize);
+        for (auto &texture : textures_)
+            texture = bgfx::createTexture2D(kTexelsPerBone * kColumns, static_cast<uint16_t>(capacity_), false, 1,
+                                            bgfx::TextureFormat::RGBA32F, BGFX_SAMPLER_POINT | BGFX_SAMPLER_UVW_CLAMP);
+        columns_[0].reserve(static_cast<size_t>(capacity_) * kTexelsPerBone * 4);
+    }
+    return capacity_;
+}
+
+BonePalettes::Slot BonePalettes::place(TexStore &palette)
+{
+    // A palette not locked since it was placed in this frame is the same pose: its rows are already there.
+    if (!palette.any_dirty)
+        for (const Placed &placed : placed_)
+            if (placed.store == &palette)
+                return placed.slot;
+    TexStore::Sub &level = palette.sub(0, 0);
+    const uint32_t bones = palette.height;
+    const size_t row_floats = kTexelsPerBone * 4;
+    const auto rows_in = [&](uint32_t column) { return static_cast<uint32_t>(columns_[column].size() / row_floats); };
+    // A palette stays within one column.
+    while (column_ < kColumns && rows_in(column_) + bones > capacity_rows())
+        ++column_;
+    if (level.data.empty() || palette.width != kTexelsPerBone || column_ == kColumns)
+    {
+        if (render::Once(full_logged_))
+            render::Log().error("bone palettes: {} columns of {} rows used in this frame, a palette of {} bones "
+                                "({}x{}) does not fit; such draws upload their own palette texture",
+                                kColumns, capacity_rows(), bones, palette.width, palette.height);
+        return {};
+    }
+    const Slot slot{rows_in(column_), column_};
+    std::vector<float> &rows = columns_[column_];
+    const uint32_t pitch = level_pitch(palette.format, palette.width);
+    const size_t start = rows.size();
+    rows.resize(start + static_cast<size_t>(bones) * row_floats);
+    for (uint32_t bone = 0; bone < bones; ++bone)
+        std::memcpy(rows.data() + start + bone * row_floats, level.data.data() + static_cast<size_t>(bone) * pitch,
+                    row_floats * sizeof(float));
+    // The palette's own texture is not uploaded for these contents (TexStore::sync is not called for it).
+    palette.any_dirty = false;
+    level.dirty = false;
+    std::erase_if(placed_, [&palette](const Placed &placed) { return placed.store == &palette; });
+    placed_.push_back({&palette, slot});
+    return slot;
+}
+
+void BonePalettes::flush()
+{
+    if (!columns_[0].empty())
+    {
+        for (uint32_t column = 0; column < kColumns && !columns_[column].empty(); ++column)
+        {
+            std::vector<float> &rows = columns_[column];
+            const uint32_t count = static_cast<uint32_t>(rows.size() / (kTexelsPerBone * 4));
+            const bgfx::Memory *memory = bgfx::copy(rows.data(), static_cast<uint32_t>(rows.size() * sizeof(float)));
+            counted_texture_upload(memory);
+            bgfx::updateTexture2D(textures_[current_], 0, 0, static_cast<uint16_t>(column * kTexelsPerBone), 0,
+                                  kTexelsPerBone, static_cast<uint16_t>(count), memory);
+        }
+        current_ = (current_ + 1) % kRingSize;
+    }
+    for (auto &rows : columns_)
+        rows.clear();
+    column_ = 0;
+    placed_.clear();
+}
+
+void BonePalettes::shutdown()
+{
+    for (auto &texture : textures_)
+    {
+        if (bgfx::isValid(texture))
+            bgfx::destroy(texture);
+        texture = BGFX_INVALID_HANDLE;
+    }
+    capacity_ = 0;
+    for (auto &rows : columns_)
+        rows.clear();
+    column_ = 0;
+    placed_.clear();
+}
+
+} // namespace storm::shim

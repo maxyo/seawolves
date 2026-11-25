@@ -1,0 +1,16 @@
+<c-screen id="header" key="header" title="{{title}}" actions="{{ json(extras.actions) }}">
+<div class="sv-list"><c-panel pad="0" gap="0" fade="{{ confirm ? 1 : 0 }}">
+<c-table id="saves" head="{{ len(rows) > 0 ? 1 : 0 }}" columns="{{ json(columns) }}" rows="{{ json(rows) }}" row-height="48" empty="{{ tr('save.empty') }}" empty-icon="save" style="flex: 1 1 0; height: auto"/>
+<t-if test="extras.note"><div class="sv-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
+</c-panel></div>
+<t-if test="detail"><div class="sv-side"><c-panel gap="8">
+<t-if test="detail.preview"><div class="sv-preview"><ui-game-image texture="{{detail.preview}}" uv="0,0,1,1" fit="contain"/></div></t-if>
+<c-object-header title="{{detail.title}}" sub="{{detail.sub}}" title-size="17" sub-size="13" gap="0"/>
+<c-kv items="{{ json(detail.facts) }}"/>
+<div class="sv-grow"></div>
+<div class="sv-actions"><t-if test="detail.delete"><c-icon-button id="delete" icon="trash" label="{{ tr('save.delete_label') }}" look="bare" danger="1" disabled="{{ detail.busy ? 1 : 0 }}"/></t-if>
+<c-button id="primary" variant="primary" label="{{detail.primary}}" disabled="{{ detail.disabled ? 1 : 0 }}" reason="{{detail.reason}}" busy="{{ detail.busy ? 1 : 0 }}" style="flex: 1 1 0"/></div>
+</c-panel></div></t-if>
+<t-if test="confirm"><c-dialog id="confirm" key="confirm" preset="{{confirm.preset}}" title="{{confirm.title}}" subject="{{confirm.subject}}" text="{{confirm.text}}" confirm="{{confirm.yes}}" cancel="{{confirm.no}}" width="470"/></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

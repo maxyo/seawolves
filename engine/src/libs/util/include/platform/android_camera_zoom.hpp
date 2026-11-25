@@ -1,0 +1,134 @@
+#pragma once
+#include <algorithm>
+#include <cmath>
+
+namespace storm::android
+{
+// The pinch of the camera look: two fingers on the look surface of the platform host (the
+// application's camera gesture) send the factor by which the distance between the fingers changed
+// since the last event (> 1: spread, the camera comes nearer).
+// The camera in charge of the frame applies it to the value the game's own zoom controls
+// move (the mouse wheel on PC), within the game's limits:
+//   sea, third person  SHIP_CAMERA fDistance 0..1 (ShipCamera_Forward / _Backward)
+//   world map          WdmCamera height 50..300 (WMapForward / WMapBackward; none in free mode)
+//   spyglass           magnification 1..the glass's own (ChangeTelescopeType); while it is
+//                      raised the deck camera leaves the pinch to it
+//   land, follow       LocationCamera radius, kLandZoomMin..kLandZoomMax of the game's radius
+//   deck               DeckZoom: field-of-view zoom kDeckZoomMin..kDeckZoomMax of the game's
+//                      perspective (the game has none here; ours, like the spyglass's range)
+//
+// Game-thread owned. The engine loop calls beginFrame() before it applies the commands of an
+// iteration, so a pinch acts only in the frame it arrived for: one that no camera took (no
+// frame ran, or no camera with a zoom is in charge) is dropped and reported, never applied
+// later as a jump.
+class CameraZoom
+{
+    float scale_ = 1.0f;
+    bool pending_ = false, reported_ = false;
+
+  public:
+    // The land camera's zoom (pinchLandZoom), kept for the session across locations.
+    float land = 1.0f;
+    // Returns true for the first dropped pinch since a camera last took one (the caller logs it).
+    bool beginFrame()
+    {
+        const bool dropped = pending_ && !reported_;
+        if (pending_)
+            reported_ = true;
+        scale_ = 1.0f;
+        pending_ = false;
+        return dropped;
+    }
+    // A finite factor > 0, else refused.
+    bool offer(float scale)
+    {
+        if (!std::isfinite(scale) || scale <= 0.0f)
+            return false;
+        scale_ *= scale;
+        pending_ = true;
+        return true;
+    }
+    // The camera in charge of this frame takes the pinch (1 when there is none).
+    float take()
+    {
+        const float scale = scale_;
+        if (pending_)
+            reported_ = false;
+        scale_ = 1.0f;
+        pending_ = false;
+        return scale;
+    }
+};
+inline CameraZoom cameraZoom;
+
+// A camera distance after a pinch: fingers spread `scale` times bring it `scale` times nearer.
+inline float pinchDistance(float distance, float scale, float nearest, float farthest)
+{
+    return std::clamp(distance / scale, nearest, farthest);
+}
+
+// A magnification after a pinch (the spyglass): fingers spread `scale` times magnify as much.
+inline float pinchMagnification(float magnification, float scale, float lowest, float highest)
+{
+    return std::clamp(magnification * scale, lowest, highest);
+}
+
+// The zoom parameter (0..1) of a camera whose distance runs from `nearDistance` at 0 to
+// `farDistance` at 1 (SHIP_CAMERA fDistance), now at `distance`: the parameter that puts the
+// camera `scale` times nearer, by the slope of the whole range.
+inline float pinchParameter(float parameter, float scale, float distance, float nearDistance, float farDistance)
+{
+    const float span = farDistance - nearDistance;
+    if (!(span > 0.0f))
+        return parameter;
+    return std::clamp(parameter + (distance / scale - distance) / span, 0.0f, 1.0f);
+}
+
+// The land camera has no zoom of its own in this game (its radius is the game's or the
+// scripts' MSG_CAMERA_SET_RADIUS value): the pinch scales that radius in the proportions of the
+// land zoom of later games on this engine (default 0.75 of the farthest, nearest 0.5 of it), so the
+// game's radius stays the default and the camera comes at most a third nearer or goes a third
+// farther.
+inline constexpr float kLandZoomMin = 0.5f / 0.75f, kLandZoomMax = 1.0f / 0.75f;
+inline float pinchLandZoom(float zoom, float scale)
+{
+    return pinchDistance(zoom, scale, kLandZoomMin, kLandZoomMax);
+}
+// The telescope's view while it grows in (fraction 0..1 of its activate time): from the
+// camera's view at the raise, the deck's pinch zoom included, to the glass's. Lowered, the
+// telescope hands the view straight back to the deck camera, whose zoom it never touched.
+inline float telescopeGrowPerspective(float raisedFrom, float glass, float fraction)
+{
+    return raisedFrom + (glass - raisedFrom) * std::clamp(fraction, 0.0f, 1.0f);
+}
+
+// The deck camera has no zoom of its own in this game (its perspective is the "Perspective"
+// attribute): the pinch narrows the field of view up to twice. The fingers set the target, the
+// view eases to it (kDeckZoomEase per second), and leaving the deck (the camera off or not in
+// charge) puts it back to 1x.
+inline constexpr float kDeckZoomMin = 1.0f, kDeckZoomMax = 2.0f, kDeckZoomEase = 15.0f;
+class DeckZoom
+{
+    float target_ = 1.0f, current_ = 1.0f;
+
+  public:
+    void pinch(float scale)
+    {
+        target_ = pinchMagnification(target_, scale, kDeckZoomMin, kDeckZoomMax);
+    }
+    // The zoom of this frame, eased towards the fingers' target.
+    float step(float seconds)
+    {
+        current_ += (target_ - current_) * std::clamp(seconds * kDeckZoomEase, 0.0f, 1.0f);
+        return current_;
+    }
+    void reset()
+    {
+        target_ = current_ = 1.0f;
+    }
+    float target() const
+    {
+        return target_;
+    }
+};
+} // namespace storm::android

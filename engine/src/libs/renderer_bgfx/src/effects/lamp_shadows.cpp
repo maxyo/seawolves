@@ -1,0 +1,1588 @@
+#include "effects/lamp_shadows.hpp"
+
+#include "shim/device.hpp"
+#include "shim/perf.hpp"
+#include "storm/render/frame_owner.hpp"
+#include "effects/scene_reveal.hpp"
+#include "storm/fx/color_lut.hpp"
+
+#include <bx/math.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <string>
+
+namespace storm::effects
+{
+
+namespace
+{
+constexpr bgfx::ViewId kLampStaticView = render::kPreGameViewBegin + 1;
+constexpr bgfx::ViewId kLampDynamicView = render::kPreGameViewBegin + 2;
+// After the still faces' view: the edge maps (every layer is a pass of its own).
+constexpr bgfx::ViewId kLampEdgesView = render::kPreGameViewBegin + 6;
+constexpr uint64_t kCasterState = BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS;
+constexpr uint64_t kMapFlags =
+    BGFX_TEXTURE_RT | BGFX_SAMPLER_COMPARE_LEQUAL | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+// The lamps' strength on baked surfaces at Settings::lamp_gain 1: half of the light the lit models take from the
+// same lamp (the chosen look; the game's bakes hold little lamp light of their own).
+constexpr float kBakedGain = 0.5f;
+// Lamps whose light begins farther from the camera than this take no slot.
+constexpr float kLampSight = 40.0f;
+// Slots whose static faces are drawn per frame once a location is running (six faces each).
+constexpr int kSlotsPerFrame = 2;
+// Seconds a lamp takes to fade in after its faces are drawn, and to fade out before its slot goes to another lamp.
+constexpr float kFadeSeconds = 0.3f;
+// A carried lantern is in its carrier's hand: what is nearer to it than this (the lantern's own model, the hand and
+// forearm) casts nothing. The carrier's body does: the dark side of a lantern is behind whoever holds it. The
+// lantern's model is a draw of the carrier, not still geometry with a fixture (fx::FindFixtures): this sphere is the
+// rule for every light's dynamic faces (characters, props) and for the still faces of a ship's lantern whose
+// fixture was not found.
+constexpr float kLanternHolder = 0.3f;
+// A moving light's still faces are drawn again once it has moved this far.
+constexpr float kMovingStep = 0.02f;
+// Cells of the triangle grids, metres.
+constexpr float kTriangleCell = 4.0f;
+// Cells of the room light, metres: across, and a storey high.
+constexpr float kRoomCell = 1.5f;
+constexpr float kRoomStorey = 3.0f;
+
+// World -> clip of a face, mapped into its tile, for the backend's clip depth (GL: -1..1); the stored window depth is
+// fx::LampFaceDepth on either backend.
+std::array<float, 16> face_matrix(const fx::Lamp &lamp, int slot, int face, int columns, int rows)
+{
+    std::array<float, 16> vp = fx::LampFaceViewProj(lamp.position, face, lamp.range);
+    if (bgfx::getCaps()->homogeneousDepth)
+        for (int r = 0; r < 4; ++r)
+            vp[r * 4 + 2] = 2.0f * vp[r * 4 + 2] - vp[r * 4 + 3];
+    const std::array<float, 16> tile = fx::TileClip(fx::LampAtlasTile(slot, face, columns, rows));
+    std::array<float, 16> out{};
+    bx::mtxMul(out.data(), vp.data(), tile.data());
+    return out;
+}
+
+std::array<uint16_t, 4> tile_rect(int slot, int face, int columns, int face_size)
+{
+    const int tile = slot * 6 + face;
+    return {static_cast<uint16_t>((tile % columns) * face_size), static_cast<uint16_t>((tile / columns) * face_size),
+            static_cast<uint16_t>(face_size), static_cast<uint16_t>(face_size)};
+}
+
+void scissor_tile(int slot, int face, int columns, int face_size)
+{
+    const std::array<uint16_t, 4> rect = tile_rect(slot, face, columns, face_size);
+    bgfx::setScissor(rect[0], rect[1], rect[2], rect[3]);
+}
+
+uint32_t caster_vs()
+{
+    return shim::shader_id_by_name("vs_ff_caster");
+}
+uint32_t edges_fs()
+{
+    return shim::shader_id_by_name("fs_ff_lamp_edges");
+}
+uint32_t pair_check_fs()
+{
+    return shim::shader_id_by_name("fs_ff_lamp_pair_check");
+}
+} // namespace
+
+void LampShadows::configure(const fx::Settings &settings, fx::LampDepth depth)
+{
+    int slots = std::clamp<int>(settings.lamp_shadows, 0, fx::kMaxShadowLamps);
+    const int face = 256;
+    // One row of six faces per slot.
+    const int max_rows = static_cast<int>(bgfx::getCaps()->limits.maxTextureSize) / face;
+    if (slots > max_rows)
+    {
+        render::Log().info("effects: lamps: the device's largest texture holds {} lamp slots of the {} asked for",
+                           max_rows, slots);
+        slots = max_rows;
+    }
+    const int moving_slots = std::min<int>(settings.lamp_moving, slots);
+    if (slots > 0 && depth == fx::LampDepth::None)
+    {
+        // ConstrainSettings switches the lamps off on such a device and says so; reaching here is a bug.
+        render::Log().error("effects: lamps: no D24 or D32F depth target for the shadow faces: lamp shadows off");
+        slots = 0;
+    }
+    bool edges = settings.lamp_edges && slots > 0;
+    if (edges &&
+        !bgfx::isTextureValid(
+            0, false, 2, depth == fx::LampDepth::D24 ? bgfx::TextureFormat::D24 : bgfx::TextureFormat::D32F, kMapFlags))
+    {
+        render::Log().error("effects: lamps: no array of {} as a render target on this device: no edge maps",
+                            fx::LampDepthName(depth));
+        edges = false;
+    }
+    if (slots != slots_ || face != face_size_ || moving_slots != moving_slots_ || depth != depth_ || edges != edges_ ||
+        (edges && settings.lamp_soft != soft_))
+    {
+        destroy_targets();
+        for (Slot &slot : slot_)
+            free_slot(slot);
+        slot_.assign(static_cast<size_t>(slots), Slot{});
+        for (int s = slots - moving_slots; s < slots; ++s)
+            slot_[s].moving = true; // the last slots are kept for the lights that move
+        layout_dirty_ = true;
+    }
+    moving_slots_ = moving_slots;
+    slots_ = slots;
+    if (depth != depth_ && slots > 0)
+        render::Log().info("effects: lamps: shadow faces in {} (perspective depth over {:.2f} m..the lamp's radius)",
+                           fx::LampDepthName(depth), fx::kLampShadowNear);
+    depth_ = depth;
+    per_pixel_ = std::clamp<int>(settings.lamp_per_pixel, 1, fx::kLampGridCapacity);
+    filtered_ = std::clamp<int>(settings.lamp_filtered, 1, fx::kLampGridCapacity);
+    face_size_ = face;
+    dynamic_face_size_ = face / 2;
+    columns_ = 6;
+    rows_ = std::max(slots, 1);
+    gain_ = settings.lamp_gain;
+    baked_ = settings.lamp_baked;
+    soft_ = settings.lamp_soft;
+    edges_ = edges;
+    soft_light_ = settings.lamp_soft_light;
+    model_lift_ = settings.lamp_model_lift;
+    tint_ = settings.lamp_tint;
+    // The receivers' strongest gain: the lit models take a lamp's light as it is, baked surfaces lamp_gain times
+    // kBakedGain of it.
+    const float strongest = std::max(1.0f, gain_ * kBakedGain);
+    const float reach_level = settings.lamp_reach_light / strongest;
+    if (reach_level != level_)
+        layout_dirty_ = true; // every slot's reach, its faces and the grid follow the new end of the lamps
+    level_ = reach_level;
+    shadow_level_ = settings.lamp_shadow_light / strongest;
+}
+
+float LampShadows::reach_of(const fx::Lamp &lamp) const
+{
+    fx::Lamp brightest = lamp;
+    brightest.color *= fx::kLampReachHeadroom;
+    return fx::LampReach(brightest, level_);
+}
+
+LampShadows::FaceBuffer LampShadows::face_buffer(std::span<const glm::vec3> positions,
+                                                 std::span<const uint32_t> triangles, glm::vec3 lamp, float holder)
+{
+    FaceBuffer out;
+    fx::LampFaceLists lists;
+    fx::SplitByLampFace(positions, triangles, lamp, holder, lists);
+    out.first = lists.first;
+    if (!lists.indices.empty())
+        out.handle = bgfx::createIndexBuffer(
+            bgfx::copy(lists.indices.data(), static_cast<uint32_t>(lists.indices.size() * sizeof(uint32_t))),
+            BGFX_BUFFER_INDEX32);
+    return out;
+}
+
+void LampShadows::free_faces(FaceBuffer &faces)
+{
+    if (bgfx::isValid(faces.handle))
+        bgfx::destroy(faces.handle);
+    faces = FaceBuffer{};
+}
+
+void LampShadows::set_lamps(const std::vector<fx::Lamp> &components, std::span<const render::EffectsLampFlame> flames)
+{
+    // No second merge, flicker filter or nearest-centroid lookup: a long connected chain can extend well
+    // beyond its edge radius. Its original flames must ALL remain attached to the same fixture.
+    std::vector<fx::Lamp> raw;
+    std::vector<int> membership;
+    raw.reserve(flames.size());
+    membership.reserve(flames.size());
+    for (const auto &flame : flames)
+        if (flame.component < components.size())
+        {
+            raw.push_back(fx::Lamp{flame.position});
+            membership.push_back(static_cast<int>(flame.component));
+        }
+    place_lamps(components, std::move(raw), std::move(membership));
+}
+
+void LampShadows::place_lamps(std::vector<fx::Lamp> merged, std::vector<fx::Lamp> raw, std::vector<int> membership)
+{
+    bool moved = merged.size() != placed_.size();
+    for (size_t i = 0; !moved && i < merged.size(); ++i)
+        moved =
+            glm::distance(merged[i].position, placed_[i]) > 0.1f || !(fx::ShapeOf(merged[i]) == fx::ShapeOf(lamps_[i]));
+    // Same centroid does not imply the same fixture: members may move symmetrically or be replaced.
+    bool flames_changed = membership != raw_lamp_ || raw.size() != raw_.size();
+    for (size_t i = 0; !flames_changed && i < raw.size(); ++i)
+        flames_changed = raw[i].position != raw_[i].position;
+    if (moved || flames_changed)
+    {
+        placed_.resize(merged.size());
+        for (size_t i = 0; i < merged.size(); ++i)
+            placed_[i] = merged[i].position;
+        layout_dirty_ = true;
+        fixtures_dirty_ = true;
+    }
+    lamps_ = std::move(merged);
+    raw_ = std::move(raw);
+    raw_lamp_ = std::move(membership);
+    holder_.assign(lamps_.size(), fx::kLampHolderRadius);
+    for (size_t j = 0; j < raw_.size(); ++j)
+        if (raw_lamp_[j] >= 0)
+        {
+            const size_t i = static_cast<size_t>(raw_lamp_[j]);
+            // Exact compounds retain FindFixtures' per-original-flame triangle exclusions. A sphere enclosing
+            // the entire chandelier would also erase unrelated blockers/characters inside the source bound.
+            holder_[i] =
+                lamps_[i].aggregate.get() && lamps_[i].aggregate.get()->count > 1
+                    ? 0.0f
+                    : std::max(holder_[i], glm::distance(raw_[j].position, lamps_[i].position) + fx::kLampHolderRadius);
+        }
+    if (fixtures_dirty_ && !positions_.empty())
+        find_fixtures();
+}
+
+void LampShadows::find_fixtures()
+{
+    fixtures_dirty_ = false;
+    const auto started = std::chrono::steady_clock::now();
+    std::vector<std::vector<glm::vec3>> flames(lamps_.size());
+    for (size_t j = 0; j < raw_.size(); ++j)
+        if (raw_lamp_[j] >= 0)
+            flames[raw_lamp_[j]].push_back(raw_[j].position);
+    std::vector<fx::Fixture> found = fx::FindFixtures(positions_, indices_, flames);
+    fixtures_.assign(found.size(), {});
+    size_t triangles = 0;
+    int held = 0, pieces = 0;
+    std::string without;
+    for (size_t i = 0; i < found.size(); ++i)
+    {
+        fixtures_[i] = std::move(found[i].triangles);
+        triangles += fixtures_[i].size();
+        pieces += found[i].pieces;
+        if (found[i].pieces > 0)
+            ++held;
+        else if (std::count(without.begin(), without.end(), '(') < 8)
+        {
+            without += fmt::format(" ({:.1f}, {:.1f}, {:.1f})", lamps_[i].position[0], lamps_[i].position[1],
+                                   lamps_[i].position[2]);
+        }
+    }
+    render::Log().info("effects: lamps: fixtures of {} of {} lamps found ({} pieces, {} triangles cast no shadow of "
+                       "their own lamp) in {:.0f} ms",
+                       held, lamps_.size(), pieces, triangles,
+                       std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
+    if (held < static_cast<int>(lamps_.size()))
+        render::Log().info("effects: lamps: FALLBACK: {} lamps without a fixture in the still geometry: their own "
+                           "shadow spares only {:.2f} m around the flame;{}{}",
+                           lamps_.size() - static_cast<size_t>(held), fx::kLampHolderRadius, without,
+                           lamps_.size() - static_cast<size_t>(held) > 8 ? " ..." : "");
+}
+
+void LampShadows::set_geometry(const render::EffectsLocationGeometry &geometry)
+{
+    const auto same = [](const auto &kept, const auto &given) {
+        return kept.size() == given.size() && std::equal(kept.begin(), kept.end(), given.begin());
+    };
+    std::vector<CutSurface> surfaces;
+    if (geometry.uvs.size() == geometry.positions.size())
+        for (const auto &surface : geometry.surfaces)
+        {
+            auto store = shim::shared_store_of(surface.texture);
+            if (store && store->cutout && surface.first_index <= geometry.indices.size() &&
+                surface.index_count <= geometry.indices.size() - surface.first_index)
+                surfaces.push_back({surface.first_index, surface.index_count, store, store->cutout});
+        }
+    if (same(positions_, geometry.positions) && same(indices_, geometry.indices) && same(colors_, geometry.colors) &&
+        same(uvs_, geometry.uvs) && cut_surfaces_ == surfaces && geometry.interior == interior_ &&
+        geometry.room_lo == room_lo_ && geometry.room_hi == room_hi_)
+        return;
+    for (Slot &slot : slot_)
+        free_slot(slot); // their index buffers and textures belong to the geometry that goes
+    positions_.assign(geometry.positions.begin(), geometry.positions.end());
+    colors_.assign(geometry.colors.begin(), geometry.colors.end());
+    uvs_.assign(geometry.uvs.begin(), geometry.uvs.end());
+    indices_.assign(geometry.indices.begin(), geometry.indices.end());
+    interior_ = geometry.interior;
+    room_lo_ = geometry.room_lo;
+    room_hi_ = geometry.room_hi;
+    // Triangles of a texture whose alpha cuts holes cast through it; all others cast whole.
+    solid_.clear();
+    cut_.clear();
+    cut_surfaces_ = std::move(surfaces);
+    const size_t triangles = indices_.size() / 3;
+    list_of_.assign(triangles, -1);
+    local_of_.assign(triangles, 0);
+    if (uvs_.size() == positions_.size())
+        for (const auto &surface : cut_surfaces_)
+        {
+            auto into =
+                std::find_if(cut_.begin(), cut_.end(), [&](const CutOut &c) { return c.store == surface.store; });
+            if (into == cut_.end())
+                into = cut_.insert(cut_.end(), CutOut{surface.store, {}});
+            for (uint32_t t = surface.first / 3; t < (surface.first + surface.count) / 3; ++t)
+            {
+                list_of_[t] = static_cast<int32_t>(into - cut_.begin());
+                local_of_[t] = static_cast<uint32_t>(into->indices.size() / 3);
+                into->indices.insert(into->indices.end(), {indices_[3 * t], indices_[3 * t + 1], indices_[3 * t + 2]});
+            }
+        }
+    else if (!geometry.surfaces.empty())
+        render::Log().error("effects: lamps: the location's geometry came without texture coordinates: foliage, nets "
+                            "and gratings cast whole shadows");
+    for (size_t t = 0; t < triangles; ++t)
+        if (list_of_[t] < 0)
+        {
+            local_of_[t] = static_cast<uint32_t>(solid_.size() / 3);
+            solid_.insert(solid_.end(), {indices_[3 * t], indices_[3 * t + 1], indices_[3 * t + 2]});
+        }
+    fixtures_.clear();
+    fixtures_dirty_ = true;
+    // By where they are: a lamp that takes a slot, and a carried lantern every time it moves, ask for the ones around
+    // it.
+    solid_grid_ = fx::BuildTriangleGrid(positions_, solid_, kTriangleCell);
+    for (CutOut &cut : cut_)
+        cut.grid = fx::BuildTriangleGrid(positions_, cut.indices, kTriangleCell);
+    geometry_lo_ = geometry_hi_ = positions_.empty() ? glm::vec3{} : positions_.front();
+    for (const glm::vec3 &p : positions_)
+    {
+        geometry_lo_ = glm::min(geometry_lo_, p);
+        geometry_hi_ = glm::max(geometry_hi_, p);
+    }
+    // The room light: interiors only (outdoors the weather's sun and ambient are the models' light).
+    room_ = {};
+    room_ready_ = false;
+    const bool room_box = room_hi_[0] > room_lo_[0] && room_hi_[1] > room_lo_[1] && room_hi_[2] > room_lo_[2];
+    if (interior_ && !positions_.empty())
+    {
+        if (colors_.size() == positions_.size() && room_box)
+            room_ =
+                fx::BuildRoomLight(positions_, colors_, indices_, room_lo_, room_hi_, kRoomCell, kRoomStorey, 48, 12);
+        if (room_.rgba.empty())
+            render::Log().error(
+                "effects: lamps: no room light for this interior ({}): its lit models keep the weather's ambient",
+                colors_.size() != positions_.size() ? "its geometry came without baked colours"
+                : !room_box                         ? "no room box"
+                                                    : "no surface inside the room box");
+    }
+    room_dirty_ = true;
+    geometry_dirty_ = true;
+    layout_dirty_ = true;
+    reported_ = false;
+}
+
+void LampShadows::ensure_targets()
+{
+    if (!bgfx::isValid(open_map_))
+    {
+        // 1x1 depth 1.0: every compare passes; a grid without lamps (also the stand-in of the room light).
+        const uint16_t one = 0xffff;
+        open_map_ = bgfx::createTexture2D(1, 1, false, 1, bgfx::TextureFormat::D16, BGFX_SAMPLER_COMPARE_LEQUAL,
+                                          bgfx::copy(&one, sizeof(one)));
+        const uint8_t none[8] = {};
+        open_grid_ = bgfx::createTexture3D(2, 1, 1, false, bgfx::TextureFormat::RGBA8,
+                                           BGFX_SAMPLER_POINT | BGFX_SAMPLER_UVW_CLAMP, bgfx::copy(none, sizeof(none)));
+        s_static_ = bgfx::createUniform("s_fxLampStatic", bgfx::UniformType::Sampler);
+        s_dynamic_ = bgfx::createUniform("s_fxLampDynamic", bgfx::UniformType::Sampler);
+        s_grid_ = bgfx::createUniform("s_fxLampGrid", bgfx::UniformType::Sampler);
+        s_room_ = bgfx::createUniform("s_fxRoomLight", bgfx::UniformType::Sampler);
+        s_edges_ = bgfx::createUniform("s_fxShadowMap", bgfx::UniformType::Sampler);
+        s_depth_ = bgfx::createUniform("s_fxLampDepth", bgfx::UniformType::Sampler);
+        s_pair_ = bgfx::createUniform("s_fxLampPair", bgfx::UniformType::Sampler);
+        u_edges_ = bgfx::createUniform("u_fxLampEdges", bgfx::UniformType::Vec4);
+        u_pair_ = bgfx::createUniform("u_fxLampPair", bgfx::UniformType::Vec4);
+        const uint16_t far_layers[2] = {0xffff, 0xffff};
+        open_edges_ = bgfx::createTexture2D(1, 1, false, 2, bgfx::TextureFormat::D16, BGFX_SAMPLER_COMPARE_LEQUAL,
+                                            bgfx::copy(far_layers, sizeof(far_layers)));
+        u_view_ = bgfx::createUniform("u_fxLampView", bgfx::UniformType::Mat4);
+        u_lamps_ = bgfx::createUniform("u_fxLamps", bgfx::UniformType::Vec4, static_cast<uint16_t>(uniforms_.size()));
+        u_grid_ =
+            bgfx::createUniform("u_fxLampGrid", bgfx::UniformType::Vec4, static_cast<uint16_t>(grid_uniforms_.size()));
+        u_caster_ = bgfx::createUniform("u_fxLampCaster", bgfx::UniformType::Vec4);
+        u_faces_ = bgfx::createUniform("u_fxLampFaces", bgfx::UniformFreq::Frame, bgfx::UniformType::Vec4,
+                                       static_cast<uint16_t>(faces_uniform_.size()));
+        // Two triangles over the whole clip square at the far plane (depth 1): a slot's row of the still atlas is
+        // cleared with them (that atlas is never cleared whole).
+        static const float square[18] = {-1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1};
+        bgfx::VertexLayout layout;
+        layout.begin().add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float).end();
+        clear_vb_ = bgfx::createVertexBuffer(bgfx::makeRef(square, sizeof(square)), layout);
+    }
+    if (!enabled() || bgfx::isValid(static_fb_))
+        return;
+    const bgfx::TextureFormat::Enum format =
+        depth_ == fx::LampDepth::D24 ? bgfx::TextureFormat::D24 : bgfx::TextureFormat::D32F;
+    static_map_ = bgfx::createTexture2D(static_cast<uint16_t>(columns_ * face_size_),
+                                        static_cast<uint16_t>(rows_ * face_size_), false, 1, format, kMapFlags);
+    static_fb_ = bgfx::createFrameBuffer(1, &static_map_, true);
+    dynamic_map_ =
+        bgfx::createTexture2D(static_cast<uint16_t>(columns_ * dynamic_face_size_),
+                              static_cast<uint16_t>(rows_ * dynamic_face_size_), false, 1, format, kMapFlags);
+    dynamic_fb_ = bgfx::createFrameBuffer(1, &dynamic_map_, true);
+    if (edges_)
+    {
+        // A layer per filter of the preset (the 5x5's with lamp_soft, then the 3x3's); the second one otherwise only
+        // makes it an array.
+        edges_map_ = bgfx::createTexture2D(static_cast<uint16_t>(columns_ * dynamic_face_size_),
+                                           static_cast<uint16_t>(rows_ * face_size_), false, 2, format, kMapFlags);
+        for (uint16_t layer = 0; layer < (soft_ ? 2 : 1); ++layer)
+        {
+            // (No resolve flags: Attachment::init's default asks for mips, which a depth attachment cannot have.)
+            bgfx::Attachment attachment;
+            attachment.init(edges_map_, bgfx::Access::Write, layer, 1, 0, BGFX_ATTACHMENT_NONE);
+            edges_fb_.push_back(bgfx::createFrameBuffer(1, &attachment));
+        }
+    }
+    layout_dirty_ = true;
+}
+
+void LampShadows::destroy_targets()
+{
+    for (bgfx::FrameBufferHandle *fb : {&static_fb_, &dynamic_fb_})
+        if (bgfx::isValid(*fb))
+            bgfx::destroy(*fb); // owns its texture
+    for (const bgfx::FrameBufferHandle fb : edges_fb_)
+        bgfx::destroy(fb);
+    edges_fb_.clear();
+    if (bgfx::isValid(edges_map_))
+        bgfx::destroy(edges_map_);
+    static_fb_ = dynamic_fb_ = BGFX_INVALID_HANDLE;
+    static_map_ = dynamic_map_ = edges_map_ = BGFX_INVALID_HANDLE;
+}
+
+void LampShadows::free_slot(Slot &slot)
+{
+    free_faces(slot.triangles);
+    for (auto &cut : slot.cut)
+        free_faces(cut.second);
+    const bool moving = slot.moving;
+    slot = Slot{};
+    slot.moving = moving;
+    grid_dirty_ = true;
+}
+
+void LampShadows::choose_slots(const glm::vec3 &eye)
+{
+    const int count = static_cast<int>(lamps_.size());
+    const int slots = static_slots();
+    if (layout_dirty_)
+        for (Slot &slot : slot_)
+            free_slot(slot);
+    // The lamps whose light begins nearest to the camera. A lamp keeps its slot until it is two places behind the
+    // last one that fits, so two lamps at the same distance do not trade a slot back and forth.
+    // A lamp whose light shows nowhere (fx::LampReach 0: under Settings::lamp_reach_light even at its flame) takes no
+    // slot: its faces' volume would have no bound (ShadowVolume: sphere radius 0 = everything) and light nothing.
+    std::vector<std::pair<float, int>> order;
+    for (int i = 0; i < count; ++i)
+        if (const float d = glm::distance(lamps_[i].position, eye) - lamps_[i].range;
+            d < kLampSight && reach_of(lamps_[i]) > 0.0f)
+            order.emplace_back(
+                lamps_[i].aggregate.get() ? -fx::AggregateScore(lamps_[i].aggregate, eye, kLampSight) : d, i);
+    std::sort(order.begin(), order.end());
+    std::vector<int> rank(static_cast<size_t>(count), count + slots);
+    for (size_t r = 0; r < order.size(); ++r)
+        rank[static_cast<size_t>(order[r].second)] = static_cast<int>(r);
+    std::vector<bool> placed(static_cast<size_t>(count), false);
+    int kept = 0;
+    for (Slot &slot : slot_)
+    {
+        if (slot.moving || slot.lamp < 0)
+            continue;
+        if (!slot.leaving && rank[slot.lamp] < slots + 2)
+        {
+            placed[slot.lamp] = true;
+            ++kept;
+        }
+        else
+            slot.leaving = true; // fades out; the slot is free once it has
+    }
+    std::vector<uint32_t> near;
+    for (size_t r = 0; r < order.size() && kept < slots; ++r)
+    {
+        const int lamp = order[r].second;
+        if (placed[lamp])
+            continue;
+        const auto free =
+            std::find_if(slot_.begin(), slot_.end(), [](const Slot &s) { return !s.moving && s.lamp < 0; });
+        if (free == slot_.end())
+            break; // the slots that are leaving are still fading
+        free->lamp = lamp;
+        free->at = lamps_[lamp];
+        free->reach = reach_of(free->at);
+        free->holder = holder_[lamp];
+        // What lies beyond its reach shadows only light the picture cannot show.
+        const auto buffer = [&](const fx::TriangleGrid &grid, const std::vector<uint32_t> &triangles,
+                                const std::vector<uint32_t> &skip) {
+            near.clear();
+            fx::TrianglesInSphere(grid, triangles, free->at.position, free->reach, near, seen_, skip);
+            return face_buffer(positions_, near, free->at.position, free->holder);
+        };
+        // The lamp's own fixture casts no shadow of it: its triangles by the list they are in.
+        std::vector<std::vector<uint32_t>> skip(1 + cut_.size());
+        if (static_cast<size_t>(lamp) < fixtures_.size())
+            for (const uint32_t t : fixtures_[lamp])
+                skip[1 + list_of_[t]].push_back(local_of_[t]);
+        for (std::vector<uint32_t> &list : skip)
+            std::sort(list.begin(), list.end());
+        free->triangles = buffer(solid_grid_, solid_, skip[0]);
+        for (size_t c = 0; c < cut_.size(); ++c)
+            if (FaceBuffer cut = buffer(cut_[c].grid, cut_[c].indices, skip[1 + c]); bgfx::isValid(cut.handle))
+                free->cut.emplace_back(cut_[c].store, cut);
+        placed[lamp] = true;
+        ++kept;
+    }
+}
+
+void LampShadows::choose_moving(const glm::vec3 &eye)
+{
+    if (moving_slots_ == 0)
+        return;
+    // The lights that move, nearest to the camera first: carried lanterns and torches, then the ships' lanterns.
+    struct Candidate
+    {
+        fx::Lamp lamp;
+        const ShipLight *on_ship = nullptr;
+        const render::EffectsShip *ship = nullptr;
+    };
+    std::vector<Candidate> lights;
+    for (const fx::Lamp &l : moving_)
+        lights.push_back({l});
+    for (const ShipLight &l : ship_lights_)
+    {
+        const auto ship =
+            std::find_if(ships_.begin(), ships_.end(), [&](const render::EffectsShip &s) { return s.id == l.ship; });
+        if (ship != ships_.end() && l.ship != 0)
+            lights.push_back({l.lamp, &l, &*ship});
+        else if (render::Once(ship_reported_))
+        {
+            render::Log().error(
+                "effects: lamps: a ship's lantern was reported without its ship: it casts no shadows (logged once)");
+        }
+    }
+    std::vector<std::pair<float, size_t>> order;
+    for (size_t i = 0; i < lights.size(); ++i)
+        if (lights[i].lamp.range > 0.0f &&
+            reach_of(lights[i].lamp) > 0.0f && // (a D3D light of no range lights nothing)
+            glm::dot(lights[i].lamp.color, fx::kLumaRec601) > 1e-3f)
+            order.emplace_back(glm::distance(lights[i].lamp.position, eye), i);
+    std::sort(order.begin(), order.end());
+    if (order.size() > static_cast<size_t>(moving_slots_))
+        order.resize(static_cast<size_t>(moving_slots_));
+    // How far the light is from the one the slot holds, negative: another light. A ship's lantern is the same while
+    // it is the same place of the same ship; a carried one while it is within a metre of where it was.
+    const auto apart = [](const Slot &slot, const Candidate &c) {
+        if (c.on_ship)
+            return slot.ship == c.on_ship->ship && glm::distance(slot.local, c.on_ship->local) < 0.05f ? 0.0f : -1.0f;
+        const float d = glm::distance(c.lamp.position, slot.at.position);
+        return slot.ship == 0 && d < 1.0f ? d : -1.0f;
+    };
+    // A light keeps the slot it had; the others take free ones.
+    std::vector<bool> taken(order.size(), false);
+    for (int s = static_slots(); s < slots_; ++s)
+    {
+        Slot &slot = slot_[s];
+        if (slot.lamp != kMovingLamp || slot.leaving)
+            continue;
+        size_t best = order.size();
+        float best_apart = 0.0f;
+        for (size_t i = 0; i < order.size(); ++i)
+        {
+            const float d = taken[i] ? -1.0f : apart(slot, lights[order[i].second]);
+            if (d >= 0.0f && (best == order.size() || d < best_apart))
+            {
+                best = i;
+                best_apart = d;
+            }
+        }
+        if (best == order.size())
+        {
+            slot.leaving = true; // its light is gone or out-ranked: fades out where it last was
+            continue;
+        }
+        taken[best] = true;
+        const Candidate &light = lights[order[best].second];
+        // Its faces end at its radius: another radius (the game changed the light) draws them again.
+        const bool radius = std::fabs(light.lamp.range - slot.at.range) > 1e-3f * std::max(slot.at.range, 1.0f);
+        if (light.ship)
+        {
+            // The ship carries it: its faces stay, only where the ship is changes.
+            slot.at.position = light.lamp.position;
+            bx::mtxInverse(slot.to_local.data(), light.ship->world.data());
+            slot.redraw |= radius;
+        }
+        else
+        {
+            slot.redraw |= best_apart > kMovingStep || radius;
+            if (slot.redraw)
+                slot.at.position = light.lamp.position;
+        }
+        // This frame's light: its flicker and its whole shape, as the game's point light it stands for.
+        slot.at.color = light.lamp.color;
+        slot.at.range = light.lamp.range;
+        slot.at.intensity = light.lamp.intensity;
+        slot.at.core = light.lamp.core;
+        slot.reach = reach_of(slot.at);
+    }
+    for (size_t i = 0; i < order.size(); ++i)
+    {
+        if (taken[i])
+            continue;
+        const auto free =
+            std::find_if(slot_.begin() + static_slots(), slot_.end(), [](const Slot &s) { return s.lamp == -1; });
+        if (free == slot_.end())
+            break; // a slot that is leaving is still fading
+        const Candidate &light = lights[order[i].second];
+        free->lamp = kMovingLamp;
+        free->at = light.lamp;
+        // It stands for one of the game's point lights (render::SetEffectsDynamicLights / SetEffectsShipLights) and
+        // reaches as far as that light: its shape's radius is the far end of its faces (ff_lamps.sh ffLampAdd). A
+        // ship's lantern's holder follows its fixture (ship_slot_triangles).
+        free->at.range = light.lamp.range;
+        free->reach = reach_of(free->at);
+        free->holder = kLanternHolder;
+        free->redraw = true;
+        if (light.ship)
+        {
+            free->ship = light.on_ship->ship;
+            free->local = light.on_ship->local;
+            bx::mtxInverse(free->to_local.data(), light.ship->world.data());
+        }
+        else if (render::Once(carried_reported_))
+        {
+            render::Log().info(
+                "effects: lamps: FALLBACK: a carried lantern or torch is its carrier's draw, not still geometry with a "
+                "fixture: what lies within {:.2f} m of its flame casts no shadow of it (logged once)",
+                kLanternHolder);
+        }
+    }
+    // The geometry of a ship none of whose lanterns holds a slot any more goes.
+    std::erase_if(ship_geometry_, [&](ShipGeometry &geometry) {
+        if (std::any_of(slot_.begin(), slot_.end(),
+                        [&](const Slot &s) { return s.lamp == kMovingLamp && s.ship == geometry.ship; }))
+            return false;
+        free_ship_geometry(geometry);
+        return true;
+    });
+}
+
+void LampShadows::free_ship_geometry(ShipGeometry &geometry)
+{
+    if (bgfx::isValid(geometry.vertices))
+        bgfx::destroy(geometry.vertices);
+    geometry = ShipGeometry{};
+}
+
+bool LampShadows::ship_geometry_wanted(uint64_t ship, uint64_t signature) const
+{
+    return std::any_of(slot_.begin(), slot_.end(),
+                       [&](const Slot &s) { return s.lamp == kMovingLamp && !s.leaving && s.ship == ship; }) &&
+           std::none_of(ship_geometry_.begin(), ship_geometry_.end(),
+                        [&](const ShipGeometry &g) { return g.ship == ship && g.signature == signature; });
+}
+
+void LampShadows::set_ship_geometry(uint64_t ship, uint64_t signature, const render::EffectsShipGeometry &geometry)
+{
+    auto kept = std::find_if(ship_geometry_.begin(), ship_geometry_.end(),
+                             [&](const ShipGeometry &g) { return g.ship == ship; });
+    if (kept == ship_geometry_.end())
+        kept = ship_geometry_.insert(ship_geometry_.end(), ShipGeometry{});
+    else
+        free_ship_geometry(*kept);
+    kept->ship = ship;
+    kept->signature = signature;
+    kept->triangles = geometry.indices.size() / 3;
+    for (Slot &slot : slot_)
+        if (slot.lamp == kMovingLamp && slot.ship == ship)
+        {
+            // The old per-lantern buffers and texture references belong to the replaced geometry, including when
+            // the new report is empty and draw_faces will have no ship vertices with which to rebuild them.
+            free_faces(slot.triangles);
+            for (auto &cut : slot.cut)
+                free_faces(cut.second);
+            slot.cut.clear();
+            slot.redraw = true;
+        }
+    if (geometry.positions.empty() || geometry.indices.empty())
+        return; // the ship said why; its lanterns' still faces stay open
+    const bool textured = geometry.uvs.size() == geometry.positions.size();
+    bgfx::VertexLayout layout;
+    layout.begin()
+        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+        .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
+        .end();
+    const bgfx::Memory *vertices = bgfx::alloc(static_cast<uint32_t>(geometry.positions.size() * 5 * sizeof(float)));
+    auto *out = reinterpret_cast<float *>(vertices->data);
+    for (size_t i = 0; i < geometry.positions.size(); ++i, out += 5)
+    {
+        memcpy(out, &geometry.positions[i], sizeof(geometry.positions[i]));
+        out[3] = textured ? geometry.uvs[i][0] : 0.0f;
+        out[4] = textured ? geometry.uvs[i][1] : 0.0f;
+    }
+    kept->vertices = bgfx::createVertexBuffer(vertices, layout);
+    kept->positions.assign(geometry.positions.begin(), geometry.positions.end());
+    kept->indices.assign(geometry.indices.begin(), geometry.indices.end());
+    // Triangles of a texture whose alpha cuts holes cast through it; all others cast whole.
+    kept->cut_of.assign(kept->triangles, -1);
+    if (textured)
+        for (const auto &surface : geometry.surfaces)
+        {
+            auto store = shim::shared_store_of(surface.texture);
+            if (!store || !store->cutout || surface.first_index > geometry.indices.size() ||
+                surface.index_count > geometry.indices.size() - surface.first_index)
+                continue;
+            auto into = std::find(kept->cut.begin(), kept->cut.end(), store);
+            if (into == kept->cut.end())
+                into = kept->cut.insert(kept->cut.end(), std::move(store));
+            for (uint32_t t = surface.first_index / 3; t < (surface.first_index + surface.index_count) / 3; ++t)
+                kept->cut_of[t] = static_cast<int32_t>(into - kept->cut.begin());
+        }
+    else if (!geometry.surfaces.empty())
+        render::Log().error("effects: lamps: a ship's geometry came without texture coordinates: its nets and gratings "
+                            "cast whole shadows");
+    render::Log().info(
+        "effects: lamps: a ship's still geometry for its lanterns' shadows: {} triangles, {} textures cut holes",
+        kept->triangles, kept->cut.size());
+}
+
+void LampShadows::ship_slot_triangles(Slot &slot, ShipGeometry &geometry)
+{
+    free_faces(slot.triangles);
+    for (auto &cut : slot.cut)
+        free_faces(cut.second);
+    slot.cut.clear();
+    auto fixture = std::find_if(geometry.fixtures.begin(), geometry.fixtures.end(),
+                                [&](const auto &f) { return glm::distance(f.first, slot.local) < 0.05f; });
+    if (fixture == geometry.fixtures.end())
+    {
+        const std::vector<glm::vec3> flame{slot.local};
+        fx::Fixture found = std::move(fx::FindFixtures(geometry.positions, geometry.indices, std::span(&flame, 1))[0]);
+        if (found.pieces > 0)
+            render::Log().info("effects: lamps: a ship's lantern at ({:.2f}, {:.2f}, {:.2f}) of its ship: its fixture, "
+                               "{} pieces of {} triangles over {:.2f} x {:.2f} x {:.2f} m, casts no shadow of it",
+                               slot.local[0], slot.local[1], slot.local[2], found.pieces, found.triangles.size(),
+                               found.hi[0] - found.lo[0], found.hi[1] - found.lo[1], found.hi[2] - found.lo[2]);
+        else
+            render::Log().info(
+                "effects: lamps: FALLBACK: a ship's lantern at ({:.2f}, {:.2f}, {:.2f}) of its ship has no fixture in "
+                "the ship's geometry: only what lies within {:.2f} m of its flame casts no shadow of it",
+                slot.local[0], slot.local[1], slot.local[2], kLanternHolder);
+        fixture = geometry.fixtures.insert(geometry.fixtures.end(), {slot.local, std::move(found.triangles)});
+    }
+    slot.holder = fixture->second.empty() ? kLanternHolder : fx::kLampHolderRadius;
+    std::vector<std::vector<uint32_t>> lists(1 + geometry.cut.size());
+    for (size_t t = 0; t < geometry.triangles; ++t)
+    {
+        if (std::binary_search(fixture->second.begin(), fixture->second.end(), static_cast<uint32_t>(t)))
+            continue;
+        std::vector<uint32_t> &list = lists[1 + geometry.cut_of[t]];
+        list.insert(list.end(), {geometry.indices[3 * t], geometry.indices[3 * t + 1], geometry.indices[3 * t + 2]});
+    }
+    const auto buffer = [&](const std::vector<uint32_t> &indices) {
+        return face_buffer(geometry.positions, indices, slot.local, slot.holder);
+    };
+    slot.triangles = buffer(lists[0]);
+    for (size_t c = 0; c < geometry.cut.size(); ++c)
+        if (FaceBuffer cut = buffer(lists[1 + c]); bgfx::isValid(cut.handle))
+            slot.cut.emplace_back(geometry.cut[c], cut);
+}
+
+void LampShadows::upload_grid()
+{
+    grid_dirty_ = false;
+    std::vector<fx::Lamp> lit(slot_.size());
+    std::vector<float> reach(slot_.size(), 0.0f);
+    // The grid covers the place where a lamp with drawn faces reaches it with light the picture can show.
+    glm::vec3 lo = geometry_hi_, hi = geometry_lo_;
+    for (size_t s = 0; s < slot_.size(); ++s)
+    {
+        lit[s] = slot_[s].at;
+        if (slot_[s].lamp < 0 ||
+            !slot_[s].ready) // free, a moving light (the receivers take those without the grid) or not drawn yet
+            continue;
+        reach[s] = slot_[s].reach;
+        lo = glm::min(lo, glm::max(geometry_lo_, lit[s].position - reach[s]));
+        hi = glm::max(hi, glm::min(geometry_hi_, lit[s].position + reach[s]));
+    }
+    for (int k = 0; k < 3; ++k)
+        if (hi[k] <= lo[k])
+            hi[k] = lo[k] + 1.0f;
+    grid_ = fx::BuildLampGrid(lit, reach, lo, hi, 1.0f, 64, 16);
+    if (bgfx::isValid(grid_map_))
+        bgfx::destroy(grid_map_);
+    grid_map_ = bgfx::createTexture3D(static_cast<uint16_t>(2 * grid_.nx), static_cast<uint16_t>(grid_.ny),
+                                      static_cast<uint16_t>(grid_.nz), false, bgfx::TextureFormat::RGBA8,
+                                      BGFX_SAMPLER_POINT | BGFX_SAMPLER_UVW_CLAMP,
+                                      bgfx::copy(grid_.rgba.data(), static_cast<uint32_t>(grid_.rgba.size())));
+    grid_uniforms_[0] = {grid_.lo[0], grid_.lo[1], grid_.lo[2], 0.0f};
+    grid_uniforms_[1] = {1.0f / (grid_.cell[0] * static_cast<float>(grid_.nx)),
+                         1.0f / (grid_.cell[1] * static_cast<float>(grid_.ny)),
+                         1.0f / (grid_.cell[2] * static_cast<float>(grid_.nz)), static_cast<float>(grid_.nx)};
+}
+
+void LampShadows::upload_room()
+{
+    room_dirty_ = false;
+    if (bgfx::isValid(room_map_))
+        bgfx::destroy(room_map_);
+    room_map_ = BGFX_INVALID_HANDLE;
+    room_ready_ = !room_.rgba.empty();
+    if (!room_ready_)
+        return;
+    room_map_ = bgfx::createTexture3D(static_cast<uint16_t>(room_.nx), static_cast<uint16_t>(room_.ny),
+                                      static_cast<uint16_t>(room_.nz), false, bgfx::TextureFormat::RGBA8,
+                                      BGFX_SAMPLER_UVW_CLAMP,
+                                      bgfx::copy(room_.rgba.data(), static_cast<uint32_t>(room_.rgba.size())));
+    grid_uniforms_[2] = {room_.lo[0], room_.lo[1], room_.lo[2], 0.0f};
+    grid_uniforms_[3] = {1.0f / (room_.cell[0] * static_cast<float>(room_.nx)),
+                         1.0f / (room_.cell[1] * static_cast<float>(room_.ny)),
+                         1.0f / (room_.cell[2] * static_cast<float>(room_.nz)), 0.0f};
+}
+
+bool LampShadows::prepare(shim::Device &device, const glm::vec3 &eye, Casters &casters, ShadowCasters &volumes)
+{
+    if (prepared_)
+        return active_;
+    prepared_ = true;
+    active_ = false;
+    ensure_targets();
+    if (!enabled())
+        return false;
+    if (room_dirty_)
+        upload_room();
+    // Nothing to light with: no lamps of the place, no light that moves, no room light. (At sea there is no still
+    // geometry of a location: the ships' lanterns have their ships'.)
+    if ((lamps_.empty() || positions_.empty()) && moving_.empty() && ship_lights_.empty() && !room_ready_)
+        return false;
+    const auto now = std::chrono::steady_clock::now();
+    const float seconds = std::clamp(std::chrono::duration<float>(now - last_prepare_).count(), 0.0f, 0.1f);
+    last_prepare_ = now;
+
+    // A new location (or new lamps): every lamp around the camera is drawn in this frame and shines at once.
+    const bool all = layout_dirty_;
+    choose_slots(eye);
+    choose_moving(eye);
+    layout_dirty_ = false;
+    uint32_t moved = 0;
+    for (int s = static_slots(); s < slots_; ++s)
+        if (slot_[s].lamp == kMovingLamp && slot_[s].redraw)
+            moved |= 1u << s;
+    draw_static(device, all, casters);
+    if (edges_ && pair_read_ == PairRead::Mean)
+        draw_edges(device, moved);
+    else if (edges_ && pair_read_ != PairRead::Other)
+        check_pair_read(device, casters);
+    fade_slots(seconds);
+    if (grid_dirty_)
+        upload_grid();
+
+    // No dynamic face holds a caster yet: before_frame() sets the faces that took one; the value set last before the
+    // frame is handed to bgfx is the one every draw of it reads.
+    faces_uniform_ = {};
+    for (int s = 0; s < slots_; ++s)
+        faces_uniform_[s][1] = slot_[s].edges ? 1.0f : 0.0f;
+    bgfx::setFrameUniform(u_faces_, faces_uniform_.data(), static_cast<uint16_t>(faces_uniform_.size()));
+    set_receiver_uniforms();
+    // The dynamic faces of the ready slots as shadow volumes (absolute world): a face's pyramid with its guard band
+    // within the lamp's reach (beyond it a caster only shadows light the picture cannot show). The slot's static
+    // faces hold the still geometry of the location, or of the lantern's ship: those draws are left out. The atlas's
+    // view is set up but not touched: it is cleared and drawn only in a frame where a volume takes a caster.
+    bgfx::setViewName(kLampDynamicView, "fx lamp shadows (characters)");
+    bgfx::setViewMode(kLampDynamicView, bgfx::ViewMode::Sequential);
+    bgfx::setViewFrameBuffer(kLampDynamicView, dynamic_fb_);
+    bgfx::setViewRect(kLampDynamicView, 0, 0, static_cast<uint16_t>(columns_ * dynamic_face_size_),
+                      static_cast<uint16_t>(rows_ * dynamic_face_size_));
+    bgfx::setViewClear(kLampDynamicView, BGFX_CLEAR_DEPTH, 0, 1.0f, 0);
+    bgfx::setViewTransform(kLampDynamicView, nullptr, nullptr);
+    volumes_ = &volumes;
+    if (!dynamic_faces_covered(device))
+        publish_dynamic_faces(volumes);
+    active_ = true;
+    return true;
+}
+
+// The slots' fade in and out over `seconds`; a slot faded out is freed.
+void LampShadows::fade_slots(float seconds)
+{
+    int used = 0;
+    for (Slot &slot : slot_)
+    {
+        if (slot.lamp == -1)
+            continue;
+        if (slot.leaving)
+        {
+            slot.weight -= seconds / kFadeSeconds;
+            if (slot.weight <= 0.0f || !slot.ready)
+                free_slot(slot);
+        }
+        else if (slot.ready)
+            slot.weight = std::min(1.0f, slot.weight + seconds / kFadeSeconds);
+        used += slot.lamp != -1 ? 1 : 0;
+    }
+    last_slots_ = used;
+}
+
+// Receiver uniforms of the frame (u_fxLamps, u_fxLampGrid; ff_lamps.sh).
+void LampShadows::set_receiver_uniforms()
+{
+    uniforms_ = {};
+    uniforms_[0] = {static_cast<float>(slots_), bgfx::getCaps()->originBottomLeft ? 1.0f : 0.0f, gain_ * kBakedGain,
+                    baked_};
+    uniforms_[1] = {1.0f / static_cast<float>(columns_), 1.0f / static_cast<float>(rows_),
+                    static_cast<float>(face_size_), static_cast<float>(dynamic_face_size_)};
+    for (int s = 0; s < slots_; ++s)
+    {
+        const Slot &slot = slot_[s];
+        if (slot.lamp == -1 || !slot.ready)
+            continue; // radius 0: lights nothing
+        // The colour of this frame (flicker) with the slot's fade; position and radius of the slot's faces. w: 2 = a
+        // moving light (it only adds light).
+        const glm::vec3 &color = slot.lamp >= 0 ? lamps_[slot.lamp].color : slot.at.color;
+        uniforms_[2 + 3 * s] = {slot.at.position[0], slot.at.position[1], slot.at.position[2], slot.at.range};
+        uniforms_[3 + 3 * s] = {color[0] * slot.weight, color[1] * slot.weight, color[2] * slot.weight,
+                                slot.moving ? 2.0f : 0.0f};
+        uniforms_[4 + 3 * s] = {slot.at.intensity, slot.at.core * slot.at.core, 0.0f, 0.0f};
+    }
+    // The receivers look the lights that move up per pixel, outside the grid: only the slots up to the last one that
+    // holds a light (an empty slot has radius 0 and lights nothing).
+    int moving_lit = 0;
+    for (int i = 0; i < moving_slots_; ++i)
+        if (const Slot &slot = slot_[static_slots() + i]; slot.lamp != -1 && slot.ready)
+            moving_lit = i + 1;
+    grid_uniforms_[4] = {static_cast<float>(static_slots()), static_cast<float>(moving_lit), tint_, shadow_level_};
+    grid_uniforms_[11] = {static_cast<float>(per_pixel_), fx::kLampShadowNear, static_cast<float>(filtered_),
+                          soft_light_ / std::max(1.0f, gain_ * kBakedGain)};
+    // Per moving slot: the turn from the world into the space of its faces (a ship's; else none).
+    for (int i = 0; i < 2; ++i)
+    {
+        const Slot *slot = i < moving_slots_ ? &slot_[static_slots() + i] : nullptr;
+        for (int axis = 0; axis < 3; ++axis)
+            grid_uniforms_[5 + 3 * i + axis] =
+                slot && slot->ship ? std::array<float, 4>{slot->to_local[axis], slot->to_local[4 + axis],
+                                                          slot->to_local[8 + axis], 0.0f}
+                                   : std::array<float, 4>{axis == 0 ? 1.0f : 0.0f, axis == 1 ? 1.0f : 0.0f,
+                                                          axis == 2 ? 1.0f : 0.0f, 0.0f};
+    }
+    grid_uniforms_[3][3] = soft_ ? 1.0f : 0.0f;
+}
+
+// Under the loading cover (effects::HideScenePicture: the game picture is drawn for its resources, not shown) no
+// receiver that anybody sees reads the dynamic faces: they are offered the casters in the first such frame (the
+// caster programs' pipelines are found then) and not again until the picture shows. Redrawn every covered frame,
+// a harbour's ships and people took ~1950 draws and 10.5 ms of an Adreno 830's frame through the reveal's wait.
+// True: this frame leaves them out.
+bool LampShadows::dynamic_faces_covered(const shim::Device &device)
+{
+    const shim::TexStore *picture = device.held_color   ? device.held_color.get()
+                                    : device.back_color ? device.back_color->store.get()
+                                                        : nullptr;
+    const bool covered =
+        picture && effects::HideScenePicture(shim::Context::instance().Surface().generation, picture->serial);
+    const bool skip_dynamic = covered && covered_offered_;
+    if (covered && !covered_offered_)
+        covered_frames_ = 0;
+    covered_offered_ = covered;
+    if (skip_dynamic)
+        ++covered_frames_;
+    else if (!covered && covered_frames_ > 0)
+    {
+        render::Log().info("effects: lamps: the dynamic faces were left undrawn in {} frames under the loading cover",
+                           covered_frames_);
+        covered_frames_ = 0;
+    }
+    return skip_dynamic;
+}
+
+// The ready slots' six dynamic faces as shadow volumes.
+void LampShadows::publish_dynamic_faces(ShadowCasters &volumes)
+{
+    for (int s = 0; s < slots_; ++s)
+    {
+        Slot &slot = slot_[s];
+        if (slot.lamp == -1 || !slot.ready)
+            continue;
+        const fx::Lamp &l = slot.at;
+        // The faces of a ship's lantern are in the ship's space.
+        fx::Lamp in_faces = l;
+        if (slot.ship)
+            in_faces.position = slot.local;
+        ShadowVolume volume;
+        volume.layer = ShadowLayer::Dynamic;
+        volume.still = slot.ship ? slot.ship : positions_.empty() ? 0 : render::kShadowStillLocation;
+        volume.pass = Casters::Pass::Lamp;
+        volume.view = kLampDynamicView;
+        volume.state = kCasterState;
+        volume.sphere = glm::vec4(l.position, slot.reach);
+        volume.light = glm::vec4(l.position, 1.0f);
+        // A lamp's own model (a street lantern's, a ship lantern's) and the hand that carries a lantern cast no
+        // shadow of it: only a caster that reaches into that sphere takes the shader that discards there.
+        // A light compound of several sources has no single holder: nothing inside it is left out.
+        const bool compound = l.aggregate.get() && l.aggregate.get()->count > 1;
+        const float holder = compound ? 0.0f : std::max(slot.holder, kLanternHolder);
+        volume.holder = glm::vec4(l.position, holder);
+        volume.uniform = u_caster_;
+        volume.uniform_value = {static_cast<float>(dynamic_face_size_), 0.0f, holder, fx::kLampFaceGuard};
+        for (int face = 0; face < 6; ++face)
+        {
+            std::array<float, 16> bounds = fx::LampFaceViewProj(in_faces.position, face, in_faces.range);
+            volume.transform = face_matrix(in_faces, s, face, columns_, rows_);
+            if (slot.ship)
+            {
+                const std::array<float, 16> local_bounds = bounds, local_transform = volume.transform;
+                bx::mtxMul(bounds.data(), slot.to_local.data(), local_bounds.data());
+                bx::mtxMul(volume.transform.data(), slot.to_local.data(), local_transform.data());
+            }
+            volume.set_clip_bounds(bounds, false);
+            volume.scissor = tile_rect(s, face, columns_, dynamic_face_size_);
+            slot.volume[face] = volumes.publish(volume);
+        }
+        slot.published = true;
+    }
+}
+
+std::array<fx::AggregateRef, fx::kMaxShadowLamps> LampShadows::aggregate_refs() const
+{
+    std::array<fx::AggregateRef, fx::kMaxShadowLamps> refs{};
+    if (active_ && !layout_dirty_)
+        for (int i = 0; i < slots_; ++i)
+            if (slot_[i].lamp >= 0 && slot_[i].ready)
+                refs[i] = lamps_[slot_[i].lamp].aggregate;
+    return refs;
+}
+
+bool LampShadows::relit(const fx::AggregateRef &ref) const
+{
+    if (!ref.get() || !active_ || layout_dirty_)
+        return false;
+    for (const auto &s : slot_)
+        if (s.lamp >= 0 && s.ready && !s.leaving)
+        {
+            const auto &other = lamps_[s.lamp].aggregate;
+            // prepare() supplies a per-draw snapshot override before suppressing this identity.
+            if (other.get() && other.get()->id == ref.get()->id)
+                return true;
+        }
+    return false;
+}
+
+bool LampShadows::relit(const glm::vec3 &position) const
+{
+    if (!active_ || layout_dirty_)
+        return false;
+    for (const Slot &s : slot_)
+        // (A ship's lantern is reported where its ship is drawn: the same place but for the camera-relative rounding.)
+        if (s.lamp == kMovingLamp && s.ready && !s.leaving && glm::distance(s.at.position, position) < 0.05f)
+            return true;
+    // SetLightsAt now reports the effective component position, while legacy callers still use a flame.
+    // Both denote the same relit lamp and must disable its old point-light contribution (no double lighting).
+    for (const Slot &s : slot_)
+        if (s.lamp >= 0 && static_cast<size_t>(s.lamp) < lamps_.size() && s.ready && !s.leaving &&
+            glm::distance(lamps_[s.lamp].position, position) < 0.02f)
+            return true;
+    for (size_t j = 0; j < raw_.size(); ++j)
+        if (raw_lamp_[j] >= 0 && glm::distance(raw_[j].position, position) < 0.02f)
+            return std::any_of(slot_.begin(), slot_.end(),
+                               [&](const Slot &s) { return s.lamp == raw_lamp_[j] && s.ready && !s.leaving; });
+    return false;
+}
+
+bool LampShadows::prepare_programs(shim::Device &device, const fx::Settings &settings, int &budget)
+{
+    return !settings.lamp_edges || (device.prepare_program(caster_vs(), edges_fs(), budget) &&
+                                    device.prepare_program(caster_vs(), pair_check_fs(), budget));
+}
+
+void LampShadows::ask_pair_read(uint32_t sampler_flags)
+{
+    pair_sampler_ = sampler_flags;
+    pair_read_ = PairRead::Unknown;
+    for (Slot &slot : slot_)
+        slot.edges = false;
+}
+
+void LampShadows::check_pair_read(shim::Device &device, Casters &casters)
+{
+    const auto width = static_cast<uint16_t>(columns_ * dynamic_face_size_),
+               height = static_cast<uint16_t>(rows_ * face_size_);
+    const auto view = [&](bgfx::ViewId id, bgfx::FrameBufferHandle target, uint16_t w, uint16_t h) {
+        bgfx::setViewName(id, "fx lamp shadows (edge pair check)");
+        bgfx::setViewMode(id, bgfx::ViewMode::Sequential);
+        bgfx::setViewFrameBuffer(id, target);
+        bgfx::setViewRect(id, 0, 0, w, h);
+        bgfx::setViewClear(id, BGFX_CLEAR_NONE);
+        bgfx::setViewTransform(id, nullptr, nullptr);
+    };
+    if (pair_read_ == PairRead::Unknown)
+    {
+        const bgfx::ProgramHandle depth = casters.program(device, Casters::Pass::Lamp, false, {});
+        const bgfx::ProgramHandle compare = device.program(caster_vs(), pair_check_fs());
+        if (!bgfx::isValid(depth) || !bgfx::isValid(compare))
+        {
+            render::Log().error("effects: lamps: no program to ask the device about its depth compare: no edge maps");
+            pair_read_ = PairRead::Other;
+            return;
+        }
+        if (!bgfx::isValid(pair_fb_))
+        {
+            pair_fb_ = bgfx::createFrameBuffer(1, 1, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_RT | BGFX_SAMPLER_POINT);
+            pair_copy_ = bgfx::createTexture2D(1, 1, false, 1, bgfx::TextureFormat::RGBA8,
+                                               BGFX_TEXTURE_BLIT_DST | BGFX_TEXTURE_READ_BACK);
+        }
+        // Two texels at the first layer's corner (cells at a face's border, which no receiver reads), a quarter and
+        // three quarters deep, and a compare of a half between them into a pixel.
+        view(kLampEdgesView, edges_fb_[0], width, height);
+        for (uint16_t x = 0; x < 2; ++x)
+        {
+            const float stored = x == 0 ? 0.25f : 0.75f;
+            std::array<float, 16> at{};
+            at[0] = at[5] = at[15] = 1.0f;
+            at[10] = bgfx::getCaps()->homogeneousDepth ? 2.0f * stored - 1.0f : stored; // (the square is at z = 1)
+            bgfx::setScissor(x, 0, 1, 1);
+            bgfx::setTransform(at.data());
+            bgfx::setVertexBuffer(0, clear_vb_);
+            bgfx::setState(BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_ALWAYS);
+            bgfx::submit(kLampEdgesView, depth);
+        }
+        view(kLampEdgesView + 1, pair_fb_, 1, 1);
+        const float y = 0.5f / static_cast<float>(height);
+        const float between[4] = {1.0f / static_cast<float>(width), bgfx::getCaps()->originBottomLeft ? 1.0f - y : y,
+                                  0.0f, 0.5f};
+        std::array<float, 16> whole{};
+        whole[0] = whole[5] = whole[10] = whole[15] = 1.0f;
+        bgfx::setUniform(u_pair_, between);
+        bgfx::setTexture(0, s_pair_, edges_map_, pair_sampler_);
+        bgfx::setTransform(whole.data());
+        bgfx::setVertexBuffer(0, clear_vb_);
+        bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A);
+        bgfx::submit(kLampEdgesView + 1, compare);
+        pair_read_ = PairRead::Drawn;
+    }
+    else if (pair_read_ == PairRead::Drawn)
+    {
+        view(kLampEdgesView, edges_fb_[0], width, height);
+        bgfx::TextureRegion drawn, copy;
+        drawn.init(bgfx::getTexture(pair_fb_));
+        copy.init(pair_copy_);
+        bgfx::blit(kLampEdgesView, copy, drawn);
+        bgfx::touch(kLampEdgesView);
+        pair_read_frame_ = bgfx::read(copy, pair_pixel_.data());
+        pair_read_ = PairRead::Asked;
+    }
+    else if (shim::Context::instance().last_frame() >= pair_read_frame_)
+    {
+        // Between "both pass" (255) and "none" (0), with room for a filter's coarse weights.
+        pair_read_ = pair_pixel_[0] >= 96 && pair_pixel_[0] <= 160 ? PairRead::Mean : PairRead::Other;
+        if (pair_read_ == PairRead::Other)
+            render::Log().error("effects: lamps: a depth compare between two texels reads {} of 255, not their mean: "
+                                "no edge maps on this device (fx_lamp_edges)",
+                                pair_pixel_[0]);
+        else
+            render::Log().info("effects: lamps: edge maps on (a depth compare between two texels reads {} of 255)",
+                               pair_pixel_[0]);
+    }
+}
+
+void LampShadows::draw_edges(shim::Device &device, uint32_t moved)
+{
+    bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
+    int drawn = 0;
+    for (int s = 0; s < slots_ && drawn < kSlotsPerFrame; ++s)
+    {
+        Slot &slot = slot_[s];
+        if (slot.lamp == -1 || !slot.ready || slot.edges || (moved >> s & 1))
+            continue;
+        if (drawn == 0)
+        {
+            program = device.program(caster_vs(), edges_fs()); // logs a failure
+            if (!bgfx::isValid(program))
+                return;
+            for (size_t layer = 0; layer < edges_fb_.size(); ++layer)
+            {
+                const auto view = static_cast<bgfx::ViewId>(kLampEdgesView + layer);
+                bgfx::setViewName(view, "fx lamp shadows (edges)");
+                bgfx::setViewMode(view, bgfx::ViewMode::Sequential);
+                bgfx::setViewFrameBuffer(view, edges_fb_[layer]);
+                bgfx::setViewRect(view, 0, 0, static_cast<uint16_t>(columns_ * dynamic_face_size_),
+                                  static_cast<uint16_t>(rows_ * face_size_));
+                bgfx::setViewClear(view, BGFX_CLEAR_NONE);
+                bgfx::setViewTransform(view, nullptr, nullptr);
+            }
+        }
+        const std::array<float, 16> row = fx::TileClip(
+            {0.0f, static_cast<float>(s) / static_cast<float>(rows_), 1.0f, 1.0f / static_cast<float>(rows_)});
+        for (size_t layer = 0; layer < edges_fb_.size(); ++layer)
+        {
+            // What the layer's filter reads around a cell: the 5x5 three texels, the 3x3 two.
+            const float edges[4] = {static_cast<float>(face_size_), soft_ && layer == 0 ? 3.0f : 2.0f,
+                                    static_cast<float>(columns_ * face_size_ - 1),
+                                    static_cast<float>(rows_ * face_size_ - 1)};
+            bgfx::setUniform(u_edges_, edges);
+            bgfx::setTexture(0, s_depth_, static_map_,
+                             BGFX_SAMPLER_POINT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
+            bgfx::setScissor(0, static_cast<uint16_t>(s * face_size_),
+                             static_cast<uint16_t>(columns_ * dynamic_face_size_), static_cast<uint16_t>(face_size_));
+            bgfx::setTransform(row.data());
+            bgfx::setVertexBuffer(0, clear_vb_);
+            bgfx::setState(BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_ALWAYS);
+            bgfx::submit(static_cast<bgfx::ViewId>(kLampEdgesView + layer), program);
+        }
+        slot.edges = true;
+        ++drawn;
+        ++shim::perf().lamp_map_bakes;
+    }
+}
+
+void LampShadows::draw_faces(shim::Device &device, Casters &casters, int s)
+{
+    Slot &slot = slot_[s];
+    slot.edges = false;
+    const bgfx::ProgramHandle plain = casters.program(device, Casters::Pass::Lamp, false, {}); // logs a failure
+    if (!bgfx::isValid(plain))
+        return;
+    // What casts, each part with its texture where that cuts holes, sorted into the faces it reaches: a lamp's
+    // triangles were chosen when it took the slot; a carried light's are gathered now, from around where it is; a
+    // ship's lantern has the whole ship, in the ship's space. A lamp's and a ship lantern's own fixture are not among
+    // them.
+    struct Part
+    {
+        shim::TexStore *store = nullptr; // null: solid; otherwise held by a geometry or slot
+        bgfx::IndexBufferHandle indices = BGFX_INVALID_HANDLE;
+        bgfx::TransientIndexBuffer gathered{}; // when `indices` is not valid
+        std::array<uint32_t, 13> first{};
+    };
+    std::vector<Part> parts;
+    bgfx::VertexBufferHandle vertices = static_vb_;
+    fx::Lamp lamp = slot.at;
+    if (slot.ship)
+    {
+        const auto ship = std::find_if(ship_geometry_.begin(), ship_geometry_.end(),
+                                       [&](const ShipGeometry &g) { return g.ship == slot.ship; });
+        vertices = ship != ship_geometry_.end() ? ship->vertices : bgfx::VertexBufferHandle{bgfx::kInvalidHandle};
+        lamp.position = slot.local;
+        if (bgfx::isValid(vertices))
+            ship_slot_triangles(slot, *ship);
+    }
+    else if (slot.moving && bgfx::isValid(static_vb_))
+    {
+        std::vector<uint32_t> near;
+        fx::LampFaceLists lists;
+        const auto gather = [&](const fx::TriangleGrid &grid, const std::vector<uint32_t> &triangles,
+                                shim::TexStore *store) {
+            near.clear();
+            fx::TrianglesInSphere(grid, triangles, slot.at.position, slot.reach, near, seen_);
+            fx::SplitByLampFace(positions_, near, slot.at.position, slot.holder, lists);
+            const auto count = static_cast<uint32_t>(lists.indices.size());
+            if (count == 0)
+                return;
+            if (bgfx::getAvailTransientIndexBuffer(count, true) < count)
+            {
+                if (render::Once(transient_reported_))
+                    render::Log().error(
+                        "effects: lamps: no room for {} indices of a moving light's still faces in this frame's "
+                        "transient buffer: that geometry casts no shadow of it (logged once)",
+                        count);
+                return;
+            }
+            Part part{store};
+            bgfx::allocTransientIndexBuffer(&part.gathered, count, true);
+            memcpy(part.gathered.data, lists.indices.data(), lists.indices.size() * sizeof(uint32_t));
+            part.first = lists.first;
+            parts.push_back(part);
+        };
+        gather(solid_grid_, solid_, nullptr);
+        for (const CutOut &c : cut_)
+            gather(c.grid, c.indices, c.store.get());
+    }
+    if (!slot.moving || slot.ship)
+    {
+        if (bgfx::isValid(slot.triangles.handle))
+            parts.push_back({nullptr, slot.triangles.handle, {}, slot.triangles.first});
+        for (const auto &cut : slot.cut)
+            parts.push_back({cut.first.get(), cut.second.handle, {}, cut.second.first});
+    }
+    if (!bgfx::isValid(vertices))
+        parts.clear();
+    // The slot's row back to "nothing as far as the lamp reaches": depth 1 (the far plane) over the row.
+    const std::array<float, 16> row =
+        fx::TileClip({0.0f, static_cast<float>(s) / static_cast<float>(rows_), 1.0f, 1.0f / static_cast<float>(rows_)});
+    bgfx::setScissor(0, static_cast<uint16_t>(s * face_size_), static_cast<uint16_t>(columns_ * face_size_),
+                     static_cast<uint16_t>(face_size_));
+    bgfx::setTransform(row.data());
+    bgfx::setVertexBuffer(0, clear_vb_);
+    bgfx::setState(BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_ALWAYS);
+    bgfx::submit(kLampStaticView, plain);
+    ++shim::perf().lamp_face_draws;
+    ++shim::perf().lamp_atlas_clears;
+    const float caster[4] = {static_cast<float>(face_size_), 0.0f, slot.holder, fx::kLampFaceGuard};
+    for (int face = 0; face < 6; ++face)
+    {
+        const std::array<float, 16> m = face_matrix(lamp, s, face, columns_, rows_);
+        for (const Part &part : parts) // none: the cleared row is all there is
+            for (int near = 0; near < 2; ++near)
+            {
+                const int list = face * 2 + near;
+                const uint32_t count = part.first[list + 1] - part.first[list];
+                if (count == 0)
+                    continue;
+                // Solid, or with its texture, so the shadow has its holes (foliage, nets, gratings): the same rule as
+                // for a draw, the still geometry's material with this texture (sets the cut's uniforms). Only what
+                // may reach into the holder sphere takes the shader that discards there.
+                shim::TexStore *store = part.store;
+                const Casters::Pass pass = near ? Casters::Pass::LampHolder : Casters::Pass::Lamp;
+                const bgfx::ProgramHandle program =
+                    store || near ? casters.program(device, pass, false, location_caster_material(store)) : plain;
+                if (!bgfx::isValid(program))
+                    continue;
+                if (store)
+                {
+                    store->sync();
+                    bgfx::setTexture(0, casters.sampler(), store->handle);
+                }
+                scissor_tile(s, face, columns_, face_size_);
+                if (near)
+                    bgfx::setUniform(u_caster_, caster);
+                bgfx::setTransform(m.data());
+                bgfx::setVertexBuffer(0, vertices);
+                if (bgfx::isValid(part.indices))
+                    bgfx::setIndexBuffer(part.indices, part.first[list], count);
+                else
+                    bgfx::setIndexBuffer(&part.gathered, part.first[list], count);
+                bgfx::setState(kCasterState);
+                bgfx::submit(kLampStaticView, program);
+                ++shim::perf().lamp_face_draws;
+            }
+    }
+    static_faces_ += 6;
+}
+
+void LampShadows::draw_static(shim::Device &device, bool all, Casters &casters)
+{
+    if (std::none_of(slot_.begin(), slot_.end(),
+                     [](const Slot &s) { return (s.lamp >= 0 && !s.ready) || (s.lamp == kMovingLamp && s.redraw); }))
+        return;
+    if (geometry_dirty_ && bgfx::isValid(static_vb_))
+    {
+        bgfx::destroy(static_vb_);
+        static_vb_ = BGFX_INVALID_HANDLE;
+    }
+    if (!bgfx::isValid(static_vb_) && !positions_.empty())
+    {
+        // Position and the texture coordinates of the cut-out casters (zero when the location gave none).
+        bgfx::VertexLayout layout;
+        layout.begin()
+            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
+            .end();
+        const bgfx::Memory *vertices = bgfx::alloc(static_cast<uint32_t>(positions_.size() * 5 * sizeof(float)));
+        auto *out = reinterpret_cast<float *>(vertices->data);
+        for (size_t i = 0; i < positions_.size(); ++i, out += 5)
+        {
+            memcpy(out, &positions_[i], sizeof(positions_[i]));
+            out[3] = uvs_.size() == positions_.size() ? uvs_[i][0] : 0.0f;
+            out[4] = uvs_.size() == positions_.size() ? uvs_[i][1] : 0.0f;
+        }
+        static_vb_ = bgfx::createVertexBuffer(vertices, layout);
+    }
+    geometry_dirty_ = false;
+    bgfx::setViewName(kLampStaticView, "fx lamp shadows (location)");
+    bgfx::setViewMode(kLampStaticView, bgfx::ViewMode::Sequential);
+    bgfx::setViewFrameBuffer(kLampStaticView, static_fb_);
+    bgfx::setViewRect(kLampStaticView, 0, 0, static_cast<uint16_t>(columns_ * face_size_),
+                      static_cast<uint16_t>(rows_ * face_size_));
+    bgfx::setViewClear(kLampStaticView, BGFX_CLEAR_NONE);
+    bgfx::setViewTransform(kLampStaticView, nullptr, nullptr);
+    int drawn = 0;
+    for (int s = 0; s < slots_; ++s)
+    {
+        Slot &slot = slot_[s];
+        if (slot.lamp == kMovingLamp)
+        {
+            // A light that moves: every time it has moved (and at once when it appears). A ship's lantern: once its
+            // ship's geometry is here (the ship is asked for it: ship_geometry_wanted), and when that changes.
+            if (!slot.redraw || (slot.ship && std::none_of(ship_geometry_.begin(), ship_geometry_.end(),
+                                                           [&](const ShipGeometry &g) { return g.ship == slot.ship; })))
+                continue;
+            draw_faces(device, casters, s);
+            slot.redraw = false;
+            slot.ready = true;
+            continue;
+        }
+        if (slot.lamp < 0 || slot.ready || (!all && drawn >= kSlotsPerFrame))
+            continue;
+        draw_faces(device, casters, s);
+        slot.ready = true;
+        if (all)
+            slot.weight = 1.0f;
+        grid_dirty_ = true;
+        ++drawn;
+    }
+    if (all && !reported_)
+    {
+        reported_ = true;
+        upload_grid();
+        size_t cut_triangles = 0;
+        for (const CutOut &c : cut_)
+            cut_triangles += c.indices.size() / 3;
+        render::Log().info(
+            "effects: lamps: {}, {} of {} lamps ({} lights before merging fixtures) have a slot, {} slots kept for "
+            "moving lights, faces {} px, characters {} px; grid {}x{}x{} cells, at most {} lamps over a cell, {} cells "
+            "over the {} held; room light {}x{}x{}; {} textures cut holes into {} triangles",
+            interior_ ? "interior" : "outdoors", drawn, lamps_.size(), raw_.size(), moving_slots_, face_size_,
+            dynamic_face_size_, grid_.nx, grid_.ny, grid_.nz, grid_.max_lamps, grid_.overflow_cells,
+            fx::kLampGridCapacity, room_.nx, room_.ny, room_.nz, cut_.size(), cut_triangles);
+    }
+}
+
+void LampShadows::bind_view(const std::array<float, 16> &view)
+{
+    ensure_targets();
+    if (view != bound_view_)
+    {
+        bx::mtxInverse(view_to_world_.data(), view.data());
+        bound_view_ = view;
+    }
+    bgfx::setUniform(u_view_, view_to_world_.data());
+}
+
+void LampShadows::bind(bool active, bool room, SunUnit sun, const std::array<float, fx::kMaxShadowLamps> &aggregate,
+                       const std::array<fx::AggregateRef, fx::kMaxShadowLamps> &overrides)
+{
+    ensure_targets();
+    const bool on = active && active_;
+    static const std::array<std::array<float, 4>, 2 + 3 * fx::kMaxShadowLamps> none{};
+    auto lamps = uniforms_;
+    for (int i = 0; i < fx::kMaxShadowLamps; ++i)
+    {
+        lamps[4 + 3 * i][2] = aggregate[i];
+        lamps[4 + 3 * i][3] = i < slots_ ? slot_[i].weight : 0.0f;
+        if (const auto *g = overrides[i].get(); g && g->count == 1 && i < slots_)
+        {
+            const auto &rgb = overrides[i].snapshot->members[g->first].color;
+            for (int k = 0; k < 3; ++k)
+                lamps[3 + 3 * i][k] = rgb[k] * slot_[i].weight;
+        }
+    }
+    bgfx::setUniform(u_lamps_, on ? lamps.data() : none.data(), static_cast<uint16_t>(uniforms_.size()));
+    auto grid = grid_uniforms_;
+    const bool room_on = on && room && room_ready_;
+    grid[2][3] = room_on ? 1.0f + model_lift_ : 0.0f;
+    const bool maps = on && bgfx::isValid(edges_map_) && sun != SunUnit::Read;
+    grid[0][3] = maps ? 1.0f : 0.0f;
+    if (maps)
+        bgfx::setTexture(fx::kShadowMapStage, s_edges_, edges_map_);
+    else if (sun == SunUnit::Free)
+        bgfx::setTexture(fx::kShadowMapStage, s_edges_, open_edges_);
+    bgfx::setUniform(u_grid_, grid.data(), static_cast<uint16_t>(grid.size()));
+    const uint32_t sampler = BGFX_SAMPLER_COMPARE_LEQUAL | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+    bgfx::setTexture(fx::kLampDynamicStage, s_dynamic_, on ? dynamic_map_ : open_map_, sampler);
+    bgfx::setTexture(fx::kLampStaticStage, s_static_, on ? static_map_ : open_map_, sampler);
+    bgfx::setTexture(fx::kLampGridStage, s_grid_, on && bgfx::isValid(grid_map_) ? grid_map_ : open_grid_,
+                     BGFX_SAMPLER_POINT | BGFX_SAMPLER_UVW_CLAMP);
+    bgfx::setTexture(fx::kRoomLightStage, s_room_, room_on ? room_map_ : open_grid_, BGFX_SAMPLER_UVW_CLAMP);
+}
+
+void LampShadows::before_frame()
+{
+    if (!active_ || !volumes_)
+        return;
+    // The faces whose volume took a caster this frame: only there the receivers read the dynamic atlas. The atlas's
+    // pass exists only in a frame with one (its view is set up in prepare() but never touched).
+    for (int s = 0; s < slots_; ++s)
+    {
+        const Slot &slot = slot_[s];
+        uint32_t faces = 0;
+        if (slot.published)
+            for (int face = 0; face < 6; ++face)
+                if (volumes_->stats(slot.volume[face]).draws > 0)
+                    faces |= 1u << face;
+        faces_uniform_[s][0] = static_cast<float>(faces);
+    }
+    bgfx::setFrameUniform(u_faces_, faces_uniform_.data(), static_cast<uint16_t>(faces_uniform_.size()));
+}
+
+void LampShadows::end_frame()
+{
+    // The frame's counters (before_frame may run more than once: a read-back flushes the bgfx frame early).
+    bool any = false;
+    for (Slot &slot : slot_)
+    {
+        if (slot.published && volumes_)
+            for (const ShadowCasters::Id id : slot.volume)
+                if (const uint32_t draws = volumes_->stats(id).draws; draws > 0)
+                {
+                    shim::perf().lamp_face_draws += draws;
+                    any = true;
+                }
+        slot.published = false;
+    }
+    if (any)
+        ++shim::perf().lamp_atlas_clears;
+    volumes_ = nullptr;
+    last_static_faces_ = static_faces_;
+    static_faces_ = 0;
+
+    // Lights that move are reported every frame they exist.
+    if (!moving_this_frame_)
+        moving_.clear();
+    if (!ship_lights_this_frame_)
+    {
+        ship_lights_.clear();
+        ships_.clear();
+    }
+    moving_this_frame_ = ship_lights_this_frame_ = false;
+    if (!prepared_)
+        last_slots_ = 0;
+    prepared_ = false;
+    active_ = false;
+}
+
+bool LampShadows::fading() const
+{
+    for (const Slot &slot : slot_)
+        if (slot.lamp != -1 && (slot.leaving || (slot.ready && slot.weight < 1.0f)))
+            return true;
+    return false;
+}
+
+void LampShadows::shutdown()
+{
+    destroy_targets();
+    if (bgfx::isValid(pair_fb_))
+        bgfx::destroy(pair_fb_);
+    for (bgfx::TextureHandle *t : {&open_map_, &open_edges_, &grid_map_, &room_map_, &open_grid_, &pair_copy_})
+        if (bgfx::isValid(*t))
+            bgfx::destroy(*t);
+    for (bgfx::VertexBufferHandle *b : {&static_vb_, &clear_vb_})
+        if (bgfx::isValid(*b))
+            bgfx::destroy(*b);
+    for (Slot &slot : slot_)
+        free_slot(slot);
+    for (ShipGeometry &geometry : ship_geometry_)
+        free_ship_geometry(geometry);
+    cut_.clear();
+    cut_surfaces_.clear();
+    for (bgfx::UniformHandle *u : {&s_static_, &s_dynamic_, &s_grid_, &s_room_, &s_edges_, &s_depth_, &s_pair_,
+                                   &u_view_, &u_lamps_, &u_grid_, &u_caster_, &u_faces_, &u_edges_, &u_pair_})
+        if (bgfx::isValid(*u))
+            bgfx::destroy(*u);
+    forget_gpu_objects();
+}
+
+void LampShadows::forget_gpu_objects()
+{
+    static_fb_ = dynamic_fb_ = pair_fb_ = BGFX_INVALID_HANDLE;
+    edges_fb_.clear();
+    static_map_ = dynamic_map_ = edges_map_ = open_map_ = open_edges_ = grid_map_ = room_map_ = open_grid_ =
+        pair_copy_ = BGFX_INVALID_HANDLE;
+    static_vb_ = clear_vb_ = BGFX_INVALID_HANDLE;
+    s_static_ = s_dynamic_ = s_grid_ = s_room_ = s_edges_ = s_depth_ = s_pair_ = u_view_ = u_lamps_ = u_grid_ =
+        u_caster_ = u_faces_ = u_edges_ = u_pair_ = BGFX_INVALID_HANDLE;
+    pair_read_ = PairRead::Unknown;
+    slot_.assign(slot_.size(), Slot{});
+    for (int s = static_slots(); s < slots_; ++s)
+        slot_[s].moving = true;
+    ship_geometry_.clear();
+    layout_dirty_ = grid_dirty_ = geometry_dirty_ = true;
+    room_dirty_ = true;
+    room_ready_ = false;
+    bound_view_ = {};
+}
+
+} // namespace storm::effects

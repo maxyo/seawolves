@@ -1,0 +1,28 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":28,
+"screenRevision":18,
+"screen":"tradebook",
+"widgets":[
+{"node":"MAIN_BACK","type":"image","index":-1,"order":0,"enabled":false},
+{"node":"I_CHARACTER","type":"button","label":"Герой","index":-1,"order":1},
+{"node":"I_CHARACTER_2","type":"button","label":"Герой","index":-1,"order":2},
+{"node":"I_SHIP","type":"button","label":"Суда","index":-1,"order":3},
+{"node":"I_SHIP_2","type":"button","label":"Суда","index":-1,"order":4},
+{"node":"I_QUESTBOOK","type":"button","label":"Записи","index":-1,"order":5},
+{"node":"I_QUESTBOOK_2","type":"button","label":"Записи","index":-1,"order":6},
+{"node":"I_NATIONS","type":"button","label":"Страны","index":-1,"order":7},
+{"node":"I_NATIONS_2","type":"button","label":"Страны","index":-1,"order":8},
+{"node":"I_ITEMS","type":"button","label":"Вещи","index":-1,"order":9},
+{"node":"I_ITEMS_2","type":"button","label":"Вещи","index":-1,"order":10},
+{"node":"STR_BUTTONS","type":"text","label":"Герой","index":-1,"order":11},
+{"node":"STR_BUTTONS","type":"text","label":"Суда","index":-1,"order":12},
+{"node":"STR_BUTTONS","type":"text","label":"Записи","index":-1,"order":13},
+{"node":"STR_BUTTONS","type":"text","label":"Страны","index":-1,"order":14},
+{"node":"STR_BUTTONS","type":"text","label":"Вещи","index":-1,"order":15},
+{"node":"TITLE","type":"heading","label":"  Книга цен  ","index":-1,"order":16},
+{"node":"TABLE_CITY","type":"choice","label":"\tГородок\tОстровок\t13:00 01.10.1654","value":"0","index":0,"order":500,"rowId":"tradebook:city:town1","actions":["select"],"columnHeaders":["Флаг","Порт","Остров","Дата"],"headerCells":[{"text":"Флаг"},{"text":"Порт"},{"text":"Остров"},{"text":"Дата"}],"cells":[{"images":[{"handle":7,"imageRevision":7,"width":128,"height":128,"source":{"kind":"atlas","group":"NATIONS","image":"France"}}]},{"text":"Городок"},{"text":"Островок"},{"text":"13:00 01.10.1654"}]},
+{"node":"TABLE_GOODS","type":"choice","label":"Ядро\t\t48\t24\t277\t20\t2","value":"0","index":0,"order":600,"rowId":"Balls","actions":["select"],"columnHeaders":["Товар","Вид","Продаём","Покупаем","Есть","Пачка","Вес"],"headerCells":[{"text":"Товар"},{"text":"Вид"},{"text":"Продаём"},{"text":"Покупаем"},{"text":"Есть"},{"text":"Пачка"},{"text":"Вес"}],"cells":[{"text":"Ядро","images":[{"handle":7,"imageRevision":7,"width":128,"height":128,"source":{"kind":"atlas","group":"GOODS","image":"Balls"}}]},{},{"text":"48"},{"text":"24"},{"text":"277"},{"text":"20"},{"text":"2"}]},
+{"node":"TABLE_GOODS","type":"choice","label":"Еда\t\t19\t10\t374\t20\t2","value":"0","index":1,"order":601,"rowId":"Food","actions":["select"],"columnHeaders":["Товар","Вид","Продаём","Покупаем","Есть","Пачка","Вес"],"headerCells":[{"text":"Товар"},{"text":"Вид"},{"text":"Продаём"},{"text":"Покупаем"},{"text":"Есть"},{"text":"Пачка"},{"text":"Вес"}],"cells":[{"text":"Еда","images":[{"handle":7,"imageRevision":7,"width":128,"height":128,"source":{"kind":"atlas","group":"GOODS","image":"Food"}}]},{},{"text":"19"},{"text":"10"},{"text":"374"},{"text":"20"},{"text":"2"}]}
+]}

@@ -1,0 +1,44 @@
+{
+  "tag": "s-reading",
+  "doc": "Reading cards over the game (interfaces `map`, `dirsailenc`, `leavebattle`, `salary`), news notices (`colonyinfo`, `nationlegend`), the interlude `boal_frame` and nothing at all for `fortcapture`, which the game closes at once, filled by reading.cpp.",
+  "props": {
+    "mode": {
+      "type": "enum",
+      "options": [
+        "card",
+        "notice",
+        "frame",
+        "none"
+      ],
+      "default": "card"
+    },
+    "title": {
+      "type": "text",
+      "default": ""
+    },
+    "icon": {
+      "type": "text",
+      "default": ""
+    },
+    "text": {
+      "type": "text",
+      "default": ""
+    },
+    "flags": {
+      "type": "json",
+      "default": []
+    },
+    "actions": {
+      "type": "json",
+      "default": []
+    },
+    "extras": {
+      "type": "json",
+      "default": {}
+    },
+    "picture": {
+      "type": "json",
+      "default": null
+    }
+  }
+}

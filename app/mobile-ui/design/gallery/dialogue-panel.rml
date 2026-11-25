@@ -1,0 +1,22 @@
+<rml>
+<head>
+<title>Окно диалога</title>
+<link type="text/rcss" href="../kit.rcss"/>
+<style>
+.d-scene { position: relative; overflow: hidden; decorator: radial-gradient(ellipse farthest-corner at 50% 30%, @{color.galleryTavern0}, @{color.galleryTavern1}); }
+.d-panel { position: absolute; left: 10dp; right: 10dp; bottom: 10dp; }
+</style>
+</head>
+<body class="gallery">
+<div class="g-page">
+<div class="g-title">C-DialoguePanel</div>
+<div class="g-note">реплики в две колонки (lines 2), длинная реплика с подсказкой по долгому нажатию, нажатая</div>
+<div class="d-scene" style="height: 300dp"><div class="d-panel" style="height: 284dp"><c-dialogue-panel id="dp-replies" key="dp-replies" mode="replies" seed="23" speaker="Жак Бернар, хозяин таверны" text="Добро пожаловать в «Золотой якорь», капитан! Так чем могу служить?" replies='[{"title":"Налей-ка мне рому и расскажи, что нового в городе."},{"title":"Мне нужны матросы. Где их найти?"},{"title":"Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу. Познакомишь?"},{"title":"Ничего не нужно, я уже ухожу.","pressed":true}]'/></div></div>
+<div class="g-note">по страницам (mode paged): длинная речь листается «Дальше», реплики появляются с последней страницей</div>
+<div class="d-scene" style="height: 300dp"><div class="d-panel" style="height: 284dp"><c-dialogue-panel id="dp-paged" key="dp-paged" mode="paged" page="0" seed="23" speaker="Жак Бернар, хозяин таверны" text="Добро пожаловать в «Золотой якорь», капитан! Комнату на ночь, кружку рома или, может быть, ищете людей в команду? После вчерашнего шторма в порту полно моряков, оставшихся без корабля, и каждый из них готов наняться хоть юнгой, лишь бы платили вовремя. А если вам нужен штурман, присмотритесь к тому седому французу у окна — он ходил с самим Левассером, хотя рассказывает об этом только после третьей кружки. Так чем могу служить?" replies='[{"title":"Налей-ка мне рому."},{"title":"Мне нужны матросы."},{"title":"Что за француз у окна?"},{"title":"Ничего, я ухожу."}]'/></div></div>
+<div class="g-note">речь: полный текст и «Дальше»; короткая библиотечная версия</div>
+<div class="d-scene" style="height: 226dp"><div class="d-panel" style="height: 206dp"><c-dialogue-panel id="dp-speech" key="dp-speech" seed="11" speaker="Жак Бернар, хозяин таверны" text="Говорят, в порту стоит испанский галеон. Капитан его, дон Диего, ищет лоцмана до Гаваны и платит золотом. Да только кто ж пойдёт к испанцам после того, что было на Тортуге?"/></div></div>
+<div class="d-scene" style="height: 230dp; margin-top: 12dp"><div class="d-panel" style="height: 200dp"><c-dialogue-panel mode="replies" seed="23" speaker="Жак Бернар, хозяин таверны" text="Так чем могу служить, капитан?" replies='[{"title":"Налей-ка мне рому."},{"title":"Мне нужны матросы."},{"title":"Что за француз у окна?"},{"title":"Ничего, я ухожу."}]'/></div></div>
+</div>
+</body>
+</rml>

@@ -1,0 +1,88 @@
+/* Base rules of every UI document. RmlUi has no built-in style sheet. */
+body {
+    display: block;
+    width: 100%;
+    height: 100%;
+    font-family: "@{font.body}";
+    font-size: @{type.body}dp;
+    line-height: @{type.lineHeight};
+    color: @{color.text};
+}
+div, section, p, h1, h2, h3, ul, li { display: block; }
+span, b, i, em, strong { display: inline; }
+b, strong { font-weight: bold; }
+i, em { font-style: italic; }
+/* a modal refused a tap beside it (it must be answered by its buttons): its box shakes */
+@keyframes ui-refused { 0% { transform: translateX(0dp); } 20% { transform: translateX(-4dp); } 40% { transform: translateX(4dp); } 60% { transform: translateX(-3dp); } 80% { transform: translateX(2dp); } 100% { transform: translateX(0dp); } }
+.row { display: flex; flex-direction: row; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.grow { flex: 1 1 0; min-width: 0; }
+/* the bottom bar of a screen's panel (deadweight, toggles, buttons): as tall as what it holds, no reserved
+   height; a screen draws it only when something is in it */
+.screen-bar { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.lg}dp; padding: @{space.sm}dp @{space.lg}dp; border-top: 1dp @{color.brassLine/.22}; }
+/* its buttons keep their label whole; the bar's flexible part (a gauge, a toggle, the grow) gives way */
+.screen-bar c-button { flex-shrink: 0; }
+.script { font-family: "@{font.script}"; font-weight: normal; }
+
+/* Scrollbars: a thin brass line. */
+scrollbarvertical { width: 3dp; margin-right: 1dp; }
+scrollbarvertical sliderbar { width: 3dp; min-height: 24dp; border-radius: 2dp; background-color: @{color.brassLine/.45}; }
+scrollbarhorizontal { height: 3dp; }
+scrollbarhorizontal sliderbar { height: 3dp; min-width: 24dp; border-radius: 2dp; background-color: @{color.brassLine/.45}; }
+
+/* Icon tones (C-Icon). The glyph takes the `color` of its ui-icon element. */
+ui-icon { display: inline-block; color: @{color.iconDuo}; }
+ui-icon.tone-duo { color: @{color.iconDuo}; }
+ui-icon.tone-brass { color: @{color.iconBrass}; }
+ui-icon.tone-ink { color: @{color.ink}; }
+ui-icon.tone-inkDeep { color: @{color.inkDeep}; }
+ui-icon.tone-wax { color: @{color.wax}; }
+ui-icon.tone-leaf { color: @{color.leaf}; }
+ui-icon.tone-dim { color: @{color.glyphDisabled}; }
+ui-icon.tone-danger { color: @{color.danger}; }
+ui-icon.tone-paper { color: @{color.text}; }
+ui-icon.tone-green { color: @{color.okPale}; }
+ui-icon.tone-blue { color: @{color.sky}; }
+ui-icon.tone-gold { color: @{color.gold}; }
+
+ui-ring { display: block; position: absolute; ring-fill: @{color.ringStart}; ring-fill-end: @{color.ringEnd}; ring-track: @{color.ringEnd/.22}; }
+ui-paper { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    paper-top: @{color.paperTop}; paper-bottom: @{color.paperBottom}; paper-edge: @{color.paperEdge/.36};
+    paper-line: @{color.paperLine/.5}; paper-shadow: @{color.black/.55}; paper-fibre: @{color.paperShade/.16}; }
+ui-clamp { display: block; overflow: hidden; white-space: normal; }
+ui-game-image { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+
+/* A component with a wrong prop, enum value or template, an unknown <c-…> tag and a
+   missing picture are logged by the runtime and, in debug builds (the document root's
+   ui-debug class), striped here so the bug is seen. Release builds draw nothing. */
+.ui-unknown { display: block; }
+.ui-debug .ui-error { min-width: 24dp; min-height: 24dp; decorator: repeating-linear-gradient(45deg, @{color.dangerFill/.7} 0dp, @{color.dangerFill/.7} 4dp, @{color.dangerFill/0} 4dp, @{color.dangerFill/0} 8dp); }
+
+/* Overlay: toasts (one place, the top edge) and the long-press tooltip. */
+/* gap: c-notice gap.toasts (a leaving toast closes it up) */
+#toasts { position: absolute; left: 0; right: 0; top: 8dp; display: flex; flex-direction: column; align-items: center; gap: 6dp; pointer-events: none; }
+#tooltip { position: absolute; display: none; box-sizing: border-box; padding: 10dp 12dp; border-radius: 2dp;
+    color: @{color.ink}; font-size: @{type.body}dp; line-height: 1.35;
+    decorator: linear-gradient(@{color.paperTop}, @{color.paperBottom});
+    box-shadow: @{color.black/.55} 0 6dp 18dp, @{color.paperShade/.3} 0 0 14dp inset; pointer-events: none; }
+#tooltip.open { display: block; }
+
+/* Gallery pages (debug screen with every component). */
+body.gallery { background-color: @{color.canvas}; overflow: auto; }
+.g-page { padding: 12dp 16dp 32dp 16dp; }
+.g-title { font-size: 18dp; font-weight: bold; color: @{color.brass}; margin: 14dp 0 8dp 0; }
+.g-note { font-size: 13dp; color: @{color.textMuted}; margin: 0 0 6dp 0; }
+.g-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 12dp; margin-bottom: 12dp; }
+.g-cell { display: block; flex: 0 0 auto; }
+.g-wood { background-color: @{color.wood}; padding: 10dp; }
+.g-paper { decorator: linear-gradient(@{color.paperTop}, @{color.paperBottom}); padding: 10dp; color: @{color.ink}; }
+.g-scene { decorator: linear-gradient(@{color.galleryScene0}, @{color.galleryScene1} 55%, @{color.galleryScene2}); padding: 10dp; }
+
+/* Scroll edges: while content is hidden below a scrolling element's bottom edge, the runtime
+   pins a div.scroll-fade there (elements.h ScrollEdgesChanged): the cut edge fades out over
+   about one line, so a line half past the edge is never shown cut in half; with nothing
+   hidden the edge is clean. The fade runs into the wood of the panels; parchment its own. */
+.scroll-fade { position: absolute; left: 0; right: 0; height: 26dp; pointer-events: none; z-index: 3;
+    decorator: linear-gradient(@{color.wood/0}, @{color.wood}); display: none; }
+.scroll-below > .scroll-fade { display: block; }
+.surface-parchment .scroll-fade, .tone-parchment .scroll-fade { decorator: linear-gradient(@{color.paperBottom/0}, @{color.paperBottom}); }

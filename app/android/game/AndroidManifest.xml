@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/android/build_apk.py sets the application id and the label and removes the component gallery from every
+     build that is not made with its option. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The download library: torrents in the foreground service of the :downloads process. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- OpenGL ES 3.0 is what the engine needs to start; it uses Vulkan 1.1 where the device has it. -->
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="Seawolves"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"
+        android:appCategory="game"
+        android:isGame="true"
+        android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
+        android:extractNativeLibs="true">
+
+        <!-- One interface host per process (the UI runtime's state is process-global): the launcher here, the
+             game and the download library (with its torrent work) each in their own. -->
+        <activity
+            android:name="org.stormengine.port.GameLauncherActivity"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|locale|layoutDirection">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="org.stormengine.port.GameActivity"
+            android:exported="false"
+            android:process=":game"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|locale|layoutDirection|fontScale|density" />
+
+        <activity
+            android:name="org.stormengine.port.DownloadLibraryActivity"
+            android:exported="false"
+            android:process=":downloads"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|locale|layoutDirection" />
+
+        <service
+            android:name="org.stormengine.port.TorrentDownloadService"
+            android:exported="false"
+            android:process=":downloads"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- The component gallery, a developer screen (build_apk.py with its ui-gallery option): exported so that adb can
+             start it. -->
+        <activity
+            android:name="org.stormengine.port.UiGalleryActivity"
+            android:exported="true"
+            android:process=":gallery"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|locale|layoutDirection|fontScale|density" />
+
+        <!-- «Поделиться отчётом», «Отправить сохранение»: the shared file, read-only, granted per URI to the app
+             the player picks. tools/android/build_apk.py puts the application id in front of ".share". -->
+        <provider
+            android:name="org.stormengine.port.ShareSheet$Provider"
+            android:authorities=".share"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>

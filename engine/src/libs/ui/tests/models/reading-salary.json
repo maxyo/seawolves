@@ -1,0 +1,14 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":1,
+"screenRevision":3,
+"screen":"salary",
+"widgets":[
+{"node":"MAIN_WINDOW_CAPTION","type":"text","label":"Жалованье","index":-1,"order":1},
+{"node":"INFO_PICTURE","type":"image","index":-1,"order":2,"enabled":false,"images":[{"handle":11,"imageRevision":11,"tintArgb":4286611584}]},
+{"node":"INFO_TEXT1","type":"text","label":"Команда ждёт жалованье.","index":-1,"order":3},
+{"node":"INFO_TEXT3","type":"text","label":"1 860 песо","index":-1,"order":4},
+{"node":"B_OK","type":"button","label":"Да","index":-1,"order":5,"enabled":false},
+{"node":"B_CANCEL","type":"button","label":"Нет","index":-1,"order":6}
+]}

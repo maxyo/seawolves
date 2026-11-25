@@ -1,0 +1,181 @@
+// Post-processing chain: bloom, sun shafts, tone curve, colour grades, dither, SMAA, the FSR 1 upscale and
+// sharpening, lens flare. Requests it cannot honour (ValidateSettings) are logged as errors, never quietly replaced.
+// Design: fx/README.md, "Post chain".
+#pragma once
+
+#include "storm/fx/color_lut.hpp"
+#include "storm/fx/settings.hpp"
+
+#include <bgfx/bgfx.h>
+
+#include <array>
+#include <memory>
+#include <vector>
+
+namespace storm::fx
+{
+
+class PostChain
+{
+  public:
+    // Views consumed at most by one Submit(): a contiguous range the caller reserves.
+    static constexpr uint16_t kMaxViews = 24;
+
+    struct Frame
+    {
+        bgfx::TextureHandle scene_color = BGFX_INVALID_HANDLE; // RGBA8, gamma encoded, the game's offscreen target
+        uint16_t scene_width = 0; // its size: smaller than the target with Settings::render_height
+        uint16_t scene_height = 0;
+        bgfx::FrameBufferHandle target = BGFX_INVALID_HANDLE; // invalid = back buffer
+        uint16_t target_width = 0;
+        uint16_t target_height = 0;
+        bgfx::ViewId first_view = 0;
+        bool flip_v = false; // mirror the final image vertically (when the caller's own blit would)
+        // Render scale: the scene's depth (sampleable, the scene's size), written into the depth attachment of `target`
+        // (which then has one, with a stencil) by the pass that writes the target's every pixel at its size: RCAS, or
+        // EASU without sharpening. Its stencil is cleared. Invalid: the target's depth is left alone.
+        bgfx::TextureHandle scene_depth = BGFX_INVALID_HANDLE;
+        // Sun shafts and lens flare: sun position in scene uv (0..1, origin top-left), 0..1 visibility (0 when
+        // the sun is behind the camera, below the horizon or under clouds) and the sun's colour (0..1, the game's).
+        glm::vec3 sun_color{1.0f, 0.9f, 0.7f};
+        std::array<float, 2> sun_uv{0.5f, 0.5f};
+        float sun_visibility = 0.0f;
+        // Lens flare only: 0..1, how much of the sun the camera sees past terrain, buildings and sails (the
+        // engine's sun glow traces it), for the glare; the flare ghosts take `sun_ghosts` (0 where the game's
+        // weather has no flare). The sun shafts find the occluders themselves, in the image.
+        float sun_glare = 0.0f;
+        float sun_ghosts = 0.0f;
+        // Settings::scene_grading: the grade of the place and hour, e.g. SceneGrade(sky.State(), overcast,
+        // interior). Once the drift shows in 8-bit output the table is rebuilt in the background,
+        // kLutSlicesPerFrame blue slices per frame, and swapped in when complete.
+        ColorGrade scene_grade{};
+        // A cut (location loaded, interior entered, the camera jumped): the scene grade is applied in this
+        // frame instead of being followed in the background.
+        bool scene_cut = false;
+        // The game's underwater screen wobble (Render.SeaEffect), on every preset: the legacy look. amplitude is
+        // the wave height as a fraction of the picture size (the game's SeaEffectSize), phase in radians. The
+        // rest of the chain processes the wobbled picture.
+        struct Wobble
+        {
+            bool on = false;
+            float amplitude = 0.0f;
+            float phase = 0.0f;
+        } wobble;
+    };
+    static constexpr int kLutSlicesPerFrame = 2;
+
+    PostChain() = default;
+    ~PostChain();
+    PostChain(const PostChain &) = delete;
+    PostChain &operator=(const PostChain &) = delete;
+
+    // Submits the passes for this frame and returns the number of views used,
+    // starting at frame.first_view. Call once per frame after the scene views.
+    uint16_t Submit(const Settings &settings, const Frame &frame);
+
+    // Creates the programs Submit() will need for `settings` (each takes a shader link on the GPU driver), at most
+    // `budget` of them; `budget` is reduced by the number created. True once all of them exist. A settings switch
+    // prepares them while the previous settings are still drawn, so the first frame of the new ones links nothing.
+    bool Prepare(const Settings &settings, int &budget);
+    // Uses the programs of `owner` (the game's chain): another chain on the same device (the GPU self-test) then
+    // links nothing of its own.
+    void SharePrograms(const PostChain &owner)
+    {
+        programs_ = owner.programs_;
+    }
+    // The plain copy (vs_fx_screen + fs_fx_copy) of the shared programs.
+    bgfx::ProgramHandle CopyProgram();
+
+    // Releases every GPU object (they are re-created by the next Submit); shared programs go with the last chain
+    // that uses them.
+    void Shutdown();
+    // Releases the render targets no Submit() used in its last `idle_submits` calls (0: all of them); the next Submit
+    // that needs one makes it again. Returns their bytes. Submit() itself releases those idle for kIdleSubmits (the
+    // passes of the previous settings after a switch, the wobble after leaving the water).
+    uint64_t ReleaseTargets(uint32_t idle_submits);
+    static constexpr uint32_t kIdleSubmits = 120;
+
+  private:
+    // The passes of Submit.
+    bool SubmitWobble(Frame &frame, bgfx::ViewId &view, bool copy_only);
+    int SubmitBloom(const Settings &settings, const Frame &frame, bgfx::ViewId &view);
+    void SubmitComposite(const Settings &settings, const Frame &frame, bgfx::ViewId &view, int levels,
+                         bool composite_is_final);
+    bgfx::TextureHandle SubmitSmaa(const Frame &frame, bgfx::ViewId &view, bgfx::TextureHandle current, bool upscale,
+                                   bool then_sharpen);
+    void SubmitFsr(const Settings &settings, const Frame &frame, bgfx::ViewId &view, bgfx::TextureHandle current,
+                   bool upscale, bool then_sharpen);
+    void SubmitLensFlare(const Settings &settings, const Frame &frame, bgfx::ViewId &view);
+    struct Target
+    {
+        bgfx::FrameBufferHandle fb = BGFX_INVALID_HANDLE;
+        uint16_t width = 0;
+        uint16_t height = 0;
+        uint8_t bytes_per_pixel = 4;
+        uint32_t used = 0; // submits_ when a Submit last used it
+    };
+    uint32_t submits_ = 0;
+    void EnsureTarget(Target &target, uint16_t width, uint16_t height,
+                      bgfx::TextureFormat::Enum format = bgfx::TextureFormat::RGBA8);
+    void EnsureSmaaTables();
+    void EnsureLut(const Settings &settings, const ColorGrade &scene_grade, bool scene_cut);
+    bgfx::ProgramHandle Program(int index);
+    void EnsureUniforms();
+    void BindSceneDepth(bgfx::ViewId view, bgfx::TextureHandle depth); // Frame::scene_depth, in the pass that writes it
+
+    static constexpr int kMaxBloomLevels = 6;
+    // The chain's programs; the lens flare's is the last one. Shared by the chains of one device (SharePrograms):
+    // destroyed with the last chain that uses them.
+    struct Programs
+    {
+        static constexpr int kCount = 18;
+        std::array<bgfx::ProgramHandle, kCount> handles{};
+        Programs()
+        {
+            handles.fill(BGFX_INVALID_HANDLE);
+        }
+        ~Programs();
+        Programs(const Programs &) = delete;
+        Programs &operator=(const Programs &) = delete;
+    };
+    std::shared_ptr<Programs> programs_ = std::make_shared<Programs>();
+    bool uniforms_loaded_ = false;
+    std::array<Target, kMaxBloomLevels + 1> bloom_{};
+    Target graded_{};     // composite output when another pass follows
+    Target smaa_edges_{}; // SMAA edges (RG8 where it renders) and blending weights, scene size
+    Target smaa_weights_{};
+    Target antialiased_{};                                // SMAA output when the upscale or sharpening follows
+    Target upscaled_{};                                   // EASU output when sharpening follows, target size
+    bgfx::TextureHandle smaa_area_ = BGFX_INVALID_HANDLE; // the reference's precomputed tables (RG8, R8)
+    bgfx::TextureHandle smaa_search_ = BGFX_INVALID_HANDLE;
+    Target wobbled_{}; // the wobbled scene when more passes follow
+    bgfx::TextureHandle lut_ = BGFX_INVALID_HANDLE;
+    GradePreset lut_grade_ = GradePreset::Original;
+    float lut_strength_ = -1.0f;
+    ColorGrade lut_scene_{};
+    ColorGrade pending_scene_{}; // the scene grade being built into pending_texels_
+    std::vector<uint8_t> pending_texels_;
+    int pending_slice_ = -1; // next blue slice to build; -1: no rebuild in progress
+    uint32_t frame_counter_ = 0;
+    bgfx::UniformHandle u_dither_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_wobble_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_scene_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_bloom_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_lut_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_bloom_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_shafts_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_tone_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_lut_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_smaa_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_smaa_edges_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_smaa_area_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_smaa_search_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_smaa_weights_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_fsr_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_fsr_out_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_scene_depth_ = BGFX_INVALID_HANDLE;
+    bool reported_shafts_ = false;
+    bool reported_lut_ = false;
+};
+
+} // namespace storm::fx

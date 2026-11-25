@@ -1,0 +1,32 @@
+--- a/PROGRAM/sea_ai/AIShip.c
++++ b/PROGRAM/sea_ai/AIShip.c
+@@ -1511,11 +1511,17 @@
+ 								{									
+ 									// Warship fix Должно быть здесь
+ 										iCharactersNum1 =  Group_GetLiveCharactersNum(rCharacter.SeaAI.Group.Name);
+-										iCharactersNum2 =  Group_GetLiveCharactersNum(characters[sti(rCharacter.Ship.LastBallCharacter)].SeaAI.Group.Name);	
++										iCharactersNum2 = 0; // the shooter may have no sea group (a fort, a character no longer at sea)
++										if (CheckAttribute(&characters[sti(rCharacter.Ship.LastBallCharacter)], "SeaAI.Group.Name")) iCharactersNum2 = Group_GetLiveCharactersNum(characters[sti(rCharacter.Ship.LastBallCharacter)].SeaAI.Group.Name);
+ 									
+ 									if(stf(rCharacter.ship.hp) < (stf(characters[sti(rCharacter.Ship.LastBallCharacter)].ship.hp) / 2))
+ 									{
+-										if ((iCharactersNum1 / iCharactersNum2) >= 2.2 && iCharactersNum2 > 0) 
++										bool bOutnumbered = false; // stock divided first and checked the divisor after: a division by zero
++										if (iCharactersNum2 > 0)
++										{
++											if ((iCharactersNum1 / iCharactersNum2) >= 2.2) bOutnumbered = true;
++										}
++										if (bOutnumbered)
+ 										{
+ 											Ship_SetTaskAttack(SECONDARY_TASK, sti(rCharacter.index), sti(rCharacter.Ship.LastBallCharacter));
+ 										}
+@@ -1586,7 +1592,8 @@
+ 												else
+ 												{
+ 													iCharactersNum1 =  Group_GetLiveCharactersNum(rCharacter.SeaAI.Group.Name);
+-													iCharactersNum2 =  Group_GetLiveCharactersNum(characters[sti(rCharacter.Ship.LastBallCharacter)].SeaAI.Group.Name);	
++													iCharactersNum2 = 0; // the shooter may have no sea group (a fort, a character no longer at sea)
++													if (CheckAttribute(&characters[sti(rCharacter.Ship.LastBallCharacter)], "SeaAI.Group.Name")) iCharactersNum2 = Group_GetLiveCharactersNum(characters[sti(rCharacter.Ship.LastBallCharacter)].SeaAI.Group.Name);
+ 													if ((iCharactersNum2 / iCharactersNum1) >= 2.0 && sti(RealShips[sti(rCharacter.ship.type)].Class) > sti(RealShips[sti(characters[sti(rCharacter.Ship.LastBallCharacter)].ship.type)].Class))
+ 													{
+ 														Ship_SetTaskRunaway(SECONDARY_TASK, sti(rCharacter.index), sti(rCharacter.Ship.LastBallCharacter));

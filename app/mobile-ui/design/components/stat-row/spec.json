@@ -1,0 +1,19 @@
+{
+  "tag": "c-stat-row",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "value": {"type": "int", "default": 0},
+    "word": {"type": "text", "default": ""},
+    "kind": {"type": "enum", "options": ["crew", "brass", "xp", "health", "sails"], "default": "crew", "class": false},
+    "labelWidth": {"type": "int", "default": 110},
+    "wordWidth": {"type": "int", "default": 110},
+    "height": {"type": "int", "default": @{size.touchMin}},
+    "line": {"type": "bool", "default": true},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
+  },
+  "constants": {
+    "barHeight": 6,
+    "gap": @{space.lg},
+    "font": @{type.body}
+  }
+}

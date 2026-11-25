@@ -1,0 +1,10 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":22,
+"screenRevision":22,
+"screen":"boal_frame",
+"widgets":[
+{"node":"BACKSCROLLPICT","type":"image","index":-1,"order":1,"enabled":false,"images":[{"handle":1,"imageRevision":1,"tintArgb":4286611584,"source":{"kind":"texture","image":"loading/imgback"}}]},
+{"node":"SCROLLPICT","type":"image","index":-1,"order":2,"enabled":false,"images":[{"handle":1,"imageRevision":1,"tintArgb":4286611584,"source":{"kind":"texture","image":"loading/inside/censored1"}}]}
+]}

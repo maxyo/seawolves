@@ -1,0 +1,20 @@
+--- a/PROGRAM/dialogs/russian/Common_church.c
++++ b/PROGRAM/dialogs/russian/Common_church.c
+@@ -553,7 +553,7 @@
+ 			else
+ 			{
+ 				dialog.text = ""+ GetSexPhrase("Сын мой","Дочь моя") +"... Со слезами раскаяния и благодарности принимаю от вас чашу, как знак Божьей милости и прощения. Чистота и благородство вашей души потрясли меня. От всего сердца благословляю вас!";
+-				link.l1 = "Спасибо за благословение, " + LinkRandPhrase("падре", "отче") + ".";
++				link.l1 = "Спасибо за благословение, " + RandPhraseSimple("падре", "отче") + ".";
+ 				link.l1.go = "GenQuest_Church_2_Thief_4_1_4";
+ 				link.l1 = "Благословение, конечно, дело нужное, но неплохо бы подкрепить его чем-то более материальным, так как в дороге я понёс"+ GetSexPhrase("","ла") +" немалые траты...";
+ 				link.l1.go = "GenQuest_Church_2_Thief_4_1_6";
+@@ -590,7 +590,7 @@
+ 		case "GenQuest_Church_2_Thief_4_1_6":
+ 			iMoneyToCharacter = sti(PChar.GenQuest.ChurchQuest_2.MoneyToCharacter);
+ 			dialog.text = "Ох, дитя моё, совсем забыл... Надеюсь, эта скромная лепта в размере " + FindRussianMoneyString(iMoneyToCharacter) + " окупит Ваши расходы?";
+-			link.l1 = "Да, " + LinkRandPhrase("падре", "отче") + ", спасибо.";
++			link.l1 = "Да, " + RandPhraseSimple("падре", "отче") + ", спасибо.";
+ 			link.l1.go = "GenQuest_Church_2_Thief_4_1_6_1";
+ 		break;
+ 			

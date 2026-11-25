@@ -1,0 +1,12 @@
+<div class="hc-main">
+<div class="hc-id"><div class="hc-pic" data-action="portrait"><c-game-image kind="portrait" texture="{{portrait}}" size="{{spec.portrait}}" label="{{title}}"/></div>
+<div class="hc-names"><ui-clamp class="hc-title" lines="2" min-size="@{type.min}" text="{{title}}"/><t-if test="sub"><div class="hc-sub">{{sub}}</div></t-if><t-if test="roles"><div class="hc-roles">{{roles}}</div></t-if></div></div>
+<div class="hc-body">
+<c-bar icon="life" label="" value="{{ or(health.value, 100) }}" text="{{health.text}}" kind="health"/>
+<c-bar icon="energy" label="" value="{{ or(energy.value, 100) }}" text="{{energy.text}}" kind="energy"/>
+<t-if test="free != '' && free != '0'"><c-notice variant="inline" tone="ok" icon="exp" text="{{ or(freeLabel, tr('common.free')) + ': ' + free }}"/></t-if>
+<t-if test="len(lines) > 0"><div class="hc-lines"><t-for each="lines" as="l"><div class="hc-line"><span>{{l.k}} </span><span class="hc-v tone-{{ or(l.tone, 'plain') }}">{{l.v}}</span><t-if test="opt(l.after)"><span>{{opt(l.after)}}</span></t-if></div></t-for></div></t-if>
+</div>
+</div>
+<div class="hc-fill"></div>
+<t-if test="children"><div class="hc-slot" slot="1"></div></t-if>

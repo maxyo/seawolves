@@ -1,0 +1,493 @@
+#pragma once
+#include <array>
+#include "storm_ui/hud_command.h"
+#include <cmath>
+#include <cstdint>
+#include <initializer_list>
+#include <optional>
+#include <string_view>
+#include <algorithm>
+#include <vector>
+
+namespace storm::android
+{
+// Native owns map, projection and gameplay. Android supplies only the measured
+// aperture of its drawn disc ("prepare"), the word that its captions are on the
+// screen once native has drawn there ("visible"), or "clear". Each lasts until the
+// owner (telemetry revision, HUD revision, navigator generation) changes or the UI
+// says otherwise: no lease (see android_hud_presenter.hpp).
+struct SeaNavigatorLayout
+{
+    uint64_t id{};
+    int width{}, height{}, x{}, y{}, radius{}, densityMilli{}, russian{};
+    bool operator==(const SeaNavigatorLayout &) const = default;
+};
+class SeaNavigatorBridge
+{
+    uint64_t revision_{}, hud_{}, source_{};
+    uint64_t nativeDrawnId_{}, presentedId_{};
+    std::optional<SeaNavigatorLayout> layout_;
+    int zoom_{};
+    const char *result_ = "initial";
+
+  public:
+    const char *result() const
+    {
+        return result_;
+    }
+    void clear()
+    {
+        layout_.reset();
+        zoom_ = 0;
+        nativeDrawnId_ = presentedId_ = 0;
+    }
+    // A command of the HUD about the radar of the ship state (revision, HUD revision, navigator generation) it
+    // was drawn for: the current one only.
+    bool offer(const storm::ui::hud::Navigator &command, uint64_t revision, uint64_t hud, uint64_t source)
+    {
+        using Verb = storm::ui::hud::Navigator::Verb;
+        const auto reject = [&](const char *why) {
+            result_ = why;
+            return false;
+        };
+        if (command.revision != revision || command.hud_revision != hud || command.generation != source)
+            return reject("owner-generation");
+        if (command.verb == Verb::Clear)
+        {
+            clear();
+            result_ = "cleared";
+            return true;
+        }
+        if (command.verb == Verb::Visible)
+        {
+            const auto *current = layout(revision, hud, source);
+            if (!current || current->id != command.layout || nativeDrawnId_ != command.layout)
+                return reject("visible-without-native-draw");
+            presentedId_ = command.layout;
+            result_ = "presented";
+            return true;
+        }
+        if (command.verb == Verb::In || command.verb == Verb::Out)
+        {
+            if (!layout(revision, hud, source))
+                return reject("zoom-without-layout");
+            zoom_ = command.verb == Verb::In ? -1 : 1;
+            result_ = "zoom";
+            return true;
+        }
+        if (!command.layout)
+            return reject("layout-id");
+        std::array<int, 7> v{};
+        for (size_t i = 0; i < 7; ++i)
+        {
+            if (command.geometry[i] < 0 || command.geometry[i] > 16384)
+                return reject("layout-number");
+            v[i] = static_cast<int>(command.geometry[i]);
+        }
+        // The radar's disc must lie on the screen at a size the renderer draws.
+        if (v[6] > 1 || v[5] < 100 || v[5] > 8000 || v[0] < 320 || v[1] < 180 || v[4] < 24 || v[2] - v[4] < 0 ||
+            v[3] - v[4] < 0 || v[2] + v[4] > v[0] || v[3] + v[4] > v[1])
+            return reject("layout-bounds");
+        const SeaNavigatorLayout next{command.layout, v[0], v[1], v[2], v[3], v[4], v[5], v[6]};
+        const bool sameOwner = revision_ == revision && hud_ == hud && source_ == source;
+        if (sameOwner && layout_ && layout_->id == command.layout && *layout_ != next)
+            return reject("layout-id-reused");
+        if (!layout(revision, hud, source) || layout_->id != command.layout)
+            nativeDrawnId_ = presentedId_ = 0;
+        revision_ = revision;
+        hud_ = hud;
+        source_ = source;
+        layout_ = next;
+        result_ = "prepared";
+        return true;
+    }
+    const SeaNavigatorLayout *layout(uint64_t revision, uint64_t hud, uint64_t source) const
+    {
+        return layout_ && revision == revision_ && hud == hud_ && source == source_ ? &*layout_ : nullptr;
+    }
+    void didDraw(uint64_t id)
+    {
+        nativeDrawnId_ = layout_ && layout_->id == id ? id : 0;
+    }
+    bool presented(uint64_t revision, uint64_t hud, uint64_t source, uint64_t id) const
+    {
+        const auto *current = layout(revision, hud, source);
+        return current && current->id == id && nativeDrawnId_ == id && presentedId_ == id;
+    }
+    int takeZoom(uint64_t revision, uint64_t hud, uint64_t source)
+    {
+        int z = layout(revision, hud, source) ? zoom_ : 0;
+        zoom_ = 0;
+        return z;
+    }
+};
+inline SeaNavigatorBridge seaNavigator;
+namespace sea_nav
+{
+constexpr float pi = 3.14159265358979323846f;
+struct Point
+{
+    float x, y;
+};
+struct Aperture
+{
+    float x, y, radius, scale;
+};
+inline std::optional<Aperture> aperture(const SeaNavigatorLayout &layout, int x, int y, int width, int height)
+{
+    if (layout.width <= 0 || layout.height <= 0 || width <= 0 || height <= 0)
+        return {};
+    float sx = float(width) / layout.width, sy = float(height) / layout.height;
+    if (std::abs(sx - sy) > std::fmax(sx, sy) * .01f)
+        return {};
+    float scale = std::fmin(sx, sy);
+    return Aperture{x + layout.x * sx, y + layout.y * sy, layout.radius * scale, scale};
+}
+inline Point polar(float angle, float radius)
+{
+    return {std::sin(angle) * radius, -std::cos(angle) * radius};
+}
+// Presentation dimensions are physical dp, independent of the map's world
+// radius and of the 120-unit bezel artwork. In particular, a smaller aperture
+// must not turn the letters and functional paths into subpixel strokes.
+struct PrimitiveMetrics
+{
+    float dp, radius;
+    float cardinalWidth() const
+    {
+        return 5 * dp;
+    } // centerline; ink is 5..7dp
+    float cardinalHeight() const
+    {
+        return 8 * dp;
+    } // actual ink is at least 8dp
+    float functionalStroke() const
+    {
+        return dp;
+    }
+    float decorativeStroke() const
+    {
+        return .75f * dp;
+    }
+    float arrowLength() const
+    {
+        return 6 * dp;
+    }
+    float arrowWidth() const
+    {
+        return 4.5f * dp;
+    }
+    float hullLength() const
+    {
+        return 10 * dp;
+    }
+    float hullWidth() const
+    {
+        return 5.5f * dp;
+    }
+    float contactLength() const
+    {
+        return 4 * dp;
+    }
+    float contactWidth() const
+    {
+        return 3 * dp;
+    }
+    float chevronLength() const
+    {
+        return 5 * dp;
+    }
+    float chevronWidth() const
+    {
+        return 5 * dp;
+    }
+    float cardinalRadius() const
+    {
+        return std::fmax(0.f, radius - 11.f * dp);
+    }
+    // Full bearing ink stays inside 30dp at the 96dp aperture, leaving a
+    // measured 1dp gap to the upright cardinal band even at equal azimuths.
+    float bearingTipRadius() const
+    {
+        return std::fmax(0.f, radius - 18.5f * dp);
+    }
+};
+inline PrimitiveMetrics primitiveMetrics(const SeaNavigatorLayout &layout, const Aperture &aperture)
+{
+    return {float(layout.densityMilli) * .001f * aperture.scale, aperture.radius};
+}
+struct Stroke
+{
+    Point a, b;
+    float width;
+};
+// The renderer and the host checks use these same filled stroke vertices, so
+// the readability assertions measure ink rather than nominal glyph size.
+inline std::optional<std::array<Point, 4>> strokeQuad(const Stroke &s)
+{
+    float dx = s.b.x - s.a.x, dy = s.b.y - s.a.y, len = std::hypot(dx, dy);
+    if (len < .001f)
+        return {};
+    dx *= s.width * .5f / len;
+    dy *= s.width * .5f / len;
+    return std::array<Point, 4>{
+        {{s.a.x - dy, s.a.y + dx}, {s.a.x + dy, s.a.y - dx}, {s.b.x + dy, s.b.y - dx}, {s.b.x - dy, s.b.y + dx}}};
+}
+inline std::array<Point, 4> arcQuad(Point center, float begin, float end, float radius, float thickness)
+{
+    auto point = [&](float angle, float r) {
+        const auto p = polar(angle, r);
+        return Point{center.x + p.x, center.y + p.y};
+    };
+    return {{point(begin, radius - thickness * .5f), point(begin, radius + thickness * .5f),
+             point(end, radius + thickness * .5f), point(end, radius - thickness * .5f)}};
+}
+inline Point localPoint(Point origin, float angle, float x, float y)
+{
+    return {origin.x + x * std::cos(angle) - y * std::sin(angle), origin.y + y * std::cos(angle) + x * std::sin(angle)};
+}
+inline std::array<Point, 4> hull(Point origin, float angle, float length, float width)
+{
+    return {{localPoint(origin, angle, 0, -length * .5f), localPoint(origin, angle, width * .5f, length * .5f),
+             localPoint(origin, angle, 0, length * .35f), localPoint(origin, angle, -width * .5f, length * .5f)}};
+}
+inline std::array<Point, 3> arrowHead(Point origin, float angle, float tipRadius, float length, float width)
+{
+    return {{localPoint(origin, angle, 0, -tipRadius), localPoint(origin, angle, -width * .5f, -tipRadius + length),
+             localPoint(origin, angle, width * .5f, -tipRadius + length)}};
+}
+// The sign of length selects an outward course chevron or the wind's inward
+// tail feather without changing its native angle or radius.
+inline std::array<Point, 3> chevron(Point origin, float angle, float tipRadius, float length, float width)
+{
+    const auto head = arrowHead(origin, angle, tipRadius, length, width);
+    return {{head[1], head[0], head[2]}};
+}
+struct CardinalGlyph
+{
+    std::array<Stroke, 16> strokes{};
+    size_t size{};
+};
+inline CardinalGlyph cardinalGlyph(Point origin, int cardinal, bool russian, const PrimitiveMetrics &metrics)
+{
+    CardinalGlyph glyph;
+    auto line = [&](float x1, float y1, float x2, float y2) {
+        glyph.strokes[glyph.size++] = {Point{x1, y1}, Point{x2, y2}, metrics.functionalStroke()};
+    };
+    auto path = [&](std::initializer_list<Point> points) {
+        bool first = true;
+        Point last{};
+        for (auto p : points)
+        {
+            if (!first)
+                line(last.x, last.y, p.x, p.y);
+            first = false;
+            last = p;
+        }
+    };
+    if (russian)
+    {
+        if (cardinal == 0)
+            path({{2, -3}, {0, -4}, {-2, -3}, {-3, -1}, {-3, 2}, {-1, 4}, {2, 3}}); // С
+        if (cardinal == 1)
+        {
+            path({{-2, 4}, {-2, -4}, {1, -4}, {3, -2}, {1, 0}, {-2, 0}});
+            path({{1, 0}, {3, 2}, {1, 4}, {-2, 4}});
+        } // В
+        if (cardinal == 2)
+        {
+            line(-4, -4, -4, 4);
+            line(-4, 0, -1, 0);
+            path({{1, -4}, {-1, -2}, {-1, 2}, {1, 4}, {3, 2}, {3, -2}, {1, -4}});
+        } // Ю
+        if (cardinal == 3)
+            path({{-2, -3}, {0, -4}, {3, -2}, {0, 0}, {3, 2}, {1, 4}, {-2, 3}}); // З
+    }
+    else
+    {
+        if (cardinal == 0)
+            path({{-3, 4}, {-3, -4}, {3, 4}, {3, -4}});
+        if (cardinal == 1)
+        {
+            path({{3, -4}, {-3, -4}, {-3, 4}, {3, 4}});
+            line(-3, 0, 2, 0);
+        }
+        if (cardinal == 2)
+            path({{3, -3}, {1, -4}, {-2, -3}, {-3, -1}, {2, 1}, {3, 3}, {1, 4}, {-3, 3}});
+        if (cardinal == 3)
+            path({{-4, -4}, {-2, 4}, {0, -1}, {2, 4}, {4, -4}});
+    }
+    if (!glyph.size)
+        return glyph;
+    float left = glyph.strokes[0].a.x, right = left, top = glyph.strokes[0].a.y, bottom = top;
+    for (size_t i = 0; i < glyph.size; ++i)
+        for (auto p : {glyph.strokes[i].a, glyph.strokes[i].b})
+        {
+            left = std::fmin(left, p.x);
+            right = std::fmax(right, p.x);
+            top = std::fmin(top, p.y);
+            bottom = std::fmax(bottom, p.y);
+        }
+    for (size_t i = 0; i < glyph.size; ++i)
+        for (auto *p : {&glyph.strokes[i].a, &glyph.strokes[i].b})
+        {
+            p->x = origin.x + (p->x - (left + right) * .5f) * metrics.cardinalWidth() / (right - left);
+            p->y = origin.y + (p->y - (top + bottom) * .5f) * metrics.cardinalHeight() / (bottom - top);
+        }
+    return glyph;
+}
+// These are the original navigator's world -> ship-relative screen equations.
+inline std::optional<Point> project(float dx, float dz, float heading, float worldRadius, float scale, float radius)
+{
+    if (!std::isfinite(dx) || !std::isfinite(dz) || !std::isfinite(heading) || !std::isfinite(worldRadius) ||
+        !std::isfinite(scale) || worldRadius <= 0 || scale <= 0)
+        return {};
+    const float x = dx * radius / (worldRadius * scale), y = dz * radius / (worldRadius * scale);
+    if (x * x + y * y > radius * radius)
+        return {};
+    return Point{x * std::cos(heading) - y * std::sin(heading), -(y * std::cos(heading) + x * std::sin(heading))};
+}
+// A contact marker reaching `extent` from its centre (half its length plus its outline) kept wholly
+// inside the disc of `radius`: one farther out moves in along its own bearing onto radius - extent,
+// so a ship at the edge of the map's range stays visible instead of going under the rim.
+inline Point keepInside(Point p, float radius, float extent)
+{
+    const float distance = std::hypot(p.x, p.y), limit = std::max(0.f, radius - extent);
+    if (!(distance > limit))
+        return p;
+    return Point{p.x * limit / distance, p.y * limit / distance};
+}
+// The minimap's land: 0/1 land cells (n × n, row z) smoothed by a 5-tap binomial both ways into
+// a field 0…255 whose 127.5 contour is a rounded coast between cell centres.
+inline std::vector<uint8_t> landField(const std::vector<uint8_t> &land, uint32_t n)
+{
+    std::vector<uint8_t> row(size_t(n) * n), field(size_t(n) * n);
+    if (land.size() != size_t(n) * n || n == 0)
+        return {};
+    constexpr int w[5] = {1, 4, 6, 4, 1};
+    for (uint32_t z = 0; z < n; ++z)
+        for (uint32_t x = 0; x < n; ++x)
+        {
+            int sum = 0;
+            for (int k = -2; k <= 2; ++k)
+                sum += w[k + 2] * (land[size_t(z) * n + uint32_t(std::clamp(int(x) + k, 0, int(n) - 1))] ? 1 : 0);
+            row[size_t(z) * n + x] = uint8_t(sum);
+        }
+    for (uint32_t z = 0; z < n; ++z)
+        for (uint32_t x = 0; x < n; ++x)
+        {
+            int sum = 0;
+            for (int k = -2; k <= 2; ++k)
+                sum += w[k + 2] * row[size_t(std::clamp(int(z) + k, 0, int(n) - 1)) * n + x];
+            field[size_t(z) * n + x] = uint8_t(std::min(255, sum * 255 / 256));
+        }
+    return field;
+}
+// The coast of a field over the cells [x0, x1] × [z0, z1]: marching squares on the 127.5 level
+// between cell centres (the contour the bilinear texture cuts), saddles decided by the cell's
+// mean; `segment(ax, az, bx, bz)` in cell-centre units. Outside the field is water.
+template <class Segment>
+inline void coastSegments(const std::vector<uint8_t> &field, int n, int x0, int x1, int z0, int z1, Segment &&segment)
+{
+    const auto value = [&](int x, int z) {
+        return x < 0 || z < 0 || x >= n || z >= n ? 0.f : float(field[size_t(z) * n + x]);
+    };
+    constexpr float level = 127.5f;
+    for (int z = z0; z <= z1; ++z)
+        for (int x = x0; x <= x1; ++x)
+        {
+            const float v00 = value(x, z), v10 = value(x + 1, z), v01 = value(x, z + 1), v11 = value(x + 1, z + 1);
+            const int mask = (v00 >= level) | (v10 >= level) << 1 | (v11 >= level) << 2 | (v01 >= level) << 3;
+            if (mask == 0 || mask == 15)
+                continue;
+            const auto cross = [](float a, float b) { return (level - a) / (b - a); };
+            const Point e0{x + cross(v00, v10), float(z)}, e1{float(x + 1), z + cross(v10, v11)},
+                e2{x + cross(v01, v11), float(z + 1)}, e3{float(x), z + cross(v00, v01)};
+            const auto add = [&](Point a, Point b) { segment(a.x, a.y, b.x, b.y); };
+            switch (mask)
+            {
+            case 1:
+            case 14:
+                add(e3, e0);
+                break;
+            case 2:
+            case 13:
+                add(e0, e1);
+                break;
+            case 3:
+            case 12:
+                add(e3, e1);
+                break;
+            case 4:
+            case 11:
+                add(e1, e2);
+                break;
+            case 6:
+            case 9:
+                add(e0, e2);
+                break;
+            case 7:
+            case 8:
+                add(e3, e2);
+                break;
+            case 5:
+            case 10: {
+                const bool joined = (v00 + v10 + v01 + v11) * .25f >= level;
+                if ((mask == 5) == joined)
+                {
+                    add(e3, e2);
+                    add(e0, e1);
+                }
+                else
+                {
+                    add(e3, e0);
+                    add(e1, e2);
+                }
+                break;
+            }
+            }
+        }
+}
+struct Bort
+{
+    bool present{};
+    float charge{}, damage{}, direction{}, zone{}, range{};
+};
+inline bool valid(const Bort &b)
+{
+    return b.present && std::isfinite(b.charge) && std::isfinite(b.damage) && b.charge >= 0 && b.charge <= 1 &&
+           b.damage >= 0 && b.damage <= 1 && std::isfinite(b.direction) && std::isfinite(b.zone) && b.zone >= 0 &&
+           b.zone <= 2 * pi && std::isfinite(b.range) && b.range >= 0;
+}
+// One gun side as the game's attributes give it: the ship type's side (FireDir, FireZone) and the
+// character's state that the cannon controller keeps (sea_ai ai_ship_cannon_controller.cpp): one
+// damages.c<i> per gun the ship's model mounts on that side, and ChargeRatio / DamageRatio /
+// MaxFireDistance only for a side that has guns. A side without guns (many small ships have no bow
+// or stern chasers) is no side of the minimap, not a side whose numbers are missing.
+struct BortSource
+{
+    bool spec{}, state{};
+    size_t guns{};
+    float charge{}, damage{}, direction{}, zone{}, range{};
+};
+inline Bort bort(const BortSource &s)
+{
+    if (!s.spec || !s.state || !s.guns)
+        return {};
+    return {true, s.charge, s.damage, s.direction, s.zone, s.range};
+}
+// The minimap draws only when every side the ship has is known.
+inline bool usable(const std::array<Bort, 4> &borts)
+{
+    return std::all_of(borts.begin(), borts.end(), [](const Bort &b) { return !b.present || valid(b); });
+}
+inline float readyFraction(const Bort &b)
+{
+    return b.charge * (1 - b.damage);
+}
+inline float zoom(float scale, float step, float low, float high, bool in)
+{
+    return std::fmax(low, std::fmin(high, scale + (in ? -step : step)));
+}
+} // namespace sea_nav
+} // namespace storm::android

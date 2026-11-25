@@ -1,0 +1,18 @@
+{
+  "tag": "c-token",
+  "props": {
+    "icon": {"type": "text", "default": "ship"},
+    "enamel": {"type": "enum", "options": ["teal", "red", "iron", "parchment"], "default": "teal", "class": false},
+    "size": {"type": "int", "default": @{size.tokenSm}},
+    "disabled": {"type": "bool", "default": false},
+    "selected": {"type": "bool", "default": false},
+    "current": {"type": "bool", "default": false},
+    "round": {"type": "bool", "default": false, "class": false}
+  },
+  "constants": {
+    "size": {"sm": @{size.tokenSm}, "lg": @{size.tokenLg}},
+    "bezel": {"thin": 1.5, "thick": 2, "thickFrom": 48},
+    "cornerRatio": 0.24,
+    "iconRatio": 0.6
+  }
+}

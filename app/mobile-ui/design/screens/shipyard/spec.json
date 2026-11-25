@@ -1,0 +1,16 @@
+{
+  "tag": "s-shipyard",
+  "doc": "Shipyard (interface `shipyard`), filled by trade_shipyard.cpp: one list of our ships and the yard's offers on the left; on the right the ship being looked at: its figures (an offer's beside those of our chosen ship) and the deal on held buttons with the price; the game's windows as sheets.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "stats": {"type": "json", "default": []},
+    "fleet": {"type": "json", "default": []},
+    "offers": {"type": "json", "default": []},
+    "noOffers": {"type": "text", "default": ""},
+    "detail": {"type": "json", "default": null},
+    "empty": {"type": "text", "default": ""},
+    "sheet": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

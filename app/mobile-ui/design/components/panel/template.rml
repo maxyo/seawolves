@@ -1,0 +1,5 @@
+<t-if test="aged && tone == 'parchment'"><ui-paper seed="{{seed}}"/></t-if>
+<t-if test="title"><div class="title{{ caps ? ' caps' : '' }}">{{title}}</div></t-if>
+<div class="inner" slot="1" style="gap: {{gap}}dp;"></div>
+<t-if test="fade"><div class="fade"></div></t-if>
+<t-if test="edge"><div class="edge-line"></div></t-if>

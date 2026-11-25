@@ -1,0 +1,478 @@
+// Relief and gloss maps only for what the scene draws with them (effects::NormalMaps, effects::DrawReadsMaps): a
+// texture of a relief class gets its entry when it is loaded, relief on or off, but it is looked up (and its map
+// requested from the generator) only when a draw that reads the map draws it: not at the load, not when the preset is
+// raised, not on the loading screen for a texture no draw read, never on «Низкая» or with the setting off, and not for
+// a draw that does not read it at these settings (a character with the characters' relief off). A new scene and a
+// change of what the draws read drop the queue; the preset lowered drops it too. A grey height texture gets no entry
+// (brightness-derived normals are not used). Gloss maps (Settings::gloss) the same; a texture whose relief class has a
+// height (stone) keeps its gloss in its relief's material texture (fx::AddReliefMaterial) and has no gloss map of its
+// own.
+//
+// No GPU: the textures are shim stores filled the way Renderer::TextureLoad fills them, their game files are written
+// into a temporary game; the generator has no models (no PBRify), so a requested map ends up "missing" (counted).
+#include "effects/lighting.hpp"
+#include "effects/normal_maps.hpp"
+#include "effects/relief_generator.hpp"
+#include "effects/thermal.hpp"
+#include "shim.hpp"
+#include "storm/fx/lighting.hpp"
+#include "storm/fx/gloss_map.hpp"
+#include "storm/fx/relief_store.hpp"
+#include "storm/render/effects.hpp"
+#include "log_lines.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <iterator>
+#include <optional>
+#include <string>
+#include <fstream>
+#include <thread>
+#include <vector>
+
+#include <unistd.h>
+
+using namespace storm;
+
+namespace
+{
+constexpr uint32_t kSize = 128, kLevels = 8;
+int failures = 0;
+std::vector<std::string> log_lines;
+void Collect(spdlog::level::level_enum, std::string_view line)
+{
+    log_lines.emplace_back(line);
+}
+size_t TextureLines(const char *name)
+{
+    size_t n = 0;
+    for (const std::string &line : log_lines)
+        n += line.rfind("effects parallax: texture ", 0) == 0 && line.find(name) != std::string::npos;
+    return n;
+}
+
+void expect(bool ok, const char *what)
+{
+    std::printf("%s: %s\n", ok ? "ok" : "FAIL", what);
+    failures += ok ? 0 : 1;
+}
+
+// A8R8G8B8 levels of a texture: grey (r = g = b) or coloured.
+std::vector<std::vector<uint8_t>> Levels(bool grey)
+{
+    std::vector<std::vector<uint8_t>> levels;
+    for (uint32_t l = 0, size = kSize; l < kLevels; ++l, size /= 2)
+    {
+        std::vector<uint8_t> bgra(size_t(size) * size * 4);
+        for (uint32_t y = 0; y < size; ++y)
+            for (uint32_t x = 0; x < size; ++x)
+            {
+                uint8_t *p = &bgra[(size_t(y) * size + x) * 4];
+                const uint8_t v = static_cast<uint8_t>(((x * 8 / size + y * 8 / size) & 1) ? 200 : 60);
+                p[0] = v;
+                p[1] = v;
+                p[2] = grey ? v : static_cast<uint8_t>(255 - v);
+                p[3] = 255;
+            }
+        levels.push_back(std::move(bgra));
+    }
+    return levels;
+}
+
+// The game file (.tx: flags, width, height, levels, format, top level bytes, then the levels).
+void WriteTx(const std::filesystem::path &file, const std::vector<std::vector<uint8_t>> &levels)
+{
+    std::filesystem::create_directories(file.parent_path());
+    std::ofstream out(file, std::ios::binary);
+    const int32_t header[6] = {0, kSize, kSize, kLevels, D3DFMT_A8R8G8B8, static_cast<int32_t>(levels[0].size())};
+    out.write(reinterpret_cast<const char *>(header), sizeof(header));
+    for (const auto &level : levels)
+        out.write(reinterpret_cast<const char *>(level.data()), static_cast<std::streamsize>(level.size()));
+}
+
+// The loaded texture as Renderer::TextureLoad leaves it.
+std::unique_ptr<shim::TexStore> Store(const std::vector<std::vector<uint8_t>> &levels)
+{
+    static uint64_t serial = 0;
+    auto store = std::make_unique<shim::TexStore>();
+    store->serial = ++serial;
+    store->kind = shim::TexKind::Tex2D;
+    store->width = store->height = kSize;
+    store->levels = kLevels;
+    store->format = D3DFMT_A8R8G8B8;
+    store->subs.resize(kLevels);
+    for (uint32_t l = 0; l < kLevels; ++l)
+        store->subs[l].data = levels[l];
+    return store;
+}
+
+// Waits until the entries leave the worker (Pending): on its progress, no deadline (a worker that never finishes
+// hangs here and the test's TIMEOUT reports it).
+effects::NormalMaps::Stats Settle(effects::NormalMaps &maps, const std::vector<shim::TexStore *> &stores)
+{
+    for (;;)
+    {
+        bool pending = false;
+        for (shim::TexStore *store : stores)
+            pending |= (store->normal_map && store->normal_map->state == effects::NormalMapEntry::Pending) ||
+                       (store->gloss_map && store->gloss_map->state == effects::NormalMapEntry::Pending);
+        if (!pending)
+            return maps.stats();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+} // namespace
+
+int main()
+{
+    // Its own folder: gates of several worktrees run this check at once.
+    const std::filesystem::path root =
+        std::filesystem::temp_directory_path() / ("storm_relief_switch_check-" + std::to_string(getpid()));
+    std::filesystem::remove_all(root);
+    const std::filesystem::path textures = root / "game" / "RESOURCE" / "Textures", relief = root / "relief";
+    const auto colour = Levels(false), height = Levels(true);
+    WriteTx(textures / "stone_wall.tga.tx", colour);
+    WriteTx(textures / "bump_wall.tga.tx", height);
+    WriteTx(textures / "brick_arch.tga.tx", colour);
+    WriteTx(textures / "cannon_x.tga.tx", colour);
+    WriteTx(textures / "windowglass_x.tga.tx", colour);
+    effects::ConfigureRelief({relief, textures, nullptr}); // no model: requested maps become "missing"
+    // A map an older build made for the stone texture (its key without the model and the options: method 3 alone),
+    // as an upgraded install keeps them: never taken for the current one.
+    const std::vector<uint8_t> probe_level = colour[1];
+    const uint64_t old_key = fx::ReliefKey("stone_wall", probe_level, 64, 64, 3, fx::kReliefMapSize);
+    const fx::NormalMap old_map{8, 8, 4, fx::NormalMapFormat::EacRg11,
+                                std::vector<uint8_t>(fx::NormalMapBytes(8, 8, fx::NormalMapFormat::EacRg11), 9)};
+    fx::WriteReliefMap(relief, old_key, old_map);
+
+    effects::NormalMaps maps;
+    fx::Lighting gpu_lighting;
+    maps.configure(false, 512, false, false, false); // «Низкая»: relief and gloss off
+    maps.configure_gloss(false, 256);
+    auto stone = Store(colour), bump = Store(height), brick = Store(colour), cannon = Store(colour),
+         glass = Store(colour);
+    maps.on_texture_loaded(*stone, "resource\\textures\\stone_wall.tga.tx", textures / "stone_wall.tga.tx");
+    maps.on_texture_loaded(*bump, "resource\\textures\\bump_wall.tga.tx", textures / "bump_wall.tga.tx");
+    maps.on_texture_loaded(*cannon, "resource\\textures\\cannon_x.tga.tx", textures / "cannon_x.tga.tx");
+    maps.on_texture_loaded(*glass, "resource\\textures\\windowglass_x.tga.tx", textures / "windowglass_x.tga.tx");
+    auto rgb_normal = Levels(false);
+    for (auto &level : rgb_normal)
+        for (size_t pixel = 0; pixel < level.size(); pixel += 4)
+        {
+            level[pixel] = 255;
+            level[pixel + 1] = 128;
+            level[pixel + 2] = 128;
+            level[pixel + 3] = 255;
+        }
+    auto authored = Store(rgb_normal);
+    effects::NormalMaps authored_maps;
+    authored_maps.configure(false, 512, false, false, false);
+    authored_maps.on_texture_loaded(*authored, "authored_rgb_bump.tga.tx", textures / "authored_rgb_bump.tga.tx");
+    expect(!authored->normal_map || authored->normal_map->relief != fx::ReliefClass::HeightMap,
+           "authored RGB normal is not treated as a grey-height conversion");
+    expect(authored->sub(0, 0).data == rgb_normal[0],
+           "authored RGB source remains intact for its original shader binding");
+    const std::vector<shim::TexStore *> loaded{stone.get(), bump.get(), cannon.get(), glass.get()};
+    effects::NormalMaps::Stats off = Settle(maps, loaded);
+    expect(stone->normal_map && !bump->normal_map,
+           "textures loaded while relief is off get their entries, a grey bump none");
+    expect(!stone->gloss_map && stone->normal_map->material_gloss != fx::GlossClass::None && !cannon->gloss_map &&
+               cannon->normal_map && cannon->normal_map->material_gloss == fx::GlossClass::Metal &&
+               cannon->normal_map->relief == fx::ReliefClass::Metal && !glass->normal_map && glass->gloss_map &&
+               glass->gloss_map->gloss == fx::GlossClass::Glass && !bump->gloss_map,
+           "a gloss class without relief (glass) gets a gloss entry, one with relief (stone, metal) its relief's "
+           "material, height maps none");
+    expect(off.gloss_unqueued == 1 && off.gloss_waiting + off.gloss_missing == 0,
+           "no gloss map is looked up while gloss is off");
+    expect(off.unqueued == 2 && off.waiting == 0 && off.missing == 0, "nothing is looked up while relief is off");
+
+    // «Низкая»: no draw reads a relief or a gloss map; and a draw that asked anyway would start nothing.
+    const fx::Settings low = fx::Settings::FromPreset(fx::QualityPreset::Low);
+    expect(!effects::DrawReadsMaps(low, true, false).relief && !effects::DrawReadsMaps(low, true, false).gloss &&
+               !effects::DrawReadsMaps(low, true, true).relief,
+           "«Низкая»: no draw reads the relief or the gloss");
+    maps.select(stone.get(), nullptr, gpu_lighting);
+    maps.gloss(*glass, gpu_lighting);
+    off = Settle(maps, loaded);
+    expect(off.unqueued == 2 && off.waiting + off.missing == 0 && off.gloss_unqueued == 1 &&
+               off.gloss_waiting + off.gloss_missing == 0,
+           "«Низкая» queues nothing, even for a texture a draw asks about");
+
+    maps.configure(true, 512, true, true, true); // the preset raised in the same location
+    effects::NormalMaps::Stats on = Settle(maps, loaded);
+    expect(on.unqueued == 2 && on.waiting + on.missing == 0,
+           "raising the preset looks nothing up by itself: no draw has read the loaded textures yet");
+    expect(maps.prepare_scene(*stone, gpu_lighting) == 0 && maps.prepare_scene(*cannon, gpu_lighting) == 0,
+           "the loading screen does not wait for a texture no draw has read");
+    on = Settle(maps, loaded);
+    expect(on.unqueued == 2 && on.waiting + on.missing == 0,
+           "the loading screen starts nothing for textures no draw read");
+
+    // The draws of «Средняя»: the stone wall drawn lit reads its relief (requested); the cannon drawn only by a
+    // character while the characters' relief is off does not (not requested), with it on it does.
+    fx::Settings medium = fx::Settings::FromPreset(fx::QualityPreset::Medium);
+    expect(effects::DrawReadsMaps(medium, true, false).relief, "«Средняя»: a lit draw with normals reads the relief");
+    expect(!effects::DrawReadsMaps(medium, false, false).relief, "a draw without normals reads no relief");
+    const auto draw = [&](shim::TexStore &store, const fx::Settings &settings, bool character) {
+        if (effects::DrawReadsMaps(settings, true, character).relief)
+            maps.select(&store, nullptr, gpu_lighting);
+    };
+    draw(*stone, medium, false);
+    medium.character_relief = fx::CharacterRelief::Off;
+    draw(*cannon, medium, true);
+    on = Settle(maps, loaded);
+    std::printf("after the draws: unqueued %u, waiting %u, missing %u\n", on.unqueued, on.waiting, on.missing);
+    expect(stone->normal_map->state != effects::NormalMapEntry::Unqueued && on.waiting + on.missing == 1,
+           "the texture a draw reads the relief of is requested");
+    expect(cannon->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "a texture whose draw does not read the relief at these settings (a character, its relief off) is not "
+           "requested");
+    expect(stone->normal_map->key != old_key && fx::HasReliefMap(relief, old_key),
+           "the older build's map of the stone texture is not taken: its map is requested");
+    {
+        const auto pending = maps.select(stone.get(), nullptr, gpu_lighting);
+        expect(!bgfx::isValid(pending.map.handle),
+               "legacy generated cache never binds while the proper colour normal is unavailable");
+        expect(fx::ReliefMethod(fx::ReliefClass::Stone, true) != fx::ReliefMethod(fx::ReliefClass::HeightMap, true),
+               "authored height derivation and neural colour normals have separate cache provenance");
+    }
+    medium.character_relief = fx::CharacterRelief::Normals;
+    draw(*cannon, medium, true);
+    on = Settle(maps, loaded);
+    expect(cannon->normal_map->state != effects::NormalMapEntry::Unqueued,
+           "with the characters' relief on, the character draw requests it");
+
+    maps.configure_gloss(true, 256);
+    effects::NormalMaps::Stats glossy = Settle(maps, loaded);
+    expect(glossy.gloss_unqueued == 1 && glossy.gloss_waiting + glossy.gloss_missing == 0,
+           "switching gloss on looks no gloss map up by itself");
+    maps.gloss(*glass, gpu_lighting);
+    glossy = Settle(maps, loaded);
+    std::printf("after the gloss draw: unqueued %u, waiting %u, missing %u\n", glossy.gloss_unqueued,
+                glossy.gloss_waiting, glossy.gloss_missing);
+    expect(glossy.gloss_unqueued == 0 && glossy.gloss_waiting + glossy.gloss_missing == 1,
+           "a draw that reads the gloss requests the gloss map");
+
+    // A texture loaded with relief on is not looked up at its load either.
+    maps.on_texture_loaded(*brick, "resource\\textures\\brick_arch.tga.tx", textures / "brick_arch.tga.tx");
+    Settle(maps, {brick.get()});
+    expect(brick->normal_map && brick->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "a texture loaded with relief on is not requested until a draw reads it");
+
+    // Held, so that requests stay queued: a new scene, and then the preset lowered, drop them.
+    WriteTx(textures / "stone_arch.tga.tx", colour);
+    auto arch = Store(colour);
+    // The generator first ends what the steps above left it (how long the worker takes is its budget's).
+    for (const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+         (effects::ReliefGenerator::instance().stats().requested != 0 ||
+          effects::ReliefGenerator::instance().stats().working) &&
+         std::chrono::steady_clock::now() < until;)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    effects::hold_background_work("relief_switch_check");
+    maps.on_texture_loaded(*arch, "resource\\textures\\stone_arch.tga.tx", textures / "stone_arch.tga.tx");
+    maps.select(arch.get(), nullptr, gpu_lighting);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map && arch->normal_map->state == effects::NormalMapEntry::Waiting,
+           "a drawn texture waits in the generator's queue while the work is held");
+    maps.begin_scene("location/Next");
+    expect(arch->normal_map->state == effects::NormalMapEntry::Unqueued && arch->normal_map->drawn == 0,
+           "a new scene drops the previous scene's queue and forgets what was drawn");
+    expect(maps.prepare_scene(*arch, gpu_lighting) == 0 && arch->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "the next scene's loading screen starts nothing for it until its draws read it");
+    maps.select(arch.get(), nullptr, gpu_lighting);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map->state == effects::NormalMapEntry::Waiting, "the new scene's draw asks again");
+    // «Параллакс» off while it waits: the texture takes its map without the height (its own key), the queued
+    // request of the map with it goes; the next draw asks for the other one, which a map on disk answers.
+    const uint64_t with_height = arch->normal_map->key;
+    expect(with_height == arch->normal_map->key_height && arch->normal_map->key_flat != with_height &&
+               arch->normal_map->heights(),
+           "a relief texture knows both of its maps' keys and reads the one with the height");
+    maps.configure(true, 512, true, true, false);
+    expect(arch->normal_map->state == effects::NormalMapEntry::Unqueued &&
+               arch->normal_map->key == arch->normal_map->key_flat && !arch->normal_map->heights(),
+           "the height switched off drops the queued request and takes the map without the height");
+    {
+        fx::NormalMap flat{8, 8, 4, fx::NormalMapFormat::EacRg11,
+                           std::vector<uint8_t>(fx::NormalMapBytes(8, 8, fx::NormalMapFormat::EacRg11), 7)};
+        fx::WriteReliefMap(relief, arch->normal_map->key_flat, flat);
+    }
+    maps.select(arch.get(), nullptr, gpu_lighting);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map->state != effects::NormalMapEntry::Waiting &&
+               fx::HasReliefMap(relief, arch->normal_map->key_flat),
+           "the next draw finds the map without the height on disk: nothing is made");
+    maps.configure(true, 512, true, true, true);
+    expect(arch->normal_map->key == with_height && arch->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "the height on again: the map with it, looked up at the next draw");
+    maps.select(arch.get(), nullptr, gpu_lighting);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map->state == effects::NormalMapEntry::Waiting, "the map with the height is requested again");
+    maps.configure(false, 512, false, false, false); // the preset lowered while it works, «Высокая» → «Низкая»
+    expect(arch->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "switching relief off drops its queued request: the entry is unqueued, nothing is made for it");
+    effects::ReliefGenerator::instance().request(arch->normal_map, textures / "stone_arch.tga.tx");
+    expect(arch->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "a relief request while relief is off is not taken");
+    // The queued requests go at once (ReliefGenerator::set_wanted); a job of an earlier texture still in progress or
+    // finalizing stops or ends on the worker's own time, which a loaded host stretches: wait for it (no deadline, a
+    // job that never stops hangs here and the test's TIMEOUT reports the step).
+    std::printf("step: nothing of relief stays queued while it is off\n");
+    std::fflush(stdout);
+    while (effects::ReliefGenerator::instance().stats().requested != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::printf("ok: nothing of relief stays queued while it is off\n");
+    effects::hold_background_work(nullptr);
+    maps.configure(true, 512, true, true, true);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map->state == effects::NormalMapEntry::Unqueued,
+           "switching relief on again requests nothing by itself");
+    maps.select(arch.get(), nullptr, gpu_lighting);
+    Settle(maps, {arch.get()});
+    expect(arch->normal_map->state != effects::NormalMapEntry::Unqueued, "the next draw requests the dropped texture");
+
+    // The parallax census (detailed diagnostics only) logs a texture once per window, however often it is drawn and
+    // with however many reasons: a texture drawn with two reasons in every frame used to log two lines per frame.
+    {
+        storm::host_check::CollectLog(Collect);
+        effects::Lighting lighting;
+        stone->name = "textures/stone_wall.tga.tx"; // the game file's name, set by TextureLoad
+        brick->name = "textures/brick_arch.tga.tx";
+        const auto miss = [](effects::Lighting::ParallaxMiss m) { return static_cast<uint8_t>(m); };
+        const auto draw = [&](uint32_t frames) {
+            for (uint32_t frame = 0; frame < frames; ++frame)
+            {
+                lighting.cover(*stone, fx::ReliefClass::Stone, miss(effects::Lighting::ParallaxMiss::Stage1));
+                lighting.cover(*stone, fx::ReliefClass::Stone, miss(effects::Lighting::ParallaxMiss::Pretransformed));
+                lighting.cover(*brick, fx::ReliefClass::Stone, effects::Lighting::kCoverageParallax);
+                lighting.end_frame();
+            }
+        };
+        const auto census_lines = [] {
+            return std::count_if(log_lines.begin(), log_lines.end(),
+                                 [](const std::string &line) { return line.rfind("effects parallax", 0) == 0; });
+        };
+        render::SetDetailedDiagnostics(false);
+        log_lines.clear();
+        draw(3 * effects::Lighting::kCoverageFrames);
+        expect(census_lines() == 0, "without detailed diagnostics the census logs nothing");
+        render::SetDetailedDiagnostics(true);
+        draw(3 * effects::Lighting::kCoverageFrames);
+        expect(TextureLines("stone_wall") == 1 && TextureLines("brick_arch") == 1,
+               "a texture drawn again and again with two reasons logs one line, not one per draw");
+        render::SetDetailedDiagnostics(false);
+        draw(1);
+        render::SetDetailedDiagnostics(true);
+        draw(effects::Lighting::kCoverageFrames);
+        storm::host_check::StopCollectingLog();
+        expect(TextureLines("stone_wall") == 2,
+               "turned off and on again, the census starts empty: the texture is reported again");
+        bool both = false;
+        for (const std::string &line : log_lines)
+            both |= line.find("stone_wall") != std::string::npos && line.find("pretransformed") != std::string::npos &&
+                    line.find("stage 1") != std::string::npos;
+        expect(both, "that line holds every reason seen in the window");
+    }
+
+    {
+        effects::FfDraw draw;
+        draw.parallax_variant = true;
+        draw.parallax = {0.01f, 0.01f, 0.0f};
+        expect(!draw.has_parallax(), "cavity-only variant with no UV steps is not counted as parallax");
+        draw.parallax[2] = 1.0f;
+        expect(draw.has_parallax(), "offset mapping submission is counted");
+        draw.parallax[2] = 8.0f;
+        expect(draw.has_parallax(), "occlusion mapping submission is counted");
+        draw.parallax[0] = draw.parallax[1] = 0.0f;
+        expect(!draw.has_parallax(), "zero depth or zero-strength submission is not counted as parallax");
+        draw.parallax_variant = false;
+        expect(!draw.has_parallax(), "ordinary normal mapping is not counted as parallax");
+    }
+
+    // No GPU required: Uploaded entries stand in for successful uploads; pending/failed detail must not hide the
+    // colour texture's normal map. The selected stage also owns the sampler/UV and census/probe entry.
+    {
+        effects::NormalMaps selection_maps;
+        fx::Lighting gpu_lighting;
+        auto colour_store = Store(colour), detail_store = Store(height);
+        colour_store->normal_map = std::make_shared<effects::NormalMapEntry>();
+        detail_store->normal_map = std::make_shared<effects::NormalMapEntry>();
+        auto &base = *colour_store->normal_map;
+        auto &detail = *detail_store->normal_map;
+        base.name = "bricksfu1";
+        base.relief = fx::ReliefClass::Stone;
+        base.state = effects::NormalMapEntry::Uploaded;
+        base.handle = {123};
+        detail.name = "bump_city";
+        detail.relief = fx::ReliefClass::Stone; // a proper pipeline normal
+        for (const auto state : {effects::NormalMapEntry::Pending, effects::NormalMapEntry::Waiting,
+                                 effects::NormalMapEntry::Missing, effects::NormalMapEntry::Failed})
+        {
+            detail.state = state;
+            const auto selected = selection_maps.select(colour_store.get(), detail_store.get(), gpu_lighting);
+            expect(selected.stage == 0 && selected.entry == &base && selected.map.handle.idx == 123,
+                   "unavailable detail keeps the ready colour normal map and its stage");
+        }
+        detail.state = effects::NormalMapEntry::Uploaded;
+        detail.handle = {124};
+        const auto ready = selection_maps.select(colour_store.get(), detail_store.get(), gpu_lighting);
+        expect(ready.stage == 1 && ready.entry == &detail && ready.map.handle.idx == 124,
+               "proper ready detail retains its original priority");
+        const auto disabled = selection_maps.select(colour_store.get(), nullptr, gpu_lighting);
+        expect(disabled.stage == 0 && disabled.entry == &base, "disabled detail uses the colour map");
+        base.state = detail.state = effects::NormalMapEntry::Pending;
+        const auto waiting = selection_maps.select(colour_store.get(), detail_store.get(), gpu_lighting);
+        expect(waiting.stage == 1 && waiting.entry == &detail && !bgfx::isValid(waiting.map.handle),
+               "two pending maps retain the detail entry for missing-map diagnostics");
+        // A source colour texture never supplies an improvised brightness normal during generation or failure.
+        for (const auto state : {effects::NormalMapEntry::Pending, effects::NormalMapEntry::Waiting,
+                                 effects::NormalMapEntry::Missing, effects::NormalMapEntry::Failed})
+        {
+            base.state = state;
+            const auto unavailable = selection_maps.select(colour_store.get(), nullptr, gpu_lighting);
+            expect(!bgfx::isValid(unavailable.map.handle),
+                   "unavailable neural colour normal renders without any normal-map handle");
+        }
+        base.handle = detail.handle = BGFX_INVALID_HANDLE;
+    }
+
+    // A texture's own relief lines (its class, its map or the request for one) only with detailed diagnostics; the
+    // scene's counts are the tally's ("relief generation in").
+    for (const bool detailed : {false, true})
+    {
+        render::SetDetailedDiagnostics(detailed);
+        log_lines.clear();
+        storm::host_check::CollectLog(Collect);
+        effects::NormalMaps lines_maps;
+        lines_maps.configure(true, 512, true, true, true);
+        auto wall = Store(colour), grey = Store(height);
+        lines_maps.on_texture_loaded(*grey, "resource\\textures\\bump_wall.tga.tx", textures / "bump_wall.tga.tx");
+        lines_maps.on_texture_loaded(*wall, "resource\\textures\\stone_wall.tga.tx", textures / "stone_wall.tga.tx");
+        lines_maps.select(wall.get(), nullptr, gpu_lighting);
+        Settle(lines_maps, {wall.get()});
+        storm::host_check::StopCollectingLog();
+        size_t grey_lines = 0, wall_lines = 0;
+        for (const std::string &line : log_lines)
+        {
+            grey_lines += line.rfind("effects: relief bump_wall", 0) == 0;
+            wall_lines += line.rfind("effects: relief stone_wall", 0) == 0;
+        }
+        expect(detailed ? grey_lines == 1 && wall_lines == 1 : grey_lines + wall_lines == 0,
+               detailed ? "detailed: the grey bump texture and the looked-up map have their lines"
+                        : "without detailed diagnostics no texture has a relief line of its own");
+    }
+
+    effects::ReliefGenerator::instance().shutdown();
+    std::filesystem::remove_all(root);
+    if (failures)
+    {
+        std::printf("FAIL: %d checks\n", failures);
+        return 1;
+    }
+    std::printf("PASS: relief_switch_check\n");
+    return 0;
+}

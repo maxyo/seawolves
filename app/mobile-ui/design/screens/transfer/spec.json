@@ -1,0 +1,21 @@
+{
+  "tag": "s-transfer",
+  "doc": "Loot and exchange with another ship (interface `transfer_main`): cargo, crew and ships tabs (the two ships' figures side by side), the other ship's card in the dock, the game's windows as a modal or a side sheet, filled by extra_transfer.cpp.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "tabs": {"type": "json", "default": []},
+    "stats": {"type": "json", "default": []},
+    "list": {"type": "json", "default": {}},
+    "crew": {"type": "json", "default": null},
+    "ships": {"type": "json", "default": null},
+    "prize": {"type": "json", "default": null},
+    "deal": {"type": "json", "default": null},
+    "dealing": {"type": "bool", "default": false, "class": false},
+    "primary": {"type": "json", "default": null},
+    "actions": {"type": "json", "default": []},
+    "modal": {"type": "json", "default": null},
+    "sheet": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

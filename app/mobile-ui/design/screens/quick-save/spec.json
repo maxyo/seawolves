@@ -1,0 +1,9 @@
+{
+  "tag": "s-quick-save",
+  "doc": "The quick save's plate while the record is written (interface `quick_save`), filled by menu_quick_save.cpp. Nothing to press.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "text": {"type": "text", "default": ""},
+    "extras": {"type": "json", "default": {}}
+  }
+}

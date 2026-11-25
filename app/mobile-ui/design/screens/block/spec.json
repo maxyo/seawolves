@@ -1,0 +1,12 @@
+{
+  "tag": "s-block",
+  "doc": "Screen part: one block of the generic layout (generic.cpp BlockView) — table, list, tabs, controls, text or label.",
+  "props": {
+    "block": {"type": "json", "default": {}}
+  },
+  "classes": {
+    "scroll": "block.scroll",
+    "kind-table": "block.kind == 'table'",
+    "kind-rows": "in(block.kind, 'controls', 'list')"
+  }
+}

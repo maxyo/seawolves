@@ -1,0 +1,70 @@
+#pragma once
+
+// Content-change fingerprint of a directory tree, the key that invalidates the compiled script cache: each file adds a
+// hash of (relative path, size, mtime), summed so the enumeration order does not matter. Change detection for a cache,
+// not a security boundary: contents are not read, so an edit that keeps both size and mtime is not seen.
+
+#include "../fnv_hash.hpp"
+
+#include <cstdint>
+#include <filesystem>
+#include <string>
+#include <string_view>
+#include <system_error>
+
+namespace storm::fingerprint
+{
+// The value's 8 bytes, least significant first.
+inline uint64_t fnv1a(uint64_t value, uint64_t hash)
+{
+    for (int i = 0; i < 8; ++i)
+        hash = storm::hash::fnvRound(hash, (value >> (i * 8)) & 0xff);
+    return hash;
+}
+
+// Finalizer (splitmix64) so that summing per-file hashes keeps them independent.
+inline uint64_t mix(uint64_t x)
+{
+    x += 0x9e3779b97f4a7c15ull;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+    return x ^ (x >> 31);
+}
+
+// 0 for a missing tree. Unreadable entries are skipped rather than thrown:
+// a cache key must never abort startup.
+inline uint64_t tree(const std::filesystem::path &root)
+{
+    namespace fs = std::filesystem;
+    std::error_code error;
+    uint64_t result = 0;
+    const auto one = [&](const fs::path &file, const std::string &name) {
+        std::error_code ec;
+        const auto size = fs::file_size(file, ec);
+        if (ec)
+            return;
+        const auto time = fs::last_write_time(file, ec);
+        if (ec)
+            return;
+        uint64_t hash = storm::hash::fnv1a(name);
+        hash = fnv1a(static_cast<uint64_t>(size), hash);
+        hash = fnv1a(static_cast<uint64_t>(time.time_since_epoch().count()), hash);
+        result += mix(hash);
+    };
+    if (fs::is_regular_file(root, error))
+    {
+        one(root, root.filename().generic_string());
+        return result;
+    }
+    if (!fs::is_directory(root, error))
+        return 0;
+    for (auto it = fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error);
+         !error && it != fs::recursive_directory_iterator(); it.increment(error))
+    {
+        std::error_code ec;
+        if (it->is_regular_file(ec) && !ec)
+            one(it->path(), it->path().lexically_relative(root).generic_string());
+    }
+    return result;
+}
+} // namespace storm::fingerprint

@@ -1,0 +1,17 @@
+/* s-repair: three amount rows (name, quantity, materials) share the height (no empty band above them); the stock and the repair button are fixed at the bottom. */
+s-repair { display: block; width: 100%; height: 100%; }
+s-repair .rp-main { flex: 1 1 0; min-width: 0; height: 100%; }
+s-repair .rp-parts { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+s-repair .rp-part { flex: 1 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.lg}dp; padding: @{space.md}dp @{space.lg}dp; border-bottom: 1dp @{color.brassLine/.22}; }
+s-repair .rp-part:last-child { border-bottom-width: 0; }
+s-repair .rp-part.off { opacity: @{material.disabledOpacity}; }
+s-repair .rp-name { flex: 0 0 200dp; display: flex; flex-direction: row; align-items: center; gap: @{space.md}dp; min-width: 0; }
+s-repair .rp-words { flex: 1 1 0; min-width: 0; }
+s-repair .rp-title { font-size: @{type.name}dp; font-weight: bold; color: @{color.text}; }
+s-repair .rp-now { font-size: @{type.caption}dp; color: @{color.textMuted}; }
+s-repair .rp-q { flex: 1 1 0; min-width: 0; }
+s-repair .rp-need { flex: 0 0 150dp; text-align: right; font-size: @{type.body}dp; color: @{color.text}; }
+s-repair .rp-need.short { color: @{color.textReason}; }
+s-repair .rp-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp 0 @{space.lg}dp; }
+s-repair .rp-stock { display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; }
+s-repair .rp-stock-text { font-size: @{type.body}dp; color: @{color.text}; }

@@ -1,0 +1,6 @@
+# Text files are stored with LF line ends; Git tells text from binary by their content.
+* text=auto
+# Shell scripts keep LF in every checkout: they run on Linux and macOS.
+*.sh text eol=lf
+# Script patches are byte-exact diffs of CRLF game scripts: never convert line ends.
+app/script-patches/**/*.patch -text

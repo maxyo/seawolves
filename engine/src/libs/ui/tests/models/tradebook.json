@@ -1,0 +1,22 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":3,
+"screenRevision":8,
+"screen":"tradebook",
+"widgets":[
+{"node":"TITLE","type":"heading","label":"Торговая книга","index":-1,"order":1},
+{"node":"EXIT_BTN","type":"button","index":-1,"order":2},
+{"node":"I_CHARACTER","type":"button","index":-1,"order":3},
+{"node":"I_SHIP","type":"button","index":-1,"order":4},
+{"node":"I_QUESTBOOK","type":"button","index":-1,"order":5},
+{"node":"I_NATIONS","type":"button","index":-1,"order":6},
+{"node":"I_ITEMS","type":"button","index":-1,"order":7},
+{"node":"I_CHARACTER_2","type":"button","index":-1,"order":8},
+{"node":"TABLE_CITY","type":"choice","label":"\tГавана\tКуба\t14.09.1654","value":"0","index":0,"order":100,"rowId":"city:0","actions":["select"],"cells":[{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"NATIONS","image":"Spain"}}]},{"text":"Гавана"},{"text":"Куба"},{"text":"14.09.1654"}],"columnHeaders":["Нация","Город","Местоположение","Актуальность"]},
+{"node":"TABLE_CITY","type":"choice","label":"\tПорт-Ройал\tЯмайка\t02.10.1654","value":"1","index":1,"order":100,"rowId":"city:1","actions":["select"],"cells":[{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"NATIONS","image":"England"}}]},{"text":"Порт-Ройал"},{"text":"Ямайка"},{"text":"02.10.1654"}],"columnHeaders":["Нация","Город","Местоположение","Актуальность"]},
+{"node":"TABLE_CITY","type":"choice","label":"\tЛа Вега\tЭспаньола\t??.??.????","value":"0","index":2,"order":100,"rowId":"city:2","actions":["select"],"cells":[{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"NATIONS","image":"Pirate"}}]},{"text":"Ла Вега"},{"text":"Эспаньола"},{"text":"??.??.????"}],"columnHeaders":["Нация","Город","Местоположение","Актуальность"]},
+{"node":"TABLE_GOODS","type":"choice","label":"Провиант\t\t6\t9\t1835\t20\t1","value":"0","index":0,"order":200,"rowId":"goods:0","actions":["select"],"cells":[{"text":"Провиант","images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"GOODS","image":"Food"}}]},{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"TRADE_TYPE","image":"ico_0"}}]},{"text":"6"},{"text":"9"},{"text":"1835"},{"text":"20"},{"text":"1"}],"columnHeaders":["Товар","Тип","Продажа","Покупка","Запас","Пачка","Вес пачки"]},
+{"node":"TABLE_GOODS","type":"choice","label":"Ром\t\t7\t10\t940\t20\t1","value":"0","index":1,"order":200,"rowId":"goods:1","actions":["select"],"cells":[{"text":"Ром","images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"GOODS","image":"Rum"}}]},{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"TRADE_TYPE","image":"ico_3"}}]},{"text":"7"},{"text":"10"},{"text":"940"},{"text":"20"},{"text":"1"}],"columnHeaders":["Товар","Тип","Продажа","Покупка","Запас","Пачка","Вес пачки"]},
+{"node":"TABLE_GOODS","type":"choice","label":"Табак\t\t110\t160\t45\t20\t1","value":"0","index":2,"order":200,"rowId":"goods:2","actions":["select"],"cells":[{"text":"Табак","images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"GOODS","image":"Tobacco"}}]},{"images":[{"handle":3,"imageRevision":3,"width":26,"height":26,"source":{"kind":"atlas","group":"TRADE_TYPE","image":"ico_7"}}]},{"text":"110"},{"text":"160"},{"text":"45"},{"text":"20"},{"text":"1"}],"columnHeaders":["Товар","Тип","Продажа","Покупка","Запас","Пачка","Вес пачки"]}
+]}

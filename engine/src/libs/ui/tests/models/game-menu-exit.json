@@ -1,0 +1,19 @@
+{
+"schemaVersion":2,
+"language":"russian",
+"revision":2,
+"screenRevision":4,
+"screen":"game_menu",
+"widgets":[
+{"node":"LOGO","type":"image","index":-1,"enabled":false},
+{"node":"MB_OPTIONS","type":"button","label":"Настройки","index":-1},
+{"node":"MB_RESUME","type":"button","label":"Продолжить","index":-1,"context":{"resumeOnCancel":"1"}},
+{"node":"MB_SAVE","type":"button","label":"Сохранить","index":-1},
+{"node":"MB_LOAD","type":"button","label":"Загрузить","index":-1},
+{"node":"MB_EXITGAME","type":"button","label":"Выйти из игры","index":-1},
+{"node":"MB_UPDATES","type":"button","label":"Дополнения","index":-1,"enabled":false},
+{"node":"VERSION_TEXT","type":"text","label":"ver. 0.0","value":"1","index":-1},
+{"node":"CONFIRM_EXIT_TEXT","type":"text","label":"Выйти?","index":-1},
+{"node":"CONFIRM_EXIT_YES","type":"button","label":"Да","index":-1},
+{"node":"CONFIRM_EXIT_NO","type":"button","label":"Нет","index":-1}
+]}

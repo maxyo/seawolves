@@ -1,0 +1,42 @@
+{
+  "tag": "c-setting",
+  "props": {
+    "label": {"type": "text", "default": ""},
+    "hint": {"type": "text", "default": ""},
+    "control": {"type": "enum", "options": ["slider", "toggle", "check", "radio", "segment", "button", "none"], "default": "toggle"},
+    "value": {"type": "int", "default": 70},
+    "display": {"type": "text", "default": ""},
+    "on": {"type": "bool", "default": true},
+    "options": {"type": "json", "default": [], "defaultKey": ["common.none", "common.few", "common.many"]},
+    "selected": {"type": "int", "default": 0},
+    "disabled": {"type": "bool", "default": false},
+    "reason": {"type": "text", "default": ""},
+    "line": {"type": "bool", "default": true},
+    "stack": {"type": "bool", "default": false},
+    "stretch": {"type": "bool", "default": false},
+    "steps": {"type": "bool", "default": false},
+    "pressed": {"type": "bool", "default": false, "class": false},
+    "active": {"type": "bool", "default": false, "class": false},
+    "restart": {"type": "bool", "default": false, "class": false}
+  },
+  "classes": {
+    "pressed": "(pressed || active) && !disabled"
+  },
+  "behaviors": ["press", "range"],
+  "constants": {
+    "pressRoot": false,
+    "minHeight": 52,
+    "labelFont": @{type.body},
+    "hintFont": @{type.caption},
+    "segmentHeight": @{size.touch},
+    "segmentMinWidth": @{size.touchMin},
+    "labelMin": 150,
+    "toggleWidth": 52,
+    "toggleHeight": 30,
+    "thumb": 28,
+    "stepButton": @{size.touchMin},
+    "sliderStep": 5,
+    "box": 24,
+    "defaultOptions": [{"key": "common.none"}, {"key": "common.few"}, {"key": "common.many"}]
+  }
+}

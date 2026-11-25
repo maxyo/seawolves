@@ -1,0 +1,7 @@
+/* s-goods-order: the goods list takes the height; the contraband switch and the order deal («Отмена», «Сохранить N») sit in the fixed bar under it. */
+s-goods-order { display: block; width: 100%; height: 100%; }
+s-goods-order .sg-main { flex: 1 1 0; min-width: 0; height: 100%; }
+s-goods-order .sg-list { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+s-goods-order .sg-note { flex: 0 0 auto; padding: 6dp @{space.lg}dp 0 @{space.lg}dp; }
+/* the contraband toggle is a 48 dp row by itself */
+s-goods-order .screen-bar { padding-top: 0; padding-bottom: 0; }

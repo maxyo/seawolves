@@ -1,0 +1,13 @@
+--- a/PROGRAM/battle_interface/BattleInterface.c
++++ b/PROGRAM/battle_interface/BattleInterface.c
+@@ -2507,7 +2507,9 @@
+ // --> ugeen
+ void SetTownFlag(ref loc, object mdl)
+ {
+-	if (!CheckAttribute(loc, "townsack")) return;
++	// A location of no town (townsack "", e.g. Amelia_house in the dunes of Portobello) has no town flag:
++	// GetCityNation("") indexes Colonies[-1].
++	if (!CheckAttribute(loc, "townsack") || loc.townsack == "") return;
+ 	int iNation = GetCityNation(loc.townsack);
+ 	if(iNation == PIRATE) 
+ 	{	

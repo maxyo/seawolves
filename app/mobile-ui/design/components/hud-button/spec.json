@@ -1,0 +1,39 @@
+{
+  "tag": "c-hud-button",
+  "props": {
+    "icon": {"type": "text", "default": "pistol"},
+    "label": {"type": "text", "default": ""},
+    "size": {"type": "enum", "options": [24, 26, 28, 44, 48, 52, 56, 64, 68, 76, 84], "class": false},
+    "variant": {"type": "enum", "options": ["normal", "primary", "combat", "active", "ghost"], "default": "normal"},
+    "badge": {"type": "text", "default": ""},
+    "countOnly": {"type": "bool", "default": false, "class": false},
+    "badgeTone": {"type": "enum", "options": ["gold", "danger"], "default": "gold"},
+    "fill": {"type": "number"},
+    "fillTone": {"type": "enum", "options": ["reload", "cooldown", "active", "danger", "effect"], "class": false},
+    "forceLabel": {"type": "bool", "default": false, "class": false},
+    "disabled": {"type": "bool", "default": false},
+    "reason": {"type": "text", "default": ""},
+    "hiddenWhenDisabled": {"type": "bool", "default": false, "class": false},
+    "pressed": {"type": "bool", "default": false, "class": false},
+    "hold": {"type": "bool", "default": false},
+    "holdProgress": {"type": "number", "default": 0},
+    "reloading": {"type": "bool", "default": false},
+    "cue": {"type": "bool", "default": false, "class": false, "doc": "a small dot at the top right: something behind the button can be used now (the collapsed abilities); no number"},
+    "indicator": {"type": "bool", "default": false},
+    "state": {"type": "bool", "default": false}
+  },
+  "classes": {
+    "dis": "disabled || (badge == '0' && !countOnly && !reloading && !indicator && !state)",
+    "spent": "!disabled && badge == '0' && !countOnly && !reloading && !indicator && !state",
+    "flat": "indicator || state",
+    "zero": "badge == '0' && !countOnly",
+    "pressed": "(pressed || (hold && holdProgress > 0 && holdProgress < 100)) && !(disabled || (badge == '0' && !countOnly && !reloading)) && !indicator && !state",
+    "done": "hold && holdProgress >= 100 && !(disabled || (badge == '0' && !countOnly && !reloading)) && !indicator && !state"
+  },
+  "behaviors": ["press"],
+  "constants": {
+    "size": {"normal": 52, "indicator": 40, "state": @{size.hudState}},
+    "glassAlpha": {"normal": @{material.hudGlassAlpha}, "strong": @{material.hudGlassStrongAlpha}, "pressed": @{material.hudGlassPressedAlpha}},
+    "holdMode": "confirm"
+  }
+}

@@ -1,0 +1,1371 @@
+// <ui-ring>: hold-to-confirm progress frame (rectangle or circle).
+// <ui-paper>: aged parchment sheet with a torn deckle edge, fibres, foxing and a fold.
+// <ui-clamp>: text cut to a number of lines with an ellipsis.
+// <ui-pages>: a long text shown a page at a time, before a reserved part (dialogue replies).
+// <ui-wheel>: a disc cut into sectors around a centre disc (the sword-move wheel).
+// <ui-links>: smooth anti-aliased curves with arrowheads between points of a drawing (the perk tree).
+// Colours come from RCSS properties registered here, so the tokens stay the only source.
+#include "elements.h"
+#include "numbers.h"
+#include "text_pages.h"
+#include "text_utf8.h"
+
+#include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
+#include <RmlUi/Core/FontEngineInterface.h>
+#include <RmlUi/Core/ID.h>
+#include <RmlUi/Core/Property.h>
+
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+
+namespace storm::ui
+{
+
+namespace
+{
+
+constexpr float kPi = 3.14159265358979f;
+
+Rml::PropertyId ring_fill, ring_fill_end, ring_track, paper_top, paper_bottom, paper_edge, paper_line, paper_shadow,
+    paper_fibre;
+Rml::PropertyId wheel_fill, wheel_selected, wheel_line, wheel_edge, wheel_centre;
+Rml::PropertyId links_colour, links_met, links_focus;
+
+Rml::Colourb ColourOf(Rml::Element &element, Rml::PropertyId id)
+{
+    const Rml::Property *property = element.GetProperty(id);
+    return property ? property->Get<Rml::Colourb>() : Rml::Colourb(0, 0, 0, 0);
+}
+
+Rml::ColourbPremultiplied Mix(Rml::Colourb a, Rml::Colourb b, float t, float opacity = 1.0f)
+{
+    const auto lerp = [t](Rml::byte x, Rml::byte y) { return static_cast<Rml::byte>(std::lround(x + (y - x) * t)); };
+    return Rml::Colourb(lerp(a.red, b.red), lerp(a.green, b.green), lerp(a.blue, b.blue), lerp(a.alpha, b.alpha))
+        .ToPremultiplied(opacity);
+}
+
+// `over` painted on top of the opaque `base`.
+Rml::Colourb Over(Rml::Colourb base, Rml::Colourb over, float strength = 1.0f)
+{
+    const float a = over.alpha / 255.0f * strength;
+    const auto mix = [a](Rml::byte x, Rml::byte y) { return static_cast<Rml::byte>(std::lround(x + (y - x) * a)); };
+    return Rml::Colourb(mix(base.red, over.red), mix(base.green, over.green), mix(base.blue, over.blue), base.alpha);
+}
+
+int Push(Rml::Mesh &mesh, Rml::Vector2f position, Rml::ColourbPremultiplied colour, Rml::Vector2f uv = {0, 0})
+{
+    mesh.vertices.push_back(Rml::Vertex{position, colour, uv});
+    return static_cast<int>(mesh.vertices.size()) - 1;
+}
+
+void Triangle(Rml::Mesh &mesh, int a, int b, int c)
+{
+    mesh.indices.push_back(a);
+    mesh.indices.push_back(b);
+    mesh.indices.push_back(c);
+}
+
+void Quad(Rml::Mesh &mesh, int a, int b, int c, int d)
+{
+    Triangle(mesh, a, b, c);
+    Triangle(mesh, a, c, d);
+}
+
+class DrawElement : public Rml::Element
+{
+  public:
+    explicit DrawElement(const Rml::String &tag) : Rml::Element(tag)
+    {
+    }
+
+  protected:
+    // `overlay` is drawn after `mesh`, with MeshTexture().
+    virtual void Build(Rml::Mesh &mesh, Rml::Mesh &overlay, Rml::Vector2f size, float dp) = 0;
+    virtual Rml::Texture MeshTexture(Rml::RenderManager &)
+    {
+        return {};
+    }
+
+    void OnRender() override
+    {
+        Rml::RenderManager *manager = GetRenderManager();
+        if (!manager)
+            return;
+        const Rml::Vector2f size = GetBox().GetSize(Rml::BoxArea::Border);
+        if (size.x <= 0 || size.y <= 0)
+            return;
+        if (dirty_ || size != built_size_)
+        {
+            Rml::Mesh mesh = geometry_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+            Rml::Mesh overlay = overlay_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+            float dp = 1.0f;
+            if (Rml::Context *context = GetContext())
+                dp = context->GetDensityIndependentPixelRatio();
+            Build(mesh, overlay, size, dp);
+            has_overlay_ = !overlay.indices.empty();
+            geometry_ = manager->MakeGeometry(std::move(mesh));
+            overlay_ = manager->MakeGeometry(std::move(overlay));
+            built_size_ = size;
+            dirty_ = false;
+        }
+        const Rml::Vector2f origin = GetAbsoluteOffset(Rml::BoxArea::Border);
+        geometry_.Render(origin);
+        if (has_overlay_)
+            overlay_.Render(origin, MeshTexture(*manager));
+    }
+
+    void OnAttributeChange(const Rml::ElementAttributes &changed) override
+    {
+        Rml::Element::OnAttributeChange(changed);
+        dirty_ = true;
+    }
+    void OnPropertyChange(const Rml::PropertyIdSet &changed) override
+    {
+        Rml::Element::OnPropertyChange(changed);
+        dirty_ = true;
+    }
+    void OnDpRatioChange() override
+    {
+        Rml::Element::OnDpRatioChange();
+        dirty_ = true;
+    }
+
+    bool dirty_ = true;
+
+  private:
+    Rml::Geometry geometry_;
+    Rml::Geometry overlay_;
+    bool has_overlay_ = false;
+    Rml::Vector2f built_size_;
+};
+
+class RingElement final : public DrawElement
+{
+  public:
+    using DrawElement::DrawElement;
+
+  protected:
+    void Build(Rml::Mesh &mesh, Rml::Mesh &, Rml::Vector2f size, float dp) override
+    {
+        const float value = std::clamp(GetAttribute<float>("value", 0.0f), 0.0f, 100.0f) / 100.0f;
+        const float thickness = GetAttribute<float>("thickness", 3.0f) * dp;
+        const bool circle = GetAttribute<Rml::String>("shape", "rect") == "circle";
+        const float opacity = GetComputedValues().opacity();
+        const Rml::Colourb fill = ColourOf(*this, ring_fill), fill_end = ColourOf(*this, ring_fill_end),
+                           track = ColourOf(*this, ring_track);
+        const Rml::Vector2f centre = size * 0.5f;
+        const Rml::Vector2f half = centre,
+                            inner = {std::max(0.0f, half.x - thickness), std::max(0.0f, half.y - thickness)};
+
+        // Angles run clockwise from 12 o'clock, like a conic gradient.
+        std::vector<float> angles;
+        const int steps = circle ? 96 : 64;
+        for (int i = 0; i <= steps; ++i)
+            angles.push_back(2.0f * kPi * static_cast<float>(i) / static_cast<float>(steps));
+        if (!circle)
+        {
+            const float corner = std::atan2(half.x, half.y);
+            for (const float a : {corner, kPi - corner, kPi + corner, 2.0f * kPi - corner})
+                angles.push_back(a);
+        }
+        if (value > 0.0f && value < 1.0f)
+            angles.push_back(value * 2.0f * kPi);
+        std::sort(angles.begin(), angles.end());
+
+        // Outer edge point along the ray; the inner one is the same point pulled onto the
+        // inner outline, so the band keeps its thickness around the corners.
+        const auto outer_point = [&](float angle) {
+            const float s = std::sin(angle), c = -std::cos(angle);
+            if (circle)
+                return centre + Rml::Vector2f(s, c) * std::min(half.x, half.y);
+            const float scale = std::min(std::fabs(s) > 1e-5f ? half.x / std::fabs(s) : 1e9f,
+                                         std::fabs(c) > 1e-5f ? half.y / std::fabs(c) : 1e9f);
+            return centre + Rml::Vector2f(s, c) * scale;
+        };
+        const auto inner_point = [&](float angle) {
+            if (circle)
+                return centre + Rml::Vector2f(std::sin(angle), -std::cos(angle)) *
+                                    std::max(0.0f, std::min(half.x, half.y) - thickness);
+            const Rml::Vector2f p = outer_point(angle);
+            return Rml::Vector2f(std::clamp(p.x, centre.x - inner.x, centre.x + inner.x),
+                                 std::clamp(p.y, centre.y - inner.y, centre.y + inner.y));
+        };
+        const auto colour = [&](float angle, bool filled) {
+            if (!filled)
+                return track.ToPremultiplied(opacity);
+            return Mix(fill, fill_end, value > 0.0f ? std::min(1.0f, angle / (value * 2.0f * kPi)) : 0.0f, opacity);
+        };
+        for (size_t i = 0; i + 1 < angles.size(); ++i)
+        {
+            const float a = angles[i], b = angles[i + 1];
+            if (b - a < 1e-6f)
+                continue;
+            const bool filled = (a + b) * 0.5f < value * 2.0f * kPi;
+            const int v0 = Push(mesh, outer_point(a), colour(a, filled));
+            const int v1 = Push(mesh, outer_point(b), colour(b, filled));
+            const int v2 = Push(mesh, inner_point(b), colour(b, filled));
+            const int v3 = Push(mesh, inner_point(a), colour(a, filled));
+            Quad(mesh, v0, v1, v2, v3);
+        }
+    }
+};
+
+// links="state x,y x,y …;state x,y …" in dp from the element's top left, thickness="dp": each link a line
+// through its points, consecutive points joined by a cubic curve that leaves and arrives vertically (an S
+// between rows, straight down a lane), ending in an arrowhead pointing down at its last point. State 0 is
+// drawn in links-color, 1 in links-met-color, 2 (the selected perk's links, on top, a little thicker) in
+// links-focus-color. Edges fade over one pixel, so the curves stay smooth without multisampling.
+class LinksElement final : public DrawElement
+{
+  public:
+    using DrawElement::DrawElement;
+
+  protected:
+    void Build(Rml::Mesh &mesh, Rml::Mesh &, Rml::Vector2f, float dp) override
+    {
+        struct Path
+        {
+            int state = 0;
+            std::vector<Rml::Vector2f> points;
+        };
+        std::vector<Path> paths;
+        const std::string text = GetAttribute<Rml::String>("links", "");
+        for (size_t at = 0; at < text.size();)
+        {
+            const size_t end = std::min(text.find(';', at), text.size());
+            const std::string item = text.substr(at, end - at);
+            at = end + 1;
+            Path path;
+            const char *c = item.c_str();
+            char *next = nullptr;
+            path.state = static_cast<int>(std::strtol(c, &next, 10));
+            if (next == c)
+            {
+                Rml::Log::Message(Rml::Log::LT_ERROR, "ui-links: link '%s' does not start with its state number",
+                                  item.c_str());
+                continue;
+            }
+            for (c = next;;)
+            {
+                const float x = std::strtof(c, &next);
+                if (next == c || *next != ',')
+                    break;
+                c = next + 1;
+                const float y = std::strtof(c, &next);
+                if (next == c)
+                    break;
+                c = next;
+                path.points.push_back({x * dp, y * dp});
+            }
+            if (path.points.size() >= 2)
+                paths.push_back(std::move(path));
+        }
+        std::stable_sort(paths.begin(), paths.end(), [](const Path &a, const Path &b) { return a.state < b.state; });
+        const float opacity = GetComputedValues().opacity();
+        const float base = GetAttribute<float>("thickness", 2.0f) * dp;
+        const float feather = 1.0f;
+        for (const Path &path : paths)
+        {
+            const Rml::Colourb colour = ColourOf(*this, path.state == 2   ? links_focus
+                                                        : path.state == 1 ? links_met
+                                                                          : links_colour);
+            const Rml::ColourbPremultiplied solid = colour.ToPremultiplied(opacity),
+                                            clear = Rml::Colourb(colour.red, colour.green, colour.blue, 0)
+                                                        .ToPremultiplied(opacity);
+            const float half = (path.state == 2 ? base * 1.35f : base) * 0.5f;
+            const float head = 7.0f * dp;
+            // Sample the curves; the line stops where the arrowhead begins.
+            std::vector<Rml::Vector2f> line;
+            for (size_t i = 0; i + 1 < path.points.size(); ++i)
+            {
+                const Rml::Vector2f a = path.points[i], b = path.points[i + 1];
+                const bool last = i + 2 == path.points.size();
+                const Rml::Vector2f end = last ? Rml::Vector2f(b.x, b.y - head * 0.8f) : b;
+                const float bend = (end.y - a.y) * 0.5f;
+                const Rml::Vector2f c1(a.x, a.y + bend), c2(end.x, end.y - bend);
+                const int steps = std::fabs(end.x - a.x) < 0.5f ? 1 : 24;
+                for (int k = line.empty() ? 0 : 1; k <= steps; ++k)
+                {
+                    const float t = static_cast<float>(k) / steps, u = 1.0f - t;
+                    line.push_back(a * (u * u * u) + c1 * (3 * u * u * t) + c2 * (3 * u * t * t) + end * (t * t * t));
+                }
+            }
+            for (size_t i = 0; i + 1 < line.size(); ++i)
+            {
+                const Rml::Vector2f a = line[i], b = line[i + 1], d = b - a;
+                const float length = std::sqrt(d.x * d.x + d.y * d.y);
+                if (length < 0.01f)
+                    continue;
+                const Rml::Vector2f normal(-d.y / length, d.x / length);
+                // A core quad and a one-pixel fade on each side; short segments overlap at the joints.
+                const Rml::Vector2f ext = d * (0.35f / length);
+                const Rml::Vector2f a2 = a - ext, b2 = b + ext;
+                const int c0 = Push(mesh, a2 + normal * half, solid), c1 = Push(mesh, b2 + normal * half, solid);
+                const int c2 = Push(mesh, b2 - normal * half, solid), c3 = Push(mesh, a2 - normal * half, solid);
+                Quad(mesh, c0, c1, c2, c3);
+                const int o0 = Push(mesh, a2 + normal * (half + feather), clear),
+                          o1 = Push(mesh, b2 + normal * (half + feather), clear);
+                Quad(mesh, o0, o1, c1, c0);
+                const int o2 = Push(mesh, b2 - normal * (half + feather), clear),
+                          o3 = Push(mesh, a2 - normal * (half + feather), clear);
+                Quad(mesh, c3, c2, o2, o3);
+            }
+            // The arrowhead, pointing down at the last point.
+            const Rml::Vector2f tip = path.points.back();
+            const float w = head * 0.55f;
+            const int t0 = Push(mesh, tip, solid), t1 = Push(mesh, {tip.x - w, tip.y - head}, solid),
+                      t2 = Push(mesh, {tip.x + w, tip.y - head}, solid);
+            Triangle(mesh, t0, t1, t2);
+            const int f0 = Push(mesh, {tip.x, tip.y + feather}, clear),
+                      f1 = Push(mesh, {tip.x - w - feather, tip.y - head - feather * 0.5f}, clear);
+            const int f2 = Push(mesh, {tip.x + w + feather, tip.y - head - feather * 0.5f}, clear);
+            Quad(mesh, f0, f1, t1, t0);
+            Quad(mesh, t0, t2, f2, f0);
+        }
+    }
+};
+
+// size="dp" (the box), inner="dp" (radius of the centre disc), bounds="deg,deg,…" (sector
+// edges clockwise from the positive x axis with y down, one more than sectors),
+// selected="<sector index>|centre". Children marked data-sector="<index>|centre" with
+// data-size="dp" are centred in their sector by the element.
+class WheelElement final : public DrawElement
+{
+  public:
+    using DrawElement::DrawElement;
+
+  protected:
+    void OnAttributeChange(const Rml::ElementAttributes &changed) override
+    {
+        DrawElement::OnAttributeChange(changed);
+        placed_ = false;
+    }
+    void OnChildAdd(Rml::Element *child) override
+    {
+        DrawElement::OnChildAdd(child);
+        placed_ = false;
+    }
+
+    void OnUpdate() override
+    {
+        DrawElement::OnUpdate();
+        if (placed_)
+            return;
+        placed_ = true;
+        const std::vector<float> bounds = Bounds();
+        const float size = GetAttribute<float>("size", 0.0f), inner = GetAttribute<float>("inner", 0.0f);
+        const float radius = (inner + size * 0.5f - kRim) * 0.5f;
+        for (int i = 0; i < GetNumChildren(); ++i)
+        {
+            Rml::Element *child = GetChild(i);
+            const Rml::String sector = child->GetAttribute<Rml::String>("data-sector", "");
+            if (sector.empty())
+                continue;
+            Rml::Vector2f centre = {size * 0.5f, size * 0.5f};
+            const std::optional<int> index = sector == "centre" ? std::nullopt : ParseNumber<int>(sector);
+            if (sector != "centre" && !index)
+                Rml::Log::Message(Rml::Log::LT_ERROR, "ui-wheel: data-sector='%s' is neither a number nor centre",
+                                  sector.c_str());
+            if (index && *index >= 0 && static_cast<size_t>(*index) + 1 < bounds.size())
+            {
+                const float angle = (bounds[static_cast<size_t>(*index)] + bounds[static_cast<size_t>(*index) + 1]) *
+                                    0.5f * kPi / 180.0f;
+                centre += Rml::Vector2f(std::cos(angle), std::sin(angle)) * radius;
+            }
+            const float half = child->GetAttribute<float>("data-size", 0.0f) * 0.5f;
+            child->SetProperty(Rml::PropertyId::Position, Rml::Property(Rml::Style::Position::Absolute));
+            child->SetProperty(Rml::PropertyId::Left, Rml::Property(centre.x - half, Rml::Unit::DP));
+            child->SetProperty(Rml::PropertyId::Top, Rml::Property(centre.y - half, Rml::Unit::DP));
+        }
+    }
+
+    void Build(Rml::Mesh &mesh, Rml::Mesh &, Rml::Vector2f size, float dp) override
+    {
+        const std::vector<float> bounds = Bounds();
+        if (bounds.size() < 2)
+            return;
+        const float opacity = GetComputedValues().opacity();
+        const Rml::Colourb fill = ColourOf(*this, wheel_fill), selected = ColourOf(*this, wheel_selected),
+                           line = ColourOf(*this, wheel_line), edge = ColourOf(*this, wheel_edge),
+                           middle = ColourOf(*this, wheel_centre);
+        const Rml::String chosen = GetAttribute<Rml::String>("selected", "");
+        const Rml::Vector2f centre = size * 0.5f;
+        const float outer = std::min(centre.x, centre.y) - kRim * dp, inner = GetAttribute<float>("inner", 0.0f) * dp;
+        const auto point = [&](float degrees, float radius) {
+            const float angle = degrees * kPi / 180.0f;
+            return centre + Rml::Vector2f(std::cos(angle), std::sin(angle)) * radius;
+        };
+        const auto band = [&](float from, float to, float near, float far, Rml::Colourb colour) {
+            const int steps = std::max(1, static_cast<int>(std::ceil((to - from) / 3.0f)));
+            const Rml::ColourbPremultiplied paint = colour.ToPremultiplied(opacity);
+            for (int i = 0; i < steps; ++i)
+            {
+                const float a = from + (to - from) * static_cast<float>(i) / static_cast<float>(steps);
+                const float b = from + (to - from) * static_cast<float>(i + 1) / static_cast<float>(steps);
+                Quad(mesh, Push(mesh, point(a, far), paint), Push(mesh, point(b, far), paint),
+                     Push(mesh, point(b, near), paint), Push(mesh, point(a, near), paint));
+            }
+        };
+        for (size_t i = 0; i + 1 < bounds.size(); ++i)
+            band(bounds[i], bounds[i + 1], inner, outer, chosen == std::to_string(i) ? selected : fill);
+        band(0.0f, 360.0f, 0.0f, inner, chosen == "centre" ? selected : middle);
+        // Sector edges, then the rims on top.
+        const float hair = 0.5f * dp;
+        for (size_t i = 0; i + 1 < bounds.size(); ++i)
+        {
+            const float angle = bounds[i] * kPi / 180.0f;
+            const Rml::Vector2f across = Rml::Vector2f(-std::sin(angle), std::cos(angle)) * hair;
+            const Rml::ColourbPremultiplied paint = line.ToPremultiplied(opacity);
+            Quad(mesh, Push(mesh, point(bounds[i], inner) - across, paint),
+                 Push(mesh, point(bounds[i], outer) - across, paint),
+                 Push(mesh, point(bounds[i], outer) + across, paint),
+                 Push(mesh, point(bounds[i], inner) + across, paint));
+        }
+        band(0.0f, 360.0f, outer - 1.5f * dp, outer, edge);
+        band(0.0f, 360.0f, inner - 1.5f * dp, inner, edge);
+    }
+
+  private:
+    static constexpr float kRim = 4.0f; // dp between the box and the outer rim (room for the shadow)
+
+    std::vector<float> Bounds() const
+    {
+        std::vector<float> bounds;
+        const Rml::String text = GetAttribute<Rml::String>("bounds", "");
+        for (size_t at = 0; at < text.size();)
+        {
+            size_t end = text.find(',', at);
+            if (end == Rml::String::npos)
+                end = text.size();
+            if (const std::optional<float> bound = ParseNumber<float>(std::string_view(text).substr(at, end - at)))
+                bounds.push_back(*bound);
+            else
+                Rml::Log::Message(Rml::Log::LT_ERROR, "ui-wheel: bounds='%s' holds a part that is not a number",
+                                  text.c_str());
+            at = end + 1;
+        }
+        return bounds;
+    }
+
+    bool placed_ = false;
+};
+
+class PaperElement final : public DrawElement
+{
+  public:
+    using DrawElement::DrawElement;
+
+  protected:
+    Rml::Texture MeshTexture(Rml::RenderManager &manager) override
+    {
+        return FibreSource().GetTexture(manager);
+    }
+
+    // Uniform noise stretched along y: short vertical paper fibres. Tiled over the sheet.
+  public:
+    static std::unique_ptr<Rml::CallbackTextureSource> &FibreSlot()
+    {
+        static std::unique_ptr<Rml::CallbackTextureSource> slot;
+        return slot;
+    }
+
+  protected:
+    static Rml::CallbackTextureSource &FibreSource()
+    {
+        if (FibreSlot())
+            return *FibreSlot();
+        FibreSlot() = std::make_unique<Rml::CallbackTextureSource>([](const Rml::CallbackTextureInterface &texture) {
+            constexpr int size = 128;
+            std::vector<float> base(static_cast<size_t>(size * size));
+            uint32_t seed = 7;
+            for (float &value : base)
+            {
+                seed = seed * 1664525u + 1013904223u;
+                value = static_cast<float>((seed >> 8) & 0xFFFF) / 65535.0f;
+            }
+            const auto at = [&](int x, int y) {
+                return base[static_cast<size_t>(((y + size) % size) * size + (x + size) % size)];
+            };
+            std::vector<Rml::byte> pixels(static_cast<size_t>(size * size * 4));
+            for (int y = 0; y < size; ++y)
+                for (int x = 0; x < size; ++x)
+                {
+                    float sum = 0.0f;
+                    for (int k = -3; k <= 3; ++k)
+                        sum += at(x, y + k) * (4.0f - std::fabs(static_cast<float>(k)));
+                    const float noise = std::clamp((sum / 16.0f - 0.36f) * 2.6f, 0.0f, 1.0f);
+                    const auto alpha = static_cast<Rml::byte>(noise * 255.0f);
+                    Rml::byte *pixel = &pixels[static_cast<size_t>((y * size + x) * 4)];
+                    pixel[0] = pixel[1] = pixel[2] = pixel[3] = alpha; // premultiplied white; tinted by vertices
+                }
+            return texture.GenerateTexture({pixels.data(), pixels.size()}, {size, size});
+        });
+        return *FibreSlot();
+    }
+
+    void Build(Rml::Mesh &mesh, Rml::Mesh &overlay, Rml::Vector2f size, float dp) override
+    {
+        const float opacity = GetComputedValues().opacity();
+        const Rml::Colourb top = ColourOf(*this, paper_top), bottom = ColourOf(*this, paper_bottom);
+        const Rml::Colourb edge = ColourOf(*this, paper_edge), line = ColourOf(*this, paper_line);
+        const Rml::Colourb shadow = ColourOf(*this, paper_shadow), fibre = ColourOf(*this, paper_fibre);
+        const float w = size.x, h = size.y;
+
+        // A seeded generator (C-Panel `deckle`): the same seed always gives the same edge.
+        long long state = std::max(1, GetAttribute<int>("seed", 11));
+        const auto random = [&state]() {
+            state = (state * 16807) % 2147483647;
+            return static_cast<float>(state % 1000) / 1000.0f;
+        };
+        const float bite = 2.6f * dp;
+        std::vector<Rml::Vector2f> outline;
+        constexpr int across = 110, down = 28;
+        for (int i = 0; i <= across; ++i)
+            outline.push_back({w * static_cast<float>(i) / across, random() * bite});
+        for (int i = 1; i <= down; ++i)
+            outline.push_back({w - random() * bite, h * static_cast<float>(i) / down});
+        for (int i = across - 1; i >= 0; --i)
+            outline.push_back({w * static_cast<float>(i) / across, h - random() * bite});
+        for (int i = down - 1; i >= 1; --i)
+            outline.push_back({random() * bite, h * static_cast<float>(i) / down});
+
+        // Soft drop shadow under the sheet, slightly lower than the sheet itself.
+        {
+            const float blur = 6.0f * dp, drop = 3.0f * dp, inset = 2.0f * dp;
+            const Rml::ColourbPremultiplied dark = shadow.ToPremultiplied(opacity),
+                                            clear = Rml::ColourbPremultiplied(0, 0, 0, 0);
+            const Rml::Vector2f in0 = {inset, inset + drop}, in1 = {w - inset, h - inset + drop};
+            const Rml::Vector2f out0 = {-blur, drop - blur}, out1 = {w + blur, h + drop + blur};
+            const int i0 = Push(mesh, in0, dark), i1 = Push(mesh, {in1.x, in0.y}, dark);
+            const int i2 = Push(mesh, in1, dark), i3 = Push(mesh, {in0.x, in1.y}, dark);
+            const int o0 = Push(mesh, out0, clear), o1 = Push(mesh, {out1.x, out0.y}, clear);
+            const int o2 = Push(mesh, out1, clear), o3 = Push(mesh, {out0.x, out1.y}, clear);
+            Quad(mesh, o0, o1, i1, i0);
+            Quad(mesh, o1, o2, i2, i1);
+            Quad(mesh, o2, o3, i3, i2);
+            Quad(mesh, o3, o0, i0, i3);
+        }
+
+        const auto paper = [&](float y) {
+            const float t = std::clamp(y / h, 0.0f, 1.0f);
+            const auto lerp = [t](Rml::byte a, Rml::byte b) {
+                return static_cast<Rml::byte>(std::lround(a + (b - a) * t));
+            };
+            return Rml::Colourb(lerp(top.red, bottom.red), lerp(top.green, bottom.green), lerp(top.blue, bottom.blue),
+                                255);
+        };
+
+        // Sheet: a band that darkens towards the torn edge around a plain centre.
+        const float band = std::min(28.0f * dp, std::min(w, h) * 0.5f - 1.0f);
+        const Rml::Vector2f c0 = {band, band}, c1 = {w - band, h - band};
+        const auto clamp_in = [&](Rml::Vector2f p) {
+            return Rml::Vector2f(std::clamp(p.x, c0.x, c1.x), std::clamp(p.y, c0.y, c1.y));
+        };
+        const size_t count = outline.size();
+        // Three rings approximate the soft falloff of the edge stain: full at the torn
+        // edge, a third of it a little way in, none at the centre block.
+        const float ring_at[3] = {0.0f, 0.4f, 1.0f};
+        const float ring_stain[3] = {1.0f, 0.34f, 0.0f};
+        std::vector<int> rings[3];
+        for (int ring = 0; ring < 3; ++ring)
+        {
+            rings[ring].resize(count);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const Rml::Vector2f p = outline[i], q = clamp_in(p);
+                const Rml::Vector2f at = p + (q - p) * ring_at[ring];
+                Rml::Colourb colour = Over(paper(at.y), edge, ring_stain[ring]);
+                if (ring == 0)
+                    colour = Over(colour, line);
+                rings[ring][i] = Push(mesh, at, colour.ToPremultiplied(opacity));
+            }
+        }
+        for (int ring = 0; ring < 2; ++ring)
+            for (size_t i = 0; i < count; ++i)
+            {
+                const size_t next = (i + 1) % count;
+                Quad(mesh, rings[ring][i], rings[ring][next], rings[ring + 1][next], rings[ring + 1][i]);
+            }
+        {
+            const int a = Push(mesh, c0, paper(c0.y).ToPremultiplied(opacity));
+            const int b = Push(mesh, {c1.x, c0.y}, paper(c0.y).ToPremultiplied(opacity));
+            const int c = Push(mesh, c1, paper(c1.y).ToPremultiplied(opacity));
+            const int d = Push(mesh, {c0.x, c1.y}, paper(c1.y).ToPremultiplied(opacity));
+            Quad(mesh, a, b, c, d);
+        }
+
+        // Fibres: the tiled noise, tinted, over the whole sheet.
+        {
+            const float tile = 128.0f * dp * 0.75f;
+            const Rml::ColourbPremultiplied tint = fibre.ToPremultiplied(opacity);
+            const int centre = Push(overlay, size * 0.5f, tint, size * 0.5f / tile);
+            std::vector<int> ring(count);
+            for (size_t i = 0; i < count; ++i)
+                ring[i] = Push(overlay, outline[i], tint, outline[i] / tile);
+            for (size_t i = 0; i < count; ++i)
+                Triangle(overlay, centre, ring[i], ring[(i + 1) % count]);
+        }
+
+        // Foxing: two faint stains, three small spots; and one fold.
+        const auto blot = [&](float cx, float cy, float rx, float ry, float alpha, float core) {
+            const Rml::Colourb stain(138, 92, 46, static_cast<Rml::byte>(alpha * 255.0f));
+            const int centre = Push(mesh, {cx, cy}, stain.ToPremultiplied(opacity));
+            constexpr int segments = 20;
+            int first = 0, previous = 0, first_rim = 0, previous_rim = 0;
+            for (int i = 0; i < segments; ++i)
+            {
+                const float angle = 2.0f * kPi * static_cast<float>(i) / segments;
+                const Rml::Vector2f direction = {std::cos(angle), std::sin(angle)};
+                const int mid = Push(mesh, {cx + direction.x * rx * core, cy + direction.y * ry * core},
+                                     stain.ToPremultiplied(opacity));
+                const int rim =
+                    Push(mesh, {cx + direction.x * rx, cy + direction.y * ry}, Rml::ColourbPremultiplied(0, 0, 0, 0));
+                if (i == 0)
+                {
+                    first = mid;
+                    first_rim = rim;
+                }
+                else
+                {
+                    Triangle(mesh, centre, previous, mid);
+                    Quad(mesh, previous, previous_rim, rim, mid);
+                }
+                previous = mid;
+                previous_rim = rim;
+            }
+            Triangle(mesh, centre, previous, first);
+            Quad(mesh, previous, previous_rim, first_rim, first);
+        };
+        blot(w * 0.09f, h * 0.88f, w * 0.22f, h * 0.38f, 0.16f, 0.05f);
+        blot(w * 0.93f, h * 0.14f, w * 0.14f, h * 0.26f, 0.13f, 0.05f);
+        blot(w * 0.71f, h * 0.78f, 2.5f * dp, 2.5f * dp, 0.16f, 0.6f);
+        blot(w * 0.74f, h * 0.74f, 2.0f * dp, 2.0f * dp, 0.12f, 0.5f);
+        blot(w * 0.41f, h * 0.90f, 2.5f * dp, 2.5f * dp, 0.12f, 0.6f);
+        {
+            const float x = w * 0.62f, half = std::max(1.0f, w * 0.005f);
+            const Rml::ColourbPremultiplied crease = Rml::Colourb(110, 74, 36, 26).ToPremultiplied(opacity),
+                                            clear(0, 0, 0, 0);
+            const int a = Push(mesh, {x - half, bite}, clear), b = Push(mesh, {x, bite}, crease);
+            const int c = Push(mesh, {x + half, bite}, clear), d = Push(mesh, {x + half, h - bite}, clear);
+            const int e = Push(mesh, {x, h - bite}, crease), f = Push(mesh, {x - half, h - bite}, clear);
+            Quad(mesh, a, b, e, f);
+            Quad(mesh, b, c, d, e);
+        }
+    }
+};
+
+} // namespace
+
+void ReleaseDrawTextures()
+{
+    PaperElement::FibreSlot().reset();
+}
+
+namespace
+{
+
+bool clamps_changed = false;
+
+// Text that fits itself to its box (ui-clamp, ui-pages) learns the box from layout. A flex
+// container formats its items several times in one pass to measure them (max-content,
+// shrink-to-fit, at widths of 10000 px and more): OnLayout sees those trial widths before the
+// final one. Only the width an element has once the pass is over counts, so OnLayout just
+// notes the element here and TextClampsChanged settles each after the pass; reacting in
+// OnLayout itself made every pass that touched a header lay the document out a second time.
+class FitsText
+{
+  public:
+    virtual ~FitsText() = default;
+    // After a layout pass: true when the element must refit (in the next update) and lay out again.
+    virtual bool Settle() = 0;
+};
+std::vector<Rml::ObserverPtr<Rml::Element>> laid_out_fits;
+
+// <ui-clamp lines="2" min-size="12" text="…">: at most `lines` lines (1–3 in the design: list
+// rows, dialogue replies, table cells, tile labels). A text that does not fit at the element's
+// font size steps down to the largest whole pixel size, at most to `min-size` (dp; none = no step-down),
+// at which every word fits on its line and the lines fit a `max-height` the style sheet sets (a
+// two-line name above a sub line); only a text that does not fit even then ends in "…"
+// after the last whole word (a lone word too wide for its line is cut inside the word). A word
+// may also break after a hyphen inside it ("Fontaine-|Beaumarchais": a double name keeps its
+// first part where the whole word would not fit), drawn as a line break of its own. The
+// text is wrapped here with the same font metrics RmlUi uses, after each layout that changed
+// the width or the font. A stepped-down size is the element's own inline font-size (so the
+// line boxes shrink with it); the style sheet's size, noted while no step-down applies, stays
+// the base of the next fit, and a new text starts from the style sheet again. natural="1"
+// sizes the element by its text on one line at the base size (see Natural).
+class ClampElement final : public Rml::Element, public FitsText
+{
+  public:
+    using Rml::Element::Element;
+
+    // A clamp that may step down (min-size): the style sheet's size and the one it shows (px); its last fit measured
+    // sizes between them. In a narrower layout it would step further down (prewarm.h).
+    bool Steps(float &base_px, float &low_px)
+    {
+        base_px = applied_ == 0 ? GetComputedValues().font_size() : base_;
+        low_px = applied_ == 0 ? base_px : static_cast<float>(applied_);
+        return GetAttribute<float>("min-size", 0.0f) > 0.0f && base_px > 0.0f;
+    }
+
+    bool Settle() override
+    {
+        const float laid = laid_width_;
+        laid_width_ = -1.0f;
+        FontKey font = laid_font_;
+        if (applied_ == 0)
+            base_ = font.size;
+        font.size = base_;
+        if (laid <= 0.0f || (std::fabs(laid - width_) < 0.5f && font == font_))
+            return false;
+        width_ = laid;
+        font_ = font;
+        // Children created during layout would be drawn before their styles (the font)
+        // are resolved: refit in the next update instead.
+        refit_ = true;
+        return true;
+    }
+
+  protected:
+    void OnAttributeChange(const Rml::ElementAttributes &changed) override
+    {
+        Rml::Element::OnAttributeChange(changed);
+        if (changed.count("text") || changed.count("lines") || changed.count("min-size"))
+        {
+            // A box already laid out keeps its width for a new text (a row's new amount, a
+            // renamed title): fitted in this update at that width, so the first layout shows
+            // it finished. Only a box never laid out shows the whole text first.
+            if (width_ > 0.0f)
+                refit_ = true;
+            else
+                Show(BindShortWords(GetAttribute<Rml::String>("text", "")), 0);
+        }
+    }
+
+    void OnLayout() override
+    {
+        Rml::Element::OnLayout();
+        if (laid_width_ < 0.0f) // not noted yet in this pass
+            laid_out_fits.push_back(GetObserverPtr());
+        laid_width_ = GetBox().GetSize(Rml::BoxArea::Content).x;
+        laid_font_ = Font();
+    }
+
+    void OnUpdate() override
+    {
+        Rml::Element::OnUpdate();
+        if (!refit_)
+            return;
+        refit_ = false;
+        int size = 0;
+        const std::string whole = BindShortWords(GetAttribute<Rml::String>("text", ""));
+        if (GetAttribute<int>("natural", 0) != 0)
+            Natural(whole);
+        const std::string text = Fit(whole, width_, size);
+        Show(text, size);
+    }
+
+  private:
+    // A word or the part of one after a hyphen inside it (`glued`: it follows that hyphen with no space).
+    struct Token
+    {
+        std::string text;
+        bool glued = false;
+    };
+
+    // What the measurements depend on besides the width: the style sheet's font.
+    struct FontKey
+    {
+        float size = 0.0f;
+        int weight = 0;
+        int style = 0;
+        bool operator==(const FontKey &) const = default;
+    };
+
+    FontKey Font()
+    {
+        const auto &values = GetComputedValues();
+        return {values.font_size(), static_cast<int>(values.font_weight()), static_cast<int>(values.font_style())};
+    }
+
+    // natural="1": the element asks for the width of its text on one line at the style sheet's
+    // size (and no more than its container). Sized by its own content it would ask for the
+    // width of what it shows, so once stepped down or cut it never got its room back.
+    void Natural(const std::string &text)
+    {
+        const int base = static_cast<int>(std::lround(base_));
+        const float width = base > 0 ? std::ceil(Width(text, base)) + 1.0f : 0.0f;
+        if (std::fabs(width - natural_) < 0.5f)
+            return;
+        natural_ = width;
+        SetProperty(Rml::PropertyId::Width, Rml::Property(width, Rml::Unit::PX));
+        SetProperty(Rml::PropertyId::MaxWidth, Rml::Property(100.0f, Rml::Unit::PERCENT));
+        clamps_changed = true;
+    }
+
+    // `size` > 0: the stepped-down font size in px, else the style sheet's.
+    void Show(const std::string &text, int size)
+    {
+        if (size != applied_)
+        {
+            if (size > 0)
+                SetProperty(Rml::PropertyId::FontSize, Rml::Property(static_cast<float>(size), Rml::Unit::PX));
+            else
+                RemoveProperty(Rml::PropertyId::FontSize);
+            applied_ = size;
+            clamps_changed = true;
+        }
+        if (text == shown_ && breaks_ == shown_breaks_ && GetNumChildren() > 0)
+            return;
+        shown_ = text;
+        shown_breaks_ = breaks_;
+        std::string rml;
+        size_t from = 0;
+        for (const size_t at : breaks_)
+        {
+            rml += Rml::StringUtilities::EncodeRml(text.substr(from, at - from)) + "<br/>";
+            from = at;
+        }
+        SetInnerRML(rml + Rml::StringUtilities::EncodeRml(text.substr(from)));
+        clamps_changed = true;
+    }
+
+    // The width of `text` in the element's font at `size` px.
+    float Width(const std::string &text, int size)
+    {
+        const auto &values = GetComputedValues();
+        Rml::FontEngineInterface *fonts = Rml::GetFontEngineInterface();
+        const Rml::FontFaceHandle face =
+            fonts->GetFontFaceHandle(values.font_family(), values.font_style(), values.font_weight(), size);
+        if (face == 0)
+            return 0.0f;
+        const Rml::TextShapingContext shaping{values.language(), values.direction(), values.font_kerning(),
+                                              values.letter_spacing()};
+        return static_cast<float>(fonts->GetStringWidth(face, text, shaping));
+    }
+
+    static std::vector<Token> Words(const std::string &text)
+    {
+        std::vector<Token> words;
+        for (size_t at = 0; at <= text.size();)
+        {
+            const size_t end = std::min(text.find(' ', at), text.size());
+            for (size_t part = at; part < end;)
+            {
+                const size_t hyphen = text.find('-', part + 1);
+                const size_t stop = hyphen != std::string::npos && hyphen + 1 < end ? hyphen + 1 : end;
+                words.push_back({text.substr(part, stop - part), part > at});
+                part = stop;
+            }
+            at = end + 1;
+        }
+        return words;
+    }
+
+    static std::string Join(const std::string &line, const Token &word)
+    {
+        return line.empty() ? word.text : line + (word.glued ? "" : " ") + word.text;
+    }
+
+    // The height of `count` lines at `size` px.
+    float LinesHeight(int count, int size)
+    {
+        const Rml::Style::LineHeight line = GetComputedValues().line_height();
+        const float one = line.inherit_type == Rml::Style::LineHeight::Number
+                              ? static_cast<float>(size) * line.inherit_value
+                              : line.value;
+        return one * static_cast<float>(count);
+    }
+
+    // Greedy wrap at `size` px: true when the words take at most `lines` lines, none is wider
+    // than its line and the lines stay within `max_height`. `breaks`: where the lines start
+    // inside a word (byte offsets in the text as joined), for Show.
+    // `scale_from` > 0: measured at that size and scaled to `size` (no font face handle of `size` is made: an
+    // estimate, see Fit).
+    bool Fits(const std::vector<Token> &words, float width, int size, int lines, float max_height, int scale_from = 0,
+              std::vector<size_t> *breaks = nullptr)
+    {
+        const auto measure = [&](const std::string &text) {
+            return scale_from > 0 ? Width(text, scale_from) * static_cast<float>(size) / static_cast<float>(scale_from)
+                                  : Width(text, size);
+        };
+        if (breaks)
+            breaks->clear();
+        std::string line;
+        size_t before = 0; // the length of the text joined before `line`
+        int line_count = 1;
+        for (const Token &word : words)
+        {
+            if (measure(word.text) > width)
+                return false;
+            const std::string candidate = Join(line, word);
+            if (line.empty() || measure(candidate) <= width)
+            {
+                line = candidate;
+                continue;
+            }
+            if (++line_count > lines)
+                return false;
+            before += line.size() + (word.glued ? 0 : 1);
+            if (breaks && word.glued)
+                breaks->push_back(before);
+            line = word.text;
+        }
+        // A pixel of slack: min-size in dp rounds to whole pixels (13 dp at density 3.125 is 40.6 px).
+        return LinesHeight(line_count, size) <= max_height + 1.0f;
+    }
+
+    std::string Fit(const std::string &text, float width, int &size)
+    {
+        cut_ = false;
+        size = 0;
+        breaks_.clear();
+        const int lines = std::clamp(GetAttribute<int>("lines", 1), 1, 6);
+        const std::vector<Token> words = Words(text);
+        const int base = static_cast<int>(std::lround(base_));
+        const Rml::Context *context = GetContext();
+        const float ratio = context ? context->GetDensityIndependentPixelRatio() : 1.0f;
+        const float min_dp = GetAttribute<float>("min-size", 0.0f);
+        const int least = min_dp > 0.0f ? std::clamp(static_cast<int>(std::ceil(min_dp * ratio)), 1, base) : base;
+        const Rml::Style::MaxHeight cap = GetComputedValues().max_height();
+        const float max_height = cap.type == Rml::Style::LengthPercentage::Length ? cap.value : FLT_MAX;
+        if (Fits(words, width, base, lines, max_height, 0, &breaks_))
+            return text;
+        // The largest size that fits. Every size measured is a font face handle with its glyphs made for it (tens of
+        // milliseconds on a phone each, the text's script included), so the sizes are not tried one by one: the widths
+        // at the base size, scaled, estimate the size, and the real measurements go from there to the largest size that
+        // fits (a text that fits at a size fits at every smaller one). The size found is the one drawn, so its handle
+        // is made anyway; usually the next size up is the only other one measured.
+        if (least < base)
+        {
+            int at = base - 1;
+            while (at > least && !Fits(words, width, at, lines, max_height, base))
+                --at;
+            if (Fits(words, width, at, lines, max_height))
+            {
+                while (at + 1 < base && Fits(words, width, at + 1, lines, max_height))
+                    ++at;
+                size = at;
+                Fits(words, width, at, lines, max_height, 0, &breaks_);
+                return text;
+            }
+            while (--at >= least)
+                if (Fits(words, width, at, lines, max_height, 0, &breaks_))
+                {
+                    size = at;
+                    return text;
+                }
+        }
+        // Even the smallest size does not fit: the text at that size, cut at the last line
+        // (or at a word too wide for its own line).
+        size = least < base ? least : 0;
+        cut_ = true;
+        breaks_.clear();
+        std::string done, line;
+        int line_count = 1;
+        for (const Token &word : words)
+        {
+            const std::string candidate = Join(line, word);
+            if (line.empty() || Width(candidate, least) <= width)
+            {
+                line = candidate;
+                if (Width(line, least) > width)
+                    return done + Ellipsis(line, width, least);
+                continue;
+            }
+            if (line_count == lines)
+                return done + Ellipsis(candidate, width, least);
+            done += line + (word.glued ? "" : " ");
+            if (word.glued)
+                breaks_.push_back(done.size());
+            line = word.text;
+            ++line_count;
+        }
+        return done + Ellipsis(line, width, least);
+    }
+
+    // The last line with as much of it as fits before "…": whole words or parts of a hyphenated one first.
+    std::string Ellipsis(std::string line, float width, int size)
+    {
+        static const std::string dots = "\xE2\x80\xA6";
+        while (!line.empty() && Width(line + dots, size) > width)
+        {
+            const size_t space = line.rfind(' ');
+            const size_t hyphen = line.size() > 1 ? line.rfind('-', line.size() - 2) : std::string::npos;
+            if (hyphen != std::string::npos && hyphen > 0 && (space == std::string::npos || hyphen > space))
+                line.erase(hyphen + 1);
+            else if (space != std::string::npos)
+                line.erase(space);
+            else
+            {
+                line.resize(Utf8Prefix(line, line.size() - 1).size());
+            }
+        }
+        while (!line.empty() && std::strchr(" ,;:.!?-", line.back()))
+            line.pop_back();
+        return line + dots;
+    }
+
+    float width_ = -1.0f;      // the width the shown text is fitted to
+    float laid_width_ = -1.0f; // the newest width layout gave in this pass (Settle), -1 = not noted
+    FontKey font_, laid_font_;
+    float base_ = 0.0f;    // the style sheet's font size (px)
+    int applied_ = 0;      // the stepped-down size set inline (px), 0 = none
+    float natural_ = 0.0f; // natural="1": the one-line width asked for (px)
+    bool refit_ = false;
+    bool cut_ = false;
+    std::string shown_;
+    std::vector<size_t> breaks_, shown_breaks_; // line starts inside a word in the fitted text / the shown one
+
+  public:
+    // The text did not fit and ends in "…" (as last laid out).
+    bool Cut() const
+    {
+        return cut_;
+    }
+};
+
+// <ui-pages text="…" page="n" mode="paged|speech|replies">: the text wrapped with the
+// element's own font into lines of its content width, shown one page (as many lines as
+// its height holds) at a time. `page` counts how often the player asked for the next page;
+// the element advances from where the shown page starts, so a new width or height reflows
+// the rest of the text without skipping any. The final page must leave room for the
+// sibling marked data-reserve (the replies): the part of this box that sibling covers. The element gets
+// the class `more` while pages remain and `last` on the final page; the template shows
+// the «next» control or the replies with sibling selectors (`ui-pages.more ~ …`). `mode`
+// speech / replies forces one of the two states.
+// An ancestor marked data-grow (the dialogue sheet) grows first, up to its max-height, so a
+// text that would fit beside the reserved part in a taller box needs no extra page; paging
+// starts only when even that is not enough. The ancestor's own min-height must come from its
+// classes: the element sets it inline (and drops it for a new text).
+class PagesElement final : public Rml::Element, public FitsText
+{
+  public:
+    using Rml::Element::Element;
+
+    bool Settle() override
+    {
+        noted_ = false;
+        const Rml::Vector2f size = laid_size_;
+        const float reserve = Reserve();
+        if (std::fabs(size.x - width_) >= 0.5f || std::fabs(size.y - height_) >= 0.5f ||
+            std::fabs(reserve - reserve_) >= 0.5f)
+        {
+            width_ = size.x;
+            height_ = size.y;
+            reserve_ = reserve;
+            dirty_ = true;
+        }
+        return dirty_; // refit in the next update, then lay out again
+    }
+
+  protected:
+    void OnAttributeChange(const Rml::ElementAttributes &changed) override
+    {
+        Rml::Element::OnAttributeChange(changed);
+        if (changed.count("text"))
+        {
+            const std::string text = BindShortWords(GetAttribute<Rml::String>("text", ""));
+            if (text != text_)
+            {
+                text_ = text;
+                offset_ = 0;
+                applied_ = GetAttribute<int>("page", 0);
+                if (Rml::Element *grow = Grower())
+                    grow->RemoveProperty(Rml::PropertyId::MinHeight); // a new text starts from the designed height
+            }
+            dirty_ = true;
+        }
+        if (changed.count("page"))
+        {
+            const int page = GetAttribute<int>("page", 0);
+            if (page < applied_) // the screen started over
+            {
+                offset_ = 0;
+                applied_ = 0;
+            }
+            dirty_ = true;
+        }
+        if (changed.count("mode"))
+            dirty_ = true;
+        if (changed.count("class")) // the template patch rewrote the classes: keep the state
+            ShowState();
+    }
+
+    void OnLayout() override
+    {
+        Rml::Element::OnLayout();
+        if (!noted_)
+            laid_out_fits.push_back(GetObserverPtr());
+        noted_ = true;
+        laid_size_ = GetBox().GetSize(Rml::BoxArea::Content);
+    }
+
+    void OnUpdate() override
+    {
+        Rml::Element::OnUpdate();
+        if (!dirty_ || width_ <= 0.0f || height_ <= 0.0f)
+            return;
+        dirty_ = false;
+        Refit();
+    }
+
+  private:
+    // How much of this box's height the reserved part covers: from the reserved part's top
+    // (with its top margin) down to this box's content bottom. The two need not end together:
+    // the text box may stop short of the bottom (the dialogue's «Дальше ›» line under it),
+    // while the replies, which take that line's place on the final page, reach it.
+    float Reserve()
+    {
+        Rml::Element *parent = GetParentNode();
+        for (int i = 0; parent && i < parent->GetNumChildren(); ++i)
+        {
+            Rml::Element *child = parent->GetChild(i);
+            if (child != this && child->HasAttribute("data-reserve") && child->GetNumChildren() > 0)
+            {
+                const float reserve_top = child->GetAbsoluteOffset(Rml::BoxArea::Border).y -
+                                          child->GetBox().GetEdge(Rml::BoxArea::Margin, Rml::BoxEdge::Top);
+                const float content_bottom =
+                    GetAbsoluteOffset(Rml::BoxArea::Content).y + GetBox().GetSize(Rml::BoxArea::Content).y;
+                return std::max(0.0f, content_bottom - reserve_top);
+            }
+        }
+        return 0.0f;
+    }
+
+    float LineHeight()
+    {
+        const float line = GetComputedValues().line_height().value;
+        return line > 0.0f ? line : std::max(1.0f, GetComputedValues().font_size() * 1.2f);
+    }
+
+    Rml::Element *Grower()
+    {
+        for (Rml::Element *element = GetParentNode(); element; element = element->GetParentNode())
+            if (element->HasAttribute("data-grow"))
+                return element;
+        return nullptr;
+    }
+
+    // The whole text does not fit beside the reserved part by `missing` px: the grower takes
+    // as much of it as its max-height allows. True when it grew (the layout runs again).
+    bool Grow(float missing)
+    {
+        Rml::Element *grow = Grower();
+        if (!grow || missing <= 0.0f)
+            return false;
+        const float height = grow->GetBox().GetSize(Rml::BoxArea::Border).y;
+        Rml::Element *holder = grow->GetOffsetParent();
+        const float base = holder ? holder->GetBox().GetSize(Rml::BoxArea::Padding).y : 0.0f;
+        const auto max = grow->GetComputedValues().max_height();
+        const float cap = max.type == Rml::Style::LengthPercentage::Percentage ? max.value * base / 100.0f : max.value;
+        const float wanted = std::min(cap, height + missing);
+        if (wanted <= height + 0.5f)
+            return false;
+        grow->SetProperty(Rml::PropertyId::MinHeight, Rml::Property(wanted, Rml::Unit::PX));
+        return true;
+    }
+
+    PageBreak Page(size_t offset, std::vector<size_t> &starts)
+    {
+        const std::string rest = text_.substr(std::min(offset, text_.size()));
+        starts = WrapLines(rest, width_, [this](const std::string &line) {
+            return static_cast<float>(Rml::ElementUtilities::GetStringWidth(this, line));
+        });
+        const float line = LineHeight();
+        std::vector<float> bottoms;
+        for (size_t i = 0; i + 1 < starts.size(); ++i)
+            bottoms.push_back(line * static_cast<float>(i + 1));
+        const float total = bottoms.empty() ? 0.0f : bottoms.back();
+        // Rounding of the box must not cost a line that fits.
+        const float slack = 0.5f;
+        last_missing_ = total - (height_ - reserve_ + slack);
+        return ChoosePage(text_, offset, starts, bottoms, total, height_ + slack, height_ - reserve_ + slack);
+    }
+
+    void Refit()
+    {
+        const std::string mode = GetAttribute<Rml::String>("mode", "paged");
+        const int page = GetAttribute<int>("page", 0);
+        std::vector<size_t> starts;
+        PageBreak shown = Page(offset_, starts);
+        // The first page of a text that needs more room: the grower takes it if it can.
+        if (mode == "paged" && offset_ == 0 && applied_ == 0 && page == 0 && shown.more && Grow(last_missing_))
+        {
+            clamps_changed = true;
+            return;
+        }
+        while (mode == "paged" && applied_ < page && shown.more)
+        {
+            offset_ = shown.next;
+            ++applied_;
+            shown = Page(offset_, starts);
+        }
+        applied_ = std::max(applied_, page);
+        more_ = mode == "speech" || (mode == "paged" && shown.more);
+        // Lines of this page, each exactly as measured (the element does not wrap again).
+        std::string rml;
+        const size_t end = mode == "replies" ? text_.size() : shown.display;
+        for (size_t i = 0; i + 1 < starts.size() && offset_ + starts[i] < end; ++i)
+        {
+            std::string line = text_.substr(offset_ + starts[i], starts[i + 1] - starts[i]);
+            while (!line.empty() && (line.back() == '\n' || line.back() == ' '))
+                line.pop_back();
+            rml += (i ? "<br/>" : "") + Rml::StringUtilities::EncodeRml(line);
+        }
+        if (rml != shown_)
+        {
+            shown_ = rml;
+            SetInnerRML(rml);
+        }
+        ShowState();
+    }
+
+    void ShowState()
+    {
+        if (IsClassSet("more") != more_)
+            SetClass("more", more_);
+        if (IsClassSet("last") == more_)
+            SetClass("last", !more_);
+    }
+
+    std::string text_, shown_;
+    size_t offset_ = 0; // start of the page shown
+    int applied_ = 0;   // `page` requests already turned into offsets
+    float width_ = -1.0f, height_ = -1.0f, reserve_ = -1.0f;
+    float last_missing_ = 0.0f; // how much the last measured text lacked beside the reserved part
+    bool dirty_ = true;
+    bool more_ = false;
+    bool noted_ = false;              // in laid_out_fits for this pass
+    Rml::Vector2f laid_size_{-1, -1}; // the newest content size layout gave (Settle)
+};
+
+} // namespace
+
+bool ClampSteps(Rml::Element *element, float &base_px, float &min_dp)
+{
+    auto *clamp = dynamic_cast<ClampElement *>(element);
+    return clamp && clamp->Steps(base_px, min_dp);
+}
+
+int ClampedTextIn(Rml::Element *root)
+{
+    if (!root)
+        return -1;
+    Rml::ElementList clamps;
+    root->GetElementsByTagName(clamps, "ui-clamp");
+    if (root->GetTagName() == "ui-clamp")
+        clamps.push_back(root);
+    if (clamps.empty())
+        return -1;
+    for (Rml::Element *element : clamps)
+        if (auto *clamp = dynamic_cast<ClampElement *>(element); clamp && clamp->Cut())
+            return 1;
+    return 0;
+}
+
+bool TextClampsChanged()
+{
+    bool changed = clamps_changed;
+    clamps_changed = false;
+    std::vector<Rml::ObserverPtr<Rml::Element>> laid = std::move(laid_out_fits);
+    laid_out_fits.clear();
+    for (const auto &entry : laid)
+        if (auto *fits = dynamic_cast<FitsText *>(entry.get()))
+            changed = fits->Settle() || changed;
+    return changed;
+}
+
+bool ScrollEdgesChanged(Rml::Element *root)
+{
+    if (!root)
+        return false;
+    bool changed = false;
+    const auto overflow = root->GetComputedValues().overflow_y();
+    if (overflow == Rml::Style::Overflow::Auto || overflow == Rml::Style::Overflow::Scroll)
+    {
+        const float top = root->GetScrollTop(), height = root->GetClientHeight();
+        const bool below = top < root->GetScrollHeight() - height - 0.5f;
+        if (root->IsClassSet("scroll-below") != below)
+            root->SetClass("scroll-below", below), changed = true;
+        // The fade: a child of the runtime's own, pinned to the bottom edge of the visible
+        // part (children of a scrolling box move with its content). Re-made if a rebuild of
+        // the component dropped it.
+        Rml::Element *fade = nullptr;
+        for (int i = 0; i < root->GetNumChildren() && !fade; ++i)
+            if (root->GetChild(i)->IsClassSet("scroll-fade"))
+                fade = root->GetChild(i);
+        if (below && !fade)
+        {
+            if (root->GetComputedValues().position() == Rml::Style::Position::Static)
+                root->SetProperty(Rml::PropertyId::Position, Rml::Property(Rml::Style::Position::Relative));
+            Rml::ElementPtr made = root->GetOwnerDocument()->CreateElement("div");
+            made->SetClass("scroll-fade", true);
+            made->SetProperty(Rml::PropertyId::Top, Rml::Property(0.0f, Rml::Unit::PX));
+            fade = root->AppendChild(std::move(made));
+            changed = true;
+        }
+        if (fade)
+        {
+            // Moved by a transform, not by `top`: a changed offset property lays out the whole
+            // document again, on every frame of a scroll (900 boxes in the store).
+            const float at = top + height - fade->GetOffsetHeight();
+            const std::string position = std::to_string(static_cast<int>(std::lround(at))) + "px";
+            if (fade->GetAttribute<Rml::String>("data-at", "") != position)
+            {
+                fade->SetAttribute("data-at", position);
+                fade->SetProperty("transform", "translateY(" + position + ")");
+                changed = true;
+            }
+        }
+    }
+    for (int i = 0; i < root->GetNumChildren(); ++i)
+        if (!root->GetChild(i)->IsClassSet("scroll-fade"))
+            changed = ScrollEdgesChanged(root->GetChild(i)) || changed;
+    return changed;
+}
+
+void RegisterDrawElements()
+{
+    const auto colour = [](const char *name, const char *fallback) {
+        return Rml::StyleSheetSpecification::RegisterProperty(name, fallback, false, false).AddParser("color").GetId();
+    };
+    ring_fill = colour("ring-fill", "#ffe7a0");
+    ring_fill_end = colour("ring-fill-end", "#ecd08a");
+    ring_track = colour("ring-track", "rgba(236,208,138,56)");
+    paper_top = colour("paper-top", "#e9dcc0");
+    paper_bottom = colour("paper-bottom", "#d9c7a3");
+    paper_edge = colour("paper-edge", "rgba(128,84,38,92)");
+    paper_line = colour("paper-line", "rgba(120,76,34,128)");
+    paper_shadow = colour("paper-shadow", "rgba(0,0,0,140)");
+    paper_fibre = colour("paper-fibre", "rgba(115,82,46,41)");
+    wheel_fill = colour("wheel-fill", "rgba(14,27,32,230)");
+    wheel_selected = colour("wheel-selected", "rgba(118,94,50,247)");
+    wheel_line = colour("wheel-line", "rgba(203,177,116,115)");
+    wheel_edge = colour("wheel-edge", "#d8bd7a");
+    wheel_centre = colour("wheel-centre", "rgba(60,18,14,242)");
+    links_colour = colour("links-color", "rgba(90,60,30,110)");
+    links_met = colour("links-met-color", "rgba(47,90,38,170)");
+    links_focus = colour("links-focus-color", "#9b8048");
+
+    static Rml::ElementInstancerGeneric<RingElement> ring;
+    static Rml::ElementInstancerGeneric<PaperElement> paper;
+    Rml::Factory::RegisterElementInstancer("ui-ring", &ring);
+    Rml::Factory::RegisterElementInstancer("ui-paper", &paper);
+    static Rml::ElementInstancerGeneric<WheelElement> wheel;
+    Rml::Factory::RegisterElementInstancer("ui-wheel", &wheel);
+    static Rml::ElementInstancerGeneric<LinksElement> links;
+    Rml::Factory::RegisterElementInstancer("ui-links", &links);
+    static Rml::ElementInstancerGeneric<ClampElement> clamp;
+    Rml::Factory::RegisterElementInstancer("ui-clamp", &clamp);
+    static Rml::ElementInstancerGeneric<PagesElement> pages;
+    Rml::Factory::RegisterElementInstancer("ui-pages", &pages);
+}
+
+} // namespace storm::ui

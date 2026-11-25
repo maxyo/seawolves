@@ -1,0 +1,12 @@
+# Build output of the application and of the engine.
+/app/build/
+/engine/build/
+*.apk
+*.apk.idsig
+*.keystore
+__pycache__/
+*.pyc
+
+# Editors: IntelliJ IDEA / CLion settings and CLion's default build directories.
+.idea
+/engine/cmake-build-*/

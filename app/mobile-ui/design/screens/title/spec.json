@@ -1,0 +1,11 @@
+{
+  "tag": "s-title",
+  "doc": "Title screen over the game's menu scene (interface `mainmenu`), filled by menu_title.cpp.",
+  "props": {
+    "primary": {"type": "json", "default": null},
+    "buttons": {"type": "json", "default": []},
+    "exit": {"type": "json", "default": null},
+    "about": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  }
+}

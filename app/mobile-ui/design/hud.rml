@@ -1,0 +1,11 @@
+<rml>
+<head>
+<link type="text/rcss" href="kit.rcss"/>
+<style>
+/* The in-game HUD over the scene: the engine mounts the elements of the current layout
+   scene (hud-layout.json) into the <s-hud> layer and an open sheet on top of them. */
+body { box-sizing: border-box; }
+</style>
+</head>
+<body><s-hud id="hud"/></body>
+</rml>

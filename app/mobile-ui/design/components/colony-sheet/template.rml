@@ -1,0 +1,12 @@
+<div class="cs-head"><c-token icon="{{nation}}" enamel="teal" size="{{spec.token}}"/><div class="cs-names"><div class="cs-title">{{title}}</div><t-if test="sub"><div class="cs-sub">{{sub}}</div></t-if></div><c-icon-button id="{{key}}-close" icon="close" label="{{ or(closeLabel, tr('colony.close')) }}" look="bare"/></div>
+<t-if test="len(tabs) > 1"><div class="cs-tabs"><c-tabs id="{{key}}-tabs" look="segment" stretch="1" items="{{ json(tabs) }}"/></div></t-if>
+<div class="cs-body"><div class="cs-card">
+<t-if test="custom"><div class="cs-custom" slot="1"></div><t-else/>
+<t-if test="siege"><div class="cs-siege"><c-icon icon="sabre" size="20" tone="ink"/><div>{{siege}}</div></div></t-if>
+<div class="cs-group"><div class="cs-cap">{{ tr('colony.export') }}</div><div class="cs-goods"><t-for each="exports" as="g"><div class="cs-good"><c-icon icon="{{g.icon}}" size="{{spec.goodsIcon}}" tone="ink"/><div>{{g.label}}</div></div></t-for></div></div>
+<div class="cs-group"><div class="cs-cap">{{ tr('colony.import') }}</div><div class="cs-goods"><t-for each="imports" as="g"><div class="cs-good"><c-icon icon="{{g.icon}}" size="{{spec.goodsIcon}}" tone="ink"/><div>{{g.label}}</div></div></t-for></div></div>
+<div class="cs-toggle" data-action="facts" data-toggle="expanded"><div>{{ tr('colony.facts') }}</div><c-icon icon="{{ expanded ? 'chevron-up' : 'chevron-down' }}" size="20" tone="ink"/></div>
+<t-if test="expanded && len(facts) > 0"><c-kv surface="parchment" items="{{ json(facts) }}" cols="2" size="13"/></t-if>
+<t-if test="date"><div class="cs-date">{{date}}</div></t-if>
+</t-if>
+</div></div>

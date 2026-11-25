@@ -1,0 +1,20 @@
+{
+  "tag": "s-items",
+  "doc": "Hero section «Предметы» (interface items, hero_items.cpp): all equipment slots at once (what is worn in each; a tap lists what fits), the items in compact columns under the game's tabs, the selected item on parchment with its figures against what is worn, the game's map window.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "headerSection": {"type": "text", "default": ""},
+    "subject": {"type": "json", "default": null},
+    "stats": {"type": "json", "default": []},
+    "slots": {"type": "json", "default": []},
+    "tabs": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": []},
+    "empty": {"type": "text", "default": ""},
+    "detail": {"type": "json", "default": null},
+    "map": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  },
+  "constants": {
+    "narrowBelow": 720
+  }
+}

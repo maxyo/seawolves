@@ -1,0 +1,4 @@
+# Python packages of the host checks (tools/ci/run_host_tests.py checks they are installed):
+#   python3 -m pip install -r tools/ci/requirements.txt
+# Pillow: the scene sweep's frame checks (tools/scene_sweep/run.py; tests/ci_boot_sweep, tests/scene_sweep_*).
+Pillow==12.1.1

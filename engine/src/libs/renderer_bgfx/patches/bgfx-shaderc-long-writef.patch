@@ -1,0 +1,27 @@
+shaderc: writef() formats into a 2 KB stack buffer and, for longer text, formats again into a buffer of exactly the
+text's length, so vsnprintf puts its terminating NUL in place of the last character, and that NUL is written out.
+It also reused the consumed va_list. The `--depends` file is written this way: a shader whose dependency list passes
+2 KB (absolute paths of a deep checkout, a program with many includes) got a depends file ending in NUL instead of its
+newline, which cmake/shaderc_cache.py cannot read. The fix sizes the buffer for the terminator and restarts the
+argument list. Upstream bgfx has the same code; keep the patch until it is fixed there.
+
+diff --git a/tools/shaderc/shaderc.cpp b/tools/shaderc/shaderc.cpp
+--- a/tools/shaderc/shaderc.cpp
++++ b/tools/shaderc/shaderc.cpp
+@@ -460,10 +460,13 @@
+ 		char* out = temp;
+ 		int32_t max = sizeof(temp);
+ 		int32_t len = bx::vsnprintf(out, max, _format, argList);
+-		if (len > max)
++		// Storm Engine patch (renderer_bgfx/patches/bgfx-shaderc-long-writef.patch).
++		if (len >= max)
+ 		{
+-			out = (char*)BX_STACK_ALLOC(len);
+-			len = bx::vsnprintf(out, len, _format, argList);
++			va_end(argList);
++			va_start(argList, _format);
++			out = (char*)BX_STACK_ALLOC(len + 1);
++			len = bx::vsnprintf(out, len + 1, _format, argList);
+ 		}
+ 
+ 		len = bx::write(_writer, out, len, bx::ErrorAssert{});

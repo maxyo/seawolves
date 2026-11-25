@@ -1,0 +1,538 @@
+#include "storm/fx/settings.hpp"
+
+#include "storm/fx/capabilities.hpp"
+#include "storm/fx/lamp_shadows.hpp"
+
+#include <algorithm>
+#include <iterator>
+
+namespace storm::fx
+{
+
+Settings Settings::FromPreset(QualityPreset preset)
+{
+    Settings s;
+    // FSR 1 on every preset: the 3D scene at an internal height on displays taller than it (the 3200x1440 panels of
+    // current phones), EASU up to the display, RCAS after it; the interfaces at the display size. A height instead
+    // of a factor: a display no taller is not scaled for nothing. «Низкая» stays the original look otherwise.
+    s.sharpen = true;
+    s.sharpness = 0.75f; // 0.5 stops below the reference's maximum
+    if (preset == QualityPreset::Low)
+    {
+        s.render_height = kLowRenderHeight;
+        s.far_lod_pixels = 2.f;
+        return s;
+    }
+
+    // «Средняя» and «Высокая» keep the legacy palette and exposure under a restrained colour grade; the effects add
+    // depth and atmosphere. «Средняя» takes the cheap ones (a tone curve, the grade of the place and hour, aerial
+    // perspective, rim light), «Высокая» all of them (+ the sun glare and sun shafts). A faint bloom on the
+    // brightest highlights, MSAA, sharper textures, per-pixel lighting.
+    s.bloom = true;
+    s.bloom_threshold = 0.92f;
+    s.bloom_intensity = 0.12f;
+    s.msaa = 2; // the primary anti-aliasing; SMAA replaces it where MSAA is unavailable (ConstrainSettings)
+    s.alpha_to_coverage = true;
+    s.dither = true; // ±0.5/255: invisible, removes banding of the bloom
+    // The lit shader once a pixel instead of once a layer: 23.0 -> 15.9 ms of GPU in a tavern on an Adreno 830
+    // («Высокая»). «Низкая» has no per-pixel lighting to save.
+    s.depth_prepass = true;
+    s.tonemap = true;
+    // The grade of the place and hour shifts hue and warmth only (color_lut.cpp SceneGrade), no saturation.
+    s.scene_grading = true;
+    // A gentle Caribbean grade: warm sunlight, clearer turquoise water, lush greens, restrained (a third of the
+    // full «Карибы» grade: no visible saturation boost).
+    s.grade = GradePreset::Caribbean;
+    s.grade_strength = 0.35f;
+    // Medium and High: softer mapped relief and highlights, with slightly less colourful added light.
+    s.sea_turbidity = true; // Medium and High use the same optical depth contract.
+    s.normal_map_strength = 0.75f;
+    s.gloss_strength = 0.70f;
+    s.light_saturation = 0.90f;
+    // MSAA (and SMAA where it replaces it) antialiases the internal picture before EASU.
+
+    if (preset == QualityPreset::Medium)
+    {
+        s.render_height = kMediumRenderHeight;
+        s.far_lod_pixels = 1.5f;
+        s.bloom_downscale = 4;
+        s.bloom_levels = 3;
+        s.sea_band_limit = true;
+        s.sea_wakes = true;
+        s.anisotropy = 4;
+        s.sea_specular = true; // the sun's glint over the game's sun road: one uniform branch of the sea shader
+        s.lighting_flags = kLightingPerPixel | kLightingHemisphere | kLightingTranslucent | kLightingPoint |
+                           kLightingNormalMap | kLightingRim | kLightingAerial;
+        s.point_lights = 4;
+        s.flash_lights = 4;
+        s.normal_map_size = 256; // the prepared 512 maps from their second mip: a quarter of High's memory
+        // Gloss (with the specular it needs) waits for its cost on phones (fx_gloss, fx_light_specular switch it on);
+        // its maps would come from their second mip.
+        s.gloss_map_size = 128;
+        s.parallax = ParallaxQuality::Offset; // one tap: nearly free
+        s.relief_cavity = true;
+        s.character_relief = CharacterRelief::Normals;
+        s.shadows = ShadowQuality::Low;
+        s.town_light = true;
+        s.town_walls = true;
+        s.ao_volume = 2;
+        s.lamp_shadows = 8;
+        s.lamp_moving = 1;
+        // Both with a filtered shadow: a second lamp's one-tap shadow shows as a hard line on a character walking
+        // between two lamps.
+        s.lamp_per_pixel = 2;
+        s.lamp_filtered = 2;
+        s.lamp_reach_light = s.lamp_shadow_light = 2.0f / 255.0f; // no visible change
+        s.wet_surfaces = 1;
+        return s;
+    }
+    s.render_height = kHighRenderHeight;
+    s.msaa = 4; // twice Medium's samples: the thinnest lines (rigging against the sky) stay whole
+    s.far_lod_pixels = 1.f;
+    // The bloom as «Средняя» draws it: from a quarter of the scene, three levels (eight passes of a quarter of the
+    // pixels instead of ten, which took 0.9-1.3 ms of GPU on an Adreno 830). The faint bloom of these presets differs
+    // by 0.2-0.6 of 255 on average from the half-size one.
+    s.bloom_downscale = 4;
+    s.bloom_levels = 3;
+    s.anisotropy = 8;
+    s.lens_flare = true; // the one sun glare: SUNGLOW leaves its glow, overflow and flare sprites out
+    s.sun_shafts = true;
+    s.sea_band_limit = true;
+    s.sea_soft_edges = true;
+    s.sea_wakes = true;
+    s.sea_specular = true;
+    s.lighting_flags = kLightingPerPixel | kLightingHemisphere | kLightingSpecular | kLightingTranslucent |
+                       kLightingPoint | kLightingNormalMap | kLightingRim | kLightingAerial;
+    s.point_lights = 8;
+    s.flash_lights = 8;
+    s.gloss = true;
+    s.parallax = ParallaxQuality::Offset; // as «Средняя»: occlusion mapping cost too much fragment work on land
+    s.relief_cavity = true;
+    s.character_relief = CharacterRelief::Normals;
+    s.shadows = ShadowQuality::Soft;
+    s.town_light = true;
+    s.town_walls = true;
+    s.ao_volume = 2; // the strong look left the rooms too dark
+    s.lamp_shadows = 16;
+    s.lamp_moving = 2;
+    s.lamp_soft = true;
+    // Three lamps a pixel, each with a filtered shadow; the strongest takes the wide one (lamp_soft).
+    s.lamp_per_pixel = 3;
+    s.lamp_filtered = 3;
+    s.lamp_reach_light = s.lamp_shadow_light = 2.0f / 255.0f;
+    s.wet_surfaces = 2;
+    return s;
+}
+
+void ApplyTextureProcessing(Settings &s, const TextureProcessing &processing)
+{
+    s.upscale = processing.upscale;
+    if (!processing.normal_maps)
+    {
+        s.lighting_flags &= ~static_cast<uint32_t>(kLightingNormalMap);
+        s.character_relief = CharacterRelief::Off;
+        s.gloss = false; // the relief textures' gloss is in their relief map (relief_store.hpp)
+    }
+    else if (!(s.lighting_flags & kLightingNormalMap))
+    {
+        // A preset without the relief («Низкая»): «Средняя»'s relief, lit by the sun per pixel (no point lights, no
+        // shadows, no other effect of «Средняя»), without the visibility volume's bake.
+        const Settings medium = Settings::FromPreset(QualityPreset::Medium);
+        s.lighting_flags |= kLightingPerPixel | kLightingNormalMap;
+        s.visibility = false;
+        s.normal_map_size = medium.normal_map_size;
+        s.normal_map_strength = medium.normal_map_strength;
+        s.character_relief = medium.character_relief;
+        s.parallax = medium.parallax;
+        s.parallax_shadow = medium.parallax_shadow;
+        s.relief_cavity = medium.relief_cavity;
+    }
+    if (!processing.normal_maps || !processing.height_maps)
+    {
+        s.parallax = ParallaxQuality::Off;
+        s.parallax_shadow = false;
+        s.relief_cavity = false;
+        if (s.character_relief == CharacterRelief::Parallax)
+            s.character_relief = CharacterRelief::Normals;
+        s.wet_surfaces = std::min<uint8_t>(s.wet_surfaces, 1); // the puddles gather in the relief's hollows
+    }
+}
+
+bool Settings::PostIsIdentity() const
+{
+    const bool graded = grade != GradePreset::Original && grade_strength > 0.0f;
+    return !tonemap && !graded && !bloom && !smaa && !sun_shafts && !dither && !lens_flare && !scene_grading;
+}
+
+BackgroundProducts BackgroundProductsFor(const Settings &s)
+{
+    const bool lit = (s.lighting_flags & (kLightingPerPixel | kLightingPoint)) != 0;
+    BackgroundProducts p;
+    p.far_lods = s.far_lod_pixels > 0.0f;
+    // The visibility volume is read by the lit draws only (and through them by the town walls).
+    p.visibility = s.visibility && lit;
+    p.ao_volume = s.ao_volume > 0;
+    p.town_light = s.town_light;
+    p.town_walls = s.town_light && s.town_walls;
+    p.lamp_shadows = s.lamp_shadows > 0;
+    p.sun_shadows = s.shadows != ShadowQuality::Off;
+    p.relief = lit && (s.lighting_flags & kLightingNormalMap);
+    // The height is read by the parallax and the cavity (the characters' parallax needs the parallax, the puddles draw
+    // only where it is uploaded for those).
+    p.heights = p.relief && (s.parallax != ParallaxQuality::Off || s.relief_cavity);
+    p.gloss = (s.lighting_flags & kLightingPerPixel) && (s.lighting_flags & kLightingSpecular) && s.gloss;
+    p.upscale = s.upscale;
+    return p;
+}
+
+std::string BackgroundProducts::Describe() const
+{
+    std::string text;
+    for (const auto &[on, name] : {std::pair{far_lods, "far LODs"},
+                                   {visibility, "visibility volume"},
+                                   {ao_volume, "AO volume"},
+                                   {town_light, "town light"},
+                                   {town_walls, "town walls"},
+                                   {lamp_shadows, "lamp shadow faces"},
+                                   {sun_shadows, "sun shadow casters"},
+                                   {relief && heights, "relief maps with heights"},
+                                   {relief && !heights, "relief maps (normals only)"},
+                                   {gloss, "gloss maps"},
+                                   {upscale, "upscale x2"}})
+        if (on)
+            text += (text.empty() ? "" : ", ") + std::string(name);
+    return text.empty() ? "none" : text;
+}
+
+float RenderScale(uint16_t render_height, uint32_t display_height)
+{
+    if (render_height == 0 || display_height <= render_height)
+        return 1.0f;
+    return std::max(kMinRenderScale, static_cast<float>(render_height) / static_cast<float>(display_height));
+}
+
+const char *LampDepthName(LampDepth depth)
+{
+    switch (depth)
+    {
+    case LampDepth::D24:
+        return "D24";
+    case LampDepth::D32F:
+        return "D32F";
+    case LampDepth::None:
+        break;
+    }
+    return "NO";
+}
+
+std::string Support::Describe() const
+{
+    const auto word = [](bool ok) { return ok ? "yes" : "NO"; };
+    std::string text = "3D colour table: ";
+    text += word(lut_3d);
+    text += ", shadow map: ";
+    text += word(shadow_map);
+    text += ", lamp face depth: ";
+    text += LampDepthName(lamp_depth);
+    text += ", sampleable scene depth: ";
+    text += word(scene_depth);
+    text += ", EAC RG11 normal maps: ";
+    text += word(normal_map);
+    text += ", MSAA targets: ";
+    text += msaa_samples > 1 ? std::to_string(msaa_samples) + "x" : std::string("NO");
+    text += ", R8/RG8 textures (SMAA): ";
+    text += word(smaa);
+    text += ", sampleable depth with MSAA: ";
+    text += word(msaa_depth);
+    text += ", anisotropic filtering: ";
+    text += word(anisotropy);
+    text += ", RGBA8 3D textures (AO volume): ";
+    text += word(ao_volume);
+    return text;
+}
+
+namespace
+{
+// One rule = one way a request cannot be honoured, and the change that makes the settings honest again.
+struct Rule
+{
+    bool (*violated)(const Settings &, const Support &);
+    void (*fix)(Settings &);
+    const char *message;
+};
+
+constexpr Rule kRules[] = {
+    {[](const Settings &s, const Support &c) { return !c.lut_3d && (!s.PostIsIdentity() || s.render_height); },
+     [](Settings &s) {
+         s.tonemap = s.bloom = s.sun_shafts = s.scene_grading = s.dither = s.lens_flare = s.smaa = s.sharpen = false;
+         s.grade = GradePreset::Original;
+         s.render_height = 0;
+     },
+     "the post-processing chain needs 3D textures: every post effect switched off, the scene at native resolution (no "
+     "FSR)"},
+    {[](const Settings &s, const Support &) {
+         return s.render_height && (s.render_height < 360 || s.render_height > 4320);
+     },
+     [](Settings &s) { s.render_height = std::clamp<uint16_t>(s.render_height, 360, 4320); },
+     "the scene's internal height must be 360..4320 pixels (or 0, native): clamped"},
+    {[](const Settings &s, const Support &) { return s.msaa != 1 && s.msaa != 2 && s.msaa != 4; },
+     [](Settings &s) { s.msaa = s.msaa > 2 ? 4 : 1; }, "MSAA sample count must be 1, 2 or 4: rounded"},
+    {[](const Settings &s, const Support &c) { return s.msaa == 4 && c.msaa_samples == 2; },
+     [](Settings &s) { s.msaa = 2; },
+     "MSAA 4x is not available for the scene target (RGBA8 + depth and stencil): 2x instead"},
+    // A requested MSAA (Средняя / Высокая) that the device cannot give (no multisampled targets: caps, a GPU-family
+    // profile, or the self-test found the multisampled scene broken) is replaced by SMAA, so these phones keep an
+    // anti-aliasing. SMAA is a post effect: without the post chain (3D textures) or its tables (R8/RG8) there is none.
+    {[](const Settings &s, const Support &c) { return s.msaa > 1 && c.msaa_samples < 2 && c.lut_3d && c.smaa; },
+     [](Settings &s) {
+         s.msaa = 1;
+         s.smaa = true;
+     },
+     "MSAA unavailable: SMAA instead"},
+    {[](const Settings &s, const Support &c) { return s.msaa > 1 && c.msaa_samples < 2 && !(c.lut_3d && c.smaa); },
+     [](Settings &s) { s.msaa = 1; },
+     "MSAA unavailable and SMAA needs the post-processing chain (3D textures) and R8/RG8 textures: no anti-aliasing"},
+    {[](const Settings &s, const Support &c) { return s.smaa && !c.smaa; }, [](Settings &s) { s.smaa = false; },
+     "SMAA needs R8 and RG8 textures: switched off"},
+    {[](const Settings &s, const Support &) { return s.alpha_to_coverage && s.msaa <= 1; },
+     [](Settings &s) { s.alpha_to_coverage = false; }, "alpha to coverage works only with MSAA: switched off"},
+    {[](const Settings &s, const Support &c) { return s.anisotropy > 1 && !c.anisotropy; },
+     [](Settings &s) { s.anisotropy = 1; }, "anisotropic filtering is not available: switched off"},
+    // At a render scale the scene depth is carried to the display-size picture for the 3D drawn after the scene
+    // (the post chain's last pass, PostChain::Frame::scene_depth): it must be readable.
+    {[](const Settings &s, const Support &c) { return s.msaa > 1 && !c.msaa_depth && s.render_height > 0; },
+     [](Settings &s) { s.render_height = 0; },
+     "render scale cannot carry the depth of a multisampled scene on this renderer: the scene at native resolution (or "
+     "turn MSAA off)"},
+    {[](const Settings &s, const Support &c) { return s.render_height > 0 && !c.scene_depth; },
+     [](Settings &s) { s.render_height = 0; },
+     "render scale needs a sampleable scene depth texture: the scene at native resolution"},
+    // The sea's turbidity and soft edges read the depth of what the scene draws before the sea from a single-sample
+    // target of their own (its backdrop, src/effects/world.cpp), never the multisampled scene's.
+    {[](const Settings &s, const Support &c) { return s.sea_turbidity && !c.scene_depth; },
+     [](Settings &s) { s.sea_turbidity = false; },
+     "water turbidity needs a sampleable depth texture: legacy transmission retained"},
+    {[](const Settings &s, const Support &) {
+         return (s.lighting_flags & kLightingRim) && !(s.lighting_flags & kLightingPerPixel);
+     },
+     [](Settings &s) { s.lighting_flags &= ~static_cast<uint32_t>(kLightingRim); },
+     "rim light needs per-pixel lighting: switched off"},
+    {[](const Settings &s, const Support &) {
+         return (s.lighting_flags & kLightingLinear) && !(s.lighting_flags & (kLightingPerPixel | kLightingPoint));
+     },
+     [](Settings &s) { s.lighting_flags &= ~static_cast<uint32_t>(kLightingLinear); },
+     "linear-light lighting needs per-pixel lighting or per-pixel point lights: switched off"},
+    {[](const Settings &s, const Support &) { return s.sun_shafts && !s.bloom; },
+     [](Settings &s) { s.sun_shafts = false; },
+     "sun shafts are part of the bloom chain and bloom is off: sun shafts switched off"},
+    {[](const Settings &s, const Support &c) { return s.sea_soft_edges && !c.scene_depth; },
+     [](Settings &s) { s.sea_soft_edges = false; },
+     "soft sea edges need a sampleable scene depth texture: switched off"},
+    {[](const Settings &s, const Support &) {
+         return !(s.lighting_flags & kLightingPerPixel) &&
+                (s.lighting_flags & (kLightingHemisphere | kLightingSpecular | kLightingTranslucent));
+     },
+     [](Settings &s) {
+         s.lighting_flags &= ~static_cast<uint32_t>(kLightingHemisphere | kLightingSpecular | kLightingTranslucent);
+     },
+     "hemisphere ambient, specular and translucency need per-pixel lighting: switched off"},
+    {[](const Settings &s, const Support &) {
+         return s.shadows != ShadowQuality::Off && !(s.lighting_flags & kLightingPerPixel);
+     },
+     [](Settings &s) { s.shadows = ShadowQuality::Off; }, "sun shadows need per-pixel lighting: switched off"},
+    {[](const Settings &s, const Support &) { return s.town_light && !(s.lighting_flags & kLightingPerPixel); },
+     [](Settings &s) { s.town_light = false; }, "our own town light needs per-pixel lighting: switched off"},
+    {[](const Settings &s, const Support &) { return s.town_walls && !s.town_light; },
+     [](Settings &s) { s.town_walls = false; }, "the town walls' relight needs our own town light: switched off"},
+    {[](const Settings &s, const Support &c) { return s.shadows != ShadowQuality::Off && !c.shadow_map; },
+     [](Settings &s) { s.shadows = ShadowQuality::Off; }, "sun shadows need a D16 depth render target: switched off"},
+    {[](const Settings &s, const Support &c) { return (s.lighting_flags & kLightingNormalMap) && !c.normal_map; },
+     [](Settings &s) { s.lighting_flags &= ~static_cast<uint32_t>(kLightingNormalMap); },
+     "normal maps need EAC RG11 textures: switched off"},
+    {[](const Settings &s, const Support &) {
+         return (s.lighting_flags & kLightingNormalMap) && !(s.lighting_flags & (kLightingPerPixel | kLightingPoint));
+     },
+     [](Settings &s) { s.lighting_flags &= ~static_cast<uint32_t>(kLightingNormalMap); },
+     "normal maps need per-pixel lighting or per-pixel point lights: switched off"},
+    {[](const Settings &s, const Support &) { return s.gloss && !(s.lighting_flags & kLightingSpecular); },
+     [](Settings &s) { s.gloss = false; },
+     "gloss maps shape the specular highlights and specular is off: switched off"},
+    {[](const Settings &s, const Support &c) { return s.gloss && !c.normal_map; }, [](Settings &s) { s.gloss = false; },
+     "gloss maps need EAC textures (as the normal maps): switched off"},
+    {[](const Settings &s, const Support &) { return s.gloss && !(s.lighting_flags & kLightingNormalMap); },
+     [](Settings &s) { s.gloss = false; },
+     "gloss needs the normal maps (the relief textures keep their gloss in the relief's material texture): switched "
+     "off"},
+    {[](const Settings &s, const Support &) {
+         return s.parallax != ParallaxQuality::Off && !(s.lighting_flags & kLightingNormalMap);
+     },
+     [](Settings &s) { s.parallax = ParallaxQuality::Off; }, "the parallax needs the normal maps: switched off"},
+    {[](const Settings &s, const Support &) {
+         return s.character_relief != CharacterRelief::Off && !(s.lighting_flags & kLightingNormalMap);
+     },
+     [](Settings &s) { s.character_relief = CharacterRelief::Off; },
+     "the characters' relief needs the normal maps: switched off"},
+    {[](const Settings &s, const Support &) {
+         return s.character_relief == CharacterRelief::Parallax && s.parallax == ParallaxQuality::Off;
+     },
+     [](Settings &s) { s.character_relief = CharacterRelief::Normals; },
+     "the characters' parallax needs the parallax: their normal maps only"},
+    {[](const Settings &s, const Support &) { return s.relief_cavity && !(s.lighting_flags & kLightingNormalMap); },
+     [](Settings &s) { s.relief_cavity = false; }, "the relief's cavity needs the normal maps: switched off"},
+    {[](const Settings &s, const Support &) { return s.parallax_shadow && s.parallax != ParallaxQuality::Occlusion; },
+     [](Settings &s) { s.parallax_shadow = false; },
+     "the relief's own shadow needs parallax occlusion mapping: switched off"},
+    {[](const Settings &s, const Support &) { return s.ao_volume > kAoVolumeLevels; },
+     [](Settings &s) { s.ao_volume = kAoVolumeLevels; },
+     "ambient occlusion volume strength must be 0..3: lowered to 3"},
+    {[](const Settings &s, const Support &c) { return s.ao_volume && !c.ao_volume; },
+     [](Settings &s) { s.ao_volume = 0; },
+     "the ambient occlusion volume of interiors needs RGBA8 3D textures: switched off"},
+    {[](const Settings &s, const Support &) {
+         return s.ao_volume && !(s.lighting_flags & (kLightingPerPixel | kLightingPoint));
+     },
+     [](Settings &s) { s.ao_volume = 0; },
+     "the ambient occlusion volume of interiors needs per-pixel lighting or per-pixel point lights: switched off"},
+    {[](const Settings &s, const Support &) {
+         return s.lamp_shadows != 0 && s.lamp_shadows != 8 && s.lamp_shadows != 16;
+     },
+     [](Settings &s) { s.lamp_shadows = s.lamp_shadows > 8 ? 16 : 8; }, "8 or 16 lamps relight an interior: rounded"},
+    {[](const Settings &s, const Support &) {
+         return s.lamp_moving > 2 || (s.lamp_shadows && s.lamp_moving > s.lamp_shadows);
+     },
+     [](Settings &s) {
+         s.lamp_moving = static_cast<uint8_t>(std::min<int>({s.lamp_moving, 2, s.lamp_shadows ? s.lamp_shadows : 2}));
+     },
+     "at most 2 of the lamp slots are for moving lights: lowered"},
+    {[](const Settings &s, const Support &c) { return s.lamp_shadows && c.lamp_depth == LampDepth::None; },
+     [](Settings &s) { s.lamp_shadows = 0; },
+     "lamp shadows need a D24 or D32F depth render target (perspective depth over a lamp's radius): switched off"},
+    {[](const Settings &s, const Support &) { return s.lamp_per_pixel < 1 || s.lamp_per_pixel > kLampGridCapacity; },
+     [](Settings &s) {
+         s.lamp_per_pixel = static_cast<uint8_t>(std::clamp<int>(s.lamp_per_pixel, 1, kLampGridCapacity));
+     },
+     "1 to 8 lamps light a pixel with their shadows: clamped"},
+    {[](const Settings &s, const Support &) { return s.lamp_filtered < 1 || s.lamp_filtered > kLampGridCapacity; },
+     [](Settings &s) {
+         s.lamp_filtered = static_cast<uint8_t>(std::clamp<int>(s.lamp_filtered, 1, kLampGridCapacity));
+     },
+     "1 to 8 lamps of a pixel take filtered shadows: clamped"},
+    {[](const Settings &s, const Support &c) { return s.lamp_shadows && !c.ao_volume; },
+     [](Settings &s) { s.lamp_shadows = 0; },
+     "the lamps' grid and the room light need RGBA8 3D textures: lamp shadows switched off"},
+    {[](const Settings &s, const Support &) { return s.lamp_shadows && !(s.lighting_flags & kLightingPerPixel); },
+     [](Settings &s) { s.lamp_shadows = 0; }, "lamp shadows need per-pixel lighting: switched off"},
+    {[](const Settings &s, const Support &) { return s.wet_surfaces > 2; }, [](Settings &s) { s.wet_surfaces = 2; },
+     "wet surfaces must be 0 off, 1 wet or 2 with puddles: lowered to 2"},
+    {[](const Settings &s, const Support &) {
+         return s.wet_surfaces && !(s.lighting_flags & (kLightingPerPixel | kLightingPoint));
+     },
+     [](Settings &s) { s.wet_surfaces = 0; },
+     "wet surfaces are drawn by the per-pixel lighting (or per-pixel point lights): switched off"},
+    {[](const Settings &s, const Support &) { return s.flash_lights > 8; }, [](Settings &s) { s.flash_lights = 8; },
+     "at most 8 flash lights at once: clamped"},
+    {[](const Settings &s, const Support &) { return s.flash_lights && !(s.lighting_flags & kLightingPoint); },
+     [](Settings &s) { s.flash_lights = 0; }, "flash lights need per-pixel point lights: switched off"},
+    {[](const Settings &s, const Support &) {
+         return (s.lighting_flags & kLightingPoint) && s.point_lights != 4 && s.point_lights != 8;
+     },
+     [](Settings &s) { s.point_lights = s.point_lights > 4 ? 8 : 4; },
+     "point lights per draw call must be 4 or 8: rounded"},
+};
+} // namespace
+
+std::vector<std::string> ValidateSettings(const Settings &settings, const Support &support)
+{
+    std::vector<std::string> problems;
+    for (const Rule &rule : kRules)
+        if (rule.violated(settings, support))
+            problems.emplace_back(rule.message);
+    return problems;
+}
+
+Settings ConstrainSettings(const Settings &requested, const Support &support, std::vector<std::string> &changes)
+{
+    Settings settings = requested;
+    // A fix can expose another violation (per-pixel lighting off -> its shadows), so run until stable.
+    for (bool changed = true; changed;)
+    {
+        changed = false;
+        for (const Rule &rule : kRules)
+            if (rule.violated(settings, support))
+            {
+                rule.fix(settings);
+                changes.emplace_back(rule.message);
+                changed = true;
+            }
+    }
+    return settings;
+}
+
+RendererState RendererStateFor(const Settings &settings)
+{
+    RendererState state;
+    state.msaa_samples = settings.msaa;
+    state.alpha_to_coverage = settings.alpha_to_coverage && settings.msaa > 1;
+    state.max_anisotropy = settings.anisotropy;
+    state.depth_prepass = settings.depth_prepass;
+    state.render_height = settings.render_height;
+    return state;
+}
+
+std::string_view NameRu(QualityPreset preset)
+{
+    switch (preset)
+    {
+    case QualityPreset::Medium:
+        return "Средняя";
+    case QualityPreset::High:
+        return "Высокая";
+    default:
+        return "Низкая";
+    }
+}
+
+std::string_view NameRu(GradePreset preset)
+{
+    switch (preset)
+    {
+    case GradePreset::Caribbean:
+        return "Карибы";
+    case GradePreset::Overcast:
+        return "Пасмурно";
+    default:
+        return "Оригинал";
+    }
+}
+
+Support RestrictSupport(const Support &device, CapsProfile profile)
+{
+    Support s = device;
+    switch (profile)
+    {
+    case CapsProfile::Gles30Minimal: // R8/RG8 textures are core GLES 3.0: SMAA stays
+        s.msaa_samples = 1;
+        s.msaa_depth = s.anisotropy = false;
+        break;
+    case CapsProfile::MaliG5x:
+        s.msaa_depth = false;
+        break;
+    case CapsProfile::PowerVR:
+        s.msaa_samples = 1;
+        s.msaa_depth = s.anisotropy = false;
+        break;
+    case CapsProfile::Device:
+    case CapsProfile::Count:
+        break;
+    }
+    return s;
+}
+
+const char *CapsProfileName(CapsProfile profile)
+{
+    static const char *const names[] = {"device", "gles30-minimal", "mali-g5x", "powervr"};
+    const auto index = static_cast<size_t>(profile);
+    return index < std::size(names) ? names[index] : "?";
+}
+
+} // namespace storm::fx

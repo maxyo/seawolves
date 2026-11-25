@@ -1,0 +1,14 @@
+{
+  "tag": "c-label",
+  "props": {
+    "text": {"type": "text", "default": ""},
+    "aside": {"type": "text", "default": ""},
+    "line": {"type": "bool", "default": false},
+    "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
+  },
+  "constants": {
+    "minHeight": 24,
+    "font": @{type.body},
+    "fontAside": @{type.caption}
+  }
+}

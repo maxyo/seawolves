@@ -1,0 +1,14 @@
+{
+  "tag": "s-settings",
+  "doc": "Settings (interface `option_screen`), filled by menu_settings.cpp. A page is a list of sections, each with columns of setting rows.",
+  "props": {
+    "title": {"type": "text", "default": ""},
+    "tabs": {"type": "json", "default": []},
+    "sections": {"type": "json", "default": []},
+    "done": {"type": "json", "default": null},
+    "extras": {"type": "json", "default": {}}
+  },
+  "constants": {
+    "colMin": 250
+  }
+}

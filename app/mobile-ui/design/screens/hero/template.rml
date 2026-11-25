@@ -1,0 +1,26 @@
+<c-screen id="header" key="header" title="{{title}}" sections="{{headerSection}}" tabs="{{ json(tabs) }}" subject="{{ json(subject) }}" actions="{{ json(extras.actions) }}">
+<div class="he-cols">
+<t-if test="tab == 'skills'"><div class="he-rail"><c-hero-card id="card" title="{{card.title}}" sub="{{card.sub}}" roles="{{card.roles}}" portrait="{{card.portrait}}" health="{{ json(card.health) }}" energy="{{ json(card.energy) }}" free="{{card.free}}" lines="{{ json(card.lines) }}"><t-if test="len(card.actions) > 0"><t-for each="card.actions" as="a"><c-button id="{{a.id}}" label="{{a.label}}" variant="{{a.variant}}" disabled="{{ a.disabled ? 1 : 0 }}" reason="{{a.reason}}" busy="{{ a.busy ? 1 : 0 }}" style="width: 100%"/></t-for></t-if></c-hero-card></div></t-if>
+<t-if test="tab == 'skills'"><c-panel class="he-main" pad="0" gap="0"><div class="he-grid{{ points ? ' points' : '' }}">
+<div class="he-col he-special"><c-table id="special" head="1" columns="{{ json(special.columns) }}" rows="{{ json(special.rows) }}" interactive="1" selectable="0" row-height="44"/></div>
+<div class="he-col he-line"><c-table id="personal" head="1" columns="{{ json(personal.columns) }}" rows="{{ json(personal.rows) }}" interactive="1" selectable="0" row-height="44"/></div>
+<div class="he-col he-line"><c-table id="ship" head="1" columns="{{ json(ship.columns) }}" rows="{{ json(ship.rows) }}" interactive="1" selectable="0" row-height="44"/></div>
+</div><t-if test="extras.note"><div class="he-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if></c-panel></t-if>
+<t-if test="tab == 'perks'"><c-panel class="he-main he-tree" tone="parchment" pad="0" gap="0">
+<t-if test="perkInfo"><div class="he-perkinfo{{ perkInfoNudge ? ' nudge' : '' }}">{{perkInfo}}</div></t-if><div class="he-perks"><s-perk-tree id="perks" tree="{{ json(tree) }}" empty="{{perksEmpty}}"/></div>
+</c-panel>
+<c-panel class="he-detail" gap="0"><t-if test="detail"><s-perk-detail id="perk-detail" detail="{{ json(detail) }}"/></t-if></c-panel></t-if>
+<t-if test="tab == 'officers'"><c-panel class="he-officers" gap="8"><div class="he-off-scroll">
+<c-label text="{{ tr('hero.on_posts') }}" aside="{{postsCount}}"/>
+<t-if test="len(posts) > 0"><div class="he-grid3"><t-for each="posts" as="o"><c-list-row id="post-{{o.id}}" image="{{ json(o.image) }}" icon="hero" title="{{o.name}}" meta="{{o.meta}}" selected="{{ o.selected ? 1 : 0 }}" chevron="1" class="he-cell3"/></t-for></div></t-if>
+<t-if test="len(freePosts) > 0"><c-label text="{{ tr('hero.free_posts') }}"/><div class="he-grid6"><t-for each="freePosts" as="f"><c-tile id="post-{{f.id}}" empty="1" icon="{{f.icon}}" label="{{f.role}}" layout="column" size="28" selected="{{ f.selected ? 1 : 0 }}" class="he-cell6"/></t-for></div></t-if>
+<t-if test="len(passengers) > 0"><c-label text="{{ tr('hero.passengers') }}" aside="{{passengersCount}}"/><div class="he-grid3"><t-for each="passengers" as="o"><c-list-row image="{{ json(o.image) }}" icon="hero" title="{{o.name}}" meta="{{o.meta}}" class="he-cell3" style="pointer-events: none;"/></t-for></div></t-if>
+<t-if test="extras.note"><s-note id="extras-note" text="{{extras.note}}"/></t-if>
+</div></c-panel></t-if>
+</div>
+<t-if test="dialog && dialog.kind == 'officer'"><c-dialog id="dialog" key="dialog" variant="center" tone="parchment" width="380" title="{{dialog.title}}" subtitle="{{dialog.subtitle}}" closable="1" actions="{{ json(dialog.actions) }}"><c-kv items="{{ json(dialog.facts) }}" surface="parchment" style="width: 100%"/></c-dialog></t-if>
+<t-if test="dialog && dialog.kind == 'assign'"><c-dialog id="dialog" key="dialog" variant="center" tone="parchment" width="380" title="{{dialog.title}}" closable="1"><div class="he-cands"><t-if test="len(dialog.rows) == 0"><div class="he-empty">{{dialog.empty}}</div></t-if><t-for each="dialog.rows" as="c"><c-list-row id="candidate-{{c.id}}" image="{{ json(c.image) }}" icon="hero" title="{{c.name}}" meta="{{c.meta}}" value="{{c.value}}" busy="{{ c.busy ? 1 : 0 }}" surface="parchment" style="width: 100%"/></t-for></div></c-dialog></t-if>
+<t-if test="dialog && dialog.kind == 'skill'"><c-dialog id="dialog" key="dialog" variant="center" tone="parchment" width="420" title="{{dialog.title}}" actions="{{ json(dialog.actions) }}"><t-if test="len(dialog.steps) > 0"><c-kv class="he-steps" items="{{ json(dialog.steps) }}" surface="parchment" size="15"/></t-if><div class="he-help">{{dialog.text}}</div></c-dialog></t-if>
+<t-if test="dialog && dialog.kind == 'message'"><c-dialog id="dialog" key="dialog" variant="center" tone="parchment" width="420" title="{{dialog.title}}" text="{{dialog.text}}" actions="{{ json(dialog.actions) }}"/></t-if>
+<s-extras id="extras" extras="{{ json(extras) }}"/>
+</c-screen>

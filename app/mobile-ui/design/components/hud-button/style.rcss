@@ -1,0 +1,77 @@
+/* C-HudButton: round translucent glass over the scene.
+   Glass alpha: normal .6 → .66, primary / combat / active .72 → .78, pressed or holding .92 → .98
+   (material.hudGlass*Alpha). The glass colours and the fill tones other than brass / green have
+   no token yet: literals below. */
+c-hud-button { position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 3dp; flex: 0 0 auto; }
+c-hud-button .disc {
+    position: relative; display: flex; flex-direction: row; align-items: center; justify-content: center; flex: 0 0 auto;
+    box-sizing: border-box; border-radius: @{radius.pill}dp; border: 1.5dp @{color.brassEdge};
+    decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudGlassTop/.6}, @{color.hudGlassLow/.659});
+    box-shadow: @{color.black/.5} 0 2dp 6dp 0;
+}
+c-hud-button c-icon { position: relative; z-index: 1; }
+c-hud-button .slot { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 2; }
+c-hud-button .ring { left: -6dp; top: -6dp; right: -6dp; bottom: -6dp; pointer-events: none; }
+
+/* looks */
+c-hud-button.variant-primary .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudPrimaryTop/.722}, @{color.hudPrimaryLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-combat .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudCombatTop/.722}, @{color.hudCombatLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-active .disc { border: 2dp @{color.brassLit}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudActiveTop/.722}, @{color.hudActiveLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-ghost .disc { border: 1dp @{color.brassLine/.45}; decorator: none; background-color: @{color.hudGhost/.251}; box-shadow: none; }
+
+/* pressed, and while the hold ring runs: denser glass, slightly smaller */
+c-hud-button.pressed .disc { transform: scale(0.94); decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudGlassTop/.922}, @{color.hudGlassLow/.98}); }
+c-hud-button.variant-primary.pressed .disc { decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudPrimaryTop/.922}, @{color.hudPrimaryLow/.98}); }
+c-hud-button.variant-combat.pressed .disc { decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudCombatTop/.922}, @{color.hudCombatLow/.98}); }
+c-hud-button.variant-active.pressed .disc { decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudActiveTop/.922}, @{color.hudActiveLow/.98}); }
+c-hud-button.variant-ghost.pressed .disc { decorator: none; }
+
+/* hold completed: short flash */
+c-hud-button.done .disc { box-shadow: @{color.ringStart} 0 0 0 3dp, @{color.flash/.8} 0 0 16dp 4dp; }
+
+/* status fill: rises from the bottom, a thin bright line marks the level */
+c-hud-button .fill-clip { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: @{radius.pill}dp; overflow: hidden; pointer-events: none; }
+c-hud-button .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; overflow: hidden; transition: height @{time.fill}s cubic-out;
+    decorator: linear-gradient(0deg, @{color.ringEnd/.42}, @{color.ringEnd/.16}); }
+c-hud-button .level { position: absolute; left: 0; right: 0; top: 0; height: 1.5dp; background-color: @{color.ringStart}; }
+c-hud-button .fill.full .level { display: none; }
+c-hud-button .fill.tone-cooldown { decorator: linear-gradient(0deg, @{color.steel/.42}, @{color.steel/.141}); }
+c-hud-button .fill.tone-cooldown .level { background-color: @{color.steelLevel}; }
+c-hud-button .fill.tone-active { decorator: linear-gradient(0deg, @{color.okDeep/.48}, @{color.okDeep/.16}); }
+c-hud-button .fill.tone-active .level { background-color: @{color.okLevel}; }
+c-hud-button .fill.tone-danger { decorator: linear-gradient(0deg, @{color.fillDanger/.502}, @{color.fillDanger/.18}); }
+c-hud-button .fill.tone-danger .level { background-color: @{color.fillDangerLevel}; }
+c-hud-button .fill.tone-effect { decorator: linear-gradient(0deg, @{color.fillEffect/.459}, @{color.fillEffect/.161}); }
+c-hud-button .fill.tone-effect .level { background-color: @{color.fillEffectLevel}; }
+
+/* cue: a small dot, top right on the rim: something behind the button can be used now (no number: a count
+   would read as seconds) */
+c-hud-button .cue { position: absolute; top: 1dp; right: 1dp; z-index: 3; width: 11dp; height: 11dp; box-sizing: border-box;
+    border-radius: @{radius.pill}dp; border: 1.5dp @{color.black/.75}; background-color: @{color.ok}; pointer-events: none; }
+
+/* count: bold digits with a dark outline, no backing pill */
+c-hud-button .badge { position: absolute; left: 0; right: 0; bottom: 3dp; z-index: 3; text-align: center; font-size: 14dp; line-height: 16dp; font-weight: bold;
+    color: @{color.text}; font-effect: outline(1dp @{color.black}), shadow(0dp 1dp @{color.black/.902}); pointer-events: none; }
+c-hud-button.badge-tone-danger .badge { color: @{color.danger}; }
+c-hud-button.zero .badge { color: @{color.textMuted}; }
+c-hud-button.zero.reloading .badge { color: @{color.brass}; }
+
+c-hud-button .caption { font-size: @{type.caption}dp; line-height: 1.1; text-align: center; white-space: nowrap; color: @{color.text}; font-effect: glow(2dp @{color.black/.7}), shadow(0dp 1dp @{color.black}); }
+
+/* disabled (also a count of 0 outside reloading): one look for every HUD button, whatever its
+   variant: half-transparent and fully grey (tests/hud_disabled refuses any other disabled style) */
+c-hud-button.dis { opacity: 0.5; }
+/* «Прозрачность кнопок» (the player's setting; the UI host's class hud-buttons-<opacity %> on the HUD document's body,
+   one per step of settings.steps.hud_transparency in engine tools/android/app_contract.json): the disc with its icon;
+   the disabled look multiplies with it */
+.hud-buttons-65 c-hud-button .disc { opacity: 0.65; }
+.hud-buttons-40 c-hud-button .disc { opacity: 0.4; }
+c-hud-button.dis .disc { filter: grayscale(1); transform: none; }
+c-hud-button.spent { pointer-events: none; }
+
+/* indicator (40 dp) and land state icon (26 dp): flat translucent disc, not a button */
+c-hud-button.flat { pointer-events: none; }
+c-hud-button.flat .disc { border: 1dp @{color.brassEdge/.6}; decorator: none; background-color: @{color.hudPlate/.32}; box-shadow: @{color.black/.45} 0 1dp 3dp 0; transform: none; filter: none; }
+c-hud-button.state .disc { border-color: @{color.brassEdge/.7}; background-color: @{color.hudPlate/.4}; }
+c-hud-button.state .level { height: 1dp; }
+c-hud-button.state .badge { left: auto; right: -5dp; bottom: -6dp; font-size: 13dp; line-height: 13dp; }

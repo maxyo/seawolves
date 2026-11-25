@@ -1,0 +1,2 @@
+<t-if test="extras.open"><div class="sx-scrim" data-action="dismiss"></div><div class="sx-sheet" style="height: {{ min(340, 46 + len(extras.rows) * 52) }}dp;"><c-panel title="{{extras.title}}" pad="0" gap="0" style="width: 100%"><div class="sx-rows"><t-for each="extras.rows" as="r"><s-control row="{{ json(r) }}"/></t-for></div></c-panel></div></t-if>
+<t-if test="extras.reading"><c-dialog id="extras-reading" key="extras-reading" tone="parchment" title="{{extras.readingTitle}}" closable="1" width="560"><div class="sx-reading">{{extras.readingText}}</div></c-dialog></t-if>

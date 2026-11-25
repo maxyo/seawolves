@@ -1,0 +1,38 @@
+{
+  "tag": "c-captain-picker",
+  "doc": "The captain choice of the game's OFFICERS_WINDOW (shipyard.c after buying a ship, transfer_main.c for a prize without a captain) and the hero's sheet over a hero-only ship: the candidates on the left (a tap selects one in the game's list: rows report click under their own id), the selected one's name, ship skills (TABLE_SMALLSKILL) and the game's facts (TABLE_SMALLOTHER) on the right, in the stock window's order. Inside a c-dialog sheet with no actions of its own: the game's «Назначить» stays at the foot of the right column while the list and the facts scroll on their own.",
+  "props": {
+    "candidates": {
+      "type": "json",
+      "default": [],
+      "doc": "[{id, title, image, selected, disabled, reason}]; none: the facts alone (the hero's sheet)"
+    },
+    "empty": {
+      "type": "text",
+      "default": "",
+      "doc": "said in place of the list when nobody can take the ship"
+    },
+    "name": {
+      "type": "text",
+      "default": ""
+    },
+    "facts": {
+      "type": "json",
+      "default": [],
+      "doc": "[{k, v}]"
+    },
+    "skills": {
+      "type": "json",
+      "default": [],
+      "doc": "[{icon, k, v, tone: ''|ok|danger}]"
+    },
+    "actions": {
+      "type": "json",
+      "default": [],
+      "doc": "[{id, label, variant, disabled, reason}]: the game's «Назначить», at the foot of the right column (not in the dialog's action row: on a 384 dp high phone that row would take the height the candidates and the skills need)"
+    }
+  },
+  "constants": {
+    "skillIcon": 20
+  }
+}

@@ -1,0 +1,1 @@
+<div class="sr-row" style="height: {{height}}dp;"><div class="sr-label" style="width: {{labelWidth}}dp;">{{label}}</div><c-bar class="sr-bar" label="" text="" value="{{value}}" kind="{{kind}}" height="{{spec.barHeight}}" surface="{{surface}}"/><div class="sr-word" style="width: {{wordWidth}}dp;">{{word}}</div></div>

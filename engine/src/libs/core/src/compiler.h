@@ -1,0 +1,380 @@
+#pragma once
+
+#include <optional>
+#include <string_view>
+#include <tuple>
+
+#include "data.h"
+#include "message.h"
+#include "s_deftab.h"
+#include "s_eventmsg.h"
+#include "s_eventtab.h"
+#include "s_functab.h"
+#include "s_postevents.h"
+#include "s_stack.h"
+#include "s_vartab.h"
+#include "script_libriary.h"
+#include "string_codec.h"
+#include "strings_list.h"
+#include "token.h"
+#include "logging.hpp"
+#include "script_cache.h"
+#include "platform/platform.hpp"
+
+#include "platform/frame_work.hpp"
+#include "ringbuffer_stack.hpp"
+#include "android_ui_bootstrap.hpp"
+
+#include <chrono>
+#include <cstring>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+#define IOBUFFER_SIZE 65535
+
+struct SEGMENT_DESC
+{
+    std::string name;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t id;
+    uint32_t lines;
+    bool bUnload;
+    std::vector<char> code; // the bytecode
+
+    STRINGS_LIST *Files_list;
+
+    [[nodiscard]] uint32_t CodeSize() const
+    {
+        return static_cast<uint32_t>(code.size());
+    }
+    // Writes the target of a jump compiled before its target was known.
+    void SetOffset(uint32_t at, uint32_t offset)
+    {
+        std::memcpy(&code[at], &offset, sizeof(offset));
+    }
+};
+// A script can load a segment while another one runs from its bytecode: when SegmentTable grows, a segment must move
+// (keeping its buffer), not be copied.
+static_assert(std::is_nothrow_move_constructible_v<SEGMENT_DESC>);
+
+struct OFFSET_INFO
+{
+    uint32_t offset;
+    uint32_t segment_id;
+};
+
+
+struct DOUBLE_DWORD
+{
+    uint32_t dw1;
+    uint32_t dw2;
+};
+
+class SLIBHOLDER
+{
+  public:
+    std::unique_ptr<SCRIPT_LIBRIARY> library;
+    std::string name;
+
+    SLIBHOLDER(SCRIPT_LIBRIARY *library, std::string name)
+        : library(library), name(std::move(name))
+    {
+    }
+};
+
+
+enum COMPILER_STAGE
+{
+    CS_SYSTEM,
+    CS_COMPILATION,
+    CS_RUNTIME
+};
+
+class CoreImpl;
+
+namespace storm::save
+{
+class ReferenceIndex;
+struct ParsedState;
+}
+
+class COMPILER : public VIRTUAL_COMPILER
+{
+    friend CoreImpl;
+
+  public:
+    bool bBreakOnError;
+
+    COMPILER();
+    ~COMPILER();
+
+    VSTRING_CODEC *GetVSC()
+    {
+        return &SCodec;
+    }
+
+    // Appends the text of a script file and a line break, which keeps the tokens of two files apart. False when the
+    // file cannot be read.
+    bool AppendFile(std::string &program, const char *file_name);
+    void DTrace(const char *data_PTR, ...);
+    void SetError(const char *data_PTR, ...);
+    void SetWarning(const char *data_PTR, ...);
+    // Compile time, error log: a call in an expression whose argument count differs from the function's.
+    void CheckCallArguments(const FuncInfo &fi, uint32_t func_code, uint32_t func_args);
+    bool CreateProgram(const char *file_name);
+    bool AddProgramFile(const char *file_name);
+
+    void UnloadSegment(const char *segment_name);
+    uint32_t GetSegmentIndex(uint32_t segment_id);
+
+    void ProcessFrame(uint32_t DeltaTime);
+    bool Run();
+    void Release();
+    void SetProgramDirectory(const char *dir_name);
+    VDATA *ProcessEvent(const char *event_name, MESSAGE message);
+    VDATA *ProcessEvent(const char *event_name);
+    void SetEventHandler(const char *event_name, const char *func_name, int32_t flag, bool bStatic = false);
+    void DelEventHandler(const char *event_name, const char *func_name);
+    bool HasActiveEventHandler(const char *event_name, const char *func_name);
+    // The running call of the script function `func_name` nearest the top of the call stack:
+    // its depth (0 = the innermost call), or -1 when it is not running; and argument `index`
+    // of that call (nullptr when it has fewer). For tagging what a script does at its source
+    // (the touch UI: which game function wrote a log line).
+    int CallDepth(const char *func_name) const;
+    DATA *CallArgument(const char *func_name, uint32_t index);
+
+    bool Completed()
+    {
+        return bCompleted;
+    }
+
+    void ExitProgram();
+    void ClearEvents();
+    // From a native function the running script calls: every script frame of the current call stack returns at
+    // once (no further script statement runs); the outermost frame drops their stack values. No-op outside scripts.
+    void AbortExecution()
+    {
+        if (execute_depth_)
+            abort_execution_ = true;
+    }
+
+    DATA *BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t arguments);
+
+    uint32_t GetIntFunctionsNum();
+    bool InitInternalFunctions();
+
+    bool Compile(SEGMENT_DESC &Segment);
+    void CompileToken(SEGMENT_DESC &Segment, S_TOKEN_TYPE Token_type, uint32_t data_blocks_num = 0, ...);
+    bool BC_LoadSegment(const char *file_name);
+    bool BC_SegmentIsLoaded(const char *file_name);
+    bool BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const char *pDbgExpSource = nullptr);
+    bool BC_CallFunction(uint32_t func_code, uint32_t &ip, DATA *&pVResult);
+    // Value of an integer #define of a loaded script segment; nullopt when there is none.
+    std::optional<int32_t> FindIntegerDefine(const char *name);
+    void FindErrorSource();
+    S_TOKEN_TYPE BC_TokenGet(uint32_t &ip, uint32_t &token_data_size);
+    S_TOKEN_TYPE BC_TokenGet();
+    void ReadCondition(int32_t &value);
+
+    S_TOKEN_TYPE TokenLastReadResult;
+    uint32_t execute_depth_ = 0;  // nested BC_Execute frames
+
+  private:
+    // "script work:" in the log every 30 s: where the script time of a frame comes from, and the segments read from the
+    // script cache. Every event raised while no script runs is timed whole (the events and natives it calls included),
+    // by its name and by the frame phase it was raised from (CoreImpl::Event; an event the VM raises itself, a posted
+    // one, counts as "script").
+    struct EventWork
+    {
+        uint64_t calls = 0;
+        int64_t ns = 0;
+    };
+    std::unordered_map<uint64_t, EventWork> event_work_; // event code | phase << 32
+    storm::platform::frame_work::Phase event_origin_ = storm::platform::frame_work::Phase::Script;
+    std::chrono::steady_clock::time_point work_window_ = std::chrono::steady_clock::now();
+    uint32_t work_frames_ = 0;
+    struct CacheLoads
+    {
+        uint32_t count = 0;
+        int64_t ms = 0, slowest_ms = 0;
+        std::string slowest;
+    } cache_loads_;
+    void ReportScriptWork();
+
+  public:
+    void SetEventOrigin(storm::platform::frame_work::Phase phase)
+    {
+        if (execute_depth_ == 0)
+            event_origin_ = phase;
+    }
+    bool abort_execution_ = false; // AbortExecution: unwinding the current script call stack
+    uint32_t TLR_DataOffset;
+    const char *pRunCodeBase;
+    S_TOKEN_TYPE TokenType()
+    {
+        return TokenLastReadResult;
+    }
+
+    S_TOKEN_TYPE SkipAuxiliaryTokens();
+
+    uint32_t CurrentFuncCode;
+    void CompileNumber(SEGMENT_DESC &Segment);
+    void CompileFloatNumber(SEGMENT_DESC &Segment);
+    void CompileString(SEGMENT_DESC &Segment);
+    bool CompileUnknown(SEGMENT_DESC &Segment);
+    bool CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_t &inout, S_TOKEN_TYPE bound_type,
+                      uint32_t continue_jump, uint32_t break_offset, STRINGS_LIST &BreakTable);
+    S_TOKEN_TYPE CompileAuxiliaryTokens(SEGMENT_DESC &Segment); //, bool & bFunctionBlock, DWORD & inout);
+    bool BC_Jump(SEGMENT_DESC &Segment, uint32_t offset);
+    void UpdateOffsets(SEGMENT_DESC &Segment, STRINGS_LIST &list, uint32_t offset, const char *sname = nullptr);
+    S_TOKEN_TYPE DetectUnknown(uint32_t &code);
+
+    void DumpAttributes(ATTRIBUTES *pA, int32_t level);
+
+    bool IsIntFuncVarArgsNum(uint32_t code);
+    uint32_t GetInternalFunctionArgumentsNum(uint32_t code);
+    bool CreateMessage(MESSAGE *pMs, uint32_t stack_offset, uint32_t vindex, bool s2s = false);
+    void ProcessEvent(const char *event_name, MESSAGE *pMs);
+
+    bool SaveState(std::vector<char> &image);
+#ifdef STORM_SCENE_SWEEP
+    void WriteStateDump(const char *label); // scene_sweep.cpp
+#endif
+    std::vector<char> SerializeState(); // the script state of a save (save_state.hpp)
+    bool LoadState(const std::vector<char> &raw, const storm::save::ParsedState &state);
+    bool OnLoad();
+
+    void AddPostEvent(S_EVENTMSG *pEM);
+    bool EventPosted(const char *name);
+    void ForgetDeletedAttributes(S_EVENTMSG *pEM);
+
+    void LoadPreprocess();
+
+    void CopyOffsets(SEGMENT_DESC &Segment, STRINGS_LIST &srclist, STRINGS_LIST &dstlist, const char *sname);
+
+
+
+    bool SetSaveData(const char *file_name, void *save_data, int32_t data_size);
+    void *GetSaveData(const char *file_name, int32_t &data_size);
+
+
+    uint32_t SetScriptFunction(IFUNCINFO *pFuncInfo);
+
+    bool CompileExpression(SEGMENT_DESC &Segment);
+    bool CompileExpression_L0(SEGMENT_DESC &Segment);
+    bool CompileExpression_L1(SEGMENT_DESC &Segment);
+    bool CompileExpression_L2(SEGMENT_DESC &Segment);
+    bool CompileExpression_L3(SEGMENT_DESC &Segment);
+    bool CompileExpression_L4(SEGMENT_DESC &Segment);
+    bool CompileExpression_L5(SEGMENT_DESC &Segment);
+    bool CompileExpression_L6(SEGMENT_DESC &Segment);
+    bool CompileExpression_L7(SEGMENT_DESC &Segment);
+
+    DATA *GetOperand(const char *pCodeBase, uint32_t &ip, S_TOKEN_TYPE *pTokenType = nullptr);
+
+    // writes down current script stack (internal functions+script functions+events) to logfile
+    // currently used for collecting additional crash info
+    // TODO: use it for internal errors also
+    void CollectCallStack() const;
+
+    // printout script functions usage
+
+private:
+#ifdef __ANDROID__
+    storm::android::UiBootstrap androidUi_;
+    void LoadAndroidUiAdapter();
+#endif
+#ifdef STORM_SCENE_SWEEP
+    void LoadSceneSweep(); // scene_sweep.cpp
+#endif
+    [[nodiscard]] std::filesystem::path GetSegmentCachePath(const SEGMENT_DESC &segment) const;
+
+    bool LoadSegmentFromCache(SEGMENT_DESC &segment);
+    void LoadDefinesFromCache(storm::script_cache::BufferReader &reader, SEGMENT_DESC &segment);
+    void LoadVariablesFromCache(storm::script_cache::BufferReader &reader, SEGMENT_DESC &segment);
+    void LoadFunctionsFromCache(storm::script_cache::BufferReader &reader, SEGMENT_DESC &segment);
+    void LoadScriptLibrariesFromCache(storm::script_cache::BufferReader &reader);
+    void LoadEventHandlersFromCache(storm::script_cache::BufferReader &reader);
+    void LoadByteCodeFromCache(storm::script_cache::BufferReader &reader, SEGMENT_DESC &segment);
+
+    void SaveSegmentToCache(const SEGMENT_DESC &segment);
+    void SaveDefinesToCache(storm::script_cache::BufferWriter &writer);
+    void SaveVariablesToCache(storm::script_cache::BufferWriter &writer);
+    void SaveFunctionsToCache(storm::script_cache::BufferWriter &writer);
+    void SaveScriptLibrariesToCache(storm::script_cache::BufferWriter &writer);
+    void SaveEventHandlersToCache(storm::script_cache::BufferWriter &writer);
+    void SaveByteCodeToCache(storm::script_cache::BufferWriter &writer, const SEGMENT_DESC &segment);
+
+    COMPILER_STAGE CompilerStage;
+    STRINGS_LIST LabelTable;
+    STRINGS_LIST LabelUpdateTable;
+    TOKEN Token;
+    MESSAGE *pEventMessage;
+    std::vector<SEGMENT_DESC> SegmentTable;
+    uint32_t SegmentsNum;
+    uint32_t RunningSegmentID;
+    uint32_t InstructionPointer;
+
+    char *ProgramDirectory;
+    bool bCompleted;
+    bool bEntityUpdate;
+    char *pDebExpBuffer;
+    uint32_t nDebExpBufferSize;
+
+    FuncFrame *pRun_fi; // running function frame (scalar snapshot + stable table entry)
+    FuncTable FuncTab;
+    VarTable VarTab;
+    S_DEFTAB DefTab;
+    S_STACK SStack;
+    S_EVENTTAB EventTab;
+    POSTEVENTS_LIST EventMsg;
+    std::vector<SLIBHOLDER> LibriaryFuncs;
+
+    STRING_CODEC SCodec;
+
+
+    bool bFirstRun;
+    bool bScriptTrace;
+    bool bWriteCodeFile;
+    bool bDebugInfo;
+    char DebugSourceFileName[MAX_PATH];
+    char gs[MAX_PATH];
+    uint32_t DebugSourceLine;
+
+
+    bool bDebugExpressionRun;
+    bool bTraceMode;
+
+    bool bEventsBreak;
+
+    char DebugTraceFileName[MAX_PATH];
+    uint32_t nDebugTraceLineCode;
+
+    uint32_t nIOBufferSize;
+    uint32_t nIOFullSize;
+    char *pIOBuffer;
+
+    // script registers
+    DATA rAX;
+    DATA rBX;
+    DATA ExpressionResult;
+    ATTRIBUTES *rAP;
+
+    // loggers
+    storm::logging::logger_ptr logTrace_;
+    storm::logging::logger_ptr logError_;
+    storm::logging::logger_ptr logStack_;
+
+    // backtrace stack
+    // NB: pointers are safe as long as we pop elements before they expire
+    static constexpr size_t CALLSTACK_SIZE = 64U;
+    // file, line, name, where its arguments start on SStack (kNoArguments for an event)
+    static constexpr uint32_t kNoArguments = UINT32_MAX;
+    storm::ringbuffer_stack<std::tuple<const char *, size_t, const char *, uint32_t, uint32_t>, CALLSTACK_SIZE> callStack_;
+
+    // attempt to read/write script cache?
+    int script_cache_mode_;
+    storm::ScriptCache script_cache_;
+};

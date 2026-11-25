@@ -1,0 +1,176 @@
+#pragma once
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <optional>
+#include <string_view>
+#include <utility>
+
+#include "app_ui_names.hpp"
+
+namespace storm::android
+{
+// MainMenu and Character are the game's keys (Esc, F2). CharacterScreen, ShipScreen,
+// JournalScreen and ItemsScreen open that screen itself, whatever section F2 would reopen: a HUD
+// portrait or squadron ship tap, a tap on an event line that leads there (the UI then selects
+// its subject in the screen).
+enum class GameplayShortcut
+{
+    MainMenu,
+    Character,
+    CharacterScreen,
+    ShipScreen,
+    JournalScreen,
+    ItemsScreen
+};
+// The shortcuts by the name the touch HUD hands to the activity and the activity to the native queue.
+inline constexpr std::array<std::pair<std::string_view, GameplayShortcut>, 6> kGameplayShortcuts{{
+    {app::shortcut::mainmenu, GameplayShortcut::MainMenu},
+    {app::shortcut::character, GameplayShortcut::Character},
+    {app::shortcut::characterscreen, GameplayShortcut::CharacterScreen},
+    {app::shortcut::shipscreen, GameplayShortcut::ShipScreen},
+    {app::shortcut::journalscreen, GameplayShortcut::JournalScreen},
+    {app::shortcut::itemsscreen, GameplayShortcut::ItemsScreen},
+}};
+
+// Names are control identifiers consumed by the game's existing
+// "Control Activation" handler. Never accept arbitrary script event/function names.
+inline const char *shortcutControl(GameplayShortcut shortcut)
+{
+    switch (shortcut)
+    {
+    case GameplayShortcut::MainMenu:
+        return "MainMenu";
+    case GameplayShortcut::Character:
+        return "Interface";
+    case GameplayShortcut::CharacterScreen:
+    case GameplayShortcut::ShipScreen:
+    case GameplayShortcut::JournalScreen:
+    case GameplayShortcut::ItemsScreen:
+        return nullptr;
+    }
+    return nullptr;
+}
+// The screen of a shortcut without a control: the argument of the app script adapter's
+// "AndroidOpenScreen" event (mobile-ui/PROGRAM/interface/android_open_screen.c), which opens
+// it under the same refusals as the F2 key.
+inline const char *shortcutScreen(GameplayShortcut shortcut)
+{
+    switch (shortcut)
+    {
+    case GameplayShortcut::CharacterScreen:
+        return "character";
+    case GameplayShortcut::ShipScreen:
+        return "ship";
+    case GameplayShortcut::JournalScreen:
+        return "journal";
+    case GameplayShortcut::ItemsScreen:
+        return "items";
+    case GameplayShortcut::MainMenu:
+    case GameplayShortcut::Character:
+        return nullptr;
+    }
+    return nullptr;
+}
+
+class GameplayShortcuts
+{
+    struct Pending
+    {
+        GameplayShortcut shortcut;
+        uint32_t queuedAt;
+    };
+    std::optional<Pending> pending_;
+
+    void expire(uint32_t now)
+    {
+        // Unsigned subtraction also handles SDL_GetTicks wrapping.
+        if (pending_ && static_cast<uint32_t>(now - pending_->queuedAt) >= lifetimeMs)
+            pending_.reset();
+    }
+
+  public:
+    static constexpr uint32_t lifetimeMs = 30000;
+
+    bool offer(std::string_view name, uint32_t now)
+    {
+        const auto known = std::find_if(kGameplayShortcuts.begin(), kGameplayShortcuts.end(),
+                                        [&](const auto &entry) { return entry.first == name; });
+        if (known == kGameplayShortcuts.end())
+            return false;
+        const GameplayShortcut shortcut = known->second;
+        expire(now);
+        // Only one menu intent may be outstanding. Coalesce repeats and reject
+        // conflicting commands instead of opening multiple screens from a batch.
+        if (pending_)
+            return pending_->shortcut == shortcut;
+        pending_ = Pending{shortcut, now};
+        return true;
+    }
+
+    std::optional<GameplayShortcut> take(uint32_t now, bool ready)
+    {
+        expire(now);
+        if (!ready || !pending_)
+            return std::nullopt;
+        const auto shortcut = pending_->shortcut;
+        pending_.reset(); // Consume before calling scripts, even if they refuse the action.
+        return shortcut;
+    }
+
+    void clear()
+    {
+        pending_.reset();
+    }
+};
+
+// The pause menu's quick save / quick load (engine command quick:<save|load>, Bindings::QuickGame): the
+// game's keys F6 / F9 (controls QuickSave, QuickLoad), pressed once the menu has closed (the game's
+// MakeQuickSave refuses while an interface is open) and the game runs again. A press the game could not
+// take within lifetimeMs (the menu stayed open) is dropped and reported by the caller (take: expired).
+class QuickGame
+{
+    struct Pending
+    {
+        const char *control;
+        uint32_t queuedAt;
+    };
+    std::optional<Pending> pending_;
+
+  public:
+    static constexpr uint32_t lifetimeMs = 3000;
+
+    bool offer(std::string_view name, uint32_t now)
+    {
+        if (name == "save")
+            pending_ = Pending{"QuickSave", now};
+        else if (name == "load")
+            pending_ = Pending{"QuickLoad", now};
+        else
+            return false;
+        return true;
+    }
+
+    // The control to press now, if any; `expired` names one dropped because its time ran out.
+    const char *take(uint32_t now, bool ready, const char *&expired)
+    {
+        expired = nullptr;
+        if (pending_ && static_cast<uint32_t>(now - pending_->queuedAt) >= lifetimeMs)
+        {
+            expired = pending_->control;
+            pending_.reset();
+        }
+        if (!ready || !pending_)
+            return nullptr;
+        const char *control = pending_->control;
+        pending_.reset();
+        return control;
+    }
+
+    void clear()
+    {
+        pending_.reset();
+    }
+};
+} // namespace storm::android

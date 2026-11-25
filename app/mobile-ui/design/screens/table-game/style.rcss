@@ -1,0 +1,14 @@
+/* s-table-game: the felt takes the width, the buttons stand in a 200 dp column on the right. Rows are placed by the felt's edges, never by a fixed screen size. */
+s-table-game { display: block; width: 100%; height: 100%; }
+s-table-game .tg-main { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: row; gap: @{space.md}dp; }
+s-table-game .tg-table { flex: 1 1 0; min-width: 0; height: 100%; }
+s-table-game .tg-side { flex: 0 0 200dp; display: flex; flex-direction: column; gap: @{space.md}dp; }
+s-table-game .tg-grow { flex: 1 1 0; }
+s-table-game .tg-top { position: absolute; right: 48dp; top: 12dp; }
+s-table-game.kind-cards .tg-top { right: auto; left: 58%; }
+s-table-game.kind-cards .tg-bottom { left: 30%; }
+s-table-game .tg-pack { position: absolute; left: 20dp; top: 36%; }
+s-table-game.kind-cards .tg-pack { top: 42%; }
+s-table-game .tg-bottom { position: absolute; left: 22%; bottom: 14dp; }
+/* the opponent's line yields room to the top row on narrow felts */
+s-table-game c-game-table > .gt-felt > .gt-chip { max-width: 42%; }

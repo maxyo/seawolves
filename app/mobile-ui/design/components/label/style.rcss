@@ -1,0 +1,14 @@
+/* C-Label: a section heading inside a panel; aside text or children on the right. */
+c-label {
+    display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; box-sizing: border-box;
+    width: 100%; min-height: @{spec.minHeight}dp; line-height: 1.36; color: @{color.text};
+}
+c-label > .text { flex: 0 0 auto; white-space: nowrap; font-size: @{spec.font}dp; font-weight: bold; color: @{color.textSecond}; }
+c-label > .fill { flex: 1 1 0; min-width: 0; }
+c-label > .aside { flex: 0 0 auto; white-space: nowrap; font-size: @{spec.fontAside}dp; color: @{color.textSecond}; }
+c-label > .slot { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.sm}dp; }
+c-label.line { padding-bottom: 4dp; border-bottom: 1dp @{color.brassLine/.35}; }
+
+c-label.surface-parchment { color: @{color.ink}; }
+c-label.surface-parchment > .text, c-label.surface-parchment > .aside { color: @{color.inkMuted}; }
+c-label.surface-parchment.line { border-bottom: 1dp @{color.inkMuted/.45}; }

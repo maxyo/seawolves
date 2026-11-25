@@ -1,0 +1,23 @@
+/* s-hud-orders: the modal orders panel over the sea HUD, centred in the safe area: at most
+   680 dp wide, as tall as its content and at most 12 dp from the edges. Ships on the left,
+   the orders for the chosen ship on the right; each pane scrolls by itself. */
+s-hud-orders { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+/* the scrim dims the whole screen, beyond the safe area the panel sits in */
+s-hud-orders > .ho-scrim { position: absolute; background-color: @{color.scrim/.28}; }
+s-hud-orders > .ho-place { position: absolute; left: @{spec.inset}dp; top: @{spec.inset}dp; right: @{spec.inset}dp; bottom: @{spec.inset}dp;
+    display: flex; flex-direction: row; justify-content: center; align-items: center; }
+s-hud-orders c-panel.ho-panel { flex: 1 1 auto; max-width: @{spec.width}dp; min-width: 0; height: auto; max-height: 100%; }
+s-hud-orders c-panel.ho-panel > .inner { flex: 1 1 auto; }
+s-hud-orders .ho-header { flex: 0 0 auto; width: 100%; }
+s-hud-orders .ho-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: row; align-items: stretch; }
+/* the panes scroll beyond what the screen holds under the header (vh: the panel's height is its content) */
+s-hud-orders .ho-ships { flex: 0 0 auto; width: @{spec.ships}dp; min-height: 0; max-height: 76vh; overflow-y: auto; display: flex; flex-direction: column;
+    border-right: 1dp @{color.brassLine/.35}; }
+s-hud-orders .ho-bars { display: flex; flex-direction: column; gap: 3dp; padding: 4dp 12dp 8dp 12dp; background-color: @{color.brassGlow/.12}; }
+s-hud-orders .ho-orders { flex: 1 1 0; min-width: 0; min-height: 0; max-height: 76vh; overflow-y: auto; display: flex; flex-direction: column; }
+s-hud-orders .ho-crumb { padding: 12dp 14dp 6dp 14dp; }
+s-hud-orders .ho-tiles { display: flex; flex-direction: row; flex-wrap: wrap; align-content: flex-start; box-sizing: border-box; padding: 8dp; }
+s-hud-orders .ho-tile { box-sizing: border-box; width: 33.33%; padding: 4dp; }
+s-hud-orders .ho-tile c-tile { width: 100%; height: @{spec.tile}dp; box-sizing: border-box; }
+/* an order's name may take two lines */
+s-hud-orders .ho-tile c-tile .ti-label { white-space: normal; text-align: center; max-height: 2.5em; }

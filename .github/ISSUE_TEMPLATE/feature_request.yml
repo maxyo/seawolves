@@ -1,0 +1,23 @@
+name: Feature request
+description: An idea for the app, the touch interface or the port
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is hard or missing today
+      description: The situation in the game or in the app that the idea would improve
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you propose
+      description: How it could work on a phone. A sketch or an example from another game helps.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Alternatives you considered, your phone if it matters
