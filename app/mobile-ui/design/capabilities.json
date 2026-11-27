@@ -28,5 +28,6 @@
   "shipyard": "Buy, sell and trade in ships at a shipyard, repair them and give a bought one a captain",
   "table_dice": "Dice against a tavern's patron, as the game deals and decides them",
   "table_cards": "Cards (twenty-one) against a tavern's patron, as the game deals and decides them",
-  "transfer": "Exchange cargo and crew with another ship: a boarded prize, a companion, a ship met at sea"
+  "transfer": "Exchange cargo and crew with another ship: a boarded prize, a companion, a ship met at sea",
+  "ship": "A ship of the hero's squadron: its figures, crew and hold, its guns set, goods thrown overboard"
 }

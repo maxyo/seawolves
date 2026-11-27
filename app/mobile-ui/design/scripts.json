@@ -56,6 +56,7 @@
     {"file": "interface/touch/contracts/shipyard.c"},
     {"file": "interface/touch/contracts/table.c"},
     {"file": "interface/touch/contracts/transfer.c"},
+    {"file": "interface/touch/contracts/ship.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -536,6 +537,31 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/ship.c",
+      "requires": [
+        "fn:GetCharacter/1", "fn:GetMainCharacter/0", "fn:GetRealShip/1", "fn:XI_ConvertString/1",
+        "fn:GetShipRemovable/1", "fn:GetBortCannonsQtyMax/2", "var:GameInterface"
+      ],
+      "provides": ["adapter:ship"],
+      "binds": [
+        {
+          "capability": "ship",
+          "interface": "ship",
+          "nodes": [
+            ["SHIPS_SCROLL", "choice", true], ["TABLE_OTHER", "choice|table", true], ["TABLE_LIST", "choice|table", true],
+            ["EDIT_BOX", "edit"], ["HERO_NAME", "text"], ["HERO_RANK", "text"], ["SHIP_RANK", "text"], ["TITLE", "heading|text"],
+            ["MAIN_BACK", "image"], ["EXIT_BTN", "button"], ["UP_BUTTON", "button"], ["DOWN_BUTTON", "button"],
+            ["SHIP_BIG_PICTURE", "image"], ["MAIN_CHARACTER_PICTURE", "image"], ["TABLE_CREW", "choice|table"],
+            ["CREW_PICTURE", "image"], ["CREW_QTY", "text"], ["CREW_MORALE_TEXT", "text"], ["CREW_MORALE_PIC", "image"],
+            ["CREW_MORALE_BUTTON", "button"], ["CREW_PARTITION", "button"], ["FOOD", "text"], ["FOOD_SHIP", "text"],
+            ["MONEY_SHIP", "text"], ["Money_PIC", "image"], ["Money_TEXT", "text"], ["QTY_*", "text|button|edit|image"],
+            ["CANNONS_*", "text|button|image|choice|table"], ["PARTITION_*", "text|button"], ["REMOVE_*", "text|button"],
+            "@hero-sections"
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -700,6 +726,11 @@
       "file": "interface/touch/screens/transfer/transfer.c",
       "uses": ["adapter:transfer"],
       "screens": [{"capability": "transfer", "component": "s-transfer", "look": {"title": "transfer.title"}}]
+    },
+    {
+      "file": "interface/touch/screens/hero/ship.c",
+      "uses": ["adapter:ship"],
+      "screens": [{"capability": "ship", "component": "s-ship"}]
     }
   ]
 }

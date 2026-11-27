@@ -105,6 +105,9 @@
   команды сразу двигает стрелки самой игры и показывает, где игра остановилась (полный трюм, предел команды), а не
   предел, посчитанный заранее; у «Перегрузить всё» больше нет подписи с весом, которая могла превышать то, что
   поместится.
+- Экран корабля построен скриптами интерфейса. Вопросы игры (поднять мораль, обмен с кораблём компаньона) показываются
+  её словами, с её ценой и её отказом; доли команды — строки самой игры. Пушки по борту ставятся стрелками игры по
+  одной, и борт показывает, где игра остановилась. Слова опыта команды и морали пишутся так, как их пишет игра.
 
 **English**
 
@@ -213,6 +216,10 @@
 - Exchange with another ship (a boarded prize, a companion, a ship met at sea): a script screen. The goods and crew
   sliders move the game's own arrows at once and show where the game stopped (a full hold, the crew's limit) instead
   of a limit worked out beforehand; «Take all cargo» no longer has a weight line, which could exceed what fits.
+- The ship screen is built by the interface scripts. The game's questions (raising morale, the exchange with a
+  companion's ship) are shown in its words, with its price and its refusal; the crew's shares are the game's own
+  lines. The guns of a side are set by the game's arrows one at a time, and the side shows where the game stopped.
+  The crew's experience and morale words are written as the game writes them.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

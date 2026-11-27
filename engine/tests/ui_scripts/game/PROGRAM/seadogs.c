@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[30];
+object Interfaces[31];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -324,6 +324,24 @@ int GetCharacterShipType(ref chr)
 	return sti(chr.Ship.Type);
 }
 
+// The ship interface of the recorded models (ui/tests/models/ship*.json): ship.c's xi_refCharacter, the captain whose
+// ship it shows (Characters[3] Peter Marsh, a companion on a sloop, RealShips[0]), and iShipQty, what the hold had
+// of the good whose overboard window is open (set by the checks to the recorded state's). A captain's gun ports per
+// side are TestPorts.<side>.
+#define SHIP_NOTUSED 1000
+ref xi_refCharacter;
+int iShipQty;
+
+bool GetShipRemovable(ref chr)
+{
+	return true;
+}
+
+int GetBortCannonsQtyMax(ref chr, string side)
+{
+	return sti(chr.TestPorts.(side));
+}
+
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\TavernWait.ini";
@@ -356,6 +374,7 @@ void Main()
 	Interfaces[27].IniFile = "RESOURCE\INI\INTERFACES\boal_dice.ini";
 	Interfaces[28].IniFile = "RESOURCE\INI\INTERFACES\boal_cards.ini";
 	Interfaces[29].IniFile = "RESOURCE\INI\INTERFACES\transfer_main.ini";
+	Interfaces[30].IniFile = "RESOURCE\INI\INTERFACES\ship.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -446,6 +465,19 @@ void Main()
 	TestHero.Money = 12480;
 	TestHero.Ship.Type = 1;
 	RealShips[1].ShipSails.Gerald_Name = "emblem_01.tga.tx";
+	// the ship interface of the recorded models
+	TestHero.id = "Blaze";
+	RealShips[0].BaseName = "Sloop";
+	TestPerson(3, "Peter", "Marsh", "21");
+	Characters[3].id = "Marsh";
+	Characters[3].Ship.Type = 0;
+	TestCrew(&Characters[3], 40, 62, 18, 30, 45);
+	Characters[3].TestPorts.cannonf = 2;
+	Characters[3].TestPorts.cannonb = 2;
+	Characters[3].TestPorts.cannonl = 4;
+	Characters[3].TestPorts.cannonr = 4;
+	makeref(xi_refCharacter, Characters[3]);
+	iShipQty = 220;
 	GameValue = 7;
 	GameName = "kept";
 }

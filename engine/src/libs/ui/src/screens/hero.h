@@ -1,4 +1,4 @@
-// Shared parts of the hero section screens (hero_character.cpp, hero_ship.cpp, …): reading
+// Shared parts of the hero section screens (hero_character.cpp, …): reading
 // the interface adapter's facts (android_hero.c, widgets ANDROID_<LIST>), game numbers and
 // words, and the header's switch over the people of the game's character list.
 #pragma once
@@ -30,16 +30,6 @@ std::string StockText(const std::string &raw);
 // Our bare icon of a skill by its id ("Sailing" → "wheel"; pictures.ini ICONS_SPEC names its pictures
 // "<id> skill icon"), "" for an id that has none.
 const char *SkillIcon(const std::string &id);
-// The text after "Caption:" of a game line ("Мораль команды: Повышенная" → "Повышенная").
-std::string AfterColon(const std::string &text);
-// A crew's quality as the ship screen draws it (a c-stat-row each): the experience of the three
-// groups of the game's crew table `table` (SetCrewExpTable rows Sailors / Cannoners / Soldiers:
-// caption, word) with the adapter's numbers 0…100 (fields <prefix>sailors, <prefix>cannoners,
-// <prefix>soldiers of `fact`) and the morale (field <prefix>morale, its word after the colon of the
-// game's `morale_text`). {groups: [{label, value, word}], moraleLabel, morale, moraleWord}. The ship
-// screen (hero_ship.cpp) shows crews with it.
-Json CrewQuality(const Admission &admitted, Bindings &bindings, const char *table, const char *morale_text,
-                 const Widget *fact, const std::string &prefix = std::string());
 // The row image of a game portrait by face, null without one.
 Json Portrait(const std::string &face);
 // The interface adapter's facts are part of these screens, but a closing interface may publish a

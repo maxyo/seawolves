@@ -105,7 +105,9 @@ The natives (`core/core.c`):
   attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
   open interface, which a segment attached before that interface cannot name. Absent or not a whole number, it fails.
   The checks give such globals per recorded state (a case's `game`);
-- `UiToast`, `UiRead`, `UiError(text)`.
+- `UiToast`, `UiRead`, `UiError(text)`;
+- `UiEditText(node, title)` in a tap: the phone's text editor over the game's field `node` with its text; the text
+  the player accepts goes to the field as its `edit` (the game's own handler takes it), nothing when he cancels.
 
 Failures are loud. `UiError`, a native given an argument of the wrong type or an object with a missing or unknown
 field, and a runtime error of the script (the interpreter logs it and goes on) fail the build or tap: the router closes
@@ -191,6 +193,5 @@ script screen.
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
-  crew hire's, the self repair's and the shipyard's are gone (their adapters read the game themselves); the hero
-  screens still in C++ (character, ship) read the facts of `android_hero.c`.
-- The hero's ship screen is still C++ (`hero_ship.cpp`).
+  crew hire's, the self repair's, the shipyard's and the ship screen's are gone (their adapters read the game
+  themselves); the hero's character screen, still in C++, reads the facts of `android_hero.c`.

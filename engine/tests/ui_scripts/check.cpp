@@ -190,7 +190,7 @@ struct Calls final : storm::ui::ScriptCall
     std::vector<std::string> calls, bound, modals;
     std::optional<Json> predicted;
     bool first = true;
-    std::string subject_screen; // the screen the subject is asked of
+    std::string subject_screen; // the screen the subject is asked of, "" none (or taken)
     storm::ui::SubjectView subject;
     std::string answer; // of the hold the build is for
 
@@ -235,8 +235,9 @@ struct Calls final : storm::ui::ScriptCall
     }
     std::optional<storm::ui::SubjectView> Subject(const std::string &screen) override
     {
-        if (subject.quest.empty() || subject_screen != screen)
+        if (subject_screen.empty() || subject_screen != screen)
             return std::nullopt;
+        subject_screen.clear();
         return std::exchange(subject, {});
     }
     bool First() const override
@@ -250,6 +251,10 @@ struct Calls final : storm::ui::ScriptCall
     void Read(const std::string &title, const std::string &text) override
     {
         calls.push_back("read " + title + ": " + text);
+    }
+    void EditText(const std::string &node, const std::string &title) override
+    {
+        calls.push_back("edit-text " + node + " " + title);
     }
     void Error(const std::string &text) override
     {
@@ -277,10 +282,13 @@ struct Calls final : storm::ui::ScriptCall
     {
         return text;
     }
+    // As the engine's (screens/controls.cpp OneLine, which this check cannot link): line breaks and tabs are spaces.
     std::string OneLine(const std::string &text) const override
     {
         std::string line = text;
-        std::replace(line.begin(), line.end(), '\n', ' ');
+        for (char &c : line)
+            if (c == '\r' || c == '\n' || c == '\t')
+                c = ' ';
         return line;
     }
     std::string Fill(const std::string &text, const std::string &argument) const override
@@ -844,9 +852,12 @@ void CheckCases(const char *folder, const std::string &file)
         calls.widgets = model.widgets;
         if (recorded.contains("subject"))
         {
-            calls.subject_screen = recorded.at("subject").at("screen");
-            calls.subject.quest = recorded.at("subject").at("quest");
+            const Json &subject = recorded.at("subject");
+            calls.subject_screen = subject.at("screen");
+            calls.subject.quest = subject.value("quest", "");
+            calls.subject.position = subject.value("position", -1);
         }
+        SetGame(recorded);
         const auto &screen = Screen(vm, recorded.at("capability"));
         port.Build(screen, calls.Single(), calls);
         CHECK(calls.props == recorded.at("props"));
@@ -922,6 +933,11 @@ TEST_CASE("the shipyard's script gives the pack screen the props and actions of 
 TEST_CASE("the table games' script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("table-game", "table");
+}
+
+TEST_CASE("the ship screen's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("ship", "ship");
 }
 
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")

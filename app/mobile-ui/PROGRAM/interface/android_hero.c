@@ -36,11 +36,6 @@ void AndroidInterfaceFacts()
 		AndroidHeroSkillHelp("TABLE_SKILL_2", subject);
 	}
 	if (screen == "colonycapture") AndroidLootValues();
-	if (screen == "ship")
-	{
-		AndroidShipFacts(subject);
-		AndroidShipShares();
-	}
 	if (screen == "lscchar_all")
 	{
 		AndroidHeroRoster();
@@ -435,68 +430,6 @@ void AndroidHeroCandidates()
 		row.skill = XI_ConvertString(skill);
 		row.skillValue = GetSkillValue(GetCharacter(idx), "Skill", skill);
 	}
-}
-
-// The ship screen (ship.c, subject = the companion whose ship it shows): what its status bars,
-// windows and buttons know but the exported nodes do not carry. ships.h SHIP_NOTUSED = 1000.
-void AndroidShipFacts(int subject)
-{
-	if (subject < 0) return;
-	ref chr = GetCharacter(subject);
-	ref mc = GetMainCharacter();
-	aref row;
-	makearef(row, GameInterface.AndroidFacts.ship.s0);
-	row.hero = "0";
-	if (subject == GetMainCharacterIndex()) row.hero = "1";
-	row.money = sti(mc.money);
-	// «Обмен» (ShipChange): only for a companion's ship while the hero has one, and not from the
-	// journal's ships at anchor. rule copy: ship.c ShipChange's outer condition. The game keeps it only inside
-	// that handler, which opens no window when it fails, so the button cannot be offered from the game's word;
-	// every other refusal is the game's own window.
-	row.exchange = "0";
-	if (!CheckAttribute(mc, "SystemInfo.ShowShip") && chr.id != mc.id && sti(mc.ship.type) != 1000) row.exchange = "1";
-	int iShip = sti(chr.ship.type);
-	if (iShip == 1000) return;
-	ref realShip = GetRealShip(iShip);
-	row.type = XI_ConvertString(realShip.BaseName);
-	// CheckForRename: the name field takes focus only then.
-	row.rename = "0";
-	if (GetShipRemovable(chr)) row.rename = "1";
-	row.morale = sti(chr.Ship.crew.morale);
-	row.moraleprice = GetCharacterRaiseCrewMoraleMoney(chr);
-	// SetCrewExpTable's BAR_Sailors / BAR_Cannoners / BAR_Soldiers.
-	if (GetCrewQuantity(chr) > 0)
-	{
-		row.sailors = sti(chr.Ship.Crew.Exp.Sailors);
-		row.cannoners = sti(chr.Ship.Crew.Exp.Cannoners);
-		row.soldiers = sti(chr.Ship.Crew.Exp.Soldiers);
-	}
-	// The most guns each side takes (CANNONS_WINDOW arrows stop there).
-	row.bow = GetBortCannonsQtyMax(chr, "cannonf");
-	row.stern = GetBortCannonsQtyMax(chr, "cannonb");
-	row.starboard = GetBortCannonsQtyMax(chr, "cannonr");
-	row.port = GetBortCannonsQtyMax(chr, "cannonl");
-}
-
-// The crew's shares (ship.c ShowPartitionWindow writes them into one text): the month's shares and the debts.
-int AndroidShipShare(ref mc, string path)
-{
-	if (!CheckAttribute(mc, path)) return 0;
-	return sti(mc.(path));
-}
-
-void AndroidShipShares()
-{
-	ref mc = GetMainCharacter();
-	aref row;
-	makearef(row, GameInterface.AndroidFacts.shares.s0);
-	row.captain = AndroidShipShare(mc, "Partition.MonthPart.Hero");
-	row.officers = AndroidShipShare(mc, "Partition.MonthPart.Officers");
-	row.crew = AndroidShipShare(mc, "Partition.MonthPart.Crew");
-	row.month = AndroidShipShare(mc, "Partition.MonthPart");
-	row.state = AndroidShipShare(mc, "Partition.MonthPart.Gower");
-	row.last = AndroidShipShare(mc, "CrewPayment");
-	if (CheckAttribute(mc, "paymentdate")) row.paid = mc.paymentdate;
 }
 
 // Looting a town (ColonyCapture.c): what a pack of each listed good is worth (Goods[].Cost, the good's base

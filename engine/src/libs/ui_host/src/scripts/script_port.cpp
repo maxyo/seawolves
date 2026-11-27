@@ -276,6 +276,12 @@ uint32_t UiRead(VS_STACK *stack)
     return Native("UiRead", [&](storm::ui::ScriptCall &call) { call.Read(title, text); });
 }
 
+uint32_t UiEditText(VS_STACK *stack)
+{
+    const std::string title = PopText(stack), node = PopText(stack);
+    return Native("UiEditText", [&](storm::ui::ScriptCall &call) { call.EditText(node, title); });
+}
+
 uint32_t UiError(VS_STACK *stack)
 {
     const std::string text = PopText(stack);
@@ -662,6 +668,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiSubject", "int", 2, UiSubject},
             {"UiToast", "void", 1, UiToast},
             {"UiRead", "void", 2, UiRead},
+            {"UiEditText", "void", 2, UiEditText},
             {"UiError", "void", 1, UiError},
             {"UiAmount", "int", 2, UiAmount},
             {"UiHasAmount", "int", 1, UiHasAmount},

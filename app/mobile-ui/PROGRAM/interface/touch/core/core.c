@@ -36,6 +36,7 @@ native int UiSubject(string screen, aref out);
 
 native void UiToast(string text);
 native void UiRead(string title, string text);
+native void UiEditText(string node, string title);
 // The screen cannot do what it is for: the build or tap fails with the text and the interface closes.
 native void UiError(string text);
 

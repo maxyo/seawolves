@@ -137,7 +137,11 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     void On(const std::string &id, const std::string &verb) override
     {
         bound_.insert(id + '\x1f' + verb);
-        bindings_->On(id, verb, [this](const Event &event) { Raise(event.id, event.verb, event.value); });
+        bindings_->On(id, verb, [this](const Event &event) {
+            event_ = &event;
+            Raise(event.id, event.verb, event.value);
+            event_ = nullptr;
+        });
     }
     void Raise(const std::string &id, const std::string &verb, const std::string &value)
     {
@@ -236,6 +240,12 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     void Read(const std::string &title, const std::string &text) override
     {
         bindings_->Read(title, text);
+    }
+    void EditText(const std::string &node, const std::string &title) override
+    {
+        if (!event_)
+            throw std::runtime_error("a text is asked only in a tap of an element");
+        bindings_->EditText(*event_, Find(node, -1), title, false);
     }
     void Error(const std::string &text) override
     {
@@ -357,6 +367,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     std::set<std::string> dealt_;               // the elements the running build asked a deal of
     std::set<std::string> bound_, shown_bound_; // "<id>\x1f<verb>" the running build and the shown one bound
     std::string back_;                          // the element the back key raises, "" the router's way out
+    const Event *event_ = nullptr;              // the tap of an element the script is running for
 };
 } // namespace
 

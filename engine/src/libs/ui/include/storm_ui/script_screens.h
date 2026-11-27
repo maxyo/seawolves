@@ -121,6 +121,9 @@ class ScriptCall
 
     virtual void Toast(const std::string &text) = 0;
     virtual void Read(const std::string &title, const std::string &text) = 0;
+    // Inside an event: the text editor over the admitted field `node` with its text; the text the player accepts goes
+    // to the field as its `edit`, nothing when he cancels.
+    virtual void EditText(const std::string &node, const std::string &title) = 0;
     // Something the screen cannot do as designed: the build or event fails with it, and the interface is closed.
     virtual void Error(const std::string &text) = 0;
 
