@@ -437,6 +437,11 @@ struct StoreRun
     FakeSurface surface;
     Router router{surface};
     InterfaceModel open_deal; // store-deal.json, from DealOpens on
+    StoreRun(std::string path) : models(std::move(path))
+    {
+        Scripted(router);
+        ScriptGame::Get().Play(Json::parse(std::ifstream(models + "/../games/store.json")).at("objects"));
+    }
 
     Json Quantity()
     {
@@ -481,6 +486,7 @@ struct StoreRun
         {
             FakeSurface sel_surface;
             Router sel(sel_surface);
+            Scripted(sel);
             sel.SetInterface(Load(models, "store.json"));
             sel.OnEvent({"goods", "row", "1"});
             // The game selects the tapped row in one loop and opens its window in the next: the frame
@@ -526,6 +532,7 @@ struct StoreRun
             // error, and the game's own selection stays shown (the refused row is not shown selected).
             FakeSurface ref_surface;
             Router ref(ref_surface);
+            Scripted(ref);
             ref.SetInterface(Load(models, "store.json"));
             AnswerAll(ref, ref_surface, true);
             ref_surface.errors.clear();
@@ -644,6 +651,7 @@ struct StoreRun
             // 61).
             FakeSurface poor_surface;
             Router poor(poor_surface);
+            Scripted(poor);
             InterfaceModel model = open_deal;
             for (Widget &widget : model.widgets)
             {
@@ -674,6 +682,7 @@ struct StoreRun
                 }
                 FakeSurface blocked_surface;
                 Router blocked_router(blocked_surface);
+                Scripted(blocked_router);
                 blocked_router.SetInterface(model);
                 const Json q = blocked_surface.props["deal"];
                 blocked_router.OnEvent({"goods", "change", "20"});
@@ -745,6 +754,7 @@ struct StoreRun
             };
             FakeSurface draft_surface;
             Router draft_router(draft_surface);
+            Scripted(draft_router);
             draft_router.SetInterface(open_deal);
             DraftFlow(
                 "store", draft_router, draft_surface, "goods", 150, "<trade.sell> 50", moves,
@@ -810,6 +820,7 @@ struct StoreRun
             };
             FakeSurface ship_surface;
             Router ship_router(ship_surface);
+            Scripted(ship_router);
             ship_router.SetInterface(deal_on(2, 0, 20, true));
             const Json subject = ship_surface.props["subject"];
             Expect(!ship_surface.props["deal"].is_null() && subject["prev"] == false && subject["next"] == true &&
@@ -880,6 +891,7 @@ struct StoreRun
             // goods open from the new ship's list once it is in.
             FakeSurface tap_surface;
             Router tap_router(tap_surface);
+            Scripted(tap_router);
             tap_router.SetInterface(deal_on(0, 0, 40, false));
             tap_router.SetInterface(deal_on(0, 0, 41, true));
             tap_router.OnEvent({"header", "subject-next", ""});
@@ -991,6 +1003,7 @@ struct CommerceRun
     CommerceRun(std::string path) : models(std::move(path))
     {
         Scripted(router);
+        ScriptGame::Get().Play(Json::object()); // the fixture's own goods
     }
 
     void Models()

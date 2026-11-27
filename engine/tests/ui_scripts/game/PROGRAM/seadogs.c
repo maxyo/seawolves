@@ -16,10 +16,15 @@ int GameFunction(int count, string name)
 	return count;
 }
 
-// Every good in packs of 10 pieces, a cwt a pack, each started pack counted whole.
+// The goods: TestGoods.g<good>.{units (pieces in a pack), weight (cwt a pack)}. Main gives every good packs of 10 of
+// 1 cwt; a check sets a case's own goods. Each started pack counts whole.
+object TestGoods;
+
 int GetGoodWeightByType(int good, int quantity)
 {
-	return (quantity + 9) / 10;
+	string slot = "g" + good;
+	int units = sti(TestGoods.(slot).units);
+	return (quantity + units - 1) / units * sti(TestGoods.(slot).weight);
 }
 
 void Main()
@@ -34,6 +39,9 @@ void Main()
 	{
 		row = "tr" + n;
 		GameInterface.TABLE_LIST.(row).index = n - 1;
+		row = "g" + (n - 1);
+		TestGoods.(row).units = 10;
+		TestGoods.(row).weight = 1;
 	}
 	GameValue = 7;
 	GameName = "kept";

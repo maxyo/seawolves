@@ -1,4 +1,4 @@
-// Commerce: store, contraband, cannons, items trade and colony loot — one
+// Commerce: contraband, cannons, items trade and colony loot — one
 // buy / sell / transfer layout (pack screen <s-trade>). Goods are one C-TradeList that never
 // moves: filter chips and sortable columns in its head, 44 dp rows; the row whose quantity
 // window the game has open shows in the dock beside the list (object, description, C-Quantity
@@ -122,10 +122,6 @@ struct DealMath
 };
 
 // clang-format off
-constexpr Layout kStore = Captioned(
-    {StringKey("trade.store"), 0, 5, 3, 2, 4, 6, "SHIPS_SCROLL", false, {-1, -1, -1}, false,
-     7},
-    StringKey("trade.in_hold"), "capacity", StringKey("trade.in_store"), "store");
 constexpr Layout kContraband = Captioned(
     {StringKey("trade.contraband"), 0, 5, 3, 2, 4, 6, "SHIPS_SCROLL", false, {-1, -1, -1}, false,
      7},
@@ -1327,10 +1323,6 @@ class CommerceScreen final : public Screen
 
 } // namespace
 
-std::unique_ptr<Screen> CreateStoreScreen()
-{
-    return std::make_unique<CommerceScreen>(kStore);
-}
 std::unique_ptr<Screen> CreateContrabandScreen()
 {
     return std::make_unique<CommerceScreen>(kContraband);

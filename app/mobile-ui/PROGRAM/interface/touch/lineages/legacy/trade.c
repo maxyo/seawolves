@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The trade windows of the game (chests and bodies, the storage): one goods table TABLE_LIST with the columns of each
+// The trade windows of the game (chests and bodies, the storage, the store): one goods table TABLE_LIST with the columns of each
 // window, the amount window QTY_*, the side switch and the place's buttons. Implements contracts/trade.c, which it
 // does not include: a segment cannot define what it declares extern.
 
-// The columns of each window's table (-1: none): ours, theirs, the name, the pack, the total weight of each side's
-// pieces; whether its rows are goods in packs (their weight is the game's GetGoodWeightByType); the side switch's node.
+// The columns of each window's table (-1: none): ours, theirs, the name, the prices of a pack bought and sold, the
+// pack, the weight of a pack as the game writes it, the total weight of each side's pieces; whether its rows are goods
+// in packs (their weight is the game's GetGoodWeightByType); the side switch's node.
 void TouchLegTrade_Columns(string capability, aref out)
 {
 	out.own = 0;
 	out.name = 2;
+	out.buy = -1;
+	out.sell = -1;
 	out.pack = -1;
+	out.packWeight = -1;
 	out.ownTotal = -1;
 	out.otherTotal = -1;
 	out.goods = false;
@@ -26,6 +30,18 @@ void TouchLegTrade_Columns(string capability, aref out)
 	{
 		out.other = 3;
 		out.pack = 4;
+		out.goods = true;
+		out.owners = "SHIPS_SCROLL";
+		return;
+	}
+	if (capability == TOUCH_CAP_TRADE_STORE)
+	{
+		out.other = 5;
+		out.name = 3;
+		out.buy = 2;
+		out.sell = 4;
+		out.pack = 6;
+		out.packWeight = 7;
 		out.goods = true;
 		out.owners = "SHIPS_SCROLL";
 		return;
@@ -182,12 +198,23 @@ void TouchLegTrade_Rows(aref columns, aref out)
 		at.reason = row.reason;
 		at.selected = row.value == "1";
 		at.type = TouchLegTrade_Type(row, name);
+		at.buyText = TouchLegTrade_Cell(row, sti(columns.buy));
+		at.sellText = TouchLegTrade_Cell(row, sti(columns.sell));
+		at.buy = TouchLegTrade_Price(at.buyText);
+		at.sell = TouchLegTrade_Price(at.sellText);
 		at.pack = TouchLegTrade_Cell(row, sti(columns.pack));
 		at.weight = TouchLegTrade_PieceWeight(columns, row, sti(at.own), sti(at.other));
 		at.weightUnit = "";
 		if (sti(columns.goods)) at.weightUnit = "cwt";
 		if (row.value == "1") out.selected = k;
 	}
+}
+
+// A price cell: "-" where the game does not trade the row this way (contraband is not sold back), 0 then.
+int TouchLegTrade_Price(string cell)
+{
+	if (!UiHasAmount(cell)) return 0;
+	return UiAmount(cell, "the price column", 0);
 }
 
 string TouchLegTrade_Header(aref headers, int column)
@@ -202,6 +229,7 @@ string TouchLegTrade_Header(aref headers, int column)
 // writes it in both weight columns).
 string TouchLegTrade_PieceWeight(aref columns, aref row, int own, int other)
 {
+	if (sti(columns.packWeight) >= 0) return UiOneLine(TouchLegTrade_Cell(row, sti(columns.packWeight)));
 	if (sti(columns.goods))
 	{
 		int units = UiAmount(TouchLegTrade_Cell(row, sti(columns.pack)), "the pack column", 1);
@@ -309,7 +337,7 @@ void TouchAdpTrade_State(string capability, aref out)
 	out.title = TouchLegTrade_Label("TITLE");
 	if (out.title == "") out.title = UiOneLine(TouchLegTrade_Label("STORECAPTION1"));
 	out.pieces = columns.pieces;
-	out.money = false;
+	out.money = sti(columns.buy) >= 0;
 	out.weighs = columns.goods;
 	TouchLegTrade_Rows(&columns, out);
 	int selected = sti(out.selected);
@@ -339,7 +367,97 @@ void TouchAdpTrade_State(string capability, aref out)
 	out.place = TouchLegTrade_Label("STORE_CAPACITY");
 	out.storage = TouchLegTrade_Label("STORAGE_INFO");
 	out.info = TouchLegTrade_Label("INFO_TEXT");
+	TouchLegTrade_Hold(out);
+	TouchLegTrade_Purse(out);
 	TouchLegTrade_Places(out);
+}
+
+// What we carry of what we can, from the game's "Трюм:\n189 / 199": out.load, out.capacity (-1: not told).
+void TouchLegTrade_Hold(aref out)
+{
+	out.load = 0.0;
+	out.capacity = -1.0;
+	object figure;
+	if (!TouchLib_Figure(TouchLegTrade_Label("CAPACITY"), &figure)) return;
+	string value = figure.value;
+	int slash = findSubStr(value, "/", 0);
+	if (slash < 0) return;
+	out.load = UiNumber(TouchLib_Cut(value, 0, slash), "CAPACITY", 0.0);
+	out.capacity = UiNumber(TouchLib_Cut(value, slash + 1, strlen(value)), "CAPACITY", 0.0);
+}
+
+// Our money from the game's "Наши деньги 1 500 песо": out.purse (its figure as written, "" without), out.balance (-1:
+// not told) and out.doubloons (the merchant trades for doubloons; the engine marks the balance then).
+void TouchLegTrade_Purse(aref out)
+{
+	out.purse = "";
+	out.balance = -1;
+	out.doubloons = false;
+	if (!CheckAttribute(&UiModel, "OUR_GOLD")) return;
+	string gold = UiModel.OUR_GOLD.label;
+	out.balance = UiAmount(gold, "OUR_GOLD", -1);
+	if (CheckAttribute(&UiModel, "OUR_GOLD.context.currency"))
+		out.doubloons = UiModel.OUR_GOLD.context.currency == "doubloons";
+	int digit = TouchLib_FindDigit(gold, 0, true);
+	if (digit < 0) return;
+	int end = digit;
+	while (end < strlen(gold) && findSubStr("0123456789 ", strcut(gold, end, end), 0) >= 0)
+	{
+		end++;
+	}
+	while (end > digit && strcut(gold, end - 1, end - 1) == " ")
+	{
+		end--;
+	}
+	out.purse = TouchLib_Cut(gold, digit, end);
+}
+
+// rule copy: store.c ChangeQTY_EDIT charges makeint(price * pieces / units + 0.5) for a part of a pack's price.
+int TouchAdpTrade_Total(string capability, int row, int amount)
+{
+	object columns;
+	TouchLegTrade_Columns(capability, &columns);
+	aref at = TouchLegTrade_Row(row);
+	string cell = TouchLegTrade_Cell(at, sti(columns.sell));
+	if (amount > 0) cell = TouchLegTrade_Cell(at, sti(columns.buy));
+	int units = 1;
+	if (sti(columns.pack) >= 0) units = UiAmount(TouchLegTrade_Cell(at, sti(columns.pack)), "the pack column", 1);
+	if (units < 1) units = 1;
+	return makeint(makefloat(TouchLegTrade_Price(cell)) * abs(amount) / units + 0.5);
+}
+
+// rule copy: store.c ChangeQTY_EDIT lets a purchase through while the hold takes its weight (GetGoodWeightByType) and
+// the purse its total, and cuts it down past that; both grow with the amount, so the largest that passes is halved to.
+void TouchAdpTrade_Reach(string capability, int row, int stock, aref out)
+{
+	object hold;
+	TouchLegTrade_Hold(&hold);
+	TouchLegTrade_Purse(&hold);
+	out.most = TouchLegTrade_Largest(capability, row, stock, &hold, true);
+	out.room = TouchLegTrade_Largest(capability, row, stock, &hold, false);
+}
+
+int TouchLegTrade_Largest(string capability, int row, int stock, aref hold, bool paid)
+{
+	int low = 0;
+	int high = stock;
+	if (high < 0) high = 0;
+	while (low < high)
+	{
+		int middle = low + (high - low + 1) / 2;
+		if (TouchLegTrade_Passes(capability, row, middle, hold, paid)) low = middle;
+		else high = middle - 1;
+	}
+	return low;
+}
+
+bool TouchLegTrade_Passes(string capability, int row, int amount, aref hold, bool paid)
+{
+	float capacity = stf(hold.capacity);
+	if (capacity >= 0.0 && stf(hold.load) + TouchAdpTrade_Weight(capability, row, amount) > capacity) return false;
+	int balance = sti(hold.balance);
+	if (!paid || balance < 0) return true;
+	return TouchAdpTrade_Total(capability, row, amount) <= balance;
 }
 
 float TouchAdpTrade_Weight(string capability, int row, int amount)

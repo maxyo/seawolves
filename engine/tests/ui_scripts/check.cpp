@@ -426,7 +426,7 @@ TEST_CASE("the pack's segments are attached after Main, each on its own")
     // The game's adapters need the game's scripts, which this program does not have: left out, loudly, the rest kept.
     CHECK_FALSE(vm.Loaded("interface/android_ui_bootstrap.c"));
     CHECK(log.Has("UI script interface/android_ui_bootstrap.c is off: does not compile"));
-    CHECK(log.Has("capabilities offered: rest, trade_chest, trade_storage; missing: none"));
+    CHECK(log.Has("capabilities offered: rest, trade_chest, trade_storage, trade_store; missing: none"));
 }
 
 TEST_CASE("a segment that fails is left out with its screens; the core stops the start")

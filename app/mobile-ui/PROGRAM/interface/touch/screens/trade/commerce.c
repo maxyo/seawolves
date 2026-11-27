@@ -47,12 +47,23 @@ void TouchCommerce_Layout(string capability, aref out)
 		out.baseIcon = "chest";
 		return;
 	}
+	if (capability == TOUCH_CAP_TRADE_STORE)
+	{
+		out.title = "trade.store";
+		out.ownCaption = "trade.in_hold";
+		out.ownIcon = "capacity";
+		out.otherCaption = "trade.in_store";
+		out.otherIcon = "store";
+		out.baseIcon = "store";
+		return;
+	}
 	UiError("trade: no layout for " + capability);
 }
 
 bool TouchCommerce_Is(string capability)
 {
-	return capability == TOUCH_CAP_TRADE_CHEST || capability == TOUCH_CAP_TRADE_STORAGE;
+	return capability == TOUCH_CAP_TRADE_CHEST || capability == TOUCH_CAP_TRADE_STORAGE ||
+	       capability == TOUCH_CAP_TRADE_STORE;
 }
 
 void TouchCommerce_Reset(string capability)
@@ -318,17 +329,40 @@ void TouchCommerce_Deal(aref game, aref out)
 	else UiDraftClose("deal");
 	out.origin = UiDraftOrigin("deal");
 	out.other = UiDraftOther("deal");
+	bool money = sti(game.money) && selected >= 0;
+	bool take = !money || row.buyText != "-";
+	bool give = !money || row.sellText != "-";
+	// the scale's left end: everything we hold given away; what we hold is the pivot
 	out.low = 0;
-	out.high = sti(out.origin) + sti(out.other);
+	if (!give) out.low = out.origin;
+	out.high = out.origin;
+	if (take) out.high = sti(out.origin) + sti(out.other);
 	out.most = out.high;
 	out.moreReason = "";
-	out.nothing = false;
+	if (money) TouchCommerce_Reach(game, row, take, out);
+	out.nothing = sti(game.deal) && money && sti(out.most) <= sti(out.low) && out.moreReason != "";
 	out.shown = out.ours;
 	if (sti(game.deal)) out.shown = UiDraftValue("deal", sti(out.low), sti(out.most));
 	out.amount = sti(out.shown) - sti(out.origin);
+	out.total = 0;
+	if (money) out.total = TouchAdpTrade_Total(TouchCommerce.capability, selected, sti(out.amount));
 	out.weight = 0.0;
 	if (sti(game.weighs) && selected >= 0)
 		out.weight = TouchAdpTrade_Weight(TouchCommerce.capability, selected, abs(sti(out.amount)));
+}
+
+// The most a money deal can reach (the stock, the purse and the hold), and why the amount cannot go further up
+// although the other side has more: a tap or a drag past the end says it.
+void TouchCommerce_Reach(aref game, aref row, bool take, aref deal)
+{
+	object reach;
+	TouchAdpTrade_Reach(TouchCommerce.capability, sti(game.selected), sti(deal.other), &reach);
+	int most = sti(deal.origin) + sti(reach.most);
+	if (most < sti(deal.high)) deal.most = most;
+	if (!sti(game.deal) || !take || sti(deal.most) >= sti(deal.high)) return;
+	deal.moreReason = UiText("trade.no_room");
+	if (sti(game.pieces)) deal.moreReason = UiText("trade.no_carry");
+	if (sti(reach.room) > sti(deal.most) - sti(deal.origin)) deal.moreReason = UiText("trade.no_money");
 }
 
 // The quick take waits for the game to open the row's window, then takes all of it.
@@ -373,11 +407,14 @@ void TouchCommerce_AnswerTakeAll(aref game)
 	if (TouchCommerce_AnyThere(game)) UiToast(UiText("trade.too_heavy"));
 }
 
-// The sort key of row k: what we hold, what they hold.
+// The sort key of row k: what we hold, what they hold, its prices.
 int TouchCommerce_Key(aref game, int k)
 {
 	aref row = TouchCommerce_Row(game, k);
-	if (sti(TouchCommerce.sortBy) == 0) return sti(row.own);
+	int column = sti(TouchCommerce.sortBy);
+	if (column == 0) return sti(row.own);
+	if (column == 2) return sti(row.buy);
+	if (column == 3) return sti(row.sell);
 	return sti(row.other);
 }
 
@@ -393,7 +430,7 @@ void TouchCommerce_Order(aref game, aref out)
 		out.(slot) = k;
 	}
 	int column = sti(TouchCommerce.sortBy);
-	if (column != 0 && column != 1) return;
+	if (column < 0 || column > 3 || (column > 1 && !sti(game.money))) return;
 	bool descending = sti(TouchCommerce.descending);
 	for (int i = 1; i < count; i++)
 	{
@@ -430,15 +467,23 @@ void TouchCommerce_Type(string type, aref out)
 	if (type == "contraband") { out.word = UiText("trade.contraband_goods"); out.tone = "danger"; }
 }
 
-// The facts of the open row in the dock under its name: its weight and what the figures are for («за 20 шт.»: the
-// game sells goods by the piece and writes their figures for a pack).
-void TouchCommerce_Facts(aref row, aref out)
+// The facts of the open row in the dock under its name: its prices, its weight and what the figures are for («за 20
+// шт.»: the game sells goods by the piece and writes their figures for a pack).
+void TouchCommerce_Facts(aref game, aref row, aref out)
 {
 	aref at;
+	string slot;
 	int n = 0;
+	if (sti(game.money))
+	{
+		TouchCommerce_Price(row.buyText, sti(row.buy), "price-buy", out, 0);
+		TouchCommerce_Price(row.sellText, sti(row.sell), "price-sell", out, 1);
+		n = 2;
+	}
 	if (row.weight != "")
 	{
-		makearef(at, out.f0);
+		slot = "f" + n;
+		makearef(at, out.(slot));
 		at.icon = "weight";
 		at.v = row.weight;
 		if (row.weightUnit == "cwt") at.v = row.weight + " " + UiText("transfer.cwt");
@@ -447,11 +492,34 @@ void TouchCommerce_Facts(aref row, aref out)
 	}
 	if (n > 0 && row.pack != "" && row.pack != "1")
 	{
-		string slot = "f" + n;
+		slot = "f" + n;
 		makearef(at, out.(slot));
 		at.v = UiFill(UiText("trade.per_units"), row.pack);
 		at.tone = "dim";
 	}
+}
+
+// A price fact: a dash where the game does not trade the row this way.
+void TouchCommerce_Price(string text, int price, string icon, aref out, int n)
+{
+	aref at;
+	string slot = "f" + n;
+	makearef(at, out.(slot));
+	at.icon = icon;
+	at.iconTone = TouchCommerce_IconTone(icon);
+	at.v = "—";
+	at.tone = "dim";
+	if (!UiHasAmount(text)) return;
+	at.v = TouchLib_Thousands(price);
+	at.tone = "gold";
+}
+
+// The prices' icons wear the colours of the quantity's zones: taking (buying) green, giving (selling) red.
+string TouchCommerce_IconTone(string icon)
+{
+	if (icon == "price-buy") return "green";
+	if (icon == "price-sell") return "danger";
+	return "brass";
 }
 
 // One slider for both directions: what we hold is the origin, the zone to its left gives, the zone to its right
@@ -529,13 +597,20 @@ int TouchCommerce_Rows(aref game, aref layout, aref deal, aref captions, aref li
 			at.metaTone = type.tone;
 			at.cells.c0 = row.ownText;
 			at.cells.c1 = row.otherText;
+			if (money)
+			{
+				at.cells.c2.text = row.buyText;
+				at.cells.c2.bold = true;
+				at.cells.c3.text = row.sellText;
+				at.cells.c3.bold = true;
+			}
 			at.selected = k == selected;
 			at.disabled = !sti(row.activate) && !sti(row.select);
 			at.reason = row.reason;
 			if (k == selected)
 			{
 				makearef(from, at.facts);
-				TouchCommerce_Facts(row, from);
+				TouchCommerce_Facts(game, row, from);
 			}
 			if (k == selected && sti(game.deal))
 			{
@@ -604,18 +679,29 @@ string TouchCommerce_Weight(aref game, float value)
 	return UiDecimal(Sprintf("%.0f", value));
 }
 
-// The header's figures: what we carry, the place's load, the purse.
-void TouchCommerce_Stats(aref game, aref layout, aref view)
+// The header's figures: what we carry, the place's load, the purse. While a money deal is set they show what it
+// changes; the preview is there from the moment the deal opens, so the header does not reflow at the first step.
+void TouchCommerce_Stats(aref game, aref layout, aref deal, aref view)
 {
 	object figure;
 	aref at;
 	string slot;
 	int n = 0;
+	bool previews = sti(game.deal) && sti(game.money);
 	if (TouchLib_Figure(game.carry, &figure))
 	{
 		makearef(at, view.stats.s0);
 		at.value = UiDecimal(figure.value);
 		at.icon = layout.carryIcon;
+		if (previews && stf(game.capacity) >= 0.0 && sti(game.weighs))
+		{
+			float load = stf(game.load);
+			float moved = stf(deal.weight);
+			if (sti(deal.amount) < 0) moved = -moved;
+			at.value = TouchCommerce_Weight(game, load); // as the preview writes it ("34" and "34,0" would differ)
+			at.preview = TouchCommerce_Weight(game, load + moved);
+			at.previewTone = "neutral";
+		}
 		n++;
 	}
 	if (TouchLib_Figure(game.place, &figure))
@@ -637,6 +723,25 @@ void TouchCommerce_Stats(aref game, aref layout, aref view)
 		if (place != "" && !TouchLib_Figure(place, &named)) at.label = place;
 		n++;
 	}
+	if (game.purse != "")
+	{
+		if (n == 2) n = 1;
+		slot = "s" + n;
+		makearef(at, view.stats.(slot));
+		DeleteAttribute(at, "");
+		if (sti(game.doubloons)) at.label = UiText("trade.doubloons");
+		else at.icon = "money";
+		at.value = game.purse;
+		at.tone = "gold";
+		int balance = sti(game.balance);
+		if (previews && balance >= 0)
+		{
+			if (sti(deal.amount) > 0) balance -= sti(deal.total);
+			else balance += sti(deal.total);
+			at.preview = TouchLib_Thousands(balance);
+		}
+		n++;
+	}
 	if (n == 0) view.stats = "";
 }
 
@@ -646,6 +751,11 @@ void TouchCommerce_Columns(aref game, aref layout, aref captions, aref list)
 	list.label = game.headers.name;
 	TouchCommerce_Column(list, 0, captions.own, captions.ownIcon);
 	TouchCommerce_Column(list, 1, captions.other, captions.otherIcon);
+	if (sti(game.money))
+	{
+		TouchCommerce_Column(list, 2, UiText("trade.buy"), "price-buy");
+		TouchCommerce_Column(list, 3, UiText("trade.sell"), "price-sell");
+	}
 	list.quick = "";
 	if (sti(layout.quick)) list.quick = "hand";
 }
@@ -657,9 +767,7 @@ void TouchCommerce_Column(aref list, int n, string label, string icon)
 	makearef(at, list.cols.(slot));
 	at.label = label;
 	at.icon = icon;
-	at.iconTone = "brass";
-	if (icon == "price-buy") at.iconTone = "green";
-	if (icon == "price-sell") at.iconTone = "danger";
+	at.iconTone = TouchCommerce_IconTone(icon);
 	at.sortable = true;
 	at.sort = "";
 	if (sti(TouchCommerce.sortBy) == n)
@@ -737,17 +845,35 @@ void TouchCommerce_Primary(aref game, aref deal, aref view)
 	view.primary = "";
 	view.actions = "";
 	bool money = sti(game.money);
+	if (sti(deal.nothing))
+	{
+		// not even one can be bought and there is nothing to sell: the deal is there, disabled, and says why
+		view.primary.label = UiText("trade.buy");
+		view.primary.sub = "";
+		view.primary.disabled = true;
+		view.primary.reason = deal.moreReason;
+		view.primary.busy = false;
+		return;
+	}
 	if (sti(game.deal) && sti(game.ok))
 	{
-		// The button names the deal with the weight it moves: the amount and the game's OK go out together.
+		// The button names the deal in our words with its price and the weight it moves: the amount and the game's OK
+		// go out together.
 		string sub = "";
+		if (money) sub = TouchLib_Thousands(sti(deal.total));
 		if (sti(game.weighs))
 		{
-			sub = TouchCommerce_Weight(game, stf(deal.weight));
+			if (sub != "") sub += " · ";
+			sub += TouchCommerce_Weight(game, stf(deal.weight));
 			if (!sti(game.pieces)) sub += " " + UiText("transfer.cwt");
 		}
 		string more = "trade.take";
 		string less = "trade.give";
+		if (money)
+		{
+			more = "trade.buy";
+			less = "trade.sell";
+		}
 		object button;
 		UiDraftButton(&button, "deal", sti(deal.low), sti(deal.most), more, less, sub,
 		              !sti(game.confirm) || !sti(game.editable), game.confirmReason, "deal-commit");
@@ -832,7 +958,7 @@ void TouchCommerce_Build()
 	if (TouchCommerce_Rows(game, &layout, deal, &captions, list, quantity) == 0) list.rows = "";
 	TouchCommerce_BindList(game, &layout, deal);
 	TouchCommerce_Subject(game, view);
-	TouchCommerce_Stats(game, &layout, view);
+	TouchCommerce_Stats(game, &layout, deal, view);
 	TouchCommerce_Columns(game, &layout, &captions, list);
 	TouchCommerce_Filters(game, &layout, &captions, list);
 	TouchCommerce_Info(game, view);

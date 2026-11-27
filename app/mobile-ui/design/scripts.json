@@ -21,6 +21,7 @@
     {
       "file": "interface/touch/lineages/legacy/trade.c",
       "requires": ["interface:itemsbox", "node:itemsbox#TABLE_LIST", "interface:storage", "node:storage#TABLE_LIST",
+                   "interface:store", "node:store#TABLE_LIST",
                    "fn:GetGoodWeightByType/2", "var:GameInterface"],
       "provides": ["adapter:trade"],
       "binds": [
@@ -44,6 +45,18 @@
                     ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
                     ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
                     ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
+        },
+        {
+          "capability": "trade_store",
+          "interface": "store",
+          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
+                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["SHIPS_SCROLL", "choice"],
+                    ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"], ["OUR_GOLD", "text"],
+                    ["CAPACITY", "text"], ["STORE_CAPACITY", "text"], ["FOOD_SHIP", "text"], ["QTY_EDIT", "edit"],
+                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_ADD_BUTTON", "button"],
+                    ["QTY_REMOVE_BUTTON", "button"], ["QTY_ADD_ALL_BUTTON", "button"],
+                    ["QTY_REMOVE_ALL_BUTTON", "button"], ["QTY_*", "text|heading|image"],
+                    ["MAIN_CHARACTER_PICTURE", "image"], ["OTHER_PICTURE", "image"]]
         }
       ]
     },
@@ -56,7 +69,8 @@
       "file": "interface/touch/screens/trade/commerce.c",
       "uses": ["adapter:trade"],
       "screens": [{"capability": "trade_chest", "component": "s-trade"},
-                  {"capability": "trade_storage", "component": "s-trade"}]
+                  {"capability": "trade_storage", "component": "s-trade"},
+                  {"capability": "trade_store", "component": "s-trade"}]
     }
   ]
 }
