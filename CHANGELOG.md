@@ -31,6 +31,7 @@
   ремонт выходил другим; ползунки ремонта останавливались не там, где игра, а цена ремонта и доплата при обмене
   корабля считались экраном. Теперь «Все» — кнопка игры, ползунки встают там, где их остановила игра, цена и доплата
   — числа игры.
+- Герб на парусах: экран не давал нанести или снять герб, если денег меньше цены, хотя игра это позволяет.
 
 **English**
 
@@ -62,6 +63,8 @@
   little money the repair came out different; the repair sliders stopped where the game did not, and the repair price
   and the trade-in difference were the screen's own sums. «Все» is now the game's button, the sliders stop where the
   game stopped them, and the price and the difference are the game's.
+- Sail emblem: the screen refused to paint or remove an emblem with less money than the price, which the game
+  allows.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

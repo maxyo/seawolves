@@ -5674,14 +5674,14 @@ static void SailEmblem(const std::string &models)
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tEXIT_BTN\t-1\tpress", "← leaves");
 
-    // The emblem on the sails chosen, and not enough money: take it off, disabled with the shortfall.
+    // The emblem on the sails chosen: the game offers B_REMOVE. Less money than the price does not stop it (the game
+    // charges without asking).
     router.SetInterface(Load(models, "sailsgerald-applied.json"));
-    Expect(surface.props["primary"]["label"] == "<sails.remove>" && surface.props["primary"]["disabled"] == true &&
-               surface.props["primary"]["reason"] == "<sails.short> 350" && surface.props["prev"] == false,
-           "the current emblem: take it off; short of money: disabled with the shortfall");
-    const size_t sent = surface.commands.size();
+    Expect(surface.props["primary"]["label"] == "<sails.remove>" && surface.props["primary"]["disabled"] == false &&
+               surface.props["prev"] == false,
+           "the current emblem: take it off, whatever the purse: " + surface.props["primary"].dump());
     router.OnEvent({"primary", "click", ""});
-    Expect(surface.commands.size() == sent, "a disabled primary sends nothing");
+    ExpectEqual(surface.Last(), "widget:sailsgerald\tB_REMOVE\t-1\tpress", "take off");
 }
 
 // The one reading of a number in a game caption (screens/amount.h) and the error line when a caption that always

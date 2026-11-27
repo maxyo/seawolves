@@ -3,11 +3,8 @@
 // texture path, the current one marked) and the marker ANDROID_SAILS_GERALD (price, the hero's
 // money, the emblem on the sails now). Fills <s-sail-emblem>: a tap chooses an emblem (the game's
 // own selection), one contextual primary paints the chosen emblem (B_OK) or takes the one on the
-// sails off (B_REMOVE); both cost the price, so it is disabled with a toast when money is short.
-// ← is the game's exit.
+// sails off (B_REMOVE), whichever of the two the game offers for it. ← is the game's exit.
 #include "controls.h"
-
-#include <cstdlib>
 
 namespace storm::ui::screens
 {
@@ -104,27 +101,21 @@ class SailEmblemScreen final : public Screen
                             ? Json::array()
                             : Json::array({Json{{"icon", "money"}, {"value", Spaced(money)}, {"tone", "gold"}}});
 
-        // One primary: the chosen emblem is the one on the sails → take it off, else paint it.
-        const bool on_sails = !emblems.empty() && !applied.empty() && emblems[current]->row_id == applied;
-        const Widget *button = admitted.One(on_sails ? "B_REMOVE" : "B_OK");
+        // One primary: the game makes one of its two buttons selectable for the chosen emblem (SailsGerald.c
+        // CheckChangeSailStatus); it charges the price without asking for the money.
+        const Widget *paint = admitted.One("B_OK");
+        const Widget *remove = admitted.One("B_REMOVE");
+        const bool removing = remove && remove->Offers("press") && !(paint && paint->Offers("press"));
+        const Widget *button = removing ? remove : paint;
         view["primary"] = Json();
         if (button)
         {
-            const int cost = price.empty() ? 0 : Amount(bindings, price, "price");
-            const int purse = money.empty() ? 0 : Amount(bindings, money, "money");
-            const bool short_of_money = !price.empty() && !money.empty() && purse < cost;
-            const std::string reason = short_of_money
-                                           ? bindings.Text("sails.short") + " " + Spaced(std::to_string(cost - purse))
-                                           : button->unavailable_reason;
-            view["primary"] = Json{{"label", bindings.Text(on_sails ? "sails.remove" : "sails.apply")},
+            view["primary"] = Json{{"label", bindings.Text(removing ? "sails.remove" : "sails.apply")},
                                    {"sub", price.empty() ? std::string() : Spaced(price)},
-                                   {"disabled", short_of_money || !button->Offers("press")},
-                                   {"reason", reason},
+                                   {"disabled", !button->Offers("press")},
+                                   {"reason", button->unavailable_reason},
                                    {"busy", bindings.Pending("primary")}};
-            bindings.On("primary", "", [&bindings, button, short_of_money](const Event &) {
-                if (!short_of_money && button->Offers("press"))
-                    bindings.Send(*button, "press");
-            });
+            bindings.Forward("primary", *button, "press");
         }
 
         const Widget *exit = admitted.One("EXIT_BTN") ? admitted.One("EXIT_BTN") : admitted.One("B_CANCEL");
