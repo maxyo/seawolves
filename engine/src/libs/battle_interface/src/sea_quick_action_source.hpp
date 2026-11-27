@@ -3,6 +3,7 @@
 // Reads the sea quick action ILogAndActions offers right now, with the identity of what it
 // would act on. Game thread only; nothing here is kept across a frame.
 #include "platform/android_ui.hpp"
+#include "android_gameplay_hold.hpp"
 #include "core.h"
 #include "sea/ships_list.h"
 #include "v_data.h"
@@ -74,16 +75,9 @@ inline SeaQuickActionFrame readSeaQuickAction(uint64_t host, ATTRIBUTES *attribu
         return frame;
     // These guards bind the owner of the touch control. BI_FastCommand still owns every
     // refusal and effect of the action itself.
-    if (integer("bSeaActive") != 1 || integer("bAbordageStarted").value_or(0) || integer("dialogRun").value_or(0) ||
-        integer("bSeaReloadStarted").value_or(0))
+    if (integer("bSeaActive") != 1 || integer("bAbordageStarted").value_or(0) ||
+        integer("bSeaReloadStarted").value_or(0) || core.GetEntityId("WorldMap") != invalid_entity)
         return frame;
-    auto *interfaces = variable("InterfaceStates");
-    auto *launched = interfaces ? interfaces->GetAClass() : nullptr;
-    if (launched && launched->GetAttributeAsDword("Launched", 0))
-        return frame;
-    for (const auto *entity : {"WorldMap", "CAviPlayer", "WMVideoPlay", "fader"})
-        if (core.GetEntityId(entity) != invalid_entity)
-            return frame;
     const auto group = text("curKeyGroupName");
     if (group != "Sailing1Pers" && group != "Sailing3Pers")
         return frame;
@@ -95,7 +89,7 @@ inline SeaQuickActionFrame readSeaQuickAction(uint64_t host, ATTRIBUTES *attribu
                               static_cast<uint32_t>(ship->characterIndex) < characters->GetElementsNum()
                           ? characters->GetAClass(ship->characterIndex)
                           : nullptr;
-    if (!character)
+    if (!character || !gameplayHold(character).empty())
         return frame;
     auto *battle = variable("BattleInterface");
     auto *battleAttributes = battle ? battle->GetAClass() : nullptr;

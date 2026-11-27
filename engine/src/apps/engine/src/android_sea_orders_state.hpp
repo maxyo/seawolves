@@ -1,5 +1,6 @@
 #pragma once
 #ifdef __ANDROID__
+#include "android_gameplay_hold.hpp"
 #include "android_ship_state.hpp"
 #include "platform/android_sea_orders.hpp"
 
@@ -16,21 +17,11 @@ inline bool seaOrdersReady(bool ready)
             value->Get(result);
         return result;
     };
-    if (!integer("bSeaActive") || integer("bAbordageStarted") || integer("dialogRun"))
+    if (!integer("bSeaActive") || integer("bAbordageStarted") || core.GetEntityId("WorldMap") != invalid_entity)
         return false;
-    auto *interfaces = static_cast<VDATA *>(core.GetScriptVariable("InterfaceStates"));
-    auto *attributes = interfaces ? interfaces->GetAClass() : nullptr;
-    if (attributes && attributes->GetAttributeAsDword("Launched", 0))
-        return false;
-    for (const auto *entity : {"WorldMap", "CAviPlayer", "WMVideoPlay", "fader"})
-        if (core.GetEntityId(entity) != invalid_entity)
-            return false;
     auto *character = shipMainCharacter();
     auto *ship = shipForCharacter(character);
-    if (!character || !ship || ship->isDead())
-        return false;
-    auto *type = character->FindAClass(character, "chr_ai.type");
-    if (type && type->HasValue() && type->GetValue() == "actor")
+    if (!character || !ship || ship->isDead() || !gameplayHold(character).empty())
         return false;
     auto *group = static_cast<VDATA *>(core.GetScriptVariable("curKeyGroupName"));
     const char *name = nullptr;

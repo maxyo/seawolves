@@ -111,8 +111,8 @@ template <class Frame> bool sameMenuButCooldown(Frame a, Frame b)
 struct GameplayContext
 {
     std::string_view group;
-    // blocked: a command menu (ComState) or a video takes the controls; video says which.
-    bool blocked = false, video = false, sea = false, land = false, naval = false, worldmap = false;
+    // blocked: a command menu (ComState) takes the controls.
+    bool blocked = false, sea = false, land = false, naval = false, worldmap = false;
     bool location = false; // a land location is loaded (land: its interface is started too)
     std::optional<bool> nativeFight;
 };
@@ -137,7 +137,7 @@ inline std::string_view gameplayMode(const GameplayContext &context)
 inline std::string_view gameplayBlocked(const GameplayContext &context)
 {
     if (context.blocked)
-        return context.video ? "video" : "commands";
+        return "commands";
     if (context.worldmap)
         return context.group == "WorldMapControls" ? "" : "group";
     if (context.sea)

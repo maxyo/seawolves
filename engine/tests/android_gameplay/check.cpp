@@ -34,7 +34,7 @@ int main()
     context.naval = true;
     assert(gameplayMode(context) == "naval");
     context.blocked = true;
-    assert(gameplayMode(context) == "unknown"); // ComState/video/worldmap overrides stale sailing group
+    assert(gameplayMode(context) == "unknown"); // ComState overrides stale sailing group
     context.blocked = false;
     context.group = "PrimaryLand";
     assert(gameplayMode(context) == "unknown"); // entering sea before sailing group is activated
@@ -54,8 +54,6 @@ int main()
         assert(gameplayBlocked(why) == "group" && gameplayMode(why) == "unknown");
         why.blocked = true;
         assert(gameplayBlocked(why) == "commands");
-        why.video = true;
-        assert(gameplayBlocked(why) == "video");
         GameplayContext sea;
         sea.sea = true;
         sea.group = "Sailing1Pers"; // the deck camera

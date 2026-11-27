@@ -3,6 +3,7 @@
 #include "platform/android_gameplay.hpp"
 #include "android_ship_state.hpp"
 #include "android_hud_read_error.hpp"
+#include "android_gameplay_hold.hpp"
 #include "core.h"
 #include "script_state.hpp"
 #include "v_data.h"
@@ -55,20 +56,10 @@ inline GameplaySnapshot readGameplaySnapshot(bool ready)
         auto *character = characters->GetAClass(index);
         if (!character)
             return blocked("no-scene");
-        if (integer("dialogRun"))
-            return blocked("dialogue");
-        auto *interfaceValue = static_cast<VDATA *>(core.GetScriptVariable("InterfaceStates"));
-        auto *interfaceAttrs = interfaceValue ? interfaceValue->GetAClass() : nullptr;
-        if (interfaceAttrs && interfaceAttrs->GetAttributeAsDword("Launched", 0))
-            return blocked("interface");
-        auto *ai = character->FindAClass(character, "chr_ai.type");
-        if (ai && ai->HasValue() && ai->GetValue() == "actor")
-            return blocked("cutscene");
-        // A scene change under way (reload.c, seadogs.c, worldmap.c: CreateEntity "fader" as the
-        // reload starts, in the same script call): the touch HUD hides in this very frame, before
-        // the loading screen is up (the presentation's loading flag). Also a fade in after a load.
-        if (core.GetEntityId("fader") != invalid_entity)
-            return blocked("transition");
+        // A scene change holds from the script call that creates its fader (reload.c, worldmap.c), so the touch HUD
+        // hides in this very frame, before the loading screen is up.
+        if (const auto hold = gameplayHold(character); !hold.empty())
+            return blocked(hold);
         const auto worldmap = core.GetEntityId("WorldMap");
         const bool sea = worldmap == invalid_entity && integer("bSeaActive") && !integer("bAbordageStarted");
         const auto commandActive = [](const char *name) {
@@ -84,9 +75,7 @@ inline GameplaySnapshot readGameplaySnapshot(bool ready)
         context.location = core.GetEntityId("location") != invalid_entity;
         // BICommandList::SetActive writes ComState during entity Execute, after
         // scripts may have last updated curKeyGroupName. Gate taps immediately.
-        context.video =
-            core.GetEntityId("CAviPlayer") != invalid_entity || core.GetEntityId("WMVideoPlay") != invalid_entity;
-        context.blocked = commandActive("BattleInterface") || commandActive("objLandInterface") || context.video;
+        context.blocked = commandActive("BattleInterface") || commandActive("objLandInterface");
         auto player = invalid_entity;
         if (sea)
         {

@@ -1,5 +1,6 @@
 #pragma once
 #ifdef __ANDROID__
+#include "android_gameplay_hold.hpp"
 #include "android_ship_state.hpp"
 #include <platform/android_land_commands.hpp>
 #include <platform/android_land_diagnostics.hpp>
@@ -7,8 +8,8 @@ namespace storm::android
 {
 inline bool landCommandsReady(bool ready)
 {
-    const auto result = [](bool allowed, const char *reason) {
-        traceLandAdapter(1, reason);
+    const auto result = [](bool allowed, std::string_view reason) {
+        traceLandAdapter(1, std::string(reason));
         return allowed;
     };
     if (!ready)
@@ -24,15 +25,8 @@ inline bool landCommandsReady(bool ready)
         return result(false, "land-interface-not-started");
     if (integer("bSeaActive") && !integer("bAbordageStarted"))
         return result(false, "sea-without-boarding");
-    if (integer("dialogRun"))
-        return result(false, "dialogue");
-    auto *value = static_cast<VDATA *>(core.GetScriptVariable("InterfaceStates"));
-    auto *attrs = value ? value->GetAClass() : nullptr;
-    if (attrs && attrs->GetAttributeAsDword("Launched", 0))
-        return result(false, "interface-launched");
-    for (auto name : {"WorldMap", "CAviPlayer", "WMVideoPlay", "fader"})
-        if (core.GetEntityId(name) != invalid_entity)
-            return result(false, name);
+    if (core.GetEntityId("WorldMap") != invalid_entity)
+        return result(false, "WorldMap");
     auto *character = shipMainCharacter();
     const auto player = core.GetEntityId("Player");
     if (!character)
@@ -41,9 +35,8 @@ inline bool landCommandsReady(bool ready)
         return result(false, "no-player");
     if (core.Entity_GetAttributePointer(player) != character)
         return result(false, "player-owner-mismatch");
-    auto *type = character->FindAClass(character, "chr_ai.type");
-    if (type && type->HasValue() && type->GetValue() == "actor")
-        return result(false, "actor-control");
+    if (const auto hold = gameplayHold(character); !hold.empty())
+        return result(false, hold);
     auto *group = static_cast<VDATA *>(core.GetScriptVariable("curKeyGroupName"));
     const char *name = nullptr;
     if (!group || !group->Get(name) || !name)
