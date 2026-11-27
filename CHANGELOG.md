@@ -1,5 +1,17 @@
 # Changelog / Список изменений
 
+## 1.0.0-alpha.2 — unreleased
+
+**Русский**
+
+- Выстрел с палубы по вражескому кораблю больше не считается нападением на корабль с неизвестными отношениями, а
+  выстрел по нейтральному — выстрелом по врагу.
+
+**English**
+
+- A shot aimed from the deck at an enemy ship no longer counts as an attack on a ship of unknown relation, nor a shot
+  at a neutral one as a shot at an enemy.
+
 ## 1.0.0-alpha.1 — 2026-11-26
 
 **Русский**
