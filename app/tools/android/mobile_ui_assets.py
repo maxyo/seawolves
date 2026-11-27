@@ -18,12 +18,24 @@ def collect(root: Path):
         if path.is_symlink() or not allowed:
             raise ValueError('Ineligible mobile UI payload: ' + name)
         files[name] = path.read_bytes()
+    # The scripts' capability ids, generated from the one list (design/capabilities.json).
+    design = _design_build(root)
+    files['PROGRAM/interface/touch/capabilities.h'] = design.capability_header(design.load_capabilities()).encode()
     # The scripts are GPL-3.0 (NOTICE): the layer carries the text, kept once in the repository's LICENSES/.
     files['LICENSE'] = (root.resolve().parents[1] / 'LICENSES/GPL-3.0-only.txt').read_bytes()
     manifest = json.dumps({name: hashlib.sha256(data).hexdigest() for name, data in files.items()},
                           sort_keys=True, indent=2).encode() + b'\n'
     files['manifest.json'] = manifest
     return files
+
+
+def _design_build(root: Path):
+    """mobile-ui/design/build.py as a module."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('mobile_ui_design_build', root / 'design/build.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def collect_ui_pack(repo: Path, engine: Path, gallery: bool):

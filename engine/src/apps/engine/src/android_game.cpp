@@ -29,6 +29,7 @@ namespace storm::engine
 {
 AndroidGame::AndroidGame()
 {
+    android::ui::attachScripts();
     android::combatInput.guard = [this]() {
         return android::combatInput.player() == std::to_string(core.GetEntityId("Player")) &&
                android::combatContextCurrent(gameplay_, Live());

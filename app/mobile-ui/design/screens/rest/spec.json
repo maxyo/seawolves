@@ -1,10 +1,12 @@
 {
   "tag": "s-rest",
-  "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by rest.cpp.",
+  "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by rest.cpp; the shapes are what a script's view gives the json props.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "hours": {"type": "json", "default": []},
-    "actions": {"type": "json", "default": []},
+    "hours": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool"}]},
+    "actions": {"type": "json", "default": [],
+                "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text",
+                           "busy": "bool", "sub": "text"}]},
     "extras": {"type": "json", "default": {}}
   }
 }

@@ -1,5 +1,7 @@
 #include "engine_ui.hpp"
 #include "app_ui_names.hpp"
+#include "platform/android_land_commands.hpp"
+#include "platform/android_land_diagnostics.hpp"
 
 namespace storm::android::ui
 {
@@ -45,6 +47,8 @@ void EngineUi::Tick(uint64_t input_epoch)
     ++loop_;
     if (!host_ && !failed_)
         Start();
+    if (deferred_)
+        Interface(*std::exchange(deferred_, std::nullopt));
     std::vector<Step> work;
     size_t dropped = 0;
     std::optional<bool> live;
@@ -93,8 +97,41 @@ void EngineUi::Tick(uint64_t input_epoch)
     PublishInterfaceActive();
 }
 
+std::string EngineUi::ReadScriptList()
+{
+    std::vector<uint8_t> bytes;
+    if (!Pack().Read("scripts.json", bytes))
+        throw std::runtime_error("The UI pack has no scripts.json. Reinstall the app.");
+    return {bytes.begin(), bytes.end()};
+}
+
+void EngineUi::ScriptsAttached(const std::vector<storm::ui::ScriptScreen> &screens)
+{
+    script_screens_ = screens;
+    if (host_)
+        host_->SetScriptScreens(script_screens_, &port_);
+}
+
+// The program's tables and static events are gone (a save loaded, the game ends): its screens go, and the touch
+// menu's taps made for the old tables are revoked (missing presentation support must not close the stock menu).
+void EngineUi::ScriptsReleased()
+{
+    script_screens_.clear();
+    deferred_.reset();
+    if (host_)
+        host_->SetScriptScreens(script_screens_, &port_);
+    storm::android::landCommands.releaseUnavailableSource(storm::android::LandCommandSource::Missing);
+    storm::android::traceLandAdapter(0, "script-reset");
+}
+
+bool EngineUi::Scripted(const std::string &interface) const
+{
+    return std::ranges::any_of(script_screens_, [&](const auto &screen) { return screen.interface == interface; });
+}
+
 void EngineUi::Shutdown()
 {
+    storm::script::SetAttacher(nullptr);
     if (auto *owner = storm::render::FrameOwner::Get(); owner && backend_)
     {
         owner->RemoveClient(backend_.get());
@@ -255,6 +292,11 @@ void locationLoad(bool blocks)
 void alert(std::string string_key)
 {
     EngineUi::Get().AlertString(string_key);
+}
+
+void attachScripts()
+{
+    EngineUi::Get().AttachScripts();
 }
 
 void tick(uint64_t input_epoch)

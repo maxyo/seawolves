@@ -1,6 +1,8 @@
 #pragma once
 // The engine's UI host, one EngineUi on the game thread with the platform thread's inbox: ../README.md.
 #include "dialogue_relay.hpp"
+#include "scripts/script_port.hpp"
+#include "v_file_service.h"
 #include "loading_transaction.hpp"
 #include "logging.hpp"
 #include "platform/android_haptics.hpp"
@@ -193,6 +195,13 @@ class EngineUi
     {
         if (screen_.empty())
             return; // a late model of a screen that closed
+        // A script screen is built by a script: a model published from inside the game's script waits for the next
+        // Tick, between scripts.
+        if (const auto *program = scripts_.Running(); program && program->Executing() && Scripted(model.screen))
+        {
+            deferred_ = std::move(model);
+            return;
+        }
         Record(model);
         TraceInput("model", screen_ + " revision " + std::to_string(model.revision) + ", " +
                                 std::to_string(model.widgets.size()) + " widgets");
@@ -291,6 +300,11 @@ class EngineUi
     }
 
     void Shutdown();
+    // The touch interface's scripts are attached to every program the game runs from now on.
+    void AttachScripts()
+    {
+        storm::script::SetAttacher(&scripts_);
+    }
 
     // ---- platform thread (EngineUi natives) ---------------------------------------
 
@@ -362,7 +376,12 @@ class EngineUi
 
   private:
     void Start();
-    void OpenAssets(JNIEnv *env, jobject activity);
+    // The UI pack in the activity's assets, opened once (the scripts' list is read before the host starts).
+    storm::ui::FileSource &Pack();
+    std::string ReadScriptList();
+    void ScriptsAttached(const std::vector<storm::ui::ScriptScreen> &screens);
+    void ScriptsReleased();
+    bool Scripted(const std::string &interface) const;
     storm::ui::Config MakeConfig(const storm::render::SurfaceMetrics &surface);
     void ReportStartFailure(const std::string &error);
     void AttachToFrames(storm::render::FrameOwner &owner);
@@ -402,7 +421,14 @@ class EngineUi
     void Record(const storm::ui::InterfaceModel &model) const;
 
     std::unique_ptr<storm::ui::FileSource> files_;
-    jobject assets_ = nullptr; // keeps the Java AssetManager alive
+    storm::ui_scripts::Attacher scripts_{
+        {[this] { return ReadScriptList(); },
+         [](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); },
+         [this](const auto &screens) { ScriptsAttached(screens); }, [this] { ScriptsReleased(); }}};
+    storm::ui_scripts::VmPort port_{scripts_};
+    std::vector<storm::ui::ScriptScreen> script_screens_; // of the running program (replayed to a new host)
+    std::optional<storm::ui::InterfaceModel> deferred_;   // a script screen's model published inside a script
+    jobject assets_ = nullptr;                            // keeps the Java AssetManager alive
     std::unique_ptr<storm::ui::BgfxBackend> backend_;
     std::unique_ptr<storm::ui::Host> host_;
     std::mutex host_mutex_; // the host's lifetime against the platform thread's queries

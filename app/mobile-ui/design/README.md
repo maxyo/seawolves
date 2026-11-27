@@ -32,6 +32,8 @@ layout is written in Java.
 | `base.rcss`, `overlay.rml` | document base rules, toast and tooltip layer | yes |
 | `screens/<name>/spec.json`, `template.rml`, `style.rcss` | game screens and screen parts (`<s-…>`) built from the components; filled by the engine's screen routing (engine `src/libs/ui/src/screens/README.md`) | yes |
 | `screen.rml` | the document a game screen is mounted into | yes |
+| `scripts.json` | the interface scripts the engine attaches to the game's program, in order (`../PROGRAM/interface/touch`): file, `core` (its failure stops the start), requirements on the game, the screens it provides (capability, interface, pack screen, the nodes it reads); engine `src/libs/ui_host/README.md` | yes |
+| `capabilities.json` | the one list of the interface's capability ids; `build.py --script-header` makes the scripts' `capabilities.h` from it (packaged with the scripts) | yes |
 | `hud.rml` | the document of the in-game HUD (`<s-hud>` layer) | yes |
 | `strings/<lang>.json` | UI strings, one flat `{key: text}` table per shipped language (ru, en, de, es, fr, it) | yes |
 | `gallery/*.rml` | the debug gallery: every component in every state | yes |
@@ -49,7 +51,8 @@ no spec, a prop a component does not have, an enum value outside its options, an
 that is not in the icon set (in gallery pages, component templates, spec constants and
 `hud-layout.json`) and a raw colour value are all errors.
 
-Level 2 (specs and HUD layout): `spec.json` is the contract of a component. The game reads `components.json`
+Level 2 (specs and HUD layout): `spec.json` is the contract of a component. A `json` prop that a script screen fills
+names its structure in `shape` (a type, `{field: shape}`, or `[item shape]`): the script's view is converted by it. The game reads `components.json`
 and `hud-layout.json` from the pack at run time.
 
 **Licence rule.** No game picture is ever stored here or in the APK. Portraits, item

@@ -12,6 +12,25 @@ error shown to the player (`uiFailed`).
 clients (the input trace and the prewarm between frames), `dialogue_relay.hpp` the dialogue's states on their way
 to the host (checked on the host by `tests/ui_host_dialogue`).
 
+## The touch interface's scripts
+
+`src/scripts/` is the VM side of the interface's scripts (application `app/mobile-ui/PROGRAM/interface/touch`), plain
+engine code that the host checks build on Linux (`tests/ui_scripts`):
+
+- `script_segments.*`: the pack's list `scripts.json` (segments in order: file, `core`, requirements, the screens each
+  provides) and its attacher (core `script_program.hpp`), which the activity sets before the game's program starts.
+  After every `Main` or `OnLoad` it reads what the program offers (`GameSurface`: functions with their arguments,
+  globals, event handlers, the `Interfaces[]` ini names, files), logs it with its cost, and attaches each segment on
+  its own: one whose requirements (`fn:Name/n`, `var:`, `ev:`, `interface:`, `file:`) the game does not meet is not
+  compiled; one that fails is left out with its screens, an error line naming both; a `core` one that fails stops the
+  start. Attached segments' globals never enter a save (core `COMPILER::SerializeState`).
+- `script_port.*`: script screens (UI library `storm_ui/script_screens.h`). The admitted widgets go to the script's
+  `UiModel`, the event `UiBuild(capability)` builds the view and `UiTap(capability, id, verb, value)` answers an event
+  the script bound; the natives `UiShow`, `UiOn`, `UiSend`, `UiBack`, `UiModal`, `UiPending`, `UiOffers`, `UiText` act
+  on the screen while its script runs and fail outside it. These events are raised only between scripts: one asked
+  for while a script runs is refused with an error, and a script screen's model published from inside a script waits
+  for the next `Tick`. Their cost per call is in the `script work:` line ("interface scripts").
+
 Every screen switch logs one line (`StormUi` INFO): `UI switch <screen>: first frame N ms after the action …`.
 
 ## Debug logging

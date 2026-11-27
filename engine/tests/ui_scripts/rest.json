@@ -1,0 +1,1041 @@
+{
+ "$comment": "The rest screen's script on recorded models: the props its view gives the pack screen and the calls its events make (the parity data of the pack screen s-rest).",
+ "cases": [
+  {
+   "name": "half-day",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": true
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
+  },
+  {
+   "name": "no-span",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "37"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "sub": "Полдня",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": false
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
+  },
+  {
+   "name": "ok-off",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": false,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "unavailableReason": "Ночью",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "Ночью",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": true
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
+  },
+  {
+   "name": "offset",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 34,
+      "min": 10,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "16"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": true
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": false
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 11",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 16",
+    "send HOURS_SLIDE set 22",
+    "send HOURS_SLIDE set 34",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
+  },
+  {
+   "name": "no-info",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "37"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "sub": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": false
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
+  },
+  {
+   "name": "exit",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "EXIT_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": true
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back EXIT_BTN"
+   ]
+  },
+  {
+   "name": "no-cancel",
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": true
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back "
+   ]
+  }
+ ]
+}

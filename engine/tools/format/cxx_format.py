@@ -8,7 +8,7 @@
 The files: every C/C++ source and header git tracks under engine/ (*.c, *.cc, *.cpp, *.h, *.hpp, *.inl), except
 - the Storm Engine files this engine started from (upstream-files.txt): they keep their own layout and history;
 - Storm scripts, not C: the scene sweep's (tools/scene_sweep/*.c, scenarios/*.c) and the script language cases
-  (tests/script_language/cases/*.c, *.h).
+  (tests/script_language/cases/*.c, *.h) and the game of the interface scripts' check (tests/ui_scripts/game).
 
 The formatter is the clang-format of the Android NDK that builds the engine (pin "ndk" in engine/pins.json), found
 where the build scripts unpack that NDK: $STORM_CI_WORK (default build/android-ci)/tools/ndk/<ndk>. Another
@@ -32,7 +32,7 @@ import zipfile
 ENGINE = Path(__file__).resolve().parents[2]
 UPSTREAM = Path(__file__).with_name('upstream-files.txt')
 SUFFIXES = ('.c', '.cc', '.cpp', '.h', '.hpp', '.inl')
-GAME_SCRIPTS = re.compile(r'^(?:tools/scene_sweep/(?:[^/]+|scenarios/[^/]+)\.c|tests/script_language/cases/[^/]+\.[ch])$')
+GAME_SCRIPTS = re.compile(r'^(?:tools/scene_sweep/(?:[^/]+|scenarios/[^/]+)\.c|tests/script_language/cases/[^/]+\.[ch]|tests/ui_scripts/game/.+\.c)$')
 NOT_RUN = 77
 BIN = 'toolchains/llvm/prebuilt/linux-x86_64/bin/clang-format'
 sys.path.insert(0, str(ENGINE / 'tools'))

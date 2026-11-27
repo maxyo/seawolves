@@ -63,6 +63,9 @@ void toast(std::string text, std::string target = {});
 void alert(std::string string_key);
 // Top of every engine loop iteration, before the queued commands are read: starts the host
 // once the renderer is ready and applies what the platform thread sent (touches of `input_epoch`, presentation).
+// The touch interface's scripts are attached to every program the game runs (storm::script::SetAttacher): called
+// once, before the game's program starts.
+void attachScripts();
 void tick(uint64_t input_epoch);
 // A command of the UI: the HUD's (storm_ui/hud_command.h), or the text one of a game interface's screen
 // ("main:Load", "dialogue:…", "back").

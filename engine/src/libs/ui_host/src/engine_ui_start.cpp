@@ -9,11 +9,8 @@ void EngineUi::Start()
     auto *owner = storm::render::FrameOwner::Get();
     if (!owner || !owner->DeviceReady())
         return; // not yet: the renderer starts first
-    auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
-    auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
-    if (!env || !activity)
+    if (!SDL_AndroidGetJNIEnv())
         return;
-    OpenAssets(env, activity);
     std::string error;
     storm::ui::BgfxBackendOptions options;
     options.owner = owner;
@@ -37,9 +34,15 @@ void EngineUi::Start()
                surface.density);
 }
 
-// The activity's AssetManager, kept alive by a global reference, and the UI pack in it. Releases `activity`.
-void EngineUi::OpenAssets(JNIEnv *env, jobject activity)
+// The activity's AssetManager, kept alive by a global reference, and the UI pack in it.
+storm::ui::FileSource &EngineUi::Pack()
 {
+    if (files_)
+        return *files_;
+    auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+    auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
+    if (!env || !activity)
+        throw std::runtime_error("the UI pack cannot be opened: no activity");
     const jclass type = env->GetObjectClass(activity);
     const jmethodID get_assets = env->GetMethodID(type, "getAssets", "()Landroid/content/res/AssetManager;");
     const jobject assets = env->CallObjectMethod(activity, get_assets);
@@ -48,12 +51,13 @@ void EngineUi::OpenAssets(JNIEnv *env, jobject activity)
     env->DeleteLocalRef(type);
     env->DeleteLocalRef(activity);
     files_ = storm::ui::AssetFiles(AAssetManager_fromJava(env, assets_), "ui");
+    return *files_;
 }
 
 storm::ui::Config EngineUi::MakeConfig(const storm::render::SurfaceMetrics &surface)
 {
     storm::ui::Config config;
-    config.files = files_.get();
+    config.files = &Pack();
     config.backend = backend_.get();
     config.width = int(surface.width_px);
     config.height = int(surface.height_px);
@@ -135,6 +139,7 @@ void EngineUi::ReplayToHost()
     {
         ApplyDisplayOptions(*host_, storm::android::ReadDisplayOptions(settings->second));
     }
+    host_->SetScriptScreens(script_screens_, &port_);
     if (interface_)
         host_->SetInterface(*interface_);
     else if (!screen_.empty())

@@ -1,0 +1,6 @@
+{
+  "segments": [
+    {"file": "interface/touch/core.c", "core": true},
+    {"file": "interface/android_ui_bootstrap.c"}
+  ]
+}
