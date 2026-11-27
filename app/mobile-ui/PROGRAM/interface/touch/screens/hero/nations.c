@@ -7,6 +7,7 @@
 
 object TouchNations;      // the adapter's state of the last build (.game)
 object TouchNations_View;
+object TouchNations_Header; // the section tapped while the game opens it (TouchLib_Section)
 
 // s: how long a move waits for the game's answer; past it the view shows what the game has.
 float TouchNations_Wait = 0.5;
@@ -131,7 +132,7 @@ void TouchNations_Show(aref game)
 	aref view;
 	makearef(view, TouchNations_View);
 	view.title = game.title;
-	view.headerSection = "nations";
+	view.headerSection = TouchLib_Section(&TouchNations_Header, "nations");
 	TouchNations_Matrix(game, view);
 	TouchNations_Standing(game, view);
 	view.helpReputation = sti(game.help.standing);
@@ -164,7 +165,7 @@ void TouchNations_Tap()
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
 	if (id == "header")
 	{
-		if (value == "nations") return;
+		if (!TouchLib_SectionAsk(&TouchNations_Header, "nations", value)) return;
 		// The section tapped is drawn chosen from this frame; the game opens it.
 		TouchNations_View.headerSection = value;
 		UiPredict(&TouchNations_View);

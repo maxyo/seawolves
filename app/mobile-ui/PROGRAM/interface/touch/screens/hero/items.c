@@ -10,6 +10,7 @@
 // things they were (.who), the people's list open (.open), the rows listed (.listed.l<i>: k of game.rows).
 object TouchItems;
 object TouchItems_View;
+object TouchItems_Header; // the section tapped while the game opens it (TouchLib_Section)
 
 // s: how long a move waits for the game's answer; past it the view shows what the game has.
 float TouchItems_Wait = 0.5;
@@ -180,7 +181,7 @@ void TouchItems_Show(aref game)
 	aref view;
 	makearef(view, TouchItems_View);
 	view.title = game.title;
-	view.headerSection = "items";
+	view.headerSection = TouchLib_Section(&TouchItems_Header, "items");
 	if (CheckAttribute(game, "map"))
 	{
 		view.headerSection = "";
@@ -276,7 +277,7 @@ void TouchItems_Tap()
 	if (id == "header-back") { TouchAdpItems_Leave(ui); return; }
 	if (id == "header" && verb == "section")
 	{
-		if (value == "items") return;
+		if (!TouchLib_SectionAsk(&TouchItems_Header, "items", value)) return;
 		// The section tapped is drawn chosen from this frame; the game opens it.
 		TouchItems_View.headerSection = value;
 		UiPredict(&TouchItems_View);
