@@ -3,9 +3,8 @@
 // AndroidInterfaceFacts(screen, subject) with every interface snapshot (subject: the character
 // the interface shows, or -1; partner: the one it deals with, or -1) and exports
 // GameInterface.AndroidFacts.<list>.<row>.<field> as widgets ANDROID_<LIST>. Only facts the stock
-// interface already computes are read; no game rules change. The segment sees no game headers:
-// skill names and the loyalty scale (MAX_LOYALITY 35) are spelled out. Attribute names reach the
-// engine in lower case.
+// interface already computes are read; no game rules change. The game's #defines are the program's (its
+// main segment is loaded first). Attribute names reach the engine in lower case.
 #event_handler("AndroidInterfaceFacts", "AndroidInterfaceFacts");
 #event_handler("AndroidCharacterName", "AndroidCharacterName");
 
@@ -273,7 +272,7 @@ string AndroidPostSkill(ref chr, string post)
 // authority is a number, see AndroidHeroRow).
 string AndroidLoyaltyWord(ref chr)
 {
-	return XI_ConvertString(GetLoyalityName(makeint(GetCharacterLoyality(chr) * 100 / 35)));
+	return XI_ConvertString(GetLoyalityName(makeint(GetCharacterLoyality(chr) * 100 / MAX_LOYALITY)));
 }
 
 void AndroidHeroRow(aref row, ref chr)
@@ -470,21 +469,17 @@ string AndroidItemSlot(ref item)
 	return "";
 }
 
-// What the game's EQUIP_BUTTON does with an item (items.c EquipPress): "equip" puts it on or takes it
-// off, "amulet" the same for an artefact (ITEM_SLOT_TYPE, three slots), "use" a special item (a potion,
-// a book, a purse: SPECIAL_ITEM_TYPE), "map" opens a map, "ammo" loads it into the gun, "" nothing (an
-// item without a group: jewels, potions drunk in the field, quest papers; ThisItemCanBeEquip says no).
+// What the game's EQUIP_BUTTON does with an item of its group (items.c EquipPress), for the button's words:
+// "equip" puts it on or takes it off, "amulet" the same for an artefact (ITEM_SLOT_TYPE), "use" a special
+// item (SPECIAL_ITEM_TYPE), "map" opens a map, "ammo" loads it into the gun, "" an item without a group.
+// Whether the button may be pressed is the game's (ThisItemCanBeEquip sets EQUIP_BUTTON selectable).
 string AndroidItemAction(ref item)
 {
 	if (!CheckAttribute(item, "groupID")) return "";
 	string group = item.groupID;
 	if (group == "maps") return "map";
 	if (group == "special") return "use";
-	if (group == "ammo")
-	{
-		if (item.id == "GunPowder") return "";
-		return "ammo";
-	}
+	if (group == "ammo") return "ammo";
 	if (group == "slot") return "amulet";
 	return "equip";
 }
@@ -501,8 +496,7 @@ int AndroidArtefactDays(ref item)
 
 // TABLE_ITEMS rows (items.c FillItemsTable, row attribute index = Items[] index): the slot, worn
 // or not, a quest item, a map (opened in the map window), what the game's button does with it and,
-// for an artefact, its days and why it cannot go on (items.c ThisItemCanBeEquip: "slots" all three
-// slots are taken, "kind" it does not go with a worn artefact of another kind, IsCanArtefactBeEquipped).
+// for an artefact, its days and, while it is worn, the days it has left.
 void AndroidItemRows(int subject)
 {
 	if (subject < 0) return;
@@ -540,14 +534,6 @@ void AndroidItemRows(int subject)
 			{
 				slot = GetCharacterEquipSlot(chr, item.id);
 				if (days > -1 && CheckAttribute(chr, "equip_item." + slot + ".time")) row.remain = chr.equip_item.(slot).time;
-			}
-			else
-			{
-				if (GetCharacterFreeSlot(chr) == "") row.block = "slots";
-				else
-				{
-					if (!IsCanArtefactBeEquipped(chr, item.id)) row.block = "kind";
-				}
 			}
 		}
 		AndroidItemStats(row, item);
@@ -601,7 +587,8 @@ void AndroidItemInfo()
 	if (CheckAttribute(item, "Weight")) row.weight = item.Weight;
 }
 
-// What the character wears in each slot: name and picture (items.c FillItemsSelected).
+// What the character wears in each slot: name and picture (items.c FillItemsSelected). The artefact slots are the
+// character's own (chr.equip_item, utils.c: slot1 … slot3), each a row with artefact = 1, empty or not.
 void AndroidItemWorn(aref row, ref item, int idLngFile)
 {
 	row.itemId = item.id;
@@ -619,7 +606,17 @@ void AndroidItemSlots(int subject)
 	int i;
 	string slot, id;
 	ref item;
-	aref row;
+	aref row, equip;
+	if (CheckAttribute(chr, "equip_item"))
+	{
+		makearef(equip, chr.equip_item);
+		for (i = 0; i < GetAttributesNum(equip); i++)
+		{
+			slot = GetAttributeName(GetAttributeN(equip, i));
+			makearef(row, GameInterface.AndroidFacts.slots.(slot));
+			row.artefact = "1";
+		}
+	}
 	int total = GetArraySize(&Items);
 	for (i = 0; i < total; i++)
 	{

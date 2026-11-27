@@ -39,5 +39,8 @@
 {"node":"ANDROID_ITEMS","type":"fact","index":1,"enabled":false,"rowId":"tr2","context":{"slot":"blade","worn":"0","quest":"0","map":"0","action":"equip","attack":"34.5","balance":"2.0","weight":"1.5","itemId":"fixture-item-tr2"}},
 {"node":"ANDROID_ITEMS","type":"fact","index":2,"enabled":false,"rowId":"tr3","context":{"slot":"","worn":"0","quest":"0","map":"0","action":"","itemId":"fixture-item-tr3"}},
 {"node":"ANDROID_SLOTS","type":"fact","label":"Rapier","index":0,"enabled":false,"rowId":"blade","context":{"label":"Rapier","group":"ITEMS_1","image":"itm1","attack":"60.0","balance":"1.4","weight":"2.4","itemId":"fixture-item-tr1"}},
+{"node":"ANDROID_SLOTS","type":"fact","label":"","index":1,"enabled":false,"rowId":"slot1","context":{"artefact":"1"}},
+{"node":"ANDROID_SLOTS","type":"fact","label":"","index":2,"enabled":false,"rowId":"slot2","context":{"artefact":"1"}},
+{"node":"ANDROID_SLOTS","type":"fact","label":"","index":3,"enabled":false,"rowId":"slot3","context":{"artefact":"1"}},
 {"node":"ANDROID_INFO","type":"fact","index":0,"enabled":false,"rowId":"i0","context":{"row":"tr1","text":"A light blade.","kind":"Rapiers","weight":"2.4"}}
 ]}

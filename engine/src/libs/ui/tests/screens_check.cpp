@@ -3421,6 +3421,16 @@ struct ItemsRun
                    view["slots"][0]["name"] == "Rapier" &&
                    view["slots"][0]["image"]["texture"] == "atlas:ITEMS_1/itm1" && view["slots"][1]["empty"] == true,
                "ten slots: the slot's caption under what the hero wears, the empty ones dashed");
+        {
+            FakeSurface two_surface;
+            Router two(two_surface);
+            auto fewer = model;
+            std::erase_if(fewer.widgets,
+                          [](const Widget &w) { return w.node == "ANDROID_SLOTS" && w.row_id == "slot3"; });
+            two.SetInterface(fewer);
+            Expect(two_surface.props["slots"].size() == 9 && two_surface.props["slots"][8]["id"] == "slot2",
+                   "the artefact slots are the character's own, as the adapter lists them");
+        }
         Expect(view["rows"].size() == 3 && !view.contains("columns") &&
                    view["rows"][0]["cells"][0]["badge"] == "check" &&
                    view["rows"][2]["cells"][1] == "\xC3\x97"
@@ -3694,11 +3704,11 @@ static void ItemActionCases(const std::string &models)
           {"hold", false},
           {"disabled", false},
           {"reason", "<items.unavailable>"}}},
-        {"the stock game forbids removing a worn blade",
+        {"the stock game forbids removing a worn blade: its button off, no reason of ours",
          {{"slot", "blade"}, {"worn", "1"}, {"action", "equip"}},
          "Take off",
          false,
-         {{"label", "Take off"}, {"disabled", true}, {"reason", "<items.block_blade_remove>"}}},
+         {{"label", "Take off"}, {"disabled", true}, {"reason", "<items.unavailable>"}}},
         {"a supplied blade refusal takes precedence",
          {{"slot", "blade"}, {"worn", "1"}, {"action", "equip"}},
          "Take off",
@@ -3736,16 +3746,11 @@ static void ItemActionCases(const std::string &models)
          "Equip",
          true,
          {{"label", "Equip"}, {"variant", "primary"}, {"hold", false}, {"disabled", false}}},
-        {"an artefact of another kind than the worn one: the reason",
-         {{"slot", "amulet"}, {"worn", "0"}, {"action", "amulet"}, {"days", "70"}, {"block", "kind"}},
+        {"an artefact the game will not put on",
+         {{"slot", "amulet"}, {"worn", "0"}, {"action", "amulet"}, {"days", "70"}},
          "Equip",
          false,
-         {{"label", "Equip"}, {"disabled", true}, {"reason", "<items.block_kind>"}}},
-        {"all three artefact slots taken: the reason",
-         {{"slot", "amulet"}, {"worn", "0"}, {"action", "amulet"}, {"block", "slots"}},
-         "Equip",
-         false,
-         {{"label", "Equip"}, {"disabled", true}, {"reason", "<items.block_slots>"}}},
+         {{"label", "Equip"}, {"disabled", true}, {"reason", "<items.unavailable>"}}},
         {"a potion, a jewel: the game has no action, none is shown",
          {{"slot", ""}, {"worn", "0"}, {"action", ""}},
          "Equip",
@@ -3855,11 +3860,10 @@ static void TimedArtefact(const std::string &models)
         if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr1")
             widget.context = {
                 {"slot", "amulet"}, {"worn", "1"}, {"action", "amulet"}, {"days", "70"}, {"remain", "64"}};
-    Widget slot = Make("ANDROID_SLOTS", "fact", "Voodoo doll");
-    slot.row_id = "slot1";
-    slot.context = {
-        {"label", "Voodoo doll"}, {"group", "ITEMS_3"}, {"image", "itm1"}, {"remain", "64"}, {"time", "70"}};
-    model.widgets.push_back(slot);
+    for (Widget &widget : model.widgets)
+        if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
+            widget.context = {{"artefact", "1"}, {"label", "Voodoo doll"}, {"group", "ITEMS_3"},      {"image", "itm1"},
+                              {"remain", "64"},  {"time", "70"},           {"itemId", "fixture-doll"}};
     for (const char *node : {"SLOT1_TEXT", "SLOT2_TEXT", "SLOT3_TEXT"})
         model.widgets.push_back(Make(node, "text", "64/70"));
     router.SetInterface(model);
@@ -4095,10 +4099,12 @@ static void RepeatedActions(const std::string &models)
         for (Widget &widget : model.widgets)
             if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
                 widget.context["worn"] = "1";
-        Widget slot = Make("ANDROID_SLOTS", "fact", "Amulet");
-        slot.row_id = "slot1";
-        slot.context["itemId"] = "test-amulet";
-        model.widgets.push_back(slot);
+        for (Widget &widget : model.widgets)
+            if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
+            {
+                widget.label = "Amulet";
+                widget.context = {{"artefact", "1"}, {"label", "Amulet"}, {"itemId", "test-amulet"}};
+            }
         ++model.revision;
         router.SetInterface(model);
         Expect(surface.props["slots"][7].value("name", "") == "Amulet" &&
@@ -4111,11 +4117,12 @@ static void RepeatedActions(const std::string &models)
         for (Widget &widget : model.widgets)
             if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
                 widget.context["worn"] = "0";
-        model.widgets.erase(std::remove_if(model.widgets.begin(), model.widgets.end(),
-                                           [](const Widget &widget) {
-                                               return widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1";
-                                           }),
-                            model.widgets.end());
+        for (Widget &widget : model.widgets)
+            if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
+            {
+                widget.label.clear();
+                widget.context = {{"artefact", "1"}};
+            }
         ++model.revision;
         router.SetInterface(model);
         Expect(surface.props["slots"][7]["empty"] == true && surface.props["detail"]["action"]["label"] == "Equip",

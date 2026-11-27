@@ -16,7 +16,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <iterator>
 #include <map>
+#include <vector>
 
 namespace storm::ui::screens
 {
@@ -66,15 +68,16 @@ constexpr NodeRule kNodes[] = {
     {"MAP_*", "text|image|button"},
 };
 
-// The equipment slots in their display order, with their placeholder icons.
+// The equipment slots in their display order, with their placeholder icons: the stock screen's pictures of what is
+// worn (items.c FillItemsSelected), then the character's artefact slots (ANDROID_SLOTS rows with artefact = 1).
 struct Slot
 {
-    const char *id;     // ANDROID_SLOTS row / ANDROID_ITEMS slot
+    std::string id;     // ANDROID_SLOTS row / ANDROID_ITEMS slot
     const char *filter; // the slot value of the items that fit it
     const char *label;  // string key
     const char *icon;
 };
-constexpr Slot kSlots[] = {
+const Slot kWorn[] = {
     {"blade", "blade", StringKey("items.slot_blade"), "sabre"},
     {"gun", "gun", StringKey("items.slot_gun"), "pistol"},
     {"musket", "musket", StringKey("items.slot_musket"), "musket"},
@@ -82,14 +85,27 @@ constexpr Slot kSlots[] = {
     {"cirass", "cirass", StringKey("items.slot_cirass"), "shield"},
     {"talisman", "talisman", StringKey("items.slot_talisman"), "c-ruby"},
     {"tool", "tool", StringKey("items.slot_tool"), "compass"},
-    {"slot1", "amulet", StringKey("items.slot_amulet"), "c-amulet"},
-    {"slot2", "amulet", StringKey("items.slot_amulet"), "c-amulet"},
-    {"slot3", "amulet", StringKey("items.slot_amulet"), "c-amulet"},
 };
+const Slot kArtefact{"", "amulet", StringKey("items.slot_amulet"), "c-amulet"};
+
+std::vector<Slot> SlotsOf(const Admission &admitted)
+{
+    std::vector<Slot> slots(std::begin(kWorn), std::end(kWorn));
+    for (const Widget *fact : admitted.All("ANDROID_SLOTS"))
+        if (Field(fact, "artefact") == "1")
+        {
+            Slot slot = kArtefact;
+            slot.id = Lower(fact->row_id); // script attribute names keep their first interned case
+            slots.push_back(std::move(slot));
+        }
+    return slots;
+}
 
 const char *SlotLabel(const std::string &filter)
 {
-    for (const Slot &slot : kSlots)
+    if (filter == kArtefact.filter)
+        return kArtefact.label;
+    for (const Slot &slot : kWorn)
         if (filter == slot.filter)
             return slot.label;
     return "";
@@ -139,11 +155,13 @@ class ItemsScreen final : public Screen
             facts[TableRow(bindings, fact->row_id)] = fact;
         std::map<std::string, const Widget *> worn;
         for (const Widget *fact : admitted.All("ANDROID_SLOTS"))
-            worn[Lower(fact->row_id)] = fact; // script attribute names keep their first interned case
+            if (!Field(fact, "itemId").empty())
+                worn[Lower(fact->row_id)] = fact; // script attribute names keep their first interned case
 
-        view["slots"] = Slots(bindings, worn);
+        const std::vector<Slot> slots = SlotsOf(admitted);
+        view["slots"] = Slots(bindings, slots, worn);
         std::string filter_slot;
-        for (const Slot &slot : kSlots)
+        for (const Slot &slot : slots)
             if (filter_ == slot.id)
                 filter_slot = slot.filter;
 
@@ -222,10 +240,10 @@ class ItemsScreen final : public Screen
     }
 
     // The equipment slots, each with what is worn there.
-    Json Slots(Bindings &bindings, std::map<std::string, const Widget *> &worn)
+    Json Slots(Bindings &bindings, const std::vector<Slot> &all, std::map<std::string, const Widget *> &worn)
     {
         Json slots = Json::array();
-        for (const Slot &slot : kSlots)
+        for (const Slot &slot : all)
         {
             const Widget *item = worn.count(slot.id) ? worn[slot.id] : nullptr;
             Json tile{{"id", slot.id}, {"selected", filter_ == slot.id}};
@@ -542,21 +560,6 @@ class ItemsScreen final : public Screen
         return detail;
     }
 
-    std::string UnavailableReason(Bindings &bindings, const Widget &equip, const Widget *fact) const
-    {
-        if (!equip.unavailable_reason.empty())
-            return equip.unavailable_reason;
-        // items.c ThisItemCanBeEquip forbids removing an already worn blade.
-        // Keep an explicit game reason and an allowed action authoritative.
-        if (!equip.Offers("press") && Field(fact, "action") == "equip" && Field(fact, "slot") == "blade" &&
-            Field(fact, "worn") == "1")
-            return bindings.Text("items.block_blade_remove");
-        const std::string block = Field(fact, "block");
-        return bindings.Text(block == "slots"  ? "items.block_slots"
-                             : block == "kind" ? "items.block_kind"
-                                               : "items.unavailable");
-    }
-
     // The game's EQUIP_BUTTON for the selected row, by what it does with the item (the adapter's `action`,
     // items.c EquipPress): put on / take off with the game's own words; use, open a map, load ammunition with
     // ours (the game writes «Взять» on all of them); nothing for an item the game has no use for (a jewel, a
@@ -598,8 +601,9 @@ class ItemsScreen final : public Screen
         if (label.empty())
             return nullptr;
         const bool ready = equip->Offers("press") && equip->row_id == row.row_id;
-        // The stock screen gives no reason; the adapter knows why an artefact cannot go on.
-        const std::string reason = UnavailableReason(bindings, *equip, fact);
+        // Whether it may be pressed is the game's (ThisItemCanBeEquip); the stock screen gives no reason.
+        const std::string reason =
+            equip->unavailable_reason.empty() ? bindings.Text("items.unavailable") : equip->unavailable_reason;
         Json action{
             {"id", "item-equip"}, {"label", label},   {"variant", destroys ? "danger" : "primary"}, {"hold", destroys},
             {"disabled", !ready}, {"reason", reason}, {"busy", bindings.Pending("item-equip")}};
