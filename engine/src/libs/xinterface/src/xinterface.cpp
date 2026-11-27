@@ -2202,6 +2202,8 @@ CINODE *XINTERFACE::NewNode(const char *pcNodType)
         pNewNod = new CXI_TEXT;
     else if (storm::iEquals(pcNodType, "TRIGGER"))
         m_pTriggerNode = pNewNod = new CXI_TRIGGER;
+    else if (storm::iEquals(pcNodType, "WINDROSE"))
+        pNewNod = new CXI_WINDROSE;
     else
         core.Trace("Not supported node type:\"%s\"", pcNodType);
     return pNewNod;
@@ -2268,13 +2270,13 @@ void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
     CINODE *ornament = node("tooltip_ornament", NODETYPE_PICTURE);
     auto *picture = static_cast<CXI_PICTURE *>(node("tooltip_picture", NODETYPE_PICTURE));
     auto *text = static_cast<CXI_TEXT *>(node("tooltip_text1", NODETYPE_TEXT));
+    // the ship's speed instead of the picture
+    CINODE *windrose = tooltip.windrose ? node("tooltip_windrose", NODETYPE_WINDROSE) : nullptr;
     if (!missing.empty())
     {
         spdlog::error("MSG_INTERFACE_SET_TOOLTIP: no node {}", missing);
         return;
     }
-    if (tooltip.windrose)
-        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: the WINDROSE node is not implemented");
 
     const auto rect = [](const XYRECT &r) { return storm::xi::TooltipRect{r.left, r.top, r.right, r.bottom}; };
     const XYRECT backAt = back->m_rect, shadowAt = shadow->m_rect, frameAt = frame->m_rect;
@@ -2282,7 +2284,7 @@ void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
     storm::xi::TooltipInput in;
     in.back = rect(backAt);
     in.text = rect(text->m_rect);
-    in.picture_top = picture->m_rect.top;
+    in.picture_top = windrose ? windrose->m_rect.top : picture->m_rect.top;
     in.title_height = titleRectAt.bottom - titleRectAt.top;
     in.ornament_height = ornamentAt.bottom - ornamentAt.top;
 
@@ -2290,7 +2292,12 @@ void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
         picture->SetNewPicture(false, tooltip.texture.c_str());
     if (!tooltip.group.empty() && !tooltip.picture.empty())
         picture->SetNewPictureByGroup(tooltip.group.c_str(), tooltip.picture.c_str());
-    if (picture->HasPicture())
+    if (windrose)
+    {
+        in.picture_width = tooltip.picture_width;
+        in.picture_height = tooltip.picture_height;
+    }
+    else if (picture->HasPicture())
     {
         // a picture without a size is shown 128 units square, as the original engine does
         in.picture_width = tooltip.picture_width > 0 ? tooltip.picture_width : 128;
@@ -2333,9 +2340,9 @@ void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
                   ornamentTop + in.ornament_height});
     for (CINODE *part : {titleRect, static_cast<CINODE *>(title), ornament})
         part->m_bUse = in.header;
-    picture->m_bUse = in.picture_width > 0;
-    if (picture->m_bUse)
-        at(picture, xy(layout.picture));
+    picture->m_bUse = !windrose && in.picture_width > 0;
+    if (in.picture_width > 0 && in.picture_height > 0)
+        at(windrose ? windrose : picture, xy(layout.picture));
     at(text, xy(layout.text));
 }
 
