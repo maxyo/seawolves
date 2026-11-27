@@ -41,6 +41,14 @@
 - Найм команды: сколько можно нанять и во что это обойдётся, экран считал сам и показывал деньги «после найма» по
   своему расчёту. Теперь число отправляется игре сразу, а экран показывает, сколько людей она поставила и какую
   стоимость назвала.
+- Способности: «Изучить» доступна для любой неизученной способности, решает игра. Если игра отказывает, кнопка
+  гаснет, а недостающее (нужные способности или очки) подсвечивается.
+- Предметы: причина недоступной кнопки больше не придумывается (раньше называлась только одна из причин игры);
+  ячеек для амулетов столько, сколько их у персонажа в игре.
+- Нации: флаги больше не гасятся интерфейсом заранее. Флаг, который игра не даёт поднять, гаснет после
+  нажатия, а выбранный флаг остаётся прежним. Оттенок репутации берётся из слова самой игры.
+- Карты: очки считаются так, как их считает игра (колода мода с другими очками показывает верную сумму); имя
+  соперника полное, как в игре.
 
 **English**
 
@@ -83,6 +91,14 @@
 - Crew hire: the screen worked out how many men could be hired and what they would cost, and showed the purse
   «after the hire» by its own sum. The number now goes to the game at once, and the screen shows how many men the
   game set and the cost it named.
+- Abilities: "Learn" is offered for every ability not yet learned; the game decides. When the game refuses, the button
+  goes off and what is missing (the abilities needed, or points) pulses.
+- Items: a disabled button no longer gives a reason we made up (it named only one of the game's reasons); there are
+  as many amulet slots as the character has in the game.
+- Nations: flags are no longer greyed out in advance by the interface. A flag the game will not raise goes off
+  after a tap, and the chosen flag stays as it was. The tone of a reputation follows the game's own word.
+- Cards: points are counted as the game counts them (a mod's deck with other values shows the right total); the
+  opponent's name is the game's full name.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
