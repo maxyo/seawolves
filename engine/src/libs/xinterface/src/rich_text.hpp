@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -19,8 +20,8 @@ struct RichStyle
 {
     uint32_t color = 0xFFFFFFFF; // ARGB; the default is the node's colour
     bool color_set = false;
-    std::string font; // empty: the node's font
-    float scale = 1.0f;
+    std::string font;           // empty: the node's font
+    std::optional<float> scale; // a [scale=] replaces the node's font scale; unset: the node's
     int32_t voffset = 0;
 };
 

@@ -82,14 +82,12 @@ int32_t CXI_TEXT::Font(const std::string &name) const
 
 std::vector<storm::xi::RichLine> CXI_TEXT::Layout(const std::vector<storm::xi::RichItem> &items, float width) const
 {
-    const float scale = scale_ * globalScale_;
     const storm::xi::RichMeasure measure{
         [&](std::string_view text, const storm::xi::RichStyle &style) {
-            return static_cast<float>(m_rs->StringWidth(text, Font(style.font), scale * style.scale));
+            return static_cast<float>(m_rs->StringWidth(text, Font(style.font), Scale(style)));
         },
-        [&](const storm::xi::RichStyle &style) { return m_rs->CharHeight(Font(style.font)) * scale * style.scale; }};
-    const float lineSpace = lineSpace_ > 0 ? lineSpace_ * globalScale_ : m_rs->CharHeight(font_) * scale;
-    return storm::xi::LayoutRichText(items, width, measure, lineSpace, adaptive_);
+        [&](const storm::xi::RichStyle &style) { return m_rs->CharHeight(Font(style.font)) * Scale(style); }};
+    return storm::xi::LayoutRichText(items, width, measure, static_cast<float>(LineSpace()), adaptive_);
 }
 
 std::pair<float, float> CXI_TEXT::Measure(float width) const
@@ -132,7 +130,6 @@ void CXI_TEXT::Draw(bool, uint32_t)
         y -= (total - height) * scroll_;
     else if (anchorBottom_)
         y -= total - height; // what does not fit is cut at the top
-    const float scale = scale_ * globalScale_;
     for (const auto &line : lines_)
     {
         if (y + line.height > m_rect.top - 1 && y < m_rect.bottom + 1)
@@ -150,9 +147,10 @@ void CXI_TEXT::Draw(bool, uint32_t)
                 }
                 const auto &text = std::get<storm::xi::RichText>(items_[piece.item]);
                 const int32_t font = Font(text.style.font);
-                const float glyphs = m_rs->CharHeight(font) * scale * text.style.scale;
-                m_rs->ExtPrint(font, text.style.color_set ? text.style.color : color_, 0, PR_ALIGN_LEFT, true,
-                               scale * text.style.scale, m_screenSize.x, m_screenSize.y, static_cast<int32_t>(x),
+                const float scale = Scale(text.style);
+                const float glyphs = m_rs->CharHeight(font) * scale;
+                m_rs->ExtPrint(font, text.style.color_set ? text.style.color : color_, 0, PR_ALIGN_LEFT, true, scale,
+                               m_screenSize.x, m_screenSize.y, static_cast<int32_t>(x),
                                static_cast<int32_t>(y + line.height - glyphs + text.style.voffset), "%s",
                                piece.text.c_str());
             }

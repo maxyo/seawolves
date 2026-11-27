@@ -37,6 +37,10 @@ class CXI_PICTURE : public CINODE
     virtual void ChangeUV(FXYRECT &frNewUV);
     void ChangeColor(uint32_t dwColor);
     void SetPictureSize(int32_t &nWidth, int32_t &nHeight);
+    bool HasPicture() const
+    {
+        return m_idTex >= 0 || m_pTex;
+    }
 
   protected:
     void LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2) override;

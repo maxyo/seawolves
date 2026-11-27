@@ -45,6 +45,16 @@ class CXI_TEXT : public CINODE
         return Layout(items, static_cast<float>(m_rect.right - m_rect.left));
     }
     int32_t Font(const std::string &name) const; // a [font=] of the text, else the node's
+    // a [scale=] replaces fontScale; globalScale applies to both
+    float Scale(const storm::xi::RichStyle &style) const
+    {
+        return style.scale.value_or(scale_) * globalScale_;
+    }
+    // lines are lineSpace high whatever the scale; without it, as high as the font's glyphs (20 without a font)
+    int32_t LineSpace() const
+    {
+        return lineSpace_ > 0 ? lineSpace_ : font_ >= 0 ? m_rs->CharHeight(font_) : 20;
+    }
     void DrawIcon(const storm::xi::RichIcon &icon, float x, float y, float scale);
 
     std::string raw_;
@@ -54,7 +64,7 @@ class CXI_TEXT : public CINODE
     int32_t font_ = -1;
     uint32_t color_ = 0xFFFFFFFF;
     float scale_ = 1.0f, globalScale_ = 1.0f;
-    int32_t lineSpace_ = 0; // 0: the font's height
+    int32_t lineSpace_ = 0;
     bool adaptive_ = false;
     int32_t align_ = PR_ALIGN_LEFT;
     int32_t valign_ = 0; // 0 top, 1 center, 2 bottom

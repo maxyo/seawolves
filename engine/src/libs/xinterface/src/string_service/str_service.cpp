@@ -885,7 +885,7 @@ uint32_t _GetRichTextWidth(VS_STACK *pS)
             storm::xi::ParseRichText(text, [](std::string_view tag) { spdlog::warn("richtext: unknown tag {}", tag); }),
             [&](std::string_view run, const storm::xi::RichStyle &style) {
                 const int32_t id = style.font.empty() || fontId(style.font) < 0 ? fontId(font) : fontId(style.font);
-                return render->StringWidth(run, id, scale * style.scale);
+                return render->StringWidth(run, id, style.scale.value_or(scale));
             });
     for (const auto &[name, id] : fonts)
         if (id >= 0)

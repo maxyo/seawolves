@@ -2240,92 +2240,97 @@ void XINTERFACE::DeleteNode(const char *pcNodeName)
     }
 }
 
-// The tooltip of nodes made from the templates TOOLTIP_FRAME, _BACK, _FRAME_SHADOW, _TITLERECT, _TITLE (TEXT),
+// The tooltip of nodes made from the templates TOOLTIP_FRAME_SHADOW, _BACK, _FRAME, _TITLERECT, _TITLE (TEXT),
 // _TITLEORN, _PICTURE and _TEXT (TEXT); the geometry is tooltip_layout.hpp.
 void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
 {
-    const auto node = [this](const char *name, int type) {
+    std::string missing;
+    const auto node = [&](const char *name, int type) {
         CINODE *found = FindNode(name, nullptr);
-        return found && found->m_nNodeType == type ? found : nullptr;
+        if (!found || found->m_nNodeType != type)
+        {
+            missing += missing.empty() ? name : fmt::format(", {}", name);
+            return static_cast<CINODE *>(nullptr);
+        }
+        return found;
     };
+    CINODE *shadow = node("tooltip_shadow", NODETYPE_BORDER);
+    CINODE *back = node("tooltip_back", NODETYPE_PICTURE);
     CINODE *frame = node("tooltip_frame", NODETYPE_BORDER);
+    CINODE *titleRect = node("tooltip_titlerect", NODETYPE_VIDEO);
+    auto *title = static_cast<CXI_TEXT *>(node("tooltip_title", NODETYPE_TEXT));
+    CINODE *ornament = node("tooltip_ornament", NODETYPE_PICTURE);
+    auto *picture = static_cast<CXI_PICTURE *>(node("tooltip_picture", NODETYPE_PICTURE));
     auto *text = static_cast<CXI_TEXT *>(node("tooltip_text1", NODETYPE_TEXT));
-    if (!frame || !text)
+    if (!missing.empty())
     {
-        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: no tooltip_frame (FRAME) or tooltip_text1 (TEXT) node");
+        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: no node {}", missing);
         return;
     }
-    auto *title = static_cast<CXI_TEXT *>(node("tooltip_title", NODETYPE_TEXT));
-    auto *picture = static_cast<CXI_PICTURE *>(node("tooltip_picture", NODETYPE_PICTURE));
-    const bool header = !tooltip.header.empty();
-    const bool image = tooltip.picture_width > 0 && tooltip.picture_height > 0 &&
-                       (!tooltip.texture.empty() || (!tooltip.group.empty() && !tooltip.picture.empty()));
+    if (tooltip.windrose)
+        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: the WINDROSE node is not implemented");
 
-    const XYRECT base = frame->m_rect;
-    text->SetText(tooltip.text);
-    if (title)
-        title->SetText(tooltip.header);
+    const auto rect = [](const XYRECT &r) { return storm::xi::TooltipRect{r.left, r.top, r.right, r.bottom}; };
+    const XYRECT backAt = back->m_rect, shadowAt = shadow->m_rect, frameAt = frame->m_rect;
+    const XYRECT titleRectAt = titleRect->m_rect, titleAt = title->m_rect, ornamentAt = ornament->m_rect;
     storm::xi::TooltipInput in;
-    in.margin = text->m_rect.left - base.left;
-    in.header_top = text->m_rect.top - base.top;
-    in.header = header;
-    if (image && picture)
+    in.back = rect(backAt);
+    in.text = rect(text->m_rect);
+    in.picture_top = picture->m_rect.top;
+    in.title_height = titleRectAt.bottom - titleRectAt.top;
+    in.ornament_height = ornamentAt.bottom - ornamentAt.top;
+
+    if (!tooltip.texture.empty())
+        picture->SetNewPicture(false, tooltip.texture.c_str());
+    if (!tooltip.group.empty() && !tooltip.picture.empty())
+        picture->SetNewPictureByGroup(tooltip.group.c_str(), tooltip.picture.c_str());
+    if (picture->HasPicture())
     {
-        in.picture_width = tooltip.picture_width;
-        in.picture_height = tooltip.picture_height;
+        // a picture without a size is shown 128 units square, as the original engine does
+        in.picture_width = tooltip.picture_width > 0 ? tooltip.picture_width : 128;
+        in.picture_height = tooltip.picture_height > 0 ? tooltip.picture_height : 128;
     }
-    in.node = {tooltip.node.left, tooltip.node.top, tooltip.node.right, tooltip.node.bottom};
+    in.header = !tooltip.header.empty();
+    text->SetText(tooltip.text);
+    title->SetText(tooltip.header);
+    if (in.header)
+        in.title_width = static_cast<int32_t>(title->Measure(static_cast<float>(titleAt.right - titleAt.left)).first);
+    in.node = rect(tooltip.node);
     in.min_width = tooltip.min_width;
     in.max_width = tooltip.max_width;
     in.screen_width = static_cast<int32_t>(dwScreenWidth);
     in.screen_height = static_cast<int32_t>(dwScreenHeight);
     in.measure = [text](float width) { return text->Measure(width); };
     const auto layout = storm::xi::LayoutTooltip(in);
-    const int32_t left = layout.frame.left, top = layout.frame.top;
-    const int32_t width = layout.frame.right - left, height = layout.frame.bottom - top;
-    const auto place = [&](CINODE *target, XYRECT rect) {
-        rect.left += left;
-        rect.right += left;
-        rect.top += top;
-        rect.bottom += top;
-        target->ChangePosition(rect);
+
+    const auto at = [](CINODE *part, XYRECT r) { part->ChangePosition(r); };
+    const auto xy = [](const storm::xi::TooltipRect &r) { return XYRECT{r.left, r.top, r.right, r.bottom}; };
+    const XYRECT b = xy(layout.back);
+    // the back's frame and shadow keep their distances from its sides
+    const auto around = [&](const XYRECT &r) {
+        return XYRECT{b.left + r.left - backAt.left, b.top + r.top - backAt.top, b.right + r.right - backAt.right,
+                      b.bottom + r.bottom - backAt.bottom};
     };
-    const XYRECT textAt{layout.text.left, layout.text.top, layout.text.right, layout.text.bottom};
-    const XYRECT pictureRect{layout.picture.left, layout.picture.top, layout.picture.right, layout.picture.bottom};
-    const XYRECT whole{0, 0, width, height};
-    for (const char *name : {"tooltip_frame", "tooltip_back", "tooltip_shadow"})
-        if (CINODE *part = FindNode(name, nullptr))
-            place(part, whole);
-    place(text, textAt);
-    // the title's parts keep their distance from the frame's top and sides
-    for (const char *name : {"tooltip_titlerect", "tooltip_title", "tooltip_ornament"})
-        if (CINODE *part = FindNode(name, nullptr))
-        {
-            part->m_bUse = header;
-            const XYRECT r = part->m_rect;
-            const int32_t inset = r.left - base.left, w = r.right - r.left;
-            const bool centered = std::abs((r.left - base.left) - (base.right - r.right)) <= 1 && w < base.right - base.left - 2 * inset - 1;
-            const int32_t x1 = centered ? (width - w) / 2 : inset;
-            const int32_t x2 = centered ? x1 + w : width - (base.right - r.right);
-            place(part, {x1, r.top - base.top, x2, r.bottom - base.top});
-        }
-    if (picture)
-    {
-        picture->m_bUse = image;
-        if (image)
-        {
-            if (!tooltip.texture.empty())
-                picture->SetNewPicture(false, tooltip.texture.c_str());
-            else
-                picture->SetNewPictureByGroup(tooltip.group.c_str(), tooltip.picture.c_str());
-            place(picture, pictureRect);
-        }
-    }
-    for (const char *name : {"tooltip_text2", "tooltip_text3", "tooltip_text4"})
-        if (CINODE *part = FindNode(name, nullptr))
-            part->m_bUse = false;
-    if (tooltip.windrose)
-        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: the WINDROSE node is not implemented");
+    at(back, b);
+    at(shadow, around(shadowAt));
+    at(frame, around(frameAt));
+    // the title's back keeps its distances from the back's top and sides and its height; the title sits in it
+    const int32_t titleTop = b.top + titleRectAt.top - backAt.top;
+    const XYRECT titleRectNow{b.left + titleRectAt.left - backAt.left, titleTop, b.right + titleRectAt.right - backAt.right,
+                              titleTop + in.title_height};
+    at(titleRect, titleRectNow);
+    at(title, {titleRectNow.left + titleAt.left - titleRectAt.left, titleRectNow.top + titleAt.top - titleRectAt.top,
+               titleRectNow.right + titleAt.right - titleRectAt.right,
+               titleRectNow.bottom + titleAt.bottom - titleRectAt.bottom});
+    const int32_t ornamentTop = b.top + ornamentAt.top - backAt.top;
+    at(ornament, {ornamentAt.left + layout.shift, ornamentTop, ornamentAt.right + layout.shift,
+                  ornamentTop + in.ornament_height});
+    for (CINODE *part : {titleRect, static_cast<CINODE *>(title), ornament})
+        part->m_bUse = in.header;
+    picture->m_bUse = in.picture_width > 0;
+    if (picture->m_bUse)
+        at(picture, xy(layout.picture));
+    at(text, xy(layout.text));
 }
 
 void XINTERFACE::SetTooltip(const char *pcHeader, const char *pcText1, uint32_t dwTextColor1, const char *pcText2,

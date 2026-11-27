@@ -31,7 +31,7 @@ TEST_CASE("rich_text.styles")
     CHECK(TextAt(items, 2).style.scale == 1.5f);
     CHECK(TextAt(items, 2).style.color == 0xFF0A141E); // styles nest
     CHECK(TextAt(items, 3).style.font.empty());
-    CHECK(TextAt(items, 3).style.scale == 1.0f);
+    CHECK_FALSE(TextAt(items, 3).style.scale); // the node's
     CHECK(TextAt(items, 3).style.color_set);
     CHECK_FALSE(TextAt(items, 4).style.color_set);
 
@@ -72,7 +72,7 @@ TEST_CASE("rich_text.width")
 {
     // one pixel per byte, times the scale
     const auto width = [](std::string_view text, const RichStyle &style) {
-        return static_cast<int32_t>(text.size() * style.scale);
+        return static_cast<int32_t>(text.size() * style.scale.value_or(1.0f));
     };
     CHECK(RichTextWidth(Parse("abcd"), width) == 4);
     CHECK(RichTextWidth(Parse("ab[scale=2]cd[/scale]\nabcdefg"), width) == 7);
@@ -84,8 +84,9 @@ TEST_CASE("rich_text.width")
 TEST_CASE("rich_text.layout")
 {
     // one pixel per byte times the scale; glyphs 10 px high times the scale
-    const RichMeasure measure{[](std::string_view text, const RichStyle &style) { return text.size() * style.scale; },
-                              [](const RichStyle &style) { return 10.0f * style.scale; }};
+    const RichMeasure measure{
+        [](std::string_view text, const RichStyle &style) { return text.size() * style.scale.value_or(1.0f); },
+        [](const RichStyle &style) { return 10.0f * style.scale.value_or(1.0f); }};
     const auto lines = LayoutRichText(Parse("one two three four"), 9.0f, measure, 12.0f, false);
     REQUIRE(lines.size() == 3);
     CHECK(lines[0].pieces.at(0).text == "one two");
