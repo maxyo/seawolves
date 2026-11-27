@@ -573,7 +573,7 @@ DATA *callNativeExt(uint32_t index, NativeCall &call, DATA *&result)
         return pushFloat(call, result, static_cast<float>(core_internal.GetRDeltaTime()));
     case FUNC_X_GET_LAST_COMMIT:
         // CL stores its build revision in saves; ours is the build watermark (platform, commit, options).
-        return pushString(call, result, fmt::format("{}", STORM_BUILD_WATERMARK_STRING));
+        return pushString(call, result, std::string(storm::kBuildWatermark));
     case FUNC_X_ATTR_RENAME: {
         bool ok = false;
         {

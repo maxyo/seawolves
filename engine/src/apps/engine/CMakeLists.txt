@@ -25,7 +25,7 @@ STORM_SETUP(
 )
 # The script cache is keyed on the binary's build ID (core compiler.cpp EngineBuildId): always link one.
 target_link_options(engine PRIVATE "-Wl,--build-id=sha1")
-storm_build_stamp(engine)
+storm_build_stamp(engine WATERMARK)
 
 if(ANDROID)
     set_target_properties(engine PROPERTIES VERSION "" SOVERSION "" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/game")

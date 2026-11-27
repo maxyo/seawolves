@@ -26,13 +26,13 @@ function(storm_script_vm target)
     file(MAKE_DIRECTORY "${generated}")
     file(REMOVE_RECURSE "${generated}/SDL2")
     file(CREATE_LINK "${storm_sdl_SOURCE_DIR}/include" "${generated}/SDL2" SYMBOLIC)
-    file(WRITE "${generated}/storm_build_stamp.h" "#define STORM_BUILD_WATERMARK_STRING \"host_checks\"\n")
     storm_app_contract_headers()
     add_library(${target} OBJECT ${core_sources}
         ${src}/libs/diagnostics/src/logging.cpp ${src}/libs/diagnostics/src/lifecycle_diagnostics_service.cpp
         ${src}/libs/diagnostics/src/stall_watchdog.cpp ${src}/libs/diagnostics/src/spdlog_sinks/syncable_sink.cpp
         ${src}/libs/window/src/sdl_window.cpp ${src}/libs/window/src/app_events.cpp
-        ${storm_fmt_SOURCE_DIR}/src/format.cc ${storm_script_vm_dir}/no_renderer.cpp)
+        ${storm_fmt_SOURCE_DIR}/src/format.cc ${storm_script_vm_dir}/no_renderer.cpp
+        ${storm_script_vm_dir}/watermark.cpp)
     file(GLOB library_includes LIST_DIRECTORIES true ${src}/libs/*/include)
     target_include_directories(${target} PUBLIC ${src}/libs/core/src ${src}/libs/diagnostics/src ${src}/libs/window/src
         ${library_includes} ${src}/libs/util/include ${src}/libs/ui/include ${STORM_APP_CONTRACT_INCLUDE}

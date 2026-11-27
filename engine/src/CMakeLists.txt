@@ -1,4 +1,4 @@
-# watermark.hpp includes the build stamp (cmake/build_stamp.cmake) by name.
+# The build stamp's directory (cmake/build_stamp.cmake); dropping it would change every compile command once.
 include_directories("${STORM_BUILD_STAMP_DIR}")
 # The names shared with the Android application (cmake/StormAppContract.cmake).
 include_directories("${STORM_APP_CONTRACT_INCLUDE}")

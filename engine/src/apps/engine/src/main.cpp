@@ -413,7 +413,7 @@ bool StartLogs()
         spdlog::set_default_logger(storm::logging::getOrCreateLogger(defaultLoggerName));
         storm::logging::startPeriodicFlush();
         // The diagnostics export labels each session's logs with this line's time and pid (app DiagnosticsReport).
-        spdlog::info("Logging system initialized. Running on {}, pid {}", STORM_BUILD_WATERMARK_STRING,
+        spdlog::info("Logging system initialized. Running on {}, pid {}", storm::kBuildWatermark,
                      spdlog::details::os::pid());
         for (const auto &failure : logFailures)
             spdlog::error("Previous session logs: {}", failure);

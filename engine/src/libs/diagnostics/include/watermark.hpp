@@ -1,8 +1,7 @@
 #pragma once
-// The build's watermark, STORM_BUILD_WATERMARK_STRING ("<platform>_<commit>"): storm_build_stamp.h is generated at build
-// time into an include directory of the build (cmake/build_stamp.cmake). Included by name, never by an
-// absolute-path define: such a define differs per worktree and defeats the shared compiler cache.
-#include "storm_build_stamp.h"
-#ifndef STORM_BUILD_WATERMARK_STRING
-#error "The build sets no STORM_BUILD_PLATFORM (cmake/android.cmake, cmake/host.cmake)"
-#endif
+// The build's watermark, "<platform>_<commit>": defined by cmake/build_watermark.cpp, the one file that includes the
+// generated build stamp (cmake/build_stamp.cmake), so a new commit or a modified tree recompiles that file only.
+namespace storm
+{
+extern const char kBuildWatermark[];
+}

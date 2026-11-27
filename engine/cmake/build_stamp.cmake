@@ -5,9 +5,10 @@
 #   STORM_BUILD_COMMIT     "<commit>" or "<commit>+dirty" (a tree with uncommitted changes)
 #   STORM_BUILD_WATERMARK_STRING "<STORM_BUILD_PLATFORM>_<commit, 12 digits>" when the build sets STORM_BUILD_PLATFORM:
 #                          what the engine logs first in every session ("Running on ...", main.cpp)
-# storm_build_stamp(<target>) puts "storm-build-stamp:<STORM_BUILD_COMMIT>" into the target's binary as a kept
-# symbol: the application's build_apk.py reads it from libengine.so, libstorm_ui.so and libbgfx.so and refuses a
-# library built from another commit than the checkout it packages.
+# storm_build_stamp(<target> [WATERMARK]) puts "storm-build-stamp:<STORM_BUILD_COMMIT>" into the target's binary as a
+# kept symbol: the application's build_apk.py reads it from libengine.so, libstorm_ui.so and libbgfx.so and refuses a
+# library built from another commit than the checkout it packages. WATERMARK also links storm::kBuildWatermark
+# (watermark.hpp). Only these two small files include the header: everything else stays compiled across commits.
 include_guard(GLOBAL)
 set(STORM_BUILD_STAMP_DIR "${CMAKE_BINARY_DIR}/generated")
 add_custom_target(storm_build_stamp_header ALL
@@ -17,7 +18,11 @@ add_custom_target(storm_build_stamp_header ALL
     COMMENT "Build stamp" VERBATIM)
 
 function(storm_build_stamp target)
+    cmake_parse_arguments(PARSE_ARGV 1 arg "WATERMARK" "" "")
     target_sources(${target} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/build_stamp.cpp")
+    if(arg_WATERMARK)
+        target_sources(${target} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/build_watermark.cpp")
+    endif()
     target_include_directories(${target} PRIVATE "${STORM_BUILD_STAMP_DIR}")
     add_dependencies(${target} storm_build_stamp_header)
 endfunction()

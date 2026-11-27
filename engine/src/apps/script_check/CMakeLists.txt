@@ -20,4 +20,4 @@ STORM_SETUP(
 # The script cache (test --cache) is keyed on the binary's build ID.
 target_link_options(script_check PRIVATE "-Wl,--build-id=sha1")
 target_include_directories(script_check PRIVATE "${CMAKE_SOURCE_DIR}/src/libs/core/src")
-storm_build_stamp(script_check)
+storm_build_stamp(script_check WATERMARK)

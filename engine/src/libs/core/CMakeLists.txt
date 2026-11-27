@@ -8,6 +8,3 @@ STORM_SETUP(
 if(STORM_VM_VERIFY)
     target_compile_definitions(core PRIVATE STORM_VM_VERIFY=1)
 endif()
-
-# natives_ext.cpp includes watermark.hpp, which includes the generated build stamp.
-add_dependencies(core storm_build_stamp_header)
