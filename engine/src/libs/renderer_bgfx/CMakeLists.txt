@@ -117,6 +117,8 @@ storm_bgfx_embed_shaders(TARGET storm_bgfx_shaders NAMESPACE storm_shaders
     INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/fx/shaders/include" "${CMAKE_CURRENT_BINARY_DIR}/generated/shaders"
     VARIANTS ${ff_fx_variants})
 
+# Effekseer effects (effekseer/README.md): the pinned runtime and renderer; src/effekseer drives them.
+add_subdirectory(effekseer)
 file(GLOB_RECURSE shim_sources CONFIGURE_DEPENDS src/*.cpp src/*.hpp)
 list(FILTER shim_sources EXCLUDE REGEX "/src/texture/core/")
 add_library(storm_bgfx STATIC ${shim_sources})
@@ -124,7 +126,7 @@ target_compile_features(storm_bgfx PUBLIC cxx_std_20)
 target_include_directories(storm_bgfx
     PUBLIC include "${CMAKE_CURRENT_LIST_DIR}/../util/include" "${CMAKE_CURRENT_BINARY_DIR}/generated"
     PRIVATE src)
-target_link_libraries(storm_bgfx PUBLIC storm_bgfx_runtime PRIVATE storm_bgfx_shaders ${SDL2_LIBRARIES})
+target_link_libraries(storm_bgfx PUBLIC storm_bgfx_runtime PRIVATE storm_bgfx_shaders storm_efkbgfx ${SDL2_LIBRARIES})
 if(ANDROID)
     target_link_libraries(storm_bgfx PRIVATE GLESv3) # driver string and limit queries next to bgfx
     # Swappy (GL or Vk, by the backend) presents the game's frames (src/shim/frame_pacing.cpp). Only that file sees its headers and the

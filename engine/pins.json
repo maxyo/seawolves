@@ -244,5 +244,17 @@
     "version": "6.3",
     "url": "https://github.com/mikke89/RmlUi/archive/refs/tags/{version}.tar.gz",
     "sha256": "d977298bb6147610e5984d5db85ddf284020d655a8713913f6982074f1dbdede"
+  },
+  "effekseer": {
+    "version": "1.80h",
+    "commit": "b5700082b49bc5f919610880dafddc90211a9a4e",
+    "url": "https://codeload.github.com/effekseer/Effekseer/tar.gz/{commit}",
+    "sha256": "fe3d4883389eebf96698f35b303b1672210a9a74cf22b594d81a37fb01aa6a58"
+  },
+  "efkbgfx": {
+    "version": "7d89c3c",
+    "commit": "7d89c3c31a8d8d544217b431f9400b2b50003321",
+    "url": "https://codeload.github.com/cloudwu/efkbgfx/tar.gz/{commit}",
+    "sha256": "1e8eb848cc4f8c4d16c83dc473e6b7605f5b9345381abbc936a8bdd3d1300297"
   }
 }

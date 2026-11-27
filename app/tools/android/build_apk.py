@@ -419,9 +419,9 @@ with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as z:
         add_file(z, a.engine_root / 'third_party/licenses' / filename, 'assets/licenses/' + filename)
     # The graphics effects' third-party code in libengine.so (renderer_bgfx/fx/THIRD_PARTY.md):
     # SMAA, AMD FidelityFX FSR 1 (with the Michal Drobot notice), the ACES fit, the baked probes' ray BVH (madmann91/bvh), the lamp shadows' PCF,
-    # the caches' hashes (xxHash).
+    # the caches' hashes (xxHash); the Effekseer effects (Effekseer with its stb_image, whose text is bimg's, and efkbgfx).
     for filename in ('SMAA-MIT.txt', 'FidelityFX-FSR-MIT.txt', 'threejs-MIT.txt', 'bvh-MIT.txt', 'MJP-Shadows-MIT.txt',
-                     'xxHash-BSD-2-Clause.txt'):
+                     'xxHash-BSD-2-Clause.txt', 'Effekseer-MIT.txt', 'efkbgfx-MIT.txt'):
         add_file(z, a.engine_root / 'third_party/licenses' / filename, 'assets/licenses/' + filename)
     if tracy:
         add_file(z, a.engine_root / 'third_party/licenses/Tracy-BSD-3-Clause.txt', 'assets/licenses/Tracy-BSD-3-Clause.txt')

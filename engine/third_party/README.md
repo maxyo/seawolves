@@ -38,6 +38,9 @@ Texts kept in this repository: [licenses/](licenses) and [../android/archive/lic
 | xxHash | 0.8.3 | BSD-2-Clause | fetched: `src/libs/renderer_bgfx/cmake/xxhash.cmake`; header-only, in `libengine.so` | `xxHash-BSD-2-Clause.txt` |
 | SMAA | pin `smaa` | MIT | fetched: `src/libs/renderer_bgfx/fx/CMakeLists.txt` | `SMAA-MIT.txt` |
 | AMD FidelityFX FSR 1 | pin `fidelityfx-fsr` | MIT | fetched: `src/libs/renderer_bgfx/fx/CMakeLists.txt` | `FidelityFX-FSR-MIT.txt` |
+| Effekseer (runtime: core and EffekseerRendererCommon, without the editor's network server) | 1.80h, pin `effekseer` | MIT | fetched: `src/libs/renderer_bgfx/effekseer/CMakeLists.txt`; static in `libengine.so` | `Effekseer-MIT.txt` |
+| stb_image, inside Effekseer (its PNG decoder) | as Effekseer | MIT OR Unlicense | static in `libengine.so` | `bimg-stb-MIT-or-Unlicense.txt` (the same text) |
+| efkbgfx (Effekseer's bgfx renderer), with this port's patch | pin `efkbgfx`, with `src/libs/renderer_bgfx/effekseer/patches` | MIT | fetched: `src/libs/renderer_bgfx/effekseer/CMakeLists.txt`; static in `libengine.so` | `efkbgfx-MIT.txt` |
 | three.js AgX tone curve | r160 | MIT | vendored, adapted: `src/libs/renderer_bgfx/fx` ([THIRD_PARTY.md](../src/libs/renderer_bgfx/fx/THIRD_PARTY.md)) | `threejs-MIT.txt` |
 | MJP Shadows PCF | — | MIT | vendored, adapted: `src/libs/renderer_bgfx/shaders/include/ff_lamps.sh` | `MJP-Shadows-MIT.txt` |
 | ncnn | 20261020, pin `ncnn` | BSD-3-Clause | fetched: `cmake/ncnn.cmake`; static in `libengine.so` | `ncnn-BSD-3-Clause.txt` |
