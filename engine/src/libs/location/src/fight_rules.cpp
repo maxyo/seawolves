@@ -86,49 +86,91 @@ void ReadDefenceAndFireParams(NpcFightParams &p, const AskFloat &askFloat, const
         p.fireEnabled = *fire != 0;
 }
 
-class LegacyRules final : public FightRules
+} // namespace
+
+NpcFightParams FightRules::ReadNpcParams(const AskFloat &askFloat, const AskInt &askInt, const NpcTuning &tuning,
+                                         float activityMax) const
 {
-  public:
-    NpcFightParams ReadNpcParams(const AskFloat &askFloat, const AskInt &askInt, const NpcTuning &) const override
-    {
-        NpcFightParams p;
-        ReadAttackParams(p, askFloat);
-        Take(p.weightFeint, askFloat("NPC_Event_GetAttackWeightFeint"));
-        ReadDefenceAndFireParams(p, askFloat, askInt);
-        p.stunChance = askInt("NPC_Event_StunChance");
-        p.attackActive = std::clamp(p.attackActive, 0.0f, 1000.0f);
-        p.defenceActive = std::clamp(p.defenceActive, 0.0f, 1000.0f);
-        Normalise({&p.weightFast, &p.weightForce, &p.weightRound, &p.weightBreak, &p.weightFeint});
-        Normalise({&p.weightBlock, &p.weightParry});
-        return p;
-    }
+    NpcFightParams p;
+    p.cancel.distReactionMin = tuning.cancelDistReactionMin;
+    p.cancel.distReactionMax = tuning.cancelDistReactionMax;
+    p.cancel.parryReactionMin = tuning.cancelParryReactionMin;
+    p.cancel.parryReactionMax = tuning.cancelParryReactionMax;
+    p.cancel.parryRefresh = tuning.cancelParryRefresh;
+    ReadAttackParams(p, askFloat);
+    Take(p.weightFeint, askFloat("NPC_Event_GetAttackWeightFeint"));
+    ReadDefenceAndFireParams(p, askFloat, askInt);
+    p.stunChance = askInt("NPC_Event_StunChance");
+    if (const auto enabled = askInt("NPC_Event_EnableCancel"))
+        p.cancel.enabled = *enabled != 0;
+    auto &c = p.cancel;
+    Take(c.distProb, askFloat("NPC_Event_GetCancelDistProb"));
+    Take(c.parryProb, askFloat("NPC_Event_GetCancelParryProb"));
+    Take(c.distReactionMin, askFloat("NPC_Event_GetCancelDistReactionMin"));
+    Take(c.distReactionMax, askFloat("NPC_Event_GetCancelDistReactionMax"));
+    Take(c.parryReactionMin, askFloat("NPC_Event_GetCancelParryReactionMin"));
+    Take(c.parryReactionMax, askFloat("NPC_Event_GetCancelParryReactionMax"));
+    Take(c.parryRefresh, askFloat("NPC_Event_GetCancelParryRefresh"));
+    c.distReactionMin = std::max(c.distReactionMin, 0.0f);
+    c.distReactionMax = std::max(c.distReactionMax, c.distReactionMin);
+    c.parryReactionMin = std::max(c.parryReactionMin, 0.0f);
+    c.parryReactionMax = std::max(c.parryReactionMax, c.parryReactionMin);
+    p.attackActive = std::clamp(p.attackActive, 0.0f, activityMax);
+    p.defenceActive = std::clamp(p.defenceActive, 0.0f, activityMax);
+    Normalise({&p.weightFast, &p.weightForce, &p.weightRound, &p.weightBreak, &p.weightFeint});
+    Normalise({&p.weightBlock, &p.weightParry});
+    return p;
+}
 
-    float ActionEnergy(const AskFloat &ask) const override
-    {
-        return ask("NPC_Event_GetActionEnergy").value_or(0.1f);
-    }
+float FightRules::ActionEnergy(const AskFloat &ask) const
+{
+    return ask("NPC_Event_GetActionEnergy").value_or(0.1f);
+}
 
-    MeleeReach Reach(MeleeReach animation, const AskFloat &) const override
-    {
-        return animation;
-    }
+MeleeReach FightRules::Reach(MeleeReach animation, const AskFloat &ask) const
+{
+    return {animation.distance + ask("Event_GetAdditionalMeleeDist").value_or(0.0f),
+            animation.angle + ask("Event_GetAdditionalMeleeAng").value_or(0.0f)};
+}
 
-    SpecialAttack Special(std::string_view, bool, const AskInt &, const AskInt &) const override
-    {
-        return SpecialAttack::None;
-    }
+SpecialAttack FightRules::Special(std::string_view type, bool targetBlocks, const AskInt &askTarget,
+                                  const AskInt &askSelf) const
+{
+    const auto yes = [](const std::optional<int32_t> &answer) { return answer.value_or(0) > 0; };
+    if ((type == "fast" || type == "force") && targetBlocks && yes(askTarget("Event_CheckBlockBypass")))
+        return SpecialAttack::BlockBypass;
+    if (type == "break" && yes(askSelf("Event_CheckPowerBreak")))
+        return SpecialAttack::PowerBreak;
+    if (type == "round" && yes(askSelf("Event_CheckPowerRound")))
+        return SpecialAttack::PowerRound;
+    return SpecialAttack::None;
+}
 
-    float FireRepulse(float, const AskFloat &) const override
-    {
+// The push fades from full at 3 m to none at 25 m.
+float FightRules::FireRepulse(float distance, const AskFloat &ask) const
+{
+    const float power = ask("Event_GetFireRepulse").value_or(0.0f);
+    if (power <= 0.0f)
         return 0.0f;
-    }
+    const float d = std::clamp(distance, 3.0f, 25.0f);
+    return power * (1.0f - (d - 3.0f) / 22.0f);
+}
 
-    BlockOutcome Block(const BlockInput &input, const AskFloat &) const override
-    {
-        return {input.victimBlocking && !input.breakAttack, false};
-    }
+BlockOutcome FightRules::Block(const BlockInput &input, const AskFloat &backAngle) const
+{
+    if (!input.victimBlocking)
+        return {false, false};
+    constexpr float kBackAngle = 2.6179939f; // 150 degrees: a block holds within this of the facing
+    if (input.defenceAngle > backAngle("Event_GetBackBlockAngle").value_or(kBackAngle))
+        return {false, true};
+    if (input.breakAttack)
+        return {false, true};
+    return {true, false};
+}
 
-    void ResetAttackEvent(MESSAGE &message, const AttackReport &r) const override
+void FightRules::ResetAttackEvent(MESSAGE &message, LandEventLayout layout, const AttackReport &r) const
+{
+    if (layout == LandEventLayout::Legacy)
     {
         // whole milliseconds the block was held, -1 when the strike was not blocked
         const int32_t blockMs =
@@ -137,118 +179,19 @@ class LegacyRules final : public FightRules
                 : -1;
         message.Reset("iislll", r.attacker, r.victim, std::string(r.type), static_cast<int32_t>(r.blocked),
                       static_cast<int32_t>(r.gunBlade), blockMs);
+        return;
     }
+    // The strike that lands on a block without breaking it ("mini strike") is not known to this engine: none.
+    message.Reset("iislffl", r.attacker, r.victim, std::string(r.type), static_cast<int32_t>(r.blocked),
+                  r.blockHeld ? std::chrono::duration<float>(*r.blockHeld).count() : 0.0f, r.defenceAngle, int32_t{0});
+}
 
-    void ResetFireEvent(MESSAGE &message, const FireReport &r) const override
-    {
+void FightRules::ResetFireEvent(MESSAGE &message, LandEventLayout layout, const FireReport &r) const
+{
+    if (layout == LandEventLayout::Legacy)
         message.Reset("iifl", r.attacker, r.enemy, r.kDist, static_cast<int32_t>(r.hit));
-    }
-};
-
-class CaribbeanLegendRules final : public FightRules
-{
-  public:
-    NpcFightParams ReadNpcParams(const AskFloat &askFloat, const AskInt &askInt, const NpcTuning &tuning) const override
-    {
-        NpcFightParams p;
-        p.weightFeint = 0.0f;
-        p.cancel.distReactionMin = tuning.cancelDistReactionMin;
-        p.cancel.distReactionMax = tuning.cancelDistReactionMax;
-        p.cancel.parryReactionMin = tuning.cancelParryReactionMin;
-        p.cancel.parryReactionMax = tuning.cancelParryReactionMax;
-        p.cancel.parryRefresh = tuning.cancelParryRefresh;
-        ReadAttackParams(p, askFloat);
-        ReadDefenceAndFireParams(p, askFloat, askInt);
-        if (const auto enabled = askInt("NPC_Event_EnableCancel"))
-            p.cancel.enabled = *enabled != 0;
-        auto &c = p.cancel;
-        Take(c.distProb, askFloat("NPC_Event_GetCancelDistProb"));
-        Take(c.parryProb, askFloat("NPC_Event_GetCancelParryProb"));
-        Take(c.distReactionMin, askFloat("NPC_Event_GetCancelDistReactionMin"));
-        Take(c.distReactionMax, askFloat("NPC_Event_GetCancelDistReactionMax"));
-        Take(c.parryReactionMin, askFloat("NPC_Event_GetCancelParryReactionMin"));
-        Take(c.parryReactionMax, askFloat("NPC_Event_GetCancelParryReactionMax"));
-        Take(c.parryRefresh, askFloat("NPC_Event_GetCancelParryRefresh"));
-        c.distReactionMin = std::max(c.distReactionMin, 0.0f);
-        c.distReactionMax = std::max(c.distReactionMax, c.distReactionMin);
-        c.parryReactionMin = std::max(c.parryReactionMin, 0.0f);
-        c.parryReactionMax = std::max(c.parryReactionMax, c.parryReactionMin);
-        p.attackActive = std::clamp(p.attackActive, 0.0f, 1.0f);
-        p.defenceActive = std::clamp(p.defenceActive, 0.0f, 1.0f);
-        Normalise({&p.weightFast, &p.weightForce, &p.weightRound, &p.weightBreak});
-        Normalise({&p.weightBlock, &p.weightParry});
-        return p;
-    }
-
-    // The game has no such event: its scripts check the energy themselves.
-    float ActionEnergy(const AskFloat &) const override
-    {
-        return 0.1f;
-    }
-
-    SpecialAttack Special(std::string_view type, bool targetBlocks, const AskInt &askTarget,
-                          const AskInt &askSelf) const override
-    {
-        const auto yes = [](const std::optional<int32_t> &answer) { return answer.value_or(0) > 0; };
-        if ((type == "fast" || type == "force") && targetBlocks && yes(askTarget("Event_CheckBlockBypass")))
-            return SpecialAttack::BlockBypass;
-        if (type == "break" && yes(askSelf("Event_CheckPowerBreak")))
-            return SpecialAttack::PowerBreak;
-        if (type == "round" && yes(askSelf("Event_CheckPowerRound")))
-            return SpecialAttack::PowerRound;
-        return SpecialAttack::None;
-    }
-
-    // The push fades from full at 3 m to none at 25 m.
-    float FireRepulse(float distance, const AskFloat &ask) const override
-    {
-        const float power = ask("Event_GetFireRepulse").value_or(0.0f);
-        if (power <= 0.0f)
-            return 0.0f;
-        const float d = std::clamp(distance, 3.0f, 25.0f);
-        return power * (1.0f - (d - 3.0f) / 22.0f);
-    }
-
-    MeleeReach Reach(MeleeReach animation, const AskFloat &ask) const override
-    {
-        return {animation.distance + ask("Event_GetAdditionalMeleeDist").value_or(0.0f),
-                animation.angle + ask("Event_GetAdditionalMeleeAng").value_or(0.0f)};
-    }
-
-    BlockOutcome Block(const BlockInput &input, const AskFloat &backAngle) const override
-    {
-        if (!input.victimBlocking)
-            return {false, false};
-        constexpr float kBackAngle = 2.6179939f; // 150 degrees: a block holds within this of the facing
-        if (input.defenceAngle > backAngle("Event_GetBackBlockAngle").value_or(kBackAngle))
-            return {false, true};
-        if (input.breakAttack)
-            return {false, true};
-        return {true, false};
-    }
-
-    void ResetAttackEvent(MESSAGE &message, const AttackReport &r) const override
-    {
-        // The game's strike that lands on a block without breaking it ("mini strike") is not known to this
-        // engine: it reports none.
-        message.Reset("iislffl", r.attacker, r.victim, std::string(r.type), static_cast<int32_t>(r.blocked),
-                      r.blockHeld ? std::chrono::duration<float>(*r.blockHeld).count() : 0.0f, r.defenceAngle,
-                      int32_t{0});
-    }
-
-    void ResetFireEvent(MESSAGE &message, const FireReport &r) const override
-    {
-        // aiming time -1: the shot was not aimed (this engine has no aiming); no head shots
+    else // aiming time -1: the shot was not aimed (this engine has no aiming); no head shots
         message.Reset("iiflfl", r.attacker, r.enemy, r.kDist, static_cast<int32_t>(r.hit), -1.0f, int32_t{0});
-    }
-};
-} // namespace
-
-const FightRules &fightRules(FightModel model)
-{
-    static const LegacyRules legacy;
-    static const CaribbeanLegendRules caribbeanLegend;
-    return model == FightModel::CaribbeanLegend ? static_cast<const FightRules &>(caribbeanLegend) : legacy;
 }
 
 CancelAction AttackCancel::Update(float dt, const CancelInput &in, const NpcCancelParams &params,

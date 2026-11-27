@@ -405,7 +405,7 @@ class Character : public Entity
     std::optional<uint32_t> zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message);
     uint64_t ProcessPositionMessage(int32_t messageID, MESSAGE &message);
     const ActionCharacter *ChooseSpecialAttack(Character *enemy, const char *type);
-    // A shot that hit `victim` pushes it away where the fight model says so
+    // A shot that hit `victim` pushes it away as far as the scripts say
     void PushByShot(Character *victim);
     // The strike to play for the attack's own `action`: the special one when the attack chose it
     const ActionCharacter &AttackAction(const ActionCharacter &action) const

@@ -1,5 +1,5 @@
-// The two fight models (location/src/fight_rules.hpp) with fixed script answers: what each asks, how it reads the
-// answers and the layout of what it reports; Caribbean Legend's NPC attack cancel.
+// The land fight (location/src/fight_rules.hpp) with fixed script answers of either game: how it reads the answers,
+// the layout of the events it reports in each game, and the NPC attack cancel.
 #include "fight_rules.hpp"
 
 #include "istring.hpp"
@@ -48,24 +48,26 @@ struct Scripts
     }
 };
 
-const FightRules &legacy = fightRules(FightModel::Legacy);
-const FightRules &caribbean = fightRules(FightModel::CaribbeanLegend);
+const FightRules &rules = fightRules();
 } // namespace
 
-TEST_CASE("legacy NPC parameters: the feint and the stun are asked, five weights share one")
+TEST_CASE("NPC parameters with To Each His Own's answers: feints, the stun and activities above 1 are kept")
 {
     Scripts scripts;
     scripts.floats = {{"NPC_Event_GetAttackWeightFast", 1.0f},  {"NPC_Event_GetAttackWeightForce", 1.0f},
                       {"NPC_Event_GetAttackWeightRound", 1.0f}, {"NPC_Event_GetAttackWeightBreak", 1.0f},
-                      {"NPC_Event_GetAttackWeightFeint", 4.0f}, {"NPC_Event_GetAttackActive", 5.0f}};
+                      {"NPC_Event_GetAttackWeightFeint", 4.0f}, {"NPC_Event_GetAttackActive", 1.1f}};
     scripts.ints = {{"NPC_Event_StunChance", 30}};
-    const auto p = legacy.ReadNpcParams(scripts.Float(), scripts.Int(), NpcTuning{});
+    const float teho = landFacts(storm::GameProfile::Legacy).npcActivityMax;
+    const auto p = rules.ReadNpcParams(scripts.Float(), scripts.Int(), NpcTuning{}, teho);
     CHECK(p.weightFeint == Approx(0.5f));
     CHECK(p.weightFast == Approx(0.125f));
-    CHECK(p.attackActive == 5.0f); // up to 1000
+    CHECK(p.attackActive == Approx(1.1f));
+    scripts.floats["NPC_Event_GetAttackActive"] = -0.5f;
+    CHECK(rules.ReadNpcParams(scripts.Float(), scripts.Int(), NpcTuning{}, teho).attackActive == 0.0f);
     CHECK(p.stunChance == std::optional<int32_t>(30));
-    CHECK_FALSE(p.cancel.enabled);
-    const std::vector<std::string> order = {"NPC_Event_GetAttackActive",
+    CHECK_FALSE(p.cancel.enabled); // no handler: no cancels
+    const std::vector<std::string> first = {"NPC_Event_GetAttackActive",
                                             "NPC_Event_GetAttackWeightFast",
                                             "NPC_Event_GetAttackWeightForce",
                                             "NPC_Event_GetAttackWeightRound",
@@ -78,24 +80,26 @@ TEST_CASE("legacy NPC parameters: the feint and the stun are asked, five weights
                                             "NPC_Event_GetFireActive",
                                             "NPC_Event_EnableFire",
                                             "NPC_Event_StunChance"};
-    CHECK(scripts.asked == order);
+    CHECK(std::vector<std::string>(scripts.asked.begin(), scripts.asked.begin() + first.size()) == first);
 }
 
-TEST_CASE("Caribbean Legend NPC parameters: no feint, stun or action energy; cancels; four weights share one")
+TEST_CASE("NPC parameters with Caribbean Legend's answers: no feints, cancels with sane reaction ranges")
 {
     Scripts scripts;
     scripts.floats = {{"NPC_Event_GetAttackWeightFast", 3.0f},       {"NPC_Event_GetAttackWeightForce", 1.0f},
                       {"NPC_Event_GetAttackWeightRound", 0.0f},      {"NPC_Event_GetAttackWeightBreak", 0.0f},
-                      {"NPC_Event_GetAttackActive", 5.0f},           {"NPC_Event_GetCancelDistProb", 0.3f},
-                      {"NPC_Event_GetCancelDistReactionMin", -1.0f}, {"NPC_Event_GetCancelDistReactionMax", -2.0f},
-                      {"NPC_Event_GetCancelParryReactionMin", 0.5f}, {"NPC_Event_GetCancelParryReactionMax", 0.2f}};
-    scripts.ints = {{"NPC_Event_EnableCancel", 1}, {"NPC_Event_StunChance", 30}};
+                      {"NPC_Event_GetCancelDistProb", 0.3f},         {"NPC_Event_GetCancelDistReactionMin", -1.0f},
+                      {"NPC_Event_GetCancelDistReactionMax", -2.0f}, {"NPC_Event_GetCancelParryReactionMin", 0.5f},
+                      {"NPC_Event_GetCancelParryReactionMax", 0.2f}};
+    scripts.ints = {{"NPC_Event_EnableCancel", 1}};
     NpcTuning tuning;
     tuning.cancelParryRefresh = 7.0f;
-    const auto p = caribbean.ReadNpcParams(scripts.Float(), scripts.Int(), tuning);
+    scripts.floats["NPC_Event_GetAttackActive"] = 1.1f;
+    const auto p = rules.ReadNpcParams(scripts.Float(), scripts.Int(), tuning,
+                                       landFacts(storm::GameProfile::CaribbeanLegend).npcActivityMax);
+    CHECK(p.attackActive == 1.0f);
     CHECK(p.weightFast == Approx(0.75f));
     CHECK(p.weightFeint == 0.0f);
-    CHECK(p.attackActive == 1.0f);
     CHECK_FALSE(p.stunChance);
     CHECK(p.cancel.enabled);
     CHECK(p.cancel.distProb == Approx(0.3f));
@@ -103,61 +107,56 @@ TEST_CASE("Caribbean Legend NPC parameters: no feint, stun or action energy; can
     CHECK(p.cancel.distReactionMax == 0.0f);
     CHECK(p.cancel.parryReactionMax == Approx(0.5f));
     CHECK(p.cancel.parryRefresh == 7.0f); // unanswered: the tuning file's default
-    CHECK_FALSE(scripts.Asked("NPC_Event_GetAttackWeightFeint"));
-    CHECK_FALSE(scripts.Asked("NPC_Event_StunChance"));
     Scripts energy;
-    CHECK(caribbean.ActionEnergy(energy.Float()) == Approx(0.1f));
-    CHECK(energy.asked.empty());
+    CHECK(rules.ActionEnergy(energy.Float()) == Approx(0.1f));
     energy.floats = {{"NPC_Event_GetActionEnergy", 0.4f}};
-    CHECK(legacy.ActionEnergy(energy.Float()) == Approx(0.4f));
+    CHECK(rules.ActionEnergy(energy.Float()) == Approx(0.4f));
 }
 
-TEST_CASE("reach, special strikes and the shot's push: Caribbean Legend asks, the legacy model does not")
+TEST_CASE("reach, special strikes and the shot's push follow the answers; no answer changes nothing")
 {
     Scripts scripts;
     scripts.floats = {
         {"Event_GetAdditionalMeleeDist", 0.5f}, {"Event_GetAdditionalMeleeAng", 10.0f}, {"Event_GetFireRepulse", 7.0f}};
     scripts.ints = {{"Event_CheckBlockBypass", 1}, {"Event_CheckPowerBreak", 1}, {"Event_CheckPowerRound", 0}};
-    const auto reach = caribbean.Reach({2.4f, 60.0f}, scripts.Float());
+    const auto reach = rules.Reach({2.4f, 60.0f}, scripts.Float());
     CHECK(reach.distance == Approx(2.9f));
     CHECK(reach.angle == Approx(70.0f));
-    CHECK(caribbean.Special("fast", true, scripts.Int(), scripts.Int()) == SpecialAttack::BlockBypass);
-    CHECK(caribbean.Special("fast", false, scripts.Int(), scripts.Int()) == SpecialAttack::None);
-    CHECK(caribbean.Special("round", true, scripts.Int(), scripts.Int()) == SpecialAttack::None);
-    CHECK(caribbean.Special("break", false, scripts.Int(), scripts.Int()) == SpecialAttack::PowerBreak);
-    CHECK(caribbean.FireRepulse(1.0f, scripts.Float()) == Approx(7.0f));
-    CHECK(caribbean.FireRepulse(14.0f, scripts.Float()) == Approx(3.5f));
-    CHECK(caribbean.FireRepulse(40.0f, scripts.Float()) == Approx(0.0f));
+    CHECK(rules.Special("fast", true, scripts.Int(), scripts.Int()) == SpecialAttack::BlockBypass);
+    CHECK(rules.Special("fast", false, scripts.Int(), scripts.Int()) == SpecialAttack::None);
+    CHECK(rules.Special("round", true, scripts.Int(), scripts.Int()) == SpecialAttack::None);
+    CHECK(rules.Special("break", false, scripts.Int(), scripts.Int()) == SpecialAttack::PowerBreak);
+    CHECK(rules.FireRepulse(1.0f, scripts.Float()) == Approx(7.0f));
+    CHECK(rules.FireRepulse(14.0f, scripts.Float()) == Approx(3.5f));
+    CHECK(rules.FireRepulse(40.0f, scripts.Float()) == Approx(0.0f));
 
     Scripts quiet;
-    CHECK(legacy.Reach({2.4f, 60.0f}, quiet.Float()).distance == 2.4f);
-    CHECK(legacy.Special("fast", true, quiet.Int(), quiet.Int()) == SpecialAttack::None);
-    CHECK(legacy.FireRepulse(1.0f, quiet.Float()) == 0.0f);
-    CHECK(quiet.asked.empty());
+    const auto same = rules.Reach({2.4f, 60.0f}, quiet.Float());
+    CHECK((same.distance == 2.4f && same.angle == 60.0f));
+    CHECK(rules.Special("fast", true, quiet.Int(), quiet.Int()) == SpecialAttack::None);
+    CHECK(rules.FireRepulse(1.0f, quiet.Float()) == 0.0f);
 }
 
-TEST_CASE("a block: the legacy model holds it unless broken; Caribbean Legend also breaks it from behind")
+TEST_CASE("a block holds in front, breaks from behind or to a break attack")
 {
     Scripts none;
-    CHECK(legacy.Block({true, false, 3.0f}, none.Float()).blocked);
-    CHECK_FALSE(legacy.Block({true, true, 0.0f}, none.Float()).blocked);
-    CHECK_FALSE(caribbean.Block({false, false, 0.0f}, none.Float()).blocked);
+    CHECK_FALSE(rules.Block({false, false, 0.0f}, none.Float()).blocked);
     CHECK(none.asked.empty()); // the back angle is asked for a block only
-    const auto front = caribbean.Block({true, false, 2.0f}, none.Float());
+    const auto front = rules.Block({true, false, 2.0f}, none.Float());
     CHECK((front.blocked && !front.blockBreaks)); // 150 degrees without an answer
-    const auto behind = caribbean.Block({true, false, 2.7f}, none.Float());
+    const auto behind = rules.Block({true, false, 2.7f}, none.Float());
     CHECK((!behind.blocked && behind.blockBreaks));
+    CHECK(rules.Block({true, true, 0.0f}, none.Float()).blockBreaks);
     Scripts narrow;
     narrow.floats = {{"Event_GetBackBlockAngle", 1.0f}};
-    CHECK(caribbean.Block({true, false, 1.5f}, narrow.Float()).blockBreaks);
-    CHECK(caribbean.Block({true, true, 0.0f}, narrow.Float()).blockBreaks);
+    CHECK(rules.Block({true, false, 1.5f}, narrow.Float()).blockBreaks);
 }
 
 TEST_CASE("the attack and fire events in each game's layout")
 {
     const AttackReport report{7, 9, "force", true, false, std::chrono::milliseconds(1500), 0.25f};
     MESSAGE old;
-    legacy.ResetAttackEvent(old, report);
+    rules.ResetAttackEvent(old, LandEventLayout::Legacy, report);
     CHECK(old.GetFormat() == "iislll");
     old.EntityID();
     CHECK(old.EntityID() == 9);
@@ -166,7 +165,8 @@ TEST_CASE("the attack and fire events in each game's layout")
     CHECK(old.Long() == 0);
     CHECK(old.Long() == 1500);
     MESSAGE unblocked;
-    legacy.ResetAttackEvent(unblocked, {7, 9, "fast", false, true, std::nullopt, 0.0f});
+    rules.ResetAttackEvent(unblocked, LandEventLayout::Legacy,
+                           {7, 9, "fast", false, true, std::chrono::milliseconds(300), 0.0f});
     unblocked.EntityID();
     unblocked.EntityID();
     unblocked.String();
@@ -175,7 +175,7 @@ TEST_CASE("the attack and fire events in each game's layout")
     CHECK(unblocked.Long() == -1);
 
     MESSAGE cl;
-    caribbean.ResetAttackEvent(cl, report);
+    rules.ResetAttackEvent(cl, LandEventLayout::CaribbeanLegend, report);
     CHECK(cl.GetFormat() == "iislffl");
     cl.EntityID();
     cl.EntityID();
@@ -186,9 +186,9 @@ TEST_CASE("the attack and fire events in each game's layout")
     CHECK(cl.Long() == 0);
 
     MESSAGE fire, clFire;
-    legacy.ResetFireEvent(fire, {7, 9, 0.5f, true});
+    rules.ResetFireEvent(fire, LandEventLayout::Legacy, {7, 9, 0.5f, true});
     CHECK(fire.GetFormat() == "iifl");
-    caribbean.ResetFireEvent(clFire, {7, 9, 0.5f, true});
+    rules.ResetFireEvent(clFire, LandEventLayout::CaribbeanLegend, {7, 9, 0.5f, true});
     CHECK(clFire.GetFormat() == "iiflfl");
     clFire.EntityID();
     clFire.EntityID();
@@ -296,19 +296,11 @@ TEST_CASE("a cancel is rolled against its probability; a parried swing stays dec
     CHECK(cancel.Update(0.2f, parried, params, tuning, high, never) == CancelAction::Cancel);
 }
 
-TEST_CASE("no push from a negative answer; the legacy event has no block time for a strike not blocked")
+TEST_CASE("no push from a negative answer")
 {
     Scripts scripts;
     scripts.floats = {{"Event_GetFireRepulse", -2.0f}};
-    CHECK(caribbean.FireRepulse(1.0f, scripts.Float()) == 0.0f);
-    MESSAGE message;
-    legacy.ResetAttackEvent(message, {7, 9, "fast", false, false, std::chrono::milliseconds(300), 0.0f});
-    message.EntityID();
-    message.EntityID();
-    message.String();
-    message.Long();
-    message.Long();
-    CHECK(message.Long() == -1);
+    CHECK(rules.FireRepulse(1.0f, scripts.Float()) == 0.0f);
 }
 
 TEST_CASE("the NPC tuning file of an installed game", "[.corpus]")

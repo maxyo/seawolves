@@ -6,11 +6,15 @@
 
 - Выстрел с палубы по вражескому кораблю больше не считается нападением на корабль с неизвестными отношениями, а
   выстрел по нейтральному — выстрелом по врагу.
+- Блок больше не спасает от удара в спину: удар сзади (дальше 150° от взгляда защищающегося) пробивает блок.
+- Знак квеста над персонажем скрывается, пока тот дерётся, мёртв или уходит из локации.
 
 **English**
 
 - A shot aimed from the deck at an enemy ship no longer counts as an attack on a ship of unknown relation, nor a shot
   at a neutral one as a shot at an enemy.
+- A block no longer stops a blow from behind: a strike from more than 150° off the defender's facing breaks it.
+- The quest sign over a character is hidden while that character fights, is dead or leaves the location.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

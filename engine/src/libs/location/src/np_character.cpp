@@ -93,7 +93,8 @@ void NPCharacter::ReadFightParams()
             return value;
         return std::nullopt;
     };
-    const auto p = storm::location::fightRules().ReadNpcParams(askFloat, askInt, GetLocation()->GetNpcTuning());
+    const auto p = storm::location::fightRules().ReadNpcParams(askFloat, askInt, GetLocation()->GetNpcTuning(),
+                                                                   storm::location::landFacts().npcActivityMax);
     attackCur = p.attackActive;
     attackPrbFast = p.weightFast;
     attackPrbForce = p.weightForce;

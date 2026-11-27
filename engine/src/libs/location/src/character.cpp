@@ -699,8 +699,7 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
     }
     if (deadName)
     {
-        if (storm::location::landFacts().positionOfDead &&
-            (messageID == MSG_CHARACTER_GETPOS || messageID == MSG_CHARACTER_GETAY))
+        if (messageID == MSG_CHARACTER_GETPOS || messageID == MSG_CHARACTER_GETAY)
             return ProcessPositionMessage(messageID, message);
         if (liveValue >= 0)
         {
@@ -2607,7 +2606,7 @@ void Character::Update(float dltTime)
         }
         storm::math::pos(signMdl->mtx) = curPos;
         const bool shown = !location->AttributesPointer->GetAttributeAsDword("landQuestMarksHidden", 0) &&
-                           (!storm::location::landFacts().questSignsOnlyAtPeace || (!isFight && !deadName && liveValue >= 0));
+                           !isFight && !deadName && liveValue >= 0;
         if (shown != signShown)
         {
             signShown = shown;
@@ -3019,7 +3018,7 @@ void Character::ActionEvent(Animation *animation, int32_t playerIndex, const cha
                             }
                             MESSAGE fireEvent;
                             storm::location::fightRules().ResetFireEvent(
-                                fireEvent, {GetId(), enemy, kDist, chr != nullptr && isEnemyHitByGunfire != 0});
+                                fireEvent, storm::location::landFacts().events, {GetId(), enemy, kDist, chr != nullptr && isEnemyHitByGunfire != 0});
                             core.Event("Location_CharacterFire", fireEvent);
                         }
                     }
@@ -5251,7 +5250,7 @@ inline void Character::CheckAttackHit(bool isGunBlade)
             const auto blockHeld = victimBlocks ? std::optional(std::chrono::steady_clock::now() - fc.c->blockStart)
                                                 : std::nullopt;
             MESSAGE attackEvent;
-            rules.ResetAttackEvent(attackEvent,
+            rules.ResetAttackEvent(attackEvent, storm::location::landFacts().events,
                                    {GetId(), fc.c->GetId(), aname, isBlocked, isGunBlade, blockHeld, defenceAngle});
             core.Event("Location_CharacterAttack", attackEvent);
             // boal 09/12/06 energy consumption after impact -->

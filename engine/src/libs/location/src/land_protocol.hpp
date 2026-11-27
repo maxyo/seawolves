@@ -11,22 +11,24 @@
 namespace storm::location
 {
 
-enum class FightModel : uint8_t
+// The layout of the land events whose handlers read different arguments in each game.
+enum class LandEventLayout : uint8_t
 {
-    Legacy,          // To Each His Own: feints, stun chance, action energy asked of the scripts
-    CaribbeanLegend, // block bypass, power attacks, NPC attack cancels, overhead bars from the scripts
+    Legacy,          // To Each His Own: Location_CharacterAttack "iislll", Location_CharacterFire "iifl"
+    CaribbeanLegend, // "iislffl", "iiflfl"
 };
 
 struct LandFacts
 {
-    FightModel fight;
-    bool questSignsOnlyAtPeace; // a quest sign over a character shows only while it is alive, in peace and staying
-    bool positionOfDead;        // MSG_CHARACTER_GETPOS and GETAY answer for a dead character
+    LandEventLayout events;
+    // The most an NPC's attack or defence activity counts: To Each His Own's scripts give its best fighters up to
+    // 1.1 and rely on it; Caribbean Legend's engine takes at most 1 of the same answer.
+    float npcActivityMax;
 };
 
 inline constexpr std::array<LandFacts, 2> kLandFacts = {{
-    {FightModel::Legacy, false, false},
-    {FightModel::CaribbeanLegend, true, true},
+    {LandEventLayout::Legacy, 1000.0f},
+    {LandEventLayout::CaribbeanLegend, 1.0f},
 }};
 static_assert(kLandFacts.size() == kGameProfiles.size());
 

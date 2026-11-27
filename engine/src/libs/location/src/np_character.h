@@ -81,7 +81,7 @@ class NPCharacter : public AICharacter
     static void ReadBusyPositionCheck(MESSAGE &message);
     // The fight parameters asked of the scripts
     void ReadFightParams();
-    // Caribbean Legend's cancel of an attack that will not land
+    // The cancel of an attack that will not land, when the scripts enable it
     void UpdateAttackCancel(float dltTime, NPCharacter *enemy);
 
     bool InitFollowChartacter(entid_t eid);

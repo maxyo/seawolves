@@ -1,6 +1,7 @@
-// The parts of land fighting that differ between the games' fight models (land_protocol.hpp FightModel): what the
-// engine asks the scripts, how it reads the answers and what it reports. One FightRules per model, chosen once;
-// the asks are callbacks so the decisions run with fixed answers in the host checks.
+// The land fight's questions to the scripts and its decisions from their answers, one model for every game: a game
+// whose scripts do not handle an event gets the documented default. Only the layout of the events it reports
+// depends on the game (land_protocol.hpp). The asks are callbacks so the decisions run with fixed answers in the
+// host checks.
 #pragma once
 
 #include "land_protocol.hpp"
@@ -50,14 +51,15 @@ struct NpcCancelParams
 struct NpcFightParams
 {
     float attackActive = 0.5f;
-    float weightFast = 0.2f, weightForce = 0.5f, weightRound = 0.1f, weightBreak = 0.1f, weightFeint = 0.1f;
+    float weightFast = 0.2f, weightForce = 0.5f, weightRound = 0.1f, weightBreak = 0.1f,
+          weightFeint = 0.0f; // no feints unless asked
     float defenceActive = 0.05f;
     float weightBlock = 0.9f, weightParry = 0.1f;
     bool recoilEnabled = true;
     float fireActive = 0.0f;
     bool fireEnabled = true;
-    std::optional<int32_t> stunChance; // asked by the legacy model only
-    NpcCancelParams cancel;            // asked by Caribbean Legend's only
+    std::optional<int32_t> stunChance; // the chance a hit stuns, when the scripts give one
+    NpcCancelParams cancel;
 };
 
 struct MeleeReach
@@ -112,34 +114,33 @@ enum class SpecialAttack
 class FightRules
 {
   public:
-    virtual ~FightRules() = default;
-    virtual NpcFightParams ReadNpcParams(const AskFloat &askFloat, const AskInt &askInt,
-                                         const NpcTuning &tuning) const = 0;
+    // `activityMax`: the game's bound of the attack and defence activity (land_protocol.hpp)
+    NpcFightParams ReadNpcParams(const AskFloat &askFloat, const AskInt &askInt, const NpcTuning &tuning,
+                                 float activityMax) const;
     // The energy an NPC needs for an action, for its choice between parry and block.
-    virtual float ActionEnergy(const AskFloat &ask) const = 0;
+    float ActionEnergy(const AskFloat &ask) const;
     // Distance and angle a strike reaches from the animation's own; `ask` raises an event with the attack type.
-    virtual MeleeReach Reach(MeleeReach animation, const AskFloat &ask) const = 0;
+    MeleeReach Reach(MeleeReach animation, const AskFloat &ask) const;
     // An attack the scripts allowed: `askTarget` raises an event with the attacker, the target and the type,
     // `askSelf` with the attacker alone.
-    virtual SpecialAttack Special(std::string_view type, bool targetBlocks, const AskInt &askTarget,
-                                  const AskInt &askSelf) const = 0;
+    SpecialAttack Special(std::string_view type, bool targetBlocks, const AskInt &askTarget,
+                          const AskInt &askSelf) const;
     // The speed a hit by a shot pushes the victim away with at `distance` metres; `ask` raises an event with the
     // shooter and the victim.
-    virtual float FireRepulse(float distance, const AskFloat &ask) const = 0;
+    float FireRepulse(float distance, const AskFloat &ask) const;
     // `backAngle`: asked only for a victim whose block may hold.
-    virtual BlockOutcome Block(const BlockInput &input, const AskFloat &backAngle) const = 0;
-    virtual void ResetAttackEvent(MESSAGE &message, const AttackReport &report) const = 0;
-    virtual void ResetFireEvent(MESSAGE &message, const FireReport &report) const = 0;
+    BlockOutcome Block(const BlockInput &input, const AskFloat &backAngle) const;
+    void ResetAttackEvent(MESSAGE &message, LandEventLayout layout, const AttackReport &report) const;
+    void ResetFireEvent(MESSAGE &message, LandEventLayout layout, const FireReport &report) const;
 };
-
-const FightRules &fightRules(FightModel model);
 
 inline const FightRules &fightRules()
 {
-    return fightRules(landFacts().fight);
+    static const FightRules rules;
+    return rules;
 }
 
-// Caribbean Legend's NPC attack cancel, run each frame of an NPC's fight (the legacy model has none).
+// The NPC attack cancel, run each frame of an NPC's fight; off unless the scripts enable it.
 struct CancelInput
 {
     bool attacking; // the NPC's current action is an attack
