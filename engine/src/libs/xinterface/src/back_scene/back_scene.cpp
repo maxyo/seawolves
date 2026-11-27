@@ -8,6 +8,7 @@
 #include "debug-trap.h"
 #include "math_inlines.h"
 #include "string_compare.hpp"
+#include "v_file_service.h"
 #include "storm/render/pipelines.hpp"
 
 InterfaceBackScene::LightParam::~LightParam()
@@ -179,7 +180,10 @@ bool InterfaceBackScene::Init()
     m_pRS = static_cast<VRenderer *>(core.GetService("renderer"));
     Assert(m_pRS);
     flyTex = m_pRS->TextureCreate("LocEfx\\firefly.tga");
-    m_nFlareTexture = m_pRS->TextureCreate("ShipsFlares\\corona.tga");
+    // the flare is in ShipsFlares where a game has that folder (TEHO), else in the textures root (Caribbean Legend)
+    m_nFlareTexture = m_pRS->TextureCreate(fio->_FileOrDirectoryExists("resource\\textures\\ShipsFlares")
+                                               ? "ShipsFlares\\corona.tga"
+                                               : "corona.tga");
     return true;
 }
 
@@ -407,8 +411,13 @@ void InterfaceBackScene::LoadModel(const char *pcModelName)
     }
     auto *pGeo = static_cast<VGEOMETRY *>(core.GetService("Geometry"));
     if (pGeo)
-        pGeo->SetTexturePath(
-            (std::string("MainMenu\\") + XINTERFACE::pThis->StringService()->GetLanguage() + "\\").c_str());
+    {
+        // the scene's textures are per language where the game has a folder for it (TEHO), else in MainMenu
+        const std::string language =
+            std::string("MainMenu\\") + XINTERFACE::pThis->StringService()->GetLanguage() + "\\";
+        pGeo->SetTexturePath(fio->_FileOrDirectoryExists(("resource\\textures\\" + language).c_str()) ? language.c_str()
+                                                                                                        : "MainMenu\\");
+    }
     // The title's scene is a scene load of its own: the loading screen that is up (the game's start) stays until
     // its textures and pipelines are ready (core PrepareLoadingScene), at most kTitleRevealBudgetMs, and the title
     // menu comes with the scene.
