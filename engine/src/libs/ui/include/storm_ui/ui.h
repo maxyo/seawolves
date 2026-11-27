@@ -157,7 +157,7 @@ struct FrameStats
     // With Config::verify_unchanged: this frame was predicted unchanged by Prepare but drew
     // other commands than the frame shown (also an error in the log).
     bool mispredicted = false;
-    uint64_t number = 0; // which Frame this was (1, 2, …): a frame replayed unchanged keeps the last one's
+    uint64_t number = 0; // which Frame this was (1, 2, …): a frame composited unchanged keeps the last one's
     // Frames made for this one that the backend did not show (RenderBackend::FrameHeld): the frame
     // before stayed on the screen while the textures of this one were made. Their cost is in this one.
     int held = 0;

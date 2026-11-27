@@ -277,6 +277,11 @@ elseif(NOT CMAKE_CROSSCOMPILING)
         add_test(NAME ui_whole_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1
                  --views 12 --out "${CMAKE_CURRENT_BINARY_DIR}/whole-frame.png"
                  --script "wait 0.2; mark; props panels {\"sizes\":[40,50,60,70,80,90]}; whole; wait 0.0166; whole; wait 0.0166; whole; wait 0.3; arrived")
+        # An unchanged frame composites the layer the last drawn one left: the touch opening the view (the clear of the
+        # tool's target) and one quad, nothing drawn into the layer; a change draws the layer again.
+        add_test(NAME ui_steady_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1
+                 --out "${CMAKE_CURRENT_BINARY_DIR}/steady-frame.png"
+                 --script "wait 0.5; submitted 2 2; props panels {\"sizes\":[40,50,60]}; submitted 3 100000; wait 0.1; submitted 2 2")
     endif()
     if(STORM_UI_PACK)
         add_test(NAME ui_pack_contract COMMAND storm_ui_pack_check --pack "${STORM_UI_PACK}" --fixtures "${CMAKE_CURRENT_SOURCE_DIR}/tests")

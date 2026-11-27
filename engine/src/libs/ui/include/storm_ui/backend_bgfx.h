@@ -10,7 +10,9 @@
 // RmlUi layers (box shadows, filters, masks) render into frame buffers, one bgfx view per
 // render-target switch; passes of different elements share views. Work that only produces
 // a texture (box-shadow images) may span frames when views are short. Effects that do not
-// fit into the view range at all are not drawn and are logged as errors.
+// fit into the view range at all are not drawn and are logged as errors. An unchanged frame
+// composites the UI layer the last drawn frame left (one draw), and a frame without a document
+// submits nothing (a SetTarget frame buffer is only cleared).
 #pragma once
 
 #include "storm_ui/render_backend.h"

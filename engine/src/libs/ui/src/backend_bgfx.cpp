@@ -4,7 +4,9 @@
 // The RmlUi calls of a frame are recorded and executed at EndFrame. Execution follows the
 // stock GL3 renderer pass by pass (MSAA layer stack sharing one stencil buffer,
 // post-process ping-pong buffers, the same blur and shadow passes and shaders), so it
-// produces the same pixels as RmlUi's own renderer.
+// produces the same pixels as RmlUi's own renderer. The base layer holds the UI alone and is
+// composited over the game picture cut to what was drawn into it; a frame the host calls
+// unchanged composites the base layer as the last drawn frame left it, nothing else.
 //
 // bgfx renders into one frame buffer per view, and the frame owner hands out a small
 // range of views. Every draw is therefore placed by a scheduler: it goes into the first
@@ -45,6 +47,7 @@
 #include <deque>
 #include <limits>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -399,6 +402,30 @@ struct Region
     }
 };
 
+// What a frame left out (BgfxBackendImpl::Skipped). The first three: the frame owner's view range is too small.
+enum class Skip : uint8_t
+{
+    EffectsDropped,
+    FiltersDropped,
+    JobDropped,
+    TextureAwaited,
+    TextureLost,
+    PictureGone,
+    NoGpuObject,
+    NoTransient,
+    Count
+};
+constexpr std::array<const char *, size_t(Skip::Count)> kSkipReasons = {
+    "layers drawn without their effects (views short)",
+    "elements drawn without their filters (views short)",
+    "box-shadow/layer textures left empty (views short)",
+    "draws of a layer texture its job has not made",
+    "draws of a texture with neither pixels nor a GPU copy",
+    "draws of a game picture the renderer does not have",
+    "draws bgfx gave no buffer or texture for",
+    "quads without transient vertices",
+};
+
 struct ViewRect
 {
     int x = 0, y = 0, w = 0, h = 0; // bgfx (top-left) view rectangle
@@ -613,6 +640,13 @@ class Executor
         return schedule_.Size();
     }
     void Main(const Commands &commands, bool clear_final, bool degraded);
+    // An unchanged frame: the base layer the last drawn one left, composited again inside `bounds`.
+    void Kept(const Region &bounds, bool clear_final);
+    // What the main frame drew into the base layer (planned; a live run has its plan's).
+    const Region &Drawn() const
+    {
+        return drawn_;
+    }
     // Main frame within `views`: composites whose filters do not fit lose them.
     void SetBudget(int views)
     {
@@ -642,6 +676,7 @@ class Executor
   private:
     void Run(const Command &command, bool degraded);
     void Composite(const Command &command, bool unfiltered);
+    void CompositeBase(const Region &bounds, bool clear_final);
     static uint32_t StencilTest(const DrawState &state);
     int Begin(Target target, ViewRect rect, const Accesses &writes, const Accesses &reads,
               uint16_t clear = BGFX_CLEAR_NONE);
@@ -750,6 +785,7 @@ class Executor
     int budget_ = 0;                                 // planning: views the frame may use (0: no limit)
     int starved_ = 0;                                // Starved()
     std::unordered_set<const Command *> unfiltered_; // composites drawn without their filters
+    Region drawn_;                                   // Drawn()
 };
 class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
 {
@@ -781,7 +817,7 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     }
     void SetViewport(int width, int height) override
     {
-        replayable_ = false;
+        kept_ = false;
         width = std::max(width, 1);
         height = std::max(height, 1);
         projection_ = Rml::Matrix4f::ProjectOrtho(0, float(width), float(height), 0, -10000, 10000);
@@ -856,14 +892,14 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         if (!host_)
             return;
         // The engine frame is drawn anew every time, so the UI must be in it every time. A
-        // frame the host calls unchanged (Host::Prepare) submits the commands recorded for the
-        // last drawn one again, without RmlUi's update and render.
+        // frame the host calls unchanged (Host::Prepare) composites the base layer the last drawn
+        // one left (kept_): no RmlUi update or render, nothing cleared or drawn into the layer.
         double delay = 0.0;
-        if (host_->Prepare(delay) || !replayable_)
+        if (host_->Prepare(delay) || !kept_)
             next_frame_delay_ = host_->Frame();
         else
         {
-            Submit(shown_main_, shown_clear_, false);
+            SubmitKept();
             next_frame_delay_ = delay;
         }
         ++frame_;
@@ -885,7 +921,7 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         commands_.clear();
         shown_main_.clear();
         held_frames_ = 0;
-        replayable_ = false;
+        kept_ = false;
         ReleaseShownPictures();
         // RmlUi re-creates textures and geometry on demand through this interface.
         Rml::ReleaseTextures(this);
@@ -925,7 +961,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     void ReleaseGeometry(Rml::CompiledGeometryHandle geometry) override
     {
         ReleaseHandle<storm::ui::Geometry>(geometry);
-        replayable_ = false; // the recorded frame may use it
     }
 
     Rml::TextureHandle LoadTexture(Rml::Vector2i &dimensions, const Rml::String &source) override
@@ -952,7 +987,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     {
         const Ref<Texture> &texture = FromHandle<Texture>(handle);
         texture->released = true;
-        replayable_ = false; // the recorded frame may use it
         // A game picture stays with the frame on the screen, which may be shown again while the next
         // one waits for its textures (EndFrame): given back when another frame takes its place.
         if (texture->kind == Texture::Kind::Picture)
@@ -1050,7 +1084,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     void ReleaseFilter(Rml::CompiledFilterHandle filter) override
     {
         ReleaseHandle<const Filter>(filter);
-        replayable_ = false; // the recorded frame may use it
     }
     Rml::CompiledShaderHandle CompileShader(const Rml::String &name, const Rml::Dictionary &parameters) override;
     void RenderShader(Rml::CompiledShaderHandle shader, Rml::CompiledGeometryHandle geometry, Rml::Vector2f translation,
@@ -1064,7 +1097,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     void ReleaseShader(Rml::CompiledShaderHandle shader) override
     {
         ReleaseHandle<const Shader>(shader);
-        replayable_ = false; // the recorded frame may use it
     }
 
   private:
@@ -1107,15 +1139,13 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     // range of each job that runs this frame.
     std::vector<std::pair<size_t, size_t>> PlanJobs(Executor &planner, int budget);
     bool PlaceJob(Job &job);
-    // Effects dropped because the frame owner's view range is too small: an error, not a
-    // mode. Logged on the first occurrence and every 600th after.
-    void ReportOverflow(const char *what)
+    // Draws and effects a frame leaves out: an error, not a mode. Counted while the frame is submitted and logged in
+    // one line at its end (EndFrame, ReportSkips); a frame with any is not kept, so the next one is drawn again.
+    void Skipped(Skip reason)
     {
-        if (overflows_++ % 600 == 0)
-            Rml::Log::Message(Rml::Log::LT_ERROR,
-                              "UI needs more than the %d bgfx views of the frame owner: %s (%d times)",
-                              int(view_count_), what, overflows_);
+        ++skips_[size_t(reason)];
     }
+    void ReportSkips();
     struct Shelf
     {
         int x = 0, y = 0, height = 0;
@@ -1134,12 +1164,16 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     // Recording.
     bool clear_ = false;
     Commands commands_;
-    // The commands of the frame on the screen, without its texture jobs: submitted again for a
-    // frame the host calls unchanged (`replayable_`), and instead of a frame that would be drawn
-    // without textures its jobs are still making (EndFrame).
+    // The commands of the frame on the screen, without its texture jobs: submitted again instead
+    // of a frame that would be drawn without textures its jobs are still making (EndFrame).
     Commands shown_main_;
     bool shown_clear_ = false;
-    bool replayable_ = false;
+    // Layer 0 holds the frame on the screen whole, drawn inside kept_bounds_ (top-left pixels), and an unchanged frame
+    // only composites it (SubmitKept). Its texture lives with the frame set: a resize or a surface change
+    // (SetViewport) and a device loss end it.
+    bool kept_ = false;
+    Region kept_bounds_;
+    void SubmitKept();
     int held_frames_ = 0;                     // frames in a row that were not shown (FrameHeld)
     std::vector<std::string> shown_pictures_; // game pictures RmlUi gave back that the frame on the screen may draw
     // Submits the queued texture jobs that fit and `main`. With `complete_only`, a `main` that
@@ -1149,7 +1183,7 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     int depth_ = 1;
     std::vector<size_t> open_layers_; // indices of the PushLayer commands of open layers
     std::deque<Job> jobs_;
-    int overflows_ = 0;
+    std::array<int, size_t(Skip::Count)> skips_{};
 
     // GPU objects.
     std::array<bgfx::ProgramHandle, size_t(ProgramId::Count)> programs_{};
@@ -1751,7 +1785,7 @@ std::vector<std::pair<size_t, size_t>> BgfxBackendImpl::PlanJobs(Executor &plann
                 alone.Step(job.commands[end]);
                 if (alone.Views() > int(view_count_) - 2)
                 {
-                    ReportOverflow("a box-shadow/layer texture left empty");
+                    Skipped(Skip::JobDropped);
                     jobs_.erase(jobs_.begin() + std::ptrdiff_t(j));
                     return ranges;
                 }
@@ -1808,12 +1842,13 @@ void BgfxBackendImpl::EndFrame()
 {
     Commands main = std::move(commands_);
     commands_.clear();
-    replayable_ = false;
+    kept_ = false;
     if (!device_ready_ || sets_[0].width <= 0)
     {
         held_frames_ = 0;
         return;
     }
+    skips_.fill(0);
     ExtractJobs(main);
     // A frame is shown whole or not at all. Layer textures (box shadows: the panels of a screen)
     // are made by jobs that may not fit into this frame's views beside the frame itself; drawn
@@ -1831,16 +1866,20 @@ void BgfxBackendImpl::EndFrame()
     {
         ++held_frames_;
         Submit(shown_main_, shown_clear_, false);
+        ReportSkips();
         return;
     }
     held_frames_ = 0;
-    // A frame that saves layers as textures (the frame renderer filling its filter cache) is
-    // not repeated: the next one draws from the cache.
-    replayable_ =
+    // Kept unless the next frame must be drawn: a frame that saves layers as textures (the frame renderer filling its
+    // filter cache) is followed by one drawing from the cache, texture jobs still queued make what the frame did not
+    // draw yet, and a frame that left something out tries again.
+    kept_ =
+        jobs_.empty() && std::all_of(skips_.begin(), skips_.end(), [](int count) { return count == 0; }) &&
         std::none_of(main.begin(), main.end(), [](const Command &command) { return command.op == Op::SaveTexture; });
     shown_main_ = std::move(main);
     shown_clear_ = clear_;
     ReleaseShownPictures();
+    ReportSkips();
 }
 
 bool BgfxBackendImpl::Submit(const Commands &main, bool clear, bool complete_only)
@@ -1857,7 +1896,7 @@ bool BgfxBackendImpl::Submit(const Commands &main, bool clear, bool complete_onl
         Executor fallback(*this);
         fallback.Main(main, clear_, true);
         main_views = fallback.Views();
-        ReportOverflow("layers of this frame drawn without effects");
+        Skipped(Skip::EffectsDropped);
     }
 
     // Texture jobs first, in the views the frame leaves over, then the frame itself.
@@ -1879,16 +1918,36 @@ bool BgfxBackendImpl::Submit(const Commands &main, bool clear, bool complete_onl
         job.cursor = ranges[j].second;
     }
     live.Main(main, clear_, degraded);
+    kept_bounds_ = live.Drawn();
     while (!jobs_.empty() && jobs_.front().cursor >= jobs_.front().commands.size())
         jobs_.pop_front();
     return true;
+}
+
+void BgfxBackendImpl::SubmitKept()
+{
+    Executor plan(*this);
+    plan.Kept(kept_bounds_, shown_clear_);
+    Executor live(*this, plan, first_view_);
+    live.Kept(kept_bounds_, shown_clear_);
+}
+
+void BgfxBackendImpl::ReportSkips()
+{
+    std::string reasons;
+    for (size_t i = 0; i < skips_.size(); ++i)
+        if (skips_[i] > 0)
+            reasons += (reasons.empty() ? "" : "; ") + std::to_string(skips_[i]) + " " + kSkipReasons[i];
+    if (!reasons.empty())
+        Rml::Log::Message(Rml::Log::LT_ERROR, "UI frame left out %s (%d bgfx views)", reasons.c_str(),
+                          int(view_count_));
 }
 
 // ---- executor -----------------------------------------------------------------------
 
 Executor::Executor(BgfxBackendImpl &backend, const Executor &plan, uint16_t first_view)
     : b_(&backend), live_(true), first_view_(first_view), schedule_(plan.schedule_), plan_(plan.plan_),
-      unfiltered_(plan.unfiltered_)
+      unfiltered_(plan.unfiltered_), drawn_(plan.drawn_)
 {
     const std::vector<Schedule::Slot> &slots = schedule_.Slots();
     // Tile GPUs: what the frame no longer needs is invalidated after the last view that draws into it
@@ -1942,6 +2001,11 @@ int Executor::Begin(Target target, ViewRect rect, const Accesses &writes, const 
         return plan_[next_++];
     const int slot = schedule_.Place(target, rect, writes, reads, clear);
     plan_.push_back(slot);
+    const Target base{TargetKind::Layer, 0, 0};
+    if (clear == BGFX_CLEAR_NONE)
+        for (const Access &write : writes)
+            if (write.target == base && !write.region.Empty())
+                drawn_ = drawn_.Empty() ? write.region : drawn_.Union(write.region);
     return slot;
 }
 
@@ -2078,8 +2142,14 @@ void Executor::Geometry(int slot, const Command &command, ProgramId program, uin
 void Executor::Quad(int slot, ProgramId program, uint64_t state, Rml::Vector2f ndc0, Rml::Vector2f ndc1,
                     Rml::Vector2f uv0, Rml::Vector2f uv1, const Rml::Rectanglei &scissor, uint32_t stencil)
 {
-    if (!SetScissor(slot, scissor) || bgfx::getAvailTransientVertexBuffer(6, Layout()) < 6)
+    if (!SetScissor(slot, scissor))
     {
+        bgfx::discard();
+        return;
+    }
+    if (bgfx::getAvailTransientVertexBuffer(6, Layout()) < 6)
+    {
+        b_->Skipped(Skip::NoTransient);
         bgfx::discard();
         return;
     }
@@ -2313,9 +2383,15 @@ void Executor::ClipMask(const Command &command)
     if (region.Empty())
         return;
     const int slot = Begin(layer, Full(), {{Stencil(), region}}, {});
-    if (live_ && command.geometry->Ensure())
-        Geometry(slot, command, ProgramId::Color, BGFX_STATE_MSAA,
-                 BGFX_STENCIL_TEST_ALWAYS | BGFX_STENCIL_FUNC_REF(write) | kStencilKeep | op);
+    if (!live_)
+        return;
+    if (!command.geometry->Ensure())
+    {
+        b_->Skipped(Skip::NoGpuObject);
+        return;
+    }
+    Geometry(slot, command, ProgramId::Color, BGFX_STATE_MSAA,
+             BGFX_STENCIL_TEST_ALWAYS | BGFX_STENCIL_FUNC_REF(write) | kStencilKeep | op);
 }
 
 // The layer region is copied upside down into post 0 (textures run top row first), then
@@ -2335,8 +2411,13 @@ void Executor::SaveTexture(const Command &command)
         schedule_.AddEarly({output, {0, 0, 1, 1}}, slot + 1, true);
     }
     filled_.insert(&texture);
-    if (!live_ || !texture.Ensure())
+    if (!live_)
         return;
+    if (!texture.Ensure())
+    {
+        b_->Skipped(Skip::NoGpuObject);
+        return;
+    }
     const int w = Width(), h = Height();
     const auto ndc = [&](int x, int y) {
         return Rml::Vector2f(2.f * float(x) / float(w) - 1.f, 2.f * float(y) / float(h) - 1.f);
@@ -2430,34 +2511,47 @@ void Executor::Run(const Command &command, bool degraded)
             {
             case Texture::Kind::Pixels:
                 if (texture.pixels.empty() && !texture.Current())
+                {
+                    if (live_)
+                        b_->Skipped(Skip::TextureLost);
                     return;
+                }
                 break;
             case Texture::Kind::Target:
                 if (!filled_.count(&texture) && !(texture.filled && texture.Current()))
                 {
-                    if (!live_ && b_->Awaited(texture))
+                    const bool awaited = b_->Awaited(texture);
+                    if (!live_ && awaited)
                         ++starved_;
-                    return; // its job has not run yet
+                    if (live_)
+                        b_->Skipped(awaited ? Skip::TextureAwaited : Skip::TextureLost);
+                    return;
                 }
                 reads.Add({{TargetKind::Texture, 0, 0, &texture}, {0, 0, 1, 1}});
                 break;
             case Texture::Kind::Picture:
                 handle = b_->PictureHandle(texture);
                 if (!bgfx::isValid(handle))
+                {
+                    if (live_)
+                        b_->Skipped(Skip::PictureGone);
                     return;
+                }
                 program = ProgramId::TextureStraight;
                 break;
             }
         }
         const int slot = Begin(layer, Full(), {{layer, region}}, reads);
-        if (!live_ || !command.geometry->Ensure())
+        if (!live_)
             return;
-        if (command.texture && command.texture->kind != Texture::Kind::Picture)
+        if (!command.geometry->Ensure() ||
+            (command.texture && command.texture->kind != Texture::Kind::Picture && !command.texture->Ensure()))
         {
-            if (!command.texture->Ensure())
-                return;
-            handle = command.texture->handle;
+            b_->Skipped(Skip::NoGpuObject);
+            return;
         }
+        if (command.texture && command.texture->kind != Texture::Kind::Picture)
+            handle = command.texture->handle;
         if (command.shader)
         {
             const Shader &shader = *command.shader;
@@ -2510,7 +2604,7 @@ void Executor::Run(const Command &command, bool degraded)
                 break;
             }
             unfiltered_.insert(&command);
-            b_->ReportOverflow("an element drawn without its filters");
+            b_->Skipped(Skip::FiltersDropped);
         }
         Composite(command, unfiltered_.count(&command) > 0);
         break;
@@ -2549,9 +2643,7 @@ void Executor::Main(const Commands &commands, bool clear_final, bool degraded)
     // the UI's own target (SetTarget) still runs. The jobs run before Main (Submit).
     if (commands.empty())
     {
-        const Target final_target{TargetKind::Final};
-        if (clear_final && bgfx::isValid(b_->target_))
-            Begin(final_target, Full(), {{final_target, Whole()}}, {}, BGFX_CLEAR_COLOR);
+        CompositeBase({}, clear_final);
         return;
     }
     // Depth too: it shares the stencil's attachment, and a tile GPU loads a combined buffer that is not
@@ -2560,16 +2652,31 @@ void Executor::Main(const Commands &commands, bool clear_final, bool degraded)
           BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH | BGFX_CLEAR_STENCIL);
     for (const Command &command : commands)
         Run(command, degraded);
-    // Composite the base layer over the target (the game picture), premultiplied.
+    CompositeBase(drawn_, clear_final);
+}
+
+void Executor::Kept(const Region &bounds, bool clear_final)
+{
+    set_ = 0;
+    projection_.reset();
+    CompositeBase(bounds, clear_final);
+}
+
+// The base layer over the target (the game picture), premultiplied, cut to what was drawn into it: the layer holds the
+// UI alone (cleared to transparent), so it blends the same over every new game picture under it.
+void Executor::CompositeBase(const Region &bounds, bool clear_final)
+{
     const Target final_target{TargetKind::Final};
-    const bool own_target = bgfx::isValid(b_->target_);
-    const int slot = Begin(final_target, Full(), {{final_target, Whole()}}, {{Layer(0), Whole()}},
-                           clear_final && own_target ? BGFX_CLEAR_COLOR : BGFX_CLEAR_NONE);
-    if (!live_)
+    const bool clear = clear_final && bgfx::isValid(b_->target_);
+    if (bounds.Empty() && !clear)
+        return;
+    const int slot = Begin(final_target, Full(), {{final_target, bounds}}, {{Layer(0), bounds}},
+                           clear ? BGFX_CLEAR_COLOR : BGFX_CLEAR_NONE);
+    if (!live_ || bounds.Empty())
         return;
     BindTexture(0, Layer(0));
     SetFactor(1.f);
-    FullQuad(slot, ProgramId::Passthrough, kWriteColor | kBlendPremultiplied, Rml::Rectanglei::MakeInvalid());
+    FullQuad(slot, ProgramId::Passthrough, kWriteColor | kBlendPremultiplied, RectOf(bounds));
 }
 
 void Executor::BeginJob(const Job &job)

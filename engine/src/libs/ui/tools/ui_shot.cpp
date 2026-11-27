@@ -8,7 +8,8 @@
 //                    each later command costs up to its finished frame),
 //                    props <element id> <json>, scroll <element id>, prewarm (Host::Prewarm until done),
 //                    bounds <CSS selector> (settled visible border boxes in dp),
-//                    device-reset (bgfx: device loss and restore, as after a lost EGL context)
+//                    device-reset (bgfx: device loss and restore, as after a lost EGL context),
+//                    submitted <min> <max> (the UI's bgfx render items in the last frame are within)
 //
 // Draws through the UI's bgfx backend on bgfx's GLES 3.0 renderer (Mesa llvmpipe, headless),
 // the engine configuration, with the tool acting as the frame owner: N UI views from
@@ -33,8 +34,8 @@
 // it uses a latest-value slot, "command[<slot>] <line>".
 //
 // Frame cost: bench <frames> [<channel> <a.json> <b.json>] runs that many frames as a
-// host does (every frame drawn, as in the engine frame; an unchanged one re-submits its
-// commands), and prints what they cost (Host::LastFrameStats: CPU of
+// host does (every frame drawn, as in the engine frame; an unchanged one composites the UI
+// layer the last drawn one left), and prints what they cost (Host::LastFrameStats: CPU of
 // update and render, GPU wait, rebuilds, layout, meshes, draw calls, texture uploads).
 // With a channel the two states alternate every frame (a HUD that changes each frame);
 // the channel "interface" alternates two interface models instead. "redraw" draws every
@@ -138,6 +139,8 @@ class Capture
     }
     // bench: one frame as the platform host draws it; true when one was drawn.
     virtual bool BenchFrame(storm::ui::Host &host) = 0;
+    // bgfx render items (draws, and the touch that opens each view) the UI submitted in the last frame.
+    virtual int Submitted() = 0;
     // bench: waits until the GPU has finished the frame.
     virtual void Finish() = 0;
     // bench: GPU time of the frame drawn between the two calls (every target: layers, filter
@@ -145,7 +148,7 @@ class Capture
     virtual bool BeginGpuQuery() = 0;
     virtual void EndGpuQuery(double &gpu_ms) = 0;
     // bench: CPU of the UI's part of the last frame, the frame owner's call into the UI backend
-    // (Host::Prepare, then Host::Frame or the replay, and what the host does after them).
+    // (Host::Prepare, then Host::Frame or the kept layer's composite, and what the host does after them).
     virtual double UiMilliseconds() const = 0;
 };
 
@@ -488,6 +491,12 @@ class BgfxCapture final : public Capture
         ui_ms_ = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
         bgfx::frame();
     }
+    int Submitted() override
+    {
+        // bgfx's stats are those of the frame before the last bgfx::frame(): one more, with nothing in it.
+        bgfx::frame();
+        return int(bgfx::getStats()->numDraw);
+    }
     bool Shot(storm::ui::Host &host, const std::string &path) override
     {
         int settle = 0;
@@ -749,6 +758,15 @@ class Script
                                                         : whole ? "the new picture, whole"
                                                                 : "a picture that changed afterwards");
             if (!kept && !whole)
+                status_ = 7;
+        }
+        else if (verb == "submitted") // submitted <min> <max>: the UI's bgfx render items in the last frame
+        {
+            int min = 0, max = 0;
+            words >> min >> max;
+            const int submitted = capture_.Submitted();
+            std::printf("submitted: %d bgfx render items\n", submitted);
+            if (submitted < min || submitted > max)
                 status_ = 7;
         }
         else if (verb == "arrived") // arrived: the picture on the screen is no longer the marked one
