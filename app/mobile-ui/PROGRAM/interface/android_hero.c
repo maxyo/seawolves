@@ -670,7 +670,9 @@ void AndroidShipFacts(int subject)
 	if (subject == GetMainCharacterIndex()) row.hero = "1";
 	row.money = sti(mc.money);
 	// «Обмен» (ShipChange): only for a companion's ship while the hero has one, and not from the
-	// journal's ships at anchor.
+	// journal's ships at anchor. rule copy: ship.c ShipChange's outer condition. The game keeps it only inside
+	// that handler, which opens no window when it fails, so the button cannot be offered from the game's word;
+	// every other refusal is the game's own window.
 	row.exchange = "0";
 	if (!CheckAttribute(mc, "SystemInfo.ShowShip") && chr.id != mc.id && sti(mc.ship.type) != 1000) row.exchange = "1";
 	int iShip = sti(chr.ship.type);
