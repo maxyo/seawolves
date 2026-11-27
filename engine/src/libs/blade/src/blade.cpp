@@ -26,6 +26,8 @@ static const char *bladeEnd = "end";
 
 static const char *gunHandName = "gun_hand";
 static const char *gunBeltName = "gun_belt";
+static const char *musketHandName = "mush_hand";
+static const char *musketBeltName = "mush_belt";
 static const char *gunFire = "gun_fire";
 
 static const char *sabergunHandName = "sabergun_hand";
@@ -238,12 +240,14 @@ bool BLADE::BLADE_INFO::LoadBladeModel(MESSAGE &message)
 BLADE::BLADE()
 {
     gunLocName = gunBeltName;
+    musketLocName = musketBeltName;
     blendValue = 0xFFFFFFFF;
 }
 
 BLADE::~BLADE()
 {
     core.EraseEntity(gun);
+    core.EraseEntity(musket);
 
     for (int32_t i = 0; i < ITEMS_INFO_QUANTITY; i++)
         items[i].Release();
@@ -291,10 +295,44 @@ void BLADE::Realize(uint32_t Delta_Time)
     rs->SetTransform(D3DTS_TEXTURE1, storm::math::d3dMatrix(mtx));
     rs->SetRenderState(D3DRS_TEXTUREFACTOR, blendValue);
 
-    // draw gun
+    DrawFirearm(gun, gunLocName, mdl, manNode);
+    DrawFirearm(musket, musketLocName, mdl, manNode);
+
+    // draw saber
+    blade[0].DrawBlade(rs, blendValue, mdl, manNode);
+    blade[1].DrawBlade(rs, blendValue, mdl, manNode);
+
+    // draw tied items
+    for (int32_t n = 0; n < ITEMS_INFO_QUANTITY; n++)
+        if (items[n].nItemIndex != -1)
+            items[n].DrawItem(rs, blendValue, mdl, manNode);
+
+    mtx = glm::mat4(1.0f);
+    rs->SetTransform(D3DTS_TEXTURE1, storm::math::d3dMatrix(mtx));
+}
+
+bool BLADE::LoadBladeModel(MESSAGE &message)
+{
+    const auto nBladeIdx = message.Long();
+    if (nBladeIdx < 0 || nBladeIdx >= BLADE_INFO_QUANTITY)
+        return false;
+
+    man = message.EntityID();
+
+    if (nBladeIdx == 1)
+        blade[nBladeIdx].locatorName = sabergunBeltName;
+    else
+        blade[nBladeIdx].locatorName = beltName;
+
+    return blade[nBladeIdx].LoadBladeModel(message);
+}
+
+// A firearm the character carries, drawn at the locator of the character model it hangs on
+void BLADE::DrawFirearm(entid_t model, const char *locator, MODEL *mdl, NODE *manNode)
+{
     glm::mat4 perMtx;
     int32_t sti;
-    auto *obj = static_cast<MODEL *>(core.GetEntityPointer(gun));
+    auto *obj = static_cast<MODEL *>(core.GetEntityPointer(model));
     if (obj != nullptr)
     {
         auto *gunNode = obj->GetNode(0);
@@ -307,7 +345,7 @@ void BLADE::Realize(uint32_t Delta_Time)
             gunNode->SetTechnique("AnimationBlend");
         }
         sti = -1;
-        auto idGun = manNode->geo->FindName(gunLocName);
+        auto idGun = manNode->geo->FindName(locator);
 
         if ((sti = manNode->geo->FindLabelN(sti + 1, idGun)) > -1)
         {
@@ -339,39 +377,11 @@ void BLADE::Realize(uint32_t Delta_Time)
 
         obj->ProcessStage(Stage::realize, 0);
     }
-
-    // draw saber
-    blade[0].DrawBlade(rs, blendValue, mdl, manNode);
-    blade[1].DrawBlade(rs, blendValue, mdl, manNode);
-
-    // draw tied items
-    for (int32_t n = 0; n < ITEMS_INFO_QUANTITY; n++)
-        if (items[n].nItemIndex != -1)
-            items[n].DrawItem(rs, blendValue, mdl, manNode);
-
-    mtx = glm::mat4(1.0f);
-    rs->SetTransform(D3DTS_TEXTURE1, storm::math::d3dMatrix(mtx));
 }
 
-bool BLADE::LoadBladeModel(MESSAGE &message)
+bool BLADE::LoadFirearm(entid_t &firearm, MESSAGE &message)
 {
-    const auto nBladeIdx = message.Long();
-    if (nBladeIdx < 0 || nBladeIdx >= BLADE_INFO_QUANTITY)
-        return false;
-
-    man = message.EntityID();
-
-    if (nBladeIdx == 1)
-        blade[nBladeIdx].locatorName = sabergunBeltName;
-    else
-        blade[nBladeIdx].locatorName = beltName;
-
-    return blade[nBladeIdx].LoadBladeModel(message);
-}
-
-bool BLADE::LoadGunModel(MESSAGE &message)
-{
-    core.EraseEntity(gun);
+    core.EraseEntity(firearm);
     man = message.EntityID();
     // model name
     const std::string &mdlName = message.String();
@@ -386,10 +396,10 @@ bool BLADE::LoadGunModel(MESSAGE &message)
         if (gs)
             gs->SetTexturePath("Ammo\\");
         // Create a model
-        gun = core.CreateEntity("modelr");
-        if (!core.Send_Message(gun, "ls", MSG_MODEL_LOAD_GEO_DEFERRED, path))
+        firearm = core.CreateEntity("modelr");
+        if (!core.Send_Message(firearm, "ls", MSG_MODEL_LOAD_GEO_DEFERRED, path))
         {
-            core.EraseEntity(gun);
+            core.EraseEntity(firearm);
             if (gs)
                 gs->SetTexturePath("");
             return false;
@@ -504,7 +514,15 @@ uint64_t BLADE::ProcessMessage(MESSAGE &message)
         break;
 
     case MSG_BLADE_GUNSET:
-        return LoadGunModel(message);
+        return LoadFirearm(gun, message);
+    case MSG_MUS_SET:
+        return LoadFirearm(musket, message);
+    case MSG_MUSKET_HAND:
+        musketLocName = musketHandName;
+        break;
+    case MSG_MUSKET_BELT:
+        musketLocName = musketBeltName;
+        break;
         break;
     case MSG_BLADE_GUNBELT:
         gunLocName = gunBeltName;

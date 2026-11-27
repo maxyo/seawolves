@@ -76,11 +76,14 @@ class BLADE : public Entity
 
     entid_t gun;
     const char *gunLocName;
+    entid_t musket{};
+    const char *musketLocName;
 
     TIEITEM_INFO items[ITEMS_INFO_QUANTITY];
 
     bool LoadBladeModel(MESSAGE &message);
-    bool LoadGunModel(MESSAGE &message);
+    bool LoadFirearm(entid_t &firearm, MESSAGE &message);
+    void DrawFirearm(entid_t model, const char *locator, MODEL *mdl, NODE *manNode);
     void GunFire();
 
     void AddTieItem(MESSAGE &message);

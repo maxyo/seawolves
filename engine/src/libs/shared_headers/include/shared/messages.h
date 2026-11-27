@@ -39,6 +39,9 @@
 #define MSG_BLADE_GUNFIRE 21010       // l
 #define MSG_CHARACTER_BLADEHAND 21011 //"ll", boolBladeInHand
 #define MSG_BLADE_ALPHA 21012         //"ll", alpha|0xFFFFFF
+#define MSG_MUSKET_HAND 21013         //"l"
+#define MSG_MUSKET_BELT 21014         //"l"
+#define MSG_MUS_SET 21015             //"lis", entity, modelName
 
 // Island Messages
 #define MSG_ISLAND_LOAD_GEO 50100 // "ls", island name

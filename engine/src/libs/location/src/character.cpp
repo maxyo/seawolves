@@ -815,6 +815,18 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
             a->Player(0).SetAutoStop(!loop);
         return 1;
     }
+    case MSG_CHARACTER_SETMUS: {
+        const std::string &name = message.String();
+        isMusketSet = !name.empty();
+        if (!core.GetEntityPointer(blade) && !(blade = core.CreateEntity("blade")))
+            return 0;
+        core.Send_Message(blade, "lis", MSG_MUS_SET, mdl, name.c_str());
+        UpdateWeapons();
+        return 1;
+    }
+    case MSG_CHARACTER_MUSHAND:
+        core.Send_Message(blade, "l", message.Long() != 0 ? MSG_MUSKET_HAND : MSG_MUSKET_BELT);
+        return 1;
     case MSG_CHARACTER_ISRUN:
         message.ScriptVariablePointer()->Set(static_cast<int32_t>(IsRun()));
         message.ScriptVariablePointer()->Set(static_cast<int32_t>(isMove));
@@ -3523,6 +3535,10 @@ uint32_t Character::zExMessage(MESSAGE &message)
     {
         return deadName != nullptr;
     }
+    if (storm::iEquals(msg, "IsSetMusket"))
+        return isMusketSet;
+    if (storm::iEquals(msg, "IsMusMode"))
+        return 0; // no musket fighting mode
     if (storm::iEquals(msg, "ForcedStopMove"))
     {
         forcedStopMove = true;
@@ -3656,6 +3672,9 @@ uint32_t Character::zExMessage(MESSAGE &message)
 
 std::optional<uint32_t> Character::zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message)
 {
+    // A musket is carried and drawn, but this engine has no musket fighting mode: never changing to it.
+    if (storm::iEquals(msg, "IsValidChangeMode"))
+        return 0;
     if (storm::iEquals(msg, "SetMusketer"))
     {
         musketerByCommand = message.Long() != 0;

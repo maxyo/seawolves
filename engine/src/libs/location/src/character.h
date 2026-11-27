@@ -517,6 +517,7 @@ class Character : public Entity
     bool forceBlend = false;        // forceBlend: the next change of actions blends
     float playbackDlt = 0.0f;       // SetPlaybackDlt: added to the speed of the action playing
     bool musketerByCommand = false; // SetMusketer
+    bool isMusketSet = false;       // MSG_CHARACTER_SETMUS gave it a musket
     bool attackHitDone = false;     // the strike of the current attack has landed
     // Caribbean Legend's special strikes (fight_rules.hpp SpecialAttack), from the actions of the same names
     ActionCharacter attackBlockBypass[4], attackPowerBreak[4], attackPowerRound[4];
