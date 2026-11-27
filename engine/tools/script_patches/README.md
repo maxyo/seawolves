@@ -2,17 +2,19 @@
 
 Fixes to the player's own game scripts, applied by the engine at start-up
 (`src/libs/util/include/platform/script_patches.hpp`, called from
-`FILE_SERVICE::ScanResourcePaths` on Android). The application never ships game
+`FILE_SERVICE::ScanResourcePaths`). The application never ships game
 files: it ships unified diffs against one exact version of a script, and only
 for games whose scripts may be redistributed in modified form. The patch sets
 live in `app/script-patches/`; the application decides, per fix licence, what
-may be packaged.
+may be packaged, and per fix which platforms apply it (`platforms` in `set.json`).
 
 ## Layer
 
 Android: `<cache root>/layers/script-patches/current`, installed from the APK like
-the other layers (sha256 per file in `manifest.json`). Without a `sets/` directory
-the layer patches nothing.
+the other layers (sha256 per file in `manifest.json`). Desktop: `layers/script-patches`
+beside the engine, written by the engine build with the application's packager
+(`../../README.md`, "Where files live"). Without a `sets/` directory the layer
+patches nothing.
 
 ```text
 sets/<set>/index.txt        one game version
@@ -58,8 +60,8 @@ and patched, so a target the overlay replaces is a damaged layer (`applyLayer` t
 - **Base mismatch** (a target missing or not the expected sha256): that fix is
   not applied, and neither is any fix sharing a script with it, so a fix never
   half-applies. The player's files are used unchanged. Each unapplied fix is
-  logged as an error with the expected and actual sha256, and the player sees a
-  one-time notice listing the unapplied fixes (shown again only when the set of
+  logged as an error with the expected and actual sha256, and on Android the
+  player sees a one-time notice listing the unapplied fixes (shown again only when the set of
   mismatches changes; `<filesDir>/script-patches/notice-shown`). Base
   mismatches are never fatal.
 - **Damaged layer** (bad index or patch file, a patch that does not apply to its

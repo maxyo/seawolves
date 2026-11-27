@@ -7,6 +7,11 @@
 #include "renderer.h"
 #include "entity.h"
 #include "core.h"
+#include "platform/storage.hpp"
+
+#include <filesystem>
+
+#include <spdlog/spdlog.h>
 
 #include <unistd.h>
 
@@ -477,6 +482,12 @@ bool LGeometry::Save()
         }
         if (isCont)
             continue;
+        if (!storm::storage::writable(storm::storage::folders(), std::filesystem::absolute(dir)))
+        {
+            spdlog::error("Lighter: refusing to write '{}': it is not in the player's folders", dir);
+            result = false;
+            continue;
+        }
         FILE *fl = fopen(dir, "w+b");
         if (!fl)
         {

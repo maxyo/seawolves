@@ -42,7 +42,7 @@ FORMAT_INPUTS = ('.clang-format', 'tools/format/')
 SOURCE_ROOTS = ('src/', 'android/')
 SOURCE_SUFFIXES = ('.c', '.cpp', '.h', '.hpp', '.inc', '.inl', '.sc', '.sh', '.fx', '.json', '.txt', '.cmake',
                    '.patch', '.java', '.def', '.rml', '.rcss')
-# Read by the engine at run time and by no build: the scene sweep lays the techniques over the game's, as the APK.
+# Read by the engine at run time from the layer its build installs beside it (README.md, "Where files live").
 RUNTIME_INPUTS = ('src/techniques/',)
 BOOT_TOOLS = ('tools/scene_sweep/', 'tools/ci/boot_stage.py', 'tools/ci/ubsan.supp')
 

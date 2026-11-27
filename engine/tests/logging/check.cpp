@@ -5,7 +5,6 @@
 // spdlog::flush_every): a flusher that never runs hangs here and run.py's deadlock guard reports it.
 #include "logging.hpp"
 
-#include <SDL2/SDL.h>
 #include <spdlog/spdlog.h>
 
 #include <chrono>
@@ -18,21 +17,6 @@
 #include <string>
 
 #include <catch2/catch.hpp>
-
-// fs::GetStashPath asks SDL for the per-user directory; the check gives it the work directory.
-static std::string stash;
-extern "C" char *SDL_GetPrefPath(const char *, const char *)
-{
-    return strdup(stash.c_str());
-}
-extern "C" const char *SDL_GetError()
-{
-    return "stub";
-}
-extern "C" void SDL_free(void *memory)
-{
-    std::free(memory);
-}
 
 namespace
 {
@@ -53,7 +37,9 @@ size_t count(const std::string &text, const std::string &part)
 
 TEST_CASE("logging")
 {
-    stash = std::filesystem::temp_directory_path().string() + "/";
+    // fs::GetLogsPath: $XDG_STATE_HOME/seawolves/logs on Linux.
+    const auto state = std::filesystem::temp_directory_path();
+    REQUIRE(setenv("XDG_STATE_HOME", state.c_str(), 1) == 0);
     using storm::logging::getOrCreateLogger;
     auto system = getOrCreateLogger("system");
     auto compile = getOrCreateLogger("compile");
@@ -65,7 +51,7 @@ TEST_CASE("logging")
     errors->info("script error line");
     spdlog::apply_all([](const std::shared_ptr<spdlog::logger> &logger) { logger->flush(); });
 
-    const std::string logs = stash + "Logs/";
+    const std::string logs = (state / "seawolves/logs/").string();
     const auto systemLog = read(logs + "system.log"), compileLog = read(logs + "compile.log"),
                errorLog = read(logs + "error.log");
     REQUIRE((count(systemLog, "system info line") == 1 &&

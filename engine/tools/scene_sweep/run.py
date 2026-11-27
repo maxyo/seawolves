@@ -27,7 +27,6 @@ import collections
 import datetime
 import fnmatch
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -205,12 +204,6 @@ def parse_arguments():
         help="the engines keep their compiled-script cache (Cache) in DIR across runs and sweeps (made if "
         "missing): the boot skips compiling the game's scripts while they are unchanged; with --jobs 1",
     )
-    parser.add_argument(
-        '--techniques',
-        type=Path,
-        default=REPOSITORY / 'src/techniques',
-        help="the engine's techniques, laid over the game's as the APK build does",
-    )
     parser.add_argument('--keep-work', action='store_true', help='keep the per-engine game copies and logs')
     parser.add_argument(
         '--save',
@@ -224,29 +217,7 @@ def parse_arguments():
         help='test scenario scenarios/<NAME>.c (scenarios/README.md): applied while --save loads, the '
         'scene scenario:NAME waits for its save; the save is copied to <out>/saves/',
     )
-    patches = parser.add_mutually_exclusive_group()
-    patches.add_argument(
-        '--script-patches',
-        type=Path,
-        metavar='DIR',
-        help="the application's script-patches folder (sets/<set>/set.json): the engines run the game's "
-        'scripts with the fixes the APK ships, as the players do; default: ../app/script-patches, '
-        "the repository's",
-    )
-    patches.add_argument(
-        '--no-script-patches',
-        action='store_true',
-        help="sweep the game's scripts without the application's fixes (not what the players run)",
-    )
     arguments = parser.parse_args()
-    if not arguments.list and not arguments.no_script_patches and arguments.script_patches is None:
-        if not (APPLICATION / 'script-patches').is_dir():
-            parser.error(
-                'the scripts the players run carry the application\'s script patches: pass --script-patches '
-                '<repository>/app/script-patches (none next to this engine tree), or '
-                '--no-script-patches to sweep the game\'s scripts as they are'
-            )
-        arguments.script_patches = APPLICATION / 'script-patches'
     if arguments.single_session and arguments.jobs not in (None, 1):
         parser.error('--single-session requires --jobs 1')
     if arguments.single_session:
@@ -386,64 +357,6 @@ def check_game_unchanged(game, snapshot, when):
             f'the game directory {game} changed {when} ({len(changed)} files: '
             f'{", ".join(changed[:5])}): a write through the hard link of a copy, or another program'
         )
-
-
-def derive_script_patches(arguments):
-    """The game's scripts the players run: the application's patch layer, packaged by its own APK packager
-    (tools/android/script_patch_assets.py) and applied by the engine's applier (tools/script_patches). Returns
-    {game-relative path: derived file} for the per-engine copies and a digest of the layer. Fails loudly when the
-    layer is damaged or a fix does not apply to this game."""
-    if arguments.no_script_patches:
-        print("script patches: none (--no-script-patches): the game's scripts as they are, not what the players run")
-        return {}, None
-    source = arguments.script_patches.resolve()
-    packager = source.parent / 'tools/android/script_patch_assets.py'
-    if not packager.is_file():
-        sys.exit(f'--script-patches {source}: no APK packager {packager} (app/tools/android of the repository)')
-    spec = importlib.util.spec_from_file_location('script_patch_assets', packager)
-    assets = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(assets)
-    files, _ = assets.collect(source)
-    work = arguments.out / 'script-patches'
-    layer, derived = work / 'layer', work / 'derived'
-    shutil.rmtree(layer, ignore_errors=True)
-    for name, data in files.items():
-        (layer / name).parent.mkdir(parents=True, exist_ok=True)
-        (layer / name).write_bytes(data)
-    tool = work / 'script_patch_tool'
-    subprocess.run(
-        [
-            os.environ.get('CXX', 'c++'),
-            '-std=c++20',
-            '-O1',
-            '-I',
-            str(REPOSITORY / 'src/libs/util/include'),
-            str(REPOSITORY / 'tools/script_patches/script_patch_tool.cpp'),
-            '-o',
-            str(tool),
-        ],
-        check=True,
-    )
-    # Patched scripts are written only when their text changed (their times stay: --script-cache holds).
-    applied = subprocess.run(
-        [str(tool), 'apply', str(layer), str(arguments.game), str(derived)], capture_output=True, text=True
-    )
-    if applied.returncode:
-        sys.exit(
-            f'script patches from {source} do not apply to {arguments.game} (exit {applied.returncode}):\n'
-            f'{applied.stdout}{applied.stderr}'
-        )
-    patched = {}
-    for path in derived.rglob('*'):
-        if path.is_file():
-            relative = path.relative_to(derived)
-            actual = inventory.find_case_insensitive(arguments.game, str(relative))
-            if actual is None:
-                sys.exit(f'script patches: {relative} has no file in {arguments.game}')
-            patched[str(actual.relative_to(arguments.game))] = path
-    digest = hashlib.sha256(files['manifest.json']).hexdigest()
-    print(f'script patches: {len(patched)} scripts from {source} (layer {digest[:12]})')
-    return patched, digest
 
 
 def select(scenes, arguments, previous, build):
@@ -679,32 +592,42 @@ class Shard(threading.Thread):
 
     # --- one engine process --------------------------------------------------------------
     def prepare(self, run):
+        """The game copy the engine runs: the game's files, hard-linked, and the sweep's own scripts. The engine
+        writes nothing into it."""
         game = run / 'game'
         # Hard links: no extra disk space, and the engine's resource index does not follow symlinks.
         subprocess.run(['cp', '-al', str(self.arguments.game), str(game)], check=True)
         refuse_links(game)
         writable_directories(game)
-        source = self.arguments.game
 
         def own(relative):
-            """A file of the copy the sweep or the game writes: unlinked first, so the write lands in the copy."""
+            """A file of the copy the sweep writes: unlinked first, so the write lands in the copy."""
             return own_file(game, game / relative)
 
-        for name in ('engine.ini', 'options'):  # the game rewrites both
-            own(name)
-        # The player's profiles: a profile named like the sweep's new game stops it at "the profile exists" (and the
-        # game would write into the player's hard-linked saves).
-        shutil.rmtree(inside(game, inventory.find_case_insensitive(game, 'save') or game / 'save'), ignore_errors=True)
-        if self.arguments.save:
-            # Its own file in the copy (never a link to the player's save): the game may write next to it.
-            saves = game / 'save/sweep'
-            saves.mkdir(parents=True)
-            shutil.copyfile(self.arguments.save, inside(game, saves / 'boot'))
-        if (source / 'options').exists():
+        # copy2: its modification time stays, so the scripts' cache key (path, size, time of every file) holds.
+        shutil.copy2(HERE / 'scene_sweep.c', own('PROGRAM/scene_sweep.c'))
+        if self.arguments.scenario:
+            # The game's migration hook runs it while the save loads (scenarios.py): files of the copy only.
+            existing = os.listdir(inside(game, inventory.find_case_insensitive(game, 'PROGRAM/migrations')))
+            program = inventory.find_case_insensitive(game, 'PROGRAM')
+            for relative, text in scenarios.install(self.arguments.scenario, existing, trigger=False).items():
+                target = inside(game, program / relative)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(text.encode('cp1251', errors='replace'))
+            # The save record's hero and place come from the application's script (scenarios/scenario.c Scenario_Save).
             shutil.copyfile(
-                source / 'options', own('options')
-            )  # not copy(): the game's read-only mode would stop its writes
-        settings = inventory.read_script(source / 'engine.ini')
+                self.context['save_identity'], own(f'{program.relative_to(game)}/interface/android_save_identity.c')
+            )
+        check_own_file(game / 'PROGRAM/scene_sweep.c')
+        control = run / 'control'
+        control.mkdir()
+        (control / 'scenes.txt').write_text(''.join(scene + '\n' for scene in self.queue))
+        return game, control
+
+    def configure(self, folders):
+        """The player's folders of this run, as the engine names them (`engine --folders`): its engine.ini with the
+        sweep's settings, the boot save and the kept caches."""
+        settings = inventory.read_script(self.arguments.game / 'engine.ini')
         for key, value in (
             ('full_screen', 0),
             ('screen_x', self.size[0]),
@@ -720,35 +643,19 @@ class Shard(threading.Thread):
             settings, count = re.subn(rf'(?mi)^{key}\s*=.*$', f'{key} = {value}', settings)
             if not count:
                 settings = f'{key} = {value}\n' + settings
-        own('engine.ini').write_text(settings)
-        techniques = inside(game, inventory.find_case_insensitive(game, 'RESOURCE/techniques'))
-        shutil.rmtree(techniques)
-        shutil.copytree(self.arguments.techniques, techniques)
-        # copy2: its modification time stays, so the scripts' cache key (path, size, time of every file) holds.
-        shutil.copy2(HERE / 'scene_sweep.c', own('PROGRAM/scene_sweep.c'))
-        if self.arguments.scenario:
-            # The game's migration hook runs it while the save loads (scenarios.py): files of the copy only.
-            existing = os.listdir(inside(game, inventory.find_case_insensitive(game, 'PROGRAM/migrations')))
-            program = inventory.find_case_insensitive(game, 'PROGRAM')
-            for relative, text in scenarios.install(self.arguments.scenario, existing, trigger=False).items():
-                target = inside(game, program / relative)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(text.encode('cp1251', errors='replace'))
-            # The save record's hero and place come from the application's script (scenarios/scenario.c Scenario_Save).
-            shutil.copyfile(
-                self.context['save_identity'], own(f'{program.relative_to(game)}/interface/android_save_identity.c')
-            )
-        patched = self.context.get('script_patches', {})
-        for relative, derived in patched.items():
-            shutil.copy2(derived, own(relative))
-        os.link(self.context['engine'], own('engine'))  # resources are looked up next to the executable
-        for written in ('engine.ini', 'options', 'PROGRAM/scene_sweep.c', *patched):
-            if (game / written).exists():
-                check_own_file(game / written)
-        control = run / 'control'
-        control.mkdir()
-        (control / 'scenes.txt').write_text(''.join(scene + '\n' for scene in self.queue))
-        return game, control
+        folders['settings'].mkdir(parents=True)
+        (folders['settings'] / 'engine.ini').write_text(settings)
+        if self.arguments.save:
+            (folders['saves'] / 'sweep').mkdir(parents=True)
+            shutil.copyfile(self.arguments.save, folders['saves'] / 'sweep/boot')
+        cache = folders['cache']
+        if self.arguments.program_cache:
+            cache.mkdir(parents=True, exist_ok=True)
+            self.arguments.program_cache.mkdir(parents=True, exist_ok=True)
+            (cache / 'ProgramCache').symlink_to(self.arguments.program_cache.resolve(), target_is_directory=True)
+        if self.arguments.script_cache and self.arguments.script_cache.is_dir():
+            # Copied in and out, not linked: the engine resets a stale cache by deleting its folder.
+            shutil.copytree(self.arguments.script_cache, cache / 'Cache')
 
     def run_engine(self):
         """Runs one engine over the queue. Returns when it exits or is killed."""
@@ -756,19 +663,22 @@ class Shard(threading.Thread):
         run = self.work / f'run-{self.runs}'
         run.mkdir()
         game, control = self.prepare(run)
-        # The engine's cache root on Linux is its SDL pref path, $XDG_DATA_HOME/Akella/Sea Dogs.
-        stash = run / 'data/Akella/Sea Dogs'
-        if self.arguments.program_cache:
-            stash.mkdir(parents=True, exist_ok=True)
-            self.arguments.program_cache.mkdir(parents=True, exist_ok=True)
-            (stash / 'ProgramCache').symlink_to(self.arguments.program_cache.resolve(), target_is_directory=True)
-        if self.arguments.script_cache and self.arguments.script_cache.is_dir():
-            # Copied in and out, not linked: the engine resets a stale cache by deleting its folder.
-            shutil.copytree(self.arguments.script_cache, stash / 'Cache')
+        # The player's folders of this run (engine/README.md, "Where files live").
         environment = dict(
             os.environ,
-            DISPLAY=f':{self.display}',
+            XDG_CONFIG_HOME=str(run / 'config'),
             XDG_DATA_HOME=str(run / 'data'),
+            XDG_CACHE_HOME=str(run / 'cache'),
+            XDG_STATE_HOME=str(run / 'state'),
+        )
+        command = [str(self.context['engine']), '--game', str(game)]
+        listed = subprocess.run([*command, '--folders'], env=environment, capture_output=True, text=True)
+        if listed.returncode:
+            raise RuntimeError(f'the engine cannot name its folders for {game}: {listed.stderr.strip()}')
+        folders = {name: Path(path) for name, path in json.loads(listed.stdout).items()}
+        self.configure(folders)
+        environment.update(
+            DISPLAY=f':{self.display}',
             SDL_VIDEODRIVER='x11',
             SDL_AUDIODRIVER='dummy',
             STORM_SCENE_SWEEP_DIR=str(control),
@@ -795,10 +705,11 @@ class Shard(threading.Thread):
                 LD_LIBRARY_PATH=':'.join(filter(None, (str(library), os.environ.get('LD_LIBRARY_PATH')))),
             )
         stdout = run / 'stdout.log'
+        self.logs = folders['logs']
         with open(stdout, 'wb') as output:
             engine = subprocess.Popen(
-                [str(game / 'engine')],
-                cwd=game,
+                command,
+                cwd=run,
                 env=environment,
                 stdout=output,
                 stderr=subprocess.STDOUT,
@@ -811,11 +722,11 @@ class Shard(threading.Thread):
             if engine.poll() is None:
                 os.killpg(engine.pid, signal.SIGKILL)
             engine.wait()
-            if self.arguments.script_cache and (stash / 'Cache/state').is_file():
+            if self.arguments.script_cache and (folders['cache'] / 'Cache/state').is_file():
                 shutil.rmtree(self.arguments.script_cache, ignore_errors=True)
-                shutil.copytree(stash / 'Cache', self.arguments.script_cache)
+                shutil.copytree(folders['cache'] / 'Cache', self.arguments.script_cache)
             if self.arguments.scenario:
-                for record in (game / 'save').glob(f'*/scenario-{self.arguments.scenario}'):
+                for record in folders['saves'].glob(f'*/scenario-{self.arguments.scenario}'):
                     (self.arguments.out / 'saves').mkdir(exist_ok=True)
                     shutil.copyfile(record, self.arguments.out / 'saves' / record.name)
             if not self.arguments.keep_work:
@@ -824,7 +735,7 @@ class Shard(threading.Thread):
 
     def watch(self, engine, run, control, stdout):
         events = control / 'events.log'
-        tail = LogTail(stdout, run / 'data/Akella/Sea Dogs/Logs')
+        tail = LogTail(stdout, self.logs)
         position = 0
         current = None  # scene between its "begin" and "end"/"fail"
         # `ended`: when the last scene ended (or the engine started): the time between scenes counts from there.
@@ -1008,7 +919,7 @@ class Shard(threading.Thread):
             raise RuntimeError(
                 f'--render {mode} asks for {wanted} on '
                 f"{'llvmpipe' if software else 'a hardware GPU'}, the engine runs {render} (see "
-                f'"render backend:" in {self.work}/run-{self.runs}/data/Akella/Sea Dogs/Logs/system.log)'
+                f'"render backend:" in {self.logs}/system.log)'
             )
         with self.context['lock']:
             self.context['render'].add(render)
@@ -1185,23 +1096,30 @@ def main():
         sys.exit('--out must be on the same filesystem as --game: the per-engine game copies are hard links')
     report_path = arguments.out / 'report.json'
     previous = json.loads(report_path.read_text()) if report_path.exists() else None
+    layers = arguments.engine.parent / 'layers'
+    if not layers.is_dir():
+        sys.exit(f'--engine {arguments.engine}: no layers beside it ({layers}); build the engine target')
     # Pictures and frame times of the two renderers differ: a report of one is no previous report for the other.
-    script_patches, patch_digest = derive_script_patches(arguments)
     build = {
         'engine': file_digest(arguments.engine),
+        'layers': hashlib.sha256(
+            b''.join(
+                str(path.relative_to(layers)).encode() + b'\0' + file_digest(path).encode()
+                for path in sorted(layers.rglob('*'))
+                if path.is_file()
+            )
+        ).hexdigest(),
         'script': file_digest(HERE / 'scene_sweep.c'),
-        'script_patches': patch_digest,
         'renderer': arguments.render,
         **({'save': file_digest(arguments.save)} if arguments.save else {}),
     }
     if arguments.scenario:
         scenarios.check_name(arguments.scenario)
-        application = arguments.script_patches.parent if arguments.script_patches else APPLICATION
-        save_identity = application / 'mobile-ui/PROGRAM/interface/android_save_identity.c'
+        save_identity = APPLICATION / 'mobile-ui/PROGRAM/interface/android_save_identity.c'
         if not save_identity.is_file():
             sys.exit(
                 f'--scenario: the application\'s {save_identity} is missing (the save records name the '
-                f'hero and place with it); pass --script-patches <application>/script-patches'
+                'hero and place with it)'
             )
         scene = inventory.Scene(
             f'scenario:{arguments.scenario}', 'scenario', file_digest(scenarios.SCENARIOS / f'{arguments.scenario}.c')
@@ -1218,9 +1136,10 @@ def main():
         sys.exit('--program-cache, --script-cache: one engine at a time uses the cache (--jobs 1)')
     shutil.rmtree(inside(arguments.out, arguments.out / 'work'), ignore_errors=True)
     (arguments.out / 'work').mkdir()
-    # One copy of the engine per sweep, hard-linked into every game copy: the build directory
-    # can be rebuilt incrementally while the sweep runs.
+    # One copy of the engine and its layers per sweep, installed as a player has it: the build directory can be
+    # rebuilt incrementally while the sweep runs.
     engine = shutil.copy(arguments.engine, arguments.out / 'work' / 'engine')
+    shutil.copytree(layers, arguments.out / 'work' / 'layers')
 
     done = collections.Counter()
     lock = threading.Lock()
@@ -1234,7 +1153,6 @@ def main():
         'game': game_snapshot(arguments.game),
         'lock': lock,
         'render': set(),
-        'script_patches': script_patches,
     }
     if arguments.scenario:
         context['save_identity'] = save_identity
@@ -1318,7 +1236,6 @@ def main():
             'engine': str(arguments.engine),
             'game': str(arguments.game),
             'save': str(arguments.save) if arguments.save else None,
-            'script_patches': str(arguments.script_patches) if arguments.script_patches else None,
             'render': ' / '.join(sorted(context['render'])),
         },
         'build': build,

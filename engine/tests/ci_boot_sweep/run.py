@@ -109,6 +109,7 @@ def check_final_logs():
         recorded = []
         shard = types.SimpleNamespace(
             arguments=types.SimpleNamespace(save=True),
+            logs=directory / 'logs',
             display_server=types.SimpleNamespace(poll=lambda: None),
             record=lambda scene, reasons: recorded.append((scene, reasons)),
         )

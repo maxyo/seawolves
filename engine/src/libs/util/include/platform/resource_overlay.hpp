@@ -1,13 +1,14 @@
 #pragma once
 
 #include "../istring.hpp"
+#include "storage.hpp"
 
 #include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace storm::android
+namespace storm::overlay
 {
 // Only UI source/configuration is eligible. Never redirect models, textures,
 // audio, saves, engine settings or arbitrary executable files into this layer.
@@ -37,32 +38,35 @@ inline bool isEngineShaderOverlayPath(const std::filesystem::path &relative)
     return key.starts_with("resource/techniques/") && (extension == ".fx" || extension == ".h" || extension == ".sha");
 }
 
-// An APK layer as the app installs it under the cache root (MobileResources): mobile-ui, engine-shaders,
-// script-patches.
-inline std::filesystem::path layerDirectory(const std::filesystem::path &cacheRoot, const char *layer)
+// The layers that change the scripts of the program tree; part of the compiled script cache key
+// (FILE_SERVICE::GetPathFingerprint).
+inline std::vector<std::filesystem::path> programLayers(const storage::Layers &layers)
 {
-    return cacheRoot / "layers" / layer / "current";
+    std::vector<std::filesystem::path> result;
+    for (const auto *layer : {&layers.mobileUi, &layers.scriptPatches})
+        if (!layer->empty())
+            result.push_back(*layer);
+    return result;
 }
 
-// APK layers that change the scripts of the program tree; part of the compiled
-// script cache key (FILE_SERVICE::GetPathFingerprint).
-inline std::vector<std::filesystem::path> programLayers(const std::filesystem::path &cacheRoot)
+// Returns the number of files indexed.
+inline size_t indexUiOverlay(const std::filesystem::path &root, std::unordered_map<std::string, std::string> &paths,
+                             bool shaders = false)
 {
-    return {layerDirectory(cacheRoot, "mobile-ui"), layerDirectory(cacheRoot, "script-patches")};
-}
-
-inline void indexUiOverlay(const std::filesystem::path &root, std::unordered_map<std::string, std::string> &paths,
-                           bool shaders = false)
-{
+    size_t indexed = 0;
     if (!std::filesystem::is_directory(root))
-        return;
+        return indexed;
     for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
     {
         if (entry.is_symlink() || !entry.is_regular_file())
             continue;
         const auto relative = entry.path().lexically_relative(root);
         if (shaders ? isEngineShaderOverlayPath(relative) : isUiOverlayPath(relative))
+        {
             paths[AsciiLower(relative.generic_string())] = entry.path().string();
+            ++indexed;
+        }
     }
+    return indexed;
 }
-} // namespace storm::android
+} // namespace storm::overlay

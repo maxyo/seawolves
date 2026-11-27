@@ -709,6 +709,13 @@ bool CoreImpl::SaveState(const char *file_name)
     // and serializing runs the script OnSave handler, which reuses that storage.
     const std::string name = file_name;
     const auto path = std::filesystem::u8path(fio->ConvertPathResource(name.c_str()));
+    if (!storm::storage::writable(storm::storage::folders(), path))
+    {
+        spdlog::error("Refusing to save '{}' (resolved '{}'): it is not in the player's saves", name, path.string());
+        storm::save::trash().rollback();
+        save_failure_ = SaveFailure{name, "the save is not in the player's saves folder"};
+        return false;
+    }
 
     // The state is serialized in memory and swapped in atomically
     // (temporary file -> fsync -> verify -> rename); see save_file.hpp.

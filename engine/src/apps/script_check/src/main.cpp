@@ -19,6 +19,7 @@
 #include "compiler.h"
 #include "core_impl.h"
 #include "game_profile.hpp"
+#include "platform/storage.hpp"
 #include "s_import_func.h"
 #include "script_libriary.h"
 #include "v_s_stack.h"
@@ -190,6 +191,7 @@ int check(int argc, char **argv)
             segments.push_back(relative);
 
     fs::current_path(game);
+    storm::storage::select({.game = fs::current_path()}); // read only: no saves, settings or cache
     fio->ScanResourcePaths();
     storm::gameProfile(); // detected from the game and logged before the first compile
     std::vector<std::string> diagnostics;
@@ -367,6 +369,7 @@ int test(int argc, char **argv)
                                   ? storm::GameProfile::CaribbeanLegend
                                   : storm::GameProfile::Legacy);
         fs::current_path(script.parent_path());
+        storm::storage::select({.game = fs::current_path()});
         fio->ScanResourcePaths();
         const auto name = script.filename().string();
         if (!cache.empty() && expected.empty())

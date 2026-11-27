@@ -18,7 +18,8 @@ Inputs (each missing one fails the stage loudly, nothing is skipped):
   three scenes.
 
 The build directory (default <worktree>/build/boot-asan, RelWithDebInfo, -fsanitize=address,undefined,
--DSTORM_SCENE_SWEEP=ON) is kept and rebuilt incrementally through ccache; it builds the engine and the relief networks the
+-DSTORM_SCENE_SWEEP=ON) is kept and rebuilt incrementally through ccache; it builds the engine with the layers it lays
+over the game (its techniques and the desktop script fixes, README.md "Where files live") and the relief networks the
 sweep gives it (<build>/relief_models). Times are logged per step and per scene.
 """
 
@@ -156,8 +157,6 @@ def main():
         vgl,
         '--timeout',
         str(min(240, args.budget)),
-        # The engine's gate: the application's script patches are checked with the application.
-        '--no-script-patches',
         # Compiled scripts kept between runs (rebuilt when the game's scripts change): 20 s of the ASan boot.
         '--script-cache',
         args.build.resolve() / 'script-cache',

@@ -5,7 +5,7 @@
 TEST_CASE("resource_overlay")
 {
     namespace fs = std::filesystem;
-    using namespace storm::android;
+    using namespace storm::overlay;
     const fs::path root = fs::temp_directory_path();
     fs::create_directories(root / "PROGRAM/interface");
     fs::create_directories(root / "RESOURCE/MODELS");

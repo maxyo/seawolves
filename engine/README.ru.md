@@ -62,6 +62,28 @@ xvfb-run -a ctest --test-dir build/ui-host --output-on-failure   # без xvfb-r
 
 Весь движок под Linux собирается из тех же закреплённых исходников, что и для Android, плюс SDL2 и zlib системы
 (`cmake/host.cmake`). `tools/ci/boot_stage.py` настраивает и собирает его (с санитайзерами) в `build/boot-asan`.
+Сборка кладёт рядом с исполняемым файлом слои, которые движок накладывает на игру (ниже); `-DSTORM_SCRIPT_PATCHES=DIR`
+указывает каталог `script-patches` приложения (по умолчанию `app/script-patches` репозитория). Запуск:
+`<build>/engine --game <каталог игры>`.
+
+## Где лежат файлы
+
+Каталог игры принадлежит игроку, движок его только читает. Пишет движок в собственные каталоги игрока, выбранные один
+раз при старте (`src/libs/util/include/platform/storage.hpp`); запись в любое другое место файловый сервис отклоняет.
+
+| | Android | Linux |
+| --- | --- | --- |
+| игра | каталог, выбранный в приложении | `--game <каталог>`, запоминается в `$XDG_CONFIG_HOME/seawolves/settings.json` |
+| сохранения (`SAVE\…` игры) | `<files>/storm/SaveData` | `$XDG_DATA_HOME/seawolves/<игра>/saves` |
+| файлы настроек игры, при первом запуске копируются из игры | `options` в `<files>/storm` | `options` и `engine.ini` в `$XDG_CONFIG_HOME/seawolves/<игра>` |
+| кэши | корень кэша приложения | `$XDG_CACHE_HOME/seawolves/<игра>` |
+| журналы | `<files>/storm/Logs` | `$XDG_STATE_HOME/seawolves/logs` |
+| слои поверх игры | приложение ставит их из APK в свой кэш: `mobile-ui`, `engine-shaders`, `script-patches` | сборка кладёт их рядом с исполняемым файлом в `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (набор приложения для ПК) |
+
+`<files>` — внутреннее хранилище приложения. `<игра>` — идентификатор игры, хеш её каталога PROGRAM
+(`platform/desktop_folders.hpp`): две игры или две версии одной игры не делят сохранения и кэши, а перенесённая игра
+сохраняет свои. Переменные XDG по умолчанию — `~/.config`, `~/.local/share`, `~/.cache` и `~/.local/state`.
+`engine --game <каталог> --folders` печатает каталоги и завершается.
 
 ## Проверки
 

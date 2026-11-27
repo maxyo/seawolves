@@ -11,16 +11,12 @@
 #include "platform/resource_index.hpp"
 #include "platform/path_fingerprint.hpp"
 
-#include <SDL2/SDL.h>
-#include <exception>
-#ifdef __ANDROID__
-#include "platform/android_runtime.hpp"
 #include "platform/resource_overlay.hpp"
 #include "platform/script_patches.hpp"
+#include "platform/storage.hpp"
 
+#include <exception>
 #include <set>
-#include "platform/android_writable_storage.hpp"
-#endif
 #include <string>
 
 #define COMMENT ';'
@@ -36,22 +32,22 @@ namespace
 {
 FILE_SERVICE file_service;
 
-// True for the save data root and everything below it: the engine's own save
-// folder, or a game-relative "save" folder on installations that use one.
-// The save root is known here: main creates it before any script runs, and the
-// engine does not start without it. A failure to find it is thrown, never taken
-// for "not a save" (a delete would then be final instead of going to the trash).
+// True for the saves folder and everything below it (the file service resolves the game's "save" there). The folder
+// is chosen before any script runs; without it this throws, never taking a path for "not a save" (a delete would then
+// be final instead of going to the trash).
 bool underSaveRoot(const std::filesystem::path &path)
 {
-    const auto normal = path.lexically_normal();
-    const auto relative = normal.lexically_relative(fs::GetSaveDataPath().lexically_normal());
-    if (!relative.empty() && *relative.begin() != "..")
+    const auto relative = path.lexically_normal().lexically_relative(fs::GetSaveDataPath().lexically_normal());
+    return !relative.empty() && *relative.begin() != "..";
+}
+
+// Every write of the file service lands in the player's folders; anything else, the game folder above all, is refused.
+bool Writable(const std::filesystem::path &path, const char *what)
+{
+    if (storm::storage::writable(storm::storage::folders(), path))
         return true;
-    if (normal.is_absolute() || normal.empty())
-        return false;
-    auto first = normal.begin()->string();
-    std::ranges::for_each(first, [](char &c) { c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
-    return first == "save";
+    spdlog::error("Refusing to {} '{}': it is not in the player's saves, settings or cache", what, path.string());
+    return false;
 }
 }
 
@@ -63,11 +59,6 @@ FILE_SERVICE::FILE_SERVICE()
     Max_File_Index = 0;
     for (uint32_t n = 0; n < _MAX_OPEN_INI_FILES; n++)
         OpenFiles[n] = nullptr;
-#ifndef __ANDROID__
-    // Android paths are only available after SDLActivity initializes JNI.
-    if (ResourcePathsFirstScan)
-        ScanResourcePaths();
-#endif
 }
 
 FILE_SERVICE::~FILE_SERVICE()
@@ -84,6 +75,8 @@ std::fstream FILE_SERVICE::_CreateFile(const char *filename, std::ios::openmode 
         return {};
     }
     const auto path = std::filesystem::u8path(resolved);
+    if ((mode & (std::ios::out | std::ios::app | std::ios::trunc)) && !Writable(path, "write"))
+        return {};
     errno = 0;
     std::fstream fileS(path, mode);
     const int error = errno;
@@ -112,6 +105,8 @@ void FILE_SERVICE::_SetFilePointer(std::fstream &fileS, std::streamoff off, std:
 bool FILE_SERVICE::_DeleteFile(const char *filename)
 {
     std::filesystem::path path = std::filesystem::u8path(ConvertPathResource(filename));
+    if (!Writable(path, "delete"))
+        return false;
     // Saves are not removed at once: the game overwrites a slot by deleting it
     // and then writing a new save, and must not lose it if it dies in between.
     // See save_trash.hpp for when the delete becomes final.
@@ -302,15 +297,10 @@ std::string FILE_SERVICE::_GetCurrentDirectory()
     return result;
 }
 
-// The game directory (engine.ini, Program, Resource) with a trailing separator: Android's game storage; elsewhere the
-// working directory, so that the engine runs on a game directory wherever its binary is.
+// The game directory (engine.ini, Program, Resource) with a trailing separator.
 std::string FILE_SERVICE::_GetExecutableDirectory()
 {
-#ifdef __ANDROID__
-    return storm::android::storagePaths().game.string() + "/";
-#else
-    return (std::filesystem::current_path() / "").string();
-#endif
+    return (storm::storage::folders().game / "").string();
 }
 
 std::uintmax_t FILE_SERVICE::_GetFileSize(const char *filename)
@@ -335,6 +325,8 @@ void FILE_SERVICE::_SetCurrentDirectory(const char *pathName)
 bool FILE_SERVICE::_CreateDirectory(const char *pathName)
 {
     std::filesystem::path path = std::filesystem::u8path(ConvertPathResource(pathName));
+    if (!Writable(path, "create the directory"))
+        return false;
     std::error_code error;
     const bool created = std::filesystem::create_directories(path, error);
     if (error) spdlog::error("Cannot create directory '{}': {}", path.string(), error.message());
@@ -344,6 +336,8 @@ bool FILE_SERVICE::_CreateDirectory(const char *pathName)
 std::uintmax_t FILE_SERVICE::_RemoveDirectory(const char *pathName)
 {
     std::filesystem::path path = std::filesystem::u8path(ConvertPathResource(pathName));
+    if (!Writable(path, "remove the directory"))
+        return 0;
     std::error_code error;
     const auto removed = std::filesystem::remove_all(path, error);
     if (error) spdlog::error("Cannot remove directory '{}': {}", path.string(), error.message());
@@ -524,41 +518,39 @@ void FILE_SERVICE::ScanResourcePaths()
         ResourcePaths = std::unordered_map<std::string, std::string>();
     }
     ResourcePaths.clear();
+    PlayerFiles.reset();
     // The working directory is the game directory; see platform/resource_index.hpp.
     storm::resource_index::scan(ResourcePaths, fio->_GetExecutableDirectory());
-#ifdef __ANDROID__
-    const auto cache = fs::GetCachePath();
+    // The layers over the game's files; a platform without one has an empty path, which indexes nothing.
+    const auto &layers = storm::storage::folders().layers;
     std::unordered_map<std::string, std::string> uiOverlay;
-    storm::android::indexUiOverlay(storm::android::layerDirectory(cache, "mobile-ui"), uiOverlay);
+    storm::overlay::indexUiOverlay(layers.mobileUi, uiOverlay);
     std::set<std::string> overlaid;
     for (auto &[key, path] : uiOverlay)
     {
         overlaid.insert(key);
         ResourcePaths[key] = std::move(path);
     }
-    storm::android::indexUiOverlay(storm::android::layerDirectory(cache, "engine-shaders"), ResourcePaths, true);
+    const auto techniques = storm::overlay::indexUiOverlay(layers.engineShaders, ResourcePaths, true);
+    spdlog::info("Engine techniques: {} files from {}", techniques, layers.engineShaders.string());
     // Fixes to the player's own scripts, held in memory (MemoryFile); throws LayerError if the layer is damaged.
-    storm::script_patches::lastReport() = storm::script_patches::applyLayer(
-        storm::android::layerDirectory(cache, "script-patches"), ResourcePaths, PatchedScripts, overlaid);
-#endif
+    storm::script_patches::lastReport() =
+        storm::script_patches::applyLayer(layers.scriptPatches, ResourcePaths, PatchedScripts, overlaid);
     ResourcePathsFirstScan = false;
 }
 
 std::string FILE_SERVICE::ConvertPathResource(const char *path)
 {
-#ifdef __ANDROID__
-    // Saves and options live in private storage, never in the game resource index, even for reads.
+    // Saves and settings files live in the player's folders, never in the game resource index, even for reads.
     // A path there that resolve() rejects (escape, symlink, ambiguous name) throws: the operation stops
     // here instead of going on with a substitute path.
-    static const auto roots = storm::android::storagePaths();
-    static const auto writableStorage = [] {
-        storm::android::writable::Storage storage(roots.game, roots.user);
-        storage.seedOptions();
-        return storage;
-    }();
-    if (const auto resolved = writableStorage.resolve(path))
+    if (!PlayerFiles)
+    {
+        PlayerFiles.emplace(storm::storage::folders());
+        PlayerFiles->seedSettings();
+    }
+    if (const auto resolved = PlayerFiles->resolve(path))
         return resolved->string();
-#endif
     if (ResourcePathsFirstScan)
     {
         ScanResourcePaths();
@@ -604,15 +596,12 @@ uint64_t FILE_SERVICE::GetPathFingerprint(const std::filesystem::path &path)
 {
     // Hash of (relative path, size, mtime) per file; see platform/path_fingerprint.hpp.
     uint64_t result = storm::fingerprint::tree(path);
-#ifdef __ANDROID__
-    // Interface scripts shipped inside the APK override files of the program tree,
-    // and the script patch layer changes others.
+    // The interface layer overrides files of the program tree, and the script patch layer changes others.
     const auto normal = path.lexically_normal();
     const auto leaf = normal.filename().empty() ? normal.parent_path().filename() : normal.filename();
     if (storm::AsciiLower(leaf.generic_string()) == "program")
-        for (const auto &layer : storm::android::programLayers(fs::GetCachePath()))
+        for (const auto &layer : storm::overlay::programLayers(storm::storage::folders().layers))
             result += storm::fingerprint::mix(storm::fingerprint::tree(layer));
-#endif
     return result;
 }
 

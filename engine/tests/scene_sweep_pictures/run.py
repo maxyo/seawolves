@@ -75,6 +75,7 @@ def shard(render):
         index=0,
         runs=1,
         work=Path('/work'),
+        logs=Path('/work/logs'),
         arguments=types.SimpleNamespace(render=render),
         context={'lock': threading.Lock(), 'render': set()},
     )

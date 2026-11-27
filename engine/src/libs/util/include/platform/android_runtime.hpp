@@ -13,6 +13,7 @@
 #include <string>
 #include "app_upcalls.hpp"
 #include "jni_text.hpp"
+#include "storage.hpp"
 #endif
 
 namespace storm::android
@@ -183,6 +184,18 @@ inline std::filesystem::path cacheDirectory()
     if (!result.is_absolute())
         throw std::runtime_error("Android cache root (GameActivity.getCacheRoot) is not an absolute path");
     return result;
+}
+
+// The selected game, the private user data and the app's cache, with the layers the app installs there from the APK
+// (MobileResources).
+inline storage::Folders folders()
+{
+    const auto paths = storagePaths();
+    const auto cache = cacheDirectory();
+    const auto layer = [&](const char *name) { return cache / "layers" / name / "current"; };
+    return {paths.game, paths.user / "SaveData",
+            paths.user, {"options"},
+            cache,      {layer("mobile-ui"), layer("engine-shaders"), layer("script-patches")}};
 }
 
 inline void prepareGameDirectory()

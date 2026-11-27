@@ -144,7 +144,7 @@ void checkWhitelist()
           "program/weather/whr.h", "program/battle_interface/BattleInterface.c"})
     {
         REQUIRE(isPatchTargetPath(path));
-        REQUIRE(!storm::android::isUiOverlayPath(path)); // the two layers never claim the same file
+        REQUIRE(!storm::overlay::isUiOverlayPath(path)); // the two layers never claim the same file
     }
     // program/interface/ is shared with the UI overlay: applyLayer refuses an overlaid target
     // (checkOverlaidTarget).
@@ -154,11 +154,11 @@ void checkWhitelist()
     REQUIRE(isPatchTargetPath("PROGRAM/characters/RPGUtilite.c"));
     REQUIRE(isPatchTargetPath("PROGRAM/Encounters/encounters_map.c"));
     REQUIRE(isPatchTargetPath("program/encounters/ENCOUNTERS_MAP.C"));
-    REQUIRE(!storm::android::isUiOverlayPath("PROGRAM/Encounters/encounters_map.c"));
+    REQUIRE(!storm::overlay::isUiOverlayPath("PROGRAM/Encounters/encounters_map.c"));
     // Exact reviewed root scripts (loading completion): only these two names, never other root files.
     REQUIRE(isPatchTargetPath("PROGRAM/seadogs.c"));
     REQUIRE(isPatchTargetPath("program/reload.c"));
-    REQUIRE(!storm::android::isUiOverlayPath("PROGRAM/seadogs.c"));
+    REQUIRE(!storm::overlay::isUiOverlayPath("PROGRAM/seadogs.c"));
     // The PGG script only, not the rest of program/scripts/.
     REQUIRE(isPatchTargetPath("PROGRAM/scripts/PsHero.c"));
     REQUIRE(!isPatchTargetPath("PROGRAM/scripts/food.c"));
@@ -386,8 +386,8 @@ void checkCacheInvalidation(const fs::path &root)
     REQUIRE(f.resolved("program/sea_ai/s.c") == fixed2);
     // The compiled script cache key covers the patch layer (GetPathFingerprint).
     REQUIRE(storm::fingerprint::tree(f.layer) != layerPrint);
-    const auto layers = storm::android::programLayers("/cache");
-    REQUIRE(std::find(layers.begin(), layers.end(), fs::path("/cache/layers/script-patches/current")) != layers.end());
+    const auto layers = storm::overlay::programLayers({{}, "/engine/layers/engine-shaders", f.layer});
+    REQUIRE(layers == std::vector<fs::path>{f.layer});
 }
 // program/interface/ is a patch target and the UI overlay's directory: a target the
 // overlay replaces is a damaged layer, never patched and overlaid at once.

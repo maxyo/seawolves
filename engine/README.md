@@ -62,7 +62,29 @@ xvfb-run -a ctest --test-dir build/ui-host --output-on-failure   # without xvfb-
 ```
 
 The whole engine on the Linux host uses the same pinned sources as Android plus the distribution's SDL2 and zlib
-(`cmake/host.cmake`). `tools/ci/boot_stage.py` configures and builds it (with sanitizers) in `build/boot-asan`.
+(`cmake/host.cmake`). `tools/ci/boot_stage.py` configures and builds it (with sanitizers) in `build/boot-asan`. The
+build installs the layers the engine lays over the game beside the executable (below); `-DSTORM_SCRIPT_PATCHES=DIR`
+names the application's `script-patches` folder (default: the repository's `app/script-patches`). Run it with
+`<build>/engine --game <game folder>`.
+
+## Where files live
+
+The game folder is the player's and is only read. The engine writes into the player's own folders, chosen once at
+start-up (`src/libs/util/include/platform/storage.hpp`); the file service refuses a write anywhere else.
+
+| | Android | Linux |
+| --- | --- | --- |
+| the game | the folder chosen in the app | `--game <folder>`, remembered in `$XDG_CONFIG_HOME/seawolves/settings.json` |
+| saves (the game's `SAVE\…`) | `<files>/storm/SaveData` | `$XDG_DATA_HOME/seawolves/<game>/saves` |
+| the game's settings files, first copied from the game | `options` in `<files>/storm` | `options` and `engine.ini` in `$XDG_CONFIG_HOME/seawolves/<game>` |
+| caches | the app's cache root | `$XDG_CACHE_HOME/seawolves/<game>` |
+| logs | `<files>/storm/Logs` | `$XDG_STATE_HOME/seawolves/logs` |
+| layers over the game | installed by the app from the APK into its cache: `mobile-ui`, `engine-shaders`, `script-patches` | installed by the build beside the executable in `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (the application's desktop set) |
+
+`<files>` is the app's internal storage. `<game>` is the game's identity, a hash of its PROGRAM folder
+(`platform/desktop_folders.hpp`): two games or two versions never share saves or caches, and a game moved elsewhere
+keeps its own. The XDG variables default to `~/.config`, `~/.local/share`, `~/.cache` and `~/.local/state`.
+`engine --game <folder> --folders` prints the folders and exits.
 
 ## Checks
 

@@ -535,31 +535,6 @@ void IFS::Format(char *file_data, int32_t file_size)
     }
 }
 
-namespace
-{
-bool Inside(const std::filesystem::path &root, const std::filesystem::path &path)
-{
-    std::error_code error;
-    const auto relative = std::filesystem::weakly_canonical(path, error).lexically_relative(
-        std::filesystem::weakly_canonical(root, error));
-    return !error && !relative.empty() && *relative.begin() != "..";
-}
-
-// The game folder is read-only data: the working directory and the executable's directory on the host, the selected
-// game folder on Android. The player's own folders (user data, cache) are never "the game", wherever they are.
-bool UnderGameFolder(VFILE_SERVICE *fs, const std::filesystem::path &path)
-{
-    if (Inside(fs::GetStashPath(), path) || Inside(fs::GetCachePath(), path))
-        return false;
-#ifdef __ANDROID__
-    return Inside(fs->_GetExecutableDirectory(), path);
-#else
-    std::error_code error;
-    return Inside(std::filesystem::current_path(error), path) || Inside(fs->_GetExecutableDirectory(), path);
-#endif
-}
-} // namespace
-
 bool IFS::FlushFile()
 {
     uint32_t write_size;
@@ -573,11 +548,12 @@ bool IFS::FlushFile()
     // Write the new contents beside the file and rename over it. The previous
     // the process died or a write failed in between.
     const std::string target = fs->ConvertPathResource(FileName);
-    if (UnderGameFolder(fs, std::filesystem::u8path(target)))
+    if (!storm::storage::writable(storm::storage::folders(), std::filesystem::u8path(target)))
     {
-        // Game files are never modified. The change stays in memory for this run only. No caller is exempt: the lighter
-        // dev tool (src/libs/lighter, compiled with the engine) saves its settings through this too and is refused as well.
-        spdlog::error("Refusing to write the ini '{}' (resolved '{}') into the game folder; its changes are dropped",
+        // Only the player's folders are written, never the game's files: the change stays in memory for this run. No
+        // caller is exempt: the lighter dev tool (src/libs/lighter) saves its settings through this too.
+        spdlog::error("Refusing to write the ini '{}' (resolved '{}'): it is not in the player's folders; its changes "
+                      "are dropped",
                       FileName, target);
         bDataChanged = false;
         return false;

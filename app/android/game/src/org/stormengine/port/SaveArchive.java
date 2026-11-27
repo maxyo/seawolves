@@ -61,7 +61,7 @@ final class SaveArchive {
         return false;
     }
 
-    /** The engine's comparison of save path components (android_writable_storage.hpp folded()). */
+    /** The engine's comparison of save path components (platform/storage.hpp folded()). */
     static String folded(String name) {
         StringBuilder out = new StringBuilder(name.length());
         for (int i = 0; i < name.length(); ++i) {

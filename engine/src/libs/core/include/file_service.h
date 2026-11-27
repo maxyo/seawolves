@@ -2,7 +2,9 @@
 
 #include "ifs.h"
 #include "v_file_service.h"
+#include "platform/storage.hpp"
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 #define _MAX_OPEN_INI_FILES 1024
@@ -88,6 +90,7 @@ class FILE_SERVICE : public VFILE_SERVICE
     bool ResourcePathsFirstScan = true; // Since some code may call this statically, we use a flag to know if this is the first time
     std::unordered_map<std::string, std::string> ResourcePaths;
     std::unordered_map<std::string, std::string> PatchedScripts; // ResourcePaths value -> text (script_patches.hpp)
+    std::optional<storm::storage::Storage> PlayerFiles;           // made from the folders chosen at the first use
 
   public:
     FILE_SERVICE();

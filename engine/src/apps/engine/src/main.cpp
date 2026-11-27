@@ -39,6 +39,7 @@
 #include "platform/frame_work.hpp"
 #include "platform/stall_watch.hpp"
 #include "platform/host_hooks.hpp"
+#include "platform/script_patches.hpp"
 #include "profiler.hpp"
 #ifdef STORM_TRACY
 #include <common/TracyVersion.hpp>
@@ -50,8 +51,10 @@
 #include <unistd.h>
 #include "android_game.hpp"
 #include "platform/android_ui.hpp"
-#include "platform/script_patches.hpp"
+#else
+#include "platform/desktop_settings.hpp"
 #endif
+#include <cstdio>
 #include <functional>
 
 using namespace storm::engine;
@@ -187,10 +190,8 @@ void RethrowCallbackError()
         std::rethrow_exception(error);
 }
 
-#ifdef __ANDROID__
-// Logs what the script patch layer did during the resource scan (which runs
-// before logging is ready) and, in debug builds, once per distinct set of
-// unapplied fixes, shows which fixes the game files did not allow.
+// Logs what the script patch layer did during the resource scan and, in Android debug builds, once per distinct set
+// of unapplied fixes, shows which fixes the game files did not allow.
 void AnnounceScriptPatches()
 {
     const auto &report = storm::script_patches::lastReport();
@@ -198,6 +199,7 @@ void AnnounceScriptPatches()
         spdlog::info("{}", line);
     for (const auto &line : report.errors)
         spdlog::error("{}", line);
+#ifdef __ANDROID__
     const auto key = report.noticeKey();
     if (key.empty() || !storm::android::debugBuild()) // release: the unapplied fixes are in the log above
         return;
@@ -229,8 +231,8 @@ void AnnounceScriptPatches()
     file << key << '\n';
     if (!file)
         spdlog::error("Cannot record the script patch notice in {}", stamp.string());
-}
 #endif
+}
 
 #ifndef __ANDROID__
 void mimalloc_fun(const char *msg, void *arg)
@@ -432,13 +434,104 @@ bool StartLogs()
     }
 }
 
-#ifdef __ANDROID__
-// The game directory and the resource index (after JNI and the game directory are ready). False (shown): none.
-bool PrepareGame()
+// The command line: on desktop `--game <folder>` names the game folder (remembered for the next start) and `--folders`
+// prints the folders the engine uses for it and exits. Android starts the engine without arguments.
+struct CommandLine
+{
+    std::filesystem::path game;
+    bool printFolders = false;
+};
+
+#ifndef __ANDROID__
+bool ParseCommandLine(int argc, char *argv[], CommandLine &command)
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        const std::string_view argument = argv[i];
+        if (argument == "--game" && i + 1 < argc)
+            command.game = storm::storage::utf8Path(argv[++i]);
+        else if (argument == "--folders")
+            command.printFolders = true;
+        else
+        {
+            std::fprintf(stderr, "Unknown argument '%s'. Usage: %s [--game <game folder>] [--folders]\n", argv[i],
+                         argv[0]);
+            return false;
+        }
+    }
+    return true;
+}
+
+// The folder the engine is installed in: the layers it lays over the game are there.
+std::filesystem::path EngineFolder()
+{
+    char *base = SDL_GetBasePath();
+    if (!base)
+        throw std::runtime_error(std::string("Cannot find the engine's folder: ") + SDL_GetError());
+    const auto folder = storm::storage::utf8Path(base);
+    SDL_free(base);
+    return folder;
+}
+
+// The game folder named on the command line, else the one named last, and the player's folders for it. `remember`: a
+// game folder named on the command line is the one the next start runs.
+storm::storage::Folders DesktopFolders(const CommandLine &command, bool remember)
+{
+    const auto base = storm::desktop::baseFolders([](const char *name) -> const char * { return std::getenv(name); });
+    const auto settings = storm::desktop::settingsFile(base);
+    auto game = command.game.empty() ? storm::desktop::rememberedGame(settings) : command.game;
+    if (game.empty())
+        throw std::runtime_error("No game folder: start the engine once with --game <the folder of your game>; it is "
+                                 "remembered in " +
+                                 settings.string());
+    game = std::filesystem::canonical(game);
+    if (!std::filesystem::is_regular_file(storm::storage::child(game, fs::ENGINE_INI_FILE_NAME)))
+        throw std::runtime_error(game.string() + " is not a game folder: it has no engine.ini");
+    auto folders = storm::desktop::gameFolders(base, game, EngineFolder());
+    if (remember && !command.game.empty())
+        storm::desktop::rememberGame(settings, game);
+    return folders;
+}
+
+// --folders: one JSON object on stdout.
+int PrintFolders(const CommandLine &command)
 {
     try
     {
+        const auto folders = DesktopFolders(command, false);
+        const auto text = [](const std::filesystem::path &path) {
+            const auto utf8 = path.u8string();
+            return std::string(utf8.begin(), utf8.end());
+        };
+        const nlohmann::json json{{"game", text(folders.game)},         {"saves", text(folders.saves)},
+                                  {"settings", text(folders.settings)}, {"cache", text(folders.cache)},
+                                  {"logs", text(fs::GetLogsPath())}};
+        std::printf("%s\n", json.dump(2).c_str());
+        return EXIT_SUCCESS;
+    }
+    catch (const std::exception &error)
+    {
+        std::fprintf(stderr, "%s\n", error.what());
+        return EXIT_FAILURE;
+    }
+}
+#endif
+
+// The game folder, the player's folders and the resource index. False (shown): none.
+bool PrepareGame([[maybe_unused]] const CommandLine &command)
+{
+    try
+    {
+#ifdef __ANDROID__
         storm::android::prepareGameDirectory();
+        storm::storage::select(storm::android::folders());
+#else
+        auto folders = DesktopFolders(command, true);
+        std::filesystem::current_path(folders.game);
+        spdlog::info("Game folder {}; saves {}, settings {}, cache {}", folders.game.string(), folders.saves.string(),
+                     folders.settings.string(), folders.cache.string());
+        storm::storage::select(std::move(folders));
+#endif
         fio->ScanResourcePaths();
         return true;
     }
@@ -452,7 +545,8 @@ bool PrepareGame()
     }
     return false;
 }
-#else
+
+#ifndef __ANDROID__
 void ConfigureMimalloc()
 {
     mi_register_output(mimalloc_fun, nullptr);
@@ -501,8 +595,8 @@ void AnnounceStart()
 #ifndef __ANDROID__
     spdlog::info("mimalloc-redirect status: {}", mi_is_redirected());
 #endif
-#ifdef __ANDROID__
     AnnounceScriptPatches();
+#ifdef __ANDROID__
     storm::android::readStartAtMainMenu();
 #endif
 }
@@ -779,8 +873,14 @@ int ReleaseCore(int exitCode)
 
 int main(int argc, char *argv[])
 {
+    CommandLine command;
 #ifdef __ANDROID__
     EnterOnce();
+#else
+    if (!ParseCommandLine(argc, argv, command))
+        return 2;
+    if (command.printFolders)
+        return PrintFolders(command);
 #endif
     // Every return from here on is a clean exit: the running marker goes (a crash or a kill leaves it).
     struct RunningMarker
@@ -793,12 +893,11 @@ int main(int argc, char *argv[])
     } runningMarker;
     if (!StartLogs())
         return EXIT_FAILURE;
-#ifdef __ANDROID__
-    if (!PrepareGame())
-        return EXIT_FAILURE;
-#else
+#ifndef __ANDROID__
     ConfigureMimalloc();
 #endif
+    if (!PrepareGame(command))
+        return EXIT_FAILURE;
     StartSdl();
     const auto lifecycleDiagnosticsGuard = lifecycleDiagnostics.initialize();
     AnnounceStart();

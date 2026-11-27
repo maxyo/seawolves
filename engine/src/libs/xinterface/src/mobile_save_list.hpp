@@ -13,7 +13,7 @@ namespace storm::mobile
 {
 // One record: the game keeps saves per profile folder (SAVE\<profile>\<file>). This port has
 // no profiles: the list shows the records of every profile together.
-// The game names save folders ASCII-case-insensitively (android_writable_storage.hpp child():
+// The game names save folders ASCII-case-insensitively (platform/storage.hpp child():
 // "SAVE\\Player\\x" is the folder "player"), and its profile name (options
 // StartGameParam.PlayerProfile, "Player") need not be spelled like the folder ("player") on
 // disk. Profiles are compared the game's way, never byte for byte.

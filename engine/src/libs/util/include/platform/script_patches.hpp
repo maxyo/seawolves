@@ -534,7 +534,7 @@ template <class HashOf> const Set *identify(const std::vector<Set> &sets, HashOf
 // Selects the set that identifies the player's game, patches what it can into `derived` and
 // redirects `paths` there (memoryPath). Returns what happened; throws LayerError when the layer
 // is broken, a target the UI overlay replaces included. A missing layer directory means
-// "no patches" (desktop builds, tests).
+// "no patches" (tests; the desktop start-up refuses an installation without it).
 inline Report applyLayer(const fs::path &layer, std::unordered_map<std::string, std::string> &paths, Derived &derived,
                          const std::set<std::string> &overlaid = {})
 {

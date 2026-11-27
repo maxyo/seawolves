@@ -145,7 +145,6 @@ storm_host_check(android_worldmap.control_cache SOURCES control_cache.cpp
 storm_host_check(android_worldmap.snapshot SOURCES snapshot.cpp ${core_fake_sources}
     INCLUDES ${core_fake_android_includes} ${src}/apps/engine/src DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict})
-storm_host_check(android_writable_storage INCLUDES ${util_include} OPTIONS ${warnings} CATCH2)
 storm_host_check(app_contract INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict}
     ARGS ${STORM_ROOT}/tools/android/app_contract.json INPUTS ${STORM_ROOT}/tools/android/app_contract.json)
 foreach(sanitizer address thread)
@@ -170,6 +169,8 @@ storm_host_check(cpu_admission SOURCES check.cpp ${src}/libs/renderer_bgfx/fx/sr
     INCLUDES ${src}/libs/renderer_bgfx/fx/include ${render_log_headers} DEFINES ${render_log_defines}
     OPTIONS -O0 -pthread -UNDEBUG ${warnings} TIMEOUT 300)
 storm_check_test(cpu_admission.exit COMMAND cpu_admission --exit-waiting-bake LABELS host TIMEOUT 300)
+storm_host_check(desktop_folders INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict}
+    CATCH2)
 storm_host_check(display_options INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include
     OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(flame_flicker INCLUDES ${glm_headers} ${src}/libs/core/include ${src}/libs
@@ -301,6 +302,7 @@ storm_host_check(relief_staged SOURCES check.cpp ${src}/libs/renderer_bgfx/src/e
     DEFINES ${render_log_defines}
     OPTIONS -O0 -g -pthread ${warnings} -fno-access-control -ffunction-sections -fdata-sections ${asan_strict}
     LIBS -Wl,--gc-sections CATCH2)
+storm_host_check(storage INCLUDES ${util_include} OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(resource_index INCLUDES ${util_include} OPTIONS -O2 ${warnings} CATCH2)
 storm_host_check(resource_overlay INCLUDES ${util_include}
     OPTIONS -O1 -g -Wall -Wextra ${asan_strict} TIMEOUT 120 CATCH2)

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The scene sweep never deletes or writes through a symbolic link (tools/scene_sweep/run.py prepare):
 a game folder with a linked RESOURCE is refused loudly and the linked folder stays intact; a read-only
-game folder is swept from a writable copy without any change to the player's files."""
+game folder is swept from a copy that gets only the sweep's own scripts, without any change to the player's files;
+the engine's settings go to the player's folders the engine names (configure)."""
 
 import importlib.util
 import os
@@ -35,14 +36,20 @@ def make_game(game, resource=None):
         (game / 'RESOURCE' / 'model.gm').write_text('model\n')  # untouched by prepare: stays a hard link
 
 
-def shard(game, techniques, engine):
+def shard(game):
     return types.SimpleNamespace(
         arguments=types.SimpleNamespace(
-            game=game, techniques=techniques, render='vulkan', save=None, scenario=None, relief_models=None
+            game=game,
+            render='vulkan',
+            save=None,
+            scenario=None,
+            relief_models=None,
+            program_cache=None,
+            script_cache=None,
         ),
         size=(640, 360),
         queue=['loc:test'],
-        context={'engine': engine},
+        context={},
     )
 
 
@@ -60,8 +67,6 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
     techniques = base / 'src-techniques'
     techniques.mkdir()
     (techniques / 'engine.fx').write_text('engine\n')
-    engine = base / 'engine'
-    engine.write_text('binary\n')
 
     # inside(): a link anywhere on the way, or a path resolving outside, is refused.
     (base / 'scratch' / 'real').mkdir(parents=True)
@@ -98,7 +103,7 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
     run = base / 'run-1'
     run.mkdir()
     expect_link_error(
-        lambda: sweep.Shard.prepare(shard(linked, techniques, engine), run), 'a game folder with a linked RESOURCE'
+        lambda: sweep.Shard.prepare(shard(linked), run), 'a game folder with a linked RESOURCE'
     )
     assert tree(shared) == before, 'the linked shared folder was changed'
     print('PASS the linked shared folder is unchanged')
@@ -109,7 +114,7 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
     run = base / 'run-3'
     run.mkdir()
     expect_link_error(
-        lambda: sweep.Shard.prepare(shard(base / 'game-link', techniques, engine), run), '--game given as a link'
+        lambda: sweep.Shard.prepare(shard(base / 'game-link'), run), '--game given as a link'
     )
 
     # A read-only game folder (a canonical copy kept read-only): prepared from a writable copy, the source unchanged.
@@ -120,14 +125,17 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
         path.chmod(path.stat().st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
     run = base / 'run-2'
     run.mkdir()
-    game, control = sweep.Shard.prepare(shard(readonly, techniques, engine), run)
-    assert (game / 'RESOURCE' / 'techniques' / 'engine.fx').read_text() == 'engine\n'
-    assert not (game / 'RESOURCE' / 'techniques' / 'game.fx').exists()
-    assert 'screen_x = 640' in (game / 'engine.ini').read_text()
-    # Every file prepare() wrote is its own inode: unlinked first, never edited through a hard link
-    # (the read-only source would refuse it with EACCES, a writable one would be changed).
-    for written in ('engine.ini', 'options', 'PROGRAM/scene_sweep.c', 'RESOURCE/techniques/engine.fx'):
-        assert os.stat(game / written).st_nlink == 1, f'{written} is still a hard link into another folder'
+    prepared = shard(readonly)
+    game, control = sweep.Shard.prepare(prepared, run)
+    # The sweep's script is the copy's own inode, never written through a hard link (the read-only source would
+    # refuse it with EACCES, a writable one would be changed); the game's own files stay links of the player's.
+    assert os.stat(game / 'PROGRAM/scene_sweep.c').st_nlink == 1
+    for kept in ('engine.ini', 'options', 'RESOURCE/techniques/game.fx'):
+        assert os.stat(game / kept).st_nlink > 1, f'{kept} of the copy was rewritten'
+    folders = {name: run / name for name in ('settings', 'saves', 'cache')}
+    sweep.Shard.configure(prepared, folders)
+    assert 'screen_x = 640' in (folders['settings'] / 'engine.ini').read_text()
+    assert (game / 'engine.ini').read_text() == 'screen_x = 1\n'
     assert tree(readonly) == before, 'the read-only game folder was changed'
     assert all(not os.stat(p).st_mode & stat.S_IWUSR for p in [readonly, *readonly.rglob('*')]), (
         'a source mode was changed'
@@ -147,6 +155,7 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
     for path in [readonly, *readonly.rglob('*')]:
         path.chmod(path.stat().st_mode | stat.S_IWUSR)
     print(
-        'PASS a read-only game folder: swept from a writable copy, every written file its own inode, the source unchanged'
+        'PASS a read-only game folder: swept from a copy holding only the sweep\'s own scripts, its settings in the '
+        "player's folders, the source unchanged"
     )
 print('PASS scene sweep: no delete or write through a link, read-only game folders')

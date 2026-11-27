@@ -11,16 +11,20 @@ to them: a full sweep takes tens of minutes of CPU and needs the player's game f
 special scenes: main menu, new-game intro, night, fights, underwater, sunrise/sunset, night sky, sea battle,
 boarding, world map, storm). `python3 tools/scene_sweep/run.py --game <game dir> --list` prints the counts by
 category. The engine built with `-DSTORM_SCENE_SWEEP=ON` (never shipped) runs `scene_sweep.c` when
-`STORM_SCENE_SWEEP_DIR` is set; `run.py` shards the scenes over engines, each with its own Xvfb display and a
-hard-linked copy of the game.
+`STORM_SCENE_SWEEP_DIR` is set; `run.py` shards the scenes over engines, each with its own Xvfb display, a
+hard-linked copy of the game that gets only the sweep's own scripts (`scene_sweep.c`, a scenario), and its own
+player's folders (`XDG_*` in the run directory: the engine's `engine.ini` with the sweep's settings, the boot save,
+the caches, the logs, at the places `engine --folders` names). The engine runs as a player's does: `--game`, the
+layers installed beside it (its techniques, the desktop script fixes; `../../README.md`, "Where files live"),
+nothing written into the game.
 
 ## Running
 
 Needs a Linux host engine configured with `-DSTORM_SCENE_SWEEP=ON`, Xvfb, Pillow, a GPU driver and VirtualGL
 (or `--render vulkan` / `--render llvmpipe`) and the game files. `--out` must be on the same filesystem as
 `--game`. Pass the real game folder: a `--game` holding symbolic links is refused; a read-only `--game` works and
-is checked to be unchanged after every engine run. The sweep copies the engine binary at start, so the build can
-go on while it runs.
+is checked to be unchanged after every engine run. The sweep copies the engine binary and its `layers` at start, so
+the build can go on while it runs.
 
 ```sh
 python3 tools/scene_sweep/run.py --game <game dir> --engine <build>/engine --out <report dir>
@@ -36,11 +40,6 @@ python3 tools/scene_sweep/run.py --game <game dir> --engine <build>/engine --out
 - `--variants 'fx_preset=0;fx_preset=2,fx_bloom=0'` captures every scene once per option set (see below).
 - `--render gles-gpu|vulkan|llvmpipe` (default `gles-gpu`); `--virtualgl DIR` (or `STORM_VIRTUALGL`) for
   `gles-gpu`; `--gl-threads` llvmpipe rasteriser threads.
-- `--script-patches DIR` the application's `script-patches` folder: its sets are packaged by the application's
-  own APK packager (`tools/android/script_patch_assets.py`) and applied to the game's scripts by the engine's
-  applier (`tools/script_patches`), so the engines run the scripts the players run. Default: the
-  repository's `app/script-patches`; pass another, or `--no-script-patches` for the game's scripts as they are. A
-  fix that does not apply to the game stops the sweep.
 - `--save FILE` boots every engine into this save (hero on land) instead of a new game; used by
   `tools/ci/boot_stage.py`.
 - `--scenario NAME` (with `--save`) applies the test scenario `scenarios/NAME.c` while the save loads; the scene
@@ -52,7 +51,7 @@ python3 tools/scene_sweep/run.py --game <game dir> --engine <build>/engine --out
   `ninja storm_relief_model_files`); without them no relief map is made.
 - `--timeout S` seconds without progress before an engine is killed (default 240); `--settle MS` render time
   before each capture (default 300; raise it with `--only` and `--jobs 1` for performance measurements).
-- `--size WxH` (default 1280x720), `--lossless` PNG shots, `--techniques DIR`, `--keep-work`.
+- `--size WxH` (default 1280x720), `--lossless` PNG shots, `--keep-work`.
 
 A scene fails on a crash, a timeout, script errors, missing textures or models, error-level log lines, a fader
 that never goes, or a picture that cannot be the scene (black, unlit lower half, HUD not drawn, identical to the
