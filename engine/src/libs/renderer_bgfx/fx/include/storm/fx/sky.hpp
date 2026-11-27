@@ -59,7 +59,9 @@ class Sky
     bgfx::UniformHandle s_sun_disc_ = BGFX_INVALID_HANDLE, s_moon_disc_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_noise_ = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle noise_ = BGFX_INVALID_HANDLE;
-    std::array<bgfx::UniformHandle, 6> s_cubes_{}; // base, upper, rain: positive, negative
+    // base, upper, rain: positive, negative. Each starts invalid: a zeroed handle is uniform 0, not "none".
+    std::array<bgfx::UniformHandle, 6> s_cubes_ = {{BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE,
+                                                    BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE}};
     bgfx::ProgramHandle program_ = BGFX_INVALID_HANDLE, program_cubes_ = BGFX_INVALID_HANDLE;
 };
 
