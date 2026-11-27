@@ -147,9 +147,10 @@ class Host
     // run); their bytes.
     uint64_t release_post_targets();
     // Before bgfx::frame(), while a settings change is pending: prepares the programs of the new settings
-    // (kProgramsPerFrame per frame), then runs their GPU self-test (fx::SelfTest, once per settings set), then
-    // makes them the active ones. Until then the current settings keep drawing: a change never shows a frame
-    // that waits for shader links or a picture of half-built targets.
+    // (kProgramsPerFrame per frame; one per core without a scene on screen where the driver links side by side),
+    // then runs their GPU self-test (fx::SelfTest, once per settings set), then makes them the active ones. Until
+    // then the current settings keep drawing: a change never shows a frame that waits for shader links or a
+    // picture of half-built targets.
     void advance_switch();
     // A requested settings change is not active yet (advance_switch).
     bool switching() const

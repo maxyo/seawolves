@@ -1,0 +1,356 @@
+GL: the programs of a frame link side by side.
+bgfx's GL backend read every shader's compile status right after glCompileShader and every program's link status
+right after glLinkProgram, so the links of a frame ran one after another on the render thread even where the driver
+compiles on threads of its own. The engine's lighting programs take 0.8 s each to link on an RTX 5070 Ti (NVIDIA
+595.99, OpenGL ES 3.2, cold driver cache): a settings switch of ~33 programs held the title for 16 s. Now:
+- with KHR_parallel_shader_compile the driver chooses its compiler threads (glMaxShaderCompilerThreadsKHR(~0));
+  the backend logs whether it has them, and g_stormParallelProgramLink tells the engine, which then creates
+  more programs per frame where no scene is shown (effects.cpp, Host::advance_switch);
+- createShader only starts the compile; createProgram attaches the shaders and leaves the program for
+  linkPendingPrograms, which at the start of submit() starts the links of all programs created by this frame's
+  commands and only then reads their status (ProgramGL::finishLink: binary to the cache, init, detach);
+- a shader's compile status is read when a program with it fails to link: a failed compile stays fatal;
+- on Linux and Windows bgfx takes the GL entry points from the GLES library, which exports the core ones only
+  (glvnd's libGLESv2): glMaxShaderCompilerThreadsKHR comes from eglGetProcAddress.
+A program from the program cache (glProgramBinary) is ready at creation as before. Measured on the RTX 5070 Ti with
+16 of the engine's lighting fragment shaders and their vertex shader: 15.8 s one after another, 1.8 s together.
+Programs are destroyed only in cmdPost, after the draws, so none in the pending list is gone when it links.
+
+diff --git a/src/glcontext_egl.cpp b/src/glcontext_egl.cpp
+index 35a8afc..381ed2b 100644
+--- a/src/glcontext_egl.cpp
++++ b/src/glcontext_egl.cpp
+@@ -1270,6 +1270,15 @@ WL_EGL_IMPORT
+ 
+ #	undef GL_EXTENSION
+ 
++#	if BX_PLATFORM_WINDOWS || BX_PLATFORM_LINUX
++		// storm (bgfx-program-parallel-link.patch): the GLES library exports the core entry points only (glvnd's
++		// libGLESv2), so an extension's entry point comes from eglGetProcAddress.
++		if (NULL == glMaxShaderCompilerThreadsKHR)
++		{
++			glMaxShaderCompilerThreadsKHR = reinterpret_cast<PFNGLMAXSHADERCOMPILERTHREADSKHRPROC>(eglGetProcAddress("glMaxShaderCompilerThreadsKHR") );
++		}
++#	endif // BX_PLATFORM_WINDOWS || BX_PLATFORM_LINUX
++
+ 		return imported;
+ 	}
+ 
+diff --git a/src/glimports.h b/src/glimports.h
+index 44805d8..a5506b8 100644
+--- a/src/glimports.h
++++ b/src/glimports.h
+@@ -245,6 +245,8 @@ typedef void           (GL_APIENTRYP PFNGLINSERTEVENTMARKEREXTPROC) (GLsizei len
+ typedef void           (GL_APIENTRYP PFNGLPUSHGROUPMARKEREXTPROC) (GLsizei length, const GLchar *marker);
+ typedef void           (GL_APIENTRYP PFNGLPOPGROUPMARKEREXTPROC) (void);
+ typedef void           (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEIMGPROC)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples);
++// Storm Engine patch (bgfx-program-parallel-link.patch).
++typedef void           (GL_APIENTRYP PFNGLMAXSHADERCOMPILERTHREADSKHRPROC) (GLuint count);
+ #endif // GL_IMPORT_TYPEDEFS
+ 
+ #if BGFX_USE_GL_DYNAMIC_LIB
+@@ -546,6 +548,8 @@ GL_IMPORT______(true, PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEIMGPROC, glFramebuffer
+ GL_IMPORT______(true,  PFNGLPOLYGONMODEPROC,                       glPolygonModeANGLE);
+ GL_IMPORT______(true,  PFNGLPOLYGONMODEPROC,                       glPolygonModeNV);
+ GL_IMPORT______(true,  PFNGLPOLYGONOFFSETCLAMPPROC,                glPolygonOffsetClampEXT);
++// Storm Engine patch (bgfx-program-parallel-link.patch): KHR_parallel_shader_compile.
++GL_IMPORT______(true,  PFNGLMAXSHADERCOMPILERTHREADSKHRPROC,       glMaxShaderCompilerThreadsKHR);
+ 
+ #if !BGFX_CONFIG_RENDERER_OPENGL
+ GL_IMPORT______(true,  PFNGLPOINTSIZEPROC,                         glPointSize);
+diff --git a/src/renderer_gl.cpp b/src/renderer_gl.cpp
+index ab9cbd9..6385e8d 100644
+--- a/src/renderer_gl.cpp
++++ b/src/renderer_gl.cpp
+@@ -26,6 +26,10 @@ namespace bgfx { namespace gl
+ 		g_stormUniformUploadBytes.fetch_add(_bytes, std::memory_order_relaxed);
+ 	}
+ 
++	// storm (bgfx-program-parallel-link.patch): the driver links the programs of a frame side by side. Written by
++	// the render thread at init, read by the engine's game thread when it paces program creation.
++	std::atomic<bool> g_stormParallelProgramLink{false};
++
+ 	// storm: anisotropy level cap applied at the next reset (see updateResolution). Written by the engine's game
+ 	// thread, read by the render thread every frame.
+ 	std::atomic<float> g_stormMaxAnisotropy{0.0f};
+@@ -775,6 +779,7 @@ namespace bgfx { namespace gl
+ 
+ 			KHR_debug,
+ 			KHR_no_error,
++			KHR_parallel_shader_compile,
+ 
+ 			MOZ_WEBGL_compressed_texture_s3tc,
+ 			MOZ_WEBGL_depth_texture,
+@@ -1011,6 +1016,7 @@ namespace bgfx { namespace gl
+ 
+ 		{ "KHR_debug",                                BGFX_CONFIG_RENDERER_OPENGL >= 43,        true  },
+ 		{ "KHR_no_error",                             false,                                    true  },
++		{ "KHR_parallel_shader_compile",              false,                                    true  },
+ 
+ 		{ "MOZ_WEBGL_compressed_texture_s3tc",        false,                                    true  },
+ 		{ "MOZ_WEBGL_depth_texture",                  false,                                    true  },
+@@ -3052,6 +3058,21 @@ namespace bgfx { namespace gl
+ 						|| s_extension[Extension::IMG_shader_binary     ].m_supported
+ 						) && numFormats > 0;
+ 
++				// storm (bgfx-program-parallel-link.patch): the driver compiles and links on threads of its own.
++				// The programs of a frame are linked together before its draws (linkPendingPrograms), so they
++				// link side by side instead of one after another.
++				if (s_extension[Extension::KHR_parallel_shader_compile].m_supported
++				&&  NULL != glMaxShaderCompilerThreadsKHR)
++				{
++					GL_CHECK(glMaxShaderCompilerThreadsKHR(0xffffffff) );
++					g_stormParallelProgramLink.store(true, std::memory_order_relaxed);
++					trace(__FILE__, __LINE__, "BGFX parallel shader compile: on (KHR_parallel_shader_compile, threads chosen by the driver)\n");
++				}
++				else
++				{
++					trace(__FILE__, __LINE__, "BGFX parallel shader compile: off (the driver has no KHR_parallel_shader_compile): programs link one after another\n");
++				}
++
+ 				m_textureSwizzleSupport = false
+ 					|| s_extension[Extension::ARB_texture_swizzle].m_supported
+ 					|| s_extension[Extension::EXT_texture_swizzle].m_supported
+@@ -3502,7 +3523,30 @@ namespace bgfx { namespace gl
+ 		void createProgram(ProgramHandle _handle, ShaderHandle _vsh, ShaderHandle _fsh) override
+ 		{
+ 			ShaderGL dummyFragmentShader;
+-			m_program.alloc(_handle.idx).create(m_shaders[_vsh.idx], isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader);
++			if (m_program.alloc(_handle.idx).create(m_shaders[_vsh.idx], isValid(_fsh) ? m_shaders[_fsh.idx] : dummyFragmentShader) )
++			{
++				m_pendingProgram[m_numPendingPrograms++] = _handle.idx;
++			}
++		}
++
++		// storm (bgfx-program-parallel-link.patch): the programs created by this frame's commands, linked all
++		// at once before its draws. Every link is started before any status is read: a driver with
++		// KHR_parallel_shader_compile links them side by side (16 lighting programs on an RTX 5070 Ti:
++		// 15.8 s one after another, 1.8 s together). Programs are destroyed only after the draws (cmdPost), so
++		// none in the list is gone.
++		void linkPendingPrograms()
++		{
++			for (uint16_t ii = 0; ii < m_numPendingPrograms; ++ii)
++			{
++				m_program[m_pendingProgram[ii] ].link();
++			}
++
++			for (uint16_t ii = 0; ii < m_numPendingPrograms; ++ii)
++			{
++				m_program[m_pendingProgram[ii] ].finishLink();
++			}
++
++			m_numPendingPrograms = 0;
+ 		}
+ 
+ 		void destroyProgram(ProgramHandle _handle) override
+@@ -5684,6 +5728,8 @@ namespace bgfx { namespace gl
+ 		HandleArenaT<VertexBufferGL, BGFX_CONFIG_MAX_VERTEX_BUFFERS> m_vertexBuffers;
+ 		HandleArenaT<ShaderGL,       BGFX_CONFIG_MAX_SHADERS>        m_shaders;
+ 		HandleArenaT<ProgramGL,      BGFX_CONFIG_MAX_PROGRAMS>       m_program;
++		uint16_t m_pendingProgram[BGFX_CONFIG_MAX_PROGRAMS];
++		uint16_t m_numPendingPrograms = 0;
+ 		HandleArenaT<TextureGL,      BGFX_CONFIG_MAX_TEXTURES>       m_textures;
+ 		VertexLayout m_vertexLayouts[BGFX_CONFIG_MAX_VERTEX_LAYOUTS];
+ 		HandleArenaT<FrameBufferGL,  BGFX_CONFIG_MAX_FRAME_BUFFERS>  m_frameBuffers;
+@@ -6029,61 +6075,92 @@ namespace bgfx { namespace gl
+ 		return GL_ZERO;
+ 	}
+ 
+-	void ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _fsh)
++	bool ProgramGL::create(const ShaderGL& _vsh, const ShaderGL& _fsh)
+ 	{
+ 		m_id = glCreateProgram();
+ 		BX_TRACE("Program create: GL%d: GL%d, GL%d", m_id, _vsh.m_id, _fsh.m_id);
+ 
+ 		const uint64_t id = (uint64_t(_vsh.m_hash)<<32) | _fsh.m_hash;
+-		const bool cached = s_renderGL->programFetchFromCache(m_id, id);
++		if (s_renderGL->programFetchFromCache(m_id, id) )
++		{
++			init();
++			return false;
++		}
+ 
+-		if (!cached)
++		if (0 == _vsh.m_id)
+ 		{
+-			GLint linked = 0;
+-			if (0 != _vsh.m_id)
+-			{
+-				GL_CHECK(glAttachShader(m_id, _vsh.m_id) );
++			BX_WARN(false, "Invalid vertex/compute shader.");
++			GL_CHECK(glDeleteProgram(m_id) );
++			m_usedCount = 0;
++			m_id = 0;
++			return false;
++		}
++
++		// storm (bgfx-program-parallel-link.patch): linked with the frame's other new programs before its draws.
++		GL_CHECK(glAttachShader(m_id, _vsh.m_id) );
++		if (0 != _fsh.m_id)
++		{
++			GL_CHECK(glAttachShader(m_id, _fsh.m_id) );
++		}
+ 
+-				if (0 != _fsh.m_id)
++		m_linkId = id;
++		m_linkVsh = _vsh.m_id;
++		m_linkFsh = _fsh.m_id;
++		return true;
++	}
++
++	void ProgramGL::link()
++	{
++		GL_CHECK(glLinkProgram(m_id) );
++	}
++
++	void ProgramGL::finishLink()
++	{
++		GLint linked = 0;
++		GL_CHECK(glGetProgramiv(m_id, GL_LINK_STATUS, &linked) );
++
++		if (0 == linked)
++		{
++			// The shaders' compile status is read here, after their compiles ran side by side.
++			const GLuint shaders[] = { m_linkVsh, m_linkFsh };
++			for (const GLuint shader : shaders)
++			{
++				GLint compiled = 1;
++				if (0 != shader)
+ 				{
+-					GL_CHECK(glAttachShader(m_id, _fsh.m_id) );
++					GL_CHECK(glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled) );
+ 				}
+ 
+-				GL_CHECK(glLinkProgram(m_id) );
+-				GL_CHECK(glGetProgramiv(m_id, GL_LINK_STATUS, &linked) );
+-
+-				if (0 == linked)
++				if (0 == compiled)
+ 				{
+ 					char log[1024];
+-					GL_CHECK(glGetProgramInfoLog(m_id, sizeof(log), NULL, log) );
+-					BX_TRACE("%d: %s", linked, log);
++					GL_CHECK(glGetShaderInfoLog(shader, sizeof(log), NULL, log) );
++					BGFX_FATAL(false, bgfx::Fatal::InvalidShader, "Failed to compile shader. %d: %s", compiled, log);
+ 				}
+ 			}
+ 
+-			if (0 == linked)
+-			{
+-				BX_WARN(0 != _vsh.m_id, "Invalid vertex/compute shader.");
+-				GL_CHECK(glDeleteProgram(m_id) );
+-				m_usedCount = 0;
+-				m_id = 0;
+-				return;
+-			}
+-
+-			s_renderGL->programCache(m_id, id);
++			char log[1024];
++			GL_CHECK(glGetProgramInfoLog(m_id, sizeof(log), NULL, log) );
++			BX_TRACE("%d: %s", linked, log);
++			GL_CHECK(glDeleteProgram(m_id) );
++			m_usedCount = 0;
++			m_id = 0;
++			return;
+ 		}
+ 
++		s_renderGL->programCache(m_id, m_linkId);
++
+ 		init();
+ 
+-		if (!cached
+-		&&  s_renderGL->m_workaround.m_detachShader)
++		if (s_renderGL->m_workaround.m_detachShader)
+ 		{
+ 			// Must be after init, otherwise init might fail to lookup shader
+ 			// info (NVIDIA Tegra 3 OpenGL ES 2.0 14.01003).
+-			GL_CHECK(glDetachShader(m_id, _vsh.m_id) );
++			GL_CHECK(glDetachShader(m_id, m_linkVsh) );
+ 
+-			if (0 != _fsh.m_id)
++			if (0 != m_linkFsh)
+ 			{
+-				GL_CHECK(glDetachShader(m_id, _fsh.m_id) );
++				GL_CHECK(glDetachShader(m_id, m_linkFsh) );
+ 			}
+ 		}
+ 	}
+@@ -8148,30 +8225,11 @@ namespace bgfx { namespace gl
+ 				GL_CHECK(glShaderSource(m_id, 1, &str, &len) );
+ 			}
+ 
++			// storm (bgfx-program-parallel-link.patch): the compile status is read when a program with this
++			// shader fails to link (ProgramGL::finishLink), so the compiles of a frame run side by side.
+ 			GL_CHECK(glCompileShader(m_id) );
+ 
+-			GLint compiled = 0;
+-			GL_CHECK(glGetShaderiv(m_id, GL_COMPILE_STATUS, &compiled) );
+-
+-			if (0 == compiled)
+-			{
+-				bx::LineReader lineReader(code);
+-				for (int32_t line = 1; !lineReader.isDone(); ++line)
+-				{
+-					bx::StringView str = lineReader.next();
+-					BX_TRACE("%3d %.*s", line, str.getLength(), str.getPtr() );
+-					BX_UNUSED(str, line);
+-				}
+-
+-				GLsizei len;
+-				char log[1024];
+-				GL_CHECK(glGetShaderInfoLog(m_id, sizeof(log), &len, log) );
+-
+-				GL_CHECK(glDeleteShader(m_id) );
+-				m_id = 0;
+-				BGFX_FATAL(false, bgfx::Fatal::InvalidShader, "Failed to compile shader. %d: %s", compiled, log);
+-			}
+-			else if (BX_ENABLED(BGFX_CONFIG_DEBUG)
++			if (BX_ENABLED(BGFX_CONFIG_DEBUG)
+ 				 &&  s_extension[Extension::ANGLE_translated_shader_source].m_supported
+ 				 &&  NULL != glGetTranslatedShaderSourceANGLE)
+ 			{
+@@ -9824,6 +9882,8 @@ namespace bgfx { namespace gl
+ 
+ 		m_glctx.makeCurrent(NULL);
+ 
++		linkPendingPrograms();
++
+ 		BGFX_GL_PROFILER_BEGIN_LITERAL("rendererSubmit", kColorView);
+ 
+ 		if (0 != m_vao)
+diff --git a/src/renderer_gl.h b/src/renderer_gl.h
+index a0c2103..f0b806f 100644
+--- a/src/renderer_gl.h
++++ b/src/renderer_gl.h
+@@ -1704,11 +1704,17 @@ namespace bgfx { namespace gl
+ 			, m_uniformShadow(NULL)
+ 			, m_uniformShadowSize(0)
+ 			, m_uniformShadowValid(false)
++			, m_linkId(0)
++			, m_linkVsh(0)
++			, m_linkFsh(0)
+ 		{
+ 			m_instanceData[0] = -1;
+ 		}
+ 
+-		void create(const ShaderGL& _vsh, const ShaderGL& _fsh);
++		// Returns true when the program waits for its link (RendererContextGL::linkPendingPrograms).
++		bool create(const ShaderGL& _vsh, const ShaderGL& _fsh);
++		void link();
++		void finishLink();
+ 		void destroy();
+ 		void init();
+ 
+@@ -1753,6 +1759,12 @@ namespace bgfx { namespace gl
+ 		uint8_t* m_uniformShadow;
+ 		uint32_t m_uniformShadowSize;
+ 		bool m_uniformShadowValid;
++
++		// storm (bgfx-program-parallel-link.patch): a program created this frame and not linked yet: its cache
++		// id and its shaders, for the link before the frame's draws.
++		uint64_t m_linkId;
++		GLuint m_linkVsh;
++		GLuint m_linkFsh;
+ 	};
+ 
+ 	struct TimerQueryGL

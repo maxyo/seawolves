@@ -29,12 +29,14 @@
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <thread>
 
 // patches/bgfx-anisotropy-level.patch: the level cap of each backend (read by the render thread every frame).
 namespace bgfx::gl
 {
 extern std::atomic<float> g_stormMaxAnisotropy;
-}
+extern std::atomic<bool> g_stormParallelProgramLink; // patches/bgfx-program-parallel-link.patch
+} // namespace bgfx::gl
 namespace bgfx::vk
 {
 extern std::atomic<float> g_stormMaxAnisotropy;
@@ -608,14 +610,22 @@ void Host::advance_switch()
     if (!switching_ || !device_ready_ || !device || self_test_.Running())
         return;
     ++switch_frames_;
-    // The programs of the new settings, one per frame: each is a shader link (tens of milliseconds on a phone,
-    // seconds on a first run under ANGLE); linked all at once in the first frame of the new settings they held
-    // the picture for seconds. While the previous frame's programs all came from the program cache (loaded, none
-    // linked: storm/render/program_cache.hpp) a few more go per frame.
+    // The programs of the new settings, one per frame: each is a shader link (tens of milliseconds on a phone, up to
+    // a second on a desktop driver); linked all at once they held the picture for seconds, and a frame that long
+    // also holds the surface's hand-over to the system. While the previous frame's programs all came from the
+    // program cache (loaded, none linked: storm/render/program_cache.hpp) a few more go per frame. Where the GL
+    // driver links a frame's programs side by side (patches/bgfx-program-parallel-link.patch), a frame without a
+    // scene on screen (the loading cover, an interface screen, the start) takes one per core, at the cost of about
+    // two links (16 lighting programs on the 16 cores of an RTX 5070 Ti host: 1.8 s together, 0.8 s one alone).
+    // The frames of a scene keep the one-link bound.
     const render::ProgramCacheStats cache = render::CurrentProgramCacheStats();
     const bool from_cache = cache.loaded != switch_cache_.loaded && cache.stored == switch_cache_.stored;
     switch_cache_ = cache;
-    const int per_frame = from_cache ? kCachedProgramsPerFrame : kProgramsPerFrame;
+    const bool scene_on_screen = !ScenePreparing() && !ReliefGenerator::instance().gpu_free();
+    const int side_by_side = !scene_on_screen && bgfx::gl::g_stormParallelProgramLink.load(std::memory_order_relaxed)
+                                 ? static_cast<int>(std::thread::hardware_concurrency())
+                                 : kProgramsPerFrame;
+    const int per_frame = std::max(from_cache ? kCachedProgramsPerFrame : kProgramsPerFrame, side_by_side);
     int budget = per_frame;
     // The post chain's programs also on «Низкая»: the underwater wobble runs on every preset.
     // The sea's backdrop draws with the sun's caster programs (world.cpp).
