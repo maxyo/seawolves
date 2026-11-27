@@ -1,8 +1,11 @@
 {
- "$comment": "The rest screen's script on recorded models: the props its view gives the pack screen and the calls its events make (the parity data of the pack screen s-rest).",
+ "$comment": "The rest screen's script on recorded models: the props its view gives the pack screen and the calls its events make (the parity data of the pack screen s-rest); \"game\": the globals of the game's interface in that state.",
  "cases": [
   {
    "name": "half-day",
+   "game": {
+    "iHourWait": 12
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -144,16 +147,22 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
-    "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
   },
   {
    "name": "no-span",
+   "game": {
+    "iHourWait": 8
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -296,16 +305,24 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
+    "hold",
     "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
   },
   {
    "name": "ok-off",
+   "game": {
+    "iHourWait": 12
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -448,16 +465,22 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
-    "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
   },
   {
    "name": "offset",
+   "game": {
+    "iHourWait": 6
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -599,16 +622,22 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 11",
+    "hold",
     "send HOURS_SLIDE set 13",
-    "send HOURS_SLIDE set 16",
+    "hold",
     "send HOURS_SLIDE set 22",
+    "hold",
     "send HOURS_SLIDE set 34",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
   },
   {
    "name": "no-info",
+   "game": {
+    "iHourWait": 8
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -739,16 +768,24 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
+    "hold",
     "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
   },
   {
    "name": "exit",
+   "game": {
+    "iHourWait": 12
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -890,16 +927,22 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
-    "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back EXIT_BTN"
    ]
   },
   {
    "name": "no-cancel",
+   "game": {
+    "iHourWait": 12
+   },
    "model": {
     "language": "russian",
     "revision": 4,
@@ -1029,16 +1072,22 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
-    "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back "
    ]
   },
   {
    "name": "device",
+   "game": {
+    "iHourWait": 12
+   },
    "model": {
     "language": "russian",
     "revision": 1,
@@ -1180,13 +1229,126 @@
    ],
    "calls": [
     "send HOURS_SLIDE set 5",
+    "hold",
     "send HOURS_SLIDE set 13",
+    "hold",
     "send HOURS_SLIDE set 25",
-    "send HOURS_SLIDE set 50",
+    "hold",
     "send HOURS_SLIDE set 100",
+    "hold",
     "send OK_BTN press ",
     "back CANCEL_BTN"
    ]
+  },
+  {
+   "name": "the game counts the hours: they are its, not the slider's share",
+   "game": {
+    "iHourWait": 6
+   },
+   "model": {
+    "language": "russian",
+    "revision": 4,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 5,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Полдня",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Ок",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": true
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": false
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [],
+   "calls": []
   }
  ]
 }

@@ -16,6 +16,9 @@ int GameFunction(int count, string name)
 	return count;
 }
 
+// The hours of the rest interface (TavernWait.c's global there), set by the checks to the recorded state's.
+int iHourWait;
+
 // The game function the trade adapter calls for a storage row's pack weight: TestGoods.g<good>.{units (pieces in a
 // pack), weight (cwt a pack)}, every good packs of 10 of 1 cwt. Each started pack counts whole.
 object TestGoods;

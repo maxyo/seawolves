@@ -101,6 +101,10 @@ The natives (`core/core.c`):
   HUD's tap on a quest record: `out.quest`; a character, a ship: `out.character`, `out.position`; `out.tab`), taken
   once; 0 without one;
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
+- the game's state that no model shows: `UiGameInt(path)`, a whole number of a global ("iHourWait") or of an
+  attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
+  open interface, which a segment attached before that interface cannot name. Absent or not a whole number, it fails.
+  The checks give such globals per recorded state (a case's `game`);
 - `UiToast`, `UiRead`, `UiError(text)`.
 
 Failures are loud. `UiError`, a native given an argument of the wrong type or an object with a missing or unknown
@@ -189,7 +193,6 @@ are mostly the C++ screen's own arithmetic loses its parity case instead (named 
 ## Not done
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
-- The rest adapter still reads the hours from the slider by the game's formula (`lineages/legacy/rest.c`).
 - The trade family's last interfaces (colony capture, the ship exchange) are still C++
   (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); their recorded parity
   (`trade-parity.json`) goes with them.

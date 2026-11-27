@@ -54,6 +54,11 @@ native string UiFill(string text, string argument);
 // (absent while the amount is unchanged)}.
 native void UiDeal(aref spec, aref out);
 
+// A whole number the game's scripts hold, by its global's name ("iHourWait") or an attribute of a global object or
+// reference ("refStore.Goods.Sugar.TradeType"): reaches the globals of the game's open interface, which a segment
+// attached before it cannot name. Fails when absent or not a whole number.
+native int UiGameInt(string path);
+
 // The entries of `list` in the order of their whole number `field`, stable.
 native void UiOrder(aref list, string field, int descending);
 

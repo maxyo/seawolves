@@ -2,7 +2,10 @@
 // Rest from the interface tavernwait: the game's hour slider, its OK and its Cancel. Implements contracts/rest.c,
 // which it does not include: a segment cannot define what it declares extern.
 
-// rule copy: tavernwait.c reads its slider as a share of a day and truncates, hours = int(share * 24).
+// A slider moved: the game answers in its next frame (its eSlideChange is a posted event, and iHourWait and the text
+// follow it), so the build of the frame the move was applied in is not drawn.
+object TouchLegRest;
+
 int TouchLegRest_Range(aref slider)
 {
 	int range = sti(slider.max) - sti(slider.min);
@@ -12,23 +15,33 @@ int TouchLegRest_Range(aref slider)
 
 void TouchAdpRest_State(aref ui, aref out)
 {
-	aref slider;
-	makearef(slider, ui.model.HOURS_SLIDE);
-	out.hours = (sti(slider.value) - sti(slider.min)) * 24 / TouchLegRest_Range(slider);
+	// the hours the game's slider handler made of its position (TavernWait.c), a global of the interface
+	out.hours = UiGameInt("iHourWait");
 	out.canGo = UiOffers("OK_BTN", "press");
 	out.reason = ui.model.OK_BTN.reason;
 	out.note = "";
 	if (CheckAttribute(ui, "model.INFO_TEXT")) out.note = ui.model.INFO_TEXT.label;
+	string answer = UiAnswer();
+	if (answer == "" || answer == "refused") TouchLegRest.slid = false;
+	if (answer == "applied" && sti(TouchLegRest.slid))
+	{
+		TouchLegRest.slid = false;
+		UiAwait();
+	}
 }
 
-// The smallest slider position that still gives the chosen hours.
-void TouchAdpRest_Choose(aref ui, int hours)
+// The slider spans a day: the smallest position of its share that still gives the hours (the game exposes no position
+// for an hour count; State reads back what the game made of it).
+bool TouchAdpRest_Choose(aref ui, int hours)
 {
 	aref slider;
 	makearef(slider, ui.model.HOURS_SLIDE);
 	int at = (hours * TouchLegRest_Range(slider) + 23) / 24 + sti(slider.min);
 	if (at > sti(slider.max)) at = sti(slider.max);
+	if (at == sti(slider.value)) return false;
 	UiSend("HOURS_SLIDE", "set", "" + at);
+	TouchLegRest.slid = true;
+	return true;
 }
 
 void TouchAdpRest_Go(aref ui)

@@ -6,6 +6,9 @@
 #event_handler("UiTap", "TouchRest_Tap");
 
 object TouchRest;
+object TouchRest_Game; // the adapter's state of the last build
+// s: how long a choice waits for the game's answer; past it the view shows what the game has.
+float TouchRest_Wait = 0.5;
 int TouchRest_Spans[5] = {1, 3, 6, 12, 24};
 string TouchRest_Labels[5] = {"rest.h1", "rest.h3", "rest.h6", "rest.h12", "rest.day"};
 
@@ -39,9 +42,10 @@ void TouchRest_Build()
 {
 	aref ui = GetEventData();
 	if (ui.screen != "rest") return;
-	object game;
-	TouchAdpRest_State(ui, &game);
-	TouchRest_View(&game, sti(game.hours));
+	aref game;
+	makearef(game, TouchRest_Game);
+	TouchAdpRest_State(ui, game);
+	TouchRest_View(game, sti(game.hours));
 	UiOn("hours", "select");
 	UiOn("go", "");
 	UiOn("rest-close", "");
@@ -56,10 +60,9 @@ void TouchRest_Tap()
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
 	if (id == "go") { TouchAdpRest_Go(ui); return; }
 	if (id == "rest-close") { TouchAdpRest_Close(ui); return; }
-	// The tapped span is drawn selected from this frame; the game's answer confirms it.
-	object game;
-	TouchAdpRest_State(ui, &game);
-	TouchRest_View(&game, sti(value));
+	// The tapped span is drawn selected from this frame (over the state of the last build); the game's answer confirms
+	// it.
+	TouchRest_View(&TouchRest_Game, sti(value));
 	UiPredict(&TouchRest);
-	TouchAdpRest_Choose(ui, sti(value));
+	if (TouchAdpRest_Choose(ui, sti(value))) UiHold(TouchRest_Wait);
 }

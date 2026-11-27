@@ -312,6 +312,46 @@ uint32_t UiOneLine(VS_STACK *stack)
     return ReturnText(stack, "UiOneLine", [&](storm::ui::ScriptCall &call) { return call.OneLine(text); });
 }
 
+// A whole number the game's scripts hold: `path` is "global" (an int) or "global.attribute.…" (of an object or a
+// reference to one). It reaches a global of the game's open interface, which a segment attached before that
+// interface was compiled cannot name. Absent, another type or not a whole number: the native fails.
+int GameInt(const std::string &path)
+{
+    const size_t dot = path.find('.');
+    const std::string name = path.substr(0, dot);
+    auto *variable = static_cast<VDATA *>(core.GetScriptVariable(name.c_str()));
+    if (!variable)
+        throw std::runtime_error("the game has no global " + name);
+    if (variable->IsArray())
+        throw std::runtime_error("the game's " + name + " is an array");
+    int32_t number = 0;
+    if (dot == std::string::npos)
+    {
+        if (!variable->Get(number))
+            throw std::runtime_error("the game's " + name + " is not an int");
+        return number;
+    }
+    float real = 0.0f;
+    const char *text = nullptr;
+    if (variable->Get(number) || variable->Get(real) || variable->Get(text))
+        throw std::runtime_error("the game's " + name + " is not an object");
+    ATTRIBUTES *root = variable->GetAClass();
+    const ATTRIBUTES *at = root ? root->FindAClass(root, path.c_str() + dot + 1) : nullptr;
+    if (!at || !at->HasValue())
+        throw std::runtime_error("the game has no " + path);
+    const std::string value(at->GetValue());
+    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), number);
+    if (error != std::errc() || end != value.data() + value.size() || value.empty())
+        throw std::runtime_error("the game's " + path + " is '" + value + "', not a whole number");
+    return number;
+}
+
+uint32_t UiGameInt(VS_STACK *stack)
+{
+    const std::string path = PopText(stack);
+    return ReturnInt(stack, "UiGameInt", [&](storm::ui::ScriptCall &) { return GameInt(path); });
+}
+
 uint32_t UiFill(VS_STACK *stack)
 {
     const std::string argument = PopText(stack), text = PopText(stack);
@@ -631,6 +671,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiFill", "string", 2, UiFill},
             {"UiDeal", "void", 2, UiDeal},
             {"UiOrder", "void", 3, UiOrder},
+            {"UiGameInt", "int", 1, UiGameInt},
         };
         for (const auto &native : natives)
         {

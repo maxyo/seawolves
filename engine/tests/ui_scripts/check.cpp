@@ -135,6 +135,19 @@ struct Vm
     }
 };
 
+// The globals of the game's interface in a recorded state: "game": {name: whole number}.
+void SetGame(const Json &recorded)
+{
+    if (!recorded.contains("game"))
+        return;
+    for (const auto &[name, value] : recorded.at("game").items())
+    {
+        auto *variable = static_cast<VDATA *>(core.GetScriptVariable(name.c_str()));
+        REQUIRE(variable != nullptr);
+        variable->Set(static_cast<int32_t>(value.get<int>()));
+    }
+}
+
 // The saved values of the program's globals by name (the attribute names they use are codes of the save's name codec,
 // which only grows, so a code stays the same).
 std::map<std::string, std::vector<char>> GameState(Vm &vm)
@@ -168,6 +181,7 @@ struct Calls final : storm::ui::ScriptCall
     bool first = true;
     std::string subject_screen; // the screen the subject is asked of
     storm::ui::SubjectView subject;
+    std::string answer; // of the hold the build is for
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -198,7 +212,7 @@ struct Calls final : storm::ui::ScriptCall
     }
     std::string Answer() const override
     {
-        return "";
+        return answer;
     }
     void Await() override
     {
@@ -617,11 +631,13 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     const auto &screen = Screen(vm, "rest");
     const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/rest.json"));
     const auto before = GameState(vm);
+    const int hours = vm.Integer("iHourWait");
     for (const Json &recorded : fixture.at("cases"))
     {
         INFO(recorded.at("name").get<std::string>());
         storm::ui::InterfaceModel model;
         REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        SetGame(recorded);
         Calls calls(*spec);
         calls.widgets = model.widgets;
         port.Build(screen, calls.Single(), calls);
@@ -631,23 +647,41 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
         {
             REQUIRE(calls.Binds(event[0], event[1]));
             calls.predicted.reset();
+            const size_t made = calls.calls.size();
             port.Event(screen, event[0], event[1], event[2], calls);
             if (event[1] != "select")
                 continue;
-            // The span drawn at the tap is what the screen builds once the game has moved its slider there.
+            // The span drawn at the tap is what the screen builds once the game has made its hours of the slider's
+            // new position (or of the one it kept).
             REQUIRE(calls.predicted);
-            const std::string sent = calls.calls.back();
             Calls answered(*spec);
             answered.widgets = model.widgets;
-            for (auto &widget : answered.widgets)
-                if (widget.node == "HOURS_SLIDE")
-                    widget.value = sent.substr(sent.rfind(' ') + 1);
+            if (calls.calls.size() > made)
+            {
+                const std::string sent = calls.calls[calls.calls.size() - 2];
+                for (auto &widget : answered.widgets)
+                    if (widget.node == "HOURS_SLIDE")
+                        widget.value = sent.substr(sent.rfind(' ') + 1);
+            }
+            if (calls.calls.size() > made)
+            {
+                // the frame the move was applied in: the game makes its hours of it in its next one
+                answered.answer = "applied";
+                port.Build(screen, answered.Single(), answered);
+                CHECK(answered.calls == std::vector<std::string>{"await"});
+                answered.calls.clear();
+            }
+            static_cast<VDATA *>(core.GetScriptVariable("iHourWait"))
+                ->Set(static_cast<int32_t>(std::stoi(event[2].get<std::string>())));
             port.Build(screen, answered.Single(), answered);
+            CHECK(answered.calls.empty());
             CHECK(answered.props == *calls.predicted);
+            SetGame(recorded);
             port.Build(screen, calls.Single(), calls);
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
     }
+    static_cast<VDATA *>(core.GetScriptVariable("iHourWait"))->Set(static_cast<int32_t>(hours));
     // The screen's scripts change nothing of the game's program: its globals save as they did.
     CHECK(GameState(vm) == before);
 }
@@ -931,6 +965,20 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     // So does a runtime error of the script.
     const storm::ui::ScriptScreen fault{.capability = "fault", .interface = "fault", .component = "s-rest"};
     CHECK_THROWS_WITH(port.Build(fault, {}, calls), Catch::Contains("script screen fault: a script error in UiBuild"));
+
+    // The game's whole numbers by name: a global, an attribute of an object and of a reference; absent or of another
+    // type, the native fails the build.
+    static_cast<VDATA *>(core.GetScriptVariable("iHourWait"))->Set(static_cast<int32_t>(4));
+    port.Build({.capability = "gameint", .interface = "gameint", .component = "s-rest"}, {}, calls);
+    CHECK(vm.Integer("InsideRead") == 412);
+    static_cast<VDATA *>(core.GetScriptVariable("iHourWait"))->Set(static_cast<int32_t>(0));
+    for (const auto &[capability, failure] :
+         {std::pair{"nogame", "UiGameInt: the game has no global NoSuchGlobal"},
+          std::pair{"gametext", "UiGameInt: the game's GameName is not an int"},
+          std::pair{"gamepath", "UiGameInt: the game has no GameInterface.TABLE_LIST.nothing"}})
+        CHECK_THROWS_WITH(
+            port.Build({.capability = capability, .interface = capability, .component = "s-rest"}, {}, calls),
+            Catch::Contains(failure));
 
     vm.compiler.Release();
     CHECK(vm.attacher.Running() == nullptr);
