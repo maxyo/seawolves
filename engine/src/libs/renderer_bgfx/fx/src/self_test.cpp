@@ -26,8 +26,7 @@ constexpr uint16_t kProbeY = 32;
 
 std::array<int, 3> Expected(const Settings &settings, const uint8_t *rgb)
 {
-    const ColorGrade grade = ColorGrade::Lerp(ColorGrade{}, ColorGrade::Preset(settings.grade),
-                                              std::clamp(settings.grade_strength, 0.0f, 1.0f));
+    const ColorGrade grade = PlayerGrade(settings);
     const auto out = grade.Apply({rgb[0] / 255.0f, rgb[1] / 255.0f, rgb[2] / 255.0f});
     return {static_cast<int>(std::lround(out[0] * 255.0f)), static_cast<int>(std::lround(out[1] * 255.0f)),
             static_cast<int>(std::lround(out[2] * 255.0f))};

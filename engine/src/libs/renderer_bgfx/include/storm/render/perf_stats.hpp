@@ -90,5 +90,7 @@ struct PerfCounters
 
 // Game thread. Totals since start-up.
 const PerfCounters &PerfTotals();
+// Game thread: the GPU memory the driver offers, in bytes; 0 when the backend cannot tell (bgfx Stats::gpuMemoryMax).
+uint64_t GpuMemoryBudget();
 
 } // namespace storm::render

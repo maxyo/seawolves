@@ -414,6 +414,11 @@ class Renderer : public VRenderer
     char *GetTipsImage() override;
 
     void SetColorParameters(float fGamma, float fBrightness, float fContrast) override;
+    // The texture path of `level` (0..3) as SetTexturePath set it, empty when it was not.
+    const char *TexturePath(int32_t level) const
+    {
+        return TexPaths[level].str;
+    }
     void DrawSphere(const glm::vec3 &vPos, float fRadius, uint32_t dwColor) override;
     void DrawEllipsoid(const glm::vec3 &vPos, float a, float b, float c, float ay, uint32_t dwColor) override;
 

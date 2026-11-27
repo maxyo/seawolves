@@ -13,6 +13,7 @@
 #include "program_cache.hpp"
 #include "storm/render/d3d_interop.hpp"
 #include "storm/render/depth_stencil.hpp"
+#include "storm/render/frame_rate.hpp"
 #include "storm/render/log.hpp"
 #include "storm/render/shader_blob.hpp"
 
@@ -124,6 +125,16 @@ void MarkTextureImmutable(shim::BaseTexture *texture)
 void SetGamePictureProvider(GamePictureProvider *provider)
 {
     shim::Context::instance().set_picture_provider(provider);
+}
+
+void SetVSync(bool on)
+{
+    shim::Context::instance().set_vsync(on);
+}
+
+bool VSync()
+{
+    return shim::Context::instance().vsync();
 }
 
 #ifdef __ANDROID__
@@ -934,6 +945,15 @@ void Context::request_surface_restore()
     std::lock_guard lock(release_mutex_);
     restore_destroys_ = surface_destroys_;
     restore_requested_ = true;
+}
+
+void Context::set_vsync(bool on)
+{
+    if (vsync_ == on)
+        return;
+    vsync_ = on;
+    render::Log().info("vsync {}", on ? "on" : "off");
+    refresh_reset_flags();
 }
 
 uint32_t Context::reset_flags() const

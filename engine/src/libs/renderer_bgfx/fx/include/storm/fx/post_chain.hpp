@@ -150,8 +150,7 @@ class PostChain
     bgfx::TextureHandle smaa_search_ = BGFX_INVALID_HANDLE;
     Target wobbled_{}; // the wobbled scene when more passes follow
     bgfx::TextureHandle lut_ = BGFX_INVALID_HANDLE;
-    GradePreset lut_grade_ = GradePreset::Original;
-    float lut_strength_ = -1.0f;
+    ColorGrade lut_grade_{}; // the player's grade in lut_
     ColorGrade lut_scene_{};
     ColorGrade pending_scene_{}; // the scene grade being built into pending_texels_
     std::vector<uint8_t> pending_texels_;

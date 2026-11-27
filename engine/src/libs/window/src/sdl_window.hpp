@@ -32,6 +32,7 @@ class SDLWindow : public OSWindow
     void WarpMouseInWindow(int x, int y) override;
     void SetTitle(const std::string &title) override;
     void SetGamma(const uint16_t (&red)[256], const uint16_t (&green)[256], const uint16_t (&blue)[256]) override;
+    std::vector<DisplayMode> DisplayModes() const override;
 
     int Subscribe(const EventHandler &handler) override;
     void Unsubscribe(int id) override;

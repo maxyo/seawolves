@@ -9,6 +9,10 @@ namespace storm::render
 // settings' «Частота кадров»; src/shim/frame_pacing.hpp). Applies at once and is logged; before the device
 // exists it is the rate the device starts with. No effect where the renderer does not pace (desktop).
 void SetFrameRate(uint32_t fps);
+// Presents in step with the display (desktop; on Android the pacing always does), from the next frame; before the
+// device exists, how it starts (Renderer: engine.ini vsync). Logged when it changes.
+void SetVSync(bool on);
+bool VSync();
 // While on, the intervals between the window's presents (ms) are kept until TakePresentIntervals takes them (the
 // automatic graphics preset measures with them); off drops them. Nothing is kept where the renderer does not pace.
 void SamplePresentIntervals(bool on);

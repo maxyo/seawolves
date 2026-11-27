@@ -131,6 +131,9 @@ struct Settings
     float tonemap_strength = 0.6f; // 0 = untouched .. 1 = the full AgX curve
     GradePreset grade = GradePreset::Original;
     float grade_strength = 1.0f; // 0 = identity .. 1 = full preset
+    // The player's own warmth (-1 cool .. +1 warm) and saturation (1 as it is) over the grade: a game's options.
+    float grade_temperature = 0.0f;
+    float grade_saturation = 1.0f;
     bool bloom = false;
     uint8_t bloom_downscale = 4;   // 2 = bloom chain starts at half, 4 = at quarter resolution
     uint8_t bloom_levels = 4;      // dual-filter down/up steps (1..6)

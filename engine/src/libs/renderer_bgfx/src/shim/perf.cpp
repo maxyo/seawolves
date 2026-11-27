@@ -115,6 +115,11 @@ const PerfCounters &PerfTotals()
     return shim::totals;
 }
 
+uint64_t GpuMemoryBudget()
+{
+    return static_cast<uint64_t>(std::max<int64_t>(0, bgfx::getStats()->gpuMemoryMax));
+}
+
 PerfCounters PerfCounters::Since(const PerfCounters &start) const
 {
     PerfCounters d = *this;

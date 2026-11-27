@@ -3,6 +3,7 @@
 #include "storm/render/pipelines.hpp"
 #include "renderer_impl.h"
 #include "progress_view.hpp"
+#include "script_graphics.hpp"
 #include <platform/android_ui.hpp>
 #include <platform/android_runtime.hpp>
 #include <platform/android_interface_draw.hpp>
@@ -145,6 +146,18 @@ uint32_t ScriptSetTexturePath(VS_STACK *pS)
     return IFUNCRESULT_OK;
 }
 
+uint32_t ScriptGetTexturePath(VS_STACK *pS)
+{
+    const int32_t level = static_cast<VDATA *>(pS->Pop())->GetInt();
+    const bool valid = level >= 0 && level < 4;
+    if (!Renderer::pRS)
+        core.GetService("renderer");
+    if (!valid)
+        spdlog::error("GetTexturePath: no texture path {} (0..3)", level);
+    static_cast<VDATA *>(pS->Push())->Set(valid ? Renderer::pRS->TexturePath(level) : "");
+    return IFUNCRESULT_OK;
+}
+
 uint32_t RPrint(VS_STACK *pS)
 {
     auto *pString = (VDATA *)pS->Pop();
@@ -197,6 +210,12 @@ bool DX9RENDER_SCRIPT_LIBRIARY::Init()
     sIFuncInfo.pFuncAddress = ScriptSetTexturePath;
     core.SetScriptFunction(&sIFuncInfo);
 
+    sIFuncInfo.nArguments = 1;
+    sIFuncInfo.pFuncName = "GetTexturePath";
+    sIFuncInfo.pReturnValueName = "string";
+    sIFuncInfo.pFuncAddress = ScriptGetTexturePath;
+    core.SetScriptFunction(&sIFuncInfo);
+
     sIFuncInfo.nArguments = 3;
     sIFuncInfo.pFuncName = "RPrint";
     sIFuncInfo.pReturnValueName = "int";
@@ -221,6 +240,7 @@ bool DX9RENDER_SCRIPT_LIBRIARY::Init()
     sIFuncInfo.pFuncAddress = slReleaseTexture;
     core.SetScriptFunction(&sIFuncInfo);
 
+    storm::render::RegisterScriptGraphics();
     return true;
 }
 
@@ -477,10 +497,18 @@ void ApplyEffectsOverrides(std::string_view list, int &preset, std::vector<storm
     }
 }
 
+// The graphics options of the game's scripts (script_graphics.hpp): under `options`.
+std::vector<storm::render::EffectsOption> scriptEffectsOptions;
+
 // `auto_height` (the measured rung below «Низкая») applies to «Низкая» only; a developer fx_render_height wins.
 void ApplyEffects(int preset, uint16_t auto_height, const std::vector<storm::render::EffectsOption> &options)
 {
-    std::vector<storm::render::EffectsOption> applied = options;
+    std::vector<storm::render::EffectsOption> applied = scriptEffectsOptions;
+    for (const auto &option : options)
+    {
+        std::erase_if(applied, [&](const auto &script) { return script.name == option.name; });
+        applied.push_back(option);
+    }
     if (auto_height > 0 && preset == 0 &&
         std::none_of(options.begin(), options.end(), [](const auto &option) { return option.name == "fx_render_height"; }))
         applied.push_back({"fx_render_height", auto_height});
@@ -1046,6 +1074,26 @@ void ReconfigureGraphicsEffects(int width, int height)
 }
 #endif
 } // namespace
+
+namespace storm::render
+{
+void ApplyScriptGraphics(const ScriptGraphics &graphics)
+{
+#ifdef __ANDROID__
+    static bool said = false;
+    if (!std::exchange(said, true))
+        spdlog::info("graphics options of the game's scripts: the app's graphics settings decide on Android");
+#else
+    scriptEffectsOptions = ScriptGraphicsOptions(graphics);
+    ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
+#endif
+}
+
+int PresetAnisotropy()
+{
+    return storm::fx::Settings::FromPreset(static_cast<storm::fx::QualityPreset>(effectsPreset)).anisotropy;
+}
+} // namespace storm::render
 
 
 static bool texLog = false;

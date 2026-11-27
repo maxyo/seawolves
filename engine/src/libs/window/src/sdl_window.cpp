@@ -115,6 +115,17 @@ void SDLWindow::SetGamma(const uint16_t (&red)[256], const uint16_t (&green)[256
     SDL_SetWindowGammaRamp(window_.get(), red, green, blue);
 }
 
+std::vector<DisplayMode> SDLWindow::DisplayModes() const
+{
+    std::vector<DisplayMode> modes;
+    const int display = SDL_GetWindowDisplayIndex(window_.get());
+    const int count = display < 0 ? 0 : SDL_GetNumDisplayModes(display);
+    for (int i = 0; i < count; ++i)
+        if (SDL_DisplayMode mode{}; SDL_GetDisplayMode(display, i, &mode) == 0)
+            modes.push_back({mode.w, mode.h, mode.refresh_rate});
+    return modes;
+}
+
 int SDLWindow::Subscribe(const EventHandler &handler)
 {
     int id = 1;

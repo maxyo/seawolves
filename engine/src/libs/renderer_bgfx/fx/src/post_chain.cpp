@@ -97,7 +97,6 @@ void PostChain::Shutdown()
          {&s_scene_, &s_bloom_, &s_lut_, &u_bloom_, &u_shafts_, &u_tone_, &u_lut_, &u_smaa_, &s_smaa_edges_,
           &s_smaa_area_, &s_smaa_search_, &s_smaa_weights_, &u_fsr_, &u_fsr_out_, &s_scene_depth_})
         Destroy(*uniform);
-    lut_strength_ = -1.0f;
     pending_slice_ = -1;
 }
 
@@ -243,9 +242,8 @@ void PostChain::EnsureSmaaTables()
 
 void PostChain::EnsureLut(const Settings &settings, const ColorGrade &scene_grade, bool scene_cut)
 {
-    const float strength = std::clamp(settings.grade_strength, 0.0f, 1.0f);
     const ColorGrade scene = settings.scene_grading ? scene_grade : ColorGrade{};
-    const ColorGrade grade = ColorGrade::Lerp(ColorGrade{}, ColorGrade::Preset(settings.grade), strength);
+    const ColorGrade grade = PlayerGrade(settings);
     constexpr int size = kDefaultLutSize;
     const auto upload = [&](const std::vector<uint8_t> &texels) {
         const bgfx::Memory *memory = bgfx::copy(texels.data(), static_cast<uint32_t>(texels.size()));
@@ -255,12 +253,10 @@ void PostChain::EnsureLut(const Settings &settings, const ColorGrade &scene_grad
     };
 
     // The player's choice changed, a cut, or first use: the whole table now.
-    if (!bgfx::isValid(lut_) || lut_grade_ != settings.grade || lut_strength_ != strength ||
-        (scene_cut && !(lut_scene_ == scene)))
+    if (!bgfx::isValid(lut_) || !(lut_grade_ == grade) || (scene_cut && !(lut_scene_ == scene)))
     {
         upload(BuildLutRgba8(grade, size, scene));
-        lut_grade_ = settings.grade;
-        lut_strength_ = strength;
+        lut_grade_ = grade;
         lut_scene_ = scene;
         pending_slice_ = -1;
         return;

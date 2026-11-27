@@ -160,7 +160,8 @@ void ApplyTextureProcessing(Settings &s, const TextureProcessing &processing)
 
 bool Settings::PostIsIdentity() const
 {
-    const bool graded = grade != GradePreset::Original && grade_strength > 0.0f;
+    const bool graded = (grade != GradePreset::Original && grade_strength > 0.0f) || grade_temperature != 0.0f ||
+                        grade_saturation != 1.0f;
     return !tonemap && !graded && !bloom && !smaa && !sun_shafts && !dither && !lens_flare && !scene_grading;
 }
 

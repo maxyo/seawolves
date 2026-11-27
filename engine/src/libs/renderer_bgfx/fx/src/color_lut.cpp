@@ -19,6 +19,15 @@ float SCurve(float x, float k)
 }
 } // namespace
 
+ColorGrade PlayerGrade(const Settings &settings)
+{
+    ColorGrade grade = ColorGrade::Lerp(ColorGrade{}, ColorGrade::Preset(settings.grade),
+                                        std::clamp(settings.grade_strength, 0.0f, 1.0f));
+    grade.temperature += settings.grade_temperature;
+    grade.saturation *= settings.grade_saturation;
+    return grade;
+}
+
 ColorGrade ColorGrade::Preset(GradePreset preset)
 {
     ColorGrade g;

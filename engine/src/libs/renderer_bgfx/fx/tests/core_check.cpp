@@ -172,6 +172,24 @@ void CheckSettings()
     CHECK(!graded.PostIsIdentity());
     graded.grade_strength = 0.0f;
     CHECK(graded.PostIsIdentity());
+    // A game's warmth or saturation grades the picture on any preset, over the preset's grade.
+    for (const auto set :
+         {+[](Settings &s) { s.grade_temperature = 0.3f; }, +[](Settings &s) { s.grade_saturation = 0.5f; }})
+    {
+        Settings player = original;
+        set(player);
+        CHECK(!player.PostIsIdentity());
+        CHECK(!PlayerGrade(player).IsIdentity());
+    }
+    Settings warm = medium;
+    warm.grade_temperature = 0.5f;
+    const glm::vec3 grey{0.5f, 0.5f, 0.5f};
+    const glm::vec3 warmer = PlayerGrade(warm).Apply(grey), plain = PlayerGrade(medium).Apply(grey);
+    CHECK(warmer.r - warmer.b > plain.r - plain.b);
+    Settings grey_out = medium;
+    grey_out.grade_saturation = 0.0f;
+    const glm::vec3 red = PlayerGrade(grey_out).Apply({0.8f, 0.2f, 0.2f});
+    CHECK((Near(red.r, red.g, 0.01f) && Near(red.g, red.b, 0.01f)));
 }
 
 void CheckLut()

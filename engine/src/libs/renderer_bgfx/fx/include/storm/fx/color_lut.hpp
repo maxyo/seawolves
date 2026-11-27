@@ -51,6 +51,9 @@ struct ColorGrade
     glm::vec3 Apply(glm::vec3 rgb) const;
 };
 
+// The player's grade: the preset at its strength, with the player's warmth and saturation.
+ColorGrade PlayerGrade(const Settings &settings);
+
 inline constexpr int kDefaultLutSize = 32;
 
 // The grade for the current place and hour (Settings::scene_grading): a blend of the moods by the sky's night

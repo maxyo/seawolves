@@ -142,6 +142,12 @@ class Context final : public render::FrameOwner
     void resize(uint32_t width, uint32_t height);
     // Re-applies the reset flags (graphics effects changed the anisotropy) without a size change.
     void refresh_reset_flags();
+    // Presents in step with the display or not, from the next frame (render::SetVSync).
+    void set_vsync(bool on);
+    bool vsync() const
+    {
+        return vsync_;
+    }
     // Any thread: the display density changed; the game thread re-reads it at its next safe point.
     void request_density_refresh();
     // Any thread: Android handed over a surface; restore once SDL holds its native window. A surfaceDestroyed after

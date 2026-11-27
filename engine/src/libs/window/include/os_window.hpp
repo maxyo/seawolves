@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace storm
 {
@@ -10,6 +11,13 @@ struct WindowSize
 {
     int width{};
     int height{};
+};
+
+struct DisplayMode
+{
+    int width{};
+    int height{};
+    int refresh_hz{}; // 0: unknown
 };
 
 //! Abstract window
@@ -63,6 +71,8 @@ class OSWindow
     virtual void SetTitle(const std::string &title) = 0;
     //! Set window gamma
     virtual void SetGamma(const uint16_t (&red)[256], const uint16_t (&green)[256], const uint16_t (&blue)[256]) = 0;
+    //! The modes of the display the window is on; empty when they are unknown
+    virtual std::vector<DisplayMode> DisplayModes() const = 0;
 
     //! Subscribe for events
     //! \param handler event callback
