@@ -80,6 +80,11 @@ void ScriptRunning(bool running) noexcept
         ScriptStateMayChange();
 }
 
+bool ScriptsRunning() noexcept
+{
+    return scriptRunning;
+}
+
 uint64_t ScriptStateEpoch() noexcept
 {
     return scriptStateEpoch;

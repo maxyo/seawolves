@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <deque>
 #include <string>
+#include <vector>
 
 #include <catch2/catch.hpp>
 
@@ -161,4 +162,41 @@ TEST_CASE("mobile_action_frame")
     std::puts("PASS the touch UI's widget actions never click: a re-selection and a 50-step drag are silent");
     std::puts("PASS store re-selection: each action's script event before the next action keeps the store open, in one "
               "frame, the next row's deal starts at 0");
+}
+
+// A confirmed deal that deals again (the store's adapter): the game's TransactionOK closes the window; the screen,
+// given the model after it, opens the same row again, and that window is in the model of the same frame.
+TEST_CASE("the next step of the game's answer is in the model of the tap's frame")
+{
+    Interface game;
+    game.actions = {"row:0"};
+    game.Frame(true);
+    std::vector<bool> models; // what each model handed to the screen in the frame shows: a window open
+    const auto screen = [&] {
+        models.push_back(game.store.deal);
+        if (!game.store.deal)
+            game.actions.push_back("row:0"); // the adapter's step "again"
+    };
+    game.actions = {"row:0"}; // OK with an amount: TransactionOK closes the deal (ShowItemInfo with the window open)
+    game.Frame(true);
+    screen(); // the frame's model (Realize)
+    const bool settled = storm::mobile::SettleActions([&] { return !game.actions.empty(); },
+                                                      [&] {
+                                                          game.Frame(true);
+                                                          screen();
+                                                      });
+    REQUIRE(settled);
+    REQUIRE(models == std::vector<bool>{false, true});
+
+    // A screen that sends on every build: stopped after kSettleRounds, the rest left for the next frame.
+    int rounds = 0;
+    game.actions = {"cancel"};
+    REQUIRE_FALSE(storm::mobile::SettleActions([&] { return !game.actions.empty(); },
+                                               [&] {
+                                                   game.Frame(true);
+                                                   game.actions.push_back("cancel");
+                                                   ++rounds;
+                                               }));
+    REQUIRE(rounds == storm::mobile::kSettleRounds);
+    REQUIRE(game.actions.size() == 1);
 }

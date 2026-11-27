@@ -581,7 +581,6 @@ bool XINTERFACE::MobileModelDue(const std::optional<storm::mobile::SaveListSnaps
         __system_property_get("log.tag.StormUiModelCheck", setting);
         mobileModelCheck_ = std::string_view(setting) == "DEBUG";
     }
-    ++mobileModelStats_.frames;
     const char *language = pStringService ? pStringService->GetLanguage() : nullptr;
     auto &why = mobileModelStats_;
     const bool first = !mobileModelInputs_ || mobileModelInputs_->opening != opening;
@@ -674,43 +673,15 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 #include "mobile_colony_loot.inc"
 #endif
 
-void XINTERFACE::Realize(uint32_t)
+#ifdef __ANDROID__
+// The interface model goes out in the frame it changes, as the struct itself (the UI host is in
+// this process): collected again only when something it is made of may have changed
+// (MobileModelInputs), published only when the collection differs from the last one. The save
+// screen's model is complete only once the script has filled its save list (ReadSaveList: an
+// empty list is readable, a list not yet filled is not); before that nothing is sent, so the UI
+// never gets a save screen without its saves.
+void XINTERFACE::MobileModelFrame()
 {
-    if (!m_bUse || !bActive)
-        return;
-
-    pRenderService->MakePostProcess();
-
-#ifdef __ANDROID__
-    // The portable UI draws every open interface: the game's own one only runs its nodes.
-    const storm::android::NativeInterfaceDrawScope mobileDrawScope(!storm::android::mobileScreen.empty());
-#endif
-
-    auto Delta_Time = core.GetRDeltaTime();
-
-    glm::mat4 moldv, moldp, moldw;
-
-    uint32_t dwFogFlag;
-    pRenderService->GetRenderState(D3DRS_FOGENABLE, &dwFogFlag);
-    if (pRenderService->TechniqueExecuteStart("iStartTechnique"))
-        while (pRenderService->TechniqueExecuteNext())
-            ;
-
-    pRenderService->GetTransform(D3DTS_VIEW, storm::math::d3dMatrix(moldv));
-    pRenderService->GetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(moldp));
-    pRenderService->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(matw));
-    pRenderService->SetTransform(D3DTS_VIEW, storm::math::d3dMatrix(matv));
-    pRenderService->SetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(matp));
-
-    DrawNode(m_pNodes, Delta_Time, 0, 80);
-
-#ifdef __ANDROID__
-    // The interface model goes out in the frame it changes, as the struct itself (the UI host is in
-    // this process): collected again only when something it is made of may have changed
-    // (MobileModelInputs), published only when the collection differs from the last one. The save
-    // screen's model is complete only once the script has filled its save list (ReadSaveList: an
-    // empty list is readable, a list not yet filled is not); before that nothing is sent, so the UI
-    // never gets a save screen without its saves.
     if (storm::android::mobileScreen == "save_load")
         MobileKeepSaveProfile();
     const auto saves = storm::mobile::ReadSaveList();
@@ -900,6 +871,66 @@ void XINTERFACE::Realize(uint32_t)
         reads.reset();
         MobilePublishModel(std::move(widgets), saves);
     }
+}
+
+// The touch UI's answer in the frame of its action (storm::mobile::SettleActions): what the screen sent when it got
+// this frame's model (the next step of the game's answer: a row's window after its selection, a confirmed deal opened
+// again) is applied and the model collected again before the UI draws. At the end of Realize: an action's handler may
+// release this interface or open another, and nothing of this frame's drawing follows. Not from inside a script (a
+// load draws its progress from one): script events must not be raised there; the next frame settles.
+void XINTERFACE::MobileSettle()
+{
+    if (storm::ScriptsRunning())
+        return;
+    const uint64_t opening = storm::android::mobileScreenRevision;
+    const auto same = [&] { return m_bUse && storm::android::mobileScreenRevision == opening; };
+    const bool settled = storm::mobile::SettleActions(
+        [&] { return same() && !storm::android::uiWidgetActions.empty(); },
+        [&] {
+            MobileApplyActions();
+            if (same())
+                MobileModelFrame();
+        });
+    if (!settled)
+        spdlog::error("UI {}: its screen still sent actions after {} rounds of the game's answer in one frame; the "
+                      "rest are applied in the next frame",
+                      storm::android::mobileScreen, storm::mobile::kSettleRounds);
+}
+#endif
+
+void XINTERFACE::Realize(uint32_t)
+{
+    if (!m_bUse || !bActive)
+        return;
+
+    pRenderService->MakePostProcess();
+
+#ifdef __ANDROID__
+    // The portable UI draws every open interface: the game's own one only runs its nodes.
+    const storm::android::NativeInterfaceDrawScope mobileDrawScope(!storm::android::mobileScreen.empty());
+#endif
+
+    auto Delta_Time = core.GetRDeltaTime();
+
+    glm::mat4 moldv, moldp, moldw;
+
+    uint32_t dwFogFlag;
+    pRenderService->GetRenderState(D3DRS_FOGENABLE, &dwFogFlag);
+    if (pRenderService->TechniqueExecuteStart("iStartTechnique"))
+        while (pRenderService->TechniqueExecuteNext())
+            ;
+
+    pRenderService->GetTransform(D3DTS_VIEW, storm::math::d3dMatrix(moldv));
+    pRenderService->GetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(moldp));
+    pRenderService->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(matw));
+    pRenderService->SetTransform(D3DTS_VIEW, storm::math::d3dMatrix(matv));
+    pRenderService->SetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(matp));
+
+    DrawNode(m_pNodes, Delta_Time, 0, 80);
+
+#ifdef __ANDROID__
+    MobileModelFrame();
+    ++mobileModelStats_.frames;
 #endif
 
     auto *pOldNode = m_pCurNode;
@@ -1000,6 +1031,9 @@ void XINTERFACE::Realize(uint32_t)
 
     pRenderService->SetTransform(D3DTS_VIEW, storm::math::d3dMatrix(moldv));
     pRenderService->SetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(moldp));
+#ifdef __ANDROID__
+    MobileSettle();
+#endif
 }
 
 int32_t oldCurNum = -1L;
@@ -2681,8 +2715,8 @@ void XINTERFACE::DrawNode(CINODE *nod, uint32_t Delta_Time, int32_t startPrior, 
 }
 
 #ifdef __ANDROID__
-// Answers a widget action: refused at once, applied now or, when it queued script events (they run
-// at the next Execute), once they have run, so that the model the UI gets next shows its result.
+// Answers a widget action: refused at once, applied now or, when it queued script events, once they
+// have run (MobileApplyActions runs them next), so that the model the UI gets next shows its result.
 void XINTERFACE::MobileAnswer(uint64_t request, const storm::mobile::ActionOutcome &outcome, bool queuedEvents)
 {
     if (outcome.state == storm::mobile::ActionOutcome::Deferred)
@@ -2932,6 +2966,40 @@ void XINTERFACE::RunNodeEvents()
     });
 }
 
+#ifdef __ANDROID__
+// The touch UI's actions queued so far, in the order the player made them. The script events an action queued run
+// before the next action is applied and before the model goes out (mobile_action_frame.hpp): the UI draws the game's
+// answer in the frame of the tap. The scripts' own posted events keep their time.
+void XINTERFACE::MobileApplyActions()
+{
+    while (!storm::android::uiWidgetActions.empty() && m_bUse)
+    {
+        auto action = storm::android::uiWidgetActions.front();
+        storm::android::uiWidgetActions.pop_front();
+        if (action.screen != storm::android::mobileScreen)
+        {
+            storm::android::ui::answer(action.request, false, "another interface is open");
+            continue;
+        }
+        // Whatever it does, the model is collected again and goes out (unchanged, it is the answer).
+        ++mobileChanges_;
+        mobileModelResend_ = true;
+        const storm::mobile::UiAction::Scope programmatic(storm::mobile::uiAction); // silent: the UI clicked for the press
+        const uint64_t eventsBefore = m_events.Added();
+        const auto outcome = MobileApplyAction(action);
+        if (outcome.state == storm::mobile::ActionOutcome::Refused)
+            spdlog::info("UI action {} {}[{}] '{}' refused: {}", action.screen, action.node, action.index, action.value, outcome.reason);
+        const bool queued = m_events.Added() != eventsBefore;
+        MobileAnswer(action.request, outcome, queued);
+        if (queued)
+        {
+            RunNodeEvents();
+            MobileFlushAnswers();
+        }
+    }
+}
+#endif
+
 void XINTERFACE::DoControl()
 {
     int32_t nExitKey;
@@ -2961,34 +3029,7 @@ void XINTERFACE::DoControl()
             MobileAnswer(request, {}, true);
         }
     }
-    // The touch UI's actions of this frame, in the order the player made them. The script events an action queued
-    // run before the next action is applied and before this frame's model goes out (mobile_action_frame.hpp): the
-    // UI draws the game's answer in the frame of the tap. The scripts' own posted events keep their time.
-    while (!storm::android::uiWidgetActions.empty() && m_bUse)
-    {
-        auto action = storm::android::uiWidgetActions.front();
-        storm::android::uiWidgetActions.pop_front();
-        if (action.screen != storm::android::mobileScreen)
-        {
-            storm::android::ui::answer(action.request, false, "another interface is open");
-            continue;
-        }
-        // Whatever it does, the model is collected again and goes out (unchanged, it is the answer).
-        ++mobileChanges_;
-        mobileModelResend_ = true;
-        const storm::mobile::UiAction::Scope programmatic(storm::mobile::uiAction); // silent: the UI clicked for the press
-        const uint64_t eventsBefore = m_events.Added();
-        const auto outcome = MobileApplyAction(action);
-        if (outcome.state == storm::mobile::ActionOutcome::Refused)
-            spdlog::info("UI action {} {}[{}] '{}' refused: {}", action.screen, action.node, action.index, action.value, outcome.reason);
-        const bool queued = m_events.Added() != eventsBefore;
-        MobileAnswer(action.request, outcome, queued);
-        if (queued)
-        {
-            RunNodeEvents();
-            MobileFlushAnswers();
-        }
-    }
+    MobileApplyActions();
     if (!m_bUse) return;
 #endif
     core.Controls->GetControlState("IContextHelp", cs);

@@ -173,12 +173,15 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         if (!(seconds > 0.0))
             throw std::runtime_error("a hold lasts more than 0 s");
+        // A hold that is still waiting keeps its first action: a move made meanwhile that sent nothing answers none.
+        hold_floor_ = hold_ ? std::min(hold_floor_, floor_) : floor_;
         hold_ = true;
-        hold_floor_ = floor_;
         hold_seconds_ = seconds;
         hold_until_ = bindings_->Now() + seconds;
         if (building_)
             answer_ = HoldState();
+        else
+            bindings_->BuildLater();
         bindings_->RebuildAfter(seconds);
     }
     std::string Answer() const override

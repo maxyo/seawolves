@@ -194,6 +194,10 @@ class Bindings
     // The game's answer to what the screen asked is not complete in this model: more of it comes in a later game
     // frame. Said by the build that knows it: a prediction stays until then and the action is not settled yet.
     void Await();
+    // Inside an event: what it sent the engine answers before the frame is drawn (the game's handlers run in the
+    // tap's frame), so the view it changed is built with the model of that answer, or at the next tick without one,
+    // not twice.
+    void BuildLater();
     // The subject a HUD tap asked this screen to open on (hud::Hud::RequestSubject), taken once.
     std::optional<SubjectRequest> TakeSubject(const std::string &screen);
     // Builds the view again after `seconds` even if no new model comes (local state that
@@ -519,7 +523,9 @@ class Router
     const Event *current_ = nullptr;
     bool sent_in_event_ = false;
     bool rebuild_ = false;
-    bool awaiting_ = false; // Bindings::Await in the current build
+    bool awaiting_ = false;    // Bindings::Await in the current build
+    bool build_later_ = false; // Bindings::BuildLater in the current event
+    bool later_ = false;       // a build an event left for the model of its answer or the next tick
     double last_flush_ = -1.0;
     double rebuild_at_ = 0.0;   // Bindings::RebuildAfter
     double opened_at_ = 0.0;    // when the open interface was opened

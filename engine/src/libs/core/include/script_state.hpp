@@ -57,6 +57,8 @@ struct ScriptNameLookups
 ScriptNameLookups &NameLookups() noexcept;
 // Scripts are running (the VM's own lookups are not the engine's).
 void ScriptRunning(bool running) noexcept;
+// A script is running now: engine code called from inside one must not raise script events.
+bool ScriptsRunning() noexcept;
 
 // Advances whenever the game state can have changed: at every core frame (CoreImpl::Run: scripts, entities, loading)
 // and whenever engine code starts a script outside one (an event raised by input or a HUD command). Native readers

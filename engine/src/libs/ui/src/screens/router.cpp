@@ -484,6 +484,11 @@ void Bindings::Await()
     router_.awaiting_ = true;
 }
 
+void Bindings::BuildLater()
+{
+    router_.build_later_ = true;
+}
+
 void Bindings::RebuildAfter(double seconds)
 {
     const double when = router_.surface_.Now() + std::max(0.0, seconds);
@@ -520,16 +525,16 @@ Bindings::Answers Bindings::AnsweredSince(uint64_t floor) const
         return Answers::Waiting; // something of it has not gone out yet
     if (router_.outstanding_.lower_bound(floor) != router_.outstanding_.end())
         return Answers::Waiting;
-    bool any = false;
+    // A refusal is the answer however many applied ones still wait for their model.
+    bool any = false, modelled = true;
     for (auto it = router_.answers_.lower_bound(floor); it != router_.answers_.end(); ++it)
     {
         if (!it->second.applied)
             return Answers::Refused;
-        if (!it->second.model_after)
-            return Answers::Waiting;
+        modelled = modelled && it->second.model_after;
         any = true;
     }
-    return any ? Answers::Applied : Answers::Waiting;
+    return any && modelled ? Answers::Applied : Answers::Waiting;
 }
 
 // --- Router -----------------------------------------------------------------------------
@@ -821,6 +826,7 @@ void Router::BuildView()
     notices_building_.clear();
     rebuild_ = false;
     awaiting_ = false;
+    later_ = false;
     // A deadline still ahead stays (Bindings::RebuildAfter from an event handler: the build that
     // follows the event must not drop it); one that came is spent.
     if (rebuild_at_ > 0.0 && rebuild_at_ <= surface_.Now())
@@ -1078,6 +1084,7 @@ bool Router::OnEvent(const Event &event)
     const uint64_t floor = next_request_ + 1;
     current_ = &event;
     sent_in_event_ = false;
+    build_later_ = false;
     bindings_.handled_ = nullptr;
     if (!Guarded("the handler of " + event.id + " " + event.verb, [&] { handler(event); }))
         return true; // Failed closed the interface
@@ -1103,7 +1110,12 @@ bool Router::OnEvent(const Event &event)
         rebuild_ = true;
     }
     if (rebuild_ && screen_)
-        Build();
+    {
+        if (build_later_ && sent_in_event_)
+            later_ = true;
+        else
+            Build();
+    }
     return true;
 }
 
@@ -1193,7 +1205,7 @@ double Router::Tick()
     }
     if (!screen_)
         return kIdle;
-    if (rebuild_at_ > 0.0 && now >= rebuild_at_)
+    if (later_ || (rebuild_at_ > 0.0 && now >= rebuild_at_))
         Build();
     double next = rebuild_at_ > 0.0 ? rebuild_at_ - now : kIdle;
     // In the order they were asked for: an edit goes out before the press that confirms it.

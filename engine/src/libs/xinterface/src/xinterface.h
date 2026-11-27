@@ -338,6 +338,9 @@ class XINTERFACE : public XINTERFACE_BASE
 
 #ifdef __ANDROID__
     void MobileCollectWidgets(std::vector<MobileWidget> &widgets);
+    void MobileApplyActions();
+    void MobileModelFrame(); // collected when due, published when changed
+    void MobileSettle();
     storm::mobile::ActionOutcome MobileApplyAction(storm::android::UiWidgetAction &action);
     void MobileAnswer(uint64_t request, const storm::mobile::ActionOutcome &outcome, bool queuedEvents);
     void MobileFlushAnswers();

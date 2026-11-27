@@ -39,6 +39,16 @@ engine code that the host checks build on Linux (`tests/ui_scripts`):
   for while a script runs is refused with an error, and a script screen's model published from inside a script waits
   for the next `Tick`. Their cost per call is in the `script work:` line ("interface scripts").
 
+A tap's answer is drawn in the tap's frame. The touches are applied at the top of the loop, so the widget actions a
+tap sends are applied by the interface's `Execute` (`XINTERFACE::MobileApplyActions`: each action's script events run
+before the next action); its `Realize` collects the model and hands it to the screen, whose build may send the next
+step of the game's answer (a row's window after its selection, a confirmed deal opened again). Those are applied and
+the model collected again before the frame is drawn (`MobileSettle`, `storm::mobile::SettleActions`, at most
+`kSettleRounds` rounds, an error naming the screen past them; never from inside a script). Steps the game makes in its
+own per-frame handlers (`ProcessFrame` on the `frame` event: TEHO's store binds a switched ship there) still take its
+next frame. An event of a script screen that holds (`UiHold`) is built once, with the model of its answer
+(`Bindings::BuildLater`), not before and again after it.
+
 Every screen switch logs one line (`StormUi` INFO): `UI switch <screen>: first frame N ms after the action …`.
 
 ## Debug logging
