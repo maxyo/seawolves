@@ -227,7 +227,7 @@ struct FfDraw
     // A game's own material (fs_ff_pbr.sc): its maps (normal, rma, emission; null: none), made with the stages'
     // textures (Device::bind_textures), which sets `normal_map`, `material` and `emission` from them; u_fxPbr.
     bool pbr = false;
-    std::array<shim::BaseTexture *, 4> pbr_maps{}; // and the layer mask
+    std::array<shim::BaseTexture *, 6> pbr_maps{}; // and the layer mask, the puddle's mask and normal map
     bgfx::TextureHandle emission = BGFX_INVALID_HANDLE;
     uint32_t emission_flags = 0;
     std::array<float, 8> pbr_uniform{};
@@ -239,6 +239,10 @@ struct FfDraw
     uint32_t layer_flags = 0;
     std::array<bgfx::TextureHandle, 3> layer_arrays{{BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE}};
     std::array<float, 16> layer_uniform{};
+    // A puddle (u_fxPbr[1].z = 1): its mask and normal map (made with the maps) on fx::kPuddleMaskStage and
+    // fx::kPuddleNormalStage.
+    bgfx::TextureHandle puddle_mask = BGFX_INVALID_HANDLE, puddle_normal = BGFX_INVALID_HANDLE;
+    uint32_t puddle_mask_flags = 0, puddle_normal_flags = 0;
 };
 
 // The weather's wetness of this frame for the draws outdoors (effects::Host, environment::State::wetness).
@@ -246,7 +250,10 @@ struct WetFrame
 {
     float level = 0.0f; // 0 dry (or no weather: interiors) .. 1 soaked
     glm::vec3 sky{};    // the sky the wet surfaces reflect: the weather's fog colour (its horizon), darker at night
+    float rain = 0.0f;  // falling now, 0..1: the rings on the puddles
+    float time = 0.0f;  // seconds, wrapped at kRippleSeconds (ff_puddle.sh: its rings repeat over that period)
 };
+inline constexpr float kRippleSeconds = 5000.0f;
 
 // Whether a draw reads the relief (normal) map and the gloss of its textures at these settings: `has_normal` its
 // vertices carry normals, `character` a lit character draw. Only such a draw asks NormalMaps for the maps (and so has
@@ -539,6 +546,7 @@ class Lighting
     bool environment_set_ = false;
     bool environment_reported_ = false;
     bgfx::UniformHandle u_pbr_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_puddle_mask_ = BGFX_INVALID_HANDLE, s_puddle_normal_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_emission_ = BGFX_INVALID_HANDLE;
     void prepare_layers(DrawPrep &p, bool normal);
     void bind_layers(const FfDraw &draw);

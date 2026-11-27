@@ -38,6 +38,9 @@ inline constexpr uint8_t kMaterialStage = 7;
 // The emission of a game's own material (fs_ff_pbr.sc): the unit of stage 2, which a material's draw does not read
 // (its colour is stage 0's, its occlusion stage 1's), so it is no claim of kFxStages.
 inline constexpr uint8_t kEmissionStage = 2;
+// A puddle's mask and water normal map (fs_ff_pbr.sc): the units of stages 3 and 4, for the same reason.
+inline constexpr uint8_t kPuddleMaskStage = 3;
+inline constexpr uint8_t kPuddleNormalStage = 4;
 // The point lights' and lamps' aggregate payload (fx_lighting.sh s_fxAggregate): the unit of the stage 1 cube map.
 inline constexpr uint8_t kAggregateStage = 6;
 // Every unit above, with the emulator's own stages 0..4 (and the renderer's bone palette at 13, shim/device.hpp),

@@ -495,6 +495,10 @@ void Host::update_wetness()
     if (settings_.wet_surfaces)
     {
         wet.level = settings_.wet_force >= 0.0f ? std::min(settings_.wet_force, 1.0f) : env_.wetness;
+        wet.rain = env_.rain;
+        wet.time = static_cast<float>(
+            std::fmod(std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(),
+                      kRippleSeconds));
         // The fog colour is the sky's at the horizon by day; the night sky the surfaces reflect is darker than its fog.
         const float t = std::clamp((env_.sun_dir[1] + 0.1f) / 0.25f, 0.0f, 1.0f);
         const float day = t * t * (3.0f - 2.0f * t);

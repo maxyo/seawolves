@@ -59,6 +59,9 @@ struct ModelMaterial
     float normal_strength = 1.0f;
     std::string mask_texture;
     std::array<LayerTextures, 3> layers; // r, g, b
+    // A puddle: water gathers where its mask passes the rain's threshold; the water's normal map.
+    bool puddle_material = false;
+    std::string puddle_mask_texture, puddle_normal_texture;
 };
 
 struct ModelSidecar

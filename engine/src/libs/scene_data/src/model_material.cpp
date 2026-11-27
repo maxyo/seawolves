@@ -53,6 +53,12 @@ void ReadMaterial(Reader &reader, const Json &object, const std::string &path, M
             reader.Bool(value, child, material.point_light);
         else if (key == "layer_material")
             reader.Bool(value, child, material.layer_material);
+        else if (key == "puddle_material")
+            reader.Bool(value, child, material.puddle_material);
+        else if (key == "puddle_mask_texture")
+            reader.String(value, child, material.puddle_mask_texture);
+        else if (key == "puddle_normal_texture")
+            reader.String(value, child, material.puddle_normal_texture);
         else if (key == "rma_texture")
             reader.String(value, child, material.rma_texture);
         else if (key == "normal_texture")

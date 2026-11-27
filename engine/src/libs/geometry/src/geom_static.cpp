@@ -454,6 +454,17 @@ void GEOM::LoadSurfaces(const char *fname)
         surface.blended = entry.alpha || entry.alpha_ccw;
         if (entry.layer_material)
             LoadLayers(entry, surface, texture, fname);
+        else if (entry.puddle_material)
+        {
+            surface.puddle_mask = texture(entry.puddle_mask_texture, true);
+            surface.puddle_normal = texture(entry.puddle_normal_texture, true);
+            if (surface.puddle_mask < 0 || surface.puddle_normal < 0)
+            {
+                spdlog::error("materials: a puddle of {} lacks its mask or normal map: drawn as its ground", fname);
+                surface.puddle_mask = surface.puddle_normal = -1;
+            }
+            surface.blended |= surface.puddle_mask >= 0; // lies over its ground, nothing of it when dry
+        }
     }
 }
 

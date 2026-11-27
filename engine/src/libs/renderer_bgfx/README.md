@@ -177,6 +177,13 @@ terms move to the fragment shader (`fx_lighting.sh`, `fx_coverage.sh`), then cal
 - Wet surfaces (`environment::State::wetness`, `ff_wet.sh`): in and after the rain, outdoor lit and baked draws (not
   characters or sails) get wet where the visibility volume shows the sky above them; the wet gloss drives the
   highlights, so wet baked draws take the specular variant.
+- Puddles (`ff_puddle.sh`): one look for every game. The bed is a game's puddle mesh's mask where it has them
+  (Materials, below; with the wet surfaces, «Средняя» and «Высокая») and the relief's hollows below 40 % of its depth
+  on flat ground where it has none (with the height maps, «Высокая»). Caribbean Legend's growth: water where the bed passes a threshold falling from 1 to 0.01
+  as wetness^0.65 rises, a soaked ring 0.045 wide outside it; the water lies over the ground as near-black at 70 %,
+  the ring as black at 45 %, the water's roughness 0.02, and while it rains two layers of drops' rings stir it
+  (`u_fxWet[1].w` real seconds wrapped at `kRippleSeconds`, over which every rate repeats). Cost: the rings (two
+  cells' hash, ring and fade) only in the pixels under water, about 50 ALU there.
 - Aerial perspective (`kLightingAerial`): every fixed-function draw whose fog is the game's exp fog takes fog mode 5
   (`fx_aerial.sh`); draws with a ported vertex shader keep the fixed-function fog (reported once), and without weather
   (interiors) the game's fog stays.
@@ -235,6 +242,11 @@ once each.
 - Rain: with the wet surfaces (`Settings::wet_surfaces`) an outdoor material's roughness where the rain reaches
   (`ffWetAt`, as the wet surfaces above) is multiplied by Caribbean Legend's weather roughness, (2 - wetness) / 2 of
   the environment's wetness; characters and sails keep theirs. All four families hold the WET block for it.
+- Puddle meshes (`puddle_material` with `puddle_mask_texture` and `puddle_normal_texture`): drawn blended over their
+  ground, transparent when dry; the mask (R, first texture coordinates, through a square root as the game reads it)
+  is the bed of the puddle look above, the normal map (second texture coordinates, at 5.5 and 9.35 times, drifting)
+  the water's surface. Units 3 and 4 (`fx::kPuddleMaskStage`, `kPuddleNormalStage`: stages a material does not read).
+  Two more fetches and the puddle look in their pixels only (a uniform branch elsewhere).
 
 ### Lamps (`lamp_shadows.hpp`)
 

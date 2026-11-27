@@ -155,6 +155,7 @@ class GEOS
         ID layer_mask = -1;
         std::array<float, 4> layer_tiling{1.0f, 1.0f, 1.0f, 1.0f};
         float normal_strength = 1.0f;
+        ID puddle_mask = -1, puddle_normal = -1; // a puddle (both set) or none
     };
 
     virtual int32_t FindMaterialN(int32_t start_index, int32_t name_id) = 0;

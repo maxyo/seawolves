@@ -160,6 +160,9 @@ struct EffectsSurfaceMaterial
     shim::BaseTexture *layer_mask = nullptr;
     std::array<float, 4> layer_tiling{1.0f, 1.0f, 1.0f, 1.0f}; // base, r, g, b: times the first texture coordinates
     float normal_strength = 1.0f;
+    // A puddle (both or neither): where its mask (R, on the first texture coordinates) passes the rain's threshold the
+    // ground is under water whose normal map this is (renderer_bgfx README, "Materials").
+    shim::BaseTexture *puddle_mask = nullptr, *puddle_normal = nullptr;
 };
 void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material);
 // A texture the game ships as a material's normal or rma map: its mips are averaged as numbers, not as colour.

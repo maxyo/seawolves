@@ -463,7 +463,9 @@ void GEOM_SERVICE_R::SetSurface(const GEOS::SURFACE *surface)
                 .layers = surface->layers.get(),
                 .layer_mask = texture(surface->layer_mask),
                 .layer_tiling = surface->layer_tiling,
-                .normal_strength = surface->normal_strength};
+                .normal_strength = surface->normal_strength,
+                .puddle_mask = texture(surface->puddle_mask),
+                .puddle_normal = texture(surface->puddle_normal)};
     storm::render::SetEffectsSurfaceMaterial(&surface_);
     // SetMaterial left blending off; techniques that set these states still override them for their passes.
     RenderService->SetRenderState(D3DRS_ALPHABLENDENABLE, surface->blended);

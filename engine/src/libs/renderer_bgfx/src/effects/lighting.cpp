@@ -875,8 +875,8 @@ bool Lighting::begin_variant(DrawPrep &p)
     }
     if (p.wet)
     {
-        draw.wet = {{{wet_.level, settings_.wet_surfaces >= 2 ? 1.0f : 0.0f, 0.0f, 0.0f},
-                     {wet_.sky[0], wet_.sky[1], wet_.sky[2], 0.0f}}};
+        draw.wet = {{{wet_.level, settings_.wet_surfaces >= 2 ? 1.0f : 0.0f, wet_.rain, 0.0f},
+                     {wet_.sky[0], wet_.sky[1], wet_.sky[2], wet_.time}}};
         ++frame_.wet;
     }
     // Compound fallback also needs absolute view-to-world with lamp shadows disabled.
@@ -1263,7 +1263,13 @@ void Lighting::prepare_material(DrawPrep &p)
     draw.ff = {};
     const bool normal = settings_.material_maps && surface.normal;
     draw.pbr = true;
-    draw.pbr_maps = {normal ? surface.normal : nullptr, surface.rma, surface.emission, nullptr};
+    const bool puddle = surface.puddle_mask && surface.puddle_normal && !surface.layers;
+    draw.pbr_maps = {normal ? surface.normal : nullptr,
+                     surface.rma,
+                     surface.emission,
+                     nullptr,
+                     puddle ? surface.puddle_mask : nullptr,
+                     puddle ? surface.puddle_normal : nullptr};
     const bool occlusion = surface.occlusion_uv1 && p.device.s.textures[1];
     const float exposure = environment_set_ ? environment_.exposure : 1.0f;
     const float emission = environment_set_ ? environment_.emission : 1.0f;
@@ -1273,7 +1279,7 @@ void Lighting::prepare_material(DrawPrep &p)
                         occlusion ? 1.0f : 0.0f,
                         exposure,
                         surface.emission ? surface.emission_strength * emission : 0.0f,
-                        0.0f,
+                        puddle ? 1.0f : 0.0f,
                         0.0f};
     draw.layer = false;
     if (surface.layers && surface.layer_mask)
@@ -1628,6 +1634,16 @@ void Lighting::submit(const FfDraw &draw)
             bind_layers(draw);
         else if (bgfx::isValid(draw.emission))
             bgfx::setTexture(fx::kEmissionStage, s_emission_, draw.emission, draw.emission_flags);
+        if (bgfx::isValid(draw.puddle_mask) && bgfx::isValid(draw.puddle_normal))
+        {
+            if (!bgfx::isValid(s_puddle_mask_))
+            {
+                s_puddle_mask_ = bgfx::createUniform("s_fxPuddleMask", bgfx::UniformType::Sampler);
+                s_puddle_normal_ = bgfx::createUniform("s_fxPuddleNormal", bgfx::UniformType::Sampler);
+            }
+            bgfx::setTexture(fx::kPuddleMaskStage, s_puddle_mask_, draw.puddle_mask, draw.puddle_mask_flags);
+            bgfx::setTexture(fx::kPuddleNormalStage, s_puddle_normal_, draw.puddle_normal, draw.puddle_normal_flags);
+        }
     }
     if (draw.parallax_variant)
         fx_.SetParallax(draw.parallax);
@@ -1953,10 +1969,10 @@ void Lighting::shutdown()
         bgfx::destroy(empty_layers_);
     empty_layers_ = BGFX_INVALID_HANDLE;
     for (bgfx::UniformHandle *u :
-         {&u_coverage_,  &u_ff_,        &u_wet_,       &u_gloss_,      &u_skin_tone_,         &u_aerial_up_,
-          &s_ao_volume_, &u_ao_matrix_, &u_ao_params_, &s_visibility_, &u_visibility_matrix_, &u_visibility_params_,
-          &u_town_wall_, &u_pbr_,       &s_emission_,  &u_layer_,      &s_layer_[0],          &s_layer_[1],
-          &s_layer_[2],  &s_layer_[3]})
+         {&u_coverage_,  &u_ff_,        &u_wet_,         &u_gloss_,        &u_skin_tone_,         &u_aerial_up_,
+          &s_ao_volume_, &u_ao_matrix_, &u_ao_params_,   &s_visibility_,   &u_visibility_matrix_, &u_visibility_params_,
+          &u_town_wall_, &u_pbr_,       &s_emission_,    &u_layer_,        &s_layer_[0],          &s_layer_[1],
+          &s_layer_[2],  &s_layer_[3],  &s_puddle_mask_, &s_puddle_normal_})
     {
         if (bgfx::isValid(*u))
             bgfx::destroy(*u);

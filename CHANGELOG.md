@@ -31,6 +31,10 @@
   дождя, а после него сохнет около трёх игровых часов (на треть за час), а не за четыре минуты. В «Каждому своё»
   улица остаётся мокрой и после выхода из таверны или дома. На «Средней» и «Высокой» в Caribbean Legend материалы
   под открытым небом в дождь и после него становятся глаже (шероховатость до половины), как в её движке.
+- Лужи одни для всех игр, как в Caribbean Legend: растут с сыростью от самых глубоких мест, вокруг воды — тёмная
+  мокрая кайма, вода почти чёрная и гладкая, в дождь по ней расходятся круги от капель. Caribbean Legend: лужи
+  самой игры (Бриджтаун, Гваделупа) больше не лежат тёмными пятнами в сухую погоду — их не видно, пока не
+  намокнет. В «Каждому своё» на «Высокой» лужи по-прежнему собираются в углублениях рельефа, но тем же видом.
 - Caribbean Legend: арифметика над числом, переданным в функцию по ссылке, больше не записывает результат в само это
   число, — так считались, например, скидки бюджета эскадры и цены торговых сделок.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
@@ -151,6 +155,11 @@
   four minutes. In «Каждому своё» the street stays wet after leaving a tavern or a house too. On «Средняя» and
   «Высокая» Caribbean Legend's materials under the open sky get smoother in and after the rain (roughness down to
   half), as in its engine.
+- Puddles are one for every game, as in Caribbean Legend: they grow with the wetness from the deepest places, a dark
+  wet rim lies around the water, the water is near black and smooth, and in the rain the drops' rings spread on it.
+  Caribbean Legend: the game's own puddles (Bridgetown, Guadeloupe) no longer lie as dark patches in dry weather;
+  they show only when it is wet. In «Каждому своё» on «Высокая» puddles still gather in the relief's hollows, with
+  the same look.
 - Caribbean Legend: arithmetic on a number passed to a function by reference no longer writes its result into that
   number; the squadron budget's discounts and trade deal prices, among others, were computed so.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.

@@ -174,7 +174,7 @@ void main()
     vec4 ffWet = ffWetPrepare(Nw, skySeen.y, ffGloss, ffMetal, ffHeight);
     if (ffWet.x > 0.0)
     {
-        N = ffWetNormal(N, Ng, ffWet);
+        N = ffWetNormal(N, Ng, ffWet, Pw);
         ffSpec = ffWetSpec(ffSpec, ffWet, ffMetal);
     }
 #else

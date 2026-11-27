@@ -36,10 +36,14 @@ uniform vec4 u_fxLayer[4];
 #else
 SAMPLER2D(s_tex1, 1);       // the occlusion on the second texture coordinates (stage 1), with u_fxPbr[0].w
 SAMPLER2D(s_fxEmission, 2); // the emission (fx::kEmissionStage), with u_fxPbr[1].y
+#ifdef FX_FF_WET
+SAMPLER2D(s_fxPuddleMask, 3);   // a puddle's bed (R, first texture coordinates; fx::kPuddleMaskStage), u_fxPbr[1].z
+SAMPLER2D(s_fxPuddleNormal, 4); // its water's normal map (second texture coordinates; fx::kPuddleNormalStage)
+#endif
 #endif
 // [0] x roughness, y metal (the material's, without a map), z 1 = the rma map is bound (s_fxMaterial: R roughness,
 //     G metal, B occlusion), w 1 = stage 1 is the occlusion
-// [1] x the exposure, y the emission's strength (0: no map)
+// [1] x the exposure, y the emission's strength (0: no map), z 1 = a puddle mesh
 uniform vec4 u_fxPbr[2];
 
 #ifdef FX_FF_LAYER
@@ -121,8 +125,30 @@ void main()
     vec3 Nw = normalize(mul(u_fxLampView, vec4(Ng, 0.0)).xyz);
     vec2 skySeen = ffVisibility(P, Ng);
 #ifdef FX_FF_WET
+    float wetHere = ffWetAt(Nw.y, skySeen.y);
     // Caribbean Legend's weather roughness where the rain reaches: (2 - wetness) / 2, halved when soaked.
-    roughness *= 1.0 - 0.5 * ffWetAt(Nw.y, skySeen.y);
+    roughness *= 1.0 - 0.5 * wetHere;
+#ifndef FX_FF_LAYER
+    if (u_fxPbr[1].z > 0.5)
+    {
+        // A game's puddle mesh over its ground (ff_puddle.sh), transparent when dry: its mask (through the game's
+        // curve, a square root) is the bed; its normal map drifting at two scales is the water's surface, the rain's
+        // rings stir it.
+        vec2 puddle = ffPuddle(sqrt(texture2D(s_fxPuddleMask, uv).r), wetHere);
+        float t = u_fxWet[1].w;
+        vec2 slope = (texture2D(s_fxPuddleNormal, v_texcoord1.xy * 5.5 + t * vec2(0.03, 0.019)).rg +
+                      texture2D(s_fxPuddleNormal, v_texcoord1.xy * 9.35 - t * vec2(0.018, 0.0114)).rg - 1.0) * 0.2;
+        // Blended (GEOM's surface), so no discard here: the opaque twins keep early depth.
+        vec4 cover = ffPuddleCover(puddle);
+        base = cover.rgb;
+        albedo.a = cover.a;
+        slope += ffPuddleRipples(Pw.xz, u_fxWet[0].z, t);
+        vec3 water = normalize(Ng + mul(vec4(-slope.x, 0.0, -slope.y, 0.0), u_fxLampView).xyz);
+        N = normalize(mix(N, water, puddle.x));
+        roughness = mix(roughness, FF_PUDDLE_ROUGHNESS, puddle.x);
+        metal *= 1.0 - puddle.x;
+    }
+#endif
 #endif
     roughness = clamp(roughness, 0.045, 1.0);
     vec2 spec = vec2(roughness, 1.0 - roughness);

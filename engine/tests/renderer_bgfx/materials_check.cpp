@@ -11,7 +11,9 @@
 //   the light is the scene environment's (environment::State), and a higher exposure is brighter;
 //   a layered material: the mask picks the layers (b over g over r over the base), each layer tiles by its own
 //   factor and leans the light by its own normal map («Средняя», «Высокая»; «Низкая» draws the layers flat), and a
-//   layer whose file is missing draws the base. The layers are DXT1 files the check writes (nothing of a game).
+//   layer whose file is missing draws the base. The layers are DXT1 files the check writes (nothing of a game);
+//   a puddle mesh lies over its ground only where its bed passes the wetness's threshold: nothing of it when dry,
+//   its deeper bed under water first.
 #include "device.hpp"
 #include "check_backend.hpp"
 #include "effects/layer_arrays.hpp"
@@ -134,7 +136,11 @@ class Harness
     glm::vec3 to_sun{0.5f, 0.3f, -1.0f};
     float sun = 0.8f; // the D3D light's colour
     uint32_t ambient = 0x404040;
-    float exposure = 1.0f, emission = 1.0f, sun_scale = 1.0f;  // the scene environment's
+    float exposure = 1.0f, emission = 1.0f, sun_scale = 1.0f; // the scene environment's
+    float wetness = 0.0f;
+    glm::vec3 normal{0.0f, 0.0f, -1.0f}; // the quad's vertices'
+    uint32_t clear = 0xFF000000;
+    bool blended = false;                                      // as GEOM sets a blended surface's states
     std::array<uint32_t, 2> columns{kSize / 4, 3 * kSize / 4}; // of the picture the mean takes
 
     // A layered material's picture once its arrays are there (asked for by the first draw, made on a worker).
@@ -165,9 +171,10 @@ class Harness
         environment.ambient = glm::vec3(fill * fill);
         environment.exposure = exposure;
         environment.emission = emission;
+        environment.wetness = wetness;
         render::SetSceneEnvironment(environment);
         check(device_->BeginScene(), "BeginScene");
-        check(device_->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0), "Clear");
+        check(device_->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear, 1.0f, 0), "Clear");
         D3DMATRIX identity{};
         identity.m[0][0] = identity.m[1][1] = identity.m[2][2] = identity.m[3][3] = 1.0f;
         D3DMATRIX projection{};
@@ -179,6 +186,9 @@ class Harness
         device_->SetTransform(D3DTS_PROJECTION, &projection);
         device_->SetRenderState(D3DRS_ZENABLE, FALSE);
         device_->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        device_->SetRenderState(D3DRS_ALPHABLENDENABLE, blended);
+        device_->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        device_->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
         device_->SetRenderState(D3DRS_LIGHTING, TRUE);
         device_->SetRenderState(D3DRS_AMBIENT, 0xFF000000u | ambient);
         D3DMATERIAL9 surface{};
@@ -205,8 +215,10 @@ class Harness
         std::vector<Vertex> quad;
         const float corners[6][2] = {{0, 0}, {1, 0}, {0, 1}, {0, 1}, {1, 0}, {1, 1}};
         for (const auto &c : corners)
-            quad.push_back(
-                {{-2.0f + 4.0f * c[0], 2.0f - 4.0f * c[1], 5.0f}, {0.0f, 0.0f, -1.0f}, {c[0], c[1]}, {c[0], c[1]}});
+            quad.push_back({{-2.0f + 4.0f * c[0], 2.0f - 4.0f * c[1], 5.0f},
+                            {normal.x, normal.y, normal.z},
+                            {c[0], c[1]},
+                            {c[0], c[1]}});
         device_->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX2);
         render::SetEffectsSurfaceMaterial(material);
         check(device_->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, quad.data(), sizeof(Vertex)), "draw");
@@ -557,4 +569,32 @@ TEST_CASE("a layer whose file is missing draws the base")
     INFO("base " << base.luma() << ", missing layer " << green.luma());
     CHECK(std::fabs(green.luma() - base.luma()) < 2.0f);
     CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFFFF0000, true))), &Mean::r));
+}
+
+TEST_CASE("a puddle lies over its ground where its bed passes the wetness's threshold")
+{
+    Harness &h = harness();
+    h.Settle(2);
+    h.normal = {0.0f, 1.0f, 0.0f}; // flat ground, open to the sky: the place's wetness in full
+    h.clear = 0xFFFFFFFF;
+    h.blended = true;
+    // Beds of 0.9 and 0.5 (the mask through the game's square root), the water still.
+    render::EffectsSurfaceMaterial deep{.puddle_mask = h.Texture(0xFFCFCFCF, true),
+                                        .puddle_normal = h.Texture(0xFF8080FF, true)};
+    render::EffectsSurfaceMaterial shallow{.puddle_mask = h.Texture(0xFF404040, true),
+                                           .puddle_normal = deep.puddle_normal};
+    h.wetness = 0.0f;
+    CHECK(h.Render(&deep).luma() > 250.0f); // dry: nothing of it
+    // 0.15: the threshold is at 0.71 of the bed. The deep bed is under water, the shallow one not yet.
+    h.wetness = 0.15f;
+    const float under = h.Render(&deep).luma(), above = h.Render(&shallow).luma();
+    CHECK(under < 150.0f);
+    CHECK(above > 250.0f);
+    // Soaked: the threshold is at 0.01, both are under water.
+    h.wetness = 1.0f;
+    CHECK(h.Render(&shallow).luma() < 150.0f);
+    h.wetness = 0.0f;
+    h.normal = {0.0f, 0.0f, -1.0f};
+    h.clear = 0xFF000000;
+    h.blended = false;
 }
