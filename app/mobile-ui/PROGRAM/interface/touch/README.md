@@ -6,6 +6,16 @@ runtime (admission, drawing, waiting for the game, the amount control); the pack
 components and texts. The scripts sit at `interface/touch/` below the program directory, attached by the engine after
 the game's own (`engine/src/libs/ui_host`, `script_segments` and `script_port`).
 
+**The game decides.** Prices, sums, limits, weights, what an action leads to and whether it is possible are the
+game's scripts' to compute; no screen, adapter or engine code computes them again, not even "the same way". A screen
+sends the action to the game (the adapter performs it on the game's own window) and shows the game's answer: the
+amount its window clamped the offer to, the money and weight it writes, the figures it shows after it. Reading what
+the game displays and interpreting it (a cell's text, a row's colour as its trade type, a dash for "not traded so")
+is reading; working out what the game would compute is a copy, and is not written. Where the answer is too slow for
+the interface, the engine's path from the action to the game's script and back is made faster (the answer is drawn in
+the tap's frame: `engine/src/libs/ui_host/README.md`), never the calculation moved here. Nothing checks this rule
+mechanically: a reviewer does.
+
 ## Layers
 
 | Directory | What | Calls |
@@ -47,6 +57,15 @@ of the providers the first that attaches is chosen), and:
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
 
+The node types of `binds` are the model's widget types (`engine/src/libs/ui/include/storm_ui/interface_model.h`):
+`choice` (a list's rows, a scroll of ships or characters), `table` (a list with no rows), `edit`, `slider`, `check`,
+`button`, `text`, `heading`, `image`; `a|b` takes either. A node name ending in `*` takes every node it starts
+(`TABBTN_*`, `QTY_*`), and `"@set"` a named set of `nodeSets`.
+
+The pack screen a capability fills (`component`) is `../../../design/screens/<name>/` (its `spec.json` names the
+props a view may give and their shapes: a view with anything else fails); the texts a screen shows that the game does
+not send are string keys (`UiText`) of `../../../design/strings/<lang>.json`, every key in all six languages.
+
 ## The runtime
 
 Each capability has its object `ui` = `UiScreens.<capability>`: `capability`, `screen` (the screen file's stem), `look`,
@@ -59,15 +78,17 @@ every contract call.
 The natives (`core/core.c`):
 - the view: `UiShow`, `UiPredict` (in a tap: the view the tap leads to), `UiOn`, `UiModal`, `UiPending`, `UiText`;
 - the game: `UiSend(node, verb, value)`, `UiSendTo({node, verb, value, row, guard, lead})`, `UiBack`, `UiOffers`;
-- waiting for the game: after a move, `UiHold(seconds)`. The views built before the answer are drawn; a build from an
-  answer the game completes in later frames says `UiAwait()` and is not drawn (what the kept view shows of a closed
-  window takes no input). `UiAnswer()` in a build tells what became of the hold: `""`, `"waiting"`, `"applied"`,
-  `"refused"` (drawn at once), `"late"` (past `seconds`: an error line unless the game had answered and nothing more is
-  awaited). An adapter keeps the step its game is at and awaits while it is not done; its steps live only while
-  `UiAnswer()` is `"waiting"`, `"applied"` or `"late"`.
-- the amount control: `UiDeal({key, element, origin, other, low, high, moreReason, lessReason, more, less, disabled,
-  reason, commit}, &out)` in a build: the engine keeps the player's draft, binds the control, and gives `out.value`,
-  `out.change` and `out.button` (absent while unchanged); the button's press raises `UiTap(ui, commit, "", change)`;
+- waiting for the game: after a move, `UiHold(seconds)`; the event is then built once, with the model of the game's
+  answer (in the tap's frame). A build from an answer the game completes in a later frame says `UiAwait()` and is not
+  drawn (what the kept view shows of a closed window takes no input). `UiAnswer()` in a build tells what became of the
+  hold: `""`, `"waiting"`, `"applied"`, `"refused"` (drawn at once), `"late"` (past `seconds`: an error line unless the
+  game had answered and nothing more is awaited). A hold still waiting keeps its first action when another move holds.
+- the amount control: `UiDeal({key, element, origin, other, low, high, answer, cutReason, more, less, disabled,
+  reason, commit, offer}, &out)` in a build. The game decides the amount: each move of the control raises
+  `UiTap(ui, offer, "", change asked)`, whose handler offers it to the game's window (and holds); the control then
+  shows `answer` (our side as the game's window holds it now) and says `cutReason` when the game cut what was asked.
+  `out.value`, `out.change` and `out.button` (absent while unchanged); the button's press raises
+  `UiTap(ui, commit, "", change)`;
 - `UiOrder(list, field, descending)`: a stable order by a whole number; `UiRebuild`, `UiFirst`;
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
 - `UiToast`, `UiRead`, `UiError(text)`.
@@ -76,6 +97,25 @@ Failures are loud. `UiError`, a native given an argument of the wrong type or an
 field, and a runtime error of the script (the interpreter logs it and goes on) fail the build or tap: the router closes
 the interface with an error line. There is no default for what the game should have given: an adapter that cannot
 read what its contract promises calls `UiError`.
+
+## The steps of a move
+
+A move that the game answers in more than one step (TEHO's store: a confirmed deal closes the window, and the row is
+opened again; a side switched is bound in the game's next frame) is the adapter's. `State` may advance its pending
+step: it keeps the step in its own object (`TouchLegTrade`), sends the next action from the build and says
+`UiAwait()` while the answer is not complete; the engine applies what a build sends in the same frame. The step lives
+only while `UiAnswer()` is `"waiting"`, `"applied"` or `"late"`. The screen holds (`UiHold`) after every move that
+waits for the game, and not after one that only changes its own state (a filter, a sort: `UiRebuild()`). When a
+second adapter needs the same step record, it moves to `lineages/legacy/lib.c`.
+
+## Rules no check enforces
+
+- No game logic of our own (above).
+- No work per frame: a screen builds when its model, its answers or its own state change, never on a timer of its own.
+- `GetEventData` only at the start of an event handler.
+- Every timeout, limit or retry has a measurement or a named race behind it, written beside it.
+- A tap's script (its handler and the build it causes) stays under 2 ms on the phone; the `script work:` line has the
+  cost per call of `UiBuild` and `UiTap`.
 
 ## The language, as found
 
@@ -100,19 +140,42 @@ full one):
 3. `contracts/<family>.c`: `State(ui, out)` with the shape of `out` written once, and one verb per move of the notion
    (not of one game's window). Limits, reasons and types come from the adapter as data, not as a closed list.
 4. `lineages/legacy/<family>.c`: reads `ui.model` and `ui.data` (helpers in `lineages/legacy/lib.c`), performs the
-   moves, hides its game's frame order behind them (`UiAwait`); rule copies say `// rule copy: <game file> <function>`.
+   moves on the game's own window and reads its answer, hides its game's frame order behind them (`UiAwait`). Nothing
+   the game computes is computed here.
 5. `screens/<family>/<name>.c`: builds the view from `State`, binds its elements, answers taps with contract moves and
    `UiHold` where the game answers in frames; lists and their heads with `lib/list.c`.
 6. `design/scripts.json`: the contract, the adapter with its `binds` (shared nodes as `nodeSets`), the screen with its
    `screens` and `look`.
-7. Checks: the attach and props cases in `engine/tests/ui_scripts` (`cases/<capability>.json` as `cases/rest.json`),
-   router behaviour in `engine/src/libs/ui/tests` (`screens_check.cpp`), the pack contract's cases
-   (`engine/src/libs/ui/tests/pack-contract.json`) when the screen needs states or taps.
+7. Checks, below.
+
+## Tests
+
+- `engine/tests/ui_scripts/cases/<capability>.json` (copy `cases/trade_store.json`, the reference screen's): recorded
+  models of the game's interface, the props the screen's view gives the pack screen for each, and the calls its build
+  and a list of events make (`check.cpp` runs them on the production VM). The fixture game under it
+  (`engine/tests/ui_scripts/game/PROGRAM/seadogs.c`) gives only what an adapter calls of the game (its functions and
+  globals, by name), never a copy of a game rule.
+- `engine/src/libs/ui/tests`: the interface models a game publishes (`models/<interface>.json`, and `flows/` for the
+  models of a flow's frames), recorded or derived from recorded ones; they are game states, so a model must show what
+  the game shows in that state (a fresh amount window holds nothing). Router behaviour of the screen with a game that
+  answers (`screens_check.cpp`: `GameAnswers` sets what the game's window answers to an offer), the pack contract's
+  cases and flows (`pack-contract.json`), and the recorded parity of the trade family (`trade-parity.json`).
+- Commands (from the repository root; `XDG_STATE_HOME` to a private directory when run by hand):
+  `python3 engine/tools/ci/run_host_tests.py --only ui_scripts` (with `STORM_GAME_DIR` set, `ui_scripts.game` too),
+  `ctest --test-dir engine/build/ui-host -R 'ui_screens|ui_script_screen|ui_trade_parity'`,
+  `python3 app/mobile-ui/design/build.py --check`, `python3 app/tests/ui_pack_contract/run.py`.
+
+## Retiring a C++ screen
+
+The script screen, its pack screen and checks land in the same commit that deletes the C++ screen's `Layout` and its
+registration (`engine/src/libs/ui/src/screens/registry.cpp`). Its recorded parity (`trade-parity.json`) is kept until
+the family's C++ is gone; a difference in it is re-recorded only when it is the game's answer shown where the C++
+screen computed its own (named in the commit), never to make a regression pass.
 
 ## Not done
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
-- Comparison checks of the rule copies against the game's own computation (`STORM_GAME_DIR`).
+- The rest adapter still reads the hours from the slider by the game's formula (`lineages/legacy/rest.c`).
 - The trade family's other interfaces (contraband, cannons, items trade, colony capture, the ship exchange) are still
   C++ (`engine/src/libs/ui/src/screens/trade_commerce.cpp`); their recorded parity (`trade-parity.json`) goes with them.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet.

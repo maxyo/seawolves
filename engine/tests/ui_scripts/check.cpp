@@ -18,6 +18,7 @@
 #include <catch2/catch.hpp>
 #include <spdlog/sinks/ringbuffer_sink.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -221,21 +222,43 @@ struct Calls final : storm::ui::ScriptCall
     {
         throw std::runtime_error(text);
     }
+    // The first figure of a text with its groups of three after single spaces ("1 500"); npos: none.
+    static size_t Figure(const std::string &text, std::string &digits)
+    {
+        const auto digit = [&](size_t n) {
+            return n < text.size() && std::isdigit(static_cast<unsigned char>(text[n]));
+        };
+        const size_t at = text.find_first_of("0123456789");
+        if (at == std::string::npos)
+            return at;
+        size_t end = at;
+        while (digit(end))
+            digits += text[end++];
+        while (end < text.size() && text[end] == ' ' && digit(end + 1) && digit(end + 2) && digit(end + 3) &&
+               !digit(end + 4))
+        {
+            digits += text.substr(end + 1, 3);
+            end += 4;
+        }
+        return at;
+    }
     int Amount(const std::string &text, const std::string &what) const override
     {
-        if (!HasAmount(text))
+        std::string digits;
+        if (Figure(text, digits) == std::string::npos)
             throw std::runtime_error("no number in " + what);
-        return std::stoi(text);
+        return std::stoi(digits);
     }
     bool HasAmount(const std::string &text) const override
     {
-        return !text.empty() && std::isdigit(static_cast<unsigned char>(text[0]));
+        return text.find_first_of("0123456789") != std::string::npos;
     }
     double Number(const std::string &text, const std::string &what) const override
     {
-        if (!HasAmount(text))
+        const size_t at = text.find_first_of("0123456789");
+        if (at == std::string::npos)
             throw std::runtime_error("no number in " + what);
-        return std::stod(text);
+        return std::stod(text.substr(at));
     }
     std::string Decimal(const std::string &text) const override
     {
@@ -243,16 +266,22 @@ struct Calls final : storm::ui::ScriptCall
     }
     std::string OneLine(const std::string &text) const override
     {
-        return text;
+        std::string line = text;
+        std::replace(line.begin(), line.end(), '\n', ' ');
+        return line;
     }
     std::string Fill(const std::string &text, const std::string &argument) const override
     {
         return text + " " + argument;
     }
-    storm::ui::DealView Deal(const storm::ui::DealSpec &) override
+    // The deal shows what the game's window holds; its moves and its button raise the events it names.
+    storm::ui::DealView Deal(const storm::ui::DealSpec &spec) override
     {
-        FAIL("no screen of these cases keeps an amount draft");
-        return {};
+        calls.push_back("deal " + spec.key + " " + std::to_string(spec.low) + ".." + std::to_string(spec.high) +
+                        " answer " + std::to_string(spec.answer));
+        bound.push_back(spec.offer + " ");
+        bound.push_back(spec.commit + " ");
+        return {.value = spec.answer, .change = spec.answer - spec.origin};
     }
     void Back(const std::string &node) override
     {
@@ -609,6 +638,35 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     }
     // The screen's scripts change nothing of the game's program: its globals save as they did.
     CHECK(GameState(vm) == before);
+}
+
+// The reference screen: the store's script on its recorded models. The props its view gives, and what its events send:
+// a row opened, an amount offered to the game's window, the deal confirmed, the store left.
+TEST_CASE("the store screen's script gives the pack screen the props and actions of the recorded models")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const auto spec = PackScreen("trade");
+    const auto &screen = Screen(vm, "trade_store");
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/trade_store.json"));
+    for (const Json &recorded : fixture.at("cases"))
+    {
+        INFO(recorded.at("name").get<std::string>());
+        storm::ui::InterfaceModel model;
+        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        Calls calls(*spec);
+        calls.widgets = model.widgets;
+        port.Build(screen, calls.Single(), calls);
+        calls.first = false;
+        CHECK(calls.props == recorded.at("props"));
+        for (const Json &event : recorded.at("events"))
+        {
+            REQUIRE(calls.Binds(event[0], event[1]));
+            port.Event(screen, event[0], event[1], event[2], calls);
+        }
+        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+    }
 }
 
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
