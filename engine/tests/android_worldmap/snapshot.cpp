@@ -121,6 +121,25 @@ int main()
     put(captain, "Ship.Name", "Adelina");
     assert(!frame.instrumentsVisible &&
            frame.availableMask() == 6); // No fake instruments before renderer supplies them.
+    { // Day and night from the scripts' hourly weathers, as FindWeatherByHour takes each hour's record.
+        auto &weathers = scripts.variable("Weathers", VAR_OBJECT, 26);
+        for (uint32_t n = 0; n < 24; ++n)
+        {
+            ATTRIBUTES &record = *weathers.GetAClass(n);
+            put(record, "Hour.Min", std::to_string(n).c_str());
+            put(record, "Night", n < 6 || n >= 21 ? "1" : "0");
+        }
+        ATTRIBUTES &storm = *weathers.GetAClass(24); // a storm at noon is not noon's record
+        put(storm, "Hour.Min", "12");
+        put(storm, "Storm", "1");
+        put(storm, "Night", "1");
+        worldMapHud.source.owner = 19;
+        assert((readWorldMapFrame(game, true).instruments.dayHours == std::pair{6, 21}));
+        put(*weathers.GetAClass(12), "skip", "1"); // noon skipped: the storm is still no record for it
+        assert(!readWorldMapFrame(game, true).instruments.dayHours);
+        scripts.remove("Weathers");
+        worldMapHud.source = {};
+    }
     // WM_SetShipData omits land-only/stale companions, zero sentinel and slots
     // beyond COMPANION_MAX. They must not consume badge positions or poison all fleet coverage.
     put(captain, "Fellows.Companions.id1", "0");

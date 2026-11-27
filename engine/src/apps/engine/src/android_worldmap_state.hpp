@@ -21,6 +21,26 @@ inline std::optional<bool> mapFlag(ATTRIBUTES *attributes, const char *path)
         return std::nullopt;
     return *number == 1;
 }
+// Each hour's Night flag from the scripts' Weathers, the record FindWeatherByHour takes for it: the first with that
+// hour.min that is neither skipped nor a storm.
+inline std::optional<std::pair<int, int>> readMapDayHours()
+{
+    auto *weathers = static_cast<VDATA *>(core.GetScriptVariable("Weathers"));
+    if (!weathers)
+        return std::nullopt;
+    std::array<std::optional<bool>, 24> night;
+    for (uint32_t n = 0; n < weathers->GetElementsNum(); ++n)
+    {
+        auto *record = weathers->GetAClass(n);
+        const auto hour = shipNumber(record, "Hour.Min");
+        if (!hour || mapFlag(record, "skip").value_or(true) || mapFlag(record, "Storm").value_or(true))
+            continue;
+        const int h = static_cast<int>(*hour);
+        if (h >= 0 && h < 24 && !night[h])
+            night[h] = mapFlag(record, "Night");
+    }
+    return mapDayHours(night);
+}
 inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready)
 {
     WorldMapFrame frame;
@@ -48,6 +68,7 @@ inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready
     {
         frame.instruments = worldMapHud.source;
         frame.instrumentsVisible = frame.instruments.visible;
+        frame.instruments.dayHours = readMapDayHours();
     }
     auto *battle = core.Entity_GetAttributeClass(core.GetEntityId("WM_INTERFACE"), "wm_sign");
     auto *realShips = static_cast<VDATA *>(core.GetScriptVariable("RealShips"));

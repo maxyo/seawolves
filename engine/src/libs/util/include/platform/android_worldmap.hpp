@@ -32,6 +32,27 @@ inline std::optional<int> mapMoonPhase(int day)
         return std::nullopt;
     return day / 4;
 }
+// The hours night ends and begins in the game's hourly weathers (the Night flag of each hour's record, as
+// FindWeatherByHour picks it): {dawn, dusk}; nullopt unless every hour has a record and night ends and begins once.
+inline std::optional<std::pair<int, int>> mapDayHours(const std::array<std::optional<bool>, 24> &night)
+{
+    std::optional<int> dawn, dusk;
+    for (int h = 0; h < 24; ++h)
+    {
+        const auto &now = night[h], &before = night[(h + 23) % 24];
+        if (!now || !before)
+            return std::nullopt;
+        if (*before == *now)
+            continue;
+        auto &edge = *now ? dusk : dawn;
+        if (edge)
+            return std::nullopt;
+        edge = h;
+    }
+    if (!dawn || !dusk)
+        return std::nullopt;
+    return std::pair{*dawn, *dusk};
+}
 enum WorldMapCoverage : uint32_t
 {
     MapInstruments = 1,
@@ -47,7 +68,8 @@ struct MapInstrumentFrame
     std::optional<double> speed;     // the map ship's speed, share of its maximum 0…1
     std::optional<double> timeScale; // the world's time scale the scripts set (x1 = 1)
     std::optional<int> foodDays, rumDays, flag, stormState;
-    std::optional<int> moonPhase; // mapMoonPhase of the map's day
+    std::optional<int> moonPhase;                // mapMoonPhase of the map's day
+    std::optional<std::pair<int, int>> dayHours; // mapDayHours of the game's weathers
 };
 struct MapShipFrame
 {
@@ -264,6 +286,8 @@ class WorldMapHud
         out.flag = count(i.flag);
         out.storm = count(i.stormState);
         out.moon_phase = count(i.moonPhase);
+        if (i.dayHours)
+            std::tie(out.dawn, out.dusk) = *i.dayHours;
         for (const auto &s : frame_.ships)
             out.fleet.push_back({s.id, s.name, s.type, reading(s.hull), reading(s.sails),
                                  s.crew && s.crewMax && *s.crewMax > 0

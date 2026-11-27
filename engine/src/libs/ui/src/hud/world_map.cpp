@@ -22,7 +22,6 @@ namespace
 constexpr double kTapSeconds = 1.5; // a tapped command waits this long for the engine to act
 constexpr double kPi = 3.14159265358979323846;
 // The game's day: its hourly weathers 6…20 are day, 21…5 night (weather/Init: Weathers[].Night).
-constexpr double kDawn = 6.0, kDusk = 21.0;
 
 using screens::StringKey;
 
@@ -265,12 +264,18 @@ class WorldMapScene final : public Scene
                         {"expanded", details_}};
         // The sky dome over the rose: the sun by day, the moon by night, rising at the east end
         // (+90°), highest at the top, setting at the west end (-90°).
-        const bool day = map.hour >= kDawn && map.hour < kDusk;
-        const double share = day ? (map.hour - kDawn) / (kDusk - kDawn)
-                                 : std::fmod(map.hour - kDusk + 24.0, 24.0) / (24.0 - kDusk + kDawn);
+        const double dawn = map.dawn, dusk = map.dusk;
+        const bool day = map.hour >= dawn && map.hour < dusk;
+        const double share =
+            day ? (map.hour - dawn) / (dusk - dawn) : std::fmod(map.hour - dusk + 24.0, 24.0) / (24.0 - dusk + dawn);
         compass["sky"] = day ? "sun" : "moon";
         compass["skyAt"] = static_cast<int>(std::lround(90.0 - 180.0 * share));
-        if (!day && map.moon_phase < 0)
+        if (map.dawn < 0 || map.dusk <= map.dawn)
+        {
+            hud_.Error("world-map HUD: the engine gives no dawn and dusk; the compass draws no sky");
+            compass["sky"] = "none";
+        }
+        else if (!day && map.moon_phase < 0)
         {
             hud_.Error("world-map HUD: the engine gives no moonPhase at night; the compass draws no moon");
             compass["sky"] = "none";

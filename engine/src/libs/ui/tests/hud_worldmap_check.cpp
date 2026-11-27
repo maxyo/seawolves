@@ -188,6 +188,11 @@ static void CheckSky()
     show(12.0, nullptr, 3);
     Expect(compass["sky"] == "sun" && !compass.contains("weather") && mount.errors.size() == errors + 2,
            "no storm state: no weather, said aloud");
+    Json dark = State("world-map");
+    dark.erase("dawn");
+    bench.Set("worldMap", dark);
+    compass = mount.shown.elements.value("compass", Json::object());
+    Expect(compass["sky"] == "none" && mount.errors.size() == errors + 3, "no dawn and dusk: no sky, said aloud");
 }
 
 // The time acceleration as at sea: the scale the engine runs at, a tap asks for the next step.

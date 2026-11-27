@@ -2,7 +2,6 @@
 // (android_map_commands.hpp) on a stand-in command list and map interface.
 #include "android_map_commands.hpp"
 
-
 #include <cassert>
 #include <iostream>
 using namespace storm::android;
@@ -92,6 +91,16 @@ int main()
     assert(storm::android::mapMoonPhase(16) == 4 && storm::android::mapMoonPhase(19) == 4 &&
            storm::android::mapMoonPhase(31) == 7);
     assert(!storm::android::mapMoonPhase(0) && !storm::android::mapMoonPhase(32));
+    { // Day and night as the game's hourly weathers flag them.
+        std::array<std::optional<bool>, 24> night;
+        for (int h = 0; h < 24; ++h)
+            night[h] = h < 6 || h >= 21;
+        assert((storm::android::mapDayHours(night) == std::pair{6, 21}));
+        night[12] = true; // night twice a day
+        assert(!storm::android::mapDayHours(night));
+        night[12].reset(); // an hour without a record
+        assert(!storm::android::mapDayHours(night));
+    }
     WorldMapHud weatherHud;
     auto weatherFrame = complete();
     weatherHud.update(weatherFrame);

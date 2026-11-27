@@ -324,7 +324,8 @@ struct WorldMap
     double wind_angle = 0.0, heading = 0.0;
     bool angles = false; // wind_angle and heading are known
     int food_days = -1, rum_days = -1, flag = -1, storm = -1;
-    int moon_phase = -1; // 0 new … 4 full … 7 (the game's moon textures, day / 4)
+    int moon_phase = -1;      // 0 new … 4 full … 7 (the game's moon textures, day / 4)
+    int dawn = -1, dusk = -1; // the hours night ends and begins in the game's weathers
     std::vector<Vessel> fleet;
     std::vector<Command> commands;
     bool operator==(const WorldMap &) const = default;
