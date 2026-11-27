@@ -91,30 +91,6 @@ ButtonRole RoleOf(const Widget &button)
     return ButtonRole::Other;
 }
 
-Json PictureOf(const ImageRef *image)
-{
-    if (image && image->kind == "portrait" && !image->image.empty())
-        return Json{{"kind", "portrait"}, {"texture", "INTERFACES/PORTRAITS/128/face_" + image->image}};
-    if (image && image->kind == "texture" && !image->image.empty())
-        return Json{{"kind", "item"}, {"texture", image->image}};
-    if (!image || image->kind != "atlas" || image->group.empty() || image->image.empty())
-        return Json();
-    return Json{{"kind", "item"}, {"texture", "atlas:" + image->group + "/" + image->image}};
-}
-
-Json TextureOf(const ImageRef *image)
-{
-    if (image && image->kind == "texture" && !image->image.empty())
-    {
-        char uv[96];
-        std::snprintf(uv, sizeof uv, "%g,%g,%g,%g", image->uv[0], image->uv[1], image->uv[2], image->uv[3]);
-        return Json{{"texture", image->image}, {"uv", uv}};
-    }
-    if (image && image->kind == "atlas" && !image->group.empty() && !image->image.empty())
-        return Json{{"texture", "atlas:" + image->group + "/" + image->image}, {"uv", ""}};
-    return Json();
-}
-
 // The ship skills of the captain's mini table (interface_utils.c SetSPECIALMiniTable), the ones that decide a
 // captain: row tr5 names them only by picture (ICONS_SPEC "<skill> skill icon", no text), row tr6 holds the
 // values, green where items or officers raise the skill and red where they lower it. {icon, k, v, tone}.

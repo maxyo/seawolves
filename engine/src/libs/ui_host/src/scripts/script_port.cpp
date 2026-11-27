@@ -47,6 +47,18 @@ std::string PopText(VS_STACK *stack)
     return text ? text : "";
 }
 
+int32_t PopInt(VS_STACK *stack)
+{
+    auto *value = static_cast<VDATA *>(stack->Pop());
+    return value ? value->GetInt() : 0;
+}
+
+float PopFloat(VS_STACK *stack)
+{
+    auto *value = static_cast<VDATA *>(stack->Pop());
+    return value ? value->GetFloat() : 0.0f;
+}
+
 storm::ui::ViewTree Tree(const ATTRIBUTES &attributes)
 {
     storm::ui::ViewTree tree{attributes.GetThisName(), attributes.HasValue() ? attributes.GetValue() : "", {}};
@@ -109,7 +121,243 @@ uint32_t UiOn(VS_STACK *stack)
 uint32_t UiSend(VS_STACK *stack)
 {
     const std::string value = PopText(stack), verb = PopText(stack), node = PopText(stack);
-    return Native("UiSend", [&](storm::ui::ScriptCall &call) { call.Send(node, verb, value); });
+    return Native("UiSend", [&](storm::ui::ScriptCall &call) { call.Send(node, -1, verb, value, ""); });
+}
+
+uint32_t UiSendRow(VS_STACK *stack)
+{
+    const std::string guard = PopText(stack), value = PopText(stack), verb = PopText(stack);
+    const int32_t row = PopInt(stack);
+    const std::string node = PopText(stack);
+    return Native("UiSendRow", [&](storm::ui::ScriptCall &call) { call.Send(node, row, verb, value, guard); });
+}
+
+uint32_t UiSendAfter(VS_STACK *stack)
+{
+    const std::string lead = PopText(stack);
+    const float seconds = PopFloat(stack);
+    const std::string guard = PopText(stack), value = PopText(stack), verb = PopText(stack);
+    const int32_t row = PopInt(stack);
+    const std::string node = PopText(stack);
+    return Native("UiSendAfter",
+                  [&](storm::ui::ScriptCall &call) { call.SendAfter(node, row, verb, value, guard, seconds, lead); });
+}
+
+// A native that returns an int (a bool as 0 / 1).
+template <class Get> uint32_t ReturnInt(VS_STACK *stack, const char *native, Get &&get)
+{
+    return Native(native, [&](storm::ui::ScriptCall &call) {
+        const auto value = static_cast<int32_t>(get(call));
+        static_cast<VDATA *>(stack->Push())->Set(value);
+    });
+}
+
+template <class Get> uint32_t ReturnFloat(VS_STACK *stack, const char *native, Get &&get)
+{
+    return Native(native, [&](storm::ui::ScriptCall &call) {
+        const auto value = static_cast<float>(get(call));
+        static_cast<VDATA *>(stack->Push())->Set(value);
+    });
+}
+
+template <class Get> uint32_t ReturnText(VS_STACK *stack, const char *native, Get &&get)
+{
+    return Native(native, [&](storm::ui::ScriptCall &call) {
+        const std::string value = get(call);
+        static_cast<VDATA *>(stack->Push())->Set(value);
+    });
+}
+
+uint32_t UiWaiting(VS_STACK *stack)
+{
+    const std::string verb = PopText(stack);
+    const int32_t row = PopInt(stack);
+    const std::string node = PopText(stack);
+    return ReturnInt(stack, "UiWaiting", [&](storm::ui::ScriptCall &call) { return call.Waiting(node, row, verb); });
+}
+
+uint32_t UiIgnore(VS_STACK *stack)
+{
+    const std::string verb = PopText(stack), id = PopText(stack);
+    return Native("UiIgnore", [&](storm::ui::ScriptCall &call) { call.Ignore(id, verb); });
+}
+
+uint32_t UiBound(VS_STACK *stack)
+{
+    const std::string verb = PopText(stack), id = PopText(stack);
+    return ReturnInt(stack, "UiBound", [&](storm::ui::ScriptCall &call) { return call.Bound(id, verb); });
+}
+
+uint32_t UiKeep(VS_STACK *)
+{
+    return Native("UiKeep", [](storm::ui::ScriptCall &call) { call.Keep(); });
+}
+
+uint32_t UiAwait(VS_STACK *)
+{
+    return Native("UiAwait", [](storm::ui::ScriptCall &call) { call.Await(); });
+}
+
+uint32_t UiRebuild(VS_STACK *)
+{
+    return Native("UiRebuild", [](storm::ui::ScriptCall &call) { call.Rebuild(); });
+}
+
+uint32_t UiRebuildAfter(VS_STACK *stack)
+{
+    const float seconds = PopFloat(stack);
+    return Native("UiRebuildAfter", [&](storm::ui::ScriptCall &call) { call.RebuildAfter(seconds); });
+}
+
+uint32_t UiFirst(VS_STACK *stack)
+{
+    return ReturnInt(stack, "UiFirst", [](storm::ui::ScriptCall &call) { return call.First(); });
+}
+
+uint32_t UiRevision(VS_STACK *stack)
+{
+    return ReturnInt(stack, "UiRevision", [](storm::ui::ScriptCall &call) { return call.Revision(); });
+}
+
+uint32_t UiNow(VS_STACK *stack)
+{
+    return ReturnFloat(stack, "UiNow", [](storm::ui::ScriptCall &call) { return call.Now(); });
+}
+
+uint32_t UiRequestFloor(VS_STACK *stack)
+{
+    return ReturnInt(stack, "UiRequestFloor", [](storm::ui::ScriptCall &call) { return call.RequestFloor(); });
+}
+
+uint32_t UiAnsweredSince(VS_STACK *stack)
+{
+    const int32_t floor = PopInt(stack);
+    return ReturnInt(stack, "UiAnsweredSince", [&](storm::ui::ScriptCall &call) {
+        if (floor < 0)
+            throw std::runtime_error("a request floor is not negative");
+        return call.AnsweredSince(static_cast<uint64_t>(floor));
+    });
+}
+
+uint32_t UiToast(VS_STACK *stack)
+{
+    const std::string text = PopText(stack);
+    return Native("UiToast", [&](storm::ui::ScriptCall &call) { call.Toast(text); });
+}
+
+uint32_t UiRead(VS_STACK *stack)
+{
+    const std::string text = PopText(stack), title = PopText(stack);
+    return Native("UiRead", [&](storm::ui::ScriptCall &call) { call.Read(title, text); });
+}
+
+uint32_t UiError(VS_STACK *stack)
+{
+    const std::string text = PopText(stack);
+    return Native("UiError", [&](storm::ui::ScriptCall &call) { call.Error(text); });
+}
+
+uint32_t UiAmount(VS_STACK *stack)
+{
+    const int32_t none = PopInt(stack);
+    const std::string what = PopText(stack), text = PopText(stack);
+    return ReturnInt(stack, "UiAmount", [&](storm::ui::ScriptCall &call) { return call.Amount(text, what, none); });
+}
+
+uint32_t UiHasAmount(VS_STACK *stack)
+{
+    const std::string text = PopText(stack);
+    return ReturnInt(stack, "UiHasAmount", [&](storm::ui::ScriptCall &call) { return call.HasAmount(text); });
+}
+
+uint32_t UiNumber(VS_STACK *stack)
+{
+    const float none = PopFloat(stack);
+    const std::string what = PopText(stack), text = PopText(stack);
+    return ReturnFloat(stack, "UiNumber", [&](storm::ui::ScriptCall &call) { return call.Number(text, what, none); });
+}
+
+uint32_t UiDecimal(VS_STACK *stack)
+{
+    const std::string text = PopText(stack);
+    return ReturnText(stack, "UiDecimal", [&](storm::ui::ScriptCall &call) { return call.Decimal(text); });
+}
+
+uint32_t UiOneLine(VS_STACK *stack)
+{
+    const std::string text = PopText(stack);
+    return ReturnText(stack, "UiOneLine", [&](storm::ui::ScriptCall &call) { return call.OneLine(text); });
+}
+
+uint32_t UiFill(VS_STACK *stack)
+{
+    const std::string argument = PopText(stack), text = PopText(stack);
+    return ReturnText(stack, "UiFill", [&](storm::ui::ScriptCall &call) { return call.Fill(text, argument); });
+}
+
+uint32_t UiDraftFollow(VS_STACK *stack)
+{
+    const int32_t other = PopInt(stack), origin = PopInt(stack);
+    const std::string key = PopText(stack), id = PopText(stack);
+    return Native("UiDraftFollow", [&](storm::ui::ScriptCall &call) { call.DraftFollow(id, key, origin, other); });
+}
+
+uint32_t UiDraftClose(VS_STACK *stack)
+{
+    const std::string id = PopText(stack);
+    return Native("UiDraftClose", [&](storm::ui::ScriptCall &call) { call.DraftClose(id); });
+}
+
+uint32_t UiDraftOrigin(VS_STACK *stack)
+{
+    const std::string id = PopText(stack);
+    return ReturnInt(stack, "UiDraftOrigin", [&](storm::ui::ScriptCall &call) { return call.DraftOrigin(id); });
+}
+
+uint32_t UiDraftOther(VS_STACK *stack)
+{
+    const std::string id = PopText(stack);
+    return ReturnInt(stack, "UiDraftOther", [&](storm::ui::ScriptCall &call) { return call.DraftOther(id); });
+}
+
+uint32_t UiDraftValue(VS_STACK *stack)
+{
+    const int32_t high = PopInt(stack), low = PopInt(stack);
+    const std::string id = PopText(stack);
+    return ReturnInt(stack, "UiDraftValue",
+                     [&](storm::ui::ScriptCall &call) { return call.DraftValue(id, low, high); });
+}
+
+uint32_t UiDraftBind(VS_STACK *stack)
+{
+    const int32_t grain = PopInt(stack);
+    const std::string reason = PopText(stack);
+    const int32_t high = PopInt(stack), low = PopInt(stack);
+    const std::string element = PopText(stack), id = PopText(stack);
+    return Native("UiDraftBind",
+                  [&](storm::ui::ScriptCall &call) { call.DraftBind(id, element, low, high, reason, grain); });
+}
+
+// UiDraftButton(&out, id, low, high, more, less, sub, disabled, reason, commit): out is the button's fields, or
+// empty while there is none.
+uint32_t UiDraftButton(VS_STACK *stack)
+{
+    const std::string commit = PopText(stack), reason = PopText(stack);
+    const int32_t disabled = PopInt(stack);
+    const std::string sub = PopText(stack), less = PopText(stack), more = PopText(stack);
+    const int32_t high = PopInt(stack), low = PopInt(stack);
+    const std::string id = PopText(stack);
+    auto *out = static_cast<VDATA *>(stack->Pop());
+    ATTRIBUTES *root = out ? out->GetAClass() : nullptr;
+    return Native("UiDraftButton", [&](storm::ui::ScriptCall &call) {
+        if (!root)
+            throw std::runtime_error("the button's place is not an object");
+        while (root->GetAttributesNum() != 0)
+            root->DeleteAttributeClassX(root->GetAttributeClass(0u));
+        for (const storm::ui::ViewTree &field :
+             call.DraftButton(id, low, high, more, less, sub, disabled != 0, reason, commit).children)
+            root->SetAttribute(field.name, field.value);
+    });
 }
 
 uint32_t UiBack(VS_STACK *stack)
@@ -297,9 +545,46 @@ class UiScripts : public SCRIPT_LIBRIARY
             uint32_t arguments;
             SIMPORTFUNC function;
         } natives[] = {
-            {"UiShow", "void", 1, UiShow},      {"UiPredict", "void", 1, UiPredict}, {"UiOn", "void", 2, UiOn},
-            {"UiSend", "void", 3, UiSend},      {"UiBack", "void", 1, UiBack},       {"UiModal", "void", 2, UiModal},
-            {"UiPending", "int", 1, UiPending}, {"UiOffers", "int", 2, UiOffers},    {"UiText", "string", 1, UiText}};
+            {"UiShow", "void", 1, UiShow},
+            {"UiPredict", "void", 1, UiPredict},
+            {"UiOn", "void", 2, UiOn},
+            {"UiSend", "void", 3, UiSend},
+            {"UiSendRow", "void", 5, UiSendRow},
+            {"UiSendAfter", "void", 7, UiSendAfter},
+            {"UiWaiting", "int", 3, UiWaiting},
+            {"UiBack", "void", 1, UiBack},
+            {"UiModal", "void", 2, UiModal},
+            {"UiPending", "int", 1, UiPending},
+            {"UiOffers", "int", 2, UiOffers},
+            {"UiText", "string", 1, UiText},
+            {"UiIgnore", "void", 2, UiIgnore},
+            {"UiBound", "int", 2, UiBound},
+            {"UiKeep", "void", 0, UiKeep},
+            {"UiAwait", "void", 0, UiAwait},
+            {"UiRebuild", "void", 0, UiRebuild},
+            {"UiRebuildAfter", "void", 1, UiRebuildAfter},
+            {"UiFirst", "int", 0, UiFirst},
+            {"UiRevision", "int", 0, UiRevision},
+            {"UiNow", "float", 0, UiNow},
+            {"UiRequestFloor", "int", 0, UiRequestFloor},
+            {"UiAnsweredSince", "int", 1, UiAnsweredSince},
+            {"UiToast", "void", 1, UiToast},
+            {"UiRead", "void", 2, UiRead},
+            {"UiError", "void", 1, UiError},
+            {"UiAmount", "int", 3, UiAmount},
+            {"UiHasAmount", "int", 1, UiHasAmount},
+            {"UiNumber", "float", 3, UiNumber},
+            {"UiDecimal", "string", 1, UiDecimal},
+            {"UiOneLine", "string", 1, UiOneLine},
+            {"UiFill", "string", 2, UiFill},
+            {"UiDraftFollow", "void", 4, UiDraftFollow},
+            {"UiDraftClose", "void", 1, UiDraftClose},
+            {"UiDraftOrigin", "int", 1, UiDraftOrigin},
+            {"UiDraftOther", "int", 1, UiDraftOther},
+            {"UiDraftValue", "int", 3, UiDraftValue},
+            {"UiDraftBind", "void", 6, UiDraftBind},
+            {"UiDraftButton", "void", 10, UiDraftButton},
+        };
         for (const auto &native : natives)
         {
             IFUNCINFO info;

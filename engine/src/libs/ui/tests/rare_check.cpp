@@ -1,6 +1,7 @@
 // Host checks of the rare screens (reading cards, maps, colony, trade book): admission,
 // the props that matter and every action mapping. Synthetic models only (tests/models).
 #include "fakes.h"
+#include "../tools/script_game.h"
 #include "../src/screens/screen.h"
 
 #include <algorithm>
@@ -373,11 +374,13 @@ static void TradeBookAsSent(const std::string &models)
                 "without the table at all the screen still refuses loudly");
 }
 
-// The same contract for the commerce screens: an empty chest is a chest, not a rejection.
-static void EmptyChest(const std::string &models)
+// The same contract for the commerce screens: an empty chest is a chest, not a rejection (its screen is the
+// application's script, from the pack at `app_pack`).
+static void EmptyChest(const std::string &models, const std::string &app_pack)
 {
     FakeSurface surface;
     Router router(surface);
+    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
     InterfaceModel chest = Load(models, "itemsbox.json");
     Widget table;
     for (const Widget &row : chest.widgets)
@@ -519,7 +522,7 @@ int main(int argc, char **argv)
     Notices(models);
     TradeBook(models);
     TradeBookAsSent(models);
-    EmptyChest(models);
+    EmptyChest(models, argc > 2 ? argv[2] : "");
     ColonyLoot(models);
     if (failures)
         std::fprintf(stderr, "%d check(s) failed\n", failures);

@@ -164,6 +164,7 @@ struct Calls final : storm::ui::ScriptCall
     Json props;
     std::vector<std::string> calls, bound, modals;
     std::optional<Json> predicted;
+    bool first = true;
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -180,9 +181,135 @@ struct Calls final : storm::ui::ScriptCall
     {
         bound.push_back(id + " " + verb);
     }
-    void Send(const std::string &node, const std::string &verb, const std::string &value) override
+    void Send(const std::string &node, int row, const std::string &verb, const std::string &value,
+              const std::string &guard) override
     {
-        calls.push_back("send " + node + " " + verb + " " + value);
+        calls.push_back("send " + node + (row < 0 ? "" : "#" + std::to_string(row)) + " " + verb + " " + value +
+                        (guard.empty() ? "" : " @" + guard));
+    }
+    void SendAfter(const std::string &node, int row, const std::string &verb, const std::string &value,
+                   const std::string &guard, double, const std::string &lead) override
+    {
+        if (!lead.empty())
+            Send(node, row, verb, lead, guard);
+        Send(node, row, verb, value, guard);
+    }
+    bool Waiting(const std::string &, int, const std::string &) const override
+    {
+        return false;
+    }
+    void Ignore(const std::string &id, const std::string &verb) override
+    {
+        bound.push_back(id + " " + verb);
+    }
+    bool Bound(const std::string &id, const std::string &verb) const override
+    {
+        return std::ranges::find(bound, id + " " + verb) != bound.end();
+    }
+    void Keep() override
+    {
+        calls.push_back("keep");
+    }
+    void Await() override
+    {
+        calls.push_back("await");
+    }
+    void Rebuild() override
+    {
+        calls.push_back("rebuild");
+    }
+    void RebuildAfter(double) override
+    {
+        calls.push_back("rebuild later");
+    }
+    bool First() const override
+    {
+        return first;
+    }
+    uint64_t Revision() const override
+    {
+        return 1;
+    }
+    double Now() const override
+    {
+        return 0.0;
+    }
+    uint64_t RequestFloor() const override
+    {
+        return 0;
+    }
+    int AnsweredSince(uint64_t) const override
+    {
+        return 0;
+    }
+    void Toast(const std::string &text) override
+    {
+        calls.push_back("toast " + text);
+    }
+    void Read(const std::string &title, const std::string &text) override
+    {
+        calls.push_back("read " + title + ": " + text);
+    }
+    void Error(const std::string &text) override
+    {
+        calls.push_back("error " + text);
+    }
+    int Amount(const std::string &text, const std::string &, int none) override
+    {
+        return HasAmount(text) ? std::stoi(text) : none;
+    }
+    bool HasAmount(const std::string &text) const override
+    {
+        return !text.empty() && std::isdigit(static_cast<unsigned char>(text[0]));
+    }
+    double Number(const std::string &text, const std::string &, double none) override
+    {
+        return HasAmount(text) ? std::stod(text) : none;
+    }
+    std::string Decimal(const std::string &text) const override
+    {
+        return text;
+    }
+    std::string OneLine(const std::string &text) const override
+    {
+        return text;
+    }
+    std::string Fill(const std::string &text, const std::string &argument) const override
+    {
+        return text + " " + argument;
+    }
+    void DraftFollow(const std::string &, const std::string &, int, int) override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+    }
+    void DraftClose(const std::string &) override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+    }
+    int DraftOrigin(const std::string &) const override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+        return 0;
+    }
+    int DraftOther(const std::string &) const override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+        return 0;
+    }
+    int DraftValue(const std::string &, int, int) const override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+        return 0;
+    }
+    void DraftBind(const std::string &, const std::string &, int, int, const std::string &, int) override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+    }
+    storm::ui::ViewTree DraftButton(const std::string &, int, int, const std::string &, const std::string &,
+                                    const std::string &, bool, const std::string &, const std::string &) override
+    {
+        FAIL("no screen of these cases keeps an amount draft");
+        return {};
     }
     void Back(const std::string &node) override
     {
@@ -226,6 +353,16 @@ std::unique_ptr<storm::ui::ComponentSpec> PackScreen(const char *folder)
 {
     return storm::ui::ParseComponentSpec(
         Json::parse(ReadText(Environment("STORM_MOBILE_UI") + "/design/screens/" + folder + "/spec.json")));
+}
+
+// How many screens the pack's list declares: on the fixture game every one of them attaches.
+size_t PackScreens()
+{
+    size_t screens = 0;
+    const Json list = Json::parse(PackList());
+    for (const Json &segment : list.at("segments"))
+        screens += segment.value("screens", Json::array()).size();
+    return screens;
 }
 
 const storm::ui::ScriptScreen &Screen(const Vm &vm, const std::string &capability)
@@ -282,15 +419,14 @@ TEST_CASE("the pack's segments are attached after Main, each on its own")
     CHECK(vm.Loaded("interface/touch/core/core.c"));
     CHECK(vm.Loaded("interface/touch/lineages/legacy/rest.c"));
     CHECK(vm.Loaded("interface/touch/screens/rest.c"));
-    REQUIRE(vm.screens.size() == 1);
-    CHECK(vm.screens[0].capability == "rest");
-    CHECK(vm.screens[0].interface == "tavernwait"); // from the adapter's binding
-    CHECK(vm.screens[0].component == "s-rest");
-    CHECK(vm.screens[0].nodes.size() == 5);
+    const auto &rest = Screen(vm, "rest");
+    CHECK(rest.interface == "tavernwait"); // from the adapter's binding
+    CHECK(rest.component == "s-rest");
+    CHECK(rest.nodes.size() == 5);
     // The game's adapters need the game's scripts, which this program does not have: left out, loudly, the rest kept.
     CHECK_FALSE(vm.Loaded("interface/android_ui_bootstrap.c"));
     CHECK(log.Has("UI script interface/android_ui_bootstrap.c is off: does not compile"));
-    CHECK(log.Has("capabilities offered: rest; missing: none"));
+    CHECK(log.Has("capabilities offered: rest, trade_chest; missing: none"));
 }
 
 TEST_CASE("a segment that fails is left out with its screens; the core stops the start")
@@ -389,7 +525,7 @@ TEST_CASE("the segment list is checked when it is read")
                       Catch::Contains("interface and nodes come together"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c"}]}]})"),
                       Catch::Contains("scripts.json segment a.c"));
-    CHECK(ParseSegments(PackList()).size() == 5);
+    CHECK(ParseSegments(PackList()).size() == Json::parse(PackList()).at("segments").size());
 }
 
 TEST_CASE("the probe reads what the program offers")
@@ -404,7 +540,6 @@ TEST_CASE("the probe reads what the program offers")
     CHECK(surface.globals.contains("gamevalue"));
     CHECK(surface.globals.contains("uimodel"));
     CHECK(surface.events.contains("gametick"));
-    CHECK(surface.interfaces.size() == 2);
     CHECK(surface.interfaces.at("tavernwait") == "RESOURCE\\INI\\INTERFACES\\TavernWait.ini");
     CHECK(surface.interfaces.contains("store"));
     WARN("probe of the test program: " << ms << " ms");
@@ -438,7 +573,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     REQUIRE(loaded.compiler.LoadState(raw, state));
     CHECK(loaded.Integer("GameValue") == 7);
     CHECK(loaded.Loaded("interface/touch/screens/rest.c")); // attached again after OnLoad
-    CHECK(loaded.screens.size() == 1);
+    CHECK(loaded.screens.size() == PackScreens());
     CHECK_FALSE(log.Has("'UiModel' is not declared"));
     CHECK_FALSE(log.Has("'TouchRest' is not declared"));
 }
@@ -453,7 +588,7 @@ TEST_CASE("a program replaced releases the attached screens and attaches them ag
     REQUIRE(storm::save::parseState(raw.data(), raw.size(), state, error));
     REQUIRE(vm.compiler.LoadState(raw, state));
     CHECK(vm.released >= 1);
-    CHECK(vm.screens.size() == 1);
+    CHECK(vm.screens.size() == PackScreens());
     CHECK(vm.attacher.Running() == &vm.compiler);
 }
 

@@ -64,9 +64,9 @@ struct DemoPort final : ScriptPort
         if (id == "tabs" && predict)
             call.Predict(*predict);
         if (id == "tabs")
-            call.Send("SLIDER", "set", value);
+            call.Send("SLIDER", -1, "set", value, "");
         else if (id == "go" && call.Offers("OK", "press"))
-            call.Send("OK", "press", "");
+            call.Send("OK", -1, "press", "", "");
         else if (id == "dlg-close")
             call.Back("CANCEL");
     }

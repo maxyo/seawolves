@@ -1,7 +1,9 @@
 {
   "segments": [
     {"file": "interface/touch/core/core.c", "core": true},
+    {"file": "interface/touch/lib/text.c", "core": true},
     {"file": "interface/touch/contracts/rest.c"},
+    {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {
       "file": "interface/touch/lineages/legacy/rest.c",
@@ -17,9 +19,31 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/trade.c",
+      "requires": ["interface:itemsbox", "node:itemsbox#TABLE_LIST"],
+      "provides": ["adapter:trade"],
+      "binds": [
+        {
+          "capability": "trade_chest",
+          "interface": "itemsbox",
+          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
+                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["CHARACTERS_SCROLL", "choice"],
+                    ["CAPACITY", "text"], ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
+                    ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
+                    ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
+                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
+    },
+    {
+      "file": "interface/touch/screens/trade/commerce.c",
+      "uses": ["adapter:trade"],
+      "screens": [{"capability": "trade_chest", "component": "s-trade"}]
     }
   ]
 }

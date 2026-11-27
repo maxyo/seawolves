@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Rest: how long to rest, as a segment of the usual spans in a dialog over the paused scene; a span the segment does
 // not offer is named by the game's own text.
-#include "interface/touch/capabilities.h"
 
 #event_handler("UiBuild", "TouchRest_Build");
 #event_handler("UiTap", "TouchRest_Tap");

@@ -12,7 +12,6 @@ std::unique_ptr<Screen> CreateStorageScreen();
 std::unique_ptr<Screen> CreateContrabandScreen();
 std::unique_ptr<Screen> CreateCannonsScreen();
 std::unique_ptr<Screen> CreateItemsTradeScreen();
-std::unique_ptr<Screen> CreateItemsBoxScreen();
 std::unique_ptr<Screen> CreateCrewScreen();
 std::unique_ptr<Screen> CreateShipyardScreen();
 std::unique_ptr<Screen> CreateDialogueScreen();
@@ -69,7 +68,6 @@ const ScreenEntry kPorted[] = {
     {"contraband", CreateContrabandScreen},
     {"cannons", CreateCannonsScreen},
     {"itemstrade", CreateItemsTradeScreen},
-    {"itemsbox", CreateItemsBoxScreen},
     {"hirecrew", CreateCrewScreen},
     {"shipyard", CreateShipyardScreen},
     {"dialogue", CreateDialogueScreen},

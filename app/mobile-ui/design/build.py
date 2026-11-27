@@ -494,7 +494,7 @@ SHARED_LAYERS = {"core", "lib", "contracts", "screens", "hud"}
 # decision, taken by adding it here.
 SHARED_BUILTINS = {"GetEventData", "DeleteAttribute", "CheckAttribute", "makearef", "sti", "stf", "makeint",
                    "makefloat", "CopyAttributes", "GetAttributeName", "GetAttributeValue", "GetAttributesNum",
-                   "GetAttributeN", "abs", "strlen", "strcut", "findSubStr"}
+                   "GetAttributeN", "abs", "strlen", "strcut", "findSubStr", "Sprintf"}
 GAME_NAMES = re.compile(r"\b(teho|gpk|coas|cl|caribbean legend|to each his own|sea dogs|city of abandoned ships|"
                         r"корсары|каждому сво[её])\b", re.IGNORECASE)
 SCRIPT_TYPE = r"(?:void|int|float|string|object|aref|ref|bool)"

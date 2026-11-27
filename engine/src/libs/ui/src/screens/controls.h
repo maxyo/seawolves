@@ -5,6 +5,7 @@
 #include "screen.h"
 #include "../text_utf8.h"
 #include "amount.h"
+#include "pictures.h"
 
 #include <functional>
 #include <initializer_list>
@@ -64,15 +65,6 @@ class SectionSwitch
     uint64_t floor_ = 0; // the first widget action of the switch (Bindings::RequestFloor)
 };
 
-// The unified row image {kind:"item", texture:"atlas:GROUP/Picture"} for a picture the
-// engine names by its pictures.ini group, {kind:"portrait", texture:"INTERFACES/PORTRAITS/
-// 128/face_N"} for a game portrait, {kind:"item", texture:"<name under RESOURCE/Textures>"} for any
-// other game texture; null when the widget carries no such reference.
-Json PictureOf(const ImageRef *image);
-// {texture, uv} for <ui-game-image> (c-map-view, backdrops): a texture file of the game with
-// the rectangle shown ("interfaces/maps/kayman", "0,0,1,1") or an atlas picture ("atlas:GROUP/
-// Picture", ""); null for any other picture.
-Json TextureOf(const ImageRef *image);
 // The ship skills of a captain's mini table (interface_utils.c SetSPECIALMiniTable: the captain windows of shipyard.c
 // and transfer_main.c, the hero's sheet): {icon, k, v, tone} named from row tr5's pictures with row tr6's values, tone
 // "ok" / "danger" where the game colours a raised / lowered skill. A table without those rows, or naming an unknown

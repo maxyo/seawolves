@@ -28,8 +28,9 @@ engine code that the host checks build on Linux (`tests/ui_scripts`):
   interface takes it and its nodes from the binding of its capability by the attached adapter. Attached segments' globals never enter a save (core `COMPILER::SerializeState`).
 - `script_port.*`: script screens (UI library `storm_ui/script_screens.h`). The admitted widgets go to the script's
   `UiModel`, the event `UiBuild(capability)` builds the view and `UiTap(capability, id, verb, value)` answers an event
-  the script bound; the natives `UiShow`, `UiPredict` (in an event: the view the tap leads to, `Bindings::PredictThis`), `UiOn`, `UiSend`, `UiBack`, `UiModal`, `UiPending`, `UiOffers`, `UiText` act
-  on the screen while its script runs and fail outside it. These events are raised only between scripts: one asked
+  the script bound; the natives (declared in the scripts' `core/core.c`: the view, its bindings, widget actions on
+  nodes and rows, the build's timing and the game's answers, the reading of the game's figures, the engine's amount
+  drafts) act on the screen while its script runs (`storm_ui::ScriptCall`) and fail outside it. These events are raised only between scripts: one asked
   for while a script runs is refused with an error, and a script screen's model published from inside a script waits
   for the next `Tick`. Their cost per call is in the `script work:` line ("interface scripts").
 

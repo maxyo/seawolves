@@ -2,6 +2,7 @@
 // classification and the mapping of component events to engine actions. Synthetic
 // models only (tests/models); no GL context, no game data.
 #include "fakes.h"
+#include "../tools/script_game.h"
 #include "../src/hud/hud.h"
 #include "../src/picture_atlas.h"
 #include "../src/screens/amount.h"
@@ -18,6 +19,15 @@ using namespace storm::ui;
 using namespace storm::ui::screens;
 
 // The engine answers every widget action sent since the last answers (Router::Answer, as Host::Answer).
+// The application's pack: the trade windows the application's scripts draw are checked on their script screens.
+static std::string app_pack;
+
+static Router &Scripted(Router &router)
+{
+    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
+    return router;
+}
+
 static void AnswerAll(Router &router, FakeSurface &surface, bool applied, const std::string &reason = {})
 {
     for (; surface.answered < surface.actions.size(); ++surface.answered)
@@ -978,6 +988,10 @@ struct CommerceRun
     std::string models;
     FakeSurface surface;
     Router router{surface};
+    CommerceRun(std::string path) : models(std::move(path))
+    {
+        Scripted(router);
+    }
 
     void Models()
     {
@@ -1075,6 +1089,7 @@ struct CommerceRun
             modded.widgets.push_back(caption);
             FakeSurface mod_surface;
             Router mod(mod_surface);
+            Scripted(mod);
             mod.SetInterface(modded);
             Expect(mod_surface.props["list"]["filters"].size() == 5 &&
                        mod_surface.props["list"]["filters"][4]["label"] == "Карты",
@@ -1099,11 +1114,17 @@ struct CommerceRun
 
     void ChestTakes()
     {
+        // Before the routers below: a script screen's state is the program's, one window's at a time.
+        router.OnEvent({"primary", "click", ""});
+        ExpectEqual(surface.Last(), "widget:itemsbox\tGETALL_BUTTON\t-1\tpress", "take all");
+        router.OnEvent({"action-0", "click", ""});
+        ExpectEqual(surface.Last(), "widget:itemsbox\tDELBODY_BUTTON\t-1\tpress", "remove body");
         {
             // The amount window opened for the quick take: the whole stack is entered and confirmed, the window is not
             // reopened.
             FakeSurface quick_surface;
             Router quick(quick_surface);
+            Scripted(quick);
             quick.SetInterface(Load(models, "itemsbox.json"));
             InterfaceModel open = Load(models, "itemsbox-deal.json");
             std::string row_index;
@@ -1122,6 +1143,45 @@ struct CommerceRun
                            quick_surface.commands[1].size() - std::to_string(there).size() - 1 &&
                        quick_surface.commands[2].find("QTY_OK_BUTTON") != std::string::npos,
                    "quick take: all of the other side, confirmed: " + Json(quick_surface.commands).dump());
+        }
+        {
+            // A tapped row: the game selects it in one loop and opens its window in the next; the frame between is
+            // not shown and the build awaits the window, so the selection and its deal appear together.
+            FakeSurface tap_surface;
+            Router tap(tap_surface);
+            Scripted(tap);
+            const auto chosen = [&](const char *model, int row, uint64_t revision) {
+                InterfaceModel out = Load(models, model);
+                out.revision = revision;
+                for (Widget &widget : out.widgets)
+                    if (widget.node == "TABLE_LIST")
+                        widget.value = widget.index == row ? "1" : "0";
+                return out;
+            };
+            tap.SetInterface(chosen("itemsbox.json", 0, 1));
+            const Json before = tap_surface.props;
+            tap.OnEvent({"goods", "row", "1"});
+            AnswerAll(tap, tap_surface, true);
+            tap.SetInterface(chosen("itemsbox.json", 1, 2));
+            Expect(tap_surface.props == before && tap.Answering(),
+                   "chest: the selection without its window is held back and its window awaited");
+            Expect(tap.OnEvent({"goods", "info", ""}) && tap_surface.errors.empty(),
+                   "chest: what the held view shows of a deal takes no input, and says nothing");
+            tap.SetInterface(chosen("itemsbox-deal.json", 1, 3));
+            Expect(tap_surface.props["list"]["rows"][1]["selected"] == true && !tap_surface.props["deal"].is_null() &&
+                       !tap.Answering(),
+                   "chest: the window arrives: the row selected and its deal in one frame");
+            // A tab the game does not take now is not pressed.
+            InterfaceModel locked = chosen("itemsbox.json", 0, 4);
+            for (Widget &widget : locked.widgets)
+                if (widget.node == "TABBTN_2")
+                    widget.actions.clear();
+            tap.SetInterface(locked);
+            tap_surface.commands.clear();
+            tap.OnEvent({"goods", "filter", "1"});
+            Expect(tap_surface.props["list"]["filters"][1]["disabled"] == true && tap_surface.commands.empty(),
+                   "chest: a tab the game does not offer is shown disabled and not pressed: " +
+                       Json(tap_surface.commands).dump());
         }
         {
             // A chest (the game hides its take-all there): «Взять всё» asks the engine to run the game's
@@ -1146,6 +1206,7 @@ struct CommerceRun
                 {"row:0", "0"}, {"row:1", "0"}, {"row:2", "0"}, {"row:3", "0"}};
             FakeSurface chest_surface;
             Router box(chest_surface);
+            Scripted(box);
             box.SetInterface(chest(1, {}, true));
             ExpectEqual(chest_surface.props["primary"]["label"], "<trade.take_all>",
                         "a chest: our take all is the primary");
@@ -1171,10 +1232,6 @@ struct CommerceRun
             box.SetInterface(chest(6, {}, false));
             Expect(chest_surface.props["primary"].is_null(), "without the engine's take-all no button");
         }
-        router.OnEvent({"primary", "click", ""});
-        ExpectEqual(surface.Last(), "widget:itemsbox\tGETALL_BUTTON\t-1\tpress", "take all");
-        router.OnEvent({"action-0", "click", ""});
-        ExpectEqual(surface.Last(), "widget:itemsbox\tDELBODY_BUTTON\t-1\tpress", "remove body");
         router.SetInterface(Load(models, "itemsbox-deal.json"));
         Expect(surface.props["deal"]["steps"].size() == 2 && surface.props["deal"]["max"] == 26,
                "single items: steps 1 and 10, up to both sides");
@@ -1197,6 +1254,7 @@ struct CommerceRun
                             cell.text = "-";
             FakeSurface gold_surface;
             Router box(gold_surface);
+            Scripted(box);
             box.SetInterface(gold);
             Json facts = Json::array();
             for (const Json &row : gold_surface.props["list"]["rows"])
@@ -5697,7 +5755,8 @@ static void Refused()
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
-    if (argc > 2 && std::string(argv[2]) == "items")
+    app_pack = argc > 2 ? argv[2] : "";
+    if (argc > 3 && std::string(argv[3]) == "items")
     {
         Items(models);
         ItemCategories(models);

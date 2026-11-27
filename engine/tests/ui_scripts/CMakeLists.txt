@@ -7,7 +7,7 @@ storm_mobile_ui_layer(ui_scripts_layer "${layer}")
 set(ui ${src}/libs/ui)
 add_executable(ui_scripts_check check.cpp ${src}/libs/ui_host/src/scripts/script_segments.cpp
     ${src}/libs/ui_host/src/scripts/script_port.cpp ${ui}/src/interface_model.cpp ${ui}/src/component_spec.cpp
-    ${ui}/src/screens/script_props.cpp)
+    ${ui}/src/screens/script_props.cpp ${ui}/src/screens/pictures.cpp)
 add_dependencies(ui_scripts_check ui_scripts_layer)
 target_include_directories(ui_scripts_check PRIVATE ${src}/libs/ui_host/src/scripts ${ui}/include ${ui}/src)
 target_link_libraries(ui_scripts_check PRIVATE storm_script_vm storm_catch2_main nlohmann_json::nlohmann_json)

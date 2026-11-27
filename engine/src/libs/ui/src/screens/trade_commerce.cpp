@@ -1,4 +1,4 @@
-// Commerce: store, contraband, cannons, items trade, storage, colony loot and chests / bodies — one
+// Commerce: store, contraband, cannons, items trade, storage and colony loot — one
 // buy / sell / transfer layout (pack screen <s-trade>). Goods are one C-TradeList that never
 // moves: filter chips and sortable columns in its head, 44 dp rows; the row whose quantity
 // window the game has open shows in the dock beside the list (object, description, C-Quantity
@@ -46,9 +46,7 @@ struct Layout
     const char *owners;            // node of the "whose" selector
     bool small = false;            // single items: steps of 1 and 10
     int details[3] = {-1, -1, -1}; // extra columns named in the dock (cannons: range, damage, reload)
-    bool quick = false; // the hand at a row's end takes the whole stack (free transfers by the game's amount window)
-    // Our short captions of the game's category tabs, by position; a tab past them keeps the game's caption.
-    const char *tabs[4] = {nullptr, nullptr, nullptr, nullptr};
+    bool quick = false;  // the hand at a row's end takes the whole stack (free transfers by the game's amount window)
     int weight = -1;     // what one pack (goods) or one piece (items) weighs; -1 = the deal has no weight
     bool pieces = false; // itemstrade.c: single pieces with fractional weights (else goods in packs, whole cwt)
     bool best = false;   // town loot: «Забрать самое ценное» (the adapter's ANDROID_LOOT values)
@@ -59,10 +57,6 @@ struct Layout
     const char *own_icon = "";
     const char *other_icon = "";
     const char *carry_icon = "capacity"; // the header figure of what we carry (the hold; a character's weight)
-    // A chest's table has the total weight of each side's pieces instead of one piece's (itemsbox.c): the dock's
-    // weight is one piece's, from the side that has more of them (the finer figure). -1: no such columns.
-    int own_total_weight = -1;
-    int other_total_weight = -1;
 };
 
 constexpr Layout Captioned(Layout layout, const char *own, const char *own_icon, const char *other,
@@ -74,11 +68,9 @@ constexpr Layout Captioned(Layout layout, const char *own, const char *own_icon,
     layout.other_icon = other_icon;
     return layout;
 }
-constexpr Layout Carrying(Layout layout, const char *icon, int own_total_weight = -1, int other_total_weight = -1)
+constexpr Layout Carrying(Layout layout, const char *icon)
 {
     layout.carry_icon = icon;
-    layout.own_total_weight = own_total_weight;
-    layout.other_total_weight = other_total_weight;
     return layout;
 }
 
@@ -132,33 +124,29 @@ struct DealMath
 // clang-format off
 constexpr Layout kStore = Captioned(
     {StringKey("trade.store"), 0, 5, 3, 2, 4, 6, "SHIPS_SCROLL", false, {-1, -1, -1}, false,
-     {nullptr, nullptr, nullptr, nullptr}, 7},
+     7},
     StringKey("trade.in_hold"), "capacity", StringKey("trade.in_store"), "store");
 constexpr Layout kContraband = Captioned(
     {StringKey("trade.contraband"), 0, 5, 3, 2, 4, 6, "SHIPS_SCROLL", false, {-1, -1, -1}, false,
-     {nullptr, nullptr, nullptr, nullptr}, 7},
+     7},
     StringKey("trade.in_hold"), "capacity", nullptr, "");
 constexpr Layout kCannons = Captioned(
     {StringKey("trade.cannons"), 0, 5, 3, 2, 4, -1, "SHIPS_SCROLL", true, {7, 8, 9}, false,
-     {nullptr, nullptr, nullptr, nullptr}, 6},
+     6},
     StringKey("trade.in_hold"), "capacity", StringKey("trade.in_store"), "store");
 constexpr Layout kItemsTrade = Carrying(
     {StringKey("trade.items"), 0, 5, 3, 2, 4, -1, "CHARACTERS_SCROLL", true, {-1, -1, -1}, false,
-     {nullptr, nullptr, nullptr, nullptr}, 6, true},
+     6, true},
     "weight");
 constexpr Layout kStorage = Captioned(
     {StringKey("trade.storage"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
-     {nullptr, nullptr, nullptr, nullptr}, 5},
+     5},
     StringKey("trade.in_hold"), "capacity", nullptr, "");
 // Looting a captured colony (ColonyCapture.c): the hold, the town's stores, a free transfer.
 constexpr Layout kColonyCapture = Captioned(
     {StringKey("trade.loot"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
-     {nullptr, nullptr, nullptr, nullptr}, 5, false, true},
+     5, false, true},
     StringKey("trade.in_hold"), "capacity", StringKey("trade.in_store"), "store");
-constexpr Layout kItemsBox = Carrying(
-    {StringKey("trade.chest"), 0, 4, 2, -1, -1, -1, "CHARACTERS_SCROLL", true, {-1, -1, -1}, true,
-     {StringKey("common.all"), StringKey("trade.tab_mine"), StringKey("trade.tab_here"), StringKey("trade.tab_weapons")}},
-    "weight", 1, 3);
 // clang-format on
 // The goods of the loot / exchange screen (transfer_main): ours, weight, name, theirs, weight.
 constexpr Layout kTransfer{StringKey("transfer.title"), 0, 3, 2, -1, -1, -1, "", false};
@@ -581,10 +569,7 @@ class CommerceScreen final : public Screen
         Captions out{Header(goods, columns.own), Header(goods, columns.other)};
         // Personal stock, a merchant/store or a container/other ship are distinct at a glance.
         out.own_icon = columns.small ? "hero" : "capacity";
-        out.other_icon = &columns == &kItemsBox   ? "chest"
-                         : &columns == &kTransfer ? "ship"
-                         : &columns == &kStorage  ? "chest"
-                                                  : "store";
+        out.other_icon = &columns == &kTransfer ? "ship" : &columns == &kStorage ? "chest" : "store";
         if (out.own.empty() || out.own == out.other)
         {
             out.own = bindings.Text("trade.yours");
@@ -1083,11 +1068,8 @@ class CommerceScreen final : public Screen
                 continue;
             // The script reads the click on the caption over the picture where it has one.
             const Widget *target = caption->Offers("press") ? caption : button;
-            // Our short caption by position; a tab past the known ones (a mod's) keeps the game's.
-            const char *known = i <= 4 ? layout_.tabs[i - 1] : nullptr;
-            tabs.push_back(Json{{"label", known ? bindings.Text(known) : caption->label},
-                                {"selected", button->value == "1"},
-                                {"disabled", !target->Offers("press")}});
+            tabs.push_back(Json{
+                {"label", caption->label}, {"selected", button->value == "1"}, {"disabled", !target->Offers("press")}});
             tab_buttons.push_back(target);
         }
         if (!tabs.empty())
@@ -1314,20 +1296,6 @@ class CommerceScreen final : public Screen
                     {"icon", "weight"},
                     {"v", Decimal(columns.pieces ? weight : weight + " " + bindings.Text("transfer.cwt"), language_)}});
         }
-        else if (columns.own_total_weight >= 0 && columns.other_total_weight >= 0)
-        {
-            const int own = Ours(bindings, row, columns), other = Theirs(bindings, row, columns);
-            const int count = std::max(own, other);
-            const std::string cell = row.CellText(own >= other ? columns.own_total_weight : columns.other_total_weight);
-            // "-": gold, which weighs nothing (itemsbox.c writes it in both weight columns of its row)
-            const double total = cell == "-" ? 0.0 : Number(bindings, cell, "TABLE_LIST total weight");
-            if (count > 0 && total > 0.0)
-            {
-                char weight[32];
-                std::snprintf(weight, sizeof(weight), "%.2g", total / count);
-                facts.push_back(Json{{"icon", "weight"}, {"v", Decimal(weight, language_)}});
-            }
-        }
         if (!facts.empty() && !pack.empty() && pack != "1")
             facts.push_back(Json{{"v", Fill(bindings.Text("trade.per_units"), {pack})}, {"tone", "dim"}});
         return facts;
@@ -1391,10 +1359,6 @@ std::unique_ptr<Screen> CreateTransferGoods()
 std::unique_ptr<Screen> CreateColonyCaptureScreen()
 {
     return std::make_unique<CommerceScreen>(kColonyCapture);
-}
-std::unique_ptr<Screen> CreateItemsBoxScreen()
-{
-    return std::make_unique<CommerceScreen>(kItemsBox);
 }
 
 } // namespace storm::ui::screens

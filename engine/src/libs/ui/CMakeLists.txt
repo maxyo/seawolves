@@ -111,6 +111,7 @@ add_library(storm_ui STATIC
     src/interface_model.cpp
     src/screens/router.cpp
     src/screens/controls.cpp
+    src/screens/pictures.cpp
     src/screens/amount.cpp
     src/screens/registry.cpp
     src/screens/generic.cpp
@@ -249,10 +250,8 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     endfunction()
     storm_ui_check(unit unit_check.cpp "${models}")
     storm_ui_check(perk_tree perk_tree_check.cpp "${models}")
-    storm_ui_check(screens screens_check.cpp "${models}")
     storm_ui_check(officer_assignment officer_assignment_check.cpp "${models}")
     storm_ui_check(menus menus_check.cpp "${models}")
-    storm_ui_check(rare rare_check.cpp "${models}")
     storm_ui_check(hud_lifecycle hud_lifecycle_check.cpp "${states}" "${pack}")
     storm_ui_check(hud hud_check.cpp "${states}")
     storm_ui_check(hud_spyglass hud_spyglass_check.cpp "${states}")
@@ -279,6 +278,12 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     storm_ui_check(modals modals_check.cpp "${models}" "${pack}" "${font}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_modals_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_modals_unit storm_ui_app_pack)
+    storm_ui_check(rare rare_check.cpp "${models}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_rare_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_rare_unit storm_ui_app_pack)
+    storm_ui_check(screens screens_check.cpp "${models}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_screens_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_screens_unit storm_ui_app_pack)
     storm_ui_check(trade_parity trade_parity_check.cpp "${models}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/trade-parity.json"
                    "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_trade_parity_unit PRIVATE storm_ui_script_game)
