@@ -54,6 +54,8 @@
   нажатия, а выбранный флаг остаётся прежним. Оттенок репутации берётся из слова самой игры.
 - Карты: очки считаются так, как их считает игра (колода мода с другими очками показывает верную сумму); имя
   соперника полное, как в игре.
+- Компас карты мира больше не предсказывает дождь: игра не строит погоду моря, пока корабль на карте, и прогноз мог не
+  сбыться. Компас показывает только зону шторма или смерча, в которой стоит корабль.
 
 **English**
 
@@ -112,6 +114,8 @@
   after a tap, and the chosen flag stays as it was. The tone of a reputation follows the game's own word.
 - Cards: points are counted as the game counts them (a mod's deck with other values shows the right total); the
   opponent's name is the game's full name.
+- The world map's compass no longer forecasts rain: the game builds no sea weather while the ship is on the map, and
+  the forecast could be wrong. The compass shows only the storm or tornado zone the ship is in.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -403,7 +403,6 @@ void WdmWindUI::LRender(VRenderer *rs)
     {
         source.date = storm::android::scriptCaption(std::to_string(wdmObjects->wm->day) + " " +
             month[wdmObjects->wm->mon-1] + " " + std::to_string(wdmObjects->wm->year), "worldMap");
-        source.year = wdmObjects->wm->year; source.month = wdmObjects->wm->mon; source.day = wdmObjects->wm->day;
         source.moonPhase = storm::android::mapMoonPhase(wdmObjects->wm->day);
     }
     const auto finite = [](double value)->std::optional<double>{return std::isfinite(value)?std::optional<double>(value):std::nullopt;};

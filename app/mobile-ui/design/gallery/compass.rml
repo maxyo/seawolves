@@ -11,16 +11,16 @@
   <c-icon icon="c-sky-sun" size="48" tone="color"/>
   <c-icon icon="c-sky-moon-0" size="48" tone="color"/><c-icon icon="c-sky-moon-1" size="48" tone="color"/><c-icon icon="c-sky-moon-2" size="48" tone="color"/><c-icon icon="c-sky-moon-3" size="48" tone="color"/>
   <c-icon icon="c-sky-moon-4" size="48" tone="color"/><c-icon icon="c-sky-moon-5" size="48" tone="color"/><c-icon icon="c-sky-moon-6" size="48" tone="color"/><c-icon icon="c-sky-moon-7" size="48" tone="color"/>
-  <c-icon icon="c-sky-clouds" size="48" tone="color"/><c-icon icon="c-sky-rain" size="48" tone="color"/><c-icon icon="c-sky-storm" size="48" tone="color"/><c-icon icon="c-sky-tornado" size="48" tone="color"/>
+  <c-icon icon="c-sky-storm" size="48" tone="color"/><c-icon icon="c-sky-tornado" size="48" tone="color"/>
 </div>
 <div class="g-row g-scene" style="gap: 24dp">
-  <c-compass id="cp-map" date="7 окт. 1654" time="12:31" course="130" wind-from="122" wind="82" sky="sun" sky-at="9" weather="clear" days="18"/>
-  <c-compass date="8 окт. 1654" time="03:05" course="290" wind-from="20" wind="30" sky="moon" sky-at="-30" moon="1" weather="clear" days="2" days-tone="danger" expanded="1"/>
-  <c-compass date="9 окт. 1654" time="18:00" course="0" wind-from="200" wind="100" sky="sun" sky-at="-62" weather="rain" days="64"/>
+  <c-compass id="cp-map" date="7 окт. 1654" time="12:31" course="130" wind-from="122" wind="82" sky="sun" sky-at="9" weather="none" days="18"/>
+  <c-compass date="8 окт. 1654" time="03:05" course="290" wind-from="20" wind="30" sky="moon" sky-at="-30" moon="1" weather="none" days="2" days-tone="danger" expanded="1"/>
+  <c-compass date="9 окт. 1654" time="18:00" course="0" wind-from="200" wind="100" sky="sun" sky-at="-62" weather="storm" days="64"/>
 </div>
 <div class="g-row g-scene" style="gap: 24dp">
-  <c-compass date="1 окт. 1654" time="23:40" course="40" wind-from="300" wind="55" sky="moon" sky-at="50" moon="0" weather="clear" days="18"/>
-  <c-compass date="17 окт. 1654" time="07:10" course="200" wind-from="90" wind="15" sky="sun" sky-at="77" weather="clouds" days="18"/>
+  <c-compass date="1 окт. 1654" time="23:40" course="40" wind-from="300" wind="55" sky="moon" sky-at="50" moon="0" weather="none" days="18"/>
+  <c-compass date="17 окт. 1654" time="07:10" course="200" wind-from="90" wind="15" sky="sun" sky-at="77" weather="storm" days="18"/>
   <c-compass date="25 окт. 1654" time="15:00" course="90" wind-from="45" wind="95" sky="sun" sky-at="-18" weather="storm" days="18"/>
   <c-compass date="29 окт. 1654" time="02:00" course="10" wind-from="180" wind="100" sky="moon" sky-at="10" moon="7" weather="tornado" days="18"/>
 </div>

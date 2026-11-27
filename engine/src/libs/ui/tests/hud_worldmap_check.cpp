@@ -22,7 +22,7 @@ static void CheckConsumer()
     Expect(map.food_days == 18 && map.rum_days == 4 && map.flag == 2 && std::abs(map.speed - 0.7) < 1e-9 &&
                map.angles && map.coordinates == "--",
            "worldMap: the instruments");
-    Expect(map.storm == 0 && map.moon_phase == 1 && map.rain == 0, "worldMap: the weather and the moon");
+    Expect(map.storm == 0 && map.moon_phase == 1, "worldMap: the storm zone and the moon");
     size_t errors = 0;
     const auto rejected = [&](Json state, const std::string &what) {
         bench.Set("worldMap", state);
@@ -35,9 +35,6 @@ static void CheckConsumer()
     bad = State("world-map");
     bad["moonPhase"] = 8;
     rejected(bad, "worldMap: a moon phase past the game's eight");
-    bad = State("world-map");
-    bad["rainState"] = 1.5;
-    rejected(bad, "worldMap: a rain state that is not whole");
     bad = State("world-map");
     bad.erase("ships");
     rejected(bad, "worldMap: a frame without its fleet list");
@@ -74,7 +71,7 @@ static void CheckScene()
     Expect(shown["compass"]["course"] == 130 && shown["compass"]["windFrom"] == 140 && shown["compass"]["wind"] == 82 &&
                shown["compass"]["time"] == "12:31" && shown["compass"]["days"] == "18" &&
                shown["compass"]["sky"] == "sun" && shown["compass"]["skyAt"] == 12 &&
-               !shown["compass"].contains("moon") && shown["compass"]["weather"] == "clear" &&
+               !shown["compass"].contains("moon") && !shown["compass"].contains("weather") &&
                shown["sail"]["value"] == 70,
            "compass and lever: " + shown["compass"].dump());
     Expect(shown["context"]["icon"] == "sea-exit" && shown["context"]["variant"] == "primary",
@@ -87,11 +84,11 @@ static void CheckScene()
 
     // the compass shows the details beside it
     bench.Press("compass", "toggle", "1");
-    Expect(mount.Has("details") && shown["compass"]["expanded"] == true && shown["detail-rows"]["items"].size() == 8,
+    Expect(mount.Has("details") && shown["compass"]["expanded"] == true && shown["detail-rows"]["items"].size() == 7,
            "a tap on the compass: the details");
     const Json &rows = shown["detail-rows"]["items"];
-    Expect(rows[0]["v"] == "130°" && rows[1]["v"] == "hud.map.windFrom · 82%" && rows[2]["k"] == "hud.map.weather" &&
-               rows[2]["v"] == "hud.map.weather.clear" && rows[7]["v"] == "hud.map.noSextant",
+    Expect(rows[0]["v"] == "130°" && rows[1]["v"] == "hud.map.windFrom · 82%" && rows[2]["k"] == "hud.map.food" &&
+               rows[6]["v"] == "hud.map.noSextant",
            "the details read the compass in words: " + rows.dump());
     bench.Press("compass", "toggle", "0");
     Expect(!mount.Has("details"), "a second tap hides them");
@@ -163,36 +160,32 @@ static void CheckSky()
     FakeMount &mount = bench.mount;
     bench.Feed("gameplay", "gameplay-worldmap");
     Json compass;
-    const auto show = [&](double hour, Json storm, Json moon, Json rain) {
+    const auto show = [&](double hour, Json storm, Json moon) {
         Json state = State("world-map");
         state["hour"] = hour;
         state["stormState"] = storm;
         state["moonPhase"] = moon;
-        state["rainState"] = rain;
         bench.Set("worldMap", state);
         compass = mount.shown.elements.value("compass", Json::object());
     };
-    show(6.0, 0, 1, 0);
+    show(6.0, 0, 1);
     Expect(compass["sky"] == "sun" && compass["skyAt"] == 90, "sunrise at the east end: " + compass.dump());
-    show(13.5, 0, 1, 1);
-    Expect(compass["sky"] == "sun" && compass["skyAt"] == 0 && compass["weather"] == "clouds",
-           "noon high in the dome, clouds gathering: " + compass.dump());
-    show(20.99, 0, 1, 2);
-    Expect(compass["sky"] == "sun" && compass["skyAt"] == -90 && compass["weather"] == "rain",
-           "sunset at the west end, rain: " + compass.dump());
-    show(1.5, 2, 0, 0);
+    show(13.5, 0, 1);
+    Expect(compass["sky"] == "sun" && compass["skyAt"] == 0 && !compass.contains("weather"),
+           "noon high in the dome, no storm zone: no weather: " + compass.dump());
+    show(20.99, 1, 1);
+    Expect(compass["sky"] == "sun" && compass["skyAt"] == -90 && compass["weather"] == "storm",
+           "sunset at the west end, a storm: " + compass.dump());
+    show(1.5, 2, 0);
     Expect(compass["sky"] == "moon" && compass["skyAt"] == 0 && compass["moon"] == 0 && compass["weather"] == "tornado",
            "the new moon at half past one, a storm with a tornado: " + compass.dump());
     const size_t errors = mount.errors.size();
-    show(3.0, 0, nullptr, 0);
+    show(3.0, 0, nullptr);
     Expect(compass["sky"] == "none" && !compass.contains("moon") && mount.errors.size() == errors + 1,
            "no moon phase at night: no moon, said aloud");
-    show(12.0, nullptr, 3, 0);
+    show(12.0, nullptr, 3);
     Expect(compass["sky"] == "sun" && !compass.contains("weather") && mount.errors.size() == errors + 2,
            "no storm state: no weather, said aloud");
-    show(12.0, 0, 3, nullptr);
-    Expect(!compass.contains("weather") && mount.errors.size() == errors + 2,
-           "no rain state: no weather (the same error, once)");
 }
 
 // The time acceleration as at sea: the scale the engine runs at, a tap asks for the next step.

@@ -21,34 +21,6 @@ inline std::optional<bool> mapFlag(ATTRIBUTES *attributes, const char *path)
         return std::nullopt;
     return *number == 1;
 }
-// The rain the sea will have when the map is left (mapRainState): WeatherParams and the start of
-// the rain the scripts keep on the hero (SaveCurrentQuestDateParam("Rain.Duration")).
-inline std::optional<int> readMapRainState(ATTRIBUTES *hero, const MapInstrumentFrame &instruments)
-{
-    auto *weather = static_cast<VDATA *>(core.GetScriptVariable("WeatherParams"));
-    auto *params = weather ? weather->GetAClass() : nullptr;
-    if (!params || !instruments.hour)
-        return std::nullopt;
-    MapRainPlan plan;
-    plan.raining = mapFlag(params, "Rain");
-    plan.today = mapFlag(params, "Rain.ThisDay");
-    plan.start = shipNumber(params, "Rain.StartTime");
-    plan.duration = shipNumber(params, "Rain.Duration");
-    const auto year = shipNumber(hero, "Rain.Duration.control_year"),
-               month = shipNumber(hero, "Rain.Duration.control_month"),
-               day = shipNumber(hero, "Rain.Duration.control_day"),
-               time = shipNumber(hero, "Rain.Duration.control_time");
-    if (year && month && day && time)
-    {
-        const auto began = mapCalendarMinutes(static_cast<int>(*year), static_cast<int>(*month), static_cast<int>(*day),
-                                              *time),
-                   now = mapCalendarMinutes(instruments.year, instruments.month, instruments.day, *instruments.hour);
-        if (!began || !now)
-            return std::nullopt;
-        plan.elapsed = std::max(0.0, *now - *began); // GetPastTime: a start after now counts nothing
-    }
-    return mapRainState(plan, *instruments.hour);
-}
 inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready)
 {
     WorldMapFrame frame;
@@ -76,7 +48,6 @@ inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready
     {
         frame.instruments = worldMapHud.source;
         frame.instrumentsVisible = frame.instruments.visible;
-        frame.instruments.rainState = readMapRainState(main, frame.instruments);
     }
     auto *battle = core.Entity_GetAttributeClass(core.GetEntityId("WM_INTERFACE"), "wm_sign");
     auto *realShips = static_cast<VDATA *>(core.GetScriptVariable("RealShips"));

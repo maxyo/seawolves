@@ -57,21 +57,13 @@ struct Weather
 {
     const char *id, *word;
 };
-const Weather kWeathers[] = {{"clear", StringKey("hud.map.weather.clear")},
-                             {"clouds", StringKey("hud.map.weather.clouds")},
-                             {"rain", StringKey("hud.map.weather.rain")},
-                             {"storm", StringKey("hud.map.weather.storm")},
+const Weather kWeathers[] = {{"storm", StringKey("hud.map.weather.storm")},
                              {"tornado", StringKey("hud.map.weather.tornado")}};
 
-// What the sky over the compass shows, worst first: the storm zone the ship is in
-// (WdmPlayerShip::TestInStorm), then the rain the sea will have (rainState).
+// The storm zone the ship is in (WdmPlayerShip::TestInStorm); the map knows no other weather.
 const Weather *WeatherOf(const WorldMap &map)
 {
-    if (map.storm < 0 || map.rain < 0)
-        return nullptr;
-    if (map.storm > 0)
-        return &kWeathers[map.storm == 2 ? 4 : 3];
-    return &kWeathers[map.rain];
+    return map.storm > 0 ? &kWeathers[map.storm == 2 ? 1 : 0] : nullptr;
 }
 
 const char *const kPoints[] = {
@@ -285,8 +277,8 @@ class WorldMapScene final : public Scene
         const Weather *weather = WeatherOf(map);
         if (weather)
             compass["weather"] = weather->id;
-        else
-            hud_.Error("world-map HUD: the engine gives no stormState or rainState; the compass draws no weather");
+        else if (map.storm < 0)
+            hud_.Error("world-map HUD: the engine gives no stormState; the compass draws no weather");
         if (map.food_days >= 0)
         {
             compass["days"] = std::to_string(map.food_days);

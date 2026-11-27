@@ -664,8 +664,7 @@ std::string ReadWorldMap(const Json &state, WorldMap &out)
                morale = Number(state, "morale", bad), speed = Number(state, "speed", bad),
                time_scale = Number(state, "timeScale", bad), food = Number(state, "foodDays", bad),
                rum = Number(state, "rumDays", bad), flag = Number(state, "flag", bad),
-               storm = Number(state, "stormState", bad), moon = Number(state, "moonPhase", bad),
-               rain = Number(state, "rainState", bad);
+               storm = Number(state, "stormState", bad), moon = Number(state, "moonPhase", bad);
     if (bad)
         return "an instrument value is not a number";
     // Indices into the HUD's tables of flags, weathers and moon pictures.
@@ -673,7 +672,7 @@ std::string ReadWorldMap(const Json &state, WorldMap &out)
         return !value || (*value >= 0.0 && *value <= last && std::floor(*value) == *value);
     };
     for (const auto &[value, last, name] : {std::tuple{flag, 4, "flag"}, std::tuple{storm, 2, "stormState"},
-                                            std::tuple{rain, 2, "rainState"}, std::tuple{moon, 7, "moonPhase"}})
+                                            std::tuple{moon, 7, "moonPhase"}})
         if (!index(value, last))
             return std::string(name) + " is not 0…" + std::to_string(last);
     for (const Json &source : *fleet)
@@ -734,7 +733,6 @@ std::string ReadWorldMap(const Json &state, WorldMap &out)
     out.flag = flag ? static_cast<int>(*flag) : -1;
     out.storm = storm ? static_cast<int>(*storm) : -1;
     out.moon_phase = moon ? static_cast<int>(*moon) : -1;
-    out.rain = rain ? static_cast<int>(*rain) : -1;
     return {};
 }
 

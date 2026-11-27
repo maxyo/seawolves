@@ -32,42 +32,6 @@ inline std::optional<int> mapMoonPhase(int day)
         return std::nullopt;
     return day / 4;
 }
-// Minutes of the game's calendar (calendar.c: 365-day years, no leap day), to measure a span.
-inline std::optional<double> mapCalendarMinutes(int year, int month, int day, double hour)
-{
-    static constexpr int before[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-    if (month < 1 || month > 12 || day < 1 || day > 31 || !(hour >= 0.0 && hour <= 24.0))
-        return std::nullopt;
-    return ((static_cast<double>(year) * 365.0 + before[month - 1] + (day - 1)) * 24.0 + hour) * 60.0;
-}
-// The rain the scripts keep in WeatherParams (WhrWeather.c), the weather the sea will have when
-// the map is left: a rain in progress (Rain = 1) lasts Rain.Duration minutes from its start
-// (PChar Rain.Duration.control_*); a rain planned for today (Rain.ThisDay = 1) starts at
-// Rain.StartTime, and the sky turns to the rain sky the hour before (WhrSky.c blends the hourly
-// skies). 0 none, 1 clouds gathering, 2 raining; nullopt: the scripts' values are malformed.
-struct MapRainPlan
-{
-    std::optional<bool> raining, today;    // absent attributes are false, as CheckAttribute in the scripts
-    std::optional<double> start, duration; // hour of the day, minutes
-    std::optional<double> elapsed;         // minutes since the rain began; absent: the scripts count 0
-};
-inline std::optional<int> mapRainState(const MapRainPlan &plan, double hour)
-{
-    if (!plan.raining || !plan.today || !(hour >= 0.0 && hour <= 24.0))
-        return std::nullopt;
-    if (*plan.raining)
-    {
-        if (!plan.duration)
-            return std::nullopt;
-        return plan.elapsed.value_or(0.0) > *plan.duration ? 0 : 2;
-    }
-    if (!*plan.today)
-        return 0;
-    if (!plan.start || *plan.start > 24.0)
-        return std::nullopt;
-    const double start = std::floor(*plan.start); // the scripts compare whole hours
-    return std::floor(hour) >= start ? 2 : std::floor(hour) >= start - 1.0 ? 1 : 0;
-}
 enum WorldMapCoverage : uint32_t
 {
     MapInstruments = 1,
@@ -83,8 +47,7 @@ struct MapInstrumentFrame
     std::optional<double> speed;     // the map ship's speed, share of its maximum 0…1
     std::optional<double> timeScale; // the world's time scale the scripts set (x1 = 1)
     std::optional<int> foodDays, rumDays, flag, stormState;
-    std::optional<int> moonPhase, rainState; // mapMoonPhase of the map's day, mapRainState
-    int year = 0, month = 0, day = 0;        // the map's calendar date (not published: the date text is)
+    std::optional<int> moonPhase; // mapMoonPhase of the map's day
 };
 struct MapShipFrame
 {
@@ -307,7 +270,6 @@ class WorldMapHud
         out.flag = count(i.flag);
         out.storm = count(i.stormState);
         out.moon_phase = count(i.moonPhase);
-        out.rain = count(i.rainState);
         for (const auto &s : frame_.ships)
             out.fleet.push_back({s.id, s.name, s.type, reading(s.hull), reading(s.sails),
                                  s.crew && s.crewMax && *s.crewMax > 0
