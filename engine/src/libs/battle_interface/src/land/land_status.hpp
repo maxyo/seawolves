@@ -254,7 +254,7 @@ inline void readLandStatus(ATTRIBUTES *root, ATTRIBUTES *icons, LandVitals &v)
     if (player != invalid_entity && core.Send_Message(player, "ls", MSG_CHARACTER_EX_MSG, "IsFightMode"))
     {
         const auto wait = core.Send_Message(player, "ls", MSG_CHARACTER_EX_MSG, "RecoilWait");
-        v.dash = std::clamp(static_cast<float>(wait) / 800.f, 0.f, 1.f);
+        v.dash = std::clamp(static_cast<float>(wait) / 1000.f, 0.f, 1.f);
     }
 }
 

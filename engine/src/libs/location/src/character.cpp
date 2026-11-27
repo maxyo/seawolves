@@ -1743,7 +1743,7 @@ void Character::Recoil()
     {
         fgtSetType = fgt_recoil;
         fgtSetIndex = 0;
-        recoilWait = 0.8f;
+        recoilWait = kRecoilDelay;
         isTurnLock = false;
     }
     else
@@ -3523,8 +3523,8 @@ uint32_t Character::zExMessage(MESSAGE &message)
     }
     if (storm::iEquals(msg, "RecoilWait"))
     {
-        // Milliseconds until the next backstep (Recoil) is possible: the HUD's dash cooldown.
-        return static_cast<uint64_t>(std::max(recoilWait, 0.0f) * 1000.0f);
+        // The share of the backstep's delay still to wait, in thousandths: the HUD's dash cooldown.
+        return static_cast<uint64_t>(std::clamp(recoilWait / kRecoilDelay, 0.0f, 1.0f) * 1000.0f);
     }
     if (storm::iEquals(msg, "IsSetBalde"))
     {

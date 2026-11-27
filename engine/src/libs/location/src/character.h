@@ -628,7 +628,8 @@ class Character : public Entity
     bool isFireState;         // fire state to improve npc logic
     bool isFired;             // Is a shot fired
     bool isLockIdleForCamera; //
-    float recoilWait;         // Delay after jump
+    static constexpr float kRecoilDelay = 0.8f; // seconds between two backsteps
+    float recoilWait;                           // Delay after jump
     float strafeWait;         // Delay after strafe
     float camRotWait;         // Current turn delay ratio
     float camRotMax;          // Maximum turning time
