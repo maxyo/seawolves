@@ -68,6 +68,9 @@ struct GameProfileFacts
     // GetDLCenabled answers "owned" for every add-on: they were published as part of the game. Otherwise only for
     // the add-ons the player says he owns (platform/desktop_settings.hpp PlayerSettings).
     bool dlc_published_with_game;
+    // The renderer makes normal, gloss and height maps and the neural x2 textures from the game's textures. A game that
+    // ships its own maps gets none of them, not even for its models without maps, and no «Обработка текстур» settings.
+    bool generates_texture_maps;
 };
 
 namespace profile_rows
@@ -91,8 +94,9 @@ inline constexpr BuiltinReturnType kCaribbeanLegendReturns[] = {
 } // namespace profile_rows
 
 inline constexpr std::array<GameProfileFacts, 2> kGameProfiles = {{
-    {"legacy (To Each His Own)", 54128, {}, profile_rows::kLegacyIds, true},
-    {"Caribbean Legend", 2230981, profile_rows::kCaribbeanLegendReturns, profile_rows::kCaribbeanLegendIds, false},
+    {"legacy (To Each His Own)", 54128, {}, profile_rows::kLegacyIds, true, true},
+    {"Caribbean Legend", 2230981, profile_rows::kCaribbeanLegendReturns, profile_rows::kCaribbeanLegendIds, false,
+     false},
 }};
 
 constexpr const GameProfileFacts &gameProfileFacts(GameProfile profile)
