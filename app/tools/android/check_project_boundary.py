@@ -17,7 +17,7 @@ native_suffixes = {'.c', '.cc', '.cpp', '.cxx', '.h', '.hh', '.hpp', '.hxx', '.i
 # Application packaging (the engine keeps only the Java hosts of its own JNI tests).
 packaging_suffixes = {'.gradle', '.apk', '.aar', '.dex', '.keystore', '.jks'}
 ROOT_FILES = {'.gitattributes', '.gitignore', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'LICENSE',
-              'NOTICE', 'README.md', 'README.ru.md', 'SECURITY.md', 'VERSION'}
+              'NOTICE', 'PRIVACY.md', 'README.md', 'README.ru.md', 'SECURITY.md', 'VERSION'}
 ROOT_DIRECTORIES = {'.github', 'LICENSES', 'app', 'docs', 'engine'}
 SCREENSHOTS = {'docs/screenshots/interior.jpg', 'docs/screenshots/sea.jpg', 'docs/screenshots/hero.jpg'}
 README_ICON = 'docs/icon.png'
