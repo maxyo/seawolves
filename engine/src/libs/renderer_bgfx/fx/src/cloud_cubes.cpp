@@ -20,7 +20,6 @@ struct Field
 {
     int size = 0;
     std::vector<float> v;
-    float peak = 0.0f; // the largest value
 
     float at(int face, int x, int y) const
     {
@@ -89,7 +88,7 @@ float Field::sample(glm::vec3 d) const
 
 // Octaves of simplex noise from `wavelength` down, each half as long and as strong; an octave shorter than about
 // four times the texel's footprint on the layer fades out (its mean, 0), so the horizon does not alias.
-float Octaves(glm::vec2 p, float wavelength, int octaves, float footprint, bool billow)
+float Octaves(glm::vec2 p, float wavelength, int octaves, float footprint)
 {
     float sum = 0.0f, weight = 0.0f, amplitude = 1.0f;
     for (int i = 0; i < octaves; ++i, wavelength *= 0.5f, amplitude *= 0.5f)
@@ -100,163 +99,341 @@ float Octaves(glm::vec2 p, float wavelength, int octaves, float footprint, bool 
             continue;
         // Offsets keep the octaves from lining up at the origin.
         const float n = glm::simplex(p / wavelength + glm::vec2(float(i) * 17.3f, float(i) * -9.1f));
-        sum += amplitude * keep * (billow ? 2.0f * std::fabs(n) - 1.0f : n);
+        sum += amplitude * keep * n;
     }
     return sum / weight;
 }
-
-// Round puffs: domes over the nearest of one jittered point per cell, a cell wide (Worley, "A cellular texture basis
-// function", SIGGRAPH 1996). GLM has gradient noises only.
-float Puffs(glm::vec2 p)
-{
-    const glm::vec2 cell = glm::floor(p);
-    float nearest = 2.0f;
-    for (int y = -1; y <= 1; ++y)
-        for (int x = -1; x <= 1; ++x)
-        {
-            const glm::vec2 c = cell + glm::vec2(float(x), float(y));
-            uint32_t h = uint32_t(int32_t(c.x)) * 73856093u ^ uint32_t(int32_t(c.y)) * 19349663u;
-            h = (h ^ (h >> 13)) * 0x5bd1e995u;
-            h ^= h >> 15;
-            const glm::vec2 jitter{float(h & 0xffffu) / 65536.0f, float(h >> 16) / 65536.0f};
-            nearest = std::min(nearest, glm::length(c + jitter - p));
-        }
-    return 1.0f - std::min(nearest * nearest, 1.0f);
-}
-
-// The fair-weather clouds' density on the layer at `p` (metres): large masses, and on them heaped puffs on puffs,
-// warped so they do not sit on a grid, eroded at their thin edges.
-float CumulusDensity(glm::vec2 p, float footprint)
-{
-    const glm::vec2 warp{Octaves(p, 900.0f, 2, footprint, false),
-                         Octaves(p + glm::vec2(5200.0f), 900.0f, 2, footprint, false)};
-    const glm::vec2 q = p + 220.0f * warp;
-    const float masses = 0.5f + 0.5f * Octaves(q, 9000.0f, 3, footprint, false);
-    // A puff's mean where it is smaller than the texel's footprint.
-    const auto puffs = [&](float size) {
-        return glm::mix(Puffs(q / size), 0.5f, glm::smoothstep(0.25f, 0.5f, footprint / size));
-    };
-    const float heaps = 0.6f * puffs(1100.0f) + 0.4f * puffs(430.0f);
-    const float shape = 0.45f * masses + 0.55f * heaps;
-    const float erosion = 0.5f + 0.5f * Octaves(q, 170.0f, 2, footprint, false);
-    return shape - 0.25f * erosion * (1.0f - glm::smoothstep(0.35f, 0.75f, shape));
-}
-
-float RainDensity(glm::vec2 p, float footprint)
-{
-    const glm::vec2 warp{Octaves(p, 3000.0f, 2, footprint, false),
-                         Octaves(p + glm::vec2(9100.0f), 3000.0f, 2, footprint, false)};
-    return 0.5f + 0.5f * Octaves(p + 900.0f * warp, 7000.0f, 5, footprint, false);
-}
-
-// A layer's clouds in space: above the base the layer's density less the square of the height over `rise` metres,
-// so a cloud the cover's threshold keeps has a flat base, steep sides and a round top that rises the higher the
-// denser it is; a rain deck is one cloud about `rise` metres deep, its base lower where it is denser.
-struct LayerShape
-{
-    float rise;
-    bool deck;
-    float (*density)(glm::vec2, float);
-};
-
-// The layer's density at `p` on it and `height` over its base.
-float Density(const LayerShape &shape, float d, float height)
-{
-    const float h = height / shape.rise;
-    return shape.deck ? (h >= 0.35f * (1.0f - d) && h <= 0.45f + 0.55f * d ? 1.0f : 0.0f) : d - h * h;
-}
-
-// Light through `path` metres of cloud: single scattering and two broader terms for the light scattered many times
-// (Wrenninge's octaves, "Production volume rendering", SIGGRAPH 2017).
-float Response(float path)
-{
-    constexpr float kExtinction = 1.0f / 120.0f; // per metre
-    const float tau = path * kExtinction;
-    return 0.6f * std::exp(-tau) + 0.3f * std::exp(-tau * 0.25f) + 0.1f * std::exp(-tau * 0.0625f);
-}
-
-// Per texel of a layer: the alpha the cover thresholds (the largest density the view ray meets: the pixel is cloud
-// where that passes the threshold, at any cover), its solid angle above the horizon and the six responses where the
-// eye meets the cloud.
-struct Texel
-{
-    float alpha = 0.0f, weight = 0.0f;
-    std::array<float, 6> response{}; // +x, +y, +z, -x, -y, -z
-};
 
 glm::vec2 OnLayer(glm::vec3 dir)
 {
     return glm::vec2(dir.x, dir.z) * (kCloudBase / dir.y);
 }
 
-float LayerAt(const Field &field, glm::vec2 p)
+// ---- the cumulus: the density and light of Schneider's clouds ("The Real-time Volumetric Cloudscapes of Horizon
+// Zero Dawn", SIGGRAPH 2015), baked once into the cubes instead of marched per frame ----
+
+// A tileable scalar volume of n^3 voxels over `period` metres, with its box-filtered levels down to 8^3.
+struct Volume
 {
-    return field.sample({p.x, kCloudBase, p.y});
+    std::vector<std::vector<float>> levels;
+    int n = 0;
+    float period = 0.0f;
+
+    float voxel(int level, int x, int y, int z) const
+    {
+        const int m = n >> level;
+        x &= m - 1;
+        y &= m - 1;
+        z &= m - 1;
+        return levels[size_t(level)][(size_t(z) * size_t(m) + size_t(y)) * size_t(m) + size_t(x)];
+    }
+    float trilinear(int level, glm::vec3 p) const
+    {
+        const glm::vec3 q = p / period * float(n >> level) - 0.5f;
+        const glm::vec3 f = glm::floor(q), t = q - f;
+        const int x = int(f.x), y = int(f.y), z = int(f.z);
+        const float c00 = glm::mix(voxel(level, x, y, z), voxel(level, x + 1, y, z), t.x);
+        const float c10 = glm::mix(voxel(level, x, y + 1, z), voxel(level, x + 1, y + 1, z), t.x);
+        const float c01 = glm::mix(voxel(level, x, y, z + 1), voxel(level, x + 1, y, z + 1), t.x);
+        const float c11 = glm::mix(voxel(level, x, y + 1, z + 1), voxel(level, x + 1, y + 1, z + 1), t.x);
+        return glm::mix(glm::mix(c00, c10, t.y), glm::mix(c01, c11, t.y), t.z);
+    }
+    // Filtered to `footprint` metres: between the two levels whose voxels bracket it.
+    float sample(glm::vec3 p, float footprint) const
+    {
+        const float lod = std::clamp(std::log2(footprint / (period / float(n))), 0.0f, float(levels.size() - 1));
+        const int l0 = int(lod), l1 = std::min(l0 + 1, int(levels.size()) - 1);
+        const float a = trilinear(l0, p);
+        return l1 == l0 ? a : glm::mix(a, trilinear(l1, p), lod - float(l0));
+    }
+};
+
+Volume MakeVolume(int n, float period, ParallelFor &workers, float (*value)(glm::vec3))
+{
+    Volume v;
+    v.n = n;
+    v.period = period;
+    v.levels.emplace_back(size_t(n) * size_t(n) * size_t(n));
+    workers.run(size_t(n), [&](size_t z) {
+        for (int y = 0; y < n; ++y)
+            for (int x = 0; x < n; ++x)
+                v.levels[0][(z * size_t(n) + size_t(y)) * size_t(n) + size_t(x)] =
+                    value((glm::vec3(float(x), float(y), float(z)) + 0.5f) / float(n));
+    });
+    for (int m = n / 2; m >= 8; m /= 2)
+    {
+        std::vector<float> next(size_t(m) * size_t(m) * size_t(m));
+        const int level = int(v.levels.size()) - 1;
+        for (int z = 0; z < m; ++z)
+            for (int y = 0; y < m; ++y)
+                for (int x = 0; x < m; ++x)
+                {
+                    float sum = 0.0f;
+                    for (int k = 0; k < 8; ++k)
+                        sum += v.voxel(level, 2 * x + (k & 1), 2 * y + (k >> 1 & 1), 2 * z + (k >> 2));
+                    next[(size_t(z) * size_t(m) + size_t(y)) * size_t(m) + size_t(x)] = sum / 8.0f;
+                }
+        v.levels.push_back(std::move(next));
+    }
+    return v;
 }
 
-// `reference`: the threshold the responses are worked out at (the clouds of a middle cover).
-Texel MarchTexel(const LayerShape &shape, const Field &field, glm::vec3 raw, int size, float reference)
+// Inverted Worley noise ("A cellular texture basis function", SIGGRAPH 1996) over the unit cube, `cells` to a side and
+// wrapping: 1 at a cell's feature point, falling to 0 a cell away. GLM has gradient noises only.
+float Worley(glm::vec3 p, int cells)
+{
+    const glm::vec3 q = p * float(cells);
+    const glm::ivec3 cell = glm::ivec3(glm::floor(q));
+    float nearest = 1.0f;
+    for (int z = -1; z <= 1; ++z)
+        for (int y = -1; y <= 1; ++y)
+            for (int x = -1; x <= 1; ++x)
+            {
+                const glm::ivec3 c = cell + glm::ivec3(x, y, z);
+                const glm::ivec3 w = (c % cells + cells) % cells;
+                uint32_t h = uint32_t(w.x) * 73856093u ^ uint32_t(w.y) * 19349663u ^ uint32_t(w.z) * 83492791u;
+                h = (h ^ (h >> 13)) * 0x5bd1e995u;
+                h ^= h >> 15;
+                const glm::vec3 jitter{float(h & 0x3ffu) / 1024.0f, float(h >> 10 & 0x3ffu) / 1024.0f,
+                                       float(h >> 20 & 0x3ffu) / 1024.0f};
+                nearest = std::min(nearest, glm::length(glm::vec3(c) + jitter - q));
+            }
+    return 1.0f - nearest;
+}
+
+// The dilated noise's value below which the shape is empty.
+constexpr float kShapeFloor = 0.45f;
+
+// The clouds' shape: Perlin noise dilated by an inverted Worley FBM (Schneider 2015, "Perlin-Worley"), tileable
+// (GLM's periodic Perlin noise).
+float PerlinWorley(glm::vec3 p)
+{
+    float perlin = 0.0f, amplitude = 1.0f, weight = 0.0f;
+    for (int f = 2; f <= 8; f *= 2, amplitude *= 0.5f)
+    {
+        perlin += amplitude * glm::perlin(p * float(f), glm::vec3(float(f)));
+        weight += amplitude;
+    }
+    perlin = std::clamp(0.5f + 0.7f * perlin / weight, 0.0f, 1.0f);
+    const float worley = 0.625f * Worley(p, 3) + 0.25f * Worley(p, 6) + 0.125f * Worley(p, 12);
+    // remap(perlin, 0, 1, worley, 1), then stretched so the densest masses rise as towers over the cut of a middle
+    // cover rather than all standing about as high.
+    const float dilated = worley + perlin * (1.0f - worley);
+    return std::clamp((dilated - kShapeFloor) / (1.0f - kShapeFloor), 0.0f, 1.0f);
+}
+
+// The edges' erosion: one higher-frequency Worley octave (Schneider 2015).
+float Erosion(glm::vec3 p)
+{
+    return Worley(p, 8);
+}
+
+// The shape repeats every kShapePeriod metres, the erosion every kErosionPeriod; their volumes' sides (voxels).
+constexpr float kShapePeriod = 6000.0f, kErosionPeriod = 1600.0f;
+constexpr int kShapeVoxels = 64, kErosionVoxels = 32;
+// How far the erosion eats into the shape (Schneider 2015: remap(shape, erosion * kErode, 1, 0, 1)).
+constexpr float kErode = 0.3f;
+
+struct Cumulus
+{
+    Volume shape, erosion;
+
+    // The cumulus' height profile at `h` (0 base .. 1 the highest top): a sharp rise over the base (flat bases) and a
+    // fall towards the top, so a cut keeps rounded tops that rise the higher the denser the shape below them.
+    static float Gradient(float h)
+    {
+        return glm::smoothstep(0.0f, 0.05f, h) * std::max(1.0f - h * h, 0.0f);
+    }
+    // Groups of clouds and clear stretches tens of kilometres across, which also keep the shape's repeats from lining
+    // up towards the horizon: a factor on the shape, tabulated every kMassCell metres out to kMassReach.
+    static constexpr float kMassCell = 1000.0f, kMassReach = 200000.0f;
+    static constexpr int kMassSide = int(2.0f * kMassReach / kMassCell) + 1;
+    std::vector<float> masses;
+
+    float Masses(glm::vec2 p) const
+    {
+        const glm::vec2 q = glm::clamp((p + kMassReach) / kMassCell, 0.0f, float(kMassSide - 1) - 0.001f);
+        const int x = int(q.x), z = int(q.y);
+        const float u = q.x - float(x), w = q.y - float(z);
+        const auto at = [&](int i, int j) { return masses[size_t(j) * kMassSide + size_t(i)]; };
+        return glm::mix(glm::mix(at(x, z), at(x + 1, z), u), glm::mix(at(x, z + 1), at(x + 1, z + 1), u), w);
+    }
+    // At `p` (x, height over the base, z; metres), filtered to `footprint` metres.
+    float Density(glm::vec3 p, float footprint) const
+    {
+        const float g = Gradient(p.y / kCloudDepth);
+        if (g <= 0.0f)
+            return 0.0f;
+        const float base = shape.sample(p, footprint) * Masses({p.x, p.z}) * g;
+        // Finer than the footprint the erosion is its mean.
+        const float e = glm::mix(erosion.sample(p, footprint), 0.5f,
+                                 glm::smoothstep(0.25f, 0.5f, footprint / (kErosionPeriod / 8.0f)));
+        const float floor = e * kErode;
+        return (base - floor) / (1.0f - floor);
+    }
+};
+
+float RainDensity(glm::vec2 p, float footprint)
+{
+    const glm::vec2 warp{Octaves(p, 3000.0f, 2, footprint), Octaves(p + glm::vec2(9100.0f), 3000.0f, 2, footprint)};
+    return 0.5f + 0.5f * Octaves(p + 900.0f * warp, 7000.0f, 5, footprint);
+}
+
+// Per texel of a layer: the alpha the cover thresholds (the pixel is cloud where that passes the threshold, at any
+// cover), its solid angle above the horizon and the six responses where the eye meets the cloud.
+struct Texel
+{
+    float alpha = 0.0f, weight = 0.0f;
+    std::array<float, 6> response{}; // +x, +y, +z, -x, -y, -z
+};
+
+// The texel's solid angle (`weight`) and angular width.
+void TexelSize(glm::vec3 raw, int size, Texel &out, float &angle)
+{
+    const float len2 = glm::dot(raw, raw);
+    out.weight = 4.0f / float(size * size) / (len2 * std::sqrt(len2));
+    angle = 2.0f / float(size) / std::sqrt(len2);
+}
+
+// The six axes' order in Texel::response.
+const std::array<glm::vec3, 6> kAxes = {{{1.0f, 0.0f, 0.0f},
+                                         {0.0f, 1.0f, 0.0f},
+                                         {0.0f, 0.0f, 1.0f},
+                                         {-1.0f, 0.0f, 0.0f},
+                                         {0.0f, -1.0f, 0.0f},
+                                         {0.0f, 0.0f, -1.0f}}};
+
+// ---- the rain deck: one cloud about kRainDepth deep, its base lower where it is denser ----
+
+bool InDeck(float density, float height)
+{
+    const float h = height / kRainDepth;
+    return h >= 0.35f * (1.0f - density) && h <= 0.45f + 0.55f * density;
+}
+
+// Light through `path` metres of the deck: single scattering and two broader terms for the light scattered many times
+// (Wrenninge's octaves, "Production volume rendering", SIGGRAPH 2017).
+float DeckResponse(float path)
+{
+    constexpr float kExtinction = 1.0f / 120.0f; // per metre
+    const float tau = path * kExtinction;
+    return 0.6f * std::exp(-tau) + 0.3f * std::exp(-tau * 0.25f) + 0.1f * std::exp(-tau * 0.0625f);
+}
+
+Texel MarchDeck(const Field &field, glm::vec3 raw, int size)
 {
     Texel out;
     const glm::vec3 v = glm::normalize(raw);
     if (v.y <= 0.0f)
         return out;
-    const float len2 = glm::dot(raw, raw);
-    out.weight = 4.0f / float(size * size) / (len2 * std::sqrt(len2));
-    const float angle = 2.0f / float(size) / std::sqrt(len2);
-    // Along the view ray from the base up to where no density can pass: steps no finer than the texel's width there.
-    const float near = kCloudBase / v.y;
-    const float far = near + std::min(shape.rise / v.y, 40000.0f);
-    const float peak = shape.deck ? 1.0f : field.peak;
-    struct Step
-    {
-        float along, height, density;
-    };
-    std::vector<Step> steps;
-    steps.reserve(64);
-    float densest = -1.0f;
-    for (float s = near; s <= far; s += std::max(30.0f, 0.5f * s * angle))
-    {
-        const glm::vec3 p = v * s;
-        const float height = p.y - kCloudBase;
-        // Higher up nothing denser can be met.
-        if (!shape.deck && peak - (height / shape.rise) * (height / shape.rise) < densest)
-            break;
-        steps.push_back({s, height, Density(shape, LayerAt(field, {p.x, p.z}), height)});
-        densest = std::max(densest, steps.back().density);
-    }
-    out.alpha = shape.deck ? 1.0f : densest;
-    // The eye meets the first point dense enough for the reference cover (or, for a cloud only a larger cover keeps,
-    // nearly its densest).
-    const float cut = shape.deck ? 0.5f : std::min(reference, densest - 0.02f);
-    const Step *seen = &steps.front();
-    for (const Step &step : steps)
-        if (step.density >= cut)
-        {
-            seen = &step;
-            break;
-        }
-    const glm::vec2 at = glm::vec2(v.x, v.z) * seen->along;
-    const float y = std::max(seen->height, 0.0f);
-    const auto inside = [&](glm::vec2 p, float height) { return Density(shape, LayerAt(field, p), height) >= cut; };
-    // Up to the cloud's top, down to its base, and through its neighbours along the four horizontal axes.
+    float angle;
+    TexelSize(raw, size, out, angle);
+    out.alpha = 1.0f;
+    const auto inside = [&](glm::vec2 p, float height) { return InDeck(field.sample({p.x, kCloudBase, p.y}), height); };
+    // The eye meets the deck's base.
+    const float near = kCloudBase / v.y, far = near + std::min(kRainDepth / v.y, 40000.0f);
+    float s = near;
+    while (s < far && !inside(glm::vec2(v.x, v.z) * s, v.y * s - kCloudBase))
+        s += std::max(30.0f, 0.5f * s * angle);
+    const glm::vec2 at = glm::vec2(v.x, v.z) * s;
+    const float y = std::max(v.y * s - kCloudBase, 0.0f);
+    // Up to its top, down to its base, and through it along the four horizontal axes.
     constexpr int kSteps = 10;
     constexpr float kStep = 60.0f;
     float up = 0.0f;
     for (int i = 1; i <= kSteps * 2 && inside(at, y + kStep * float(i)); ++i)
         up += kStep;
-    out.response[1] = Response(up);
-    out.response[4] = Response(y);
-    const std::array<glm::vec2, 4> sides = {{{1.0f, 0.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f}, {0.0f, -1.0f}}};
-    const std::array<size_t, 4> slot = {0, 2, 3, 5};
-    for (size_t k = 0; k < sides.size(); ++k)
+    out.response[1] = DeckResponse(up);
+    out.response[4] = DeckResponse(y);
+    for (const size_t k : {size_t(0), size_t(2), size_t(3), size_t(5)})
     {
         float path = 0.0f;
         for (int i = 1; i <= kSteps; ++i)
-            path += inside(at + sides[k] * (kStep * float(i)), y) ? kStep : 0.0f;
-        out.response[slot[k]] = Response(path);
+            path += inside(at + glm::vec2(kAxes[k].x, kAxes[k].z) * (kStep * float(i)), y) ? kStep : 0.0f;
+        out.response[k] = DeckResponse(path);
     }
     return out;
+}
+
+// ---- the cumulus ----
+
+// Along the view ray from the base to the highest top, in steps no finer than the texel's width there.
+template <typename Visit> void ViewRay(glm::vec3 v, float angle, Visit &&visit)
+{
+    const float near = kCloudBase / v.y, far = near + std::min(kCloudDepth / v.y, 40000.0f);
+    for (float s = near; s <= far; s += std::max(40.0f, 0.5f * s * angle))
+    {
+        const glm::vec3 p = v * s - glm::vec3(0.0f, kCloudBase, 0.0f);
+        if (!visit(p, std::max(s * angle, 40.0f)))
+            break;
+    }
+}
+
+// The texel's alpha: the largest density along its view ray, so a cut keeps the pixel where any cloud on the ray
+// passes it (low clouds stand up from the horizon, seen from the side).
+Texel CumulusAlpha(const Cumulus &clouds, glm::vec3 raw, int size)
+{
+    Texel out;
+    const glm::vec3 v = glm::normalize(raw);
+    if (v.y <= 0.0f)
+        return out;
+    float angle;
+    TexelSize(raw, size, out, angle);
+    float densest = 0.0f;
+    ViewRay(v, angle, [&](glm::vec3 p, float footprint) {
+        // Higher up nothing denser can be met.
+        if (Cumulus::Gradient(p.y / kCloudDepth) < densest)
+            return false;
+        densest = std::max(densest, clouds.Density(p, footprint));
+        return true;
+    });
+    out.alpha = densest;
+    return out;
+}
+
+// Where the eye meets the cloud the `cut` keeps (or, for a cloud only a larger cover keeps, nearly its densest), the
+// light from each axis through it by Beer's law, the density above the cut being the extinction (Schneider 2015).
+void CumulusLight(const Cumulus &clouds, glm::vec3 raw, int size, float cut, Texel &out)
+{
+    const glm::vec3 v = glm::normalize(raw);
+    if (v.y <= 0.0f)
+        return;
+    const float angle = 2.0f / float(size) / std::sqrt(glm::dot(raw, raw));
+    const float seen_cut = std::min(cut, out.alpha - 0.02f);
+    glm::vec3 at{0.0f};
+    float footprint = 40.0f;
+    int steps = 0;
+    bool met = false, outside = false; // the eye has met the cloud; a step outside it came before
+    glm::vec3 before{0.0f};
+    ViewRay(v, angle, [&](glm::vec3 p, float f) {
+        outside = steps++ > 0;
+        before = at;
+        at = p;
+        footprint = f;
+        met = clouds.Density(p, f) >= seen_cut;
+        return !met;
+    });
+    // Between the last step outside and the first inside, so the light does not step with the view ray's steps.
+    for (int i = 0; met && outside && i < 6; ++i)
+    {
+        const glm::vec3 mid = 0.5f * (before + at);
+        (clouds.Density(mid, footprint) >= seen_cut ? at : before) = mid;
+    }
+    constexpr int kLightSteps = 8;
+    constexpr float kLightStep = 90.0f;         // metres
+    constexpr float kExtinction = 1.0f / 40.0f; // per metre at a density one above the cut
+    for (size_t k = 0; k < kAxes.size(); ++k)
+    {
+        float depth = 0.0f;
+        for (int i = 1; i <= kLightSteps; ++i)
+        {
+            const glm::vec3 p = at + kAxes[k] * (kLightStep * (float(i) - 0.5f));
+            if (p.y < 0.0f || p.y > kCloudDepth)
+                break;
+            depth += std::max(clouds.Density(p, footprint) - cut, 0.0f) / (1.0f - cut) * kLightStep;
+        }
+        out.response[k] = std::exp(-kExtinction * depth);
+    }
 }
 
 // The alpha at or above which the share `cover` of the weighted texels lies, for each step of the cover.
@@ -344,13 +521,51 @@ CloudCube Pack(const std::vector<Texel> &texels, int size, glm::vec3 positive, g
     return cube;
 }
 
-std::vector<Texel> MakeLayer(const LayerShape &shape, int size, ParallelFor &workers)
+// The cube's texels by face and row, from `texel(raw direction)`.
+template <typename Make> std::vector<Texel> ForTexels(int size, ParallelFor &workers, Make &&texel)
 {
+    std::vector<Texel> texels(size_t(6) * size_t(size) * size_t(size));
+    workers.run(size_t(6 * size), [&](size_t row) {
+        const int face = int(row) / size, y = int(row) % size;
+        for (int x = 0; x < size; ++x)
+            texels[row * size_t(size) + size_t(x)] = texel(TexelDirection(face, x, y, size));
+    });
+    return texels;
+}
+
+std::vector<Texel> MakeCumulus(ParallelFor &workers)
+{
+    Cumulus clouds{MakeVolume(kShapeVoxels, kShapePeriod, workers, PerlinWorley),
+                   MakeVolume(kErosionVoxels, kErosionPeriod, workers, Erosion),
+                   std::vector<float>(size_t(Cumulus::kMassSide) * Cumulus::kMassSide)};
+    workers.run(size_t(Cumulus::kMassSide), [&](size_t z) {
+        for (int x = 0; x < Cumulus::kMassSide; ++x)
+        {
+            const glm::vec2 p = glm::vec2(float(x), float(z)) * Cumulus::kMassCell - Cumulus::kMassReach;
+            clouds.masses[z * Cumulus::kMassSide + size_t(x)] =
+                glm::mix(0.55f, 1.15f, 0.5f + 0.5f * Octaves(p, 24000.0f, 2, Cumulus::kMassCell));
+        }
+    });
+    std::vector<Texel> texels =
+        ForTexels(kBaseCloudSize, workers, [&](glm::vec3 raw) { return CumulusAlpha(clouds, raw, kBaseCloudSize); });
+    // The responses are worked out for the clouds of half the sky's cover.
+    const float reference = CoverThresholds(texels)[kCoverSteps / 2];
+    workers.run(texels.size(), [&](size_t i) {
+        CumulusLight(clouds,
+                     TexelDirection(int(i / size_t(kBaseCloudSize * kBaseCloudSize)), int(i % kBaseCloudSize),
+                                    int(i / kBaseCloudSize) % kBaseCloudSize, kBaseCloudSize),
+                     kBaseCloudSize, reference, texels[i]);
+    });
+    return texels;
+}
+
+std::vector<Texel> MakeDeck(ParallelFor &workers)
+{
+    const int size = kRainCloudSize;
     Field field;
     field.size = size;
     field.v.assign(size_t(6) * size_t(size) * size_t(size), 0.0f);
-    const auto rows = size_t(6 * size);
-    workers.run(rows, [&](size_t row) {
+    workers.run(size_t(6 * size), [&](size_t row) {
         const int face = int(row) / size, y = int(row) % size;
         for (int x = 0; x < size; ++x)
         {
@@ -360,28 +575,10 @@ std::vector<Texel> MakeLayer(const LayerShape &shape, int size, ParallelFor &wor
             const glm::vec3 up = glm::normalize(glm::vec3(v.x, std::max(v.y, 0.01f), v.z));
             const float angle = 2.0f / float(size) / std::sqrt(glm::dot(raw, raw));
             const float footprint = kCloudBase * angle / (up.y * up.y);
-            field.v[row * size_t(size) + size_t(x)] = shape.density(OnLayer(up), footprint);
+            field.v[row * size_t(size) + size_t(x)] = RainDensity(OnLayer(up), footprint);
         }
     });
-    field.peak = *std::ranges::max_element(field.v);
-    // The responses are worked out for the clouds of half the sky's cover on the layer itself.
-    std::vector<Texel> plain(field.v.size());
-    for (size_t i = 0; i < plain.size(); ++i)
-    {
-        const glm::vec3 raw =
-            TexelDirection(int(i / size_t(size * size)), int(i % size_t(size)), int(i / size_t(size)) % size, size);
-        if (raw.y > 0.0f)
-            plain[i] = {field.v[i], 1.0f / std::pow(glm::dot(raw, raw), 1.5f), {}};
-    }
-    const float reference = CoverThresholds(plain)[kCoverSteps / 2];
-    std::vector<Texel> texels(field.v.size());
-    workers.run(rows, [&](size_t row) {
-        const int face = int(row) / size, y = int(row) % size;
-        for (int x = 0; x < size; ++x)
-            texels[row * size_t(size) + size_t(x)] =
-                MarchTexel(shape, field, TexelDirection(face, x, y, size), size, reference);
-    });
-    return texels;
+    return ForTexels(size, workers, [&](glm::vec3 raw) { return MarchDeck(field, raw, size); });
 }
 } // namespace
 
@@ -398,11 +595,10 @@ GeneratedClouds GenerateClouds()
 {
     ParallelFor workers;
     GeneratedClouds out;
-    const std::vector<Texel> base = MakeLayer({kCloudRise, false, CumulusDensity}, kBaseCloudSize, workers);
+    const std::vector<Texel> base = MakeCumulus(workers);
     out.threshold = CoverThresholds(base);
     out.base = Pack(base, kBaseCloudSize, kCumulusPositive, kCumulusNegative, out.ForCover(0.5f));
-    const std::vector<Texel> rain = MakeLayer({kRainDepth, true, RainDensity}, kRainCloudSize, workers);
-    out.rain = Pack(rain, kRainCloudSize, kRainPositive, kRainNegative, {0.0f, 1.0f});
+    out.rain = Pack(MakeDeck(workers), kRainCloudSize, kRainPositive, kRainNegative, {0.0f, 1.0f});
     return out;
 }
 

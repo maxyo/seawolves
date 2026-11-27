@@ -104,16 +104,18 @@ game's layers show their alpha as it is).
 - A game that ships cloud textures (`render::SetSkyClouds`, from `texture_library.json`'s cloud preset) draws its
   own. The cubes load as shipped (2048² BC3, one level: 25 MB per cube, 150 MB for the three layers).
 - For a game without them the sky makes a base and a rain layer at load (`GenerateClouds`, `cloud_cubes.cpp`; about
-  0.3 s on four threads of a desktop CPU; 256² and 128² RGBA8 faces, 3.9 MB). The base layer's density over a plane
-  at 1500 m is large masses with heaped Worley puffs, warped and eroded at the edges; above the plane a cloud is
-  where the density less the square of the height over 1100 m passes the cut, so the cut keeps clouds with flat bases
-  and round tops that rise the denser they are. A texel's alpha is the largest such value along its view ray (the
-  pixel is cloud at any cover where the cut is below it: low clouds stand up from the horizon, seen from the side);
-  the cut is the alpha the cover's share of the sky passes (`GeneratedClouds::ForCover`). Its responses are marched
-  from where the eye meets the cloud of half the cover, up, down and along the four horizontal axes, through a
-  single and two multiply scattered terms, and scaled so their means are Caribbean Legend's cumulus cube's (rain
-  deck: its rain cube's); sRGB-encoded, the alpha linear. The rain layer is an opaque deck whose base sinks where it
-  is denser.
+  1 s on four threads of a desktop CPU; 256² and 128² RGBA8 faces, 3.9 MB, and 1.9 MB of noise while it
+  works). The base layer is Schneider's cumulus ("The Real-time Volumetric Cloudscapes of Horizon Zero Dawn",
+  SIGGRAPH 2015) baked instead of marched per frame: a tileable Perlin-Worley shape (64³ over 6 km), times a large
+  untiled modulation that groups the clouds and keeps the tiles from lining up at the horizon, times a height profile
+  over 1500..3700 m (a sharp rise at the base, a fall towards the top), eroded by one Worley octave (32³ over 1.6 km).
+  The volumes are box-filtered to the texel's footprint. A texel's alpha is the largest density along its view ray
+  (the pixel is cloud at any cover where the cut is below it, so the cut keeps flat bases and rounded tops that rise
+  the denser the shape; low clouds stand up from the horizon, seen from the side); the cut is the alpha the cover's
+  share of the sky passes (`GeneratedClouds::ForCover`). Its responses are Beer's law along the six axes (8 steps of
+  90 m) from where the eye meets the cloud of half the cover, the density above that cut being the extinction, and
+  are scaled so their means are Caribbean Legend's cumulus cube's (rain deck: its rain cube's); sRGB-encoded, the
+  alpha linear. The rain layer is an opaque deck whose base sinks where it is denser.
 
 A fog with a height layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
 (`ComputeAerialFogHaze`).
