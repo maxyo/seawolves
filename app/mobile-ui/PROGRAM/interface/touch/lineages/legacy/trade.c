@@ -176,19 +176,18 @@ void TouchLegTrade_Places(aref model, aref out)
 	for (int i, string node: TouchLegTrade_Buttons)
 		if (CheckAttribute(model, node))
 		{
-			object button = {node = node, label = model.(node).label, can = UiOffers(node, "press"),
-			                 reason = model.(node).reason};
 			aref at = TouchLib_Add(buttons, "b");
-			CopyAttributes(at, &button);
+			at.node = node;
+			TouchLegLib_Button(model, node, at);
 		}
 	string all = "GETALL_BUTTON";
 	if (!CheckAttribute(model, all)) all = "ANDROID_TAKE_ALL";
 	if (!CheckAttribute(model, all)) return;
-	object take = {node = all, label = "", can = UiOffers(all, "press"), reason = model.(all).reason};
-	if (all == "GETALL_BUTTON") take.label = model.(all).label;
-	aref at;
-	makearef(at, out.takeAll);
-	CopyAttributes(at, &take);
+	aref take;
+	makearef(take, out.takeAll);
+	take.node = all;
+	TouchLegLib_Button(model, all, take);
+	if (all != "GETALL_BUTTON") take.label = "";
 }
 
 // The header's figures as the game writes them: what we carry ("Трюм:\n189 / 199", during a deal the game's figure

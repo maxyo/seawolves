@@ -27,10 +27,10 @@ void TouchAdpSails_State(aref ui, aref out)
 	}
 	string node = TouchLegSails_Work(model);
 	if (node == "") return;
-	object work = {remove = node == "B_REMOVE", can = UiOffers(node, "press"), reason = model.(node).reason};
 	aref to;
 	makearef(to, out.work);
-	CopyAttributes(to, &work);
+	to.remove = node == "B_REMOVE";
+	TouchLegLib_Button(model, node, to);
 }
 
 // The game's button of the work it offers: B_REMOVE where it offers that and not B_OK, else B_OK; "" without both.

@@ -151,10 +151,10 @@ void TouchLegShipyard_Card(aref model, string name, bool isOffer, aref out)
 void TouchLegShipyard_Button(aref model, string key, string node, string sub, aref deals)
 {
 	if (!CheckAttribute(model, node)) return;
-	object deal = {key = key, label = model.(node).label, sub = sub, can = UiOffers(node, "press"),
-	               reason = model.(node).reason};
 	aref at = TouchLib_Add(deals, "d");
-	CopyAttributes(at, &deal);
+	at.key = key;
+	at.sub = sub;
+	TouchLegLib_Button(model, node, at);
 }
 
 // The guns: the figures' row CannonType, which opens the guns' window (ShowOtherClick).
@@ -216,10 +216,10 @@ void TouchLegShipyard_Window(aref model, aref out)
 	window.text = "";
 	aref ok;
 	makearef(ok, window.ok);
-	TouchLegShipyard_Press(model, TouchLegShipyard_OkNode(kind), ok);
+	TouchLegLib_Button(model, TouchLegShipyard_OkNode(kind), ok);
 	aref cancel;
 	makearef(cancel, window.cancel);
-	TouchLegShipyard_Press(model, TouchLegShipyard_CancelNode(kind), cancel);
+	TouchLegLib_Button(model, TouchLegShipyard_CancelNode(kind), cancel);
 	if (kind == "confirm")
 	{
 		window.title = TouchLib_Trim(TouchLegLib_Label(model, "MSG_WINDOW_CAPTION"));
@@ -235,7 +235,7 @@ void TouchLegShipyard_Window(aref model, aref out)
 		TouchLegShipyard_Part(model, "sails", "S", "Sails", parts);
 		aref all;
 		makearef(all, window.all);
-		TouchLegShipyard_Press(model, "REPAIR_ALL", all);
+		TouchLegLib_Button(model, "REPAIR_ALL", all);
 	}
 	if (kind == "captain") TouchLegShipyard_Captain(model, window);
 	if (kind == "guns")
@@ -252,17 +252,6 @@ void TouchLegShipyard_Window(aref model, aref out)
 		window.port = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_QTY_L"));
 		window.starboard = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_QTY_R"));
 	}
-}
-
-void TouchLegShipyard_Press(aref model, string node, aref at)
-{
-	at.label = "";
-	at.can = false;
-	at.reason = "";
-	if (node == "" || !CheckAttribute(model, node)) return;
-	at.label = model.(node).label;
-	at.can = UiOffers(node, "press");
-	at.reason = model.(node).reason;
 }
 
 // A part of the repair as RepairStatShow writes it ("55%": what it is and what the order adds), named by its figure.

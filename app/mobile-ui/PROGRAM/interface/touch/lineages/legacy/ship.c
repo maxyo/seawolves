@@ -136,11 +136,10 @@ int TouchLegShip_Current(aref model)
 void TouchLegShip_Button(aref model, string node, aref out, string key)
 {
 	if (!CheckAttribute(model, node)) return;
-	object button = {label = TouchLib_Trim(model.(node).label), can = UiOffers(node, "press"),
-	                 reason = model.(node).reason};
 	aref at;
 	makearef(at, out.(key));
-	CopyAttributes(at, &button);
+	TouchLegLib_Button(model, node, at);
+	at.label = TouchLib_Trim(at.label);
 }
 
 void TouchLegShip_Facts(aref model, aref out)
@@ -247,13 +246,10 @@ void TouchLegShip_Question(aref model, aref out)
 		accept = "PARTITION_OK";
 	}
 	if (accept == "") return;
-	out.question.accept.label = "";
-	out.question.accept.can = false;
-	out.question.accept.reason = "";
-	if (!CheckAttribute(model, accept)) return;
-	out.question.accept.label = TouchLib_Trim(model.(accept).label);
-	out.question.accept.can = UiOffers(accept, "press");
-	out.question.accept.reason = model.(accept).reason;
+	aref button;
+	makearef(button, out.question.accept);
+	TouchLegLib_Button(model, accept, button);
+	button.label = TouchLib_Trim(button.label);
 }
 
 void TouchLegShip_Cannons(aref model, ref chr, aref out)

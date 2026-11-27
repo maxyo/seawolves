@@ -5,12 +5,6 @@
 // sum), picture with its ornament (the window's own frame texture, no picture of the moment), flags {n<k>: node},
 // relation. Implements contracts/reading.c.
 
-void TouchLegReading_Answer(aref model, string node, aref out)
-{
-	object answer = {label = model.(node).label, can = UiOffers(node, "press"), reason = model.(node).reason};
-	CopyAttributes(out, &answer);
-}
-
 // The flags' nations, and between two of them the game's relation picture: Enemy is war, Friend an alliance.
 void TouchLegReading_Flags(aref model, aref data, aref out)
 {
@@ -72,13 +66,13 @@ void TouchAdpReading_State(aref ui, aref out)
 	if (CheckAttribute(model, "B_OK"))
 	{
 		makearef(answer, out.accept);
-		TouchLegReading_Answer(model, "B_OK", answer);
+		TouchLegLib_Button(model, "B_OK", answer);
 	}
 	// A cancel without a caption is no answer of the window.
 	if (TouchLegLib_Label(model, "B_CANCEL") != "")
 	{
 		makearef(answer, out.decline);
-		TouchLegReading_Answer(model, "B_CANCEL", answer);
+		TouchLegLib_Button(model, "B_CANCEL", answer);
 	}
 }
 

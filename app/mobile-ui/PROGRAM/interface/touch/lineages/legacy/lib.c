@@ -23,6 +23,19 @@ string TouchLegLib_Exit(aref model, string nodes)
 	return "";
 }
 
+// A button of the window as the game offers it: out.{label (its caption), can (it offers a press), reason}; no
+// caption, false and no reason without the node (or without a node named).
+void TouchLegLib_Button(aref model, string node, aref out)
+{
+	out.label = "";
+	out.can = false;
+	out.reason = "";
+	if (node == "" || !CheckAttribute(model, node)) return;
+	out.label = model.(node).label;
+	out.can = UiOffers(node, "press");
+	out.reason = model.(node).reason;
+}
+
 // The caption of an optional node, "" without it (or without a node named).
 string TouchLegLib_Label(aref model, string node)
 {

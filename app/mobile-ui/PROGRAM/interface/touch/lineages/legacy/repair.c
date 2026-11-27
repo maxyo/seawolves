@@ -38,11 +38,9 @@ void TouchAdpRepair_State(aref ui, aref out)
 	out.confirm = UiOffers("REPAIR_OK", "press");
 	out.reason = model.REPAIR_OK.reason;
 	if (!CheckAttribute(model, "REPAIR_ALL_SQUADRON")) return;
-	object all = {label = model.REPAIR_ALL_SQUADRON.label, can = UiOffers("REPAIR_ALL_SQUADRON", "press"),
-	              reason = model.REPAIR_ALL_SQUADRON.reason};
 	aref at;
 	makearef(at, out.all);
-	CopyAttributes(at, &all);
+	TouchLegLib_Button(model, "REPAIR_ALL_SQUADRON", at);
 }
 
 // Part p as its caption writes it with the order set: "75%" (of 100, the sails of the game's maximum) or "2/3" masts.
