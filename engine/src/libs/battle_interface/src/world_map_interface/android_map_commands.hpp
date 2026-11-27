@@ -12,7 +12,7 @@
 namespace storm::android
 {
 // The world map's commands as the touch HUD shows them, from the rows (sCommandName, sNote) of the stock command list;
-// Cancel is the HUD's own. None while a row is incomplete, and none (reported) when the HUD has no place for one.
+// Cancel is the HUD's own. None while a row is incomplete.
 template <class Rows> std::vector<MapCommand> mapCommands(const Rows &rows)
 {
     std::vector<MapCommand> out;
@@ -22,11 +22,6 @@ template <class Rows> std::vector<MapCommand> mapCommands(const Rows &rows)
             continue;
         if (row.sCommandName.empty() || row.sNote.empty())
             return {};
-        if (!knownMapCommand(row.sCommandName))
-        {
-            logChannelDefect("worldMap", "the HUD has no place for the command " + row.sCommandName);
-            return {};
-        }
         out.push_back({row.sCommandName, scriptCaption(row.sNote, "worldMap")});
     }
     return out;

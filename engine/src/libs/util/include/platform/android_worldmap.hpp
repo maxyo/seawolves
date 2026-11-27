@@ -97,12 +97,6 @@ inline bool leavesForOpenSea(std::string_view command)
 {
     return command == "EnterToSea" || command == "EnterToIsland";
 }
-// The world-map commands of the scripts that the HUD has a button for.
-inline bool knownMapCommand(std::string_view command)
-{
-    return leavesForOpenSea(command) || command == "EnterToShip" || command == "EnterToStorm" ||
-           command == "EnterToAttack" || command == "EnterToEnemy";
-}
 class WorldMapHud
 {
   public:

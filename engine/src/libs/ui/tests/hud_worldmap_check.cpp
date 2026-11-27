@@ -30,8 +30,8 @@ static void CheckConsumer()
                what + " is rejected aloud");
     };
     Json bad = State("world-map");
-    bad["commands"][0]["id"] = "EnterToMoon";
-    rejected(bad, "worldMap: an unknown command");
+    bad["commands"][0]["id"] = "";
+    rejected(bad, "worldMap: an unnamed command");
     bad = State("world-map");
     bad["moonPhase"] = 8;
     rejected(bad, "worldMap: a moon phase past the game's eight");
@@ -141,19 +141,21 @@ static void CheckScene()
     Expect(mount.Has("attack") && mount.Has("storm") && shown["attack"]["variant"] == "combat" &&
                shown["storm"]["icon"] == "wind",
            "the encounter's buttons");
-    Expect(shown["compass"]["daysTone"] == "danger" && shown["compass"]["sky"] == "moon" &&
-               shown["compass"]["skyAt"] == 90 && shown["compass"]["moon"] == 1 &&
-               shown["compass"]["weather"] == "storm",
-           "two days of food warn; at nine the moon rises in the east; the storm zone outranks the rain: " +
-               shown["compass"].dump());
+    Expect(shown["compass"]["days"] == "2" && shown["compass"]["sky"] == "moon" && shown["compass"]["skyAt"] == 90 &&
+               shown["compass"]["moon"] == 1 && shown["compass"]["weather"] == "storm",
+           "two days of food; at nine the moon rises in the east; the storm zone: " + shown["compass"].dump());
     bench.Frame();
     bench.Press("attack");
     Expect(mount.Last() == "worldmap:44\tactivate\tEnterToAttack", "attack: " + mount.Last());
+    Json mod = State("world-map");
+    mod["commands"] = Json::array({Json{{"id", "EnterToMoon"}, {"label", "Fly to the moon"}}});
+    bench.Set("worldMap", mod);
+    Expect(shown["context"]["icon"] == "actions" && shown["context"]["label"] == "Fly to the moon",
+           "a mod's command in the corner with a plain icon: " + shown["context"].dump());
 }
 
 // The sky over the compass: the sun and the moon cross the dome by the game's day (6…21) and
-// night, the weather is the worst of the storm zone and the rain the sea will have, and a
-// missing value draws nothing and says so.
+// night, the weather is the storm zone, and a missing value draws nothing and says so.
 static void CheckSky()
 {
     Bench bench;

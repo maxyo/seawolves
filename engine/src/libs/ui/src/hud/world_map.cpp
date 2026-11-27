@@ -39,7 +39,8 @@ struct Slot
 };
 
 // Where each command sits: going on (to sea, a port,
-// a ship) in the corner, the fight beside it, the storm further in.
+// a ship) in the corner, the fight beside it, the storm further in. A command the HUD has no picture for (a mod's)
+// takes the corner with a plain icon.
 Slot SlotOf(const std::string &id)
 {
     if (id == "EnterToAttack" || id == "EnterToEnemy")
@@ -50,7 +51,9 @@ Slot SlotOf(const std::string &id)
         return {"context", "port", "primary"};
     if (id == "EnterToShip")
         return {"context", "ship", "primary"};
-    return {"context", "sea-exit", "primary"};
+    if (id == "EnterToSea")
+        return {"context", "sea-exit", "primary"};
+    return {"context", "actions", "primary"};
 }
 
 struct Weather
@@ -280,10 +283,7 @@ class WorldMapScene final : public Scene
         else if (map.storm < 0)
             hud_.Error("world-map HUD: the engine gives no stormState; the compass draws no weather");
         if (map.food_days >= 0)
-        {
             compass["days"] = std::to_string(map.food_days);
-            compass["daysTone"] = map.food_days <= 3 ? "danger" : "normal";
-        }
         view.elements["compass"] = std::move(compass);
         input.On("compass", "toggle", [this](const Event &event) {
             details_ = event.value == "1";
@@ -303,9 +303,7 @@ class WorldMapScene final : public Scene
         if (weather)
             items.push_back(Json{{"k", hud_.Text("hud.map.weather")}, {"v", hud_.Text(weather->word)}});
         if (map.food_days >= 0)
-            items.push_back(Json{{"k", hud_.Text("hud.map.food")},
-                                 {"v", std::to_string(map.food_days) + days},
-                                 {"tone", map.food_days <= 3 ? "danger" : ""}});
+            items.push_back(Json{{"k", hud_.Text("hud.map.food")}, {"v", std::to_string(map.food_days) + days}});
         if (map.rum_days >= 0)
             items.push_back(Json{{"k", hud_.Text("hud.map.rum")}, {"v", std::to_string(map.rum_days) + days}});
         if (map.morale >= 0.0)

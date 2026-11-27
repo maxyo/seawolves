@@ -56,6 +56,9 @@
   соперника полное, как в игре.
 - Компас карты мира больше не предсказывает дождь: игра не строит погоду моря, пока корабль на карте, и прогноз мог не
   сбыться. Компас показывает только зону шторма или смерча, в которой стоит корабль.
+- Карта мира: команды карты видны и тогда, когда игра запрещает выход с карты, — на нажатие отвечает сама игра своим
+  сообщением; команда мода или другой игры показывается с простой иконкой, а не убирает все кнопки. Число дней
+  провизии на компасе больше не краснеет по своему порогу: об остатке предупреждает сама игра.
 
 **English**
 
@@ -116,6 +119,10 @@
   opponent's name is the game's full name.
 - The world map's compass no longer forecasts rain: the game builds no sea weather while the ship is on the map, and
   the forecast could be wrong. The compass shows only the storm or tornado zone the ship is in.
+- World map: the map's commands show also while the game forbids leaving the map, and the game answers a tap with its
+  own message; a command of a mod or another game shows with a plain icon instead of removing every button. The
+  provision days on the compass no longer turn red by a threshold of our own: the game itself warns when provisions
+  run low.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -701,10 +701,8 @@ std::string ReadWorldMap(const Json &state, WorldMap &out)
     {
         const auto id = source.is_object() ? Text(source, "id") : std::nullopt;
         const auto label = source.is_object() ? Text(source, "label") : std::nullopt;
-        if (!id || !label ||
-            !OneOf(*id,
-                   {"EnterToSea", "EnterToIsland", "EnterToShip", "EnterToStorm", "EnterToAttack", "EnterToEnemy"}))
-            return "unknown or unlabelled command";
+        if (!id || id->empty() || !label)
+            return "unnamed or unlabelled command";
         if (!ids.insert(*id).second)
             return "command '" + *id + "' is listed twice";
         out.commands.push_back({*id, *label});

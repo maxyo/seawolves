@@ -70,8 +70,6 @@ int main()
     badges.GetAttributeClass("sign1")->SetAttribute("faceuv", "0.25,0.0625,0.3125,0.125");
     badges.GetAttributeClass("sign2")->SetAttribute("faceuv", "1,0,0.5,1");
     scripts.integer("nMainCharacterIndex", 0);
-    scripts.integer("wdmLockReload", 0);
-    scripts.integer("questwdmLockReload", 0);
     GameplaySnapshot live;
     live.mode = "worldmap";
     live.scene = "map19";
@@ -160,9 +158,8 @@ int main()
     profile.SetAttribute("name", "other");
     assert(readWorldMapFrame(game, true).identity != identity);
     scripts.integer("questwdmLockReload", 1);
-    assert(!readWorldMapFrame(game, true).commandsReady);
+    assert(readWorldMapFrame(game, true).commandsReady); // a locked map refuses in the scripts' own handler
     scripts.remove("questwdmLockReload");
-    assert(!readWorldMapFrame(game, true).commandsReady);
     live.mode = "sea";
     game.update(live);
     assert(!readWorldMapFrame(game, true).available);

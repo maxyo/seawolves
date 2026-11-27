@@ -2,7 +2,6 @@
 // (android_map_commands.hpp) on a stand-in command list and map interface.
 #include "android_map_commands.hpp"
 
-#include <spdlog/sinks/ringbuffer_sink.h>
 
 #include <cassert>
 #include <iostream>
@@ -135,9 +134,6 @@ int main()
     changedFrame.owner = 20;
     betweenFrames.update(changedFrame);
     assert(!betweenFrames.labelCompass() && !betweenFrames.offer(freshArea));
-    // A command the HUD has no place for is reported in the log.
-    const auto log = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(8);
-    spdlog::default_logger()->sinks().push_back(log);
     WMShipCommandList commands;
     commands.m_aUsedCommand = {{"Cancel", "Cancel"}, {"EnterToIsland", "Approach island"}};
     assert(mapCommands(commands.m_aUsedCommand).size() == 1 &&
@@ -147,8 +143,7 @@ int main()
     commands.m_aUsedCommand[1].sNote = "";
     assert(mapCommands(commands.m_aUsedCommand).empty());
     commands.m_aUsedCommand[1] = {"EnterToMoon", "Fly to the moon"};
-    assert(mapCommands(commands.m_aUsedCommand).empty() &&
-           log->last_formatted().size() == 1); // no button for it: said, none drawn
+    assert(mapCommands(commands.m_aUsedCommand).size() == 1); // a command of a mod is offered as the scripts list it
     commands.m_aUsedCommand[1] = {"EnterToIsland", "Approach island"};
     WM_INTERFACE interface;
     interface.m_pCommandList = &commands;

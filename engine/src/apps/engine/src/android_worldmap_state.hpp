@@ -113,13 +113,6 @@ inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready
         (!offered(worldMapHud.contextAction) &&
          !(worldMapHud.contextAction == "EnterToSea" && offered("EnterToIsland"))))
         frame.commandsReady = false;
-    for (const auto *flag : {"wdmLockReload", "questwdmLockReload"})
-    {
-        auto *v = static_cast<VDATA *>(core.GetScriptVariable(flag));
-        int32_t locked = 1;
-        if (!v || !v->Get(locked) || locked)
-            frame.commandsReady = false;
-    }
     if (core.GetEntityId("fader") != invalid_entity)
         frame.commandsReady = false;
     return frame;

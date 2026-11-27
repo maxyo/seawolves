@@ -15,7 +15,7 @@
 </div>
 <div class="g-row g-scene" style="gap: 24dp">
   <c-compass id="cp-map" date="7 окт. 1654" time="12:31" course="130" wind-from="122" wind="82" sky="sun" sky-at="9" weather="none" days="18"/>
-  <c-compass date="8 окт. 1654" time="03:05" course="290" wind-from="20" wind="30" sky="moon" sky-at="-30" moon="1" weather="none" days="2" days-tone="danger" expanded="1"/>
+  <c-compass date="8 окт. 1654" time="03:05" course="290" wind-from="20" wind="30" sky="moon" sky-at="-30" moon="1" weather="none" days="2" expanded="1"/>
   <c-compass date="9 окт. 1654" time="18:00" course="0" wind-from="200" wind="100" sky="sun" sky-at="-62" weather="storm" days="64"/>
 </div>
 <div class="g-row g-scene" style="gap: 24dp">

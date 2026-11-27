@@ -11,7 +11,6 @@
     "moon": {"type": "int", "default": 4},
     "weather": {"type": "enum", "options": ["none", "storm", "tornado"], "default": "none"},
     "days": {"type": "text", "default": ""},
-    "daysTone": {"type": "enum", "options": ["normal", "danger"], "default": "normal"},
     "expanded": {"type": "bool", "default": false},
     "label": {"type": "text", "default": ""}
   },
