@@ -5756,21 +5756,34 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
 
                 ExpressionResult.ClearType();
                 ExpressionResult.Copy(pVSrc);
-
-                // 2 signs precision --------------------------------
-                if (ExpressionResult.GetType() == VAR_FLOAT)
+                // an object (a variable, a reference to one or a literal) assigned to an attribute
+                // replaces the attribute's value and children with a copy of the object's tree
+                if (DATA *object = Deref(pVSrc); object && object->GetType() == VAR_OBJECT && !object->IsArray())
                 {
-                    float fV1;
-                    ExpressionResult.Get(fV1);
-                    char text[storm::script::kFixed7Size];
-                    storm::script::FormatFixed7(fV1, text);
-                    ExpressionResult.Set(text);
+                    if (!object->GetAClass())
+                    {
+                        SetError("object without attributes assigned to an attribute");
+                        return false;
+                    }
+                    *pLeftOperandAClass = object->GetAClass()->Copy();
                 }
-                // 2 signs precision --------------------------------
-                ExpressionResult.Convert(VAR_STRING);
-                if (!ExpressionResult.Get(pChar))
-                    break;
-                pLeftOperandAClass->SetValue(pChar);
+                else
+                {
+                    // 2 signs precision --------------------------------
+                    if (ExpressionResult.GetType() == VAR_FLOAT)
+                    {
+                        float fV1;
+                        ExpressionResult.Get(fV1);
+                        char text[storm::script::kFixed7Size];
+                        storm::script::FormatFixed7(fV1, text);
+                        ExpressionResult.Set(text);
+                    }
+                    // 2 signs precision --------------------------------
+                    ExpressionResult.Convert(VAR_STRING);
+                    if (!ExpressionResult.Get(pChar))
+                        break;
+                    pLeftOperandAClass->SetValue(pChar);
+                }
 
                 if (nLeftOperandIndex != INVALID_ARRAY_INDEX)
                 {
