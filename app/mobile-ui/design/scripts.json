@@ -48,6 +48,7 @@
     {"file": "interface/touch/contracts/tradebook.c"},
     {"file": "interface/touch/contracts/journal.c"},
     {"file": "interface/touch/contracts/items.c"},
+    {"file": "interface/touch/contracts/shipyard.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -436,6 +437,38 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/shipyard.c",
+      "requires": ["var:GameInterface"],
+      "provides": ["adapter:shipyard"],
+      "binds": [
+        {
+          "capability": "shipyard",
+          "interface": "shipyard",
+          "nodes": [
+            ["SHIPS_SCROLL", "choice", true], ["TABLE_SHIPYARD", "choice|table", true], ["BUTTON_BUY", "button", true],
+            ["BUTTON_SELL", "button", true], ["BUTTON_REPAIR", "button", true], ["EXIT_BTN", "button"],
+            ["TITLE", "heading|text"], ["MAIN_BACK", "image"], ["SHIP_BIG_PICTURE", "image"],
+            ["MAIN_CHARACTER_PICTURE", "image"], ["TABLE_OTHER", "choice|table"], ["HERO_NAME", "text"],
+            ["HERO_RANK", "text"], ["SHIP_RANK", "text"], ["EDIT_BOX", "edit"], ["FRAME_INFO_CAPTION", "text|heading"],
+            ["INFO_TEXT", "text"], ["MONEY_TEXT", "text"], ["MONEY_PIC", "image"], ["LEFTSCROLLBUTTON", "button"],
+            ["RIGHTSCROLLBUTTON", "button"], ["UP_BUTTON", "button"], ["DOWN_BUTTON", "button"],
+            ["MSG_WINDOW_CAPTION", "text|heading"], ["MSG_WINDOW_TEXT", "text"], ["MSG_OK", "button"],
+            ["MSG_CANCEL", "button"], ["MSG_EXIT_BTN", "button"], ["REPAIR_WINDOW_CAPTION", "text|heading"],
+            ["REPAIR_WINDOW_TEXT", "text"], ["REPAIR_QTY_H", "text"], ["REPAIR_QTY_S", "text"],
+            ["REPAIR_LEFT_H", "button"], ["REPAIR_RIGHT_H", "button"], ["REPAIR_LEFT_S", "button"],
+            ["REPAIR_RIGHT_S", "button"], ["REPAIR_OK", "button"], ["REPAIR_ALL", "button"], ["REPAIR_CANCEL", "button"],
+            ["REPAIR_EXIT_BTN", "button"], ["REPAIR_*", "image"], ["OFFICERS_WINDOW_CAPTION", "text|heading"],
+            ["PASSENGERSLIST", "choice"], ["OFFICER_NAME", "text"], ["TABLE_SMALLSKILL", "choice|table|text"],
+            ["TABLE_SMALLOTHER", "choice|table|text"], ["ACCEPT_ADD_OFFICER", "button"],
+            ["CANCEL_ADD_OFFICER", "button"], ["OFFICER_EXIT_BTN", "button"], ["RPG_*", "text|heading|choice|table"],
+            ["CANNONS_CAPTION", "text|heading"], ["CANNONS_TEXT", "text"], ["CANNONS_QTY_*", "text"],
+            ["CANNONS_CANCEL", "button"], ["CANNONS_EXIT_BTN", "button"], ["CANNONS_SHIP", "image"],
+            ["CANNONS_PIC", "image"], ["TOOLTIP_*", "text|heading|image"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -582,6 +615,11 @@
       "file": "interface/touch/screens/hero/items.c",
       "uses": ["adapter:items"],
       "screens": [{"capability": "items", "component": "s-items"}]
+    },
+    {
+      "file": "interface/touch/screens/shipyard.c",
+      "uses": ["adapter:shipyard"],
+      "screens": [{"capability": "shipyard", "component": "s-shipyard"}]
     }
   ]
 }

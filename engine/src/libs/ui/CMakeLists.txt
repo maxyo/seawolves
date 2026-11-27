@@ -116,7 +116,6 @@ add_library(storm_ui STATIC
     src/screens/registry.cpp
     src/screens/generic.cpp
     src/screens/trade_commerce.cpp
-    src/screens/trade_shipyard.cpp
     src/screens/hero.cpp
     src/screens/hero_character.cpp
     src/screens/hero_ship.cpp
@@ -280,7 +279,8 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(storm_ui_trade_parity_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_trade_parity_unit storm_ui_app_pack)
     set_tests_properties(ui_trade_parity PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-    storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}")
+    storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}" "${STORM_MOBILE_UI}/design")
+    target_link_libraries(storm_ui_taps_unit PRIVATE storm_ui_script_game)
     storm_ui_check(routing routing_check.cpp "${states}" "${pack}")
     storm_ui_check(script_screen script_screen_check.cpp)
     # A new picture is shown whole or not yet (RenderBackend::FrameHeld), through the bgfx backend: six

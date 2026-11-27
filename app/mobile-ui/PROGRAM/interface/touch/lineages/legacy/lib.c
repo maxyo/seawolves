@@ -403,3 +403,36 @@ void TouchLegLib_PickPerson(aref model, aref people, int k)
 	}
 	UiError("the character list has no slot " + person.row);
 }
+
+// A captain's ship skills as the game's mini table shows them (interface_utils.c SetSPECIALMiniTable: row tr5 the
+// skills' pictures "<Skill> skill icon", row tr6 their values, coloured where a skill is raised or lowered) as
+// out.s<k>.{key (the game's skill, "Sailing"), value, tone ("ok", "danger", "")}; none without the table.
+void TouchLegLib_ShipSkills(aref model, string table, aref out)
+{
+	if (!CheckAttribute(model, table + ".rows")) return;
+	if (!CheckAttribute(model, table + ".rows.r4") || !CheckAttribute(model, table + ".rows.r5"))
+		UiError("the captain's skill table " + table + " has no ship skill rows (tr5 pictures, tr6 values)");
+	aref pictures;
+	makearef(pictures, model.(table).rows.r4.cells);
+	aref values;
+	makearef(values, model.(table).rows.r5.cells);
+	string suffix = " skill icon";
+	for (int k = 0; k < GetAttributesNum(pictures); k++)
+	{
+		aref cell = GetAttributeN(pictures, k);
+		string column = GetAttributeName(cell);
+		if (!CheckAttribute(cell, "images.i0.image") || !CheckAttribute(values, column))
+			UiError("the captain's skill table " + table + " names no skill in its column " + column);
+		string skill = cell.images.i0.image;
+		int at = findSubStr(skill, suffix, 0);
+		if (at > 0) skill = TouchLib_Cut(skill, 0, at);
+		object figure = {key = skill, value = values.(column).text, tone = ""};
+		if (CheckAttribute(values, column + ".color"))
+		{
+			if (values.(column).color == "c4ffc4") figure.tone = "ok";
+			if (values.(column).color == "ffc4c4") figure.tone = "danger";
+		}
+		aref to = TouchLib_Add(out, "s");
+		CopyAttributes(to, &figure);
+	}
+}

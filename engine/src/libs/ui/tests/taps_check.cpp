@@ -4,9 +4,10 @@
 // The case is the shipyard's captain picker (shipyard-captain.json): its rows were drawn with one fixed id
 // and the row index as their `action` (an icon name: the crossed "missing icon" box), so no tap on a
 // candidate reached the screen's candidate-N bindings and no captain could be chosen. With the test pack
-// plus <s-shipyard> reduced to that sheet; no GL context, no game data.
+// plus <s-shipyard> reduced to that sheet, drawn by the shipyard's script screen; no GL context, no game data.
 #include "fakes.h"
 #include "runtime_stub.h"
+#include "../tools/script_game.h"
 #include "../src/screens/screen.h"
 #include "storm_ui/ui.h"
 
@@ -28,7 +29,7 @@ static std::string List(const std::vector<std::string> &lines)
 
 // The test pack plus a list row (press, as C-ListRow: the whole row, an action part when `action` names an
 // icon) and the shipyard screen drawing its sheet's candidates with `row` as each row's attributes.
-static fs::path MakePack(const fs::path &base, const fs::path &font, const std::string &row)
+static fs::path MakePack(const fs::path &base, const fs::path &font, const fs::path &app_spec, const std::string &row)
 {
     const fs::path pack = fs::temp_directory_path() / ("storm-ui-taps-" + std::to_string(::getpid()));
     fs::remove_all(pack);
@@ -51,10 +52,8 @@ static fs::path MakePack(const fs::path &base, const fs::path &font, const std::
                          " title=\"{{o.title}}\" style=\"display: block; width: 600dp; height: 40dp;\"/></t-for></t-if>"
                          // A row that only shows something (pointer-events: none) offers no tap.
                          "<c-row title=\"fact\" style=\"display: block; pointer-events: none;\"/></div>"}};
-    // Every key of the shipyard's view is a prop of the screen (json, as the pack declares them).
-    for (const char *key :
-         {"title", "subject", "stats", "extras", "fleet", "offers", "noOffers", "detail", "empty", "sheet"})
-        screen["props"][key] = {{"type", "json"}, {"default", nullptr}};
+    // The props of the application's s-shipyard, whose shapes its script screen's view is read by.
+    screen["props"] = Json::parse(Read(app_spec))["props"];
     components["components"].push_back(screen);
     std::ofstream(pack / "components.json") << components.dump();
     return pack;
@@ -66,10 +65,11 @@ struct Result
 };
 
 // Opens the captain picker with rows drawn as `row`, then taps the second candidate.
-static Result Run(const fs::path &base, const fs::path &font, const fs::path &models, const std::string &row)
+static Result Run(const fs::path &base, const fs::path &font, const fs::path &models, const fs::path &app_spec,
+                  const std::string &row)
 {
     Result result;
-    const fs::path pack = MakePack(base, font, row);
+    const fs::path pack = MakePack(base, font, app_spec, row);
     std::unique_ptr<FileSource> files = DirectoryFiles(pack.string());
     NoBackend backend;
     double clock = 0.0;
@@ -104,6 +104,7 @@ static Result Run(const fs::path &base, const fs::path &font, const fs::path &mo
             host->Frame();
         }
     };
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
     host->ExpectInterface();
     host->SetInterface(Load(models.string(), "shipyard-captain.json"));
     frames(0.2);
@@ -126,15 +127,16 @@ static Result Run(const fs::path &base, const fs::path &font, const fs::path &mo
 
 int main(int argc, char **argv)
 {
-    if (argc < 4)
+    if (argc < 5)
     {
-        std::fprintf(stderr, "usage: storm_ui_taps_unit <tests/models> <tests/pack> <font.ttf>\n");
+        std::fprintf(stderr, "usage: storm_ui_taps_unit <tests/models> <tests/pack> <font.ttf> <app-pack>\n");
         return 2;
     }
     const fs::path models = argv[1], base = argv[2], font = argv[3];
+    const fs::path app_spec = fs::path(argv[4]) / "screens" / "shipyard" / "spec.json";
 
     // The rows as the pack drew them: one id for all, the index as the action icon.
-    const Result broken = Run(base, font, models, "id=\"candidates\" action=\"{{o_i}}\"");
+    const Result broken = Run(base, font, models, app_spec, "id=\"candidates\" action=\"{{o_i}}\"");
     const std::vector<std::string> expected = {
         "screen shipyard: c-row candidates action is drawn with no mapping: a tap on it does nothing",
         "screen shipyard: c-row candidates click is drawn with no mapping: a tap on it does nothing",
@@ -144,9 +146,9 @@ int main(int argc, char **argv)
     Expect(broken.actions.empty(), "and its tap reaches nothing: " + List(broken.actions));
 
     // Each row with the id the screen binds (candidate-N): drawn without an error, the tap selects that candidate.
-    const Result bound = Run(base, font, models, "id=\"{{o.id}}\"");
+    const Result bound = Run(base, font, models, app_spec, "id=\"{{o.id}}\"");
     Expect(bound.errors.empty(), "rows whose taps are mapped: no errors: " + List(bound.errors));
-    Expect(bound.actions == std::vector<std::string>{"PASSENGERSLIST 1 yard@7:40:select"},
+    Expect(bound.actions == std::vector<std::string>{"PASSENGERSLIST 1 select"},
            "a tap on the second candidate selects it in the game's list: " + List(bound.actions));
 
     // The tap map (Config::log_taps): one block, a line per candidate row with the point a tap there uses, reached

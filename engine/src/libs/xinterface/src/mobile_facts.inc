@@ -28,10 +28,9 @@ std::optional<std::string> XINTERFACE::MobileCharacterName(int index) const
 }
 
 // Facts of the authored interface adapters (application mobile-ui/PROGRAM/interface/android_*.c):
-// event AndroidInterfaceFacts(screen, subject, partner) fills GameInterface.AndroidFacts.<list>.<row>.<field>;
+// event AndroidInterfaceFacts(screen, subject) fills GameInterface.AndroidFacts.<list>.<row>.<field>;
 // subject is the index of the character the interface shows (the stock scripts' xi_refCharacter)
-// or -1, partner the index of the character it deals with (the shipyard's master, shipyard.c
-// refNPCShipyard: his prices) or -1. Every row becomes a read-only widget ANDROID_<LIST> of type "fact": index = row ordinal,
+// or -1. Every row becomes a read-only widget ANDROID_<LIST> of type "fact": index = row ordinal,
 // rowId = row name, label and value = its fields of that name, every field in context.
 void XINTERFACE::MobileCollectFacts(std::vector<MobileWidget> &widgets)
 {
@@ -43,7 +42,6 @@ void XINTERFACE::MobileCollectFacts(std::vector<MobileWidget> &widgets)
         return -1;
     };
     const int subject=character_of("xi_refCharacter");
-    const int partner=character_of("refNPCShipyard");
     const char *language=pStringService?pStringService->GetLanguage():nullptr;
     // Collected again only when its input may have changed (mobile_facts_cache.hpp).
     decltype(mobileFacts_)::Key key{storm::android::mobileScreenRevision,subject,language?language:"",storm::ScriptStateGeneration()};
@@ -64,7 +62,7 @@ void XINTERFACE::MobileCollectFacts(std::vector<MobileWidget> &widgets)
         {
             // The trees the adapter reads are the ones whose changes recollect (script_state.hpp).
             const storm::ScriptStateReads reads;
-            core.Event(storm::app::script_event::AndroidInterfaceFacts,"sll",storm::android::mobileScreen.c_str(),subject,partner);
+            core.Event(storm::app::script_event::AndroidInterfaceFacts,"sl",storm::android::mobileScreen.c_str(),subject);
         }
         // The adapter's word on the open interface's script (mobile_interface_leaving.hpp): "1" loaded,
         // "0" unloaded, anything else unknown.

@@ -22,8 +22,6 @@ s-shipyard .sy-stat-own { margin-left: @{space.sm}dp; font-size: @{type.caption}
 s-shipyard .sy-bar { flex: 0 0 auto; display: flex; flex-direction: row; gap: @{space.sm}dp; }
 s-shipyard .sy-empty { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: @{space.sm}dp; }
 s-shipyard .sy-empty-text { font-size: @{type.body}dp; color: @{color.textMuted}; text-align: center; padding: @{space.sm}dp; }
-s-shipyard .sy-sheet-scroll { max-height: 240dp; overflow-y: auto; display: flex; flex-direction: column; gap: @{space.xs}dp; }
-s-shipyard .sy-help { white-space: pre-wrap; font-size: @{type.body}dp; line-height: 1.4; padding: @{space.xs}dp 0; }
 /* a narrow phone: our ship's values would be cut mid-number; the colour of the offer's value still tells better from worse */
 @media (max-width: 720dp) { s-shipyard .sy-stat-own { display: none; } }
 /* the cannons window as the stock one: the game's deck plan, bow to the left; the guns of each side beside it

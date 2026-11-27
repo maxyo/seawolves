@@ -2046,475 +2046,65 @@ static void Alchemy(const std::string &models)
                 "craft two batches of the shown recipe");
 }
 
-// The capability token a widget of the model offers for `verb` ("yard@7:2:press").
-static std::string Yard(const InterfaceModel &model, const char *node, int index, const char *type,
-                        const std::string &verb)
-{
-    for (const Widget &widget : model.widgets)
-        if (widget.node == node && widget.index == index && widget.type == type)
-            for (const std::string &action : widget.actions)
-                if (action.rfind("yard@", 0) == 0 && action.size() > verb.size() &&
-                    action.substr(action.size() - verb.size() - 1) == ":" + verb)
-                    return "widget:shipyard\t" + std::string(node) + "\t" + std::to_string(index) + "\t" + action;
-    return "(no token " + std::string(node) + " " + verb + ")";
-}
-
-static Widget Control(const char *node, int index, const std::string &token, const char *type = "shipyard_control")
-{
-    Widget widget = Make(node, type, "", {token});
-    widget.index = index;
-    widget.enabled = true;
-    return widget;
-}
-
-// Shipyard: models with the structure recorded on the device (texts replaced), plus repair and
-// captain windows built from them.
-// The shipyard on one router: its main window, the preview, selling, cannons, help, repair, the captain of a bought
-// ship and the screen without the engine's state.
-struct ShipyardRun
-{
-    std::string models;
-    FakeSurface surface;
-    Router router{surface};
-    InterfaceModel main = Load(models, "shipyard-main.json");
-
-    void Opening()
-    {
-        router.SetInterface(main);
-        Expect(router.Using() == "shipyard" && surface.tag == "s-shipyard" && router.Rejection().empty(),
-               "shipyard is drawn by its screen");
-        Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty() &&
-                   surface.props["extras"]["note"] == "",
-               "no errors, no extras");
-        Expect(surface.props["offers"].size() == 3 && surface.props["offers"][2]["value"] == "23 824" &&
-                   surface.props["offers"][0]["title"] == "Шлюпка «Чайка»" &&
-                   surface.props["offers"][0]["meta"] == "<yard.class> 6",
-               "the yard's offers: type «name», class, grouped price: " + surface.props["offers"][0].dump());
-        Expect(surface.props["fleet"].size() == 2 && surface.props["fleet"][0]["title"] == "Кеч «Марта»" &&
-                   surface.props["fleet"][0]["meta"] == "<yard.class> 5" &&
-                   surface.props["fleet"][0]["value"] == "11\u00a0575" &&
-                   surface.props["fleet"][0]["selected"] == true &&
-                   surface.props["fleet"][1]["title"] == "<yard.empty_slot>" && surface.props["subject"].is_null(),
-               "our ships: each with its trade-in value, one free place");
-        {
-            const Json &detail = surface.props["detail"];
-            Expect(detail["title"] == "Кеч «Марта»" && detail["actions"].size() == 3 &&
-                       detail["actions"][0]["id"] == "repair" && detail["actions"][1]["sub"] == "6 фунт / 12" &&
-                       detail["actions"][2]["id"] == "sell" && detail["actions"][2]["hold"] == true &&
-                       detail["actions"][2]["sub"] == "11\u00a0575" && surface.props["sheet"].is_null(),
-                   "our ship on the card: repair, cannons, sell held with its price; no buy button for it");
-            Expect(detail["facts"].size() == 8 &&
-                       detail["facts"][0] == Json({{"k", "Корпус"}, {"v", "610 / 610"}, {"icon", "hull"}}) &&
-                       detail["against"] == "",
-                   "the figures with their icons, nothing to compare our ship with");
-        }
-
-        router.OnEvent({"offer-1", "click", ""});
-        ExpectEqual(surface.Last(), Yard(main, "TABLE_SHIPYARD", 1, "choice", "select"),
-                    "a catalogue row selects the offer with its token");
-        surface.commands.clear();
-        router.OnEvent({"sell", "click", ""});
-        Expect(surface.commands.empty(), "one capability per model revision: the second tap waits for the answer");
-        main.revision += 1;
-        router.SetInterface(main);
-        router.OnEvent({"sell", "click", ""});
-        ExpectEqual(surface.Last(), Yard(main, "BUTTON_SELL", -1, "button", "press"), "sell presses the game's button");
-        main.revision += 1;
-        router.SetInterface(main);
-        router.OnEvent({"fleet-1", "click", ""});
-        ExpectEqual(surface.Last(), Yard(main, "SHIPS_SCROLL", 1, "choice", "select"),
-                    "the free place is a fleet slot of the list");
-        main.revision += 1;
-        router.SetInterface(main);
-        router.OnEvent({"cannons", "click", ""});
-        ExpectEqual(surface.Last(), Yard(main, "TABLE_OTHER", 8, "choice", "activate"),
-                    "the cannons row opens the game's cannons window");
-        main.revision += 1;
-        router.SetInterface(main);
-        router.OnEvent({"header-back", "click", ""});
-        ExpectEqual(surface.Last(), Yard(main, "EXIT_BTN", -1, "shipyard_control", "press"),
-                    "← leaves through the game's exit control");
-    }
-
-    void NotReady()
-    {
-        // Not ready: drawn, but nothing is sent.
-        InterfaceModel settling = main;
-        settling.revision += 1;
-        Find(settling, "ANDROID_SHIPYARD_STATE", "shipyard_state")->value = "0";
-        router.SetInterface(settling);
-        surface.commands.clear();
-        router.OnEvent({"sell", "click", ""});
-        Expect(surface.commands.empty() && surface.props["detail"]["actions"][2]["disabled"] == true,
-               "a state that is not ready offers nothing");
-        Expect(surface.errors.empty(), "a state settling for a moment is not an error");
-        surface.now += 2.5;
-        router.Tick();
-        Expect(surface.errors.size() == 1, "a state that stays unusable is reported");
-    }
-
-    void Preview()
-    {
-        const InterfaceModel preview = Load(models, "shipyard-preview.json");
-        router.SetInterface(preview);
-        {
-            // A ship in the chosen slot is traded in; the yard pays what the game says (the adapter's
-            // ANDROID_YARDDEAL).
-            const Json &detail = surface.props["detail"];
-            Expect(detail["title"] == "Шлюпка «Чайка»" && detail["actions"].size() == 1 &&
-                       detail["actions"][0]["label"] == "<yard.trade_get>" && detail["actions"][0]["sub"] == "9 300" &&
-                       detail["actions"][0]["hold"] == true && surface.props["offers"][0]["selected"] == true &&
-                       surface.props["fleet"][0]["selected"] == true && detail["against"] == "Марта",
-                   "an offer on the card: traded for our chosen ship, the difference on the held button: " +
-                       detail["actions"].dump());
-            Expect(detail["facts"][0]["own"] == "610 / 610" && detail["facts"][0]["tone"] == "danger" &&
-                       detail["facts"][3]["tone"] == "ok" && !detail["facts"][1].contains("tone"),
-                   "its figures beside our ship's: a weaker hull red, a better turn rate green, sails plain: " +
-                       detail["facts"].dump());
-            // Into the free place it is a plain purchase.
-            InterfaceModel free_place = preview;
-            for (Widget &widget : free_place.widgets)
-                if (widget.node == "SHIPS_SCROLL" && widget.type == "choice")
-                    widget.value = widget.index == 1 ? "1" : "0";
-            FakeSurface free_surface;
-            Router free_router(free_surface);
-            free_router.SetInterface(free_place);
-            Expect(free_surface.props["detail"]["actions"][0]["label"] == "Купить" &&
-                       free_surface.props["detail"]["actions"][0]["sub"] == "2 170" &&
-                       !free_surface.props["detail"]["facts"][0].contains("own"),
-                   "the free place chosen: buy with the full price, nothing to compare with");
-
-            // A captain without a ship still occupies a fleet slot. Selling must invalidate the
-            // old ship comparison even when no owned card is drawn before looking at an offer.
-            FakeSurface sold_surface;
-            Router sold(sold_surface);
-            sold.SetInterface(main);
-            sold.SetInterface(preview);
-            Expect(sold_surface.props["detail"]["facts"][0].contains("own"),
-                   "sale regression starts with a cached owned ship");
-            const auto without_ship = [](InterfaceModel model) {
-                for (Widget &widget : model.widgets)
-                    if (widget.node == "SHIPS_SCROLL" && widget.type == "choice" && widget.index == 0)
-                    {
-                        widget.context["ownerKind"] = "OWNER_NO_SHIP";
-                        widget.context["shipName"] = "Нет корабля";
-                        widget.context["saleQuote"] = "0";
-                    }
-                return model;
-            };
-            sold.SetInterface(without_ship(main));
-            Expect(sold_surface.props["detail"].is_null(), "the sold ship has no owned card");
-            sold.SetInterface(without_ship(preview));
-            const Json &purchase = sold_surface.props["detail"];
-            Expect(purchase["actions"][0]["label"] == "Купить" && purchase["actions"][0]["sub"] == "2 170" &&
-                       purchase["against"] == "",
-                   "a captain without a ship buys at the full price, with no trade or comparison caption");
-            Expect(std::none_of(purchase["facts"].begin(), purchase["facts"].end(),
-                                [](const Json &fact) { return fact.contains("own") || fact.contains("tone"); }),
-                   "an offer after selling has no old ship figures or comparison colors");
-            // A subsequent purchase can fill the same slot before its new owned facts arrive.
-            sold.SetInterface(preview);
-            Expect(!sold_surface.props["detail"]["facts"][0].contains("own"),
-                   "selling erased the slot cache instead of temporarily hiding it");
-        }
-        router.OnEvent({"primary", "click", ""});
-        ExpectEqual(surface.Last(), Yard(preview, "BUTTON_BUY", -1, "button", "press"),
-                    "buy presses the game's button");
-        InterfaceModel looking = preview;
-        looking.revision += 1;
-        router.SetInterface(looking);
-        router.OnEvent({"fleet-0", "click", ""});
-        ExpectEqual(surface.Last(), Yard(looking, "SHIPS_SCROLL", 0, "choice", "select"),
-                    "our ship's row brings it back to the card");
-        {
-            // A deal held on its button is not asked about again: the game's question is answered at once.
-            FakeSurface held_surface;
-            Router held(held_surface);
-            held.SetInterface(Load(models, "shipyard-main.json"));
-            held.OnEvent({"sell", "click", ""});
-            const InterfaceModel asked = Load(models, "shipyard-confirm-sell.json");
-            held.SetInterface(asked);
-            ExpectEqual(held_surface.Last(), Yard(asked, "MSG_OK", -1, "button", "press"),
-                        "held sell: the game's confirmation is answered");
-            Expect(held_surface.props["sheet"].is_null(), "and no sheet asks a second time");
-        }
-    }
-
-    void Sell()
-    {
-        const InterfaceModel sell = Load(models, "shipyard-confirm-sell.json");
-        router.SetInterface(sell);
-        const Json sheet = surface.props["sheet"];
-        Expect(sheet["kind"] == "confirm" && sheet["text"] == "Продать корабль за 11 575 песо?" &&
-                   sheet["actions"].size() == 2 && sheet["actions"][1]["variant"] == "danger" &&
-                   sheet["actions"][1]["label"] == "Продать",
-               "selling asks with the game's text and a danger button named by the deal");
-        router.OnEvent({"sheet-ok", "click", ""});
-        ExpectEqual(surface.Last(), Yard(sell, "MSG_OK", -1, "button", "press"), "confirm presses the game's OK");
-        InterfaceModel again = sell;
-        again.revision += 1;
-        router.SetInterface(again);
-        router.Back();
-        ExpectEqual(surface.Last(), Yard(again, "MSG_CANCEL", -1, "button", "press"),
-                    "the platform's back closes the window first, as ← does");
-    }
-
-    void Cannons()
-    {
-        const InterfaceModel cannons = Load(models, "shipyard-cannons.json");
-        router.SetInterface(cannons);
-        {
-            // The stock window's plan: the game's deck picture (bow to the left), bow left, stern right, starboard
-            // (cannonr, CANNONS_QTY_R) above, port (cannonl, CANNONS_QTY_L) below. shipyard-cannons.json: a ketch with
-            // bow chasers only.
-            const Json &sheet = surface.props["sheet"];
-            Expect(sheet["kind"] == "cannons" && sheet["bow"]["value"] == "2" &&
-                       sheet["bow"]["label"] == "<yard.bow>" && sheet["stern"]["value"] == "0" &&
-                       sheet["port"]["value"] == "5" && sheet["port"]["label"] == "<yard.port>" &&
-                       sheet["starboard"]["value"] == "5" && sheet["starboard"]["label"] == "<yard.starboard>",
-                   "cannons window: each side with the game's count: " + sheet.dump());
-            Expect(sheet["plan"]["texture"] == "interfaces/gundeck" && sheet["plan"]["uv"] == "0,0.31,1,0.75" &&
-                       std::none_of(surface.errors.begin(), surface.errors.end(),
-                                    [](const std::string &e) { return e.find("CANNONS_SHIP") != std::string::npos; }),
-                   "the game's deck plan, cut to the ship's band: " + sheet["plan"].dump());
-        }
-        router.OnEvent({"sheet-close", "click", ""});
-        ExpectEqual(surface.Last(), Yard(cannons, "CANNONS_CANCEL", -1, "button", "press"),
-                    "closing it presses the game's cancel");
-    }
-
-    void Help()
-    {
-        const InterfaceModel help = Load(models, "shipyard-help.json");
-        router.SetInterface(help);
-        Expect(surface.props["sheet"]["kind"] == "help" && surface.props["sheet"]["lines"].size() == 1,
-               "help window with the game's text");
-        router.OnEvent({"sheet", "dismiss", ""});
-        ExpectEqual(surface.Last(), Yard(help, "ANDROID_SHIPYARD_CLOSE", -1, "shipyard_control", "close"),
-                    "the scrim closes help through the engine's close control");
-
-        {
-            // The hero's sheet over a hero-only ship (shipyard-rpg.json, RPG_WINDOW): SetSPECIALMiniTable names the
-            // ship skills only by their pictures (row tr5, ICONS_SPEC "<skill> skill icon") and puts the values in tr6,
-            // green where the skill is raised and red where it is lowered.
-            FakeSurface rpg_surface;
-            Router rpg_router(rpg_surface);
-            const InterfaceModel rpg = Load(models, "shipyard-rpg.json");
-            rpg_router.SetInterface(rpg);
-            const Json &sheet = rpg_surface.props["sheet"];
-            Expect(rpg_surface.errors.empty() && rpg_surface.props["extras"]["rows"].empty() &&
-                       sheet["kind"] == "rpg" && sheet["name"] == "Жан Тестов" && sheet["facts"].size() == 5 &&
-                       sheet["facts"][0] == Json({{"k", "Ранг"}, {"v", "1"}}),
-                   "the hero's sheet: name and the game's facts, every widget known");
-            Expect(sheet["skills"].size() == 7 &&
-                       sheet["skills"][0] ==
-                           Json({{"icon", "wheel"}, {"k", "<skill.sailing>"}, {"v", "41"}, {"tone", "ok"}}) &&
-                       sheet["skills"][5] ==
-                           Json({{"icon", "repair"}, {"k", "<skill.repair>"}, {"v", "11"}, {"tone", "danger"}}) &&
-                       sheet["skills"][6] ==
-                           Json({{"icon", "commerce"}, {"k", "<skill.commerce>"}, {"v", "8"}, {"tone", ""}}),
-                   "the ship skills: named from the game's pictures, with tr6's values");
-            rpg_router.OnEvent({"sheet-close", "click", ""});
-            ExpectEqual(rpg_surface.Last(), Yard(rpg, "ANDROID_SHIPYARD_CLOSE", -1, "shipyard_control", "close"),
-                        "the sheet closes through the engine's close control");
-        }
-    }
-
-    void RepairWithTheGame()
-    {
-        {
-            // shipyard-repair.json: the hull at 50 %, the sails at 70 %. The game decides how far its arrows go and
-            // what the order costs; the screen shows where they stopped.
-            FakeSurface yard_surface;
-            Router yard(yard_surface);
-            InterfaceModel model = Load(models, "shipyard-repair.json");
-            yard.SetInterface(model);
-            const auto q = [&yard_surface](int part) { return yard_surface.props["sheet"]["parts"][part]["q"]; };
-            Expect(yard_surface.errors.empty() && q(0)["value"] == 50 && q(0)["min"] == 0 && q(0)["max"] == 100 &&
-                       q(0)["floor"] == 50 && !q(0).contains("ceiling") && q(1)["value"] == 70 && q(1)["floor"] == 70 &&
-                       !q(1).contains("ceiling"),
-                   "the sliders run 0…100 % from the ship's state, no ceiling of ours: " + q(0).dump() + q(1).dump());
-            yard_surface.commands.clear();
-            yard.OnEvent({"hull", "commit", "30"});
-            Expect(q(0)["value"] == 50 && yard_surface.commands.empty(),
-                   "below the ship's state: the slider stays at 50 %, nothing is sent");
-
-            // «Все» is the game's own button (shipyard.c RepairAll: the sails first, then the hull).
-            yard.OnEvent({"sheet-all", "click", ""});
-            Expect(yard_surface.commands.size() == 1 &&
-                       yard_surface.commands[0] == "widget:shipyard\tREPAIR_ALL\t-1\tyard@7:30:press",
-                   "«Все» presses the game's REPAIR_ALL: " + Json(yard_surface.commands).dump());
-            InterfaceModel all = model;
-            all.revision += 1;
-            Find(all, "REPAIR_QTY_H", "text")->label = "94%";
-            Find(all, "REPAIR_QTY_S", "text")->label = "100%";
-            Find(all, "REPAIR_WINDOW_TEXT", "text")->label = "2495";
-            yard.SetInterface(all);
-            Expect(q(0)["value"] == 94 && q(1)["value"] == 100 &&
-                       yard_surface.props["sheet"]["actions"][1]["sub"] == "2\xC2\xA0"
-                                                                           "495" &&
-                       yard_surface.commands.size() == 1,
-                   "the sliders and the price show what the game set: " + yard_surface.props["sheet"].dump());
-            Expect(yard_surface.props["sheet"]["actions"][0]["label"] == "<common.all>" &&
-                       yard_surface.props["sheet"]["actions"][1]["label"] == "<repair.do>",
-                   "the port's words: «Все» fills, «Починить» repairs (as the self repair)");
-        }
-        {
-            // A slider pushed past the purse: the game's arrows stop short, the slider shows where; OK waits for the
-            // steps, then repairs once.
-            FakeSurface yard_surface;
-            Router yard(yard_surface);
-            InterfaceModel model = Load(models, "shipyard-repair.json");
-            yard.SetInterface(model);
-            yard_surface.commands.clear();
-            yard.OnEvent({"hull", "commit", "100"});
-            yard.OnEvent({"sheet-ok", "click", ""});
-            int hull = 50;
-            const int purse_stop = 62; // where the game's arrows stop in this run
-            for (int round = 0; round < 40; ++round)
-            {
-                const std::string last = yard_surface.commands.back();
-                if (last.find("REPAIR_OK") != std::string::npos)
-                    break;
-                Expect(last.find("REPAIR_RIGHT_H") != std::string::npos, "only the hull's arrows: " + last);
-                hull = std::min(purse_stop, hull + (last.find("step5") != std::string::npos ? 5 : 1));
-                model.revision += 1;
-                Find(model, "REPAIR_QTY_H", "text")->label = std::to_string(hull) + "%";
-                Find(model, "REPAIR_WINDOW_TEXT", "text")->label = std::to_string(hull * 10);
-                yard.SetInterface(model);
-            }
-            Expect(hull == purse_stop &&
-                       yard_surface.commands.back() == "widget:shipyard\tREPAIR_OK\t-1\tyard@7:30:press" &&
-                       yard_surface.props["sheet"]["parts"][0]["q"]["value"] == purse_stop,
-                   "the game stopped at 62 %: so does the slider, then OK: " + Json(yard_surface.commands).dump());
-            size_t oks = 0;
-            for (const std::string &command : yard_surface.commands)
-                oks += command.find("REPAIR_OK") != std::string::npos;
-            Expect(oks == 1, "OK went to the game once, after the last step");
-        }
-    }
-
-    void Repair()
-    {
-        // Repair: the quantity asks for a percentage; one step per revision toward it.
-        InterfaceModel repair = Load(models, "shipyard-main.json");
-        repair.revision = 100;
-        Find(repair, "ANDROID_SHIPYARD_STATE", "shipyard_state")->context["mode"] = "repair";
-        const auto label = [](const char *node, const char *text) {
-            Widget widget = Make(node, "text", text);
-            widget.index = 0;
-            return widget;
-        };
-        repair.widgets.push_back(label("REPAIR_WINDOW_CAPTION", "Ремонт"));
-        repair.widgets.push_back(label("REPAIR_WINDOW_TEXT", "0"));
-        repair.widgets.push_back(label("REPAIR_QTY_H", "88%"));
-        repair.widgets.push_back(label("REPAIR_QTY_S", "95%"));
-        repair.widgets.push_back(Control("REPAIR_RIGHT_H", -1, "yard@7:9:press"));
-        repair.widgets.push_back(Control("REPAIR_RIGHT_H", -5, "yard@7:9:step5"));
-        repair.widgets.push_back(Control("REPAIR_LEFT_H", -1, "yard@7:9:press"));
-        repair.widgets.push_back(Control("REPAIR_LEFT_H", -5, "yard@7:9:step5"));
-        repair.widgets.push_back(Control("REPAIR_OK", -1, "yard@7:9:press", "button"));
-        repair.widgets.push_back(Control("REPAIR_ALL", -1, "yard@7:9:press", "button"));
-        repair.widgets.push_back(Control("REPAIR_CANCEL", -1, "yard@7:9:press", "button"));
-        for (Widget &widget : repair.widgets)
-            if (widget.node == "REPAIR_OK" || widget.node == "REPAIR_ALL" || widget.node == "REPAIR_CANCEL")
-                widget.label = widget.node == "REPAIR_OK"    ? "Починить"
-                               : widget.node == "REPAIR_ALL" ? "Чинить всё"
-                                                             : "Отмена";
-        router.SetInterface(repair);
-        const Json parts = surface.props["sheet"]["parts"];
-        Expect(surface.props["sheet"]["kind"] == "repair" && parts.size() == 2 && parts[0]["q"]["value"] == 88 &&
-                   parts[0]["q"]["min"] == 0 && parts[0]["q"]["floor"] == 88 && parts[0]["q"]["max"] == 100 &&
-                   !parts[0]["q"].contains("ceiling") && parts[0]["q"]["label"] == "Корпус",
-               "repair: 0…100 % from the ship's state: " + parts.dump());
-        surface.commands.clear();
-        router.OnEvent({"hull", "commit", "100"});
-        ExpectEqual(surface.Last(), "widget:shipyard\tREPAIR_RIGHT_H\t-5\tyard@7:9:step5",
-                    "far from the target: a step of 5");
-        Expect(surface.commands.size() == 1, "one step per revision");
-        repair.revision += 1;
-        for (Widget &widget : repair.widgets)
-            if (widget.node == "REPAIR_QTY_H")
-                widget.label = "93%";
-        router.SetInterface(repair);
-        Expect(surface.commands.size() == 2 && surface.Last() == "widget:shipyard\tREPAIR_RIGHT_H\t-5\tyard@7:9:step5",
-               "the next revision takes the next step");
-        repair.revision += 1;
-        for (Widget &widget : repair.widgets)
-            if (widget.node == "REPAIR_QTY_H")
-                widget.label = "98%";
-        router.SetInterface(repair);
-        Expect(surface.commands.size() == 3 && surface.Last() == "widget:shipyard\tREPAIR_RIGHT_H\t-1\tyard@7:9:press",
-               "close to it: steps of 1");
-        repair.revision += 1;
-        router.SetInterface(repair); // the game did not move (money)
-        Expect(surface.commands.size() == 3, "when the game stops moving, so does the screen");
-        repair.revision += 1;
-        router.SetInterface(repair);
-        router.OnEvent({"sheet-ok", "click", ""});
-        ExpectEqual(surface.Last(), "widget:shipyard\tREPAIR_OK\t-1\tyard@7:9:press",
-                    "repair confirms with the game's button");
-    }
-
-    void Captain()
-    {
-        // Captain: choose who takes the bought ship.
-        InterfaceModel captain = Load(models, "shipyard-main.json");
-        captain.revision = 200;
-        Find(captain, "ANDROID_SHIPYARD_STATE", "shipyard_state")->context["mode"] = "captain";
-        Widget first = Control("PASSENGERSLIST", 0, "yard@7:11:select", "choice");
-        first.label = "Пьер Тест";
-        first.value = "1";
-        Widget second = Control("PASSENGERSLIST", 1, "yard@7:11:select", "choice");
-        second.label = "Анна Тест";
-        captain.widgets.push_back(first);
-        captain.widgets.push_back(second);
-        captain.widgets.push_back(Control("ACCEPT_ADD_OFFICER", -1, "yard@7:11:press", "button"));
-        captain.widgets.push_back(Control("CANCEL_ADD_OFFICER", -1, "yard@7:11:press", "button"));
-        router.SetInterface(captain);
-        Expect(surface.props["sheet"]["kind"] == "captain" && surface.props["sheet"]["candidates"].size() == 2 &&
-                   surface.props["sheet"]["candidates"][0]["selected"] == true,
-               "captain: the candidates");
-        router.OnEvent({"candidate-1", "click", ""});
-        ExpectEqual(surface.Last(), "widget:shipyard\tPASSENGERSLIST\t1\tyard@7:11:select",
-                    "a candidate is selected with its token");
-        captain.revision += 1;
-        router.SetInterface(captain);
-        router.OnEvent({"sheet-close", "click", ""});
-        ExpectEqual(surface.Last(), "widget:shipyard\tCANCEL_ADD_OFFICER\t-1\tyard@7:11:press",
-                    "closing presses the game's cancel");
-    }
-
-    void WithoutState()
-    {
-        // Without the engine's shipyard state the screen cannot work: generic layout, loudly.
-        InterfaceModel broken = Load(models, "shipyard-main.json");
-        broken.opening = 99;
-        broken.widgets.erase(std::remove_if(broken.widgets.begin(), broken.widgets.end(),
-                                            [](const Widget &w) { return w.type == "shipyard_state"; }),
-                             broken.widgets.end());
-        router.SetInterface(broken);
-        surface.now += 1.0;
-        router.Tick();
-        Expect(!router.Active() && router.Rejection() == "ANDROID_SHIPYARD_STATE(shipyard_state)" &&
-                   !surface.errors.empty(),
-               "without its state widget the shipyard is rejected loudly");
-    }
-};
-
+// Shipyard on its script screen (cases/shipyard.json has the views of the recorded models): our ship's figures
+// shown beside an offer's in a later build, the game's question answered from its sheet, a repair asked of the
+// game's arrows and shown where the game stopped them.
 static void Shipyard(const std::string &models)
 {
-    ShipyardRun run{models};
-    run.Opening();
-    run.NotReady();
-    run.Preview();
-    run.Sell();
-    run.Cannons();
-    run.Help();
-    run.RepairWithTheGame();
-    run.Repair();
-    run.Captain();
-    run.WithoutState();
+    FakeSurface surface;
+    Router router(surface);
+    Scripted(router);
+    const std::string prefix = "widget:shipyard\t";
+    InterfaceModel main = Load(models, "shipyard-main.json");
+    router.SetInterface(main);
+    Expect(router.Using() == "shipyard" && surface.tag == "s-shipyard" && surface.errors.empty(),
+           "shipyard is drawn by its script screen: " + Json(surface.errors).dump());
+    Expect(surface.props["detail"]["facts"][0]["own"].is_null(), "our ship on the card: nothing beside its figures");
+    router.OnEvent({"offer-0", "click", ""});
+    ExpectEqual(surface.Last(), prefix + "TABLE_SHIPYARD\t0\tselect@7:shipyard:offer:ship1", "an offer is chosen");
+    AnswerAll(router, surface, true);
+    router.SetInterface(Load(models, "shipyard-preview.json"));
+    const Json &detail = surface.props["detail"];
+    Expect(detail["facts"][0]["v"] == "151 / 151" && detail["facts"][0]["own"] == "610 / 610" &&
+               detail["against"] == "Марта" && detail["actions"][0]["sub"] == "2 170 − 11 575",
+           "the offer's figures beside those our ketch had; buying names the price and what the yard pays for "
+           "our ketch: " +
+               detail.dump().substr(0, 400));
+    router.OnEvent({"primary", "click", ""});
+    ExpectEqual(surface.Last(), prefix + "BUTTON_BUY\t-1\tpress", "buying presses the game's button");
+    AnswerAll(router, surface, true);
+    router.SetInterface(Load(models, "shipyard-confirm-buy.json"));
+    Expect(surface.props["sheet"]["kind"] == "confirm" &&
+               surface.props["sheet"]["text"] == "Купить корабль за -9 405 песо?",
+           "the game's question is the sheet, with what the trade-in comes to as the game says it");
+    router.OnEvent({"sheet-ok", "click", ""});
+    ExpectEqual(surface.Last(), prefix + "MSG_OK\t-1\tpress", "the sheet's ok is the game's");
+    AnswerAll(router, surface, true);
+
+    InterfaceModel repair = Load(models, "shipyard-repair.json");
+    router.SetInterface(repair);
+    surface.commands.clear();
+    router.OnEvent({"hull", "commit", "58"});
+    router.Tick();
+    Expect(surface.commands.size() == 8 && surface.Last() == prefix + "REPAIR_RIGHT_H\t-1\tpress",
+           "+8 % = eight presses of the game's right arrow: " + Json(surface.commands).dump());
+    // The purse stopped the arrows at 54 %: the part shows where the game stopped, its price is the game's.
+    repair.revision += 1;
+    Find(repair, "REPAIR_QTY_H", "text")->label = "54%";
+    Find(repair, "REPAIR_WINDOW_TEXT", "text")->label = "2480";
+    AnswerAll(router, surface, true);
+    router.SetInterface(repair);
+    const Json &sheet = surface.props["sheet"];
+    Expect(sheet["parts"][0]["q"]["value"] == 54 && sheet["parts"][0]["q"]["floor"] == 50 &&
+               sheet["actions"][1]["sub"] == "2 480" && sheet["actions"][1]["disabled"] == false &&
+               surface.errors.empty(),
+           "the game's order and price: " + sheet.dump().substr(0, 400));
+    router.OnEvent({"sheet-ok", "click", ""});
+    ExpectEqual(surface.Last(), prefix + "REPAIR_OK\t-1\tpress", "repair");
+    AnswerAll(router, surface, true);
+    router.SetInterface(repair);
+    router.OnEvent({"header-back", "click", ""});
+    ExpectEqual(surface.Last(), prefix + "REPAIR_CANCEL\t-1\tpress", "← closes the game's window first");
 }
 
 static void Atlas()

@@ -52,10 +52,12 @@ void MobileButtonCollect(const Button &b, std::string_view screen, std::vector<M
     // Screens ported to the portable UI that work through icon buttons without text: the
     // tavern mini-games (cup, deck, dice, pass), repair (amount arrows), the loot / exchange
     // screen (ship and crew arrows, quantity arrows), sail emblems, purchase list,
-    // alchemy (scroll and quantity arrows) and the ship screen (guns per side arrows of its
-    // cannons window). Export them by node name; the UI draws its own words for them.
-    static constexpr const char *iconScreens[] = {"boal_dice",   "boal_cards",    "repair",  "transfer_main",
-                                                  "sailsgerald", "goodstransfer", "alchemy", "ship"};
+    // alchemy (scroll and quantity arrows), the ship screen (guns per side arrows of its
+    // cannons window) and the shipyard (repair arrows, close). Export them by node name; the UI
+    // draws its own words for them.
+    static constexpr const char *iconScreens[] = {"boal_dice",     "boal_cards",  "repair",
+                                                  "transfer_main", "sailsgerald", "goodstransfer",
+                                                  "alchemy",       "ship",        "shipyard"};
     for (const char *id : iconScreens)
         if ((!label || !*label) && screen == id)
             label = b.m_nodeName;

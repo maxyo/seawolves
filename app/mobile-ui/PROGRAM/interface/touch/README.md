@@ -197,6 +197,6 @@ are mostly the C++ screen's own arithmetic loses its parity case instead (named 
   (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); its recorded parity
   (`trade-parity.json`) goes with it.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
-  crew hire's and the self repair's are gone (their adapters read the game themselves); the hero screens still in C++
-  (character, ship) read the facts of `android_hero.c`.
-- The shipyard and the hero's ship screen are still C++ (`trade_shipyard.cpp`, `hero_ship.cpp`).
+  crew hire's, the self repair's and the shipyard's are gone (their adapters read the game themselves); the hero
+  screens still in C++ (character, ship) read the facts of `android_hero.c`.
+- The hero's ship screen is still C++ (`hero_ship.cpp`).

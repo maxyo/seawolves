@@ -609,7 +609,6 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
     if(storm::android::mobileScreen=="lscchar_all"||storm::android::mobileScreen=="character")MobileCollectHero(widgets);
     mobileLeft_=false;
     if(storm::android::mobileScreen!="mainmenu")MobileCollectFacts(widgets);
-    if(storm::android::mobileScreen=="shipyard")MobileCollectShipyard(widgets);
     if(storm::android::mobileScreen=="boal_dice"||storm::android::mobileScreen=="boal_cards")MobileCollectTableGame(widgets);
     if(storm::android::mobileScreen=="goodstransfer")MobileCollectGoodsTransfer(widgets);
     if(storm::android::mobileScreen=="sailsgerald")MobileCollectSailsGerald(widgets);
@@ -620,7 +619,6 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 #endif
 
 #ifdef __ANDROID__
-#include "mobile_shipyard.inc"
 #include "mobile_facts.inc"
 #include "mobile_table_game.inc"
 #include "mobile_goods_transfer.inc"
@@ -2708,9 +2706,6 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
     }
     if(action.screen=="colonycapture"&&action.node=="ANDROID_LOOT"){
         return MobileApplyColonyLoot(action.value)?applied:refused("the loot does not apply now");
-    }
-    if(action.screen=="shipyard"&&action.value.rfind("yard@",0)==0){
-        return MobileApplyShipyard(action.node,action.index,action.value)?applied:refused("the shipyard offer is not current");
     }
     
     DropDeferredSave("another action came first");

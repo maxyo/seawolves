@@ -381,7 +381,6 @@ class XINTERFACE : public XINTERFACE_BASE
     storm::mobile::FactsCache<MobileFacts> mobileFacts_;
     std::pair<uint64_t, std::string> mobileFactsOpening_; // the opening and its screen (diagnostics)
     uint64_t mobileFactsFrames_ = 0; // interface frames of that opening
-    void MobileCollectShipyard(std::vector<MobileWidget> &widgets);
     void MobileCollectTableGame(std::vector<MobileWidget> &widgets);
     void MobileCollectGoodsTransfer(std::vector<MobileWidget> &widgets);
     bool MobileApplyGoodsTransfer(const std::string &value);
@@ -394,9 +393,6 @@ class XINTERFACE : public XINTERFACE_BASE
     bool MobileApplyColonyLoot(const std::string &value);
     int32_t m_mobileAlchemyStrings=-1;
     std::string m_mobileAlchemyLanguage;
-    bool MobileApplyShipyard(const std::string &node,int index,const std::string &value);
-    std::pair<uint64_t, std::vector<MobileWidget>> m_mobileShipyardSignature; // opening and widgets the generation belongs to
-    uint64_t m_mobileShipyardGeneration=0;
 #endif
 
     // dynamic images data

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Facts for the hero screens of the portable UI. The engine raises
 // AndroidInterfaceFacts(screen, subject) with every interface snapshot (subject: the character
-// the interface shows, or -1; partner: the one it deals with, or -1) and exports
+// the interface shows, or -1) and exports
 // GameInterface.AndroidFacts.<list>.<row>.<field> as widgets ANDROID_<LIST>. Only facts the stock
 // interface already computes are read; no game rules change. The game's #defines are the program's (its
 // main segment is loaded first). Attribute names reach the engine in lower case.
@@ -20,7 +20,6 @@ void AndroidInterfaceFacts()
 {
 	string screen = GetEventData();
 	int subject = GetEventData();
-	int partner = GetEventData();
 	GameInterface.AndroidScript = AndroidInterfaceScript();
 	DeleteAttribute(&GameInterface, "AndroidFacts");
 	// Salaries (GetMoneyForOfficerFull) divide by the hero's Leadership and Commerce, which the game
@@ -36,7 +35,6 @@ void AndroidInterfaceFacts()
 		AndroidHeroSkillHelp("TABLE_SKILL_1", subject);
 		AndroidHeroSkillHelp("TABLE_SKILL_2", subject);
 	}
-	if (screen == "shipyard") AndroidYardDeal(subject, partner);
 	if (screen == "colonycapture") AndroidLootValues();
 	if (screen == "ship")
 	{
@@ -499,20 +497,6 @@ void AndroidShipShares()
 	row.state = AndroidShipShare(mc, "Partition.MonthPart.Gower");
 	row.last = AndroidShipShare(mc, "CrewPayment");
 	if (CheckAttribute(mc, "paymentdate")) row.paid = mc.paymentdate;
-}
-
-// The shipyard (shipyard.c, subject = the owner of the chosen slot, partner = the master whose offer is on the card):
-// what buying that offer comes to with our ship traded in, as ShowMessageInfo asks it before the purchase (its
-// GetShipBuyPrice of the offer less GetShipSellPrice of our ship; negative: the yard pays).
-void AndroidYardDeal(int subject, int partner)
-{
-	if (subject < 0 || partner < 0) return;
-	ref chr = GetCharacter(subject);
-	if (sti(chr.ship.type) == 1000) return;
-	ref yard = GetCharacter(partner);
-	aref row;
-	makearef(row, GameInterface.AndroidFacts.yarddeal.d0);
-	row.tradein = GetShipBuyPrice(sti(yard.Ship.Type), yard) - GetShipSellPrice(chr, yard);
 }
 
 // Looting a town (ColonyCapture.c): what a pack of each listed good is worth (Goods[].Cost, the good's base

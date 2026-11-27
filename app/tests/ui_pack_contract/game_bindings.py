@@ -140,8 +140,7 @@ def check(game, record, java):
             return None  # a node of the game's shared scripts the engine acts on itself (tooltip_fader)
         return f'the interface {screen} has no node {node}'
     wire = record.get('wire', '')
-    # A plain press, or a capability's ("yard@<opening>:<generation>:press": the engine clicks the node the same way)
-    if verb == 'press' or wire == 'press' or wire.endswith(':press'):
+    if verb == 'press' or wire == 'press':
         if not press_handled(game, screen, node, commands):
             return f'a press of {screen} {node} does nothing in the game: no click/activate command that reaches a handler'
     return None

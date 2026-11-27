@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[26];
+object Interfaces[27];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -337,6 +337,7 @@ void Main()
 	Interfaces[23].IniFile = "RESOURCE\INI\INTERFACES\QuestBook.ini";
 	Interfaces[24].IniFile = "RESOURCE\INI\INTERFACES\ColonyCapture.ini";
 	Interfaces[25].IniFile = "RESOURCE\INI\INTERFACES\items.ini";
+	Interfaces[26].IniFile = "RESOURCE\INI\INTERFACES\shipyard.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -397,6 +398,18 @@ void Main()
 	TestHold.g0 = 40;
 	TestHold.g1 = 0;
 	TestItems();
+	// the shipyard of the recorded models (ui/tests/models/shipyard-*.json): FillShipsScroll's places, our ketch
+	// first (its captain Characters[1]), the other four free
+	GameInterface.SHIPS_SCROLL.pic1.character = 1;
+	GameInterface.SHIPS_SCROLL.pic1.str1 = "#Класс 5";
+	GameInterface.SHIPS_SCROLL.pic1.str3 = "#11 575";
+	for (n = 2; n <= 5; n++)
+	{
+		row = "pic" + n;
+		GameInterface.SHIPS_SCROLL.(row).character = -1;
+		GameInterface.SHIPS_SCROLL.(row).str1 = "#";
+		GameInterface.SHIPS_SCROLL.(row).str2 = "";
+	}
 	GameValue = 7;
 	GameName = "kept";
 }

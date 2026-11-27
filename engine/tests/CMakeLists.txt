@@ -295,7 +295,6 @@ storm_host_check(mobile_save_list SOURCES check.cpp ${core_fake_sources} ${src}/
     INCLUDES ${core_fake_includes} ${src}/libs/xinterface/src DEFINES ${core_fake_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(mobile_settings INCLUDES ${src}/libs/xinterface/src ${util_include} OPTIONS -O1 -g ${asan_strict})
-storm_host_check(mobile_shipyard INCLUDES . ${src}/libs/xinterface/src OPTIONS -g -O1 ${asan} -fno-omit-frame-pointer CATCH2)
 storm_host_check(mobile_tables SOURCES check.cpp ${core_fake_sources}
     INCLUDES ${core_fake_includes} ${src}/libs/xinterface/src DEFINES ${core_fake_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)

@@ -94,6 +94,9 @@
   вес сделки, как его пишет игра.
 - Магазин: пометки «Экспорт», «Импорт», «Спрос» и «Контрабанда» берутся из типа торговли товара в магазине игры,
   а не из цвета названия; квестовый товар, который игра выделяет своим цветом, тоже получает свою пометку.
+- Верфь построена скриптами интерфейса. Покупка и продажа — обычные кнопки: игра задаёт свой вопрос с ценой сделки
+  (при обмене — с разницей, как её считает игра), и он показывается листом. На кнопке покупки при обмене стоят обе
+  цены игры: корабля и того, что верфь платит за наш. Кнопка описания корабля убрана: описание и так на карточке.
 
 **English**
 
@@ -191,6 +194,10 @@
   deal's weight as the game writes it.
 - Store: the «Export», «Import», «Demand» and «Contraband» tags come from the good's trade type in the game's store,
   not from the colour of its name; a quest good, which the game colours as its own, gets its tag too.
+- The shipyard is built by the interface scripts. Buying and selling are plain buttons: the game asks its question
+  with the deal's price (for a trade-in with the difference as the game works it out), shown as a sheet. When a ship
+  is traded in, the buy button names both of the game's prices: the ship's and what the yard pays for ours. The ship
+  description button is gone: the card already shows the description.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
