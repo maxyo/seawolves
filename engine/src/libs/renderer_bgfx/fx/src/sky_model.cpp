@@ -39,7 +39,8 @@ void SunTransmittance(const Atmosphere &atm, glm::vec3 sun, glm::vec3 &out)
 {
     const glm::vec3 origin{0.0f, kPlanetRadius + 30.0f, 0.0f};
     // Below the horizon the path is clamped: twilight fades through the `night` factor instead.
-    // A sun straight down (the night's sky_sun_dir) has no horizontal part: its clamped path is any horizontal one.
+    // A sun straight down (the environment's sun at night) has no horizontal part: its clamped path is any horizontal
+    // one.
     glm::vec3 dir{sun[0], std::max(sun[1], 0.0f), sun[2]};
     if (glm::dot(dir, dir) < 1e-8f)
         dir = {1.0f, 0.0f, 0.0f};
@@ -139,6 +140,7 @@ SkyState ComputeSky(const WeatherInput &weather)
     SkyState sky;
     sky.sun_dir = weather.sun_dir;
     sky.fog_density = weather.fog_density;
+    sky.fog_layer = weather.fog_layer;
     const float overcast = glm::clamp(weather.overcast, 0.0f, 1.0f);
     const float sun_height = weather.sun_dir[1];
     sky.night = 1.0f - glm::smoothstep(-0.14f, 0.05f, sun_height);
@@ -168,13 +170,13 @@ SkyState ComputeSky(const WeatherInput &weather)
             const float u = static_cast<float>(x) / static_cast<float>(kSkyLutWidth - 1);
             const float v = static_cast<float>(y) / static_cast<float>(kSkyLutHeight - 1);
             const glm::vec3 dir = DirFromLut(u, v, weather.sun_dir);
-            glm::vec3 c = Scatter(atm, dir, weather.sun_dir, sun_transmittance) * sun_tint;
+            glm::vec3 c = Scatter(atm, dir, weather.sun_dir, sun_transmittance) * sun_tint * weather.sky_radiance;
             c = 1.0f - glm::exp(-c * kExposure);
             // The shoulder above washes colour out; give some of it back.
             const float grey = glm::dot(c, kLumaRec709);
             c = glm::max(grey + (c - grey) * 1.3f, 0.0f);
             const float horizon_weight = std::pow(1.0f - dir[1], 6.0f);
-            c += glm::mix(night_zenith, night_horizon, horizon_weight) * sky.night;
+            c += glm::mix(night_zenith, night_horizon, horizon_weight) * weather.night_sky * sky.night;
             // Pull the horizon band to the game's fog colour, the whole dome to grey when overcast.
             c = glm::mix(c, fog, horizon_weight * (0.25f + 0.6f * haze) * (1.0f - 0.5f * sky.night));
             c = glm::mix(c, glm::mix(dome, dome * 0.8f, dir[1]), overcast * 0.9f);
@@ -205,7 +207,9 @@ bool SkyNeedsRebuild(const WeatherInput &a, const WeatherInput &b)
     };
     return far(a.sun_dir, b.sun_dir, 0.004f) || far(a.sun_color, b.sun_color, 0.01f) ||
            far(a.ambient_color, b.ambient_color, 0.01f) || far(a.fog_color, b.fog_color, 0.01f) ||
-           std::fabs(a.fog_density - b.fog_density) > 1e-4f || std::fabs(a.overcast - b.overcast) > 0.01f;
+           std::fabs(a.fog_density - b.fog_density) > 1e-4f || std::fabs(a.overcast - b.overcast) > 0.01f ||
+           far(a.sky_radiance, b.sky_radiance, 0.01f) || far(a.night_sky, b.night_sky, 0.01f) ||
+           std::fabs(a.fog_layer - b.fog_layer) > 0.1f;
 }
 
 glm::vec3 SkyColor(const SkyState &sky, glm::vec3 dir)
@@ -247,8 +251,11 @@ AerialUniforms ComputeAerial(const SkyState &sky, float camera_height, const std
     return u;
 }
 
-std::array<float, 2> ComputeAerialFogHaze(float camera_height)
+std::array<float, 2> ComputeAerialFogHaze(float camera_height, float fog_layer)
 {
+    // (1 + h layer) / (1 + h) is the layer's share alone when h is far above 1.
+    if (fog_layer > 0.0f)
+        return {1e6f, 1.0f / fog_layer};
     // A sixth of the fx sky's haze: the emulated geometry keeps the game's fog, the layer only lifts it a little off
     // what rises above the eye.
     return {kHazeDensityFactor / 6.0f * std::exp(-std::max(camera_height, 0.0f) / kHazeLayerHeight),

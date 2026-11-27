@@ -307,12 +307,30 @@ void CheckSky()
     const glm::vec3 below = SkyColor(noon, {-0.8f, -0.6f, 0.0f});
     CHECK(Near(below[1], horizon[1], 1e-4f));
 
+    // A game's data scales the day's radiance and the night's colour.
+    WeatherInput dim;
+    dim.sun_dir = {std::sqrt(1.0f - 0.85f * 0.85f), 0.85f, 0.0f};
+    dim.sky_radiance = {0.5f, 0.5f, 0.5f};
+    const glm::vec3 dim_zenith = SkyColor(ComputeSky(dim), {0.0f, 1.0f, 0.0f});
+    WeatherInput bright = dim;
+    bright.sky_radiance = {2.0f, 2.0f, 2.0f};
+    CHECK(SkyColor(ComputeSky(bright), {0.0f, 1.0f, 0.0f})[2] > dim_zenith[2] * 1.5f);
+    WeatherInput dark = dim;
+    dark.sun_dir = {0.0f, -1.0f, 0.0f};
+    dark.night_sky = {0.0f, 0.0f, 0.0f};
+    CHECK(SkyColor(ComputeSky(dark), {0.0f, 1.0f, 0.0f})[2] < 0.25f * night_zenith[2]);
+
     WeatherInput a, b;
     CHECK(!SkyNeedsRebuild(a, b));
     b.wind = {0.0f, 1.0f};
+    b.moon_dir = {0.0f, 1.0f, 0.0f};
+    b.haze = 1.0f;
     CHECK(!SkyNeedsRebuild(a, b));
     b.overcast = 0.5f;
     CHECK(SkyNeedsRebuild(a, b));
+    WeatherInput c;
+    c.sky_radiance = {1.0f, 2.0f, 3.0f};
+    CHECK(SkyNeedsRebuild(a, c));
 }
 
 void CheckLighting()
@@ -1749,7 +1767,7 @@ void CheckCheapUpgrades()
     weather.sun_dir = {0.6f, 0.8f, 0.0f};
     weather.fog_density = 0.002f;
     const SkyState noon = ComputeSky(weather);
-    // The sky stays finite for every sun, also straight down (the night's sky_sun_dir): its dome tints the
+    // The sky stays finite for every sun, also straight down (the environment's sun at night): its dome tints the
     // hemisphere ambient and its horizon the aerial perspective.
     for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})
     {
@@ -1768,9 +1786,14 @@ void CheckCheapUpgrades()
     CHECK(low.u_fxAerial[1][0] > 10.0f * high_up.u_fxAerial[1][0] && high_up.u_fxAerial[1][0] > 0.0f);
     CHECK(low.u_fxAerial[2][0] == 1.0f && low.u_fxAerial[2][1] == 0.0f && low.u_fxAerial[1][3] < 1.0f);
     // The emulator's form: a sixth of the haze, relative to the fog density, milder desaturation, no opacity cap.
-    const auto fog_low = ComputeAerialFogHaze(2.0f), fog_high = ComputeAerialFogHaze(200.0f);
+    const auto fog_low = ComputeAerialFogHaze(2.0f, 0.0f), fog_high = ComputeAerialFogHaze(200.0f, 0.0f);
     CHECK(Near(fog_low[0] * noon.fog_density * 6.0f, low.u_fxAerial[1][0], 1e-7f) && fog_low[0] > 10.0f * fog_high[0]);
     CHECK(fog_low[1] == low.u_fxAerial[1][1] && kAerialFogDesaturation < low.u_fxAerial[1][2]);
+    // A fog with its own layer is all layer: fxAerialFog's (1 + h layer) / (1 + h) is the layer's share.
+    const auto layered = ComputeAerialFogHaze(2.0f, 40.0f);
+    const float share = 0.3f; // (1 - exp(-r)) / r of a ray climbing r layers
+    CHECK(Near((1.0f + layered[0] * share) / (1.0f + layered[0]), share, 1e-4f) &&
+          Near(layered[1], 1.0f / 40.0f, 1e-7f));
 
     // Scene grades: each mood is distinct, the blend follows the sky continuously.
     const auto sky_at = [](float sun_height) {

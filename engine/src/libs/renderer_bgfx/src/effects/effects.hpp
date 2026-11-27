@@ -88,7 +88,10 @@ class Host
         return changed;
     }
 
-    void set_weather(const render::EffectsWeather &weather);
+    void set_environment(const environment::State &state);
+    // render::DrawSky on the device's current target and camera.
+    void draw_sky();
+    glm::vec3 sky_horizon();
     // A location was entered or left: its first weather frame starts at the rain's own wetness.
     void location_changed()
     {
@@ -239,9 +242,11 @@ class Host
     std::string notice_;                 // a stage the self-test switched off: a toast in debug builds (take_notice)
     float device_max_anisotropy_ = 0.0f; // shim::DeviceInfo::max_anisotropy
     render::EffectsReport report_{};
-    render::EffectsWeather weather_{};
+    environment::State env_{};
+    // The direct light and the fog colour as the fixed-function pipeline's 0..1 gamma-encoded colours.
+    glm::vec3 sun_display_{1.0f}, fog_display_{0.5f};
     render::EffectsWobble wobble_{};  // set by the renderer every frame (Render.SeaEffect)
-    bool weather_this_frame_ = false; // pushed since the last presented frame
+    bool weather_this_frame_ = false; // an environment open to the sky since the last presented frame
     float sun_glare_ = 0.0f;          // SetEffectsSunGlare since the last presented frame
     float sun_ghosts_ = 0.0f;
     bool weather_last_frame_ = false;

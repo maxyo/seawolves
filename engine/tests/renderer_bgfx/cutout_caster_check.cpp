@@ -14,6 +14,7 @@
 #include "lamps.hpp"
 
 #include <SDL2/SDL.h>
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 #include "storm/render/shadow_casters.hpp"
 
@@ -290,10 +291,7 @@ int main()
             sun.Type = D3DLIGHT_DIRECTIONAL;
             sun.Diffuse = {1.0f, 1.0f, 1.0f, 1.0f};
             sun.Direction = {-1.0f, -2.0f, 0.0f};
-            render::EffectsWeather weather;
-            weather.sun_dir = {0.4472f, 0.8944f, 0.0f};
-            weather.sky_sun_dir = weather.sun_dir;
-            weather.sun_present = true;
+            const environment::State weather = SunlitEnvironment({0.4472f, 0.8944f, 0.0f});
 
             struct Case
             {
@@ -408,7 +406,7 @@ int main()
                     else
                     {
                         host_check::SetLamps({});
-                        render::SetEffectsWeather(weather);
+                        render::SetSceneEnvironment(weather);
                     }
                     picture = harness.render(scene);
                     active = render::CurrentEffects().pending ? 0 : active + 1;

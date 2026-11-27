@@ -1,4 +1,5 @@
 #include "weather.h"
+#include "environment_sky.h"
 #include "astronomy.h"
 #include "core.h"
 #include "lightning.h"
@@ -22,6 +23,10 @@ CREATE_CLASS(SKY)
 
 CREATE_CLASS(Astronomy)
 
+CREATE_CLASS(EnvironmentSky)
+
+CREATE_SCRIPTLIBRIARY(WEATHER_LIBRARY)
+
 WEATHER::WEATHER()
 {
 }
@@ -42,6 +47,9 @@ bool WEATHER::Init()
 {
     SetDevice();
     SetBeginData();
+    data_ = storm::weather::GameEnvironment();
+    if (data_)
+        sky_ = core.CreateEntity("EnvironmentSky");
     return true;
 }
 
@@ -81,7 +89,8 @@ void WEATHER::Execute(uint32_t Delta_Time)
         if (fFloats[whf_time_counter] > 24.f)
             fFloats[whf_time_counter] -= 24.f;
 
-        UpdateSunMoonPos();
+        if (!data_)
+            UpdateSunMoonPos();
 
         if (static_cast<int32_t>(fFloats[whf_time_counter] * fUpdateFrequence) !=
             static_cast<int32_t>(fOldTimer * fUpdateFrequence))
@@ -90,36 +99,40 @@ void WEATHER::Execute(uint32_t Delta_Time)
         }
         // updating date in scripts
     }
-    PushEffectsWeather();
-
+    if (data_)
+    {
+        UpdateEnvironment();
+        RaiseHourEvents();
+        PlaceSky();
+    }
+    else
+        PushLegacyEnvironment();
 }
 
-// The graphics effects (renderer_bgfx/fx) read the weather through the renderer, once per frame.
-void WEATHER::PushEffectsWeather()
+// The scripts' attributes as the scene environment: their colours are gamma encoded, their sun or moon is the light.
+void WEATHER::PushLegacyEnvironment()
 {
-    storm::render::EffectsWeather out;
-    glm::vec3 sun = vVectors[whv_sun_pos];
-    if (const float length = glm::length(sun); length > 0.0f)
-        sun /= length;
-    out.sun_dir = sun;
-    out.sun_present = bSunPresent && !bMoonPresent;
+    storm::environment::State out;
+    out.hour = fFloats[whf_time_counter];
+    glm::vec3 light = vVectors[whv_sun_pos];
+    if (const float length = glm::length(light); length > 0.0f)
+        light /= length;
+    out.light_dir = light;
+    out.light_is_sun = bSunPresent && !bMoonPresent;
     // The sun from the time of day, also below the horizon, for the sky's day / night state.
     float height, azimuth;
-    glm::vec3 sky_sun;
-    SunAt(fFloats[whf_time_counter], height, azimuth, sky_sun);
-    sky_sun = glm::normalize(sky_sun);
-    out.sky_sun_dir = sky_sun;
+    glm::vec3 sun;
+    SunAt(fFloats[whf_time_counter], height, azimuth, sun);
+    out.sun_dir = glm::normalize(sun);
     glm::vec3 color;
     GetColor(whc_sun_color, &color);
-    out.sun_color = color;
+    out.light_color = color * color;
     GetColor(whc_sun_ambient, &color);
-    out.ambient = color;
+    out.ambient = color * color;
     GetColor(whc_fog_color, &color);
-    out.fog_color = color;
+    out.fog_color = color * color;
     out.fog_density = fFloats[whf_fog_density];
-    // Rain and overcast from the RAIN entity's drop count: WEATHER itself keeps no rain or lightning state (its
-    // whi_rain_drops_num / whi_lightning_enable slots are never written).
-    out.overcast = 0.0f;
+    // Rain and overcast from the RAIN entity's drop count: these scripts give WEATHER no rain or lightning state.
     if (const auto rain_id = core.GetEntityId("rain"))
         if (const auto *rain = static_cast<RAIN *>(core.GetEntityPointer(rain_id)))
         {
@@ -129,7 +142,7 @@ void WEATHER::PushEffectsWeather()
         }
     out.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
     out.wind_speed = fFloats[whf_wind_speed];
-    storm::render::SetEffectsWeather(out);
+    storm::render::SetSceneEnvironment(out);
 }
 
 bool WEATHER::SunAt(float hour, float &height_angle, float &azimuth_angle, glm::vec3 &pos) const
@@ -189,6 +202,8 @@ void WEATHER::UpdateSunMoonPos()
 
 void WEATHER::CleanUP()
 {
+    if (sky_ != invalid_entity)
+        core.EraseEntity(sky_);
     pRS->SetRenderState(D3DRS_FOGENABLE, false);
     pRS->LightEnable(0, false);
 }
@@ -196,20 +211,10 @@ void WEATHER::CleanUP()
 
 void WEATHER::SetCommonStates()
 {
-    pRS->SetRenderState(D3DRS_FOGENABLE, GetInt(whi_fog_enable));
-
-    auto fDensity = GetFloat(whf_fog_density);
-    pRS->SetRenderState(D3DRS_FOGCOLOR, GetColor(whc_fog_color));
-    pRS->SetRenderState(D3DRS_FOGDENSITY, *((uint32_t *)&fDensity));
-
-    const auto dwAmbient = GetColor(whc_sun_ambient);
-    pRS->SetRenderState(D3DRS_AMBIENT, dwAmbient);
-
     // setup sun light
     const auto fSunHeightAngle = GetFloat(whf_sun_height_angle);
     const auto fSunAzimuthAngle = GetFloat(whf_sun_azimuth_angle);
-    glm::vec3 vSun, vSunColor, vSunLight;
-    D3DLIGHT9 sun;
+    glm::vec3 vSun, vSunColor;
 
     if (fFloats[whf_time_speed] == 0.f)
     {
@@ -229,29 +234,27 @@ void WEATHER::SetCommonStates()
     }
 
     GetColor(whc_sun_color, &vSunColor);
+    SetDeviceStates(GetInt(whi_fog_enable) != 0, GetColor(whc_fog_color), GetFloat(whf_fog_density),
+                    GetColor(whc_sun_ambient), storm::math::normalizeOrZero(vSun), vSunColor);
+}
 
+void WEATHER::SetDeviceStates(bool fog, uint32_t fog_color, float fog_density, uint32_t ambient,
+                              const glm::vec3 &to_sun, const glm::vec3 &sun_color)
+{
+    pRS->SetRenderState(D3DRS_FOGENABLE, fog);
+    pRS->SetRenderState(D3DRS_FOGCOLOR, fog_color);
+    pRS->SetRenderState(D3DRS_FOGDENSITY, *reinterpret_cast<const uint32_t *>(&fog_density));
+    pRS->SetRenderState(D3DRS_AMBIENT, ambient);
+
+    D3DLIGHT9 sun{};
     sun.Type = D3DLIGHT_DIRECTIONAL;
-    sun.Diffuse.r = vSunColor.x;
-    sun.Diffuse.g = vSunColor.y;
-    sun.Diffuse.b = vSunColor.z;
-    sun.Diffuse.a = 1.0f;
-    sun.Specular.r = vSunColor.x;
-    sun.Specular.g = vSunColor.y;
-    sun.Specular.b = vSunColor.z;
-    sun.Specular.a = 1.0f;
-    sun.Ambient.r = sun.Ambient.g = sun.Ambient.b = sun.Ambient.a = 0.0f;
-    vSunLight = -(storm::math::normalizeOrZero(glm::vec3(vSun.x, vSun.y, vSun.z)));
-    sun.Direction.x = vSunLight.x;
-    sun.Direction.y = vSunLight.y;
-    sun.Direction.z = vSunLight.z;
+    sun.Diffuse = {sun_color.x, sun_color.y, sun_color.z, 1.0f};
+    sun.Specular = sun.Diffuse;
+    sun.Direction = {-to_sun.x, -to_sun.y, -to_sun.z};
     sun.Range = 100000;
     sun.Attenuation0 = 1;
-    sun.Attenuation1 = 0;
-    sun.Attenuation2 = 0;
-    sun.Falloff = 0;
     sun.Theta = 1;
     sun.Phi = 1;
-
     pRS->SetLight(0, &sun);
     pRS->LightEnable(0, true);
 
@@ -425,9 +428,17 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
             return 0;
         }
     }
+    if (*pAttribute == "Location")
+    {
+        location_ = to_string(pAttribute->GetThisAttr());
+        return 0;
+    }
     if (*pAttribute == "isDone")
     {
-        SetCommonStates();
+        if (data_)
+            UpdateEnvironment();
+        else
+            SetCommonStates();
     }
     return 0;
 }

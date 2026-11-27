@@ -25,6 +25,7 @@
 #include <SDL2/SDL.h>
 #include "skinning.hpp"
 #include "skinning_palette.hpp"
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 #include "storm/render/shadow_casters.hpp"
 
@@ -434,10 +435,7 @@ int main()
             sun.Type = D3DLIGHT_DIRECTIONAL;
             sun.Diffuse = {1.0f, 1.0f, 1.0f, 1.0f};
             sun.Direction = {-1.0f, -2.0f, 0.0f};
-            render::EffectsWeather weather;
-            weather.sun_dir = {0.4472f, 0.8944f, 0.0f};
-            weather.sky_sun_dir = weather.sun_dir;
-            weather.sun_present = true;
+            const environment::State weather = SunlitEnvironment({0.4472f, 0.8944f, 0.0f});
             render::ConfigureEffects(2, {{"fx_ao_volume", 0}, {"fx_lamp_shadows", 0}, {"fx_shadows", 2}});
 
             constexpr uint32_t kFloorTriangles = 12 * 12 * 2;
@@ -494,7 +492,7 @@ int main()
                 for (int frame = 0, active = 0;; ++frame) // on the preparation's progress, no frame budget
                 {
                     host_check::SetLamps({});
-                    render::SetEffectsWeather(weather);
+                    render::SetSceneEnvironment(weather);
                     picture = harness.render(c.scene, sun);
                     active = render::CurrentEffects().pending ? 0 : active + 1;
                     if (active > 3)

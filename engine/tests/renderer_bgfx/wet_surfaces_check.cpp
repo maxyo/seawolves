@@ -17,6 +17,7 @@
 #include "lamps.hpp"
 #include "device.hpp"
 #include <SDL2/SDL.h>
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 
 #include <algorithm>
@@ -76,11 +77,11 @@ class Harness
     {
         if (rain >= 0.0f)
         {
-            render::EffectsWeather weather;
+            environment::State weather = CheckEnvironment();
             weather.rain = rain;
             weather.overcast = rain;
-            weather.fog_color = {0.45f, 0.5f, 0.55f};
-            render::SetEffectsWeather(weather);
+            weather.fog_color = {0.2025f, 0.25f, 0.3025f}; // 0.45, 0.5, 0.55 gamma-encoded
+            render::SetSceneEnvironment(weather);
         }
         check(d_.BeginScene(), "BeginScene");
         check(d_.Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0), "Clear");
@@ -175,12 +176,12 @@ class Street
     // `lamps`: the location's lamps (their relight); `point`: a game light 0 the street is lit by (lighting on).
     std::vector<uint8_t> render(std::span<const render::EffectsPointLight> lamps, const D3DLIGHT9 *point = nullptr)
     {
-        render::EffectsWeather weather;
+        environment::State weather = CheckEnvironment();
         weather.rain = rain;
         weather.overcast = rain;
-        weather.fog_color = {0.05f, 0.05f, 0.06f};
-        weather.ambient = {0.1f, 0.1f, 0.1f};
-        render::SetEffectsWeather(weather);
+        weather.fog_color = {0.0025f, 0.0025f, 0.0036f}; // 0.05, 0.05, 0.06 gamma-encoded
+        weather.ambient = {0.01f, 0.01f, 0.01f};
+        render::SetSceneEnvironment(weather);
         host_check::SetLamps(lamps);
         check(d_.BeginScene(), "BeginScene");
         check(d_.Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0), "Clear");

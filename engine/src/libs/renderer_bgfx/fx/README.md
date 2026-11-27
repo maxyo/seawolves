@@ -63,6 +63,18 @@ Everything before EASU runs at the scene's internal size; EASU runs when the sce
 (`Settings::render_height`), RCAS and the lens flare at the target size. With `Settings::PostIsIdentity()` the chain is
 a single copy; passes that are off cost nothing. Everything runs in gamma-encoded RGBA8 targets.
 
+### Sky (`sky.hpp`, `sky_model.hpp`)
+
+The scene environment (`src/libs/scene_environment`) is turned into a sky state: a 64 x 32 panorama of single
+scattering (Rayleigh and Mie) around the sun, its horizon and dome averages, rebuilt on a thread of its own when the
+sun, the light or the weather move. The panorama drives the scene grade, the hemisphere ambient and the aerial fog;
+the environment's sky radiance scales it, so a game's data can make it brighter, warmer or darker. For a game
+without sky textures (`render::DrawSky`) it is also the visible sky: one triangle at the far plane behind what the
+scene has drawn, the panorama by direction, the sun's and the moon's discs, stars on a hashed grid of cells by night
+and a haze band at the horizon; in the scene before its geometry and in the sea's reflection. A fog with a height
+layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
+(`ComputeAerialFogHaze`).
+
 ### Light falloff (`light_falloff.hpp`)
 
 Every light of the per-pixel lighting (lamps, torches, candles, lanterns, the game's D3D point lights) has one falloff.

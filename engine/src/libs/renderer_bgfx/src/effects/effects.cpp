@@ -418,14 +418,19 @@ bool Host::needs_self_test(const fx::Settings &settings)
     return !settings.PostIsIdentity() || settings.render_height > 0 || fx::RendererStateFor(settings).msaa_samples > 1;
 }
 
-void Host::set_weather(const render::EffectsWeather &weather)
+void Host::set_environment(const environment::State &state)
 {
-    weather_ = weather;
+    env_ = state;
+    sun_display_ = glm::sqrt(environment::DisplayLight(state.light_color, state.exposure));
+    fog_display_ = glm::sqrt(environment::DisplayLight(state.fog_color, state.exposure));
+    // An interior's environment has no sky: like a frame without one.
+    if (!state.sky)
+        return;
     weather_this_frame_ = true;
     update_wetness();
     // The hemisphere ambient takes its tint from the sky dome; the aerial perspective needs a sky (no interiors).
-    lighting_.shadows().set_sun(weather.sun_dir, weather.sun_present);
-    lighting_.set_weather_sun(weather.sun_dir, weather.sun_color, weather.sun_present);
+    lighting_.shadows().set_sun(state.light_dir, state.light_is_sun);
+    lighting_.set_weather_sun(state.light_dir, sun_display_, state.light_is_sun);
     if (settings_.lighting_flags & (fx::kLightingHemisphere | fx::kLightingAerial))
         lighting_.set_sky(&sky_state());
 }
@@ -436,16 +441,16 @@ void Host::update_wetness()
     // Real time between weather frames, at most half a second: a long frame (a hitch, a save) does not dry the place.
     const float seconds = std::min(std::chrono::duration<float>(now - wetness_time_).count(), 0.5f);
     wetness_time_ = now;
-    wetness_.Update(weather_.rain, seconds);
+    wetness_.Update(env_.rain, seconds);
     WetFrame wet;
     if (settings_.wet_surfaces)
     {
         wet.level = settings_.wet_force >= 0.0f ? std::min(settings_.wet_force, 1.0f) : wetness_.Level();
         // The fog colour is the sky's at the horizon by day; the night sky the surfaces reflect is darker than its fog.
-        const float t = std::clamp((weather_.sky_sun_dir[1] + 0.1f) / 0.25f, 0.0f, 1.0f);
+        const float t = std::clamp((env_.sun_dir[1] + 0.1f) / 0.25f, 0.0f, 1.0f);
         const float day = t * t * (3.0f - 2.0f * t);
         for (int c = 0; c < 3; ++c)
-            wet.sky[c] = weather_.fog_color[c] * (0.35f + 0.65f * day);
+            wet.sky[c] = fog_display_[c] * (0.35f + 0.65f * day);
     }
     lighting_.set_wet(wet);
 }
@@ -461,14 +466,22 @@ const fx::SkyState &Host::sky_state()
 fx::WeatherInput Host::weather_input() const
 {
     fx::WeatherInput input;
-    input.sun_dir = weather_.sky_sun_dir;
-    input.sun_color = weather_.sun_color;
-    input.ambient_color = weather_.ambient;
-    input.fog_color = weather_.fog_color;
-    input.fog_density = weather_.fog_density;
-    input.overcast = weather_.overcast;
-    input.wind = weather_.wind_dir;
-    input.wind_speed = weather_.wind_speed;
+    input.sun_dir = env_.sun_dir;
+    input.sun_color = sun_display_;
+    input.ambient_color = glm::sqrt(environment::DisplayLight(env_.ambient, env_.exposure));
+    input.fog_color = fog_display_;
+    input.fog_density = env_.fog_density;
+    input.fog_layer = env_.fog_layer;
+    input.overcast = env_.overcast;
+    input.wind = {env_.wind_dir.x, env_.wind_dir.y};
+    input.wind_speed = env_.wind_speed;
+    input.sky_radiance = env_.sky_day * env_.exposure;
+    input.night_sky = env_.sky_night * env_.exposure;
+    input.moon_dir = env_.moon_dir;
+    input.haze_color = env_.haze_color;
+    input.haze = env_.haze;
+    input.haze_height = env_.haze_height;
+    input.haze_from_sky = env_.haze_from_sky;
     return input;
 }
 
@@ -490,12 +503,12 @@ uint16_t Host::submit_post(const PostTargets &targets)
 
     // A frame without weather has no sky (interiors).
     const bool weather = has_weather();
-    if (weather && weather_.sun_present)
+    if (weather && env_.light_is_sun)
     {
         // Sun on the screen (lens flare, shafts): the direction through the camera rotation and the projection.
         const auto &v = targets.view;
         const auto &p = targets.projection;
-        const auto &d = weather_.sun_dir;
+        const auto &d = env_.light_dir;
         float e[3];
         for (int c = 0; c < 3; ++c)
             e[c] = d[0] * v[0 * 4 + c] + d[1] * v[1 * 4 + c] + d[2] * v[2 * 4 + c];
@@ -511,14 +524,14 @@ uint16_t Host::submit_post(const PostTargets &targets)
             frame.sun_uv = {0.5f + 0.5f * x, bgfx::getCaps()->originBottomLeft ? 1.0f - v_top : v_top};
             // Fades in as the sun clears the horizon; clouds hide it.
             frame.sun_visibility =
-                std::clamp(weather_.sun_dir[1] * 8.0f, 0.0f, 1.0f) * (1.0f - std::clamp(weather_.overcast, 0.0f, 1.0f));
+                std::clamp(env_.light_dir[1] * 8.0f, 0.0f, 1.0f) * (1.0f - std::clamp(env_.overcast, 0.0f, 1.0f));
         }
-        frame.sun_color = weather_.sun_color;
+        frame.sun_color = sun_display_;
         frame.sun_glare = sun_glare_;
         frame.sun_ghosts = sun_ghosts_;
     }
     if (settings_.scene_grading)
-        frame.scene_grade = fx::SceneGrade(sky_state(), weather_.overcast, weather ? 0.0f : 1.0f);
+        frame.scene_grade = fx::SceneGrade(sky_state(), env_.overcast, weather ? 0.0f : 1.0f);
     frame.scene_cut = scene_cut_pending_;
     scene_cut_pending_ = false;
     const uint16_t used = post_.Submit(settings_, frame);
@@ -694,7 +707,7 @@ void Host::update_place()
     // sun is the last weather's: a frame without weather (an interface over the place, a dialogue) is no night,
     // and the lightmaps are not composed for one. A place that is left takes its lightmaps with it
     // (set_lightmaps), an interior has none.
-    town.update(weather_.sun_dir, weather_.sun_present);
+    town.update(env_.light_dir, env_.light_is_sun);
     if (shim::Device *device = shim::Device::current; device && device_ready_)
         lighting_.relight_town(*device);
     const Visibility::Bound *volume = products_.visibility ? place_.visibility() : nullptr;
@@ -1222,9 +1235,19 @@ EffectsReport CurrentEffects()
     return effects::Host::instance().report();
 }
 
-void SetEffectsWeather(const EffectsWeather &weather)
+void SetSceneEnvironment(const environment::State &state)
 {
-    effects::Host::instance().set_weather(weather);
+    effects::Host::instance().set_environment(state);
+}
+
+void DrawSky()
+{
+    effects::Host::instance().draw_sky();
+}
+
+glm::vec3 SkyHorizon()
+{
+    return effects::Host::instance().sky_horizon();
 }
 
 void SetEffectsWobble(const EffectsWobble &wobble)

@@ -1690,7 +1690,7 @@ bool Lighting::aerial_fog(const D3DMATRIX &view, bool vs_port, std::array<float,
     const float up[4] = {view.m[1][0], view.m[1][1], view.m[1][2], 0.0f};
     const float eye_height =
         origin_[1] - (view.m[3][0] * view.m[1][0] + view.m[3][1] * view.m[1][1] + view.m[3][2] * view.m[1][2]);
-    haze = fx::ComputeAerialFogHaze(eye_height);
+    haze = fx::ComputeAerialFogHaze(eye_height, sky_->fog_layer);
     bgfx::setUniform(u_aerial_up_, up);
     ++frame_.aerial;
     return true;

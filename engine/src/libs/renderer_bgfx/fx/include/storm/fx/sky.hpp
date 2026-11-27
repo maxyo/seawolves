@@ -1,5 +1,5 @@
 // The atmosphere state of the weather (fx::SkyState: the place-and-hour grade, the hemisphere ambient, the aerial
-// perspective) and the uniforms of the emulator's FX_AERIAL variant. The sky itself is the game's.
+// perspective), the uniforms of the emulator's FX_AERIAL variant and the drawn sky of a game without sky textures.
 #pragma once
 
 #include "storm/fx/sky_model.hpp"
@@ -34,10 +34,17 @@ class Sky
     // for the next draw call.
     void BindAerial(const std::array<float, 16> &view);
 
+    // The sky into `view` behind what it holds (depth test at the far plane): the panorama, the sun's and the moon's
+    // discs, the stars by night and the haze band at the horizon. `corners`: the world directions through the view's
+    // bottom-left, bottom-right and top-left corners as D3D orients them; `flip_y`: the backend's clip space is
+    // upside down to D3D's.
+    void Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y);
+
     void Shutdown();
 
   private:
     void EnsureResources();
+    void UploadLut();
 
     WeatherInput weather_{};
     SkyState state_{};
@@ -47,6 +54,11 @@ class Sky
     float camera_height_ = 0.0f;
     bool resources_ = false;
     bgfx::UniformHandle u_aerial_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_sky_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_lut_ = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle lut_ = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle program_ = BGFX_INVALID_HANDLE;
+    bool lut_current_ = false; // lut_ holds state_'s panorama
 };
 
 } // namespace storm::fx

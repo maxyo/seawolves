@@ -7,6 +7,7 @@
 // EffectsReport::changes); nothing is lowered silently later.
 #pragma once
 
+#include "storm/environment/state.hpp"
 #include "storm/fx/aggregate_light.hpp"
 
 #include <storm_glm.h>
@@ -83,28 +84,15 @@ struct EffectsWobble
 };
 void SetEffectsWobble(const EffectsWobble &wobble);
 
-// The weather of this frame, pushed by the WEATHER entity every frame it runs. A frame without it has no sky
-// (interiors): sun effects are off and the scene grade is the interior one. The scene camera is taken from the
-// draws themselves (the last perspective draw into the game picture).
-struct EffectsWeather
-{
-    glm::vec3 sun_dir{0.0f, 1.0f, 0.0f}; // towards the sun (or the moon at night), world, y up
-    bool sun_present = false;            // the sun, not the moon, is above the horizon
-    // Towards the sun also while it is below the horizon (straight down at night): the analytic sky and the scene
-    // grade take the day / night state from it, never from the moon.
-    glm::vec3 sky_sun_dir{0.0f, -1.0f, 0.0f};
-    glm::vec3 sun_color{1.0f, 1.0f, 1.0f}; // 0..1
-    glm::vec3 ambient{0.4f, 0.4f, 0.4f};
-    glm::vec3 fog_color{0.5f, 0.6f, 0.7f};
-    float fog_density = 0.003f;
-    float overcast = 0.0f; // 0 clear .. 1 storm
-    // The rain falling this frame, 0 none .. 1 a full rain (fx::RainFromDrops of the RAIN entity's drops): the outdoor
-    // surfaces get wet with it (fx_wet_surfaces).
-    float rain = 0.0f;
-    std::array<float, 2> wind_dir{1.0f, 0.0f};
-    float wind_speed = 5.0f;
-};
-void SetEffectsWeather(const EffectsWeather &weather);
+// The scene environment of this frame, set by the WEATHER entity every frame it runs. A frame without it has no sky
+// (interiors): sun effects are off and the scene grade is the interior one. The scene camera is taken from the draws
+// themselves (the last perspective draw into the game picture).
+void SetSceneEnvironment(const environment::State &state);
+// Draws the sky of the frame's environment into the current target with the device's current camera, behind what is
+// already drawn: in the scene before its geometry and into the sea's reflection.
+void DrawSky();
+// The drawn sky's colour at the horizon (linear, on the display's scale), for fog that takes the sky's colour.
+glm::vec3 SkyHorizon();
 
 // While CurrentEffectsWorld().lens_flare: how much of the sun the camera sees this frame (0..1: SUNGLOW's traced
 // visibility past terrain, buildings and sails, with its fade at the horizon), and how strong the flare ghosts are

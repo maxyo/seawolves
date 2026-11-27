@@ -29,6 +29,7 @@
 #include "effects/effects.hpp"
 #include "storm/fx/place_probes.hpp"
 #include "storm/fx/town_light.hpp"
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 
 #include <SDL2/SDL.h>
@@ -460,14 +461,11 @@ int main()
             render::SetEffectsLightmaps("sun_relight_check", ground, ground_uv, ground_idx, ground_map,
                                         std::span(&lightmap, 1));
 
-            render::EffectsWeather weather;
+            environment::State weather;
             Scene scene;
             scene.lightmap = texture;
             const auto set_sun = [&](const glm::vec3 &sun) {
-                weather.sun_dir = {sun[0], sun[1], sun[2]};
-                weather.sky_sun_dir = weather.sun_dir;
-                weather.sun_color = {1.0f, 1.0f, 1.0f};
-                weather.sun_present = true;
+                weather = SunlitEnvironment({sun[0], sun[1], sun[2]});
                 scene.sun = {};
                 scene.sun.Type = D3DLIGHT_DIRECTIONAL;
                 scene.sun.Diffuse = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -476,7 +474,7 @@ int main()
             set_sun(hour_sun);
             const auto frame = [&] {
                 host_check::SetLamps({});
-                render::SetEffectsWeather(weather);
+                render::SetSceneEnvironment(weather);
                 return harness.render(scene);
             };
             effects::TownLight &town = effects::Host::instance().lighting().town_light();

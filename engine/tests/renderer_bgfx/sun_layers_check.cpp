@@ -18,6 +18,7 @@
 #include "lamps.hpp"
 
 #include "effects/effects.hpp"
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 
 #include <SDL2/SDL.h>
@@ -263,21 +264,19 @@ int main()
                 const float a = degrees_off * 0.01745329f;
                 return glm::vec3{0.7071f * std::cos(a), 0.7071f, 0.7071f * std::sin(a)};
             };
-            render::EffectsWeather weather;
+            environment::State weather;
             Scene scene;
             const auto set_sun = [&](float degrees_off) {
-                weather.sun_dir = sun_at(degrees_off);
-                weather.sky_sun_dir = weather.sun_dir;
-                weather.sun_present = true;
+                weather = SunlitEnvironment(sun_at(degrees_off));
                 scene.sun = {};
                 scene.sun.Type = D3DLIGHT_DIRECTIONAL;
                 scene.sun.Diffuse = {1.0f, 1.0f, 1.0f, 1.0f};
-                scene.sun.Direction = {-weather.sun_dir[0], -weather.sun_dir[1], -weather.sun_dir[2]};
+                scene.sun.Direction = {-weather.light_dir[0], -weather.light_dir[1], -weather.light_dir[2]};
             };
             set_sun(0.0f);
             const auto frame = [&](const Scene &s) {
                 host_check::SetLamps({});
-                render::SetEffectsWeather(weather);
+                render::SetSceneEnvironment(weather);
                 return harness.render(s);
             };
             const auto settle = [&](const Scene &s) {

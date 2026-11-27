@@ -71,6 +71,33 @@ void Host::update_sky(float camera_height)
     sky_.Update(weather_input(), camera_height);
 }
 
+void Host::draw_sky()
+{
+    shim::Device *device = shim::Device::current;
+    if (!device || !device_ready_ || !shim::Context::instance().ready() || !env_.sky)
+        return;
+    const D3DMATRIX &v = device->s.view, &p = device->s.proj;
+    if (p.m[2][3] == 0.0f || p.m[0][0] == 0.0f || p.m[1][1] == 0.0f)
+        return; // no perspective camera: no sky
+    update_sky(camera_height_);
+    // The view-space direction through a corner of D3D's clip space, turned into the world: the inverse of the view's
+    // rotation is its transpose.
+    const auto corner = [&](float x, float y) {
+        const glm::vec3 eye{x / p.m[0][0], y / p.m[1][1], 1.0f};
+        glm::vec3 world;
+        for (int j = 0; j < 3; ++j)
+            world[j] = eye[0] * v.m[j][0] + eye[1] * v.m[j][1] + eye[2] * v.m[j][2];
+        return world;
+    };
+    sky_.Draw(device->effects_view(false), {corner(-1.0f, -1.0f), corner(1.0f, -1.0f), corner(-1.0f, 1.0f)},
+              shim::Context::instance().flip_y());
+}
+
+glm::vec3 Host::sky_horizon()
+{
+    return sky_state().horizon;
+}
+
 bool Host::begin_world_pass(WorldPass &pass, const render::EffectsMatrix &view, bool fresh)
 {
     shim::Device *device = shim::Device::current;
@@ -216,7 +243,7 @@ void Host::prepare_sea(shim::Device &device)
     if (bgfx::isValid(sea_wakes_.Target()))
         device.note_read(sea_wakes_.Target()); // bound when there are wakes
     const bool specular = device_ready_ && settings_.sea_specular && has_weather();
-    const auto &sun = weather_.sun_dir;
+    const auto &sun = env_.light_dir;
     const float strength = settings_.sea_specular_strength;
     // Sea2 vertex constant29 is the current weather/game water colour, not a new global tint.
     const auto &water_color = device.s.vs_const[29];
@@ -343,11 +370,11 @@ void Host::set_sea_wakes_uniforms()
         wake[6] = static_cast<float>(1.0 / kFoamTile);
         // The sun's colour by the sine of its height; none from the moon, under the horizon or behind a storm's
         // clouds (as the lens flare takes the sun's visibility).
-        if (has_weather() && weather_.sun_present)
+        if (has_weather() && env_.light_is_sun)
         {
-            const float lit = std::max(weather_.sun_dir[1], 0.0f) * (1.0f - std::clamp(weather_.overcast, 0.0f, 1.0f));
+            const float lit = std::max(env_.light_dir[1], 0.0f) * (1.0f - std::clamp(env_.overcast, 0.0f, 1.0f));
             for (int i = 0; i < 3; ++i)
-                wake[8 + i] = weather_.sun_color[i] * lit;
+                wake[8 + i] = sun_display_[i] * lit;
         }
     }
     bgfx::setUniform(u_sea_wake_, wake.data(), 3);

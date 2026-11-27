@@ -15,7 +15,7 @@ inline constexpr float kWetDrySeconds = 240.0f;
 class Wetness
 {
   public:
-    // A frame of the weather: `rain` 0..1 (render::EffectsWeather::rain), `seconds` since the previous weather frame.
+    // A frame of the weather: `rain` 0..1 (environment::State::rain), `seconds` since the previous weather frame.
     // The first weather frame after a gap (Interrupt: a location entered, an interior or a loading screen left) starts
     // at the rain's own level: the rain has been falling there all along.
     void Update(float rain, float seconds);

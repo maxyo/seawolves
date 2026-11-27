@@ -18,6 +18,7 @@
 #include "texture_fade.hpp"
 
 #include <SDL2/SDL.h>
+#include "environment.hpp"
 #include "storm/render/effects.hpp"
 
 #include <catch2/catch.hpp>
@@ -274,7 +275,7 @@ class Harness
                      (interior ? host.ao_volume() && host.lighting().ao_weight() >= 1.0f
                                : host.lighting().last_frame().lamp_lit > 0);
             if (!interior)
-                render::SetEffectsWeather(render::EffectsWeather{});
+                render::SetSceneEnvironment(CheckEnvironment());
             host_check::SetLamps(std::span(&lamp, 1));
             const render::PerfCounters frame_start = shim::perf();
             room_frame(stages, out);
@@ -302,10 +303,7 @@ class Harness
                                             false,
                                             glm::vec3{-3.0f, -0.2f, -3.0f},
                                             glm::vec3{3.0f, 3.5f, 3.0f}});
-        render::EffectsWeather weather;
-        weather.sun_dir = {0.7071f, 0.7071f, 0.0f};
-        weather.sky_sun_dir = weather.sun_dir;
-        weather.sun_present = true;
+        const environment::State weather = SunlitEnvironment({0.7071f, 0.7071f, 0.0f});
         std::vector<render::EffectsOption> settings = {{"fx_ao_volume", 0}, {"fx_lamp_shadows", 0}};
         settings.insert(settings.end(), options.begin(), options.end());
         render::ConfigureEffects(2, settings);
@@ -314,9 +312,9 @@ class Harness
         {
             after += !render::CurrentEffects().pending && effects::Host::instance().lighting().last_frame().ground > 0;
             host_check::SetLamps({});
-            render::SetEffectsWeather(weather);
+            render::SetSceneEnvironment(weather);
             const render::PerfCounters frame_start = shim::perf();
-            ground_frame(stages, weather.sun_dir, out);
+            ground_frame(stages, weather.light_dir, out);
             out.specialised = shim::perf().specialised_draws - frame_start.specialised_draws;
             SDL_Delay(5);
         }
