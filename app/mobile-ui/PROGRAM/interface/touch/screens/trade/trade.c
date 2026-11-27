@@ -5,8 +5,9 @@
 #event_handler("UiBuild", "TouchTrade_Build");
 #event_handler("UiTap", "TouchTrade_Tap");
 
-// The screen's state while its window is open: its filter, its sort, the adapter's state of the last build in .game
-// (the taps act on what that build showed) and the header's figures as they were with no amount set in .figures.
+// The screen's state while its window is open: its filter, its sort, whether the deal of the selected row was asked
+// for (.opened), the adapter's state of the last build in .game (the taps act on what that build showed) and the
+// header's figures as they were with no amount set in .figures.
 object TouchTrade;
 object TouchTrade_View;
 
@@ -22,7 +23,7 @@ void TouchTrade_Build()
 	if (ui.screen != "trade") return;
 	if (UiFirst() || TouchTrade.capability != ui.capability)
 	{
-		object fresh = {capability = ui.capability, filter = 0, takeAll = false};
+		object fresh = {capability = ui.capability, filter = 0, takeAll = false, opened = false};
 		DeleteAttribute(&TouchTrade, "");
 		CopyAttributes(&TouchTrade, &fresh);
 		TouchTrade.sort.by = -1;
@@ -53,17 +54,22 @@ void TouchTrade_Build()
 	UiShow(view);
 }
 
-// A money trade opens the deal of its selected row; the engine's take-all says what was too heavy once answered.
+// A money trade opens the deal of its selected row, once: a window may select its first row a frame after its list
+// came. The engine's take-all says what was too heavy once answered.
 void TouchTrade_Opening(aref ui, aref game)
 {
-	if (UiFirst() && sti(game.money) && !CheckAttribute(game, "deal"))
+	if (sti(game.money) && !sti(TouchTrade.opened))
 		for (int k = 0; k < TouchLib_Count(game, "rows"); k++)
 		{
 			aref row = TouchLib_Item(game, "rows", k);
-			if (sti(row.selected) && sti(row.can))
+			if (sti(row.selected))
 			{
-				TouchAdpTrade_Deal(ui, k);
-				UiHold(TouchTrade_Wait);
+				TouchTrade.opened = true;
+				if (sti(row.can) && !CheckAttribute(game, "deal"))
+				{
+					TouchAdpTrade_Deal(ui, k);
+					UiHold(TouchTrade_Wait);
+				}
 			}
 		}
 	if (!sti(TouchTrade.takeAll) || UiAnswer() == "waiting") return;
@@ -221,6 +227,11 @@ void TouchTrade_Row(aref game, aref look, aref captions, aref deal, aref row, ar
 		at.metaTone = row.type.tone;
 	}
 	at.sub = at.meta;
+	if (row.about != "")
+	{
+		if (at.sub != "") at.sub = at.sub + " · ";
+		at.sub = at.sub + row.about;
+	}
 	at.quick = sti(look.quick) && sti(row.other) > 0 && sti(row.can);
 	at.cells.c0 = row.ownText;
 	at.cells.c1 = row.otherText;
@@ -287,7 +298,11 @@ void TouchTrade_Filters(aref game, aref look, aref captions, aref list)
 	TouchLib_Filter(list, captions.own, filter == 1);
 	if (sti(look.small)) return;
 	string other = captions.other;
-	if (sti(game.money)) other = UiText("trade.profitable");
+	if (sti(game.money))
+	{
+		if (!sti(game.types)) return;
+		other = UiText("trade.profitable");
+	}
 	TouchLib_Filter(list, other, filter == 2);
 }
 

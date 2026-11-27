@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The trade windows (chests and bodies, the storage, the store): the goods table TABLE_LIST with the columns of the
-// binding's data, the amount window QTY_*, the side switch and the place's buttons. Implements contracts/trade.c.
+// The trade windows (chests and bodies, the storage, the store, the smugglers, the cannons, the items trade): the goods
+// table TABLE_LIST with the columns of the binding's data, the amount window QTY_*, the side switch and the place's
+// buttons. Implements contracts/trade.c.
 
 // The game's step a deal is at while the screen waits for the answer: "open" (row key's window comes a frame after
 // its selection; `side`: a switch waiting for it), "quick" (then all of their stack is taken), "again" (a confirmed
@@ -134,12 +135,33 @@ void TouchLegTrade_Rows(aref data, aref model, aref out)
 		aref image;
 		makearef(image, at.image);
 		TouchLegLib_Picture(row, sti(data.name), image);
-		TouchLegTrade_Type(row, sti(data.name), at);
+		if (sti(data.types)) TouchLegTrade_Type(row, sti(data.name), at);
+		at.about = TouchLegTrade_About(data, headers, row);
 		at.buyText = TouchLegLib_Cell(row, sti(data.buy));
 		at.sellText = TouchLegLib_Cell(row, sti(data.sell));
 		if (UiHasAmount(at.buyText)) at.buy = UiAmount(at.buyText, "the price column");
 		if (UiHasAmount(at.sellText)) at.sell = UiAmount(at.sellText, "the price column");
 	}
+}
+
+// The game's further columns of a row as "caption value" (the cannons' range, damage and reload): the binding's
+// data.details, none without it.
+string TouchLegTrade_About(aref data, aref headers, aref row)
+{
+	string about = "";
+	if (!CheckAttribute(data, "details")) return about;
+	aref details;
+	makearef(details, data.details);
+	for (int i = 0; i < GetAttributesNum(details); i++)
+	{
+		aref detail = GetAttributeN(details, i);
+		int column = sti(GetAttributeValue(detail));
+		string cell = TouchLegLib_Cell(row, column);
+		if (cell == "") continue;
+		if (about != "") about += " · ";
+		about += UiOneLine(headers.("c" + column)) + " " + cell;
+	}
+	return about;
 }
 
 // Our short words of the game's category tabs by position (the binding's data).
@@ -259,6 +281,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.money = sti(data.buy) >= 0;
 	out.weighs = data.goods;
 	out.pieces = data.pieces;
+	out.types = data.types;
 	TouchLegTrade_Rows(data, model, out);
 	int open = TouchLegLib_Window(model);
 	if (open >= 0) TouchLegTrade_Deal(model, open, out);

@@ -1429,15 +1429,17 @@ struct CommerceRun
 
     void Contraband()
     {
-        // contraband.c: a good without a buy price can only be sold: the pivot is the scale's right end.
-        router.SetInterface(Load(models, "contraband-deal.json"));
+        // contraband.c: a good without a buy price («-») can only be sold: the scale ends at what the hold has. The
+        // colours of its names tell what the smugglers buy or sell, not a trade type: no type, no «Выгодно».
+        const InterfaceModel model = Load(models, "contraband-deal.json");
+        router.SetInterface(model);
         Expect(surface.props["deal"]["max"] == 50 && surface.props["deal"]["min"] == 0 &&
-                   surface.props["deal"]["origin"] == 50 && surface.props["deal"]["value"] == 50,
-               "contraband: only a sale, the pivot at the right end, the knob on it");
-        router.OnEvent({"goods", "change", "0"});
-        Expect(surface.props["primary"]["label"] == "<trade.sell> 50" &&
-                   surface.props["primary"]["sub"] == "230 \xC2\xB7 5 <transfer.cwt>",
-               "contraband: all 50 for 230 (46 a pack of 10): " + surface.props["primary"].dump());
+                   surface.props["deal"]["origin"] == 50 && surface.props["list"]["rows"][0]["meta"] == "" &&
+                   surface.props["list"]["filters"].size() == 2,
+               "contraband: only a sale, the pivot at the right end; no trade types: " + surface.props.dump());
+        OfferFlow("contraband", router, surface, model, 50, 20, 20, "<trade.sell> 30",
+                  "widget:contraband\tQTY_EDIT\t-1\tguard@7:row:0|",
+                  "widget:contraband\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
     }
 };
 

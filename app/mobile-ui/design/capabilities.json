@@ -3,5 +3,6 @@
   "trade_chest": "Take from or put into a chest, a barrel or a body (the items box)",
   "trade_storage": "Move goods between the hold and a rented storage",
   "trade_store": "Buy and sell goods in a store or with a ship met at sea",
-  "nations": "The nations' relations, the hero's standing with each and the flag the ship flies"
+  "nations": "The nations' relations, the hero's standing with each and the flag the ship flies",
+  "trade_contraband": "Buy and sell goods with smugglers"
 }

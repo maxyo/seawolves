@@ -640,32 +640,37 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     CHECK(GameState(vm) == before);
 }
 
-// The reference screen: the store's script on its recorded models. The props its view gives, and what its events send:
-// a row opened, an amount offered to the game's window, the deal confirmed, the store left.
-TEST_CASE("the store screen's script gives the pack screen the props and actions of the recorded models")
+// The trade screens' script on recorded models of each trade window (the store's is the reference screen): the props
+// its view gives, and what its events send: a row opened, an amount offered to the game's window, the deal confirmed,
+// the window left.
+TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")
 {
     Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("trade");
-    const auto &screen = Screen(vm, "trade_store");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/trade_store.json"));
-    for (const Json &recorded : fixture.at("cases"))
+    for (const std::string capability : {"trade_store", "trade_contraband"})
     {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        calls.first = false;
-        CHECK(calls.props == recorded.at("props"));
-        for (const Json &event : recorded.at("events"))
+        INFO(capability);
+        const auto &screen = Screen(vm, capability);
+        const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + capability + ".json"));
+        for (const Json &recorded : fixture.at("cases"))
         {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
+            INFO(recorded.at("name").get<std::string>());
+            storm::ui::InterfaceModel model;
+            REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+            Calls calls(*spec);
+            calls.widgets = model.widgets;
+            port.Build(screen, calls.Single(), calls);
+            calls.first = false;
+            CHECK(calls.props == recorded.at("props"));
+            for (const Json &event : recorded.at("events"))
+            {
+                REQUIRE(calls.Binds(event[0], event[1]));
+                port.Event(screen, event[0], event[1], event[2], calls);
+            }
+            CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
         }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
     }
 }
 

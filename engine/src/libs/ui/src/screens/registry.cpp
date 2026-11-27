@@ -7,7 +7,6 @@
 namespace storm::ui::screens
 {
 
-std::unique_ptr<Screen> CreateContrabandScreen();
 std::unique_ptr<Screen> CreateCannonsScreen();
 std::unique_ptr<Screen> CreateItemsTradeScreen();
 std::unique_ptr<Screen> CreateCrewScreen();
@@ -60,7 +59,6 @@ namespace
 const ScreenEntry kPorted[] = {
     {"goodstransfer", CreateGoodsOrderScreen},
     {"sailsgerald", CreateSailEmblemScreen},
-    {"contraband", CreateContrabandScreen},
     {"cannons", CreateCannonsScreen},
     {"itemstrade", CreateItemsTradeScreen},
     {"hirecrew", CreateCrewScreen},
