@@ -75,7 +75,9 @@ storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource(const std::vector<M
         const char *group=AlchemyAttr(item,"groupID");recipe.group=group?group:"";
         const char *tex=AlchemyAttr(item,"picTexture"),*pic=AlchemyAttr(item,"picIndex");
         recipe.atlasGroup=tex?tex:"";recipe.atlasImage=pic?std::string("itm")+pic:"";
-        const char *yield=AlchemyAttr(item,"multiobject.qty");recipe.yield=yield?std::max(1,std::atoi(yield)):1;
+        // What a batch makes (alchemy.c onGetAllBtnClick: Qty * multiobject.qty); a recipe without it is the game's error.
+        if(const char *yield=AlchemyAttr(item,"multiobject.qty"))recipe.yield=std::atoi(yield);
+        else source.missing.push_back("yield:"+id);
         source.recipes.push_back(std::move(recipe));
     }
     if(source.recipes.empty())source.missing.push_back("recipes");

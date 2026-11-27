@@ -56,7 +56,8 @@ const char *KindKey(const std::string &group)
     return nullptr;
 }
 
-// alchemy.c onGetAllBtnClick: 15 minutes for the first batch, 5 for every further one.
+// rule copy: alchemy.c onGetAllBtnClick waits 15 + 5 * (Qty - 1) minutes inline (WaitDate); the game has no
+// value to read before it crafts. To go when the engine can ask the game in the same frame.
 int Minutes(int batches)
 {
     return batches < 1 ? 0 : 15 + 5 * (batches - 1);
@@ -81,7 +82,7 @@ class AlchemyScreen final : public Screen
             bindings.ErrorOnce(marker->unavailable_reason, "alchemy: " + marker->unavailable_reason);
         const std::string recipe = Context(*marker, "recipe");
         const int possible = ContextNumber(bindings, *marker, "batches");
-        const int yield = std::max(1, ContextNumber(bindings, *marker, "yield"));
+        const int yield = ContextNumber(bindings, *marker, "yield");
         if (recipe != shown_)
         {
             shown_ = recipe;

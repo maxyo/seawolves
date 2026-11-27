@@ -28,7 +28,7 @@ struct AlchemyRecipe
 {
     std::string id, name, group, atlasGroup, atlasImage;
     int index = 0; // scroll position (picN → N − 1)
-    int yield = 1;
+    int yield = 0; // multiobject.qty
 };
 
 struct AlchemyComponent
@@ -79,7 +79,9 @@ inline std::string AlchemyFillCounts(const std::vector<MobileWidget> &widgets,
     return {};
 }
 
-// Batches the hero's items and the pot allow together (alchemy.c CheckAlchemy over hero + pot).
+// Batches the hero's items and the pot allow together. rule copy: alchemy.c CheckAlchemy counts the pot only, and
+// the game has no value for what the hero carries besides; crafting itself is the game's (it fills the pot through
+// its own transactions and makes CheckAlchemy batches). To go when the engine can ask the game in the same frame.
 inline int AlchemyBatches(const std::vector<AlchemyComponent> &components)
 {
     if (components.empty())
