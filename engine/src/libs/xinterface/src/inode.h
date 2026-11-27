@@ -61,6 +61,7 @@ class CXI_ToolTip;
 #define NODETYPE_TABLE 35
 #define NODETYPE_TABSECTION 36
 #define NODETYPE_BORDER 37
+#define NODETYPE_TRIGGER 38
 
 #define INTERFACE_CONTROL_RIGHT "IRight"
 #define INTERFACE_CONTROL_LEFT "ILeft"
@@ -352,6 +353,10 @@ class CINODE
     int32_t m_nAbsoluteRectVal;
 
     bool m_bUse;
+    // hover trigger (UseTrigger): the frame the scripts draw around the node and its kind
+    bool m_bUseTrigger = false;
+    XYRECT m_rectTriggerFrame{};
+    int32_t m_nTriggerFrameType = 0;
     bool m_bClickable;
     bool m_bLockStatus;
     bool m_bSelected;

@@ -16,6 +16,10 @@
 #include "save_record.hpp"
 #include <set>
 #include <spdlog/spdlog.h>
+
+#include "platform/storage.hpp"
+
+#include <filesystem>
 #include "back_scene/back_scene.h"
 #include "help_chooser/help_chooser.h"
 #include "info_handler.h"
@@ -251,6 +255,7 @@ XINTERFACE::XINTERFACE()
     m_pNodes = nullptr;
     m_pCurNode = nullptr;
     m_pContHelp = nullptr;
+    m_pTriggerNode = nullptr;
     m_pMonocracyNode = nullptr;
 
     oldKeyState.dwKeyCode = -1;
@@ -1565,6 +1570,23 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
     }
     break;
 
+    case MSG_INTERFACE_SAVE_STRINGS_TO_FILE: {
+        const std::string file = message.String();
+        const std::string section = message.String();
+        const std::string key = message.String();
+        const std::string value = message.String();
+        WriteStringsFile(file, section, key, value);
+    }
+    break;
+
+    case MSG_INTERFACE_READ_STRINGS_FROM_FILE: {
+        const std::string file = message.String();
+        const std::string section = message.String();
+        const std::string key = message.String();
+        message.ScriptVariablePointer()->Set(ReadStringsFile(file, section, key));
+    }
+    break;
+
     case MSG_INTERFACE_SAVEOPTIONS: {
         const std::string &param = message.String();
         ATTRIBUTES *pA = message.AttributePointer();
@@ -2142,6 +2164,8 @@ CINODE *XINTERFACE::NewNode(const char *pcNodType)
         m_pContHelp = pNewNod = new CXI_CONTEXTHELP;
     else if (storm::iEquals(pcNodType, "GLOWCURSOR"))
         m_pGlowCursorNode = pNewNod = new CXI_GLOWCURSOR;
+    else if (storm::iEquals(pcNodType, "TRIGGER"))
+        m_pTriggerNode = pNewNod = new CXI_TRIGGER;
     else
         core.Trace("Not supported node type:\"%s\"", pcNodType);
     return pNewNod;
@@ -2173,6 +2197,8 @@ void XINTERFACE::DeleteNode(const char *pcNodeName)
             m_pContHelp = nullptr;
         if (m_pGlowCursorNode == pNod)
             m_pGlowCursorNode = nullptr;
+        if (m_pTriggerNode == pNod)
+            m_pTriggerNode = nullptr;
         // remove the found node from the list
         if (pPrevNod)
             pPrevNod->m_next = pNod->m_next;
@@ -3089,16 +3115,25 @@ void XINTERFACE::DoControl()
 
         if (oldKeyState.dwKeyCode != curKS.dwKeyCode)
         {
+            // Ctrl with an arrow: ctrlleft/ctrlright where the node has those commands, else as without Ctrl
+            const auto control = [&](int action) {
+                return m_pCurNode && m_pCurNode->CheckCommandUsed(action) &&
+                       core.Controls->GetAsyncKeyState(VK_CONTROL) < 0;
+            };
             if (curKS.rightButton)
             {
-                if (curKS.shiftButton)
+                if (control(ACTION_CTRLRIGHT))
+                    wActCode = ACTION_CTRLRIGHT;
+                else if (curKS.shiftButton)
                     wActCode = ACTION_SPEEDRIGHT;
                 else
                     wActCode = ACTION_RIGHTSTEP;
             }
             if (curKS.leftButton)
             {
-                if (curKS.shiftButton)
+                if (control(ACTION_CTRLLEFT))
+                    wActCode = ACTION_CTRLLEFT;
+                else if (curKS.shiftButton)
                     wActCode = ACTION_SPEEDLEFT;
                 else
                     wActCode = ACTION_LEFTSTEP;
@@ -3184,6 +3219,51 @@ CINODE *XINTERFACE::GetActivingNode(CINODE *findRoot)
     return retVal;
 }
 
+// The player's copy of a strings file the game writes into (MSG_INTERFACE_SAVE_STRINGS_TO_FILE): under the settings
+// folder at the path the game names, which is otherwise inside the game folder.
+static std::filesystem::path PlayerStringsFile(const std::string &file)
+{
+    return storm::storage::folders().settings / "strings" / storm::storage::slashPath(storm::AsciiLower(file));
+}
+
+void XINTERFACE::WriteStringsFile(const std::string &file, const std::string &section, const std::string &key,
+                                  const std::string &value)
+{
+    const auto target = PlayerStringsFile(file);
+    std::error_code error;
+    std::filesystem::create_directories(target.parent_path(), error);
+    auto ini = std::filesystem::exists(target) ? fio->OpenIniFile(target.string().c_str())
+                                                : fio->CreateIniFile(target.string().c_str(), false);
+    if (!ini)
+    {
+        spdlog::error("strings file {}: cannot write {}", file, target.string());
+        return;
+    }
+    ini->WriteString(section.c_str(), key.c_str(), value.c_str());
+    ini->Flush();
+}
+
+std::string XINTERFACE::ReadStringsFile(const std::string &file, const std::string &section, const std::string &key)
+{
+    const auto copy = PlayerStringsFile(file);
+    auto ini = std::filesystem::exists(copy) ? fio->OpenIniFile(copy.string().c_str()) : fio->OpenIniFile(file.c_str());
+    char value[1024]{};
+    if (ini)
+        ini->ReadString(section.c_str(), key.c_str(), value, sizeof(value) - 1, "");
+    return value;
+}
+
+// the first node under the mouse whose hover trigger is on
+std::string XINTERFACE::HoveredTriggerNode() const
+{
+    const float x = fXMousePos + m_lXMouse, y = fYMousePos + m_lYMouse;
+    for (CINODE *node = m_pNodes ? m_pNodes->FindNode(x, y) : nullptr; node != nullptr;
+         node = node->m_next ? node->m_next->FindNode(x, y) : nullptr)
+        if (node->m_bUse && node->m_bUseTrigger && node->m_nodeName)
+            return node->m_nodeName;
+    return {};
+}
+
 void XINTERFACE::MouseMove()
 {
     if (m_nInterfaceMode == CONTEXTHELP_IMODE)
@@ -3255,6 +3335,8 @@ void XINTERFACE::MouseMove()
                 break;
             pNod = pNod->m_next->FindNode(fXMousePos + m_lXMouse, fYMousePos + m_lYMouse);
         }
+        if (m_pTriggerNode)
+            static_cast<CXI_TRIGGER *>(m_pTriggerNode)->Hover(HoveredTriggerNode());
     }
     else
     {
@@ -3442,6 +3524,7 @@ void XINTERFACE::ReleaseOld()
     m_pCurNode = nullptr;
     m_pContHelp = nullptr;
     m_pGlowCursorNode = nullptr;
+    m_pTriggerNode = nullptr;
 
     while (m_imgLists != nullptr)
     {

@@ -5,6 +5,8 @@
 #include "core.h"
 #include "string_compare.hpp"
 
+#include <spdlog/spdlog.h>
+
 CINODE::CINODE()
 {
     m_nNodeType = -1;
@@ -419,16 +421,55 @@ uint32_t CINODE::MessageProc(int32_t msgcode, MESSAGE &message)
     }
     break;
 
-    case 4: // Change position
+    case 4: // Change position; a last argument, when given, is the absolute-coordinates flag (rectangles are kept in
+            // screen coordinates, so it changes nothing)
     {
         XYRECT rect;
         rect.left = message.Long();
         rect.top = message.Long();
         rect.right = message.Long();
         rect.bottom = message.Long();
+        if (message.GetCurrentFormatType())
+            message.Long();
         ChangePosition(rect);
     }
     break;
+
+    case 5: // get position (and the same optional flag)
+    case 6: // get the trigger frame
+    {
+        const XYRECT &rect = msgcode == 5 ? m_rect : m_rectTriggerFrame;
+        message.ScriptVariablePointer()->Set(rect.left);
+        message.ScriptVariablePointer()->Set(rect.top);
+        message.ScriptVariablePointer()->Set(rect.right);
+        message.ScriptVariablePointer()->Set(rect.bottom);
+        if (message.GetCurrentFormatType())
+            message.Long();
+    }
+    break;
+
+    case 7: // set the trigger frame
+        m_rectTriggerFrame.left = message.Long();
+        m_rectTriggerFrame.top = message.Long();
+        m_rectTriggerFrame.right = message.Long();
+        m_rectTriggerFrame.bottom = message.Long();
+        break;
+
+    case 8: // get the trigger frame type
+        message.ScriptVariablePointer()->Set(m_nTriggerFrameType);
+        break;
+
+    case 9: // set the trigger frame type
+        m_nTriggerFrameType = message.Long();
+        break;
+
+    case 10: // UseTrigger on or off
+        m_bUseTrigger = message.Long() != 0;
+        break;
+
+    default:
+        spdlog::error("interface node {}: no common message {}", m_nodeName ? m_nodeName : "?", msgcode);
+        break;
     }
     return 0;
 }
@@ -463,6 +504,15 @@ bool CINODE::Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *n
     SetGlowCursorToBack(GetIniBool(ini1, name1, ini2, name2, "bGlowCursorToBack", false));
 
     m_bUse = !GetIniBool(ini1, name1, ini2, name2, "bNotUse", false);
+
+    m_bUseTrigger = GetIniBool(ini1, name1, ini2, name2, "UseTrigger", false);
+    m_nTriggerFrameType = GetIniLong(ini1, name1, ini2, name2, "TriggerFrameType", 0);
+    m_rectTriggerFrame = m_rect;
+    if (ReadIniString(ini1, name1, ini2, name2, "TriggerFramePos", param, sizeof(param), ""))
+    {
+        m_rectTriggerFrame = GetIniLongRect(ini1, name1, ini2, name2, "TriggerFramePos", m_hostRect);
+        GetAbsoluteRect(m_rectTriggerFrame, m_nAbsoluteRectVal);
+    }
 
     // mouse weel reaction
     m_bMouseWeelReaction = GetIniBool(ini1, name1, ini2, name2, "bWheelUse", false);

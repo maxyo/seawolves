@@ -33,6 +33,7 @@
 #include "xi_table.h"
 #include "xi_text_button.h"
 #include "xi_title.h"
+#include "xi_trigger.h"
 #include "xi_video.h"
 #include "xi_video_rect.h"
 #include "xi_window.h"

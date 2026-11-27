@@ -58,6 +58,10 @@
 #define MSG_HELPCHOOSER_START 45200
 
 #define MSG_INTERFACE_GET_FREE_SPACE 45300
+// "ssss": file, section, key, value; "ssse": file, section, key, out value. A strings file the game keeps state in
+// (Caribbean Legend: the news it has shown); the player's copy is in the settings folder.
+#define MSG_INTERFACE_SAVE_STRINGS_TO_FILE 45402
+#define MSG_INTERFACE_READ_STRINGS_FROM_FILE 45403
 // "lse": profile, out record name. The autosave record to write next (xinterface save_autosave.hpp).
 #define MSG_INTERFACE_AUTOSAVE_RECORD 45301
 
@@ -85,7 +89,9 @@
 #define ACTION_MOUSERCLICK 14
 #define ACTION_MOUSERDBLCLICK 15
 
-#define COMMAND_QUANTITY 15
+#define ACTION_CTRLRIGHT 16
+#define ACTION_CTRLLEFT 17
+#define COMMAND_QUANTITY 17
 
 #define ISOUND_EVENT "ISound"
 

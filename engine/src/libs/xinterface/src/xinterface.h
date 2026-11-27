@@ -469,6 +469,11 @@ class XINTERFACE : public XINTERFACE_BASE
     bool m_bBlindUp;
 
     CINODE *m_pGlowCursorNode;
+    CINODE *m_pTriggerNode; // the TRIGGER node of the interface, if it has one
+    std::string HoveredTriggerNode() const;
+    void WriteStringsFile(const std::string &file, const std::string &section, const std::string &key,
+                          const std::string &value);
+    std::string ReadStringsFile(const std::string &file, const std::string &section, const std::string &key);
 
     CINODE *m_pCurToolTipNode;
 };
