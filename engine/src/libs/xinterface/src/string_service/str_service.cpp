@@ -449,11 +449,6 @@ void STRSERVICE::CloseKeyFiles()
     m_keyFilesLoaded = false;
 }
 
-std::string_view STRSERVICE::Language()
-{
-    return m_sLanguageDir ? m_sLanguageDir : "";
-}
-
 int STRSERVICE::Random(int bound)
 {
     return bound <= 1 ? 0 : rand() % bound; // the engine's rand(), as the scripts' rand()

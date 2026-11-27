@@ -1,5 +1,6 @@
 // The localisation natives, through the VM: what they read from the running scripts (script_check answers each text
 // with the value it asked for).
+// profile: Caribbean Legend
 native string DLGO(string text, ...);
 native string DLG_Convert(string key, string file, ...);
 native string DLG_ConvertE(string key, string file, ...);
@@ -9,6 +10,8 @@ native string StringFromKey(string key, ...);
 #define TEXTS_LIMIT 12
 #define TEXTS_RATIO 0.5
 
+string textsTitle = "Deck";
+object textsBox;
 object hero;
 object partner;
 ref pchar;
@@ -46,9 +49,28 @@ int test_script_call()
 	return DLGO("call:Describe:21", &item) == "42blade" && DLGO("call:NoSuchFunction:1", &item) == "<none>";
 }
 
-int test_defines()
+string Twice(ref value)
 {
-	return DLGO("define:TEXTS_LIMIT") == "12" && DLGO("define:TEXTS_RATIO") == "0.5" && DLGO("define:NONE") == "<none>";
+	string once = value;
+	return once + once;
+}
+
+string Pad(string word, string edge = "-")
+{
+	return edge + word + edge;
+}
+
+int test_defines_and_globals()
+{
+	textsBox.size.w = "3";
+	return DLGO("define:TEXTS_LIMIT") == "12" && DLGO("define:TEXTS_RATIO") == "0.5" && DLGO("define:NONE") == "<none>" &&
+	       DLGO("define:textsTitle") == "Deck" && DLGO("define:textsBox.size.w") == "3" &&
+	       DLGO("define:textsBox.none") == "<none>";
+}
+
+int test_ref_parameters_and_defaults()
+{
+	return DLGO("call1:Twice:ab") == "abab" && DLGO("call1:Pad:x") == "-x-";
 }
 
 int test_convert()

@@ -55,38 +55,6 @@ std::optional<double> ParseNumber(std::string_view s)
     return value;
 }
 
-// at most two decimals, no trailing zeros: 20 -> "20", 0.376 -> "0.38"
-std::string HumanNumber(double value)
-{
-    std::string text = fmt::format("{:.2f}", value);
-    while (text.back() == '0')
-        text.pop_back();
-    if (text.back() == '.')
-        text.pop_back();
-    return text == "-0" ? "0" : text;
-}
-
-// the Slavic plural rule of the game's declension helpers: 1, 21 -> one; 2-4, 22-24 -> few; the rest -> many
-std::string_view DeclensionForm(long long n, std::string_view one, std::string_view few, std::string_view many)
-{
-    if (many.empty())
-        many = few;
-    n = n < 0 ? -n : n;
-    if (n % 100 >= 11 && n % 100 <= 14)
-        return many;
-    switch (n % 10)
-    {
-    case 1:
-        return one;
-    case 2:
-    case 3:
-    case 4:
-        return few;
-    default:
-        return many;
-    }
-}
-
 // The simple lower-case mapping of ASCII, Latin-1, Latin Extended-A and Cyrillic U+0400-U+042F, the letters of the
 // games' European languages (the engine links no Unicode library on desktop).
 char32_t LowerCode(char32_t c)
@@ -104,96 +72,110 @@ char32_t LowerCode(char32_t c)
     return c;
 }
 
+using Kind = ScriptArg::Kind;
+
+// The built-ins that read the game state or choose a branch themselves.
 enum class BuiltinId
 {
-    Name,
-    LastName,
-    FullName,
-    ShipName,
-    NpcName,
-    NpcLastName,
-    NpcFullName,
-    NpcShipName,
-    CtxShipName,
-    City,
-    Sir,
-    NpcSir,
-    Swear,
-    Hello,
-    Bye,
-    Br,
-    Red,
-    Ctx,
-    Attr,
-    CtxHasAttr,
-    Rand,
-    ManWoman,
-    NpcManWoman,
-    CtxManWoman,
-    GoodBad,
-    NpcGoodBad,
-    Key,
-    Link,
-    Value,
-    Percent,
-    Number,
-    Money,
-    Abs,
-    Days,
-    Decl,
-    NationI,
-    GoodI,
-    ModifierPercent,
+    Attribute, // an attribute of `who`
+    ShipClass, // the common string of GetShipTypeName(who)
+    City,      // GetCityName of the partner's City
+    Ctx,       // a context attribute, expanded
+    Attr,      // $attr($context.path): the attribute as it is
+    HasAttr,   // (path|then[|else]) by whether `who` has the attribute
+    Rand,      // one argument at random
+    ManWoman,  // (man|woman) by the sex of `who`
+    GoodBad,   // (good|neutral|bad) by the nobility of `who`
+    Key,       // a text key: the common strings, then the file being expanded; or (key|file)
+    Link,      // a StringFromKey key, expanded
+    Value,     // a script #define or global variable
+    Abs,       // the argument without a leading '-'
+    Br,        // a line break
 };
 
-constexpr std::array<std::pair<std::string_view, BuiltinId>, 38> kBuiltins{{
-    {"name", BuiltinId::Name},
-    {"lastname", BuiltinId::LastName},
-    {"fullname", BuiltinId::FullName},
-    {"shipname", BuiltinId::ShipName},
-    {"npcname", BuiltinId::NpcName},
-    {"npclastname", BuiltinId::NpcLastName},
-    {"npcfullname", BuiltinId::NpcFullName},
-    {"npcshipname", BuiltinId::NpcShipName},
-    {"ctxshipname", BuiltinId::CtxShipName},
-    {"city", BuiltinId::City},
-    {"sir", BuiltinId::Sir},
-    {"npcsir", BuiltinId::NpcSir},
-    {"swear", BuiltinId::Swear},
-    {"hello", BuiltinId::Hello},
-    {"bye", BuiltinId::Bye},
-    {"br", BuiltinId::Br},
-    {"red", BuiltinId::Red},
+struct BuiltinEntry
+{
+    std::string_view name; // lower case
+    BuiltinId id;
+    Kind who = Kind::Text; // Text: no object
+    std::string_view path = {};
+};
+
+constexpr BuiltinEntry kBuiltins[] = {
+    {"name", BuiltinId::Attribute, Kind::Player, "name"},
+    {"lastname", BuiltinId::Attribute, Kind::Player, "lastname"},
+    {"shipname", BuiltinId::Attribute, Kind::Player, "ship.name"},
+    {"npcname", BuiltinId::Attribute, Kind::Npc, "name"},
+    {"npclastname", BuiltinId::Attribute, Kind::Npc, "lastname"},
+    {"npcshipname", BuiltinId::Attribute, Kind::Npc, "ship.name"},
+    {"ctxshipname", BuiltinId::Attribute, Kind::Context, "ship.name"},
+    {"shipclass", BuiltinId::ShipClass, Kind::Player},
+    {"npcshipclass", BuiltinId::ShipClass, Kind::Npc},
+    {"ctxshipclass", BuiltinId::ShipClass, Kind::Context},
+    {"city", BuiltinId::City, Kind::Npc, "city"},
     {"ctx", BuiltinId::Ctx},
     {"attr", BuiltinId::Attr},
-    {"ctxhasattr", BuiltinId::CtxHasAttr},
+    {"hasattr", BuiltinId::HasAttr, Kind::Player},
+    {"npchasattr", BuiltinId::HasAttr, Kind::Npc},
+    {"ctxhasattr", BuiltinId::HasAttr, Kind::Context},
     {"rand", BuiltinId::Rand},
-    {"manwoman", BuiltinId::ManWoman},
-    {"npcmanwoman", BuiltinId::NpcManWoman},
-    {"ctxmanwoman", BuiltinId::CtxManWoman},
-    {"goodbad", BuiltinId::GoodBad},
-    {"npcgoodbad", BuiltinId::NpcGoodBad},
+    {"manwoman", BuiltinId::ManWoman, Kind::Player},
+    {"npcmanwoman", BuiltinId::ManWoman, Kind::Npc},
+    {"ctxmanwoman", BuiltinId::ManWoman, Kind::Context},
+    {"goodbad", BuiltinId::GoodBad, Kind::Player},
+    {"npcgoodbad", BuiltinId::GoodBad, Kind::Npc},
     {"key", BuiltinId::Key},
     {"link", BuiltinId::Link},
     {"value", BuiltinId::Value},
-    {"percent", BuiltinId::Percent},
-    {"number", BuiltinId::Number},
-    {"money", BuiltinId::Money},
     {"abs", BuiltinId::Abs},
-    {"days", BuiltinId::Days},
-    {"decl", BuiltinId::Decl},
-    {"nationi", BuiltinId::NationI},
-    {"goodi", BuiltinId::GoodI},
-    {"modifierpercent", BuiltinId::ModifierPercent},
-}};
+    {"br", BuiltinId::Br},
+};
 
-std::optional<BuiltinId> FindBuiltin(std::string_view name)
+// The built-ins that call a game script: the template's arguments as text, with the object `who` before them (or
+// after them, `who_last`) and the fixed text `fixed` instead of them.
+struct ScriptBuiltin
 {
-    const std::string folded = AsciiLower(std::string(name));
-    for (const auto &[builtin, id] : kBuiltins)
-        if (builtin == folded)
-            return id;
-    return std::nullopt;
+    std::string_view name; // lower case
+    std::string_view function;
+    size_t min_args, max_args;
+    Kind who = Kind::Text;
+    bool who_last = false;
+    std::string_view fixed = {};
+};
+
+constexpr ScriptBuiltin kScripts[] = {
+    {"fullname", "GetFullName", 0, 0, Kind::Player},
+    {"npcfullname", "GetFullName", 0, 0, Kind::Npc},
+    {"sir", "GetAddress_FormToNPC", 0, 0, Kind::Player},
+    {"npcsir", "GetAddress_FormToNPC", 0, 0, Kind::Npc},
+    {"swear", "RandSwear", 0, 0},
+    {"hello", "TimeGreeting", 0, 0},
+    {"bye", "Goodbye", 0, 0, Kind::Text, false, "1"},
+    {"red", "SF_Indent", 0, 0},
+    {"money", "FindRussianMoneyString", 1, 1},
+    {"dublon", "FindRussianDublonString", 1, 1},
+    {"qty", "FindRussianQtyString", 1, 1},
+    {"month", "FindRussianMonthString", 1, 1},
+    {"days", "FindRussianDaysString", 1, 1},
+    {"people", "FindRussianPeoplesString", 2, 2},
+    {"slaves", "FindRussianSlavesString", 2, 2},
+    {"sailors", "FindRussianSailorString", 2, 2},
+    {"decl", "DLG_DeclensionString", 3, 4},
+    {"number", "ToHumanNumber", 1, 1},
+    {"percent", "ToHumanPercent", 1, 1},
+    {"nationi", "GetNationNameByType", 1, 1},
+    {"goodi", "DLG_GoodName", 1, 1},
+    {"worktype", "GetWorkTypeOfMan", 1, 1, Kind::Npc},
+    {"shipmanwoman", "DLG_ShipManWomanArgs", 2, 2, Kind::Player},
+    {"npcshipmanwoman", "DLG_ShipManWomanArgs", 2, 2, Kind::Npc},
+    {"ctxshipmanwoman", "DLG_ShipManWomanArgs", 2, 2, Kind::Context},
+    {"modifier", "DLG_HumanModifierValue", 1, 1, Kind::Context, true},
+    {"modifierpercent", "DLG_HumanModifierValuePercent", 1, 1, Kind::Context, true},
+};
+
+Who WhoOf(Kind kind)
+{
+    return kind == Kind::Player ? Who::Player : kind == Kind::Npc ? Who::Npc : Who::Context;
 }
 
 ScriptArg TextArg(std::string value)
@@ -507,9 +489,7 @@ bool TextTemplateLanguage::ScriptFunction(Run &run, std::string &out, const Cons
 
 bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &c, int depth)
 {
-    const auto id = FindBuiltin(c.name);
-    if (!id)
-        return false;
+    const std::string name = AsciiLower(std::string(c.name));
     const size_t argc = c.args.size();
     const auto fail = [&](std::string problem) {
         Report(fmt::format("template: {}: {}", c.raw, problem));
@@ -528,17 +508,7 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         return expanded;
     };
     const auto choose = [&](size_t i) { ExpandInto(run, out, c.args[i], depth); };
-    const auto attribute = [&](Who who, std::string_view path) {
-        if (!takes(0, 0))
-            return true;
-        if (auto value = run.scripts.Attribute(who, path))
-        {
-            out += *value;
-            return true;
-        }
-        return fail(fmt::format("no attribute {}", path));
-    };
-    const auto script = [&](std::string_view function, std::vector<ScriptArg> args) {
+    const auto script = [&](std::string_view function, const std::vector<ScriptArg> &args) {
         if (auto value = run.scripts.Call(function, args))
         {
             out += *value;
@@ -546,32 +516,32 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         }
         return fail(fmt::format("no script function {}", function));
     };
-    const auto bySex = [&](Who who) {
-        if (!takes(2, 2))
-            return true;
-        const auto sex = run.scripts.Attribute(who, "sex");
-        if (!sex)
-            return fail("no character");
-        choose(*sex == "woman" ? 1 : 0);
-        return true;
-    };
-    // the game's thresholds: nobility above 70 good, above 30 or unknown neutral, else bad
-    const auto byNobility = [&](Who who) {
-        if (!takes(3, 3))
-            return true;
-        const auto nobility = run.scripts.Attribute(who, "reputation.nobility");
-        const double value = nobility ? ParseNumber(*nobility).value_or(50) : 50;
-        choose(value > 70 ? 0 : value > 30 ? 1 : 2);
-        return true;
-    };
-    const auto number = [&](size_t i) {
-        const std::string text = arg(i);
-        const auto value = ParseNumber(text);
-        if (!value)
-            fail(fmt::format("'{}' is not a number", text));
-        return value;
-    };
-    const auto value = [&](std::string_view what, std::optional<std::string> raw) {
+
+    for (const auto &entry : kScripts)
+        if (entry.name == name)
+        {
+            if (!takes(entry.min_args, entry.max_args))
+                return true;
+            std::vector<ScriptArg> args;
+            if (entry.who != Kind::Text && !entry.who_last)
+                args.push_back(RefArg(entry.who));
+            if (!entry.fixed.empty())
+                args.push_back(TextArg(std::string(entry.fixed)));
+            for (size_t i = 0; i < argc; ++i)
+                args.push_back(TextArg(arg(i)));
+            if (entry.who != Kind::Text && entry.who_last)
+                args.push_back(RefArg(entry.who));
+            return script(entry.function, args);
+        }
+
+    const BuiltinEntry *builtin = nullptr;
+    for (const auto &entry : kBuiltins)
+        if (entry.name == name)
+            builtin = &entry;
+    if (!builtin)
+        return false;
+    const Who who = WhoOf(builtin->who);
+    const auto expanded = [&](std::string_view what, std::optional<std::string> raw) {
         if (!raw)
             return fail(fmt::format("no {}", what));
         if (depth + 1 >= kMaxDepth)
@@ -580,47 +550,37 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         return true;
     };
 
-    switch (*id)
+    switch (builtin->id)
     {
-    case BuiltinId::Name:
-        return attribute(Who::Player, "name");
-    case BuiltinId::LastName:
-        return attribute(Who::Player, "lastname");
-    case BuiltinId::ShipName:
-        return attribute(Who::Player, "Ship.Name");
-    case BuiltinId::NpcName:
-        return attribute(Who::Npc, "name");
-    case BuiltinId::NpcLastName:
-        return attribute(Who::Npc, "lastname");
-    case BuiltinId::NpcShipName:
-        return attribute(Who::Npc, "Ship.Name");
-    case BuiltinId::CtxShipName:
-        return attribute(Who::Context, "Ship.Name");
-    case BuiltinId::City:
-        return attribute(Who::Npc, "City");
-    case BuiltinId::FullName:
-        return !takes(0, 0) || script("GetFullName", {RefArg(ScriptArg::Kind::Player)});
-    case BuiltinId::NpcFullName:
-        return !takes(0, 0) || script("GetFullName", {RefArg(ScriptArg::Kind::Npc)});
-    case BuiltinId::Sir:
-        return !takes(0, 0) || script("GetAddress_FormToNPC", {RefArg(ScriptArg::Kind::Player)});
-    case BuiltinId::NpcSir:
-        return !takes(0, 0) || script("GetAddress_FormToNPC", {RefArg(ScriptArg::Kind::Npc)});
-    case BuiltinId::Swear:
-        return !takes(0, 0) || script("RandSwear", {});
-    case BuiltinId::Hello:
-        return !takes(0, 0) || script("TimeGreeting", {});
-    case BuiltinId::Bye:
-        return !takes(0, 0) || script("Goodbye", {TextArg("1")});
-    case BuiltinId::Red:
-        return !takes(0, 0) || script("SF_Indent", {});
-    case BuiltinId::Br:
-        if (takes(0, 0))
-            out += '\n';
+    case BuiltinId::Attribute:
+        if (!takes(0, 0))
+            return true;
+        if (auto value = run.scripts.Attribute(who, builtin->path))
+        {
+            out += *value;
+            return true;
+        }
+        return fail(fmt::format("no attribute {}", builtin->path));
+    case BuiltinId::ShipClass: {
+        if (!takes(0, 0))
+            return true;
+        const auto type = run.scripts.Call("GetShipTypeName", std::vector{RefArg(builtin->who)});
+        if (!type)
+            return fail("no script function GetShipTypeName");
+        out += texts_.Value("", *type).value_or("");
         return true;
+    }
+    case BuiltinId::City: {
+        if (!takes(0, 0))
+            return true;
+        const auto city = run.scripts.Attribute(who, builtin->path);
+        if (!city)
+            return fail("the partner has no city");
+        return script("GetCityName", std::vector{TextArg(*city)});
+    }
     case BuiltinId::Ctx:
         return !takes(1, 1) ||
-               value(fmt::format("context attribute {}", c.args[0]), run.scripts.Attribute(Who::Context, arg(0)));
+               expanded(fmt::format("context attribute {}", c.args[0]), run.scripts.Attribute(Who::Context, arg(0)));
     case BuiltinId::Attr: {
         constexpr std::string_view prefix = "$context.";
         if (!takes(1, 1))
@@ -633,10 +593,10 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         out += *raw;
         return true;
     }
-    case BuiltinId::CtxHasAttr:
+    case BuiltinId::HasAttr:
         if (takes(2, 3))
         {
-            if (run.scripts.Attribute(Who::Context, arg(0)))
+            if (run.scripts.Attribute(who, arg(0)))
                 choose(1);
             else if (argc == 3)
                 choose(2);
@@ -646,18 +606,25 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         if (takes(1, SIZE_MAX))
             choose(static_cast<size_t>(texts_.Random(static_cast<int>(argc))));
         return true;
-    case BuiltinId::ManWoman:
-        return bySex(Who::Player);
-    case BuiltinId::NpcManWoman:
-        return bySex(Who::Npc);
-    case BuiltinId::CtxManWoman:
-        return bySex(Who::Context);
-    case BuiltinId::GoodBad:
-        return byNobility(Who::Player);
-    case BuiltinId::NpcGoodBad:
-        return byNobility(Who::Npc);
+    case BuiltinId::ManWoman: {
+        if (!takes(2, 2))
+            return true;
+        const auto sex = run.scripts.Attribute(who, "sex");
+        if (!sex)
+            return fail("no character");
+        choose(*sex == "woman" ? 1 : 0);
+        return true;
+    }
+    case BuiltinId::GoodBad: {
+        // the game's thresholds: nobility above 70 good, above 30 or unknown neutral, else bad
+        if (!takes(3, 3))
+            return true;
+        const auto nobility = run.scripts.Attribute(who, "reputation.nobility");
+        const double value = nobility ? ParseNumber(*nobility).value_or(50) : 50;
+        choose(value > 70 ? 0 : value > 30 ? 1 : 2);
+        return true;
+    }
     case BuiltinId::Key: {
-        // $key(k): the common strings, then the file being expanded; $key(k|file): that file
         if (!takes(1, 2))
             return true;
         const std::string key = arg(0);
@@ -676,32 +643,16 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
         return true;
     }
     case BuiltinId::Link:
-        return !takes(1, 1) || value("key", texts_.KeyValue(arg(0)));
+        return !takes(1, 1) || expanded("key", texts_.KeyValue(arg(0)));
     case BuiltinId::Value: {
         if (!takes(1, 1))
             return true;
-        const auto constant = run.scripts.Constant(arg(0));
-        if (!constant)
-            return fail("no such #define");
-        out += *constant;
+        const auto value = run.scripts.Value(arg(0));
+        if (!value)
+            return fail("no such #define or variable");
+        out += *value;
         return true;
     }
-    case BuiltinId::Percent:
-        if (takes(1, 1))
-            if (const auto n = number(0))
-            {
-                const std::string digits = HumanNumber(*n * 100);
-                const std::string language = AsciiLower(std::string(texts_.Language()));
-                out += language == "russian" ? digits + " %" : language == "turkish" ? "%" + digits : digits + "%";
-            }
-        return true;
-    case BuiltinId::Number:
-        if (takes(1, 1))
-            if (const auto n = number(0))
-                out += HumanNumber(*n);
-        return true;
-    case BuiltinId::Money:
-        return !takes(1, 1) || script("FormatMoney", {TextArg(arg(0))});
     case BuiltinId::Abs:
         if (takes(1, 1))
         {
@@ -709,43 +660,12 @@ bool TextTemplateLanguage::Builtin(Run &run, std::string &out, const Construct &
             out.append(text, !text.empty() && text[0] == '-' ? 1 : 0);
         }
         return true;
-    case BuiltinId::Days: {
-        if (!takes(1, 1))
-            return true;
-        const auto n = number(0);
-        if (!n)
-            return true;
-        std::array<std::string, 3> forms;
-        constexpr std::array<std::string_view, 3> keys{"day2", "rdays2", "rdays"};
-        for (size_t i = 0; i < keys.size(); ++i)
-        {
-            auto form = texts_.Value("", keys[i]);
-            if (!form)
-                return fail(fmt::format("no common string {}", keys[i]));
-            forms[i] = std::move(*form);
-        }
-        const auto days = static_cast<long long>(*n);
-        out += fmt::format("{} {}", days, DeclensionForm(days, forms[0], forms[1], forms[2]));
+    case BuiltinId::Br:
+        if (takes(0, 0))
+            out += '\n';
         return true;
-    }
-    case BuiltinId::Decl: {
-        if (!takes(3, 4))
-            return true;
-        const auto n = number(0);
-        if (!n)
-            return true;
-        const auto count = static_cast<long long>(*n);
-        out += fmt::format("{} {}", count, DeclensionForm(count, arg(1), arg(2), argc == 4 ? arg(3) : std::string()));
-        return true;
-    }
-    case BuiltinId::NationI:
-        return !takes(1, 1) || script("GetNationNameByType", {TextArg(arg(0))});
-    case BuiltinId::GoodI:
-        return !takes(1, 1) || script("DLG_GoodName", {TextArg(arg(0))});
-    case BuiltinId::ModifierPercent:
-        return !takes(1, 1) ||
-               script("DLG_HumanModifierValuePercent", {TextArg(arg(0)), RefArg(ScriptArg::Kind::Context)});
     }
     return false;
 }
+
 } // namespace storm::strings

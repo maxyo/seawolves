@@ -1,6 +1,7 @@
 #include "text_templates.hpp"
 
 #include <map>
+#include <set>
 #include <vector>
 
 #include <catch2/catch.hpp>
@@ -15,7 +16,6 @@ struct Texts final : storm::strings::TemplateTexts
 {
     std::map<std::pair<std::string, std::string>, std::string> values; // (file, key); file "" = common strings
     std::map<std::string, std::string> keys;
-    std::string language = "english";
     int choice = 0;
     std::vector<std::string> reports;
 
@@ -28,10 +28,6 @@ struct Texts final : storm::strings::TemplateTexts
     {
         const auto found = keys.find(std::string(key));
         return found == keys.end() ? std::nullopt : std::optional(found->second);
-    }
-    std::string_view Language() override
-    {
-        return language;
     }
     int Random(int bound) override
     {
@@ -55,8 +51,18 @@ struct Scripts final : storm::texts::ScriptAccess
     }
     std::optional<std::string> Call(std::string_view function, std::span<const ScriptArg> args) override
     {
-        if (function != "RT_Character" && function != "GetAddress_FormToNPC" && function != "SF_Indent" &&
-            function != "echo")
+        static const std::set<std::string_view> known{"RT_Character",
+                                                      "GetAddress_FormToNPC",
+                                                      "SF_Indent",
+                                                      "echo",
+                                                      "ToHumanPercent",
+                                                      "DLG_DeclensionString",
+                                                      "DLG_ShipManWomanArgs",
+                                                      "DLG_HumanModifierValue",
+                                                      "Goodbye",
+                                                      "GetShipTypeName",
+                                                      "GetCityName"};
+        if (!known.contains(function))
             return std::nullopt;
         std::string call = std::string(function) + "(";
         for (const auto &arg : args)
@@ -68,7 +74,7 @@ struct Scripts final : storm::texts::ScriptAccess
         calls.push_back(call + ")");
         return function == "SF_Indent" ? "    " : "<" + calls.back() + ">";
     }
-    std::optional<std::string> Constant(std::string_view name) override
+    std::optional<std::string> Value(std::string_view name) override
     {
         return name == "HEAL" ? std::optional<std::string>("0.15") : std::nullopt;
     }
@@ -98,13 +104,30 @@ TEST_CASE("text_templates.constructs")
     CHECK(language.Expand("a$br()b", scripts) == "a\nb");
     CHECK(language.Expand("$red text", scripts) == "     text");
     CHECK(language.Expand("$value(HEAL)", scripts) == "0.15");
-    CHECK(language.Expand("$percent(0.15) $number(2.50) $abs(-3)", scripts) == "15% 2.5 3");
-    texts.language = "russian";
-    CHECK(language.Expand("$percent(0.05)", scripts) == "5 %");
-    CHECK(language.Expand("$decl(21|day|days|many) $decl(3|d|ds|m) $decl(12|d|ds|m)", scripts) == "21 day 3 ds 12 m");
+    CHECK(language.Expand("$abs(-3) $abs(4)", scripts) == "3 4");
     const size_t reports = texts.reports.size();
     CHECK(language.Expand("one $dialogBreak() two", scripts) == "one $dialogBreak() two"); // for the dialogue window
     CHECK(texts.reports.size() == reports);
+}
+
+TEST_CASE("text_templates.script_builtins")
+{
+    // the built-ins that are the game's own script functions: the object first or last, the arguments as text
+    Texts texts;
+    Scripts scripts;
+    TextTemplateLanguage language(texts);
+    CHECK(language.Expand("$percent(0.15)", scripts) == "<ToHumanPercent(0.15,)>");
+    CHECK(language.Expand("$decl(21|day|days)", scripts) == "<DLG_DeclensionString(21,day,days,)>");
+    CHECK(language.Expand("$npcShipManWoman(he|she)", scripts) == "<DLG_ShipManWomanArgs(&npc,he,she,)>");
+    CHECK(language.Expand("$modifier(speed)", scripts) == "<DLG_HumanModifierValue(speed,&context,)>");
+    CHECK(language.Expand("$bye", scripts) == "<Goodbye(1,)>");
+    CHECK(language.Expand("$decl(1)", scripts) == "$decl(1)"); // too few arguments: kept, reported
+    CHECK(texts.reports.size() == 1);
+
+    scripts.attributes[{Who::Npc, "city"}] = "FortFrance";
+    CHECK(language.Expand("$city", scripts) == "<GetCityName(FortFrance,)>");
+    texts.values[{"", "<GetShipTypeName(&player,)>"}] = "Brig";
+    CHECK(language.Expand("$shipClass", scripts) == "Brig"); // the common string of the ship type's name
 }
 
 TEST_CASE("text_templates.choices")

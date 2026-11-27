@@ -21,7 +21,10 @@ is `text_templates.cpp`:
 | U+21B4 | lower-cases the first letter of what follows |
 | `$dialogBreak()` | kept for the dialogue window |
 
-The player is `pchar`, the dialogue partner `CharacterRef`, the context the object passed to the native. `$key(k)`
+Most built-ins are the game's own script functions (`$percent` is `ToHumanPercent`, `$decl` `DLG_DeclensionString`,
+`$sir` `GetAddress_FormToNPC(pchar)`: the table `kScripts`); the others read attributes or choose a branch. `$value`
+reads a `#define` or a global variable. The player is `pchar`, the dialogue partner `CharacterRef`, the context the
+object passed to the native. `$key(k)`
 looks in the common strings and then in the file being expanded; `$key`, `$ctx` and `$link` values are templates too.
 `StringFromKey` reads the files under `Localization_Assets` and replaces each `@<...>` with the next argument. What
 cannot be expanded stays in the text as written and is logged once.

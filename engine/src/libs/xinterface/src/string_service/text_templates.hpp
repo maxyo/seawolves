@@ -23,8 +23,6 @@ class TemplateTexts
     virtual std::optional<std::string> Value(std::string_view file, std::string_view key) = 0;
     // the raw value of a StringFromKey key (the files under Localization_Assets)
     virtual std::optional<std::string> KeyValue(std::string_view key) = 0;
-    // the directory of the current language, as language.ini names it
-    virtual std::string_view Language() = 0;
     // uniform in [0, bound)
     virtual int Random(int bound) = 0;
     // a construct the templates cannot expand; called once per distinct problem

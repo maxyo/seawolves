@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <deque>
 #include <string>
 #include <vector>
 
@@ -93,14 +94,16 @@ class VmAccess final : public texts::ScriptAccess
         const FuncInfo *fi = code == INVALID_FUNC_CODE ? nullptr : call_.functions.GetFuncPtr(code);
         if (!fi || fi->segment_id == INTERNAL_SEGMENT_ID || fi->segment_id == IMPORTED_SEGMENT_ID)
             return std::nullopt;
-        if (args.size() != fi->arguments)
+        // the last arguments may be left to the function's defaults
+        if (args.size() > fi->arguments || args.size() + fi->default_args.size() < fi->arguments)
         {
             call_.compiler.SetError("template calls %s with %zu arguments, it takes %u", fi->name.c_str(), args.size(),
                                     fi->arguments);
             return std::string{};
         }
         const uint32_t before = call_.stack.GetDataNum();
-        for (uint32_t n = 0; n < fi->arguments; ++n)
+        std::deque<DATA> texts; // the text a `ref` parameter refers to, for the call
+        for (uint32_t n = 0; n < args.size(); ++n)
         {
             DATA *v = call_.stack.Push();
             const ScriptArg &arg = args[n];
@@ -109,28 +112,35 @@ class VmAccess final : public texts::ScriptAccess
                 pushReference(v, arg.kind);
                 continue;
             }
-            v->Set(arg.text);
-            if (n < fi->local_vars.size())
+            const S_TOKEN_TYPE type = n < fi->local_vars.size() ? fi->local_vars[n].type : VAR_STRING;
+            if (type == VAR_REFERENCE)
             {
-                const S_TOKEN_TYPE type = fi->local_vars[n].type;
-                if (type == VAR_INTEGER || type == VAR_FLOAT)
-                    v->Convert(type);
+                DATA &text = texts.emplace_back();
+                text.SetVCompiler(&call_.compiler);
+                text.Set(arg.text);
+                v->SetType(VAR_REFERENCE);
+                v->SetReference(&text);
+                continue;
             }
+            v->Set(arg.text);
+            if (type == VAR_INTEGER || type == VAR_FLOAT)
+                v->Convert(type);
         }
         DATA *result = nullptr;
-        const bool ok = call_.compiler.BC_Execute(static_cast<uint32_t>(code), result, nullptr, fi->arguments);
+        const bool ok =
+            call_.compiler.BC_Execute(static_cast<uint32_t>(code), result, nullptr, static_cast<uint32_t>(args.size()));
         std::string text = ok && result ? scalarText(result) : std::string{};
         if (call_.stack.GetDataNum() > before)
             call_.stack.InvalidateFrom(before);
         return text;
     }
 
-    std::optional<std::string> Constant(std::string_view name) override
+    std::optional<std::string> Value(std::string_view name) override
     {
         DEFINFO di;
         const uint32_t code = call_.defines.FindDef(std::string(name).c_str());
         if (code == INVALID_DEF_CODE || !call_.defines.GetDef(di, code))
-            return std::nullopt;
+            return Variable(name);
         switch (di.deftype)
         {
         case NUMBER: {
@@ -151,6 +161,28 @@ class VmAccess final : public texts::ScriptAccess
     }
 
   private:
+    // a global variable, or an attribute of one ("var.attr.sub")
+    std::optional<std::string> Variable(std::string_view name) const
+    {
+        const size_t dot = name.find('.');
+        const size_t code = call_.variables.FindVar(name.substr(0, dot));
+        const VarInfo *vi = code == INVALID_VAR_CODE ? nullptr : call_.variables.GetVar(code);
+        DATA *v = vi && vi->value ? vi->value->GetVarPointer() : nullptr;
+        if (!v)
+            return std::nullopt;
+        if (dot == std::string_view::npos)
+        {
+            if (v->GetType() != VAR_INTEGER && v->GetType() != VAR_FLOAT && v->GetType() != VAR_STRING)
+                return std::nullopt;
+            return scalarText(v);
+        }
+        ATTRIBUTES *root = v->GetType() == VAR_OBJECT || v->GetType() == VAR_AREFERENCE ? v->GetAClass() : nullptr;
+        ATTRIBUTES *a = root ? root->FindAClass(root, std::string(name.substr(dot + 1)).c_str()) : nullptr;
+        if (!a || !a->HasValue())
+            return std::nullopt;
+        return a->GetValue();
+    }
+
     DATA *global(Who who) const
     {
         const size_t code = call_.variables.FindVar(who == Who::Player ? "pchar" : "CharacterRef");

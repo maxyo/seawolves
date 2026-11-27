@@ -40,7 +40,6 @@ class STRSERVICE : public VSTRSERVICE, public storm::strings::TemplateTexts
     // the localisation templates (text_templates.hpp)
     std::optional<std::string> Value(std::string_view file, std::string_view key) override;
     std::optional<std::string> KeyValue(std::string_view key) override;
-    std::string_view Language() override;
     int Random(int bound) override;
     void Report(std::string_view problem) override;
     // LanguageGetFileStringsQuantity; -1 for an id that is not open

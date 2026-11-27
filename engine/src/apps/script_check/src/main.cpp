@@ -112,6 +112,12 @@ class ScriptCheckTemplates final : public storm::texts::TextTemplates
         std::optional<std::string> value;
         if (kind == "player" || kind == "npc" || kind == "context")
             value = scripts.Attribute(kind == "player" ? Who::Player : kind == "npc" ? Who::Npc : Who::Context, rest);
+        else if (kind == "call1")
+        {
+            const auto at = rest.find(':');
+            const ScriptArg args[] = {{ScriptArg::Kind::Text, std::string(rest.substr(at + 1))}};
+            value = scripts.Call(rest.substr(0, at), args);
+        }
         else if (kind == "call")
         {
             const auto at = rest.find(':');
@@ -120,7 +126,7 @@ class ScriptCheckTemplates final : public storm::texts::TextTemplates
             value = scripts.Call(rest.substr(0, at), args);
         }
         else if (kind == "define")
-            value = scripts.Constant(rest);
+            value = scripts.Value(rest);
         else
             return std::string(text);
         return value.value_or("<none>");

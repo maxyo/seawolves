@@ -42,8 +42,9 @@ class ScriptAccess
     virtual std::optional<std::string> Attribute(Who who, std::string_view path) = 0;
     // runs a script function and returns its result as text; nullopt when no script defines it
     virtual std::optional<std::string> Call(std::string_view function, std::span<const ScriptArg> args) = 0;
-    // the value of a script #define; nullopt when there is none
-    virtual std::optional<std::string> Constant(std::string_view name) = 0;
+    // a script #define, or a global variable with an optional attribute path ("var.attr.sub"), as text; nullopt
+    // when there is none
+    virtual std::optional<std::string> Value(std::string_view name) = 0;
 };
 
 class TextTemplates
