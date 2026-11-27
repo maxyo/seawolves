@@ -24,14 +24,36 @@ struct ScriptGraphics
     std::optional<int> ambient_occlusion; // Graphics_SetSSAO: 0 off, else on
     std::optional<int> fxaa;              // Graphics_SetFXAA: 0 off, else its quality + 1
     std::optional<int> ssaa;              // Graphics_SetSSAA: 0 off, else its scale + 1
+    bool temporal = false;                // Graphics_SetTAA, Graphics_SetDLSS: its TAA (its default) or DLAA asked
     std::optional<int> anisotropy;        // Graphics_PreviewAnisotropicFiltering, engine.ini anisotropic_filtering
     std::optional<float> temperature;     // Graphics_SetTemperature: -1 cool .. 1 warm
     std::optional<float> saturation;      // Graphics_SetSaturation: 0 grey .. 1 as it is .. 2
 };
 
+struct ScriptAntiAliasing
+{
+    int msaa = 1;
+    bool smaa = false;
+    bool alpha_to_coverage = false;
+};
+
+// The game's anti-aliasing by what each of its modes is for. Its TAA (its default) and DLAA smooth every edge of the
+// scene, the alpha-tested leaves and the rigging among them: our MSAA 4x with alpha to coverage does that, so it stands
+// in for them. Its FXAA, a pass over the finished picture, is our SMAA. Its supersampling is MSAA, 2x for its Normal
+// and 4x above, with alpha to coverage for the leaves. Off is off.
+inline ScriptAntiAliasing ScriptAntiAliasingOf(const ScriptGraphics &g)
+{
+    if (g.temporal)
+        return {4, false, true};
+    if (g.fxaa.value_or(0) > 0)
+        return {1, true, false};
+    if (const int ssaa = g.ssaa.value_or(0); ssaa > 0)
+        return {ssaa == 1 ? 2 : 4, false, true};
+    return {};
+}
+
 // The game's shadow levels 1..3 on our two sun shadow qualities; lamp shadows and occlusion only switch off (their
-// sizes and levels are the preset's). The game's post anti-aliasing (FXAA) is our SMAA, its supersampling our MSAA
-// (2 for its x2, 4 above).
+// sizes and levels are the preset's). Anti-aliasing: ScriptAntiAliasingOf.
 inline std::vector<EffectsOption> ScriptGraphicsOptions(const ScriptGraphics &g)
 {
     std::vector<EffectsOption> options;
@@ -41,11 +63,12 @@ inline std::vector<EffectsOption> ScriptGraphicsOptions(const ScriptGraphics &g)
         options.push_back({"fx_lamp_shadows", 0});
     if (g.ambient_occlusion == 0)
         options.push_back({"fx_ao_volume", 0});
-    if (g.fxaa || g.ssaa)
+    if (g.fxaa || g.ssaa || g.temporal)
     {
-        const int ssaa = g.ssaa.value_or(0);
-        options.push_back({"fx_smaa", g.fxaa.value_or(0) > 0 && ssaa <= 0 ? 1 : 0});
-        options.push_back({"fx_msaa", ssaa <= 0 ? 1 : ssaa == 1 ? 2 : 4});
+        const ScriptAntiAliasing aa = ScriptAntiAliasingOf(g);
+        options.push_back({"fx_msaa", aa.msaa});
+        options.push_back({"fx_smaa", aa.smaa ? 1 : 0});
+        options.push_back({"fx_alpha_to_coverage", aa.alpha_to_coverage ? 1 : 0});
     }
     if (g.anisotropy)
         options.push_back({"fx_anisotropy", std::clamp(*g.anisotropy, 1, 16)});

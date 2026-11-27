@@ -476,6 +476,12 @@ namespace
 // are developer keys of engine.ini. STORM_FX_OPTIONS="fx_preset=2,fx_bloom=0" overrides both (measurements);
 // it is logged.
 int effectsPreset = 0;
+// engine.ini or STORM_FX_OPTIONS named the preset; else it is «Низкая», or on desktop kScriptGraphicsPreset once the
+// game's scripts set their own graphics options (ApplyScriptGraphics).
+bool effectsPresetNamed = false;
+bool scriptGraphicsSet = false;
+// What a game's own options leave out is drawn in full, as its own engine draws it, not as the phone's lowest preset.
+constexpr int kScriptGraphicsPreset = 2;
 std::vector<storm::render::EffectsOption> effectsOptions;
 // The scene's internal height of the rung below «Низкая» that the automatic preset measured (auto_preset.hpp; the
 // app reports it as fx_auto_render_height only while that automatic choice stands); 0: the preset's own.
@@ -551,7 +557,12 @@ std::map<std::string, int> effectsIniValues;
 void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniValue)
 {
     // The preset: engine.ini, and on Android the player's choice in the app, which wins.
+    effectsPresetNamed = iniValue("fx_preset", -1) >= 0;
     effectsPreset = iniValue("fx_preset", 0);
+#ifndef __ANDROID__
+    if (scriptGraphicsSet && !effectsPresetNamed)
+        effectsPreset = kScriptGraphicsPreset;
+#endif
 #ifdef __ANDROID__
     effectsPreset = storm::android::graphicsSetting(storm::app::setting::fx_preset, effectsPreset);
     effectsAutoHeight = static_cast<uint16_t>(std::clamp(storm::android::graphicsSetting(storm::app::host_fact::fx_auto_render_height, 0), 0, 4320));
@@ -608,6 +619,7 @@ void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniVa
     if (const char *overrides = std::getenv("STORM_FX_OPTIONS"); overrides && *overrides)
     {
         spdlog::warn("graphics effects: STORM_FX_OPTIONS overrides the settings: {}", overrides);
+        effectsPresetNamed = effectsPresetNamed || std::string_view(overrides).find("fx_preset") != std::string_view::npos;
         ApplyEffectsOverrides(overrides, effectsPreset, effectsOptions);
     }
     ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
@@ -1111,6 +1123,11 @@ void ApplyScriptGraphics(const ScriptGraphics &graphics)
     if (!std::exchange(said, true))
         spdlog::info("graphics options of the game's scripts: the app's graphics settings decide on Android");
 #else
+    if (!std::exchange(scriptGraphicsSet, true) && !effectsPresetNamed)
+    {
+        effectsPreset = kScriptGraphicsPreset;
+        spdlog::info("graphics effects: the game sets its own graphics options, over preset {}", effectsPreset);
+    }
     scriptEffectsOptions = ScriptGraphicsOptions(graphics);
     ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
 #endif

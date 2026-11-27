@@ -33,18 +33,20 @@ The header is free of the engine, so `tests/android_auto_preset` runs it as it i
 
 Caribbean Legend's options screen reads and sets its graphics through the `Graphics_*` natives. What this renderer has
 is taken as effects options over the preset, under the developer's `fx_*` keys of engine.ini, and only once the scripts
-set it (a game that never calls them keeps its preset). On Android the app's graphics settings decide and the scripts'
-choices are not applied (logged once).
+set it (a game that never calls them keeps its preset). On desktop such a game draws over «Высокая» unless engine.ini
+or `STORM_FX_OPTIONS` names a preset: what its options leave out is drawn in full, as its own engine does. On Android
+the app's graphics settings decide and the scripts' choices are not applied (logged once).
 
-- Taken: sun shadows (off and two qualities for the game's three levels), lamp shadows and occlusion off, the game's
-  FXAA as SMAA and its supersampling as MSAA, anisotropic filtering (previewed live; kept in engine.ini
-  `anisotropic_filtering`, which applies at the start), warmth and saturation over the colour grade, gamma, contrast
-  and brightness on the window's colour ramp (brightness as a gain), vsync (live, kept in engine.ini `vsync`), the
-  window's size and full screen (kept in engine.ini, taken at the next start), the display's modes, the GPU's memory
-  where the backend tells it.
-- Not available, answered as off and logged once when asked for: temporal AA, DLSS, DLAA and frame generation, other
-  occlusion modes, turning sea reflections off, sea qualities other than the one our sea stands for (refused, so the
-  screen shows that one), a lamp shadow size or a separate switch for characters' shadows.
+- Taken: sun shadows (off and two qualities for the game's three levels), lamp shadows and occlusion off,
+  anti-aliasing (`ScriptAntiAliasingOf`: its FXAA as SMAA, its supersampling as MSAA 2x/4x with alpha to coverage, its
+  TAA and DLAA, the game's default, as MSAA 4x with alpha to coverage, shown in its options as supersampling «High»),
+  anisotropic filtering (previewed live; kept in engine.ini `anisotropic_filtering`, which applies at the start), warmth
+  and saturation over the colour grade, gamma, contrast and brightness on the window's colour ramp (brightness as a
+  gain), vsync (live, kept in engine.ini `vsync`), the window's size and full screen (kept in engine.ini, taken at the
+  next start), the display's modes, the GPU's memory (half the system's where the backend cannot tell).
+- Not available, answered as off and logged once when asked for: a TAA or DLSS of their own (the getters never say they
+  run), frame generation, other occlusion modes, turning sea reflections off, sea qualities other than the one our sea
+  stands for (refused, so the screen shows that one), a lamp shadow size or a separate switch for characters' shadows.
 
 ## Bench (`src/bench.hpp`)
 

@@ -67,6 +67,21 @@ TEST_CASE("script_graphics.anti_aliasing")
         g.ssaa = 3;
     }));
     REQUIRE((twice.at("fx_smaa") == 0 && twice.at("fx_msaa") > 1 && most.at("fx_msaa") > twice.at("fx_msaa")));
+    // Alpha to coverage (the leaves' edges) exactly where MSAA runs.
+    for (const auto *aa : {&none, &post, &twice, &most})
+        REQUIRE(aa->at("fx_alpha_to_coverage") == (aa->at("fx_msaa") > 1 ? 1 : 0));
+}
+
+TEST_CASE("script_graphics.temporal")
+{
+    // The game's default TAA (and DLAA) is never "none": the most samples, with the leaves' edges.
+    const auto taa = Options(With([&](ScriptGraphics &g) {
+        g.fxaa = 0;
+        g.ssaa = 0;
+        g.temporal = true;
+    }));
+    REQUIRE((taa.at("fx_msaa") == 4 && taa.at("fx_alpha_to_coverage") == 1 && taa.at("fx_smaa") == 0));
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temporal = true; })) == taa);
 }
 
 TEST_CASE("script_graphics.colour")

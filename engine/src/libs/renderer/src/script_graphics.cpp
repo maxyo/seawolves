@@ -10,7 +10,10 @@
 #include "v_file_service.h"
 #include "v_s_stack.h"
 
+#include <SDL_cpuinfo.h>
 #include <spdlog/spdlog.h>
+
+#include <utility>
 
 #include <set>
 #include <string>
@@ -189,11 +192,41 @@ uint32_t SetSeaDetail(VS_STACK *stack)
     return Return(stack, int32_t{ours});
 }
 
+// The game's TAA and DLAA, asked by Graphics_SetTAA and Graphics_SetDLSS (ScriptAntiAliasingOf draws them).
+bool taaAsked = false, dlssAsked = false;
+
+// Its TAA or DLAA is drawn as its supersampling «High» (MSAA 4x, ScriptAntiAliasingOf), and the options it keeps
+// (InterfaceStates) say so: none of its getters claims a TAA or DLSS that does not run, so its options screen falls
+// back to the supersampling it keeps and shows that.
+uint32_t ApplyAntiAliasing(VS_STACK *stack)
+{
+    graphics.temporal = taaAsked || dlssAsked;
+    if (graphics.temporal)
+    {
+        static bool said = false;
+        if (!std::exchange(said, true))
+            spdlog::info("graphics options: the game's TAA or DLAA is drawn as MSAA 4x with alpha to coverage, shown "
+                         "as its supersampling High");
+        auto *states = static_cast<VDATA *>(core.GetScriptVariable("InterfaceStates"));
+        if (ATTRIBUTES *options = states ? states->GetAClass() : nullptr)
+        {
+            options->SetAttribute("SSAA", "1");
+            options->SetAttribute("FXAA", "-1");
+        }
+        else
+            spdlog::error("graphics options: no InterfaceStates to show the anti-aliasing in");
+    }
+    return Apply(stack);
+}
+
+// As the game's own engine: TAA on turns its FXAA and supersampling off, any call turns DLSS off.
 uint32_t SetTAA(VS_STACK *stack)
 {
-    if (IntArg(stack) != 0)
-        NotAvailable("Graphics_SetTAA", "no temporal anti-aliasing");
-    return IFUNCRESULT_OK;
+    taaAsked = IntArg(stack) != 0;
+    dlssAsked = false;
+    if (taaAsked)
+        graphics.fxaa = graphics.ssaa = 0;
+    return ApplyAntiAliasing(stack);
 }
 
 float taaSharpness = 0.5f;
@@ -210,11 +243,16 @@ uint32_t GetTAASharpness(VS_STACK *stack)
     return Return(stack, taaSharpness);
 }
 
+// Its DLSS modes (0 DLAA, 1..4 upscaling) are all anti-aliasing at heart: drawn as its TAA is.
 uint32_t SetDLSS(VS_STACK *stack)
 {
-    if (IntArg(stack) >= 0)
-        NotAvailable("Graphics_SetDLSS", "no DLSS or DLAA (NVIDIA only)");
-    return IFUNCRESULT_OK;
+    dlssAsked = IntArg(stack) >= 0;
+    if (dlssAsked)
+    {
+        NotAvailable("Graphics_SetDLSS", "no DLSS (NVIDIA only): drawn as MSAA 4x");
+        graphics.fxaa = graphics.ssaa = 0;
+    }
+    return ApplyAntiAliasing(stack);
 }
 
 uint32_t GetDLSS(VS_STACK *stack)
@@ -251,8 +289,11 @@ uint32_t SetFXAA(VS_STACK *stack)
 {
     graphics.fxaa = IntArg(stack);
     if (*graphics.fxaa > 0)
+    {
         graphics.ssaa = 0;
-    return Apply(stack);
+        taaAsked = dlssAsked = false;
+    }
+    return ApplyAntiAliasing(stack);
 }
 
 uint32_t SetSSAA(VS_STACK *stack)
@@ -261,9 +302,10 @@ uint32_t SetSSAA(VS_STACK *stack)
     if (*graphics.ssaa > 0)
     {
         graphics.fxaa = 0;
+        taaAsked = dlssAsked = false;
         NotAvailable("Graphics_SetSSAA", "supersampling is drawn as MSAA");
     }
-    return Apply(stack);
+    return ApplyAntiAliasing(stack);
 }
 
 // The window's size and mode are taken at the start (engine.ini screen_x, screen_y, full_screen), as in the game's
@@ -346,13 +388,22 @@ uint32_t GetAnisotropicFiltering(VS_STACK *stack)
     return Return(stack, IniValue("anisotropic_filtering", PresetAnisotropy()));
 }
 
-// MiB, as the game's own engine answers (the options screen warns when its settings need more).
+// MiB, as the game's own engine answers (the options screen warns when its settings need more). Where the backend
+// cannot tell (bgfx's OpenGL), the GPU is taken to share the system's memory, of which graphics drivers give it about
+// half (Windows' shared GPU memory, Mesa's default GTT size): half the RAM, logged once.
 uint32_t GetVRAMBudget(VS_STACK *stack)
 {
-    const uint64_t budget = GpuMemoryBudget();
-    if (budget == 0)
-        NotAvailable("Graphics_GetVRAMBudget", "the GPU does not tell its memory (0)");
-    return Return(stack, static_cast<float>(static_cast<double>(budget) / (1024.0 * 1024.0)));
+    double mib = static_cast<double>(GpuMemoryBudget()) / (1024.0 * 1024.0);
+    if (mib == 0.0)
+    {
+        mib = SDL_GetSystemRAM() / 2.0;
+        static bool said = false;
+        if (!std::exchange(said, true))
+            spdlog::info("Graphics_GetVRAMBudget: the GPU does not tell its memory; estimated {:.0f} MiB, half the "
+                         "system's {} MiB",
+                         mib, SDL_GetSystemRAM());
+    }
+    return Return(stack, static_cast<float>(mib));
 }
 
 uint32_t SetGamma(VS_STACK *stack)
