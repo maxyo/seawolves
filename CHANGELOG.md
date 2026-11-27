@@ -38,6 +38,9 @@
 - Ремонт своими силами: число досок и парусины на кнопке «Починить» было прикидкой экрана, а предел ползунков
   вычитывался из русских подписей окна. Теперь материалы — те, что считает игра, а ползунок встаёт там, где игра
   остановила починку.
+- Найм команды: сколько можно нанять и во что это обойдётся, экран считал сам и показывал деньги «после найма» по
+  своему расчёту. Теперь число отправляется игре сразу, а экран показывает, сколько людей она поставила и какую
+  стоимость назвала.
 
 **English**
 
@@ -77,6 +80,9 @@
 - Self repair: the planks and sailcloth on the «Починить» button were the screen's estimate, and the sliders' limits
   were read from the window's Russian captions. The materials are now the game's figures, and a slider stops where the
   game stopped the repair.
+- Crew hire: the screen worked out how many men could be hired and what they would cost, and showed the purse
+  «after the hire» by its own sum. The number now goes to the game at once, and the screen shows how many men the
+  game set and the cost it named.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -35,6 +35,14 @@ static void AnswerAll(Router &router, FakeSurface &surface, bool applied, const 
             router.Answer(request, applied, reason);
 }
 
+static Widget *Find(InterfaceModel &model, const char *node, const char *type)
+{
+    for (Widget &widget : model.widgets)
+        if (widget.node == node && widget.type == type)
+            return &widget;
+    return nullptr;
+}
+
 static Widget Make(const char *node, const char *type, const char *label = "", std::vector<std::string> actions = {})
 {
     Widget widget;
@@ -1520,8 +1528,8 @@ static void Crew(const std::string &models)
     Expect(router.Using() == "hirecrew" && surface.tag == "s-crew" && surface.errors.empty(),
            "hirecrew is drawn by the crew screen");
     Json row = surface.props["list"]["rows"][0];
-    Expect(row["q"]["value"] == 40 && row["q"]["max"] == 61 && row["cells"][2]["text"] == "23",
-           "crew on the ship, up to what the purse hires of the tavern, price per man");
+    Expect(row["q"]["value"] == 40 && row["q"]["max"] == 65 && row["cells"][2]["text"] == "23",
+           "crew on the ship, the rail over the ship's and the tavern's men, price per man");
     Expect(surface.props["primary"].is_null(), "nothing to confirm yet: no deal button");
     {
         // Both crews as the ship screen draws a crew (hero::CrewQuality): the adapter's numbers, the game's words.
@@ -1536,72 +1544,53 @@ static void Crew(const std::string &models)
                    tavern["morale"] == 55,
                "the tavern's men: their own numbers (town_*): " + tavern.dump());
     }
-    // hirecrew.json: 40 on the ship, 25 in the tavern, 23 a man, a purse of 500; the ship takes 94, its hold has room.
-    // The amount is the player's: a drag sends nothing, the cost is hirecrew.c's makeint(price * men), the purse
-    // stops the hire at makeint(500 / 23) = 21 men.
+    // hirecrew.json: 40 on the ship, 25 in the tavern, 23 a man; the window started from 40 (the adapter's base).
+    // The amount goes to the game (hirecrew.c ChangeQTY_EDIT clamps it and sets it on both crews); the screen shows
+    // what the game answered, not a limit or a cost of its own.
     const auto crew_q = [&surface]() { return surface.props["list"]["rows"][0]["q"]; };
-    Expect(crew_q()["value"] == 40 && crew_q()["origin"] == 40 && crew_q()["min"] == 0 && crew_q()["max"] == 61 &&
-               crew_q()["moreReason"] == "<trade.no_money>" && surface.errors.empty(),
-           "the hire opens on the pivot; the rail ends where the purse does and knows why: " + crew_q().dump());
+    Expect(crew_q()["value"] == 40 && crew_q()["origin"] == 40 && crew_q()["min"] == 0 &&
+               !crew_q().contains("moreReason") && surface.errors.empty(),
+           "the hire opens on the pivot, with no reason of ours: " + crew_q().dump());
+    InterfaceModel model = Load(models, "hirecrew.json");
     surface.commands.clear();
-    {
-        bool steady = true, exact = true;
-        for (int sample = 1; sample <= 200; ++sample)
-        {
-            router.OnEvent({"crew", "change", std::to_string(40 + sample % 26)});
-            const int men = std::min(sample % 26, 21);
-            const Json q = crew_q();
-            steady = steady && q["origin"] == 40 && q["max"] == 61 && q["value"] == 40 + men;
-            if (men > 0)
-                exact = exact && surface.props["primary"]["label"] == "<crew.hire> " + std::to_string(men) &&
-                        surface.props["primary"]["sub"] == std::to_string(23 * men) &&
-                        surface.props["primary"]["busy"] == false &&
-                        surface.props["stats"][1]["preview"] == std::to_string(500 - 23 * men);
-            else
-                exact = exact && surface.props["primary"].is_null();
-        }
-        Expect(surface.commands.empty(),
-               "200 samples of a crew drag send nothing to the game: " + std::to_string(surface.commands.size()));
-        Expect(steady, "the pivot and the end stay put; the purse stops the hire at 21");
-        Expect(exact, "every sample shows the game's cost (price * men) on a ready button and the purse after it");
-        Expect(!surface.toasts.empty() && surface.toasts.back() == "<trade.no_money>", "a push past the end says why");
-    }
-    router.OnEvent({"crew", "commit", "50"});
-    Expect(surface.props["primary"]["label"] == "<crew.hire> 10" && surface.props["primary"]["sub"] == "230" &&
-               surface.props["stats"][0]["value"] == "40" && surface.props["stats"][0]["preview"] == "50",
-           "ten men for 230, the crew 40 → 50 in the header");
+    router.OnEvent({"crew", "commit", "60"});
+    router.Tick();
+    Expect(surface.commands.size() == 2 && surface.commands[0] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|0" &&
+               surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|20",
+           "the amount goes to the game at once, after its reset: " + Json(surface.commands).dump());
+    Expect(crew_q()["value"] == 60 && surface.props["primary"].is_null(),
+           "until the game answers: the slider where the player put it, no deal of ours");
+    // The game's answer: the purse (500 / 23) stops the hire at 21 men, the cost is its own text.
+    const auto answer = [&](int crew, int tavern, const char *result) {
+        model.revision += 1;
+        Find(model, "CREW_QTY", "text")->label = std::to_string(crew);
+        Find(model, "CREW_QTY2", "text")->label = std::to_string(tavern);
+        Find(model, "QTY_Result", "text")->label = result;
+        AnswerAll(router, surface, true);
+        router.SetInterface(model);
+    };
+    answer(61, 4, "Стоимость найма 483");
+    Expect(crew_q()["value"] == 61 && crew_q()["origin"] == 40 &&
+               surface.props["primary"]["label"] == "<crew.hire> 21" && surface.props["primary"]["sub"] == "483" &&
+               surface.props["stats"][0]["value"] == "40" && surface.props["stats"][0]["preview"] == "61",
+           "the game's clamp and cost: «Нанять 21» for 483: " + surface.props["primary"].dump() + crew_q().dump());
     surface.commands.clear();
     router.OnEvent({"primary", "click", ""});
     router.Tick();
-    Expect(surface.commands.size() == 3 && surface.commands[0] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|0" &&
-               surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|10" &&
-               surface.commands[2] == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:ship:0|press",
-           "«Нанять 10»: the amount and the game's OK, bound to the ship: " + Json(surface.commands).dump());
+    Expect(surface.commands.size() == 1 &&
+               surface.commands[0] == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:ship:0|press",
+           "«Нанять 21» is the game's OK, bound to the ship: " + Json(surface.commands).dump());
+    surface.commands.clear();
     router.OnEvent({"crew", "commit", "35"});
-    Expect(surface.props["primary"]["label"] == "<crew.fire> 5" && surface.props["primary"]["sub"] == "",
-           "left of the pivot fires, at no cost");
-    surface.commands.clear();
-    router.OnEvent({"primary", "click", ""});
+    surface.now += 0.5;
     router.Tick();
-    Expect(surface.commands.size() == 3 && surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|-5",
-           "«Уволить 5»: a negative amount");
+    Expect(surface.commands.size() == 2 && surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|-5",
+           "left of the pivot fires: a negative amount");
+    answer(35, 30, "");
+    Expect(surface.props["primary"]["label"] == "<crew.fire> 5" && surface.props["primary"]["sub"] == "",
+           "the game fired five, at no cost");
     {
-        // The ship's own limits come from the adapter: a full crew, or no room in the hold (hirecrew.c QtyMax).
-        const auto with = [&](const char *key, const char *value) {
-            InterfaceModel model = Load(models, "hirecrew.json");
-            for (Widget &widget : model.widgets)
-                if (widget.node == "ANDROID_CREWHIRE")
-                    widget.context[key] = value;
-            FakeSurface limited_surface;
-            Router limited(limited_surface);
-            limited.SetInterface(model);
-            return limited_surface.props["list"]["rows"][0]["q"];
-        };
-        Expect(with("max", "45")["max"] == 45 && with("max", "45")["moreReason"] == "<crew.full>",
-               "the ship takes five more: the rail ends at 45");
-        Expect(with("space", "0")["max"] == 40 && with("space", "0")["moreReason"] == "<trade.no_room>",
-               "no room in the hold: nobody is hired");
-        // Without the adapter's facts the screen says so aloud (the game may then hire fewer than shown).
+        // Without the adapter's facts the screen says so aloud.
         InterfaceModel bare = Load(models, "hirecrew.json");
         bare.widgets.erase(std::remove_if(bare.widgets.begin(), bare.widgets.end(),
                                           [](const Widget &w) { return w.node == "ANDROID_CREWHIRE"; }),
@@ -2116,14 +2105,6 @@ static std::string Yard(const InterfaceModel &model, const char *node, int index
                     action.substr(action.size() - verb.size() - 1) == ":" + verb)
                     return "widget:shipyard\t" + std::string(node) + "\t" + std::to_string(index) + "\t" + action;
     return "(no token " + std::string(node) + " " + verb + ")";
-}
-
-static Widget *Find(InterfaceModel &model, const char *node, const char *type)
-{
-    for (Widget &widget : model.widgets)
-        if (widget.node == node && widget.type == type)
-            return &widget;
-    return nullptr;
 }
 
 static Widget Control(const char *node, int index, const std::string &token, const char *type = "shipyard_control")

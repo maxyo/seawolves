@@ -29,5 +29,5 @@
 {"node":"QTY_REMOVE_BUTTON","type":"button","label":"<","index":-1,"actions":["press"]},
 {"node":"QTY_OK_BUTTON","type":"button","label":"Ok","index":-1,"actions":["press"]},
 {"node":"QTY_CANCEL_BUTTON","type":"button","label":"Отмена","index":-1,"actions":["press"]},
-{"node":"ANDROID_CREWHIRE","type":"fact","index":0,"enabled":false,"rowId":"c0","context":{"character":"1","max":"94","space":"511","morale":"62","sailors":"71","cannoners":"34","soldiers":"18","town_morale":"55","town_sailors":"22","town_cannoners":"30","town_soldiers":"12"}}
+{"node":"ANDROID_CREWHIRE","type":"fact","index":0,"enabled":false,"rowId":"c0","context":{"character":"1","base":"40","money":"500","morale":"62","sailors":"71","cannoners":"34","soldiers":"18","town_morale":"55","town_sailors":"22","town_cannoners":"30","town_soldiers":"12"}}
 ]}

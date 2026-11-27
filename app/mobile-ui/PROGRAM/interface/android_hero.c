@@ -717,21 +717,22 @@ void AndroidShipShares()
 	if (CheckAttribute(mc, "paymentdate")) row.paid = mc.paymentdate;
 }
 
-// Crew hire (hirecrew.c): the limits its ChangeQTY_EDIT applies to a hire and the screen cannot read from the
-// nodes: the most men the selected ship takes (GetMaxCrewQuantity) and the room its hold has for them
-// (GetCargoFreeSpace, the script's QtyMax; without room nobody is hired). The ship is the scroll's current
-// picture (hirecrew.c SetDescription).
+// Crew hire (hirecrew.c): what the screen cannot read from the nodes. The crew the window started from
+// (ChangeQTY_EDIT puts the amount set on the crews at once; SetBackupQty keeps the crew before it in
+// NullCharacter.TavernBak) and the purse. The ship is the scroll's current picture (hirecrew.c SetDescription).
 void AndroidCrewHire()
 {
 	if (!CheckAttribute(&GameInterface, "SHIPS_SCROLL.current")) return;
 	string pic = "pic" + (sti(GameInterface.SHIPS_SCROLL.current) + 1);
 	if (!CheckAttribute(&GameInterface, "SHIPS_SCROLL." + pic + ".companionIndex")) return;
 	ref chr = GetCharacter(sti(GameInterface.SHIPS_SCROLL.(pic).companionIndex));
+	if (!CheckAttribute(&NullCharacter, "TavernBak.Hero.Quantity")) return;
 	aref row;
 	makearef(row, GameInterface.AndroidFacts.crewhire.c0);
 	row.character = sti(chr.index);
-	row.max = GetMaxCrewQuantity(chr);
-	row.space = GetCargoFreeSpace(chr);
+	row.base = sti(NullCharacter.TavernBak.Hero.Quantity);
+	ref mc = GetMainCharacter();
+	row.money = sti(mc.money);
 	// The crews' quality as numbers (the stock window draws them as BAR_Sailors.. / BAR_Sailors2..): the
 	// ship's as AndroidShipFacts has them, the tavern's (hirecrew.c refTown, the colony of the location's
 	// fast reload) prefixed town_.
