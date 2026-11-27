@@ -65,11 +65,12 @@ struct Combat
 // and launches it.
 struct Ability
 {
-    std::string id;    // the perk / command name: ImmediateReload, LightRepair, InstantRepair, Turn180, Rush
-    std::string label; // the game's own name of it ("" = not given: the pack's name for the id)
-    std::string state; // ready, active, recovery, blocked
-    double fill = 0.0; // active: what is left of the effect; recovery: how far it recovered
-    int left = 0;      // active / recovery: whole seconds the scripts still count
+    std::string id;      // the perk / command name: ImmediateReload, LightRepair, InstantRepair, Turn180, Rush
+    std::string label;   // the game's own name of it ("" = not given: the pack's name for the id)
+    std::string state;   // ready, active, recovery, blocked
+    double fill = 0.0;   // active: what is left of the effect; recovery: how far it recovered
+    int left = 0;        // active / recovery: whole seconds the scripts still count
+    std::string command; // the land menu event that launches it ("" = none: a sea ability)
     bool operator==(const Ability &) const = default;
 };
 

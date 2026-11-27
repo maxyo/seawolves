@@ -199,6 +199,7 @@ struct BattleAbility
     State state = Blocked;
     double fill = 0.0;
     int left = 0;
+    std::string command; // the land menu event that launches it; "" for the sea's, launched by their id
     bool operator==(const BattleAbility &) const = default;
 };
 // The state of a perk ability from the scripts' counters (perks.c ActivateCharacterPerk sets
@@ -235,7 +236,7 @@ inline std::vector<storm::ui::hud::Ability> hudAbilities(const std::vector<Battl
     static constexpr const char *states[] = {"ready", "active", "recovery", "blocked"};
     std::vector<storm::ui::hud::Ability> out;
     for (const auto &ability : abilities)
-        out.push_back({ability.id, ability.label, states[ability.state], ability.fill, ability.left});
+        out.push_back({ability.id, ability.label, states[ability.state], ability.fill, ability.left, ability.command});
     return out;
 }
 class GameplayState

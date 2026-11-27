@@ -57,10 +57,6 @@ const Named kCommands[] = {
     {"BI_MapAtlas", "map", ""},      {"BI_ActivateRush", "energy", ""},  {"BI_Exit_Deck", "boat", ""},
 };
 
-// The land abilities by the land menu's command that launches each (landinterface.c); `icon` holds
-// the command's event.
-const Named kAbilityCommands[] = {{"Rush", "BI_ActivateRush", ""}};
-
 // Root commands that are transitions: they have their own button (the boot), not rows of the
 // actions sheet.
 const char *const kTransitions[] = {"BI_FastReload", "BI_OutDoor"};
@@ -273,13 +269,14 @@ class LandScene final : public Scene
                 drink.pick = [this] { Strike("potion", "tap"); };
             lead.push_back(std::move(drink));
         }
-        // Rush launches through the land menu's own command, as its row.
+        // A land ability launches through the land menu's own command, as its row.
         abilities_.Build(
             rush, view, input,
             [this](const Ability &ability) {
-                for (const Named &command : kAbilityCommands)
-                    if (ability.id == command.key)
-                        Commands("open", command.icon);
+                if (ability.command.empty())
+                    hud_.Error("land HUD: ability " + ability.id + " has no land menu command");
+                else
+                    Commands("open", ability.command);
             },
             std::move(lead));
     }

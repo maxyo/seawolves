@@ -163,21 +163,18 @@ inline std::optional<LandBoarding> readLandBoarding(const std::vector<LandOffice
     return men;
 }
 
-// The land abilities (TEHO: Rush, the berserker tincture; landinterface.c BLI_SetPossibleCommands
-// enables its command ActivateRush while GetCharacterPerkUsing(pchar, "Rush") and the hero carries
-// a berserker_potion): `root` is the land interface (objLandInterface). Offered while the scripts
-// enable the command or its effect / delay runs, so the HUD has no button where the game has no
-// command: every hero owns Rush, few carry the tincture. The command's enable is the scripts' own,
-// refreshed whenever the land menu is (android_land_commands.hpp LandRefreshGate: a command
-// executed, the delay over (evntPerkAgainUsable), the fight mode switched).
+// The land abilities: the land menu's commands that activate a perk, named Activate<perk> by the scripts
+// (landinterface.c: ActivateRush runs ActivateCharacterPerk(pchar, "Rush")), for perks the hero owns. `root` is the
+// land interface (objLandInterface). Offered while the scripts enable the command or the perk's effect / delay
+// runs; the enable is refreshed whenever the land menu is (android_land_commands.hpp LandRefreshGate).
 inline std::vector<BattleAbility> readLandAbilities(ATTRIBUTES *root, ATTRIBUTES *hero)
 {
     std::vector<BattleAbility> out;
     auto *data = static_cast<VDATA *>(core.GetScriptVariable("ChrPerksList"));
     auto *perks = data ? data->GetAClass() : nullptr;
-    if (!root || !hero || !perks)
+    auto *commands = root ? root->GetAttributeClass("Commands") : nullptr;
+    if (!commands || !hero || !perks)
         return out;
-    static constexpr std::pair<const char *, const char *> kAbilities[] = {{"Rush", "ActivateRush"}};
     const auto number = [](ATTRIBUTES *a, const std::string &path) -> std::optional<double> {
         const std::string text = landText(a, path.c_str());
         if (text.empty())
@@ -185,18 +182,24 @@ inline std::vector<BattleAbility> readLandAbilities(ATTRIBUTES *root, ATTRIBUTES
         const double value = std::strtod(text.c_str(), nullptr);
         return std::isfinite(value) ? std::optional<double>(value) : std::nullopt;
     };
-    for (const auto &[perk, command] : kAbilities)
+    constexpr std::string_view kActivate = "Activate";
+    for (size_t i = 0; i < commands->GetAttributesNum(); ++i)
     {
-        const std::string own = std::string("perks.list.") + perk, base = std::string("list.") + perk,
-                          entry = std::string("Commands.") + command;
-        if (!hero->FindAClass(hero, own.c_str()))
+        auto *command = commands->GetAttributeClass(static_cast<uint32_t>(i));
+        const std::string_view name = command ? std::string_view(command->GetThisName()) : std::string_view();
+        if (name.size() <= kActivate.size() || name.substr(0, kActivate.size()) != kActivate)
+            continue;
+        const std::string perk(name.substr(kActivate.size()));
+        const std::string own = "perks.list." + perk, base = "list." + perk;
+        if (!perks->FindAClass(perks, base.c_str()) || !hero->FindAClass(hero, own.c_str()))
             continue;
         BattleAbility ability;
         ability.id = perk;
-        ability.label = landText(root, (entry + ".note").c_str());
+        ability.label = landText(command, "note");
+        ability.command = landText(command, "event");
         battleAbilityTiming(ability, number(hero, own + ".active"), number(hero, own + ".delay"),
                             number(perks, base + ".TimeDuration"), number(perks, base + ".TimeDelay"),
-                            number(root, entry + ".enable").value_or(0) != 0);
+                            number(command, "enable").value_or(0) != 0);
         if (ability.state != BattleAbility::Blocked)
             out.push_back(std::move(ability));
     }

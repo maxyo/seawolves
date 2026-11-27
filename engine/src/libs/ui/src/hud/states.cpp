@@ -101,8 +101,8 @@ double Ratio(const Json &object, const char *key)
     return std::isfinite(number) ? std::clamp(number, 0.0, 1.0) : 0.0;
 }
 
-// The optional "abilities" list of a channel (ship, vitals): each named, with a known state; label and left are
-// optional.
+// The optional "abilities" list of a channel (ship, vitals): each named, with a known state; label, left and command
+// are optional.
 std::string ReadAbilities(const Json &state, std::vector<Ability> &out)
 {
     out.clear();
@@ -121,6 +121,7 @@ std::string ReadAbilities(const Json &state, std::vector<Ability> &out)
         ability.state = Text(source, "state").value_or("");
         ability.fill = Ratio(source, "fill");
         ability.left = static_cast<int>(Whole(source, "left").value_or(0));
+        ability.command = Text(source, "command").value_or("");
         if (ability.id.empty() || !OneOf(ability.state, {"ready", "active", "recovery", "blocked"}))
             return "an unnamed ability or an unknown ability state";
         out.push_back(std::move(ability));

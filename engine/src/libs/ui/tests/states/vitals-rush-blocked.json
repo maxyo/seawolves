@@ -50,6 +50,7 @@
  "abilities": [
   {
    "id": "Rush",
+   "command": "BI_ActivateRush",
    "label": "Тинктура Ометочтли",
    "state": "blocked",
    "fill": 0,

@@ -1441,8 +1441,12 @@ static void CheckRush()
     FakeMount &mount = bench.mount;
     bench.Explore();
     Json vitals = State("vitals");
-    vitals["abilities"] = Json::array(
-        {Json{{"id", "Rush"}, {"label", "Тинктура Ометочтли"}, {"state", "ready"}, {"fill", 0}, {"left", 0}}});
+    vitals["abilities"] = Json::array({Json{{"id", "Rush"},
+                                            {"label", "Тинктура Ометочтли"},
+                                            {"state", "ready"},
+                                            {"fill", 0},
+                                            {"left", 0},
+                                            {"command", "BI_ActivateRush"}}});
     bench.Set("vitals", vitals);
     const Json &shown = mount.shown.elements;
     Expect(mount.Has("abilities") && shown["abilities"]["cue"] == false,
@@ -1513,6 +1517,12 @@ static void CheckRush()
     bench.Press("abilities");
     Expect(mount.Has("abilities") && mount.Has("abilities-1") && !mount.Has("abilities-2"),
            "no Rush offered: the button stays for the potion alone");
+    vitals["abilities"] = Json::array({Json{{"id", "Rush"}, {"state", "ready"}}});
+    bench.Set("vitals", vitals);
+    const size_t launched = mount.commands.size(), unlaunched = mount.errors.size();
+    bench.Press("abilities-2");
+    Expect(mount.commands.size() == launched && mount.errors.size() > unlaunched,
+           "an ability without its land menu command launches nothing and says so");
     vitals["abilities"] = Json::array({Json{{"id", ""}, {"state", "ready"}}});
     const size_t errors = mount.errors.size();
     bench.Set("vitals", vitals);
