@@ -26,13 +26,6 @@ std::optional<int> ParseAmount(std::string_view text);
 // A text that may hold no number by design reads ParseAmount itself and says what its absence means.
 int Amount(Bindings &bindings, std::string_view text, const char *what, int none = 0);
 
-// A number the game writes alone in a fact field, a context value or a cell ("12", "4.6", " 700"): ParseNumber of
-// the trimmed text, else `none` and an error line once per screen and `what`, as Amount.
-double Number(Bindings &bindings, std::string_view text, const char *what, double none = 0.0);
-
-// The 0-based table row of an adapter fact's row id "tr<n>" (n from 1), else -1 and an error line once per screen.
-int TableRow(Bindings &bindings, std::string_view row_id);
-
 // The number an event of the pack carries (a row index, a slider value, a tab) into `out`: ParseNumber, else an
 // error line naming the event and false, and the handler does nothing.
 bool EventNumber(Bindings &bindings, const Event &event, int &out);

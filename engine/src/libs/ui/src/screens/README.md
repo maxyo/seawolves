@@ -53,8 +53,7 @@ engine ◀──────Action {screen, opening, node, index, verb, value}�
 Element ids: an event carries the id of the nearest ancestor that has one. Components
 inside lists report under the list's id with their own verb (`goods row 3`,
 `goods change 150`); header parts report under `header` (`section ship`, `subject-next`),
-its buttons as `header-back`, `header-close`. A subject switch with a list is `SubjectSwitch`
-(controls.h); its sheet rows report as `header-subject-<i>`.
+its buttons as `header-back`, `header-close`; the subject sheet's rows report as `header-subject-<i>`.
 Debug and contract hosts (`Config::show_errors`, `strict_templates`) check every tap the drawn
 screen offers (`Behavior::Taps`: each press part's `data-action`, `click` for the component) against
 the bindings when it is drawn: one that maps to nothing is an error then, not first when tapped
@@ -103,18 +102,13 @@ result. Three rules keep that free of flicker:
 
 - **Predict what needs no decision of the game.** `bindings.Predict(id, verb, [](const Event &, Json &view) {…})`
   next to the `On` of the same event: the function changes the view to what the tap leads to (the tapped row
-  selected, the switch moved; `Bindings::Patch`, `Bindings::SelectOnly`). The router draws it in the frame of the
+  selected, the switch moved; `Bindings::Patch`). The router draws it in the frame of the
   tap and keeps it over every view built until the game has answered what the handler sent (and the screen no
   longer `Await`s), then compares it with the game's view: a difference is the error line "UI prediction
   corrected: …" and the game's state is shown. Capture values only (the function outlives the model it was
   declared for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is
   not predicted. A handler that alone knows the result says `bindings.PredictThis(…)`: a script screen's `UiPredict`
-  gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (settings, the generic layout,
-  Other), the hero sections of the header (`SectionSwitch`,
-  controls.h: the tapped section is selected over the shown section's body until the game opens the chosen one,
-  a game frame later), and the person picked in the header of the hero screens (`SubjectSwitch::PredictChoice`: the
-  game's list selects the slot at once and shows the person a game frame later; the header itself follows the person
-  the game shows, as the card and the lists do).
+  gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (settings, the generic layout, Other).
 - **Do not draw a step.** A model the screen knows to be a step of the game's answer (the store's row selected
   before its amount window, a confirmed deal closed before it reopens) is not drawn: the build returns the view
   it had and says `bindings.Await()` (a script screen: `UiAwait()`). A rule about models, never about time; a

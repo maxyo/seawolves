@@ -1,5 +1,4 @@
 #include "controls.h"
-#include "hero.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -91,64 +90,6 @@ ButtonRole RoleOf(const Widget &button)
     return ButtonRole::Other;
 }
 
-// The ship skills of the captain's mini table (interface_utils.c SetSPECIALMiniTable), the ones that decide a
-// captain: row tr5 names them only by picture (ICONS_SPEC "<skill> skill icon", no text), row tr6 holds the
-// values, green where items or officers raise the skill and red where they lower it. {icon, k, v, tone}.
-Json ShipSkills(const std::vector<const Widget *> &table, Bindings &bindings, const std::string &screen)
-{
-    static const char *const names[][2] = {
-        {"Sailing", StringKey("skill.sailing")},  {"Accuracy", StringKey("skill.accuracy")},
-        {"Cannons", StringKey("skill.cannons")},  {"Grappling", StringKey("skill.grappling")},
-        {"Defence", StringKey("skill.defence")},  {"Repair", StringKey("skill.repair")},
-        {"Commerce", StringKey("skill.commerce")}};
-    const auto row = [&table](int index) -> const Widget * {
-        for (const Widget *widget : table)
-            if (widget->index == index)
-                return widget;
-        return nullptr;
-    };
-    const Widget *pictures = row(4);
-    const Widget *values = row(5);
-    Json skills = Json::array();
-    if (!pictures || !values)
-    {
-        if (!table.empty())
-            bindings.ErrorOnce("ship skills",
-                               screen +
-                                   ": the captain's skill table has no ship skill rows (tr5 pictures, tr6 values)");
-        return skills;
-    }
-    constexpr std::string_view suffix = " skill icon";
-    for (const Cell &cell : pictures->cells)
-    {
-        const ImageRef *picture = cell.images.empty() ? nullptr : &cell.images.front();
-        std::string id = picture ? picture->image : std::string();
-        if (id.size() > suffix.size() && id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0)
-            id.resize(id.size() - suffix.size());
-        const char *key = nullptr;
-        for (const auto &name : names)
-            if (id == name[0])
-                key = name[1];
-        if (!key)
-        {
-            bindings.ErrorOnce("ship skills",
-                               screen + ": the captain's skill table names an unknown ship skill by its picture '" +
-                                   (picture ? picture->group + "/" + picture->image : std::string()) + "' (column " +
-                                   std::to_string(cell.column) + ")");
-            continue;
-        }
-        std::string tone;
-        for (const Cell &value : values->cells)
-            if (value.column == cell.column)
-                tone = value.color_argb == 0xffc4ffc4u ? "ok" : value.color_argb == 0xffffc4c4u ? "danger" : "";
-        skills.push_back(Json{{"icon", hero::SkillIcon(id)},
-                              {"k", bindings.Text(key)},
-                              {"v", values->CellText(cell.column)},
-                              {"tone", tone}});
-    }
-    return skills;
-}
-
 std::string Fill(std::string text, std::initializer_list<std::string> args)
 {
     int number = 1;
@@ -182,11 +123,6 @@ std::string Decimal(const std::string &text, const std::string &language)
         if (out[i] == '.' && out[i - 1] >= '0' && out[i - 1] <= '9' && out[i + 1] >= '0' && out[i + 1] <= '9')
             out[i] = ',';
     return out;
-}
-
-std::string InlineNoun(const std::string &noun, const std::string &language)
-{
-    return language == "german" ? noun : Lower(noun);
 }
 
 // A size in GB from a tenth of a GB, else in MB; `scale` (when given) picks the unit, so
@@ -521,128 +457,6 @@ void ControlRows(Bindings &bindings, std::span<const Widget *const> widgets, con
             rows.push_back(Json{{"kind", "field"}, {"id", id}, {"label", label}, {"value", widget->value}});
         }
     }
-}
-
-void SectionSwitch::Bind(Bindings &bindings, Json &view, const std::string &shown,
-                         std::function<void(const Event &)> open)
-{
-    view["headerSection"] = shown;
-    if (!chosen_.empty())
-    {
-        if (bindings.AnsweredSince(floor_) == Bindings::Answers::Refused)
-            chosen_.clear(); // the game kept this section: the prediction is corrected
-        else
-            bindings.Await();
-    }
-    if (shown.empty())
-        return;
-    bindings.On("header", "section", [this, &bindings, shown, open = std::move(open)](const Event &event) {
-        if (event.value == shown)
-            return;
-        if (!chosen_.empty())
-        {
-            // This interface is ending: the game refuses every press until the chosen section has opened.
-            bindings.Log("section " + event.value + " tapped while " + chosen_ + " opens: not sent, the game opens " +
-                         chosen_);
-            return;
-        }
-        chosen_ = event.value;
-        floor_ = bindings.RequestFloor();
-        open(event);
-        if (bindings.RequestFloor() == floor_)
-            chosen_.clear(); // nothing went to the game (the screen logged why): nothing is predicted
-    });
-    bindings.Predict("header", "section",
-                     [](const Event &event, Json &predicted) { predicted["headerSection"] = event.value; });
-}
-
-Json SubjectSwitch::View(Bindings &bindings, const std::vector<Choice> &choices, size_t current,
-                         const std::string &title, std::function<void(size_t)> choose)
-{
-    const size_t count = choices.size();
-    if (current >= count)
-    {
-        open_ = false;
-        return nullptr;
-    }
-    const bool list = count > 1;
-    if (!list)
-        open_ = false;
-    bindings.On("header", "subject-prev", [choose, current](const Event &) {
-        if (current > 0)
-            choose(current - 1);
-    });
-    bindings.On("header", "subject-next", [choose, current, count](const Event &) {
-        if (current + 1 < count)
-            choose(current + 1);
-    });
-    if (list)
-        bindings.On("header", "subject-list", [this, &bindings](const Event &) {
-            open_ = true;
-            bindings.Rebuild();
-        });
-    else
-        bindings.Ignore("header", "subject-list");
-    Json view = Shown(bindings, choices, current);
-    if (!open_)
-        return view;
-    Json rows = Json::array();
-    for (size_t i = 0; i < count; ++i)
-    {
-        rows.push_back(Json{{"label", choices[i].label},
-                            {"meta", choices[i].meta},
-                            {"image", choices[i].image},
-                            {"icon", choices[i].icon},
-                            {"selected", i == current}});
-        bindings.On("header-subject-" + std::to_string(i), "", [this, &bindings, choose, current, i](const Event &) {
-            Close(bindings);
-            if (i != current)
-                choose(i);
-        });
-    }
-    const auto close = [this, &bindings](const Event &) { Close(bindings); };
-    bindings.Modal("header-subjects", close);
-    bindings.On("header-subjects-close", "", close);
-    view["open"] = true;
-    view["title"] = title;
-    view["rows"] = rows;
-    return view;
-}
-
-Json SubjectSwitch::Shown(Bindings &bindings, const std::vector<Choice> &choices, size_t current)
-{
-    const size_t count = choices.size();
-    return Json{
-        {"label", choices[current].label},
-        // «1 из 1» says nothing and takes the line a two-line name needs.
-        {"sub", count > 1 ? std::to_string(current + 1) + " " + bindings.Text("common.of") + " " + std::to_string(count)
-                          : std::string()},
-        {"prev", current > 0},
-        {"next", current + 1 < count},
-        {"list", count > 1}};
-}
-
-void SubjectSwitch::PredictChoice(Bindings &bindings, const std::vector<Choice> &choices, size_t current) const
-{
-    if (current >= choices.size())
-        return;
-    const auto shows = [&](size_t index) {
-        return
-            [shown = Shown(bindings, choices, index)](const Event &, Json &predicted) { predicted["subject"] = shown; };
-    };
-    if (current > 0)
-        bindings.Predict("header", "subject-prev", shows(current - 1));
-    if (current + 1 < choices.size())
-        bindings.Predict("header", "subject-next", shows(current + 1));
-    if (open_)
-        for (size_t i = 0; i < choices.size(); ++i)
-            bindings.Predict("header-subject-" + std::to_string(i), "click", shows(i));
-}
-
-void SubjectSwitch::Close(Bindings &bindings)
-{
-    open_ = false;
-    bindings.Rebuild();
 }
 
 } // namespace storm::ui::screens

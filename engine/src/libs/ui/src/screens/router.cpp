@@ -272,15 +272,6 @@ bool Bindings::Patch(Json &view, const std::string &id, const char *key, const J
     return found;
 }
 
-void Bindings::SelectOnly(Json &entries, size_t chosen)
-{
-    if (!entries.is_array() || chosen >= entries.size())
-        return;
-    for (size_t i = 0; i < entries.size(); ++i)
-        if (entries[i].is_object())
-            entries[i]["selected"] = i == chosen;
-}
-
 void Bindings::Ignore(const std::string &id, const std::string &verb)
 {
     On(id, verb, [](const Event &) {});
@@ -325,35 +316,6 @@ void Bindings::SendLatest(const Widget &widget, const std::string &verb, const s
         return;
     }
     router_.waiting_.push_back({std::move(action), router_.last_flush_ + kFlushSeconds, std::move(first)});
-}
-
-void Bindings::SendAfter(double seconds, const Widget &widget, const std::string &verb, const std::string &value,
-                         const std::string &guard, const std::optional<std::string> &lead)
-{
-    Action action = router_.Make(widget, verb, value, guard);
-    std::optional<Action> first;
-    if (lead)
-        first = router_.Make(widget, verb, *lead, guard);
-    const double due = router_.surface_.Now() + seconds;
-    router_.rebuild_ = true; // as SendLatest: the view shows what was asked at once
-    for (Router::Waiting &waiting : router_.waiting_)
-        if (waiting.action.node == action.node && waiting.action.index == action.index &&
-            waiting.action.verb == action.verb)
-        {
-            waiting.action = std::move(action);
-            waiting.lead = std::move(first);
-            waiting.due = due;
-            return;
-        }
-    router_.waiting_.push_back({std::move(action), due, std::move(first)});
-}
-
-bool Bindings::Waiting(const Widget &widget, const std::string &verb) const
-{
-    for (const Router::Waiting &waiting : router_.waiting_)
-        if (waiting.action.node == widget.node && waiting.action.index == widget.index && waiting.action.verb == verb)
-            return true;
-    return false;
 }
 
 void Bindings::SendHost(const std::string &node, const std::string &value)

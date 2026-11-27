@@ -16,25 +16,6 @@ int Amount(Bindings &bindings, std::string_view text, const char *what, int none
     return none;
 }
 
-double Number(Bindings &bindings, std::string_view text, const char *what, double none)
-{
-    const std::string trimmed = StripWhitespace(std::string(text));
-    if (const std::optional<double> value = ParseNumber<double>(trimmed))
-        return *value;
-    bindings.ErrorOnce(std::string("number:") + what, std::string("no number in ") + what + " ('" + std::string(text) +
-                                                          "'): shown as " + ToText(Json(none)));
-    return none;
-}
-
-int TableRow(Bindings &bindings, std::string_view row_id)
-{
-    if (row_id.starts_with("tr"))
-        if (const std::optional<int> row = ParseNumber<int>(row_id.substr(2)); row && *row > 0)
-            return *row - 1;
-    bindings.ErrorOnce("row:" + std::string(row_id), "row id '" + std::string(row_id) + "' is not tr<n>");
-    return -1;
-}
-
 namespace
 {
 

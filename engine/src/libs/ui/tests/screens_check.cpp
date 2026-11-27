@@ -198,9 +198,6 @@ static void Predictions(const std::string &models)
     // An event whose handler asks the game nothing predicts nothing (the screen's own state is its result).
     Json view =
         Json{{"rows", Json::array({Json{{"id", "a"}, {"selected", true}}, Json{{"id", "b"}, {"selected", false}}})}};
-    Bindings::SelectOnly(view["rows"], 1);
-    Expect(view["rows"][0]["selected"] == false && view["rows"][1]["selected"] == true,
-           "SelectOnly moves the selection");
     Expect(Bindings::Patch(view, "a", "on", true) && view["rows"][0]["on"] == true &&
                !Bindings::Patch(view, "nobody", "on", true),
            "Patch sets the field of the object with that id, and says when there is none");

@@ -115,11 +115,6 @@ class Bindings
     // Events of `id` with this verb are expected and need no action (drag progress, …).
     // An event that is neither bound nor ignored is reported as an error.
     void Ignore(const std::string &id, const std::string &verb);
-    // True when this build bound a handler for exactly `id` `verb` (On, Ignore, Forward).
-    bool Bound(const std::string &id, const std::string &verb) const
-    {
-        return handlers_.count(id + '\x1f' + verb) > 0;
-    }
     // An event of `id` sends this verb of the widget to the engine.
     void Forward(const std::string &id, const Widget &widget, const std::string &verb);
     // Local feedback: `predict` changes the view to what the event `id` `verb` leads to without a decision of the
@@ -130,10 +125,8 @@ class Bindings
     // Inside a handler: the prediction of the event it handles, when only the handler knows what the tap leads to
     // (a script screen's tap). It replaces one declared with Predict.
     void PredictThis(Prediction predict);
-    // For predictions. Patch: sets `key` of every object in the view whose "id" is `id`; false when there is none.
-    // SelectOnly: the entry `chosen` of a list of {selected} entries (rows, tabs) is the selected one, no other.
+    // For predictions: sets `key` of every object in the view whose "id" is `id`; false when there is none.
     static bool Patch(Json &view, const std::string &id, const char *key, const Json &value);
-    static void SelectOnly(Json &entries, size_t chosen);
     // The view shows the modal `id` (a c-dialog, or a sheet with a scrim of its own): declared in
     // every Build that shows it, the topmost last. Every modal goes through here, so all of them
     // answer the scrim and the back key the same way: `cancel` is the modal's way back without
@@ -153,12 +146,6 @@ class Bindings
     // value depends on, e.g. the trade amount's "0"): the engine never sees one without the other.
     void SendLatest(const Widget &widget, const std::string &verb, const std::string &value,
                     const std::string &guard = {}, const std::optional<std::string> &lead = std::nullopt);
-    // Sends after `seconds` unless a newer SendAfter for the same widget and verb arrives
-    // first, which replaces it and restarts the wait (settling a drag before it applies).
-    void SendAfter(double seconds, const Widget &widget, const std::string &verb, const std::string &value = {},
-                   const std::string &guard = {}, const std::optional<std::string> &lead = std::nullopt);
-    // True while a SendLatest / SendAfter of this widget and verb has not gone out yet.
-    bool Waiting(const Widget &widget, const std::string &verb) const;
     // A setting of the application itself, not of the game (renderer options): an Action
     // without a screen that the platform host keeps (the Android host: GraphicsSettings).
     void SendHost(const std::string &node, const std::string &value);

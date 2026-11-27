@@ -25,9 +25,6 @@ std::string Decimal(const Bindings &bindings, double value);
 // A game number with a decimal point in the interface's language ("2.4" → "2,4" except in
 // English): every point between two digits.
 std::string Decimal(const std::string &text, const std::string &language);
-// A noun of the game's set inside a line of ours (the roles under a name, the slot under an item): lower case, as the
-// interface's languages write a noun there, except German, which capitalises every noun.
-std::string InlineNoun(const std::string &noun, const std::string &language);
 // A size in GB from a tenth of a GB, else in MB; `scale` (when given) picks the unit, so that "done of total" share
 // one.
 std::string Size(const Bindings &bindings, double bytes, double scale = -1);
@@ -44,32 +41,6 @@ ButtonRole RoleOf(const Widget &button);
 // Header section a navigation button opens ("hero", "ship", …), or empty.
 std::string SectionOf(const Widget &button);
 
-// The six hero sections of the header (c-header `sections`; the view's `headerSection`). A tapped section is shown
-// selected at once (Bindings::Predict) and every build awaits the next interface (Bindings::Await); a refused press
-// or Cancel ends the wait. Another section tapped meanwhile is not sent (logged). One switch per screen.
-class SectionSwitch
-{
-  public:
-    // Sets `headerSection` of `view` to `shown` ("" without the game's section buttons: no sections drawn) and,
-    // with sections, binds the header's section event: `open` starts the switch to the tapped section (sends the
-    // press of its button, or the screen's first step towards it).
-    void Bind(Bindings &bindings, Json &view, const std::string &shown, std::function<void(const Event &)> open);
-    // The screen could not start or finish the switch it was asked for (its error is logged by the screen).
-    void Cancel()
-    {
-        chosen_.clear();
-    }
-
-  private:
-    std::string chosen_; // the section tapped, until its interface opens or the switch ends
-    uint64_t floor_ = 0; // the first widget action of the switch (Bindings::RequestFloor)
-};
-
-// The ship skills of a captain's mini table (interface_utils.c SetSPECIALMiniTable: the captain windows of shipyard.c
-// and transfer_main.c, the hero's sheet): {icon, k, v, tone} named from row tr5's pictures with row tr6's values, tone
-// "ok" / "danger" where the game colours a raised / lowered skill. A table without those rows, or naming an unknown
-// skill, is an error of `screen`, said once.
-Json ShipSkills(const std::vector<const Widget *> &table, Bindings &bindings, const std::string &screen);
 // {id, label, variant, disabled, reason, busy} of a c-button; a tap presses the widget.
 Json ButtonView(Bindings &bindings, const Widget &button, const std::string &id, const char *variant);
 // The amount a quantity control sets is the player's draft until he confirms it (picking an
@@ -149,35 +120,5 @@ void TapChoice(Bindings &bindings, const Widget &choice);
 // `labels` (empty, or one per widget) holds the short text that preceded a control and names it.
 void ControlRows(Bindings &bindings, std::span<const Widget *const> widgets, const std::string &id_prefix,
                  const std::vector<std::string> &labels, Json &rows);
-
-// The header's subject switch of c-screen (key "header"): ‹ name k of n ›, and a tap on the name
-// opens the list of every choice (c-screen's subject sheet, a c-dialog of c-list-rows: ids
-// header-subjects, header-subject-<i>). ‹, › and a picked row call `choose` with the choice's
-// index. The list is offered from two choices on; the view is null without choices. A screen
-// keeps one switch for its lifetime; the open list is a modal (Bindings::Modal): its scrim and
-// the back key close it.
-class SubjectSwitch
-{
-  public:
-    struct Choice
-    {
-        std::string label;
-        std::string meta;
-        Json image;       // row image (Portrait, PictureOf) or null
-        std::string icon; // row icon without an image
-    };
-    Json View(Bindings &bindings, const std::vector<Choice> &choices, size_t current, const std::string &title,
-              std::function<void(size_t)> choose);
-    // For a screen whose game shows the chosen subject a game frame after the choice (hero.cpp Subject): ‹, › and a
-    // picked row draw the chosen subject in the header (the view's `subject`) in the tap's own frame
-    // (Bindings::Predict).
-    void PredictChoice(Bindings &bindings, const std::vector<Choice> &choices, size_t current) const;
-
-  private:
-    // The closed switch showing choice `current`.
-    static Json Shown(Bindings &bindings, const std::vector<Choice> &choices, size_t current);
-    void Close(Bindings &bindings);
-    bool open_ = false;
-};
 
 } // namespace storm::ui::screens

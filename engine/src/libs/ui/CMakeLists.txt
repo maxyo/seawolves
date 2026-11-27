@@ -116,7 +116,6 @@ add_library(storm_ui STATIC
     src/screens/parse_amount.cpp
     src/screens/registry.cpp
     src/screens/generic.cpp
-    src/screens/hero.cpp
     src/screens/dialogue.cpp
     src/screens/menu_new_game.cpp
     src/screens/menu_saves.cpp
