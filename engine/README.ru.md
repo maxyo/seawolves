@@ -76,13 +76,16 @@ xvfb-run -a ctest --test-dir build/ui-host --output-on-failure   # без xvfb-r
 | игра | каталог, выбранный в приложении | `--game <каталог>`, запоминается в `$XDG_CONFIG_HOME/seawolves/settings.json` |
 | сохранения (`SAVE\…` игры) | `<files>/storm/SaveData` | `$XDG_DATA_HOME/seawolves/<игра>/saves` |
 | файлы настроек игры, при первом запуске копируются из игры | `options` в `<files>/storm` | `options` и `engine.ini` в `$XDG_CONFIG_HOME/seawolves/<игра>` |
-| кэши | корень кэша приложения | `$XDG_CACHE_HOME/seawolves/<игра>` |
+| кэши | корень кэша приложения | `$XDG_CACHE_HOME/seawolves/<сборка>` |
 | журналы | `<files>/storm/Logs` | `$XDG_STATE_HOME/seawolves/logs` |
 | слои поверх игры | приложение ставит их из APK в свой кэш: `mobile-ui`, `engine-shaders`, `script-patches` | сборка кладёт их рядом с исполняемым файлом в `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (набор приложения для ПК) |
 
-`<files>` — внутреннее хранилище приложения. `<игра>` — идентификатор игры, хеш её каталога PROGRAM
-(`platform/desktop_folders.hpp`): две игры или две версии одной игры не делят сохранения и кэши, а перенесённая игра
-сохраняет свои. Переменные XDG по умолчанию — `~/.config`, `~/.local/share`, `~/.cache` и `~/.local/state`.
+`<files>` — внутреннее хранилище приложения. `<игра>` — ключ игры независимо от версии: хеш названия, которое
+показывают её скрипты (`VERSION_NUMBER1` в `PROGRAM/_LSC_on_off.h`); обновление или мод скриптов сохраняет
+сохранения, а две игры серии их никогда не делят; загрузится ли старое сохранение, решают скрипты игры. `<сборка>` —
+ключ одной точной сборки, хеш всего каталога PROGRAM: кэши разных сборок не смешиваются. Если скрипты не называют
+игру, сохранения тоже идут под `<сборка>`, и в журнале об этом предупреждение (`platform/desktop_folders.hpp`).
+Перенесённая игра сохраняет оба ключа. Переменные XDG по умолчанию — `~/.config`, `~/.local/share`, `~/.cache` и `~/.local/state`.
 `engine --game <каталог> --folders` печатает каталоги и завершается.
 
 В Linux в `settings.json` можно указать и то, что проверил бы магазин игры: `"player_name": "<имя>"` (имя, которое

@@ -39,11 +39,16 @@ template <typename Operation> std::string failure(Operation operation)
     return {};
 }
 
-void game(const fs::path &root)
+// A game whose scripts name it `title` the way the series' scripts do.
+void game(const fs::path &root, const std::string &title = "Sea Game  ")
 {
     put(root / "engine.ini", "screen_x = 1\n");
     put(root / "PROGRAM/seadogs.c", "void Main() {}\n");
     put(root / "PROGRAM/interface/menu.c", "void Menu() {}\n");
+    put(root / "PROGRAM/_LSC_on_off.h",
+        "// #define VERSION_NUMBER1 \"Commented\"\r\n#define VERSION_NUMBER10 \"Other\"\r\n"
+        "#define VERSION_NUMBER1       \"" +
+            title + "\" // the game's own note\r\n#define VERSION_NUMBER2 \"ver. 1\"\r\n");
 }
 } // namespace
 
@@ -74,29 +79,62 @@ TEST_CASE("desktop_folders.identity")
     game(root / "one");
     fs::create_directories(root / "moved");
     fs::copy(root / "one", root / "moved/elsewhere", fs::copy_options::recursive);
-    const auto identity = gameIdentity(root / "one");
+    const auto identity = buildIdentity(root / "one");
     REQUIRE(identity.size() == 16);
-    REQUIRE(gameIdentity(root / "moved/elsewhere") == identity); // the same game in another place
+    REQUIRE(buildIdentity(root / "moved/elsewhere") == identity); // the same game in another place
 
     game(root / "renamed");
     fs::rename(root / "renamed/PROGRAM/interface", root / "renamed/PROGRAM/INTERFACE");
-    REQUIRE(gameIdentity(root / "renamed") == identity); // the game's names are case-insensitive
+    REQUIRE(buildIdentity(root / "renamed") == identity); // the game's names are case-insensitive
 
     game(root / "version");
     put(root / "version/PROGRAM/interface/menu.c", "void Menu() { }\n");
-    REQUIRE(gameIdentity(root / "version") != identity); // one script changed
+    REQUIRE(buildIdentity(root / "version") != identity); // one script changed
 
     game(root / "added");
     put(root / "added/PROGRAM/new.c", "");
-    REQUIRE(gameIdentity(root / "added") != identity);
+    REQUIRE(buildIdentity(root / "added") != identity);
 
     // The same bytes split otherwise between a file's name and its contents: another game.
     put(root / "split-one/PROGRAM/x", "1x");
     put(root / "split-two/PROGRAM/x1", "x");
-    REQUIRE(gameIdentity(root / "split-one") != gameIdentity(root / "split-two"));
+    REQUIRE(buildIdentity(root / "split-one") != buildIdentity(root / "split-two"));
 
     put(root / "nothing/engine.ini", "");
-    REQUIRE(failure([&] { gameIdentity(root / "nothing"); }).find("no PROGRAM") != std::string::npos);
+    REQUIRE(failure([&] { buildIdentity(root / "nothing"); }).find("no PROGRAM") != std::string::npos);
+    REQUIRE(failure([&] { gameKey(root / "nothing"); }).find("no PROGRAM") != std::string::npos);
+}
+
+TEST_CASE("desktop_folders.key")
+{
+    const auto root = fs::temp_directory_path() / "desktop-key";
+    fs::remove_all(root);
+    game(root / "one");
+    const auto one = gameKey(root / "one");
+    REQUIRE(one.title == "Sea Game");
+    REQUIRE(one.key.size() == 16);
+    REQUIRE(one.key != buildIdentity(root / "one"));
+
+    // An update and a script mod: the same game, another build.
+    game(root / "update");
+    put(root / "update/PROGRAM/interface/menu.c", "void Menu() { New(); }\n");
+    put(root / "update/PROGRAM/mod.c", "void Mod() {}\n");
+    put(root / "update/PROGRAM/_LSC_on_off.h",
+        "#define VERSION_NUMBER1 \" Sea Game\"\n#define VERSION_NUMBER2 \"ver. 2\"\n");
+    REQUIRE(gameKey(root / "update").key == one.key);
+    REQUIRE(buildIdentity(root / "update") != buildIdentity(root / "one"));
+
+    // Another game of the series, even with the same scripts otherwise.
+    game(root / "other", "Other Sea Game");
+    REQUIRE(gameKey(root / "other").key != one.key);
+
+    // Scripts that name no title: the key is the build's.
+    game(root / "untitled");
+    put(root / "untitled/PROGRAM/_LSC_on_off.h", "#define VERSION_NUMBER2 \"ver. 1\"\n");
+    const auto untitled = gameKey(root / "untitled");
+    REQUIRE((untitled.title.empty() && untitled.key == buildIdentity(root / "untitled")));
+    fs::remove(root / "untitled/PROGRAM/_LSC_on_off.h");
+    REQUIRE(gameKey(root / "untitled").key == buildIdentity(root / "untitled"));
 }
 
 TEST_CASE("desktop_folders.game")
@@ -108,19 +146,23 @@ TEST_CASE("desktop_folders.game")
     fs::create_directories(engine / "layers/engine-shaders");
     fs::create_directories(engine / "layers/script-patches");
     game(root / "games/one");
-    game(root / "games/two");
-    put(root / "games/two/PROGRAM/seadogs.c", "void Main() { Two(); }\n");
+    game(root / "games/update");
+    put(root / "games/update/PROGRAM/seadogs.c", "void Main() { Updated(); }\n");
+    game(root / "games/two", "Another Game");
 
     const auto one = gameFolders(folders, root / "games/one", engine);
-    const auto id = gameIdentity(root / "games/one");
+    const auto key = gameKey(root / "games/one").key, id = buildIdentity(root / "games/one");
     REQUIRE(one.game == root / "games/one");
-    REQUIRE(one.saves == folders.data / "seawolves" / id / "saves");
-    REQUIRE(one.settings == folders.config / "seawolves" / id);
+    REQUIRE(one.saves == folders.data / "seawolves" / key / "saves");
+    REQUIRE(one.settings == folders.config / "seawolves" / key);
     REQUIRE(one.cache == folders.cache / "seawolves" / id);
     REQUIRE(one.settingsFiles == std::vector<std::string>{"options", "engine.ini"});
     REQUIRE(one.layers.mobileUi.empty());
     REQUIRE(one.layers.engineShaders == engine / "layers/engine-shaders");
     REQUIRE(one.layers.scriptPatches == engine / "layers/script-patches");
+    // An update keeps the saves and the settings and gets caches of its own; another game shares nothing.
+    const auto update = gameFolders(folders, root / "games/update", engine);
+    REQUIRE((update.saves == one.saves && update.settings == one.settings && update.cache != one.cache));
     const auto two = gameFolders(folders, root / "games/two", engine);
     REQUIRE((two.saves != one.saves && two.settings != one.settings && two.cache != one.cache));
 

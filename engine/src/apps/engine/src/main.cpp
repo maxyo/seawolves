@@ -530,6 +530,9 @@ bool PrepareGame([[maybe_unused]] const CommandLine &command)
         std::filesystem::current_path(folders.game);
         spdlog::info("Game folder {}; saves {}, settings {}, cache {}", folders.game.string(), folders.saves.string(),
                      folders.settings.string(), folders.cache.string());
+        if (storm::desktop::gameKey(folders.game).title.empty())
+            spdlog::warn("The game's scripts name no title (VERSION_NUMBER1 in PROGRAM/_LSC_on_off.h): its saves and "
+                         "settings are kept for this exact build and are not found by another version");
         storm::storage::select(std::move(folders));
 #endif
         fio->ScanResourcePaths();
