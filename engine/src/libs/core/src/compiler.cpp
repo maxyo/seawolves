@@ -2153,8 +2153,8 @@ uint32_t COMPILER::SkipInitializer(bool &resumed)
     resumed = false;
     // pass 1, on '=' of a declaration. A {...} list is skipped and its items counted; a plain
     // expression is skipped only up to the ',' of a following declarator. Otherwise (';', or a
-    // missing ';' before the next statement, which old scripts have) the scan resumes right
-    // after '=' as it always did.
+    // missing ';' before the next statement, which old scripts have, or a bracket left open) the
+    // scan resumes right after '=' as it always did.
     char *const start = Token.GetProgramControl();
     const uint32_t start_line = DebugSourceLine;
     uint32_t depth = 0, items = 0;
@@ -2217,9 +2217,7 @@ uint32_t COMPILER::SkipInitializer(bool &resumed)
         case SWITCH_COMMAND:
         case FUNCTION_RETURN:
         case SEPARATOR:
-            if (depth == 0 && !list)
-                break;
-            continue;
+            break; // no expression or list holds these: an unclosed bracket ends here, and pass 2 reports it
         default:
             if (list && depth == 1 && empty)
             {
