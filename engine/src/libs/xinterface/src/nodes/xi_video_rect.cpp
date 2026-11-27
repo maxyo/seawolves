@@ -66,6 +66,10 @@ void CXI_VIDEORECT::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, con
     char param[255];
 
     m_dwFlags = GetIniLong(ini1, name1, ini2, name2, "flags", 0);
+    if (GetIniBool(ini1, name1, ini2, name2, "loop", false))
+        m_dwFlags |= 1;
+    if (GetIniBool(ini1, name1, ini2, name2, "silent", false))
+        m_dwFlags |= 2;
     m_rectTex = GetIniFloatRect(ini1, name1, ini2, name2, "textureRect", FXYRECT(0.f, 0.f, 1.f, 1.f));
     m_dwColor = GetIniARGB(ini1, name1, ini2, name2, "color", ARGB(255, 128, 128, 128));
     if (ReadIniString(ini1, name1, ini2, name2, "videoFile", param, sizeof(param), ""))

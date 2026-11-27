@@ -12,7 +12,7 @@ struct Frame;
 }
 
 // Script-facing video player entity ("CAviPlayer"). Scripts send MSG_SET_VIDEO_PLAY with a file
-// MSG_SET_VIDEO_FLAGS bit 0 loops. xi_video_rect embeds one with SetShowVideo(false) and draws
+// MSG_SET_VIDEO_FLAGS bit 0 loops, bit 1 plays without sound. xi_video_rect embeds one with SetShowVideo(false) and draws
 // GetCurrentVideoTexture() itself. Decoding: src/libs/video.
 class CAviPlayer : public xiBaseVideo
 {
@@ -61,6 +61,7 @@ class CAviPlayer : public xiBaseVideo
     VRenderer *rs = nullptr;
     bool m_bShowVideo = true;
     bool bLoop = false;
+    bool bSilent = false; // no soundtrack
     std::string filename;
     std::unique_ptr<storm::video::Player> player_;
     int32_t texture_ = -1; // renderer texture id
