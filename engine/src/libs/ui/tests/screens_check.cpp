@@ -1991,16 +1991,7 @@ struct TransferRun
             Expect(cells[0]["text"] == "96" && cells[0]["sub"] == "<transfer.min_mark>" && cells[1]["text"] == "58" &&
                        cells[1]["sub"] == "<transfer.min_mark>",
                    "crew: each ship's minimum under its crew: " + cells.dump());
-            Expect(surface.errors.empty(), "crew limits read from ANDROID_TRANSFER");
-            InterfaceModel narrow = Load(models, "transfer-crew.json");
-            for (Widget &widget : narrow.widgets)
-                if (widget.node == "ANDROID_TRANSFER")
-                    widget.context["crewMax"] = "100";
-            FakeSurface narrow_surface;
-            Router narrow_router(narrow_surface);
-            narrow_router.SetInterface(narrow);
-            Expect(narrow_surface.props["crew"]["rows"][0]["q"]["max"] == 100,
-                   "crew: our MaxCrew ends what we can take (TakeCrew)");
+            Expect(surface.errors.empty(), "crew marks read from ANDROID_TRANSFER");
         }
         Expect(surface.props["crew"]["rows"][0]["q"]["value"] == 96 &&
                    surface.props["crew"]["rows"][0]["q"]["max"] == 154 &&

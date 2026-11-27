@@ -709,9 +709,9 @@ class TransferScreen final : public Screen
     }
 
     // The crew of both ships: our number moves by the game's arrows, one man per press, sent when the player
-    // confirms the number. Its ends are where the game's TakeCrew / GiveCrew stop (the giving side's men, the
-    // receiving ship's MaxCrew, the receiving hold's free space); the marks on the slider are each ship's MinCrew,
-    // the least crew it sails with (characterUtilite.c GetMinCrewQuantity, through ANDROID_TRANSFER).
+    // confirms the number; the game's TakeCrew / GiveCrew stop the presses where they stop (the receiving ship's
+    // room, its hold) and the slider then shows where. Its ends are both crews; the marks on it are each ship's
+    // MinCrew, the least crew it sails with (characterUtilite.c GetMinCrewQuantity, through ANDROID_TRANSFER).
     Json CrewView(const Admission &admitted, Bindings &bindings, const std::string &ours, const std::string &theirs)
     {
         const Widget *take = admitted.One("CREW_LEFT"), *give = admitted.One("CREW_RIGHT");
@@ -765,7 +765,7 @@ class TransferScreen final : public Screen
 
     struct Limits
     {
-        int low = 0, high = 0;            // our crew: the least and the most the game's arrows reach
+        int low = 0, high = 0;            // our crew: none, or both crews
         int min_ours = 0, min_theirs = 0; // MinCrew of each ship
         Json marks = Json::array();       // [{at, label}] on our crew's scale
     };
@@ -773,30 +773,15 @@ class TransferScreen final : public Screen
     {
         Limits limits;
         const Widget *marker = admitted.One("ANDROID_TRANSFER");
-        const std::string min_ours = Context(marker, "crewMin"), max_ours = Context(marker, "crewMax");
-        const std::string min_theirs = Context(marker, "crewMin2"), max_theirs = Context(marker, "crewMax2");
-        int take = their, give = our;
-        if (min_ours.empty() || max_ours.empty() || min_theirs.empty() || max_theirs.empty())
-        {
-            // An engine without the limits: the slider spans both crews, the game cuts what it cannot take.
-            bindings.ErrorOnce(
-                "crew limits",
-                "transfer_main: ANDROID_TRANSFER has no crew limits (crewMin, crewMax, crewMin2, crewMax2)");
-        }
+        const std::string min_ours = Context(marker, "crewMin"), min_theirs = Context(marker, "crewMin2");
+        if (min_ours.empty() || min_theirs.empty())
+            bindings.ErrorOnce("crew limits", "transfer_main: ANDROID_TRANSFER has no MinCrew (crewMin, crewMin2)");
         else
         {
             limits.min_ours = Amount(bindings, min_ours, "crewMin");
             limits.min_theirs = Amount(bindings, min_theirs, "crewMin2");
-            take = std::min(take, std::max(0, Amount(bindings, max_ours, "crewMax") - our));
-            give = std::min(give, std::max(0, Amount(bindings, max_theirs, "crewMax2") - their));
         }
-        // TakeCrew / GiveCrew also stop at the receiving hold's free space (GetCargoFreeSpace)
-        if (const int free = FreeSpace(admitted, bindings, "TABLE_OTHER"); free >= 0)
-            take = std::min(take, free);
-        if (const int free = FreeSpace(admitted, bindings, "TABLE_OTHER2"); free >= 0)
-            give = std::min(give, free);
-        limits.low = our - give;
-        limits.high = our + take;
+        limits.high = our + their;
         // Our MinCrew where our crew is that many; theirs where what we leave them is their MinCrew. Each mark names
         // its ship (a long name cut to 12 letters): the scale is ours, so theirs would read as our number otherwise.
         const auto mark = [&](int at, int minimum, const std::string &ship) {
