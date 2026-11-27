@@ -13,11 +13,23 @@ static void touch(const fs::path &path)
     std::ofstream(path) << "x";
 }
 
+// The two walks of the keys' definition: relative keys from the working directory, absolute keys below `root`.
 static Map reference(const std::string &root)
 {
     Map map;
-    scanRelative(map);
-    scanAbsolute(map, root);
+    for (const auto &entry : fs::recursive_directory_iterator("."))
+    {
+        if (!indexable(entry))
+            continue;
+        auto path = entry.path().string();
+        if (path.rfind("./", 0) == 0)
+            path.erase(0, 2);
+        add(map, path, "");
+    }
+    const auto prefix = storm::ResourceKey(root);
+    for (const auto &entry : fs::recursive_directory_iterator(root))
+        if (indexable(entry))
+            add(map, entry.path().string(), prefix);
     return map;
 }
 
@@ -35,10 +47,10 @@ TEST_CASE("resource_index")
     fs::create_directories(game / "RESOURCE/Empty");
     const std::string root = game.string() + "/";
 
-    // Working directory == game directory (Android): one walk, identical index.
+    // The working directory is the game directory: one walk, identical index.
     fs::current_path(game);
     Map single;
-    REQUIRE(scan(single, root) == 1);
+    scan(single, root);
     const Map expected = reference(root);
     REQUIRE(single == expected);
     REQUIRE(single.at("resource/ini/interfaces/main.ini") == "RESOURCE/Ini/Interfaces/Main.INI");
@@ -52,18 +64,15 @@ TEST_CASE("resource_index")
     fs::create_directory_symlink(game, fs::temp_directory_path() / "link");
     Map linked;
     const std::string linkRoot = (fs::temp_directory_path() / "link").string() + "/";
-    REQUIRE((scan(linked, linkRoot) == 1 && linked == reference(linkRoot)));
+    scan(linked, linkRoot);
+    REQUIRE(linked == reference(linkRoot));
 
-    // Different working directory (desktop launch from elsewhere): two walks, as before.
+    // Any other root is an error, never a partial index.
     const fs::path elsewhere = fs::temp_directory_path() / "elsewhere";
     touch(elsewhere / "resource/local.txt");
     fs::current_path(elsewhere);
-    Map twice;
-    REQUIRE(scan(twice, root) == 2);
-    REQUIRE(twice == reference(root));
-    REQUIRE((twice.count("resource/local.txt") == 1 && twice.count("program/seadogs.c") == 0));
-    // Root without a trailing separator is not eligible for the shortcut.
+    Map wrong;
+    REQUIRE_THROWS_AS(scan(wrong, root), std::runtime_error);
     fs::current_path(game);
-    Map plain;
-    REQUIRE((scan(plain, game.string()) == 2 && plain == reference(game.string())));
+    REQUIRE_THROWS_AS(scan(wrong, game.string()), std::runtime_error); // no trailing separator
 }

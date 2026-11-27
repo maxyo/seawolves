@@ -302,17 +302,14 @@ std::string FILE_SERVICE::_GetCurrentDirectory()
     return result;
 }
 
+// The game directory (engine.ini, Program, Resource) with a trailing separator: Android's game storage; elsewhere the
+// working directory, so that the engine runs on a game directory wherever its binary is.
 std::string FILE_SERVICE::_GetExecutableDirectory()
 {
 #ifdef __ANDROID__
     return storm::android::storagePaths().game.string() + "/";
 #else
-    char *base = SDL_GetBasePath();
-    if (!base)
-        throw std::runtime_error(SDL_GetError());
-    std::string result(base);
-    SDL_free(base);
-    return result;
+    return (std::filesystem::current_path() / "").string();
 #endif
 }
 
@@ -527,8 +524,7 @@ void FILE_SERVICE::ScanResourcePaths()
         ResourcePaths = std::unordered_map<std::string, std::string>();
     }
     ResourcePaths.clear();
-    // One walk when the working directory is the game directory (always on
-    // Android), two otherwise; see platform/resource_index.hpp.
+    // The working directory is the game directory; see platform/resource_index.hpp.
     storm::resource_index::scan(ResourcePaths, fio->_GetExecutableDirectory());
 #ifdef __ANDROID__
     const auto cache = fs::GetCachePath();

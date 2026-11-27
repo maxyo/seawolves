@@ -6,14 +6,14 @@
 // working directory ("resource\\ini\\x.ini") or through the absolute game
 // directory. The index maps both lowercase spellings to the real on-disk path.
 //
-// scan() walks once and derives both key families from each entry whenever
-// the two roots are the same directory (always on Android, so the tree is not
-// walked twice), and walks both roots otherwise.
+// The working directory is the game directory (FILE_SERVICE::_GetExecutableDirectory),
+// so one walk of it derives both key families from each entry.
 
 #include "../istring.hpp"
 
 #include <algorithm>
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -41,41 +41,12 @@ inline bool indexable(const std::filesystem::directory_entry &entry)
     return entry.is_regular_file() || entry.is_directory();
 }
 
-// Reference behaviour: relative keys from the working directory.
-inline void scanRelative(Map &map)
-{
-    for (const auto &entry : std::filesystem::recursive_directory_iterator("."))
-    {
-        if (!indexable(entry))
-            continue;
-        auto path = entry.path().string();
-        if (path.rfind("./", 0) == 0)
-            path.erase(0, 2);
-        add(map, path, "");
-    }
-}
-
-// Reference behaviour: absolute keys below `root` (spelled as the caller passes it).
-inline void scanAbsolute(Map &map, const std::string &root)
-{
-    const auto prefix = ResourceKey(root);
-    for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
-        if (indexable(entry))
-            add(map, entry.path().string(), prefix);
-}
-
-// `root` must end with a path separator (FILE_SERVICE::_GetExecutableDirectory does).
-// Returns the number of directory walks performed (1 or 2), for logging/tests.
-inline int scan(Map &map, const std::string &root)
+// `root` is the game directory with a trailing separator and must be the working directory.
+inline void scan(Map &map, const std::string &root)
 {
     std::error_code error;
-    const bool same = !root.empty() && root.back() == '/' && std::filesystem::equivalent(".", root, error) && !error;
-    if (!same)
-    {
-        scanRelative(map);
-        scanAbsolute(map, root);
-        return 2;
-    }
+    if (root.empty() || root.back() != '/' || !std::filesystem::equivalent(".", root, error) || error)
+        throw std::runtime_error("The resource index root '" + root + "' is not the working directory");
     const auto prefix = ResourceKey(root);
     for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
     {
@@ -85,6 +56,5 @@ inline int scan(Map &map, const std::string &root)
         add(map, absolute.substr(root.size()), "");
         add(map, absolute, prefix);
     }
-    return 1;
 }
 } // namespace storm::resource_index
