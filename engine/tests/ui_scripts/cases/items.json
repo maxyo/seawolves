@@ -1623,8 +1623,8 @@
       "type": "choice",
       "label": "Passenger · Bartholomew",
       "value": "1",
-      "index": 2,
-      "rowId": "1:2",
+      "index": 11,
+      "rowId": "1:11",
       "actions": [
        "select"
       ]

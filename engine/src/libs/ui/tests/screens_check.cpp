@@ -2179,557 +2179,126 @@ static Widget *Row(InterfaceModel &model, const char *node, int index)
     return nullptr;
 }
 
-// The hero screen on one router: the skill tables and their help, the subjects, perks, officers and sections.
-struct HeroRun
-{
-    std::string models;
-    FakeSurface surface;
-    Router router{surface};
-    InterfaceModel model = Load(models, "hero.json");
-    Json view; // what the screen showed last
-
-    void Opening()
-    {
-        router.SetInterface(model);
-        ExpectEqual(router.Using(), "lscchar_all", "the character draws on the hero screen");
-        ExpectEqual(surface.tag, "s-hero", "s-hero mounted");
-        view = surface.props;
-        Expect(view["headerSection"] == "hero" && view["tabs"].size() == 4 && view["tabs"][0]["badge"] == 2 &&
-                   view["tabs"][1]["id"] == "perks1" && view["tabs"][1]["badge"] == 1 &&
-                   view["tabs"][2]["id"] == "perks2" && view["tabs"][3]["id"] == "officers",
-               "skills, the two perk groups and officers; free skill and perk points as badges: " +
-                   view["tabs"].dump());
-        Expect(view["card"]["title"] == "Anne Bonny" && view["card"]["portrait"] == "INTERFACES/PORTRAITS/128/face_7" &&
-                   view["card"]["health"]["value"] == 75 && view["card"]["health"]["text"] == "90" &&
-                   view["card"]["free"] == "2" && view["card"]["lines"][0]["v"] == "excellent" &&
-                   view["card"]["lines"][1]["v"] == "63 / 100",
-               "the identity rail from TABLE_OTHER and the adapter");
-        Expect(view["special"]["rows"].size() == 2 && view["special"]["rows"][0]["cells"][1]["text"] == "5" &&
-                   !view["special"]["rows"][0]["cells"][1].contains("tone") &&
-                   view["special"]["rows"][1]["cells"][1]["text"] == "8" &&
-                   view["special"]["rows"][1]["cells"][1]["tone"] == "ok",
-               "the read-only PIRATES column: the value the game uses (Agility base 7 (+1) = 8, green): " +
-                   view["special"].dump());
-        {
-            // Without points to spend every table shows the value the game uses, base + the stock bonus column, and the
-            // breakdown of a row ends on that same figure.
-            InterfaceModel spent = model;
-            for (Widget &widget : spent.widgets)
-                if (widget.node == "FREE_SKILL")
-                    widget.label = "";
-            std::erase_if(spent.widgets, [](const Widget &widget) { return widget.node == "ANDROID_SKILLHELP"; });
-            Widget fact = Make("ANDROID_SKILLHELP", "fact", "");
-            fact.row_id = "TABLE_SKILL_1_tr2";
-            fact.context = {{"node", "TABLE_SKILL_1"},
-                            {"skill", Row(spent, "TABLE_SKILL_1", 1)->row_id},
-                            {"text", "Blades."},
-                            {"base", "3"},
-                            {"steps", "1"}};
-            spent.widgets.push_back(std::move(fact));
-            Widget step = Make("ANDROID_SKILLSTEPS", "fact", "");
-            step.row_id = "TABLE_SKILL_1_tr2_0";
-            step.context = {{"node", "TABLE_SKILL_1"},
-                            {"skill", Row(spent, "TABLE_SKILL_1", 1)->row_id},
-                            {"kind", "navy"},
-                            {"a1", "3"},
-                            {"a2", "63"},
-                            {"a3", "65"},
-                            {"value", "-2"}};
-            spent.widgets.push_back(std::move(step));
-            FakeSurface totals_surface;
-            Router totals(totals_surface);
-            totals.SetInterface(spent);
-            const Json personal = totals_surface.props["personal"]["rows"];
-            Expect(totals_surface.props["points"] == false && personal[0]["cells"][2]["text"] == "12" &&
-                       personal[0]["cells"][2]["tone"] == "gold" && personal[1]["cells"][2]["text"] == "1" &&
-                       personal[1]["cells"][2]["tone"] == "danger" &&
-                       totals_surface.props["ship"]["rows"][0]["cells"][2]["text"] == "11" &&
-                       totals_surface.errors.empty(),
-                   "the skills show base + bonus (Rapiers 3 (-2) = 1, red; no bonus: the base, gold): " +
-                       totals_surface.props["personal"].dump());
-            totals.OnEvent({"personal", "row", "1"});
-            const Json steps = totals_surface.props["dialog"]["steps"];
-            Expect(steps.size() == 3 && steps[2]["k"] == "<hero.step_result>" &&
-                       steps[2]["v"] == personal[1]["cells"][2]["text"] && totals_surface.errors.empty(),
-                   "the breakdown's result is the row's figure: " + steps.dump());
-
-            // A bonus cell of another shape is not guessed at: the row shows its base, untinted, and it is an error.
-            for (const char *odd : {"+1", "(+0)", "(1)", "(+1", "(+x)"})
-            {
-                InterfaceModel malformed = spent;
-                Row(malformed, "TABLE_SPECIAL", 1)->cells[2].text = odd;
-                FakeSurface odd_surface;
-                Router odd_router(odd_surface);
-                odd_router.SetInterface(malformed);
-                const Json &cell = odd_surface.props["special"]["rows"][1]["cells"][1];
-                Expect(cell["text"] == "7" && !cell.contains("tone") && odd_surface.errors.size() == 1 &&
-                           odd_surface.errors[0].find("not \"(+N)\"") != std::string::npos,
-                       std::string("a malformed bonus '") + odd + "' shows the base and is reported");
-            }
-        }
-        Expect(view["points"] == true && view["personal"]["rows"][0]["cells"][1]["arrows"] == true &&
-                   view["personal"]["rows"][0]["cells"][1]["noLeft"] == true,
-               "free points: ‹ › on the skills, ‹ only for points added in this visit");
-        Expect(view["subject"]["sub"] == "1 <common.of> 2" && view["subject"]["prev"] == false &&
-                   view["subject"]["next"] == true,
-               "the captain and one officer in the switch");
-    }
-
-    void SkillHelp()
-    {
-        {
-            // The stock game has RPGDescribe help for all three tables. Opening it is presentation-only: tapping a
-            // skill must not select a different engine row, spend a free point or leak through to an underlying action.
-            FakeSurface help_surface;
-            Router help(help_surface);
-            InterfaceModel with_help = model;
-            // The recorded model's own descriptions are replaced by one fact per table, on its first row only.
-            std::erase_if(with_help.widgets, [](const Widget &widget) { return widget.node == "ANDROID_SKILLHELP"; });
-            const char *tables[] = {"TABLE_SPECIAL", "TABLE_SKILL_1", "TABLE_SKILL_2"};
-            const char *ids[] = {"special", "personal", "ship"};
-            for (const char *table : tables)
-            {
-                const Widget *row = Row(with_help, table, 0);
-                Widget fact = Make("ANDROID_SKILLHELP", "fact", "");
-                fact.row_id = std::string(table) + "_tr1";
-                fact.context = {{"node", table},
-                                {"skill", row->row_id},
-                                {"text", "Game description.\r\n~\r\nEffects from RPGDescribe."}};
-                with_help.widgets.push_back(std::move(fact));
-            }
-            help.SetInterface(with_help);
-            for (int i = 0; i < 3; ++i)
-            {
-                help.OnEvent({ids[i], "row", "0"});
-                Expect(help_surface.props["dialog"]["kind"] == "skill" &&
-                           help_surface.props["dialog"]["title"] == Row(with_help, tables[i], 0)->CellText(1) &&
-                           help_surface.props["dialog"]["text"] == "Game description.\n\nEffects from RPGDescribe." &&
-                           help_surface.props["dialog"]["steps"].empty(),
-                       std::string("a tap shows stock description for ") + tables[i] +
-                           ", no steps without the adapter's");
-                Expect(help.WantsBack(), "Back belongs to the skill help modal");
-                help.Back();
-                Expect(help_surface.props["dialog"].is_null(),
-                       "Back closes skill help and retains the character screen");
-            }
-            help.OnEvent({"personal", "row", "1"}); // no game-provided text for this fixture's second row
-            Expect(help_surface.props["dialog"].is_null() && help_surface.commands.empty() &&
-                       help_surface.errors.size() == 1 &&
-                       help_surface.errors[0].find("no description of TABLE_SKILL_1") != std::string::npos,
-                   "missing skill text is reported, not invented; row taps send nothing");
-            help.OnEvent({"personal", "row", "0"});
-            help.OnEvent({"skill-help-close", "click", ""});
-            Expect(help_surface.props["dialog"].is_null(), "the explicit close action closes skill help");
-
-            // What a value is made of (android_hero.c AndroidSkillSteps): the base, the game's steps, the result. The
-            // lines must add up to the row's own value and bonus columns; when they do not, none is shown and it is an
-            // error.
-            for (int i = 0; i < 3; ++i)
-            {
-                const bool special = i == 0;
-                const Widget *row = Row(with_help, tables[i], 0);
-                const int base = ParseAmount(row->CellText(special ? 3 : 4)).value();
-                const int bonus = ParseAmount(row->CellText(special ? 2 : 3)).value_or(0);
-                for (const bool broken : {false, true})
-                {
-                    FakeSurface steps_surface;
-                    Router steps(steps_surface);
-                    InterfaceModel with_steps = with_help;
-                    for (Widget &fact : with_steps.widgets)
-                        if (fact.node == "ANDROID_SKILLHELP" && fact.context["node"] == tables[i])
-                            fact.context["base"] = std::to_string(base), fact.context["steps"] = "3";
-                    // an amulet +5, a ship of too high a class (what is left of the bonus), the health line -5
-                    const std::vector<std::map<std::string, std::string>> lines = {
-                        {{"kind", "item"}, {"label", "Amulet"}, {"value", "5"}},
-                        {{"kind", "navy"},
-                         {"a1", "3"},
-                         {"a2", "63"},
-                         {"a3", "65"},
-                         {"value", std::to_string(bonus + (broken ? 1 : 0))}},
-                        {{"kind", "health"}, {"a1", "3"}, {"value", "-5"}}};
-                    for (size_t n = 0; n < lines.size(); ++n)
-                    {
-                        Widget fact = Make("ANDROID_SKILLSTEPS", "fact", "");
-                        fact.row_id = std::string(tables[i]) + "_tr1_" + std::to_string(n);
-                        fact.context = {{"node", tables[i]}, {"skill", row->row_id}};
-                        for (const auto &[key, value] : lines[n])
-                            fact.context[key] = value;
-                        with_steps.widgets.push_back(std::move(fact));
-                    }
-                    steps.SetInterface(with_steps);
-                    steps.OnEvent({ids[i], "row", "0"});
-                    const Json shown = steps_surface.props["dialog"]["steps"];
-                    if (broken)
-                    {
-                        Expect(shown.empty() && steps_surface.errors.size() == 1 &&
-                                   steps_surface.errors[0].find("do not add up") != std::string::npos,
-                               std::string("steps that do not add up to the row are not shown and are an error: ") +
-                                   tables[i]);
-                        continue;
-                    }
-                    const std::string minus = "−";
-                    Expect(shown.size() == 5 && shown[0]["k"] == "<hero.step_base>" &&
-                               shown[0]["v"] == std::to_string(base) && shown[1]["k"] == "Amulet" &&
-                               shown[1]["v"] == "+5" && shown[1]["tone"] == "ok" &&
-                               shown[2]["k"] == "<hero.step_navy>" && shown[3]["k"] == "<hero.step_health>" &&
-                               shown[3]["v"] == minus + "5" && shown[3]["tone"] == "danger" &&
-                               shown[4]["k"] == "<hero.step_result>" && shown[4]["v"] == std::to_string(base + bonus) &&
-                               steps_surface.errors.empty(),
-                           std::string("base, the steps with their signs and the result: ") + tables[i] + " " +
-                               shown.dump());
-                }
-            }
-        }
-    }
-
-    void SubjectList()
-    {
-        // The subject list: a tap on the name lists the captain and the officers; a picked row is the same select as ›.
-        Expect(view["subject"]["list"] == true && !view["subject"].contains("open"),
-               "two subjects offer the list, closed");
-        router.OnEvent({"header", "subject-list", ""});
-        view = surface.props;
-        Expect(view["subject"]["open"] == true && view["subject"]["title"] == "<hero.subjects>" &&
-                   view["subject"]["rows"].size() == 2 && view["subject"]["rows"][0]["label"] == "Anne Bonny" &&
-                   view["subject"]["rows"][0]["selected"] == true && view["subject"]["rows"][1]["selected"] == false,
-               "the list of the captain and the officer on a post, the current one selected");
-        Expect(router.WantsBack(), "back closes the subject list");
-        router.Back();
-        Expect(!surface.props["subject"].contains("open"), "back closed the list");
-        router.OnEvent({"header", "subject-list", ""});
-        const size_t sent = surface.commands.size();
-        router.OnEvent({"header-subject-0", "", ""});
-        Expect(surface.commands.size() == sent && !surface.props["subject"].contains("open"),
-               "picking the current subject only closes the list");
-        router.OnEvent({"header", "subject-list", ""});
-        router.OnEvent({"header-subject-1", "", ""});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tCHARACTERS_SCROLL\t1\tselect@4:1:1",
-                    "a picked officer is selected as with ›");
-        Expect(!surface.props["subject"].contains("open"), "the pick closes the list");
-        Expect(view["extras"]["rows"].empty(), "every widget is known: no extras");
-    }
-
-    void SkillArrow()
-    {
-        // A skill arrow: select the row, then the game's arrow once the engine shows the row selected.
-        router.OnEvent({"personal", "inc", "0"});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_SKILL_1\t0\tselect@4:Leadership",
-                    "› selects the skill row first");
-        model.revision += 1;
-        Row(model, "TABLE_SKILL_1", 0)->value = "1";
-        router.SetInterface(model);
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tB_SKILLUP\t-1\tpress", "then presses the game's arrow");
-        Expect(surface.props["personal"]["rows"][0]["cells"][1]["noLeft"] == false,
-               "a point added in this visit may be taken back");
-    }
-
-    void Perks()
-    {
-        // Learning a perk: select, open its window, accept.
-        surface.commands.clear();
-        router.OnEvent({"header-tabs", "select", "perks1"});
-        view = surface.props;
-        const auto perk_nodes = [](const Json &v) { return v["tree"]["nodes"]; };
-        Expect(surface.commands.empty() && view["tab"] == "perks" && view["tabs"][1]["selected"] == true &&
-                   perk_nodes(view).size() == 2 && view["detail"]["title"] == "Basic defense" &&
-                   view["detail"]["learn"]["disabled"] == false && view["detail"]["learn"]["label"] == "<hero.learn>" &&
-                   view["perkInfo"] == "<hero.free_points> 1 · <hero.next_point> 340 / 1\xC2\xA0"
-                                       "000" &&
-                   view["detail"]["text"] == "Damage taken is 10% lower.\n\nStacks with armour.",
-               "the game's open perk group: tree, detail, points, progress");
-        Expect(perk_nodes(view)[0]["state"] == "open" && perk_nodes(view)[1]["state"] == "locked" &&
-                   perk_nodes(view)[1]["image"]["enamel"] == "iron" && view["detail"]["opens"].size() == 1 &&
-                   view["detail"]["opens"][0]["perk"] == "criticalhit",
-               "a perk with a missing requirement is locked; the open one names what it opens");
-        router.OnEvent({"perks", "row", "criticalhit"});
-        Expect(surface.commands.empty() && surface.props["detail"]["learn"]["disabled"] == false &&
-                   surface.props["detail"]["requires"].size() == 1 &&
-                   surface.props["detail"]["requires"][0]["name"] == "Basic defense" &&
-                   !surface.props["detail"].contains("blocked"),
-               "the locked perk's detail names what it needs, in words; learning it is the game's to refuse");
-        router.OnEvent({"perk-learn", "click", ""});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t1\tselect@4:criticalhit",
-                    "the hold asks the game: the perk's row first");
-        {
-            auto refused = model;
-            refused.revision += 1;
-            Row(refused, "TABLE_PERKS", 0)->value = "0";
-            Row(refused, "TABLE_PERKS", 1)->value = "1";
-            Widget accept = Make("PERK_ACCEPT", "button", "Learn");
-            accept.enabled = false; // ChoosePerk: SetSelectable("PERK_ACCEPT", false)
-            refused.widgets.push_back(accept);
-            refused.widgets.push_back(Make("PERK_CANCEL", "button", "Cancel", {"press"}));
-            router.SetInterface(refused);
-            ExpectEqual(surface.Last(), "widget:lscchar_all\tPERK_CANCEL\t-1\tpress",
-                        "the game's window refuses it: closed, never accepted");
-            Expect(surface.props["dialog"].is_null() && surface.props["detail"]["learn"]["disabled"] == true,
-                   "a perk the game refused is not offered again");
-            model.revision = refused.revision + 1;
-            router.SetInterface(model);
-            surface.commands.clear();
-        }
-        router.OnEvent({"perk-detail", "go", "basicdefense"});
-        Expect(surface.commands.empty() && surface.props["detail"]["title"] == "Basic defense",
-               "«Требует» selects that perk");
-        Expect(surface.props["detail"]["learn"]["label"] == "<hero.learn>", "the button says just «Изучить»");
-        router.OnEvent({"perk-learn", "click", ""}); // the completed hold
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t0\tactivate@4:basicdefense",
-                    "the hold opens the selected perk's stock window at once");
-        Expect(surface.props["dialog"].is_null(), "no card while the game learns");
-        model.revision += 1;
-        model.widgets.push_back(Make("PERK_ACCEPT", "button", "Learn", {"press"}));
-        model.widgets.push_back(Make("PERK_CANCEL", "button", "Cancel", {"press"}));
-        router.SetInterface(model);
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tPERK_ACCEPT\t-1\tpress", "and accepted in the game's window");
-        Expect(router.WantsBack(), "while the game's window is open the back key closes it");
-        model.widgets.resize(model.widgets.size() - 2);
-        // The other perk group is its own tab: the game's group button is pressed, the tab shows chosen at once.
-        model.revision += 1;
-        router.SetInterface(model);
-        router.OnEvent({"header-tabs", "select", "perks2"});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tTABBTN_2\t-1\tpress",
-                    "the ship perks: the game's second group");
-        Expect(surface.props["tabs"][1]["selected"] == true && surface.props["tabs"][2]["selected"] == false,
-               "the tab marker follows the game's group, with the tree");
-    }
-
-    void Officers()
-    {
-        // Officers: a post opens the game's remove window; the dialog removes or closes.
-        model.revision += 1;
-        router.SetInterface(model);
-        router.OnEvent({"header-tabs", "select", "officers"});
-        view = surface.props;
-        Expect(view["posts"].size() == 1 && view["freePosts"].size() == 1 && view["passengers"].size() == 1 &&
-                   view["postsCount"] == "1 <common.of> 2",
-               "posts, free posts, passengers");
-        router.OnEvent({"post-1", "click", ""});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tCHARACTERS_SCROLL\t1\tselect@4:1:1",
-                    "a post selects its slot");
-        model.revision += 1;
-        Row(model, "CHARACTERS_SCROLL", 0)->value = "0";
-        Row(model, "CHARACTERS_SCROLL", 1)->value = "1";
-        Row(model, "CHARACTERS_SCROLL", 1)->actions = {"select", "activate"};
-        router.SetInterface(model);
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tCHARACTERS_SCROLL\t1\tactivate@4:1:1", "then activates it");
-        model.revision += 1;
-        model.widgets.push_back(Make("REMOVE_ACCEPT_OFFICER", "button", "Yes", {"press"}));
-        model.widgets.push_back(Make("REMOVE_CANCEL_OFFICER", "button", "No", {"press"}));
-        router.SetInterface(model);
-        view = surface.props;
-        Expect(view["dialog"]["kind"] == "officer" && view["dialog"]["title"] == "Jack Rackham" &&
-                   view["dialog"]["facts"][0]["v"] == "34" &&
-                   view["dialog"]["facts"][2]["v"] == "1\xC2\xA0"
-                                                      "500 <hero.per_month>",
-               "the officer dialog with the post's skill, loyalty and salary");
-        router.OnEvent({"officer-remove", "click", ""});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tREMOVE_ACCEPT_OFFICER\t-1\tpress",
-                    "«relieve» is the game's accept");
-        model.revision += 1;
-        router.SetInterface(model);
-        router.Back();
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tREMOVE_CANCEL_OFFICER\t-1\tpress",
-                    "back closes the game's window");
-        model.widgets.resize(model.widgets.size() - 2);
-
-        // The post chooser: a candidate is selected, then accepted.
-        model.revision += 1;
-        model.widgets.push_back(Make("ACCEPT_ADD_OFFICER", "button", "Accept", {"press"}));
-        model.widgets.push_back(Make("CANCEL_ADD_OFFICER", "button", "Cancel", {"press"}));
-        for (int i = 0; i < 2; ++i)
-        {
-            Widget row = Make("PASSENGERSLIST", "choice", i ? "Mary Read" : "Ned Low", {"select"});
-            row.index = i;
-            row.value = i ? "0" : "1";
-            row.row_id = "3:" + std::to_string(i);
-            model.widgets.push_back(row);
-            Widget fact = Make("ANDROID_CANDIDATES", "fact", i ? "Mary Read" : "Ned Low");
-            fact.index = i;
-            fact.context = {{"index", std::to_string(i)}, {"character", i ? "12" : "11"}, {"rank", "6"},
-                            {"skill", "Grappling"},       {"skillvalue", "41"},           {"face", "30"}};
-            model.widgets.push_back(fact);
-        }
-        router.SetInterface(model);
-        Expect(surface.props["dialog"]["kind"] == "assign" && surface.props["dialog"]["rows"].size() == 2 &&
-                   surface.props["dialog"]["rows"][1]["value"] == "Grappling 41",
-               "the post chooser lists the game's candidates with the post's skill");
-        router.OnEvent({"candidate-1", "click", ""});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tPASSENGERSLIST\t1\tselect@4:3:1",
-                    "a candidate is selected in the game's list");
-        model.revision += 1;
-        Row(model, "PASSENGERSLIST", 0)->value = "0";
-        Row(model, "PASSENGERSLIST", 1)->value = "1";
-        router.SetInterface(model);
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tACCEPT_ADD_OFFICER\t-1\tpress", "and accepted");
-    }
-
-    void Sections()
-    {
-        // Sections wait for the game's window to close.
-        model.revision += 1;
-        router.SetInterface(model);
-        router.OnEvent({"header", "section", "ship"});
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tCANCEL_ADD_OFFICER\t-1\tpress",
-                    "a section first closes the open window");
-        model.widgets.erase(std::remove_if(model.widgets.begin(), model.widgets.end(),
-                                           [](const Widget &w) {
-                                               return w.node == "ACCEPT_ADD_OFFICER" ||
-                                                      w.node == "CANCEL_ADD_OFFICER" || w.node == "PASSENGERSLIST" ||
-                                                      w.node == "ANDROID_CANDIDATES";
-                                           }),
-                            model.widgets.end());
-        model.revision += 1;
-        router.SetInterface(model);
-        ExpectEqual(surface.Last(), "widget:lscchar_all\tI_SHIP\t-1\tpress", "then opens the section");
-    }
-
-    void WithoutFacts()
-    {
-        // Without the adapter's facts the screen is not used, loudly.
-        InterfaceModel bare = Load(models, "hero.json");
-        bare.opening = 50;
-        bare.widgets.erase(
-            std::remove_if(bare.widgets.begin(), bare.widgets.end(), [](const Widget &w) { return w.type == "fact"; }),
-            bare.widgets.end());
-        const size_t errors = surface.errors.size();
-        router.SetInterface(bare);
-        Expect(router.Using() == "lscchar_all" && surface.errors.size() == errors + 1,
-               "without the interface adapter's facts: drawn, and reported");
-        bare.revision += 1;
-        router.SetInterface(bare);
-        Expect(surface.errors.size() == errors + 1, "reported once per opening (a closing interface loses its facts)");
-    }
-};
-
+// The character screen in script on one router: the game's multi-step moves walked one model at a time (a skill row
+// selected, then its arrow; a perk selected, opened, then the game's accept; a post selected, then opened; a
+// candidate selected, then accepted), the game's refusal of a perk and the sections.
 static void Hero(const std::string &models)
-{
-    HeroRun run{models};
-    run.Opening();
-    run.SkillHelp();
-    run.SubjectList();
-    run.SkillArrow();
-    run.Perks();
-    run.Officers();
-    run.Sections();
-    run.WithoutFacts();
-}
-
-// The header's switch lists the people of the game's character list (hero-people.json: an officer on two posts,
-// a fighter, a companion, a passenger and a prisoner beside free posts), each once, by name, with every role.
-static void HeroPeople(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
-    InterfaceModel model = Load(models, "hero-people.json");
+    Scripted(router);
+    InterfaceModel model = Load(models, "hero.json");
     router.SetInterface(model);
-    Expect(surface.props["subject"]["label"] == "Anne Bonny" && surface.props["subject"]["sub"] == "1 <common.of> 7",
-           "the captain first, seven people: " + surface.props["subject"].dump());
-    router.OnEvent({"header", "subject-list", ""});
-    const Json rows = surface.props["subject"]["rows"];
-    std::vector<std::string> names, metas;
-    for (const Json &row : rows)
-    {
-        names.push_back(row["label"]);
-        metas.push_back(row["meta"]);
-    }
-    Expect(names == std::vector<std::string>{"Anne Bonny", "Jack Rackham", "Mary Read", "Israel Hands", "Edward Teach",
-                                             "Bartholomew de la Fontaine-Beaumarchais", "Charles Vane"},
-           "every person once, in the game's order, by name");
-    Expect(metas == std::vector<std::string>{"Captain", "Navigator", "Cannoner\xC2\xA0· doctor", "Fighter", "Companion",
-                                             "Passenger", "Prisoner"},
-           "with every role they hold, in sentence case");
-    Expect(rows[2]["image"]["texture"] == "INTERFACES/PORTRAITS/128/face_30", "with the person's portrait");
-    const auto shows = [&](int slot, const char *character) {
-        for (Widget &widget : model.widgets)
-            if (widget.node == "CHARACTERS_SCROLL")
-                widget.value = widget.index == slot ? "1" : "0";
-            else if (widget.node == "ANDROID_SUBJECT" && character)
-                widget.context["character"] = character;
-        model.revision += 1;
-        router.SetInterface(model);
-    };
-    router.OnEvent({"header-subject-2", "click", ""});
-    Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t3\tselect@", 0) == 0,
-           "an officer on two posts is selected by the first: " + surface.Last());
-    Expect(surface.props["subject"]["label"] == "Mary Read" && surface.props["subject"]["sub"] == "3 <common.of> 7" &&
-               !surface.props["subject"].contains("open"),
-           "the pick is drawn in the tap's own frame: " + surface.props["subject"].dump());
-    // The game answers in two frames: its list selects her slot at once, the person follows a frame later.
-    AnswerAll(router, surface, true);
-    shows(3, nullptr);
-    Expect(surface.props["subject"]["label"] == "Mary Read" && surface.props["card"]["roles"] == "Captain",
-           "the step keeps the pick, the card the person the game still shows: " + surface.props["subject"].dump());
-    shows(3, "11");
-    Expect(surface.props["subject"]["label"] == "Mary Read" && surface.props["subject"]["sub"] == "3 <common.of> 7",
-           "the game shows her: " + surface.props["subject"].dump());
-    Expect(surface.props["card"]["sub"] == "Rank 4" && surface.props["card"]["roles"] == "Cannoner\xC2\xA0· doctor",
-           "her card names both posts on a line of their own under the rank: " + surface.props["card"].dump());
-    Expect(surface.errors.empty(), "the game confirmed the pick: " + (surface.errors.empty() ? "" : surface.errors[0]));
-    router.OnEvent({"header", "subject-next", ""});
-    Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t7\tselect@", 0) == 0,
-           "› goes to the next person, not to her other post: " + surface.Last());
-    Expect(surface.props["subject"]["label"] == "Israel Hands", "› is drawn in the tap's own frame");
-    AnswerAll(router, surface, true);
-    shows(7, "12");
-    router.OnEvent({"header", "subject-list", ""});
-    router.OnEvent({"header-subject-6", "click", ""});
-    Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t12\tselect@", 0) == 0,
-           "a prisoner is selected by his slot: " + surface.Last());
-    AnswerAll(router, surface, true);
-    shows(12, "22");
-    router.OnEvent({"header", "subject-prev", ""});
-    Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t11\tselect@", 0) == 0,
-           "‹ goes to the person before him: " + surface.Last());
-    AnswerAll(router, surface, true);
-    shows(11, "21");
-    // The game shows her by her second post (a HUD portrait opened the screen on it): the switch shows her.
-    shows(4, "11");
-    Expect(surface.props["subject"]["label"] == "Mary Read" && surface.props["subject"]["sub"] == "3 <common.of> 7",
-           "her second post shows her: " + surface.props["subject"].dump());
-    Expect(surface.errors.empty(),
-           "the game confirmed every pick: " + (surface.errors.empty() ? "" : surface.errors[0]));
-    // A selection the player did not make (the HUD's subject, the game's own): the header waits for the person with the
-    // card, as nothing was drawn at a tap.
-    shows(7, nullptr);
-    Expect(surface.props["subject"]["label"] == "Mary Read" &&
-               surface.props["card"]["roles"] == "Cannoner\xC2\xA0· doctor",
-           "the game's step does not move the header: " + surface.props["subject"].dump());
-    shows(7, "12");
-    Expect(surface.props["subject"]["label"] == "Israel Hands", "the game shows him");
+    ExpectEqual(surface.tag, "s-hero", "s-hero mounted");
+    Expect(surface.props["tabs"].size() == 4 && surface.props["card"]["title"] == "Anne Bonny" &&
+               surface.props["headerSection"] == "hero",
+           "skills, the two perk groups, officers; the card; the sections");
+    Expect(surface.props["extras"]["rows"].empty(), "every widget is known: no extras");
 
-    // A free post selected in the game's list: the game shows the captain.
-    shows(2, "1");
-    Expect(surface.props["subject"]["label"] == "Anne Bonny", "a free post shows the captain");
-    // A subject the list does not hold is the adapter's fault: said, never shown as somebody else in silence.
-    shows(2, "99");
-    Expect(!surface.errors.empty() && surface.errors.back().find("character 99") != std::string::npos,
-           "a subject outside the list is an error");
-    shows(2, "1");
-    surface.errors.clear();
+    router.OnEvent({"personal", "inc", "0"});
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_SKILL_1\t0\tselect@4:Leadership",
+                "a point asked selects the skill row first");
+    AnswerAll(router, surface, true);
+    model.revision += 1;
+    Row(model, "TABLE_SKILL_1", 0)->value = "1";
+    router.SetInterface(model);
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tB_SKILLUP\t-1\tpress", "then presses the game's arrow");
+    AnswerAll(router, surface, true);
+    model.revision += 1;
+    router.SetInterface(model);
+    Expect(surface.props["personal"]["rows"][0]["cells"][1]["noLeft"] == false,
+           "a point put in during this visit may be taken back");
 
-    // The officers tab stays about posts: both of her posts, no companion, passenger or prisoner among them.
+    // A perk: selected, its window opened, then the game's accept.
+    router.OnEvent({"header-tabs", "select", "perks1"});
+    router.Tick();
+    Expect(surface.props["tab"] == "perks", "the personal group's tree");
+    router.OnEvent({"perks", "row", "criticalhit"});
+    router.Tick();
+    router.OnEvent({"perk-learn", "click", ""});
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t1\tselect@4:criticalhit",
+                "learning selects the perk");
+    AnswerAll(router, surface, true);
+    model.revision += 1;
+    Row(model, "TABLE_PERKS", 0)->value = "0";
+    Row(model, "TABLE_PERKS", 1)->value = "1";
+    router.SetInterface(model);
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t1\tactivate@4:criticalhit", "then opens its window");
+    AnswerAll(router, surface, true);
+    InterfaceModel window = model;
+    window.revision += 1;
+    window.widgets.push_back(Make("PERK_ACCEPT", "button", "Learn", {"press"}));
+    window.widgets.push_back(Make("PERK_CANCEL", "button", "Cancel", {"press"}));
+    router.SetInterface(window);
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tPERK_ACCEPT\t-1\tpress", "then takes the game's accept");
+    AnswerAll(router, surface, true);
+
+    // The game refuses: its window's accept is off. The window is closed and the button stays off in this state.
+    model.revision = window.revision + 1;
+    router.SetInterface(model);
+    router.OnEvent({"perk-learn", "click", ""});
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t1\tactivate@4:criticalhit",
+                "a selected perk opens its window at once");
+    AnswerAll(router, surface, true);
+    window = model;
+    window.revision += 1;
+    window.widgets.push_back(Make("PERK_ACCEPT", "button", "Learn"));
+    window.widgets.back().enabled = false; // the game's refusal: SetSelectable("PERK_ACCEPT", false)
+    window.widgets.push_back(Make("PERK_CANCEL", "button", "Cancel", {"press"}));
+    router.SetInterface(window);
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tPERK_CANCEL\t-1\tpress", "a refused perk's window is closed");
+    AnswerAll(router, surface, true);
+    model.revision = window.revision + 1;
+    router.SetInterface(model);
+    Expect(surface.props["detail"]["learn"]["disabled"] == true, "and the game's refusal stays on the button");
+
+    // A post: selected, then opened; the chooser's candidate: selected, then accepted.
     router.OnEvent({"header-tabs", "select", "officers"});
-    Expect(surface.props["posts"].size() == 4 && surface.props["postsCount"] == "4 <common.of> 9" &&
-               surface.props["freePosts"].size() == 5 && surface.props["passengers"].size() == 1,
-           "posts by post: " + surface.props["postsCount"].dump());
-    ExpectEqual(surface.props["posts"][0]["meta"], "Navigator", "a post's role on a line of its own, in sentence case");
-    Expect(surface.errors.empty(), "no errors: " + (surface.errors.empty() ? "" : surface.errors.front()));
+    router.Tick();
+    router.OnEvent({"post-2", "click", ""});
+    Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t2\tselect@", 0) == 0,
+           "a post tapped selects its slot: " + surface.Last());
+    AnswerAll(router, surface, true);
+    InterfaceModel assign = Load(models, "hero-assign.json");
+    assign.revision = model.revision + 1;
+    for (Widget &widget : assign.widgets)
+        if (widget.node == "PASSENGERSLIST")
+            widget.value = "0";
+    router.SetInterface(assign);
+    ExpectEqual(surface.props["dialog"]["kind"], "assign", "the game's chooser drawn as our sheet");
+    {
+        // The chooser's rows reused for another post before the game selected the tapped one: nothing is accepted.
+        router.OnEvent({"candidate-1", "", ""});
+        AnswerAll(router, surface, true);
+        InterfaceModel other = assign;
+        other.revision = assign.revision + 1;
+        Row(other, "CHARACTERS_SCROLL", 2)->value = "0";
+        Row(other, "CHARACTERS_SCROLL", 1)->value = "1";
+        Row(other, "PASSENGERSLIST", 1)->value = "1";
+        router.SetInterface(other);
+        Expect(surface.Last().find("ACCEPT_ADD_OFFICER") == std::string::npos,
+               "a candidate tapped for one post is not accepted for another: " + surface.Last());
+        assign.revision = other.revision + 1;
+        router.SetInterface(assign);
+    }
+    router.OnEvent({"candidate-1", "", ""});
+    Expect(surface.Last().rfind("widget:lscchar_all\tPASSENGERSLIST\t1\tselect", 0) == 0,
+           "a candidate tapped is selected: " + surface.Last());
+    AnswerAll(router, surface, true);
+    assign.revision += 1;
+    Row(assign, "PASSENGERSLIST", 1)->value = "1";
+    router.SetInterface(assign);
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tACCEPT_ADD_OFFICER\t-1\tpress",
+                "then accepted by the game's button");
+    AnswerAll(router, surface, true);
 
-    // German writes its nouns capitalised, in the list, on the card and on the posts as anywhere.
-    FakeSurface german_surface;
-    Router german(german_surface);
-    german.SetInterface(Load(models, "hero-people-de.json"));
-    german.OnEvent({"header", "subject-list", ""});
-    ExpectEqual(german_surface.props["subject"]["rows"][2]["meta"],
-                "Geschützoffizier\xC2\xA0· Proviantmeister\xC2\xA0· Schiffszimmermann", "German roles in the list");
-    ExpectEqual(german_surface.props["card"]["roles"],
-                "Geschützoffizier\xC2\xA0· Proviantmeister\xC2\xA0· Schiffszimmermann", "German roles on the card");
-    german.OnEvent({"header-tabs", "select", "officers"});
-    ExpectEqual(german_surface.props["posts"][0]["meta"], "Navigationsoffizier", "a German post");
+    model.revision = assign.revision + 1;
+    router.SetInterface(model);
+    router.OnEvent({"header", "section", "ship"});
+    ExpectEqual(surface.Last(), "widget:lscchar_all\tI_SHIP\t-1\tpress", "another section");
+    Expect(surface.errors.empty(), "no error line: " + (surface.errors.empty() ? std::string() : surface.errors[0]));
 }
 
-// The items screen's script over the fixture game's people and items (engine/tests/ui_scripts/game): the captain Anne
-// Bonny wears the rapier (row 0) and a timed amulet; the dagger (row 1) and three potions (row 2) she carries.
 static void Items(const std::string &models)
 {
     FakeSurface surface;
@@ -2913,6 +2482,7 @@ static void OpenOnSubject(const std::string &models)
         SubjectMount mount;
         storm::ui::hud::Hud hud(mount);
         router.AttachHud(&hud);
+        Scripted(router);
         hud.RequestSubject({"character", 9, -1});
         router.SetInterface(Load(models, "hero.json"));
         Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t1\tselect@", 0) == 0,
@@ -2930,6 +2500,7 @@ static void OpenOnSubject(const std::string &models)
         SubjectMount mount;
         storm::ui::hud::Hud hud(mount);
         router.AttachHud(&hud);
+        Scripted(router);
         hud.RequestSubject({"character", 1, -1});
         router.SetInterface(Load(models, "hero.json"));
         Expect(surface.commands.empty() && !hud.TakeSubject("character"),
@@ -2938,16 +2509,16 @@ static void OpenOnSubject(const std::string &models)
         InterfaceModel again = Load(models, "hero.json");
         again.revision += 1;
         router.SetInterface(again);
-        Expect(surface.commands.empty() && !surface.errors.empty(),
-               "a person not in the character list: the captain stays, and that is said");
+        Expect(!surface.errors.empty(), "a person not in the character list: that is said");
     }
-    for (const auto &[character, slot] : {std::pair{11, 3}, std::pair{20, 10}})
+    for (const auto &[character, slot] : {std::pair{14, 3}, std::pair{20, 10}})
     {
         FakeSurface surface;
         Router router(surface);
         SubjectMount mount;
         storm::ui::hud::Hud hud(mount);
         router.AttachHud(&hud);
+        Scripted(router);
         hud.RequestSubject({"character", character, -1});
         router.SetInterface(Load(models, "hero-people.json"));
         Expect(surface.Last().rfind("widget:lscchar_all\tCHARACTERS_SCROLL\t" + std::to_string(slot) + "\tselect@",
@@ -4331,7 +3902,6 @@ int main(int argc, char **argv)
     DialogueNumber(models);
     Nations(models);
     Hero(models);
-    HeroPeople(models);
     Items(models);
     Ship(models);
     OpenOnSubject(models);

@@ -117,7 +117,6 @@ add_library(storm_ui STATIC
     src/screens/registry.cpp
     src/screens/generic.cpp
     src/screens/hero.cpp
-    src/screens/hero_character.cpp
     src/screens/dialogue.cpp
     src/screens/menu_new_game.cpp
     src/screens/menu_saves.cpp
@@ -233,8 +232,7 @@ elseif(NOT CMAKE_CROSSCOMPILING)
         add_test(NAME ui_${name} COMMAND storm_ui_${name}_unit ${ARGN})
     endfunction()
     storm_ui_check(unit unit_check.cpp "${models}")
-    storm_ui_check(perk_tree perk_tree_check.cpp "${models}")
-    storm_ui_check(officer_assignment officer_assignment_check.cpp "${models}")
+    storm_ui_check(perk_tree perk_tree_check.cpp)
     storm_ui_check(hud_lifecycle hud_lifecycle_check.cpp "${states}" "${pack}")
     storm_ui_check(hud hud_check.cpp "${states}")
     storm_ui_check(hud_spyglass hud_spyglass_check.cpp "${states}")

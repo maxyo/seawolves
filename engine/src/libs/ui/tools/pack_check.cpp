@@ -569,7 +569,12 @@ bool Reach(Session &session, const TapAt &tap, Rml::Vector2f &at)
 void Press(Session &session, const TapAt &tap, Rml::Vector2f at)
 {
     session->Touch(TouchPhase::Down, 1, at.x, at.y, session.Clock());
-    session.Frames(tap.hold ? 1.5 : 1.0 / 60.0);
+    // A hold acts before it is released: the game answers it meanwhile, as the engine does within the frame.
+    if (tap.hold)
+        for (int step = 0; step < 15; ++step)
+            session.AnswerAll();
+    else
+        session.Frames(1.0 / 60.0);
     session->Touch(TouchPhase::Up, 1, at.x, at.y, session.Clock());
     session.Frames(0.1);
 }

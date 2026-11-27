@@ -404,7 +404,7 @@ def check_references(components, icon_ids):
 
 # Icons whose ids are built at run time from a game value, by prefix: where the prefix is put together.
 RUNTIME_ICON_PREFIXES = {
-    "perk-": "engine screens/hero_character.cpp: \"perk-\" + the perk id",
+    "perk-": "design/scripts.json: the character binding's perkIcons, by the perk id",
     "suit-": "screens/pieces/template.rml: suit-{{p.suit}}",
     "c-sky-": "components/compass/template.rml: 'c-sky-' + weather",
     "nation-": "the flags: \"nation-\" + the nation (engine screens/maps.cpp, hud/spyglass.cpp, …)",

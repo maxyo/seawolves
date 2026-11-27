@@ -6,14 +6,12 @@
 Runs every Java check of tests/java_check.py (reported as tests/<name>), every tests/*/run.py and
 tools/android/tests/*/run.py, the project boundary and the launcher icon check. CI runs this on pull requests, on main and before a release is packaged.
 
-Three checks need more than a CI runner has and run only on a developer machine:
+Two checks need more than a CI runner has and run only on a developer machine:
 
 - tools/android/tests/pirate_spawn/run.py: the shipped pirate-frequency patch on the unchanged game scripts
   (reads the game, copies only the patch targets);
-- tests/attribute_highlight/run.py: real pointer taps on the hero screen of this application's pack, captured
-  by the engine's storm_ui_shot (software GLES, no GPU), built incrementally in build/ui-shot;
 - tests/hud_fleet_rings/run.py: the HUD fleet column on the world map and at sea, every ship picture centred in
-  its rings (same storm_ui_shot and pack).
+  its rings, captured by the engine's storm_ui_shot (software GLES, no GPU), built incrementally in build/ui-shot.
 
 They run when $STORM_GAME_DIR names your copy of the game (the directory with PROGRAM/ and RESOURCE/), or with
 --local, which makes a missing input a failure instead of NOT_RUN. The platform icon check needs the SDK platform,
@@ -38,7 +36,7 @@ parser.add_argument('--local', action='store_true',
 args = parser.parse_args()
 # The developer-machine checks: run below with their own arguments where their inputs are found.
 # The checks captured by storm_ui_shot on this application's pack (one storm_ui_shot build and one pack for all).
-shot_checks = ('tests/attribute_highlight/run.py', 'tests/hud_fleet_rings/run.py')
+shot_checks = ('tests/hud_fleet_rings/run.py',)
 local_checks = (*shot_checks, 'tools/android/tests/pirate_spawn/run.py')
 not_run = {}  # label -> what it requires: reported NOT_RUN
 discovered = sorted([*root.glob('tests/*/run.py'), *root.glob('tools/android/tests/*/run.py')])

@@ -57,6 +57,23 @@ Json Scalar(const ViewTree &node, const std::string &type, const std::string &pa
 
 ImageRef Image(const ViewTree &node, const std::string &path);
 
+// A picture that is our enamel token {kind "token", icon, enamel} instead of a game image (a perk with an icon of
+// ours); null for any other kind.
+Json Token(const ViewTree &node, const std::string &path)
+{
+    const auto kind = std::find_if(node.children.begin(), node.children.end(),
+                                   [](const ViewTree &child) { return SameNode(child.name, "kind"); });
+    if (kind == node.children.end() || kind->value != "token")
+        return Json();
+    Json token{{"kind", "token"}, {"icon", ""}, {"enamel", ""}};
+    for (const ViewTree &child : node.children)
+        if (SameNode(child.name, "icon") || SameNode(child.name, "enamel"))
+            token[SameNode(child.name, "icon") ? "icon" : "enamel"] = child.value;
+        else if (!SameNode(child.name, "kind"))
+            throw Mismatch(path + "/" + child.name, "is not kind, icon or enamel of a token");
+    return token;
+}
+
 // A shape object with one of these keys alone says how to read a node, not a field of it.
 const Json *Meta(const Json &shape, const char *key)
 {
@@ -67,7 +84,8 @@ const Json *Meta(const Json &shape, const char *key)
 // that shape, or null where the view gives the node no value and no children; {"$either": [scalar, structure]}:
 // the scalar where the node has no children, else the structure (a table's cells: plain text or {text, bold});
 // "picture": a game image {kind, group, image, uv} as the pack draws it in a row (PictureOf: null for none or a kind
-// it does not draw); "texture": the same image as a backdrop or a map draws it (TextureOf: {texture, uv}, or null);
+// it does not draw), or our token {kind "token", icon, enamel}; "texture": the same image as a backdrop or a map draws
+// it (TextureOf: {texture, uv}, or null);
 // {"$texture": fields}: fields beside an `image` drawn as a texture: those fields with its texture and uv;
 // "numbers": "1,2,3" as a list of numbers.
 Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
@@ -78,6 +96,9 @@ Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
             throw Mismatch(path, "a picture has no value, only kind, group, image and uv");
         if (node.children.empty())
             return Json();
+        if (shape == "picture")
+            if (Json token = Token(node, path); !token.is_null())
+                return token;
         const ImageRef image = Image(node, path);
         return shape == "picture" ? PictureOf(&image) : TextureOf(&image);
     }

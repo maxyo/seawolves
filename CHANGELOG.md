@@ -108,6 +108,8 @@
 - Экран корабля построен скриптами интерфейса. Вопросы игры (поднять мораль, обмен с кораблём компаньона) показываются
   её словами, с её ценой и её отказом; доли команды — строки самой игры. Пушки по борту ставятся стрелками игры по
   одной, и борт показывает, где игра остановилась. Слова опыта команды и морали пишутся так, как их пишет игра.
+- Персонаж и способности: экран — скриптовый. Состояние здоровья и роли пишутся так, как их пишет игра; разбор
+  значения навыка показывает шаги самой игры без нашей сверки.
 
 **English**
 
@@ -220,6 +222,8 @@
   companion's ship) are shown in its words, with its price and its refusal; the crew's shares are the game's own
   lines. The guns of a side are set by the game's arrows one at a time, and the side shows where the game stopped.
   The crew's experience and morale words are written as the game writes them.
+- Character and abilities: a script screen. The health word and the roles are written as the game writes them; a
+  skill's breakdown shows the game's own steps without our cross-check.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

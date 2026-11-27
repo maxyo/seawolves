@@ -345,7 +345,7 @@ class Hud
 
     // A tap on a party portrait or a squadron ship opens a game screen on that subject: the
     // scene sends the opening shortcut and leaves the subject here; the screen that opens takes
-    // it once (screens/hero_character.cpp: the switch over the people; the ship screen's script: the
+    // it once (the character script screen: UiSubject, the switch over the people; the ship screen's script: the
     // squadron's ship). A request nobody takes lapses after kSubjectSeconds.
     static constexpr double kSubjectSeconds = 5.0;
     void RequestSubject(const SubjectRequest &request);

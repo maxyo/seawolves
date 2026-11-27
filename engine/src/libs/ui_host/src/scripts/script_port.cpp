@@ -6,6 +6,7 @@
 #include "s_import_func.h"
 #include "script_libriary.h"
 #include "storm_ui/interface_model.h"
+#include "storm_ui/tree_layout.h"
 #include "v_s_stack.h"
 #include "vma.hpp"
 
@@ -457,6 +458,60 @@ uint32_t UiOrder(VS_STACK *stack)
     });
 }
 
+// UiTreeLayout(&nodes, &edges, &out): nodes n<k>.id in their order, edges e<k>.{from, to} (ids, without case; other
+// fields of theirs are the caller's); out
+// becomes {valid, width, height, places.p<k>.{left, top} (k of nodes), links.l<j>.{from, to, points "x,y x,y …"}}
+// in dp, the layout of storm_ui/tree_layout.h. Not valid (and nothing more) for a cycle or a link to an unknown id.
+uint32_t UiTreeLayout(VS_STACK *stack)
+{
+    ATTRIBUTES *out = PopObject(stack);
+    ATTRIBUTES *edges = PopObject(stack);
+    ATTRIBUTES *nodes = PopObject(stack);
+    return Native("UiTreeLayout", [&](storm::ui::ScriptCall &) {
+        namespace tree = storm::ui::tree_layout;
+        std::vector<std::string> ids;
+        for (uint32_t n = 0; n < nodes->GetAttributesNum(); n++)
+        {
+            Fields node(*nodes->GetAttributeClass(n));
+            ids.push_back(node.Text("id"));
+        }
+        std::vector<tree::Edge> links;
+        for (uint32_t n = 0; n < edges->GetAttributesNum(); n++)
+        {
+            Fields edge(*edges->GetAttributeClass(n));
+            links.push_back({edge.Text("from"), edge.Text("to")});
+        }
+        const tree::Layout layout = tree::Lay(ids, links);
+        while (out->GetAttributesNum() != 0)
+            out->DeleteAttributeClassX(out->GetAttributeClass(0u));
+        out->SetAttribute("valid", layout.valid ? "1" : "0");
+        if (!layout.valid)
+            return;
+        out->SetAttribute("width", std::to_string(tree::Layout::width));
+        out->SetAttribute("height", std::to_string(layout.height));
+        ATTRIBUTES &places = out->CreateAttribute("places");
+        for (size_t k = 0; k < ids.size(); k++)
+        {
+            const tree::Place &place = layout.nodes.at(tree::Id(ids[k]));
+            ATTRIBUTES &at = places.CreateAttribute(fmt::format("p{}", k));
+            at.SetAttribute("left", std::to_string(place.left));
+            at.SetAttribute("top", std::to_string(place.top));
+        }
+        ATTRIBUTES &ways = out->CreateAttribute("links");
+        for (size_t j = 0; j < layout.links.size(); j++)
+        {
+            const tree::Edge &edge = layout.edges[layout.links[j].edge];
+            ATTRIBUTES &at = ways.CreateAttribute(fmt::format("l{}", j));
+            at.SetAttribute("from", edge.from);
+            at.SetAttribute("to", edge.to);
+            std::string points;
+            for (const tree::Point &point : layout.links[j].points)
+                points += fmt::format("{}{},{}", points.empty() ? "" : " ", point.x, point.y);
+            at.SetAttribute("points", points);
+        }
+    });
+}
+
 uint32_t UiBack(VS_STACK *stack)
 {
     const std::string node = PopText(stack);
@@ -720,6 +775,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiDeal", "void", 2, UiDeal},
             {"UiOrder", "void", 3, UiOrder},
             {"UiGameInt", "int", 1, UiGameInt},
+            {"UiTreeLayout", "void", 3, UiTreeLayout},
         };
         for (const auto &native : natives)
         {

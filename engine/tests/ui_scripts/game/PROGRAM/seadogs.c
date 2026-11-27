@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[34];
+object Interfaces[36];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -111,7 +111,7 @@ more";
 
 // What the crew adapter reads of the game: the characters whose ships the hire's scroll shows, the colony whose
 // tavern it is, and the crews the window keeps from before the amount set (NullCharacter.TavernBak).
-object Characters[12];
+object Characters[32];
 object Colonies[2];
 object NullCharacter;
 object TestLocation;
@@ -299,8 +299,6 @@ void TestItems()
 	GameInterface.CHARACTERS_SCROLL.pic1.str1 = "#Captain";
 	GameInterface.CHARACTERS_SCROLL.pic2.character = 9;
 	GameInterface.CHARACTERS_SCROLL.pic2.str1 = "#Navigator";
-	GameInterface.CHARACTERS_SCROLL.pic3.character = 2;
-	GameInterface.CHARACTERS_SCROLL.pic3.str1 = "#Passenger";
 	// The window's rows: tr1 the rapier, tr2 the dagger, tr3 the potion, tr4 and tr5 the amulets.
 	GameInterface.TABLE_ITEMS.tr1.index = 7;
 	GameInterface.TABLE_ITEMS.tr2.index = 9;
@@ -385,6 +383,8 @@ void Main()
 	Interfaces[31].IniFile = "RESOURCE\INI\INTERFACES\mainmenu.ini";
 	Interfaces[32].IniFile = "RESOURCE\INI\INTERFACES\game_menu.ini";
 	Interfaces[33].IniFile = "RESOURCE\INI\INTERFACES\quick_save.ini";
+	Interfaces[34].IniFile = "RESOURCE\INI\INTERFACES\LSCchar_all.ini";
+	Interfaces[35].IniFile = "RESOURCE\INI\INTERFACES\character.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -488,10 +488,250 @@ void Main()
 	Characters[3].TestPorts.cannonr = 4;
 	makeref(xi_refCharacter, Characters[3]);
 	iShipQty = 220;
+	TestCharacters();
 	GameValue = 7;
 	GameName = "kept";
 }
 
 void OnLoad()
 {
+}
+
+// What the character adapter calls of the game: the company of the recorded models (ui/tests/models/hero*.json): the
+// captain 1 Anne Bonny, the navigator 9 Jack Rackham, 14 Maximiliane on three posts, the fighter 12 Israel Hands, the
+// companion 20 Edward Teach, the passenger 2, the prisoner 22 Charles Vane, the treasurer 13 Jean Bart off the list,
+// the chooser's candidates 30 and 31; the card of 3 Claude Durand (character.json, xi_refCharacter); the perks of
+// the personal and the ship group with their conditions; a skill's recorded steps (SkillTrace).
+#define MAX_LOYALITY 35
+object ChrPerksList;
+object TestPassengers;
+
+int GetMainCharacterIndex()
+{
+	return 1;
+}
+
+int GetMoneyForOfficerFull(ref chr)
+{
+	if (CheckAttribute(chr, "TestSalary")) return sti(chr.TestSalary);
+	return 0;
+}
+
+string GetLoyalityName(int loyalty)
+{
+	return "Good";
+}
+
+int GetCharacterLoyality(ref chr)
+{
+	return 20;
+}
+
+int GetSkillValue(ref chr, string type, string skill)
+{
+	if (CheckAttribute(chr, "TestSkill." + skill)) return sti(chr.TestSkill.(skill));
+	return 10;
+}
+
+string GetOfficerTypeByNum(int slot)
+{
+	if (slot == 1) return "navigator";
+	if (slot == 2) return "boatswain";
+	if (slot == 3) return "cannoner";
+	if (slot == 4) return "doctor";
+	if (slot == 5) return "treasurer";
+	if (slot == 6) return "carpenter";
+	if (slot >= 7 && slot <= 9) return "fighter";
+	return "";
+}
+
+int GetPassengersQuantity(ref chr)
+{
+	return GetAttributesNum(&TestPassengers);
+}
+
+int GetPassenger(ref chr, int k)
+{
+	return sti(GetAttributeValue(GetAttributeN(&TestPassengers, k)));
+}
+
+void DelBakSkillAttr(ref chr)
+{
+}
+
+int GetFreePoints_SelfRate(ref chr)
+{
+	return 1000;
+}
+
+int GetFreePoints_ShipRate(ref chr)
+{
+	return 1000;
+}
+
+bool CheckCharacterPerk(ref chr, string perk)
+{
+	return CheckAttribute(chr, "perks.list." + perk);
+}
+
+bool GetOfficersPerkUsing(ref chr, string perk)
+{
+	return perk == "Tireless";
+}
+
+string GetConvertStr(string key, string file)
+{
+	return key + " (" + file + ")";
+}
+
+// The value of a skill as the game computes it, its steps recorded while chr.SkillTrace exists.
+int TestSkillSteps(ref chr, string id)
+{
+	int value = GetSkillValue(chr, "Skill", id);
+	if (!CheckAttribute(chr, "SkillTrace")) return value;
+	chr.SkillTrace.s0 = "base";
+	chr.SkillTrace.s0.value = value;
+	if (id == "Agility")
+	{
+		value++;
+		chr.SkillTrace.s1 = "mangarosa";
+		chr.SkillTrace.s1.value = value;
+	}
+	return value;
+}
+
+int GetCharacterSPECIALSimple(ref chr, string id)
+{
+	return TestSkillSteps(chr, id);
+}
+
+int GetCharacterSkillSimple(ref chr, string id)
+{
+	return TestSkillSteps(chr, id);
+}
+
+int GetSummonSkillFromNameSimple(ref chr, string id)
+{
+	int value = GetSkillValue(chr, "Skill", id);
+	if (id == "Commerce" && sti(chr.index) == 1) return value + 2; // the treasurer's higher skill
+	return value;
+}
+
+int ApplayNavyPenaltyToSkill(ref chr, string id, int value)
+{
+	if (id == "Commerce" && sti(chr.index) == 1) return value - 2;
+	return value;
+}
+
+int ApplayNavyPenalty(ref chr, string id, int value)
+{
+	return value;
+}
+
+int GetCharacterShipClass(ref chr)
+{
+	return 3;
+}
+
+int GetShipClassNavySkill(int shipClass)
+{
+	return 65;
+}
+
+string GetCharacterEquipSuitID(ref chr)
+{
+	return "";
+}
+
+int FindItem(string id)
+{
+	return GetItemIndex(id);
+}
+
+int GetHealthNum(ref chr)
+{
+	return 6;
+}
+
+void TestPerk(string id, string type, string needs, string also)
+{
+	ChrPerksList.list.(id).BaseType = type;
+	if (needs != "") ChrPerksList.list.(id).condition.(needs) = true;
+	if (also != "") ChrPerksList.list.(id).condition.(also) = true;
+}
+
+void TestOfficer(int index, string name, string lastname, string face, int rank, int salary)
+{
+	TestPerson(index, name, lastname, face);
+	Characters[index].rank = rank;
+	Characters[index].TestSalary = salary;
+}
+
+void TestSlot(int slot, int character, string caption)
+{
+	string pic = "pic" + (slot + 1);
+	GameInterface.CHARACTERS_SCROLL.(pic).character = character;
+	GameInterface.CHARACTERS_SCROLL.(pic).str1 = "#" + caption;
+}
+
+void TestCharacters()
+{
+	TestPerk("BasicDefense", "self", "", "");
+	TestPerk("AdvancedDefense", "self", "BasicDefense", "");
+	TestPerk("CriticalHit", "self", "", "");
+	TestPerk("Tireless", "self", "", "");
+	TestPerk("SwordplayProfessional", "self", "CriticalHit", "AdvancedDefense");
+	ChrPerksList.list.SwordplayProfessional.condition.Tireless = true;
+	TestPerk("IronWill", "self", "", "");
+	TestPerk("Trustworthy", "self", "AdvancedCommerce", "IronWill");
+	TestPerk("BasicCommerce", "ship", "", "");
+	TestPerk("AdvancedCommerce", "ship", "BasicCommerce", "");
+	Characters[1].rank = 4;
+	Characters[1].reputation.authority = 63;
+	Characters[1].perks.FreePoints_self = 1;
+	Characters[1].perks.FreePoints_ship = 0;
+	Characters[1].perks.FreePoints_self_exp = 340;
+	Characters[1].perks.FreePoints_ship_exp = 0;
+	Characters[1].TestSkill.Agility = 7;
+	Characters[1].TestSkill.Commerce = 5;
+	Characters[1].TestSkill.Sailing = 12;
+	TestOfficer(9, "Jack", "Rackham", "12", 5, 1500);
+	Characters[9].TestSkill.Sailing = 34;
+	TestOfficer(14, "Maximiliane", "von Hohenzollern-Sigmaringen", "30", 14, 1500);
+	TestOfficer(12, "Israel", "Hands", "14", 5, 1500);
+	TestOfficer(20, "Edward", "Teach", "41", 9, 0);
+	TestOfficer(22, "Charles", "Vane", "25", 7, 0);
+	TestOfficer(13, "Jean", "Bart", "16", 6, 1100);
+	Characters[13].TestSkill.Commerce = 7;
+	TestOfficer(30, "Mary", "Read", "15", 6, 1200);
+	Characters[30].TestSkill.Grappling = 14;
+	TestOfficer(31, "Calico", "Jack", "19", 5, 1000);
+	Characters[31].TestSkill.Grappling = 19;
+	Characters[2].rank = 3;
+	TestOfficer(3, "Клод", "Дюран", "21", 9, 2350);
+	Characters[3].perks.FreePoints_self = 1;
+	Characters[3].perks.FreePoints_ship = 0;
+	Characters[3].perks.FreePoints_self_exp = 120;
+	Characters[3].perks.list.BasicDefense = true;
+	Characters[3].perks.list.IronWill = true;
+	Characters[3].perks.list.BasicCommerce = true;
+	makeref(xi_refCharacter, Characters[3]);
+	TestSlot(0, 1, "Captain");
+	TestSlot(1, 9, "Navigator");
+	TestSlot(2, 0, "Boatswain");
+	TestSlot(3, 14, "Cannoner");
+	TestSlot(4, 0, "Doctor");
+	TestSlot(5, 14, "Treasurer");
+	TestSlot(6, 14, "Carpenter");
+	TestSlot(7, 12, "Fighter");
+	TestSlot(8, 0, "Fighter");
+	TestSlot(9, 0, "Fighter");
+	TestSlot(10, 20, "Companion");
+	TestSlot(11, 2, "Passenger");
+	TestSlot(12, 22, "Prisoner");
+	GameInterface.CHARACTERS_SCROLL.current = 2;
+	GameInterface.PASSENGERSLIST.pic1.character = 30;
+	GameInterface.PASSENGERSLIST.pic2.character = 31;
+	TestPassengers.p0 = 2;
+	TestHero.Fellows.Passengers.treasurer = 13;
 }

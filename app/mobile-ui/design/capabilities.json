@@ -33,5 +33,7 @@
   "menu_title": "The title menu over the game's menu scene: continue the newest record, a new game, load, settings",
   "menu_game": "The pause menu over a game in progress: resume, save, load, quick save and load, settings, exit",
   "menu_quick_save": "The plate shown while the game writes a quick save",
-  "menu_game_over": "The death screen while the game shows its death picture: load, settings or the title"
+  "menu_game_over": "The death screen while the game shows its death picture: load, settings or the title",
+  "character": "The hero's company: a person's characteristics, skills and perks, and the officers on their posts",
+  "character_card": "One person's characteristics, skills and perks as the game shows their card"
 }

@@ -73,6 +73,11 @@ native int UiGameInt(string path);
 // The entries of `list` in the order of their whole number `field`, stable.
 native void UiOrder(aref list, string field, int descending);
 
+// The layout of a tree of icons (the perk tree): nodes n<k>.id in their order, edges e<k>.{from, to}; out {valid,
+// width, height, places.p<k>.{left, top}, links.l<j>.{from, to, points}} in dp; not valid for a cycle or a link to
+// an id that is no node.
+native void UiTreeLayout(aref nodes, aref edges, aref out);
+
 // The object of each capability's screen, filled by the engine before its UiBuild and handed to its events:
 // .{capability, screen (the screen file's stem), look (the screen entry's presentation), data (the binding's), model
 // (the admitted widgets: <node>.{type, label, value, min, max, reason, offers.<verb>, context, headers, rows.r<index>})}.

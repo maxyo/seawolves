@@ -1,29 +1,376 @@
 {
   "tag": "s-hero",
-  "doc": "Hero section «Персонаж» (interface lscchar_all) and the card of another character (interface character), hero_character.cpp.",
+  "doc": "Hero section «Персонаж» (interface lscchar_all) and the card of another character (interface character), filled by the script interface/touch/screens/hero/character.c through the shapes of its json props.",
   "props": {
-    "title": {"type": "text", "default": ""},
-    "headerSection": {"type": "text", "default": ""},
-    "tabs": {"type": "json", "default": []},
-    "tab": {"type": "text", "default": "skills"},
-    "subject": {"type": "json", "default": null},
-    "card": {"type": "json", "default": {}},
-    "special": {"type": "json", "default": {}},
-    "personal": {"type": "json", "default": {}},
-    "ship": {"type": "json", "default": {}},
-    "points": {"type": "bool", "default": false, "class": false},
-    "perksEmpty": {"type": "text", "default": ""},
-    "tree": {"type": "json", "default": null},
-    "perkInfo": {"type": "text", "default": ""},
-    "perkInfoNudge": {"type": "bool", "default": false, "class": false},
-    "detail": {"type": "json", "default": null},
-    "posts": {"type": "json", "default": []},
-    "postsCount": {"type": "text", "default": ""},
-    "freePosts": {"type": "json", "default": []},
-    "passengers": {"type": "json", "default": []},
-    "passengersCount": {"type": "text", "default": ""},
-    "dialog": {"type": "json", "default": null},
-    "extras": {"type": "json", "default": {}}
+    "title": {
+      "type": "text",
+      "default": ""
+    },
+    "headerSection": {
+      "type": "text",
+      "default": ""
+    },
+    "tabs": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "label": "text",
+          "selected": "bool",
+          "badge": "text"
+        }
+      ]
+    },
+    "tab": {
+      "type": "text",
+      "default": "skills"
+    },
+    "subject": {
+      "type": "json",
+      "default": null,
+      "shape": {
+        "$null": {
+          "label": "text",
+          "sub": "text",
+          "prev": "bool",
+          "next": "bool",
+          "list": "bool",
+          "open": "bool",
+          "title": "text",
+          "rows": [
+            {
+              "label": "text",
+              "meta": "text",
+              "image": "picture",
+              "icon": "text",
+              "selected": "bool"
+            }
+          ]
+        }
+      }
+    },
+    "card": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "title": "text",
+        "sub": "text",
+        "roles": "text",
+        "portrait": "picture",
+        "health": {
+          "value": "int",
+          "text": "text"
+        },
+        "energy": {
+          "value": "int",
+          "text": "text"
+        },
+        "free": "text",
+        "lines": [
+          {
+            "k": "text",
+            "v": "text",
+            "tone": "text",
+            "after": "text"
+          }
+        ],
+        "actions": [
+          {
+            "id": "text",
+            "label": "text",
+            "variant": "text",
+            "disabled": "bool",
+            "reason": "text",
+            "busy": "bool"
+          }
+        ]
+      }
+    },
+    "special": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "columns": [
+          {
+            "label": "text",
+            "w": "text",
+            "align": "text"
+          }
+        ],
+        "rows": [
+          {
+            "cells": [
+              {
+                "text": "text",
+                "lines": "int",
+                "icon": "text",
+                "iconSize": "int",
+                "arrows": "bool",
+                "noLeft": "bool",
+                "tone": "text",
+                "bold": "bool",
+                "bar": "int",
+                "barKind": "text"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "personal": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "columns": [
+          {
+            "label": "text",
+            "w": "text",
+            "align": "text"
+          }
+        ],
+        "rows": [
+          {
+            "cells": [
+              {
+                "text": "text",
+                "lines": "int",
+                "icon": "text",
+                "iconSize": "int",
+                "arrows": "bool",
+                "noLeft": "bool",
+                "tone": "text",
+                "bold": "bool",
+                "bar": "int",
+                "barKind": "text"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ship": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "columns": [
+          {
+            "label": "text",
+            "w": "text",
+            "align": "text"
+          }
+        ],
+        "rows": [
+          {
+            "cells": [
+              {
+                "text": "text",
+                "lines": "int",
+                "icon": "text",
+                "iconSize": "int",
+                "arrows": "bool",
+                "noLeft": "bool",
+                "tone": "text",
+                "bold": "bool",
+                "bar": "int",
+                "barKind": "text"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "points": {
+      "type": "bool",
+      "default": false,
+      "class": false
+    },
+    "perksEmpty": {
+      "type": "text",
+      "default": ""
+    },
+    "tree": {
+      "type": "json",
+      "default": null,
+      "shape": {
+        "$null": {
+          "nodes": [
+            {
+              "id": "text",
+              "name": "text",
+              "image": "picture",
+              "state": "text",
+              "selected": "bool",
+              "other": "bool",
+              "groupIcon": "text",
+              "left": "int",
+              "top": "int",
+              "reveal": "text",
+              "revealTop": "int"
+            }
+          ],
+          "links": "text",
+          "width": "int",
+          "height": "int"
+        }
+      }
+    },
+    "perkInfo": {
+      "type": "text",
+      "default": ""
+    },
+    "perkInfoNudge": {
+      "type": "bool",
+      "default": false,
+      "class": false
+    },
+    "detail": {
+      "type": "json",
+      "default": null,
+      "shape": {
+        "$null": {
+          "id": "text",
+          "title": "text",
+          "text": "text",
+          "image": "picture",
+          "group": "text",
+          "groupIcon": "text",
+          "requires": [
+            {
+              "perk": "text",
+              "name": "text",
+              "image": "picture",
+              "met": "bool",
+              "nudge": "bool",
+              "state": "text",
+              "other": "bool",
+              "groupIcon": "text"
+            }
+          ],
+          "opens": [
+            {
+              "perk": "text",
+              "name": "text",
+              "image": "picture",
+              "met": "bool",
+              "nudge": "bool",
+              "state": "text",
+              "other": "bool",
+              "groupIcon": "text"
+            }
+          ],
+          "note": "text",
+          "learn": {
+            "$null": {
+              "id": "text",
+              "label": "text",
+              "disabled": "bool",
+              "busy": "bool"
+            }
+          },
+          "go": {
+            "$null": {
+              "id": "text",
+              "label": "text"
+            }
+          }
+        }
+      }
+    },
+    "posts": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "name": "text",
+          "meta": "text",
+          "image": "picture",
+          "selected": "bool"
+        }
+      ]
+    },
+    "postsCount": {
+      "type": "text",
+      "default": ""
+    },
+    "freePosts": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "role": "text",
+          "icon": "text",
+          "selected": "bool"
+        }
+      ]
+    },
+    "passengers": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "name": "text",
+          "meta": "text",
+          "image": "picture"
+        }
+      ]
+    },
+    "passengersCount": {
+      "type": "text",
+      "default": ""
+    },
+    "dialog": {
+      "type": "json",
+      "default": null,
+      "shape": {
+        "$null": {
+          "kind": "text",
+          "title": "text",
+          "subtitle": "text",
+          "text": "text",
+          "facts": [
+            {
+              "k": "text",
+              "v": "text",
+              "tone": "text"
+            }
+          ],
+          "steps": [
+            {
+              "k": "text",
+              "v": "text",
+              "tone": "text"
+            }
+          ],
+          "actions": [
+            {
+              "id": "text",
+              "label": "text",
+              "variant": "text",
+              "disabled": "bool",
+              "busy": "bool"
+            }
+          ],
+          "rows": [
+            {
+              "id": "text",
+              "name": "text",
+              "meta": "text",
+              "value": "text",
+              "image": "picture",
+              "busy": "bool"
+            }
+          ],
+          "empty": "text"
+        }
+      }
+    },
+    "extras": {
+      "type": "json",
+      "default": {}
+    }
   },
   "constants": {
     "lineMin": 240,

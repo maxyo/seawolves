@@ -111,6 +111,7 @@ The natives (`core/core.c`):
 - `UiSubject(screen, out)` in a build: the subject another part of the interface asked that screen to show (the
   HUD's tap on a quest record: `out.quest`; a character, a ship: `out.character`, `out.position`; `out.tab`), taken
   once; 0 without one;
+- `UiTreeLayout(nodes, edges, out)`: where the icons of a tree stand and how its links run (the perk tree);
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
 - the game's state that no model shows: `UiGameInt(path)`, a whole number of a global ("iHourWait") or of an
   attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
@@ -209,5 +210,5 @@ script screen.
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
-  crew hire's, the self repair's, the shipyard's and the ship screen's are gone (their adapters read the game
-  themselves); the hero's character screen, still in C++, reads the facts of `android_hero.c`.
+  crew hire's, the self repair's, the shipyard's and the hero screens' are gone (their adapters read the game
+  themselves).

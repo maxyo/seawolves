@@ -373,13 +373,6 @@
     "<g clip-path=\"url(#k-reputation)\"><path fill=\"rgba(0,0,0,0.3)\" fill-rule=\"evenodd\" d=\"M24 22L24 13L26.4 18.8Z\"></path><path fill=\"rgba(0,0,0,0.3)\" fill-rule=\"evenodd\" d=\"M24 22L32.6 19.2L27.8 23.2Z\"></path><path fill=\"rgba(0,0,0,0.3)\" fill-rule=\"evenodd\" d=\"M24 22L29.3 29.3L24 26Z\"></path><path fill=\"rgba(0,0,0,0.3)\" fill-rule=\"evenodd\" d=\"M24 22L18.7 29.3L20.2 23.2Z\"></path><path fill=\"rgba(0,0,0,0.3)\" fill-rule=\"evenodd\" d=\"M24 22L15.4 19.2L21.6 18.8Z\"></path></g>"
    ]
   },
-  "i-loyalty": {
-   "els": [
-    "<path fill-rule=\"evenodd\" d=\"M24 3 L42 8.5 V21 C42 32.5 34.5 40 24 45 C13.5 40 6 32.5 6 21 V8.5 ZM24 31.5C17 26.5 14 23 14 18.8C14 15.5 16.5 13.5 19.2 13.5C21.2 13.5 23 14.8 24 16.5C25 14.8 26.8 13.5 28.8 13.5C31.5 13.5 34 15.5 34 18.8C34 23 31 26.5 24 31.5Z\"></path>",
-    "<clipPath id=\"k-loyalty\"><path clip-rule=\"evenodd\" d=\"M24 3 L42 8.5 V21 C42 32.5 34.5 40 24 45 C13.5 40 6 32.5 6 21 V8.5 ZM24 31.5C17 26.5 14 23 14 18.8C14 15.5 16.5 13.5 19.2 13.5C21.2 13.5 23 14.8 24 16.5C25 14.8 26.8 13.5 28.8 13.5C31.5 13.5 34 15.5 34 18.8C34 23 31 26.5 24 31.5Z\"></path></clipPath>",
-    "<g clip-path=\"url(#k-loyalty)\"><path fill=\"rgba(0,0,0,0.26)\" fill-rule=\"evenodd\" d=\"M24 0H48V48H24Z\"></path></g>"
-   ]
-  },
   "i-money": {
    "els": [
     "<mask id=\"m-money\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"48\" height=\"48\"><rect width=\"48\" height=\"48\" fill=\"#fff\"></rect><path d=\"M20.5 30.5 A11.5 4.2 0 0 1 43.5 30.5 V42.5 A11.5 4.2 0 0 1 20.5 42.5 Z\" fill=\"#000\" stroke=\"#000\" stroke-width=\"3\" stroke-linejoin=\"round\"></path></mask>",

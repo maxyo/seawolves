@@ -908,6 +908,8 @@ void CheckCases(const char *folder, const std::string &file)
             calls.subject_screen = subject.at("screen");
             calls.subject.quest = subject.value("quest", "");
             calls.subject.position = subject.value("position", -1);
+            calls.subject.character = subject.value("character", -1);
+            calls.subject.tab = subject.value("tab", "");
         }
         SetGame(recorded);
         const auto &screen = Screen(vm, recorded.at("capability"));
@@ -936,6 +938,11 @@ TEST_CASE("the menus' script gives the pack screens the props and actions of the
 TEST_CASE("the map screen's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("map", "map");
+}
+
+TEST_CASE("the character screen's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("hero", "character");
 }
 
 TEST_CASE("the trade book's script gives the pack screen the props and actions of the recorded models")

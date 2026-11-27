@@ -59,6 +59,7 @@
     {"file": "interface/touch/contracts/ship.c"},
     {"file": "interface/touch/contracts/menu.c"},
     {"file": "interface/touch/contracts/ship_change.c"},
+    {"file": "interface/touch/contracts/character.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -386,6 +387,105 @@
               "t7": {"node": "TABLE_NATION", "group": "by_nation", "choose": false},
               "t8": {"node": "TABLE_OTHER", "group": "other", "choose": false},
               "t9": {"node": "TABLE_MONEY", "group": "other", "choose": false}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "file": "interface/touch/lineages/legacy/character.c",
+      "requires": [
+        "fn:GetCharacter/1", "fn:GetFullName/1", "fn:GetMainCharacter/0", "fn:GetMainCharacterIndex/0",
+        "fn:GetMoneyForOfficerFull/1", "fn:GetLoyalityName/1", "fn:GetCharacterLoyality/1", "fn:XI_ConvertString/1",
+        "fn:GetSkillValue/3", "fn:GetOfficerTypeByNum/1", "fn:GetPassengersQuantity/1", "fn:GetPassenger/2",
+        "fn:DelBakSkillAttr/1", "fn:GetFreePoints_SelfRate/1", "fn:GetFreePoints_ShipRate/1",
+        "fn:CheckCharacterPerk/2", "fn:GetOfficersPerkUsing/2", "fn:GetConvertStr/2", "fn:GetRPGText/1",
+        "fn:GetCharacterSPECIALSimple/2", "fn:GetCharacterSkillSimple/2", "fn:GetSummonSkillFromNameSimple/2",
+        "fn:ApplayNavyPenaltyToSkill/3", "fn:ApplayNavyPenalty/3", "fn:GetCharacterShipClass/1",
+        "fn:GetShipClassNavySkill/1", "fn:GetCharacterEquipSuitID/1", "fn:GetCharacterEquipByGroup/2",
+        "fn:FindItem/1", "fn:GetHealthNum/1", "fn:LanguageOpenFile/1", "fn:LanguageConvertString/2",
+        "fn:LanguageCloseFile/1", "var:GameInterface", "var:Characters", "var:ChrPerksList", "var:Items"
+      ],
+      "provides": ["adapter:character"],
+      "binds": [
+        {
+          "capability": "character", "interface": "lscchar_all",
+          "nodes": [
+            ["HERO_NAME", "text", true], ["TABLE_SKILL_1", "choice", true], ["TABLE_SKILL_2", "choice", true],
+            ["TITLE", "heading"], ["CHARACTER_BIG_PICTURE", "image"], ["CHARACTER_NATION_PICTURE", "image"],
+            ["CHARACTER_DRUNK_PICTURE", "image"], ["MAIN_BACK", "image"], ["TABLE_SPECIAL", "choice"],
+            ["TABLE_OTHER", "choice"], ["TABLE_PERKS", "choice"], ["TABBTN_*", "image"], ["TABSTR_*", "text"],
+            ["STR_*", "text"], ["REPUTATION_STR", "text"], ["LOYALITY_STR", "text"], ["FREE_SKILL", "text"],
+            ["FREE_SPECIAL", "text"], ["B_SKILLUP", "button"], ["B_SKILLDOWN", "button"], ["EXIT_BTN", "button"],
+            ["PERK_*", "text|button|image|choice"], ["SPECIAL_*", "text|button"], ["GAME_ACCEPT", "button"],
+            ["GAME_CANCEL", "button"], ["MSG_*", "text|button"],
+            ["CHARACTERS_SCROLL", "choice", true], ["UP_BUTTON", "button"], ["DOWN_BUTTON", "button"],
+            "@hero-sections", ["I_*", "button"], ["REMOVE_*", "text|button"], ["OFFICER*", "text|button"],
+            ["PASSENGERSLIST", "choice"], ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"],
+            ["TABLE_SMALLSKILL", "choice"], ["TABLE_SMALLOTHER", "choice"], ["ACCEPT_ADD_OFFICER", "button"],
+            ["CANCEL_ADD_OFFICER", "button"]
+          ],
+          "data": {
+            "full": true,
+            "skillIcons": {
+              "Leadership": "leadership", "FencingL": "rapier", "FencingS": "sabre", "FencingH": "axe", "Pistol": "pistol",
+              "Fortune": "fortune", "Sneak": "sneak", "Sailing": "wheel", "Accuracy": "accuracy", "Cannons": "cannon",
+              "Grappling": "grapple", "Defence": "shield", "Repair": "repair", "Commerce": "commerce"
+            },
+            "postIcons": {
+              "navigator": "wheel", "boatswain": "grapple", "cannoner": "cannon", "doctor": "medicine",
+              "treasurer": "commerce", "carpenter": "repair"
+            },
+            "fighters": {"f0": "axe", "f1": "rapier", "f2": "sabre"},
+            "perkIcons": {
+              "AdvancedDefense": "perk-advanceddefense", "Alchemy": "perk-alchemy", "BasicCommerce": "perk-basiccommerce",
+              "BasicDefense": "perk-basicdefense", "Brander": "perk-brander", "Carpenter": "perk-carpenter",
+              "CrewDamageUp": "perk-crewdamageup", "CriticalHit": "perk-criticalhit", "EnergyPlus": "perk-energyplus",
+              "FastReload": "perk-fastreload", "GrapplingProfessional": "perk-grapplingprofessional",
+              "Gunman": "perk-gunman", "GunProfessional": "perk-gunprofessional", "HardHitter": "perk-hardhitter",
+              "HPPlus": "perk-hpplus", "HullDamageUp": "perk-hulldamageup", "InstantRepair": "perk-instantrepair",
+              "IronWill": "perk-ironwill", "LongRangeShoot": "perk-longrangeshoot",
+              "ProfessionalCommerce": "perk-professionalcommerce", "SailsDamageUp": "perk-sailsdamageup",
+              "ShipEscape": "perk-shipescape", "SwordplayProfessional": "perk-swordplayprofessional",
+              "Tireless": "perk-tireless"
+            }
+          }
+        },
+        {
+          "capability": "character_card", "interface": "character",
+          "nodes": [
+            ["HERO_NAME", "text", true], ["TABLE_SKILL_1", "choice", true], ["TABLE_SKILL_2", "choice", true],
+            ["TITLE", "heading"], ["CHARACTER_BIG_PICTURE", "image"], ["CHARACTER_NATION_PICTURE", "image"],
+            ["CHARACTER_DRUNK_PICTURE", "image"], ["MAIN_BACK", "image"], ["TABLE_SPECIAL", "choice"],
+            ["TABLE_OTHER", "choice"], ["TABLE_PERKS", "choice"], ["TABBTN_*", "image"], ["TABSTR_*", "text"],
+            ["STR_*", "text"], ["REPUTATION_STR", "text"], ["LOYALITY_STR", "text"], ["FREE_SKILL", "text"],
+            ["FREE_SPECIAL", "text"], ["B_SKILLUP", "button"], ["B_SKILLDOWN", "button"], ["EXIT_BTN", "button"],
+            ["PERK_*", "text|button|image|choice"], ["SPECIAL_*", "text|button"], ["GAME_ACCEPT", "button"],
+            ["GAME_CANCEL", "button"], ["MSG_*", "text|button"]
+          ],
+          "data": {
+            "full": false,
+            "skillIcons": {
+              "Leadership": "leadership", "FencingL": "rapier", "FencingS": "sabre", "FencingH": "axe", "Pistol": "pistol",
+              "Fortune": "fortune", "Sneak": "sneak", "Sailing": "wheel", "Accuracy": "accuracy", "Cannons": "cannon",
+              "Grappling": "grapple", "Defence": "shield", "Repair": "repair", "Commerce": "commerce"
+            },
+            "postIcons": {
+              "navigator": "wheel", "boatswain": "grapple", "cannoner": "cannon", "doctor": "medicine",
+              "treasurer": "commerce", "carpenter": "repair"
+            },
+            "fighters": {"f0": "axe", "f1": "rapier", "f2": "sabre"},
+            "perkIcons": {
+              "AdvancedDefense": "perk-advanceddefense", "Alchemy": "perk-alchemy", "BasicCommerce": "perk-basiccommerce",
+              "BasicDefense": "perk-basicdefense", "Brander": "perk-brander", "Carpenter": "perk-carpenter",
+              "CrewDamageUp": "perk-crewdamageup", "CriticalHit": "perk-criticalhit", "EnergyPlus": "perk-energyplus",
+              "FastReload": "perk-fastreload", "GrapplingProfessional": "perk-grapplingprofessional",
+              "Gunman": "perk-gunman", "GunProfessional": "perk-gunprofessional", "HardHitter": "perk-hardhitter",
+              "HPPlus": "perk-hpplus", "HullDamageUp": "perk-hulldamageup", "InstantRepair": "perk-instantrepair",
+              "IronWill": "perk-ironwill", "LongRangeShoot": "perk-longrangeshoot",
+              "ProfessionalCommerce": "perk-professionalcommerce", "SailsDamageUp": "perk-sailsdamageup",
+              "ShipEscape": "perk-shipescape", "SwordplayProfessional": "perk-swordplayprofessional",
+              "Tireless": "perk-tireless"
             }
           }
         }
@@ -777,6 +877,13 @@
         {"capability": "menu_game", "component": "s-game-menu", "look": {"mode": "pause"}},
         {"capability": "menu_quick_save", "component": "s-quick-save", "look": {"mode": "saving"}},
         {"capability": "menu_game_over", "component": "s-game-over", "look": {"mode": "over"}}
+      ]
+    },
+    {
+      "file": "interface/touch/screens/hero/character.c",
+      "uses": ["adapter:character"],
+      "screens": [
+        {"capability": "character", "component": "s-hero"}, {"capability": "character_card", "component": "s-hero"}
       ]
     }
   ]

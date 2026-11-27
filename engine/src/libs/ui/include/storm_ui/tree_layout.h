@@ -1,10 +1,9 @@
 #pragma once
 
-// The perk tree of the hero screen (hero_character.cpp). Presentation only: the stock script owns
-// eligibility and the final learn action. IDs and edges are runtime facts (app android_hero.c
-// AndroidHeroPerkGraph), never reconstructed from translated captions.
+// The layout of a tree of icons (the perk tree of the character screen, script native UiTreeLayout). Presentation
+// only: which perks there are, their links and what may be learned are the game's.
 //
-// One perk group as a vertical tree of icons that scrolls vertically only, on a canvas of fixed
+// One group as a vertical tree of icons that scrolls vertically only, on a canvas of fixed
 // width (Layout::width, which a 780 dp phone shows beside the panel):
 // - a row per tier, top to bottom: a perk stands one row under its deepest prerequisite, and a perk
 //   whose dependents all stand further down moves up next to the nearest of them;
@@ -27,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-namespace storm::ui::screens::perk_tree
+namespace storm::ui::tree_layout
 {
 inline std::string Id(std::string value)
 {
@@ -424,42 +423,19 @@ inline Layout Build(const std::vector<std::string> &ids, const std::vector<Edge>
 }
 } // namespace detail
 
-// The layout of one topology. Selection, translations, point balances and learned bits are not part
-// of the key: changing them restyles icons and links without laying the tree out again.
-class Cache
+// The layout of `ids` (in the game's order: the group's table, then the other group's prerequisites) and the links
+// between them; ids compare without case, a link given twice is one.
+inline Layout Lay(std::vector<std::string> ids, std::vector<Edge> edges)
 {
-  public:
-    // `ids` in the game's order (the group's table, then the other group's prerequisites).
-    const Layout &Get(std::vector<std::string> ids, std::vector<Edge> edges)
+    for (auto &id : ids)
+        id = Id(std::move(id));
+    for (auto &edge : edges)
     {
-        for (auto &id : ids)
-            id = Id(std::move(id));
-        for (auto &edge : edges)
-        {
-            edge.from = Id(std::move(edge.from));
-            edge.to = Id(std::move(edge.to));
-        }
-        std::sort(edges.begin(), edges.end());
-        edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
-        if (initialized_ && ids == ids_ && edges == edges_)
-            return layout_;
-        initialized_ = true;
-        ids_ = std::move(ids);
-        edges_ = std::move(edges);
-        ++builds_;
-        layout_ = detail::Build(ids_, edges_);
-        return layout_;
+        edge.from = Id(std::move(edge.from));
+        edge.to = Id(std::move(edge.to));
     }
-    size_t Builds() const
-    {
-        return builds_;
-    }
-
-  private:
-    bool initialized_ = false;
-    size_t builds_ = 0;
-    std::vector<std::string> ids_;
-    std::vector<Edge> edges_;
-    Layout layout_;
-};
-} // namespace storm::ui::screens::perk_tree
+    std::sort(edges.begin(), edges.end());
+    edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
+    return detail::Build(ids, edges);
+}
+} // namespace storm::ui::tree_layout

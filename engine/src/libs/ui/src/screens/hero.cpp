@@ -33,12 +33,6 @@ int FieldAmount(Bindings &bindings, const Widget *fact, const char *key)
     return text.empty() ? 0 : Amount(bindings, text, key);
 }
 
-Json Portrait(const std::string &face)
-{
-    return face.empty() ? Json(nullptr)
-                        : Json{{"kind", "portrait"}, {"texture", "INTERFACES/PORTRAITS/128/face_" + face}};
-}
-
 std::string Thousands(int value)
 {
     std::string raw = std::to_string(std::abs(value)), out;
@@ -59,95 +53,6 @@ void CheckAdapter(const Admission &admitted, Bindings &bindings, const char *fac
     if (!admitted.One(fact))
         bindings.Error(admitted.model->screen + ": no " + fact +
                        " from the interface adapter (android_hero.c not loaded?)");
-}
-
-std::vector<Person> People(const Admission &admitted, Bindings &bindings)
-{
-    std::vector<Person> people;
-    for (const Widget *entry : admitted.All("ANDROID_ROSTER"))
-    {
-        const std::string character = Field(entry, "character");
-        if (character.empty())
-            continue; // a free post
-        auto person = std::find_if(people.begin(), people.end(),
-                                   [&](const Person &p) { return Field(p.fact, "character") == character; });
-        if (person == people.end())
-            person = people.insert(people.end(), Person{entry, {}, {}});
-        person->slots.push_back(FieldAmount(bindings, entry, "slot"));
-        person->roles.push_back(InlineNoun(Field(entry, "role"), admitted.model->language));
-    }
-    return people;
-}
-
-size_t SelectedPerson(const Admission &admitted, Bindings &bindings, const std::vector<Person> &people)
-{
-    const Widget *subject = admitted.One("ANDROID_SUBJECT");
-    if (!subject)
-        return 0; // the last model of a closing interface (CheckAdapter)
-    const std::string character = Field(subject, "character");
-    for (size_t i = 0; i < people.size(); ++i)
-        if (Field(people[i].fact, "character") == character)
-            return i;
-    bindings.Error(admitted.model->screen + ": the game shows character " + character +
-                   ", who is not in its character list");
-    return 0;
-}
-
-std::string Roles(const std::vector<std::string> &roles)
-{
-    std::string text;
-    for (const std::string &role : roles)
-        text += (text.empty() ? "" : "\xC2\xA0· ") + role; // the dot stays with the role before it
-    return Capitalized(text);
-}
-
-Json Subject(const Admission &admitted, Bindings &bindings, SubjectSwitch &subjects,
-             std::function<void(const Widget &)> select)
-{
-    const std::vector<Person> people = People(admitted, bindings);
-    std::vector<SubjectSwitch::Choice> choices;
-    std::vector<int> slots;
-    for (const Person &person : people)
-    {
-        choices.push_back({person.fact->label, Roles(person.roles), Portrait(Field(person.fact, "face")), "hero"});
-        slots.push_back(person.slots.front());
-    }
-    const size_t shown = SelectedPerson(admitted, bindings, people);
-    // The game's list has selected a slot whose person (a free post's: the captain) the game shows a game frame later:
-    // this model is a step of the pick's answer, and the pick's prediction stays over it.
-    std::vector<const Widget *> rows = admitted.All("CHARACTERS_SCROLL");
-    size_t listed = 0;
-    for (const Widget *row : rows)
-        if (row->value == "1")
-            for (size_t i = 0; i < people.size(); ++i)
-                if (std::find(people[i].slots.begin(), people[i].slots.end(), row->index) != people[i].slots.end())
-                    listed = i;
-    if (listed != shown)
-        bindings.Await();
-    Json view =
-        subjects.View(bindings, choices, shown, bindings.Text("hero.subjects"), [rows, slots, select](size_t index) {
-            for (const Widget *row : rows)
-                if (row->index == slots[index] && row->Offers("select"))
-                    select(*row);
-        });
-    subjects.PredictChoice(bindings, choices, shown);
-    return view;
-}
-
-std::string StockText(const std::string &raw)
-{
-    std::string out;
-    for (size_t at = 0; at <= raw.size();)
-    {
-        const size_t end = std::min(raw.find('\n', at), raw.size());
-        std::string line = raw.substr(at, end - at);
-        std::erase(line, '\r');
-        if (StripWhitespace(line) == "~")
-            line.clear();
-        out += (at ? "\n" : "") + line;
-        at = end + 1;
-    }
-    return StripWhitespace(out);
 }
 
 const char *SkillIcon(const std::string &id)
