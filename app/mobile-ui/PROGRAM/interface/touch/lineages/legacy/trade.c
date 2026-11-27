@@ -98,9 +98,6 @@ string TouchLegTrade_PieceWeight(aref data, aref row, aref at)
 
 void TouchLegTrade_Rows(aref data, aref model, aref out)
 {
-	if (!CheckAttribute(model, "TABLE_LIST.rows")) return;
-	aref rows;
-	makearef(rows, model.TABLE_LIST.rows);
 	aref headers;
 	makearef(headers, model.TABLE_LIST.headers);
 	// both sides named alike (or ours a part of theirs) is no name of a side
@@ -111,6 +108,10 @@ void TouchLegTrade_Rows(aref data, aref model, aref out)
 	out.headers.own = own;
 	out.headers.other = other;
 	out.headers.name = UiOneLine(headers.("c" + data.name));
+	// an empty table is one widget without rows: its heads still name the sides
+	if (!CheckAttribute(model, "TABLE_LIST.rows")) return;
+	aref rows;
+	makearef(rows, model.TABLE_LIST.rows);
 	aref list;
 	makearef(list, out.rows);
 	for (int k = 0; k < GetAttributesNum(rows); k++)
