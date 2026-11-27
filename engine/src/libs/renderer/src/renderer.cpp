@@ -27,6 +27,7 @@
 #include "texture.h"
 #include "v_s_stack.h"
 #include "fs.h"
+#include "game_profile.hpp"
 #include "debug-trap.h"
 #include "string_compare.hpp"
 #include "logging.hpp"
@@ -1197,6 +1198,7 @@ bool Renderer::Init()
         nTextureDegradation = storm::fx::TextureDegradation(static_cast<storm::fx::TextureQuality>(
             TextureQualitySetting(ini->GetInt(nullptr, "texture_quality", static_cast<int>(storm::fx::kTextureQualityDefault)))));
         spdlog::info("textures: {} top mip level(s) skipped at this start (the texture quality's resolution)", nTextureDegradation);
+        storm::render::ConfigureEffectsGame({.generates_texture_maps = storm::gameProfileFacts().generates_texture_maps});
         ConfigureGraphicsEffects([&ini](const char *name, int fallback) {
             return effectsIniValues[name] = ini->GetInt(nullptr, name, fallback);
         });
@@ -3647,9 +3649,15 @@ void Renderer::RunStart()
         {
             first = false;
             published = support;
-            storm::android::ui::state("renderCaps", support == storm::render::UpscaleSupport::Supported   ? R"({"upscale":"supported"})"
-                                                         : support == storm::render::UpscaleSupport::Unsupported ? R"({"upscale":"unsupported"})"
-                                                                                                                 : R"({"upscale":"unknown"})");
+            // "texture_processing": false for a game that ships its own texture maps: «Обработка текстур» is not
+            // offered (render::EffectsGame).
+            storm::android::ui::state(
+                "renderCaps",
+                fmt::format(R"({{"upscale":"{}","texture_processing":{}}})",
+                            support == storm::render::UpscaleSupport::Supported     ? "supported"
+                            : support == storm::render::UpscaleSupport::Unsupported ? "unsupported"
+                                                                                    : "unknown",
+                            storm::gameProfileFacts().generates_texture_maps));
         }
     }
     AutoPresetFrame(); // the automatic graphics preset measures on the title screen

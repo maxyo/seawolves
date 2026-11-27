@@ -66,6 +66,14 @@ struct EffectsReport
 // Returns the report of the request.
 EffectsReport ConfigureEffects(int preset, const std::vector<EffectsOption> &options);
 EffectsReport CurrentEffects();
+// The facts of the running game the effects need (core's game profile), before the first ConfigureEffects.
+struct EffectsGame
+{
+    // False for a game that ships its own texture maps: no normal, gloss or height map and no neural ×2 texture is
+    // made or requested, whatever the texture_* options say (the settings screen does not offer them).
+    bool generates_texture_maps = true;
+};
+void ConfigureEffectsGame(const EffectsGame &game);
 // A one-line notice for the player (Russian) when the GPU self-test switched a stage off on this device; empty
 // when there is none. Each notice is returned once.
 std::string TakeEffectsNotice();

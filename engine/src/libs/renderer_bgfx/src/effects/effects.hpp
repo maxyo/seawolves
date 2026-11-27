@@ -53,6 +53,7 @@ class Host
     void shutdown();
 
     render::EffectsReport configure(int preset, const std::vector<render::EffectsOption> &options);
+    void set_game(const render::EffectsGame &game);
     const render::EffectsReport &report() const
     {
         return report_;
@@ -211,6 +212,7 @@ class Host
 
     int preset_ = 0;
     std::vector<render::EffectsOption> options_;
+    render::EffectsGame game_{};
     fx::Settings requested_{};
     fx::Settings settings_{};           // the active ones: what draws
     fx::BackgroundProducts products_{}; // what settings_ make in the background (activate)

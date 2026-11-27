@@ -277,6 +277,12 @@ render::EffectsReport Host::configure(int preset, const std::vector<render::Effe
     return report_;
 }
 
+void Host::set_game(const render::EffectsGame &game)
+{
+    game_ = game;
+    apply();
+}
+
 void Host::apply()
 {
     report_ = {};
@@ -290,6 +296,12 @@ void Host::apply()
             (option.name == "texture_normal_maps"   ? processing.normal_maps
              : option.name == "texture_height_maps" ? processing.height_maps
                                                     : processing.upscale) = option.value != 0;
+    if (!game_.generates_texture_maps)
+    {
+        if (processing.normal_maps || processing.height_maps || processing.upscale)
+            render::Log().info("effects: texture processing left off: the game ships its own texture maps");
+        processing = {};
+    }
     fx::ApplyTextureProcessing(requested_, processing);
     bool profile = false;
     caps_profile_ = fx::CapsProfile::Device;
@@ -885,6 +897,11 @@ const std::vector<EffectsOptionInfo> &EffectsOptionNames()
 EffectsReport ConfigureEffects(int preset, const std::vector<EffectsOption> &options)
 {
     return effects::Host::instance().configure(preset, options);
+}
+
+void ConfigureEffectsGame(const EffectsGame &game)
+{
+    effects::Host::instance().set_game(game);
 }
 
 void EffectsSceneComplete()

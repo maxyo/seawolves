@@ -98,6 +98,7 @@ endfunction()
 # Without a GPU: bgfx's Noop backend or none.
 storm_renderer_check(perf_check)
 storm_renderer_check(program_table_check CATCH2 INCLUDES ${renderer})
+storm_renderer_check(texture_maps_switch_check CATCH2 INCLUDES ${renderer})
 storm_renderer_check(view_schedule_check)
 storm_renderer_check(backend_select_check)
 storm_renderer_check(lamp_lifetime_check INCLUDES ${renderer} ASAN)

@@ -285,6 +285,10 @@ mips); with the parallax, cavity or gloss on, the material texture (R height, G 
 relief fades in over `kReliefFade`. A new scene, or settings that change which draws read the maps, forget which
 textures were drawn and drop the generator's queue; one line per scene says what was looked up.
 
+None of this, nor the neural ×2 textures, exists for a game that ships its own texture maps (`render::EffectsGame`, from
+core's game profile): its «Обработка текстур» options are left off, and the renderer reports `texture_processing:
+false` in the interface's "renderCaps" channel so that the settings screen does not offer them.
+
 The generator (`ReliefGenerator`) runs one worker thread at nice 10. Only a texture the current scene draws with a draw
 that reads its map is requested; requests are reselected by recent player distance before each job, alternating with
 ×2 upscales. The device follows the game: the CPU while the player sees the scene, the GPU only while no scene is drawn
