@@ -354,6 +354,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     uint32_t FindMethod(DATA *self, const char *method);
     bool ScanObjectLiteral(ATTRIBUTES *object);
     bool PeekRangeFor(S_TOKEN_TYPE &loop_type);
+    S_TOKEN_TYPE PeekNextToken();
     bool CompileRangeFor(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_t &inout, S_TOKEN_TYPE loop_type,
                          STRINGS_LIST &BreakUpdateTable);
     static constexpr const char *kRangeContainer = "#rangecontainer"; // hidden locals of a range-for

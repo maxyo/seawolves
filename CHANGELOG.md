@@ -13,6 +13,9 @@
   небо затягивают серые тучи. Звёзды строятся заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна
   — диски неба вместо спрайтов.
 - Под дождевыми тучами солнце не отбрасывает теней и не даёт ореола.
+- Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
+  попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
+  обновляется при каждой оплате.
 
 **English**
 
@@ -25,6 +28,9 @@
   rain and storms close the sky with grey clouds. The stars are made anew (the game's star catalogue and planets are
   no longer drawn), and the sun and the moon are discs of the sky instead of sprites.
 - Under rain clouds the sun casts no shadows and has no glow.
+- Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.
+  In «Каждому своё» this changes one place: the date of the previous payment in the ship's debts window is updated on
+  every payment.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

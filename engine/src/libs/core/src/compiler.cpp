@@ -2484,6 +2484,17 @@ bool COMPILER::ScanObjectLiteral(ATTRIBUTES *object)
     }
 }
 
+S_TOKEN_TYPE COMPILER::PeekNextToken()
+{
+    char *const at = Token.GetProgramControl();
+    S_TOKEN_TYPE t;
+    do
+        t = Token.Get();
+    while (t == DEBUG_LINEFEED || t == DEBUG_FILE_NAME || t == COMMENT || t == INCLIDE_FILE || t == WHITESPACE);
+    Token.SetProgramControl(at);
+    return t;
+}
+
 bool COMPILER::PeekRangeFor(S_TOKEN_TYPE &loop_type)
 {
     // after "for (": a ':' before the closing ')' makes it a range-for; loop_type is the type of
@@ -3497,7 +3508,8 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
 
             CompileToken(Segment, POP_EXPRESULT); // pop
 
-            if (bound_type == IF_BLOCK)
+            // the unbraced body of a statement ends with this if, or with its else
+            if (bound_type == IF_BLOCK || (bound_type == SEPARATOR && PeekNextToken() != ELSE_BLOCK))
             {
                 return true;
             }
@@ -3521,6 +3533,11 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
                     return false;
             }
             Segment.SetOffset(update_offset, Segment.CodeSize());
+            // an else if chain goes on with the next else; any other else completes its if
+            if (bound_type == SEPARATOR && !(Token_type == IF_BLOCK && PeekNextToken() == ELSE_BLOCK))
+            {
+                return true;
+            }
             break;
 
         case WHILE_BLOCK:
@@ -3566,6 +3583,8 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
             UpdateOffsets(Segment, BreakUpdateTable, Segment.CodeSize(), "b");
             UpdateOffsets(Segment, BreakUpdateTable, jump_offset, "c");
             BreakUpdateTable.Release();
+            if (bound_type == SEPARATOR)
+                return true; // the unbraced body of a statement ends with this statement
             break;
         case FOR_BLOCK:
             BreakUpdateTable.Release();
@@ -3590,6 +3609,8 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
                     if (!CompileRangeFor(Segment, bFunctionBlock, inout, loop_type, BreakUpdateTable))
                         return false;
                     BreakUpdateTable.Release();
+                    if (bound_type == SEPARATOR)
+                        return true; // the unbraced body of a statement ends with this statement
                     break;
                 }
             }
@@ -3660,6 +3681,8 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
             UpdateOffsets(Segment, BreakUpdateTable, Segment.CodeSize(), "b");
             UpdateOffsets(Segment, BreakUpdateTable, forcont_offset, "c");
             BreakUpdateTable.Release();
+            if (bound_type == SEPARATOR)
+                return true; // the unbraced body of a statement ends with this statement
             break;
         case SWITCH_COMMAND:
             BreakUpdateTable.Release();
@@ -3696,6 +3719,8 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
             // UpdateOffsets(Segment,BreakUpdateTable,continue_jump,"c");    // -> ***
             CompileToken(Segment, POP_VOID);
             BreakUpdateTable.Release();
+            if (bound_type == SEPARATOR)
+                return true; // the unbraced body of a statement ends with this statement
             break;
         case CASE_COMMAND:
             if (bound_type == BREAK_COMMAND && balance_block == 0)
