@@ -120,7 +120,7 @@ entid_t EntityManager::CreateEntity(const char *name, ATTRIBUTES *attr)
     }
     if (pClass == nullptr)
     {
-        throw std::runtime_error("invalid entity name");
+        throw std::runtime_error(std::string("no entity class ") + name);
     }
 
     auto *ptr = static_cast<Entity *>(pClass->CreateClass());
