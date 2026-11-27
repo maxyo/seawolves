@@ -6,10 +6,12 @@
 #include "../numbers.h"
 #include "../text_utf8.h"
 #include "storm_ui/interface_model.h"
+#include "app_ui_names.hpp"
 
 #include <map>
 #include <set>
 #include <stdexcept>
+#include <utility>
 
 namespace storm::ui::screens
 {
@@ -232,6 +234,48 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         if (!request)
             return std::nullopt;
         return SubjectView{request->character, request->position, request->tab, request->quest};
+    }
+    void Host(const std::string &action) override
+    {
+        namespace host = app::host_action;
+        for (const char *known : {host::app_about, host::app_cache_clear, host::app_cache_measure,
+                                  host::app_exit_to_main_menu, host::app_settings})
+            if (action == known)
+                return bindings_->SendHost(action, "");
+        throw std::runtime_error("'" + action + "' is not a host action of the application");
+    }
+    void QuickGame(const std::string &which) override
+    {
+        if (which != "save" && which != "load")
+            throw std::runtime_error("'" + which + "' is neither the quick save nor the quick load");
+        bindings_->QuickGame(which);
+    }
+    // The title's commands go out as presses of command widgets of the title interface (the router's "main:").
+    void TitleCommand(const std::string &command) override
+    {
+        if (command != "New" && command != "Load" && command != "Options" && command != "Credits" &&
+            command != "Exit" && command != "Continue")
+            throw std::runtime_error("'" + command + "' is not a title command");
+        Widget widget;
+        widget.node = command;
+        widget.type = "button";
+        bindings_->Send(widget, "press");
+    }
+    void AskTitle(const std::string &intent) override
+    {
+        if (!intent.empty() && intent != "Load" && intent != "Options")
+            throw std::runtime_error("'" + intent + "' is not what the title screen opens");
+        bindings_->Shared().title_intent = intent;
+    }
+    std::string TitleAsked() override
+    {
+        return std::exchange(bindings_->Shared().title_intent, std::string());
+    }
+    void MenusFrom(const std::string &where) override
+    {
+        if (where != "title" && where != "game")
+            throw std::runtime_error("the menus run from the title or a game, not '" + where + "'");
+        bindings_->Shared().from_title = where == "title";
     }
     void Toast(const std::string &text) override
     {

@@ -57,6 +57,7 @@
     {"file": "interface/touch/contracts/table.c"},
     {"file": "interface/touch/contracts/transfer.c"},
     {"file": "interface/touch/contracts/ship.c"},
+    {"file": "interface/touch/contracts/menu.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -562,6 +563,35 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/menu.c",
+      "provides": ["adapter:menu"],
+      "binds": [
+        {"capability": "menu_title", "interface": "mainmenu", "nodes": [["TITLE", "heading|text"], ["ANDROID_CONTINUE", "text"]]},
+        {
+          "capability": "menu_game", "interface": "game_menu",
+          "nodes": [
+            ["MB_RESUME", "button", true], ["ANDROID_GAME", "text"], ["ANDROID_QUICK_LOAD", "text"], ["MB_SAVE", "button"],
+            ["MB_LOAD", "button"], ["MB_OPTIONS", "button"], ["MB_EXITMENU", "button"], ["MB_EXITGAME", "button"],
+            ["MB_QUIT", "button"], ["MB_UPDATES", "button"], ["CONFIRM_EXIT_TEXT", "text"], ["CONFIRM_EXIT_YES", "button"],
+            ["CONFIRM_EXIT_NO", "button"], ["CONFIRM_WINDOW_STRINGS", "text"], ["CONFIRM_WINDOW_MB_YES", "button"],
+            ["CONFIRM_WINDOW_MB_NO", "button"], ["CONFIRM_*", "image|text"], ["LOGO", "image"], ["VERSION_TEXT", "text"],
+            ["DLC_TEXT", "text"], ["COPYRIGHTS_TEXT", "text"]
+          ]
+        },
+        {
+          "capability": "menu_quick_save", "interface": "quick_save",
+          "nodes": [
+            ["INFO_TEXT", "text", true], ["INFO_WINDOW_CAPTION", "text|heading"], ["INFO_WINDOW_FADER", "*"],
+            ["INFO_FRAME", "*"], ["EXIT_BTN", "*"], ["B_OK", "*"]
+          ]
+        },
+        {
+          "capability": "menu_game_over", "interface": "game_over", "engine": true,
+          "nodes": [["KIND", "text", true], ["END", "button", true]]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -731,6 +761,16 @@
       "file": "interface/touch/screens/hero/ship.c",
       "uses": ["adapter:ship"],
       "screens": [{"capability": "ship", "component": "s-ship"}]
+    },
+    {
+      "file": "interface/touch/screens/menu.c",
+      "uses": ["adapter:menu"],
+      "screens": [
+        {"capability": "menu_title", "component": "s-title", "look": {"mode": "title"}},
+        {"capability": "menu_game", "component": "s-game-menu", "look": {"mode": "pause"}},
+        {"capability": "menu_quick_save", "component": "s-quick-save", "look": {"mode": "saving"}},
+        {"capability": "menu_game_over", "component": "s-game-over", "look": {"mode": "over"}}
+      ]
     }
   ]
 }

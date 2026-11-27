@@ -1,8 +1,9 @@
-// Host checks of the menu screens (menu_*.cpp): admission with loud rejection, the props
+// Host checks of the menu screens (the menus' script, menu_*.cpp): admission with loud rejection, the props
 // that matter and every action mapping. Synthetic models only (tests/models).
 #include "fakes.h"
 #include "../src/screens/screen.h"
 #include "app_ui_names.hpp"
+#include "../tools/script_game.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -12,6 +13,15 @@
 
 using namespace storm::ui;
 using namespace storm::ui::screens;
+
+// The application's pack: the menus its scripts draw are checked on their script screens.
+static std::string app_pack;
+
+static Router &Scripted(Router &router)
+{
+    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
+    return router;
+}
 
 static void Without(InterfaceModel &model, const char *node)
 {
@@ -24,6 +34,7 @@ static void GameMenu(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "game-menu.json"));
     ExpectEqual(surface.props["line"], "Герой Альфа · Порт Альфа · 1 <common.month_10> 1654",
                 "the game in progress above the actions");
@@ -636,6 +647,7 @@ static void Title(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "title.json"));
     ExpectEqual(router.Using(), "mainmenu", "title is a ported screen");
     ExpectEqual(surface.tag, "s-title", "title mounted");
@@ -682,10 +694,9 @@ static void Title(const std::string &models)
         Without(none, "ANDROID_CONTINUE");
         none.revision = 11;
         router.SetInterface(none);
-        const size_t errors = surface.errors.size();
         router.SetState("titleIntent", Json{{"intent", "Continue"}});
-        Expect(surface.commands.size() == 1 && surface.errors.size() == errors + 1,
-               "without a record it is an error, nothing is sent");
+        Expect(surface.commands.size() == 1 && !surface.toasts.empty() && surface.toasts.back() == "<menu.no_saves>",
+               "without a record the title says there is none, nothing is sent");
         surface.errors.clear();
         router.SetInterface(Load(models, "title.json"));
         surface.commands.clear();
@@ -855,6 +866,7 @@ static void GameOver(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetState("gameOver", Json{{"kind", "sea"}, {"language", "russian"}});
     Expect(router.Using() == "game_over" && surface.tag == "s-game-over" &&
                surface.props["title"] == "<menu.game_over_sea>",
@@ -894,6 +906,7 @@ static void QuickSave(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "quick-save.json"));
     Expect(router.Using() == "quick_save" && surface.tag == "s-quick-save" && surface.errors.empty() &&
                surface.props["extras"]["rows"].empty(),
@@ -957,13 +970,7 @@ static void SaveFailure()
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
-    if (argc == 3 && std::string_view(argv[2]) == "--saves-only")
-    {
-        Saves(models);
-        if (!failures)
-            std::printf("save menu checks passed\n");
-        return failures ? 1 : 0;
-    }
+    app_pack = argc > 2 ? argv[2] : "";
     GameMenu(models);
     GameOver(models);
     QuickSave(models);

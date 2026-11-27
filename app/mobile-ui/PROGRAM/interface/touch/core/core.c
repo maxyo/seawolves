@@ -34,6 +34,16 @@ native int UiFirst();
 // quest} (-1 and "" where it names none), taken once; 0 without one.
 native int UiSubject(string screen, aref out);
 
+// The menus' engine commands: a host action of the application ("app-about", "app-exit-to-main-menu", …), the
+// game's quick save or load after the menu resumes ("save", "load"), a title command ("New", "Load", "Options",
+// "Credits", "Exit", "Continue"); what the title opens once (UiAskTitle: "", "Load", "Options"; UiTitleAsked takes
+// it, also the host's "Continue"); where the menus run from ("title", "game").
+native void UiHost(string action);
+native void UiQuickGame(string which);
+native void UiTitle(string command);
+native void UiAskTitle(string intent);
+native string UiTitleAsked();
+native void UiMenusFrom(string where);
 native void UiToast(string text);
 native void UiRead(string title, string text);
 native void UiEditText(string node, string title);

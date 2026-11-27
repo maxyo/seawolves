@@ -9,16 +9,13 @@ namespace storm::ui::screens
 
 std::unique_ptr<Screen> CreateDialogueScreen();
 std::unique_ptr<StateConsumer> CreateDialogueConsumer();
-std::unique_ptr<Screen> CreateGameMenuScreen();
 std::unique_ptr<Screen> CreateSavesScreen();
 std::unique_ptr<Screen> CreateSettingsScreen();
 std::unique_ptr<StateConsumer> CreateAppSettingsConsumer();
 std::unique_ptr<StateConsumer> CreateRenderCapsConsumer();
-std::unique_ptr<Screen> CreateTitleScreen();
 std::unique_ptr<Screen> CreateNewGameScreen();
 std::unique_ptr<Screen> CreateAlchemyScreen();
 std::unique_ptr<Screen> CreateGoodsOrderScreen();
-std::unique_ptr<Screen> CreateGameOverScreen();
 std::unique_ptr<StateConsumer> CreateGameOverConsumer();
 std::unique_ptr<StateConsumer> CreateLoadFailureConsumer();
 std::unique_ptr<StateConsumer> CreateSaveFailureConsumer();
@@ -27,7 +24,6 @@ std::unique_ptr<Screen> CreateHeroScreen();
 std::unique_ptr<Screen> CreateLauncherScreen();
 std::unique_ptr<Screen> CreateDownloadsScreen();
 std::unique_ptr<Screen> CreateAboutScreen();
-std::unique_ptr<Screen> CreateQuickSaveScreen();
 std::unique_ptr<StateConsumer> CreateLauncherConsumer();
 
 namespace
@@ -36,14 +32,10 @@ namespace
 const ScreenEntry kPorted[] = {
     {"goodstransfer", CreateGoodsOrderScreen},
     {"dialogue", CreateDialogueScreen},
-    {"game_menu", CreateGameMenuScreen},
     {"save_load", CreateSavesScreen},
     {"option_screen", CreateSettingsScreen},
-    {"mainmenu", CreateTitleScreen},
     {"selectcharacter", CreateNewGameScreen},
     {"alchemy", CreateAlchemyScreen},
-    {"game_over", CreateGameOverScreen}, // state channel gameOver, not a game interface
-    {"quick_save", CreateQuickSaveScreen},
     {"lscchar_all", CreateHeroScreen},
     {"character", CreateHeroScreen},
     // The application's own screens, routed from the platform host's "launcher" channel; the

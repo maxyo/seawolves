@@ -135,6 +135,7 @@ storm::ui::ScriptScreen ParseBinding(const Json &entry, const NodeSets &sets, co
     const std::string at = where + " binding " + binding.capability;
     binding.nodes = ParseNodes(entry.at("nodes"), sets, at);
     binding.data = ParseTree("data", entry.contains("data") ? entry.at("data") : Json::object(), at);
+    binding.engine = entry.value("engine", false);
     return binding;
 }
 
@@ -254,6 +255,8 @@ namespace
 // its provider and the other bindings stay.
 std::string Unbound(const GameSurface &surface, const storm::ui::ScriptScreen &binding)
 {
+    if (binding.engine)
+        return {};
     if (std::string unmet = Unmet(surface, {Requirement::Kind::Interface, binding.interface}); !unmet.empty())
         return unmet;
     std::string reason;

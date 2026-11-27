@@ -119,15 +119,12 @@ add_library(storm_ui STATIC
     src/screens/hero.cpp
     src/screens/hero_character.cpp
     src/screens/dialogue.cpp
-    src/screens/menu_game.cpp
     src/screens/menu_new_game.cpp
     src/screens/menu_saves.cpp
     src/screens/menu_settings.cpp
-    src/screens/menu_title.cpp
     src/screens/extra_alchemy.cpp
     src/screens/extra_goods.cpp
-    src/screens/menu_game_over.cpp
-    src/screens/menu_quick_save.cpp
+    src/screens/menu_states.cpp
     src/screens/script_screen.cpp
     src/screens/script_props.cpp
     src/component_spec.cpp
@@ -238,11 +235,11 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     storm_ui_check(unit unit_check.cpp "${models}")
     storm_ui_check(perk_tree perk_tree_check.cpp "${models}")
     storm_ui_check(officer_assignment officer_assignment_check.cpp "${models}")
-    storm_ui_check(menus menus_check.cpp "${models}")
     storm_ui_check(hud_lifecycle hud_lifecycle_check.cpp "${states}" "${pack}")
     storm_ui_check(hud hud_check.cpp "${states}")
     storm_ui_check(hud_spyglass hud_spyglass_check.cpp "${states}")
     storm_ui_check(press press_check.cpp "${pack}" "${font}")
+    target_link_libraries(storm_ui_press_unit PRIVATE storm_ui_script_game)
     storm_ui_check(launcher_hud launcher_hud_check.cpp "${pack}")
     storm_ui_check(display display_check.cpp "${pack}")
     storm_ui_check(slot slot_check.cpp "${pack}")
@@ -262,6 +259,9 @@ elseif(NOT CMAKE_CROSSCOMPILING)
         COMMAND "${Python3_EXECUTABLE}" "${STORM_MOBILE_UI}/design/build.py" --pack "${CMAKE_BINARY_DIR}/app-pack"
                 --engine-root "${CMAKE_CURRENT_SOURCE_DIR}/../../.." DEPENDS ${storm_ui_app_design})
     add_custom_target(storm_ui_app_pack DEPENDS "${CMAKE_BINARY_DIR}/app-pack/pack.json")
+    storm_ui_check(menus menus_check.cpp "${models}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_menus_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_menus_unit storm_ui_app_pack)
     storm_ui_check(modals modals_check.cpp "${models}" "${pack}" "${font}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_modals_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_modals_unit storm_ui_app_pack)

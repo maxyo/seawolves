@@ -1,11 +1,11 @@
 {
   "tag": "s-game-menu",
-  "doc": "Pause menu over the paused game (interface `game_menu`), filled by menu_game.cpp.",
+  "doc": "Pause menu over the paused game (interface `game_menu`), filled by the script interface/touch/screens/menu.c.",
   "props": {
     "line": {"type": "text", "default": ""},
-    "resume": {"type": "json", "default": null},
-    "buttons": {"type": "json", "default": []},
-    "confirm": {"type": "json", "default": null},
+    "resume": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
+    "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "hold": "bool"}]},
+    "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}},
     "extras": {"type": "json", "default": {}}
   }
 }

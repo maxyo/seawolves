@@ -264,6 +264,41 @@ uint32_t UiSubject(VS_STACK *stack)
     });
 }
 
+uint32_t UiHost(VS_STACK *stack)
+{
+    const std::string action = PopText(stack);
+    return Native("UiHost", [&](storm::ui::ScriptCall &call) { call.Host(action); });
+}
+
+uint32_t UiQuickGame(VS_STACK *stack)
+{
+    const std::string which = PopText(stack);
+    return Native("UiQuickGame", [&](storm::ui::ScriptCall &call) { call.QuickGame(which); });
+}
+
+uint32_t UiTitle(VS_STACK *stack)
+{
+    const std::string command = PopText(stack);
+    return Native("UiTitle", [&](storm::ui::ScriptCall &call) { call.TitleCommand(command); });
+}
+
+uint32_t UiAskTitle(VS_STACK *stack)
+{
+    const std::string intent = PopText(stack);
+    return Native("UiAskTitle", [&](storm::ui::ScriptCall &call) { call.AskTitle(intent); });
+}
+
+uint32_t UiTitleAsked(VS_STACK *stack)
+{
+    return ReturnText(stack, "UiTitleAsked", [](storm::ui::ScriptCall &call) { return call.TitleAsked(); });
+}
+
+uint32_t UiMenusFrom(VS_STACK *stack)
+{
+    const std::string where = PopText(stack);
+    return Native("UiMenusFrom", [&](storm::ui::ScriptCall &call) { call.MenusFrom(where); });
+}
+
 uint32_t UiToast(VS_STACK *stack)
 {
     const std::string text = PopText(stack);
@@ -667,6 +702,12 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiFirst", "int", 0, UiFirst},
             {"UiSubject", "int", 2, UiSubject},
             {"UiToast", "void", 1, UiToast},
+            {"UiHost", "void", 1, UiHost},
+            {"UiQuickGame", "void", 1, UiQuickGame},
+            {"UiTitle", "void", 1, UiTitle},
+            {"UiAskTitle", "void", 1, UiAskTitle},
+            {"UiTitleAsked", "string", 0, UiTitleAsked},
+            {"UiMenusFrom", "void", 1, UiMenusFrom},
             {"UiRead", "void", 2, UiRead},
             {"UiEditText", "void", 2, UiEditText},
             {"UiError", "void", 1, UiError},

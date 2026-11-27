@@ -244,6 +244,32 @@ struct Calls final : storm::ui::ScriptCall
     {
         return first;
     }
+    void Host(const std::string &action) override
+    {
+        calls.push_back("host " + action);
+    }
+    void QuickGame(const std::string &which) override
+    {
+        calls.push_back("quick " + which);
+    }
+    void TitleCommand(const std::string &command) override
+    {
+        calls.push_back("title " + command);
+    }
+    std::string intent; // the title's, as the death screen or the host left it
+    void AskTitle(const std::string &asked) override
+    {
+        calls.push_back("ask title " + asked);
+        intent = asked;
+    }
+    std::string TitleAsked() override
+    {
+        return std::exchange(intent, std::string());
+    }
+    void MenusFrom(const std::string &where) override
+    {
+        calls.push_back("from " + where);
+    }
     void Toast(const std::string &text) override
     {
         calls.push_back("toast " + text);
@@ -841,15 +867,17 @@ void CheckCases(const char *folder, const std::string &file)
     Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen(folder);
     const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
     for (const Json &recorded : fixture.at("cases"))
     {
         INFO(recorded.at("name").get<std::string>());
         storm::ui::InterfaceModel model;
         REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        // A screen of several pack screens names the case's own ("folder").
+        const auto spec = PackScreen(recorded.value("folder", std::string(folder)).c_str());
         Calls calls(*spec);
         calls.widgets = model.widgets;
+        calls.intent = recorded.value("intent", std::string()); // what the title is asked to open
         if (recorded.contains("subject"))
         {
             const Json &subject = recorded.at("subject");
@@ -874,6 +902,11 @@ void CheckCases(const char *folder, const std::string &file)
 TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("reading", "reading");
+}
+
+TEST_CASE("the menus' script gives the pack screens the props and actions of the recorded models")
+{
+    CheckCases("title", "menu");
 }
 
 TEST_CASE("the map screen's script gives the pack screen the props and actions of the recorded models")

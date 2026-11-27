@@ -29,5 +29,9 @@
   "table_dice": "Dice against a tavern's patron, as the game deals and decides them",
   "table_cards": "Cards (twenty-one) against a tavern's patron, as the game deals and decides them",
   "transfer": "Exchange cargo and crew with another ship: a boarded prize, a companion, a ship met at sea",
-  "ship": "A ship of the hero's squadron: its figures, crew and hold, its guns set, goods thrown overboard"
+  "ship": "A ship of the hero's squadron: its figures, crew and hold, its guns set, goods thrown overboard",
+  "menu_title": "The title menu over the game's menu scene: continue the newest record, a new game, load, settings",
+  "menu_game": "The pause menu over a game in progress: resume, save, load, quick save and load, settings, exit",
+  "menu_quick_save": "The plate shown while the game writes a quick save",
+  "menu_game_over": "The death screen while the game shows its death picture: load, settings or the title"
 }

@@ -10,6 +10,7 @@
 // made while the game is in no gameplay mode (title load, scene change): the next interface
 // gets it, gameplay drops it.
 // No GL context, no game data.
+#include "../tools/script_game.h"
 #include "fakes.h"
 #include "storm_ui/host_tools.h"
 #include "runtime_stub.h"
@@ -83,7 +84,9 @@ static void AddRowComponents(Json &components)
     // The pause menu's screen component, reduced to its «Продолжить» (id "resume") as a row.
     components["components"].push_back(Json::parse(R"({
         "tag": "s-game-menu",
-        "props": {"line": {"type": "json", "default": {}}, "resume": {"type": "json", "default": {}}, "buttons": {"type": "json", "default": []}, "confirm": {"type": "json", "default": {}}, "extras": {"type": "json", "default": []}},
+        "props": {"line": {"type": "text", "default": ""}, "resume": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
+                  "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "hold": "bool"}]},
+                  "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}}, "extras": {"type": "json", "default": []}},
         "template": "<div style=\"font-family: LatoLatin;\"><c-row id=\"resume\" style=\"display: block; position: absolute; left: 0; top: 0; width: 200dp; height: 48dp;\" title=\"Resume\"/></div>"})"));
     // Icon-only table headers: tap sorts, long press explains without sorting.
     components["components"].push_back(Json::parse(R"({
@@ -787,6 +790,8 @@ struct PressRun
         Expect(host != nullptr, "a second runtime starts: " + error);
         if (!host)
             return false;
+        // The pause menu is the menus' script screen, its component this pack's reduced one.
+        host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
         Frames(0.05);
         clicks.clear();
         const fs::path states = fs::path(tests_) / "../states";
@@ -839,7 +844,7 @@ struct PressRun
         const InterfaceModel menu = Load((fs::path(tests_) / "../models").string(), "game-menu.json");
         host->SetInterface(menu); // the game menu model arrives
         Frames(0.05);
-        // «Продолжить» resumes through the engine's back (menu_game.cpp).
+        // «Продолжить» resumes through the engine's back (the menus' script).
         Expect(clicks.size() == 1 && clicks[0] == " back", "then the held tap presses the screen's «Продолжить»: " +
                                                                (clicks.empty() ? std::string("nothing") : clicks[0]));
         clicks.clear();

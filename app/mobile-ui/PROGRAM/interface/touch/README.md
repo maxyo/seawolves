@@ -53,7 +53,9 @@ Segments in layer order. A segment has `file`, `core` (core and lib only: a fail
 of the providers the first that attaches is chosen), and:
 - an adapter's `binds`: `{capability, interface, nodes, data}`; `nodes` are `[node, type, required]` or `"@set"` from
   the top-level `nodeSets`; `data` is what the adapter reads per capability (the trade windows' columns). A binding
-  whose interface or required nodes the game lacks is off alone, the provider and its other bindings stay.
+  whose interface or required nodes the game lacks is off alone, the provider and its other bindings stay. A binding with
+  `"engine": true` is of an interface whose model the engine makes itself (`game_over`, of the game's death
+  picture): it is not looked up in the game's interface table.
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
 
@@ -105,6 +107,11 @@ The natives (`core/core.c`):
   attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
   open interface, which a segment attached before that interface cannot name. Absent or not a whole number, it fails.
   The checks give such globals per recorded state (a case's `game`);
+- the menus' engine commands, sent as the router's own: `UiHost(action)` (a host action of the application's
+  contract: `app-about`, `app-exit-to-main-menu`, …), `UiQuickGame("save"|"load")` (the engine presses the game's
+  quick key once the menu has resumed), `UiTitle(command)` (the title's `New`, `Load`, `Options`, `Credits`, `Exit`,
+  `Continue`); what the title opens once, `UiAskTitle("" | "Load" | "Options")` and `UiTitleAsked()` (takes it, also
+  the host's `Continue`); `UiMenusFrom("title" | "game")` (the save list loads from the title without a question);
 - `UiToast`, `UiRead`, `UiError(text)`;
 - `UiEditText(node, title)` in a tap: the phone's text editor over the game's field `node` with its text; the text
   the player accepts goes to the field as its `edit` (the game's own handler takes it), nothing when he cancels.

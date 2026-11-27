@@ -1,0 +1,1119 @@
+{
+ "$comment": "The menus' script on recorded models, per capability (folder: the pack screen): the props its view gives, the modal it binds and the calls its build and events make; intent: what the title is asked to open.",
+ "cases": [
+  {
+   "name": "the title with a record: continue names it, every command the engine's",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": [
+     {
+      "node": "ANDROID_CONTINUE",
+      "type": "text",
+      "label": "Герой Альфа · Порт Альфа",
+      "index": -1,
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа"
+      }
+     }
+    ]
+   },
+   "events": [
+    [
+     "continue",
+     "click",
+     ""
+    ],
+    [
+     "new",
+     "click",
+     ""
+    ],
+    [
+     "load",
+     "click",
+     ""
+    ],
+    [
+     "options",
+     "click",
+     ""
+    ],
+    [
+     "credits",
+     "click",
+     ""
+    ],
+    [
+     "exit",
+     "click",
+     ""
+    ],
+    [
+     "about",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "",
+     "sub": "Герой Альфа · Порт Альфа"
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from title",
+    "title Continue",
+    "title New",
+    "title Load",
+    "title Options",
+    "title Credits",
+    "title Exit",
+    "host app-about"
+   ]
+  },
+  {
+   "name": "the title without a record: continue is off and says why",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": []
+   },
+   "events": [],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": true,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "<menu.no_saves>",
+     "sub": ""
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from title"
+   ]
+  },
+  {
+   "name": "the title opens what the death screen chose",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": [
+     {
+      "node": "ANDROID_CONTINUE",
+      "type": "text",
+      "label": "Герой Альфа · Порт Альфа",
+      "index": -1,
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа"
+      }
+     }
+    ]
+   },
+   "intent": "Load",
+   "events": [],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "",
+     "sub": "Герой Альфа · Порт Альфа"
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from title",
+    "title Load"
+   ]
+  },
+  {
+   "name": "the host's continue at a title without a record is said, nothing is sent",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": []
+   },
+   "intent": "Continue",
+   "events": [],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": true,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "<menu.no_saves>",
+     "sub": ""
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from title",
+    "toast <menu.no_saves>"
+   ]
+  },
+  {
+   "name": "the pause menu: the game in progress, the game's buttons, the quick save and load",
+   "capability": "menu_game",
+   "folder": "game-menu",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 4,
+    "screen": "game_menu",
+    "widgets": [
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_GAME",
+      "type": "text",
+      "label": "Герой Альфа · Порт Альфа",
+      "index": -1,
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20"
+      }
+     },
+     {
+      "node": "MB_OPTIONS",
+      "type": "button",
+      "label": "Настройки",
+      "index": -1
+     },
+     {
+      "node": "MB_RESUME",
+      "type": "button",
+      "label": "Продолжить",
+      "index": -1,
+      "context": {
+       "resumeOnCancel": "1"
+      }
+     },
+     {
+      "node": "MB_SAVE",
+      "type": "button",
+      "label": "Сохранить",
+      "index": -1
+     },
+     {
+      "node": "MB_LOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "MB_EXITGAME",
+      "type": "button",
+      "label": "Выйти из игры",
+      "index": -1
+     },
+     {
+      "node": "MB_UPDATES",
+      "type": "button",
+      "label": "Дополнения",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VERSION_TEXT",
+      "type": "text",
+      "label": "ver. 0.0",
+      "value": "1",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "quick-save",
+     "click",
+     ""
+    ],
+    [
+     "quick-load",
+     "click",
+     ""
+    ],
+    [
+     "resume",
+     "click",
+     ""
+    ],
+    [
+     "save",
+     "click",
+     ""
+    ],
+    [
+     "load",
+     "click",
+     ""
+    ],
+    [
+     "options",
+     "click",
+     ""
+    ],
+    [
+     "exit",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "save",
+      "label": "Сохранить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "load",
+      "label": "Загрузить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "quick-save",
+      "label": "<menu.quick_save>",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": true,
+      "hold": true,
+      "id": "quick-load",
+      "label": "<menu.quick_load>",
+      "reason": "<menu.no_quick_save>",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "options",
+      "label": "Настройки",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "exit",
+      "label": "<menu.exit>",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "confirm": null,
+    "line": "Герой Альфа · Порт Альфа · 1 <common.month_10> 1654",
+    "resume": {
+     "busy": false,
+     "disabled": false,
+     "id": "resume",
+     "label": "Продолжить",
+     "reason": "",
+     "variant": "primary"
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from game",
+    "back ",
+    "quick save",
+    "back ",
+    "send MB_SAVE press ",
+    "send MB_LOAD press ",
+    "send MB_OPTIONS press ",
+    "send MB_EXITGAME press "
+   ]
+  },
+  {
+   "name": "the pause menu with a quick save's record: the quick load resumes and presses the game's key",
+   "capability": "menu_game",
+   "folder": "game-menu",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 4,
+    "screen": "game_menu",
+    "widgets": [
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_GAME",
+      "type": "text",
+      "label": "Герой Альфа · Порт Альфа",
+      "index": -1,
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20"
+      }
+     },
+     {
+      "node": "MB_OPTIONS",
+      "type": "button",
+      "label": "Настройки",
+      "index": -1
+     },
+     {
+      "node": "MB_RESUME",
+      "type": "button",
+      "label": "Продолжить",
+      "index": -1,
+      "context": {
+       "resumeOnCancel": "1"
+      }
+     },
+     {
+      "node": "MB_SAVE",
+      "type": "button",
+      "label": "Сохранить",
+      "index": -1
+     },
+     {
+      "node": "MB_LOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "MB_EXITGAME",
+      "type": "button",
+      "label": "Выйти из игры",
+      "index": -1
+     },
+     {
+      "node": "MB_UPDATES",
+      "type": "button",
+      "label": "Дополнения",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VERSION_TEXT",
+      "type": "text",
+      "label": "ver. 0.0",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_QUICK_LOAD",
+      "type": "text",
+      "label": "Герой QuickSave 1",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "quick-load",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "save",
+      "label": "Сохранить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "load",
+      "label": "Загрузить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "quick-save",
+      "label": "<menu.quick_save>",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "hold": true,
+      "id": "quick-load",
+      "label": "<menu.quick_load>",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "options",
+      "label": "Настройки",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "exit",
+      "label": "<menu.exit>",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "confirm": null,
+    "line": "Герой Альфа · Порт Альфа · 1 <common.month_10> 1654",
+    "resume": {
+     "busy": false,
+     "disabled": false,
+     "id": "resume",
+     "label": "Продолжить",
+     "reason": "",
+     "variant": "primary"
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from game",
+    "back ",
+    "quick load"
+   ]
+  },
+  {
+   "name": "the game's own exit to its main menu is the one exit",
+   "capability": "menu_game",
+   "folder": "game-menu",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 4,
+    "screen": "game_menu",
+    "widgets": [
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_GAME",
+      "type": "text",
+      "label": "Герой Альфа · Порт Альфа",
+      "index": -1,
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20"
+      }
+     },
+     {
+      "node": "MB_OPTIONS",
+      "type": "button",
+      "label": "Настройки",
+      "index": -1
+     },
+     {
+      "node": "MB_RESUME",
+      "type": "button",
+      "label": "Продолжить",
+      "index": -1,
+      "context": {
+       "resumeOnCancel": "1"
+      }
+     },
+     {
+      "node": "MB_SAVE",
+      "type": "button",
+      "label": "Сохранить",
+      "index": -1
+     },
+     {
+      "node": "MB_LOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "MB_EXITGAME",
+      "type": "button",
+      "label": "Выйти из игры",
+      "index": -1
+     },
+     {
+      "node": "MB_UPDATES",
+      "type": "button",
+      "label": "Дополнения",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VERSION_TEXT",
+      "type": "text",
+      "label": "ver. 0.0",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "MB_EXITMENU",
+      "type": "button",
+      "label": "Главное меню",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "exit",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "save",
+      "label": "Сохранить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "load",
+      "label": "Загрузить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "quick-save",
+      "label": "<menu.quick_save>",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": true,
+      "hold": true,
+      "id": "quick-load",
+      "label": "<menu.quick_load>",
+      "reason": "<menu.no_quick_save>",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "options",
+      "label": "Настройки",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "exit",
+      "label": "Главное меню",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "confirm": null,
+    "line": "Герой Альфа · Порт Альфа · 1 <common.month_10> 1654",
+    "resume": {
+     "busy": false,
+     "disabled": false,
+     "id": "resume",
+     "label": "Продолжить",
+     "reason": "",
+     "variant": "primary"
+    }
+   },
+   "modals": [],
+   "calls": [
+    "from game",
+    "send MB_EXITMENU press "
+   ]
+  },
+  {
+   "name": "the exit question: ours, the host told before the game's yes",
+   "capability": "menu_game",
+   "folder": "game-menu",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 2,
+    "screenRevision": 4,
+    "screen": "game_menu",
+    "widgets": [
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "MB_OPTIONS",
+      "type": "button",
+      "label": "Настройки",
+      "index": -1
+     },
+     {
+      "node": "MB_RESUME",
+      "type": "button",
+      "label": "Продолжить",
+      "index": -1,
+      "context": {
+       "resumeOnCancel": "1"
+      }
+     },
+     {
+      "node": "MB_SAVE",
+      "type": "button",
+      "label": "Сохранить",
+      "index": -1
+     },
+     {
+      "node": "MB_LOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "MB_EXITGAME",
+      "type": "button",
+      "label": "Выйти из игры",
+      "index": -1
+     },
+     {
+      "node": "MB_UPDATES",
+      "type": "button",
+      "label": "Дополнения",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VERSION_TEXT",
+      "type": "text",
+      "label": "ver. 0.0",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_TEXT",
+      "type": "text",
+      "label": "Выйти?",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_YES",
+      "type": "button",
+      "label": "Да",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_NO",
+      "type": "button",
+      "label": "Нет",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "confirm-confirm",
+     "click",
+     ""
+    ],
+    [
+     "confirm-cancel",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "save",
+      "label": "Сохранить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "load",
+      "label": "Загрузить",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "quick-save",
+      "label": "<menu.quick_save>",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": true,
+      "hold": true,
+      "id": "quick-load",
+      "label": "<menu.quick_load>",
+      "reason": "<menu.no_quick_save>",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "options",
+      "label": "Настройки",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "exit",
+      "label": "<menu.exit>",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "confirm": {
+     "no": "<common.cancel>",
+     "preset": "danger",
+     "text": "",
+     "title": "<menu.exit_to_main_menu_question>",
+     "yes": "<menu.exit>"
+    },
+    "line": "",
+    "resume": {
+     "busy": false,
+     "disabled": false,
+     "id": "resume",
+     "label": "Продолжить",
+     "reason": "",
+     "variant": "primary"
+    }
+   },
+   "modals": [
+    "confirm confirm-cancel"
+   ],
+   "calls": [
+    "from game",
+    "host app-exit-to-main-menu",
+    "send CONFIRM_EXIT_YES press ",
+    "send CONFIRM_EXIT_NO press "
+   ]
+  },
+  {
+   "name": "the quick save's plate: the game's caption and line",
+   "capability": "menu_quick_save",
+   "folder": "quick-save",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 1,
+    "screen": "quick_save",
+    "widgets": [
+     {
+      "node": "INFO_WINDOW_FADER",
+      "type": "image",
+      "index": -1,
+      "order": 0
+     },
+     {
+      "node": "INFO_FRAME",
+      "type": "image",
+      "index": -1,
+      "order": 0
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "Идёт сохранение...",
+      "index": -1,
+      "order": 0
+     },
+     {
+      "node": "INFO_WINDOW_CAPTION",
+      "type": "text",
+      "label": "Быстрое сохранение",
+      "index": -1,
+      "order": 0
+     }
+    ]
+   },
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "text": "Идёт сохранение...",
+    "title": "Быстрое сохранение"
+   },
+   "modals": [],
+   "calls": []
+  },
+  {
+   "name": "the death screen at sea: a choice ends the picture and the title opens it",
+   "capability": "menu_game_over",
+   "folder": "game-over",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screen": "game_over",
+    "widgets": [
+     {
+      "node": "KIND",
+      "type": "text",
+      "label": "sea",
+      "index": -1
+     },
+     {
+      "node": "END",
+      "type": "button",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     }
+    ]
+   },
+   "events": [
+    [
+     "go-load",
+     "click",
+     ""
+    ],
+    [
+     "go-title",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "id": "go-load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "go-options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "go-title",
+      "label": "<menu.main_menu>"
+     }
+    ],
+    "title": "<menu.game_over_sea>"
+   },
+   "modals": [],
+   "calls": [
+    "ask title Load",
+    "send END press ",
+    "ask title ",
+    "send END press "
+   ]
+  }
+ ]
+}

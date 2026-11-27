@@ -41,6 +41,9 @@ struct ScriptScreen
     std::vector<ScriptNode> nodes;
     std::string script;
     ViewTree look, data;
+    // The engine makes the interface's model itself (the death screen of the game's death picture): the game's
+    // interface table has no such window, so a binding of it is not looked up there.
+    bool engine = false;
 };
 
 // A deal of a quantity control (screens::AmountDraft), as a script asks for it in a build: our side holds `origin`
@@ -118,6 +121,19 @@ class ScriptCall
     virtual bool First() const = 0;
     // Inside a build: the subject asked of screen `screen` (SubjectView), taken by this call; none without one.
     virtual std::optional<SubjectView> Subject(const std::string &screen) = 0;
+
+    // The menus' engine commands, sent as the C++ menus sent them: a host action of the application's contract
+    // (app_ui_names.hpp host_action), the game's quick save or load ("save", "load": the screen resumes first), a
+    // title command ("New", "Load", "Options", "Credits", "Exit", "Continue"). Another name throws.
+    virtual void Host(const std::string &action) = 0;
+    virtual void QuickGame(const std::string &which) = 0;
+    virtual void TitleCommand(const std::string &command) = 0;
+    // What the title screen opens once, as if tapped: set by the death screen ("" none, "Load", "Options"), taken by
+    // the title (it also holds the host's "Continue"); and whether the menus now run from the title ("title") or over
+    // a game in progress ("game"): the save list loads a record from the title without a question.
+    virtual void AskTitle(const std::string &intent) = 0;
+    virtual std::string TitleAsked() = 0;
+    virtual void MenusFrom(const std::string &where) = 0;
 
     virtual void Toast(const std::string &text) = 0;
     virtual void Read(const std::string &title, const std::string &text) = 0;
