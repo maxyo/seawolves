@@ -10,6 +10,19 @@ aref TouchLegLib_Model(aref ui)
 	return model;
 }
 
+// The first of the window's exit buttons `nodes` (names between spaces) it has, "" for none: what UiBack leaves by.
+string TouchLegLib_Exit(aref model, string nodes)
+{
+	object names;
+	TouchLib_Words(nodes, &names);
+	for (int k = 0; k < GetAttributesNum(&names); k++)
+	{
+		aref name = GetAttributeN(&names, k);
+		if (CheckAttribute(model, name.text)) return name.text;
+	}
+	return "";
+}
+
 // The caption of an optional node, "" without it (or without a node named).
 string TouchLegLib_Label(aref model, string node)
 {

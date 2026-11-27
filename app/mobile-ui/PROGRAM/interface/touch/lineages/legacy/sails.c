@@ -60,8 +60,5 @@ void TouchAdpSails_Work(aref ui)
 
 void TouchAdpSails_Leave(aref ui)
 {
-	string leave = "";
-	if (CheckAttribute(ui, "model.B_CANCEL")) leave = "B_CANCEL";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
-	UiBack(leave);
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), "EXIT_BTN B_CANCEL"));
 }

@@ -114,7 +114,5 @@ bool TouchAdpAlchemy_Make(aref ui, int batches)
 
 void TouchAdpAlchemy_Leave(aref ui)
 {
-	string leave = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
-	UiBack(leave);
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), "EXIT_BTN"));
 }

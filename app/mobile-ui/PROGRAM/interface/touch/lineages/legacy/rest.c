@@ -51,7 +51,5 @@ void TouchAdpRest_Go(aref ui)
 
 void TouchAdpRest_Close(aref ui)
 {
-	if (CheckAttribute(ui, "model.CANCEL_BTN")) { UiBack("CANCEL_BTN"); return; }
-	if (CheckAttribute(ui, "model.EXIT_BTN")) { UiBack("EXIT_BTN"); return; }
-	UiBack("");
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), "CANCEL_BTN EXIT_BTN"));
 }

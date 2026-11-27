@@ -137,6 +137,21 @@ field, and a runtime error of the script (the interpreter logs it and goes on) f
 the interface with an error line. There is no default for what the game should have given: an adapter that cannot
 read what its contract promises calls `UiError`.
 
+## Helpers
+
+Look here before writing one; a helper earns its place with three sites (or two large ones), takes data (node names,
+keys), not flags that switch behaviours, and computes nothing the game computes.
+- `lib/text.c`: `TouchLib_Newline`, `Cut`, `StartsWith`, `EndsWith`, `Trim`, `AfterColon`, `Figure` (a caption's
+  label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
+- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Order`, `TapIndex`), list heads (`Column`, `SortTap`, `Filter`),
+  `Fact`, `Stat`, buttons (`Actions`, `Action`), `Words`, the hero header (`Section`, `SectionAsk`, `Subject`, `SubjectOn`,
+  `SubjectTap`), `ShipSkills`, `Command`.
+- `lineages/legacy/lib.c`: `TouchLegLib_Model`, `Exit` (the window's exit button of candidates), captions (`Label`,
+  `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`, `Image`), choices (`Choices`, `Choose`), the
+  amount window (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`,
+  `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character list (`People`, `PickPerson`),
+  `ShipSkills`.
+
 ## The steps of a move
 
 A move that the game answers in more than one step (TEHO's store: a confirmed deal closes the window, and the row is

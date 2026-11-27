@@ -101,8 +101,5 @@ void TouchAdpRepair_Do(aref ui)
 
 void TouchAdpRepair_Leave(aref ui)
 {
-	string leave = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
-	if (CheckAttribute(ui, "model.REPAIR_CANCEL")) leave = "REPAIR_CANCEL";
-	UiBack(leave);
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), "REPAIR_CANCEL EXIT_BTN"));
 }

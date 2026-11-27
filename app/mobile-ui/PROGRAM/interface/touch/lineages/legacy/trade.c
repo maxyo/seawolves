@@ -572,9 +572,8 @@ void TouchAdpTrade_TakeBest(aref ui)
 void TouchAdpTrade_Leave(aref ui)
 {
 	TouchLegTrade_Step("", "", "", -1);
-	string leave = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
 	aref model = TouchLegLib_Model(ui);
+	string leave = TouchLegLib_Exit(model, "EXIT_BTN");
 	if (TouchLegLib_Window(model) >= 0) UiBack(leave);
 	UiBack(leave);
 }
