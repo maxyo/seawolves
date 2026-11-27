@@ -8,6 +8,10 @@
       ["TABBTN_*", "image|button"], ["TABSTR_*", "text"], ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"],
       ["DELBODY_BUTTON", "button"], ["SKULL_BUTTON", "button"], ["QTY_EDITBOX", "edit"]
     ],
+    "hero-sections": [
+      ["I_CHARACTER", "button"], ["I_SHIP", "button"], ["I_QUESTBOOK", "button"], ["I_TRADEBOOK", "button"],
+      ["I_NATIONS", "button"], ["I_ITEMS", "button"], ["STR_BUTTONS", "text"]
+    ],
     "qty-window": [
       ["QTY_EDIT", "edit"], ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"],
       ["QTY_*", "text|heading|image"]
@@ -19,6 +23,7 @@
     {"file": "interface/touch/lib/list.c", "core": true},
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
+    {"file": "interface/touch/contracts/nations.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c"},
     {
@@ -89,6 +94,34 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/nations.c",
+      "requires": [
+        "fn:GetMainCharacter/0", "fn:GetNationNameByType/1", "fn:NationShortName/1", "fn:GetNationRelation/2",
+        "fn:GetRelationName/1", "fn:ChangeCharacterNationReputation/3", "fn:GetNationReputationName/2",
+        "fn:GetRPGText/1", "var:GameInterface"
+      ],
+      "provides": ["adapter:nations"],
+      "binds": [
+        {
+          "capability": "nations",
+          "interface": "nationrelation",
+          "nodes": [
+            ["TITLE", "heading"], ["FlagPic", "image", true], ["LEFTCHANGE_NATION", "button"],
+            ["RIGHTCHANGE_NATION", "button"], ["FLAGS", "button"], ["EXIT_BTN", "button"], "@hero-sections",
+            ["ENG_TEXT", "text"], ["FRA_TEXT", "text"], ["SPA_TEXT", "text"], ["HOL_TEXT", "text"],
+            ["INFO_CLICK", "text"], ["INFO_CLICK2", "text"], ["ICON_*", "image"]
+          ],
+          "data": {
+            "flags": {
+              "England": "nation-england", "France": "nation-france", "Spain": "nation-spain",
+              "Holland": "nation-holland", "Pirate": "nation-pirates"
+            },
+            "help": {"standing": {"title": "Hunter_type", "text": "Hunter_hint"}, "flag": {"title": "Nation", "text": "Nation_hint"}}
+          }
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -123,6 +156,11 @@
           }
         }
       ]
+    },
+    {
+      "file": "interface/touch/screens/hero/nations.c",
+      "uses": ["adapter:nations"],
+      "screens": [{"capability": "nations", "component": "s-nations"}]
     }
   ]
 }

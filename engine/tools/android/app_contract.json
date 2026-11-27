@@ -95,7 +95,6 @@
     "AndroidInterfaceFacts": [],
     "AndroidLandRefresh": [],
     "AndroidLoadFailed": [],
-    "AndroidNationFacts": [],
     "AndroidOpenScreen": ["character", "ship", "journal", "items"],
     "AndroidSaveFailed": [],
     "AndroidSaveIdentity": []

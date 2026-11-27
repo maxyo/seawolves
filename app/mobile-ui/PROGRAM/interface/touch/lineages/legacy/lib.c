@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // What every adapter of this lineage reads the game's interfaces by: captions, the cells of a TABLE_LIST, the rows of
-// a choice, the game's amount window filled and confirmed, and the purse caption.
+// a choice, the game's amount window filled and confirmed, the purse caption, the hero sections and the game's
+// descriptions.
 
 aref TouchLegLib_Model(aref ui)
 {
@@ -176,4 +177,44 @@ bool TouchLegLib_Purse(aref model, aref out)
 	while (end > digit && strcut(gold, end - 1, end - 1) == " ") end--;
 	out.value = TouchLib_Cut(gold, digit, end);
 	return true;
+}
+
+// The hero sections' windows (character, ship, journal, trade book, nations, items) open one another by their
+// buttons I_<SECTION>; a section the window has no button for is the screen's defect.
+void TouchLegLib_Section(aref model, string section)
+{
+	object nodes = {hero = "I_CHARACTER", ship = "I_SHIP", journal = "I_QUESTBOOK", tradebook = "I_TRADEBOOK",
+	                nations = "I_NATIONS", items = "I_ITEMS"};
+	if (!CheckAttribute(&nodes, section)) UiError("no hero section " + section);
+	string node = nodes.(section);
+	bool can = false;
+	if (CheckAttribute(model, node)) can = UiOffers(node, "press");
+	if (!can) UiError("the section " + section + " cannot be opened here (" + node + ")");
+	UiSend(node, "press", "");
+}
+
+// A description of the game's text files as a sheet shows it: a line of only "~" (their paragraph mark) empty, no
+// empty lines before or after it.
+string TouchLegLib_StockText(string text)
+{
+	string newline = TouchLib_Newline();
+	string out = "";
+	string held = "";
+	string line;
+	int from = 0;
+	while (from <= strlen(text))
+	{
+		int end = findSubStr(text, newline, from);
+		if (end < 0) end = strlen(text);
+		line = TouchLib_Cut(text, from, end);
+		from = end + 1;
+		if (UiOneLine(line) == "~" || UiOneLine(line) == "")
+		{
+			if (out != "") held += newline;
+			continue;
+		}
+		out += held + line;
+		held = newline;
+	}
+	return out;
 }

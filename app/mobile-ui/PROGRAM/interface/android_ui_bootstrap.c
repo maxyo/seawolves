@@ -5,7 +5,6 @@
 #include "interface/android_autosave.c"
 #include "interface/android_load_failure.c"
 #include "interface/android_save_failure.c"
-#include "interface/android_nations.c"
 #include "interface/android_save_identity.c"
 #include "interface/android_hero.c"
 #include "interface/android_open_screen.c"

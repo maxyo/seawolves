@@ -70,7 +70,7 @@ not send are string keys (`UiText`) of `../../../design/strings/<lang>.json`, ev
 
 Each capability has its object `ui` = `UiScreens.<capability>`: `capability`, `screen` (the screen file's stem), `look`,
 `data`, `model` (the admitted widgets of its last build: `<NODE>.{type, label, value, min, max, reason, offers.<verb>,
-context, headers, rows.r<index>.{index, id, label, value, reason, offers, cells.c<n>.{text, color, images}}}`). The
+context, headers, images.i<k>.{kind, group, image}, rows.r<index>.{index, id, label, value, reason, offers, cells.c<n>.{text, color, images}}}`). The
 events are `UiBuild(ui)` and `UiTap(ui, id, verb, value)`, raised to every screen: a screen's handler starts with
 `aref ui = GetEventData(); if (ui.screen != "<stem>") return;`. Only adapters read `ui.model`; the screen hands `ui` to
 every contract call.

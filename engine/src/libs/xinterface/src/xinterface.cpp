@@ -37,7 +37,6 @@
 #include "mobile_image_bridge.hpp"
 #include "mobile_inventory.hpp"
 #include "mobile_save_list.hpp"
-#include "mobile_nation_relations.hpp"
 #include "mobile_table_game.hpp"
 #include "mobile_goods_transfer.hpp"
 #include "mobile_sails_gerald.hpp"
@@ -464,41 +463,6 @@ void XINTERFACE::Execute(uint32_t)
 }
 
 #ifdef __ANDROID__
-// The hero's standing with a nation (lower-case short name, NationShortName) from the interface adapter
-// android_nations.c (event AndroidNationFacts): the game's number and its word's tone; nullopt without them.
-// Asked again only when the script state it reads changed (mobile_facts_cache.hpp).
-std::optional<storm::mobile::NationStanding> XINTERFACE::MobileNationStanding(const std::string &nation) const
-{
-    decltype(mobileNations_)::Key key{storm::android::mobileScreenRevision,-1,"",storm::ScriptStateGeneration()};
-    const auto *nations=mobileNations_.Find(key);
-    if(!nations)
-    {
-        STORM_PROFILE_ZONE("UI model: adapter nations");
-        {
-            const storm::ScriptStateReads reads;
-            core.Event(storm::app::script_event::AndroidNationFacts);
-        }
-        std::map<std::string,storm::mobile::NationStanding> out;
-        auto *facts=core.Entity_GetAttributeClass(g_idInterface,"AndroidNations");
-        for(size_t i=0;facts&&i<facts->GetAttributesNum();++i)
-            if(auto *row=facts->GetAttributeClass(i))
-            {
-                const char *score=row->GetAttribute("score"),*tone=row->GetAttribute("tone");
-                out[storm::AsciiLower(row->GetThisName())]={score?score:"",tone?tone:""};
-            }
-        key.state=storm::ScriptStateGeneration();
-        nations=&mobileNations_.Store(std::move(key),std::move(out));
-    }
-    const auto found=nations->find(storm::AsciiLower(nation));
-    if(found==nations->end())return std::nullopt;
-    return found->second;
-}
-
-void XINTERFACE::MobileNationPickFailed(const std::string &target) const
-{
-    core.Trace("nationrelation: the flag %s was not reached by cycling the candidate", target.c_str());
-}
-
 // Script variables read by the model's collectors (mobile_variable_reads.hpp).
 static storm::mobile::VariableReads mobileVariableReads;
 using MobileVariableKind = storm::mobile::VariableReads::Kind;
@@ -642,7 +606,6 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
         }
     };
     if(storm::android::mobileScreen!="mainmenu")collect(collect,m_pNodes);
-    if(storm::android::mobileScreen=="nationrelation")storm::mobile::CollectNations(*this,storm::android::mobileScreenRevision,widgets);
     if(storm::android::mobileScreen=="lscchar_all"||storm::android::mobileScreen=="character")MobileCollectHero(widgets);
     mobileLeft_=false;
     if(storm::android::mobileScreen!="mainmenu")MobileCollectFacts(widgets);
@@ -2914,8 +2877,6 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
         if (auto *next = node->DoAction(code, stop, true)) SetCurNode(next);
         return applied;
     }
-    if(action.screen=="nationrelation" && action.value.rfind("nation@",0)==0)
-        return storm::mobile::ApplyNationAction(*this,node,action);
     if (node->MobileApply(action.index, action.value))
         return applied;
     if (action.index == -1 && action.value == "press" && node->m_bSelected && node->m_bClickable)

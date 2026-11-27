@@ -51,7 +51,8 @@
 - Предметы: причина недоступной кнопки больше не придумывается (раньше называлась только одна из причин игры);
   ячеек для амулетов столько, сколько их у персонажа в игре.
 - Нации: флаги больше не гасятся интерфейсом заранее. Флаг, который игра не даёт поднять, гаснет после
-  нажатия, а выбранный флаг остаётся прежним. Оттенок репутации берётся из слова самой игры.
+  нажатия, а выбранный флаг остаётся прежним. Оттенок репутации берётся из слова самой игры. Подсказка игры к
+  репутации и флагу открывается листом для чтения.
 - Карты: очки считаются так, как их считает игра (колода мода с другими очками показывает верную сумму); имя
   соперника полное, как в игре.
 - Компас карты мира больше не предсказывает дождь: игра не строит погоду моря, пока корабль на карте, и прогноз мог не
@@ -124,7 +125,8 @@
 - Items: a disabled button no longer gives a reason we made up (it named only one of the game's reasons); there are
   as many amulet slots as the character has in the game.
 - Nations: flags are no longer greyed out in advance by the interface. A flag the game will not raise goes off
-  after a tap, and the chosen flag stays as it was. The tone of a reputation follows the game's own word.
+  after a tap, and the chosen flag stays as it was. The tone of a reputation follows the game's own word. The game's
+  help on reputation and flags opens as a reading sheet.
 - Cards: points are counted as the game counts them (a mod's deck with other values shows the right total); the
   opponent's name is the game's full name.
 - The world map's compass no longer forecasts rain: the game builds no sea weather while the ship is on the map, and

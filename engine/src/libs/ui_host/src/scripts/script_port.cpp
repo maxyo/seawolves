@@ -447,7 +447,8 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
 }
 
 // The admitted widgets as <model>.<node>.{type, label, value, min, max, reason, offers.<verb>, context.<key>,
-// headers.c<column>, rows}: a node's first widget stands for it, its widgets with an index are its rows (FillRow).
+// headers.c<column>, images (a node's own), rows}: a node's first widget stands for it, its widgets with an index are
+// its rows (FillRow).
 void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &widgets)
 {
     for (const storm::ui::Widget *widget : widgets)
@@ -470,6 +471,9 @@ void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &
                 Child(*node, "context").SetAttribute(key, value);
             for (size_t column = 0; column < widget->column_headers.size(); column++)
                 Child(*node, "headers").SetAttribute("c" + std::to_string(column), widget->column_headers[column]);
+            if (widget->index < 0)
+                for (size_t i = 0; i < widget->images.size(); i++)
+                    FillImage(Child(*node, "images").CreateAttribute("i" + std::to_string(i)), widget->images[i]);
         }
         if (widget->index >= 0)
             FillRow(Child(*node, "rows"), *widget);

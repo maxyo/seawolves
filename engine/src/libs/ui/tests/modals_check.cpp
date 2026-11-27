@@ -130,7 +130,6 @@ static std::vector<Case> Cases()
         {"crew wages card", file("reading-salary.json"), "card", {}},
         {"notice card", file("reading-colonyinfo.json"), "card", {"card-close", "click", ""}},
         {"rest (a script screen)", file("rest.json"), "rest", {"rest-close", "click", ""}},
-        {"nations help", file("nationrelation-help.json"), "help", {"help-close", "click", ""}},
         {"shipyard help", file("shipyard-help.json"), "sheet", {"sheet-close", "click", ""}},
         {"shipyard buy question", file("shipyard-confirm-buy.json"), "sheet", {"sheet-cancel", "click", ""}},
         {"defectors (quantity)", file("transfer-hire.json"), "amount", {}},

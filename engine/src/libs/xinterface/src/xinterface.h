@@ -17,7 +17,6 @@
 #include "mobile_facts_cache.hpp"
 #include "mobile_save_list.hpp"
 #include "mobile_action_frame.hpp"
-#include "mobile_nation_relations.hpp"
 namespace storm::android
 {
 struct UiWidgetAction; // platform/android_ui.hpp
@@ -29,14 +28,6 @@ class CXI_WINDOW;
 
 class XINTERFACE : public XINTERFACE_BASE
 {
-#ifdef __ANDROID__
-    template <class Interface>
-    friend void storm::mobile::CollectNations(Interface &xi, uint64_t opening, std::vector<MobileWidget> &widgets);
-    template <class Interface, class Node, class Action>
-    friend storm::mobile::ActionOutcome storm::mobile::ApplyNationAction(Interface &xi, Node *node,
-                                                                         const Action &action);
-#endif
-
   public:
     static XINTERFACE *pThis;
 
@@ -377,8 +368,6 @@ class XINTERFACE : public XINTERFACE_BASE
     } mobileModelStats_; // of the opening, logged at the next one
     std::string mobileModelScreen_; // of that opening
     void MobileKeepSaveProfile();
-    std::optional<storm::mobile::NationStanding> MobileNationStanding(const std::string &nation) const;
-    void MobileNationPickFailed(const std::string &target) const;
     std::optional<std::string> MobileCharacterName(int index) const;
     void MobileCollectHero(std::vector<MobileWidget> &widgets);
     void MobileCollectFacts(std::vector<MobileWidget> &widgets);
@@ -390,8 +379,6 @@ class XINTERFACE : public XINTERFACE_BASE
         bool left = false; // mobileLeft_ as of the collection
     };
     storm::mobile::FactsCache<MobileFacts> mobileFacts_;
-    mutable storm::mobile::FactsCache<std::map<std::string, storm::mobile::NationStanding>>
-        mobileNations_; // MobileNationStanding
     std::pair<uint64_t, std::string> mobileFactsOpening_; // the opening and its screen (diagnostics)
     uint64_t mobileFactsFrames_ = 0; // interface frames of that opening
     void MobileCollectShipyard(std::vector<MobileWidget> &widgets);
@@ -410,8 +397,6 @@ class XINTERFACE : public XINTERFACE_BASE
     bool MobileApplyShipyard(const std::string &node,int index,const std::string &value);
     std::pair<uint64_t, std::vector<MobileWidget>> m_mobileShipyardSignature; // opening and widgets the generation belongs to
     uint64_t m_mobileShipyardGeneration=0;
-    std::vector<MobileWidget> m_mobileNationSignature; // the widgets the generation belongs to
-    uint64_t m_mobileNationGeneration = 0;
 #endif
 
     // dynamic images data

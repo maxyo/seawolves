@@ -33,7 +33,6 @@ std::unique_ptr<StateConsumer> CreateGameOverConsumer();
 std::unique_ptr<StateConsumer> CreateLoadFailureConsumer();
 std::unique_ptr<StateConsumer> CreateSaveFailureConsumer();
 std::unique_ptr<StateConsumer> CreateTitleIntentConsumer();
-std::unique_ptr<Screen> CreateNationsScreen();
 std::unique_ptr<Screen> CreateHeroScreen();
 std::unique_ptr<Screen> CreateItemsScreen();
 std::unique_ptr<Screen> CreateJournalScreen();
@@ -79,7 +78,6 @@ const ScreenEntry kPorted[] = {
     {"alchemy", CreateAlchemyScreen},
     {"game_over", CreateGameOverScreen}, // state channel gameOver, not a game interface
     {"quick_save", CreateQuickSaveScreen},
-    {"nationrelation", CreateNationsScreen},
     {"lscchar_all", CreateHeroScreen},
     {"character", CreateHeroScreen},
     {"items", CreateItemsScreen},

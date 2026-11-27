@@ -2,8 +2,8 @@
 <div class="na-cols">
 <c-panel class="na-matrix" pad="0" gap="0">
 <div class="na-grid">
-<div class="na-row na-head"><div class="na-axis"></div><t-for each="columns" as="c"><div class="na-cell"><c-row-image image="{{ json(c.image) }}" size="32" icon-size="32" label="{{c.label}}" tone="color"/></div></t-for></div>
-<t-for each="rows" as="r"><div class="na-row"><div class="na-axis"><c-row-image image="{{ json(r.image) }}" size="24" icon-size="24" label="{{r.label}}" tone="color"/><div class="na-name">{{r.label}}</div></div><t-for each="r.cells" as="c"><div class="na-cell{{ opt(c.self) ? ' self' : '' }}"><t-if test="opt(c.self)"><div class="na-dot"></div><t-else/><t-if test="c.icon"><c-icon icon="{{c.icon}}" size="22" tone="{{ c.icon == 'rel-war' ? 'danger' : c.icon == 'rel-ally' ? 'green' : 'brass' }}"/><t-else/><c-row-image image="{{ json(c.image) }}" size="22" icon-size="22" label="{{c.label}}"/></t-if></t-if></div></t-for></div></t-for>
+<div class="na-row na-head"><div class="na-axis"></div><t-for each="columns" as="c"><div class="na-cell"><c-row-image image="{{ json(c.image) }}" icon="{{c.icon}}" size="32" icon-size="32" label="{{c.label}}" tone="color"/></div></t-for></div>
+<t-for each="rows" as="r"><div class="na-row"><div class="na-axis"><c-row-image image="{{ json(r.image) }}" icon="{{r.icon}}" size="24" icon-size="24" label="{{r.label}}" tone="color"/><div class="na-name">{{r.label}}</div></div><t-for each="r.cells" as="c"><div class="na-cell{{ opt(c.self) ? ' self' : '' }}"><t-if test="opt(c.self)"><div class="na-dot"></div><t-else/><t-if test="c.icon"><c-icon icon="{{c.icon}}" size="22" tone="{{ c.icon == 'rel-war' ? 'danger' : c.icon == 'rel-ally' ? 'green' : 'brass' }}"/><t-else/><c-row-image image="{{ json(c.image) }}" size="22" icon-size="22" label="{{c.label}}"/></t-if></t-if></div></t-for></div></t-for>
 </div>
 <div class="na-legend"><t-for each="legend" as="l"><div class="na-key"><c-icon icon="{{l.icon}}" size="18" tone="{{ l.icon == 'rel-war' ? 'danger' : l.icon == 'rel-ally' ? 'green' : 'brass' }}"/><div class="na-key-text">{{l.label}}</div></div></t-for></div>
 <t-if test="extras.note"><div class="na-note"><s-note id="extras-note" text="{{extras.note}}"/></div></t-if>
@@ -11,13 +11,12 @@
 <c-panel class="na-side" gap="8">
 <div class="na-side-scroll">
 <div class="na-title"><c-label text="{{reputationTitle}}"/><t-if test="helpReputation"><c-icon-button id="help-reputation" icon="info" look="bare" label="{{reputationTitle}}"/></t-if></div>
-<div class="na-reps"><t-for each="reputation" as="p"><div class="na-rep"><c-row-image image="{{ json(p.image) }}" size="24" icon-size="24" label="{{p.label}}" tone="color"/><t-if test="has(p, 'bar')"><div class="na-rep-bar"><c-bar value="{{p.bar}}" kind="brass" label="" text="" height="6" style="width: 100%"/></div></t-if><div class="na-rep-value{{ p.tone ? ' tone-' + p.tone : '' }}">{{p.value}}</div></div></t-for></div>
+<div class="na-reps"><t-for each="reputation" as="p"><div class="na-rep"><c-row-image image="{{ json(p.image) }}" icon="{{p.icon}}" size="24" icon-size="24" label="{{p.label}}" tone="color"/><t-if test="has(p, 'bar')"><div class="na-rep-bar"><c-bar value="{{p.bar}}" kind="brass" label="" text="" height="6" style="width: 100%"/></div></t-if><div class="na-rep-value{{ p.tone ? ' tone-' + p.tone : '' }}">{{p.value}}</div></div></t-for></div>
 <div class="na-title"><c-label text="{{flagTitle}}"/><t-if test="helpFlag"><c-icon-button id="help-flag" icon="info" look="bare" label="{{flagTitle}}"/></t-if></div>
 <s-flags id="flags" flags="{{ json(flags) }}" disabled="{{ flagsDisabled ? 1 : 0 }}"/>
 </div>
 <t-if test="apply"><c-button id="{{apply.id}}" class="na-apply" label="{{apply.label}}" variant="primary" disabled="{{ apply.disabled ? 1 : 0 }}" reason="{{apply.reason}}"/></t-if>
 </c-panel>
 </div>
-<t-if test="help"><c-dialog id="help" key="help" variant="center" tone="parchment" aged="1" width="520" title="{{help.title}}" text="{{help.text}}" closable="1"/></t-if>
 <s-extras id="extras" extras="{{ json(extras) }}"/>
 </c-screen>

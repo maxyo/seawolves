@@ -286,9 +286,6 @@ storm_host_check(mobile_inventory.button SOURCES button.cpp
 storm_host_check(mobile_journal SOURCES check.cpp ${core_fake_sources}
     INCLUDES ${core_fake_includes} ${src}/libs/xinterface/src DEFINES ${core_fake_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
-storm_host_check(mobile_nation_relations SOURCES check.cpp ${core_fake_sources}
-    INCLUDES ${core_fake_includes} ${src}/libs/xinterface/src DEFINES ${core_fake_defines}
-    OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(mobile_picture_tabs SOURCES check.cpp ${src}/libs/xinterface/src/mobile_image_bridge.cpp
         ${src}/libs/xinterface/src/mobile_image_cache.cpp
     INCLUDES ${core_fake_android_includes} ${src}/libs/xinterface/src DEFINES ${core_fake_android_defines}
