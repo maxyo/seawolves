@@ -52,6 +52,8 @@ class WEATHER : public WEATHER_BASE
     storm::environment::State state_;
     storm::environment::LightningFlash flash_;
     float flash_now_ = 1.0f; // the flash's multiplier this frame
+    storm::environment::WindGusts gusts_;
+    float gust_now_ = 1.0f; // the gusts' gain this frame
     std::array<float, 3> cloud_turn_{}; // radians the textured cloud layers have turned (upper, base, rain)
     std::vector<int32_t> cloud_textures_; // the renderer's textures of the game's cloud layers
     entid_t sky_ = invalid_entity; // the sky WEATHER created (environment from data); the scripts' own otherwise

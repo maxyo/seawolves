@@ -78,6 +78,10 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     std::shared_ptr<storm::render::EffectsLayerSet> CreateLayerSet(const std::array<std::array<std::string, 3>, 3> &names,
                                                                    const char *requester) override;
     void SetSurface(const GEOS::SURFACE *surface) override;
+    void SetSway(const storm::render::EffectsSway *sway) override
+    {
+        storm::render::SetEffectsSway(sway);
+    }
     void ReleaseTexture(GEOS::ID tex);
 
     GEOS::ID CreateVertexBuffer(int32_t type, int32_t size);

@@ -272,6 +272,9 @@ class Service final : public GEOM_SERVICE
     void SetSurface(const GEOS::SURFACE *) override
     {
     }
+    void SetSway(const storm::render::EffectsSway *) override
+    {
+    }
     GEOS::ID CreateVertexBuffer(int32_t, int32_t size) override
     {
         vertices.emplace_back(size_t(size));

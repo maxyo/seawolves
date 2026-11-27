@@ -204,7 +204,7 @@
     {
       "path": "PROGRAM/interface/option_screen.c",
       "base_sha256": "80a9dc8f8c0b66cf45d31df9ff6e29b8c12710607aafbc88259f25fdba4facd4",
-      "result_sha256": "24101a5d1d90b9b02e40691cc66663f3fed92c24f038822cc576428057634cf3",
+      "result_sha256": "c13c75b42b2ba2623189d9f5d5d4badff9f2054f70cd4fd72567af41cb8c3f27",
       "patch": "option_screen.c.patch"
     },
     {

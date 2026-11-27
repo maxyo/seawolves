@@ -10,6 +10,7 @@
 #include <bx/math.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <optional>
@@ -801,6 +802,41 @@ void Lighting::classify_surface(DrawPrep &p)
             target == picture && !lamps_.interior() &&
             !(p.lit && (material_ == Material::Character || material_ == Material::Sail));
     p.baked |= !p.lit_state && p.wet;
+    // A plant bent by the guess needs the lit vertex program, so baked location geometry takes the baked variant.
+    p.baked |= !p.lit_state && lighting_ && target && target == picture && guesses_sway();
+}
+
+bool Lighting::guesses_sway() const
+{
+    return sway_ && sway_->kind == render::EffectsSway::Kind::Height && settings_.sway_guess && environment_set_;
+}
+
+void Lighting::set_environment(const environment::State &state)
+{
+    environment_ = state;
+    environment_set_ = true;
+    sway_time_ = static_cast<float>(std::fmod(
+        std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(), kSwaySeconds));
+}
+
+void Lighting::prepare_sway(DrawPrep &p)
+{
+    FfDraw &draw = p.draw;
+    draw.sway = {};
+    if (!sway_ || !environment_set_ || (sway_->kind == render::EffectsSway::Kind::Height && !guesses_sway()))
+        return;
+    // The wind's direction from world to the draw's view (row vectors, as D3D's).
+    const D3DMATRIX &view = p.device.s.view;
+    const glm::vec2 wind = environment_.wind_dir;
+    for (int j = 0; j < 3; ++j)
+        draw.sway[0][size_t(j)] = wind.x * view.m[0][j] + wind.y * view.m[2][j];
+    draw.sway[0][3] = sway_->kind == render::EffectsSway::Kind::Plant  ? 1.0f
+                      : sway_->kind == render::EffectsSway::Kind::Tent ? 2.0f
+                                                                       : 3.0f;
+    draw.sway[1] = {sway_time_, environment::WindStrength(environment_.wind_speed), environment_.wind_gust, 0.0f};
+    if (sway_->kind == render::EffectsSway::Kind::Height)
+        // The top of a plant sways a fiftieth of its height at full wind, at most 0.3 m (a palm's crown).
+        draw.sway[2] = {sway_->base, 1.0f / sway_->height, std::min(0.02f * sway_->height, 0.3f), 0.0f};
 }
 
 // The moving casters' sun shadows on a surface with its own static light (a lightmap, baked colours): an opaque
@@ -860,6 +896,7 @@ bool Lighting::begin_variant(DrawPrep &p)
     }
     draw.lit = true;
     draw.vs_id = vs_lit_;
+    prepare_sway(p);
     // A preset with sun shadows draws every lit and baked draw with its shadowed program (one program per draw kind
     // to prepare, not two): the draws that receive nothing bind the map unshadowed (submit()).
     draw.shadow_variant = p.per_pixel && shadows_.enabled();
@@ -1596,6 +1633,7 @@ void Lighting::submit(const FfDraw &draw)
         u_coverage_ = bgfx::createUniform("u_fxCoverage", bgfx::UniformType::Vec4);
         u_ff_ = bgfx::createUniform("u_fxFf", bgfx::UniformType::Vec4);
         u_wet_ = bgfx::createUniform("u_fxWet", bgfx::UniformType::Vec4, 2);
+        u_sway_ = bgfx::createUniform("u_fxSway", bgfx::UniformType::Vec4, 3);
     }
     bgfx::setUniform(u_coverage_, draw.coverage.data());
     if (!draw.lit)
@@ -1608,6 +1646,7 @@ void Lighting::submit(const FfDraw &draw)
     // draw does not use a block its family has.
     const FfBlocks &blocks = kFfFamilyRows[static_cast<size_t>(draw.family)].blocks;
     bgfx::setUniform(u_ff_, draw.ff.data());
+    bgfx::setUniform(u_sway_, draw.sway.data(), 3);
     if (blocks.wet)
         bgfx::setUniform(u_wet_, draw.wet.data(), 2);
     fx_.Apply(draw.light);
@@ -1968,11 +2007,29 @@ void Lighting::shutdown()
     if (bgfx::isValid(empty_layers_))
         bgfx::destroy(empty_layers_);
     empty_layers_ = BGFX_INVALID_HANDLE;
-    for (bgfx::UniformHandle *u :
-         {&u_coverage_,  &u_ff_,        &u_wet_,         &u_gloss_,        &u_skin_tone_,         &u_aerial_up_,
-          &s_ao_volume_, &u_ao_matrix_, &u_ao_params_,   &s_visibility_,   &u_visibility_matrix_, &u_visibility_params_,
-          &u_town_wall_, &u_pbr_,       &s_emission_,    &u_layer_,        &s_layer_[0],          &s_layer_[1],
-          &s_layer_[2],  &s_layer_[3],  &s_puddle_mask_, &s_puddle_normal_})
+    for (bgfx::UniformHandle *u : {&u_coverage_,
+                                   &u_ff_,
+                                   &u_wet_,
+                                   &u_gloss_,
+                                   &u_skin_tone_,
+                                   &u_aerial_up_,
+                                   &s_ao_volume_,
+                                   &u_ao_matrix_,
+                                   &u_ao_params_,
+                                   &s_visibility_,
+                                   &u_visibility_matrix_,
+                                   &u_visibility_params_,
+                                   &u_town_wall_,
+                                   &u_pbr_,
+                                   &s_emission_,
+                                   &u_layer_,
+                                   &s_layer_[0],
+                                   &s_layer_[1],
+                                   &s_layer_[2],
+                                   &s_layer_[3],
+                                   &s_puddle_mask_,
+                                   &s_puddle_normal_,
+                                   &u_sway_})
     {
         if (bgfx::isValid(*u))
             bgfx::destroy(*u);

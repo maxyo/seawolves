@@ -44,6 +44,10 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   over the hour before or after. The wetness (`State::wetness`, Caribbean Legend's engine's): in an hour the scripts
   mark rainy the hour's rain intensity (the rain's rising strength in the marked hour before a rain); after the rain
   the last rainy hour's intensity drying by a third per game hour (`WetnessAfter`).
+- **Wind.** The scripts' wind angle a blows towards (sin a, cos a) in x, z, as the rest of the engine reads it; its
+  speed is the scripts'. While it rains, gusts (`WindGusts`, Caribbean Legend's engine's: a gain rising to 1.3..1.5,
+  holding, falling back, waiting 30..50 s) raise it; WEATHER advances them for both kinds of data. What the wind moves
+  takes its strength on that engine's scale (`WindStrength`, speed 7 to 18).
 - **Lightning.** A flash (`LightningFlash`, Caribbean Legend's shape: one or two pulses over its seconds) multiplies
   the sky's radiances and the fill, to half by day and forty times by night (`ApplyFlash`). The scripts decide when
   lightning strikes: Caribbean Legend's send the rain its flash message, «Каждому своё»'s add a bolt to the lightning

@@ -161,6 +161,10 @@ constexpr GraphicsOption kOptions[] = {
      [](int v, uint32_t, Out &out) { One(out, "fx_far_lod", v * 10); }},
     {"wet_surfaces", OptionKind::Choice, 0, 2, kThree, 2, OptionTakes::Live, false,
      "0 off, 1 wet in the rain, 2 also puddles", [](int v, uint32_t, Out &out) { One(out, "fx_wet_surfaces", v); }},
+    // Off until the owner has looked at a town and the jungle: a guess (renderer_bgfx README, "Wind").
+    {"vegetation_sway", OptionKind::Toggle, 0, 1, kToggle, 0, OptionTakes::Live, true,
+     "0 off, 1 plants of a game without wind marks bend in the wind by their height (a guess from their textures)",
+     [](int v, uint32_t, Out &out) { One(out, "fx_sway_guess", v); }},
     // The three texture-generation switches are off as on phones: background GPU work that delays the first scenes,
     // with no desktop measurement to turn it on.
     {"texture_normal_maps", OptionKind::Toggle, 0, 1, kToggle, 0, OptionTakes::Live, true,

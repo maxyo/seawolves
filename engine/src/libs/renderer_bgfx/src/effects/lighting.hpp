@@ -223,7 +223,8 @@ struct FfDraw
     bool lamps = false;      // lit by the place's lamps with their shadows (submit() binds them for `view`)
     bool room_light = false; // its ambient is the room light of the interior
     bool town_wall = false;  // a town's wall relit by our sun and sky (u_fxTownWall)
-    std::array<std::array<float, 4>, 2> wet{}; // u_fxWet (ff_wet.sh); x of the first = 0: the draw stays dry
+    std::array<std::array<float, 4>, 2> wet{};  // u_fxWet (ff_wet.sh); x of the first = 0: the draw stays dry
+    std::array<std::array<float, 4>, 3> sway{}; // u_fxSway (ff_sway.sh); w of the first = 0: nothing bends
     // A game's own material (fs_ff_pbr.sc): its maps (normal, rma, emission; null: none), made with the stages'
     // textures (Device::bind_textures), which sets `normal_map`, `material` and `emission` from them; u_fxPbr.
     bool pbr = false;
@@ -254,6 +255,8 @@ struct WetFrame
     float time = 0.0f;  // seconds, wrapped at kRippleSeconds (ff_puddle.sh: its rings repeat over that period)
 };
 inline constexpr float kRippleSeconds = 5000.0f;
+// The plants' and tents' clock wraps so (ff_sway.sh): once in so long their swing jumps; float seconds keep 2 ms there.
+inline constexpr float kSwaySeconds = 20000.0f;
 
 // Whether a draw reads the relief (normal) map and the gloss of its textures at these settings: `has_normal` its
 // vertices carry normals, `character` a lit character draw. Only such a draw asks NormalMaps for the maps (and so has
@@ -285,12 +288,13 @@ class Lighting
     {
         surface_ = surface;
     }
-    // The frame's scene environment (render::SetSceneEnvironment): the material draws' light and exposure.
-    void set_environment(const environment::State &state)
+    // How the draws that follow bend in the wind (render::SetEffectsSway; null: they stand still).
+    void set_sway(const render::EffectsSway *sway)
     {
-        environment_ = state;
-        environment_set_ = true;
+        sway_ = sway;
     }
+    // The frame's scene environment (render::SetSceneEnvironment): the material draws' light and exposure, the wind.
+    void set_environment(const environment::State &state);
 
     // Fixed-function draw (no shader ports). `cube_variant` = the fs_ff_cube* variant the shim picked (0 = none);
     // `setup`: its stage setup (FindSetup).
@@ -542,10 +546,16 @@ class Lighting
     fx::Settings settings_{};
     uint32_t flags_ = 0;
     const render::EffectsSurfaceMaterial *surface_ = nullptr;
+    const render::EffectsSway *sway_ = nullptr;
+    float sway_time_ = 0.0f; // seconds, wrapped at kSwaySeconds
+    // u_fxSway of a lit draw (ff_sway.sh): the wind in the draw's view; zero where nothing bends.
+    void prepare_sway(DrawPrep &p);
+    bool guesses_sway() const;
     environment::State environment_{};
     bool environment_set_ = false;
     bool environment_reported_ = false;
     bgfx::UniformHandle u_pbr_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle u_sway_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_puddle_mask_ = BGFX_INVALID_HANDLE, s_puddle_normal_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_emission_ = BGFX_INVALID_HANDLE;
     void prepare_layers(DrawPrep &p, bool normal);

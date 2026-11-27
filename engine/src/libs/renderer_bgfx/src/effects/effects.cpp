@@ -119,6 +119,8 @@ const Option kOptions[] = {
      [](fx::Settings &s, int v) { s.lamp_model_lift = static_cast<float>(std::clamp(v, 0, 100)) / 100.0f; }},
     {"fx_wet_surfaces", "rain wetness outdoors: 0 off, 1 wet surfaces, 2 also puddles in the relief's hollows",
      [](fx::Settings &s, int v) { s.wet_surfaces = static_cast<uint8_t>(std::clamp(v, 0, 2)); }},
+    {"fx_sway_guess", "0 off, 1 a game without wind marks: plants told by their textures bend by their height",
+     [](fx::Settings &s, int v) { s.sway_guess = v != 0; }},
     {"fx_wet_force", "0..100 %: this wetness outdoors whatever the weather (review); -1 = the weather's",
      [](fx::Settings &s, int v) { s.wet_force = static_cast<float>(std::clamp(v, 0, 100)) / 100.0f; }},
     {"fx_ao_volume", "interiors: 0 off, 1 as the game's data, 2 moderate, 3 strong",
@@ -995,6 +997,11 @@ void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material)
     effects::Host::instance().lighting().set_surface(material);
 }
 
+void SetEffectsSway(const EffectsSway *sway)
+{
+    effects::Host::instance().lighting().set_sway(sway);
+}
+
 void DeclareMaterialMap(storm::shim::BaseTexture *texture)
 {
     shim::TexStore *store = shim::store_of(texture);
@@ -1375,6 +1382,12 @@ glm::vec3 SkyHorizon()
 glm::vec3 SceneAmbient()
 {
     return effects::Host::instance().scene_ambient();
+}
+
+SceneWindState SceneWind()
+{
+    const environment::State &state = effects::Host::instance().environment();
+    return {state.wind_dir, state.wind_speed, state.wind_gust};
 }
 
 void SetEffectsWobble(const EffectsWobble &wobble)

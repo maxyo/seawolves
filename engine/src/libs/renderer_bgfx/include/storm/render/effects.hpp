@@ -9,6 +9,7 @@
 #pragma once
 
 #include "storm/environment/state.hpp"
+#include "storm/render/sway.hpp"
 #include "storm/fx/aggregate_light.hpp"
 #include "storm/fx/sky_model.hpp"
 
@@ -115,6 +116,13 @@ void SetSkyClouds(const fx::CloudLayers &layers);
 glm::vec3 SkyHorizon();
 // The scene's fill light of this frame's environment with the drawn sky's part in it (linear, scene units).
 glm::vec3 SceneAmbient();
+// The last environment's wind: its direction (x, z), speed and gusts' gain (environment::State).
+struct SceneWindState
+{
+    glm::vec2 dir{0.0f, 1.0f};
+    float speed = 0.0f, gust = 1.0f;
+};
+SceneWindState SceneWind();
 
 // While CurrentEffectsWorld().lens_flare: how much of the sun the camera sees this frame (0..1: SUNGLOW's traced
 // visibility past terrain, buildings and sails, with its fade at the horizon), and how strong the flare ghosts are
@@ -165,6 +173,8 @@ struct EffectsSurfaceMaterial
     shim::BaseTexture *puddle_mask = nullptr, *puddle_normal = nullptr;
 };
 void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material);
+
+void SetEffectsSway(const EffectsSway *sway);
 // A texture the game ships as a material's normal or rma map: its mips are averaged as numbers, not as colour.
 // Before its first draw (one drawn as colour first keeps its colour mips: an error names it).
 void DeclareMaterialMap(shim::BaseTexture *texture);

@@ -105,6 +105,10 @@ class Host
     {
         return env_.ambient;
     }
+    const environment::State &environment() const
+    {
+        return env_;
+    }
     void set_sun_glare(float glare, float ghosts)
     {
         sun_glare_ = glare;

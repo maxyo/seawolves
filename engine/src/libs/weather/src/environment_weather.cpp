@@ -205,7 +205,7 @@ void WEATHER::UpdateEnvironment()
         in.azimuth_deg = place_->azimuth_deg;
     }
     state_ = storm::environment::Evaluate(in);
-    state_.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
+    state_.wind_dir = {std::sin(fFloats[whf_wind_angle]), std::cos(fFloats[whf_wind_angle])};
     state_.wind_speed = fFloats[whf_wind_speed];
     ApplyEnvironment();
 }
@@ -214,6 +214,7 @@ void WEATHER::ApplyEnvironment()
 {
     state_.cloud_turn = cloud_turn_;
     storm::environment::ApplyFlash(state_, flash_now_);
+    state_.wind_gust = gust_now_;
     storm::render::SetSceneEnvironment(state_);
     // The sun glow and the others that ask WEATHER where the light stands.
     vVectors[whv_sun_pos] = state_.light_dir * 5000.0f;

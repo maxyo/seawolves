@@ -103,8 +103,11 @@ struct State
     float wetness = 0.0f;  // how wet the place outdoors is, 0..1 (WetnessAfter)
     bool lightning = false, tornado = false, rainbow = false;
 
-    glm::vec2 wind_dir{1.0f, 0.0f}; // the direction the wind blows to (x, z), unit
+    // The wind: the direction it blows to (x, z; the scripts' angle a as (sin a, cos a), as every engine part reads
+    // it), its speed in the scripts' units and the gusts' gain (WindGusts).
+    glm::vec2 wind_dir{0.0f, 1.0f};
     float wind_speed = 0.0f;
+    float wind_gust = 1.0f;
 
     // The hour's bloom and emission (the lit materials and the post chain read these).
     float bloom_intensity = 0.0f, bloom_threshold = 0.0f, bloom_soft = 0.0f;
@@ -116,6 +119,12 @@ struct State
 inline float WetnessAfter(float left, float hours)
 {
     return glm::max(left - hours / 3.0f, 0.0f);
+}
+
+// How hard the wind blows for what it moves, 0..1: Caribbean Legend's scale, speed 7 to 18.
+inline float WindStrength(float speed)
+{
+    return glm::clamp((speed - 7.0f) / 11.0f, 0.0f, 1.0f);
 }
 
 // Adds the drawn sky's fill to `state`'s ambient and ground: `dome` is the cosine-weighted mean of the sky above

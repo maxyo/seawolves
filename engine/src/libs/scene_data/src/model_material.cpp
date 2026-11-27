@@ -123,12 +123,13 @@ std::optional<std::string> MaterialTextureName(std::string_view path)
 std::vector<std::string> UndrawnMaterialKeys(const ModelMaterial &material)
 {
     std::vector<std::string> keys;
-    for (const auto &[present, key] : {std::pair{material.reflection, "reflection"},
-                                       {material.alpha_ccw, "alpha_ccw"},
-                                       {material.shadow_cw, "shadow_cw"},
-                                       {material.point_shadow, "point_shadow"},
-                                       {material.point_light, "PointLight"},
-                                       {!material.animation.empty(), "animation"}})
+    for (const auto &[present, key] :
+         {std::pair{material.reflection, "reflection"},
+          {material.alpha_ccw, "alpha_ccw"},
+          {material.shadow_cw, "shadow_cw"},
+          {material.point_shadow, "point_shadow"},
+          {material.point_light, "PointLight"},
+          {!material.animation.empty() && material.animation != "plant" && material.animation != "tent", "animation"}})
         if (present)
             keys.emplace_back(key);
     return keys;

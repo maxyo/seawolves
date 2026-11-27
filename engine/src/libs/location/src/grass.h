@@ -208,7 +208,6 @@ class Grass : public Entity
     RenderQuality quality; // Rendering quality
 
     float cosPh1, sinPh2, sinPh5, sinPh6, winPow, winF10, kAmpWF, kDirWF, kLitWF;
-    float windAng;
     int32_t initForce;
 
     VSConstant consts[42];

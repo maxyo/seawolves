@@ -11,6 +11,7 @@
 #include "storm/render/effects.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #define GRASS_BLK_LOD 0.8f   // Degree at kLod - the less, the closer LODs switch
 #define GRASS_MAX_DIST 50.0f // Maximum visibility distance
@@ -58,7 +59,6 @@ Grass::Grass()
     vb = ib = -1;
 
     quality = rq_full;
-    windAng = 0.0f;
     initForce = 0;
 
     m_fDataScale = 1.0f;
@@ -366,54 +366,20 @@ void Grass::Execute(uint32_t delta_time)
     }
     if (quality == rq_off)
         return;
-    // Wind parameters
-    param = core.Event("EWhr_GetWindAngle");
-    if (param)
+    // The wind of the scene environment, as every plant takes it (WEATHER's state, gusts included).
+    const storm::render::SceneWindState wind = storm::render::SceneWind();
+    winDir.x = wind.dir.x;
+    winDir.z = wind.dir.y;
+    const float wf = std::sqrt(std::clamp(wind.speed * wind.gust, 0.0f, 30.0f) / 30.0f);
+    if (initForce < 20)
     {
-        float ang;
-        if (!param->Get(ang))
-            ang = 0.0f;
-        if (initForce < 20)
-        {
-            windAng = ang;
-        }
-        else
-        {
-            float k = delta_time * 0.001f * 0.001f;
-            if (k > 1.0f)
-                k = 1.0f;
-            windAng += (ang - windAng) * k;
-        }
-        winDir.x = sinf(ang);
-        winDir.z = cosf(ang);
+        initForce++;
+        winForce = wf;
     }
-    param = core.Event("EWhr_GetWindSpeed");
-    if (param)
+    else
     {
-        float spd;
-        if (!param->Get(spd))
-            spd = 0.0f;
-        if (spd < 0.0f)
-            spd = 0.0f;
-        if (spd > 30.0f)
-            spd = 30.0f;
-        const float wf = powf(spd * (1.0f / 30.0f), 0.5f);
-        if (initForce < 20)
-        {
-            initForce++;
-            winForce = wf;
-        }
-        else
-        {
-            float k = delta_time * 0.001f * 0.001f;
-            if (k > 1.0f)
-                k = 1.0f;
-            winForce += (wf - winForce) * k;
-        }
-        if (winForce < 0.0f)
-            winForce = 0.0f;
-        if (winForce > 1.0f)
-            winForce = 1.0f;
+        const float k = std::min(delta_time * 0.001f * 0.001f, 1.0f);
+        winForce = std::clamp(winForce + (wf - winForce) * k, 0.0f, 1.0f);
     }
     // Phases
     float dltTime = delta_time * 0.001f;

@@ -35,6 +35,11 @@
   мокрая кайма, вода почти чёрная и гладкая, в дождь по ней расходятся круги от капель. Caribbean Legend: лужи
   самой игры (Бриджтаун, Гваделупа) больше не лежат тёмными пятнами в сухую погоду — их не видно, пока не
   намокнет. В «Каждому своё» на «Высокой» лужи по-прежнему собираются в углублениях рельефа, но тем же видом.
+- Ветер один для всех игр: направление, сила и порывы (в дождь — как в движке Caribbean Legend) берутся из погоды.
+  Caribbean Legend: пальмы, деревья, кусты и навесы, размеченные самой игрой, качаются на ветру — в сильный ветер
+  пальмы клонятся и раскачиваются чаще, листья трепещут, края навесов колышутся. В «Каждому своё» трава берёт тот же
+  ветер. Для игры без такой разметки есть настройка «Качание растений (догадка)», по умолчанию выключена: растения
+  узнаются по текстурам и качаются тем сильнее, чем выше.
 - Caribbean Legend: арифметика над числом, переданным в функцию по ссылке, больше не записывает результат в само это
   число, — так считались, например, скидки бюджета эскадры и цены торговых сделок.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
@@ -160,6 +165,11 @@
   Caribbean Legend: the game's own puddles (Bridgetown, Guadeloupe) no longer lie as dark patches in dry weather;
   they show only when it is wet. In «Каждому своё» on «Высокая» puddles still gather in the relief's hollows, with
   the same look.
+- The wind is one for every game: its direction, strength and gusts (in the rain, as in Caribbean Legend's engine)
+  come from the weather. Caribbean Legend: the palms, trees, shrubs and awnings the game marks sway in the wind; in a
+  strong wind the palms lean and swing faster, the leaves flutter, the awnings' edges ripple. In «Каждому своё» the
+  grass takes the same wind. A game without such marks has the option «Качание растений (догадка)» (Plant sway, a
+  guess), off by default: plants are told by their textures and sway the more the higher they are.
 - Caribbean Legend: arithmetic on a number passed to a function by reference no longer writes its result into that
   number; the squadron budget's discounts and trade deal prices, among others, were computed so.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.

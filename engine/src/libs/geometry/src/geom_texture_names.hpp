@@ -2,8 +2,10 @@
 // the background (geom_deferred.cpp) reads ahead before it is built.
 #pragma once
 
+#include "../../util/include/istring.hpp"
 #include "rdf.h"
 
+#include <array>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -37,5 +39,20 @@ inline std::vector<std::string> TextureNames(const std::vector<char> &file)
             result.emplace_back(strings + offset, length);
     }
     return result;
+}
+// A game without wind marks: whether a texture is a plant's by its name (palm, tree, fern, leaf, leaves, listik,
+// flora, flower, sugarcane; any case), not a backdrop's ("back...") nor under water. Its count on «Каждому своё»'s
+// location models is in renderer_bgfx/README.md, "Wind".
+inline bool VegetationTexture(std::string name)
+{
+    name = AsciiLower(std::move(name));
+    static constexpr std::array<const char *, 9> kWords = {"palm",   "tree",  "fern",   "leaf",     "leaves",
+                                                           "listik", "flora", "flower", "sugarcane"};
+    if (name.starts_with("back") || name.find("underwater") != std::string::npos)
+        return false;
+    for (const char *word : kWords)
+        if (name.find(word) != std::string::npos)
+            return true;
+    return false;
 }
 } // namespace storm::geometry

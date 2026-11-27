@@ -13,8 +13,11 @@ Import library class
 #include "geos.h"
 #include "geom_far_lod.hpp"
 
+#include <storm/render/sway.hpp>
+
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -76,6 +79,11 @@ class GEOM : public GEOS
     // textures their maps hold.
     std::vector<SURFACE> surface_;
     std::vector<ID> surface_textures_;
+    // Per object how it bends in the wind (empty: no object does): a game's marks, or for a game without them a
+    // plant told by its material's textures (`plants`, VegetationTexture), bent by height over `heights` (each
+    // object's lowest and highest vertex y).
+    std::vector<std::optional<storm::render::EffectsSway>> sway_;
+    void GuessSway(const std::vector<glm::vec2> &heights, const std::vector<bool> &plants);
     void LoadSurfaces(const char *fname);
     void LoadLayers(const storm::scene_data::ModelMaterial &entry, SURFACE &surface,
                     const std::function<ID(const std::string &, bool)> &texture, const char *fname);

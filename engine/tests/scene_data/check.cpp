@@ -86,7 +86,9 @@ TEST_CASE("model material textures and the keys the renderer does not draw")
     material.rma_texture = "Resource\\Textures\\a_RMA.dds";
     material.alpha = true;
     CHECK(UndrawnMaterialKeys(material).empty());
-    material.animation = "plant";
+    material.animation = "plant"; // drawn: the wind bends it
+    CHECK(UndrawnMaterialKeys(material).empty());
+    material.animation = "river";
     material.layer_material = true;
     material.reflection = true;
     const std::vector<std::string> undrawn = UndrawnMaterialKeys(material);

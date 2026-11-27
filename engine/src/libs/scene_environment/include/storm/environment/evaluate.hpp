@@ -6,6 +6,7 @@
 #include "storm/scene_data/scene_data.hpp"
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <span>
@@ -132,5 +133,32 @@ class LightningFlash
 // The flash on a frame's state: the sky's radiances, the fill the clouds take and the fill added apart from the sky
 // (the fill the drawn sky gives follows its radiances).
 void ApplyFlash(State &state, float multiplier);
+
+// The wind's gusts, as Caribbean Legend's engine makes them while an hour rains: the gain rises to a peak of 1.3..1.5
+// over 10..15 s, holds it 4..8 s, falls back to 1 over 4..8 s and waits 30..50 s; without rain it is 1 (a gust under
+// way finishes). The durations and peaks are drawn from `seed`'s generator.
+class WindGusts
+{
+  public:
+    explicit WindGusts(uint32_t seed = 1) : random_(seed)
+    {
+    }
+    // The gain after `seconds` more.
+    float Advance(float seconds, bool raining);
+
+  private:
+    enum class Phase : uint8_t
+    {
+        Rise,
+        Hold,
+        Fall,
+        Wait,
+    };
+    float Random(float lo, float hi);
+    void Enter(Phase phase);
+    Phase phase_ = Phase::Wait;
+    float time_ = 0.0f, duration_ = 0.0f, peak_ = 1.0f, gain_ = 1.0f;
+    uint32_t random_;
+};
 
 } // namespace storm::environment

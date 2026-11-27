@@ -8,11 +8,13 @@ Comments:
 Import library main file
 ******************************************************************************/
 #include "geom.h"
+#include "geom_texture_names.hpp"
 #include <storm/config.hpp>
 #include <storm/render/far_lod.hpp>
 #include <storm/render/shadow_casters.hpp>
 #include <storm/scene_data/scene_data.hpp>
 
+#include <cfloat>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -245,7 +247,8 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         spdlog::error("geometry: {} has {} vertices but its vertex colour file {} has {} entries: not applied, the "
                       "model's own vertex colours are used",
                       fname, nvertices, lightname, colData.size());
-    // read vertices
+    // read vertices; each object's lowest and highest vertex y (GuessSway)
+    std::vector<glm::vec2> heights(size_t(rhead.nobjects), glm::vec2(FLT_MAX, -FLT_MAX));
     auto itColData = colData.begin();
     for (v = 0; v < rhead.nvrtbuffs; v++)
     {
@@ -263,6 +266,16 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
                 ++itColData;
             }
         }
+        for (int32_t o = 0; o < rhead.nobjects; o++)
+            if (object[o].vertex_buff == v)
+                for (int32_t vr = object[o].start_vertex;
+                     vr < object[o].start_vertex + object[o].num_vertices && vr < vbuff[v].nverts; vr++)
+                {
+                    const float y = reinterpret_cast<const RDF_VERTEX0 *>(reinterpret_cast<const uint8_t *>(vrt) +
+                                                                          size_t(vbuff[v].stride) * vr)
+                                        ->pos.y;
+                    heights[o] = {std::min(heights[o].x, y), std::max(heights[o].y, y)};
+                }
         if (lods)
         {
             try
@@ -375,6 +388,7 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
             lightmap_id_ = tlookup[t]; // -1 when it cannot be created: the location says so
         }
     }
+    std::vector<bool> plants(size_t(rhead.nmaterials)); // a material with a plant's texture (GuessSway)
     for (int32_t m = 0; m < rhead.nmaterials; m++)
     {
         material[m].group_name = &globname[rmat[m].group_name];
@@ -389,13 +403,35 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         {
             material[m].texture_type[tl] = static_cast<TEXTURE_TYPE>(rmat[m].texture_type[tl]);
             if (rmat[m].texture_type[tl] != TEXTURE_NONE)
+            {
                 material[m].texture[tl] = tlookup[rmat[m].texture[tl]];
+                plants[size_t(m)] = plants[size_t(m)] ||
+                                    storm::geometry::VegetationTexture(&globname[tname[rmat[m].texture[tl]]]);
+            }
             else
                 material[m].texture[tl] = -1;
         }
     }
     srv.free(rmat);
     LoadSurfaces(fname);
+    if (!srv.ModelMaterials())
+        GuessSway(heights, plants);
+}
+
+// A game without wind marks: an object whose textures are a plant's bends by its height (with the renderer's guess
+// switched on). The objects of a location model hold many plants, so the lowest point is the whole object's.
+void GEOM::GuessSway(const std::vector<glm::vec2> &heights, const std::vector<bool> &plants)
+{
+    for (int32_t o = 0; o < rhead.nobjects; o++)
+    {
+        const glm::vec2 h = heights[size_t(o)];
+        if (object[o].material < 0 || !plants[size_t(object[o].material)] || h.y <= h.x)
+            continue;
+        if (sway_.empty())
+            sway_.resize(size_t(rhead.nobjects));
+        sway_[size_t(o)] = storm::render::EffectsSway{
+            .kind = storm::render::EffectsSway::Kind::Height, .base = h.x, .height = h.y - h.x};
+    }
 }
 
 // A game whose models draw with their own materials: every object takes its entry of the material file beside the
@@ -452,6 +488,14 @@ void GEOM::LoadSurfaces(const char *fname)
         surface.metallic = entry.metallic.value_or(0.0f);
         surface.emission_strength = entry.emission.value_or(0.0f);
         surface.blended = entry.alpha || entry.alpha_ccw;
+        if (entry.animation == "plant" || entry.animation == "tent")
+        {
+            if (sway_.empty())
+                sway_.resize(size_t(rhead.nobjects));
+            sway_[size_t(o)] = storm::render::EffectsSway{.kind = entry.animation == "plant"
+                                                                      ? storm::render::EffectsSway::Kind::Plant
+                                                                      : storm::render::EffectsSway::Kind::Tent};
+        }
         if (entry.layer_material)
             LoadLayers(entry, surface, texture, fname);
         else if (entry.puddle_material)
@@ -561,6 +605,8 @@ void GEOM::Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const
         srv.SetMaterial(material[object[o].material]);
         if (!surface_.empty())
             srv.SetSurface(&surface_[o]);
+        if (!sway_.empty())
+            srv.SetSway(sway_[size_t(o)] ? &*sway_[size_t(o)] : nullptr);
         if (mtf != nullptr)
             mtf(material[object[o].material]);
         if (lods && far_lod_->Draw(o, object[o], vb->stride))
@@ -573,6 +619,8 @@ void GEOM::Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const
     }
     if (!surface_.empty())
         srv.SetSurface(nullptr);
+    if (!sway_.empty())
+        srv.SetSway(nullptr);
 }
 
 bool GEOM::GetCollisionDetails(TRACE_INFO &ti) const

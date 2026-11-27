@@ -593,3 +593,22 @@ TEST_CASE("the scripts' attribute weather")
     in.fog = false;
     CHECK((EvaluateLegacy(in).fog_density == 0.0f && EvaluateLegacy(in).haze == 1.0f));
 }
+
+TEST_CASE("the wind's gusts come only while it rains")
+{
+    WindGusts gusts(7);
+    for (int i = 0; i < 600; ++i)
+        CHECK(gusts.Advance(0.1f, false) == 1.0f);
+    float peak = 1.0f, last = 1.0f;
+    for (int i = 0; i < 1000; ++i) // 100 s of rain: one gust at least
+        peak = std::max(peak, last = gusts.Advance(0.1f, true));
+    CHECK((peak >= 1.3f && peak <= 1.5f));
+    // The rain stops: the gust under way ends, then the gain stays 1.
+    for (int i = 0; i < 400; ++i)
+        last = gusts.Advance(0.1f, false);
+    CHECK(last == 1.0f);
+    // A legacy weather's angle: the direction every engine part reads, (sin a, cos a).
+    LegacyInputs in;
+    in.wind_angle = glm::half_pi<float>();
+    CHECK(EvaluateLegacy(in).wind_dir.x == Approx(1.0f));
+}

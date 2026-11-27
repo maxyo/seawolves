@@ -46,7 +46,7 @@
  	//FillControlsList();
  	string srow = "tr" + GameInterface.controls_list.select;
  	if( !CheckAttribute(&GameInterface,"controls_list."+srow) ) {return;}
-@@ -1159,3 +1170,230 @@
+@@ -1159,3 +1170,231 @@
  	}
  }
  
@@ -105,6 +105,7 @@
 +	case "sea_wakes": return GfxText("Следы кораблей", "Ship wakes"); break;
 +	case "far_lod": return GfxText("Упрощение дальних моделей", "Far model simplification"); break;
 +	case "wet_surfaces": return GfxText("Мокрые поверхности", "Wet surfaces"); break;
++	case "vegetation_sway": return GfxText("Качание растений (догадка)", "Plant sway (a guess)"); break;
 +	case "texture_normal_maps": return GfxText("Карты нормалей", "Normal maps"); break;
 +	case "texture_height_maps": return GfxText("Параллакс", "Parallax"); break;
 +	case "texture_upscale": return GfxText("Апскейл текстур x2", "Texture upscale x2"); break;

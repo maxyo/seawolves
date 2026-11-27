@@ -21,6 +21,7 @@ Import library main header
 namespace storm::render
 {
 class EffectsLayerSet;
+struct EffectsSway;
 }
 
 class GEOS
@@ -385,6 +386,8 @@ class GEOM_SERVICE
         const std::array<std::array<std::string, 3>, 3> &names, const char *requester) = 0;
     // The draws that follow take this material (null: none).
     virtual void SetSurface(const GEOS::SURFACE *surface) = 0;
+    // The draws that follow bend in the wind so (null: they stand still).
+    virtual void SetSway(const storm::render::EffectsSway *sway) = 0;
 
     virtual GEOS::ID CreateVertexBuffer(int32_t type, int32_t size) = 0;
     virtual void *LockVertexBuffer(GEOS::ID vb) = 0;

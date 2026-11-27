@@ -13,7 +13,8 @@
 //   factor and leans the light by its own normal map («Средняя», «Высокая»; «Низкая» draws the layers flat), and a
 //   layer whose file is missing draws the base. The layers are DXT1 files the check writes (nothing of a game);
 //   a puddle mesh lies over its ground only where its bed passes the wetness's threshold: nothing of it when dry,
-//   its deeper bed under water first.
+//   its deeper bed under water first; the wind bends a plant's vertices its colour marks and leaves unmarked ones
+//   where they are.
 #include "device.hpp"
 #include "check_backend.hpp"
 #include "effects/layer_arrays.hpp"
@@ -51,6 +52,7 @@ struct Vertex
 {
     float pos[3];
     float nrm[3];
+    uint32_t color;
     float uv0[2];
     float uv1[2];
 };
@@ -140,7 +142,10 @@ class Harness
     float wetness = 0.0f;
     glm::vec3 normal{0.0f, 0.0f, -1.0f}; // the quad's vertices'
     uint32_t clear = 0xFF000000;
-    bool blended = false;                                      // as GEOM sets a blended surface's states
+    bool blended = false;        // as GEOM sets a blended surface's states
+    uint32_t color = 0xFFFFFFFF; // the vertices'
+    const render::EffectsSway *sway = nullptr;
+    float wind = 0.0f; // the environment's wind speed, blowing along the picture's x
     std::array<uint32_t, 2> columns{kSize / 4, 3 * kSize / 4}; // of the picture the mean takes
 
     // A layered material's picture once its arrays are there (asked for by the first draw, made on a worker).
@@ -172,6 +177,8 @@ class Harness
         environment.exposure = exposure;
         environment.emission = emission;
         environment.wetness = wetness;
+        environment.wind_dir = {1.0f, 0.0f};
+        environment.wind_speed = wind;
         render::SetSceneEnvironment(environment);
         check(device_->BeginScene(), "BeginScene");
         check(device_->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear, 1.0f, 0), "Clear");
@@ -217,12 +224,15 @@ class Harness
         for (const auto &c : corners)
             quad.push_back({{-2.0f + 4.0f * c[0], 2.0f - 4.0f * c[1], 5.0f},
                             {normal.x, normal.y, normal.z},
+                            color,
                             {c[0], c[1]},
                             {c[0], c[1]}});
-        device_->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX2);
+        device_->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_TEX2);
         render::SetEffectsSurfaceMaterial(material);
+        render::SetEffectsSway(sway);
         check(device_->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, quad.data(), sizeof(Vertex)), "draw");
         render::SetEffectsSurfaceMaterial(nullptr);
+        render::SetEffectsSway(nullptr);
         check(device_->EndScene(), "EndScene");
         check(device_->GetRenderTargetData(back_, readback_), "GetRenderTargetData");
         D3DLOCKED_RECT locked;
@@ -597,4 +607,25 @@ TEST_CASE("a puddle lies over its ground where its bed passes the wetness's thre
     h.normal = {0.0f, 0.0f, -1.0f};
     h.clear = 0xFF000000;
     h.blended = false;
+}
+
+TEST_CASE("the wind bends a plant's marked vertices and leaves the unmarked ones where they are")
+{
+    Harness &h = harness();
+    h.Settle(2);
+    h.columns = {0, kSize}; // the whole width: a quad blown along x uncovers one side
+    h.wind = 18.0f;         // full strength
+    const render::EffectsSway plant{.kind = render::EffectsSway::Kind::Plant};
+    const render::EffectsSurfaceMaterial material{};
+    // The second texture coordinates' v runs 0..1 down the quad: its lower half is high on the leaf.
+    h.color = 0xFF000000; // no mark: still
+    const float rest = h.Render(&material).luma();
+    h.sway = &plant;
+    CHECK(h.Render(&material).luma() == rest);
+    h.color = 0xFFFF0000; // R: a palm's moving part
+    CHECK(h.Render(&material).luma() != rest);
+    h.sway = nullptr;
+    h.color = 0xFFFFFFFF;
+    h.wind = 0.0f;
+    h.columns = {kSize / 4, 3 * kSize / 4};
 }

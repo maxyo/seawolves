@@ -115,6 +115,7 @@ void WEATHER::Execute(uint32_t Delta_Time)
 {
     const float seconds = static_cast<float>(core.GetDeltaTime()) * 0.001f;
     flash_now_ = flash_.Advance(seconds, fFloats[whf_time_counter]);
+    gust_now_ = gusts_.Advance(seconds, state_.rain > 0.0f);
     for (size_t i = 0; i < cloud_turn_.size(); ++i)
         cloud_turn_[i] =
             std::remainder(cloud_turn_[i] + glm::radians(state_.cloud_spin[i]) * seconds, glm::two_pi<float>());

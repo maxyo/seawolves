@@ -598,4 +598,62 @@ void ApplyFlash(State &state, float multiplier)
     state.ambient *= multiplier;
 }
 
+float WindGusts::Random(float lo, float hi)
+{
+    random_ = random_ * 1664525u + 1013904223u;
+    return lo + (hi - lo) * float(random_ >> 8) / float(1u << 24);
+}
+
+void WindGusts::Enter(Phase phase)
+{
+    phase_ = phase;
+    time_ = 0.0f;
+    switch (phase)
+    {
+    case Phase::Rise:
+        peak_ = Random(1.3f, 1.5f);
+        duration_ = Random(10.0f, 15.0f);
+        break;
+    case Phase::Hold:
+    case Phase::Fall:
+        duration_ = Random(4.0f, 8.0f);
+        break;
+    case Phase::Wait:
+        duration_ = Random(30.0f, 50.0f);
+        break;
+    }
+}
+
+float WindGusts::Advance(float seconds, bool raining)
+{
+    if (phase_ == Phase::Wait && !raining)
+    {
+        time_ = 0.0f; // the wait counts only while it rains
+        return gain_ = 1.0f;
+    }
+    time_ += seconds;
+    if (time_ >= duration_)
+        Enter(phase_ == Phase::Rise   ? Phase::Hold
+              : phase_ == Phase::Hold ? Phase::Fall
+              : phase_ == Phase::Fall ? Phase::Wait
+                                      : Phase::Rise);
+    const float t = duration_ > 0.0f ? std::min(time_ / duration_, 1.0f) : 1.0f;
+    switch (phase_)
+    {
+    case Phase::Rise:
+        gain_ = 1.0f + (peak_ - 1.0f) * t;
+        break;
+    case Phase::Hold:
+        gain_ = peak_;
+        break;
+    case Phase::Fall:
+        gain_ = peak_ + (1.0f - peak_) * t;
+        break;
+    case Phase::Wait:
+        gain_ = 1.0f;
+        break;
+    }
+    return gain_;
+}
+
 } // namespace storm::environment

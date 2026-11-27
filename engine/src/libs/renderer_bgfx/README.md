@@ -184,6 +184,22 @@ terms move to the fragment shader (`fx_lighting.sh`, `fx_coverage.sh`), then cal
   the ring as black at 45 %, the water's roughness 0.02, and while it rains two layers of drops' rings stir it
   (`u_fxWet[1].w` real seconds wrapped at `kRippleSeconds`, over which every rate repeats). Cost: the rings (two
   cells' hash, ring and fade) only in the pixels under water, about 50 ALU there.
+- Wind (`ff_sway.sh`, `render::SetEffectsSway`): the lit programs that are not skinned bend the vertices of plants and
+  tents along the environment's wind (its direction, `environment::WindStrength` of its speed, the gusts' gain),
+  Caribbean Legend's technique with its numbers. A game's marks: a material's `animation` `plant` (vertex colour R or
+  G a palm's or tree's moving part, B a shrub's, the second texture coordinates' v how far up the leaf; a slow swing
+  that leans and quickens in a strong wind, the leaves fluttering along their normals) or `tent` (R the cloth, B its
+  hanging edge, waving along the normals); every preset. A game without marks (`Settings::sway_guess`, the graphics
+  option `vegetation_sway`, off by default): GEOM marks an object whose material has a plant's texture
+  (`geometry::VegetationTexture`, by name) and the renderer bends it by its height above the object's lowest point,
+  its top at most a fiftieth of its height (0.3 m); such baked geometry takes the baked variant. On «Каждому своё»'s
+  location models the rule takes 14 textures (273 model files): the 12 plants' (treepalms, leafpalms, palm2,
+  palmssprites, trees, ferns, flora2, flowers, leaves, leaves1, res_listik, sugarcaneu2) and two others (tree1, bark;
+  kanion_leaf, a file the game lacks); it leaves out the backdrops (back_jungle, back_plants, backjungleu1), the
+  water's and the caves' plants (underwaterplantsu1, algae1, rootsu1) and the mixed atlas flnd. An object of a
+  location model holds many plants, so the lowest point is the object's: a plant on a slope bends a little at its
+  foot. The shadows stay still (the casters are the still geometry's). Cost: a uniform branch per vertex of every lit
+  draw; about 40 ALU per vertex of a bending draw.
 - Aerial perspective (`kLightingAerial`): every fixed-function draw whose fog is the game's exp fog takes fog mode 5
   (`fx_aerial.sh`); draws with a ported vertex shader keep the fixed-function fog (reported once), and without weather
   (interiors) the game's fog stays.

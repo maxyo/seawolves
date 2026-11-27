@@ -6,7 +6,8 @@
 // program, so bgfx's GL backend does not re-upload them (53 vec4) with every uniform change of an unlit draw.
 // FF_SKIN (vs_ff*_skin.sc) skins GEOS::AVERTEX0 vertices (one blend weight, two bone indices) with the bone
 // palette in s_vtex exactly like the former CPU kernel (src/libs/model/src/skinning.hpp), before world*view; with
-// FX_FF_LIT v_normal.w carries the vertex's skin weight (0 for draws that are not skinned).
+// FX_FF_LIT v_normal.w carries the vertex's skin weight (0 for draws that are not skinned). The lit programs that are
+// not skinned bend plants and tents in the wind (ff_sway.sh).
 #include "storm_common.sh"
 
 // World * view comes through bgfx's per-draw transform (u_model[0], bgfx::setTransform): changing it
@@ -41,6 +42,9 @@ uniform vec4 u_fxShadow[4];
 #endif
 uniform vec4 u_ffTexCfg[5];
 uniform mat4 u_ffTexMtx[5];
+#if defined(FX_FF_LIT) && !defined(FF_SKIN)
+#include "ff_sway.sh"
+#endif
 
 vec4 stageCoord(int i, vec4 t0, vec4 t1, vec4 t2, vec4 t3, vec3 P, vec3 N)
 {
@@ -109,7 +113,16 @@ void main()
     }
     else
     {
+#if defined(FX_FF_LIT) && !defined(FF_SKIN)
+        float swayNormal;
+        vec3 swayView = ffSway(modelPos, modelNormal, D3DCOLOR_TO_RGBA(a_color0), a_texcoord1.xy,
+                               length(mul(u_model[0], vec4(1.0, 0.0, 0.0, 0.0)).xyz), swayNormal);
+        modelPos += modelNormal * swayNormal;
         vec4 viewPos = mul(u_model[0], vec4(modelPos, 1.0));
+        viewPos.xyz += swayView;
+#else
+        vec4 viewPos = mul(u_model[0], vec4(modelPos, 1.0));
+#endif
         P = viewPos.xyz;
         gl_Position = mul(u_ffProj, viewPos);
         if (u_ffVs[1].w > 0.5)

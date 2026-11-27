@@ -88,7 +88,7 @@ State EvaluateLegacy(const LegacyInputs &in)
     s.clouds = in.sky.clouds;
     s.rain_clouds = s.overcast = std::max(in.sky.rain_clouds, s.rain);
     s.shadow_strength = 1.0f - s.rain_clouds; // the rain clouds hide the sun
-    s.wind_dir = {std::cos(in.wind_angle), std::sin(in.wind_angle)};
+    s.wind_dir = {std::sin(in.wind_angle), std::cos(in.wind_angle)};
     s.wind_speed = in.wind_speed;
     return s;
 }

@@ -231,6 +231,9 @@ struct Settings
     // Rain wetness outdoors where the rain reaches (environment::State::wetness, ff_wet.sh): 0 off, 1 wet, 2 also
     // puddles in the relief's hollows.
     uint8_t wet_surfaces = 0;
+    // A game without wind marks: plants told by their textures bend in the wind by their height (renderer_bgfx README,
+    // "Wind"); a game's own marks bend its plants and tents on every preset.
+    bool sway_guess = false;
     float wet_force = -1.0f;      // development: 0..1 = this wetness outdoors whatever the weather, < 0 = the weather's
     LightFalloff light_falloff{}; // the one falloff of every light (light_falloff.hpp); the same on every preset
     // A fixed-function draw whose stage setup has a specialised program (shaders/ff_programs.cmake) takes it; the
