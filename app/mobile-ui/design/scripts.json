@@ -1,19 +1,25 @@
 {
   "segments": [
-    {"file": "interface/touch/core.c", "core": true},
+    {"file": "interface/touch/core/core.c", "core": true},
+    {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {
-      "file": "interface/touch/legacy/rest.c",
-      "requires": ["interface:tavernwait"],
-      "screens": [
+      "file": "interface/touch/lineages/legacy/rest.c",
+      "requires": ["interface:tavernwait", "node:tavernwait#HOURS_SLIDE", "node:tavernwait#OK_BTN"],
+      "provides": ["adapter:rest"],
+      "binds": [
         {
           "capability": "rest",
           "interface": "tavernwait",
-          "component": "s-rest",
           "nodes": [["HOURS_SLIDE", "slider", true], ["OK_BTN", "button", true], ["CANCEL_BTN", "button"],
                     ["EXIT_BTN", "button"], ["INFO_TEXT", "text"]]
         }
       ]
+    },
+    {
+      "file": "interface/touch/screens/rest.c",
+      "uses": ["adapter:rest"],
+      "screens": [{"capability": "rest", "component": "s-rest"}]
     }
   ]
 }

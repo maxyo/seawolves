@@ -46,6 +46,9 @@ class ScriptCall
     virtual void Show(const ViewTree &view) = 0;
     // Events of element `id` (and `verb`; empty takes every verb) go to the script.
     virtual void On(const std::string &id, const std::string &verb) = 0;
+    // Inside an event: the view the tap leads to, drawn from this frame until the game has answered what the event
+    // sent, then compared with the view built after the answer (the router's "UI prediction corrected").
+    virtual void Predict(const ViewTree &view) = 0;
     // A widget action on the admitted widget `node`.
     virtual void Send(const std::string &node, const std::string &verb, const std::string &value) = 0;
     // The player's way out through `node`, or the engine's back when it is empty.

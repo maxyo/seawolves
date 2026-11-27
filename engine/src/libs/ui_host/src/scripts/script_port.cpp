@@ -89,6 +89,17 @@ uint32_t UiShow(VS_STACK *stack)
     });
 }
 
+uint32_t UiPredict(VS_STACK *stack)
+{
+    auto *view = static_cast<VDATA *>(stack->Pop());
+    ATTRIBUTES *root = view ? view->GetAClass() : nullptr;
+    return Native("UiPredict", [&](storm::ui::ScriptCall &call) {
+        if (!root)
+            throw std::runtime_error("the view is not an object");
+        call.Predict(Tree(*root));
+    });
+}
+
 uint32_t UiOn(VS_STACK *stack)
 {
     const std::string verb = PopText(stack), id = PopText(stack);
@@ -285,10 +296,10 @@ class UiScripts : public SCRIPT_LIBRIARY
             const char *returns;
             uint32_t arguments;
             SIMPORTFUNC function;
-        } natives[] = {{"UiShow", "void", 1, UiShow},    {"UiOn", "void", 2, UiOn},
-                       {"UiSend", "void", 3, UiSend},    {"UiBack", "void", 1, UiBack},
-                       {"UiModal", "void", 2, UiModal},  {"UiPending", "int", 1, UiPending},
-                       {"UiOffers", "int", 2, UiOffers}, {"UiText", "string", 1, UiText}};
+        } natives[] = {
+            {"UiShow", "void", 1, UiShow},      {"UiPredict", "void", 1, UiPredict}, {"UiOn", "void", 2, UiOn},
+            {"UiSend", "void", 3, UiSend},      {"UiBack", "void", 1, UiBack},       {"UiModal", "void", 2, UiModal},
+            {"UiPending", "int", 1, UiPending}, {"UiOffers", "int", 2, UiOffers},    {"UiText", "string", 1, UiText}};
         for (const auto &native : natives)
         {
             IFUNCINFO info;

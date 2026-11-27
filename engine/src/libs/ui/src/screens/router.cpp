@@ -4,8 +4,10 @@
 
 #include <algorithm>
 #include <exception>
+#include <stdexcept>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 
 namespace storm::ui
 {
@@ -239,6 +241,13 @@ void Bindings::Modal(const std::string &id, Handler cancel)
 void Bindings::Predict(const std::string &id, const std::string &verb, Prediction predict)
 {
     predictions_[id + '\x1f' + verb] = std::move(predict);
+}
+
+void Bindings::PredictThis(Prediction predict)
+{
+    if (!router_.current_)
+        throw std::logic_error("PredictThis outside a handler");
+    handled_ = std::move(predict);
 }
 
 bool Bindings::Patch(Json &view, const std::string &id, const char *key, const Json &value)
@@ -1069,9 +1078,12 @@ bool Router::OnEvent(const Event &event)
     const uint64_t floor = next_request_ + 1;
     current_ = &event;
     sent_in_event_ = false;
+    bindings_.handled_ = nullptr;
     if (!Guarded("the handler of " + event.id + " " + event.verb, [&] { handler(event); }))
         return true; // Failed closed the interface
     current_ = nullptr;
+    if (bindings_.handled_)
+        predict = std::exchange(bindings_.handled_, nullptr);
     if (sent_in_event_)
     {
         // An action row of the «Прочее» sheet closes it, as a menu does.

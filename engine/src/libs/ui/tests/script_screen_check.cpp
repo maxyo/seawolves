@@ -5,6 +5,7 @@
 #include "../src/screens/script_screen.h"
 #include "storm_ui/script_screens.h"
 
+#include <optional>
 #include <stdexcept>
 
 using namespace storm::ui;
@@ -42,6 +43,7 @@ struct DemoPort final : ScriptPort
                    Leaf("open", "1"),
                    {"items", "", {{"x", "", {Leaf("id", "a"), Leaf("ON", "0"), Leaf("n", "1.5")}}}}}};
     bool show_in_event = false;
+    std::optional<ViewTree> predict; // what a tap on the tabs predicts
 
     void Build(const ScriptScreen &, const std::vector<const Widget *> &widgets, ScriptCall &call) override
     {
@@ -59,6 +61,8 @@ struct DemoPort final : ScriptPort
         events.push_back(screen.capability + " " + id + " " + verb + " " + value);
         if (show_in_event)
             call.Show(view);
+        if (id == "tabs" && predict)
+            call.Predict(*predict);
         if (id == "tabs")
             call.Send("SLIDER", "set", value);
         else if (id == "go" && call.Offers("OK", "press"))
@@ -134,6 +138,52 @@ void Routing()
     Expect(surface.tag != "s-demo", "removing the script screens rebuilds the open interface without them");
 }
 
+// The game's answer to every widget action sent so far, and its next model.
+void Answered(Router &router, FakeSurface &surface, InterfaceModel &model)
+{
+    for (; surface.answered < surface.actions.size(); ++surface.answered)
+        router.Answer(surface.actions[surface.answered].request, true, "");
+    ++model.revision;
+    router.SetInterface(model);
+}
+
+void Prediction()
+{
+    const auto spec = DemoSpec();
+    DemoPort port;
+    FakeSurface surface;
+    Router router(surface);
+    router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
+    InterfaceModel model = Model("salary");
+    router.SetInterface(model);
+    port.predict = port.view;
+    port.predict->children[1].value = "6";
+    router.OnEvent({"tabs", "select", "6"});
+    Expect(surface.props["count"] == 6 && router.Predicted() == 1, "the predicted view is drawn in the tap's build");
+    Expect(surface.props["title"] == "Отдых" && surface.props["extras"].is_object(),
+           "laid over the build: what the prediction does not change stays the build's");
+    ++model.revision;
+    router.SetInterface(model);
+    Expect(surface.props["count"] == 6, "kept over the game's steps until it answers");
+    port.view.children[1].value = "6";
+    Answered(router, surface, model);
+    Expect(surface.props["count"] == 6 && surface.errors.empty(), "the game's answer confirms it, quietly");
+
+    port.predict->children[1].value = "7";
+    router.OnEvent({"tabs", "select", "7"});
+    Expect(surface.props["count"] == 7, "predicted again");
+    Answered(router, surface, model);
+    Expect(surface.props["count"] == 6 && surface.errors.size() == 1 &&
+               surface.errors[0].find("UI prediction corrected: screen ") == 0 &&
+               surface.errors[0].find("/count: predicted 7, the game has 6") != std::string::npos,
+           "a different answer is shown and logged: " + (surface.errors.empty() ? std::string() : surface.errors[0]));
+
+    surface.errors.clear();
+    port.predict.reset();
+    router.OnEvent({"tabs", "select", "8"});
+    Expect(router.Predicted() == 2, "a tap the script does not predict is not predicted");
+}
+
 void Failures()
 {
     const auto spec = DemoSpec();
@@ -196,6 +246,7 @@ void Failures()
 int main()
 {
     Routing();
+    Prediction();
     Failures();
     if (failures)
         std::fprintf(stderr, "%d check(s) failed\n", failures);

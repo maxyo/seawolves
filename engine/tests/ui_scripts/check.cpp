@@ -22,6 +22,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <optional>
 
 namespace fs = std::filesystem;
 using storm::ui::Json;
@@ -132,9 +134,26 @@ struct Vm
     }
 };
 
+// The saved values of the program's globals by name (the attribute names they use are codes of the save's name codec,
+// which only grows, so a code stays the same).
+std::map<std::string, std::vector<char>> GameState(Vm &vm)
+{
+    const std::vector<char> raw = vm.compiler.SerializeState();
+    storm::save::ParsedState state;
+    std::string error;
+    REQUIRE(storm::save::parseState(raw.data(), raw.size(), state, error));
+    std::map<std::string, std::vector<char>> values;
+    for (size_t n = 0; n < state.variables.size(); n++)
+    {
+        const size_t end = n + 1 < state.variables.size() ? state.variables[n + 1].values : raw.size();
+        values[state.variables[n].name].assign(raw.begin() + state.variables[n].values, raw.begin() + end);
+    }
+    return values;
+}
+
 std::string List(const std::string &segments)
 {
-    return R"({"segments": [{"file": "interface/touch/core.c", "core": true}, )" + segments + "]}";
+    return R"({"segments": [{"file": "interface/touch/core/core.c", "core": true}, )" + segments + "]}";
 }
 
 // What a screen's script does through the natives, recorded; its view as the props of the pack screen.
@@ -144,6 +163,7 @@ struct Calls final : storm::ui::ScriptCall
     std::vector<storm::ui::Widget> widgets;
     Json props;
     std::vector<std::string> calls, bound, modals;
+    std::optional<Json> predicted;
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -151,6 +171,10 @@ struct Calls final : storm::ui::ScriptCall
     void Show(const storm::ui::ViewTree &view) override
     {
         props = storm::ui::screens::ScriptProps(view, spec);
+    }
+    void Predict(const storm::ui::ViewTree &view) override
+    {
+        predicted = storm::ui::screens::ScriptProps(view, spec);
     }
     void On(const std::string &id, const std::string &verb) override
     {
@@ -255,11 +279,14 @@ TEST_CASE("the pack's segments are attached after Main, each on its own")
     Log log;
     Vm vm;
     vm.Start();
-    CHECK(vm.Loaded("interface/touch/core.c"));
-    CHECK(vm.Loaded("interface/touch/legacy/rest.c"));
+    CHECK(vm.Loaded("interface/touch/core/core.c"));
+    CHECK(vm.Loaded("interface/touch/lineages/legacy/rest.c"));
+    CHECK(vm.Loaded("interface/touch/screens/rest.c"));
     REQUIRE(vm.screens.size() == 1);
     CHECK(vm.screens[0].capability == "rest");
-    CHECK(vm.screens[0].interface == "tavernwait");
+    CHECK(vm.screens[0].interface == "tavernwait"); // from the adapter's binding
+    CHECK(vm.screens[0].component == "s-rest");
+    CHECK(vm.screens[0].nodes.size() == 5);
     // The game's adapters need the game's scripts, which this program does not have: left out, loudly, the rest kept.
     CHECK_FALSE(vm.Loaded("interface/android_ui_bootstrap.c"));
     CHECK(log.Has("UI script interface/android_ui_bootstrap.c is off: does not compile"));
@@ -285,18 +312,21 @@ TEST_CASE("a segment that fails is left out with its screens; the core stops the
     {
         Log log;
         Vm vm(List(R"({"file": "interface/test/plain.c", "requires": ["fn:GameFunction/3", "fn:Missing/0",
-                       "var:Missing", "ev:Missing", "interface:missing", "file:PROGRAM/missing.c"]})"));
+                       "var:Missing", "ev:Missing", "interface:missing", "file:PROGRAM/missing.c",
+                       "node:tavernwait#NO_NODE", "node:missing#OK_BTN"]})"));
         vm.Start();
         CHECK_FALSE(vm.Loaded("interface/test/plain.c"));
         CHECK(log.Has("fn:GameFunction/3: GameFunction takes 2 arguments, not 3; fn:Missing/0: Missing is not a "
                       "function of the game; var:Missing: Missing is not a global of the game; ev:Missing: Missing "
                       "has no handler in the game; interface:missing: missing is not an interface of the game; "
-                      "file:PROGRAM/missing.c: PROGRAM/missing.c is not in the game"));
+                      "file:PROGRAM/missing.c: PROGRAM/missing.c is not in the game; node:tavernwait#NO_NODE: "
+                      "RESOURCE\\INI\\INTERFACES\\TavernWait.ini has no node NO_NODE; node:missing#OK_BTN: missing is "
+                      "not an interface of the game"));
     }
     SECTION("needs what the game offers")
     {
         Vm vm(List(R"({"file": "interface/test/plain.c", "requires": ["fn:gamefunction/2", "var:GameValue",
-                       "ev:GameTick", "interface:TavernWait", "file:PROGRAM/seadogs.c"]})"));
+                       "ev:GameTick", "interface:TavernWait", "file:PROGRAM/seadogs.c", "node:TavernWait#HOURS_SLIDE"]})"));
         vm.Start();
         CHECK(vm.Loaded("interface/test/plain.c"));
     }
@@ -308,6 +338,35 @@ TEST_CASE("a segment that fails is left out with its screens; the core stops the
     }
 }
 
+TEST_CASE("of the providers of a contract the first that attaches is chosen; its users need one")
+{
+    Log log;
+    Vm vm(List(R"({"file": "interface/test/provider_one.c", "requires": ["fn:Missing/0"], "provides": ["adapter:test"]},
+                  {"file": "interface/test/provider_two.c", "provides": ["adapter:test"],
+                   "binds": [{"capability": "test", "interface": "tavernwait", "nodes": [["OK_BTN", "button", true]]}]},
+                  {"file": "interface/test/inside.c", "provides": ["adapter:test"]},
+                  {"file": "interface/test/user.c", "uses": ["adapter:test"],
+                   "screens": [{"capability": "test", "component": "s-rest"}]},
+                  {"file": "interface/test/plain.c", "uses": ["adapter:other"]},
+                  {"file": "interface/test/refer.c", "screens": [{"capability": "unbound", "component": "s-rest"}]})"));
+    vm.Start();
+    CHECK(vm.Loaded("interface/test/provider_two.c"));
+    CHECK_FALSE(vm.Loaded("interface/test/provider_one.c"));
+    CHECK_FALSE(vm.Loaded("interface/test/inside.c")); // would compile, but the contract is provided
+    CHECK(log.Has("UI scripts: adapter:test by interface/test/provider_two.c; interface/test/inside.c not needed"));
+    std::string value;
+    REQUIRE(vm.compiler.RunScriptFunction("TestUser", value));
+    CHECK(value == "2");
+    REQUIRE(vm.screens.size() == 1);
+    CHECK(vm.screens[0].capability == "test");
+    CHECK(vm.screens[0].interface == "tavernwait");
+    CHECK(vm.screens[0].nodes.size() == 1);
+    CHECK_FALSE(vm.Loaded("interface/test/plain.c"));
+    CHECK(log.Has("UI script interface/test/plain.c is off: adapter:other: no attached script provides it"));
+    CHECK(log.Has("UI script interface/test/refer.c: screen unbound has no binding from an attached adapter"));
+    CHECK(log.Has("capabilities offered: test; missing: unbound"));
+}
+
 TEST_CASE("the segment list is checked when it is read")
 {
     using storm::ui_scripts::ParseSegments;
@@ -317,11 +376,20 @@ TEST_CASE("the segment list is checked when it is read")
                       Catch::Contains("is not fn:<name>/<arguments>"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "requires": ["global:Name"]}]})"),
                       Catch::Contains("has an unknown kind"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "requires": ["node:a"]}]})"),
+                      Catch::Contains("is not node:<interface>#<node>"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "core": true, "requires": ["var:A"]}]})"),
                       Catch::Contains("a core segment cannot have requirements"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "core": true, "provides": ["adapter:a"]}]})"),
+                      Catch::Contains("a core segment cannot have requirements or contracts"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "uses": ["rest"]}]})"),
+                      Catch::Contains("uses 'rest' is not adapter:<family>"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c",
+                      "component": "s-c", "interface": "i"}]}]})"),
+                      Catch::Contains("interface and nodes come together"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c"}]}]})"),
                       Catch::Contains("scripts.json segment a.c"));
-    CHECK(ParseSegments(PackList()).size() == 3);
+    CHECK(ParseSegments(PackList()).size() == 5);
 }
 
 TEST_CASE("the probe reads what the program offers")
@@ -336,7 +404,9 @@ TEST_CASE("the probe reads what the program offers")
     CHECK(surface.globals.contains("gamevalue"));
     CHECK(surface.globals.contains("uimodel"));
     CHECK(surface.events.contains("gametick"));
-    CHECK(surface.interfaces == std::unordered_set<std::string>{"tavernwait", "store"});
+    CHECK(surface.interfaces.size() == 2);
+    CHECK(surface.interfaces.at("tavernwait") == "RESOURCE\\INI\\INTERFACES\\TavernWait.ini");
+    CHECK(surface.interfaces.contains("store"));
     WARN("probe of the test program: " << ms << " ms");
 }
 
@@ -362,15 +432,15 @@ TEST_CASE("the globals of attached segments never enter a save")
         names.push_back(variable.name);
     CHECK(std::ranges::find(names, "GameValue") != names.end());
     CHECK(std::ranges::find(names, "UiModel") == names.end());
-    CHECK(std::ranges::find(names, "RestView") == names.end());
+    CHECK(std::ranges::find(names, "TouchRest") == names.end());
 
     Vm loaded;
     REQUIRE(loaded.compiler.LoadState(raw, state));
     CHECK(loaded.Integer("GameValue") == 7);
-    CHECK(loaded.Loaded("interface/touch/legacy/rest.c")); // attached again after OnLoad
+    CHECK(loaded.Loaded("interface/touch/screens/rest.c")); // attached again after OnLoad
     CHECK(loaded.screens.size() == 1);
     CHECK_FALSE(log.Has("'UiModel' is not declared"));
-    CHECK_FALSE(log.Has("'RestView' is not declared"));
+    CHECK_FALSE(log.Has("'TouchRest' is not declared"));
 }
 
 TEST_CASE("a program replaced releases the attached screens and attaches them again")
@@ -394,7 +464,8 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("rest");
     const auto &screen = Screen(vm, "rest");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/rest.json"));
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/rest.json"));
+    const auto before = GameState(vm);
     for (const Json &recorded : fixture.at("cases"))
     {
         INFO(recorded.at("name").get<std::string>());
@@ -408,10 +479,26 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
         for (const Json &event : recorded.at("events"))
         {
             REQUIRE(calls.Binds(event[0], event[1]));
+            calls.predicted.reset();
             port.Event(screen, event[0], event[1], event[2], calls);
+            if (event[1] != "select")
+                continue;
+            // The span drawn at the tap is what the screen builds once the game has moved its slider there.
+            REQUIRE(calls.predicted);
+            const std::string sent = calls.calls.back();
+            Calls answered(*spec);
+            answered.widgets = model.widgets;
+            for (auto &widget : answered.widgets)
+                if (widget.node == "HOURS_SLIDE")
+                    widget.value = sent.substr(sent.rfind(' ') + 1);
+            port.Build(screen, answered.Single(), answered);
+            CHECK(answered.props == *calls.predicted);
+            port.Build(screen, calls.Single(), calls);
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
     }
+    // The screen's scripts change nothing of the game's program: its globals save as they did.
+    CHECK(GameState(vm) == before);
 }
 
 TEST_CASE("a screen's script gets the admitted widgets in UiModel, a table's rows with their cells")
@@ -500,7 +587,7 @@ TEST_CASE("cost of a screen build and of a tap in script, in the script work dig
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("rest");
     const auto &screen = Screen(vm, "rest");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/rest.json"));
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/rest.json"));
     storm::ui::InterfaceModel model;
     REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases")[0].at("model").dump(), model));
     Calls calls(*spec);
@@ -565,6 +652,14 @@ TEST_CASE("cost of the probe on a game", "[game]")
                      << " globals, " << surface.events.size() << " events, " << surface.interfaces.size()
                      << " interfaces in " << best << " ms (best of 20, ASan -O1 build)");
     CHECK(surface.functions.size() > 1000);
+    // Every name of the interface's scripts is Touch and more (the pack's build checks it): the game must have none
+    // (one game has a global `touch` itself).
+    for (const auto &[name, arguments] : surface.functions)
+        if (name.starts_with("touch") && name != "touch")
+            FAIL_CHECK("the game has a function " << name);
+    for (const std::string &name : surface.globals)
+        if (name.starts_with("touch") && name != "touch")
+            FAIL_CHECK("the game has a global " << name);
     compiler.Release();
     core_internal.Compiler = nullptr;
 }

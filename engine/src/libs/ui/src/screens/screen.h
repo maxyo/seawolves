@@ -127,6 +127,9 @@ class Bindings
     // answer is shown and logged. See src/screens/README.md, "Answering a tap at once".
     using Prediction = std::function<void(const Event &, Json &view)>;
     void Predict(const std::string &id, const std::string &verb, Prediction predict);
+    // Inside a handler: the prediction of the event it handles, when only the handler knows what the tap leads to
+    // (a script screen's tap). It replaces one declared with Predict.
+    void PredictThis(Prediction predict);
     // For predictions. Patch: sets `key` of every object in the view whose "id" is `id`; false when there is none.
     // SelectOnly: the entry `chosen` of a list of {selected} entries (rows, tabs) is the selected one, no other.
     static bool Patch(Json &view, const std::string &id, const char *key, const Json &value);
@@ -230,6 +233,7 @@ class Bindings
     Router &router_;
     std::unordered_map<std::string, Handler> handlers_;
     std::unordered_map<std::string, Prediction> predictions_; // by "<id>\x1f<verb>", of the view on the screen
+    Prediction handled_;                                      // PredictThis of the running handler
 };
 
 class Screen

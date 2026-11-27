@@ -15,7 +15,8 @@
 
 namespace storm::ui_scripts
 {
-// Something a segment needs from the game: "fn:Name/arguments", "var:Name", "ev:Name", "interface:id", "file:path".
+// Something a segment needs from the game: "fn:Name/arguments", "var:Name", "ev:Name", "interface:id", "file:path",
+// "node:interface#NODE" (the interface's ini has a section for the node).
 struct Requirement
 {
     enum class Kind
@@ -24,10 +25,12 @@ struct Requirement
         Global,
         Event,
         Interface,
-        File
+        File,
+        Node
     };
     Kind kind = Kind::Function;
-    std::string name;
+    std::string name; // of a Node: the interface
+    std::string node;
     uint32_t arguments = 0;
     std::string text; // as the list writes it, for log lines
 };
@@ -39,6 +42,13 @@ struct Segment
     // out with its screens, loudly.
     bool core = false;
     std::vector<Requirement> needs;
+    // Contracts ("adapter:<family>"): of the segments providing one, the first attached in list order is chosen and
+    // the later ones are not attached; a segment using one is attached only once it is provided.
+    std::vector<std::string> provides, uses;
+    // An adapter's side of a screen: the interface and the nodes of capability's screen, joined with the screen entry
+    // (no component) of a segment attached after it.
+    std::vector<storm::ui::ScriptScreen> binds;
+    // A screen with no interface takes it and its nodes from the attached binding of its capability.
     std::vector<storm::ui::ScriptScreen> screens;
 };
 
@@ -51,7 +61,8 @@ std::vector<Segment> ParseSegments(std::string_view json);
 struct GameSurface
 {
     std::unordered_map<std::string, uint32_t> functions; // keys in lower case, as the VM's names compare
-    std::unordered_set<std::string> globals, events, interfaces;
+    std::unordered_set<std::string> globals, events;
+    std::unordered_map<std::string, std::string> interfaces; // id -> the ini file of the Interfaces[] row
     std::function<bool(const std::string &path)> file_exists;
 };
 GameSurface Probe(const storm::script::Program &program, std::function<bool(const std::string &)> file_exists);

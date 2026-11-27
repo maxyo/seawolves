@@ -4,6 +4,7 @@
 #libriary "UiScripts"
 
 native void UiShow(aref view);
+native void UiPredict(aref view);
 native void UiOn(string id, string verb);
 native void UiSend(string node, string verb, string value);
 native void UiBack(string node);

@@ -32,7 +32,7 @@ layout is written in Java.
 | `base.rcss`, `overlay.rml` | document base rules, toast and tooltip layer | yes |
 | `screens/<name>/spec.json`, `template.rml`, `style.rcss` | game screens and screen parts (`<s-…>`) built from the components; filled by the engine's screen routing (engine `src/libs/ui/src/screens/README.md`) | yes |
 | `screen.rml` | the document a game screen is mounted into | yes |
-| `scripts.json` | the interface scripts the engine attaches to the game's program, in order (`../PROGRAM/interface/touch`): file, `core` (its failure stops the start), requirements on the game, the screens it provides (capability, interface, pack screen, the nodes it reads); engine `src/libs/ui_host/README.md` | yes |
+| `scripts.json` | the interface scripts the engine attaches to the game's program, in order (`../PROGRAM/interface/touch`, see "Interface scripts" below): file, `core` (its failure stops the start), requirements on the game, the contracts it `provides` or `uses`, an adapter's `binds` (capability, interface, the nodes it reads), the `screens` it draws (capability, pack screen); engine `src/libs/ui_host/README.md` | yes |
 | `capabilities.json` | the one list of the interface's capability ids; `build.py --script-header` makes the scripts' `capabilities.h` from it (packaged with the scripts) | yes |
 | `hud.rml` | the document of the in-game HUD (`<s-hud>` layer) | yes |
 | `strings/<lang>.json` | UI strings, one flat `{key: text}` table per shipped language (ru, en, de, es, fr, it) | yes |
@@ -60,6 +60,25 @@ and `hud-layout.json` from the pack at run time.
 art and sail emblems are `<c-game-image texture=… cell=…>` slots filled at run time
 from the player's own game files. The sources here are GPL-3.0-or-later like the rest of
 the application; the fonts are SIL OFL 1.1 (see the repository's NOTICE).
+
+## Interface scripts
+
+The scripts below `../PROGRAM/interface/touch` are in layers, attached in this order and checked by `build.py`:
+
+| Layer | Holds | Names | May call |
+|---|---|---|---|
+| `core/` | the natives and `UiModel` | `Ui*` | natives |
+| `lib/` | game-free helpers | `TouchLib_*` | natives, built-ins |
+| `contracts/<family>.c` | `extern` declarations of a family's adapter, with the shape of every argument | `TouchAdp<Family>_*` | — |
+| `lineages/legacy/<family>.c`, `lineages/cl/<family>.c` | an adapter: reads `UiModel`, calls the game's functions, the few rules the game has no function for | `TouchAdp<Family>_*` (as its contract declares them), `TouchLeg<Family>_*` / `TouchCl<Family>_*` | anything of the game |
+| `screens/<family>/<screen>.c`, `hud/` | the game-free logic of a screen | `Touch<Screen>_*`, its view object `Touch<Screen>` | natives, `TouchLib_*`, the contracts it `uses`, the built-ins `build.py` lists |
+| `games/<game>/` | a screen only one game has, its own adapter | `Touch<Screen>_*` | anything of the game |
+
+- A contract is its own segment, listed before its providers: an `extern` must come before the definition, and a
+  segment cannot define what it declares `extern`, so neither providers nor screens include it.
+- Of the segments that `provide` a contract, the engine attaches the first whose requirements the game meets and skips
+  the others; a segment that `uses` one needs it attached. Requirements alone choose: no script or entry names a game.
+- Nothing writes into the game's objects; a shared screen never reads `UiModel` and never names a game function.
 
 ## UI strings
 

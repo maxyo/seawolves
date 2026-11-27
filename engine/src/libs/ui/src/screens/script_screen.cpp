@@ -50,6 +50,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         port_.Build(screen_, known, *this);
         if (!view_)
             throw std::runtime_error("script screen " + screen_.capability + " showed no view");
+        shown_ = *view_;
         return std::move(*view_);
     }
 
@@ -59,6 +60,15 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         if (!building_)
             throw std::runtime_error("a view is shown only while the screen builds");
         view_ = ScriptProps(view, component_);
+    }
+    // The prediction is the change from the view of the last build, laid over every view built until the game has
+    // answered: the busy marks and anything else those builds change stay theirs.
+    void Predict(const ViewTree &view) override
+    {
+        if (building_)
+            throw std::runtime_error("a prediction is made only in an event");
+        bindings_->PredictThis([change = Json::diff(shown_, ScriptProps(view, component_))](
+                                   const Event &, Json &built) { built = built.patch(change); });
     }
     void On(const std::string &id, const std::string &verb) override
     {
@@ -110,6 +120,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     Bindings *bindings_ = nullptr;
     std::vector<Widget> widgets_; // the admitted widgets of the last build: the handlers act on them
     std::optional<Json> view_;
+    Json shown_; // the view of the last build
     bool building_ = false;
 };
 } // namespace

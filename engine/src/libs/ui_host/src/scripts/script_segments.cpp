@@ -3,6 +3,7 @@
 #include "core.h"
 #include "istring.hpp"
 #include "v_data.h"
+#include "v_file_service.h"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -46,27 +47,67 @@ Requirement ParseRequirement(const std::string &text, const std::string &where)
         requirement.kind = Requirement::Kind::Interface;
     else if (kind == "file")
         requirement.kind = Requirement::Kind::File;
+    else if (kind == "node")
+    {
+        const auto hash = name.find('#');
+        if (hash == 0 || hash == std::string::npos || hash + 1 == name.size())
+            throw std::runtime_error(where + ": requirement '" + text + "' is not node:<interface>#<node>");
+        requirement.kind = Requirement::Kind::Node;
+        requirement.node = name.substr(hash + 1);
+        name.resize(hash);
+    }
     else
         throw std::runtime_error(where + ": requirement '" + text + "' has an unknown kind");
     requirement.name = std::move(name);
     return requirement;
 }
 
+std::vector<storm::ui::ScriptNode> ParseNodes(const Json &nodes, const std::string &where)
+{
+    std::vector<storm::ui::ScriptNode> parsed;
+    for (const Json &node : nodes)
+    {
+        if (!node.is_array() || node.size() < 2 || node.size() > 3)
+            throw std::runtime_error(where + ": node " + node.dump() +
+                                     " is not [node, type] or [node, type, required]");
+        parsed.push_back(
+            {node[0].get<std::string>(), node[1].get<std::string>(), node.size() == 3 && node[2].get<bool>()});
+    }
+    return parsed;
+}
+
+// A screen entry: capability and component, with the interface and nodes when the segment is its own adapter.
 storm::ui::ScriptScreen ParseScreen(const Json &entry, const std::string &where)
 {
     storm::ui::ScriptScreen screen;
     screen.capability = entry.at("capability").get<std::string>();
-    screen.interface = entry.at("interface").get<std::string>();
     screen.component = entry.at("component").get<std::string>();
-    for (const Json &node : entry.at("nodes"))
+    if (entry.contains("interface") != entry.contains("nodes"))
+        throw std::runtime_error(where + " screen " + screen.capability + ": interface and nodes come together");
+    if (entry.contains("interface"))
     {
-        if (!node.is_array() || node.size() < 2 || node.size() > 3)
-            throw std::runtime_error(where + " screen " + screen.capability + ": node " + node.dump() +
-                                     " is not [node, type] or [node, type, required]");
-        screen.nodes.push_back(
-            {node[0].get<std::string>(), node[1].get<std::string>(), node.size() == 3 && node[2].get<bool>()});
+        screen.interface = entry.at("interface").get<std::string>();
+        screen.nodes = ParseNodes(entry.at("nodes"), where + " screen " + screen.capability);
     }
     return screen;
+}
+
+storm::ui::ScriptScreen ParseBinding(const Json &entry, const std::string &where)
+{
+    storm::ui::ScriptScreen binding;
+    binding.capability = entry.at("capability").get<std::string>();
+    binding.interface = entry.at("interface").get<std::string>();
+    binding.nodes = ParseNodes(entry.at("nodes"), where + " binding " + binding.capability);
+    return binding;
+}
+
+std::vector<std::string> ParseContracts(const Json &entry, const char *key, const std::string &where)
+{
+    std::vector<std::string> contracts = entry.value(key, std::vector<std::string>());
+    for (const std::string &contract : contracts)
+        if (!contract.starts_with("adapter:") || contract.size() == 8)
+            throw std::runtime_error(where + ": " + key + " '" + contract + "' is not adapter:<family>");
+    return contracts;
 }
 } // namespace
 
@@ -84,6 +125,10 @@ std::vector<Segment> ParseSegments(std::string_view text)
             segment.core = entry.value("core", false);
             for (const Json &requirement : entry.value("requires", Json::array()))
                 segment.needs.push_back(ParseRequirement(requirement.get<std::string>(), where));
+            segment.provides = ParseContracts(entry, "provides", where);
+            segment.uses = ParseContracts(entry, "uses", where);
+            for (const Json &binding : entry.value("binds", Json::array()))
+                segment.binds.push_back(ParseBinding(binding, where));
             for (const Json &screen : entry.value("screens", Json::array()))
                 segment.screens.push_back(ParseScreen(screen, where));
         }
@@ -91,8 +136,8 @@ std::vector<Segment> ParseSegments(std::string_view text)
         {
             throw std::runtime_error(where + ": " + error.what());
         }
-        if (segment.core && !segment.needs.empty())
-            throw std::runtime_error(where + ": a core segment cannot have requirements");
+        if (segment.core && (!segment.needs.empty() || !segment.uses.empty() || !segment.provides.empty()))
+            throw std::runtime_error(where + ": a core segment cannot have requirements or contracts");
         segments.push_back(std::move(segment));
     }
     return segments;
@@ -116,7 +161,7 @@ GameSurface Probe(const storm::script::Program &program, std::function<bool(cons
                 continue;
             std::string_view stem(ini);
             stem = stem.substr(stem.find_last_of("\\/") == std::string_view::npos ? 0 : stem.find_last_of("\\/") + 1);
-            surface.interfaces.insert(AsciiLower(std::string(stem.substr(0, stem.rfind('.')))));
+            surface.interfaces.emplace(AsciiLower(std::string(stem.substr(0, stem.rfind('.')))), ini);
         }
     return surface;
 }
@@ -146,6 +191,16 @@ std::string Unmet(const GameSurface &surface, const Requirement &requirement)
         return surface.interfaces.contains(AsciiLower(requirement.name))
                    ? std::string()
                    : requirement.name + " is not an interface of the game";
+    case Kind::Node: {
+        const auto found = surface.interfaces.find(AsciiLower(requirement.name));
+        if (found == surface.interfaces.end())
+            return requirement.name + " is not an interface of the game";
+        const auto ini = fio->OpenIniFile(found->second.c_str());
+        if (!ini)
+            return found->second + " cannot be read";
+        return ini->TestSection(requirement.node.c_str()) ? std::string()
+                                                          : found->second + " has no node " + requirement.node;
+    }
     case Kind::File:
         return surface.file_exists(requirement.name) ? std::string() : requirement.name + " is not in the game";
     }
@@ -168,18 +223,35 @@ void Attacher::Attach(storm::script::Program &program)
 
     std::vector<storm::ui::ScriptScreen> screens;
     std::string offered, missing;
-    const auto names = [](const Segment &segment) {
-        std::string list;
+    std::unordered_map<std::string, std::string> providers;            // contract -> the segment chosen for it
+    std::unordered_map<std::string, storm::ui::ScriptScreen> bindings; // capability -> its adapter's binding
+    const auto off = [&](const Segment &segment, const std::string &reason) {
+        std::string names;
         for (const auto &screen : segment.screens)
-            list += (list.empty() ? "" : ", ") + screen.capability;
-        return list.empty() ? std::string("none") : list;
+        {
+            names += (names.empty() ? "" : ", ") + screen.capability;
+            missing += (missing.empty() ? "" : ", ") + screen.capability;
+        }
+        spdlog::error("UI script {} is off: {}; its screens ({}) are not drawn by scripts", segment.file, reason,
+                      names.empty() ? "none" : names);
     };
     for (const Segment &segment : segments_)
     {
+        // Every provider of a contract defines the same functions: only the first that attaches is chosen.
+        const auto chosen =
+            std::ranges::find_if(segment.provides, [&](const auto &c) { return providers.contains(c); });
+        if (chosen != segment.provides.end())
+        {
+            spdlog::info("UI scripts: {} by {}; {} not needed", *chosen, providers.at(*chosen), segment.file);
+            continue;
+        }
         std::string reason;
         for (const Requirement &requirement : segment.needs)
             if (const std::string unmet = Unmet(surface, requirement); !unmet.empty())
                 reason += (reason.empty() ? "" : "; ") + requirement.text + ": " + unmet;
+        for (const std::string &contract : segment.uses)
+            if (!providers.contains(contract))
+                reason += (reason.empty() ? "" : "; ") + contract + ": no attached script provides it";
         if (reason.empty() && !program.Attach(segment.file.c_str()))
             reason = "does not compile (see the compile log)";
         if (!reason.empty() && segment.core)
@@ -187,16 +259,31 @@ void Attacher::Attach(storm::script::Program &program)
                                      ". Reinstall the app.");
         if (!reason.empty())
         {
-            spdlog::error("UI script {} is off: {}; its screens ({}) are not drawn by scripts", segment.file, reason,
-                          names(segment));
-            for (const auto &screen : segment.screens)
-                missing += (missing.empty() ? "" : ", ") + screen.capability;
+            off(segment, reason);
             continue;
         }
-        for (const auto &screen : segment.screens)
+        for (const std::string &contract : segment.provides)
+            providers.emplace(contract, segment.file);
+        for (const auto &binding : segment.binds)
+            bindings.emplace(binding.capability, binding);
+        for (storm::ui::ScriptScreen screen : segment.screens)
         {
+            if (screen.interface.empty())
+            {
+                const auto bound = bindings.find(screen.capability);
+                if (bound == bindings.end())
+                {
+                    spdlog::error("UI script {}: screen {} has no binding from an attached adapter; not drawn by "
+                                  "scripts",
+                                  segment.file, screen.capability);
+                    missing += (missing.empty() ? "" : ", ") + screen.capability;
+                    continue;
+                }
+                screen.interface = bound->second.interface;
+                screen.nodes = bound->second.nodes;
+            }
             offered += (offered.empty() ? "" : ", ") + screen.capability;
-            screens.push_back(screen);
+            screens.push_back(std::move(screen));
         }
     }
     spdlog::info("UI scripts: capabilities offered: {}; missing: {}", offered.empty() ? "none" : offered,
