@@ -2,7 +2,7 @@
 // The trade screens' adapter (provides "adapter:trade"): what the game's goods or items window shows, and its moves.
 // A row is a position in out.rows of State (the game's order); its key is the row identity the moves are guarded by.
 //
-// State(capability, out), read once a build:
+// `ui` is the screen's object its events hand over. State(ui, out), read once a build:
 //   out.title: the game's caption ("" without); out.headers.{own, other, name}: its column captions ("" without rows)
 //   out.rows.r<k>.{key, name, image.{kind, group, image}, own, other (amounts), ownText, otherText (as the game
 //     writes them), activate, select (offered), reason, selected, type ("export" | "import" | "demand" |
@@ -23,21 +23,21 @@
 //     game writes it ("" without), out.balance its amount (-1: not told), out.doubloons: the merchant takes doubloons
 //   out.buttons.b<k>.{label, can, reason}: the place's own buttons (bury, …); out.getAll.{label, can, reason}: the
 //     game's take-all; out.takeAll.can: a take-all the engine runs where the game hides its own (each absent without)
-extern void TouchAdpTrade_State(string capability, aref out);
+extern void TouchAdpTrade_State(aref ui, aref out);
 // What `amount` of row k weighs, as the game counts it; 0 for a window whose deals have no weight.
-extern float TouchAdpTrade_Weight(string capability, int row, int amount);
+extern float TouchAdpTrade_Weight(aref ui, int row, int amount);
 // What a move of `amount` pieces of row k costs (> 0: bought) or brings (< 0: sold), as the game charges it.
-extern int TouchAdpTrade_Total(string capability, int row, int amount);
+extern int TouchAdpTrade_Total(aref ui, int row, int amount);
 // How many of `stock` pieces of row k can be bought: out.most within the purse and the hold, out.room within the hold.
-extern void TouchAdpTrade_Reach(string capability, int row, int stock, aref out);
-extern void TouchAdpTrade_Open(int row);        // the game's window of row k (a loop after its selection)
-extern void TouchAdpTrade_Select(int row);
-extern void TouchAdpTrade_Close();              // the open window closed with nothing moved
-extern void TouchAdpTrade_Move(int amount);     // the open window's amount (< 0 gives) and its OK, in one flush
-extern void TouchAdpTrade_Owner(string capability, int owner); // another side (out.owners o<k>)
-extern void TouchAdpTrade_Tab(int tab);         // out.tabs t<k>
-extern void TouchAdpTrade_Press(int button);    // out.buttons b<k>
-extern void TouchAdpTrade_GetAll();
-extern void TouchAdpTrade_TakeAll();
-extern int TouchAdpTrade_TakingAll();           // the engine's take-all has not gone out yet
-extern void TouchAdpTrade_Exit();
+extern void TouchAdpTrade_Reach(aref ui, int row, int stock, aref out);
+extern void TouchAdpTrade_Open(aref ui, int row);        // the game's window of row k (a loop after its selection)
+extern void TouchAdpTrade_Select(aref ui, int row);
+extern void TouchAdpTrade_Close(aref ui);              // the open window closed with nothing moved
+extern void TouchAdpTrade_Move(aref ui, int amount);     // the open window's amount (< 0 gives) and its OK, in one flush
+extern void TouchAdpTrade_Owner(aref ui, int owner); // another side (out.owners o<k>)
+extern void TouchAdpTrade_Tab(aref ui, int tab);         // out.tabs t<k>
+extern void TouchAdpTrade_Press(aref ui, int button);    // out.buttons b<k>
+extern void TouchAdpTrade_GetAll(aref ui);
+extern void TouchAdpTrade_TakeAll(aref ui);
+extern int TouchAdpTrade_TakingAll(aref ui);           // the engine's take-all has not gone out yet
+extern void TouchAdpTrade_Exit(aref ui);

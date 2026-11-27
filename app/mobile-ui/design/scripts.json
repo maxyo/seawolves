@@ -1,4 +1,18 @@
 {
+  "nodeSets": {
+    "goods-head": [
+      ["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
+      ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["CAPACITY", "text"]
+    ],
+    "goods-box": [
+      ["TABBTN_*", "image|button"], ["TABSTR_*", "text"], ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"],
+      ["DELBODY_BUTTON", "button"], ["SKULL_BUTTON", "button"], ["QTY_EDITBOX", "edit"]
+    ],
+    "qty-window": [
+      ["QTY_EDIT", "edit"], ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"],
+      ["QTY_*", "text|heading|image"]
+    ]
+  },
   "segments": [
     {"file": "interface/touch/core/core.c", "core": true},
     {"file": "interface/touch/lib/text.c", "core": true},
@@ -7,56 +21,57 @@
     {"file": "interface/android_ui_bootstrap.c"},
     {
       "file": "interface/touch/lineages/legacy/rest.c",
-      "requires": ["interface:tavernwait", "node:tavernwait#HOURS_SLIDE", "node:tavernwait#OK_BTN"],
       "provides": ["adapter:rest"],
       "binds": [
         {
           "capability": "rest",
           "interface": "tavernwait",
-          "nodes": [["HOURS_SLIDE", "slider", true], ["OK_BTN", "button", true], ["CANCEL_BTN", "button"],
-                    ["EXIT_BTN", "button"], ["INFO_TEXT", "text"]]
+          "nodes": [
+            ["HOURS_SLIDE", "slider", true], ["OK_BTN", "button", true], ["CANCEL_BTN", "button"],
+            ["EXIT_BTN", "button"], ["INFO_TEXT", "text"]
+          ]
         }
       ]
     },
     {
       "file": "interface/touch/lineages/legacy/trade.c",
-      "requires": ["interface:itemsbox", "node:itemsbox#TABLE_LIST", "interface:storage", "node:storage#TABLE_LIST",
-                   "interface:store", "node:store#TABLE_LIST",
-                   "fn:GetGoodWeightByType/2", "var:GameInterface"],
+      "requires": ["fn:GetGoodWeightByType/2", "var:GameInterface"],
       "provides": ["adapter:trade"],
       "binds": [
         {
           "capability": "trade_chest",
           "interface": "itemsbox",
-          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
-                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["CHARACTERS_SCROLL", "choice"],
-                    ["CAPACITY", "text"], ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
-                    ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
-                    ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
-                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
+          "nodes": ["@goods-head", "@goods-box", ["CHARACTERS_SCROLL", "choice"], "@qty-window"],
+          "data": {
+            "own": 0, "other": 4, "name": 2, "buy": -1, "sell": -1, "pack": -1, "packWeight": -1, "ownTotal": 1,
+            "otherTotal": 3, "goods": false, "pieces": false, "owners": "CHARACTERS_SCROLL"
+          }
         },
         {
           "capability": "trade_storage",
           "interface": "storage",
-          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
-                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["SHIPS_SCROLL", "choice"],
-                    ["CAPACITY", "text"], ["STORE_CAPACITY", "text"], ["STORAGE_INFO", "text"],
-                    ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
-                    ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
-                    ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
-                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
+          "nodes": [
+            "@goods-head", "@goods-box", ["SHIPS_SCROLL", "choice"], ["STORE_CAPACITY", "text"],
+            ["STORAGE_INFO", "text"], "@qty-window"
+          ],
+          "data": {
+            "own": 0, "other": 3, "name": 2, "buy": -1, "sell": -1, "pack": 4, "packWeight": -1, "ownTotal": -1,
+            "otherTotal": -1, "goods": true, "pieces": false, "owners": "SHIPS_SCROLL"
+          }
         },
         {
           "capability": "trade_store",
           "interface": "store",
-          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
-                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["SHIPS_SCROLL", "choice"],
-                    ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"], ["OUR_GOLD", "text"],
-                    ["CAPACITY", "text"], ["STORE_CAPACITY", "text"], ["FOOD_SHIP", "text"], ["QTY_EDIT", "edit"],
-                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_ADD_BUTTON", "button"],
-                    ["QTY_REMOVE_BUTTON", "button"], ["QTY_ADD_ALL_BUTTON", "button"],
-                    ["QTY_REMOVE_ALL_BUTTON", "button"], ["QTY_*", "text|heading|image"],
-                    ["MAIN_CHARACTER_PICTURE", "image"], ["OTHER_PICTURE", "image"]]
+          "nodes": [
+            "@goods-head", ["SHIPS_SCROLL", "choice"], ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"],
+            ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"], ["FOOD_SHIP", "text"], ["QTY_ADD_BUTTON", "button"],
+            ["QTY_REMOVE_BUTTON", "button"], ["QTY_ADD_ALL_BUTTON", "button"], ["QTY_REMOVE_ALL_BUTTON", "button"],
+            ["MAIN_CHARACTER_PICTURE", "image"], ["OTHER_PICTURE", "image"], "@qty-window"
+          ],
+          "data": {
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "ownTotal": -1,
+            "otherTotal": -1, "goods": true, "pieces": false, "owners": "SHIPS_SCROLL"
+          }
         }
       ]
     },
@@ -68,9 +83,10 @@
     {
       "file": "interface/touch/screens/trade/commerce.c",
       "uses": ["adapter:trade"],
-      "screens": [{"capability": "trade_chest", "component": "s-trade"},
-                  {"capability": "trade_storage", "component": "s-trade"},
-                  {"capability": "trade_store", "component": "s-trade"}]
+      "screens": [
+        {"capability": "trade_chest", "component": "s-trade"}, {"capability": "trade_storage", "component": "s-trade"},
+        {"capability": "trade_store", "component": "s-trade"}
+      ]
     }
   ]
 }

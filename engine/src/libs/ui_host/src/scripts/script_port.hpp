@@ -1,5 +1,6 @@
-// The VM side of script screens (storm_ui/script_screens.h): the admitted widgets go to the script global UiModel,
-// the script runs in the events UiBuild(capability) and UiTap(capability, id, verb, value), and answers through the
+// The VM side of script screens (storm_ui/script_screens.h): the admitted widgets go to the screen's object
+// UiScreens.<capability>, the script runs in the events UiBuild(ui) and UiTap(ui, id, verb, value) with that object,
+// and answers through the
 // Ui* natives of the library "UiScripts" (script_port.cpp). See ../../README.md.
 #pragma once
 

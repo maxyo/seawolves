@@ -3,50 +3,16 @@
 // window, the amount window QTY_*, the side switch and the place's buttons. Implements contracts/trade.c, which it
 // does not include: a segment cannot define what it declares extern.
 
-// The columns of each window's table (-1: none): ours, theirs, the name, the prices of a pack bought and sold, the
-// pack, the weight of a pack as the game writes it, the total weight of each side's pieces; whether its rows are goods
-// in packs (their weight is the game's GetGoodWeightByType); the side switch's node.
-void TouchLegTrade_Columns(string capability, aref out)
+// The model and the columns of the build or tap running now (its binding's data: ours, theirs, the name, the prices
+// of a pack bought and sold, the pack, a pack's weight, each side's total weight, -1 none; goods: rows are goods in
+// packs; owners: the side switch's node).
+aref TouchLegTrade_M;
+aref TouchLegTrade_C;
+
+void TouchLegTrade_Use(aref ui)
 {
-	out.own = 0;
-	out.name = 2;
-	out.buy = -1;
-	out.sell = -1;
-	out.pack = -1;
-	out.packWeight = -1;
-	out.ownTotal = -1;
-	out.otherTotal = -1;
-	out.goods = false;
-	out.pieces = false;
-	if (capability == TOUCH_CAP_TRADE_CHEST)
-	{
-		out.other = 4;
-		out.ownTotal = 1;
-		out.otherTotal = 3;
-		out.owners = "CHARACTERS_SCROLL";
-		return;
-	}
-	if (capability == TOUCH_CAP_TRADE_STORAGE)
-	{
-		out.other = 3;
-		out.pack = 4;
-		out.goods = true;
-		out.owners = "SHIPS_SCROLL";
-		return;
-	}
-	if (capability == TOUCH_CAP_TRADE_STORE)
-	{
-		out.other = 5;
-		out.name = 3;
-		out.buy = 2;
-		out.sell = 4;
-		out.pack = 6;
-		out.packWeight = 7;
-		out.goods = true;
-		out.owners = "SHIPS_SCROLL";
-		return;
-	}
-	UiError("trade: no columns for " + capability);
+	makearef(TouchLegTrade_M, ui.model);
+	makearef(TouchLegTrade_C, ui.data);
 }
 
 // The good of a table row: the game keeps it beside the row it shows (GameInterface.TABLE_LIST.tr<n>.index).
@@ -63,8 +29,8 @@ int TouchLegTrade_Good(int index)
 
 string TouchLegTrade_Label(string node)
 {
-	if (!CheckAttribute(&UiModel, node)) return "";
-	return UiModel.(node).label;
+	if (!CheckAttribute(TouchLegTrade_M, node)) return "";
+	return TouchLegTrade_M.(node).label;
 }
 
 string TouchLegTrade_Cell(aref row, int column)
@@ -78,8 +44,8 @@ string TouchLegTrade_Cell(aref row, int column)
 // The amount window's field: QTY_EDIT, or QTY_EDITBOX in the windows that name it so.
 string TouchLegTrade_Edit()
 {
-	if (CheckAttribute(&UiModel, "QTY_EDIT")) return "QTY_EDIT";
-	if (CheckAttribute(&UiModel, "QTY_EDITBOX")) return "QTY_EDITBOX";
+	if (CheckAttribute(TouchLegTrade_M, "QTY_EDIT")) return "QTY_EDIT";
+	if (CheckAttribute(TouchLegTrade_M, "QTY_EDITBOX")) return "QTY_EDITBOX";
 	return "";
 }
 
@@ -167,11 +133,11 @@ string TouchLegTrade_WithoutPackLine(string text, string units)
 void TouchLegTrade_Rows(aref columns, aref out)
 {
 	out.selected = -1;
-	if (!CheckAttribute(&UiModel, "TABLE_LIST.rows")) return;
+	if (!CheckAttribute(TouchLegTrade_M, "TABLE_LIST.rows")) return;
 	aref rows;
-	makearef(rows, UiModel.TABLE_LIST.rows);
+	makearef(rows, TouchLegTrade_M.TABLE_LIST.rows);
 	aref headers;
-	makearef(headers, UiModel.TABLE_LIST.headers);
+	makearef(headers, TouchLegTrade_M.TABLE_LIST.headers);
 	out.headers.own = TouchLegTrade_Header(headers, sti(columns.own));
 	out.headers.other = TouchLegTrade_Header(headers, sti(columns.other));
 	out.headers.name = TouchLegTrade_Header(headers, sti(columns.name));
@@ -252,10 +218,10 @@ string TouchLegTrade_PieceWeight(aref columns, aref row, int own, int other)
 void TouchLegTrade_Owners(aref columns, aref out)
 {
 	string node = columns.owners;
-	if (!CheckAttribute(&UiModel, node + ".rows")) return;
+	if (!CheckAttribute(TouchLegTrade_M, node + ".rows")) return;
 	aref rows;
 	aref at;
-	makearef(rows, UiModel.(node).rows);
+	makearef(rows, TouchLegTrade_M.(node).rows);
 	string slot;
 	for (int k = 0; k < GetAttributesNum(rows); k++)
 	{
@@ -273,7 +239,7 @@ void TouchLegTrade_Owners(aref columns, aref out)
 // the picture where it has one.
 string TouchLegTrade_TabNode(int position)
 {
-	if (CheckAttribute(&UiModel, "TABSTR_" + position + ".offers.press")) return "TABSTR_" + position;
+	if (CheckAttribute(TouchLegTrade_M, "TABSTR_" + position + ".offers.press")) return "TABSTR_" + position;
 	return "TABBTN_" + position;
 }
 
@@ -288,13 +254,13 @@ void TouchLegTrade_Tabs(aref out)
 	{
 		button = "TABBTN_" + position;
 		caption = "TABSTR_" + position;
-		if (CheckAttribute(&UiModel, button) && TouchLegTrade_Label(caption) != "")
+		if (CheckAttribute(TouchLegTrade_M, button) && TouchLegTrade_Label(caption) != "")
 		{
 			slot = "t" + k;
 			makearef(at, out.tabs.(slot));
 			at.position = position;
-			at.label = UiModel.(caption).label;
-			at.selected = UiModel.(button).value == "1";
+			at.label = TouchLegTrade_M.(caption).label;
+			at.selected = TouchLegTrade_M.(button).value == "1";
 			at.can = UiOffers(TouchLegTrade_TabNode(position), "press");
 			k++;
 		}
@@ -310,58 +276,58 @@ void TouchLegTrade_Places(aref out)
 	int k = 0;
 	for (int i, string node: TouchLegTrade_Buttons)
 	{
-		if (CheckAttribute(&UiModel, node))
+		if (CheckAttribute(TouchLegTrade_M, node))
 		{
 			slot = "b" + k;
 			makearef(at, out.buttons.(slot));
-			at.label = UiModel.(node).label;
+			at.label = TouchLegTrade_M.(node).label;
 			at.can = UiOffers(node, "press");
-			at.reason = UiModel.(node).reason;
+			at.reason = TouchLegTrade_M.(node).reason;
 			k++;
 		}
 	}
-	if (CheckAttribute(&UiModel, "GETALL_BUTTON"))
+	if (CheckAttribute(TouchLegTrade_M, "GETALL_BUTTON"))
 	{
-		out.getAll.label = UiModel.GETALL_BUTTON.label;
+		out.getAll.label = TouchLegTrade_M.GETALL_BUTTON.label;
 		out.getAll.can = UiOffers("GETALL_BUTTON", "press");
-		out.getAll.reason = UiModel.GETALL_BUTTON.reason;
+		out.getAll.reason = TouchLegTrade_M.GETALL_BUTTON.reason;
 	}
-	if (CheckAttribute(&UiModel, "ANDROID_TAKE_ALL")) out.takeAll.can = UiOffers("ANDROID_TAKE_ALL", "press");
+	if (CheckAttribute(TouchLegTrade_M, "ANDROID_TAKE_ALL")) out.takeAll.can = UiOffers("ANDROID_TAKE_ALL", "press");
 }
 
-void TouchAdpTrade_State(string capability, aref out)
+void TouchAdpTrade_State(aref ui, aref out)
 {
-	object columns;
-	TouchLegTrade_Columns(capability, &columns);
+	TouchLegTrade_Use(ui);
+	aref columns = TouchLegTrade_C;
 	DeleteAttribute(out, "");
 	out.title = TouchLegTrade_Label("TITLE");
 	if (out.title == "") out.title = UiOneLine(TouchLegTrade_Label("STORECAPTION1"));
 	out.pieces = columns.pieces;
 	out.money = sti(columns.buy) >= 0;
 	out.weighs = columns.goods;
-	TouchLegTrade_Rows(&columns, out);
+	TouchLegTrade_Rows(columns, out);
 	int selected = sti(out.selected);
 	string edit = TouchLegTrade_Edit();
 	out.deal = selected >= 0 && edit != "" &&
-	           (CheckAttribute(&UiModel, "QTY_OK_BUTTON") || CheckAttribute(&UiModel, "QTY_CANCEL_BUTTON"));
+	           (CheckAttribute(TouchLegTrade_M, "QTY_OK_BUTTON") || CheckAttribute(TouchLegTrade_M, "QTY_CANCEL_BUTTON"));
 	if (sti(out.deal))
 	{
 		string slot = "r" + selected;
 		out.editable = UiOffers(edit, "edit");
-		out.ok = CheckAttribute(&UiModel, "QTY_OK_BUTTON");
+		out.ok = CheckAttribute(TouchLegTrade_M, "QTY_OK_BUTTON");
 		out.confirm = false;
 		out.confirmReason = "";
-		if (CheckAttribute(&UiModel, "QTY_OK_BUTTON"))
+		if (CheckAttribute(TouchLegTrade_M, "QTY_OK_BUTTON"))
 		{
 			out.confirm = UiOffers("QTY_OK_BUTTON", "press");
-			out.confirmReason = UiModel.QTY_OK_BUTTON.reason;
+			out.confirmReason = TouchLegTrade_M.QTY_OK_BUTTON.reason;
 		}
 		out.dealTitle = TouchLegTrade_Label("QTY_CAPTION");
 		out.dealText = TouchLegTrade_WithoutPackLine(TouchLegTrade_Label("QTY_GOODS_INFO"), out.rows.(slot).pack);
 	}
 	out.cancel = false;
-	if (CheckAttribute(&UiModel, "QTY_CANCEL_BUTTON")) out.cancel = UiOffers("QTY_CANCEL_BUTTON", "press");
-	TouchLegTrade_Owners(&columns, out);
+	if (CheckAttribute(TouchLegTrade_M, "QTY_CANCEL_BUTTON")) out.cancel = UiOffers("QTY_CANCEL_BUTTON", "press");
+	TouchLegTrade_Owners(columns, out);
 	TouchLegTrade_Tabs(out);
 	out.carry = TouchLegTrade_Label("CAPACITY");
 	out.place = TouchLegTrade_Label("STORE_CAPACITY");
@@ -393,11 +359,11 @@ void TouchLegTrade_Purse(aref out)
 	out.purse = "";
 	out.balance = -1;
 	out.doubloons = false;
-	if (!CheckAttribute(&UiModel, "OUR_GOLD")) return;
-	string gold = UiModel.OUR_GOLD.label;
+	if (!CheckAttribute(TouchLegTrade_M, "OUR_GOLD")) return;
+	string gold = TouchLegTrade_M.OUR_GOLD.label;
 	out.balance = UiAmount(gold, "OUR_GOLD", -1);
-	if (CheckAttribute(&UiModel, "OUR_GOLD.context.currency"))
-		out.doubloons = UiModel.OUR_GOLD.context.currency == "doubloons";
+	if (CheckAttribute(TouchLegTrade_M, "OUR_GOLD.context.currency"))
+		out.doubloons = TouchLegTrade_M.OUR_GOLD.context.currency == "doubloons";
 	int digit = TouchLib_FindDigit(gold, 0, true);
 	if (digit < 0) return;
 	int end = digit;
@@ -413,10 +379,10 @@ void TouchLegTrade_Purse(aref out)
 }
 
 // rule copy: store.c ChangeQTY_EDIT charges makeint(price * pieces / units + 0.5) for a part of a pack's price.
-int TouchAdpTrade_Total(string capability, int row, int amount)
+int TouchAdpTrade_Total(aref ui, int row, int amount)
 {
-	object columns;
-	TouchLegTrade_Columns(capability, &columns);
+	TouchLegTrade_Use(ui);
+	aref columns = TouchLegTrade_C;
 	aref at = TouchLegTrade_Row(row);
 	string cell = TouchLegTrade_Cell(at, sti(columns.sell));
 	if (amount > 0) cell = TouchLegTrade_Cell(at, sti(columns.buy));
@@ -428,16 +394,17 @@ int TouchAdpTrade_Total(string capability, int row, int amount)
 
 // rule copy: store.c ChangeQTY_EDIT lets a purchase through while the hold takes its weight (GetGoodWeightByType) and
 // the purse its total, and cuts it down past that; both grow with the amount, so the largest that passes is halved to.
-void TouchAdpTrade_Reach(string capability, int row, int stock, aref out)
+void TouchAdpTrade_Reach(aref ui, int row, int stock, aref out)
 {
+	TouchLegTrade_Use(ui);
 	object hold;
 	TouchLegTrade_Hold(&hold);
 	TouchLegTrade_Purse(&hold);
-	out.most = TouchLegTrade_Largest(capability, row, stock, &hold, true);
-	out.room = TouchLegTrade_Largest(capability, row, stock, &hold, false);
+	out.most = TouchLegTrade_Largest(ui, row, stock, &hold, true);
+	out.room = TouchLegTrade_Largest(ui, row, stock, &hold, false);
 }
 
-int TouchLegTrade_Largest(string capability, int row, int stock, aref hold, bool paid)
+int TouchLegTrade_Largest(aref ui, int row, int stock, aref hold, bool paid)
 {
 	int low = 0;
 	int high = stock;
@@ -445,23 +412,24 @@ int TouchLegTrade_Largest(string capability, int row, int stock, aref hold, bool
 	while (low < high)
 	{
 		int middle = low + (high - low + 1) / 2;
-		if (TouchLegTrade_Passes(capability, row, middle, hold, paid)) low = middle;
+		if (TouchLegTrade_Passes(ui, row, middle, hold, paid)) low = middle;
 		else high = middle - 1;
 	}
 	return low;
 }
 
-bool TouchLegTrade_Passes(string capability, int row, int amount, aref hold, bool paid)
+bool TouchLegTrade_Passes(aref ui, int row, int amount, aref hold, bool paid)
 {
 	float capacity = stf(hold.capacity);
-	if (capacity >= 0.0 && stf(hold.load) + TouchAdpTrade_Weight(capability, row, amount) > capacity) return false;
+	if (capacity >= 0.0 && stf(hold.load) + TouchAdpTrade_Weight(ui, row, amount) > capacity) return false;
 	int balance = sti(hold.balance);
 	if (!paid || balance < 0) return true;
-	return TouchAdpTrade_Total(capability, row, amount) <= balance;
+	return TouchAdpTrade_Total(ui, row, amount) <= balance;
 }
 
-float TouchAdpTrade_Weight(string capability, int row, int amount)
+float TouchAdpTrade_Weight(aref ui, int row, int amount)
 {
+	TouchLegTrade_Use(ui);
 	aref at = TouchLegTrade_Row(row);
 	return makefloat(GetGoodWeightByType(TouchLegTrade_Good(sti(at.index)), amount));
 }
@@ -469,18 +437,20 @@ float TouchAdpTrade_Weight(string capability, int row, int amount)
 aref TouchLegTrade_Row(int k)
 {
 	aref rows;
-	makearef(rows, UiModel.TABLE_LIST.rows);
+	makearef(rows, TouchLegTrade_M.TABLE_LIST.rows);
 	return GetAttributeN(rows, k);
 }
 
-void TouchAdpTrade_Open(int row)
+void TouchAdpTrade_Open(aref ui, int row)
 {
+	TouchLegTrade_Use(ui);
 	aref at = TouchLegTrade_Row(row);
 	UiSendRow("TABLE_LIST", sti(at.index), "activate", at.id, "");
 }
 
-void TouchAdpTrade_Select(int row)
+void TouchAdpTrade_Select(aref ui, int row)
 {
+	TouchLegTrade_Use(ui);
 	aref at = TouchLegTrade_Row(row);
 	UiSendRow("TABLE_LIST", sti(at.index), "select", at.id, "");
 }
@@ -489,7 +459,7 @@ void TouchAdpTrade_Select(int row)
 string TouchLegTrade_Selected()
 {
 	aref rows;
-	makearef(rows, UiModel.TABLE_LIST.rows);
+	makearef(rows, TouchLegTrade_M.TABLE_LIST.rows);
 	for (int k = 0; k < GetAttributesNum(rows); k++)
 	{
 		aref row = GetAttributeN(rows, k);
@@ -499,37 +469,39 @@ string TouchLegTrade_Selected()
 	return "";
 }
 
-void TouchAdpTrade_Close()
+void TouchAdpTrade_Close(aref ui)
 {
+	TouchLegTrade_Use(ui);
 	UiSendRow("QTY_CANCEL_BUTTON", -1, "press", "", TouchLegTrade_Selected());
 }
 
 // The game's edit box holds the amount to take, a negative one the amount to give; once it has turned to giving it
 // reads every later number so, and zero leaves it: zero goes first, in the same flush.
-void TouchAdpTrade_Move(int amount)
+void TouchAdpTrade_Move(aref ui, int amount)
 {
+	TouchLegTrade_Use(ui);
 	string row = TouchLegTrade_Selected();
 	UiSendAfter(TouchLegTrade_Edit(), -1, "edit", "" + amount, row, 0.0, "0");
 	UiSendAfter("QTY_OK_BUTTON", -1, "press", "", row, 0.0, "");
 }
 
-void TouchAdpTrade_Owner(string capability, int owner)
+void TouchAdpTrade_Owner(aref ui, int owner)
 {
-	object columns;
-	TouchLegTrade_Columns(capability, &columns);
-	string node = columns.owners;
+	TouchLegTrade_Use(ui);
+	string node = TouchLegTrade_C.owners;
 	aref rows;
-	makearef(rows, UiModel.(node).rows);
+	makearef(rows, TouchLegTrade_M.(node).rows);
 	aref at = GetAttributeN(rows, owner);
 	UiSendRow(node, sti(at.index), "select", at.id, "");
 }
 
-void TouchAdpTrade_Tab(int tab)
+void TouchAdpTrade_Tab(aref ui, int tab)
 {
+	TouchLegTrade_Use(ui);
 	int k = 0;
 	for (int position = 1; position <= 8; position++)
 	{
-		if (CheckAttribute(&UiModel, "TABBTN_" + position) && TouchLegTrade_Label("TABSTR_" + position) != "")
+		if (CheckAttribute(TouchLegTrade_M, "TABBTN_" + position) && TouchLegTrade_Label("TABSTR_" + position) != "")
 		{
 			if (k == tab)
 			{
@@ -542,12 +514,13 @@ void TouchAdpTrade_Tab(int tab)
 	UiError("trade: no tab " + tab);
 }
 
-void TouchAdpTrade_Press(int button)
+void TouchAdpTrade_Press(aref ui, int button)
 {
+	TouchLegTrade_Use(ui);
 	int k = 0;
 	for (int i, string node: TouchLegTrade_Buttons)
 	{
-		if (CheckAttribute(&UiModel, node))
+		if (CheckAttribute(TouchLegTrade_M, node))
 		{
 			if (k == button)
 			{
@@ -560,25 +533,29 @@ void TouchAdpTrade_Press(int button)
 	UiError("trade: no place button " + button);
 }
 
-void TouchAdpTrade_GetAll()
+void TouchAdpTrade_GetAll(aref ui)
 {
+	TouchLegTrade_Use(ui);
 	UiSend("GETALL_BUTTON", "press", "");
 }
 
-void TouchAdpTrade_TakeAll()
+void TouchAdpTrade_TakeAll(aref ui)
 {
+	TouchLegTrade_Use(ui);
 	UiSend("ANDROID_TAKE_ALL", "press", "");
 }
 
-int TouchAdpTrade_TakingAll()
+int TouchAdpTrade_TakingAll(aref ui)
 {
-	if (!CheckAttribute(&UiModel, "ANDROID_TAKE_ALL")) return false;
+	TouchLegTrade_Use(ui);
+	if (!CheckAttribute(TouchLegTrade_M, "ANDROID_TAKE_ALL")) return false;
 	return UiWaiting("ANDROID_TAKE_ALL", -1, "press");
 }
 
-void TouchAdpTrade_Exit()
+void TouchAdpTrade_Exit(aref ui)
 {
-	if (CheckAttribute(&UiModel, "EXIT_BTN"))
+	TouchLegTrade_Use(ui);
+	if (CheckAttribute(TouchLegTrade_M, "EXIT_BTN"))
 	{
 		UiBack("EXIT_BTN");
 		return;

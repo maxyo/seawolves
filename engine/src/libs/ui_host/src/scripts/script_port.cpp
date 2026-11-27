@@ -424,7 +424,7 @@ void FillOffers(ATTRIBUTES &at, const storm::ui::Widget &widget)
             offers.SetAttribute(verb, "1");
 }
 
-// A table row: UiModel.<node>.rows.r<index>.{index, id, label, value, enabled, reason, offers.<verb>,
+// A table row: <model>.<node>.rows.r<index>.{index, id, label, value, enabled, reason, offers.<verb>,
 // cells.c<column>.{text, color, images}, images, context.<key>}; a cell's color is the game's RGB as six hex digits.
 void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
 {
@@ -459,22 +459,16 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
         Child(row, "context").SetAttribute(key, value);
 }
 
-// The admitted widgets as UiModel.<node>.{type, label, value, min, max, reason, offers.<verb>, context.<key>,
+// The admitted widgets as <model>.<node>.{type, label, value, min, max, reason, offers.<verb>, context.<key>,
 // headers.c<column>, rows}: a node's first widget stands for it, its widgets with an index are its rows (FillRow).
-void FillModel(const std::vector<const storm::ui::Widget *> &widgets)
+void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &widgets)
 {
-    auto *model = static_cast<VDATA *>(core.GetScriptVariable("UiModel"));
-    ATTRIBUTES *root = model ? model->GetAClass() : nullptr;
-    if (!root)
-        throw std::runtime_error("the touch interface's core script declares no object UiModel");
-    while (root->GetAttributesNum() != 0)
-        root->DeleteAttributeClassX(root->GetAttributeClass(0u));
     for (const storm::ui::Widget *widget : widgets)
     {
-        ATTRIBUTES *node = root->GetAttributeClass(widget->node);
+        ATTRIBUTES *node = model.GetAttributeClass(widget->node);
         if (!node)
         {
-            node = &root->CreateAttribute(widget->node);
+            node = &model.CreateAttribute(widget->node);
             node->SetAttribute("type", widget->type);
             node->SetAttribute("label", widget->label);
             node->SetAttribute("value", widget->value);
@@ -494,6 +488,38 @@ void FillModel(const std::vector<const storm::ui::Widget *> &widgets)
             FillRow(Child(*node, "rows"), *widget);
     }
 }
+
+void FillTree(ATTRIBUTES &at, const storm::ui::ViewTree &tree)
+{
+    ATTRIBUTES &child = at.CreateAttribute(tree.name);
+    child.SetValue(tree.value);
+    for (const storm::ui::ViewTree &leaf : tree.children)
+        FillTree(child, leaf);
+}
+
+// The object of one capability's screen, UiScreens.<capability>.{capability, screen, look, data, model}, which its
+// events hand to the script. Only that capability's is refilled, so a tap acts on the model of the build that bound it.
+ATTRIBUTES &Ui(const storm::ui::ScriptScreen &screen)
+{
+    auto *screens = static_cast<VDATA *>(core.GetScriptVariable("UiScreens"));
+    ATTRIBUTES *root = screens ? screens->GetAClass() : nullptr;
+    if (!root)
+        throw std::runtime_error("the touch interface's core script declares no object UiScreens");
+    return Child(*root, screen.capability);
+}
+
+ATTRIBUTES &FillUi(const storm::ui::ScriptScreen &screen, const std::vector<const storm::ui::Widget *> &widgets)
+{
+    ATTRIBUTES &ui = Ui(screen);
+    while (ui.GetAttributesNum() != 0)
+        ui.DeleteAttributeClassX(ui.GetAttributeClass(0u));
+    ui.SetAttribute("capability", screen.capability);
+    ui.SetAttribute("screen", screen.script);
+    FillTree(ui, screen.look);
+    FillTree(ui, screen.data);
+    FillModel(ui.CreateAttribute("model"), widgets);
+    return ui;
+}
 } // namespace
 
 storm::script::Program &VmPort::Between(const storm::ui::ScriptScreen &screen, const std::string &what) const
@@ -511,9 +537,9 @@ void VmPort::Build(const storm::ui::ScriptScreen &screen, const std::vector<cons
                    storm::ui::ScriptCall &call)
 {
     Between(screen, "build");
-    FillModel(widgets);
+    ATTRIBUTES &ui = FillUi(screen, widgets);
     Scope scope(call);
-    core.Event("UiBuild", "s", screen.capability.c_str());
+    core.Event("UiBuild", "a", &ui);
     if (!scope.state.failure.empty())
         throw std::runtime_error("script screen " + screen.capability + ": " + scope.state.failure);
 }
@@ -522,8 +548,11 @@ void VmPort::Event(const storm::ui::ScriptScreen &screen, const std::string &id,
                    const std::string &value, storm::ui::ScriptCall &call)
 {
     Between(screen, "event " + id);
+    ATTRIBUTES &ui = Ui(screen);
+    if (!ui.GetAttributeClass("model"))
+        throw std::logic_error("script screen " + screen.capability + " event " + id + " before its first build");
     Scope scope(call);
-    core.Event("UiTap", "ssss", screen.capability.c_str(), id.c_str(), verb.c_str(), value.c_str());
+    core.Event("UiTap", "assss", &ui, id.c_str(), verb.c_str(), value.c_str());
     if (!scope.state.failure.empty())
         throw std::runtime_error("script screen " + screen.capability + ": " + scope.state.failure);
 }

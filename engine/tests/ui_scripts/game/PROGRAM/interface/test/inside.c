@@ -5,7 +5,7 @@ native int TestBuildInside();
 
 int ShowOutside()
 {
-	UiShow(&UiModel);
+	UiShow(&UiScreens);
 	return 1;
 }
 
@@ -20,7 +20,8 @@ object BadView;
 
 void BadBuild()
 {
-	if (GetEventData() != "bad") return;
+	aref ui = GetEventData();
+	if (ui.capability != "bad") return;
 	BadView.nope = 1;
 	UiShow(&BadView);
 }

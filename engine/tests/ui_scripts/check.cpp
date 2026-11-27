@@ -503,6 +503,31 @@ TEST_CASE("of the providers of a contract the first that attaches is chosen; its
     CHECK(log.Has("capabilities offered: test; missing: unbound"));
 }
 
+TEST_CASE("a binding the game cannot give is off alone; bindings share named node sets")
+{
+    Log log;
+    Vm vm(R"({"nodeSets": {"ok": [["OK_BTN", "button", true]]}, "segments": [
+                 {"file": "interface/touch/core/core.c", "core": true},
+                 {"file": "interface/test/provider_two.c", "provides": ["adapter:test"], "binds": [
+                     {"capability": "test", "interface": "tavernwait", "nodes": ["@ok", ["INFO_TEXT", "text"]],
+                      "data": {"column": 3}},
+                     {"capability": "gone", "interface": "missing", "nodes": ["@ok"]},
+                     {"capability": "bare", "interface": "tavernwait", "nodes": [["NO_NODE", "button", true]]}]},
+                 {"file": "interface/test/user.c", "uses": ["adapter:test"], "screens": [
+                     {"capability": "test", "component": "s-rest"}, {"capability": "gone", "component": "s-rest"},
+                     {"capability": "bare", "component": "s-rest"}]}]})");
+    vm.Start();
+    CHECK(vm.Loaded("interface/test/provider_two.c"));
+    REQUIRE(vm.screens.size() == 1);
+    CHECK(vm.screens[0].capability == "test");
+    CHECK(vm.screens[0].nodes.size() == 2);
+    REQUIRE(vm.screens[0].data.children.size() == 1);
+    CHECK(vm.screens[0].data.children[0].value == "3");
+    CHECK(log.Has("binding gone is off: missing is not an interface of the game"));
+    CHECK(log.Has("binding bare is off: RESOURCE\\INI\\INTERFACES\\TavernWait.ini has no node NO_NODE"));
+    CHECK(log.Has("capabilities offered: test; missing: gone, bare"));
+}
+
 TEST_CASE("the segment list is checked when it is read")
 {
     using storm::ui_scripts::ParseSegments;
@@ -523,6 +548,9 @@ TEST_CASE("the segment list is checked when it is read")
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c",
                       "component": "s-c", "interface": "i"}]}]})"),
                       Catch::Contains("interface and nodes come together"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "binds": [{"capability": "c", "interface": "i",
+                      "nodes": ["@none"]}]}]})"),
+                      Catch::Contains("no node set @none"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c"}]}]})"),
                       Catch::Contains("scripts.json segment a.c"));
     CHECK(ParseSegments(PackList()).size() == Json::parse(PackList()).at("segments").size());
@@ -538,7 +566,7 @@ TEST_CASE("the probe reads what the program offers")
     CHECK(surface.functions.at("gamefunction") == 2);
     CHECK(surface.functions.contains("uishow")); // a native the interface's core declares
     CHECK(surface.globals.contains("gamevalue"));
-    CHECK(surface.globals.contains("uimodel"));
+    CHECK(surface.globals.contains("uiscreens"));
     CHECK(surface.events.contains("gametick"));
     CHECK(surface.interfaces.at("tavernwait") == "RESOURCE\\INI\\INTERFACES\\TavernWait.ini");
     CHECK(surface.interfaces.contains("store"));
@@ -566,7 +594,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     for (const auto &variable : state.variables)
         names.push_back(variable.name);
     CHECK(std::ranges::find(names, "GameValue") != names.end());
-    CHECK(std::ranges::find(names, "UiModel") == names.end());
+    CHECK(std::ranges::find(names, "UiScreens") == names.end());
     CHECK(std::ranges::find(names, "TouchRest") == names.end());
 
     Vm loaded;
@@ -574,7 +602,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     CHECK(loaded.Integer("GameValue") == 7);
     CHECK(loaded.Loaded("interface/touch/screens/rest.c")); // attached again after OnLoad
     CHECK(loaded.screens.size() == PackScreens());
-    CHECK_FALSE(log.Has("'UiModel' is not declared"));
+    CHECK_FALSE(log.Has("'UiScreens' is not declared"));
     CHECK_FALSE(log.Has("'TouchRest' is not declared"));
 }
 
@@ -636,7 +664,7 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     CHECK(GameState(vm) == before);
 }
 
-TEST_CASE("a screen's script gets the admitted widgets in UiModel, a table's rows with their cells")
+TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
 {
     Vm vm;
     vm.Start();
@@ -662,9 +690,11 @@ TEST_CASE("a screen's script gets the admitted widgets in UiModel, a table's row
     other.enabled = false;
     other.cells.clear();
     calls.widgets = {gold, row, other};
-    // A capability no script draws: the model is filled all the same.
-    port.Build({"model", "store", "s-rest", {}}, calls.Single(), calls);
-    auto *model = static_cast<VDATA *>(core.GetScriptVariable("UiModel"))->GetAClass();
+    // A capability no script draws: the model is filled all the same, beside the other capabilities' objects.
+    port.Build({.capability = "model", .interface = "store", .component = "s-rest"}, calls.Single(), calls);
+    ATTRIBUTES *screens = static_cast<VDATA *>(core.GetScriptVariable("UiScreens"))->GetAClass();
+    ATTRIBUTES *model = screens->FindAClass(screens, "model.model");
+    REQUIRE(model != nullptr);
     const auto at = [&](const char *path) {
         const ATTRIBUTES *found = model->FindAClass(model, path);
         return found && found->HasValue() ? std::string(found->GetValue()) : std::string("<none>");
@@ -706,7 +736,7 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     CHECK(log.Has("UiShow: called outside a UI script screen's build or event"));
 
     // A native that fails inside a build fails the build.
-    const storm::ui::ScriptScreen bad{"bad", "bad", "s-rest", {}};
+    const storm::ui::ScriptScreen bad{.capability = "bad", .interface = "bad", .component = "s-rest"};
     CHECK_THROWS_WITH(port.Build(bad, {}, calls),
                       Catch::Contains("script screen bad: UiShow: view nope: is not a prop"));
 

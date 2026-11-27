@@ -21,22 +21,25 @@ struct ScriptNode
     bool required = false;
 };
 
-// A screen provided by a script segment: the capability it stands for (the id its events carry), the game interface
-// it draws, the pack screen it fills and the nodes it reads.
-struct ScriptScreen
-{
-    std::string capability;
-    std::string interface;
-    std::string component;
-    std::vector<ScriptNode> nodes;
-};
-
 // The view a script built, as the VM holds it: a tree of named text values. Children keep the script's order.
 struct ViewTree
 {
     std::string name;
     std::string value;
     std::vector<ViewTree> children;
+};
+
+// A screen provided by a script segment: the capability it stands for, the game interface it draws, the pack screen
+// it fills and the nodes it reads; `script` is the stem of the screen's file (its events name it), `look` the
+// presentation its entry gives and `data` what the adapter's binding gives (both handed to the script).
+struct ScriptScreen
+{
+    std::string capability;
+    std::string interface;
+    std::string component;
+    std::vector<ScriptNode> nodes;
+    std::string script;
+    ViewTree look, data;
 };
 
 // What a script screen's code may do while it runs (the natives of the VM side).

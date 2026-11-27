@@ -3,38 +3,42 @@
 // which it does not include: a segment cannot define what it declares extern.
 
 // rule copy: tavernwait.c reads its slider as a share of a day and truncates, hours = int(share * 24).
-int TouchLegRest_Range()
+int TouchLegRest_Range(aref slider)
 {
-	int range = sti(UiModel.HOURS_SLIDE.max) - sti(UiModel.HOURS_SLIDE.min);
+	int range = sti(slider.max) - sti(slider.min);
 	if (range < 1) return 1;
 	return range;
 }
 
-void TouchAdpRest_State(aref out)
+void TouchAdpRest_State(aref ui, aref out)
 {
-	out.hours = (sti(UiModel.HOURS_SLIDE.value) - sti(UiModel.HOURS_SLIDE.min)) * 24 / TouchLegRest_Range();
+	aref slider;
+	makearef(slider, ui.model.HOURS_SLIDE);
+	out.hours = (sti(slider.value) - sti(slider.min)) * 24 / TouchLegRest_Range(slider);
 	out.canGo = UiOffers("OK_BTN", "press");
-	out.reason = UiModel.OK_BTN.reason;
+	out.reason = ui.model.OK_BTN.reason;
 	out.note = "";
-	if (CheckAttribute(&UiModel, "INFO_TEXT")) out.note = UiModel.INFO_TEXT.label;
+	if (CheckAttribute(ui, "model.INFO_TEXT")) out.note = ui.model.INFO_TEXT.label;
 }
 
 // The smallest slider position that still gives the chosen hours.
-void TouchAdpRest_Choose(int hours)
+void TouchAdpRest_Choose(aref ui, int hours)
 {
-	int at = (hours * TouchLegRest_Range() + 23) / 24 + sti(UiModel.HOURS_SLIDE.min);
-	if (at > sti(UiModel.HOURS_SLIDE.max)) at = sti(UiModel.HOURS_SLIDE.max);
+	aref slider;
+	makearef(slider, ui.model.HOURS_SLIDE);
+	int at = (hours * TouchLegRest_Range(slider) + 23) / 24 + sti(slider.min);
+	if (at > sti(slider.max)) at = sti(slider.max);
 	UiSend("HOURS_SLIDE", "set", "" + at);
 }
 
-void TouchAdpRest_Go()
+void TouchAdpRest_Go(aref ui)
 {
 	UiSend("OK_BTN", "press", "");
 }
 
-void TouchAdpRest_Close()
+void TouchAdpRest_Close(aref ui)
 {
-	if (CheckAttribute(&UiModel, "CANCEL_BTN")) { UiBack("CANCEL_BTN"); return; }
-	if (CheckAttribute(&UiModel, "EXIT_BTN")) { UiBack("EXIT_BTN"); return; }
+	if (CheckAttribute(ui, "model.CANCEL_BTN")) { UiBack("CANCEL_BTN"); return; }
+	if (CheckAttribute(ui, "model.EXIT_BTN")) { UiBack("EXIT_BTN"); return; }
 	UiBack("");
 }

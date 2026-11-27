@@ -12,6 +12,7 @@
 // .game: the taps act on what that build showed.
 object TouchCommerce;
 object TouchCommerce_View;
+aref TouchCommerce_Ui; // the screen's object of the build or tap running now
 
 // The trade windows' own presentation: our title, single items (steps of 1 and 10), the hand at a row's end that
 // takes a whole stack, our short captions of the game's category tabs by position, our captions of the two amount
@@ -131,7 +132,7 @@ void TouchCommerce_OpenRow(aref game, int k)
 	TouchCommerce.holdAt = UiNow();
 	TouchCommerce.holdRevision = UiRevision();
 	TouchCommerce.holdFloor = UiRequestFloor();
-	TouchAdpTrade_Open(k);
+	TouchAdpTrade_Open(TouchCommerce_Ui, k);
 	UiRebuildAfter(TouchCommerce_Hold());
 }
 
@@ -150,14 +151,14 @@ void TouchCommerce_SwitchOwner(aref game, int owner)
 			UiError(TouchCommerce.capability + ": the open deal cannot be closed; the owner is not switched");
 			return;
 		}
-		TouchAdpTrade_Close();
+		TouchAdpTrade_Close(TouchCommerce_Ui);
 		aref row = TouchCommerce_Row(game, sti(game.selected));
 		TouchCommerce.follow = row.name;
 		TouchCommerce.following = true;
 	}
 	TouchCommerce.switching = true; // until the model shows the new side, the rows shown are the old side's
 	TouchCommerce.switchFloor = UiRequestFloor();
-	TouchAdpTrade_Owner(TouchCommerce.capability, owner);
+	TouchAdpTrade_Owner(TouchCommerce_Ui, owner);
 }
 
 // The game's steps after a tap, a confirmed deal or a switch of side: the rows' windows they open and whether this
@@ -345,10 +346,10 @@ void TouchCommerce_Deal(aref game, aref out)
 	if (sti(game.deal)) out.shown = UiDraftValue("deal", sti(out.low), sti(out.most));
 	out.amount = sti(out.shown) - sti(out.origin);
 	out.total = 0;
-	if (money) out.total = TouchAdpTrade_Total(TouchCommerce.capability, selected, sti(out.amount));
+	if (money) out.total = TouchAdpTrade_Total(TouchCommerce_Ui, selected, sti(out.amount));
 	out.weight = 0.0;
 	if (sti(game.weighs) && selected >= 0)
-		out.weight = TouchAdpTrade_Weight(TouchCommerce.capability, selected, abs(sti(out.amount)));
+		out.weight = TouchAdpTrade_Weight(TouchCommerce_Ui, selected, abs(sti(out.amount)));
 }
 
 // The most a money deal can reach (the stock, the purse and the hold), and why the amount cannot go further up
@@ -356,7 +357,7 @@ void TouchCommerce_Deal(aref game, aref out)
 void TouchCommerce_Reach(aref game, aref row, bool take, aref deal)
 {
 	object reach;
-	TouchAdpTrade_Reach(TouchCommerce.capability, sti(game.selected), sti(deal.other), &reach);
+	TouchAdpTrade_Reach(TouchCommerce_Ui, sti(game.selected), sti(deal.other), &reach);
 	int most = sti(deal.origin) + sti(reach.most);
 	if (most < sti(deal.high)) deal.most = most;
 	if (!sti(game.deal) || !take || sti(deal.most) >= sti(deal.high)) return;
@@ -373,7 +374,7 @@ void TouchCommerce_TakeQuick(aref game, aref deal)
 	if (sti(game.deal) && TouchCommerce_SelectedKey(game) == TouchCommerce.quick && sti(game.editable) &&
 	    sti(game.ok))
 	{
-		TouchAdpTrade_Move(sti(deal.theirs));
+		TouchAdpTrade_Move(TouchCommerce_Ui, sti(deal.theirs));
 		TouchCommerce.quick = "";
 		return;
 	}
@@ -402,7 +403,7 @@ bool TouchCommerce_AnyThere(aref game)
 void TouchCommerce_AnswerTakeAll(aref game)
 {
 	int sent = sti(TouchCommerce.takeAll);
-	if (sent == 0 || UiRevision() <= sent || TouchAdpTrade_TakingAll()) return;
+	if (sent == 0 || UiRevision() <= sent || TouchAdpTrade_TakingAll(TouchCommerce_Ui)) return;
 	TouchCommerce.takeAll = 0;
 	if (TouchCommerce_AnyThere(game)) UiToast(UiText("trade.too_heavy"));
 }
@@ -925,12 +926,14 @@ void TouchCommerce_Primary(aref game, aref deal, aref view)
 
 void TouchCommerce_Build()
 {
-	string capability = GetEventData();
-	if (!TouchCommerce_Is(capability)) return;
+	aref ui = GetEventData();
+	if (ui.screen != "commerce") return;
+	TouchCommerce_Ui = ui;
+	string capability = ui.capability;
 	if (UiFirst() || TouchCommerce.capability != capability) TouchCommerce_Reset(capability);
 	aref game;
 	makearef(game, TouchCommerce.game);
-	TouchAdpTrade_State(capability, game);
+	TouchAdpTrade_State(ui, game);
 	TouchCommerce.revision = UiRevision();
 	object layout;
 	TouchCommerce_Layout(capability, &layout);
@@ -985,8 +988,9 @@ void TouchCommerce_Build()
 
 void TouchCommerce_Tap()
 {
-	string capability = GetEventData();
-	if (!TouchCommerce_Is(capability)) return;
+	aref ui = GetEventData();
+	if (ui.screen != "commerce") return;
+	TouchCommerce_Ui = ui;
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
 	aref game;
 	aref row;
@@ -998,8 +1002,8 @@ void TouchCommerce_Tap()
 		TouchCommerce.quick = "";
 		TouchCommerce.reopen = "";
 		// The game's exit closes its amount window when one is open and leaves only when none is.
-		if (deal) TouchAdpTrade_Exit();
-		TouchAdpTrade_Exit();
+		if (deal) TouchAdpTrade_Exit(TouchCommerce_Ui);
+		TouchAdpTrade_Exit(TouchCommerce_Ui);
 		return;
 	}
 	if (id == "header")
@@ -1018,21 +1022,21 @@ void TouchCommerce_Tap()
 	{
 		if (CheckAttribute(game, "getAll"))
 		{
-			TouchAdpTrade_GetAll();
+			TouchAdpTrade_GetAll(TouchCommerce_Ui);
 			return;
 		}
 		TouchCommerce.takeAll = TouchCommerce.revision;
-		TouchAdpTrade_TakeAll();
+		TouchAdpTrade_TakeAll(TouchCommerce_Ui);
 		return;
 	}
 	if (TouchLib_StartsWith(id, "action-"))
 	{
-		TouchAdpTrade_Press(sti(TouchLib_Cut(id, 7, strlen(id))));
+		TouchAdpTrade_Press(TouchCommerce_Ui, sti(TouchLib_Cut(id, 7, strlen(id))));
 		return;
 	}
 	if (id == "deal-commit")
 	{
-		TouchAdpTrade_Move(sti(value));
+		TouchAdpTrade_Move(TouchCommerce_Ui, sti(value));
 		TouchCommerce.reopen = TouchCommerce_SelectedKey(game); // its deal again once the game has closed this one
 		TouchCommerce.reopenRevision = TouchCommerce.revision;
 		return;
@@ -1074,7 +1078,7 @@ void TouchCommerce_Tap()
 				aref tabs;
 				makearef(tabs, game.tabs);
 				aref tab = GetAttributeN(tabs, n);
-				if (sti(tab.can)) TouchAdpTrade_Tab(n);
+				if (sti(tab.can)) TouchAdpTrade_Tab(TouchCommerce_Ui, n);
 			}
 			return;
 		}
@@ -1090,14 +1094,14 @@ void TouchCommerce_Tap()
 	{
 		if (deal && n == selected)
 		{
-			if (sti(game.editable) && sti(game.ok)) TouchAdpTrade_Move(sti(row.other));
+			if (sti(game.editable) && sti(game.ok)) TouchAdpTrade_Move(TouchCommerce_Ui, sti(row.other));
 			return;
 		}
-		if (deal && sti(game.cancel)) TouchAdpTrade_Close();
+		if (deal && sti(game.cancel)) TouchAdpTrade_Close(TouchCommerce_Ui);
 		if (!sti(row.activate)) return;
 		TouchCommerce.quick = row.key;
 		TouchCommerce.quickAt = UiNow();
-		TouchAdpTrade_Open(n);
+		TouchAdpTrade_Open(TouchCommerce_Ui, n);
 		return;
 	}
 	if (verb != "row") return;
@@ -1108,14 +1112,14 @@ void TouchCommerce_Tap()
 		TouchCommerce.following = true;
 		return;
 	}
-	if (deal && sti(game.cancel)) TouchAdpTrade_Close();
+	if (deal && sti(game.cancel)) TouchAdpTrade_Close(TouchCommerce_Ui);
 	TouchCommerce.quick = "";
 	TouchCommerce.reopen = "";
 	if (deal && n == selected) return; // a tap on the open row closes it
 	if (sti(row.activate)) TouchCommerce_OpenRowAt(game, n, sti(TouchCommerce.revision));
 	else
 	{
-		if (sti(row.select)) TouchAdpTrade_Select(n);
+		if (sti(row.select)) TouchAdpTrade_Select(TouchCommerce_Ui, n);
 	}
 }
 

@@ -3,5 +3,5 @@ ref ReferToUi;
 
 void ReferUi()
 {
-	makeref(ReferToUi, UiModel);
+	makeref(ReferToUi, UiScreens);
 }

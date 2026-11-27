@@ -37,9 +37,10 @@ void TouchRest_View(aref game, int hours)
 
 void TouchRest_Build()
 {
-	if (GetEventData() != TOUCH_CAP_REST) return;
+	aref ui = GetEventData();
+	if (ui.screen != "rest") return;
 	object game;
-	TouchAdpRest_State(&game);
+	TouchAdpRest_State(ui, &game);
 	TouchRest_View(&game, sti(game.hours));
 	UiOn("hours", "select");
 	UiOn("go", "");
@@ -50,14 +51,15 @@ void TouchRest_Build()
 
 void TouchRest_Tap()
 {
-	if (GetEventData() != TOUCH_CAP_REST) return;
+	aref ui = GetEventData();
+	if (ui.screen != "rest") return;
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
-	if (id == "go") { TouchAdpRest_Go(); return; }
-	if (id == "rest-close") { TouchAdpRest_Close(); return; }
+	if (id == "go") { TouchAdpRest_Go(ui); return; }
+	if (id == "rest-close") { TouchAdpRest_Close(ui); return; }
 	// The tapped span is drawn selected from this frame; the game's answer confirms it.
 	object game;
-	TouchAdpRest_State(&game);
+	TouchAdpRest_State(ui, &game);
 	TouchRest_View(&game, sti(value));
 	UiPredict(&TouchRest);
-	TouchAdpRest_Choose(sti(value));
+	TouchAdpRest_Choose(ui, sti(value));
 }

@@ -593,8 +593,8 @@ def lint_script(file, parts, text, uses, natives, contracts):
                 problems.append(f"{file}: {name}/{arguments} is not declared so in contracts/{family}.c")
     for word in GAME_NAMES.findall(code + "\n" + "\n".join(strings)):
         problems.append(f"{file}: names a game ('{word}'); shared code and adapters are chosen by requirements")
-    if layer in SHARED_LAYERS - {"core"} and re.search(r"\bUiModel\b", code):
-        problems.append(f"{file}: reads UiModel; only lineages/ and games/ read the game's widgets")
+    if layer in SHARED_LAYERS - {"core"} and re.search(r"\bUiScreens\b|\.model\b", code):
+        problems.append(f"{file}: reads the model; only lineages/ and games/ read the game's widgets")
     if layer in SHARED_LAYERS:
         allowed = set(functions) | natives | SHARED_BUILTINS
         for family in uses:

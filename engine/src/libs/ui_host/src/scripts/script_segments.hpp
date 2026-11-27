@@ -45,8 +45,9 @@ struct Segment
     // Contracts ("adapter:<family>"): of the segments providing one, the first attached in list order is chosen and
     // the later ones are not attached; a segment using one is attached only once it is provided.
     std::vector<std::string> provides, uses;
-    // An adapter's side of a screen: the interface and the nodes of capability's screen, joined with the screen entry
-    // (no component) of a segment attached after it.
+    // An adapter's side of a screen: the interface, the nodes and the data of capability's screen, joined with the
+    // screen entry (no component) of a segment attached after it. A binding whose interface or required nodes the
+    // game lacks is off alone.
     std::vector<storm::ui::ScriptScreen> binds;
     // A screen with no interface takes it and its nodes from the attached binding of its capability.
     std::vector<storm::ui::ScriptScreen> screens;

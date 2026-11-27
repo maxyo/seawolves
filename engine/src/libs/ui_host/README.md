@@ -24,11 +24,14 @@ engine code that the host checks build on Linux (`tests/ui_scripts`):
   its own: one whose requirements (`fn:Name/n`, `var:`, `ev:`, `interface:`, `file:`, `node:interface#NODE`: a
   section of the interface's ini) the game does not meet is not compiled; one that fails is left out with its screens,
   an error line naming both; a `core` one that fails stops the start. Of the segments providing a contract the first
-  attached is chosen and the later ones are skipped; one using a contract needs it provided; a screen without an
-  interface takes it and its nodes from the binding of its capability by the attached adapter. Attached segments' globals never enter a save (core `COMPILER::SerializeState`).
-- `script_port.*`: script screens (UI library `storm_ui/script_screens.h`). The admitted widgets go to the script's
-  `UiModel`, the event `UiBuild(capability)` builds the view and `UiTap(capability, id, verb, value)` answers an event
-  the script bound; the natives (declared in the scripts' `core/core.c`: the view, its bindings, widget actions on
+  attached is chosen and the later ones are skipped; one using a contract needs it provided. A binding (an adapter's
+  interface, nodes — lists or named `nodeSets` — and `data`) whose interface or required nodes the game lacks is off
+  alone, its provider and other bindings kept; a screen without an interface takes the interface, nodes and data
+  of its capability's attached binding. Attached segments' globals never enter a save (core `COMPILER::SerializeState`).
+- `script_port.*`: script screens (UI library `storm_ui/script_screens.h`). Each capability has its object
+  `UiScreens.<capability>` (`capability`, `screen`: the screen file's stem, `look`: the screen entry's presentation,
+  `data`: the binding's, `model`: the admitted widgets of its last build); the event `UiBuild(ui)` builds the view and
+  `UiTap(ui, id, verb, value)` answers an event the script bound, each with that object; the natives (declared in the scripts' `core/core.c`: the view, its bindings, widget actions on
   nodes and rows, the build's timing and the game's answers, the reading of the game's figures, the engine's amount
   drafts) act on the screen while its script runs (`storm_ui::ScriptCall`) and fail outside it. These events are raised only between scripts: one asked
   for while a script runs is refused with an error, and a script screen's model published from inside a script waits

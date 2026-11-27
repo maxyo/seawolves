@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <charconv>
 #include <chrono>
+#include <filesystem>
 #include <stdexcept>
 
 namespace storm::ui_scripts
@@ -62,42 +63,78 @@ Requirement ParseRequirement(const std::string &text, const std::string &where)
     return requirement;
 }
 
-std::vector<storm::ui::ScriptNode> ParseNodes(const Json &nodes, const std::string &where)
+using NodeSets = std::unordered_map<std::string, std::vector<storm::ui::ScriptNode>>;
+
+// A node is [node, type] or [node, type, required]; "@name" stands for the list's node set of that name.
+std::vector<storm::ui::ScriptNode> ParseNodes(const Json &nodes, const NodeSets &sets, const std::string &where)
 {
     std::vector<storm::ui::ScriptNode> parsed;
     for (const Json &node : nodes)
     {
+        if (node.is_string() && node.get<std::string>().starts_with('@'))
+        {
+            const auto set = sets.find(node.get<std::string>().substr(1));
+            if (set == sets.end())
+                throw std::runtime_error(where + ": no node set " + node.get<std::string>());
+            parsed.insert(parsed.end(), set->second.begin(), set->second.end());
+            continue;
+        }
         if (!node.is_array() || node.size() < 2 || node.size() > 3)
             throw std::runtime_error(where + ": node " + node.dump() +
-                                     " is not [node, type] or [node, type, required]");
+                                     " is not [node, type], [node, type, required] or @set");
         parsed.push_back(
             {node[0].get<std::string>(), node[1].get<std::string>(), node.size() == 3 && node[2].get<bool>()});
     }
     return parsed;
 }
 
-// A screen entry: capability and component, with the interface and nodes when the segment is its own adapter.
-storm::ui::ScriptScreen ParseScreen(const Json &entry, const std::string &where)
+// An entry's "look" or "data" object as the script reads it: leaves as text, a bool as "1" / "0".
+storm::ui::ViewTree ParseTree(const std::string &name, const Json &value, const std::string &where)
+{
+    storm::ui::ViewTree tree{name, "", {}};
+    if (value.is_object())
+        for (const auto &[key, child] : value.items())
+            tree.children.push_back(ParseTree(key, child, where));
+    else if (value.is_string())
+        tree.value = value.get<std::string>();
+    else if (value.is_boolean())
+        tree.value = value.get<bool>() ? "1" : "0";
+    else if (value.is_number_integer())
+        tree.value = value.dump();
+    else
+        throw std::runtime_error(where + ": " + name + " is " + value.dump() +
+                                 ", not an object, text, bool or integer");
+    return tree;
+}
+
+// A screen entry: capability, component and look, with the interface and nodes when the segment is its own adapter.
+storm::ui::ScriptScreen ParseScreen(const Json &entry, const NodeSets &sets, const std::string &file,
+                                    const std::string &where)
 {
     storm::ui::ScriptScreen screen;
     screen.capability = entry.at("capability").get<std::string>();
     screen.component = entry.at("component").get<std::string>();
+    screen.script = std::filesystem::path(file).stem().string();
+    screen.look = ParseTree("look", entry.contains("look") ? entry.at("look") : Json::object(),
+                            where + " screen " + screen.capability);
     if (entry.contains("interface") != entry.contains("nodes"))
         throw std::runtime_error(where + " screen " + screen.capability + ": interface and nodes come together");
     if (entry.contains("interface"))
     {
         screen.interface = entry.at("interface").get<std::string>();
-        screen.nodes = ParseNodes(entry.at("nodes"), where + " screen " + screen.capability);
+        screen.nodes = ParseNodes(entry.at("nodes"), sets, where + " screen " + screen.capability);
     }
     return screen;
 }
 
-storm::ui::ScriptScreen ParseBinding(const Json &entry, const std::string &where)
+storm::ui::ScriptScreen ParseBinding(const Json &entry, const NodeSets &sets, const std::string &where)
 {
     storm::ui::ScriptScreen binding;
     binding.capability = entry.at("capability").get<std::string>();
     binding.interface = entry.at("interface").get<std::string>();
-    binding.nodes = ParseNodes(entry.at("nodes"), where + " binding " + binding.capability);
+    const std::string at = where + " binding " + binding.capability;
+    binding.nodes = ParseNodes(entry.at("nodes"), sets, at);
+    binding.data = ParseTree("data", entry.contains("data") ? entry.at("data") : Json::object(), at);
     return binding;
 }
 
@@ -115,6 +152,10 @@ std::vector<Segment> ParseSegments(std::string_view text)
 {
     std::vector<Segment> segments;
     const Json list = Json::parse(text);
+    NodeSets sets;
+    const Json named = list.value("nodeSets", Json::object());
+    for (const auto &[name, nodes] : named.items())
+        sets[name] = ParseNodes(nodes, {}, "scripts.json node set " + name);
     for (const Json &entry : list.at("segments"))
     {
         Segment segment;
@@ -128,9 +169,9 @@ std::vector<Segment> ParseSegments(std::string_view text)
             segment.provides = ParseContracts(entry, "provides", where);
             segment.uses = ParseContracts(entry, "uses", where);
             for (const Json &binding : entry.value("binds", Json::array()))
-                segment.binds.push_back(ParseBinding(binding, where));
+                segment.binds.push_back(ParseBinding(binding, sets, where));
             for (const Json &screen : entry.value("screens", Json::array()))
-                segment.screens.push_back(ParseScreen(screen, where));
+                segment.screens.push_back(ParseScreen(screen, sets, segment.file, where));
         }
         catch (const Json::exception &error)
         {
@@ -207,6 +248,24 @@ std::string Unmet(const GameSurface &surface, const Requirement &requirement)
     return "unknown requirement";
 }
 
+namespace
+{
+// Why the game cannot give a binding its interface and required nodes; empty when it can. A binding is off on its own:
+// its provider and the other bindings stay.
+std::string Unbound(const GameSurface &surface, const storm::ui::ScriptScreen &binding)
+{
+    if (std::string unmet = Unmet(surface, {Requirement::Kind::Interface, binding.interface}); !unmet.empty())
+        return unmet;
+    std::string reason;
+    for (const storm::ui::ScriptNode &node : binding.nodes)
+        if (node.required)
+            if (const std::string unmet = Unmet(surface, {Requirement::Kind::Node, binding.interface, node.node});
+                !unmet.empty())
+                reason += (reason.empty() ? "" : "; ") + unmet;
+    return reason;
+}
+} // namespace
+
 void Attacher::Attach(storm::script::Program &program)
 {
     if (!listed_)
@@ -265,7 +324,10 @@ void Attacher::Attach(storm::script::Program &program)
         for (const std::string &contract : segment.provides)
             providers.emplace(contract, segment.file);
         for (const auto &binding : segment.binds)
-            bindings.emplace(binding.capability, binding);
+            if (const std::string unmet = Unbound(surface, binding); unmet.empty())
+                bindings.emplace(binding.capability, binding);
+            else
+                spdlog::error("UI script {}: binding {} is off: {}", segment.file, binding.capability, unmet);
         for (storm::ui::ScriptScreen screen : segment.screens)
         {
             if (screen.interface.empty())
@@ -281,6 +343,7 @@ void Attacher::Attach(storm::script::Program &program)
                 }
                 screen.interface = bound->second.interface;
                 screen.nodes = bound->second.nodes;
+                screen.data = bound->second.data;
             }
             offered += (offered.empty() ? "" : ", ") + screen.capability;
             screens.push_back(std::move(screen));

@@ -57,6 +57,7 @@ native void UiDraftBind(string id, string element, int low, int high, string rea
 native void UiDraftButton(aref out, string id, int low, int high, string more, string less, string sub, int disabled,
                           string reason, string commit);
 
-// The admitted widgets of the screen being built, filled by the engine before each UiBuild (script_port.cpp
-// FillModel): UiModel.<node>.{type, label, value, min, max, reason, offers.<verb>, context, headers, rows.r<index>}.
-object UiModel;
+// The object of each capability's screen, filled by the engine before its UiBuild and handed to its events:
+// .{capability, screen (the screen file's stem), look (the screen entry's presentation), data (the binding's), model
+// (the admitted widgets: <node>.{type, label, value, min, max, reason, offers.<verb>, context, headers, rows.r<index>})}.
+object UiScreens;
