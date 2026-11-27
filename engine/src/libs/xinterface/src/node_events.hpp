@@ -31,6 +31,11 @@ class NodeEvents
         events_.clear();
     }
 
+    [[nodiscard]] bool Empty() const
+    {
+        return events_.empty();
+    }
+
     // how many were ever added: a change says one was queued
     [[nodiscard]] uint64_t Added() const
     {

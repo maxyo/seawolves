@@ -105,7 +105,7 @@ storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource(const std::vector<M
     const char *atScroll=AlchemyAttr(list,"pic"+std::to_string(images->MobileCurrent()+1)+".itemId");
     auto *tooltip=FindNode("tooltip_fader",nullptr);
     if(!m_bUse||!bActive)source.busy="inactive";
-    else if(m_pEvents)source.busy="events";
+    else if(!m_events.Empty())source.busy="events";
     else if(images->MobileMoving())source.busy="scrolling";
     else if(!seen||*seen!=images->MobileCurrent()||!atScroll||source.current!=atScroll)source.busy="recipe-pending";
     else if(!window||*window!=0)source.busy="amount-window";
