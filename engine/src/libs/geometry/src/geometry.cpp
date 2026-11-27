@@ -319,7 +319,12 @@ GEOS::ID GEOM_SERVICE_R::CreateTexture(const char *fname, const char *requester)
     if (RenderService)
     {
         RenderService->ProgressView();
-        const auto texture = RenderService->TextureCreate(tex.c_str());
+        auto texture = RenderService->TextureCreate(tex.c_str());
+        // A name with a folder of its own may be relative to the textures root rather than to the model's texture
+        // path (Caribbean Legend's "MainMenu\hut4.tga" under the path "MainMenu\"): taken when that file exists.
+        if (texture < 0 && tex != fname && std::strchr(fname, '\\') &&
+            (texture = RenderService->TextureCreate(fname)) >= 0)
+            spdlog::info("texture {} of {}: under the textures root, not the model's path", fname, requester);
         // Mandatory model material, unlike optional interface probes through generic TextureCreate.
         if (texture < 0) storm::render::FailSceneTexture(tex.c_str(), requester);
         return texture;
