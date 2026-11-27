@@ -61,6 +61,7 @@
     {"file": "interface/touch/contracts/ship_change.c"},
     {"file": "interface/touch/contracts/character.c"},
     {"file": "interface/touch/contracts/alchemy.c"},
+    {"file": "interface/touch/contracts/skill_post.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -394,11 +395,16 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/skill_post.c",
+      "requires": ["fn:GetSkillOfficerPost/1"],
+      "provides": ["adapter:skill_post"]
+    },
+    {
       "file": "interface/touch/lineages/legacy/character.c",
       "requires": [
         "fn:GetCharacter/1", "fn:GetFullName/1", "fn:GetMainCharacter/0", "fn:GetMainCharacterIndex/0",
         "fn:GetMoneyForOfficerFull/1", "fn:GetLoyalityName/1", "fn:GetCharacterLoyality/1", "fn:XI_ConvertString/1",
-        "fn:GetSkillValue/3", "fn:GetOfficerTypeByNum/1", "fn:GetPassengersQuantity/1", "fn:GetPassenger/2",
+        "fn:GetSkillValue/3", "fn:GetOfficerTypeByNum/1", "fn:GetSkillNameByIdx/1", "fn:GetPassengersQuantity/1", "fn:GetPassenger/2",
         "fn:DelBakSkillAttr/1", "fn:GetFreePoints_SelfRate/1", "fn:GetFreePoints_ShipRate/1",
         "fn:CheckCharacterPerk/2", "fn:GetOfficersPerkUsing/2", "fn:GetConvertStr/2", "fn:GetRPGText/1",
         "fn:GetCharacterSPECIALSimple/2", "fn:GetCharacterSkillSimple/2", "fn:GetSummonSkillFromNameSimple/2",
@@ -408,6 +414,7 @@
         "fn:LanguageCloseFile/1", "var:GameInterface", "var:Characters", "var:ChrPerksList", "var:Items"
       ],
       "provides": ["adapter:character"],
+      "optional": ["adapter:skill_post"],
       "binds": [
         {
           "capability": "character", "interface": "lscchar_all",

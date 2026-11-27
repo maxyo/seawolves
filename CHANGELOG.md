@@ -127,6 +127,8 @@
   изготовление — функции самой игры (исправление скрипта для «Каждому своё» 1.7.3): число партий по-прежнему
   выбирается ползунком, игра сама кладёт в котёл нужное и изготавливает. На кнопке «Изготовить» больше нет числа
   предметов. Без этого исправления (другая версия игры) окно алхимии остаётся окном самой игры.
+- На экране персонажа ключевой навык должности берётся из самой игры: у канонира — лучший из «Орудий» и «Меткости»,
+  которые игра берёт у него для героя.
 
 **English**
 
@@ -260,6 +262,8 @@
   the making itself are the game's own functions (a script fix for TEHO 1.7.3): the number of batches is still set
   with the slider, and the game lays what they take into its pot and makes them. The «Craft» button no longer shows a
   count of items. Without that fix (another game version) the alchemy window stays the game's own.
+- The character screen takes a post's key skill from the game: a cannoner shows the better of Cannons and Accuracy,
+  both of which the game takes from him for the hero.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

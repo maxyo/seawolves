@@ -134,17 +134,23 @@ void TouchLegCharacter_Face(ref chr, aref out)
 	out.image.image = chr.FaceId;
 }
 
-// The key skill of a post. Marked: a copy the game has only the other way round (skill -> post, inside
-// GetSummonSkillFromNameSimple); to be read from the game once a script fix exposes the post's skill.
-string TouchLegCharacter_PostSkill(ref chr, string post)
+// The key skill shown for a post: of the skills the game lends the main character from that post (GetSkillOfficerPost,
+// a script fix of TEHO 1.7.3), the one this person has best. A post that lends none (the fighters) shows the best
+// blade; so does every post in a game that cannot say.
+string TouchLegCharacter_PostSkill(aref ui, ref chr, string post)
 {
-	if (post == "navigator") return "Sailing";
-	if (post == "boatswain") return "Grappling";
-	if (post == "cannoner") return "Cannons";
-	if (post == "doctor") return "Defence";
-	if (post == "treasurer") return "Commerce";
-	if (post == "carpenter") return "Repair";
-	string best = "FencingL";
+	string best = "";
+	if (sti(ui.data.optional.skill_post))
+	{
+		for (int k = 1; GetSkillNameByIdx(k) != ""; k++)
+		{
+			string skill = GetSkillNameByIdx(k);
+			if (TouchAdpSkillPost_Of(skill) != post) continue;
+			if (best == "" || GetSkillValue(chr, "Skill", skill) > GetSkillValue(chr, "Skill", best)) best = skill;
+		}
+	}
+	if (best != "") return best;
+	best = "FencingL";
 	if (GetSkillValue(chr, "Skill", "FencingS") > GetSkillValue(chr, "Skill", best)) best = "FencingS";
 	if (GetSkillValue(chr, "Skill", "FencingH") > GetSkillValue(chr, "Skill", best)) best = "FencingH";
 	return best;
@@ -448,7 +454,7 @@ void TouchLegCharacter_Windows(aref ui, aref out)
 	{
 		int idx = sti(GameInterface.CHARACTERS_SCROLL.(pic).character);
 		ref chr = GetCharacter(idx);
-		string skill = TouchLegCharacter_PostSkill(chr, post);
+		string skill = TouchLegCharacter_PostSkill(ui, chr, post);
 		object remove = {slot = slot, label = GetFullName(chr), role = role, skill = XI_ConvertString(skill),
 		                 skillValue = GetSkillValue(chr, "Skill", skill), loyalty = TouchLegCharacter_Loyalty(chr),
 		                 salary = GetMoneyForOfficerFull(chr), can = UiOffers("REMOVE_ACCEPT_OFFICER", "press")};
@@ -468,7 +474,7 @@ void TouchLegCharacter_Windows(aref ui, aref out)
 			if (!CheckAttribute(&GameInterface, "PASSENGERSLIST." + pic + ".character"))
 				UiError("character: the post chooser has no person of its row " + row.index);
 			chr = GetCharacter(sti(GameInterface.PASSENGERSLIST.(pic).character));
-			skill = TouchLegCharacter_PostSkill(chr, post);
+			skill = TouchLegCharacter_PostSkill(ui, chr, post);
 			aref entry = TouchLib_Add(rows, "r");
 			entry.label = GetFullName(chr);
 			entry.rank = chr.rank;
@@ -747,9 +753,8 @@ void TouchAdpCharacter_Help(aref ui, string table, int k, aref out)
 		{
 			line = TouchLegCharacter_StepLine(steps, result - own);
 			line.kind = "officer";
-			int officer = TouchLegCharacter_Officer(id, result);
-			if (officer < 0) UiError("character: no officer on a post has " + id + " " + result);
-			line.label = GetFullName(GetCharacter(officer));
+			int officer = TouchLegCharacter_Officer(ui, id);
+			if (officer >= 0) line.label = GetFullName(GetCharacter(officer));
 		}
 		own = result;
 		result = ApplayNavyPenaltyToSkill(chr, id, own);
@@ -793,20 +798,16 @@ void TouchLegCharacter_Source(aref line, ref chr, string source, int idLngFile)
 	if (source == "health") line.a1 = GetHealthNum(chr);
 }
 
-// The officer whose skill GetSummonSkillFromNameSimple took for the hero's. Marked: guessed as the one on a post
-// with that value, as the game does not say whose it took.
-int TouchLegCharacter_Officer(string id, int value)
+// The officer whose skill GetSummonSkillFromNameSimple took: the holder of the post the game lends that skill from
+// (GetSkillOfficerPost); -1 in a game that cannot say, whose step then names no one.
+int TouchLegCharacter_Officer(aref ui, string id)
 {
+	if (!sti(ui.data.optional.skill_post)) return -1;
+	string post = TouchAdpSkillPost_Of(id);
 	ref mc = GetMainCharacter();
-	for (int i = 1; i <= 6; i++)
-	{
-		string post = GetOfficerTypeByNum(i);
-		if (!CheckAttribute(mc, "Fellows.Passengers." + post)) continue;
-		int idx = sti(mc.Fellows.Passengers.(post));
-		if (idx < 0) continue;
-		if (GetCharacterSkillSimple(GetCharacter(idx), id) == value) return idx;
-	}
-	return -1;
+	if (post == "" || !CheckAttribute(mc, "Fellows.Passengers." + post))
+		UiError("character: the game lends " + id + " from no post it has");
+	return sti(mc.Fellows.Passengers.(post));
 }
 
 void TouchAdpCharacter_Person(aref ui, int person)

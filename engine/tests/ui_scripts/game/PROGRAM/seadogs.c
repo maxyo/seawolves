@@ -665,6 +665,25 @@ int GetCharacterSkillSimple(ref chr, string id)
 	return TestSkillSteps(chr, id);
 }
 
+// The skills by the game's numbers, and the posts that lend some of them (a script fix's function).
+string TestSkillNames[9] = {"", "FencingL", "Commerce", "Accuracy", "Cannons", "Sailing", "Repair", "Grappling", "Defence"};
+string GetSkillNameByIdx(int idx)
+{
+	if (idx < 1 || idx > 8) return "";
+	return TestSkillNames[idx];
+}
+
+string GetSkillOfficerPost(string skill)
+{
+	if (skill == "Commerce") return "treasurer";
+	if (skill == "Accuracy" || skill == "Cannons") return "cannoner";
+	if (skill == "Sailing") return "navigator";
+	if (skill == "Repair") return "carpenter";
+	if (skill == "Grappling") return "boatswain";
+	if (skill == "Defence") return "doctor";
+	return "";
+}
+
 int GetSummonSkillFromNameSimple(ref chr, string id)
 {
 	int value = GetSkillValue(chr, "Skill", id);
