@@ -423,6 +423,8 @@ storm_host_check(ui_host_dialogue INCLUDES ${src}/libs/ui_host/src ${src}/libs/u
 storm_host_check(text_templates SOURCES check.cpp ${src}/libs/xinterface/src/string_service/text_templates.cpp
     INCLUDES ${util_include} ${src}/libs/core/include ${src}/libs/xinterface/src/string_service ${fmt_headers}
     DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
+storm_host_check(font_glyphs SOURCES check.cpp ${src}/libs/renderer/src/font_glyphs.cpp
+    INCLUDES ${src}/libs/renderer/src ${util_include} OPTIONS ${warnings} -Wno-type-limits ${asan} CATCH2)
 storm_host_check(rich_text SOURCES check.cpp ${src}/libs/xinterface/src/rich_text.cpp
     INCLUDES ${src}/libs/xinterface/src ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(user_string_files INCLUDES ${util_include} ${src}/libs/xinterface/src/string_service

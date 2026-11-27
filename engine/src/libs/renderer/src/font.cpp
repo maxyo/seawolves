@@ -1,4 +1,5 @@
 #include "font.h"
+#include "font_glyphs.hpp"
 #include "core.h"
 #include "storm/config.hpp"
 #include "utf8.h"
@@ -13,7 +14,7 @@ namespace
 
 constexpr size_t MAX_SYMBOLS = 512;
 constexpr size_t SYM_VERTEXS = 6;
-constexpr size_t USED_CODES = 0x2070; // end of https://unicode-table.com/en/blocks/general-punctuation/
+constexpr size_t USED_CODES = 0x2070; // the char_<glyph> keys: up to the end of the General Punctuation block
 
 constexpr auto FONT_CHAR_FVF = (D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1 | D3DFVF_TEXTUREFORMAT2);
 
@@ -77,11 +78,7 @@ bool FONT::Init(const char *font_name, const char *iniName)
     }
     initialized_ = true;
 
-    char key_name[MAX_PATH];
     char buffer[MAX_PATH];
-    int32_t codepoint;
-    int32_t ltmp;
-    char *pData;
 
     auto ini = fio->OpenIniFile(iniName);
     if (ini == nullptr)
@@ -123,45 +120,7 @@ bool FONT::Init(const char *font_name, const char *iniName)
     shadowOffsetY_ = ini->GetInt(font_name, "Shadow_offsety", 2);
     spacebarWidth_ = static_cast<int32_t>(ini->GetInt(font_name, "Spacebar", 8) * horizontalAspectRatio_);
 
-    ini->CaseSensitive(true);
-    for (codepoint = 30; codepoint < USED_CODES; codepoint++)
-    {
-        char utf8[5];
-        utf8::CodepointToUtf8(utf8, codepoint);
-        if (codepoint >= 'a' && codepoint <= 'z')
-        {
-            sprintf_s(key_name, "char_%s_", utf8);
-        }
-        else if (codepoint == '=')
-            sprintf_s(key_name, "char_equ");
-        else
-            sprintf_s(key_name, "char_%s", utf8);
-        if (!ini->ReadString(font_name, key_name, buffer, sizeof(buffer), ""))
-            continue;
-        pData = buffer;
-        if (!MakeLong(&pData, &ltmp))
-            throw std::runtime_error("invalid font record");
-        charDescriptors_[codepoint].Pos.x1 = 0;
-        charDescriptors_[codepoint].Tuv.x1 = static_cast<float>(ltmp + .5f) / static_cast<float>(textureSizeX_);
-        if (!MakeLong(&pData, &ltmp))
-            throw std::runtime_error("invalid font record");
-        charDescriptors_[codepoint].Pos.y1 = 0.f;
-        charDescriptors_[codepoint].Tuv.y1 = static_cast<float>(ltmp + .5f) / static_cast<float>(textureSizeY_);
-
-        if (!MakeLong(&pData, &ltmp))
-            throw std::runtime_error("invalid font record");
-        charDescriptors_[codepoint].Pos.x2 = static_cast<float>(static_cast<int32_t>(ltmp * horizontalAspectRatio_));
-        charDescriptors_[codepoint].Tuv.x2 =
-            charDescriptors_[codepoint].Tuv.x1 + static_cast<float>(ltmp - 1.f) / static_cast<float>(textureSizeX_);
-        if (!MakeLong(&pData, &ltmp))
-            throw std::runtime_error("invalid font record");
-        charDescriptors_[codepoint].Pos.y1 =
-            static_cast<float>(height_ - static_cast<int32_t>(ltmp * verticalAspectRatio_));
-        charDescriptors_[codepoint].Pos.y2 = static_cast<float>(height_); //((int32_t)(ltmp*m_fAspectRatioV));
-        charDescriptors_[codepoint].Tuv.y2 =
-            charDescriptors_[codepoint].Tuv.y1 + static_cast<float>(ltmp - 1.f) / static_cast<float>(textureSizeY_);
-    }
-    ini->CaseSensitive(false);
+    LoadGlyphs(*ini, font_name, iniName);
 
     FONT_CHAR_VERTEX *pVertex;
     device_.CreateVertexBuffer(sizeof(FONT_CHAR_VERTEX) * MAX_SYMBOLS * SYM_VERTEXS,
@@ -170,10 +129,8 @@ bool FONT::Init(const char *font_name, const char *iniName)
     if (vertexBuffer_ == nullptr)
         throw std::runtime_error("vbuffer error");
     vertexBuffer_->Lock(0, sizeof(FONT_CHAR_VERTEX) * MAX_SYMBOLS * SYM_VERTEXS, (void **)&pVertex, 0);
-    for (codepoint = 0; codepoint < MAX_SYMBOLS * SYM_VERTEXS; codepoint++)
-    {
-        pVertex[codepoint].pos.z = 0.5f;
-    }
+    for (size_t vertex = 0; vertex < MAX_SYMBOLS * SYM_VERTEXS; vertex++)
+        pVertex[vertex].pos.z = 0.5f;
     vertexBuffer_->Unlock();
 
     textureHandle_ = renderService_.TextureCreate(textureName_.c_str());
@@ -184,6 +141,73 @@ bool FONT::Init(const char *font_name, const char *iniName)
     }
 
     return true;
+}
+
+void FONT::SetGlyph(const storm::font::GlyphEntry &glyph)
+{
+    if (glyph.codepoint >= charDescriptors_.size())
+        charDescriptors_.resize(glyph.codepoint + 1);
+    auto &symbol = charDescriptors_[glyph.codepoint];
+    symbol.Pos.x1 = 0.f;
+    symbol.Pos.x2 = static_cast<float>(static_cast<int32_t>(glyph.width * horizontalAspectRatio_));
+    symbol.Pos.y1 = static_cast<float>(height_ - static_cast<int32_t>(glyph.height * verticalAspectRatio_));
+    symbol.Pos.y2 = static_cast<float>(height_);
+    symbol.Tuv.x1 = (glyph.x + .5f) / static_cast<float>(textureSizeX_);
+    symbol.Tuv.y1 = (glyph.y + .5f) / static_cast<float>(textureSizeY_);
+    symbol.Tuv.x2 = symbol.Tuv.x1 + (glyph.width - 1.f) / static_cast<float>(textureSizeX_);
+    symbol.Tuv.y2 = symbol.Tuv.y1 + (glyph.height - 1.f) / static_cast<float>(textureSizeY_);
+    symbol.KernLeft = static_cast<float>(static_cast<int32_t>(glyph.kern_left * horizontalAspectRatio_));
+    symbol.KernRight = static_cast<float>(static_cast<int32_t>(glyph.kern_right * horizontalAspectRatio_));
+}
+
+// The `char = ...` entries of the section `GroupTemplate` names (or of the font's own section) where a fonts.ini has
+// them; else one `char_<glyph>` key per glyph.
+void FONT::LoadGlyphs(INIFILE &ini, const char *font_name, const char *iniName)
+{
+    char buffer[MAX_PATH];
+    std::string table = font_name;
+    if (ini.ReadString(font_name, "GroupTemplate", buffer, sizeof(buffer) - 1, ""))
+        table = buffer;
+    const bool kerning = ini.TestKey(font_name, "Kerning", nullptr);
+    if (ini.ReadString(table.c_str(), "char", buffer, sizeof(buffer) - 1, ""))
+    {
+        do
+        {
+            try
+            {
+                SetGlyph(storm::font::ParseGlyphEntry(buffer, kerning));
+            }
+            catch (const std::invalid_argument &problem)
+            {
+                throw std::runtime_error(fmt::format("{} [{}] char = {}: {}", iniName, table, buffer, problem.what()));
+            }
+        } while (ini.ReadStringNext(table.c_str(), "char", buffer, sizeof(buffer) - 1));
+        return;
+    }
+
+    ini.CaseSensitive(true);
+    for (char32_t codepoint = 30; codepoint < USED_CODES; codepoint++)
+    {
+        char utf8[5];
+        utf8::CodepointToUtf8(utf8, codepoint);
+        char key_name[MAX_PATH];
+        if (codepoint >= 'a' && codepoint <= 'z')
+            sprintf_s(key_name, "char_%s_", utf8);
+        else if (codepoint == '=')
+            sprintf_s(key_name, "char_equ");
+        else
+            sprintf_s(key_name, "char_%s", utf8);
+        if (!ini.ReadString(font_name, key_name, buffer, sizeof(buffer), ""))
+            continue;
+        char *pData = buffer;
+        storm::font::GlyphEntry glyph;
+        glyph.codepoint = codepoint;
+        for (int32_t *number : {&glyph.x, &glyph.y, &glyph.width, &glyph.height})
+            if (!MakeLong(&pData, number))
+                throw std::runtime_error("invalid font record");
+        SetGlyph(glyph);
+    }
+    ini.CaseSensitive(false);
 }
 
 void OffsetFRect(FLOAT_RECT &fr, float dx, float dy)
@@ -207,7 +231,7 @@ int32_t FONT::GetStringWidth(const std::string_view &text, std::optional<float> 
     {
         uint32_t Codepoint = utf8::Utf8ToCodepoint(text.data() + i);
 
-        if (Codepoint >= USED_CODES) { // also catches -1 (invalid sequence) converted to unsigned
+        if (Codepoint >= charDescriptors_.size()) { // also catches -1 (invalid sequence) converted to unsigned
             core.Trace("Invalid codepoint: %d", Codepoint);
             if constexpr(storm::kIsDebug) {
                 throw std::runtime_error(fmt::format("Invalid codepoint: {}", Codepoint));
@@ -215,14 +239,8 @@ int32_t FONT::GetStringWidth(const std::string_view &text, std::optional<float> 
             continue;
         }
 
-        FLOAT_RECT pos = charDescriptors_[Codepoint].Pos;
-
-        if (scale != 1.f)
-        {
-            pos.x1 *= scale;
-            pos.x2 *= scale;
-        }
-        xoffset += pos.x2 - pos.x1 + symbolInterval_ * scale;
+        const FONT_SYMBOL &symbol = charDescriptors_[Codepoint];
+        xoffset += (symbol.Pos.x2 - symbol.Pos.x1 - symbol.KernLeft - symbol.KernRight + symbolInterval_) * scale;
         if (Codepoint == ' ')
         {
             xoffset += spacebarWidth_ * scale;
@@ -251,7 +269,7 @@ int32_t FONT::UpdateVertexBuffer(int32_t x, int32_t y, char *data_PTR, int utf8l
 
         int Codepoint = utf8::Utf8ToCodepoint(data_PTR + i);
 
-        if (Codepoint < 0 || Codepoint >= static_cast<int>(USED_CODES)) {
+        if (Codepoint < 0 || Codepoint >= static_cast<int>(charDescriptors_.size())) {
             core.Trace("Invalid codepoint: %d", Codepoint);
             if constexpr(storm::kIsDebug) {
                 throw std::runtime_error(fmt::format("Invalid codepoint: {}", Codepoint));
@@ -260,7 +278,8 @@ int32_t FONT::UpdateVertexBuffer(int32_t x, int32_t y, char *data_PTR, int utf8l
         }
 
         n = curLetter * 6;
-        FLOAT_RECT pos = charDescriptors_[Codepoint].Pos;
+        const FONT_SYMBOL &symbol = charDescriptors_[Codepoint];
+        FLOAT_RECT pos = symbol.Pos;
         if (scale != 1.f)
         {
             pos.x1 *= scale;
@@ -268,8 +287,9 @@ int32_t FONT::UpdateVertexBuffer(int32_t x, int32_t y, char *data_PTR, int utf8l
             pos.y1 *= scale;
             pos.y2 *= scale;
         }
-        OffsetFRect(pos, static_cast<float>(x) + xoffset, static_cast<float>(y));
-        xoffset += pos.x2 - pos.x1 + symbolInterval_ * scale;
+        // kerning: the glyph starts left of the pen and the pen moves on by its width less both kernings
+        OffsetFRect(pos, static_cast<float>(x) + xoffset - symbol.KernLeft * scale, static_cast<float>(y));
+        xoffset += (symbol.Pos.x2 - symbol.Pos.x1 - symbol.KernLeft - symbol.KernRight + symbolInterval_) * scale;
 
         if (Codepoint == ' ')
         {

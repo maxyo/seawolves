@@ -14,7 +14,15 @@ struct FONT_SYMBOL
 {
     FLOAT_RECT Pos;
     FLOAT_RECT Tuv;
+    float KernLeft = 0; // fonts with kerning: the glyph is drawn this far left of the pen
+    float KernRight = 0;
 };
+
+class INIFILE;
+namespace storm::font
+{
+struct GlyphEntry;
+}
 
 class FONT final
 {
@@ -44,6 +52,8 @@ class FONT final
     }
 
   private:
+    void LoadGlyphs(INIFILE &ini, const char *font_name, const char *iniName);
+    void SetGlyph(const storm::font::GlyphEntry &glyph);
     int32_t UpdateVertexBuffer(int32_t x, int32_t y, char *data_PTR, int utf8length, float scale, uint32_t color);
 
     std::vector<FONT_SYMBOL> charDescriptors_{};
