@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // What every adapter of this lineage reads the game's interfaces by: captions, the cells of a TABLE_LIST, the rows of
-// a choice, and the game's amount window filled and confirmed.
+// a choice, the game's amount window filled and confirmed, and the purse caption.
 
 aref TouchLegLib_Model(aref ui)
 {
@@ -120,12 +120,18 @@ int TouchLegLib_Cancel(aref model)
 	return open;
 }
 
-// The window takes `amount` (< 0 gives) and its OK, guarded by the row it was opened on. Its edit box reads every
-// number after a negative one as giving until a zero: the zero goes first, in the same flush.
-void TouchLegLib_Confirm(aref model, int amount, string row)
+// The window takes `amount` (< 0 gives), guarded by the row it was opened on. Its edit box reads every number after a
+// negative one as giving until a zero: the zero goes first, in the same flush.
+void TouchLegLib_Offer(aref model, int amount, string row)
 {
 	object value = {node = TouchLegLib_Edit(model), verb = "edit", value = "" + amount, guard = row, lead = "0"};
 	UiSendTo(&value);
+}
+
+// The window takes `amount` and its OK.
+void TouchLegLib_Confirm(aref model, int amount, string row)
+{
+	TouchLegLib_Offer(model, amount, row);
 	object press = {node = "QTY_OK_BUTTON", verb = "press", value = "", guard = row};
 	UiSendTo(&press);
 }
@@ -152,4 +158,22 @@ void TouchLegLib_Tabs(aref model, aref words, aref out)
 		}
 	}
 	if (GetAttributesNum(tabs) == 0) DeleteAttribute(out, "tabs");
+}
+
+// Our money from the game's "Наши деньги 1 500 песо": out.value (its figure as written), out.currency (the string key
+// of what the merchant takes, "" money); false without OUR_GOLD.
+bool TouchLegLib_Purse(aref model, aref out)
+{
+	if (!CheckAttribute(model, "OUR_GOLD")) return false;
+	string gold = model.OUR_GOLD.label;
+	UiAmount(gold, "OUR_GOLD");
+	out.currency = "";
+	if (CheckAttribute(model, "OUR_GOLD.context.currency"))
+		if (model.OUR_GOLD.context.currency == "doubloons") out.currency = "trade.doubloons";
+	int digit = TouchLib_FindDigit(gold, 0, true);
+	int end = digit;
+	while (end < strlen(gold) && findSubStr("0123456789 ", strcut(gold, end, end), 0) >= 0) end++;
+	while (end > digit && strcut(gold, end - 1, end - 1) == " ") end--;
+	out.value = TouchLib_Cut(gold, digit, end);
+	return true;
 }

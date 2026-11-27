@@ -34,7 +34,7 @@ string TouchLegTrade_Key(aref ui, int k)
 	return row.id;
 }
 
-// rule copy: store.c FillTable tells the trade type only by the colour of the goods name.
+// The game tells a row's trade type only by the colour of its goods name (store.c AddToTable).
 void TouchLegTrade_Type(aref row, int column, aref out)
 {
 	string cell = "c" + column;
@@ -175,37 +175,39 @@ void TouchLegTrade_Places(aref model, aref out)
 	CopyAttributes(at, &take);
 }
 
-// What we carry of what we can, from the game's "Трюм:\n189 / 199": out.load, out.capacity (-1: not told).
-void TouchLegTrade_Hold(aref model, aref out)
+// The header's figures as the game writes them: what we carry ("Трюм:\n189 / 199", during a deal the game's figure
+// after it), the place's load, else the storage's named by the place ("Склад"), and our money. figures.f<k>.{kind
+// ("carry", "place", "purse"), label, value, currency (purse: the string key of what is paid, "" money)}.
+void TouchLegTrade_Figures(aref model, aref out)
 {
-	out.load = 0.0;
-	out.capacity = -1.0;
+	aref figures;
+	makearef(figures, out.figures);
 	object figure;
-	if (!TouchLib_Figure(TouchLegLib_Label(model, "CAPACITY"), &figure)) return;
-	string value = figure.value;
-	int slash = findSubStr(value, "/", 0);
-	if (slash < 0) return;
-	out.load = UiNumber(TouchLib_Cut(value, 0, slash), "CAPACITY");
-	out.capacity = UiNumber(TouchLib_Cut(value, slash + 1, strlen(value)), "CAPACITY");
+	if (TouchLib_Figure(TouchLegLib_Label(model, "CAPACITY"), &figure))
+		TouchLegTrade_Figure(figures, "carry", "", figure.value);
+	string place = UiOneLine(TouchLegLib_Label(model, "STORE_CAPACITY"));
+	if (TouchLib_Figure(place, &figure)) TouchLegTrade_Figure(figures, "place", figure.label, figure.value);
+	else
+	{
+		if (TouchLib_Figure(TouchLegLib_Label(model, "STORAGE_INFO"), &figure))
+		{
+			if (place == "") place = figure.label;
+			TouchLegTrade_Figure(figures, "place", place, figure.value);
+		}
+	}
+	object purse;
+	if (!TouchLegLib_Purse(model, &purse)) return;
+	aref at = TouchLegTrade_Figure(figures, "purse", "", purse.value);
+	at.currency = purse.currency;
 }
 
-// Our money from the game's "Наши деньги 1 500 песо": out.purse (its figure as written, "" without), out.balance (-1:
-// not told) and out.currency (the string key of what the merchant takes, "" money).
-void TouchLegTrade_Purse(aref model, aref out)
+aref TouchLegTrade_Figure(aref figures, string kind, string label, string value)
 {
-	out.purse = "";
-	out.balance = -1;
-	out.currency = "";
-	if (!CheckAttribute(model, "OUR_GOLD")) return;
-	string gold = model.OUR_GOLD.label;
-	out.balance = UiAmount(gold, "OUR_GOLD");
-	if (CheckAttribute(model, "OUR_GOLD.context.currency"))
-		if (model.OUR_GOLD.context.currency == "doubloons") out.currency = "trade.doubloons";
-	int digit = TouchLib_FindDigit(gold, 0, true);
-	int end = digit;
-	while (end < strlen(gold) && findSubStr("0123456789 ", strcut(gold, end, end), 0) >= 0) end++;
-	while (end > digit && strcut(gold, end - 1, end - 1) == " ") end--;
-	out.purse = TouchLib_Cut(gold, digit, end);
+	aref at = TouchLib_Add(figures, "f");
+	at.kind = kind;
+	at.label = label;
+	at.value = value;
+	return at;
 }
 
 void TouchLegTrade_Deal(aref model, int open, aref out)
@@ -222,6 +224,28 @@ void TouchLegTrade_Deal(aref model, int open, aref out)
 	aref at;
 	makearef(at, out.deal);
 	CopyAttributes(at, &deal);
+	TouchLegTrade_Answer(model, row, at);
+}
+
+// What the game's window holds now, as its ChangeQTY_EDIT has clamped and counted it: our side after the deal
+// (QTY_INFO_SHIP_QTY), and in a store its result "Деньги 25, вес 5 ц" (QTY_Result, empty while nothing is set).
+void TouchLegTrade_Answer(aref model, aref row, aref deal)
+{
+	if (!CheckAttribute(model, "QTY_INFO_SHIP_QTY")) UiError("trade: the amount window has no QTY_INFO_SHIP_QTY");
+	deal.amount = UiAmount(model.QTY_INFO_SHIP_QTY.label, "QTY_INFO_SHIP_QTY") - sti(row.own);
+	deal.total = 0;
+	deal.weight = "";
+	deal.note = "";
+	string result = TouchLegLib_Label(model, "QTY_Result");
+	if (!UiHasAmount(result)) return;
+	deal.total = UiAmount(result, "QTY_Result");
+	int comma = findSubStr(result, ",", 0);
+	int digit = -1;
+	if (comma >= 0) digit = TouchLib_FindDigit(result, comma, true);
+	if (digit < 0) UiError("trade: no weight in the game's deal result '" + result + "'");
+	int end = digit;
+	while (end < strlen(result) && findSubStr("0123456789.", strcut(result, end, end), 0) >= 0) end++;
+	deal.weight = TouchLib_Cut(result, digit, end);
 }
 
 void TouchAdpTrade_State(aref ui, aref out)
@@ -245,12 +269,9 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.switch = open < 0;
 	if (open >= 0) out.switch = UiOffers("QTY_CANCEL_BUTTON", "press");
 	TouchLegLib_Tabs(model, TouchLegTrade_Words(ui), out);
-	out.carry = TouchLegLib_Label(model, "CAPACITY");
-	out.place = TouchLegLib_Label(model, "STORE_CAPACITY");
 	out.storage = TouchLegLib_Label(model, "STORAGE_INFO");
 	out.info = TouchLegLib_Label(model, "INFO_TEXT");
-	TouchLegTrade_Hold(model, out);
-	TouchLegTrade_Purse(model, out);
+	TouchLegTrade_Figures(model, out);
 	TouchLegTrade_Places(model, out);
 	if (TouchLegTrade_Follow(ui, out)) UiAwait();
 }
@@ -346,6 +367,16 @@ void TouchAdpTrade_Commit(aref ui, int amount, bool stay)
 	if (stay) TouchLegTrade_Step("again", key, "", -1);
 }
 
+// The game's window takes the amount and answers it clamped (State's deal.amount).
+void TouchAdpTrade_Offer(aref ui, int amount)
+{
+	aref model = TouchLegLib_Model(ui);
+	int open = TouchLegLib_Window(model);
+	if (open < 0) UiError("trade: an amount is offered with no amount window open");
+	aref row = TouchLegTrade_Row(ui, open);
+	TouchLegLib_Offer(model, amount, row.id);
+}
+
 void TouchAdpTrade_Take(aref ui, int row)
 {
 	aref model = TouchLegLib_Model(ui);
@@ -423,80 +454,4 @@ void TouchAdpTrade_Leave(aref ui)
 	aref model = TouchLegLib_Model(ui);
 	if (TouchLegLib_Window(model) >= 0) UiBack(exit);
 	UiBack(exit);
-}
-
-void TouchAdpTrade_Terms(aref ui, int row, int amount, aref out)
-{
-	out.total = 0;
-	if (sti(ui.data.buy) >= 0) out.total = TouchLegTrade_Total(ui, row, amount);
-	out.weight = 0.0;
-	if (sti(ui.data.goods)) out.weight = TouchLegTrade_Weight(ui, row, abs(amount));
-	out.note = "";
-}
-
-// rule copy: store.c ChangeQTY_EDIT charges makeint(price * pieces / units + 0.5) for a part of a pack's price.
-int TouchLegTrade_Total(aref ui, int row, int amount)
-{
-	aref at = TouchLegTrade_Row(ui, row);
-	int column = sti(ui.data.sell);
-	if (amount > 0) column = sti(ui.data.buy);
-	int units = 1;
-	if (sti(ui.data.pack) >= 0) units = UiAmount(TouchLegLib_Cell(at, sti(ui.data.pack)), "the pack column");
-	if (units < 1) UiError("trade: a pack of " + units + " pieces");
-	return makeint(makefloat(UiAmount(TouchLegLib_Cell(at, column), "the price column")) * abs(amount) / units + 0.5);
-}
-
-float TouchLegTrade_Weight(aref ui, int row, int amount)
-{
-	return makefloat(GetGoodWeightByType(TouchLegTrade_Good(TouchLegTrade_Row(ui, row)), amount));
-}
-
-// rule copy: store.c ChangeQTY_EDIT lets a purchase through while the hold takes its weight (GetGoodWeightByType) and
-// the purse its total, and cuts it down past that; both grow with the amount, so the largest that passes is halved to.
-void TouchAdpTrade_Reach(aref ui, int row, aref out)
-{
-	aref model = TouchLegLib_Model(ui);
-	aref at = TouchLegTrade_Row(ui, row);
-	int other = TouchLegLib_Amount(at, sti(ui.data.other), "the other amount column");
-	out.give = TouchLegLib_Amount(at, sti(ui.data.own), "the own amount column");
-	out.giveWhy = "";
-	out.take = other;
-	out.takeWhy = "";
-	if (sti(ui.data.buy) < 0) return;
-	if (!UiHasAmount(TouchLegLib_Cell(at, sti(ui.data.sell)))) out.give = 0;
-	if (!UiHasAmount(TouchLegLib_Cell(at, sti(ui.data.buy))))
-	{
-		out.take = 0;
-		return;
-	}
-	object hold;
-	TouchLegTrade_Hold(model, &hold);
-	TouchLegTrade_Purse(model, &hold);
-	int most = TouchLegTrade_Largest(ui, row, other, &hold, true);
-	if (most >= other) return;
-	out.take = most;
-	out.takeWhy = "trade.no_room";
-	if (sti(ui.data.pieces)) out.takeWhy = "trade.no_carry";
-	if (TouchLegTrade_Largest(ui, row, other, &hold, false) > most) out.takeWhy = "trade.no_money";
-}
-
-int TouchLegTrade_Largest(aref ui, int row, int stock, aref hold, bool paid)
-{
-	int low = 0;
-	int high = stock;
-	while (low < high)
-	{
-		int middle = low + (high - low + 1) / 2;
-		if (TouchLegTrade_Passes(ui, row, middle, hold, paid)) low = middle;
-		else high = middle - 1;
-	}
-	return low;
-}
-
-bool TouchLegTrade_Passes(aref ui, int row, int amount, aref hold, bool paid)
-{
-	float capacity = stf(hold.capacity);
-	if (capacity >= 0.0 && stf(hold.load) + TouchLegTrade_Weight(ui, row, amount) > capacity) return false;
-	if (!paid || sti(hold.balance) < 0) return true;
-	return TouchLegTrade_Total(ui, row, amount) <= sti(hold.balance);
 }

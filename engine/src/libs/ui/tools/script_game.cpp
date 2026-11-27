@@ -23,38 +23,6 @@ std::string ReadText(const fs::path &path)
         throw std::runtime_error("cannot read " + path.string());
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
-
-Json Attributes(const ATTRIBUTES &at)
-{
-    if (at.GetAttributesNum() == 0)
-        return at.HasValue() ? at.GetValue() : std::string();
-    Json out = Json::object();
-    for (uint32_t i = 0; i < at.GetAttributesNum(); ++i)
-        out[at.GetAttributeClass(i)->GetThisName()] = Attributes(*at.GetAttributeClass(i));
-    return out;
-}
-
-void SetAttributes(ATTRIBUTES &at, const Json &value)
-{
-    while (at.GetAttributesNum() != 0)
-        at.DeleteAttributeClassX(at.GetAttributeClass(0u));
-    if (!value.is_object())
-    {
-        at.SetValue(value.is_string() ? value.get<std::string>() : value.dump());
-        return;
-    }
-    for (const auto &[name, child] : value.items())
-        SetAttributes(at.CreateAttribute(name), child);
-}
-
-ATTRIBUTES &GlobalObject(const std::string &name)
-{
-    auto *data = static_cast<VDATA *>(core.GetScriptVariable(name.c_str()));
-    ATTRIBUTES *at = data ? data->GetAClass() : nullptr;
-    if (!at)
-        throw std::runtime_error("the fixture game has no global object " + name);
-    return *at;
-}
 } // namespace
 
 struct ScriptGame::Program
@@ -108,19 +76,6 @@ const std::vector<ScriptScreen> &ScriptGame::Screens() const
 ScriptPort &ScriptGame::Port()
 {
     return program_->port;
-}
-
-void ScriptGame::Play(const Json &game)
-{
-    for (const auto &[name, state] : main_state_)
-        if (!game.contains(name))
-            SetAttributes(GlobalObject(name), state);
-    for (const auto &[name, state] : game.items())
-    {
-        ATTRIBUTES &at = GlobalObject(name);
-        main_state_.try_emplace(name, Attributes(at));
-        SetAttributes(at, state);
-    }
 }
 
 screens::Router::ScriptScreens ScriptGame::Entries(const fs::path &pack)

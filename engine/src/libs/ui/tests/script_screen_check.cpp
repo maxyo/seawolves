@@ -83,6 +83,8 @@ struct DemoPort final : ScriptPort
         }
         else if (id == "dlg-close")
             call.Back("CANCEL");
+        else if (id == "deal-offer")
+            call.Send("SLIDER", -1, "set", value, "", "");
     }
 };
 
@@ -259,36 +261,38 @@ void Deals()
                          .element = "goods",
                          .origin = 5,
                          .other = 10,
-                         .low = 2,
-                         .high = 12,
-                         .more_reason = "full",
-                         .less_reason = "poor",
+                         .low = 0,
+                         .high = 15,
+                         .answer = 5,
+                         .cut_reason = "limit",
                          .more = "trade.buy",
                          .less = "trade.sell",
                          .reason = "",
-                         .commit = "deal-commit"};
+                         .commit = "deal-commit",
+                         .offer = "deal-offer"};
     FakeSurface surface;
     Router router(surface);
     router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
-    router.SetInterface(Model("salary"));
+    InterfaceModel model = Model("salary");
+    router.SetInterface(model);
     Expect(port.dealt.value == 5 && port.dealt.change == 0 && port.dealt.button.children.empty(),
-           "a deal opens at its origin, with no button");
-    router.OnEvent({"goods", "change", "20"});
-    Expect(port.dealt.value == 12 && surface.toasts.size() == 1 && surface.toasts[0] == "full",
-           "past the most it can take: the end, and why");
-    surface.now += 2.0;
+           "a deal opens at what the game's window holds, with no button");
+    router.OnEvent({"goods", "change", "7"});
+    Expect(port.events.back() == "demo deal-offer  2" && port.dealt.value == 7 && surface.commands.size() == 1,
+           "a move offers its change to the game, and shows what was asked while the game answers");
+    port.deal->answer = 7;
+    Answered(router, surface, model);
+    Expect(port.dealt.value == 7 && surface.toasts.empty(), "the game took all that was asked: nothing to say");
     router.OnEvent({"goods", "change", "0"});
-    Expect(port.dealt.value == 2 && port.dealt.change == -3 && surface.toasts.size() == 2 &&
-               surface.toasts[1] == "poor",
-           "past the most it can give: the end, and why");
-    router.OnEvent({"goods", "commit", "8"});
+    port.deal->answer = 3; // the game lets two be sold, not five
+    Answered(router, surface, model);
     const auto label =
         std::ranges::find_if(port.dealt.button.children, [](const ViewTree &f) { return f.name == "label"; });
-    Expect(port.dealt.change == 3 && label != port.dealt.button.children.end() && label->value == "<trade.buy> 3" &&
-               surface.commands.empty(),
-           "the draft names the deal, and nothing goes to the game");
+    Expect(port.dealt.value == 3 && port.dealt.change == -2 && surface.toasts == std::vector<std::string>{"limit"} &&
+               label != port.dealt.button.children.end() && label->value == "<trade.sell> 2",
+           "a sale past the game's limit shows the amount the game clamped it to, and says so");
     router.OnEvent({"primary", "click", ""});
-    ExpectEqual(port.events.back(), "demo deal-commit  3", "its button raises the commit with the change");
+    ExpectEqual(port.events.back(), "demo deal-commit  -2", "its button raises the commit with the game's change");
 }
 
 void Failures()

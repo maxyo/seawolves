@@ -8,7 +8,6 @@
 #include "storm_ui/script_screens.h"
 
 #include <filesystem>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -24,10 +23,6 @@ class ScriptGame
 
     const std::vector<ScriptScreen> &Screens() const;
     ScriptPort &Port();
-    // The fixture game's state for one case: each member of `game` names a global object of the fixture and gives
-    // its attributes (a JSON object tree, leaves as text). Objects an earlier call set and `game` does not name get
-    // back what the fixture's Main gave them.
-    void Play(const Json &game);
     // The script screens for a router without a host, with the components of the pack at `pack`.
     screens::Router::ScriptScreens Entries(const std::filesystem::path &pack);
 
@@ -36,6 +31,5 @@ class ScriptGame
     struct Program;
     std::unique_ptr<Program> program_;
     std::vector<std::unique_ptr<ComponentSpec>> specs_; // of Entries, alive with the routers' screens
-    std::map<std::string, Json> main_state_;            // the objects Play set, as Main left them
 };
 } // namespace storm::ui

@@ -62,7 +62,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         } done{building_};
         port_.Build(screen_, known, *this);
         first_ = false;
-        std::erase_if(drafts_, [this](const auto &draft) { return !dealt_.contains(draft.first); });
+        std::erase_if(deals_, [this](const auto &deal) { return !dealt_.contains(deal.first); });
         if (!view_)
             throw std::runtime_error("script screen " + screen_.capability + " showed no view");
         // Before the game answers the view is the old model's with the tap's own marks; an answer the game completes
@@ -254,9 +254,30 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         for (const char *verb : {"change", "commit"})
             bound_.insert(spec.element + '\x1f' + verb);
         bound_.insert(std::string("primary") + '\x1f');
-        AmountDraft &draft = drafts_[spec.element];
+        DealState &deal = deals_[spec.element];
+        AmountDraft &draft = deal.draft;
         draft.Follow(spec.key, spec.origin, spec.other, *bindings_);
-        draft.Bind(*bindings_, spec.element, spec.low, spec.high, spec.more_reason, 1, spec.less_reason);
+        // The amount asked for shows until the game has answered it; then the game's, and why it is less.
+        if (deal.asking && bindings_->AnsweredSince(deal.floor) != Bindings::Answers::Waiting)
+        {
+            deal.asking = false;
+            if (spec.answer != deal.asked && !spec.cut_reason.empty() && bindings_->Now() - deal.said_at > 1.5)
+            {
+                deal.said_at = bindings_->Now();
+                bindings_->Toast(spec.cut_reason);
+            }
+        }
+        if (!deal.asking)
+            draft.Answered(spec.answer);
+        draft.Bind(*bindings_, spec.element, spec.low, spec.high, {}, 1, {},
+                   [this, &deal, offer = spec.offer, origin = spec.origin, answer = spec.answer](int target) {
+                       if (target == answer && !deal.asking)
+                           return;
+                       deal.asking = true;
+                       deal.asked = target;
+                       deal.floor = bindings_->RequestFloor();
+                       Raise(offer, "", std::to_string(target - origin));
+                   });
         DealView view;
         view.value = draft.Value(spec.low, spec.high);
         view.change = view.value - draft.Origin();
@@ -300,7 +321,15 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     std::string answer_;    // HoldState at the start of the running build
     bool answered_ = false; // the game had answered before the running build
     bool awaited_ = false;
-    std::map<std::string, AmountDraft> drafts_; // the deals by their element
+    struct DealState
+    {
+        AmountDraft draft;
+        bool asking = false; // an amount was offered to the game and is not answered yet
+        int asked = 0;
+        uint64_t floor = 0;     // the first request of that offer
+        double said_at = -10.0; // when the game's cut was last said (once per push: a drag offers many)
+    };
+    std::map<std::string, DealState> deals_;    // the deals by their element
     std::set<std::string> dealt_;               // the elements the running build asked a deal of
     std::set<std::string> bound_, shown_bound_; // "<id>\x1f<verb>" the running build and the shown one bound
 };

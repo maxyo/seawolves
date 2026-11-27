@@ -43,17 +43,18 @@ struct ScriptScreen
 };
 
 // A deal of a quantity control (screens::AmountDraft), as a script asks for it in a build: our side holds `origin`
-// of row `key` and theirs `other`; the control may move our side within [low, high]; past an end the reason is said
-// (empty: none). `element`'s change and commit move the draft; the deal's button names it with the string keys
-// `more` / `less`, and its press raises the event `commit` with the change.
+// of row `key` and theirs `other`; the control moves our side within [low, high]. The game decides the amount: each
+// move of `element` raises the event `offer` with the change asked for, and the control then shows `answer`, our side
+// as the game's window holds it now (the game clamps), saying `cut_reason` when that is short of what was asked. The
+// deal's button names the change with the string keys `more` / `less`; its press raises the event `commit` with it.
 struct DealSpec
 {
     std::string key, element;
-    int origin = 0, other = 0, low = 0, high = 0;
-    std::string more_reason, less_reason;
+    int origin = 0, other = 0, low = 0, high = 0, answer = 0;
+    std::string cut_reason;
     std::string more, less;
     bool disabled = false;
-    std::string reason, commit;
+    std::string reason, commit, offer;
 };
 // The draft's amount on our side, its change from the origin and the button {label, sub, disabled, reason, busy}
 // (no children while there is none to press: the amount unchanged).

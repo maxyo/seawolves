@@ -67,9 +67,6 @@ class Run
   public:
     explicit Run(const Json &c)
     {
-        ScriptGame::Get().Play(c.contains("game")
-                                   ? ReadJson(models + "/../games/" + c.at("game").get<std::string>()).at("objects")
-                                   : Json::object());
         router_.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
         model_ = Load(models, c.at("model"));
         router_.SetInterface(model_);

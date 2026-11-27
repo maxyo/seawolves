@@ -5,13 +5,12 @@
 #event_handler("UiBuild", "TouchTrade_Build");
 #event_handler("UiTap", "TouchTrade_Tap");
 
-// The screen's state while its window is open: its filter, its sort and the adapter's state of the last build in
-// .game (the taps act on what that build showed).
+// The screen's state while its window is open: its filter, its sort, the adapter's state of the last build in .game
+// (the taps act on what that build showed) and the header's figures as they were with no amount set in .figures.
 object TouchTrade;
 object TouchTrade_View;
 
-// s: a move takes the game one to three of its frames (a row's selection, then its window, then the moved amount);
-// past it the view shows what the game has.
+// s: how long a move waits for the game's answer; past it the view shows what the game has.
 float TouchTrade_Wait = 0.5;
 
 // The sort keys of the list's columns.
@@ -105,37 +104,33 @@ void TouchTrade_Captions(aref game, aref look, aref out)
 	}
 }
 
-// The open deal as the player sets it (UiDeal: value, change, button), within what it can reach (low, high), with its
-// total and weight; nothing: not even one can be bought and there is nothing to sell.
+// The open deal as the player sets it (UiDeal: value, change, button): the control spans what the two sides hold
+// (a side the game does not trade with this row, its price a dash, gives nothing) and follows the amount the game's
+// window answers to each move; the total, weight and note are the game's for that amount.
 void TouchTrade_Deal(aref ui, aref game, aref deal)
 {
 	if (!CheckAttribute(game, "deal")) return;
 	int k = sti(game.deal.row);
 	aref row = TouchLib_Item(game, "rows", k);
 	bool money = sti(game.money);
-	object reach;
-	TouchAdpTrade_Reach(ui, k, &reach);
-	object spec = {key = row.key, element = "goods", origin = row.own, other = row.other,
-	               low = sti(row.own) - sti(reach.give), high = sti(row.own) + sti(reach.take), moreReason = "",
-	               lessReason = "", more = "trade.take", less = "trade.give", reason = game.deal.reason,
-	               disabled = !sti(game.deal.confirm) || !sti(game.deal.edit), commit = "deal-commit"};
-	if (reach.takeWhy != "") spec.moreReason = UiText(reach.takeWhy);
-	if (reach.giveWhy != "") spec.lessReason = UiText(reach.giveWhy);
+	object spec = {key = row.key, element = "goods", origin = row.own, other = row.other, low = 0,
+	               high = sti(row.own) + sti(row.other), answer = sti(row.own) + sti(game.deal.amount),
+	               cutReason = UiText("trade.limit"), more = "trade.take", less = "trade.give",
+	               reason = game.deal.reason, disabled = !sti(game.deal.confirm) || !sti(game.deal.edit),
+	               commit = "deal-commit", offer = "deal-offer"};
 	if (money)
 	{
 		spec.more = "trade.buy";
 		spec.less = "trade.sell";
+		if (!CheckAttribute(row, "sell")) spec.low = row.own;
+		if (!CheckAttribute(row, "buy")) spec.high = row.own;
 	}
 	UiDeal(&spec, deal);
 	deal.low = spec.low;
 	deal.high = spec.high;
-	deal.moreReason = spec.moreReason;
-	deal.nothing = money && sti(spec.high) <= sti(spec.low) && spec.moreReason != "";
-	object terms;
-	TouchAdpTrade_Terms(ui, k, sti(deal.change), &terms);
-	deal.total = terms.total;
-	deal.weight = terms.weight;
-	deal.note = terms.note;
+	deal.total = game.deal.total;
+	deal.weight = game.deal.weight;
+	deal.note = game.deal.note;
 }
 
 // One slider for both directions: what we hold is the origin, the zone to its left gives, the zone to its right
@@ -144,18 +139,15 @@ void TouchTrade_Quantity(aref game, aref look, aref deal, string label, aref out
 {
 	object quantity = {value = deal.value, min = deal.low, max = deal.high, zones = true, origin = 0,
 	                   lessLabel = UiText("trade.give"), moreLabel = UiText("trade.take"), label = label,
-	                   allLabel = UiText("common.all"), summary = "-", moreReason = deal.moreReason, reason = "",
-	                   disabled = !sti(game.deal.edit) || sti(deal.nothing), all = true, stack = true,
-	                   surface = "wood"};
+	                   allLabel = UiText("common.all"), summary = "-", moreReason = "", reason = "",
+	                   disabled = !sti(game.deal.edit), all = true, stack = true, surface = "wood"};
 	aref row = TouchLib_Item(game, "rows", sti(game.deal.row));
 	quantity.origin = row.own;
-	if (sti(deal.low) > sti(deal.high)) quantity.max = deal.low;
 	if (sti(game.money))
 	{
 		quantity.lessLabel = UiText("trade.sell");
 		quantity.moreLabel = UiText("trade.buy");
 	}
-	if (sti(deal.nothing)) quantity.reason = deal.moreReason;
 	CopyAttributes(out, &quantity);
 	if (!sti(look.small)) return;
 	out.steps.s0 = 1;
@@ -322,56 +314,54 @@ void TouchTrade_Subject(aref game, aref view)
 	UiOn("header", "subject-next");
 }
 
-// What a weight is written as: pieces with one decimal, goods in whole cwt.
-string TouchTrade_Weight(aref game, float value)
-{
-	if (sti(game.pieces)) return UiDecimal(Sprintf("%.1f", value));
-	return UiDecimal(Sprintf("%.0f", value));
-}
-
-// The header's figures: what we carry, the place's load, the purse. While a money deal is open they show what it
-// changes, from the moment it opens, so the header does not reflow at the first step.
+// The header's figures, the adapter's: what we carry, the place's load, the purse. While a deal is open they show the
+// figures it had with no amount set and, as their preview, the game's figures now (the purse: with the deal's money),
+// from the moment it opens, so the header does not reflow at the first step.
 void TouchTrade_Stats(aref game, aref look, aref deal, aref view)
 {
 	aref stats;
 	makearef(stats, view.stats);
-	object figure;
-	bool previews = CheckAttribute(game, "deal") && sti(game.money);
-	if (TouchLib_Figure(game.carry, &figure))
+	bool dealing = CheckAttribute(game, "deal");
+	bool moved = false;
+	if (dealing) moved = sti(game.deal.amount) != 0;
+	for (int k = 0; k < TouchLib_Count(game, "figures"); k++)
 	{
-		aref at = TouchLib_Stat(stats, "", UiDecimal(figure.value), look.carryIcon);
-		if (previews && stf(game.capacity) >= 0.0 && sti(game.weighs))
+		aref figure = TouchLib_Item(game, "figures", k);
+		string kind = figure.kind;
+		if (!moved) TouchTrade.figures.(kind) = figure.value;
+		if (kind == "purse") TouchTrade_Purse(game, figure, deal, stats, dealing);
+		else
 		{
-			float moved = stf(deal.weight);
-			if (sti(deal.change) < 0) moved = -moved;
-			at.value = TouchTrade_Weight(game, stf(game.load)); // as the preview writes it ("34" and "34,0" differ)
-			at.preview = TouchTrade_Weight(game, stf(game.load) + moved);
-			at.previewTone = "neutral";
+			string icon = "";
+			string label = figure.label;
+			if (kind == "carry")
+			{
+				icon = look.carryIcon;
+				label = "";
+			}
+			aref at = TouchLib_Stat(stats, label, UiDecimal(figure.value), icon);
+			if (dealing && CheckAttribute(&TouchTrade, "figures." + kind))
+			{
+				at.value = UiDecimal(TouchTrade.figures.(kind));
+				at.preview = UiDecimal(figure.value);
+				at.previewTone = "neutral";
+			}
 		}
 	}
-	if (TouchLib_Figure(game.place, &figure)) TouchLib_Stat(stats, figure.label, UiDecimal(figure.value), "");
-	if (GetAttributesNum(stats) < 2 && TouchLib_Figure(game.storage, &figure))
-	{
-		at = TouchLib_Stat(stats, figure.label, figure.value, "");
-		object named;
-		string place = UiOneLine(game.place);
-		if (place != "" && !TouchLib_Figure(place, &named)) at.label = place;
-	}
-	if (game.purse != "") TouchTrade_Purse(game, deal, stats, previews);
 	if (GetAttributesNum(stats) == 0) view.stats = "";
 }
 
 // The purse takes the second place of a full header.
-void TouchTrade_Purse(aref game, aref deal, aref stats, bool previews)
+void TouchTrade_Purse(aref game, aref figure, aref deal, aref stats, bool dealing)
 {
 	if (GetAttributesNum(stats) == 2) DeleteAttribute(stats, "s1");
-	object purse = {value = game.purse, tone = "gold"};
-	if (game.currency != "") purse.label = UiText(game.currency);
+	object purse = {value = figure.value, tone = "gold"};
+	if (figure.currency != "") purse.label = UiText(figure.currency);
 	else purse.icon = "money";
-	int balance = sti(game.balance);
-	if (previews && balance >= 0)
+	if (dealing && sti(game.money))
 	{
-		if (sti(deal.change) > 0) balance -= sti(deal.total);
+		int balance = UiAmount(figure.value, "the purse");
+		if (sti(game.deal.amount) > 0) balance -= sti(deal.total);
 		else balance += sti(deal.total);
 		purse.preview = TouchLib_Thousands(balance);
 	}
@@ -406,16 +396,11 @@ void TouchTrade_Primary(aref game, aref deal, aref view)
 	makearef(primary, view.primary);
 	if (CheckAttribute(game, "deal"))
 	{
-		object button = {label = UiText("trade.buy"), sub = "", disabled = true, reason = deal.moreReason, busy = false};
-		if (!sti(deal.nothing))
-		{
-			if (!CheckAttribute(deal, "button")) return;
-			aref made;
-			makearef(made, deal.button);
-			CopyAttributes(&button, made);
-			button.sub = TouchTrade_Sub(game, deal);
-		}
-		CopyAttributes(primary, &button);
+		if (!CheckAttribute(deal, "button")) return;
+		aref made;
+		makearef(made, deal.button);
+		CopyAttributes(primary, made);
+		primary.sub = TouchTrade_Sub(game, deal);
 		return;
 	}
 	aref buttons;
@@ -435,17 +420,22 @@ void TouchTrade_Primary(aref game, aref deal, aref view)
 	UiOn("primary", "");
 }
 
+// The deal's money, weight and note as the game writes them.
 string TouchTrade_Sub(aref game, aref deal)
 {
 	string sub = "";
 	if (sti(game.money)) sub = TouchLib_Thousands(sti(deal.total));
-	if (!sti(game.weighs) && deal.note == "") return sub;
-	if (!sti(game.weighs)) return sub + " · " + deal.note;
+	string weight = deal.weight;
+	if (weight != "")
+	{
+		if (sub != "") sub += " · ";
+		sub += UiDecimal(weight);
+		if (!sti(game.pieces)) sub += " " + UiText("transfer.cwt");
+	}
+	string note = deal.note;
+	if (note == "") return sub;
 	if (sub != "") sub += " · ";
-	sub += TouchTrade_Weight(game, stf(deal.weight));
-	if (!sti(game.pieces)) sub += " " + UiText("transfer.cwt");
-	if (deal.note != "") sub += " · " + deal.note;
-	return sub;
+	return sub + note;
 }
 
 void TouchTrade_Tap()
@@ -459,6 +449,7 @@ void TouchTrade_Tap()
 	if (CheckAttribute(game, "deal")) open = sti(game.deal.row);
 	if (id == "header-back") { TouchAdpTrade_Leave(ui); return; }
 	if (id == "info") { UiRead("", TouchTrade.info); return; }
+	if (id == "deal-offer") { TouchAdpTrade_Offer(ui, sti(value)); UiHold(TouchTrade_Wait); return; }
 	if (id == "deal-commit") { TouchAdpTrade_Commit(ui, sti(value), sti(game.money)); UiHold(TouchTrade_Wait); return; }
 	if (id == "header")
 	{

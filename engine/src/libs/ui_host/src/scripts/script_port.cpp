@@ -298,8 +298,8 @@ uint32_t UiFill(VS_STACK *stack)
     return ReturnText(stack, "UiFill", [&](storm::ui::ScriptCall &call) { return call.Fill(text, argument); });
 }
 
-// UiDeal(&spec, &out): spec {key, element, origin, other, low, high, moreReason, lessReason, more, less, disabled,
-// reason, commit} (storm_ui::DealSpec); out becomes {value, change, button.{label, sub, disabled, reason, busy}}, the
+// UiDeal(&spec, &out): spec {key, element, origin, other, low, high, answer, cutReason, more, less, disabled, reason,
+// commit, offer} (storm_ui::DealSpec); out becomes {value, change, button.{label, sub, disabled, reason, busy}}, the
 // button absent while there is none.
 uint32_t UiDeal(VS_STACK *stack)
 {
@@ -314,13 +314,14 @@ uint32_t UiDeal(VS_STACK *stack)
         deal.other = fields.Int("other");
         deal.low = fields.Int("low");
         deal.high = fields.Int("high");
-        deal.more_reason = fields.Text("moreReason");
-        deal.less_reason = fields.Text("lessReason");
+        deal.answer = fields.Int("answer");
+        deal.cut_reason = fields.Text("cutReason");
         deal.more = fields.Text("more");
         deal.less = fields.Text("less");
         deal.disabled = fields.Bool("disabled");
         deal.reason = fields.Text("reason");
         deal.commit = fields.Text("commit");
+        deal.offer = fields.Text("offer");
         fields.Done();
         const storm::ui::DealView view = call.Deal(deal);
         while (out->GetAttributesNum() != 0)

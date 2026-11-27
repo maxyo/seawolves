@@ -110,13 +110,19 @@ class AmountDraft
     }
     // The amount the control shows, within [low, high].
     int Value(int low, int high) const;
-    // Binds `<id> change` and `<id> commit` of the control: both move the draft and build again, nothing goes
-    // to the game. Past `high` a `more_reason` (the purse, the room) is said once per push, past `low` a
-    // `less_reason` (the other side's room or money). A `grain` above 1
-    // keeps the draft on what the game can make of it: the origin plus or minus whole grains (the packs the
-    // exchange of ships moves by its arrows), or one of the ends.
+    // Binds `<id> change` and `<id> commit` of the control: both move the draft and build again; `moved`, when
+    // given, is told the new amount (a script screen offers it to the game). Past `high` a `more_reason` (the
+    // purse, the room) is said once per push, past `low` a `less_reason` (the other side's room or money). A
+    // `grain` above 1 keeps the draft on what the game can make of it: the origin plus or minus whole grains (the
+    // packs the exchange of ships moves by its arrows), or one of the ends.
     void Bind(Bindings &bindings, const std::string &id, int low, int high, const std::string &more_reason,
-              int grain = 1, const std::string &less_reason = {});
+              int grain = 1, const std::string &less_reason = {}, std::function<void(int)> moved = {});
+    // The game's window holds `value` now: the draft shows it (not while a press of its button is answered).
+    void Answered(int value)
+    {
+        if (open_ && !sent_)
+            target_ = value;
+    }
     // The deal's button while the draft differs from its origin: returns the primary {label "<operation> N",
     // sub, disabled, reason, busy}, whose press calls `commit(delta)` (delta > 0 raises our side). Null while
     // the amount is unchanged; while a sent draft waits for its answer the button stays, busy, and takes no press.

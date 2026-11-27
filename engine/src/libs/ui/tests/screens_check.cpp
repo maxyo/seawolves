@@ -437,6 +437,61 @@ static void DraftFlow(const std::string &name, Router &router, FakeSurface &surf
            name + ": a second press before the game answers sends nothing: " + dump());
 }
 
+// The game's amount window answers what was offered (store.c ChangeQTY_EDIT clamps it and writes the result): our side
+// after the deal in QTY_INFO_SHIP_QTY, a store's «Деньги N, вес W ц» in QTY_Result, the hold after it in CAPACITY
+// (empty: unchanged); the model after the answers is the next revision.
+static void GameAnswers(Router &router, FakeSurface &surface, InterfaceModel &model, int ours,
+                        const std::string &result = {}, const std::string &capacity = {})
+{
+    AnswerAll(router, surface, true);
+    for (Widget &widget : model.widgets)
+    {
+        if (widget.node == "QTY_INFO_SHIP_QTY")
+            widget.label = std::to_string(ours);
+        if (widget.node == "QTY_Result" && !result.empty())
+            widget.label = result;
+        if (widget.node == "CAPACITY" && !capacity.empty())
+            widget.label = capacity;
+    }
+    ++model.revision;
+    router.SetInterface(model);
+}
+
+// The trade screens' deal on one open amount window of `model` (our side `origin`): a move offers its change to the
+// game's window at once (`edit` is the prefix of its commands, a zero first); the control and the button then show
+// what the game answered (`answered`, `label`); the amount set back to the origin leaves nothing to confirm; the
+// confirm sends the game's amount and its OK (`ok`); a second press before the game answers sends nothing.
+static void OfferFlow(const std::string &name, Router &router, FakeSurface &surface, InterfaceModel model, int origin,
+                      int value, int answered, const std::string &label, const std::string &edit, const std::string &ok)
+{
+    const auto dump = [&surface]() { return Json(surface.commands).dump(); };
+    router.SetInterface(model);
+    surface.commands.clear();
+    router.OnEvent({"goods", "change", std::to_string(value)});
+    Expect(surface.commands == std::vector<std::string>{edit + "0", edit + std::to_string(value - origin)},
+           name + ": a move offers its amount to the game's window: " + dump());
+    GameAnswers(router, surface, model, answered);
+    Expect(surface.props["deal"]["value"] == answered && surface.props["primary"]["label"] == label &&
+               surface.props["primary"]["disabled"] == false,
+           name + ": the control and the button show the game's amount: " + surface.props["primary"].dump());
+    router.OnEvent({"goods", "change", std::to_string(origin)});
+    GameAnswers(router, surface, model, origin);
+    Expect(surface.props["primary"].is_null() || surface.props["primary"]["label"] != label,
+           name + ": the amount set back leaves nothing to confirm: " + surface.props["primary"].dump());
+    router.OnEvent({"goods", "change", std::to_string(value)});
+    GameAnswers(router, surface, model, answered);
+    surface.commands.clear();
+    router.OnEvent({"primary", "click", ""});
+    router.Tick();
+    Expect(surface.commands == std::vector<std::string>{edit + "0", edit + std::to_string(answered - origin), ok},
+           name + ": the confirm sends the game's amount and its OK: " + dump());
+    surface.commands.clear();
+    router.OnEvent({"primary", "click", ""});
+    router.Tick();
+    Expect(surface.commands.empty() && surface.props["primary"]["busy"] == true,
+           name + ": a second press before the game answers sends nothing: " + dump());
+}
+
 // The store on one router: the deal of the selected row, its amounts and limits, the confirmation, leaving, the ship
 // switch and the rejection of an incomplete interface.
 struct StoreRun
@@ -448,7 +503,6 @@ struct StoreRun
     StoreRun(std::string path) : models(std::move(path))
     {
         Scripted(router);
-        ScriptGame::Get().Play(Json::parse(std::ifstream(models + "/../games/store.json")).at("objects"));
     }
 
     Json Quantity()
@@ -570,156 +624,66 @@ struct StoreRun
 
     void DealOpens()
     {
-        // The open deal (store-deal.json: «Ядра», 200 in the hold, 1 840 in the store, 5 to buy and 3 to sell a pack of
-        // 20 that weighs 1 cwt; the hold is 189 / 199, the purse 1 500). The model is the game's own window mid-deal
-        // (QTY_EDIT 100, «Деньги 25, вес 5 ц»): none of that moves the control, which is the player's.
+        // The open deal (store-deal.json: «Ядра», 200 in the hold, 1 840 in the store; the hold 189 / 199, the purse
+        // 1 500). Fresh, the game's window holds nothing: the control is at the pivot, nothing to confirm.
         open_deal = Load(models, "store-deal.json");
-        router.SetInterface(open_deal);
-        // What the game's own window (store.c ChangeQTY_EDIT) shows for buying these amounts: price and weight in cwt.
-        const std::map<int, std::pair<int, int>> game_deal{{1, {0, 1}},    {2, {1, 1}},     {10, {3, 1}},
-                                                           {20, {5, 1}},   {21, {5, 2}},    {39, {10, 2}},
-                                                           {100, {25, 5}}, {199, {50, 10}}, {200, {50, 10}}};
+        InterfaceModel fresh = open_deal;
+        for (Widget &widget : fresh.widgets)
+            if (widget.node == "QTY_INFO_SHIP_QTY" || widget.node == "QTY_Result")
+                widget.label = widget.node == "QTY_Result" ? "" : "200";
+        router.SetInterface(fresh);
         Expect(Quantity()["value"] == 200 && Quantity()["origin"] == 200 && Quantity()["min"] == 0 &&
-                   Quantity()["max"] == 400 && surface.props["primary"].is_null(),
-               "a deal opens at the pivot with nothing to confirm: " + Quantity().dump());
+                   Quantity()["max"] == 2040 && surface.props["primary"].is_null(),
+               "a deal opens where the game's window is, between all we hold and all they have: " + Quantity().dump());
         Expect(Quantity()["zones"] == true && Quantity()["lessLabel"] == "<trade.sell>" &&
                    Quantity()["moreLabel"] == "<trade.buy>",
                "trade zones: selling left of the pivot, buying right");
-        {
-            // A drag of 200 samples: no round-trip to the game, the pivot and both ends never move, the samples of
-            // game_deal show the game's total and weight, the button never waits. The hold stops the amount at the most
-            // store.c takes as it is: 199 - 189 = 10 cwt of room = 10 packs = 200 pieces (201 would be an eleventh
-            // pack).
-            surface.commands.clear();
-            bool steady = true, exact = true, ready = true;
-            std::string first_wrong;
-            for (int sample = 1; sample <= 200; ++sample)
-            {
-                router.OnEvent({"goods", "change", std::to_string(200 + sample)});
-                const int amount = std::min(sample, 200);
-                const Json q = Quantity();
-                steady = steady && q["origin"] == 200 && q["min"] == 0 && q["max"] == 400 && q["value"] == 200 + amount;
-                const std::string label = "<trade.buy> " + std::to_string(amount);
-                const auto deal = game_deal.find(amount);
-                const std::string sub = deal == game_deal.end()
-                                            ? surface.props["primary"].value("sub", std::string())
-                                            : std::to_string(deal->second.first) + " \xC2\xB7 " +
-                                                  std::to_string(deal->second.second) + " <transfer.cwt>";
-                if (surface.props["primary"]["label"] != label || surface.props["primary"]["sub"] != sub)
-                {
-                    if (exact)
-                        first_wrong = "sample " + std::to_string(sample) + ": " + surface.props["primary"].dump() +
-                                      " want " + label + " / " + sub;
-                    exact = false;
-                }
-                ready =
-                    ready && surface.props["primary"]["busy"] == false && surface.props["primary"]["disabled"] == false;
-            }
-            Expect(surface.commands.empty(), "a drag of 200 samples sends nothing to the game: " +
-                                                 std::to_string(surface.commands.size()) + " commands");
-            Expect(steady, "the pivot and the ends stay put through the drag; the hold's room stops the amount at 200");
-            Expect(exact, "the drag shows the game's total and weight: " + first_wrong);
-            Expect(ready, "the button is ready at every sample: no spinner while choosing");
-        }
+        // The game's window holds 100 bought (QTY_INFO_SHIP_QTY 300, «Деньги 25, вес 5 ц», its hold after it 194).
+        surface.commands.clear();
         router.OnEvent({"goods", "change", "300"});
-        Expect(surface.props["primary"]["label"] == "<trade.buy> 100" &&
+        GameAnswers(router, surface, open_deal, 300, "Деньги 25, вес 5 ц", "Трюм:\n194 / 199");
+        Expect(Quantity()["value"] == 300 && surface.props["primary"]["label"] == "<trade.buy> 100" &&
                    surface.props["primary"]["sub"] == "25 \xC2\xB7 5 <transfer.cwt>",
-               "100 bought: 25 and 5 cwt, as the game's own window says for it («Деньги 25, вес 5 ц»)");
-        Expect(surface.props["stats"][0]["value"] == "189" && surface.props["stats"][0]["preview"] == "194" &&
+               "100 bought: the game's money and weight for it: " + surface.props["primary"].dump());
+        Expect(surface.props["stats"][0]["value"] == "189 / 199" &&
+                   surface.props["stats"][0]["preview"] == "194 / 199" &&
                    surface.props["stats"][1]["value"] == "1 500" && surface.props["stats"][1]["preview"] == "1 475",
-               "the header shows what the deal changes: the hold 189 → 194, the purse 1 500 → 1 475: " +
+               "the header shows the game's figures after the deal: the hold 189 → 194, the purse 1 500 → 1 475: " +
                    surface.props["stats"].dump());
     }
 
     void DealLimits()
     {
         {
-            // The game republishes its window while the amount is chosen (its own QTY_EDIT, labels): nothing moves.
+            // The game republishes its window while the amount is chosen: the control follows what it holds.
             InterfaceModel again = open_deal;
-            again.revision += 1;
-            for (Widget &widget : again.widgets)
-                if (widget.node == "QTY_INFO_SHIP_QTY")
-                    widget.label = "777";
-            router.SetInterface(again);
-            Expect(Quantity()["value"] == 300 && Quantity()["origin"] == 200,
-                   "a revision of the game while choosing does not move the control");
+            GameAnswers(router, surface, again, 250, "Деньги 13, вес 3 ц");
+            Expect(Quantity()["value"] == 250 && surface.props["primary"]["label"] == "<trade.buy> 50",
+                   "the control shows what the game's window holds");
         }
-        router.OnEvent({"goods", "commit", "150"});
-        Expect(surface.commands.empty() && surface.props["primary"]["label"] == "<trade.sell> 50" &&
-                   surface.props["primary"]["sub"] == "8 \xC2\xB7 3 <transfer.cwt>" &&
-                   surface.props["stats"][0]["preview"] == "186" && surface.props["stats"][1]["preview"] == "1 508",
-               "left of the pivot is a sale: 50 for 8, the hold lighter by 3 cwt; still nothing sent: " +
-                   surface.props["primary"].dump());
+        // A sale past what the game lets go (store.c cuts a sale by the store's room and, at sea, by the other ship's
+        // money): all 200 offered, the game's window answers 10 sold; the control shows it and says it stopped there.
+        surface.commands.clear();
+        surface.toasts.clear();
         router.OnEvent({"goods", "change", "0"});
-        Expect(Quantity()["value"] == 0 && surface.props["primary"]["label"] == "<trade.sell> 200",
-               "«Все» to the left: all we hold");
-        router.OnEvent({"goods", "change", "2040"});
-        Expect(Quantity()["value"] == 400 && surface.props["primary"]["label"] == "<trade.buy> 200",
-               "«Все» to the right: what the hold takes");
-        {
-            // The purse stops it too: 60 pesos buy 241 pieces at 5 for 20 (makeint(5 * 241 / 20 + 0.5) = 60, 242 cost
-            // 61).
-            FakeSurface poor_surface;
-            Router poor(poor_surface);
-            Scripted(poor);
-            InterfaceModel model = open_deal;
-            for (Widget &widget : model.widgets)
-            {
-                if (widget.node == "OUR_GOLD")
-                    widget.label = "Наши деньги 60 песо";
-                if (widget.node == "CAPACITY")
-                    widget.label = "Трюм:\n189 / 700";
-            }
-            poor.SetInterface(model);
-            poor.OnEvent({"goods", "change", "2040"});
-            Expect(poor_surface.props["deal"]["value"] == 441 &&
-                       poor_surface.props["primary"]["sub"] == "60 \xC2\xB7 13 <transfer.cwt>",
-                   "the purse limits the purchase as store.c does: " + poor_surface.props["primary"].dump());
-        }
-        {
-            // A deal of which not even one can be had: the rail stays on the pivot, a tap or a drag says why, and the
-            // dock shows the deal disabled with the same reason. (Nothing to sell either: none in the hold.)
-            const auto blocked = [&](const char *file, const char *node, const char *label, const char *reason) {
-                InterfaceModel model = Load(models, file);
-                for (Widget &widget : model.widgets)
-                {
-                    if (widget.node == node)
-                        widget.label = label;
-                    if (widget.node == "TABLE_LIST" && widget.value == "1")
-                        for (Cell &cell : widget.cells)
-                            if (cell.column == 0)
-                                cell.text = "0";
-                }
-                FakeSurface blocked_surface;
-                Router blocked_router(blocked_surface);
-                Scripted(blocked_router);
-                blocked_router.SetInterface(model);
-                const Json q = blocked_surface.props["deal"];
-                blocked_router.OnEvent({"goods", "change", "20"});
-                const Json after = blocked_surface.props["deal"];
-                Expect(q["value"] == 0 && q["max"] == 0 && q["disabled"] == true && q["reason"] == reason &&
-                           after["value"] == 0 && blocked_surface.commands.empty() &&
-                           blocked_surface.toasts.size() == 1 && blocked_surface.toasts[0] == reason &&
-                           blocked_surface.props["primary"]["disabled"] == true &&
-                           blocked_surface.props["primary"]["reason"] == reason,
-                       std::string("a deal that cannot start says ") + reason + ": " + q.dump() +
-                           blocked_surface.props["primary"].dump());
-            };
-            blocked("cannons-deal.json", "OUR_GOLD", "Наши деньги 100 песо", "<trade.no_money>"); // a cannon is 290
-            blocked("store-deal.json", "CAPACITY", "Трюм:\n199 / 199", "<trade.no_room>");
-            // With room for some, the «+» side says why it ends where it does; selling stays open.
-            router.OnEvent({"goods", "change", "2040"});
-            Expect(Quantity()["moreReason"] == "<trade.no_room>" && Quantity()["disabled"] == false &&
-                       surface.toasts.back() == "<trade.no_room>",
-                   "past what the hold takes: the reason, the control still live");
-        }
+        const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:goods:0:ship:0|";
+        Expect(surface.commands == std::vector<std::string>{edit + "0", edit + "-200"},
+               "all we hold offered for sale: " + Json(surface.commands).dump());
+        GameAnswers(router, surface, open_deal, 190, "Деньги 2, вес 1 ц", "Трюм:\n188 / 199");
+        Expect(Quantity()["value"] == 190 && surface.props["primary"]["label"] == "<trade.sell> 10" &&
+                   surface.props["primary"]["sub"] == "2 \xC2\xB7 1 <transfer.cwt>" &&
+                   surface.toasts == std::vector<std::string>{"<trade.limit>"} &&
+                   surface.props["stats"][0]["preview"] == "188 / 199" &&
+                   surface.props["stats"][1]["preview"] == "1 502",
+               "a sale past the game's limit shows the amount it clamped it to, its money and weight, and says so: " +
+                   surface.props["primary"].dump() + Json(surface.toasts).dump());
     }
 
     void Confirm()
     {
-        // Only the confirmation goes to the game: zero and the signed amount (zero leaves a previous «give»), then its
-        // OK.
+        // The confirmation: zero and the signed amount (zero leaves a previous «give»), then the game's OK.
         router.OnEvent({"goods", "change", "300"});
+        GameAnswers(router, surface, open_deal, 300, "Деньги 25, вес 5 ц");
         surface.commands.clear();
         router.OnEvent({"primary", "click", ""});
         router.Tick();
@@ -759,24 +723,14 @@ struct StoreRun
             router.SetInterface(reopened);
         }
         {
-            // The store's «Купить / Продать N» is the same shared flow.
+            // The store's «Купить / Продать N» is the trade screens' shared flow.
             const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:goods:0:ship:0|";
-            const auto moves = [](const std::string &command) {
-                return command.find("\tQTY_EDIT\t") != std::string::npos ||
-                       command.find("\tQTY_OK_BUTTON\t") != std::string::npos;
-            };
             FakeSurface draft_surface;
             Router draft_router(draft_surface);
             Scripted(draft_router);
             draft_router.SetInterface(open_deal);
-            DraftFlow(
-                "store", draft_router, draft_surface, "goods", 150, "<trade.sell> 50", moves,
-                [&](const std::vector<std::string> &commands) {
-                    return commands ==
-                           std::vector<std::string>{edit + "0", edit + "-50",
-                                                    "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:goods:0:ship:0|press"};
-                },
-                [] {}, 200);
+            OfferFlow("store", draft_router, draft_surface, open_deal, 200, 150, 150, "<trade.sell> 50", edit,
+                      "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:goods:0:ship:0|press");
         }
     }
 
@@ -896,7 +850,8 @@ struct StoreRun
             ship_router.OnEvent({"goods", "row", "1"});
             ship_surface.commands.clear();
             ship_router.OnEvent({"header", "subject-prev", ""});
-            Expect(ship_surface.commands.empty(), "the switch waits for the tapped row's window");
+            Expect(ship_surface.commands.empty(),
+                   "the switch waits for the tapped row's window: " + Json(ship_surface.commands).dump());
             AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(1, 1, 29, true));
             Expect(ship_surface.commands.size() == 2 &&
@@ -1025,7 +980,6 @@ struct CommerceRun
     CommerceRun(std::string path) : models(std::move(path))
     {
         Scripted(router);
-        ScriptGame::Get().Play(Json::object()); // the fixture's own goods
     }
 
     void Models()
@@ -1063,26 +1017,14 @@ struct CommerceRun
         {
             const std::string edit = "widget:storage\tQTY_EDIT\t-1\tguard@7:row:0|";
             const std::string ok = "widget:storage\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press";
-            const auto moves = [](const std::string &command) {
-                return command.find("\tQTY_EDIT\t") != std::string::npos ||
-                       command.find("\tQTY_OK_BUTTON\t") != std::string::npos;
-            };
-            DraftFlow(
-                "storage: take", router, surface, "goods", 90, "<trade.take> 30", moves,
-                [&](const std::vector<std::string> &commands) {
-                    return commands == std::vector<std::string>{edit + "0", edit + "30", ok};
-                },
-                [] {}, 60);
+            OfferFlow("storage: take", router, surface, Load(models, "storage-deal.json"), 60, 90, 90,
+                      "<trade.take> 30", edit, ok);
             router.SetInterface(Load(models, "storage.json")); // the game closed its window after the transfer
             Expect(surface.commands.empty() && surface.props["primary"]["label"] != "<trade.take> 30",
                    "the moved row is not opened again by itself");
             router.SetInterface(Load(models, "storage-deal.json"));
-            DraftFlow(
-                "storage: give", router, surface, "goods", 10, "<trade.give> 50", moves,
-                [&](const std::vector<std::string> &commands) {
-                    return commands == std::vector<std::string>{edit + "0", edit + "-50", ok};
-                },
-                [] {}, 60);
+            OfferFlow("storage: give", router, surface, Load(models, "storage-deal.json"), 60, 10, 10,
+                      "<trade.give> 50", edit, ok);
         }
     }
 
@@ -1304,18 +1246,9 @@ struct CommerceRun
         }
         // A chest, a body, an officer's pockets: picking the amount must not move the items at once (regression).
         {
-            const auto moves = [](const std::string &command) {
-                return command.find("\tQTY_EDIT\t") != std::string::npos ||
-                       command.find("\tQTY_OK_BUTTON\t") != std::string::npos;
-            };
-            DraftFlow(
-                "itemsbox", router, surface, "goods", 25, "<trade.take> 2", moves,
-                [](const std::vector<std::string> &commands) {
-                    return commands.size() == 3 && commands[1].find("\tQTY_EDIT\t") != std::string::npos &&
-                           commands[1].substr(commands[1].size() - 2) == "|2" &&
-                           commands[2].find("\tQTY_OK_BUTTON\t") != std::string::npos;
-                },
-                [] {}, 23);
+            OfferFlow("itemsbox", router, surface, Load(models, "itemsbox-deal.json"), 23, 25, 25, "<trade.take> 2",
+                      "widget:itemsbox\tQTY_EDIT\t-1\tguard@7:row:0|",
+                      "widget:itemsbox\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
         }
     }
 

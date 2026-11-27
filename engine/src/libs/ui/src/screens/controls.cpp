@@ -341,10 +341,10 @@ int AmountDraft::Value(int low, int high) const
 }
 
 void AmountDraft::Bind(Bindings &bindings, const std::string &id, int low, int high, const std::string &more_reason,
-                       int grain, const std::string &less_reason)
+                       int grain, const std::string &less_reason, std::function<void(int)> moved)
 {
     const auto set = [this, &bindings, low, high = std::max(low, high), more_reason, less_reason,
-                      grain = std::max(1, grain)](const Event &event) {
+                      grain = std::max(1, grain), moved](const Event &event) {
         int wanted = 0;
         if (!EventNumber(bindings, event, wanted))
             return;
@@ -365,6 +365,8 @@ void AmountDraft::Bind(Bindings &bindings, const std::string &id, int low, int h
                 target = std::clamp(origin_ + grains * grain, low, high);
             }
             target_ = target;
+            if (moved)
+                moved(target);
         }
         bindings.Rebuild();
     };

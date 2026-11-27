@@ -43,9 +43,10 @@ native string UiDecimal(string text);
 native string UiOneLine(string text);
 native string UiFill(string text, string argument);
 
-// The open deal of a quantity control, the player's draft until he presses its button: spec {key, element, origin,
-// other, low, high, moreReason, lessReason, more, less (string keys), disabled, reason, commit}; out {value, change,
-// button (absent while the amount is unchanged)}.
+// The open deal of a quantity control, the amount the game answers until the player presses its button: spec {key,
+// element, origin, other, low, high, answer (our side as the game holds it now), cutReason, more, less (string keys),
+// disabled, reason, commit, offer (the event each move raises with the change asked)}; out {value, change, button
+// (absent while the amount is unchanged)}.
 native void UiDeal(aref spec, aref out);
 
 // The entries of `list` in the order of their whole number `field`, stable.

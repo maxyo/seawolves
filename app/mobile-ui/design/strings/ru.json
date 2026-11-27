@@ -29,6 +29,7 @@
   "trade.no_money": "Не хватает денег",
   "trade.no_room": "Нет места в трюме",
   "trade.no_carry": "Больше не унести",
+  "trade.limit": "Больше нельзя",
   "trade.tab_mine": "Мои",
   "trade.tab_here": "Здесь",
   "trade.tab_weapons": "Оружие и зелья",

@@ -29,6 +29,7 @@
   "trade.no_money": "Denaro insufficiente",
   "trade.no_room": "Non c'è posto nella stiva",
   "trade.no_carry": "Troppo pesante",
+  "trade.limit": "Non oltre",
   "trade.tab_mine": "Miei",
   "trade.tab_here": "Qui",
   "trade.tab_weapons": "Armi e pozioni",
