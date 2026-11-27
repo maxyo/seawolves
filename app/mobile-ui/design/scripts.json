@@ -62,6 +62,7 @@
     {"file": "interface/touch/contracts/character.c"},
     {"file": "interface/touch/contracts/alchemy.c"},
     {"file": "interface/touch/contracts/skill_post.c"},
+    {"file": "interface/touch/contracts/new_game.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -726,6 +727,28 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/new_game.c",
+      "provides": ["adapter:new_game"],
+      "binds": [
+        {
+          "capability": "new_game", "interface": "selectcharacter",
+          "nodes": [
+            ["OK_BUTTON", "button", true], ["CANCEL_BUTTON", "button", true], ["TITLE", "heading|text"],
+            ["HERO_NAME", "text"], ["LEFTCHANGE_CHARACTER", "button"], ["RIGHTCHANGE_CHARACTER", "button"],
+            ["FACEPICT", "image"], ["NATIONS_PICTURE", "image"], ["INFO_FRAME_CAPTION", "text"], ["INFO_TEXT", "text"],
+            ["STATE_FRAME_CAPTION", "text"], ["COMPLEX_TYPE", "text"], ["LEFTCHANGE_COMPLEX", "button"],
+            ["RIGHTCHANGE_COMPLEX", "button"], ["SETUP_FRAME_CAPTION", "text"], ["ANDROID_HERO_TYPE", "text"],
+            ["SETUP_TEXT", "text"], ["LEFTCHANGE_SETUP", "button"], ["RIGHTCHANGE_SETUP", "button"],
+            ["TABLE_SMALLSKILL", "choice"], ["CHECK_ARCADESAIL_NAME", "text"], ["CHECK_ARCADESAIL", "check"],
+            ["CHECK_OTHER_NAME", "text"], ["ANDROID_TUTORIAL_SKIP", "check"], ["CHECK_HARDCORE", "check"],
+            ["CHECK_PISTOL", "check"], ["CHECK_PARTITION", "check"], ["CHECK_SEABATTLESAVE", "check"],
+            ["CHECK_RAINS", "check"], ["CONFIRM_WINDOW_*", "text|button|image"], ["NOTE_WINDOW_*", "text|button|image"],
+            ["PROFILE_*", "*"], ["MAIN_BACK", "image"], ["EXIT_BTN", "button"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -917,6 +940,11 @@
       "file": "interface/touch/screens/alchemy.c",
       "uses": ["adapter:alchemy"],
       "screens": [{"capability": "alchemy", "component": "s-alchemy"}]
+    },
+    {
+      "file": "interface/touch/screens/new_game.c",
+      "uses": ["adapter:new_game"],
+      "screens": [{"capability": "new_game", "component": "s-new-game"}]
     }
   ]
 }

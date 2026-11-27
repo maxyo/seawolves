@@ -976,6 +976,11 @@ TEST_CASE("the journal's script gives the pack screen the props and actions of t
     CheckCases("journal", "journal");
 }
 
+TEST_CASE("the new game's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("new-game", "new_game");
+}
+
 // The items screen's script on its recorded models over the fixture game's people and items: the props its view
 // gives, and what its events send: a row chosen, the game's action, a slot, a category, another person, the map.
 TEST_CASE("the items screen's script gives the pack screen the props and actions of the recorded models")

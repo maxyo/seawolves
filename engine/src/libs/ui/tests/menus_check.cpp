@@ -715,8 +715,9 @@ static void NewGame(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "new-game.json"));
-    ExpectEqual(router.Using(), "selectcharacter", "new game is a ported screen");
+    ExpectEqual(router.Using(), "selectcharacter", "new game is a script screen");
     ExpectEqual(surface.tag, "s-new-game", "new game mounted");
     Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty() && surface.props["extras"]["note"] == "",
            "every node is known; the profile is not offered");
@@ -724,7 +725,8 @@ static void NewGame(const std::string &models)
     Expect(rows.size() == 2 && rows[0]["kind"] == "stepper" && rows[0]["text"] == "Средняя" &&
                rows[1]["kind"] == "segment" && rows[1]["label"] == "Морской бой",
            "difficulty selector and the sea battle segment");
-    Expect(surface.props["toggles"].size() == 6 && surface.props["toggles"][0]["id"] == "tutorial",
+    Expect(surface.props["toggles"].size() == 6 && surface.props["toggles"][0]["id"] == "tutorial" &&
+               surface.props["toggles"][1]["id"] == "CHECK_HARDCORE",
            "six option toggles, the port's own first");
     Expect(surface.props["hero"]["name"] == "Герой Альфа" && surface.props["hero"]["nation"] == "<menu.nation_france>",
            "hero and nation");

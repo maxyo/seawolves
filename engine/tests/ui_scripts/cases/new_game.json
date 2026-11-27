@@ -1,0 +1,1190 @@
+{
+ "$comment": "The new game's script on recorded models: the props its view gives, the modal it binds and the calls its build and events make.",
+ "cases": [
+  {
+   "name": "the options, the hero and the occupation; every choice the game's",
+   "capability": "new_game",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 5,
+    "screen": "selectcharacter",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_TUTORIAL_SKIP",
+      "type": "check",
+      "label": "Без обучения",
+      "value": "0",
+      "index": 0,
+      "rowId": "4"
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "INFO_FRAME_CAPTION",
+      "type": "text",
+      "label": "  Справка  ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Герой Альфа",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FACEPICT",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "portrait",
+         "image": "1"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "NATIONS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "Короткая биография героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "STATE_FRAME_CAPTION",
+      "type": "text",
+      "label": "Сложность",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "фехтование",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_SETUP",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SETUP",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "P\tI\tR",
+      "value": "0",
+      "index": 0,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "5\t6\t7",
+      "value": "0",
+      "index": 1,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "COMPLEX_TYPE",
+      "type": "text",
+      "label": "Средняя",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "CHECK_ARCADESAIL_NAME",
+      "type": "text",
+      "label": "Морской бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Быстрый",
+      "value": "1",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Медленный",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "SETUP_TEXT",
+      "type": "text",
+      "label": "Описание занятия героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_OTHER_NAME",
+      "type": "text",
+      "label": "Прочее",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "Пистоли",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_HARDCORE",
+      "type": "check",
+      "label": "HardcoreGame",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PARTITION",
+      "type": "check",
+      "label": "Добыча",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_SEABATTLESAVE",
+      "type": "check",
+      "label": "Запись в бою",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "PROFILE_NAME",
+      "type": "edit",
+      "value": "P",
+      "index": -1
+     },
+     {
+      "node": "OK_BUTTON",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "CANCEL_BUTTON",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "PROFILE_STR",
+      "type": "text",
+      "label": "Профиль",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_RAINS",
+      "type": "check",
+      "label": "Дожди",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ANDROID_HERO_TYPE",
+      "type": "text",
+      "label": "HeroType_1",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "hero": {
+     "bio": true,
+     "image": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_1"
+     },
+     "name": "Герой Альфа",
+     "nation": "<menu.nation_france>"
+    },
+    "rows": [
+     {
+      "id": "difficulty",
+      "kind": "stepper",
+      "label": "<menu.difficulty>",
+      "left": true,
+      "right": true,
+      "text": "Средняя"
+     },
+     {
+      "disabled": false,
+      "id": "battle",
+      "kind": "segment",
+      "label": "Морской бой",
+      "options": [
+       "Быстрый",
+       "Медленный"
+      ],
+      "selected": 0
+     }
+    ],
+    "setup": {
+     "id": "setup",
+     "kind": "stepper",
+     "label": "",
+     "left": true,
+     "note": "Описание занятия героя.",
+     "right": true,
+     "text": "<menu.hero_type_1>"
+    },
+    "start": {
+     "busy": false,
+     "disabled": false,
+     "label": "<menu.start>",
+     "reason": ""
+    },
+    "title": "<menu.new_game_title>",
+    "toggles": [
+     {
+      "disabled": false,
+      "id": "tutorial",
+      "kind": "toggle",
+      "label": "Без обучения",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_HARDCORE",
+      "kind": "toggle",
+      "label": "<menu.hardcore>",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PISTOL",
+      "kind": "toggle",
+      "label": "Пистоли",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PARTITION",
+      "kind": "toggle",
+      "label": "Добыча",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_SEABATTLESAVE",
+      "kind": "toggle",
+      "label": "Запись в бою",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_RAINS",
+      "kind": "toggle",
+      "label": "Дожди",
+      "on": true,
+      "reason": ""
+     }
+    ]
+   },
+   "modals": [],
+   "events": [
+    [
+     "difficulty-right",
+     "",
+     ""
+    ],
+    [
+     "setup-left",
+     "",
+     ""
+    ],
+    [
+     "battle",
+     "change",
+     "1"
+    ],
+    [
+     "tutorial",
+     "change",
+     "1"
+    ],
+    [
+     "CHECK_HARDCORE",
+     "change",
+     "1"
+    ],
+    [
+     "bio",
+     "",
+     ""
+    ],
+    [
+     "start",
+     "",
+     ""
+    ],
+    [
+     "header-back",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send RIGHTCHANGE_COMPLEX press ",
+    "send LEFTCHANGE_SETUP press ",
+    "send CHECK_ARCADESAIL#1 toggle 1",
+    "send ANDROID_TUTORIAL_SKIP#0 toggle 1@4",
+    "send CHECK_HARDCORE#0 toggle 1",
+    "read Справка: Короткая биография героя.",
+    "send OK_BUTTON press ",
+    "back CANCEL_BUTTON"
+   ]
+  },
+  {
+   "name": "a window of the game over the screen: its text and buttons",
+   "capability": "new_game",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 5,
+    "screen": "selectcharacter",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_TUTORIAL_SKIP",
+      "type": "check",
+      "label": "Без обучения",
+      "value": "0",
+      "index": 0,
+      "rowId": "4"
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "INFO_FRAME_CAPTION",
+      "type": "text",
+      "label": "  Справка  ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Герой Альфа",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FACEPICT",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "portrait",
+         "image": "1"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "NATIONS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "Короткая биография героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "STATE_FRAME_CAPTION",
+      "type": "text",
+      "label": "Сложность",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "фехтование",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_SETUP",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SETUP",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "P\tI\tR",
+      "value": "0",
+      "index": 0,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "5\t6\t7",
+      "value": "0",
+      "index": 1,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "COMPLEX_TYPE",
+      "type": "text",
+      "label": "Средняя",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "CHECK_ARCADESAIL_NAME",
+      "type": "text",
+      "label": "Морской бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Быстрый",
+      "value": "1",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Медленный",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "SETUP_TEXT",
+      "type": "text",
+      "label": "Описание занятия героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_OTHER_NAME",
+      "type": "text",
+      "label": "Прочее",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "Пистоли",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_HARDCORE",
+      "type": "check",
+      "label": "HardcoreGame",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PARTITION",
+      "type": "check",
+      "label": "Добыча",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_SEABATTLESAVE",
+      "type": "check",
+      "label": "Запись в бою",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "PROFILE_NAME",
+      "type": "edit",
+      "value": "P",
+      "index": -1
+     },
+     {
+      "node": "OK_BUTTON",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "CANCEL_BUTTON",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "PROFILE_STR",
+      "type": "text",
+      "label": "Профиль",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_RAINS",
+      "type": "check",
+      "label": "Дожди",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ANDROID_HERO_TYPE",
+      "type": "text",
+      "label": "HeroType_1",
+      "index": -1
+     },
+     {
+      "node": "NOTE_WINDOW_TEXT",
+      "type": "text",
+      "label": "Имя занято.",
+      "index": -1
+     },
+     {
+      "node": "NOTE_WINDOW_OK",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "hero": {
+     "bio": true,
+     "image": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_1"
+     },
+     "name": "Герой Альфа",
+     "nation": "<menu.nation_france>"
+    },
+    "modal": {
+     "actions": [
+      {
+       "disabled": false,
+       "id": "modal-0",
+       "label": "Ок",
+       "variant": "primary"
+      }
+     ],
+     "text": "",
+     "title": "Имя занято."
+    },
+    "rows": [
+     {
+      "id": "difficulty",
+      "kind": "stepper",
+      "label": "<menu.difficulty>",
+      "left": true,
+      "right": true,
+      "text": "Средняя"
+     },
+     {
+      "disabled": false,
+      "id": "battle",
+      "kind": "segment",
+      "label": "Морской бой",
+      "options": [
+       "Быстрый",
+       "Медленный"
+      ],
+      "selected": 0
+     }
+    ],
+    "setup": {
+     "id": "setup",
+     "kind": "stepper",
+     "label": "",
+     "left": true,
+     "note": "Описание занятия героя.",
+     "right": true,
+     "text": "<menu.hero_type_1>"
+    },
+    "start": {
+     "busy": false,
+     "disabled": false,
+     "label": "<menu.start>",
+     "reason": ""
+    },
+    "title": "<menu.new_game_title>",
+    "toggles": [
+     {
+      "disabled": false,
+      "id": "tutorial",
+      "kind": "toggle",
+      "label": "Без обучения",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_HARDCORE",
+      "kind": "toggle",
+      "label": "<menu.hardcore>",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PISTOL",
+      "kind": "toggle",
+      "label": "Пистоли",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PARTITION",
+      "kind": "toggle",
+      "label": "Добыча",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_SEABATTLESAVE",
+      "kind": "toggle",
+      "label": "Запись в бою",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_RAINS",
+      "kind": "toggle",
+      "label": "Дожди",
+      "on": true,
+      "reason": ""
+     }
+    ]
+   },
+   "modals": [
+    "modal "
+   ],
+   "events": [
+    [
+     "modal-0",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send NOTE_WINDOW_OK press "
+   ]
+  },
+  {
+   "name": "the profile folder question is answered for the player",
+   "capability": "new_game",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 5,
+    "screen": "selectcharacter",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "ANDROID_TUTORIAL_SKIP",
+      "type": "check",
+      "label": "Без обучения",
+      "value": "0",
+      "index": 0,
+      "rowId": "4"
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "INFO_FRAME_CAPTION",
+      "type": "text",
+      "label": "  Справка  ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Герой Альфа",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FACEPICT",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "portrait",
+         "image": "1"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "NATIONS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "Короткая биография героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "STATE_FRAME_CAPTION",
+      "type": "text",
+      "label": "Сложность",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "фехтование",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_SETUP",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SETUP",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "P\tI\tR",
+      "value": "0",
+      "index": 0,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "TABLE_SMALLSKILL",
+      "type": "choice",
+      "label": "5\t6\t7",
+      "value": "0",
+      "index": 1,
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "COMPLEX_TYPE",
+      "type": "text",
+      "label": "Средняя",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_COMPLEX",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "CHECK_ARCADESAIL_NAME",
+      "type": "text",
+      "label": "Морской бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Быстрый",
+      "value": "1",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "CHECK_ARCADESAIL",
+      "type": "check",
+      "label": "Медленный",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "SETUP_TEXT",
+      "type": "text",
+      "label": "Описание занятия героя.",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_OTHER_NAME",
+      "type": "text",
+      "label": "Прочее",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "Пистоли",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_HARDCORE",
+      "type": "check",
+      "label": "HardcoreGame",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PARTITION",
+      "type": "check",
+      "label": "Добыча",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_SEABATTLESAVE",
+      "type": "check",
+      "label": "Запись в бою",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "PROFILE_NAME",
+      "type": "edit",
+      "value": "P",
+      "index": -1
+     },
+     {
+      "node": "OK_BUTTON",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "CANCEL_BUTTON",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "PROFILE_STR",
+      "type": "text",
+      "label": "Профиль",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CHECK_RAINS",
+      "type": "check",
+      "label": "Дожди",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ANDROID_HERO_TYPE",
+      "type": "text",
+      "label": "HeroType_1",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_WINDOW_STRINGS",
+      "type": "text",
+      "label": "Начать заново?",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_WINDOW_MB_YES",
+      "type": "button",
+      "label": "Да",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "hero": {
+     "bio": true,
+     "image": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_1"
+     },
+     "name": "Герой Альфа",
+     "nation": "<menu.nation_france>"
+    },
+    "rows": [
+     {
+      "id": "difficulty",
+      "kind": "stepper",
+      "label": "<menu.difficulty>",
+      "left": true,
+      "right": true,
+      "text": "Средняя"
+     },
+     {
+      "disabled": false,
+      "id": "battle",
+      "kind": "segment",
+      "label": "Морской бой",
+      "options": [
+       "Быстрый",
+       "Медленный"
+      ],
+      "selected": 0
+     }
+    ],
+    "setup": {
+     "id": "setup",
+     "kind": "stepper",
+     "label": "",
+     "left": true,
+     "note": "Описание занятия героя.",
+     "right": true,
+     "text": "<menu.hero_type_1>"
+    },
+    "start": {
+     "busy": false,
+     "disabled": false,
+     "label": "<menu.start>",
+     "reason": ""
+    },
+    "title": "<menu.new_game_title>",
+    "toggles": [
+     {
+      "disabled": false,
+      "id": "tutorial",
+      "kind": "toggle",
+      "label": "Без обучения",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_HARDCORE",
+      "kind": "toggle",
+      "label": "<menu.hardcore>",
+      "on": false,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PISTOL",
+      "kind": "toggle",
+      "label": "Пистоли",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_PARTITION",
+      "kind": "toggle",
+      "label": "Добыча",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_SEABATTLESAVE",
+      "kind": "toggle",
+      "label": "Запись в бою",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_RAINS",
+      "kind": "toggle",
+      "label": "Дожди",
+      "on": true,
+      "reason": ""
+     }
+    ]
+   },
+   "modals": [],
+   "events": [],
+   "calls": [
+    "send CONFIRM_WINDOW_MB_YES press ",
+    "hold"
+   ]
+  }
+ ]
+}

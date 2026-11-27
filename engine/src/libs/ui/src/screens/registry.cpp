@@ -13,7 +13,6 @@ std::unique_ptr<Screen> CreateSavesScreen();
 std::unique_ptr<Screen> CreateSettingsScreen();
 std::unique_ptr<StateConsumer> CreateAppSettingsConsumer();
 std::unique_ptr<StateConsumer> CreateRenderCapsConsumer();
-std::unique_ptr<Screen> CreateNewGameScreen();
 std::unique_ptr<Screen> CreateGoodsOrderScreen();
 std::unique_ptr<StateConsumer> CreateGameOverConsumer();
 std::unique_ptr<StateConsumer> CreateLoadFailureConsumer();
@@ -32,7 +31,6 @@ const ScreenEntry kPorted[] = {
     {"dialogue", CreateDialogueScreen},
     {"save_load", CreateSavesScreen},
     {"option_screen", CreateSettingsScreen},
-    {"selectcharacter", CreateNewGameScreen},
     // The application's own screens, routed from the platform host's "launcher" channel; the
     // "app:" prefix keeps them apart from game interfaces (ids are ini stems, e.g. "about").
     {"app:launcher", CreateLauncherScreen},

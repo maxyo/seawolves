@@ -36,5 +36,6 @@
   "menu_game_over": "The death screen while the game shows its death picture: load, settings or the title",
   "character": "The hero's company: a person's characteristics, skills and perks, and the officers on their posts",
   "character_card": "One person's characteristics, skills and perks as the game shows their card",
-  "alchemy": "Make potions, ammunition and talismans of the recipes the hero knows, as many batches as set"
+  "alchemy": "Make potions, ammunition and talismans of the recipes the hero knows, as many batches as set",
+  "new_game": "A new game: its options, the hero and his occupation, and the start"
 }

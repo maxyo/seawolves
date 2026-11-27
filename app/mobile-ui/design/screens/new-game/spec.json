@@ -1,14 +1,14 @@
 {
   "tag": "s-new-game",
-  "doc": "New game (interface `selectcharacter`), filled by menu_new_game.cpp.",
+  "doc": "New game (interface `selectcharacter`), filled by the script interface/touch/screens/new_game.c.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "rows": {"type": "json", "default": []},
-    "toggles": {"type": "json", "default": []},
-    "hero": {"type": "json", "default": {}},
-    "setup": {"type": "json", "default": null},
-    "start": {"type": "json", "default": null},
-    "modal": {"type": "json", "default": null},
+    "rows": {"type": "json", "default": [], "shape": [{"kind": "text", "id": "text", "label": "text", "text": "text", "left": "bool", "right": "bool", "options": ["text"], "selected": "int", "disabled": "bool"}]},
+    "toggles": {"type": "json", "default": [], "shape": [{"kind": "text", "id": "text", "label": "text", "on": "bool", "disabled": "bool", "reason": "text"}]},
+    "hero": {"type": "json", "default": {}, "shape": {"name": "text", "nation": "text", "image": "picture", "bio": "bool"}},
+    "setup": {"type": "json", "default": null, "shape": {"$null": {"kind": "text", "id": "text", "label": "text", "text": "text", "left": "bool", "right": "bool", "note": "text"}}},
+    "start": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
+    "modal": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "text": "text", "actions": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool"}]}}},
     "extras": {"type": "json", "default": {}}
   }
 }
