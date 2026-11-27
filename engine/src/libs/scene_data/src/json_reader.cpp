@@ -107,6 +107,41 @@ bool Reader::StringList(const Json &value, const std::string &path, std::vector<
     return true;
 }
 
+bool Reader::Floats(const Json &value, const std::string &path, std::span<float> out)
+{
+    if (!value.is_array() || value.size() != out.size() ||
+        !std::ranges::all_of(value, [](const Json &v) { return v.is_number(); }))
+    {
+        Error(path, "expected an array of " + std::to_string(out.size()) + " numbers");
+        return false;
+    }
+    for (size_t i = 0; i < out.size(); ++i)
+        out[i] = value[i].get<float>();
+    return true;
+}
+
+void Reader::Require(const Json &object, const std::string &path, std::initializer_list<std::string_view> keys)
+{
+    if (!object.is_object())
+        return; // Object() reports it
+    for (const std::string_view key : keys)
+        if (!object.contains(key))
+            Error(path + "." + std::string(key), "missing");
+}
+
+bool Reader::Transitions(const Json &value, const std::string &path, std::array<float, 8> &out)
+{
+    if (!Floats(value, path, out))
+        return false;
+    for (size_t i = 0; i < out.size(); ++i)
+        if (!(out[i] >= 0.0f && out[i] <= 24.0f) || (i > 0 && !(out[i] > out[i - 1])))
+        {
+            Error(path, "transition hours must increase within 0..24");
+            return false;
+        }
+    return true;
+}
+
 void Reader::Error(const std::string &path, const std::string &what)
 {
     report_.errors.push_back(path + ": " + what);

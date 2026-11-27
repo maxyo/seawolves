@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <functional>
+#include <span>
 
 namespace storm::scene_data::detail
 {
@@ -34,11 +35,20 @@ class Reader
     bool String(const Json &value, const std::string &path, std::string &out);
     bool Color(const Json &value, const std::string &path, Rgb &out);
     bool StringList(const Json &value, const std::string &path, std::vector<std::string> &out);
+    // An array of exactly out.size() numbers.
+    bool Floats(const Json &value, const std::string &path, std::span<float> out);
+    // An error for each of `keys` that `object` lacks.
+    void Require(const Json &object, const std::string &path, std::initializer_list<std::string_view> keys);
+    // Transition hours: in 0..24 and increasing.
+    bool Transitions(const Json &value, const std::string &path, std::array<float, 8> &out);
 
     void Error(const std::string &path, const std::string &what);
 
   private:
     Report &report_;
 };
+
+// The fields of a tone mapping object (aces.json, a time-of-day period's camera).
+void ReadToneMapping(Reader &reader, const Json &object, const std::string &path, ToneMapping &out);
 
 } // namespace storm::scene_data::detail

@@ -2,6 +2,8 @@
 //  * a model's materials per object      <model>.json beside <model>.gm     {"models": {...}}
 //  * lighting presets, one per place      Lighting/*.json                    {"hours": {"0".."23": ...}}
 //  * the camera's tone mapping and grade  INI/aces.json                      {type, exposure_ev, contrast, ...}
+//  * the periods of the day               INI/time_of_day.json               {transition_hours, presets, celestial}
+//  * horizon haze and height fog          INI/atmosphere.json                {horizon_haze, height_fog}
 // Every parser returns its result with a Report: `errors` are malformed JSON or values of the wrong type (the entry
 // is skipped), `unknown_keys` the keys it does not model (JSON-path style), so nothing in a file is dropped unsaid.
 #pragma once
@@ -88,6 +90,7 @@ struct SeaLighting
 
 struct LightingHour
 {
+    // Colours are linear 0..1; an intensity scales its colour.
     Rgb ambient_color{};
     float ambient_intensity = 0.0f;
     Rgb sun_color{};
@@ -97,7 +100,8 @@ struct LightingHour
     float exposure = 1.0f;
     float shadow_ao = 1.0f;
     std::optional<Fog> fog;
-    std::string hdr_texture; // e.g. "resource/lighting/Day_Jungle.hdr"
+    std::string hdr_texture;   // e.g. "resource/lighting/Day_Jungle.hdr"
+    std::string night_texture; // the hour's other image-based light
     std::map<std::string, PointLightGroup> point_lights;
     std::optional<SeaLighting> sea;
 };
@@ -113,6 +117,8 @@ struct LightingPreset
 {
     int schema_version = 0;
     std::string preset_name, description, grass_preset;
+    std::string weather_type;       // "rain": an override of a few values of the place's preset
+    std::string source_preset_name; // the preset an editor made this one from
     std::vector<std::string> location_ids;
     std::optional<float> sun_azimuth, sun_height;
     std::optional<GodRays> god_rays;
@@ -138,5 +144,98 @@ struct ToneMapping
 };
 
 ToneMapping ParseToneMapping(std::string_view json, Report &report);
+
+// ---- time of day and atmosphere ---------------------------------------------------------------
+
+// The four periods of a day, in the order every file's period table is kept here.
+enum Period : int
+{
+    kDawn,
+    kDay,
+    kSunset,
+    kNight,
+    kPeriods
+};
+
+// Hours 0..24, increasing: [0, 1] night -> dawn, [2, 3] dawn -> day, [4, 5] day -> sunset, [6, 7] sunset -> night.
+using TransitionHours = std::array<float, 8>;
+
+struct TimeOfDayPeriod
+{
+    Rgb light_color{};
+    float light_intensity = 0.0f;
+    Rgb sky_day_radiance{}, sky_night_radiance{};
+    Rgb sky_fill_color{};
+    float sky_fill_intensity = 0.0f;
+    Rgb diffuse_sky_tint{};
+    Rgb ground_color{};
+    float ground_intensity = 0.0f;
+    float base_exposure = 1.0f; // > 0
+    ToneMapping camera;
+};
+
+struct CelestialTimes
+{
+    float moon_overlap_hours = 0.0f, handoff_hours = 0.0f, twilight_hours = 0.0f;
+    float shadow_morning_hour = 0.0f, shadow_evening_hour = 0.0f;
+    float shadow_morning_fade_minutes = 0.0f, shadow_evening_fade_minutes = 0.0f;
+};
+
+struct TimeOfDay
+{
+    int version = 0;
+    bool enabled = false;
+    TransitionHours transition_hours{};
+    std::string source_preset;
+    CelestialTimes celestial;
+    std::array<TimeOfDayPeriod, kPeriods> periods{};
+};
+
+// Every key is required; transition hours that do not increase are an error.
+TimeOfDay ParseTimeOfDay(std::string_view json, Report &report);
+
+struct HazeColor
+{
+    Rgb tint{}, radiance{};
+    float brightness = 0.0f;
+};
+
+struct HorizonHaze
+{
+    bool enabled = false;
+    bool sky_color = false; // the band takes the sky's colour near the horizon, tinted, instead of `radiance`
+    float intensity = 0.0f;
+    float sea_width_degrees = 0.0f, sky_width_degrees = 0.0f, edge_fade = 0.0f;
+    float sea_start = 0.0f, sea_fade = 0.0f, sample_elevation_degrees = 0.0f;
+    std::array<HazeColor, kPeriods> colors{};
+    TransitionHours transition_hours{};
+};
+
+struct HeightFogPeriod
+{
+    float attenuation_distance = 0.0f; // metres; the density is its inverse
+    float base_height = 0.0f, maximum_height = 0.0f;
+    float start_distance = 0.0f, max_distance = 0.0f, max_opacity = 0.0f;
+    float mip_near = 0.0f, mip_far = 0.0f, mip_max = 0.0f;
+    Rgb color{}, tint{};
+    bool sky_color = false;
+};
+
+struct HeightFogProfile
+{
+    bool enabled = false;
+    std::array<HeightFogPeriod, kPeriods> periods{};
+    TransitionHours transition_hours{};
+};
+
+struct Atmosphere
+{
+    int version = 0;
+    std::optional<HorizonHaze> horizon_haze;
+    bool height_fog = false;                   // height_fog.enabled
+    std::optional<HeightFogProfile> land, sea; // height_fog.profiles.Land / Sea
+};
+
+Atmosphere ParseAtmosphere(std::string_view json, Report &report);
 
 } // namespace storm::scene_data

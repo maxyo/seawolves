@@ -44,8 +44,8 @@ void ReadHour(Reader &reader, const Json &object, const std::string &path, Light
             reader.Float(value, child, hour.emission);
         else if (key == "exposure")
             reader.Float(value, child, hour.exposure);
-        else if (key == "hdr_texture")
-            reader.String(value, child, hour.hdr_texture);
+        else if (key == "hdr_texture" || key == "night_texture")
+            reader.String(value, child, key == "hdr_texture" ? hour.hdr_texture : hour.night_texture);
         else if (key == "shadow")
             reader.Object(value, child, [&](const std::string &k, const Json &v, const std::string &p) {
                 return k == "ao" && (reader.Float(v, p, hour.shadow_ao), true);
@@ -126,6 +126,10 @@ LightingPreset ParseLightingPreset(std::string_view json, Report &report)
             reader.String(value, path, preset.description);
         else if (key == "grass_preset")
             reader.String(value, path, preset.grass_preset);
+        else if (key == "weatherType")
+            reader.String(value, path, preset.weather_type);
+        else if (key == "sourcePresetName")
+            reader.String(value, path, preset.source_preset_name);
         else if (key == "locationId")
             reader.StringList(value, path, preset.location_ids);
         else if (key == "sun_azimuth" || key == "sun_height")

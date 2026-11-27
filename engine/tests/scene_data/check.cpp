@@ -1,5 +1,6 @@
 // The scene data parsers (src/libs/scene_data) on JSON written here; "[corpus]": every model material file, lighting
-// preset and tone mapping file of the installed game in $STORM_GAME_DIR (not run without one).
+// preset, tone mapping, time of day and atmosphere file of the installed game in $STORM_GAME_DIR (not run without
+// one).
 #include "storm/scene_data/scene_data.hpp"
 
 #include <algorithm>
@@ -78,7 +79,7 @@ TEST_CASE("model materials")
 TEST_CASE("lighting presets")
 {
     const char *json = R"({
-      "schemaVersion": 2, "presetName": "Test", "grass_preset": "grass1", "locationId": ["A_town", "B_port"],
+      "schemaVersion": 2, "presetName": "Test", "weatherType": "rain", "sourcePresetName": "Base", "grass_preset": "grass1", "locationId": ["A_town", "B_port"],
       "sun_azimuth": 120, "sun_height": 35.5,
       "good_rays": {"enabled": true, "density": 0.5, "intensity": 1, "length": 2, "quality": 3},
       "hours": {
@@ -99,6 +100,7 @@ TEST_CASE("lighting presets")
     CHECK(report.errors.size() == 2); // hour "24", a colour of two numbers
     CHECK(contains(report.unknown_keys, "$.hours.13.rain"));
     CHECK((preset.schema_version == 2 && preset.preset_name == "Test" && preset.location_ids.size() == 2));
+    CHECK((preset.weather_type == "rain" && preset.source_preset_name == "Base"));
     CHECK((preset.sun_azimuth == 120.0f && preset.god_rays && preset.god_rays->quality == 3));
     CHECK((preset.hours[0] && preset.hours[13] && !preset.hours[1]));
     const LightingHour &night = *preset.hours[0];
@@ -121,6 +123,87 @@ TEST_CASE("tone mapping")
     CHECK((tone.type == "aces" && tone.version == 1 && tone.exposure_ev == -0.5f && tone.contrast == 1.1f));
     CHECK((tone.lift[2] == 0.1f && tone.gain[0] == 1.0f));
     CHECK(contains(report.unknown_keys, "$.vignette"));
+}
+
+namespace
+{
+// A period of time_of_day.json with every key; `exposure` is its base_exposure.
+std::string Period(const char *light, float exposure)
+{
+    return std::string(R"({"light_color": )") + light + R"(, "light_intensity": 2, "sky_day_radiance": [1, 2, 3],
+        "sky_night_radiance": [0.01, 0.02, 0.03], "sky_fill_color": [1, 1, 1], "sky_fill_intensity": 1,
+        "diffuse_sky_tint": [1, 1, 1], "ground_color": [0.9, 0.8, 0.6], "ground_intensity": 0.5,
+        "base_exposure": )" +
+           std::to_string(exposure) + R"(, "camera": {"type": "aces", "version": 1, "contrast": 0.7}})";
+}
+
+std::string TimeOfDayJson(const std::string &transitions, float night_exposure)
+{
+    return R"({"version": 1, "enabled": true, "transition_hours": )" + transitions + R"(,
+        "celestial": {"moon_overlap_hours": 2, "handoff_hours": 0.5, "twilight_hours": 0.4, "shadow_morning_hour": 6.25,
+                      "shadow_evening_hour": 20, "shadow_morning_fade_minutes": 1, "shadow_evening_fade_minutes": 1},
+        "presets": {"dawn": )" +
+           Period("[1, 0.7, 0.5]", 2) + R"(, "day": )" + Period("[1, 1, 1]", 2) + R"(, "sunset": )" +
+           Period("[1, 0.6, 0.4]", 1) + R"(, "night": )" + Period("[0.1, 0.2, 0.6]", night_exposure) + "}}";
+}
+} // namespace
+
+TEST_CASE("time of day")
+{
+    Report report;
+    const TimeOfDay day = ParseTimeOfDay(TimeOfDayJson("[5, 7, 8, 10, 17, 18, 19, 20]", 1), report);
+    CHECK(report.ok());
+    CHECK((day.enabled && day.version == 1 && day.transition_hours[7] == 20 && day.celestial.handoff_hours == 0.5f));
+    CHECK((day.periods[kDawn].light_color[1] == 0.7f && day.periods[kNight].light_color[2] == 0.6f));
+    CHECK((day.periods[kDay].sky_day_radiance[2] == 3 && day.periods[kSunset].camera.contrast == 0.7f));
+
+    Report backwards;
+    ParseTimeOfDay(TimeOfDayJson("[5, 7, 8, 10, 17, 18, 21, 20]", 1), backwards);
+    CHECK(backwards.errors.size() == 1);
+    Report dark;
+    ParseTimeOfDay(TimeOfDayJson("[5, 7, 8, 10, 17, 18, 19, 20]", 0), dark); // log2 of 0
+    CHECK(dark.errors.size() == 1);
+    Report missing;
+    ParseTimeOfDay(R"({"version": 1, "enabled": true, "transition_hours": [1, 2, 3, 4, 5, 6, 7, 8]})", missing);
+    CHECK((missing.errors.size() == 2 && contains(missing.errors, "$.presets: missing")));
+}
+
+TEST_CASE("atmosphere")
+{
+    const auto fog = [](float attenuation, float top) {
+        return R"({"attenuation_distance": )" + std::to_string(attenuation) +
+               R"(, "base_height": 0, "maximum_height": )" + std::to_string(top) +
+               R"(, "start_distance": 10, "max_distance": 1e5, "max_opacity": 0.9, "mip_near": 0, "mip_far": 100,
+                  "mip_max": 0, "color": [0.6, 0.3, 0.2], "tint": [1, 1, 1], "sky_color": false})";
+    };
+    const auto json = [&](float night_attenuation) {
+        const std::string periods = R"({"Morning": )" + fog(120, 30) + R"(, "Day": )" + fog(1000, 33) +
+                                    R"(, "Evening": )" + fog(400, 96) + R"(, "Night": )" + fog(night_attenuation, 20) +
+                                    "}";
+        const char *haze_color = R"({"tint": [1, 1, 1], "radiance": [0.5, 0.7, 0.9], "brightness": 0.9})";
+        return R"({"version": 1, "textured_clouds": {"enabled": true},
+            "horizon_haze": {"enabled": true, "sky_color": true, "intensity": 1, "sea_width_degrees": 30,
+                "sky_width_degrees": 8.6, "edge_fade": 1, "sea_start": 0, "sea_fade": 2000, "sample_elevation_degrees": 1.4,
+                "transition_hours": [5, 7, 8, 10, 17, 18, 19, 20],
+                "colors": {"Dawn": )" +
+               std::string(haze_color) + R"(, "Day": )" + haze_color + R"(, "Sunset": )" + haze_color +
+               R"(, "Night": )" + haze_color + R"(}},
+            "height_fog": {"enabled": true, "profiles": {"Land": {"enabled": true,
+                "transition_hours": [5, 7, 8, 10, 17, 18, 19, 20], "periods": )" +
+               periods + "}}}}";
+    };
+    Report report;
+    const Atmosphere atmosphere = ParseAtmosphere(json(30), report);
+    CHECK(report.ok());
+    CHECK(contains(report.unknown_keys, "$.textured_clouds"));
+    REQUIRE((atmosphere.horizon_haze && atmosphere.land && !atmosphere.sea && atmosphere.height_fog));
+    CHECK((atmosphere.horizon_haze->sky_width_degrees == 8.6f &&
+           atmosphere.horizon_haze->colors[kNight].brightness == 0.9f));
+    CHECK((atmosphere.land->periods[kNight].attenuation_distance == 30 &&
+           atmosphere.land->periods[kSunset].maximum_height == 96));
+    Report zero;
+    ParseAtmosphere(json(0), zero); // a density of 1 / 0
+    CHECK(zero.errors.size() == 1);
 }
 
 TEST_CASE("scene data of an installed game", "[.corpus]")
@@ -170,7 +253,7 @@ TEST_CASE("scene data of an installed game", "[.corpus]")
             const ModelSidecar sidecar = ParseModelSidecar(read(entry.path()), report);
             record("model materials", entry.path(), report, int(sidecar.models.size()));
         }
-        else if (folders.find("lighting/") != std::string::npos)
+        else if (folders.find("lighting/") != std::string::npos || folders == "resource/weather/")
         {
             Report report;
             const LightingPreset preset = ParseLightingPreset(read(entry.path()), report);
@@ -182,6 +265,20 @@ TEST_CASE("scene data of an installed game", "[.corpus]")
             Report report;
             ParseToneMapping(read(entry.path()), report);
             record("tone mapping", entry.path(), report, 1);
+        }
+        else if (name == "time_of_day.json")
+        {
+            Report report;
+            ParseTimeOfDay(read(entry.path()), report);
+            record("time of day", entry.path(), report, kPeriods);
+        }
+        else if (name == "atmosphere.json")
+        {
+            Report report;
+            const Atmosphere atmosphere = ParseAtmosphere(read(entry.path()), report);
+            record("atmosphere", entry.path(), report,
+                   int(atmosphere.horizon_haze.has_value()) + int(atmosphere.land.has_value()) +
+                       int(atmosphere.sea.has_value()));
         }
     }
     int failed = 0;
