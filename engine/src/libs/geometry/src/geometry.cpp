@@ -3,6 +3,7 @@
 #include "core.h"
 #include "platform/frame_work.hpp"
 #include "fs.h"
+#include "game_profile.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -386,6 +387,61 @@ void GEOM_SERVICE_R::SetMaterial(const GEOS::MATERIAL &mt)
     m.Power = mt.gloss;
 
     RenderService->SetMaterial(m);
+}
+
+bool GEOM_SERVICE_R::ModelMaterials() const
+{
+    return !storm::gameProfileFacts().generates_texture_maps;
+}
+
+std::string GEOM_SERVICE_R::ReadMaterialFile(const char *model)
+{
+    std::string name(model);
+    if (name.size() > 3 && storm::iEquals(name.substr(name.size() - 3), ".gm"))
+        name.replace(name.size() - 3, 3, ".json");
+    std::ifstream stream(std::filesystem::u8path(fio->ConvertPathResource(name.c_str())), std::ios::binary);
+    return stream.is_open() ? std::string(std::istreambuf_iterator<char>(stream), {}) : std::string();
+}
+
+GEOS::ID GEOM_SERVICE_R::CreateMaterialTexture(const char *name, bool map, const char *requester)
+{
+    if (!RenderService)
+        return INVALID_TEXTURE_ID;
+    const int32_t texture = RenderService->TextureCreate(name);
+    if (texture < 0)
+    {
+        spdlog::error("materials: {} of {} cannot be loaded: drawn without it", name, requester);
+        return INVALID_TEXTURE_ID;
+    }
+    if (map)
+        storm::render::DeclareMaterialMap(RenderService->GetTextureFromID(texture));
+    return texture;
+}
+
+void GEOM_SERVICE_R::SetSurface(const GEOS::SURFACE *surface)
+{
+    if (!surface)
+    {
+        storm::render::SetEffectsSurfaceMaterial(nullptr);
+        return;
+    }
+    const auto texture = [this](GEOS::ID id) { return id >= 0 ? RenderService->GetTextureFromID(id) : nullptr; };
+    surface_ = {.normal = texture(surface->normal),
+                .rma = texture(surface->rma),
+                .emission = texture(surface->emission),
+                .roughness = surface->roughness,
+                .metallic = surface->metallic,
+                .emission_strength = surface->emission_strength,
+                .occlusion_uv1 = surface->occlusion_uv1};
+    storm::render::SetEffectsSurfaceMaterial(&surface_);
+    // SetMaterial left blending off; techniques that set these states still override them for their passes.
+    RenderService->SetRenderState(D3DRS_ALPHABLENDENABLE, surface->blended);
+    RenderService->SetRenderState(D3DRS_ZWRITEENABLE, !surface->blended);
+    if (surface->blended)
+    {
+        RenderService->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        RenderService->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    }
 }
 
 void GEOM_SERVICE_R::ReleaseTexture(GEOS::ID tex)

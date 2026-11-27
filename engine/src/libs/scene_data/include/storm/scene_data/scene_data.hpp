@@ -65,6 +65,11 @@ struct ModelSidecar
 };
 
 ModelSidecar ParseModelSidecar(std::string_view json, Report &report);
+// A texture path of a material file ("Resource\\Textures\\Props\\Box_RMA.dds") relative to resource\textures, as the
+// renderer names textures ("Props\\Box_RMA.dds"); nullopt for a path outside resource\textures.
+std::optional<std::string> MaterialTextureName(std::string_view path);
+// The keys of a material that the renderer's material programs do not draw (renderer_bgfx README, "Materials").
+std::vector<std::string> UndrawnMaterialKeys(const ModelMaterial &material);
 
 // ---- lighting preset --------------------------------------------------------------------------
 

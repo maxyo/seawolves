@@ -252,6 +252,21 @@ class Service final : public GEOM_SERVICE
     void SetMaterial(const GEOS::MATERIAL &) override
     {
     }
+    bool ModelMaterials() const override
+    {
+        return false;
+    }
+    std::string ReadMaterialFile(const char *) override
+    {
+        return {};
+    }
+    GEOS::ID CreateMaterialTexture(const char *, bool, const char *) override
+    {
+        return -1;
+    }
+    void SetSurface(const GEOS::SURFACE *) override
+    {
+    }
     GEOS::ID CreateVertexBuffer(int32_t, int32_t size) override
     {
         vertices.emplace_back(size_t(size));

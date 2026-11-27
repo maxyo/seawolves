@@ -147,6 +147,11 @@ storm_renderer_check(wet_surfaces_check GPU)
 FetchContent_GetProperties(storm_efkbgfx)
 storm_renderer_check(effekseer_check GPU CATCH2 ENV "STORM_EFFEKSEER_SAMPLES=${storm_efkbgfx_SOURCE_DIR}/examples/resources")
 storm_renderer_check(materials_check GPU CATCH2)
+# A game's real models with their materials, when STORM_GAME_DIR names a game that ships them.
+storm_renderer_check(game_materials_check GPU CATCH2 INCLUDES ${renderer} ${src}/libs/geometry/src)
+target_link_libraries(game_materials_check PRIVATE scene_data)
+set_tests_properties(renderer_bgfx.game_materials_check renderer_bgfx.game_materials_check.vulkan PROPERTIES
+    LABELS "gpu;display;game" SKIP_RETURN_CODE 77 TIMEOUT 900)
 # It counts the GL backend's glUniform calls (patches/bgfx-gl-uniform-commit.patch).
 storm_renderer_check(uniform_commit_check GPU GLES_ONLY)
 # bgfx's Vulkan backend resolves in the render pass (patches/bgfx-vulkan-resolve-in-pass.patch).

@@ -66,6 +66,11 @@ class GEOM : public GEOS
     int32_t traceid;
     glm::dvec3 src, dst;
     std::unique_ptr<GeomFarLod> far_lod_; // islands, ships, outdoor locations (GeomFarLod::Wanted)
+    // Per object: its material (GEOM_SERVICE::ModelMaterials; empty when the game's models draw without), and the
+    // textures their maps hold.
+    std::vector<SURFACE> surface_;
+    std::vector<ID> surface_textures_;
+    void LoadSurfaces(const char *fname);
 
   public:
     GEOM(const char *fname, const char *lightname, GEOM_SERVICE &srv, int32_t flags);

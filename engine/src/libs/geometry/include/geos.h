@@ -133,6 +133,18 @@ class GEOS
         char *name;
     };
 
+    // A game's own material of an object, from the material file beside its model (scene_data::ModelMaterial): its
+    // maps' textures (-1: none) and the values without them. A game whose models draw with materials gives every object
+    // one, the default (matte, no metal) where the file names none.
+    struct SURFACE
+    {
+        ID normal = -1, rma = -1, emission = -1;
+        float roughness = 1.0f, metallic = 0.0f;
+        float emission_strength = 0.0f;
+        bool occlusion_uv1 = false; // the material's second texture is the occlusion on the second uv set
+        bool blended = false;       // drawn alpha-blended, without depth writes
+    };
+
     virtual int32_t FindMaterialN(int32_t start_index, int32_t name_id) = 0;
     virtual int32_t FindMaterialG(int32_t start_index, int32_t group_name_id) = 0;
     virtual void GetMaterial(int32_t m, MATERIAL &mt) const = 0;
@@ -346,6 +358,15 @@ class GEOM_SERVICE
     virtual GEOS::ID MissingTexture() = 0;
     virtual void ReleaseTexture(GEOS::ID tex) = 0;
     virtual void SetMaterial(const GEOS::MATERIAL &mt) = 0;
+    // The game's models draw with their own materials (core's game profile: a game that ships its texture maps).
+    virtual bool ModelMaterials() const = 0;
+    // The text of the material file beside the model `model` (its .gm name with .json); empty when there is none.
+    virtual std::string ReadMaterialFile(const char *model) = 0;
+    // A texture a material file names, relative to resource\textures (without the model's texture path); `map`: a
+    // normal or rma map, whose texels are numbers. -1 when it cannot be created (named in the log).
+    virtual GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) = 0;
+    // The draws that follow take this material (null: none).
+    virtual void SetSurface(const GEOS::SURFACE *surface) = 0;
 
     virtual GEOS::ID CreateVertexBuffer(int32_t type, int32_t size) = 0;
     virtual void *LockVertexBuffer(GEOS::ID vb) = 0;

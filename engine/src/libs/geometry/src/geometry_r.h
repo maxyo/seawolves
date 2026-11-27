@@ -1,6 +1,7 @@
 #pragma once
 
 #include "renderer.h"
+#include "storm/render/effects.hpp"
 #include "vma.hpp"
 #include <geometry.h>
 
@@ -56,6 +57,7 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     GEOS::ID CurentVertexBuffer;
     uint32_t CurentVertexBufferSize;
     bool bCaustic;
+    storm::render::EffectsSurfaceMaterial surface_{}; // SetSurface's, for the renderer
 
   public:
     void SetRenderService(VRenderer *render_service);
@@ -70,6 +72,10 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     std::string TextureFile(const char *fname) const override;
     GEOS::ID MissingTexture() override;
     void SetMaterial(const GEOS::MATERIAL &mt);
+    bool ModelMaterials() const override;
+    std::string ReadMaterialFile(const char *model) override;
+    GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) override;
+    void SetSurface(const GEOS::SURFACE *surface) override;
     void ReleaseTexture(GEOS::ID tex);
 
     GEOS::ID CreateVertexBuffer(int32_t type, int32_t size);

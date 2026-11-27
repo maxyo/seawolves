@@ -76,6 +76,26 @@ TEST_CASE("model materials")
     CHECK(broken.errors.size() == 1);
 }
 
+TEST_CASE("model material textures and the keys the renderer does not draw")
+{
+    CHECK(MaterialTextureName("Resource\\Textures\\Props\\Box_RMA.dds") == "Props\\Box_RMA.dds");
+    CHECK(MaterialTextureName("resource/textures/base_nom.tga.tx") == "base_nom.tga.tx");
+    CHECK_FALSE(MaterialTextureName("Resource\\Models\\Box.gm"));
+    CHECK_FALSE(MaterialTextureName("Resource\\Textures\\"));
+    ModelMaterial material;
+    material.rma_texture = "Resource\\Textures\\a_RMA.dds";
+    material.alpha = true;
+    CHECK(UndrawnMaterialKeys(material).empty());
+    material.animation = "plant";
+    material.layer_material = true;
+    material.reflection = true;
+    const std::vector<std::string> undrawn = UndrawnMaterialKeys(material);
+    CHECK(undrawn.size() == 3);
+    CHECK(contains(undrawn, "animation"));
+    CHECK(contains(undrawn, "layer_material"));
+    CHECK(contains(undrawn, "reflection"));
+}
+
 TEST_CASE("lighting presets")
 {
     const char *json = R"({

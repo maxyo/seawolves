@@ -1,6 +1,9 @@
 // Per-model sidecar materials: Resource/Models/**/<model>.json next to <model>.gm.
 #include "json_reader.hpp"
 
+#include <algorithm>
+#include <cctype>
+
 namespace storm::scene_data
 {
 namespace
@@ -97,6 +100,33 @@ ModelSidecar ParseModelSidecar(std::string_view json, Report &report)
         return true;
     });
     return sidecar;
+}
+
+std::optional<std::string> MaterialTextureName(std::string_view path)
+{
+    constexpr std::string_view kTextures = "resource\\textures\\";
+    std::string name(path);
+    std::replace(name.begin(), name.end(), '/', '\\');
+    if (name.size() <= kTextures.size() ||
+        !std::equal(kTextures.begin(), kTextures.end(), name.begin(),
+                    [](char a, char b) { return a == std::tolower(static_cast<unsigned char>(b)); }))
+        return std::nullopt;
+    return name.substr(kTextures.size());
+}
+
+std::vector<std::string> UndrawnMaterialKeys(const ModelMaterial &material)
+{
+    std::vector<std::string> keys;
+    for (const auto &[present, key] : {std::pair{material.reflection, "reflection"},
+                                       {material.alpha_ccw, "alpha_ccw"},
+                                       {material.shadow_cw, "shadow_cw"},
+                                       {material.point_shadow, "point_shadow"},
+                                       {material.point_light, "PointLight"},
+                                       {!material.animation.empty(), "animation"},
+                                       {material.layer_material, "layer_material"}})
+        if (present)
+            keys.emplace_back(key);
+    return keys;
 }
 
 } // namespace storm::scene_data

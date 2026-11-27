@@ -11,11 +11,13 @@ Import library main file
 #include <storm/config.hpp>
 #include <storm/render/far_lod.hpp>
 #include <storm/render/shadow_casters.hpp>
+#include <storm/scene_data/scene_data.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <fmt/format.h>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -393,6 +395,64 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         }
     }
     srv.free(rmat);
+    LoadSurfaces(fname);
+}
+
+// A game whose models draw with their own materials: every object takes its entry of the material file beside the
+// model, the default one where the file names none (or there is no file). Keys the material programs do not draw are
+// named once a session.
+void GEOM::LoadSurfaces(const char *fname)
+{
+    if (!srv.ModelMaterials())
+        return;
+    namespace scene = storm::scene_data;
+    scene::Report report;
+    const std::string text = srv.ReadMaterialFile(fname);
+    const scene::ModelSidecar file = text.empty() ? scene::ModelSidecar{} : scene::ParseModelSidecar(text, report);
+    for (const std::string &error : report.errors)
+        spdlog::error("materials: {}: {}", fname, error);
+    static std::set<std::string> reported;
+    const auto undrawn = [&](const std::string &key) {
+        if (reported.insert(key).second)
+            spdlog::warn("materials: {} is not drawn (first in {})", key, fname);
+    };
+    for (const std::string &path : report.unknown_keys)
+        undrawn(path.substr(path.rfind('.') + 1));
+    std::map<std::string, ID> made; // by name: objects share maps
+    const auto texture = [&](const std::string &path, bool map) {
+        if (path.empty())
+            return ID(-1);
+        const std::optional<std::string> name = scene::MaterialTextureName(path);
+        if (!name)
+        {
+            spdlog::error("materials: {} names {}, which is not under resource\\textures", fname, path);
+            return ID(-1);
+        }
+        const auto [entry, fresh] = made.try_emplace(*name, -1);
+        if (fresh && (entry->second = srv.CreateMaterialTexture(name->c_str(), map, fname)) >= 0)
+            surface_textures_.push_back(entry->second);
+        return entry->second;
+    };
+    surface_.resize(rhead.nobjects);
+    for (int32_t o = 0; o < rhead.nobjects; o++)
+    {
+        SURFACE &surface = surface_[o];
+        const MATERIAL &m = material[object[o].material];
+        surface.occlusion_uv1 = m.texture_type[1] != TEXTURE_NONE && m.texture[1] >= 0;
+        const auto found = file.models.find(object[o].name);
+        if (found == file.models.end())
+            continue;
+        const scene::ModelMaterial &entry = found->second;
+        for (const std::string &key : scene::UndrawnMaterialKeys(entry))
+            undrawn(key);
+        surface.normal = texture(entry.normal_texture, true);
+        surface.rma = texture(entry.rma_texture, true);
+        surface.emission = texture(entry.emission_texture, false);
+        surface.roughness = entry.roughness.value_or(1.0f);
+        surface.metallic = entry.metallic.value_or(0.0f);
+        surface.emission_strength = entry.emission.value_or(0.0f);
+        surface.blended = entry.alpha || entry.alpha_ccw;
+    }
 }
 
 // delete all textures, buffers, memory
@@ -413,6 +473,8 @@ GEOM::~GEOM()
 
     for (int32_t t = 0; t < rhead.ntextures; t++)
         srv.ReleaseTexture(tlookup[t]);
+    for (const ID texture : surface_textures_)
+        srv.ReleaseTexture(texture);
     srv.free(tlookup);
     srv.free(tname);
 
@@ -452,6 +514,8 @@ void GEOM::Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const
         auto *const vb = &vbuff[object[o].vertex_buff];
         srv.SetVertexBuffer(vb->stride, vb->dev_buff);
         srv.SetMaterial(material[object[o].material]);
+        if (!surface_.empty())
+            srv.SetSurface(&surface_[o]);
         if (mtf != nullptr)
             mtf(material[object[o].material]);
         if (lods && far_lod_->Draw(o, object[o], vb->stride))
@@ -462,6 +526,8 @@ void GEOM::Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const
         srv.DrawIndexedPrimitive(object[o].start_vertex, object[o].num_vertices, vb->stride, object[o].striangle * 3,
                                  object[o].ntriangles);
     }
+    if (!surface_.empty())
+        srv.SetSurface(nullptr);
 }
 
 bool GEOM::GetCollisionDetails(TRACE_INFO &ti) const
