@@ -503,6 +503,8 @@ storm_host_check(sea_script_protocol SOURCES check.cpp ${core_fake_sources} ${sr
     ${src}/libs/sea_ai/src/ai_cannon.cpp INCLUDES ${core_fake_includes} ${src}/libs/sea_ai/src
              ${src}/libs/renderer_bgfx/fx/include DEFINES ${core_fake_defines}
     OPTIONS -g -Wno-deprecated-declarations ${asan_strict} -fno-omit-frame-pointer CATCH2)
+storm_host_check(sea_aiming INCLUDES ${src}/libs/sea_ai/include ${src}/libs/sea_cameras/src
+    OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(sea_ai_relations INCLUDES ${src}/libs/sea_ai/src ${src}/libs/shared_headers/include
     OPTIONS ${warnings} ${asan_strict} CATCH2)
 # The audio library against synthetic clips made with the system ffmpeg, also under ASan and UBSan.

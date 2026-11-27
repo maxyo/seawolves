@@ -171,7 +171,7 @@ TEST_CASE("cannon events of the real AICannon name its board in Caribbean Legend
         cannon.Init(&holder, 7, label, "cannonl", 2);
         cannon.Recharge();
         cannon.Execute(0.1f); // reloaded
-        REQUIRE(cannon.Fire(100.0f, glm::vec3(200.0f, 0.0f, 0.0f)));
+        REQUIRE(cannon.Fire(100.0f, glm::vec3(200.0f, 0.0f, 0.0f), true));
         cannon.Execute(0.1f); // fires and reloads
         REQUIRE(raised == std::vector<std::string>{CANNON_LOAD, CANNON_GET_RECHARGE_TIME, CANNON_GET_FIRE_TIME,
                                                    CANNON_FIRE, CANNON_LOAD, CANNON_GET_RECHARGE_TIME});
@@ -216,7 +216,7 @@ TEST_CASE("a reloading cannon takes the reload progress the script sets, a firin
     REQUIRE(cannon.GetRechargePercent() == 1.0f);
 
     cannon.Execute(0.01f); // reloaded
-    REQUIRE(cannon.Fire(100.0f, glm::vec3(0.0f, 0.0f, 200.0f)));
+    REQUIRE(cannon.Fire(100.0f, glm::vec3(0.0f, 0.0f, 200.0f), true));
     cannon.SetRechargeProgress(1.0f); // the fire delay is not a reload
     cannon.Execute(0.01f);
     REQUIRE(shots == 0);
@@ -375,6 +375,11 @@ TEST_CASE("ship events whose layout differs between the games")
         REQUIRE((m.Float() == 0.0f && m.Float() == 0.0f && m.Float() == 1.0f));
         REQUIRE(exhausted(m));
 
+        // Ship_BortFire from the aiming camera: the character's index, firedShip, bortName, sMode
+        storm::sea_ai::ResetAimedBortFire(m, 5, 9, "cannonl");
+        REQUIRE((m.Long() == 5 && m.EntityID() == 9 && m.String() == "cannonl" && m.String() == "aiming"));
+        REQUIRE(exhausted(m));
+
         // Shp_GetRunawayPnt: the character, To Each His Own also the ship's x and z
         storm::sea_ai::ResetRunawayPoint(m, p, character, 10.0f, 20.0f);
         REQUIRE(m.AttributePointer() == character);
@@ -418,4 +423,42 @@ TEST_CASE("each game keeps its own board geometry")
     REQUIRE(storm::sea_ai::BoardFireZone(cl, 2.0f) == 1.5f);
     const auto clAngles = storm::sea_ai::SelectBoardAngles(cl, shipType, cannons);
     REQUIRE((clAngles.fireAngMin == -0.2f && clAngles.fireAngMax == 0.4f));
+}
+
+TEST_CASE("a shot the player aimed is not an automatic one")
+{
+    profile = GameProfile::CaribbeanLegend;
+    ATTRIBUTES &chr = fake.scripts.object("character");
+    AIAttributesHolder holder;
+    holder.SetACharacter(&chr);
+    storm::test::FakeShip ship(9, &chr, nullptr);
+    fake.entityPointers[9] = &ship;
+    DATA &loaded = fake.scripts.integer("loaded", 1);
+    DATA &delay = fake.scripts.variable("delay", VAR_FLOAT);
+    delay.Set(0.0f);
+    std::vector<int32_t> modes;
+    fake.messageEvent = [&](std::string_view name, MESSAGE &m) -> VDATA * {
+        if (name == CANNON_LOAD)
+            return &loaded;
+        if (name != CANNON_FIRE)
+            return &delay;
+        m.AttributePointer();
+        for (int i = 0; i < 9; i++)
+            m.Float();
+        modes.push_back(m.Long()); // bMode
+        return nullptr;
+    };
+    GEOS::LABEL label{};
+    label.m[0][0] = label.m[1][1] = label.m[2][2] = label.m[3][3] = 1.0f;
+    AICannon cannon;
+    cannon.Init(&holder, 9, label, "cannonf", 0);
+    for (const bool automatic : {false, true})
+    {
+        cannon.Recharge();
+        cannon.Execute(0.01f);
+        REQUIRE(cannon.Fire(100.0f, glm::vec3(0.0f, 0.0f, 200.0f), automatic));
+        cannon.Execute(0.01f);
+    }
+    REQUIRE(modes == std::vector<int32_t>{0, 1});
+    fake.entityPointers.erase(9);
 }

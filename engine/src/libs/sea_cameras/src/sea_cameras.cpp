@@ -1,6 +1,8 @@
 #include "sea_cameras.h"
 #include "deck_camera.h"
 #include "fire_camera.h"
+
+#include <string>
 #include "free_camera.h"
 #include "ship_camera.h"
 #include "shared/sea_ai/script_defines.h"
@@ -43,8 +45,11 @@ uint64_t SEA_CAMERAS::ProcessMessage(MESSAGE &message)
         const auto eidCamera = message.EntityID();
         auto *const pACharacter = message.AttributePointer();
         auto *pCamera = static_cast<COMMON_CAMERA *>(core.GetEntityPointer(eidCamera));
-        if (!pCamera->CanBeSwitchedTo())
-            break;
+        if (message.GetFormat() == "liasf")
+        {
+            const std::string locator = message.String();
+            pCamera->SetPlace(locator, message.Float());
+        }
         const auto it = std::find(CamerasArray.begin(), CamerasArray.end(), pCamera);
         if (it == CamerasArray.end())
             CamerasArray.push_back(pCamera);

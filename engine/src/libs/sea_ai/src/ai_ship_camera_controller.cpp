@@ -28,10 +28,12 @@ bool AIShipCameraController::Init()
     auto *pAColors = pACrosshair->GetAttributeClass("colors");
     if (pAColors)
     {
-        Colors[RELATION_UNKNOWN] = pAColors->GetAttributeAsDword("default");
-        Colors[RELATION_ENEMY] = pAColors->GetAttributeAsDword("enemy");
-        Colors[RELATION_FRIEND] = pAColors->GetAttributeAsDword("friend");
-        Colors[RELATION_NEUTRAL] = pAColors->GetAttributeAsDword("neutral");
+        // The games name the colours one of two ways: Default/Enemy/... or Normal/TargetEnemy/...
+        const bool target = pAColors->GetAttributeClass("TargetEnemy") != nullptr;
+        Colors[RELATION_UNKNOWN] = pAColors->GetAttributeAsDword(target ? "Normal" : "default");
+        Colors[RELATION_ENEMY] = pAColors->GetAttributeAsDword(target ? "TargetEnemy" : "enemy");
+        Colors[RELATION_FRIEND] = pAColors->GetAttributeAsDword(target ? "TargetFriend" : "friend");
+        Colors[RELATION_NEUTRAL] = pAColors->GetAttributeAsDword(target ? "TargetNeutral" : "neutral");
         // The games name no colour of their own for an ally.
         Colors[RELATION_ALLIANCE] = Colors[RELATION_FRIEND];
     }
@@ -150,7 +152,24 @@ bool AIShipCameraController::Fire()
                    Helper.GetScriptRelationSafe(GetAIShip()->GetACharacter(), pTargetAPointer));
     }
 
+    if (!aimingBoard_.empty())
+        return GetAIShip()->GetCannonController()->FireAimed(aimingBoard_, storm::math::pos(m), vZ);
     return GetAIShip()->GetCannonController()->Fire(storm::math::pos(m), vZ);
+}
+
+void AIShipCameraController::EnterAimingCamera()
+{
+    // GetCurBort answers {board, camera locator}.
+    VDATA *answer = core.Event("GetCurBort");
+    const char *board = nullptr;
+    if (!answer || !answer->IsArray() || !answer->Get(board, 0) || !board)
+        throw std::runtime_error("sea AI: GetCurBort gave no board for the aiming camera");
+    aimingBoard_ = board;
+}
+
+void AIShipCameraController::LeaveAimingCamera()
+{
+    aimingBoard_.clear();
 }
 
 void AIShipCameraController::Realize(float fDeltaTime)

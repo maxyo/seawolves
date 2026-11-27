@@ -1,6 +1,7 @@
 #pragma once
 
 #define INVALID_BORT_INDEX 0xFFFFFFFF
+#include "cannons_range.hpp"
 #include "string_compare.hpp"
 
 class AIShip;
@@ -78,7 +79,11 @@ class AIShipCannonController
 
     bool ScanShipForCannons();
 
-    bool Fire2Position(AISHIP_BORT &bort, const glm::vec3 &vFirePos, float fFireHeight);
+    // bAimed: the player aims through the aiming camera (Ship_Bort_Fire without a target, shots not automatic).
+    bool Fire2Position(AISHIP_BORT &bort, const glm::vec3 &vFirePos, float fFireHeight, bool bAimed);
+    void DrawCannonsRange(float fDeltaTime);
+    float fCannonsRangeTime = 0.0f;
+    bool FireAlong(AISHIP_BORT &bort, const glm::vec3 &vFireCamPos, const glm::vec3 &vAim, bool bAimed);
 
     [[nodiscard]] float GetSpeedV0(const AISHIP_BORT &bort) const;
 
@@ -122,6 +127,7 @@ class AIShipCannonController
     bool Fire(const glm::vec3 &vFirePos);                             // fire to position
     bool Fire(AIShip *pEnemy);                                      // fire to ship
     bool Fire(const glm::vec3 &vFireCamPos, const glm::vec3 &vFireDir); // manual fire
+    bool FireAimed(const std::string &board, const glm::vec3 &vFireCamPos, const glm::vec3 &vFireDir);
 
     // reload section
     void Unload(); // unload cannons
@@ -153,6 +159,7 @@ class AIShipCannonController
     // default constructor/destructor
     AIShipCannonController(AIShip *);
 
+    static storm::sea_ai::CannonsRange cannonsRange;
     static float fMaxCannonDamageDistance;
     static float fMaxCannonDamageRadiusPoint;
 

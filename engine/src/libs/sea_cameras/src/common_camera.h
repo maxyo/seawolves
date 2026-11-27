@@ -5,6 +5,9 @@
 #include "core.h"
 #include "vma.hpp"
 
+#include <stdexcept>
+#include <string>
+
 class COMMON_CAMERA : public Entity
 {
   private:
@@ -98,10 +101,11 @@ class COMMON_CAMERA : public Entity
         return bActive;
     };
 
-    // SEA_CAMERAS switches to the camera (AI_CAMERAS_SET_CAMERA) only when it can be; one that cannot says why.
-    virtual bool CanBeSwitchedTo() const
+    // AI_CAMERAS_SET_CAMERA "liasf": the place on the ship (a model locator) and the azimuth from the ship's heading
+    // the camera starts at; only the aiming camera has a place.
+    virtual void SetPlace(const std::string &locator, float shipAy)
     {
-        return true;
+        throw std::runtime_error("sea cameras: a place '" + locator + "' for a camera that has none");
     }
 
     virtual void Save(CSaveLoad *pSL) = 0;

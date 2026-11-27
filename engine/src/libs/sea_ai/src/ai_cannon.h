@@ -14,6 +14,7 @@ class AICannon
     entid_t eidParent;       // parent for cannon (ship, or fort entity)
     std::string sBoard;      // the ship's board, or the fort's cannon type key, the scripts know the cannon by
     int32_t iIndex;          // the cannon's index on its board
+    bool bAutomatic;         // the shot in progress is aimed by the engine
     glm::vec3 vPos, vDir;      // Cannon position and direction(relative to parent)
     float fTime2Action;      // timeout before action(calculated in script)
     float fTotalTime2Action; // total timeout before action(calculated in script)(unchangeable)
@@ -62,7 +63,8 @@ class AICannon
     VAI_OBJBASE *GetAIObjPointer() const;
 
     float CalcHeightFireAngle(float _fSpeedV0, const glm::vec3 &vOur, const glm::vec3 &vEnemy) const;
-    bool Fire(float fSpeedV0, const glm::vec3 &vFirePos);
+    // bAutomatic: the engine aimed the shot (the scripts scatter it), else the player did.
+    bool Fire(float fSpeedV0, const glm::vec3 &vFirePos, bool bAutomatic);
     void Load();
     void Unload();
     void Recharge();

@@ -92,7 +92,7 @@ void AIFort::Execute(uint32_t Delta_Time)
                         }
                     }
                 if (pFireAIShip)
-                    pC->Fire(fSpeedV0, pFireAIShip->GetPos());
+                    pC->Fire(fSpeedV0, pFireAIShip->GetPos(), true);
             }
             pC->Execute(fDeltaTime);
         }

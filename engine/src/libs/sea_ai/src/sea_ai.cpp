@@ -332,13 +332,30 @@ uint64_t SEA_AI::ProcessMessage(MESSAGE &message)
         pAIShip->GetCannonController()->SetBortRecharge(board, progress);
     }
     break;
-    case AI_MESSAGE_CANNONS_RANGE:
-        spdlog::warn("sea AI: the cannon range overlay is not implemented (AI_MESSAGE_CANNONS_RANGE)");
-        break;
+    case AI_MESSAGE_CANNONS_RANGE: {
+        auto &range = AIShipCannonController::cannonsRange;
+        range.chargedNear = static_cast<uint32_t>(message.Long());
+        range.chargedEdge = static_cast<uint32_t>(message.Long());
+        range.reloadingNear = static_cast<uint32_t>(message.Long());
+        range.reloadingEdge = static_cast<uint32_t>(message.Long());
+        range.riseSeconds = message.Float();
+        range.fallSeconds = message.Float();
+        range.enabled = message.Long() != 0;
+    }
+    break;
     case AI_MESSAGE_FIRE_CAMERA_RESET:
-    case AI_MESSAGE_FIRE_CAMERA_EXIT:
-        spdlog::warn("sea AI: the aiming camera is not implemented (message {})", iCode);
-        break;
+    case AI_MESSAGE_FIRE_CAMERA_EXIT: {
+        auto *pACharacter = message.AttributePointer();
+        if (!pACharacter->GetAttributeAsDword("MainCharacter"))
+            break;
+        auto *pAIShip = AIShip::FindShip(pACharacter);
+        Assert(pAIShip && pAIShip->GetCameraController());
+        if (iCode == AI_MESSAGE_FIRE_CAMERA_RESET)
+            pAIShip->GetCameraController()->EnterAimingCamera();
+        else
+            pAIShip->GetCameraController()->LeaveAimingCamera();
+    }
+    break;
     case AI_MESSAGE_SEASAVE: //TODO: check these two
     {
         char str[256]{};

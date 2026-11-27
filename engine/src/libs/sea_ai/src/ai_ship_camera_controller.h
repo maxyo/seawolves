@@ -2,6 +2,8 @@
 
 #include "shared/sea_ai/script_defines.h"
 
+#include <string>
+
 class AIShip;
 
 class AIShipCameraController
@@ -14,6 +16,7 @@ class AIShipCameraController
     bool bCameraOutside;
 
     uint32_t Colors[RELATION_ALLIANCE + 1];
+    std::string aimingBoard_; // the board the aiming camera fires, empty outside it
 
     uint32_t dwSubTexturesX, dwSubTexturesY;
 
@@ -31,6 +34,10 @@ class AIShipCameraController
 
     bool Fire();
     bool Init();
+
+    // AI_MESSAGE_FIRE_CAMERA_RESET: the aiming camera aims the board the scripts name (GetCurBort); _EXIT: it is left.
+    void EnterAimingCamera();
+    void LeaveAimingCamera();
 
     AIShipCameraController(AIShip *);
     ~AIShipCameraController();

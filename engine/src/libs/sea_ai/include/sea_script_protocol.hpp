@@ -289,6 +289,12 @@ inline void ResetBortFire(MESSAGE &m, const SeaScriptProtocol &p, int32_t charac
                 direction.z);
 }
 
+// Ship_Bort_Fire from the aiming camera, which only games whose scripts create it raise: the board without a target.
+inline void ResetAimedBortFire(MESSAGE &m, int32_t character, entid_t ship, const std::string &board)
+{
+    m.Reset("liss", character, ship, board, std::string("aiming"));
+}
+
 // Shp_GetRunawayPnt
 inline void ResetRunawayPoint(MESSAGE &m, const SeaScriptProtocol &p, ATTRIBUTES *character, float x, float z)
 {

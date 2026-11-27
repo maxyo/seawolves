@@ -15,7 +15,7 @@ constexpr float kMuzzleFlashAhead = 0.5f;
 
 uint64_t dwTmpRDTSC;
 
-AICannon::AICannon() : pAHolder(nullptr), eidParent(0), iIndex(0), vPos(), vDir(), fSpeedV0(0), vEnemyPos()
+AICannon::AICannon() : pAHolder(nullptr), eidParent(0), iIndex(0), bAutomatic(true), vPos(), vDir(), fSpeedV0(0), vEnemyPos()
 {
     bLoad = false;
     bEmpty = true;
@@ -157,11 +157,10 @@ void AICannon::RealFire()
         fAngle = -fAngle;
     }
 
-    // Every shot is aimed by the engine: the aiming camera, whose shots are not automatic, does not exist here.
     MESSAGE event;
     storm::sea_ai::ResetCannonFire(
         event, storm::sea_ai::seaScriptProtocol(), pAHolder->GetACharacter(),
-        {vPosTemp, fSpeedV0, fFireDirection, fFireHeightAngle, fDirY, fMaxFireDistance, fAngle}, true, sBoard);
+        {vPosTemp, fSpeedV0, fFireDirection, fFireHeightAngle, fDirY, fMaxFireDistance, fAngle}, bAutomatic, sBoard);
     core.Event(CANNON_FIRE, event);
 
     // Средняя / Высокая: the muzzle flash's light, where the game puts the muzzle fire (the CANNON_FIRE point, at which
@@ -180,7 +179,7 @@ void AICannon::RealFire()
     Recharge();
 }
 
-bool AICannon::Fire(float _fSpeedV0, const glm::vec3 &_vFirePos)
+bool AICannon::Fire(float _fSpeedV0, const glm::vec3 &_vFirePos, bool _bAutomatic)
 {
     if (isFired() || isRecharged() || isDamaged() || isEmpty())
         return false;
@@ -201,6 +200,7 @@ bool AICannon::Fire(float _fSpeedV0, const glm::vec3 &_vFirePos)
 
     vEnemyPos = _vFirePos;
     fSpeedV0 = _fSpeedV0;
+    bAutomatic = _bAutomatic;
 
     // calculate in script timeout before real fire
     MESSAGE event;

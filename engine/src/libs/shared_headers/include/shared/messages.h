@@ -361,5 +361,7 @@
 #define MSG_SHIP_CAMERA_GET_AY 41900
 #define MSG_SHIP_CAMERA_SET_AY 41901
 #define MSG_DECK_CAMERA_GET_AY 41910
+// Caribbean Legend's aiming camera: "lf" whether the view's elevation follows the aim, the aim's elevation, radians
+#define MSG_FIRE_CAMERA_SET_AIM_PITCH 41911
 
 #endif

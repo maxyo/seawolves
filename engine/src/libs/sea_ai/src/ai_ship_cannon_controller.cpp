@@ -7,6 +7,7 @@
 #include "math_inlines.h"
 #include "sea_script_protocol.hpp"
 
+storm::sea_ai::CannonsRange AIShipCannonController::cannonsRange;
 float AIShipCannonController::fMaxCannonDamageDistance = 1.0f;
 float AIShipCannonController::fMaxCannonDamageRadiusPoint = 1.0f;
 
@@ -15,7 +16,8 @@ AIShipCannonController::AIShipCannonController(AIShip *_pShip) : bReload(false),
     SetAIShip(_pShip);
 }
 
-bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &vFirePos, float fFireHeight)
+bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &vFirePos, float fFireHeight,
+                                           bool bAimed)
 {
     const auto bEnoughBalls = isHaveEnoughBallsForBort(bort);
     if (!bEnoughBalls)
@@ -25,17 +27,25 @@ bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &v
     
     auto vTempFirePos = vFirePos + glm::vec3(0.0f, fFireHeight, 0.0f);
 
-    auto *pVData = core.Event(SHIP_GET_BORT_FIRE_DELTA, "afff", GetAIShip()->GetACharacter(), vTempFirePos.x,
-                              vTempFirePos.y, vTempFirePos.z);
-    const auto fRadius = pVData->GetFloat();
-    const auto fAng = FRAND(PIm2);
-    vTempFirePos += glm::vec3(fRadius * sinf(fAng), 0.0f, fRadius * cosf(fAng));
-
-    const auto vTempFireDir = storm::math::normalizeOrZero(vTempFirePos - pOurAIShip->GetPos());
-
     MESSAGE event;
-    storm::sea_ai::ResetBortFire(event, storm::sea_ai::seaScriptProtocol(), GetIndex(GetAIShip()->GetACharacter()),
-                                 GetAIShip()->GetShipEID(), bort.sName, vTempFirePos, vTempFireDir);
+    if (bAimed)
+    {
+        // the player's own aim: no scattering by the scripts
+        storm::sea_ai::ResetAimedBortFire(event, GetIndex(GetAIShip()->GetACharacter()), GetAIShip()->GetShipEID(),
+                                          bort.sName);
+    }
+    else
+    {
+        auto *pVData = core.Event(SHIP_GET_BORT_FIRE_DELTA, "afff", GetAIShip()->GetACharacter(), vTempFirePos.x,
+                                  vTempFirePos.y, vTempFirePos.z);
+        const auto fRadius = pVData->GetFloat();
+        const auto fAng = FRAND(PIm2);
+        vTempFirePos += glm::vec3(fRadius * sinf(fAng), 0.0f, fRadius * cosf(fAng));
+        const auto vTempFireDir = storm::math::normalizeOrZero(vTempFirePos - pOurAIShip->GetPos());
+        storm::sea_ai::ResetBortFire(event, storm::sea_ai::seaScriptProtocol(),
+                                     GetIndex(GetAIShip()->GetACharacter()), GetAIShip()->GetShipEID(), bort.sName,
+                                     vTempFirePos, vTempFireDir);
+    }
     core.Event(SHIP_BORT_FIRE, event);
 
     for (auto& cannon : bort.aCannons)
@@ -49,7 +59,7 @@ bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &v
                 debugFirePositions.emplace_back(vTempFirePos, ARGB(0xFF, 0xFF, 0xFF, 0x00), float{});
             }
 
-            cannon.Fire(bort.fSpeedV0, vTempFirePos);
+            cannon.Fire(bort.fSpeedV0, vTempFirePos, !bAimed);
         }
     }
     bort.ClearCharge(); // FIX-ME
@@ -61,13 +71,33 @@ bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &v
 
 bool AIShipCannonController::Fire(const glm::vec3 &vFireCamPos, const glm::vec3 &vFireDir)
 {
-    const auto vOurPos = GetAIShip()->GetPos();
-
     glm::vec3 vAim;
     const uint32_t dwBort = GetCameraFireBort(vFireDir, vAim);
     if (dwBort == INVALID_BORT_INDEX)
         return false;
-    auto &bort = aShipBorts[dwBort];
+    FireAlong(aShipBorts[dwBort], vFireCamPos, vAim, false);
+    return true;
+}
+
+bool AIShipCannonController::FireAimed(const std::string &board, const glm::vec3 &vFireCamPos,
+                                       const glm::vec3 &vFireDir)
+{
+    const auto it = std::find_if(aShipBorts.begin(), aShipBorts.end(),
+                                 [&](const AISHIP_BORT &bort) { return storm::iEquals(bort.sName, board); });
+    if (it == aShipBorts.end())
+        throw std::runtime_error("sea AI: the aiming camera aims board '" + board + "', which the ship has not");
+    // The view turned into the board's zone, its elevation kept.
+    const glm::vec3 vView = storm::math::normalizeOrZero(vFireDir);
+    const float fHorizontal = sqrtf(SQR(vView.x) + SQR(vView.z));
+    const float fAim = storm::fire_side::clampInto(
+        atan2f(vView.x, vView.z), {atan2f(it->vDirection.x, it->vDirection.z), it->fFireZone});
+    return FireAlong(*it, vFireCamPos, glm::vec3(fHorizontal * sinf(fAim), vView.y, fHorizontal * cosf(fAim)), true);
+}
+
+bool AIShipCannonController::FireAlong(AISHIP_BORT &bort, const glm::vec3 &vFireCamPos, const glm::vec3 &vAim,
+                                       bool bAimed)
+{
+    const auto vOurPos = GetAIShip()->GetPos();
     const auto fSpeedV0 = GetSpeedV0(bort);
 
     const auto vTempDir = storm::math::normalizeOrZero(glm::vec3(vAim.x, 0.0f, vAim.z));
@@ -79,7 +109,7 @@ bool AIShipCannonController::Fire(const glm::vec3 &vFireCamPos, const glm::vec3 
     glm::vec3 vFirePos = vFireCamPos + fMaxDist * vAim;
     vFirePos.y = 0.0f;
 
-    Fire2Position(bort, vFirePos, 0.0f);
+    Fire2Position(bort, vFirePos, 0.0f, bAimed);
     return true;
 }
 
@@ -88,7 +118,7 @@ bool AIShipCannonController::Fire(const glm::vec3 &vFirePos)
     auto bortIt = GetFirstFireBort(vFirePos);
     while (IsValid(bortIt))
     {
-        Fire2Position(*bortIt, vFirePos, -1.0f);
+        Fire2Position(*bortIt, vFirePos, -1.0f, false);
         bortIt = GetNextFireBort(bortIt, vFirePos);
     }
     return true;
@@ -153,7 +183,7 @@ bool AIShipCannonController::Fire(AIShip *pEnemy)
                                                 ARGB(0xFF, 0x00, 0xFF, 0x00), float{});
             }
 
-            Fire2Position(*bortIt, vFirePos, fFireHeight);
+            Fire2Position(*bortIt, vFirePos, fFireHeight, false);
             bortIt = GetNextFireBort(bortIt, vFirePos);
         }
     }
@@ -553,8 +583,55 @@ float AIShipCannonController::GetSpeedV0(const AISHIP_BORT &bort) const
     return storm::sea_ai::ReadBoardBallistics(GetAIShip()->GetACharacter(), bort.sName).speedV0;
 }
 
+void AIShipCannonController::DrawCannonsRange(float fDeltaTime)
+{
+    if (!cannonsRange.enabled)
+    {
+        fCannonsRangeTime = 0.0f;
+        return;
+    }
+    fCannonsRangeTime += fDeltaTime;
+
+    struct Vertex
+    {
+        glm::vec3 pos;
+        uint32_t color;
+    };
+    std::vector<Vertex> verts;
+    const glm::vec3 vZ = storm::math::normalizeOrZero(storm::math::vz(*GetAIShip()->GetMatrix()));
+    const glm::vec3 centre(GetAIShip()->GetPos().x, 0.0f, GetAIShip()->GetPos().z);
+    constexpr float kStep = PId2 / 36.0f;
+    for (const auto &bort : aShipBorts)
+    {
+        if (bort.aCannons.empty() || bort.isBortDamaged())
+            continue;
+        const auto shades = cannonsRange.BoardShades(bort.isCharged(), fCannonsRangeTime);
+        const auto edge = [&](float fAng) {
+            glm::vec3 v(bort.fMaxFireDistance * sinf(fAng), 0.0f, bort.fMaxFireDistance * cosf(fAng));
+            RotateAroundY(v.x, v.z, vZ.z, vZ.x);
+            return centre + v;
+        };
+        for (float fAng = bort.fFireDir - bort.fFireZone / 2.0f; fAng < bort.fFireDir + bort.fFireZone / 2.0f;
+             fAng += kStep)
+        {
+            const float fNext = std::min(fAng + kStep, bort.fFireDir + bort.fFireZone / 2.0f);
+            verts.push_back({centre, shades.nearColor});
+            verts.push_back({edge(fAng), shades.edgeColor});
+            verts.push_back({edge(fNext), shades.edgeColor});
+        }
+    }
+    if (verts.empty())
+        return;
+    AIHelper::pRS->SetTransform(D3DTS_WORLD, storm::math::d3dMatrix(glm::mat4(1.0f)));
+    AIHelper::pRS->DrawPrimitiveUP(D3DPT_TRIANGLELIST, D3DFVF_XYZ | D3DFVF_DIFFUSE, verts.size() / 3, verts.data(),
+                                   sizeof(Vertex), "CannonsRange");
+}
+
 void AIShipCannonController::Realize(float fDeltaTime)
 {
+    if (GetAIShip()->isMainCharacter())
+        DrawCannonsRange(fDeltaTime);
+
     using namespace std::chrono_literals;
 
     if (core.Controls->GetDebugAsyncKeyState('H') < 0)
