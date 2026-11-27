@@ -78,7 +78,7 @@ struct LandVitals
     // "poison", "drunk", "healing" (the hero's chr_ai.poison / chr_ai.drunk / chr_ai.hp_bottle,
     // Loc_ai/LAi_character.c), then "overload" or "cantrun" while his run is the walk (landWalkOnlyEffect).
     std::vector<std::string> effects;
-    int potions = 0; // health potions the hero carries: items with potion.health, what the quick heal uses
+    int potions = 0; // the game's potions the hero carries (land_status.hpp potionIds)
     // data.icons.id1… of the land interface (landinterface.c SetCharacterIconData: without a FaceId its texture and uv,
     // or the generic two.tga figure when the game has that file).
     std::vector<LandOfficer> officers;

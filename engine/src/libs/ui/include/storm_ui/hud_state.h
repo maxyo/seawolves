@@ -101,7 +101,7 @@ struct Vitals
     double health = 0.0, energy = 0.0, reload = 0.0; // 0…1
     int loaded = 0, capacity = 0;
     std::vector<std::string> effects; // poison, drunk, healing, overload, cantrun
-    int potions = 0;                  // health potions carried
+    int potions = 0;                  // the game's potions carried
     std::vector<Officer> officers;
     double dash = -1.0;             // backstep cooldown left 0…1; -1 outside fight mode
     std::vector<Ability> abilities; // Rush, while the scripts offer it or it runs

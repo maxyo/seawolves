@@ -45,8 +45,9 @@ inline float landNumber(ATTRIBUTES *root, const char *path)
     return std::isfinite(value) ? value : 0.f;
 }
 
-// Ids of the items that heal (potion.health), read once: the item table does not change.
-inline const std::set<std::string> &healthPotionIds()
+// Ids of the game's potions: items with a potion class, as its potion menu and potion key take them
+// (items_utilite.c FindPotionFromChr). Read once: the item table does not change.
+inline const std::set<std::string> &potionIds()
 {
     static std::set<std::string> ids;
     static bool read = false;
@@ -56,22 +57,22 @@ inline const std::set<std::string> &healthPotionIds()
     if (!items || items->GetElementsNum() == 0)
         return ids;
     for (uint32_t i = 0; i < items->GetElementsNum(); ++i)
-        if (auto *item = items->GetAClass(i); item && item->FindAClass(item, "potion.health"))
+        if (auto *item = items->GetAClass(i); item && item->GetAttributeClass("potion"))
             if (const std::string id = landText(item, "id"); !id.empty())
                 ids.insert(id);
     read = true;
     return ids;
 }
 
-inline int healthPotions(ATTRIBUTES *hero)
+inline int potions(ATTRIBUTES *hero)
 {
     auto *items = hero ? hero->GetAttributeClass("items") : nullptr;
     if (!items)
         return 0;
-    const auto &potions = healthPotionIds();
+    const auto &ids = potionIds();
     int count = 0;
     for (size_t i = 0; i < items->GetAttributesNum(); ++i)
-        if (auto *item = items->GetAttributeClass(static_cast<uint32_t>(i)); item && potions.count(item->GetThisName()))
+        if (auto *item = items->GetAttributeClass(static_cast<uint32_t>(i)); item && ids.count(item->GetThisName()))
             count += std::max(
                 0, static_cast<int>(std::strtol(item->HasValue() ? item->GetValue().c_str() : "0", nullptr, 10)));
     return count;
@@ -218,7 +219,7 @@ inline void readLandStatus(ATTRIBUTES *root, ATTRIBUTES *icons, LandVitals &v)
         v.effects.emplace_back(walkOnly);
     v.hero =
         landPortrait(heroIcon ? static_cast<int>(heroIcon->GetAttributeAsDword("chrindex", -1)) : -1, hero, heroIcon);
-    v.potions = healthPotions(hero);
+    v.potions = potions(hero);
     v.abilities = readLandAbilities(root, hero);
     for (size_t i = 0; icons && i < icons->GetAttributesNum(); ++i)
     {

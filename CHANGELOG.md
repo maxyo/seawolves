@@ -63,6 +63,7 @@
   здоровье больше не открывает список зелий.
 - Абордаж: кнопка «Дальше» показывается всё время, пока игра ждёт клавишу действия, чтобы перейти дальше; когда
   квест не пускает дальше, на нажатие отвечает сама игра.
+- Число на кнопке зелья считает и противоядия: клавиша зелья игры пьёт и их.
 
 **English**
 
@@ -131,6 +132,7 @@
   full health no longer opens the potion list.
 - Boarding: the «Next» button shows the whole time the game waits for the action key to go on; when a quest holds the
   boarding, the game itself answers the tap.
+- The count on the potion button includes antidotes: the game's potion key drinks them too.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
