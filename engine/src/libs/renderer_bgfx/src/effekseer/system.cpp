@@ -166,7 +166,8 @@ bool ensure_manager()
         return false;
     }
     s.manager = Effekseer::Manager::Create(kMaxInstances);
-    s.manager->SetCoordinateSystem(Effekseer::CoordinateSystem::LH);
+    // Effekseer's default right-handed system under the game's left-handed camera, as Caribbean Legend's engine sets
+    // it: the game's effects are made to look right so (the rain's cylinders around the eye show their inner faces).
     s.manager->SetSpriteRenderer(s.renderer->CreateSpriteRenderer());
     s.manager->SetRibbonRenderer(s.renderer->CreateRibbonRenderer());
     s.manager->SetRingRenderer(s.renderer->CreateRingRenderer());
