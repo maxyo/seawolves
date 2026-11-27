@@ -13,11 +13,9 @@ TEST_CASE("mobile_sails_gerald")
              widgets[0].rowId == files[0]));
     REQUIRE((widgets[1].value == "1" && widgets[1].context.at("texture") == "ships/gerald/Gerald_02"));
     REQUIRE(widgets[1].actions == std::vector<std::string>{"select"});
-    // Selection only for this opening and the file the row still shows.
-    REQUIRE(AcceptSailEmblem("select@4:Gerald_02.tga.tx", 4, files, 1) == std::optional<int>(1));
-    REQUIRE(!AcceptSailEmblem("select@3:Gerald_02.tga.tx", 4, files, 1));
-    REQUIRE(
-        (!AcceptSailEmblem("select@4:Gerald_01.tga.tx", 4, files, 1) && !AcceptSailEmblem("select@4:x", 4, files, 7)));
+    // Selection only of the file the row still shows.
+    REQUIRE(AcceptSailEmblem("Gerald_02.tga.tx", files, 1) == std::optional<int>(1));
+    REQUIRE((!AcceptSailEmblem("Gerald_01.tga.tx", files, 1) && !AcceptSailEmblem("x", files, 7)));
     widgets.clear();
     CollectSailEmblems("SCROLL_GERALD", files, 0, false, 5, widgets);
     REQUIRE((!widgets[0].enabled && widgets[0].actions.empty()));

@@ -10,14 +10,14 @@ void CXI_BUTTON::MobileCollect(std::vector<MobileWidget> &widgets) const
     MobileButtonCollect(*this, storm::android::mobileScreen, widgets);
 }
 
-bool CXI_BUTTON::MobileApply(int index, const std::string &value)
+bool CXI_BUTTON::MobileApply(const storm::ui::Action &action)
 {
-    if (index != -1 || value != "press" || !m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus)
+    if (action.index != -1 || action.verb != "press" || !m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus)
         return false;
-    const int action = CheckCommandUsed(ACTION_MOUSECLICK) ? ACTION_MOUSECLICK : ACTION_ACTIVATE;
-    if (!CheckCommandUsed(action)) return false;
+    const int code = CheckCommandUsed(ACTION_MOUSECLICK) ? ACTION_MOUSECLICK : ACTION_ACTIVATE;
+    if (!CheckCommandUsed(code)) return false;
     bool stop = false;
-    DoAction(action, stop, true);
+    DoAction(code, stop, true);
     return true;
 }
 #endif

@@ -27,12 +27,13 @@ std::string EngineCommand(const Action &action)
                                        : "dialogue:" + action.value;
     if (action.screen == "mainmenu") // the title screen's commands: "main:New", "main:Load", …
         return action.verb == "back" ? "back" : "main:" + action.node;
+    if (action.screen == "game_over" && !action.node.empty()) // the death screen's choice ends the death picture
+        return "game_over:" + action.node;
     if (action.verb == "quick" && action.node.empty()) // Bindings::QuickGame
         return "quick:" + action.value;
     if (action.node.empty())
         return action.verb == "back" ? "back" : std::string();
-    return "widget:" + action.screen + "\t" + action.node + "\t" + std::to_string(action.index) + "\t" +
-           WidgetWire(action);
+    return {};
 }
 
 bool AnsweredAction(const Action &action)
@@ -42,19 +43,21 @@ bool AnsweredAction(const Action &action)
            action.screen.rfind("app:", 0) != 0; // the launcher's screens: the application's own host
 }
 
-std::string WidgetWire(const Action &action)
+std::string to_string(const Action &action)
 {
+    if (std::string command = EngineCommand(action); !command.empty() || action.node.empty() || action.screen.empty())
+        return command;
     const std::string stamp = "@" + std::to_string(action.opening) + ":";
-    std::string wire;
+    std::string what;
     if (action.verb == "toggle" || action.verb == "edit")
-        wire = action.value;
+        what = action.value;
     else if (action.verb == "set" || !action.value.empty())
-        wire = action.verb + stamp + action.value;
+        what = action.verb + stamp + action.value;
     else
-        wire = action.verb;
+        what = action.verb;
     if (!action.guard.empty())
-        wire = "guard" + stamp + action.guard + "|" + wire;
-    return wire;
+        what = "guard" + stamp + action.guard + "|" + what;
+    return "widget:" + action.screen + "\t" + action.node + "\t" + std::to_string(action.index) + "\t" + what;
 }
 
 } // namespace storm::ui
@@ -520,25 +523,23 @@ double Bindings::Now() const
 
 uint64_t Bindings::RequestFloor() const
 {
-    return router_.next_request_ + 1;
+    return router_.requests_.Next();
 }
 
 Bindings::Answers Bindings::AnsweredSince(uint64_t floor) const
 {
     if (!router_.waiting_.empty())
         return Answers::Waiting; // something of it has not gone out yet
-    if (router_.outstanding_.lower_bound(floor) != router_.outstanding_.end())
-        return Answers::Waiting;
     // A refusal is the answer however many applied ones still wait for their model.
-    bool any = false, modelled = true;
-    for (auto it = router_.answers_.lower_bound(floor); it != router_.answers_.end(); ++it)
+    switch (router_.requests_.From(floor))
     {
-        if (!it->second.applied)
-            return Answers::Refused;
-        modelled = modelled && it->second.model_after;
-        any = true;
+    case RequestLedger::Status::Refused:
+        return Answers::Refused;
+    case RequestLedger::Status::Shown:
+        return Answers::Applied;
+    default:
+        return Answers::Waiting;
     }
-    return any && modelled ? Answers::Applied : Answers::Waiting;
 }
 
 // --- Router -----------------------------------------------------------------------------
@@ -651,7 +652,7 @@ void Router::Emit(Action action)
         sent_in_event_ = true;
     if (AnsweredAction(action))
     {
-        action.request = ++next_request_;
+        action.request = requests_.Open();
         outstanding_[action.request] = {current_ ? current_->id : std::string(),
                                         current_ ? current_->value : std::string(), action.node, current_ != nullptr};
     }
@@ -669,7 +670,7 @@ bool Router::MarkOpen(const std::string &id, const std::string &value) const
 void Router::Answer(uint64_t request, bool applied, const std::string &reason)
 {
     const auto found = outstanding_.find(request);
-    if (found == outstanding_.end())
+    if (!requests_.Answer(request, applied) || found == outstanding_.end())
     {
         // An action of an opening that is gone (its marks went with it).
         surface_.Log("answer to request " + std::to_string(request) +
@@ -678,9 +679,6 @@ void Router::Answer(uint64_t request, bool applied, const std::string &reason)
     }
     const Request sent = found->second;
     outstanding_.erase(found);
-    answers_[request] = {applied, false};
-    while (answers_.size() > 256)
-        answers_.erase(answers_.begin());
     if (!applied)
     {
         surface_.Log("screen " + using_ + ": the game refused " + sent.node + " (" + sent.id + "): " + reason);
@@ -724,8 +722,7 @@ void Router::SetInterface(const InterfaceModel &model)
     model_ = model;
     // The engine sends the model after every widget action it answered: the answers before it are
     // now shown, and the presses they answered stop looking busy.
-    for (auto &[number, answer] : answers_)
-        answer.model_after = true;
+    requests_.Arrived();
     pending_.erase(
         std::remove_if(pending_.begin(), pending_.end(), [](const PendingMark &mark) { return mark.answered; }),
         pending_.end());
@@ -740,6 +737,7 @@ void Router::SetInterface(const InterfaceModel &model)
         predicting_.clear();
         waiting_.clear();
         outstanding_.clear();
+        requests_.Drop();
         edit_token_.clear();
         edit_handler_ = nullptr;
     }
@@ -762,6 +760,7 @@ void Router::CloseInterface()
     predicting_.clear();
     waiting_.clear();
     outstanding_.clear();
+    requests_.Drop();
     edit_token_.clear();
     edit_handler_ = nullptr;
     model_ = InterfaceModel();
@@ -916,12 +915,10 @@ void Router::BuildView()
 
 bool Router::AnsweredFrom(uint64_t floor) const
 {
-    if (awaiting_ || !waiting_.empty() || outstanding_.lower_bound(floor) != outstanding_.end())
+    if (awaiting_ || !waiting_.empty())
         return false;
-    for (auto it = answers_.lower_bound(floor); it != answers_.end(); ++it)
-        if (it->second.applied && !it->second.model_after)
-            return false;
-    return true;
+    const RequestLedger::Status answers = requests_.From(floor);
+    return answers != RequestLedger::Status::Waiting && answers != RequestLedger::Status::Applied;
 }
 
 namespace
@@ -1087,7 +1084,7 @@ bool Router::OnEvent(const Event &event)
     if (const auto predicted = bindings_.predictions_.find(event.id + '\x1f' + event.verb);
         predicted != bindings_.predictions_.end())
         predict = predicted->second;
-    const uint64_t floor = next_request_ + 1;
+    const uint64_t floor = requests_.Next();
     current_ = &event;
     sent_in_event_ = false;
     build_later_ = false;
@@ -1109,7 +1106,7 @@ bool Router::OnEvent(const Event &event)
     }
     // What the tap leads to is drawn now (the build below); the game's answer to what the handler sent ends it. A
     // handler that asked the game nothing predicted nothing: the screen's own state is the result already.
-    if (predict && screen_ && (next_request_ >= floor || !waiting_.empty()))
+    if (predict && screen_ && (requests_.Next() > floor || !waiting_.empty()))
     {
         predicting_.push_back({event, std::move(predict), floor, surface_.Now()});
         ++predicted_count_;
@@ -1181,10 +1178,7 @@ void Router::SubmitText(const std::string &token, const std::string &text, bool 
 
 bool Router::Answering() const
 {
-    if ((screen_ && awaiting_) || !outstanding_.empty() || !waiting_.empty())
-        return true;
-    return std::any_of(answers_.begin(), answers_.end(),
-                       [](const auto &entry) { return entry.second.applied && !entry.second.model_after; });
+    return (screen_ && awaiting_) || !waiting_.empty() || requests_.Busy();
 }
 
 bool Router::WantsBack() const
@@ -1238,9 +1232,13 @@ double Router::Tick()
             surface_.Error("screen " + using_ + ": the game did not answer " + mark.id + " in " +
                            std::to_string(int(kAnswerSeconds)) + " s");
             for (auto it = outstanding_.begin(); it != outstanding_.end();)
-                it = it->second.marked && it->second.id == mark.id && it->second.value == mark.value
-                         ? outstanding_.erase(it)
-                         : std::next(it);
+                if (it->second.marked && it->second.id == mark.id && it->second.value == mark.value)
+                {
+                    requests_.Answer(it->first, false); // no answer will come: taken for a refusal
+                    it = outstanding_.erase(it);
+                }
+                else
+                    ++it;
         }
     pending_.erase(
         std::remove_if(pending_.begin(), pending_.end(), [&](const PendingMark &mark) { return now >= mark.until; }),

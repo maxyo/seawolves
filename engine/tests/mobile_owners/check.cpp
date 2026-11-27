@@ -77,7 +77,7 @@ TEST_CASE("mobile_owners")
             REQUIRE((identity.rows.size() == 3 && identity.rows[1] == "padding" && identity.rows[2] == "padding"));
         }
         lease.publish(identity);
-        const auto select = "select@23:" + lease.rowId(0);
+        const auto select = lease.rowId(0);
         REQUIRE(lease.accepts(identity, 0, select));
         // MobileApply additionally requires a present enabled choice; padding is not
         // exported at all, so neither the rejected passenger nor a blank row can act.
@@ -149,7 +149,7 @@ TEST_CASE("mobile_owners")
         REQUIRE((rows.size() == 2 && rows[0].label == "vessel:7" && rows[1].index == 1));
         REQUIRE(state.rows.size() == 3);
         capability.publish(state);
-        const auto action = "select@17:" + capability.rowId(1);
+        const auto action = capability.rowId(1);
         REQUIRE(capability.accepts(state, 1, action));
         two->SetAttribute("companionIndex", "7");
         REQUIRE(collect(screen, "SHIPS_SCROLL"));
@@ -197,21 +197,17 @@ TEST_CASE("mobile_owners")
     attrs.SetAttribute("current", "0");
     REQUIRE(collect("hirecrew", "SHIPS_SCROLL"));
     capability.publish(state);
-    const auto guard = "guard@17:" + capability.rowId(0) + "|press";
+    const auto guard = capability.rowId(0);
     for (const char *node : {"QTY_OK_BUTTON", "QTY_CANCEL_BUTTON", "QTY_EDIT", "QTY_ADD_BUTTON", "QTY_REMOVE_BUTTON",
                              "QTY_ADD_ALL_BUTTON", "QTY_REMOVE_ALL_BUTTON"})
-        REQUIRE(HireCrewQuantityValue("hirecrew", node, capability, state, rows, guard) == "press");
-    auto accepts = [&](const std::string &value) {
-        return HireCrewQuantityValue("hirecrew", "QTY_OK_BUTTON", capability, state, rows, value).has_value();
+        REQUIRE(HireCrewQuantityGuard("hirecrew", node, capability, state, rows, guard));
+    auto accepts = [&](const std::string &row) {
+        return HireCrewQuantityGuard("hirecrew", "QTY_OK_BUTTON", capability, state, rows, row);
     };
-    REQUIRE(!HireCrewQuantityValue("store", "QTY_OK_BUTTON", capability, state, rows, guard));
-    REQUIRE(!HireCrewQuantityValue("hirecrew", "QTY_UNKNOWN", capability, state, rows, guard));
-    for (const std::string value :
-         std::vector<std::string>{"press", "guard@18:" + capability.rowId(0) + "|press", guard + "|press", guard + "\n",
-                                  guard + std::string(1, '\0'), "guard@17:" + capability.rowId(0) + "|"})
-        REQUIRE(!accepts(value));
-    REQUIRE(HireCrewQuantityValue("hirecrew", "QTY_EDIT", capability, state, rows,
-                                  "guard@17:" + capability.rowId(0) + "|25") == "25");
+    REQUIRE(!HireCrewQuantityGuard("store", "QTY_OK_BUTTON", capability, state, rows, guard));
+    REQUIRE(!HireCrewQuantityGuard("hirecrew", "QTY_UNKNOWN", capability, state, rows, guard));
+    for (const std::string row : std::vector<std::string>{"", capability.rowId(1), guard + "|press"})
+        REQUIRE(!accepts(row));
     attrs.SetAttribute("current", "1");
     REQUIRE(collect("hirecrew", "SHIPS_SCROLL"));
     REQUIRE(!accepts(guard));

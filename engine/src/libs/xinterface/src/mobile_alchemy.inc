@@ -96,11 +96,11 @@ void XINTERFACE::MobileCollectAlchemy(std::vector<MobileWidget> &widgets)
     storm::mobile::CollectAlchemy(source,widgets);
 }
 
-bool XINTERFACE::MobileApplyAlchemy(const std::string &value)
+bool XINTERFACE::MobileApplyAlchemy(const storm::ui::Action &action)
 {
     const auto source=MobileAlchemySource();
-    if(!source.busy.empty()||!source.missing.empty()){core.Trace("alchemy: %s refused: %s",value.c_str(),source.busy.c_str());return false;}
-    const std::string item=storm::mobile::ParseAlchemyChoice(value,storm::android::mobileScreenRevision);
+    if(!source.busy.empty()||!source.missing.empty()){core.Trace("alchemy: %s refused: %s",action.value.c_str(),source.busy.c_str());return false;}
+    const std::string item=action.verb=="choose"?action.value:std::string();
     const auto recipe=std::find_if(source.recipes.begin(),source.recipes.end(),[&](const auto &r){return r.id==item;});
     if(item.empty()||recipe==source.recipes.end()||recipe->id==source.current)return false;
     static_cast<CXI_SCROLLIMAGE*>(FindNode("ITEMS_SCROLL",nullptr))->MobileSelect(recipe->index);

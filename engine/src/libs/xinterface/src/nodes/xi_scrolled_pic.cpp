@@ -342,7 +342,7 @@ void CXI_SCROLLEDPICTURE::SetScale(float fsx, float fsy)
 // context "base" (the size the scripts measure it in, ini basesize) and "view" (the part the
 // game shows now, in the same units), then one "map_marker" widget per imagelist entry with
 // its centre and size in base units. The portable UI pans and zooms the picture itself; a tap
-// comes back as "point@<opening>:<x>,<y>" in base units and "release" ends the hold.
+// comes back as a "point" of "<x>,<y>" in base units and "release" ends the hold.
 void CXI_SCROLLEDPICTURE::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     if (m_pTex)
@@ -396,12 +396,12 @@ int CXI_SCROLLEDPICTURE::RClickCommand() const
     return 0;
 }
 
-bool CXI_SCROLLEDPICTURE::MobileApply(int index, const std::string &value)
+bool CXI_SCROLLEDPICTURE::MobileApply(const storm::ui::Action &action)
 {
     const COMMAND_ACTION &command = m_pCommands[RClickCommand()];
-    if (index != -1 || !m_bUse || !command.bUse || !command.sEventName)
+    if (action.index != -1 || !m_bUse || !command.bUse || !command.sEventName)
         return false;
-    if (value == "release")
+    if (action.verb == "release")
     {
         // The game shows what the right button picked for as long as it is held; its release
         // is the script's MouseRClickUP. The window it opened usually locks the map meanwhile.
@@ -410,9 +410,8 @@ bool CXI_SCROLLEDPICTURE::MobileApply(int index, const std::string &value)
     }
     if (!m_bSelected || m_bLockedNode || m_bLockStatus)
         return false;
-    const std::string prefix = "point@" + std::to_string(storm::android::mobileScreenRevision) + ":";
     float x = 0.f, y = 0.f;
-    if (value.compare(0, prefix.size(), prefix) != 0 || std::sscanf(value.c_str() + prefix.size(), "%f,%f", &x, &y) != 2 ||
+    if (action.verb != "point" || std::sscanf(action.value.c_str(), "%f,%f", &x, &y) != 2 ||
         !std::isfinite(x) || !std::isfinite(y) || m_fUTexPerPixel <= 0.f || m_fVTexPerPixel <= 0.f)
         return false;
     // The screen point where the game shows this point of the picture now, so that the script

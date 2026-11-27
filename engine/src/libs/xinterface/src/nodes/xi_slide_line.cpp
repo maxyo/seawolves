@@ -17,9 +17,10 @@ void CXI_SLIDELINE::MobileCollect(std::vector<MobileWidget> &widgets) const
         widgets.push_back(std::move(*widget));
 }
 
-bool CXI_SLIDELINE::MobileApply(int index, const std::string &value)
+bool CXI_SLIDELINE::MobileApply(const storm::ui::Action &action)
 {
-    const auto position = MobileSliderTarget(MobileState(), index, value);
+    const auto position =
+        action.verb == "set" ? MobileSliderTarget(MobileState(), action.index, action.value) : std::nullopt;
     if (position)
         SetNewValue(*position);
     return position.has_value();

@@ -118,27 +118,27 @@ static void Commands()
     action.index = 3;
     action.verb = "select";
     action.value = "row-3";
-    ExpectEqual(EngineCommand(action), "widget:store\tTABLE_LIST\t3\tselect@7:row-3", "versioned select");
+    ExpectEqual(to_string(action), "widget:store\tTABLE_LIST\t3\tselect@7:row-3", "versioned select");
     action.value.clear();
-    ExpectEqual(EngineCommand(action), "widget:store\tTABLE_LIST\t3\tselect", "plain select");
+    ExpectEqual(to_string(action), "widget:store\tTABLE_LIST\t3\tselect", "plain select");
     action.verb = "toggle";
     action.value = "1";
-    ExpectEqual(EngineCommand(action), "widget:store\tTABLE_LIST\t3\t1", "check value");
+    ExpectEqual(to_string(action), "widget:store\tTABLE_LIST\t3\t1", "check value");
     action.verb = "set";
     action.value = "25";
-    ExpectEqual(EngineCommand(action), "widget:store\tTABLE_LIST\t3\tset@7:25", "slider position");
+    ExpectEqual(to_string(action), "widget:store\tTABLE_LIST\t3\tset@7:25", "slider position");
     action.verb = "press";
     action.value.clear();
     action.guard = "row-3";
-    ExpectEqual(EngineCommand(action), "widget:store\tTABLE_LIST\t3\tguard@7:row-3|press", "guarded press");
+    ExpectEqual(to_string(action), "widget:store\tTABLE_LIST\t3\tguard@7:row-3|press", "guarded press");
     Action back;
     back.screen = "store";
     back.verb = "back";
-    ExpectEqual(EngineCommand(back), "back", "global back");
+    ExpectEqual(to_string(back), "back", "global back");
     Action plain;
     plain.node = "button-1";
     plain.verb = "click";
-    ExpectEqual(EngineCommand(plain), "", "an action of a plain document is no engine command");
+    ExpectEqual(to_string(plain), "", "an action of a plain document is no engine command");
 }
 
 // Local feedback (Bindings::Predict): the result of a tap that needs no decision of the game is in the view the

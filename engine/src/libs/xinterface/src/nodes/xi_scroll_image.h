@@ -47,8 +47,8 @@ class CXI_SCROLLIMAGE : public CINODE
     ~CXI_SCROLLIMAGE() override;
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
-    std::optional<std::string> MobileHireCrewQuantity(const std::string &node, const std::string &value) const;
+    bool MobileApply(const storm::ui::Action &action) override;
+    bool MobileHireCrewGuard(const std::string &node, const std::string &guard) const;
     // Alchemy's recipe scroll: whether it is still animating, and selecting an image the way a
     // tap does (the node becomes current, the script is told).
     bool MobileMoving() const { return m_bDoMove; }

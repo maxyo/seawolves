@@ -67,7 +67,7 @@ int main()
     row->DeleteAttributeClassX(data);
 
     InventoryEquipCapability capability;
-    const auto action = "press@11:" + original;
+    const auto action = original; // the row the press was made for
     auto publish = [&](bool enabled = true, bool selected = true) {
         std::vector<MobileWidget> widgets;
         MobileWidget choice;
@@ -88,8 +88,7 @@ int main()
     assert(!capability.consume(action, 11, original));
     auto button = publish();
     assert(button.rowId == original && button.actions == std::vector<std::string>{"press"});
-    assert(!capability.consume("press", 11, original));
-    assert(!capability.consume("press@10:" + original, 11, original));
+    assert(!capability.consume("", 11, original));
     assert(!capability.consume(action, 12, original));
     assert(!capability.consume(action, 11, original, false)); // table locked after publication
     assert(capability.consume(action, 11, InventorySelectedRowId(&table, &characters)));

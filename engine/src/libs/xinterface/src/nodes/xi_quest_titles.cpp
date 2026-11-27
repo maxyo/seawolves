@@ -457,11 +457,11 @@ void CXI_QUESTTITLE::MobileCollect(std::vector<MobileWidget> &widgets) const
                                m_bClickable && !m_bLockedNode && !m_bLockStatus, widgets);
 }
 
-bool CXI_QUESTTITLE::MobileApply(int index, const std::string &value)
+bool CXI_QUESTTITLE::MobileApply(const storm::ui::Action &action)
 {
     if (!m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus)
         return false;
-    const auto relative = m_mobileQuests.opened(index, value, storm::android::mobileScreenRevision);
+    const auto relative = action.verb == "open" ? m_mobileQuests.opened(action.index, action.value) : std::nullopt;
     // This callback changes active nodes and can rebuild the quest list: nothing of it is used after.
     if (relative)
         core.Event("QuestActivate", "l", *relative);

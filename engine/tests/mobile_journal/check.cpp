@@ -40,12 +40,11 @@ TEST_CASE("the whole quest list, opened by the scripts' row relative to the nati
     CHECK(widgets.back().value == "1");
     CHECK(widgets.back().order == 139);
     CHECK(widgets[0].actions == std::vector<std::string>{"open"});
-    CHECK(list.opened(39, "open@17:quest39", 17) == 27);
-    CHECK(list.opened(0, "open@17:quest0", 17) == -12);
-    CHECK_FALSE(list.opened(39, "open@16:quest39", 17)); // another screen revision
-    CHECK_FALSE(list.opened(39, "open@17:quest0", 17));  // another row's quest
-    CHECK_FALSE(list.opened(-1, "press", 17));
-    CHECK_FALSE(list.opened(90, "open@17:quest90", 17));
+    CHECK(list.opened(39, "quest39") == 27);
+    CHECK(list.opened(0, "quest0") == -12);
+    CHECK_FALSE(list.opened(39, "quest0")); // another row's quest
+    CHECK_FALSE(list.opened(-1, ""));
+    CHECK_FALSE(list.opened(90, "quest90"));
     widgets.clear();
     list.collect("QUEST_TITLE", 100, false, widgets);
     CHECK_FALSE(widgets[0].enabled);
@@ -55,7 +54,7 @@ TEST_CASE("the whole quest list, opened by the scripts' row relative to the nati
     list.collect("QUEST_TITLE", 100, true, widgets);
     REQUIRE(widgets.size() == 1);
     CHECK(widgets[0].type == "text");
-    CHECK_FALSE(list.opened(39, "open@17:quest39", 17));
+    CHECK_FALSE(list.opened(39, "quest39"));
 }
 
 TEST_CASE("no quests: one empty text")

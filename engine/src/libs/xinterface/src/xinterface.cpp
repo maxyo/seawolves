@@ -2687,23 +2687,23 @@ void XINTERFACE::MobileFlushAnswers()
 
 // One widget action of the touch UI on the open interface (DoControl): applied, refused with a reason,
 // or deferred (the save list retries it while its thumbnails load).
-storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWidgetAction &action)
+storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Action &action)
 {
     using Outcome = storm::mobile::ActionOutcome;
     const auto refused = [](const char *reason) { return Outcome{Outcome::Refused, reason}; };
     const Outcome applied{Outcome::Applied, {}}, superseded{Outcome::Applied, "superseded by a newer value"},
         deferred{Outcome::Deferred, {}};
     if(action.screen=="goodstransfer"&&action.node=="ANDROID_GOODS_ORDER"){
-        return MobileApplyGoodsTransfer(action.value)?applied:refused("the goods order does not apply now");
+        return MobileApplyGoodsTransfer(action)?applied:refused("the goods order does not apply now");
     }
     if(action.screen=="alchemy"&&action.node=="ANDROID_ALCHEMY_RECIPE"){
-        return MobileApplyAlchemy(action.value)?applied:refused("the alchemy step does not apply now");
+        return MobileApplyAlchemy(action)?applied:refused("the alchemy step does not apply now");
     }
     if(action.screen=="itemsbox"&&action.node=="ANDROID_TAKE_ALL"){
-        return MobileApplyItemsBoxTakeAll(action.value)?applied:refused("take-all does not apply now");
+        return MobileApplyItemsBoxTakeAll(action)?applied:refused("take-all does not apply now");
     }
     if(action.screen=="colonycapture"&&action.node=="ANDROID_LOOT"){
-        return MobileApplyColonyLoot(action.value)?applied:refused("the loot does not apply now");
+        return MobileApplyColonyLoot(action)?applied:refused("the loot does not apply now");
     }
     
     DropDeferredSave("another action came first");
@@ -2743,7 +2743,7 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
         auto *window = FindNode("MAIN_WINDOW", nullptr);
         const auto state = storm::mobile::ReadSaveList();
         if (!window || window->m_nNodeType != NODETYPE_WINDOW || !static_cast<CXI_WINDOW *>(window)->GetActive() || !state) return refused("the save list is not shown");
-        const auto target = storm::mobile::saveListCapability.accept(*state, action.index, action.value);
+        const auto target = storm::mobile::saveListCapability.accept(*state, action.index, action.verb, action.value);
         if (!target) return refused("the save record is no longer listed");
         if (!storm::mobile::SelectSaveTarget(*target))
         {
@@ -2798,8 +2798,8 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
             }
         }
     }
-    const bool guardedEquip = action.screen == "items" && action.node == "EQUIP_BUTTON" &&
-                              action.value.rfind("press@", 0) == 0;
+    const bool guardedEquip = action.screen == "items" && action.node == "EQUIP_BUTTON" && action.verb == "press" &&
+                              !action.value.empty();
     if (action.screen == "items" && !guardedEquip)
         inventoryEquipCapability.invalidate();
     const auto find = [&](const auto &self, CINODE *node, const std::string &target) -> CINODE * {
@@ -2825,31 +2825,19 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
     }
     // A map's "release" ends the right-button hold while the window the hold opened has
     // locked the map (CXI_SCROLLEDPICTURE::MobileApply).
-    if (!node && action.value == "release")
+    if (!node && action.verb == "release")
         if (auto *map = FindNode(action.node.c_str(), nullptr); map && map->m_bUse && map->m_nNodeType == NODETYPE_SCROLLEDPICTURE)
             node = map;
     if (!node) return refused("no such node in use");
-    if (action.value.rfind("guard@", 0) == 0)
+    if (!action.guard.empty())
     {
-        std::optional<std::string> original;
+        bool still = false;
         if (action.screen == "hirecrew") {
             auto *owner = find(find, m_pNodes, "SHIPS_SCROLL");
-            if (owner && owner->m_nNodeType == NODETYPE_SCROLLIMAGE)
-                original = static_cast<CXI_SCROLLIMAGE *>(owner)->MobileHireCrewQuantity(action.node, action.value);
-        } else original = storm::mobile::CommerceQuantityValue(action.screen, action.node,
-            storm::android::mobileScreenRevision, AttributesPointer, action.value);
-        if (!original) return refused("the guarded row changed");
-        action.value = *original;
-    }
-    if (node->m_nNodeType == NODETYPE_SLIDELINE)
-    {
-        int position;
-        // A delayed drag from a previous opening of the same screen must
-        // never modify the new screen's slider state.
-        if (!MobileSliderSetPosition(action.value, storm::android::mobileScreenRevision, position))
-            return refused("a slider position of another opening");
-            node->MobileApply(action.index, std::to_string(position));
-        return applied;
+            still = owner && owner->m_nNodeType == NODETYPE_SCROLLIMAGE &&
+                    static_cast<CXI_SCROLLIMAGE *>(owner)->MobileHireCrewGuard(action.node, action.guard);
+        } else still = storm::mobile::CommerceQuantityGuard(action.screen, action.node, AttributesPointer, action.guard);
+        if (!still) return refused("the guarded row changed");
     }
     if (guardedEquip)
     {
@@ -2870,9 +2858,9 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
         if (auto *next = node->DoAction(code, stop, true)) SetCurNode(next);
         return applied;
     }
-    if (node->MobileApply(action.index, action.value))
+    if (node->MobileApply(action))
         return applied;
-    if (action.index == -1 && action.value == "press" && node->m_bSelected && node->m_bClickable)
+    if (action.index == -1 && action.verb == "press" && node->m_bSelected && node->m_bClickable)
     {
         const int code = node->CheckCommandUsed(ACTION_MOUSECLICK) ? ACTION_MOUSECLICK : ACTION_ACTIVATE;
         if (node->CheckCommandUsed(code))
@@ -2918,9 +2906,13 @@ void XINTERFACE::MobileApplyActions()
     {
         auto action = storm::android::uiWidgetActions.front();
         storm::android::uiWidgetActions.pop_front();
-        if (action.screen != storm::android::mobileScreen)
+        if (const char *misdirected = storm::mobile::ActionMisdirected(action, storm::android::mobileScreen,
+                                                                       storm::android::mobileScreenRevision))
         {
-            storm::android::ui::answer(action.request, false, "another interface is open");
+            spdlog::info("UI action {} {}[{}] {} of opening {} refused: {} ({} #{})", action.screen, action.node,
+                         action.index, action.verb, action.opening, misdirected, storm::android::mobileScreen,
+                         storm::android::mobileScreenRevision);
+            storm::android::ui::answer(action.request, false, misdirected);
             continue;
         }
         // Whatever it does, the model is collected again and goes out (unchanged, it is the answer).
@@ -2930,7 +2922,7 @@ void XINTERFACE::MobileApplyActions()
         const uint64_t eventsBefore = m_events.Added();
         const auto outcome = MobileApplyAction(action);
         if (outcome.state == storm::mobile::ActionOutcome::Refused)
-            spdlog::info("UI action {} {}[{}] '{}' refused: {}", action.screen, action.node, action.index, action.value, outcome.reason);
+            spdlog::info("UI action {} {}[{}] {} '{}' refused: {}", action.screen, action.node, action.index, action.verb, action.value, outcome.reason);
         const bool queued = m_events.Added() != eventsBefore;
         MobileAnswer(action.request, outcome, queued);
         if (queued)

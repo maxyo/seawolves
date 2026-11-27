@@ -500,13 +500,13 @@ void CXI_PICTURE::MobileCollect(std::vector<MobileWidget> &widgets) const
     MobilePictureCollect(*this, storm::android::mobileScreen, widgets);
 }
 
-bool CXI_PICTURE::MobileApply(int index, const std::string &value)
+bool CXI_PICTURE::MobileApply(const storm::ui::Action &action)
 {
     const int slot = MobileSaveSlot(m_nodeName);
-    if (slot < 0 || index != slot || !m_bUse || !m_bSelected || !m_bClickable ||
+    if (slot < 0 || action.index != slot || !m_bUse || !m_bSelected || !m_bClickable ||
         m_bLockedNode || m_bLockStatus) return false;
-    const int code = value == "select" ? ACTION_MOUSECLICK :
-        value == "activate" ? ACTION_MOUSEDBLCLICK : -1;
+    const int code = action.verb == "select" ? ACTION_MOUSECLICK :
+        action.verb == "activate" ? ACTION_MOUSEDBLCLICK : -1;
     if (code < 0 || !CheckCommandUsed(code)) return false;
     bool stop = false;
     DoAction(code, stop, true);

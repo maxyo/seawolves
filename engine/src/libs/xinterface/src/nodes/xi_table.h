@@ -115,8 +115,7 @@ class CXI_TABLE : public CINODE
     template <class Table>
     friend void MobileTableCollect(const Table &t, std::string_view screen, std::vector<MobileWidget> &widgets);
     template <class Table, class Actions>
-    friend bool MobileTableApply(Table &t, int index, const std::string &value, std::string_view screen,
-                                 uint64_t revision, Actions &actions);
+    friend bool MobileTableApply(Table &t, const storm::ui::Action &action, Actions &actions);
 
   public:
     // the line (-1: the header or none) and column under the point, for UseLineTrigger and UseColTrigger
@@ -142,7 +141,7 @@ class CXI_TABLE : public CINODE
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
+    bool MobileApply(const storm::ui::Action &action) override;
 #endif
 
     bool GetInternalNameList(std::vector<std::string> &aStr) override;

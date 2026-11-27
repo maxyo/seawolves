@@ -123,7 +123,7 @@ def check(game, record, java):
         if not re.search(r'"%s"' % re.escape(verb), java):
             return f'the application command "{verb}" is handled nowhere in android/'
         return None
-    if screen in ('hud', 'dialogue', 'mainmenu', 'game_over', 'sound') or not record.get('wire'):
+    if screen in ('hud', 'dialogue', 'mainmenu', 'game_over', 'sound') or not record.get('widget'):
         return None  # engine commands: the pack check holds them to tools/android/app_contract.json
     if (screen, node) in FIXTURE_NODES:
         return None
@@ -139,8 +139,7 @@ def check(game, record, java):
         if f'"{node}"' in game.engine_text:
             return None  # a node of the game's shared scripts the engine acts on itself (tooltip_fader)
         return f'the interface {screen} has no node {node}'
-    wire = record.get('wire', '')
-    if verb == 'press' or wire == 'press':
+    if verb == 'press':
         if not press_handled(game, screen, node, commands):
             return f'a press of {screen} {node} does nothing in the game: no click/activate command that reaches a handler'
     return None

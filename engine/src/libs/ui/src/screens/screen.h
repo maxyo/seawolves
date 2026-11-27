@@ -4,6 +4,7 @@
 #pragma once
 
 #include "../template.h"
+#include "../requests.h"
 #include "storm_ui/interface_model.h"
 #include "storm_ui/script_screens.h"
 #include "storm_ui/ui.h"
@@ -430,16 +431,11 @@ class Router
         bool answers = false;  // its event sent widget actions: the engine's answers end it (`until` is then an error)
         bool answered = false; // all of them were applied: it ends with the next model
     };
-    // A widget action sent and not answered yet, and the mark (event id, value) it belongs to.
+    // The mark (event id, value) a widget action not answered yet belongs to.
     struct Request
     {
         std::string id, value, node;
         bool marked = false;
-    };
-    struct Answered
-    {
-        bool applied = false;
-        bool model_after = false; // a model arrived after the answer
     };
     struct Waiting
     {
@@ -499,9 +495,8 @@ class Router
     std::vector<Predicting> predicting_;
     uint64_t predicted_count_ = 0;
     std::vector<Waiting> waiting_;
-    uint64_t next_request_ = 0;
-    std::map<uint64_t, Request> outstanding_;
-    std::map<uint64_t, Answered> answers_; // the latest answers, for the amount drafts (AnsweredSince)
+    RequestLedger requests_;
+    std::map<uint64_t, Request> outstanding_; // by request number, until it is answered
     SharedState shared_;
     std::unordered_map<std::string, Json> states_; // the last state of each channel (Bindings::State)
     std::set<std::string> logged_; // once per (screen, node set): extras, generic use, rejection lines; ErrorOnce keys

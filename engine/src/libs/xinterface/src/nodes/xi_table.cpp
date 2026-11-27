@@ -1505,9 +1505,8 @@ void CXI_TABLE::MobileCollect(std::vector<MobileWidget> &widgets) const
     MobileTableCollect(*this, storm::android::mobileScreen, widgets);
 }
 
-bool CXI_TABLE::MobileApply(int index, const std::string &value)
+bool CXI_TABLE::MobileApply(const storm::ui::Action &action)
 {
-    return MobileTableApply(*this, index, value, storm::android::mobileScreen, storm::android::mobileScreenRevision,
-                            storm::android::uiWidgetActions);
+    return MobileTableApply(*this, action, storm::android::uiWidgetActions);
 }
 #endif

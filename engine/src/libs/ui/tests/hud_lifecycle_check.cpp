@@ -22,7 +22,7 @@ static void ChangeScene(const std::string &pack, bool combat)
         if (level == LogLevel::Error)
             errors.push_back(line);
     };
-    config.on_action = [&](const Action &action) { commands.push_back(EngineCommand(action)); };
+    config.on_action = [&](const Action &action) { commands.push_back(to_string(action)); };
     std::string error;
     auto host = Host::Create(config, &error);
     Expect(host != nullptr, "runtime starts: " + error);

@@ -32,6 +32,7 @@
 #include "android_mailbox.hpp"
 #include "android_runtime.hpp"
 #include "android_ui_sink.hpp"
+#include "storm_ui/action.h"
 #include "jni_text.hpp"
 #include "scene_load_status.hpp"
 
@@ -111,20 +112,13 @@ inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall
 }
 inline uint64_t mobileScreenRevision = 1;
 inline std::deque<std::string> dialogueActions;
-// A widget action of the touch UI for the open interface (XINTERFACE::DoControl applies it). `value`
-// is the wire its node reads ("select@<opening>:<row>", storm::ui::WidgetWire); `request` is the UI's
-// request number: every action is answered (ui::answer), 0 = nobody waits for the answer.
-struct UiWidgetAction
-{
-    std::string screen, node, value;
-    int index;
-    uint64_t request = 0;
-};
-inline std::deque<UiWidgetAction> uiWidgetActions;
+// The touch UI's widget actions for the open interface, as the UI made them (XINTERFACE::DoControl applies them).
+// Every one is answered (ui::answer); request 0 = nobody waits for the answer.
+inline std::deque<storm::ui::Action> uiWidgetActions;
 inline std::string contextAction, requestedContextAction;
 inline int cinematicState = -1;
 // The game's death picture is up (xinterface info_handler.cpp): the death screen's choice may
-// end it at once ("widget:game_over\tEND", main.cpp).
+// end it at once ("game_over:END", android_commands.cpp).
 inline bool gameOverShown = false;
 // Gameplay state: channel "gameplay" of the UI host, and the activity's copy for its own controls (look surface,
 // virtual keys). Both are made for a new gameplay revision only.

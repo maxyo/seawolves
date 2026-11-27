@@ -1077,9 +1077,9 @@ int main(int argc, char **argv)
         if (action.screen.empty())
             std::printf("action %s %s %s\n", action.node.c_str(), action.verb.c_str(), action.value.c_str());
         else if (action.screen == "hud" && !action.node.empty())
-            std::printf("command[%s] %s\n", action.node.c_str(), storm::ui::EngineCommand(action).c_str());
+            std::printf("command[%s] %s\n", action.node.c_str(), storm::ui::to_string(action).c_str());
         else
-            std::printf("command %s\n", storm::ui::EngineCommand(action).c_str());
+            std::printf("command %s\n", storm::ui::to_string(action).c_str());
     };
     config.on_text_request = [&text_token](const storm::ui::TextRequest &request) {
         text_token = request.token;

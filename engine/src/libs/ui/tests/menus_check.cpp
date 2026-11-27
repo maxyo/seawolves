@@ -878,7 +878,7 @@ static void GameOver(const std::string &models)
                actions[2]["id"] == "go-title",
            "the death screen offers load, settings and the title screen");
     router.OnEvent({"go-load", "click", ""});
-    ExpectEqual(surface.Last(), "widget:game_over\tEND\t-1\tpress", "a choice ends the death picture at once");
+    ExpectEqual(surface.Last(), "game_over:END", "a choice ends the death picture at once");
     router.SetState("gameOver", nullptr);
     surface.commands.clear();
     router.SetInterface(Load(models, "title.json"));

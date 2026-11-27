@@ -132,27 +132,19 @@ inline bool CommerceQuantityNode(std::string_view node)
            node == "REMOVE_BUTTON" || node == "REMOVE_ALL_BUTTON";
 }
 
-inline std::optional<std::string> CommerceQuantityValue(std::string_view screen, std::string_view node, uint64_t epoch,
-                                                        ATTRIBUTES *interfaceRoot, const std::string &value)
+// A quantity action guarded by `guard`, the row it was made for: true while that row is still the selected one.
+inline bool CommerceQuantityGuard(std::string_view screen, std::string_view node, ATTRIBUTES *interfaceRoot,
+                                  const std::string &guard)
 {
-    if (!CommerceTable(screen, "TABLE_LIST") || !CommerceQuantityNode(node) || !epoch || !interfaceRoot)
-        return {};
+    if (!CommerceTable(screen, "TABLE_LIST") || !CommerceQuantityNode(node) || !interfaceRoot)
+        return false;
     auto *table = interfaceRoot->GetAttributeClass("TABLE_LIST");
     const auto selected = InventoryNumber(table ? table->GetAttribute("select") : nullptr);
     if (!selected || !*selected)
-        return {};
+        return false;
     const auto id = InterfaceTableRowId(screen, "TABLE_LIST",
                                         table->GetAttributeClass("tr" + std::to_string(*selected)), interfaceRoot);
-    if (id.empty())
-        return {};
-    const auto prefix = "guard@" + std::to_string(epoch) + ":" + id + "|";
-    if (value.rfind(prefix, 0) != 0)
-        return {};
-    const auto original = value.substr(prefix.size());
-    if (original.empty() || original.size() > 128 || original.find_first_of("\t\r\n|") != std::string::npos ||
-        original.find('\0') != std::string::npos)
-        return {};
-    return original;
+    return !id.empty() && guard == id;
 }
 
 inline std::string InventorySelectedRowId(ATTRIBUTES *table, ATTRIBUTES *characters)
@@ -195,10 +187,10 @@ class InventoryEquipCapability
         invalidate();
     }
 
-    bool consume(const std::string &action, uint64_t epoch, const std::string &liveRow, bool liveEnabled = true)
+    // A press made for the equip offer of row `row` in opening `epoch`.
+    bool consume(const std::string &row, uint64_t epoch, const std::string &liveRow, bool liveEnabled = true)
     {
-        if (!liveEnabled || !epoch_ || epoch != epoch_ || row_.empty() || liveRow != row_ ||
-            action != "press@" + std::to_string(epoch_) + ":" + row_)
+        if (!liveEnabled || !epoch_ || epoch != epoch_ || row_.empty() || liveRow != row_ || row != row_)
             return false;
         invalidate();
         return true;

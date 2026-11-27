@@ -275,10 +275,10 @@ void CXI_LRCHANGER::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     widgets.push_back({m_nodeName, "stepper", "", "", -1, m_rect.top * 8192 + m_rect.left});
 }
-bool CXI_LRCHANGER::MobileApply(int index, const std::string &value)
+bool CXI_LRCHANGER::MobileApply(const storm::ui::Action &action)
 {
-    if (value != "left" && value != "right") return false;
-    m_bLeftPress = value == "left";
+    if (action.verb != "left" && action.verb != "right") return false;
+    m_bLeftPress = action.verb == "left";
     bool stop = false;
     DoAction(ACTION_MOUSECLICK, stop, true); return true;
 }

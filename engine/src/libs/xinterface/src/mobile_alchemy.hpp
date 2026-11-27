@@ -5,7 +5,7 @@
 //          ListSize/NotUsed padding is never a row): label = the item's name, rowId = item id,
 //          value "1" = the recipe shown (sCurItem), index = its scroll position, images[0] = the item's atlas
 //          picture; actions ["choose"] while the screen is ready and the row is not the shown recipe.
-// `choose@<screen revision>:<item>` selects that recipe in the scroll. The batches, their making and their time are
+// a choose of `<item>` selects that recipe in the scroll. The batches, their making and their time are
 // the game's (the script's adapter asks them of the game's functions).
 #include "mobile_widget.hpp"
 #include <string>
@@ -45,13 +45,6 @@ inline void CollectAlchemy(const AlchemySource &source, std::vector<MobileWidget
             row.actions.push_back("choose");
         widgets.push_back(std::move(row));
     }
-}
-
-// `choose@<revision>:<item>` of this screen opening: the item, empty when the value is not that.
-inline std::string ParseAlchemyChoice(const std::string &value, uint64_t revision)
-{
-    const std::string prefix = "choose@" + std::to_string(revision) + ":";
-    return value.rfind(prefix, 0) == 0 ? value.substr(prefix.size()) : std::string();
 }
 
 } // namespace storm::mobile

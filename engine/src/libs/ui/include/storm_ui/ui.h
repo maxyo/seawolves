@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "storm_ui/action.h"
 #include "storm_ui/hud_command.h"
 #include "storm_ui/hud_state_fwd.h"
 
@@ -28,38 +29,6 @@ struct Dialogue;       // dialogue_state.h
 struct InterfaceModel; // interface_model.h
 struct ScriptScreen;   // script_screens.h
 class ScriptPort;
-
-// The one path out of the UI. For a game interface: the widget (`node`, `index`) of the
-// open `screen`, the verb the player chose and its value. For a document loaded with
-// LoadDocument (gallery): `node` is the element id, `screen` is empty.
-// HUD input has `screen` "hud" and its `command` (hud_command.h). A non-empty `node` then names
-// a latest-value slot (the stick position, a geometry): a host that queues actions keeps only the
-// newest action of a slot. Shortcut and Presence are for the platform host, not the engine.
-struct Action
-{
-    std::string node;
-    std::string verb;  // press, select, activate, open, toggle, edit, set, left, right, back, …
-    std::string value; // row identity for select/activate/open; new value for toggle/edit/set
-    std::string screen;
-    uint64_t opening = 0; // InterfaceModel::opening the action belongs to
-    int index = -1;
-    std::string guard; // row the action must still apply to (commerce quantities); may be empty
-    // A widget action of a game interface (AnsweredAction) carries the router's request number: the
-    // engine answers each one (Host::Answer). 0 for every other action.
-    uint64_t request = 0;
-    // HUD input (screen "hud"): what the HUD asks of the engine or the platform host (hud_command.h).
-    std::optional<hud::Command> command;
-};
-// The line of the engine's command queue for an action ("back", "main:New", "hud" input,
-// "widget:store\tTABLE_LIST\t3\tselect@7:id" for hosts that are not the engine). The engine
-// takes a widget action of its open interface as the Action itself (AnsweredAction, WidgetWire).
-std::string EngineCommand(const Action &action);
-// True for an action on a widget of a game interface: the engine applies it to the interface's
-// node and answers it (Host::Answer).
-bool AnsweredAction(const Action &action);
-// What the node of a widget action reads: "<verb>@<opening>:<value>", "guard@<opening>:<row>|…",
-// the plain verb, or the value of a toggle or edit.
-std::string WidgetWire(const Action &action);
 
 // A text field asks for the platform editor (IME bridge). The host shows a native editor
 // over `x, y, width, height` (physical pixels) and answers with Host::SubmitText.

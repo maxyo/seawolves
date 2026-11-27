@@ -93,33 +93,23 @@ inline bool HireCrewQuantityNode(std::string_view node)
            node == "QTY_REMOVE_ALL_BUTTON";
 }
 
-// Validate against the last published owner capability without selecting a
-// ship or dispatching a script event. A queued edit must not target a new owner.
-inline std::optional<std::string> HireCrewQuantityValue(std::string_view screen, std::string_view node,
-                                                        const OfficerSelection &published,
-                                                        const OfficerListIdentity &state,
-                                                        const std::vector<MobileWidget> &rows, const std::string &value)
+// A quantity action guarded by `guard`, the owner row it was made for, validated against the last published owner
+// capability without selecting a ship or dispatching a script event: a queued edit must not target a new owner.
+inline bool HireCrewQuantityGuard(std::string_view screen, std::string_view node, const OfficerSelection &published,
+                                  const OfficerListIdentity &state, const std::vector<MobileWidget> &rows,
+                                  const std::string &guard)
 {
-    if (screen != "hirecrew" || !HireCrewQuantityNode(node) || value.rfind("guard@", 0) != 0)
-        return {};
-    const auto bar = value.find('|');
-    if (bar == std::string::npos)
-        return {};
-    const auto original = value.substr(bar + 1);
-    if (original.empty() || original.size() > 128 || original.find_first_of("\t\r\n|") != std::string::npos ||
-        original.find('\0') != std::string::npos)
-        return {};
+    if (screen != "hirecrew" || !HireCrewQuantityNode(node))
+        return false;
     const MobileWidget *selected = nullptr;
     for (const auto &row : rows)
         if (row.value == "1")
         {
             if (selected || !row.enabled || row.node != "SHIPS_SCROLL")
-                return {};
+                return false;
             selected = &row;
         }
-    if (!selected || !published.accepts(state, selected->index, "select" + value.substr(5, bar - 5)))
-        return {};
-    return original;
+    return selected && published.accepts(state, selected->index, guard);
 }
 
 } // namespace storm::mobile

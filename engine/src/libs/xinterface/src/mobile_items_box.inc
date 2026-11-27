@@ -20,10 +20,10 @@ void XINTERFACE::MobileCollectItemsBox(std::vector<MobileWidget> &widgets)
     widgets.push_back(std::move(take));
 }
 
-bool XINTERFACE::MobileApplyItemsBoxTakeAll(const std::string &value)
+bool XINTERFACE::MobileApplyItemsBoxTakeAll(const storm::ui::Action &action)
 {
     std::vector<MobileWidget> live;MobileCollectWidgets(live);
-    const bool offered=value=="press"&&std::any_of(live.begin(),live.end(),[](const auto &w){return w.node=="ANDROID_TAKE_ALL"&&w.enabled;});
+    const bool offered=action.verb=="press"&&std::any_of(live.begin(),live.end(),[](const auto &w){return w.node=="ANDROID_TAKE_ALL"&&w.enabled;});
     if(!offered)return false;
     core.Event("ievnt_command","ss","click","GETALL_BUTTON"); // itemsbox.c ProcCommand → onGetAllBtnClick
     return true;

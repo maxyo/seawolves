@@ -60,10 +60,10 @@ void XINTERFACE::MobileCollectGoodsTransfer(std::vector<MobileWidget> &widgets)
     storm::mobile::CollectGoodsTransfer(source,widgets);
 }
 
-bool XINTERFACE::MobileApplyGoodsTransfer(const std::string &value)
+bool XINTERFACE::MobileApplyGoodsTransfer(const storm::ui::Action &action)
 {
     // Only from the list window, for a good the list shows, at this opening of the screen.
-    const auto order=storm::mobile::GoodsTransferOrder(value,storm::android::mobileScreenRevision);
+    const auto order=action.verb=="order"?storm::mobile::GoodsTransferOrder(action.value):std::nullopt;
     std::vector<MobileWidget> live;MobileCollectWidgets(live);
     const auto row=std::find_if(live.begin(),live.end(),[&](const auto &w){
         return order&&w.node=="ANDROID_GOODS_ORDER"&&w.rowId==order->good&&w.enabled;});
@@ -96,7 +96,9 @@ bool XINTERFACE::MobileApplyGoodsTransfer(const std::string &value)
         core.Trace("goodstransfer: the amount window of %s did not open",id.c_str());
         return false;
     }
-    if(!edit->MobileApply(-1,std::to_string(order->amount)))return false;
+    storm::ui::Action amount=action;
+    amount.node=edit->m_nodeName;amount.verb="edit";amount.value=std::to_string(order->amount);amount.index=-1;
+    if(!edit->MobileApply(amount))return false;
     const int code=ok->CheckCommandUsed(ACTION_MOUSECLICK)?ACTION_MOUSECLICK:ACTION_ACTIVATE;
     bool stop=false;if(auto *next=ok->DoAction(code,stop,true))SetCurNode(next);
     return true;

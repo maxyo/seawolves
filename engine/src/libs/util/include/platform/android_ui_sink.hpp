@@ -45,7 +45,7 @@ void language(std::string game_language);
 // The interface model of the open screen (xinterface), in the frame it changed; the newest
 // replaces older ones. Taken as the struct itself: nothing is serialised.
 void interfaceModel(storm::ui::InterfaceModel &&model);
-// The answer to a widget action of the open interface (UiWidgetAction::request): applied (its
+// The answer to a widget action of the open interface (storm::ui::Action::request): applied (its
 // script events have run) or refused with the reason. Request 0 is nobody's: ignored.
 void answer(uint64_t request, bool applied, std::string reason);
 // The engine's facts of state channel "presentation", in the frame they change: a loading screen

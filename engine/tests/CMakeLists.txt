@@ -266,7 +266,7 @@ storm_host_check(message_diagnostics SOURCES ${src}/libs/core/src/message.cpp ch
     INCLUDES ${glm_headers} ${src}/libs/core/include ${util_include}
              ${STORM_TEST_SOURCES}/fmt/include ${src}/libs/renderer_bgfx/include
     DEFINES FMT_HEADER_ONLY OPTIONS -g ${asan} -fno-omit-frame-pointer -fno-sanitize-recover=all CATCH2)
-storm_host_check(mobile_action_frame INCLUDES ${src}/libs/xinterface/src OPTIONS -O1 -g ${asan} CATCH2)
+storm_host_check(mobile_action_frame INCLUDES ${src}/libs/xinterface/src ${src}/libs/ui/include OPTIONS -O1 -g ${asan} CATCH2)
 foreach(check alchemy goods_transfer sails_gerald table_game)
     storm_host_check(mobile_${check} INCLUDES ${src}/libs/xinterface/src
         OPTIONS -g -O1 ${asan} -fno-omit-frame-pointer CATCH2)

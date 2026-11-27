@@ -31,12 +31,11 @@ class OfficerSelection
     {
         return std::to_string(serial_) + ":" + std::to_string(index);
     }
-    bool accepts(const OfficerListIdentity &state, int index, const std::string &action,
-                 const std::string &verb = "select") const
+    // An action on row `index` made for the row identity `row` of the published list.
+    bool accepts(const OfficerListIdentity &state, int index, const std::string &row) const
     {
         return !state.profile.empty() && state.revision != 0 && state == published_ && index >= 0 &&
-               static_cast<size_t>(index) < state.rows.size() &&
-               action == verb + "@" + std::to_string(state.revision) + ":" + rowId(index);
+               static_cast<size_t>(index) < state.rows.size() && row == rowId(index);
     }
 };
 } // namespace storm::mobile

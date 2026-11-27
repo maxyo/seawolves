@@ -23,7 +23,7 @@ static int Check(const char *pack, bool standalone)
     config.height = 400;
     if (standalone)
         config.game_hud = false; // StormUi's JNI host; engine_ui keeps the default.
-    config.on_action = [&](const Action &action) { commands.push_back(EngineCommand(action)); };
+    config.on_action = [&](const Action &action) { commands.push_back(to_string(action)); };
     std::string error;
     auto host = Host::Create(config, &error);
     if (!host)

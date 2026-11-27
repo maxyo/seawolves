@@ -66,18 +66,20 @@ parts still take taps), `rowTap="0"` (c-trade-list) or with `pointer-events: non
 A disabled control's tap reports `refused`; only a handler bound to that verb gets it (one bound to every verb of
 the id is its action and does not run), and unbound it needs nothing: the control shook.
 
-Verbs and what the engine receives (`EngineCommand`, queue line
-`widget:<screen>\t<node>\t<index>\t<wire>`):
+A widget action reaches the engine as the `Action` struct itself (`storm_ui/action.h`): `xinterface` refuses one
+made on another opening of the interface once, with the reason, and its nodes read the fields. Every one carries a
+number of the request ledger (`src/requests.h`): the engine answers each, applied or refused, and the model after an
+applied answer shows it. Logs and checks print one line (`to_string`, `widget:<screen>\t<node>\t<index>\t…`):
 
-| verb | value | wire |
+| verb | value | printed |
 |---|---|---|
 | `press`, `left`, `right`, any other | empty | the verb |
 | `select`, `activate`, `open`, … | row identity | `verb@<opening>:<row id>` |
 | `toggle` | `1` / `0` | the value |
 | `edit` | the text | the value |
 | `set` | slider position | `set@<opening>:<position>` |
-| any, with `guard` | — | `guard@<opening>:<guard row>\|<wire>` |
-| `back` without a node | — | `back` |
+| any, with `guard` | — | `guard@<opening>:<guard row>\|…` |
+| `back` without a node | — | `back` (an engine command) |
 
 ## What the router does for every screen
 
@@ -194,7 +196,7 @@ build/ui-host/storm_ui_shot --pack <app>/build/ui-pack \
 
 `--state dialogue=file.json` feeds a state channel instead; script commands
 `interface <json>` (the next revision), `text <answer>` (accept the editor request).
-Engine actions are printed as `command widget:store<TAB>TABLE_LIST<TAB>1<TAB>activate@7:…`.
+Actions are printed as `command widget:store<TAB>TABLE_LIST<TAB>1<TAB>activate@7:…` (`to_string`).
 Render at 780×360, 824×412, 961×412, 1024×768 and 1280×800 (`--density 1`) before
 calling a layout done. Models in `tests/models` are synthetic; never commit a model
 recorded from a game with its texts unless it holds nothing but interface strings.

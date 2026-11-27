@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <string_view>
+
+#include "storm_ui/action.h"
 
 namespace storm::mobile
 {
@@ -17,6 +21,17 @@ struct ActionOutcome
     } state = Applied;
     std::string reason;
 };
+
+// Why a widget action does not reach the open interface `screen` at its opening `opening`, nullptr when it does. The
+// one check of the opening: a tap made on a window the game has closed and opened again since is refused here.
+inline const char *ActionMisdirected(const storm::ui::Action &action, std::string_view screen, uint64_t opening)
+{
+    if (action.screen != screen)
+        return "another interface is open";
+    if (action.opening != opening)
+        return "made on an earlier opening of the interface";
+    return nullptr;
+}
 
 // The touch UI's widget actions of one interface frame (XINTERFACE::MobileApplyActions) run in the order the player
 // made them, each action's script events before the next action (Execute would run them newest first). Widget actions

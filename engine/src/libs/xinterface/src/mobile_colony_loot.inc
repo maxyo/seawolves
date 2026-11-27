@@ -5,16 +5,16 @@
 // ShowGoodsInfo), type the amount, confirm (TransactionOK, which clamps to the hold, moves the goods and
 // refreshes the table). No game rules here.
 //
-// The action: node ANDROID_LOOT, value "take@<opening>:<row>=<amount>,<row>=<amount>…", rows being the
-// table's 1-based tr numbers of that opening.
-bool XINTERFACE::MobileApplyColonyLoot(const std::string &value)
+// The action: node ANDROID_LOOT, verb "take", value "<row>=<amount>,<row>=<amount>…", rows being the table's
+// 1-based tr numbers of that opening.
+bool XINTERFACE::MobileApplyColonyLoot(const storm::ui::Action &action)
 {
-    const std::string head="take@"+std::to_string(storm::android::mobileScreenRevision)+":";
-    if(value.rfind(head,0)!=0){core.Trace("colony loot: %s refused (another opening or verb)",value.c_str());return false;}
+    const std::string &value=action.value;
+    if(action.verb!="take"){core.Trace("colony loot: %s refused (another verb)",action.verb.c_str());return false;}
     ATTRIBUTES *table=AttributesPointer?AttributesPointer->GetAttributeClass("TABLE_LIST"):nullptr;
     if(!table){core.Trace("colony loot: no TABLE_LIST");return false;}
     int taken=0;
-    for(size_t at=head.size();at<value.size();){
+    for(size_t at=0;at<value.size();){
         size_t end=value.find(',',at);if(end==std::string::npos)end=value.size();
         const std::string item=value.substr(at,end-at);at=end+1;
         const size_t equals=item.find('=');

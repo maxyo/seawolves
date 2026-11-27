@@ -212,7 +212,7 @@ struct Runtime
         config.clock = [this] { return clock; };
         config.verify_unchanged =
             true; // Frame reports a frame Prepare wrongly called unchanged (FrameStats::mispredicted)
-        config.on_action = [this](const Action &action) { commands.push_back(EngineCommand(action)); };
+        config.on_action = [this](const Action &action) { commands.push_back(to_string(action)); };
         std::string error;
         host = Host::Create(config, &error);
         Expect(host != nullptr, "the runtime starts with the test pack: " + error);

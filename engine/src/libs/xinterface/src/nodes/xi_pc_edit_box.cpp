@@ -456,9 +456,10 @@ void CXI_PCEDITBOX::MobileCollect(std::vector<MobileWidget> &widgets) const
     if (!m_bDisguiseString) widgets.push_back({m_nodeName, "edit", "", value ? value : "", -1,
                                              m_rect.top * 8192 + m_rect.left});
 }
-bool CXI_PCEDITBOX::MobileApply(int index, const std::string &value)
+bool CXI_PCEDITBOX::MobileApply(const storm::ui::Action &action)
 {
-    if(index!=-1 || !m_bUse || m_bLockedNode || m_bLockStatus || value.size()>4096 ||
+    const std::string &value=action.value;
+    if(action.verb!="edit" || action.index!=-1 || !m_bUse || m_bLockedNode || m_bLockStatus || value.size()>4096 ||
        (m_nMaxSize>=0 && utf8::Utf8StringLength(value.c_str())>m_nMaxSize))
     {
         core.Trace("Interface: %s refused the text '%s' (locked, hidden or longer than %d)", m_nodeName, value.c_str(), m_nMaxSize);

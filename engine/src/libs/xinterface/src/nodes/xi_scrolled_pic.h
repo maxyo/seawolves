@@ -26,7 +26,7 @@ class CXI_SCROLLEDPICTURE : public CXI_PICTURE
     void ChangeUV(FXYRECT &frNewUV) override;
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
+    bool MobileApply(const storm::ui::Action &action) override;
     int RClickCommand() const;
 #endif
 

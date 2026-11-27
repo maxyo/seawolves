@@ -20,7 +20,4 @@ TEST_CASE("mobile_alchemy")
     widgets.clear();
     CollectAlchemy(source, widgets);
     REQUIRE(widgets[1].actions.empty());
-    // A choice bound to this opening only.
-    REQUIRE(ParseAlchemyChoice("choose@7:potion1", 7) == "potion1");
-    REQUIRE((ParseAlchemyChoice("choose@6:potion1", 7).empty() && ParseAlchemyChoice("craft@7:potion1", 7).empty()));
 }

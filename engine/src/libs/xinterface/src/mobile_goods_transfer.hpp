@@ -12,7 +12,7 @@
 //          context: index (iCurCompanion, 0-based), count (ships that can take part).
 // The collection's own GOODS_NAMES texts are dropped: the rows carry them. A fact the script does
 // not have is named in the ship widget's unavailableReason (goods-transfer:missing=...).
-// `order@<screen revision>:<good id>=<amount>` sets a good's standing order the way a player does
+// an order of `<good id>=<amount>` sets a good's standing order the way a player does
 // it: the engine places the interface's mouse position over the good's icon (GoodsIconClick),
 // raises the script's ShowItemsWindow, enters the amount in TG_EDIT and presses TG_OK_BUTTON.
 #include "mobile_widget.hpp"
@@ -74,23 +74,21 @@ inline void CollectGoodsTransfer(const GoodsTransferSource &source, std::vector<
     widgets.push_back(std::move(ship));
 }
 
-// The good and amount of an `order@<revision>:<id>=<amount>` action of this screen opening.
+// The good and amount of an order action's value `<id>=<amount>`.
 struct GoodsOrder
 {
     std::string good;
     int amount = 0;
 };
-inline std::optional<GoodsOrder> GoodsTransferOrder(const std::string &value, uint64_t revision)
+inline std::optional<GoodsOrder> GoodsTransferOrder(const std::string &value)
 {
-    const std::string prefix = "order@" + std::to_string(revision) + ":";
     const size_t equals = value.rfind('=');
-    if (value.rfind(prefix, 0) != 0 || equals == std::string::npos || equals <= prefix.size() ||
-        equals + 1 == value.size())
+    if (equals == std::string::npos || equals == 0 || equals + 1 == value.size())
         return std::nullopt;
     const std::string digits = value.substr(equals + 1);
     if (digits.size() > 6 || digits.find_first_not_of("0123456789") != std::string::npos)
         return std::nullopt;
-    return GoodsOrder{value.substr(prefix.size(), equals - prefix.size()), std::stoi(digits)};
+    return GoodsOrder{value.substr(0, equals), std::stoi(digits)};
 }
 
 // GoodsTransfer.c ShowItemsWindow maps the mouse position (mx, my) to the picture as

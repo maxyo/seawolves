@@ -45,7 +45,7 @@ class CXI_VIMAGESCROLL : public CINODE
 
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
+    bool MobileApply(const storm::ui::Action &action) override;
 private:
     bool MobileOfficerRows(storm::mobile::OfficerListIdentity &state, std::vector<MobileWidget> &rows) const;
     mutable storm::mobile::OfficerSelection m_mobileOfficers;

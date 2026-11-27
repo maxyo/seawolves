@@ -218,15 +218,15 @@ class SaveListCapability
             widgets.push_back(std::move(row));
         }
     }
-    std::optional<Target> accept(const SaveListSnapshot &state, int index, const std::string &value) const
+    // An "activate" or "delete" of row `index` made for the row identity `row`.
+    std::optional<Target> accept(const SaveListSnapshot &state, int index, const std::string &verb,
+                                 const std::string &row) const
     {
-        if (!sameList(state) || index < 0 || static_cast<size_t>(index) >= ids_.size())
+        if (!sameList(state) || index < 0 || static_cast<size_t>(index) >= ids_.size() || row != ids_[index] ||
+            (verb != "activate" && verb != "delete") ||
+            (verb == "delete" && static_cast<size_t>(index) >= state.records.size()))
             return {};
-        for (const auto *verb : {"activate", "delete"})
-            if (value == std::string(verb) + "@" + std::to_string(state.revision) + ":" + ids_[index] &&
-                (std::string(verb) != "delete" || static_cast<size_t>(index) < state.records.size()))
-                return Target{state, index, verb};
-        return {};
+        return Target{state, index, verb};
     }
     static bool current(const Target &target, const SaveListSnapshot &state)
     {

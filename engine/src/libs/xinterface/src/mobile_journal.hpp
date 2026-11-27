@@ -57,12 +57,12 @@ class MobileQuestList
             widgets.push_back(std::move(row));
         }
     }
-    // The quest an "open" action of the screen revision asks for: its row relative to the native list's top, which
-    // the scripts' QuestActivate takes; nullopt for an action of another revision or row.
-    std::optional<int> opened(int index, const std::string &value, uint64_t revision) const
+    // The quest an "open" action of row identity `row` asks for: its row relative to the native list's top, which
+    // the scripts' QuestActivate takes; nullopt for an action of another row.
+    std::optional<int> opened(int index, const std::string &row) const
     {
-        for (const auto &row : rows_)
-            if (row.index == index && value == "open@" + std::to_string(revision) + ":" + row.rowId)
+        for (const auto &listed : rows_)
+            if (listed.index == index && row == listed.rowId)
                 return index - top_;
         return std::nullopt;
     }

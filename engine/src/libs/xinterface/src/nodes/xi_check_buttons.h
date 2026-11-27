@@ -44,7 +44,7 @@ class CXI_CHECKBUTTONS : public CINODE
     ~CXI_CHECKBUTTONS() override;
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
+    bool MobileApply(const storm::ui::Action &action) override;
 #endif
 
     void Draw(bool bSelected, uint32_t Delta_Time) override;

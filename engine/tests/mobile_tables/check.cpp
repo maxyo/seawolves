@@ -52,11 +52,6 @@ struct Strings
         return value == translations.end() ? nullptr : value->second.c_str();
     }
 };
-struct Action
-{
-    std::string screen, node, value;
-    int index;
-};
 // The members of CXI_TABLE the templates read and call.
 struct Table
 {
@@ -96,8 +91,7 @@ struct Fixture
     ATTRIBUTES root{codec};
     Table table;
     std::string screen = "test_screen";
-    uint64_t revision = 9;
-    std::deque<Action> actions;
+    std::deque<storm::ui::Action> actions;
     std::vector<std::string> focused; // MSG_INTERFACE_NEW_CURRENT_NODE targets
 
     Fixture()
@@ -121,9 +115,15 @@ struct Fixture
         MobileTableCollect(table, screen, widgets);
         return widgets;
     }
-    bool apply(int index, const std::string &value)
+    bool apply(int index, const std::string &verb, const std::string &value)
     {
-        return MobileTableApply(table, index, value, screen, revision, actions);
+        storm::ui::Action action;
+        action.screen = screen;
+        action.node = table.m_nodeName;
+        action.index = index;
+        action.verb = verb;
+        action.value = value;
+        return MobileTableApply(table, action, actions);
     }
 };
 
@@ -381,56 +381,52 @@ TEST_CASE("trade rows are acted on only with the identity of the good and its ow
         REQUIRE(live.size() == 1);
         CHECK(live[0].rowId == id);
         CHECK(live[0].enabled);
-        CHECK_FALSE(f.apply(0, "select")); // no unversioned select for a trade table
-        CHECK_FALSE(f.apply(0, "activate@9:"));
-        CHECK_FALSE(f.apply(0, "select@8:" + id));
-        CHECK(f.apply(0, "select@9:" + id));
+        CHECK_FALSE(f.apply(0, "select", "")); // no unversioned select for a trade table
+        CHECK_FALSE(f.apply(0, "activate", ""));
+        CHECK(f.apply(0, "select", id));
         const int activated = f.table.activated;
-        CHECK(f.apply(0, "activate@9:" + id));
+        CHECK(f.apply(0, "activate", id));
         CHECK(f.table.activated == activated); // an activation is queued, not run
         REQUIRE(f.actions.size() == 1);
-        CHECK(f.actions.front().value == "dispatch@9:" + id);
+        CHECK((f.actions.front().verb == "dispatch" && f.actions.front().value == id));
         CHECK(f.actions.front().node == "TABLE_LIST");
         CHECK(f.actions.front().screen == screen);
         item->SetAttribute("index", "43");
-        CHECK_FALSE(f.apply(0, "dispatch@9:" + id)); // the row was refilled by the callback
+        CHECK_FALSE(f.apply(0, "dispatch", id)); // the row was refilled by the callback
         item->SetAttribute("index", "42");
         auto *selector = personal ? people : ships;
         auto *owner = selector->GetAttributeClass("pic1");
         const char *field = personal ? "character" : "companionIndex";
         owner->SetAttribute(field, "90");
-        CHECK_FALSE(f.apply(0, "select@9:" + id)); // the same good of another owner
+        CHECK_FALSE(f.apply(0, "select", id)); // the same good of another owner
         owner->SetAttribute(field, personal ? "8" : "7");
         selector->SetAttribute("current", "1");
-        CHECK_FALSE(f.apply(0, "select@9:" + id)); // no selector entry
+        CHECK_FALSE(f.apply(0, "select", id)); // no selector entry
         live = f.collect();
         CHECK_FALSE(live[0].enabled);
         CHECK(live[0].actions.empty());
         selector->SetAttribute("current", "0");
         f.table.m_bLockedNode = true;
-        CHECK_FALSE(f.apply(0, "select@9:" + id));
+        CHECK_FALSE(f.apply(0, "select", id));
         f.table.m_bLockedNode = false;
-        CHECK(f.apply(0, "dispatch@9:" + id));
+        CHECK(f.apply(0, "dispatch", id));
         CHECK(f.table.activated == activated + 1);
-        f.revision = 10;
-        CHECK_FALSE(f.apply(0, "dispatch@9:" + id)); // another opening of the screen
-        f.revision = 9;
 
         // A ship switch refills the table in the game's next frame: a tap with the identity of the list before the
         // refill is refused, and the refusal names both identities.
         item->SetAttribute("index", "44");
-        CHECK_FALSE(f.apply(0, "activate@9:" + id));
+        CHECK_FALSE(f.apply(0, "activate", id));
         const auto now = storm::mobile::InterfaceTableRowId(screen, "TABLE_LIST", item, &f.root);
-        CHECK(f.table.mobileRefusal_ == "'activate@9:" + id + "' is not for tr1 now (9:" + now + ")");
+        CHECK(f.table.mobileRefusal_ == "'activate " + id + "' is not for tr1 now (" + now + ")");
         item->SetAttribute("index", "42");
-        CHECK_FALSE(f.apply(1, "activate@9:" + id));
+        CHECK_FALSE(f.apply(1, "activate", id));
         CHECK(f.table.mobileRefusal_ == "row 1 is outside the table's 1 rows");
         f.table.m_bLockedNode = true;
-        CHECK_FALSE(f.apply(0, "activate@9:" + id));
+        CHECK_FALSE(f.apply(0, "activate", id));
         CHECK(f.table.mobileRefusal_ == "the table is locked by a window");
         f.table.m_bLockedNode = false;
         f.table.m_nSelectIndex = 0;
-        CHECK(f.apply(0, "dispatch@9:" + id));
+        CHECK(f.apply(0, "dispatch", id));
         CHECK(f.table.mobileRefusal_.empty());
     }
     // A dispatch for a row that is no longer the selected one is refused.
@@ -439,28 +435,26 @@ TEST_CASE("trade rows are acted on only with the identity of the good and its ow
     second->SetAttribute("index", "42");
     f.table.m_nSelectIndex = 1;
     const auto id = storm::mobile::InterfaceTableRowId(f.screen, "TABLE_LIST", item, &f.root);
-    CHECK_FALSE(f.apply(0, "dispatch@9:" + id));
+    CHECK_FALSE(f.apply(0, "dispatch", id));
     CHECK(f.table.mobileRefusal_ == "row 1 is selected, not 0");
 
     goods->SetAttribute("select", "1");
     const auto quantityId = storm::mobile::InterfaceTableRowId("store", "TABLE_LIST", item, &f.root);
-    const auto guarded = "guard@9:" + quantityId + "|press";
-    CHECK(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, guarded) == "press");
-    CHECK(storm::mobile::CommerceQuantityValue("store", "qty_edit", 9, &f.root, "guard@9:" + quantityId + "|-12") ==
-          "-12");
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 10, &f.root, guarded));
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("items", "QTY_OK_BUTTON", 9, &f.root, guarded));
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "I_SHIP", 9, &f.root, guarded));
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, "press"));
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, guarded + "|press"));
+    const auto guarded = quantityId;
+    CHECK(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, guarded));
+    CHECK(storm::mobile::CommerceQuantityGuard("store", "qty_edit", &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("items", "QTY_OK_BUTTON", &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "I_SHIP", &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, ""));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, guarded + "|press"));
     item->SetAttribute("index", "43");
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, guarded));
     item->SetAttribute("index", "42");
     ships->GetAttributeClass("pic1")->SetAttribute("companionIndex", "99");
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, guarded));
     ships->GetAttributeClass("pic1")->SetAttribute("companionIndex", "7");
     goods->SetAttribute("select", "0");
-    CHECK_FALSE(storm::mobile::CommerceQuantityValue("store", "QTY_OK_BUTTON", 9, &f.root, guarded));
+    CHECK_FALSE(storm::mobile::CommerceQuantityGuard("store", "QTY_OK_BUTTON", &f.root, guarded));
 
     f.screen = "store";
     f.table.m_nLineQuantity = 1;
@@ -470,7 +464,7 @@ TEST_CASE("trade rows are acted on only with the identity of the good and its ow
         INFO(bad);
         item->SetAttribute("index", bad);
         CHECK(storm::mobile::InterfaceTableRowId("store", "TABLE_LIST", item, &f.root).empty());
-        CHECK_FALSE(f.apply(0, "activate@9:"));
+        CHECK_FALSE(f.apply(0, "activate", ""));
         CHECK(f.table.mobileRefusal_ == "tr1 has no identity");
     }
 }
@@ -492,18 +486,17 @@ TEST_CASE("a reference table's row is its UserData identity, and a selection foc
     REQUIRE(cityRows.size() == 1);
     CHECK(cityRows[0].rowId == cityId);
     CHECK(f.focused.empty());
-    CHECK(f.apply(0, "select@9:" + cityId));
+    CHECK(f.apply(0, "select", cityId));
     CHECK(f.focused == std::vector<std::string>{"TABLE_CITY"});
-    CHECK_FALSE(f.apply(0, "select"));
-    CHECK_FALSE(f.apply(0, "select@8:" + cityId));
+    CHECK_FALSE(f.apply(0, "select", ""));
     cityData->SetAttribute("CityID", "PortRoyal");
-    CHECK_FALSE(f.apply(0, "select@9:" + cityId));
-    CHECK(f.apply(0, "select@9:tradebook:city:PortRoyal"));
+    CHECK_FALSE(f.apply(0, "select", cityId));
+    CHECK(f.apply(0, "select", "tradebook:city:PortRoyal"));
     for (const char *bad : {"", "wrong\ncity", "wrong|city", "wrong city"})
     {
         INFO(bad);
         cityData->SetAttribute("CityID", bad);
-        CHECK_FALSE(f.apply(0, "select@9:" + cityId));
+        CHECK_FALSE(f.apply(0, "select", cityId));
         cityRows = f.collect();
         CHECK_FALSE(cityRows[0].enabled);
         CHECK(cityRows[0].actions.empty());
@@ -519,24 +512,24 @@ TEST_CASE("a reference table's row is its UserData identity, and a selection foc
     const std::string royal = "tradebook:city:PortRoyal";
     f.table.activateCommand = false;
     CHECK(f.collect()[0].actions == std::vector<std::string>{"select"});
-    CHECK_FALSE(f.apply(0, "activate@9:" + royal));
+    CHECK_FALSE(f.apply(0, "activate", royal));
     CHECK(f.table.mobileRefusal_ == "the table has no activate command");
     CHECK(f.actions.empty());
     f.table.activateCommand = true;
-    CHECK(f.apply(0, "activate@9:" + royal));
+    CHECK(f.apply(0, "activate", royal));
     CHECK(f.actions.size() == 1);
 
     // A table that needs no identity takes a plain select; a disabled table takes nothing.
     f.screen = "other";
-    CHECK(f.apply(0, "select"));
+    CHECK(f.apply(0, "select", ""));
     f.table.m_bLockStatus = true;
-    CHECK_FALSE(f.apply(0, "select"));
+    CHECK_FALSE(f.apply(0, "select", ""));
     CHECK(f.table.mobileRefusal_ == "the table is lock-status");
     f.table.m_bLockStatus = false;
     for (bool Table::*flag : {&Table::m_bUse, &Table::m_bClickable})
     {
         f.table.*flag = false;
-        CHECK_FALSE(f.apply(0, "select"));
+        CHECK_FALSE(f.apply(0, "select", ""));
         f.table.*flag = true;
     }
 }

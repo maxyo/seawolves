@@ -60,13 +60,6 @@ inline bool MobileSliderPosition(const std::string &text, int minimum, int maxim
     return true;
 }
 
-inline bool MobileSliderSetPosition(const std::string &action, uint64_t screenRevision, int &position)
-{
-    const std::string prefix = "set@" + std::to_string(screenRevision) + ":";
-    return action.compare(0, prefix.size(), prefix) == 0 &&
-           MobileSliderPosition(action.substr(prefix.size()), 0, std::numeric_limits<int>::max(), position);
-}
-
 // The face of a game portrait texture ("interfaces\\portraits\\256\\face_12.tga" → "12"), "" for
 // any other picture: the portable UI draws portraits by face, not by path.
 inline std::string MobilePortraitFace(const std::string &path)

@@ -1727,15 +1727,16 @@ void CXI_VIMAGESCROLL::MobileCollect(std::vector<MobileWidget> &widgets) const
     }
 }
 
-bool CXI_VIMAGESCROLL::MobileApply(int index, const std::string &value)
+bool CXI_VIMAGESCROLL::MobileApply(const storm::ui::Action &action)
 {
+    const int index = action.index;
     if (!m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus || m_bDoMove) return false;
     storm::mobile::OfficerListIdentity state;
     std::vector<MobileWidget> rows;
     if (!MobileOfficerRows(state, rows)) return false;
     const auto row = std::find_if(rows.begin(), rows.end(), [index](const auto &r) { return r.index == index && r.enabled; });
     if (row == rows.end()) return false;
-    if (m_mobileOfficers.accepts(state, index, value, "activate"))
+    if (action.verb == "activate" && m_mobileOfficers.accepts(state, index, action.value))
     {
         // Only the slot the script already observed as current (ProcessFrame keeps nCurScrollNum).
         if (row->value != "1" || !CheckCommandUsed(ACTION_ACTIVATE)) return false;
@@ -1743,7 +1744,7 @@ bool CXI_VIMAGESCROLL::MobileApply(int index, const std::string &value)
         DoAction(ACTION_ACTIVATE, stop, true);
         return true;
     }
-    if (!m_mobileOfficers.accepts(state, index, value)) return false;
+    if (action.verb != "select" || !m_mobileOfficers.accepts(state, index, action.value)) return false;
     core.Send_Message(g_idInterface, "ls", MSG_INTERFACE_NEW_CURRENT_NODE, m_nodeName);
     m_nCurImage = index;
     core.Entity_GetAttributeClass(g_idInterface, m_nodeName)->SetAttributeUseDword("current", index);

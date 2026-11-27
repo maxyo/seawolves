@@ -17,10 +17,7 @@
 #include "mobile_facts_cache.hpp"
 #include "mobile_save_list.hpp"
 #include "mobile_action_frame.hpp"
-namespace storm::android
-{
-struct UiWidgetAction; // platform/android_ui.hpp
-}
+#include "storm_ui/action.h"
 #include "script_state.hpp"
 #endif
 
@@ -332,7 +329,7 @@ class XINTERFACE : public XINTERFACE_BASE
     void MobileApplyActions();
     void MobileModelFrame(); // collected when due, published when changed
     void MobileSettle();
-    storm::mobile::ActionOutcome MobileApplyAction(storm::android::UiWidgetAction &action);
+    storm::mobile::ActionOutcome MobileApplyAction(const storm::ui::Action &action);
     void MobileAnswer(uint64_t request, const storm::mobile::ActionOutcome &outcome, bool queuedEvents);
     void MobileFlushAnswers();
     std::vector<uint64_t> mobileHeldAnswers_; // applied actions whose script events have not run yet
@@ -383,13 +380,13 @@ class XINTERFACE : public XINTERFACE_BASE
     uint64_t mobileFactsFrames_ = 0; // interface frames of that opening
     void MobileCollectTableGame(std::vector<MobileWidget> &widgets);
     void MobileCollectGoodsTransfer(std::vector<MobileWidget> &widgets);
-    bool MobileApplyGoodsTransfer(const std::string &value);
+    bool MobileApplyGoodsTransfer(const storm::ui::Action &action);
     storm::mobile::AlchemySource MobileAlchemySource();
     void MobileCollectAlchemy(std::vector<MobileWidget> &widgets);
-    bool MobileApplyAlchemy(const std::string &value);
+    bool MobileApplyAlchemy(const storm::ui::Action &action);
     void MobileCollectItemsBox(std::vector<MobileWidget> &widgets);
-    bool MobileApplyItemsBoxTakeAll(const std::string &value);
-    bool MobileApplyColonyLoot(const std::string &value);
+    bool MobileApplyItemsBoxTakeAll(const storm::ui::Action &action);
+    bool MobileApplyColonyLoot(const storm::ui::Action &action);
     int32_t m_mobileAlchemyStrings=-1;
     std::string m_mobileAlchemyLanguage;
     std::string m_mobileAlchemyMissing; // the last lack reported

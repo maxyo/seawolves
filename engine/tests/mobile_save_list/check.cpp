@@ -563,10 +563,9 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
     CHECK(rows[3].context.at("row") == "3");
     CHECK(rows[37].actions == std::vector<std::string>{"activate"});
     CHECK(rows[3].actions == std::vector<std::string>{"activate", "delete"});
-    const auto token = [&](int index, const char *verb) { return std::string(verb) + "@4:" + rows[index].rowId; };
 
     // A distant slot: the page scrolled, then the slot clicked.
-    auto target = cap.accept(live, 31, token(31, "delete"));
+    auto target = cap.accept(live, 31, "delete", rows[31].rowId);
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(value(page) == 30);
@@ -576,7 +575,7 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
     CHECK(value(selection) == 31);
     live.records[31].file = "replacement";
     CHECK_FALSE(RestoreSaveTarget(*target));
-    CHECK_FALSE(cap.accept(live, 31, token(31, "delete")));
+    CHECK_FALSE(cap.accept(live, 31, "delete", rows[31].rowId));
     own();
     live.revision = 5;
     CHECK_FALSE(RestoreSaveTarget(*target));
@@ -585,18 +584,18 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
     CHECK_FALSE(RestoreSaveTarget(*target)); // the slot is not on the script's page
     page.Set(30);
 
-    target = cap.accept(live, 0, token(0, "activate"));
+    target = cap.accept(live, 0, "activate", rows[0].rowId);
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(value(page) == 0);
     CHECK(value(selection) == 0);
-    target = cap.accept(live, 37, token(37, "activate")); // the new slot
+    target = cap.accept(live, 37, "activate", rows[37].rowId); // the new slot
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(value(page) == 35);
     CHECK(value(selection) == 37);
     // The script did not get there: no target.
-    target = cap.accept(live, 3, token(3, "activate"));
+    target = cap.accept(live, 3, "activate", rows[3].rowId);
     REQUIRE(target);
     scrolls = false;
     CHECK_FALSE(SelectSaveTarget(*target));
@@ -605,8 +604,8 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
     CHECK_FALSE(SelectSaveTarget(*target));
     clicks = true;
     CHECK(SelectSaveTarget(*target));
-    CHECK_FALSE(cap.accept(live, 37, token(37, "delete")));
-    CHECK_FALSE(cap.accept(live, 2, token(1, "delete")));
+    CHECK_FALSE(cap.accept(live, 37, "delete", rows[37].rowId));
+    CHECK_FALSE(cap.accept(live, 2, "delete", rows[1].rowId));
     CHECK(switches == 0);
 
     // The same list keeps its rows' identities.
@@ -645,9 +644,8 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     CHECK(rows[1].label == "Save 0");
     CHECK(rows[1].value == "1");
     CHECK(rows[0].value == "0");
-    const auto token = [&](int index, const char *verb) { return std::string(verb) + "@6:" + rows[index].rowId; };
 
-    auto target = cap.accept(live, 2, token(2, "activate"));
+    auto target = cap.accept(live, 2, "activate", rows[2].rowId);
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(switches == 1);
@@ -659,20 +657,20 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     // Its own profile current again: a record of it needs no switch.
     ChooseSaveProfile("existing");
     switches = 0;
-    target = cap.accept(live, 3, token(3, "delete"));
+    target = cap.accept(live, 3, "delete", rows[3].rowId);
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(switches == 0);
     CHECK(value(selection) == 1);
-    CHECK(cap.accept(live, 4, token(4, "delete")));
-    CHECK_FALSE(cap.accept(live, 5, token(4, "activate")));
+    CHECK(cap.accept(live, 4, "delete", rows[4].rowId));
+    CHECK_FALSE(cap.accept(live, 5, "activate", rows[4].rowId));
 
     // The game's profile name may be spelled unlike its folder ("Player" for "player"): ASCII case is folded.
     CHECK(SameProfile("Player", "player"));
     CHECK_FALSE(SameProfile("Player", "player2"));
     CHECK_FALSE(SameProfile("Плеер", "плеер"));
     live.profile = "EXISTING";
-    target = cap.accept(live, 3, token(3, "delete"));
+    target = cap.accept(live, 3, "delete", rows[3].rowId);
     REQUIRE(target);
     CHECK(SelectSaveTarget(*target));
     CHECK(switches == 0);
@@ -686,7 +684,7 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     rows.clear();
     cap.collect(live, true, rows, rowFacts);
     rows.erase(rows.begin());
-    target = cap.accept(live, 5, std::string("delete@6:") + rows[5].rowId);
+    target = cap.accept(live, 5, "delete", rows[5].rowId);
     REQUIRE(target);
     CHECK_FALSE(RestoreSaveTarget(*target));
     live.records.pop_back();
@@ -697,7 +695,7 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     rows.clear();
     cap.collect(live, true, rows, rowFacts);
     rows.erase(rows.begin());
-    target = cap.accept(live, 5, std::string("activate@6:") + rows[5].rowId);
+    target = cap.accept(live, 5, "activate", rows[5].rowId);
     REQUIRE(target);
     CHECK_FALSE(SelectSaveTarget(*target));
 

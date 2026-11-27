@@ -34,12 +34,10 @@ TEST_CASE("mobile_goods_transfer")
     CollectGoodsTransfer(source, widgets);
     REQUIRE((widgets[0].value == "0" && widgets[1].value == "1" && !widgets[1].enabled && widgets[1].actions.empty()));
     REQUIRE(widgets[2].unavailableReason == "goods-transfer:missing=companion");
-    // Actions bound to this opening only.
-    const auto order = GoodsTransferOrder("order@7:Balls=600", 7);
+    const auto order = GoodsTransferOrder("Balls=600");
     REQUIRE((order && order->good == "Balls" && order->amount == 600));
-    REQUIRE((!GoodsTransferOrder("order@6:Balls=600", 7) && !GoodsTransferOrder("order@7:=5", 7)));
-    REQUIRE((!GoodsTransferOrder("order@7:Balls=", 7) && !GoodsTransferOrder("order@7:Balls=-3", 7) &&
-             !GoodsTransferOrder("order@7:Balls", 7)));
+    REQUIRE((!GoodsTransferOrder("=5") && !GoodsTransferOrder("Balls=") && !GoodsTransferOrder("Balls=-3") &&
+             !GoodsTransferOrder("Balls")));
     // The click point lands in the script's box of that good and of no neighbour (82 apart
     // vertically, 123 horizontally), also scrolled, scaled and on a wide screen.
     for (const GoodsIconPicture picture :

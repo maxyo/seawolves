@@ -598,17 +598,13 @@ std::string CheckAction(const InterfaceModel &model, const Action &action)
         return "sent to " + action.node + "[" + std::to_string(action.index) + "], a row the model does not have";
     if (!exact->actions.empty())
     {
-        Action bare = action;
-        bare.guard.clear();
-        const std::string wire = WidgetWire(bare);
-        for (const std::string &offer : exact->actions)
-            if (wire == offer || action.verb == offer || wire.rfind(offer + "=", 0) == 0)
-                return {};
+        if (std::ranges::find(exact->actions, action.verb) != exact->actions.end())
+            return {};
         std::string offers;
         for (const std::string &offer : exact->actions)
             offers += (offers.empty() ? "" : ", ") + offer;
-        return "sends " + wire + " to " + action.node + "[" + std::to_string(action.index) + "], which offers only " +
-               offers;
+        return "sends " + action.verb + " to " + action.node + "[" + std::to_string(action.index) +
+               "], which offers only " + offers;
     }
     static const std::set<std::string> kStandard = {"button", "choice", "check", "edit", "stepper"};
     if (kStandard.count(exact->type) && !exact->Offers(action.verb))
@@ -841,8 +837,8 @@ class Crawler
             if (action.screen == "sound")
                 continue;
             acted = true;
-            asked_game = asked_game || !EngineCommand(action).empty();
-            const std::string command = EngineCommand(action);
+            const std::string command = to_string(action);
+            asked_game = asked_game || !command.empty();
             if (tap.disabled)
                 Finding(next, "screen " + action.screen + ": " + tap.key + " is drawn disabled and still sends " +
                                   (command.empty() ? action.node + " " + action.verb : command));
@@ -851,7 +847,7 @@ class Crawler
                            {"command", command},    {"tap", tap.key},          {"path", PathText(next)}};
             if (AnsweredAction(action))
             {
-                record["wire"] = WidgetWire(action);
+                record["widget"] = true;
                 const Widget *widget = session_->model.Find(action.node);
                 record["type"] = widget ? widget->type : std::string();
                 if (const std::string wrong = CheckAction(session_->model, action); !wrong.empty())
@@ -1007,7 +1003,7 @@ std::vector<std::string> Holds(Session &session, const Observed &observed, const
     session.Frames(0.5);
     const size_t held = observed.actions.size();
     if (held != before)
-        lines.push_back("holds " + selector + ": the long press sent " + EngineCommand(observed.actions[before]));
+        lines.push_back("holds " + selector + ": the long press sent " + to_string(observed.actions[before]));
     session->Touch(TouchPhase::Down, 1, at.x, at.y, session.Clock());
     session.Frames(1.0 / 60.0);
     session->Touch(TouchPhase::Up, 1, at.x, at.y, session.Clock());

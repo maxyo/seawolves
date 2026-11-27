@@ -1652,9 +1652,10 @@ void CXI_FORMATEDTEXT::MobileCollect(std::vector<MobileWidget> &widgets) const
     }
     append();
 }
-bool CXI_FORMATEDTEXT::MobileApply(int index, const std::string &value)
+bool CXI_FORMATEDTEXT::MobileApply(const storm::ui::Action &action)
 {
-    if (value == "press")
+    const int index = action.index;
+    if (action.verb == "press")
     {
         if (m_bSelectableCursor || !m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus ||
             !CheckCommandUsed(ACTION_MOUSECLICK)) return false;
@@ -1662,7 +1663,7 @@ bool CXI_FORMATEDTEXT::MobileApply(int index, const std::string &value)
         DoAction(ACTION_MOUSECLICK, stop, true);
         return true;
     }
-    if (!m_bSelectableCursor || value != "select") return false;
+    if (!m_bSelectableCursor || action.verb != "select") return false;
     bool found = false;
     for (auto *line = m_listRoot; line; line = line->next) if (line->strGroup == index) { found = true; break; }
     if (!found) return false;

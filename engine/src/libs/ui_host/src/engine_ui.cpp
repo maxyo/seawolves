@@ -173,21 +173,20 @@ void EngineUi::OnAction(const storm::ui::Action &action)
     if (storm::ui::AnsweredAction(action))
     {
         // A widget of the open interface: the action itself goes to the interface (XINTERFACE::DoControl
-        // applies and answers it), with the wire its node reads.
+        // applies and answers it).
         in_action_ = true;
         TraceInput("action", action.screen + " " + action.node + " " + action.verb + " request " +
                                  std::to_string(action.request));
         if (action.screen != screen_)
             Answer(action.request, false, "the interface " + action.screen + " is not open");
         else
-            storm::android::uiWidgetActions.push_back(
-                {action.screen, action.node, storm::ui::WidgetWire(action), action.index, action.request});
+            storm::android::uiWidgetActions.push_back(action);
         in_action_ = false;
         return;
     }
     if (trace_input_)
         TraceInput("action",
-                   action.screen + " " + action.node + " " + action.verb + " -> " + storm::ui::EngineCommand(action));
+                   action.screen + " " + action.node + " " + action.verb + " -> " + storm::ui::to_string(action));
     if (action.command)
     {
         commands_.push(*action.command, action.node); // a node names a latest-value slot

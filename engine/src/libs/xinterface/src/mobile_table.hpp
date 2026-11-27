@@ -3,6 +3,7 @@
 #include "mobile_image_bridge.hpp"
 #include "mobile_inventory.hpp"
 #include "mobile_widget.hpp"
+#include "storm_ui/action.h"
 #include "shared/interface/messages.h"
 #include "xdefines.h"
 
@@ -139,13 +140,13 @@ void MobileTableCollect(const Table &t, std::string_view screen, std::vector<Mob
     }
 }
 
-// A touch action on row `index` of a table node: "select", "activate" or "dispatch" with the screen's opening
-// `revision` and the row's identity. An activation is queued in `actions` as a dispatch, applied after the selection
-// callback has run. A refusal says which condition failed in t.mobileRefusal_ (logged by XINTERFACE).
-template <class Table, class Actions>
-bool MobileTableApply(Table &t, int index, const std::string &value, std::string_view screen, uint64_t revision,
-                      Actions &actions)
+// A touch action on row `index` of a table node: "select", "activate" or "dispatch" with the row's identity. An
+// activation is queued in `actions` as a dispatch, applied after the selection callback has run. A refusal says which
+// condition failed in t.mobileRefusal_ (logged by XINTERFACE).
+template <class Table, class Actions> bool MobileTableApply(Table &t, const storm::ui::Action &action, Actions &actions)
 {
+    const int index = action.index;
+    const std::string_view screen = action.screen;
     t.mobileRefusal_.clear();
     const auto refuse = [&t](std::string why) {
         t.mobileRefusal_ = std::move(why);
@@ -169,12 +170,12 @@ bool MobileTableApply(Table &t, int index, const std::string &value, std::string
     const bool leased = storm::mobile::LeasedTableIdentityRequired(screen, t.m_nodeName);
     if (leased && id.empty())
         return refuse(key + " has no identity");
-    const auto suffix = "@" + std::to_string(revision) + ":" + id;
-    const bool select = (!leased && value == "select") || value == "select" + suffix;
-    const bool activate = value == "activate" + suffix;
-    const bool dispatch = value == "dispatch" + suffix;
+    const bool same = action.value == id || (!leased && action.value.empty() && action.verb == "select");
+    const bool select = same && action.verb == "select";
+    const bool activate = same && action.verb == "activate";
+    const bool dispatch = same && action.verb == "dispatch";
     if (!select && !activate && !dispatch)
-        return refuse("'" + value + "' is not for " + key + " now (" + suffix.substr(1) + ")");
+        return refuse("'" + action.verb + " " + action.value + "' is not for " + key + " now (" + id + ")");
     if (activate || dispatch)
     {
         const int code = t.CheckCommandUsed(ACTION_ACTIVATE) ? ACTION_ACTIVATE : ACTION_MOUSEDBLCLICK;
@@ -190,7 +191,10 @@ bool MobileTableApply(Table &t, int index, const std::string &value, std::string
         }
         // Re-resolve node, screen epoch and row identity in XINTERFACE after the selection
         // callback. That callback may rebuild the table or destroy this node entirely.
-        actions.push_front({std::string(screen), t.m_nodeName, "dispatch" + suffix, index});
+        storm::ui::Action next = action;
+        next.verb = "dispatch";
+        next.request = 0;
+        actions.push_front(std::move(next));
     }
     // A mouse selection focuses the table before TableSelectChange, and scripts depend on
     // it: shipyard's ProcessFrame resets the chosen offer while SHIPS_SCROLL is current,

@@ -38,7 +38,7 @@ class CXI_BUTTON : public CINODE
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
-    bool MobileApply(int index, const std::string &value) override;
+    bool MobileApply(const storm::ui::Action &action) override;
 #endif
 
   protected:

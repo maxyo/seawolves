@@ -5,7 +5,7 @@
 //   choice SCROLL_GERALD  one row per emblem: label = the file name without extension, rowId =
 //          the file name, value "1" = the current one, context.texture = the texture path under
 //          RESOURCE/Textures (for <ui-game-image texture=…>); actions ["select"] while selectable.
-//          `select@<screen revision>:<file>` makes it current like a tap on the scroll image.
+//          a select of `<file>` makes it current like a tap on the scroll image.
 #include "mobile_widget.hpp"
 #include <optional>
 
@@ -45,13 +45,10 @@ inline void CollectSailEmblems(const std::string &node, const std::vector<std::s
     }
 }
 
-// The emblem index a `select@<revision>:<file>` action names, if `index` still shows that file.
-inline std::optional<int> AcceptSailEmblem(const std::string &value, uint64_t revision,
-                                           const std::vector<std::string> &files, int index)
+// The emblem index a select of `file` names, if `index` still shows that file.
+inline std::optional<int> AcceptSailEmblem(const std::string &file, const std::vector<std::string> &files, int index)
 {
-    const std::string prefix = "select@" + std::to_string(revision) + ":";
-    if (value.rfind(prefix, 0) != 0 || index < 0 || static_cast<size_t>(index) >= files.size() ||
-        files[static_cast<size_t>(index)] != value.substr(prefix.size()))
+    if (index < 0 || static_cast<size_t>(index) >= files.size() || files[static_cast<size_t>(index)] != file)
         return std::nullopt;
     return index;
 }

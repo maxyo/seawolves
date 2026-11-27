@@ -1603,27 +1603,28 @@ storm::mobile::ImageRef CXI_SCROLLIMAGE::MobileRowImage(ATTRIBUTES *list, int in
     if (!group || !picture) return {};
     return storm::mobile::AtlasReference(pPictureService, group, picture);
 }
-std::optional<std::string> CXI_SCROLLIMAGE::MobileHireCrewQuantity(const std::string &node, const std::string &value) const
+bool CXI_SCROLLIMAGE::MobileHireCrewGuard(const std::string &node, const std::string &guard) const
 {
-    if (storm::android::mobileScreen != "hirecrew" || !m_nodeName || std::string_view(m_nodeName) != "SHIPS_SCROLL") return {};
+    if (storm::android::mobileScreen != "hirecrew" || !m_nodeName || std::string_view(m_nodeName) != "SHIPS_SCROLL") return false;
     storm::mobile::OfficerListIdentity state; std::vector<MobileWidget> rows;
-    if (!MobileOwnerRows(state, rows)) return {};
+    if (!MobileOwnerRows(state, rows)) return false;
     auto *character = static_cast<VDATA *>(core.GetScriptVariable("refCharacter"));
     if (!storm::mobile::HireCrewBoundOwner(core.Entity_GetAttributeClass(g_idInterface, m_nodeName),
-        character ? character->GetAClass() : nullptr)) return {};
-    return storm::mobile::HireCrewQuantityValue(storm::android::mobileScreen, node, m_mobileOwners, state, rows, value);
+        character ? character->GetAClass() : nullptr)) return false;
+    return storm::mobile::HireCrewQuantityGuard(storm::android::mobileScreen, node, m_mobileOwners, state, rows, guard);
 }
-bool CXI_SCROLLIMAGE::MobileApply(int index, const std::string &value)
+bool CXI_SCROLLIMAGE::MobileApply(const storm::ui::Action &action)
 {
-    if (!m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus || m_bDoMove) return false;
+    const int index = action.index;
+    if (!m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus || m_bDoMove || action.verb != "select") return false;
     if (const auto files = MobileEmblemFiles(); !files.empty())
     {
-        if (!storm::mobile::AcceptSailEmblem(value, storm::android::mobileScreenRevision, files, index)) return false;
+        if (!storm::mobile::AcceptSailEmblem(action.value, files, index)) return false;
     }
     else
     {
         storm::mobile::OfficerListIdentity state; std::vector<MobileWidget> rows;
-        if (!MobileOwnerRows(state, rows) || !m_mobileOwners.accepts(state, index, value)) return false;
+        if (!MobileOwnerRows(state, rows) || !m_mobileOwners.accepts(state, index, action.value)) return false;
         bool present = false; for (const auto &row : rows) if (row.index == index && row.enabled) present = true;
         if (!present) return false;
     }

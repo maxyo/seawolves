@@ -30,7 +30,7 @@ inline constexpr std::array<UiCommandName, 6> kUiCommands{{
     {UiCommand::Title, "main:", true},
     {UiCommand::Quick, "quick:", true},
     {UiCommand::Dialogue, "dialogue:", true},
-    {UiCommand::GameOverEnd, "widget:game_over\tEND\t", true},
+    {UiCommand::GameOverEnd, "game_over:END", false},
 }};
 
 struct ParsedUiCommand

@@ -574,12 +574,12 @@ void CXI_CHECKBUTTONS::MobileCollect(std::vector<MobileWidget> &widgets) const
         }
     }
 }
-bool CXI_CHECKBUTTONS::MobileApply(int index, const std::string &value)
+bool CXI_CHECKBUTTONS::MobileApply(const storm::ui::Action &action)
 {
     if (!m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus ||
-        index < 0 || index >= static_cast<int>(m_aButton.size()) || m_aButton[index]->bDisable ||
-        (value != "0" && value != "1")) return false;
-    SetCheckToButton(index, value == "1"); return true;
+        action.verb != "toggle" || action.index < 0 || action.index >= static_cast<int>(m_aButton.size()) ||
+        m_aButton[action.index]->bDisable || (action.value != "0" && action.value != "1")) return false;
+    SetCheckToButton(action.index, action.value == "1"); return true;
 }
 
 #endif

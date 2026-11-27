@@ -79,7 +79,7 @@ struct FakeSurface final : storm::ui::screens::Surface
     void Send(const storm::ui::Action &action) override
     {
         commands.push_back(action.screen.empty() ? "host " + action.node + " " + action.value
-                                                 : storm::ui::EngineCommand(action));
+                                                 : storm::ui::to_string(action));
         actions.push_back(action);
         last_request = action.request;
     }
@@ -229,7 +229,7 @@ struct FakeMount final : storm::ui::hud::Mount
     }
     void Send(const storm::ui::Action &action) override
     {
-        commands.push_back(storm::ui::EngineCommand(action));
+        commands.push_back(storm::ui::to_string(action));
         slots.push_back(action.node);
     }
     void SetLanguage(const std::string &game_language) override

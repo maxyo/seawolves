@@ -26,13 +26,10 @@ int main()
     assert(SliderPositionFromNormalized(std::numeric_limits<float>::quiet_NaN(), 100) == 0);
     assert(SliderPositionFromNormalized(std::numeric_limits<float>::max(), 100) == INT32_MAX);
     int value = -1;
-    assert(MobileSliderSetPosition("set@7:100", 7, value) && value == 100);
-    for (const std::string &bad :
-         {"set@6:50", "set@8:50", "set@7:-1", "set@7:+1", "set@7:1.5", "set@7: 1", "set@7:1 ", "set@7:", "set@7:1:2",
-          "set@7:2147483648", "set@18446744073709551616:1", "50", "press"})
-        assert(!MobileSliderSetPosition(bad, 7, value));
+    assert(MobileSliderPosition("100", 0, 100, value) && value == 100);
+    for (const std::string &bad : {"-1", "+1", "1.5", " 1", "1 ", "", "1:2", "2147483648", "press"})
+        assert(!MobileSliderPosition(bad, 0, std::numeric_limits<int>::max(), value));
     assert(!MobileSliderPosition(std::string("12\0tail", 7), 0, 100, value));
-    assert(MobileSliderSetPosition("set@18446744073709551615:0", UINT64_MAX, value));
 
     MobileSliderState slider;
     slider.node = "SOUND_SLIDE";

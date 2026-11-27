@@ -1,6 +1,9 @@
 #pragma once
 #ifdef __ANDROID__
 #include "mobile_widget.hpp"
+#ifdef __ANDROID__
+#include "storm_ui/action.h"
+#endif
 #endif
 
 #include "nodes/xi_tooltips.h"
@@ -179,7 +182,8 @@ class CINODE
     virtual ~CINODE();
 #ifdef __ANDROID__
     virtual void MobileCollect(std::vector<MobileWidget> &widgets) const {}
-    virtual bool MobileApply(int index, const std::string &value) { return false; }
+    // A widget action of the touch UI on this node, of the open interface's opening (XINTERFACE checked it).
+    virtual bool MobileApply(const storm::ui::Action &action) { return false; }
     // Why the last MobileApply returned false, when the node says (XINTERFACE logs it with the refusal);
     // a node that sets it clears it at the start of every MobileApply.
     std::string mobileRefusal_;

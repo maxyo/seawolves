@@ -200,3 +200,18 @@ TEST_CASE("the next step of the game's answer is in the model of the tap's frame
     REQUIRE(rounds == storm::mobile::kSettleRounds);
     REQUIRE(game.actions.size() == 1);
 }
+
+// A tap made on a window the game has closed and opened again since reaches neither opening: the press was meant for
+// the old window's node, which the new one may show for another row or deal.
+TEST_CASE("a widget action of an earlier opening is refused with the reason")
+{
+    storm::ui::Action press;
+    press.screen = "store";
+    press.node = "QTY_OK_BUTTON";
+    press.verb = "press";
+    press.opening = 7;
+    REQUIRE(storm::mobile::ActionMisdirected(press, "store", 7) == nullptr);
+    REQUIRE(std::string(storm::mobile::ActionMisdirected(press, "store", 8)) ==
+            "made on an earlier opening of the interface");
+    REQUIRE(std::string(storm::mobile::ActionMisdirected(press, "items", 7)) == "another interface is open");
+}

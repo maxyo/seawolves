@@ -166,7 +166,14 @@ void DispatchUiCommand(const std::string &text, storm::android::QuickGame &quick
             action != "Exit")
             spdlog::error("unknown title command '{}'", text);
         else if (storm::android::mobileScreen == "mainmenu" && action == "Continue")
-            storm::android::uiWidgetActions.push_back({"mainmenu", "ANDROID_CONTINUE", "activate", -1});
+        {
+            storm::ui::Action continued;
+            continued.screen = "mainmenu";
+            continued.node = "ANDROID_CONTINUE";
+            continued.verb = "activate";
+            continued.opening = storm::android::mobileScreenRevision;
+            storm::android::uiWidgetActions.push_back(std::move(continued));
+        }
         else if (storm::android::mobileScreen == "mainmenu")
             core_private->Event("backgroundcommand", "s", action.c_str());
         break;
