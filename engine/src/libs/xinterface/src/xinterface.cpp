@@ -737,7 +737,7 @@ void XINTERFACE::MobileModelFrame()
                     widget.context["resumeOnCancel"] = resumes ? "1" : "0";
         }
         if (storm::android::mobileScreen == "selectcharacter" && !storm::android::TutorialSkipSupported())
-            storm::android::tutorialSkip.selected = false;
+            storm::android::tutorialSkip.set(false);
         if (storm::android::mobileScreen == "selectcharacter")
         {
             // The occupation's text key (HeroType_N): the game's caption for it is a fragment of
@@ -750,7 +750,7 @@ void XINTERFACE::MobileModelFrame()
         if (storm::android::mobileScreen == "selectcharacter" && storm::android::TutorialSkipSupported())
         {
             MobileWidget option{"ANDROID_TUTORIAL_SKIP", "check", "Пропустить вступительное обучение",
-                storm::android::tutorialSkip.selected ? "1" : "0", 0, 0, true};
+                storm::android::tutorialSkip.selected() ? "1" : "0", 0, 0, true};
             option.rowId = std::to_string(storm::android::mobileScreenRevision);
             widgets.push_back(std::move(option));
         }

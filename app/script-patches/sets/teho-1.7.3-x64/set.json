@@ -84,7 +84,7 @@
     {
       "path": "PROGRAM/characters/RPGUtilite.c",
       "base_sha256": "5b62dac991bebb321ad2406f9281b98a34f3c2e872acb8b9104728326f489662",
-      "result_sha256": "3b5ff94f286a15955d5c1cdf9d3159e21fb51b47e6d10974928a168808cc4cef",
+      "result_sha256": "a226b5e0c8aa711469ae16b8a1e17e84883e723381fefefd4e4aece0c64a7084",
       "patch": "RPGUtilite.c.patch"
     },
     {
@@ -303,6 +303,17 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "The effective skills and characteristics come from one computation (GetCharacterSkillSimple, GetCharacterSPECIALSimple) with no way to tell its parts, so a player could not see why a value dropped; while chr.SkillTrace exists the computation records its running value after each step (SkillTraceAt), so the screen's breakdown is that computation itself (mobile-ui android_hero.c AndroidSkillSteps)",
       "save_compatibility": "Code only; no new globals. chr.SkillTrace is set and removed inside one interface call and is never saved. Existing saves load unchanged."
+    },
+    {
+      "id": "new-game-without-tutorial",
+      "title": "A new game as Charles can start without the introductory tutorial when the player asks for it",
+      "targets": [
+        "PROGRAM/characters/RPGUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: an option of the Android app's new-game screen. The new game's start had no way to begin past the compulsory introduction; when InterfaceStates.SkipTutorial is set, the start schedules the app's AndroidStartWithoutTutorial (mobile-ui android_newgame.c) through the game's own DoQuestFunctionDelay instead of the intro video, and consumes the choice. Without it the intro plays as before",
+      "save_compatibility": "Code only; no new globals. InterfaceStates.SkipTutorial exists only between the new-game screen and the start of that game, which removes it. Existing saves load unchanged."
     },
     {
       "id": "worldmap-random-pirate-frequency",

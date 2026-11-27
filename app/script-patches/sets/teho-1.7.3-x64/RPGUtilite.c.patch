@@ -254,3 +254,20 @@
          _chref.ItemsWeight = Amount; // оптимицация тормозов в бою на море
      }
      else
+@@ -3557,7 +3657,15 @@
+ 		ch.Ship.Type = SHIP_NOTUSED;
+ 		Ch.GenQuest.VideoAVI = "intro_Sharle";
+ 		Ch.GenQuest.VideoAfterQuest = "Sharlie_Start";
+-		DoQuestCheckDelay("PostVideo_Start", 0.2);
++		// Seawolves: the new-game screen of the Android app offers a start without the introductory tutorial
++		// (android_newgame.c); its choice is consumed here, and the intro plays otherwise.
++		if (CheckAttribute(&InterfaceStates, "SkipTutorial"))
++		{
++			DeleteAttribute(&InterfaceStates, "SkipTutorial");
++			DoQuestFunctionDelay("AndroidStartWithoutTutorial", 0.2);
++		}
++		else
++			DoQuestCheckDelay("PostVideo_Start", 0.2);
+ 	}
+ 	else
+ 	{

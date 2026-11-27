@@ -3,7 +3,6 @@
 #include "loading_transaction.hpp"
 #include "scene_load_status.hpp"
 #ifdef __ANDROID__
-#include "android_newgame.hpp"
 #include "platform/android_ui.hpp"
 #endif
 #include "core_impl.h"
@@ -245,9 +244,6 @@ bool CoreImpl::Run()
         Compiler->ProcessFrame(Timer.GetDeltaTime());
         Compiler->ProcessEvent("frame");
     }
-#ifdef __ANDROID__
-    storm::android::ApplyNewGameChoiceAfterFrame();
-#endif
 
     {
         STORM_PROFILE_ZONE("save/load state");

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Authored Android new-game adapter. Requires the unmodified 1.7.3 quest API.
+// Authored Android new-game adapter: the start without the tutorial. The game's new-game start schedules
+// AndroidStartWithoutTutorial when the player chose it (script fix new-game-without-tutorial).
 // This explicit starter kit skips compulsory onboarding, not the main story.
 void AndroidTutorialSkipValidate()
 {
