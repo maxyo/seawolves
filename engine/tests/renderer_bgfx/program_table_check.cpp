@@ -25,7 +25,7 @@ namespace
 bool holds(const FfBlocks &has, const FfBlocks &needs)
 {
     return (has.lamps || !needs.lamps) && (has.ao || !needs.ao) && (has.town_wall || !needs.town_wall) &&
-           (has.wet || !needs.wet);
+           (has.wet || !needs.wet) && (has.layer || !needs.layer);
 }
 
 const effects::FfProgramRow *row_of(const effects::FfProgram &program)
@@ -48,13 +48,13 @@ bool embedded_with_twin(const char *name)
 TEST_CASE("every draw's program is the narrowest embedded one, and every program is some draw's")
 {
     std::set<std::string> chosen;
-    // A game's own material: the pbr entry's narrowest family, with the highlights, the normal map or none, the sun
-    // shadow or none.
-    for (int bits = 0; bits < 4; ++bits)
+    // A game's own material, layered or not: the pbr entry's narrowest family, with the highlights, the normal map
+    // or none, the sun shadow or none.
+    for (int bits = 0; bits < 8; ++bits)
         for (uint8_t relief = 0; relief <= 1; ++relief)
             for (const bool shadow : {false, true})
             {
-                const FfBlocks needs{.lamps = (bits & 1) != 0, .ao = (bits & 2) != 0};
+                const FfBlocks needs{.lamps = (bits & 1) != 0, .ao = (bits & 2) != 0, .layer = (bits & 4) != 0};
                 const effects::FfChoice choice = effects::ChooseProgram(
                     {.lit = true, .pbr = true, .needs = needs, .specular = true, .relief = relief, .shadow = shadow});
                 const effects::FfProgramRow *row = row_of(choice.program);
