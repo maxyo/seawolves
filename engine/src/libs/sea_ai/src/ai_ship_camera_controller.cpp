@@ -32,6 +32,8 @@ bool AIShipCameraController::Init()
         Colors[RELATION_ENEMY] = pAColors->GetAttributeAsDword("enemy");
         Colors[RELATION_FRIEND] = pAColors->GetAttributeAsDword("friend");
         Colors[RELATION_NEUTRAL] = pAColors->GetAttributeAsDword("neutral");
+        // The games name no colour of their own for an ally.
+        Colors[RELATION_ALLIANCE] = Colors[RELATION_FRIEND];
     }
     else
         core.Trace("AIShipCameraController:: Attributes Crosshair.Colors not found!");
@@ -144,7 +146,8 @@ bool AIShipCameraController::Fire()
     if (dwTarget != RELATION_UNKNOWN && pTargetAPointer)
     {
         auto *const pMainGroupCharacter = Helper.GetMainCharacter(pTargetAPointer);
-        core.Event(SHIP_FIRE_ACTION, "aal", pTargetAPointer, pMainGroupCharacter, dwTarget);
+        core.Event(SHIP_FIRE_ACTION, "aal", pTargetAPointer, pMainGroupCharacter,
+                   Helper.GetScriptRelationSafe(GetAIShip()->GetACharacter(), pTargetAPointer));
     }
 
     return GetAIShip()->GetCannonController()->Fire(storm::math::pos(m), vZ);

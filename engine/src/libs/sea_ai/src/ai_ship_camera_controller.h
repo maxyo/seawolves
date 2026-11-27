@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shared/sea_ai/script_defines.h"
+
 class AIShip;
 
 class AIShipCameraController
@@ -11,7 +13,7 @@ class AIShipCameraController
     int32_t iCrosshairTex;
     bool bCameraOutside;
 
-    uint32_t Colors[4];
+    uint32_t Colors[RELATION_ALLIANCE + 1];
 
     uint32_t dwSubTexturesX, dwSubTexturesY;
 
