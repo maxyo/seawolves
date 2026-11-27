@@ -466,12 +466,13 @@ State Evaluate(const Inputs &in)
         s.sky_day = Vec(p.sky_day_radiance);
         s.sky_night = Vec(p.sky_night_radiance);
         // The sun's colour is the periods' between the end of dawn and the start of the night, never the night's;
-        // the moon's is the night's.
+        // the moon's is the night's. While it rains both are the rain's light, which then also lights the clouds and
+        // tints the discs.
         const TimeOfDayPeriod day = PeriodAt(tod, std::clamp(h, tod.transition_hours[1], tod.transition_hours[6]));
         const TimeOfDayPeriod &night = tod.periods[scene_data::kNight];
-        s.sun_light = Vec(day.light_color) * day.light_intensity * c.sun_weight;
-        s.moon_light = Vec(night.light_color) * night.light_intensity * (1.0f - c.sun_weight);
-        s.light_color = glm::mix(hour_sun, s.sun_light + s.moon_light, w);
+        s.sun_light = glm::mix(hour_sun, Vec(day.light_color) * day.light_intensity, w) * c.sun_weight;
+        s.moon_light = glm::mix(hour_sun, Vec(night.light_color) * night.light_intensity, w) * (1.0f - c.sun_weight);
+        s.light_color = s.sun_light + s.moon_light;
         s.sun_size = kSunSize;
         s.moon_size = kMoonSize;
         const scene_data::TexturedClouds *clouds =

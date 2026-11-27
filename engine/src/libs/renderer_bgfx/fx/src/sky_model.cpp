@@ -221,7 +221,8 @@ SkyState ComputeSky(const WeatherInput &weather, float cloud_ambient)
     sky.fog_layer = weather.fog_layer;
     sky.night = 1.0f - glm::clamp(weather.daylight, 0.0f, 1.0f);
     // Under the rain clouds' cover: the haze band's colour round the horizon; the horizon under its haze, on the
-    // display's scale; the dome: the cosine-weighted mean of the sky above (linear), the light the sky gives.
+    // display's scale. The dome: the cosine-weighted mean of the clear sky above (linear), the light the sky gives;
+    // Caribbean Legend lights its scenes from the atmosphere without the clouds, under a rain too.
     for (int i = 0; i < kHazeAzimuths; ++i)
     {
         const float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kHazeAzimuths);
@@ -250,7 +251,7 @@ SkyState ComputeSky(const WeatherInput &weather, float cloud_ambient)
             for (const float y : {0.3f, 0.65f, 0.95f})
             {
                 const float r = std::sqrt(1.0f - y * y);
-                dome += SkyUnderRain(weather, cloud_ambient, {dir.x * r, y, dir.z * r}) * y;
+                dome += SkyBackground(weather, {dir.x * r, y, dir.z * r}) * y;
                 dome_weight += y;
             }
     }

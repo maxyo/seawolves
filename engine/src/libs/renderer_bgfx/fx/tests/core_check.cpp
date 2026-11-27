@@ -319,6 +319,12 @@ void CheckSky()
     const SkyState sky = ComputeSky(day, kNoiseCloudAmbient);
     CHECK(sky.night == 0.0f && glm::all(glm::lessThan(sky.horizon, glm::vec3(1.0f))));
     CHECK(sky.dome.b / sky.dome.r > sky.horizon.b / sky.horizon.r);
+    // The light the sky gives is the clear atmosphere's under a rain too.
+    WeatherInput rainy = day;
+    rainy.rain_clouds = 1.0f;
+    rainy.sun_light = glm::vec3(0.4f);
+    const SkyState overcast = ComputeSky(rainy, kNoiseCloudAmbient);
+    CHECK(near3(overcast.dome, sky.dome));
     day.daylight = 0.0f;
     CHECK(ComputeSky(day, kNoiseCloudAmbient).night == 1.0f);
     for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})

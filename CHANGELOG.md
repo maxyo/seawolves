@@ -16,9 +16,11 @@
   самой игры (луна — в фазе по дате).
 - Caribbean Legend: облака неба — три слоя облачных текстур самой игры (дождевые тучи, основные облака, перистые),
   освещённые и медленно вращающиеся, как в её движке; экспозиция и цветокоррекция камеры берутся из её периодов суток,
-  а заполняющий свет сцены — от нарисованного неба, поэтому ночь больше не почти чёрная.
+  а заполняющий свет сцены — от нарисованного неба без облаков, поэтому ночь больше не почти чёрная.
+- Caribbean Legend: в дождливый час свет солнца и луны на сцене, на облаках и на дисках берётся из дождевого
+  пресета игры, как в её движке, — днём под дождём пасмурно: свет тусклее и ровнее, тени слабые.
 - В «Каждому своё» тени от солнца теперь падают по направлению света самого часа, как его задаёт погода игры.
-- Под дождевыми тучами солнце не отбрасывает теней и не даёт ореола.
+- Под дождевыми тучами солнце не даёт ореола, а в «Каждому своё» и не отбрасывает теней.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
   обновляется при каждой оплате.
@@ -64,9 +66,12 @@
   moon are discs of the sky with the game's own pictures (the moon in its phase by the date).
 - Caribbean Legend: the sky's clouds are the game's own three cloud texture layers (rain clouds, the main clouds,
   cirrus), lit and slowly turning as its engine draws them; the camera's exposure and grade come from its periods of
-  the day, and the scene's fill light from the drawn sky, so the night is no longer nearly black.
+  the day, and the scene's fill light from the drawn sky without its clouds, so the night is no longer nearly black.
+- Caribbean Legend: at a rainy hour the sun's and the moon's light on the scene, on the clouds and on the discs comes
+  from the game's rain preset, as in its engine: a rainy day is overcast, with dimmer, flatter light and faint
+  shadows.
 - In «Каждому своё» the sun's shadows now follow the hour's own light direction, as the game's weather sets it.
-- Under rain clouds the sun casts no shadows and has no glow.
+- Under rain clouds the sun has no glow, and in «Каждому своё» it casts no shadows either.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.
   In «Каждому своё» this changes one place: the date of the previous payment in the ship's debts window is updated on
   every payment.

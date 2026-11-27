@@ -85,8 +85,9 @@ the sea's reflection (`fs_fx_sky.sc`; `sky_model.cpp` is its CPU side):
   sky's distance in it.
 - The sum times the exposure is compressed into the 8-bit picture as the material programs' light is
   (`fxCompressHdr`); the post chain's tone curve follows. The sky state keeps, under the rain clouds' cover, the
-  horizon's colour on the display's scale (the aerial fog, fog that takes the sky's colour) and the dome's mean (the
-  light the sky gives: the fill of the outdoor scene multiplies it, `environment::ResolveSkyFill`).
+  horizon's colour on the display's scale (the aerial fog, fog that takes the sky's colour), and the clear dome's mean
+  without the clouds (the light the sky gives: the fill of the outdoor scene multiplies it,
+  `environment::ResolveSkyFill`).
 
 **Clouds** are lit as Caribbean Legend's textured clouds are, by its period-driven terms (`fxCloudShade`, CPU side
 `CloudShade`): each texel holds its response to light from the six axes; the response towards the sun, raised to the

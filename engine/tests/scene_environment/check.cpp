@@ -272,8 +272,14 @@ TEST_CASE("a frame's state")
     table.rain[13] = table.rain[14] = true;
     in.hour = 13.0f;
     CHECK(Evaluate(in).light_color.x == Approx(0.5f));
+    // The clouds and the discs take the rain's light too.
+    CHECK(Evaluate(in).sun_light.x == Approx(0.5f));
     in.hour = 12.5f; // half way into the rain
     CHECK(Evaluate(in).light_color.x == Approx(1.75f));
+    CHECK(Evaluate(in).sun_light.x == Approx(1.75f));
+    table.rain[1] = table.rain[2] = true;
+    in.hour = 2.0f; // the moon's light at night
+    CHECK(Evaluate(in).moon_light.z == Approx(0.5f));
     table.rain = {};
 
     // Indoors only the hour table lights.
