@@ -50,6 +50,33 @@ using RichItem = std::variant<RichText, RichIcon, RichLineBreak>;
 // `report` receives every tag that is dropped
 std::vector<RichItem> ParseRichText(std::string_view text, const std::function<void(std::string_view)> &report);
 
+// What the layout needs to know about the fonts (the node knows them).
+struct RichMeasure
+{
+    std::function<float(std::string_view, const RichStyle &)> width;
+    std::function<float(const RichStyle &)> height; // of a line of that style's glyphs
+};
+
+// A piece of a laid-out line: text of item `item` (a part of it, once wrapped) or the whole icon `item`.
+struct RichPiece
+{
+    size_t item = 0;
+    std::string text;
+    float x = 0, width = 0;
+};
+
+struct RichLine
+{
+    std::vector<RichPiece> pieces;
+    float width = 0, height = 0;
+};
+
+// Lines of at most `max_width` (wrapped between words; a longer word gets a line of its own). Every line is
+// `line_space` high; with `adaptive`, a line of larger glyphs grows by how much they are higher than the base style's
+// and a line with a higher inline icon is as high as the icon.
+std::vector<RichLine> LayoutRichText(const std::vector<RichItem> &items, float max_width, const RichMeasure &measure,
+                                     float line_space, bool adaptive);
+
 // The widest line, in pixels: `width(text, style)` measures one run (the caller knows the fonts).
 int32_t RichTextWidth(const std::vector<RichItem> &items,
                       const std::function<int32_t(std::string_view, const RichStyle &)> &width);

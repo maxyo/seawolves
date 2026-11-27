@@ -18,6 +18,7 @@
 #include <spdlog/spdlog.h>
 
 #include "platform/storage.hpp"
+#include "tooltip_layout.hpp"
 
 #include <filesystem>
 #include "back_scene/back_scene.h"
@@ -1570,6 +1571,23 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
     }
     break;
 
+    case MSG_INTERFACE_GET_QUEST_NAME: {
+        const std::string quest = message.String();
+        const std::string record = message.String();
+        std::string title;
+        pQuestService->GetQuestTitle(quest, record, title);
+        message.ScriptVariablePointer()->Set(title);
+    }
+    break;
+
+    case MSG_INTERFACE_GET_QUEST_TEXT: {
+        const std::string quest = message.String();
+        const std::string text = message.String();
+        const std::string userData = message.String();
+        message.ScriptVariablePointer()->Set(pQuestService->GetRecordText(quest, text, userData));
+    }
+    break;
+
     case MSG_INTERFACE_SAVE_STRINGS_TO_FILE: {
         const std::string file = message.String();
         const std::string section = message.String();
@@ -1663,6 +1681,31 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
         break;
 
     case MSG_INTERFACE_SET_TOOLTIP: {
+        if (message.GetFormat() == "lssssslllllllll")
+        {
+            RichTooltip tooltip;
+            tooltip.header = message.String();
+            tooltip.text = message.String();
+            tooltip.texture = message.String();
+            tooltip.group = message.String();
+            tooltip.picture = message.String();
+            tooltip.picture_width = message.Long();
+            tooltip.picture_height = message.Long();
+            tooltip.windrose = message.Long() != 0;
+            tooltip.node.left = message.Long();
+            tooltip.node.top = message.Long();
+            tooltip.node.right = message.Long();
+            tooltip.node.bottom = message.Long();
+            tooltip.min_width = message.Long();
+            tooltip.max_width = message.Long();
+            SetRichTooltip(tooltip);
+            break;
+        }
+        if (message.GetFormat() != "lsslslslslsssll")
+        {
+            spdlog::error("MSG_INTERFACE_SET_TOOLTIP: unsupported format {}", message.GetFormat());
+            break;
+        }
         const char *pcHeader = message.StringPointer();
         const char *pcText1 = message.StringPointer();
         int32_t dwTextColor1 = message.Long();
@@ -2164,6 +2207,8 @@ CINODE *XINTERFACE::NewNode(const char *pcNodType)
         m_pContHelp = pNewNod = new CXI_CONTEXTHELP;
     else if (storm::iEquals(pcNodType, "GLOWCURSOR"))
         m_pGlowCursorNode = pNewNod = new CXI_GLOWCURSOR;
+    else if (storm::iEquals(pcNodType, "TEXT"))
+        pNewNod = new CXI_TEXT;
     else if (storm::iEquals(pcNodType, "TRIGGER"))
         m_pTriggerNode = pNewNod = new CXI_TRIGGER;
     else
@@ -2208,6 +2253,94 @@ void XINTERFACE::DeleteNode(const char *pcNodeName)
             m_pEditor->DelNode(pNod);
         delete pNod;
     }
+}
+
+// The tooltip of nodes made from the templates TOOLTIP_FRAME, _BACK, _FRAME_SHADOW, _TITLERECT, _TITLE (TEXT),
+// _TITLEORN, _PICTURE and _TEXT (TEXT); the geometry is tooltip_layout.hpp.
+void XINTERFACE::SetRichTooltip(const RichTooltip &tooltip)
+{
+    const auto node = [this](const char *name, int type) {
+        CINODE *found = FindNode(name, nullptr);
+        return found && found->m_nNodeType == type ? found : nullptr;
+    };
+    CINODE *frame = node("tooltip_frame", NODETYPE_BORDER);
+    auto *text = static_cast<CXI_TEXT *>(node("tooltip_text1", NODETYPE_TEXT));
+    if (!frame || !text)
+    {
+        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: no tooltip_frame (FRAME) or tooltip_text1 (TEXT) node");
+        return;
+    }
+    auto *title = static_cast<CXI_TEXT *>(node("tooltip_title", NODETYPE_TEXT));
+    auto *picture = static_cast<CXI_PICTURE *>(node("tooltip_picture", NODETYPE_PICTURE));
+    const bool header = !tooltip.header.empty();
+    const bool image = tooltip.picture_width > 0 && tooltip.picture_height > 0 &&
+                       (!tooltip.texture.empty() || (!tooltip.group.empty() && !tooltip.picture.empty()));
+
+    const XYRECT base = frame->m_rect;
+    text->SetText(tooltip.text);
+    if (title)
+        title->SetText(tooltip.header);
+    storm::xi::TooltipInput in;
+    in.margin = text->m_rect.left - base.left;
+    in.header_top = text->m_rect.top - base.top;
+    in.header = header;
+    if (image && picture)
+    {
+        in.picture_width = tooltip.picture_width;
+        in.picture_height = tooltip.picture_height;
+    }
+    in.node = {tooltip.node.left, tooltip.node.top, tooltip.node.right, tooltip.node.bottom};
+    in.min_width = tooltip.min_width;
+    in.max_width = tooltip.max_width;
+    in.screen_width = static_cast<int32_t>(dwScreenWidth);
+    in.screen_height = static_cast<int32_t>(dwScreenHeight);
+    in.measure = [text](float width) { return text->Measure(width); };
+    const auto layout = storm::xi::LayoutTooltip(in);
+    const int32_t left = layout.frame.left, top = layout.frame.top;
+    const int32_t width = layout.frame.right - left, height = layout.frame.bottom - top;
+    const auto place = [&](CINODE *target, XYRECT rect) {
+        rect.left += left;
+        rect.right += left;
+        rect.top += top;
+        rect.bottom += top;
+        target->ChangePosition(rect);
+    };
+    const XYRECT textAt{layout.text.left, layout.text.top, layout.text.right, layout.text.bottom};
+    const XYRECT pictureRect{layout.picture.left, layout.picture.top, layout.picture.right, layout.picture.bottom};
+    const XYRECT whole{0, 0, width, height};
+    for (const char *name : {"tooltip_frame", "tooltip_back", "tooltip_shadow"})
+        if (CINODE *part = FindNode(name, nullptr))
+            place(part, whole);
+    place(text, textAt);
+    // the title's parts keep their distance from the frame's top and sides
+    for (const char *name : {"tooltip_titlerect", "tooltip_title", "tooltip_ornament"})
+        if (CINODE *part = FindNode(name, nullptr))
+        {
+            part->m_bUse = header;
+            const XYRECT r = part->m_rect;
+            const int32_t inset = r.left - base.left, w = r.right - r.left;
+            const bool centered = std::abs((r.left - base.left) - (base.right - r.right)) <= 1 && w < base.right - base.left - 2 * inset - 1;
+            const int32_t x1 = centered ? (width - w) / 2 : inset;
+            const int32_t x2 = centered ? x1 + w : width - (base.right - r.right);
+            place(part, {x1, r.top - base.top, x2, r.bottom - base.top});
+        }
+    if (picture)
+    {
+        picture->m_bUse = image;
+        if (image)
+        {
+            if (!tooltip.texture.empty())
+                picture->SetNewPicture(false, tooltip.texture.c_str());
+            else
+                picture->SetNewPictureByGroup(tooltip.group.c_str(), tooltip.picture.c_str());
+            place(picture, pictureRect);
+        }
+    }
+    for (const char *name : {"tooltip_text2", "tooltip_text3", "tooltip_text4"})
+        if (CINODE *part = FindNode(name, nullptr))
+            part->m_bUse = false;
+    if (tooltip.windrose)
+        spdlog::error("MSG_INTERFACE_SET_TOOLTIP: the WINDROSE node is not implemented");
 }
 
 void XINTERFACE::SetTooltip(const char *pcHeader, const char *pcText1, uint32_t dwTextColor1, const char *pcText2,
@@ -3253,6 +3386,22 @@ std::string XINTERFACE::ReadStringsFile(const std::string &file, const std::stri
     return value;
 }
 
+void XINTERFACE::UpdateMouseEffects()
+{
+    const float x = fXMousePos + m_lXMouse, y = fYMousePos + m_lYMouse;
+    for (CINODE *node = m_pNodes; node != nullptr; node = node->m_next)
+    {
+        if (!node->m_bUseMouseEffect || !node->m_nodeName)
+            continue;
+        const bool on = node->m_bUse && x >= node->m_rect.left && x <= node->m_rect.right && y >= node->m_rect.top &&
+                        y <= node->m_rect.bottom;
+        if (on == node->m_bMouseEffectOn)
+            continue;
+        node->m_bMouseEffectOn = on;
+        core.Event("Event_NodeMouseEffect", "sl", node->m_nodeName, on ? 1 : 0);
+    }
+}
+
 // the first node under the mouse whose hover trigger is on
 std::string XINTERFACE::HoveredTriggerNode() const
 {
@@ -3337,6 +3486,7 @@ void XINTERFACE::MouseMove()
         }
         if (m_pTriggerNode)
             static_cast<CXI_TRIGGER *>(m_pTriggerNode)->Hover(HoveredTriggerNode());
+        UpdateMouseEffects();
     }
     else
     {

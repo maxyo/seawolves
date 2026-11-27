@@ -185,6 +185,76 @@ std::vector<RichItem> ParseRichText(std::string_view text, const std::function<v
     return items;
 }
 
+std::vector<RichLine> LayoutRichText(const std::vector<RichItem> &items, float max_width, const RichMeasure &measure,
+                                     float line_space, bool adaptive)
+{
+    std::vector<RichLine> lines(1);
+    const float base = measure.height(RichStyle{});
+    const auto grow = [&](float height) {
+        if (adaptive)
+            lines.back().height = std::max(lines.back().height, height);
+    };
+    const auto place = [&](size_t item, std::string text, float width) {
+        RichLine &line = lines.back();
+        line.pieces.push_back(RichPiece{item, std::move(text), line.width, width});
+        line.width += width;
+    };
+    const auto fits = [&](float width) {
+        return lines.back().pieces.empty() || lines.back().width + width <= max_width;
+    };
+    const auto next_line = [&] { lines.emplace_back(); };
+
+    for (size_t i = 0; i < items.size(); ++i)
+    {
+        if (std::holds_alternative<RichLineBreak>(items[i]))
+        {
+            next_line();
+            continue;
+        }
+        if (const auto *icon = std::get_if<RichIcon>(&items[i]))
+        {
+            const float width = icon->back ? 0.0f : static_cast<float>(icon->width);
+            if (!fits(width))
+                next_line();
+            place(i, {}, width);
+            if (!icon->back)
+                grow(static_cast<float>(icon->height));
+            continue;
+        }
+        const auto &text = std::get<RichText>(items[i]);
+        const float extra = measure.height(text.style) - base;
+        // words with the spaces before them; a word that does not fit starts the next line without its spaces
+        for (size_t pos = 0; pos < text.text.size();)
+        {
+            const size_t word = text.text.find_first_not_of(' ', pos);
+            const size_t end =
+                word == std::string::npos ? text.text.size() : std::min(text.text.find(' ', word), text.text.size());
+            std::string piece = text.text.substr(pos, end - pos);
+            float width = measure.width(piece, text.style);
+            if (!fits(width) && word != std::string::npos)
+            {
+                next_line();
+                piece = text.text.substr(word, end - word);
+                width = measure.width(piece, text.style);
+            }
+            RichLine &line = lines.back();
+            if (!line.pieces.empty() && line.pieces.back().item == i)
+            {
+                line.pieces.back().text += piece;
+                line.pieces.back().width += width;
+                line.width += width;
+            }
+            else
+                place(i, std::move(piece), width);
+            grow(line_space + extra);
+            pos = end;
+        }
+    }
+    for (auto &line : lines)
+        line.height = std::max(line.height, line_space);
+    return lines;
+}
+
 int32_t RichTextWidth(const std::vector<RichItem> &items,
                       const std::function<int32_t(std::string_view, const RichStyle &)> &width)
 {

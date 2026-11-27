@@ -49,6 +49,9 @@
 #define MSG_INTERFACE_LOADPICTUREFROMSAVE 45059
 #define MSG_INTERFACE_GETPICTUREFROMPICTURE 45060
 #define MSG_INTERFACE_SET_TOOLTIP 45061
+// "sse": quest, record id, out title; "ssse": quest, text id, user data, out text ("" when there is none)
+#define MSG_INTERFACE_GET_QUEST_NAME 45063
+#define MSG_INTERFACE_GET_QUEST_TEXT 45064
 
 #define MSG_STRSERVICE_OPEN_FILE 45100
 #define MSG_STRSERVICE_CLOSE_FILE 45101

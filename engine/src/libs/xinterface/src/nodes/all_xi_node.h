@@ -31,6 +31,7 @@
 #include "xi_status_line.h"
 #include "xi_str_collection.h"
 #include "xi_table.h"
+#include "xi_text.h"
 #include "xi_text_button.h"
 #include "xi_title.h"
 #include "xi_trigger.h"

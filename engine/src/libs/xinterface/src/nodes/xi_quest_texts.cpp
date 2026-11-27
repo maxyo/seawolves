@@ -443,6 +443,11 @@ uint32_t CXI_QUESTTEXTS::MessageProc(int32_t msgcode, MESSAGE &message)
         return 0;
     }
     break;
+
+    case 2: // set the font
+        FONT_RELEASE(m_rs, m_idFont);
+        m_idFont = m_rs->LoadFont(message.String().c_str());
+        return 0;
     }
     return -1;
 }

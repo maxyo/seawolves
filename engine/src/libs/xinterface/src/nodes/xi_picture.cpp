@@ -342,6 +342,10 @@ uint32_t CXI_PICTURE::MessageProc(int32_t msgcode, MESSAGE &message)
     }
     break;
 
+    case 10: // get the renderer texture id
+        message.ScriptVariablePointer()->Set(m_idTex);
+        break;
+
     case 8: // remove texture from other picture to this
     {
         const std::string &srcNodeName = message.String();

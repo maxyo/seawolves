@@ -506,6 +506,7 @@ bool CINODE::Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *n
     m_bUse = !GetIniBool(ini1, name1, ini2, name2, "bNotUse", false);
 
     m_bUseTrigger = GetIniBool(ini1, name1, ini2, name2, "UseTrigger", false);
+    m_bUseMouseEffect = GetIniBool(ini1, name1, ini2, name2, "UseMouseEffect", false);
     m_nTriggerFrameType = GetIniLong(ini1, name1, ini2, name2, "TriggerFrameType", 0);
     m_rectTriggerFrame = m_rect;
     if (ReadIniString(ini1, name1, ini2, name2, "TriggerFramePos", param, sizeof(param), ""))

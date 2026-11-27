@@ -471,6 +471,16 @@ class XINTERFACE : public XINTERFACE_BASE
     CINODE *m_pGlowCursorNode;
     CINODE *m_pTriggerNode; // the TRIGGER node of the interface, if it has one
     std::string HoveredTriggerNode() const;
+    void UpdateMouseEffects();
+    struct RichTooltip
+    {
+        std::string header, text, texture, group, picture;
+        int32_t picture_width = 0, picture_height = 0;
+        bool windrose = false;
+        XYRECT node{};
+        int32_t min_width = 0, max_width = 0;
+    };
+    void SetRichTooltip(const RichTooltip &tooltip);
     void WriteStringsFile(const std::string &file, const std::string &section, const std::string &key,
                           const std::string &value);
     std::string ReadStringsFile(const std::string &file, const std::string &section, const std::string &key);

@@ -20,6 +20,7 @@ class CXI_QUESTTITLE : public CINODE
     void MouseThis(float fX, float fY) override;
     void ChangePosition(XYRECT &rNewPos) override;
     void SaveParametersToIni() override;
+    uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 
 #ifdef __ANDROID__
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;

@@ -4,6 +4,8 @@
 #endif
 #include "xi_table.h"
 
+#include <spdlog/spdlog.h>
+
 
 
 #include "string_compare.hpp"
@@ -557,6 +559,7 @@ int CXI_TABLE::CommandExecute(int wActCode)
                     SelectRow(n, nCol);
                 else
                     SelectRow(n);
+                core.Event("OnTableRClick", "sll", m_nodeName, m_nSelectIndex, nCol + 1);
             }
         }
         break;
@@ -570,6 +573,8 @@ int CXI_TABLE::CommandExecute(int wActCode)
                     SelectRow(n, nCol);
                 else
                     SelectRow(n);
+                if (n == 0 && m_pHeader)
+                    core.Event("OnHeaderClick", "sl", m_nodeName, nCol + 1);
                 core.Event("OnTableClick", "sll", m_nodeName, m_nSelectIndex, nCol + 1);
             }
         }
@@ -707,6 +712,14 @@ uint32_t CXI_TABLE::MessageProc(int32_t msgcode, MESSAGE &message)
         break;
     case 1: // get the line number on which the mouse pointer is located (-1 - the pointer is out of bounds)
         return GetLineByPoint(ptrOwner->GetMousePoint());
+        break;
+    case 2: // select a row
+        SelectRow(message.Long());
+        break;
+    case 3: // the selected column, from 1 as OnTableClick gives it
+        return static_cast<uint32_t>(m_nSelectColIndex + 1);
+    default:
+        spdlog::error("TABLE {}: no message {}", m_nodeName, msgcode);
         break;
     }
 

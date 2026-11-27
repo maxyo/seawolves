@@ -80,3 +80,40 @@ TEST_CASE("rich_text.width")
     CHECK(RichTextWidth(Parse("a[icon:group=G,pic=P,width=10,height=4]b"), width) == 12);
     CHECK(RichTextWidth(Parse("a[icon:group=G,pic=P,width=10,height=4,layer=back]b"), width) == 2);
 }
+
+TEST_CASE("rich_text.layout")
+{
+    // one pixel per byte times the scale; glyphs 10 px high times the scale
+    const RichMeasure measure{[](std::string_view text, const RichStyle &style) { return text.size() * style.scale; },
+                              [](const RichStyle &style) { return 10.0f * style.scale; }};
+    const auto lines = LayoutRichText(Parse("one two three four"), 9.0f, measure, 12.0f, false);
+    REQUIRE(lines.size() == 3);
+    CHECK(lines[0].pieces.at(0).text == "one two");
+    CHECK(lines[1].pieces.at(0).text == "three");
+    CHECK(lines[2].pieces.at(0).text == "four");
+    CHECK(lines[1].height == 12.0f);
+
+    const auto wide = LayoutRichText(Parse("abcdefghijkl x"), 5.0f, measure, 12.0f, false);
+    REQUIRE(wide.size() == 2); // a word longer than the line keeps a line of its own
+    CHECK(wide[0].pieces.at(0).text == "abcdefghijkl");
+
+    // styles and icons keep their x; a break starts a line
+    const auto mixed = LayoutRichText(Parse("ab[scale=2]cd[/scale][icon:group=G,pic=P,width=5,height=30]\ne"), 100.0f,
+                                      measure, 12.0f, true);
+    REQUIRE(mixed.size() == 2);
+    CHECK(mixed[0].pieces.size() == 3);
+    CHECK(mixed[0].pieces[1].x == 2.0f);
+    CHECK(mixed[0].pieces[2].x == 6.0f);
+    CHECK(mixed[0].width == 11.0f);
+    CHECK(mixed[0].height == 30.0f); // adaptive: the icon's height
+    CHECK(mixed[1].height == 12.0f);
+
+    const auto big = LayoutRichText(Parse("[scale=2]x[/scale]"), 100.0f, measure, 12.0f, true);
+    CHECK(big[0].height == 22.0f); // larger glyphs: line space plus the difference
+    CHECK(LayoutRichText(Parse("[scale=2]x[/scale]"), 100.0f, measure, 12.0f, false)[0].height == 12.0f);
+    // an icon behind the text takes no room
+    const auto back = LayoutRichText(Parse("ab[icon:group=G,pic=P,width=5,height=50,layer=back]"), 100.0f, measure,
+                                     12.0f, true);
+    CHECK(back[0].height == 12.0f);
+    CHECK(back[0].width == 2.0f);
+}

@@ -1,4 +1,6 @@
 #include "xi_quest_titles.h"
+
+#include <spdlog/spdlog.h>
 #ifdef __ANDROID__
 #include "platform/android_ui.hpp"
 #endif
@@ -466,3 +468,18 @@ bool CXI_QUESTTITLE::MobileApply(int index, const std::string &value)
     return relative.has_value();
 }
 #endif
+
+uint32_t CXI_QUESTTITLE::MessageProc(int32_t msgcode, MESSAGE &message)
+{
+    switch (msgcode)
+    {
+    case 0: // set the font
+        FONT_RELEASE(m_rs, m_idFont);
+        m_idFont = m_rs->LoadFont(message.String().c_str());
+        break;
+    default:
+        spdlog::error("QUESTTITLE {}: no message {}", m_nodeName, msgcode);
+        break;
+    }
+    return 0;
+}

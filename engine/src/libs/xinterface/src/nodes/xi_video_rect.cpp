@@ -107,6 +107,7 @@ uint32_t CXI_VIDEORECT::MessageProc(int32_t msgcode, MESSAGE &message)
     switch (msgcode)
     {
     case 0: // start video
+    case 2: // play another video (Caribbean Legend's SetNewVideo)
     {
         const std::string &param = message.String();
         StartVideoPlay(param.c_str());

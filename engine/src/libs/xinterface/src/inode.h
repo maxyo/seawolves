@@ -62,6 +62,7 @@ class CXI_ToolTip;
 #define NODETYPE_TABSECTION 36
 #define NODETYPE_BORDER 37
 #define NODETYPE_TRIGGER 38
+#define NODETYPE_TEXT 39
 
 #define INTERFACE_CONTROL_RIGHT "IRight"
 #define INTERFACE_CONTROL_LEFT "ILeft"
@@ -357,6 +358,9 @@ class CINODE
     bool m_bUseTrigger = false;
     XYRECT m_rectTriggerFrame{};
     int32_t m_nTriggerFrameType = 0;
+    // UseMouseEffect: Event_NodeMouseEffect(node, 1) when the mouse comes onto the node, (node, 0) when it leaves
+    bool m_bUseMouseEffect = false;
+    bool m_bMouseEffectOn = false;
     bool m_bClickable;
     bool m_bLockStatus;
     bool m_bSelected;
