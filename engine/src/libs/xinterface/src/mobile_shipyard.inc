@@ -7,8 +7,6 @@ std::string YardAttribute(ATTRIBUTES *root,const std::string &path) {
 ATTRIBUTES *YardReference(const char *name){auto *v=static_cast<VDATA*>(core.GetScriptVariable(name));return v?v->GetAClass():nullptr;}
 std::optional<int32_t> YardInteger(const char *name){auto *v=static_cast<VDATA*>(core.GetScriptVariable(name));int32_t n;return v&&v->Get(n)?std::optional<int32_t>(n):std::nullopt;}
 std::string YardString(const char *name){auto *v=static_cast<VDATA*>(core.GetScriptVariable(name));const char *s=nullptr;return v&&v->Get(s)&&s?s:"";}
-// PROGRAM/quests/quests.c GetFullName: preserve all three source name fields.
-std::string YardCharacterName(ATTRIBUTES *person){std::string name=YardAttribute(person,"name");for(const char *field:{"middlename","lastname"}){auto part=YardAttribute(person,field);if(!part.empty())name+=" "+part;}return name;}
 bool YardName(const std::string &a,const char *b){return storm::iEquals(a,b);}
 }
 
@@ -59,7 +57,7 @@ void XINTERFACE::MobileCollectShipyard(std::vector<MobileWidget> &widgets)
         auto &s=w.context;s["owner"]=raw;s["slot"]=std::to_string(w.index);
         s["ownerKind"]=raw=="-1"?"EMPTY_SLOT":YardAttribute(entry,"str2")=="NoneBoat"?"OWNER_NO_SHIP":"OWNER_SHIP";
         s["shipName"]=raw=="-1"?"":s["ownerKind"]=="OWNER_SHIP"?YardAttribute(person,"ship.name"):translate("NoneBoat");
-        s["captainName"]=person?YardCharacterName(person):"";s["rank"]=YardAttribute(person,"rank");
+        s["rank"]=YardAttribute(person,"rank");
         s["class"]=raw=="-1"?"":translate(YardAttribute(entry,"str1"));s["saleQuote"]=raw=="-1"?"":translate(YardAttribute(entry,"str3"));s["type"]=raw=="-1"?"":translate(YardAttribute(entry,"str4"));
         const auto image=slotImage(fleet,entry);if(image.handle)w.images.push_back(image);
         if(raw!="-1"&&!person)reject("owner-reference-missing");

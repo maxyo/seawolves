@@ -185,9 +185,6 @@ TEST_CASE("mobile_shipyard")
     merchant.set("shipyard.offer42.name", "Offer");
     merchant.set("ship.type", "17");
     merchant.set("ship.name", "Offer");
-    owner.set("name", "Native");
-    owner.set("middlename", "middle");
-    owner.set("lastname", "captain");
     owner.set("index", "0");
     owner.set("ship.name", "Owned");
     owner.set("rank", "1");
@@ -307,14 +304,12 @@ TEST_CASE("mobile_shipyard")
     core.vars["bEmptySlot"].number = 1;
     REQUIRE(state().value == "1");
     REQUIRE(state().context["owner.ownerKind"] == "EMPTY_SLOT");
-    REQUIRE(state().context["owner.captainName"].empty());
     REQUIRE(state().context["owner.shipName"].empty());
     REQUIRE(state().context["owner.saleQuote"].empty());
     root.set("ships_scroll.pic1.character", "0");
     root.set("ships_scroll.pic1.str2", "NoneBoat");
     core.vars["bEmptySlot"].number = 0;
     REQUIRE(state().context["owner.ownerKind"] == "OWNER_NO_SHIP");
-    REQUIRE(state().context["owner.captainName"] == "Native middle captain");
     windows[1].shown = windows[1].active = true;
     windows[0].active = false;
     REQUIRE(state().value == "0");
