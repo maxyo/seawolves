@@ -4,8 +4,9 @@
 // net, never the fix: every end is an ERROR with what the dialogue was, so its cause gets fixed.
 // It ends the dialogue the way the game ends a broken one: the script event "EmergencyDialogExit"
 // (dialog.c: #event_handler EmergencyDialogExit → DialogExit, raised by DIALOG::EmergencyExit for
-// invalid links). DialogExit frees the DIALOG entity, whose destructor resumes time; DialogMain
-// stops time before the entity exists, so without one (the dialogue never began) it is resumed here.
+// invalid links). The one write behind the scripts, an exception: DialogMain stops time before the DIALOG entity
+// exists and the game resumes it only in that entity's destructor, so a dialogue that ends before its entity was
+// made has no game path back to normal time. Only then is time resumed here, and logged.
 #include <core.h>
 #include <v_data.h>
 
@@ -51,7 +52,10 @@ inline void endUnseenDialogue(std::string_view report)
                   dialogueScriptText("CharacterRef", {"Dialog", "CurrentNode"}));
     core.Event("EmergencyDialogExit");
     if (!entity)
+    {
+        spdlog::error("dialogue watchdog: no DIALOG entity to resume time; time set to x1");
         core.SetTimeScale(1.f);
+    }
 }
 
 } // namespace storm::android
