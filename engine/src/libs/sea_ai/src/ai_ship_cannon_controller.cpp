@@ -319,11 +319,11 @@ bool AIShipCannonController::UpdateParameters()
         if (!bort.aCannons.empty())
         {
             const auto ballistics = storm::sea_ai::ReadBoardBallistics(GetAIShip()->GetACharacter(), bort.sName);
-            if (protocol.board_angles_from_character)
-            {
-                bort.fFireAngMin = ballistics.fireAngMin;
-                bort.fFireAngMax = ballistics.fireAngMax;
-            }
+            // Until a row takes the cannons' limits, the board keeps the ship type's it was made with.
+            const auto angles =
+                storm::sea_ai::SelectBoardAngles(protocol, {bort.fFireAngMin, bort.fFireAngMax}, ballistics);
+            bort.fFireAngMin = angles.fireAngMin;
+            bort.fFireAngMax = angles.fireAngMax;
             const float fSpeedV0 = ballistics.speedV0;
             bort.fSpeedV0 = fSpeedV0;
             bort.fMaxFireDistance = AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, fSpeedV0, GetBortHeightAngle(
@@ -713,7 +713,7 @@ bool AIShipCannonController::Init(ATTRIBUTES *_pAShip)
         AISHIP_BORT &bort = aShipBorts.back();
         bort.sName = pBortAttribute->GetThisName();
         bort.fFireZone =
-            pBortAttribute->GetAttributeAsFloat("FireZone") * storm::sea_ai::seaScriptProtocol().fire_zone_scale;
+            storm::sea_ai::BoardFireZone(storm::sea_ai::seaScriptProtocol(), pBortAttribute->GetAttributeAsFloat("FireZone"));
         bort.fFireAngMin = pBortAttribute->GetAttributeAsFloat("FireAngMin");
         bort.fFireAngMax = pBortAttribute->GetAttributeAsFloat("FireAngMax");
         bort.fFireDir = pBortAttribute->GetAttributeAsFloat("FireDir");

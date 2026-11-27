@@ -103,6 +103,25 @@ inline BoardBallistics ReadBoardBallistics(ATTRIBUTES *character, const std::str
             cannons->GetAttributeAsFloat("FireAngMax")};
 }
 
+struct BoardAngles
+{
+    float fireAngMin, fireAngMax;
+};
+
+// A board's elevation limits: the ship type's (Cannons.Borts.<board>), or its cannons' where the game's row says so.
+inline BoardAngles SelectBoardAngles(const SeaScriptProtocol &p, BoardAngles shipType, const BoardBallistics &cannons)
+{
+    if (p.board_angles_from_character)
+        return {cannons.fireAngMin, cannons.fireAngMax};
+    return shipType;
+}
+
+// A board's horizontal fire zone, radians, from the ship type's Cannons.Borts.<board>.FireZone.
+inline float BoardFireZone(const SeaScriptProtocol &p, float shipTypeFireZone)
+{
+    return shipTypeFireZone * p.fire_zone_scale;
+}
+
 // CannGRTime
 inline void ResetCannonRechargeTime(MESSAGE &m, const SeaScriptProtocol &p, ATTRIBUTES *character,
                                     const std::string &board)

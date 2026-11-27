@@ -401,3 +401,21 @@ TEST_CASE("a handler of one game cannot read the other game's layout")
     m.AttributePointer();
     REQUIRE(fails([&] { m.AttributePointer(); }));
 }
+
+TEST_CASE("each game keeps its own board geometry")
+{
+    const storm::sea_ai::BoardBallistics cannons{100.0f, -0.2f, 0.4f};
+    const storm::sea_ai::BoardAngles shipType{-0.35f, 0.6f};
+
+    // To Each His Own: the ship type's zone and limits.
+    const auto &legacy = seaScriptProtocol(GameProfile::Legacy);
+    REQUIRE(storm::sea_ai::BoardFireZone(legacy, 2.0f) == 2.0f);
+    const auto teho = storm::sea_ai::SelectBoardAngles(legacy, shipType, cannons);
+    REQUIRE((teho.fireAngMin == -0.35f && teho.fireAngMax == 0.6f));
+
+    // Caribbean Legend: three quarters of the zone, its cannons' limits.
+    const auto &cl = seaScriptProtocol(GameProfile::CaribbeanLegend);
+    REQUIRE(storm::sea_ai::BoardFireZone(cl, 2.0f) == 1.5f);
+    const auto clAngles = storm::sea_ai::SelectBoardAngles(cl, shipType, cannons);
+    REQUIRE((clAngles.fireAngMin == -0.2f && clAngles.fireAngMax == 0.4f));
+}
