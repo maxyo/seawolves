@@ -456,6 +456,7 @@ storm_check_test(audio_import.corpus COMMAND audio_import.check "[corpus]" LABEL
 add_subdirectory(far_lod)
 add_subdirectory(glm_math)
 add_subdirectory(portability)
+add_subdirectory(script_language)
 # The renderer's checks need bgfx's build (X11 and OpenGL development files, the pinned shaderc): a build that runs
 # the others only can leave them out.
 option(STORM_CHECK_RENDERER "the renderer's checks (tests/renderer_bgfx)" ON)
@@ -469,7 +470,6 @@ set(glm_source --glm-source ${storm_glm_SOURCE_DIR})
 set(dependency_sources --dependency-sources ${STORM_TEST_SOURCES})
 storm_host_check(android_interface_draw INCLUDES ${util_include} OPTIONS ${warnings} ${asan_strict} -pthread CATCH2)
 storm_script_check(ci_check_tmp ci_check_tmp/run.py INPUTS ${STORM_ROOT}/tools/ci/check_tmp.py)
-storm_script_check(script_language script_language/run.py INPUTS ${src}/libs/core ${src}/apps/script_check)
 storm_script_check(module_build_id module_build_id/run.py INPUTS ${src}/libs/util)
 storm_host_check(animation_decode SOURCES check.cpp ${src}/libs/animation/src/bone.cpp
     INCLUDES ${glm_headers} ${CMAKE_CURRENT_LIST_DIR}/animation_cache/stubs ${src}/libs/animation/src

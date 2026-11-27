@@ -423,6 +423,7 @@ int test(int argc, char **argv)
         {
             const std::regex test_function(R"(^\s*int\s+(test_\w+)\s*\(\s*\))", std::regex::multiline);
             int count = 0;
+            const int failures_before = failures;
             for (std::sregex_iterator it(text.begin(), text.end(), test_function), end; it != end; ++it)
             {
                 const auto function = (*it)[1].str();
@@ -463,7 +464,7 @@ int test(int argc, char **argv)
                 ++failures;
                 std::printf("FAIL %s: no test_ functions\n", name.c_str());
             }
-            else
+            else if (failures == failures_before)
                 std::printf("PASS %s (%d functions)\n", name.c_str(), count);
         }
         compiler.Release();

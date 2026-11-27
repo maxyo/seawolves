@@ -24,4 +24,5 @@ error, so one run lists everything.
 `int fail_*()` must stop with a runtime error. A script whose first line is `// expect-error: <text>` must instead
 fail to compile with that error; a line `// profile: Caribbean Legend` compiles it with that game profile. With
 `--cache`, a first compiler stores each script in a fresh script cache, and the tests run on a second compiler that
-loads it from there. `tests/script_language/run.py` runs the script language cases both ways.
+loads it from there. The host checks build it from core's sources alone and run the script language cases both ways
+(`tests/script_language`, checks `script_language` and `script_language.cache`).
