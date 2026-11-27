@@ -285,6 +285,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     uint32_t GetInternalFunctionArgumentsNum(uint32_t code);
     bool CreateMessage(MESSAGE *pMs, uint32_t stack_offset, uint32_t vindex, bool s2s = false);
     void ProcessEvent(const char *event_name, MESSAGE *pMs);
+    DATA *PushEventValue(MESSAGE &message);
 
     bool SaveState(std::vector<char> &image);
 #ifdef STORM_SCENE_SWEEP

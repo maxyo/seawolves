@@ -749,8 +749,22 @@ VDATA *COMPILER::ProcessEvent(const char *event_name)
         }
 
         const uint32_t nStackVars = SStack.GetDataNum(); // remember stack elements num
+        // a handler that declares parameters receives the event's values in them
+        uint32_t passed = kArgsAsDeclared;
+        if (const FuncInfo *handler = FuncTab.GetFuncPtr(func_code); handler && handler->arguments > 0)
+        {
+            if (!pMem)
+            {
+                SetError("handler %s of %s takes parameters: the event has no values", handler->name.c_str(),
+                         event_name);
+                continue;
+            }
+            for (passed = 0; passed < handler->arguments && pMem->GetCurrentFormatType() != 0; passed++)
+                if (!PushEventValue(*pMem))
+                    break;
+        }
         DATA *pResult;
-        BC_Execute(func_code, pResult);
+        BC_Execute(func_code, pResult, nullptr, passed);
 
         pEventMessage = pMem;
         if (pResult)
@@ -779,6 +793,51 @@ void COMPILER::ProcessEvent(const char *event_name, MESSAGE *pMs)
     pEventMessage = pMs;
     ProcessEvent(event_name);
     pEventMessage = nullptr;
+}
+
+// The message's next value on the stack, as GetEventData and a handler's parameters receive it.
+DATA *COMPILER::PushEventValue(MESSAGE &message)
+{
+    const char format = message.GetCurrentFormatType();
+    DATA *value;
+    switch (format)
+    {
+    case 0:
+        SetError("No (more) data on this event");
+        return nullptr;
+    case 'a':
+        value = SStack.Push();
+        value->SetType(VAR_AREFERENCE);
+        value->SetAReference(message.AttributePointer());
+        return value;
+    case 'l':
+        value = SStack.Push();
+        value->Set(message.Long());
+        return value;
+    case 'f':
+        value = SStack.Push();
+        value->Set(message.Float());
+        return value;
+    case 's':
+        value = SStack.Push();
+        value->Set(message.String().c_str());
+        return value;
+    case 'i': {
+        value = SStack.Push();
+        value->SetType(VAR_AREFERENCE);
+        const entid_t entity = message.EntityID();
+        value->Set(entity);
+        value->SetAReference(core_internal.Entity_GetAttributePointer(entity));
+        return value;
+    }
+    case 'e':
+        value = SStack.Push();
+        value->SetReference(static_cast<DATA *>(message.ScriptVariablePointer()));
+        return value;
+    default:
+        SetError("Invalid data type in event message: '%c'", format);
+        return nullptr;
+    }
 }
 
 VDATA *COMPILER::ProcessEvent(const char *event_name, MESSAGE message)

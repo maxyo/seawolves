@@ -1412,57 +1412,8 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
             SetError("No data on this event");
             return nullptr;
         }
-        char format_sym;
-        format_sym = pEventMessage->GetCurrentFormatType();
-        if (format_sym == 0)
-        {
-            SetError("No (more) data on this event");
-            return nullptr;
-        }
-        switch (format_sym)
-        {
-        case 'a':
-            pResult = SStack.Push();
-            pResult->SetType(VAR_AREFERENCE);
-            pResult->SetAReference(pEventMessage->AttributePointer());
-            pVResult = pResult;
-            return pResult;
-        case 'l':
-            pResult = SStack.Push();
-            pResult->Set(pEventMessage->Long());
-            pVResult = pResult;
-            return pResult;
-        case 'f':
-            pResult = SStack.Push();
-            pResult->Set(pEventMessage->Float());
-            pVResult = pResult;
-            return pResult;
-        case 's':
-            pResult = SStack.Push();
-            pResult->Set(pEventMessage->String().c_str());
-            pVResult = pResult;
-            return pResult;
-        case 'i':
-            pResult = SStack.Push();
-            pResult->SetType(VAR_AREFERENCE);
-            ent = pEventMessage->EntityID();
-            pResult->Set(ent);
-            pResult->SetAReference(core_internal.Entity_GetAttributePointer(ent));
-
-            pVResult = pResult;
-            return pResult;
-        case 'e':
-            pResult = SStack.Push();
-            DATA *pE;
-            pE = static_cast<DATA *>(pEventMessage->ScriptVariablePointer());
-            pResult->SetReference(pE);
-            pVResult = pResult;
-            return pResult;
-        default:
-            SetError("Invalid data type in event message: '%c'", format_sym);
-            return nullptr;
-        }
-        break;
+        pVResult = PushEventValue(*pEventMessage);
+        return pVResult;
     case FUNC_LOAD_SEGMENT:
         pV = SStack.Pop();
         if (!pV)
