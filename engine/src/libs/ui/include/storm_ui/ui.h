@@ -9,9 +9,8 @@
 #include <string>
 #include <vector>
 
-#include "storm_ui/dialogue_state.h"
 #include "storm_ui/hud_command.h"
-#include "storm_ui/hud_state.h"
+#include "storm_ui/hud_state_fwd.h"
 
 namespace storm::ui
 {
@@ -25,6 +24,7 @@ class FileSource
 };
 std::unique_ptr<FileSource> DirectoryFiles(std::string root);
 
+struct Dialogue;       // dialogue_state.h
 struct InterfaceModel; // interface_model.h
 struct ScriptScreen;   // script_screens.h
 class ScriptPort;

@@ -7,6 +7,7 @@
 #include "../src/picture_atlas.h"
 #include "../src/screens/amount.h"
 #include "../src/screens/controls.h"
+#include "storm_ui/dialogue_state.h"
 
 #include <algorithm>
 #include <cstdio>

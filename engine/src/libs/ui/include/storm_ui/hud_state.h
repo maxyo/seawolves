@@ -5,6 +5,8 @@
 // Ratios are 0…1 and a negative number means the engine does not know the value, unless a field says otherwise.
 #pragma once
 
+#include "storm_ui/hud_state_fwd.h"
+
 #include <array>
 #include <cstdint>
 #include <initializer_list>
@@ -365,10 +367,6 @@ struct Spyglass
 
 namespace storm::ui
 {
-// One state of a HUD channel; the channel is the type.
-using HudState = std::variant<hud::Gameplay, hud::Combat, hud::Vitals, hud::WorldInfo, hud::ContextAction, hud::Door,
-                              hud::LandCommands, hud::Ship, hud::SeaOrders, hud::SeaQuick, hud::WorldMap,
-                              hud::Presentation, hud::Spyglass>;
 // The channel's name in the fixture format, by the index of the state's type.
 inline const char *HudChannel(const HudState &state)
 {

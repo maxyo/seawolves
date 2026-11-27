@@ -17,6 +17,7 @@
 #include "controls.h"
 
 #include "../hud/hud.h"
+#include "storm_ui/dialogue_state.h"
 
 #include "../../../util/include/platform/android_dialogue_input.hpp"
 
