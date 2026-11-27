@@ -13,3 +13,8 @@ bounds:src/libs/geometry/src/collide.cpp
 # write_ktx with a sizer; bimg image.cpp
 # imageWriteKtx; third-party, pin bimg in engine/pins.json).
 pointer-overflow:storm_bimg-*/src/image.cpp
+# ncnn's x86 im2col convolution leaves its k-tile scratch empty when the whole K fits one tile (K <= TILE_K, by design:
+# the sums go straight to the output) and still advances that null scratch pointer, never writing through it
+# (convolution_im2col_gemm.h, `outptr += ...` in convolution_gemm_transB_packed_tile; third-party, pin ncnn in
+# engine/pins.json).
+pointer-overflow:storm_ncnn-*/src/layer/x86/convolution_im2col_gemm.h
