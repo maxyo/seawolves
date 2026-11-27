@@ -440,6 +440,7 @@ storm_host_check(text_templates SOURCES check.cpp ${src}/libs/xinterface/src/str
 storm_host_check(font_glyphs SOURCES check.cpp ${src}/libs/renderer/src/font_glyphs.cpp
     INCLUDES ${src}/libs/renderer/src ${util_include} OPTIONS ${warnings} -Wno-type-limits ${asan} CATCH2)
 storm_host_check(hover_trigger INCLUDES ${src}/libs/xinterface/src OPTIONS ${warnings} ${asan} CATCH2)
+storm_host_check(node_events INCLUDES ${src}/libs/xinterface/src OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(rich_text SOURCES check.cpp ${src}/libs/xinterface/src/rich_text.cpp
     INCLUDES ${src}/libs/xinterface/src ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(tooltip_layout INCLUDES ${src}/libs/xinterface/src OPTIONS ${warnings} ${asan} CATCH2)

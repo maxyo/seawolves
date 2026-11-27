@@ -268,7 +268,6 @@ XINTERFACE::XINTERFACE()
 
     m_bShowPrevTexture = false;
 
-    m_pEvents = nullptr;
 
     m_nColumnQuantity = 15;
     m_fWaveAmplitude = 0.1f;
@@ -1167,25 +1166,8 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
         const std::string &param = message.String();
         const std::string &nodeName = message.String();
         int32_t nCommand = message.Long();
-        auto *pEvent = new EVENT_Entity;
-        if (pEvent == nullptr)
-            throw std::runtime_error("allocate memory error");
-        pEvent->next = m_pEvents;
-        m_pEvents = pEvent;
-        auto len = param.size() + 1;
-        pEvent->sEventName = new char[len];
-        if (pEvent->sEventName == nullptr)
-            throw std::runtime_error("allocate memory error");
-        memcpy(pEvent->sEventName, param.c_str(), len);
-        len = nodeName.size() + 1;
-        pEvent->sNodeName = new char[len];
-        if (pEvent->sNodeName == nullptr)
-            throw std::runtime_error("allocate memory error");
-        memcpy(pEvent->sNodeName, nodeName.c_str(), len);
-        if (nCommand >= 0 && nCommand < COMMAND_QUANTITY)
-            pEvent->nCommandIndex = pCommandsList[nCommand].code;
-        else
-            pEvent->nCommandIndex = -1;
+        m_events.Add({param, nodeName,
+                      nCommand >= 0 && nCommand < COMMAND_QUANTITY ? pCommandsList[nCommand].code : -1});
     }
     break;
 
@@ -2928,15 +2910,9 @@ void XINTERFACE::MobileInterfaceGone()
 // The script events the nodes queued (MSG_INTERFACE_SET_EVENT), newest first.
 void XINTERFACE::RunNodeEvents()
 {
-    // Each event leaves the list before it is raised: its handler may open another interface, which releases the
-    // list (ReleaseOld), while the event's names are still in use.
-    while (m_pEvents != nullptr)
-    {
-        const std::unique_ptr<EVENT_Entity> event(m_pEvents);
-        m_pEvents = event->next;
-        event->next = nullptr;
-        core.Event(event->sEventName, "ls", event->nCommandIndex, event->sNodeName);
-    }
+    m_events.Run([](const storm::xi::NodeEvents::Event &event) {
+        core.Event(event.name, "ls", event.command, event.node.c_str());
+    });
 }
 
 void XINTERFACE::DoControl()
@@ -2984,11 +2960,11 @@ void XINTERFACE::DoControl()
         ++mobileChanges_;
         mobileModelResend_ = true;
         const storm::mobile::UiAction::Scope programmatic(storm::mobile::uiAction); // silent: the UI clicked for the press
-        const void *eventsBefore = m_pEvents;
+        const uint64_t eventsBefore = m_events.Added();
         const auto outcome = MobileApplyAction(action);
         if (outcome.state == storm::mobile::ActionOutcome::Refused)
             spdlog::info("UI action {} {}[{}] '{}' refused: {}", action.screen, action.node, action.index, action.value, outcome.reason);
-        const bool queued = m_pEvents != eventsBefore;
+        const bool queued = m_events.Added() != eventsBefore;
         MobileAnswer(action.request, outcome, queued);
         if (queued)
         {
@@ -3656,12 +3632,7 @@ void XINTERFACE::ReleaseOld()
     }
     m_nStringQuantity = 0;
 
-    while (m_pEvents != nullptr)
-    {
-        EVENT_Entity *ei = m_pEvents;
-        m_pEvents = m_pEvents->next;
-        delete ei;
-    }
+    m_events.Clear();
 
     while (m_pNodes != nullptr)
     {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "node_events.hpp"
+
 #include "storm_glm.h"
 #include "nodes/xi_util.h"
 #include "quest_file_reader/quest_file_reader.h"
@@ -426,32 +428,7 @@ class XINTERFACE : public XINTERFACE_BASE
 
     IMAGE_Entity *m_imgLists;
 
-    struct EVENT_Entity
-    {
-        char *sEventName;
-        char *sNodeName;
-        int32_t nCommandIndex;
-        EVENT_Entity *next;
-
-        EVENT_Entity()
-            : next(nullptr)
-        {
-            sEventName = nullptr;
-            sNodeName = nullptr;
-            nCommandIndex = 0;
-        }
-
-        ~EVENT_Entity()
-        {
-            delete[] sEventName;
-            sEventName = nullptr;
-            delete[] sNodeName;
-            sNodeName = nullptr;
-            nCommandIndex = 0;
-        }
-    };
-
-    EVENT_Entity *m_pEvents;
+    storm::xi::NodeEvents m_events;
 
     // previouse texture & draw to texturer data
     bool m_bShowPrevTexture; // exchange one interface to other
