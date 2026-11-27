@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The sail emblem from the interface sailsgerald: the emblems' scroll SCROLL_GERALD, the game's two works B_OK (paint)
-// and B_REMOVE (take off), of which SailsGerald.c CheckChangeSailStatus makes one selectable for the chosen emblem,
-// and the engine's ANDROID_SAILS_GERALD with what the window's script keeps to itself (its price, the money, the
-// emblem on the sails). Implements contracts/sails.c.
+// and B_REMOVE (take off), of which SailsGerald.c CheckChangeSailStatus makes one selectable for the chosen emblem.
+// The work's price is that window's global `price`; the emblem on the sails is the hero's ship's, as the window reads
+// it (shref, GetRealShip of GetCharacterShipType). Implements contracts/sails.c.
 
 void TouchAdpSails_State(aref ui, aref out)
 {
 	aref model = TouchLegLib_Model(ui);
 	DeleteAttribute(out, "");
-	// the engine's, so no node of the game's window: the binding cannot require it
-	if (!CheckAttribute(model, "ANDROID_SAILS_GERALD")) UiError("sail emblem: no ANDROID_SAILS_GERALD from the engine");
-	aref marker;
-	makearef(marker, model.ANDROID_SAILS_GERALD);
-	if (marker.reason != "") UiError("sail emblem: " + marker.reason);
 	out.title = TouchLegLib_Label(model, "INFO_CAPTION");
-	out.price = sti(marker.context.price);
-	out.purse = sti(marker.context.money);
-	string applied = marker.context.applied;
+	out.price = UiGameInt("price");
+	ref hero = GetMainCharacter();
+	out.purse = sti(hero.Money);
+	ref ship = GetRealShip(GetCharacterShipType(hero));
+	string applied = "";
+	if (CheckAttribute(ship, "ShipSails.Gerald_Name")) applied = ship.ShipSails.Gerald_Name;
 	aref emblems;
 	makearef(emblems, out.emblems);
 	for (int k = 0; k < TouchLib_Count(model, "SCROLL_GERALD.rows"); k++)

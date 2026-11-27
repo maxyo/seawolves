@@ -3,6 +3,10 @@
  "cases": [
   {
    "name": "another emblem chosen: it is painted; the others chosen by a tap and by the arrows; leaving",
+   "game": {
+    "price": 1250,
+    "TestHero.Money": 12480
+   },
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -164,18 +168,6 @@
       "label": "Отмена",
       "index": -1,
       "order": 32
-     },
-     {
-      "node": "ANDROID_SAILS_GERALD",
-      "type": "sails_gerald",
-      "index": -1,
-      "order": 0,
-      "enabled": false,
-      "context": {
-       "price": "1250",
-       "money": "12480",
-       "applied": "emblem_01.tga.tx"
-      }
      }
     ]
    },
@@ -291,6 +283,10 @@
   },
   {
    "name": "the emblem on the sails chosen: the game offers to take it off, whatever the purse",
+   "game": {
+    "price": 1250,
+    "TestHero.Money": 900
+   },
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -452,18 +448,6 @@
       "label": "Отмена",
       "index": -1,
       "order": 32
-     },
-     {
-      "node": "ANDROID_SAILS_GERALD",
-      "type": "sails_gerald",
-      "index": -1,
-      "order": 0,
-      "enabled": false,
-      "context": {
-       "price": "1250",
-       "money": "900",
-       "applied": "emblem_01.tga.tx"
-      }
      }
     ]
    },

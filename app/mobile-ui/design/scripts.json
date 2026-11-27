@@ -231,13 +231,14 @@
     },
     {
       "file": "interface/touch/lineages/legacy/sails.c",
+      "requires": ["fn:GetMainCharacter/0", "fn:GetRealShip/1", "fn:GetCharacterShipType/1"],
       "provides": ["adapter:sails"],
       "binds": [
         {
           "capability": "sail_emblem",
           "interface": "sailsgerald",
           "nodes": [
-            ["SCROLL_GERALD", "choice", true], ["ANDROID_SAILS_GERALD", "sails_gerald"], ["EXIT_BTN", "button"],
+            ["SCROLL_GERALD", "choice", true], ["EXIT_BTN", "button"],
             ["B_OK", "button"], ["B_REMOVE", "button"], ["B_CANCEL", "button"], ["INFO_CAPTION", "text"],
             ["SAILS_GERALD_LEFT_BUTTON", "button"], ["SAILS_GERALD_RIGHT_BUTTON", "button"]
           ]

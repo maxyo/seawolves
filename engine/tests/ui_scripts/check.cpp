@@ -136,16 +136,26 @@ struct Vm
     }
 };
 
-// The globals of the game's interface in a recorded state: "game": {name: whole number}.
+// The globals of the game's interface in a recorded state: "game": {name: whole number}, or {"Global.attribute.…":
+// whole number} for an attribute of a global object.
 void SetGame(const Json &recorded)
 {
     if (!recorded.contains("game"))
         return;
     for (const auto &[name, value] : recorded.at("game").items())
     {
-        auto *variable = static_cast<VDATA *>(core.GetScriptVariable(name.c_str()));
+        const size_t dot = name.find('.');
+        auto *variable = static_cast<VDATA *>(core.GetScriptVariable(name.substr(0, dot).c_str()));
         REQUIRE(variable != nullptr);
-        variable->Set(static_cast<int32_t>(value.get<int>()));
+        if (dot == std::string::npos)
+        {
+            variable->Set(static_cast<int32_t>(value.get<int>()));
+            continue;
+        }
+        ATTRIBUTES *root = variable->GetAClass();
+        ATTRIBUTES *at = root ? root->FindAClass(root, name.c_str() + dot + 1) : nullptr;
+        REQUIRE(at != nullptr);
+        at->SetValue(std::to_string(value.get<int>()));
     }
 }
 
@@ -774,6 +784,7 @@ TEST_CASE("the sail emblem's script gives the pack screen the props and actions 
         INFO(recorded.at("name").get<std::string>());
         storm::ui::InterfaceModel model;
         REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        SetGame(recorded);
         Calls calls(*spec);
         calls.widgets = model.widgets;
         port.Build(screen, calls.Single(), calls);

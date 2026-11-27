@@ -611,7 +611,6 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
     if(storm::android::mobileScreen!="mainmenu")MobileCollectFacts(widgets);
     if(storm::android::mobileScreen=="boal_dice"||storm::android::mobileScreen=="boal_cards")MobileCollectTableGame(widgets);
     if(storm::android::mobileScreen=="goodstransfer")MobileCollectGoodsTransfer(widgets);
-    if(storm::android::mobileScreen=="sailsgerald")MobileCollectSailsGerald(widgets);
     if(storm::android::mobileScreen=="alchemy")MobileCollectAlchemy(widgets);
     if(storm::android::mobileScreen=="itemsbox")MobileCollectItemsBox(widgets);
 }
@@ -622,7 +621,6 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 #include "mobile_facts.inc"
 #include "mobile_table_game.inc"
 #include "mobile_goods_transfer.inc"
-#include "mobile_sails_gerald.inc"
 #include "mobile_alchemy.inc"
 #include "mobile_items_box.inc"
 #include "mobile_colony_loot.inc"

@@ -21,11 +21,4 @@ TEST_CASE("mobile_sails_gerald")
     widgets.clear();
     CollectSailEmblems("SCROLL_GERALD", files, 0, false, 5, widgets);
     REQUIRE((!widgets[0].enabled && widgets[0].actions.empty()));
-    auto marker = SailsGeraldMarker(1250, std::string("12480"), std::string(""));
-    REQUIRE((marker.context.at("price") == "1250" && marker.context.at("applied").empty() &&
-             marker.unavailableReason.empty()));
-    marker = SailsGeraldMarker(std::nullopt, std::string("1"), std::nullopt);
-    REQUIRE(marker.unavailableReason == "sails-gerald:missing=price,applied");
-    widgets.push_back(marker);
-    REQUIRE(widgets.back().node == "ANDROID_SAILS_GERALD");
 }

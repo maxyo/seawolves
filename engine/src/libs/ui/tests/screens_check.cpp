@@ -4330,12 +4330,14 @@ static void SailEmblem(const std::string &models)
 
     // The emblem on the sails chosen: the game offers B_REMOVE. Less money than the price does not stop it (the game
     // charges without asking).
+    ScriptGame::Get().Set("TestHero.Money", "900");
     router.SetInterface(Load(models, "sailsgerald-applied.json"));
     Expect(surface.props["primary"]["label"] == "<sails.remove>" && surface.props["primary"]["disabled"] == false &&
                surface.props["prev"] == false,
            "the current emblem: take it off, whatever the purse: " + surface.props["primary"].dump());
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tB_REMOVE\t-1\tpress", "take off");
+    ScriptGame::Get().Set("TestHero.Money", "12480");
 }
 
 // The one reading of a number in a game caption (screens/amount.h) and the error line when a caption that always

@@ -18,6 +18,5 @@
 {"node":"SCROLL_GERALD","type":"choice","label":"emblem_07","value":"0","index":6,"order":15,"rowId":"emblem_07.tga.tx","actions":["select"],"context":{"texture":"ships/gerald/emblem_07"}},
 {"node":"B_OK","type":"button","label":"Выбрать","index":-1,"order":30},
 {"node":"B_REMOVE","type":"button","label":"Убрать","index":-1,"order":31,"enabled":false},
-{"node":"B_CANCEL","type":"button","label":"Отмена","index":-1,"order":32},
-{"node":"ANDROID_SAILS_GERALD","type":"sails_gerald","index":-1,"order":0,"enabled":false,"context":{"price":"1250","money":"12480","applied":"emblem_01.tga.tx"}}
+{"node":"B_CANCEL","type":"button","label":"Отмена","index":-1,"order":32}
 ]}

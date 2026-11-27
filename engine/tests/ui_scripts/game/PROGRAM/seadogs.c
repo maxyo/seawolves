@@ -309,6 +309,21 @@ void TestItems()
 	GameInterface.TABLE_ITEMS.tr5.index = 32;
 }
 
+// The sail emblem window's price of the work (SailsGerald.c's global there, set by the checks to the recorded state's)
+// and the hero's ship (RealShips[1]) with the emblem on its sails.
+int price;
+object RealShips[2];
+
+ref GetRealShip(int type)
+{
+	return &RealShips[type];
+}
+
+int GetCharacterShipType(ref chr)
+{
+	return sti(chr.Ship.Type);
+}
+
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\TavernWait.ini";
@@ -426,6 +441,11 @@ void Main()
 	NullCharacter.Cards.c4.count = 3;
 	NullCharacter.Cards.c5.pic = "spades_7";
 	NullCharacter.Cards.c5.count = 7;
+	// the sail emblem of the recorded models (ui/tests/models/sailsgerald*.json)
+	price = 1250;
+	TestHero.Money = 12480;
+	TestHero.Ship.Type = 1;
+	RealShips[1].ShipSails.Gerald_Name = "emblem_01.tga.tx";
 	GameValue = 7;
 	GameName = "kept";
 }

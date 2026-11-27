@@ -1,14 +1,11 @@
 #pragma once
 // The sail emblem screen (sailsgerald, PROGRAM/interface/SailsGerald.c) lists the emblem textures
 // of RESOURCE/Textures/ships/gerald in a scroll image (LoadIcons: SCROLL_GERALD.picN.FileName,
-// .current). This exports them and what the screen needs around them:
+// .current). This exports them:
 //   choice SCROLL_GERALD  one row per emblem: label = the file name without extension, rowId =
 //          the file name, value "1" = the current one, context.texture = the texture path under
 //          RESOURCE/Textures (for <ui-game-image texture=…>); actions ["select"] while selectable.
 //          `select@<screen revision>:<file>` makes it current like a tap on the scroll image.
-//   sails_gerald ANDROID_SAILS_GERALD  context: price (the script's price of the work), money (the
-//          hero's), applied (the emblem the ship carries, ShipSails.Gerald_Name); its
-//          unavailableReason names a fact the script did not have (sails-gerald:missing=...).
 #include "mobile_widget.hpp"
 #include <optional>
 
@@ -57,25 +54,6 @@ inline std::optional<int> AcceptSailEmblem(const std::string &value, uint64_t re
         files[static_cast<size_t>(index)] != value.substr(prefix.size()))
         return std::nullopt;
     return index;
-}
-
-inline MobileWidget SailsGeraldMarker(std::optional<int> price, std::optional<std::string> money,
-                                      std::optional<std::string> applied)
-{
-    MobileWidget marker{"ANDROID_SAILS_GERALD", "sails_gerald", "", "", -1, 0, false};
-    std::string missing;
-    const auto put = [&](const char *key, const std::optional<std::string> &value) {
-        if (value)
-            marker.context[key] = *value;
-        else
-            missing += (missing.empty() ? "" : ",") + std::string(key);
-    };
-    put("price", price ? std::optional<std::string>(std::to_string(*price)) : std::nullopt);
-    put("money", money);
-    put("applied", applied);
-    if (!missing.empty())
-        marker.unavailableReason = "sails-gerald:missing=" + missing;
-    return marker;
 }
 
 } // namespace storm::mobile
