@@ -93,6 +93,10 @@ class ControlBindings
     {
         threshold_ms_ = milliseconds;
     }
+    int32_t Threshold() const
+    {
+        return threshold_ms_;
+    }
 
     bool SetScheme(int32_t control, int32_t scheme)
     {

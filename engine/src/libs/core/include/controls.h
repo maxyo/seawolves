@@ -155,6 +155,11 @@ class CONTROLS
         return false;
     }
     virtual void SetHoldThreshold(int32_t milliseconds){};
+    // how long a key is held before it counts as held, in ms; 0: no key is ever held
+    virtual int32_t HoldThreshold() const
+    {
+        return 0;
+    }
     virtual void ResetHoldControls(){};
     virtual void SetControlScheme(int32_t control_code, int32_t scheme){};
     virtual void SetCombatScheme(int32_t scheme){};

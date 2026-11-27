@@ -3,6 +3,8 @@
 
 #include "core.h"
 
+#include <algorithm>
+
 #include "v_file_service.h"
 
 #define KEYPRESS_DELAY 500
@@ -22,42 +24,67 @@ CXI_KEYCHANGER::~CXI_KEYCHANGER()
     ReleaseAll();
 }
 
+// Waits until no key is down, then reports the first key used: a button when it is released (evntKeyChoose's third
+// argument: held at least the controls' hold threshold), a stick when it is pushed out. While a button is down,
+// evntKeyChooseProgress tells how far it is to being held.
 void CXI_KEYCHANGER::Draw(bool bSelected, uint32_t Delta_Time)
 {
-    if (m_bUse)
+    if (!m_bUse)
+        return;
+    const int32_t threshold = core.Controls->HoldThreshold();
+    int progressKey = -1;
+    float progress = 0.f;
+    for (int i = 0; i < m_keysQuantity; i++)
     {
-        int i;
         CONTROL_STATE cs;
-
-        for (i = 0; i < m_keysQuantity; i++)
+        core.Controls->GetControlState(m_pControlsID[i], cs);
+        const bool down = cs.state == CST_ACTIVE || cs.state == CST_ACTIVATED;
+        const bool pushed = cs.fValue > 1.f || cs.fValue < -1.f;
+        if (!m_bKeyCheck)
         {
-            core.Controls->GetControlState(m_pControlsID[i], cs);
-            if (m_bKeyCheck)
-            {
-                if ((m_pbControlsStick[i] && cs.state == CST_INACTIVATED) ||
-                    (!m_pbControlsStick[i] && (cs.fValue > 1.f || cs.fValue < -1.f)))
-                {
-                    auto bAllowChange = false;
-                    auto *pdat = core.Event("evntKeyChoose", "ll", i, cs.fValue > 0);
-                    if (pdat != nullptr)
-                        bAllowChange = pdat->GetInt() != 0;
-                    if (bAllowChange)
-                    {
-                        m_bUse = false;
-                        m_bKeyCheck = false;
-                        return;
-                    }
-                }
-            }
-            else if (cs.state == CST_ACTIVE || cs.state == CST_ACTIVATED || cs.fValue > 1.f || cs.fValue < -1.f)
+            if (down || pushed)
                 return;
+            continue;
         }
-        m_bKeyCheck = true;
+        bool hold = false;
+        if (m_pbControlsStick[i])
+        {
+            if (down)
+            {
+                m_heldMs[i] += Delta_Time;
+                if (progressKey < 0 && threshold > 0)
+                {
+                    progressKey = i;
+                    progress = std::min(1.f, static_cast<float>(m_heldMs[i]) / static_cast<float>(threshold));
+                }
+                continue;
+            }
+            if (cs.state != CST_INACTIVATED)
+                continue;
+            hold = threshold > 0 && m_heldMs[i] >= static_cast<uint32_t>(threshold);
+            m_heldMs[i] = 0;
+        }
+        else if (!pushed)
+            continue;
+        auto *pdat = core.Event("evntKeyChoose", "lll", i, cs.fValue > 0, hold);
+        if (pdat != nullptr && pdat->GetInt() != 0)
+        {
+            m_bUse = false;
+            m_bKeyCheck = false;
+            return;
+        }
     }
+    if (!m_bKeyCheck)
+    {
+        m_bKeyCheck = true;
+        m_heldMs.assign(m_keysQuantity, 0);
+    }
+    core.Event("evntKeyChooseProgress", "lf", progressKey, progress);
 }
 
 void CXI_KEYCHANGER::ReleaseAll()
 {
+    m_bKeyCheck = false; // the held times are per key
     delete[] m_pControlsID;
     m_pControlsID = nullptr;
     delete[] m_pbControlsStick;
@@ -93,6 +120,10 @@ uint32_t CXI_KEYCHANGER::MessageProc(int32_t msgcode, MESSAGE &message)
         SetChoosingControls(pA);
     }
     break;
+    case 1: // start choosing: once no key is down
+        m_bUse = true;
+        m_bKeyCheck = false;
+        break;
     }
 
     return 0;

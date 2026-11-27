@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "../inode.h"
 
 class INIFILE;
@@ -45,4 +47,5 @@ class CXI_KEYCHANGER : public CINODE
     bool *m_pbControlsStick;
     int32_t m_keysQuantity;
     bool m_bKeyCheck;
+    std::vector<uint32_t> m_heldMs; // how long each button has been down
 };

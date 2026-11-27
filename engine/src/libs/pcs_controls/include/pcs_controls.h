@@ -88,6 +88,7 @@ class PCS_CONTROLS : public CONTROLS
     void SetControlHold(int32_t control_code, int32_t group, bool hold) override;
     bool SetHoldControls(int32_t primary, int32_t hold) override;
     void SetHoldThreshold(int32_t milliseconds) override;
+    int32_t HoldThreshold() const override;
     void ResetHoldControls() override;
     void SetControlScheme(int32_t control_code, int32_t scheme) override;
     void SetCombatScheme(int32_t scheme) override;

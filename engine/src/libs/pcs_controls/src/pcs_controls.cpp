@@ -301,6 +301,11 @@ void PCS_CONTROLS::SetHoldThreshold(int32_t milliseconds)
     ApplyBindings();
 }
 
+int32_t PCS_CONTROLS::HoldThreshold() const
+{
+    return bindings_->Threshold();
+}
+
 void PCS_CONTROLS::ResetHoldControls()
 {
     ApplyBindings();
