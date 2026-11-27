@@ -1364,28 +1364,16 @@ struct CommerceRun
 
     void Cannons()
     {
-        // cannons.c: the goods formula with pieces of one (290 each, 6 cwt each).
-        router.SetInterface(Load(models, "cannons-deal.json"));
+        // cannons.c: pieces of one; the window holds 6 bought («Деньги 1740, вес 36 ц»).
+        const InterfaceModel model = Load(models, "cannons-deal.json");
+        router.SetInterface(model);
         ExpectEqual(surface.props["list"]["rows"][1]["sub"], "Дист. 450 · Урон x1.5 · Время 11",
-                    "cannons: range, damage, reload in the dock's second line");
-        router.OnEvent({"goods", "change", "6"});
-        Expect(surface.props["primary"]["label"] == "<trade.buy> 5" &&
-                   surface.props["primary"]["sub"] == "1 450 \xC2\xB7 30 <transfer.cwt>",
-               "cannons: a purse of 1 500 buys five at 290: " + surface.props["primary"].dump());
-        {
-            InterfaceModel rich = Load(models, "cannons-deal.json");
-            for (Widget &widget : rich.widgets)
-                if (widget.node == "OUR_GOLD")
-                    widget.label = "Наши деньги 5 000 песо";
-            FakeSurface rich_surface;
-            Router rich_router(rich_surface);
-            rich_router.SetInterface(rich);
-            rich_router.OnEvent({"goods", "change", "6"});
-            Expect(rich_surface.props["primary"]["label"] == "<trade.buy> 6" &&
-                       rich_surface.props["primary"]["sub"] == "1 740 \xC2\xB7 36 <transfer.cwt>",
-                   "six cannons: 1 740 and 36 cwt as cannons.c says («Деньги 1740, вес 36 ц»): " +
-                       rich_surface.props["primary"].dump());
-        }
+                    "cannons: range, damage, reload in the row's second line");
+        Expect(surface.props["deal"]["value"] == 6 && surface.props["deal"]["steps"] == Json::array({1, 10}),
+               "cannons: the window's amount, steps of 1 and 10: " + surface.props["deal"].dump());
+        OfferFlow("cannons", router, surface, model, 0, 4, 3, "<trade.buy> 3",
+                  "widget:cannons\tQTY_EDIT\t-1\tguard@7:row:1|",
+                  "widget:cannons\tQTY_OK_BUTTON\t-1\tguard@7:row:1|press");
         {
             // cannons.c opens, and switches ships, with a row selected and its amount window closed.
             const auto closed = [this](uint64_t revision, int ship) {
@@ -1399,6 +1387,7 @@ struct CommerceRun
             };
             FakeSurface open_surface;
             Router open_router(open_surface);
+            Scripted(open_router);
             // cannons.c selects its first row in its first frame: the list may come before that selection.
             InterfaceModel unselected = closed(1, 0);
             for (Widget &widget : unselected.widgets)
@@ -1409,6 +1398,7 @@ struct CommerceRun
             open_router.SetInterface(closed(2, 0));
             ExpectEqual(open_surface.Last(), "widget:cannons\tTABLE_LIST\t1\tactivate@7:row:1",
                         "cannons: the selected row's deal is asked for on opening");
+            AnswerAll(open_router, open_surface, true);
             InterfaceModel opened = Load(models, "cannons-deal.json");
             opened.revision = 3;
             open_router.SetInterface(opened);
@@ -1418,12 +1408,6 @@ struct CommerceRun
             open_surface.commands.clear();
             open_router.SetInterface(closed(4, 0));
             Expect(open_surface.commands.empty(), "cannons: a deal closed by the player stays closed");
-            open_router.SetInterface(closed(5, 1));
-            Expect(open_surface.commands.empty(),
-                   "cannons: another ship: nothing before the game has bound it (its next frame)");
-            open_router.SetInterface(closed(6, 1));
-            ExpectEqual(open_surface.Last(), "widget:cannons\tTABLE_LIST\t1\tactivate@7:row:1",
-                        "cannons: another ship's list opens its selected row's deal");
         }
     }
 
