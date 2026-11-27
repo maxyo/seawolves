@@ -65,7 +65,9 @@
     },
     {
       "file": "interface/touch/lineages/legacy/trade.c",
-      "requires": ["fn:GetGoodWeightByType/2", "var:GameInterface", "var:Items"],
+      "requires": [
+        "fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items"
+      ],
       "provides": ["adapter:trade"],
       "binds": [
         {
@@ -147,6 +149,18 @@
           "data": {
             "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "items": false,
             "goods": false, "pieces": true, "types": false, "owners": "CHARACTERS_SCROLL"
+          }
+        },
+        {
+          "capability": "trade_loot",
+          "interface": "colonycapture",
+          "nodes": [
+            "@goods-head", ["SHIPS_SCROLL", "choice"], ["STORE_CAPACITY", "text"], ["ANDROID_LOOT", "fact"],
+            "@qty-window"
+          ],
+          "data": {
+            "own": 0, "other": 3, "name": 2, "buy": -1, "sell": -1, "pack": 4, "packWeight": 5, "items": false,
+            "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL", "loot": true
           }
         }
       ]
@@ -415,6 +429,14 @@
           "look": {
             "title": "trade.items", "small": true, "quick": false, "carryIcon": "weight", "baseIcon": "store",
             "ownCaption": "", "ownIcon": "", "otherCaption": "", "otherIcon": ""
+          }
+        },
+        {
+          "capability": "trade_loot",
+          "component": "s-trade",
+          "look": {
+            "title": "trade.loot", "small": false, "quick": true, "carryIcon": "capacity", "baseIcon": "store",
+            "ownCaption": "trade.in_hold", "ownIcon": "capacity", "otherCaption": "trade.in_store", "otherIcon": "store"
           }
         }
       ]

@@ -421,40 +421,31 @@ static void EmptyChest(const std::string &models, const std::string &app_pack)
            "an empty chest (TABLE_LIST as one table widget) opens the chest screen");
 }
 
+// Looting a town (the trade screen's script over colonycapture): «Забрать самое ценное» fills the hold with what is
+// worth most per cwt of it, one good after another through the game's own amount window, in one action. The order is
+// ours (the adapter's ANDROID_LOOT value of a pack by the game's pack weight); every amount is the fixture game's
+// GetGoodQuantityByWeight and GetGoodWeightByType (packs of 10; a pack of the planks, good 1, weighs 2, the others 1).
 static void ColonyLoot(const std::string &models)
 {
-    FakeSurface surface;
-    Router router(surface);
-    router.SetInterface(Load(models, "colonycapture-deal.json"));
-    Expect(router.Using() == "colonycapture" && surface.tag == "s-trade", "colony loot uses the trade layout");
-    Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty(), "every node of the colony loot is known");
-    ExpectEqual(surface.props["header"]["title"].is_string() ? surface.props["header"]["title"].get<std::string>()
-                                                             : surface.props["title"].get<std::string>(),
-                "Город: Грабёж", "the game's caption is the title");
-
-    // «Забрать самое ценное»: the hold is filled with what is worth most per unit of its space, one good after
-    // another through the game's own amount window. Packs of 10; a pack weighs: sugar 1, planks 2, sailcloth 1,
-    // coffee 1; the adapter's values of a pack: 100, 60, 150, 120. So: sailcloth (150 a cwt), coffee (120), …
-    const double weights[] = {1, 2, 1, 1};
-    const int costs[] = {100, 60, 150, 120};
+    ScriptGame::Get().Set("TestGoods.g1.weight", "2");
+    const int weights[] = {1, 2, 1, 1};
+    const int costs[] = {100, 60, 150, 120}; // so: sailcloth (150 a cwt), coffee (120), sugar (100), planks (30)
     int revision = 100;
     // The town's stock by row, what the hold carries, and the row whose amount window is open (-1: none).
     const auto state = [&](std::vector<int> there, int load, int capacity, int open) {
         InterfaceModel model = Load(models, "colonycapture-deal.json");
         model.revision = static_cast<uint64_t>(++revision);
-        Widget fact_template;
         for (Widget &widget : model.widgets)
         {
             if (widget.node == "TABLE_LIST")
             {
-                fact_template = widget;
                 widget.value = widget.index == open ? "1" : "0";
                 for (Cell &cell : widget.cells)
                 {
                     if (cell.column == 3)
                         cell.text = std::to_string(there[static_cast<size_t>(widget.index)]);
                     if (cell.column == 5)
-                        cell.text = std::to_string(static_cast<int>(weights[widget.index]));
+                        cell.text = std::to_string(weights[widget.index]);
                 }
             }
             if (widget.node == "CAPACITY")
@@ -464,45 +455,44 @@ static void ColonyLoot(const std::string &models)
             model.widgets.erase(std::remove_if(model.widgets.begin(), model.widgets.end(),
                                                [](const Widget &w) { return w.node.rfind("QTY_", 0) == 0; }),
                                 model.widgets.end());
-        for (int row = 0; row < 4; ++row)
-        {
-            Widget fact = fact_template;
-            fact.node = "ANDROID_LOOT";
-            fact.type = "fact";
-            fact.index = row;
-            fact.row_id = "tr" + std::to_string(row + 1);
-            fact.value.clear();
-            fact.actions.clear();
-            fact.cells.clear();
-            fact.context = {{"cost", std::to_string(costs[row])}};
-            model.widgets.push_back(fact);
-        }
+        for (Widget &widget : model.widgets)
+            if (widget.node == "ANDROID_LOOT")
+                widget.context = {{"cost", std::to_string(costs[widget.index])}};
         return model;
     };
-    const std::string prefix = "widget:colonycapture\t";
+    FakeSurface surface;
+    Router router(surface);
+    Scripted(router);
     InterfaceModel town = state({60, 400, 150, 300}, 201, 240, -1);
     router.SetInterface(town);
+    Expect(router.Using() == "colonycapture" && surface.tag == "s-trade" && surface.errors.empty(),
+           "colony loot is the trade screen's script: " + Json(surface.errors).dump());
+    ExpectEqual(surface.props["title"], "Город: Грабёж", "the game's caption is the title");
     Expect(surface.props["primary"]["label"] == "<trade.take_best>" &&
                surface.props["primary"]["sub"] == "39 <transfer.cwt>" &&
                surface.props["primary"]["disabled"] == false && surface.props["place"]["title"] == "Город" &&
-               surface.props["place"]["facts"][0]["v"] == "39 <transfer.cwt>" && surface.errors.empty(),
-           "town loot: one button that fills the 39 cwt of room: " + surface.props["primary"].dump());
+               surface.props["place"]["facts"][0]["v"] == "39 <transfer.cwt>",
+           "town loot: one button that fills the 39 cwt of room: " + surface.props["primary"].dump() +
+               surface.props["place"].dump());
     surface.commands.clear();
     router.OnEvent({"primary", "click", ""});
-    // The plan in ONE action: all 150 of the sailcloth (150 a cwt, 15 cwt), then coffee (120 a cwt): 24 cwt of room are
-    // 24 packs of its 30: 240 pieces; nothing of the sugar and the planks: the hold is full. Rows are the table's tr
-    // numbers.
-    Expect(surface.commands.size() == 1 &&
-               surface.commands[0] == prefix + "ANDROID_LOOT\t0\ttake@" + std::to_string(town.opening) + ":3=150,4=240",
-           "one script call takes the most valuable per unit of space, greedily, to a full hold: " +
-               Json(surface.commands).dump());
+    // The plan in ONE action: all 150 of the sailcloth (15 cwt), then of the coffee what the game fits in the 24 cwt
+    // left: 240; nothing of the sugar and the planks: the hold is full. Rows are the table's tr numbers.
+    Expect(surface.commands.size() == 1 && surface.commands[0] == "widget:colonycapture\tANDROID_LOOT\t0\ttake@" +
+                                                                      std::to_string(town.opening) + ":3=150,4=240",
+           "one script call takes the most valuable per cwt, to a full hold: " + Json(surface.commands).dump());
     {
-        // A good too heavy for the room that is left is passed over for a lighter one further down.
+        // A good too heavy for the room that is left is passed over for a lighter one further down: the planks,
+        // made the most valuable, do not fit a pack in 1 cwt; the sugar does.
         FakeSurface tight_surface;
         Router tight(tight_surface);
-        InterfaceModel model =
-            state({60, 400, 0, 0}, 239, 240, -1); // 1 cwt of room: no planks (2 a pack), ten of sugar
+        Scripted(tight);
+        InterfaceModel model = state({60, 400, 0, 0}, 239, 240, -1);
+        for (Widget &widget : model.widgets)
+            if (widget.node == "ANDROID_LOOT" && widget.index == 1)
+                widget.context["cost"] = "1000";
         tight.SetInterface(model);
+        tight_surface.commands.clear();
         tight.OnEvent({"primary", "click", ""});
         Expect(tight_surface.commands.size() == 1 &&
                    tight_surface.commands[0].rfind(":1=10") == tight_surface.commands[0].size() - 5 &&
@@ -516,17 +506,20 @@ static void ColonyLoot(const std::string &models)
                surface.props["primary"]["reason"] == "<trade.no_room>",
            "a full hold: the button is off and says why: " + surface.props["primary"].dump());
     {
-        // Without the adapter's values the button is off and the screen says so aloud.
+        // Without the adapter's values the screen cannot do what it is for: the build fails aloud.
         InterfaceModel bare = state({60, 400, 150, 300}, 201, 240, -1);
         bare.widgets.erase(std::remove_if(bare.widgets.begin(), bare.widgets.end(),
                                           [](const Widget &w) { return w.node == "ANDROID_LOOT"; }),
                            bare.widgets.end());
         FakeSurface bare_surface;
         Router bare_router(bare_surface);
+        Scripted(bare_router);
         bare_router.SetInterface(bare);
-        Expect(bare_surface.props["primary"]["disabled"] == true && bare_surface.errors.size() == 1,
-               "no values from the adapter: off, and an error");
+        Expect(!bare_surface.errors.empty() &&
+                   Json(bare_surface.errors).dump().find("ANDROID_LOOT") != std::string::npos,
+               "no values from the adapter: an error: " + Json(bare_surface.errors).dump());
     }
+    ScriptGame::Get().Set("TestGoods.g1.weight", "1");
 }
 
 int main(int argc, char **argv)

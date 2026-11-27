@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[24];
+object Interfaces[25];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -19,7 +19,7 @@ int GameFunction(int count, string name)
 // The hours of the rest interface (TavernWait.c's global there), set by the checks to the recorded state's.
 int iHourWait;
 
-// The game function the trade adapter calls for a storage row's pack weight: TestGoods.g<good>.{units (pieces in a
+// The game functions the trade adapter calls for a storage row's pack weight and the loot plan: TestGoods.g<good>.{units (pieces in a
 // pack), weight (cwt a pack)}, every good packs of 10 of 1 cwt. Each started pack counts whole.
 object TestGoods;
 
@@ -28,6 +28,13 @@ int GetGoodWeightByType(int good, int quantity)
 	string slot = "g" + good;
 	int units = sti(TestGoods.(slot).units);
 	return (quantity + units - 1) / units * sti(TestGoods.(slot).weight);
+}
+
+// And for the loot plan: the pieces of whole packs that weigh at most `weight`.
+int GetGoodQuantityByWeight(int good, int weight)
+{
+	string slot = "g" + good;
+	return weight / sti(TestGoods.(slot).weight) * sti(TestGoods.(slot).units);
 }
 
 // The game's items, by the index of a chest's rows: their weight of one piece; item 4 (gold) weighs nothing.
@@ -175,6 +182,7 @@ void Main()
 	Interfaces[21].IniFile = "RESOURCE\INI\INTERFACES\PaperMap.ini";
 	Interfaces[22].IniFile = "RESOURCE\INI\INTERFACES\tradebook.ini";
 	Interfaces[23].IniFile = "RESOURCE\INI\INTERFACES\QuestBook.ini";
+	Interfaces[24].IniFile = "RESOURCE\INI\INTERFACES\ColonyCapture.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)

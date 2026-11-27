@@ -193,9 +193,9 @@ are mostly the C++ screen's own arithmetic loses its parity case instead (named 
 ## Not done
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
-- The trade family's last interfaces (colony capture, the ship exchange) are still C++
-  (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); their recorded parity
-  (`trade-parity.json`) goes with them.
+- The trade family's last interface, the ship exchange, is still C++
+  (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); its recorded parity
+  (`trade-parity.json`) goes with it.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
   crew hire's and the self repair's are gone (their adapters read the game themselves).
 - The shipyard and the hero's ship screen are still C++ (`trade_shipyard.cpp`, `hero_ship.cpp`).

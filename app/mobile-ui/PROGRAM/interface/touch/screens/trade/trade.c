@@ -49,6 +49,7 @@ void TouchTrade_Build()
 	TouchTrade_Subject(game, view);
 	TouchTrade_Stats(game, look, view);
 	TouchTrade_Info(game, view);
+	TouchTrade_Place(game, view);
 	TouchTrade_Primary(game, &deal, view);
 	UiOn("header-back", "");
 	UiShow(view);
@@ -395,7 +396,17 @@ void TouchTrade_Info(aref game, aref view)
 	UiOn("info", "");
 }
 
-// The bar's button: the deal named in our words with its price and weight, else what the place offers.
+// The place the goods are taken from and the room they fill (a looted town).
+void TouchTrade_Place(aref game, aref view)
+{
+	if (!CheckAttribute(game, "place")) return;
+	view.place.title = game.place.title;
+	view.place.facts.f0.k = UiText("trade.free_room");
+	view.place.facts.f0.v = game.place.room + " " + UiText("transfer.cwt");
+}
+
+// The bar's button: the deal named in our words with its price and weight, else the place's plan of the most valuable,
+// else what the place offers.
 void TouchTrade_Primary(aref game, aref deal, aref view)
 {
 	view.primary = "";
@@ -409,6 +420,16 @@ void TouchTrade_Primary(aref game, aref deal, aref view)
 		makearef(made, deal.button);
 		CopyAttributes(primary, made);
 		primary.sub = TouchTrade_Sub(game, deal);
+		return;
+	}
+	if (CheckAttribute(game, "best"))
+	{
+		object best = {label = game.best.label, sub = "", disabled = !sti(game.best.can), reason = game.best.reason,
+		               busy = UiPending("primary")};
+		if (best.label == "") best.label = UiText("trade.take_best");
+		if (game.best.weight != "") best.sub = game.best.weight + " " + UiText("transfer.cwt");
+		CopyAttributes(primary, &best);
+		UiOn("primary", "");
 		return;
 	}
 	aref buttons;
@@ -464,6 +485,13 @@ void TouchTrade_Tap()
 		int side = sti(TouchTrade.current) + 1;
 		if (verb == "subject-prev") side = sti(TouchTrade.current) - 1;
 		TouchAdpTrade_Side(ui, TouchLib_TapIndex("" + side, TouchLib_Count(game, "sides"), "the side"));
+		UiHold(TouchTrade_Wait);
+		return;
+	}
+	if (id == "primary" && CheckAttribute(game, "best"))
+	{
+		if (!sti(game.best.can)) return;
+		TouchAdpTrade_TakeBest(ui);
 		UiHold(TouchTrade_Wait);
 		return;
 	}

@@ -87,6 +87,9 @@
   каждое перемещение ползунка сразу отдаётся стрелкам самой игры, и строка показывает, где игра остановилась; слово
   морали в найме пишется так, как его пишет игра.
 - Сундук: вес одного предмета — вес самого предмета в игре, а не общий вес из таблицы, делённый на число предметов.
+- Грабёж захваченного города: экран — скриптовый. «Забрать самое ценное» по-прежнему берёт сначала самое дорогое на
+  центнер трюма, но сколько каждого товара поместится и сколько он весит, считает игра; окно количества показывает
+  вес сделки, как его пишет игра.
 
 **English**
 
@@ -178,6 +181,9 @@
   slider goes to the game's own arrows at once, and the row shows where the game stopped; the morale word of the hire
   is written as the game writes it.
 - Chest: the weight of one item is the game's weight of that item, not the table's total divided by the count.
+- Looting a captured town: a script screen. «Take the most valuable» still takes what is worth most per cwt of the
+  hold first, but how much of each good fits and what it weighs is the game's to count; the amount window shows the
+  deal's weight as the game writes it.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

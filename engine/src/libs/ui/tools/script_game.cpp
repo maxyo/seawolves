@@ -78,6 +78,17 @@ ScriptPort &ScriptGame::Port()
     return program_->port;
 }
 
+void ScriptGame::Set(const std::string &path, const std::string &value)
+{
+    const size_t dot = path.find('.');
+    auto *global = static_cast<VDATA *>(core.GetScriptVariable(path.substr(0, dot).c_str()));
+    ATTRIBUTES *root = global && dot != std::string::npos ? global->GetAClass() : nullptr;
+    ATTRIBUTES *at = root ? root->FindAClass(root, path.c_str() + dot + 1) : nullptr;
+    if (!at)
+        throw std::runtime_error("the fixture game has no " + path);
+    at->SetValue(value);
+}
+
 screens::Router::ScriptScreens ScriptGame::Entries(const fs::path &pack)
 {
     const Json components = Json::parse(ReadText(pack / "components.json"));

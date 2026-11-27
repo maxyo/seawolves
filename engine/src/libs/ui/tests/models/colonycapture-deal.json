@@ -22,5 +22,9 @@
 {"node":"QTY_GOODS_INFO","type":"text","label":"Тростниковый сахар.","index":-1},
 {"node":"QTY_EDIT","type":"edit","value":"0","index":-1},
 {"node":"QTY_OK_BUTTON","type":"button","label":"Ok","index":-1,"actions":["press"]},
-{"node":"QTY_CANCEL_BUTTON","type":"button","label":"Отмена","index":-1,"actions":["press"]}
+{"node":"QTY_CANCEL_BUTTON","type":"button","label":"Отмена","index":-1,"actions":["press"]},
+{"node":"ANDROID_LOOT","type":"fact","label":"","index":0,"rowId":"tr1","context":{"cost":"100"}},
+{"node":"ANDROID_LOOT","type":"fact","label":"","index":1,"rowId":"tr2","context":{"cost":"60"}},
+{"node":"ANDROID_LOOT","type":"fact","label":"","index":2,"rowId":"tr3","context":{"cost":"150"}},
+{"node":"ANDROID_LOOT","type":"fact","label":"","index":3,"rowId":"tr4","context":{"cost":"120"}}
 ]}

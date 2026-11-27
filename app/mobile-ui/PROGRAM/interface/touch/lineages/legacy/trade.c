@@ -227,7 +227,7 @@ aref TouchLegTrade_Figure(aref figures, string kind, string label, string value)
 	return at;
 }
 
-void TouchLegTrade_Deal(aref model, int open, aref out)
+void TouchLegTrade_Deal(aref data, aref model, int open, aref out)
 {
 	aref row = TouchLib_Item(out, "rows", open);
 	object deal = {row = open, edit = UiOffers(TouchLegLib_Edit(model), "edit"), confirm = false, reason = "",
@@ -241,12 +241,13 @@ void TouchLegTrade_Deal(aref model, int open, aref out)
 	aref at;
 	makearef(at, out.deal);
 	CopyAttributes(at, &deal);
-	TouchLegTrade_Answer(model, row, at);
+	TouchLegTrade_Answer(data, model, row, at);
 }
 
 // What the game's window holds now, as its ChangeQTY_EDIT has clamped and counted it: our side after the deal
-// (QTY_INFO_SHIP_QTY), and in a store its result "Деньги 25, вес 5 ц" (QTY_Result, empty while nothing is set).
-void TouchLegTrade_Answer(aref model, aref row, aref deal)
+// (QTY_INFO_SHIP_QTY), and its result (QTY_Result, empty while nothing is set): in a store "Деньги 25, вес 5 ц", in a
+// window without money (a looted town) "Вес 5 ц".
+void TouchLegTrade_Answer(aref data, aref model, aref row, aref deal)
 {
 	if (!CheckAttribute(model, "QTY_INFO_SHIP_QTY")) UiError("trade: the amount window has no QTY_INFO_SHIP_QTY");
 	deal.amount = UiAmount(model.QTY_INFO_SHIP_QTY.label, "QTY_INFO_SHIP_QTY") - sti(row.own);
@@ -255,14 +256,109 @@ void TouchLegTrade_Answer(aref model, aref row, aref deal)
 	deal.note = "";
 	string result = TouchLegLib_Label(model, "QTY_Result");
 	if (!UiHasAmount(result)) return;
-	deal.total = UiAmount(result, "QTY_Result");
-	int comma = findSubStr(result, ",", 0);
-	int digit = -1;
-	if (comma >= 0) digit = TouchLib_FindDigit(result, comma, true);
+	int from = 0;
+	if (sti(data.buy) >= 0)
+	{
+		deal.total = UiAmount(result, "QTY_Result");
+		from = findSubStr(result, ",", 0);
+		if (from < 0) UiError("trade: no weight in the game's deal result '" + result + "'");
+	}
+	int digit = TouchLib_FindDigit(result, from, true);
 	if (digit < 0) UiError("trade: no weight in the game's deal result '" + result + "'");
 	int end = digit;
 	while (end < strlen(result) && findSubStr("0123456789.", strcut(result, end, end), 0) >= 0) end++;
 	deal.weight = TouchLib_Cut(result, digit, end);
+}
+
+// Looting a town (ColonyCapture.c): «take the most valuable» fills the hold with the goods worth most per cwt first.
+// The order is ours (the ANDROID_LOOT cost of a pack by the game's pack weight); the amounts are the game's: of each
+// good what its GetGoodQuantityByWeight fits in the room left, weighing what its GetGoodWeightByType says, the room
+// being the hold's figures. The plan goes to the game's own amount window, good by good (ANDROID_LOOT, xinterface),
+// which clamps each. best.{label ("" ours), weight (what the plan fills), can, reason}; place.{title (the town: the
+// game's caption up to its colon), room}.
+object TouchLegTrade_Best; // .plan: the last State's, "<tr>=<amount>,…"
+
+void TouchLegTrade_Loot(aref ui, aref model, aref out)
+{
+	TouchLegTrade_Best.plan = "";
+	object best = {label = "", weight = "", can = false, reason = UiText("trade.no_room")};
+	int room = TouchLegTrade_Room(model);
+	if (room >= 0)
+	{
+		string title = out.title;
+		int colon = findSubStr(title, ":", 0);
+		if (colon >= 0) title = TouchLib_Cut(title, 0, colon);
+		out.place.title = title;
+		out.place.room = room;
+	}
+	object costs;
+	if (CheckAttribute(model, "ANDROID_LOOT.rows"))
+	{
+		aref facts;
+		makearef(facts, model.ANDROID_LOOT.rows);
+		for (int f = 0; f < GetAttributesNum(facts); f++)
+		{
+			aref fact = GetAttributeN(facts, f);
+			costs.(fact.id) = fact.context.cost;
+		}
+	}
+	else
+	{
+		if (TouchLib_Count(out, "rows") > 0) UiError("trade: the town's goods have no ANDROID_LOOT values");
+		best.reason = UiText("items.unavailable");
+	}
+	object ranked;
+	for (int k = 0; k < TouchLib_Count(out, "rows"); k++)
+	{
+		aref row = TouchLib_Item(out, "rows", k);
+		aref cells = TouchLegTrade_Row(ui, k);
+		string tr = "tr" + (sti(cells.index) + 1);
+		float pack = UiNumber(TouchLegLib_Cell(cells, sti(ui.data.packWeight)), "the pack weight column");
+		if (sti(row.other) <= 0 || pack <= 0.0 || !CheckAttribute(&costs, tr)) continue;
+		aref at = TouchLib_Add(&ranked, "r");
+		at.k = k;
+		at.worth = makeint(UiNumber(costs.(tr), "an ANDROID_LOOT cost") * 100.0 / pack);
+	}
+	UiOrder(&ranked, "worth", true);
+	int weight = 0;
+	for (int n = 0; n < GetAttributesNum(&ranked); n++)
+	{
+		aref pick = GetAttributeN(&ranked, n);
+		row = TouchLib_Item(out, "rows", sti(pick.k));
+		cells = TouchLegTrade_Row(ui, sti(pick.k));
+		int good = TouchLegTrade_Good(cells);
+		int amount = GetGoodQuantityByWeight(good, room);
+		if (amount > sti(row.other)) amount = sti(row.other);
+		if (amount <= 0) continue; // not a pack of it fits: a lighter good further down may
+		int moved = GetGoodWeightByType(good, amount);
+		room -= moved;
+		weight += moved;
+		if (TouchLegTrade_Best.plan != "") TouchLegTrade_Best.plan = TouchLegTrade_Best.plan + ",";
+		TouchLegTrade_Best.plan = TouchLegTrade_Best.plan + (sti(cells.index) + 1) + "=" + amount;
+	}
+	if (TouchLegTrade_Best.plan != "")
+	{
+		best.weight = weight;
+		best.can = true; // the facts are read only: the engine takes the plan by their node
+		best.reason = "";
+	}
+	aref at;
+	makearef(at, out.best);
+	CopyAttributes(at, &best);
+}
+
+// What the hold still takes by the game's figures "Трюм:\n201 / 240"; -1 unknown.
+int TouchLegTrade_Room(aref model)
+{
+	object figure;
+	if (!TouchLib_Figure(TouchLegLib_Label(model, "CAPACITY"), &figure)) return -1;
+	string value = figure.value;
+	int slash = findSubStr(value, "/", 0);
+	if (slash < 0) return -1;
+	int room = UiAmount(TouchLib_Cut(value, slash + 1, strlen(value)), "the hold's capacity") -
+	           UiAmount(TouchLib_Cut(value, 0, slash), "the hold's load");
+	if (room < 0) return 0;
+	return room;
 }
 
 void TouchAdpTrade_State(aref ui, aref out)
@@ -279,7 +375,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.types = data.types;
 	TouchLegTrade_Rows(data, model, out);
 	int open = TouchLegLib_Window(model);
-	if (open >= 0) TouchLegTrade_Deal(model, open, out);
+	if (open >= 0) TouchLegTrade_Deal(data, model, open, out);
 	// a side switch closes an open deal with the game's cancel first
 	aref sides;
 	makearef(sides, out.sides);
@@ -291,6 +387,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.info = TouchLegLib_Label(model, "INFO_TEXT");
 	TouchLegTrade_Figures(model, out);
 	TouchLegTrade_Places(model, out);
+	if (CheckAttribute(data, "loot")) TouchLegTrade_Loot(ui, model, out);
 	if (TouchLegTrade_Follow(ui, out)) UiAwait();
 }
 
@@ -461,6 +558,13 @@ void TouchAdpTrade_TakeAll(aref ui)
 	aref model = TouchLegLib_Model(ui);
 	TouchLegTrade_Places(model, &state);
 	UiSend(state.takeAll.node, "press", "");
+}
+
+// The plan of the last State, in one action the engine runs on the game's window.
+void TouchAdpTrade_TakeBest(aref ui)
+{
+	if (TouchLegTrade_Best.plan == "") UiError("trade: the most valuable is taken with no plan");
+	UiSend("ANDROID_LOOT", "take", TouchLegTrade_Best.plan);
 }
 
 // The game's exit closes its amount window when one is open and leaves only when none is.

@@ -1,11 +1,9 @@
-// Commerce: colony loot — one
-// buy / sell / transfer layout (pack screen <s-trade>). Goods are one C-TradeList that never
-// moves: filter chips and sortable columns in its head, 44 dp rows; the row whose quantity
-// window the game has open shows in the dock beside the list (object, description, C-Quantity
-// with the amount on our side after the deal). While the player sets an amount nothing goes
-// to the game: the amount, its limits (stock, money, hold), the total and the button's text are
-// computed here from what the open row already says, with the game's own formulas (DealMath
-// below mirrors store.c / cannons.c / contraband.c / itemstrade.c ChangeQTY_EDIT), so the
+// Commerce: the goods of the ship exchange (transfer_main), a free transfer layout (pack screen <s-trade>). Goods
+// are one C-TradeList that never moves: filter chips and sortable columns in its head, 44 dp rows; the row whose
+// quantity window the game has open shows in the dock beside the list (object, description, C-Quantity with the amount
+// on our side after the deal). While the player sets an amount nothing goes to the game: the amount, its limits (stock,
+// money, hold), the total and the button's text are computed here from what the open row already says, with the game's
+// own formulas (DealMath below mirrors store.c / cannons.c / contraband.c / itemstrade.c ChangeQTY_EDIT), so the
 // control answers in the same frame. Only the confirmation goes out (AmountDraft, controls.h): the
 // amount and the game's OK in one flush, on «Купить / Продать N» of a money deal and «Взять / Отдать N»
 // of a free transfer alike. There is no «Отмена»: another row, or the amount back where
@@ -17,8 +15,6 @@
 // whole (goods.h GetGoodWeightByType). So the amount steps by one piece, and the dock says what the prices
 // and the weight are for («за 20 шт.») instead of the game's «пачка 20 шт.».
 //
-// All six interfaces share the game's nodes (TABLE_LIST, QTY_*); they differ in the
-// columns of the table, described per interface below.
 #include "amount.h"
 #include "controls.h"
 
@@ -49,25 +45,8 @@ struct Layout
     bool quick = false;  // the hand at a row's end takes the whole stack (free transfers by the game's amount window)
     int weight = -1;     // what one pack (goods) or one piece (items) weighs; -1 = the deal has no weight
     bool pieces = false; // itemstrade.c: single pieces with fractional weights (else goods in packs, whole cwt)
-    bool best = false;   // town loot: «Забрать самое ценное» (the adapter's ANDROID_LOOT values)
-    // Our captions of the two amount columns (string keys; nullptr: the game's), used while the game names the
-    // two sides differently (a store at sea names both «Товара в трюме»: ours / theirs then). Each with its icon.
-    const char *own_caption = nullptr;
-    const char *other_caption = nullptr;
-    const char *own_icon = "";
-    const char *other_icon = "";
     const char *carry_icon = "capacity"; // the header figure of what we carry (the hold; a character's weight)
 };
-
-constexpr Layout Captioned(Layout layout, const char *own, const char *own_icon, const char *other,
-                           const char *other_icon)
-{
-    layout.own_caption = own;
-    layout.own_icon = own_icon;
-    layout.other_caption = other;
-    layout.other_icon = other_icon;
-    return layout;
-}
 
 // The arithmetic of a money deal exactly as the game's scripts do it (ChangeQTY_EDIT of store.c, cannons.c,
 // contraband.c for goods in packs; itemstrade.c for pieces), so that what the player sees while choosing is
@@ -116,13 +95,6 @@ struct DealMath
     }
 };
 
-// clang-format off
-// Looting a captured colony (ColonyCapture.c): the hold, the town's stores, a free transfer.
-constexpr Layout kColonyCapture = Captioned(
-    {StringKey("trade.loot"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
-     5, false, true},
-    StringKey("trade.in_hold"), "capacity", StringKey("trade.in_store"), "store");
-// clang-format on
 // The goods of the loot / exchange screen (transfer_main): ours, weight, name, theirs, weight.
 constexpr Layout kTransfer{StringKey("transfer.title"), 0, 3, 2, -1, -1, -1, "", false};
 
@@ -301,7 +273,6 @@ class CommerceScreen final : public Screen
         const Captions captions = CaptionsOf(bindings, open.goods);
         const Deal deal = DealOf(admitted, bindings, open);
         TakeQuick(bindings, open, deal.theirs);
-        const LootPlan plan = PlanLoot(admitted, bindings, open.goods);
         AnswerTakeAll(admitted, bindings, open.goods);
 
         Json deal_view; // the open deal's quantity control (view["deal"]), null without one
@@ -319,7 +290,7 @@ class CommerceScreen final : public Screen
         view["deal"] = std::move(deal_view);
         view["list"]["filters"] = Filters(admitted, bindings, captions);
         Info(admitted, bindings, open, view);
-        Primary(admitted, bindings, open, deal, plan, view);
+        Primary(admitted, bindings, open, deal, view);
 
         const Widget *exit = admitted.One("EXIT_BTN");
         bindings.On("header-back", "", [this, &bindings, exit, deal = open.deal](const Event &) {
@@ -378,14 +349,6 @@ class CommerceScreen final : public Screen
         const Widget *balance = nullptr;   // OUR_GOLD
     };
     // «Забрать самое ценное» (town loot).
-    struct LootPlan
-    {
-        double room = -1.0;           // what the hold still takes; < 0 = unknown
-        const Widget *loot = nullptr; // where the plan is sent
-        std::string best;             // "<row>=<amount>,…": the table's 1-based rows
-        double weight = 0.0;          // what the plan weighs
-    };
-
     Open OpenOf(const Admission &admitted) const
     {
         Open open;
@@ -536,8 +499,7 @@ class CommerceScreen final : public Screen
         return holding;
     }
 
-    // The two amount columns: ours where the layout has them («В трюме», «В магазине»), else the game's
-    // captions; «У вас» / «Здесь» where the game names both sides alike (a store at sea: two holds).
+    // The two amount columns: the game's captions; «У вас» / «Здесь» where the game names both sides alike.
     Captions CaptionsOf(Bindings &bindings, const std::vector<const Widget *> &goods) const
     {
         const Layout &columns = layout_;
@@ -554,10 +516,6 @@ class CommerceScreen final : public Screen
         {
             if (out.other.rfind(out.own, 0) == 0) // "Предметов" / "Предметов торговца"
                 out.own = bindings.Text("trade.yours");
-            if (columns.own_caption)
-                out.own = bindings.Text(columns.own_caption), out.own_icon = columns.own_icon;
-            if (columns.other_caption)
-                out.other = bindings.Text(columns.other_caption), out.other_icon = columns.other_icon;
         }
         return out;
     }
@@ -648,60 +606,6 @@ class CommerceScreen final : public Screen
         }
         else
             bindings.RebuildAfter(quick_at_ + 3.0 - bindings.Now());
-    }
-
-    // «Забрать самое ценное» (town loot): the plan. The goods worth most per unit of hold space first (the
-    // adapter's value of a pack over the pack's weight), of each as many whole packs as the hold still has
-    // room for, until the hold is full. The engine then makes the player's own moves for every good of the
-    // plan in one script call (xinterface mobile_colony_loot.inc), with one answer at the end.
-    LootPlan PlanLoot(const Admission &admitted, Bindings &bindings, const std::vector<const Widget *> &goods) const
-    {
-        const Layout &columns = layout_;
-        LootPlan plan;
-        if (const Json carried = Figure(admitted.Label("CAPACITY")); carried.is_object())
-        {
-            const std::string value = carried["value"];
-            if (const size_t slash = value.find('/'); slash != std::string::npos)
-                plan.room = std::max(0.0, Number(bindings, std::string_view(value).substr(slash + 1), "CAPACITY") -
-                                              Number(bindings, std::string_view(value).substr(0, slash), "CAPACITY"));
-        }
-        if (!columns.best)
-            return plan;
-        std::map<int, double> worth; // TABLE_LIST row index → value of a pack per unit of its weight
-        for (const Widget *fact : admitted.All("ANDROID_LOOT"))
-        {
-            plan.loot = plan.loot ? plan.loot : fact;
-            const auto cost = fact->context.find("cost");
-            if (cost != fact->context.end())
-                worth[TableRow(bindings, fact->row_id)] = Number(bindings, cost->second, "ANDROID_LOOT cost");
-        }
-        std::vector<const Widget *> ranked;
-        for (const Widget *row : goods)
-        {
-            const double pack_weight = Number(bindings, row->CellText(columns.weight), "TABLE_LIST weight");
-            if (Theirs(bindings, *row, columns) > 0 && pack_weight > 0.0 && worth.count(row->index))
-            {
-                worth[row->index] /= pack_weight;
-                ranked.push_back(row);
-            }
-        }
-        std::stable_sort(ranked.begin(), ranked.end(),
-                         [&worth](const Widget *a, const Widget *b) { return worth[a->index] > worth[b->index]; });
-        double left = std::max(0.0, plan.room);
-        for (const Widget *row : ranked)
-        {
-            const double pack_weight = Number(bindings, row->CellText(columns.weight), "TABLE_LIST weight");
-            const int units = Units(bindings, *row, columns);
-            const int there = Theirs(bindings, *row, columns);
-            const int amount = std::min(there, static_cast<int>(left / pack_weight) * units);
-            if (amount <= 0)
-                continue; // no room for a pack of it: a lighter good further down may still fit
-            const double weight = (amount + units - 1) / units * pack_weight;
-            left -= weight;
-            plan.weight += weight;
-            plan.best += (plan.best.empty() ? "" : ",") + std::to_string(row->index + 1) + "=" + std::to_string(amount);
-        }
-        return plan;
     }
 
     // «Взять всё» of a chest answered: the game's own take-all ran (ANDROID_TAKE_ALL) and
@@ -1099,8 +1003,7 @@ class CommerceScreen final : public Screen
     }
 
     // Bar buttons: the deal of a money trade, else what the place offers (take all, …).
-    void Primary(const Admission &admitted, Bindings &bindings, const Open &open, const Deal &deal,
-                 const LootPlan &plan, Json &view)
+    void Primary(const Admission &admitted, Bindings &bindings, const Open &open, const Deal &deal, Json &view)
     {
         const Layout &columns = layout_;
         const bool money = columns.buy >= 0;
@@ -1138,39 +1041,9 @@ class CommerceScreen final : public Screen
                                    reopen_revision_ = revision;
                                });
         }
-        else if (!open.deal && columns.best)
-            LootButton(bindings, open.goods, plan, view);
         else if (!open.deal)
             PlaceButtons(admitted, bindings, open.goods, view, actions);
         view["actions"] = actions;
-    }
-
-    // Town loot: one button fills the hold with what is worth most; its number is the room it will fill.
-    void LootButton(Bindings &bindings, const std::vector<const Widget *> &goods, const LootPlan &plan,
-                    Json &view) const
-    {
-        if (!plan.loot && !goods.empty())
-            bindings.ErrorOnce(
-                "loot", "colonycapture: no ANDROID_LOOT from the interface adapter: the goods' values are unknown");
-        const bool can = plan.loot && !plan.best.empty();
-        view["primary"] =
-            Json{{"label", bindings.Text("trade.take_best")},
-                 {"sub", can ? std::to_string(static_cast<int>(plan.weight)) + " " + bindings.Text("transfer.cwt")
-                             : std::string()},
-                 {"disabled", !can},
-                 {"reason", !plan.loot ? bindings.Text("items.unavailable") : bindings.Text("trade.no_room")},
-                 {"busy", bindings.Pending("primary")}};
-        bindings.On("primary", "", [&bindings, loot = plan.loot, best_plan = plan.best, can](const Event &) {
-            if (can)
-                bindings.Send(*loot, "take", best_plan);
-        });
-        if (plan.room >= 0.0)
-            // The town's name: the game's caption up to its colon («Картахена: Грабёж»).
-            view["place"] =
-                Json{{"title", view["title"].get<std::string>().substr(0, view["title"].get<std::string>().find(':'))},
-                     {"facts", Json::array({Json{{"k", bindings.Text("trade.free_room")},
-                                                 {"v", std::to_string(static_cast<int>(plan.room)) + " " +
-                                                           bindings.Text("transfer.cwt")}}})}};
     }
 
     // Without a deal: the place's own buttons (take all, bury, …).
@@ -1310,10 +1183,6 @@ class CommerceScreen final : public Screen
 std::unique_ptr<Screen> CreateTransferGoods()
 {
     return std::make_unique<CommerceScreen>(kTransfer);
-}
-std::unique_ptr<Screen> CreateColonyCaptureScreen()
-{
-    return std::make_unique<CommerceScreen>(kColonyCapture);
 }
 
 } // namespace storm::ui::screens

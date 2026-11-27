@@ -22,6 +22,8 @@
 //     "purse": our money), label ("" none), value (as written), currency (purse: the string key of what is paid, ""
 //     money)}; storage, info: the game's texts of the place's note and its description
 //   buttons.b<k>.{label, can, reason}: the place's own; takeAll.{label ("" ours), can, reason} (absent: none)
+//   best (absent: none).{label ("" ours), weight (what the plan of the most valuable fills, as the game counts it; ""
+//     nothing fits), can, reason}; place (absent: none).{title (the place's name), room (what we can still carry)}
 extern void TouchAdpTrade_State(aref ui, aref out);
 // The moves; each takes as many of the game's frames as it needs while the screen waits (UiHold).
 extern void TouchAdpTrade_Deal(aref ui, int row);                  // a deal opened on row k
@@ -33,4 +35,5 @@ extern void TouchAdpTrade_Side(aref ui, int side);                 // another si
 extern void TouchAdpTrade_Category(aref ui, int tab);              // tabs t<k>
 extern void TouchAdpTrade_Press(aref ui, int button);              // buttons b<k>
 extern void TouchAdpTrade_TakeAll(aref ui);
+extern void TouchAdpTrade_TakeBest(aref ui); // the plan of `best` carried out
 extern void TouchAdpTrade_Leave(aref ui);
