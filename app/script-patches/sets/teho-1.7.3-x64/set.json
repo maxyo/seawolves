@@ -78,7 +78,7 @@
     {
       "path": "PROGRAM/interface/interface.c",
       "base_sha256": "649a68259a6b31aa3e0274f88c820cf48bbab844a8ebc299f7f30ea2a68d8be5",
-      "result_sha256": "b2fb0664aef2f3bf477a9bd55542bea0be98d4b3b65e55fbbc4b4450fedda30c",
+      "result_sha256": "30f11c0bac228044e550541d16c4500bd8f679f2b76c591aea17e50eeac310e8",
       "patch": "interface.c.patch"
     },
     {
@@ -596,6 +596,17 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: the equipment code told a musket from a pistol inline by \"mushket\" in the item's id (EquipCharacterByItem, ThisItemCanBeEquip), so an interface that lists the guns of the pistol's and the musket's places had to copy the test. It is now the function IsMushketItem, which both call; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "quick-save-name",
+      "title": "The game names the record of a quick save",
+      "targets": [
+        "PROGRAM/interface/interface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: MakeQuickLoad and QuickSaveContinue built the quick save's record name inline (\"<profile> QuickSave <n>\", n from PlayerProfile.QuickSaveIndex), so an interface that shows the record a quick load will load had to rebuild the name itself. The number and the name are now the functions GetQuickSaveIndex and QuickSaveName, which both call; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]

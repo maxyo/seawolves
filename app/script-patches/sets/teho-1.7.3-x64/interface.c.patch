@@ -23,7 +23,50 @@
  	SetEventHandler("frame","InterfaceDoExit",1);
  }
  
-@@ -2270,8 +2284,12 @@
+@@ -2179,16 +2193,28 @@
+ //==============================
+ // save load section
+ //==============================
++// The number of the last quick save, the one quick load loads: PlayerProfile.QuickSaveIndex, 1 before any.
++int GetQuickSaveIndex()
++{
++	int QuickSaveIndex = 1;
++	if( CheckAttribute(&PlayerProfile,"QuickSaveIndex") ) {
++		QuickSaveIndex = sti(PlayerProfile.QuickSaveIndex);
++	}
++	return QuickSaveIndex;
++}
++
++// The record of the quick save of that number in the profile's folder.
++string QuickSaveName(int iIndex)
++{
++	return PlayerProfile.name + " QuickSave " + iIndex;
++}
++
+ void MakeQuickLoad()
+ {
+ 	// boal лишнее if( InterfaceStates.Launched != 0 ) {return;}
+ 	if( bPlayVideoNow ) {return;}
+ 	// ugeen 2017 -->
+-	int QuickSaveIndex = 1;
+-	if( CheckAttribute(&PlayerProfile,"QuickSaveIndex") ) {
+-		QuickSaveIndex = sti(PlayerProfile.QuickSaveIndex);
+-	}	
+-	string curSave = PlayerProfile.name + " QuickSave " + QuickSaveIndex;
++	string curSave = QuickSaveName(GetQuickSaveIndex());
+ 	// <-- ugeen 2017
+ 	SetEventHandler("evntLoad","LoadGame",0);
+ 	PostEvent("evntLoad",0,"s", "SAVE\"+PlayerProfile.name+"\"+curSave);
+@@ -2245,7 +2271,7 @@
+ 	}
+ 	PlayerProfile.QuickSaveIndex = QuickSaveIndex;
+ 	
+-	string curSave = PlayerProfile.name + " QuickSave " + QuickSaveIndex;
++	string curSave = QuickSaveName(QuickSaveIndex);
+ 	// <-- ugeen 2017
+ 	SendMessage(&GameInterface,"ls",MSG_INTERFACE_DELETE_SAVE_FILE,curSave);
+ 	string sSaveDescriber = GetSaveDataString(GetCurLocationName());
+@@ -2270,8 +2296,12 @@
  {
  	DelEventHandler("makescrshot","AutoSaveContinue");
  
