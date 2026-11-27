@@ -62,10 +62,7 @@ file(REMOVE_RECURSE "${STORM_TEST_SDL_INCLUDE}/SDL2")
 file(CREATE_LINK "${sdl}/include" "${STORM_TEST_SDL_INCLUDE}/SDL2" SYMBOLIC)
 include("${STORM_ROOT}/cmake/glm.cmake")
 set(STORM_GLM_SOURCE "${storm_glm_SOURCE_DIR}" CACHE INTERNAL "The pinned GLM")
-storm_fetch_declare(storm_ui_json
-    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
-    URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa)
-FetchContent_MakeAvailable(storm_ui_json)
+include("${STORM_ROOT}/cmake/nlohmann_json.cmake")
 # Catch2 with one main for the checks that use it.
 add_library(storm_catch2_main OBJECT catch2_main.cpp)
 target_include_directories(storm_catch2_main PUBLIC "${STORM_TEST_SOURCES}/catch2/single_include")
@@ -149,7 +146,7 @@ storm_host_check(android_worldmap.snapshot SOURCES snapshot.cpp ${core_fake_sour
     INCLUDES ${core_fake_android_includes} ${src}/apps/engine/src DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict})
 storm_host_check(android_writable_storage INCLUDES ${util_include} OPTIONS ${warnings} CATCH2)
-storm_host_check(app_contract INCLUDES ${util_include} ${storm_ui_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict}
+storm_host_check(app_contract INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict}
     ARGS ${STORM_ROOT}/tools/android/app_contract.json INPUTS ${STORM_ROOT}/tools/android/app_contract.json)
 foreach(sanitizer address thread)
     if(sanitizer STREQUAL address)
@@ -173,7 +170,7 @@ storm_host_check(cpu_admission SOURCES check.cpp ${src}/libs/renderer_bgfx/fx/sr
     INCLUDES ${src}/libs/renderer_bgfx/fx/include ${render_log_headers} DEFINES ${render_log_defines}
     OPTIONS -O0 -pthread -UNDEBUG ${warnings} TIMEOUT 300)
 storm_check_test(cpu_admission.exit COMMAND cpu_admission --exit-waiting-bake LABELS host TIMEOUT 300)
-storm_host_check(display_options INCLUDES ${util_include} ${storm_ui_json_SOURCE_DIR}/include
+storm_host_check(display_options INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include
     OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(flame_flicker INCLUDES ${glm_headers} ${src}/libs/core/include ${src}/libs
     OPTIONS -O1 -g ${warnings} ${asan_strict} -fno-omit-frame-pointer CATCH2)
@@ -440,6 +437,11 @@ storm_host_check(animation_cache SOURCES check.cpp ${src}/libs/animation/src/ani
 storm_host_check(mobile_images SOURCES check.cpp ${src}/libs/xinterface/src/mobile_image_cache.cpp
     INCLUDES ${src}/libs/xinterface/src ${src}/libs/ui/include ${util_include}
     OPTIONS -O1 -g -fno-omit-frame-pointer ${asan} CATCH2)
+
+# The scene data parsers as the engine builds them; "[corpus]" reads the installed game in $STORM_GAME_DIR.
+add_subdirectory(${src}/libs/scene_data scene_data_library)
+storm_host_check(scene_data.parsers OPTIONS ${warnings} LIBS scene_data CATCH2)
+storm_check_test(scene_data.corpus COMMAND scene_data.parsers "[corpus]" LABELS game TIMEOUT 600)
 
 # Checks with a CMake file of their own.
 add_subdirectory(far_lod)

@@ -36,7 +36,6 @@ endif()
 # Pinned release archives (engine/pins.json).
 storm_fetch_pin(storm_ui_freetype freetype)
 storm_fetch_pin(storm_ui_lunasvg lunasvg)
-storm_fetch_pin(storm_ui_json nlohmann-json)
 # Local fixes on top of the RmlUi pin: patches/rmlui-*.patch, applied in the build directory's own patched view of
 # the shared source copy (storm_patched_view): a changed patch recompiles only what the changed files reach.
 file(GLOB storm_ui_rmlui_patches CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/patches/rmlui-*.patch")
@@ -52,8 +51,8 @@ set(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(PLUTOVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LUNASVG_DISABLE_LOAD_SYSTEM_FONTS ON CACHE BOOL "" FORCE)
 set(PLUTOVG_DISABLE_FONT_FACE_CACHE_LOAD ON CACHE BOOL "" FORCE)
-set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(storm_ui_freetype storm_ui_lunasvg storm_ui_json)
+FetchContent_MakeAvailable(storm_ui_freetype storm_ui_lunasvg)
+include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/nlohmann_json.cmake")
 if(NOT TARGET Freetype::Freetype)
     add_library(Freetype::Freetype ALIAS freetype)
 endif()
@@ -86,7 +85,7 @@ foreach(notice
         "${storm_ui_freetype_SOURCE_DIR}/docs/FTL.TXT|FreeType-FTL.txt"
         "${storm_ui_lunasvg_SOURCE_DIR}/LICENSE|lunasvg-MIT.txt"
         "${storm_ui_lunasvg_SOURCE_DIR}/plutovg/LICENSE|plutovg-MIT.txt"
-        "${storm_ui_json_SOURCE_DIR}/LICENSE.MIT|nlohmann-json-MIT.txt")
+        "${storm_json_SOURCE_DIR}/LICENSE.MIT|nlohmann-json-MIT.txt")
     string(REPLACE "|" ";" notice "${notice}")
     list(GET notice 0 from)
     list(GET notice 1 to)
