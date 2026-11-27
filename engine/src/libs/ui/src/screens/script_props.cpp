@@ -38,9 +38,25 @@ Json Scalar(const ViewTree &node, const std::string &type, const std::string &pa
     throw Mismatch(path, "the spec's shape names an unknown type '" + type + "'");
 }
 
-// `shape`: a type name, an object of fields, or a one-element array: a list of items of that shape.
+// A shape object with one of these keys alone says how to read a node, not a field of it.
+const Json *Meta(const Json &shape, const char *key)
+{
+    return shape.is_object() && shape.size() == 1 && shape.contains(key) ? &shape.at(key) : nullptr;
+}
+
+// `shape`: a type name, an object of fields, a one-element array: a list of items of that shape; {"$null": shape}:
+// that shape, or null where the view gives the node no value and no children; {"$either": [scalar, structure]}:
+// the scalar where the node has no children, else the structure (a table's cells: plain text or {text, bold}).
 Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
 {
+    if (const Json *inner = Meta(shape, "$null"))
+        return node.children.empty() && node.value.empty() ? Json() : Convert(node, *inner, path);
+    if (const Json *either = Meta(shape, "$either"))
+    {
+        if (!either->is_array() || either->size() != 2 || !either->at(0).is_string())
+            throw Mismatch(path, "the spec's $either is not [a type, a structure]");
+        return Convert(node, node.children.empty() ? either->at(0) : either->at(1), path);
+    }
     if (shape.is_string())
         return Scalar(node, shape.get<std::string>(), path);
     if (shape.is_array() && shape.size() == 1)

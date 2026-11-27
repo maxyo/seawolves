@@ -52,7 +52,8 @@ that is not in the icon set (in gallery pages, component templates, spec constan
 `hud-layout.json`) and a raw colour value are all errors.
 
 Level 2 (specs and HUD layout): `spec.json` is the contract of a component. A `json` prop that a script screen fills
-names its structure in `shape` (a type, `{field: shape}`, or `[item shape]`): the script's view is converted by it. The game reads `components.json`
+names its structure in `shape` (a type, `{field: shape}`, `[item shape]`, `{"$null": shape}` for a part that may be
+null, `{"$either": [type, structure]}` for plain text or a structure): the script's view is converted by it. The game reads `components.json`
 and `hud-layout.json` from the pack at run time.
 
 **Licence rule.** No game picture is ever stored here or in the APK. Portraits, item

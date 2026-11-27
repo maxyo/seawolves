@@ -19,6 +19,9 @@ std::unique_ptr<ComponentSpec> DemoSpec()
         "look": {"type": "enum", "options": ["a", "b"]},
         "items": {"type": "json", "shape": [{"id": "text", "on": "bool", "n": "number"}]},
         "free": {"type": "json"},
+        "deal": {"type": "json", "shape": {"$null": {"value": "int"}}},
+        "note": {"type": "json", "shape": {"$null": "text"}},
+        "cells": {"type": "json", "shape": [{"$either": ["text", {"text": "text", "bold": "bool"}]}]},
         "extras": {"type": "json"}}})"));
 }
 
@@ -177,6 +180,16 @@ void Failures()
                 "view items/0/other: is not a field of the spec's shape", "an item field outside the shape");
     ExpectEqual(convert({"v", "", {{"title", "", {Leaf("x", "")}}}}), "view title: has children, the spec says text",
                 "a text prop has no children");
+    const auto props = [&](ViewTree view) { return ScriptProps(view, *spec).dump(); };
+    ExpectEqual(props({"v", "", {Leaf("deal", "")}}), R"({"deal":null})", "a nullable part given nothing is null");
+    ExpectEqual(props({"v", "", {{"deal", "", {Leaf("value", "4")}}}}), R"({"deal":{"value":4}})",
+                "a nullable part given fields is its shape");
+    ExpectEqual(props({"v", "", {Leaf("note", "a")}}), R"({"note":"a"})", "a nullable text given a value is the text");
+    ExpectEqual(props({"v", "", {{"cells", "", {Leaf("a", "12"), {"b", "", {Leaf("text", "5"), Leaf("bold", "1")}}}}}}),
+                R"({"cells":["12",{"bold":true,"text":"5"}]})",
+                "an either is the scalar without children, else the structure");
+    ExpectEqual(convert({"v", "", {{"cells", "", {{"a", "", {Leaf("bold", "x")}}}}}}),
+                "view cells/0/bold: 'x' is not a bool (0 or 1)", "the structure of an either is checked as such");
 }
 } // namespace
 

@@ -7,8 +7,8 @@
 
 namespace storm::ui::screens
 {
-// Every value converted by its prop's type, a json prop by its "shape" in the spec; enum values are checked where
-// the props are set, as for every screen. A value the spec does not describe, or one that does not read as its type,
-// throws naming its path.
+// Every value converted by its prop's type, a json prop by its "shape" in the spec (script_props.cpp Convert); enum
+// values are checked where the props are set, as for every screen. A value the spec does not describe, or one that does
+// not read as its type, throws naming its path.
 Json ScriptProps(const ViewTree &view, const ComponentSpec &spec);
 } // namespace storm::ui::screens
