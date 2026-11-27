@@ -32,6 +32,9 @@
   корабля считались экраном. Теперь «Все» — кнопка игры, ползунки встают там, где их остановила игра, цена и доплата
   — числа игры.
 - Герб на парусах: экран не давал нанести или снять герб, если денег меньше цены, хотя игра это позволяет.
+- Доли команды: на кнопке «Заплатить» стояла сумма, посчитанная экраном, и при одном лишь долге перед государством
+  она не совпадала с тем, что платит игра; причина недоступной кнопки тоже была догадкой экрана. Теперь кнопка — кнопка
+  игры, без своей суммы.
 
 **English**
 
@@ -65,6 +68,9 @@
   game stopped them, and the price and the difference are the game's.
 - Sail emblem: the screen refused to paint or remove an emblem with less money than the price, which the game
   allows.
+- Crew shares: the «Заплатить» button carried a sum the screen worked out, which with only a debt to the state was not
+  what the game pays, and the reason given for a disabled button was the screen's guess. It is now the game's button,
+  without a sum of its own.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

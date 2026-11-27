@@ -4462,9 +4462,9 @@ struct ShipRun
         Expect(view["kind"] == "shares" && view["shares"][2]["v"] == "500" &&
                    view["debts"][0]["v"] == "1\xC2\xA0"
                                             "200" &&
-                   view["debts"][1]["v"] == "\xE2\x80\x94" && view["actions"][0]["label"] == "<ship.pay> 500" &&
+                   view["debts"][1]["v"] == "\xE2\x80\x94" && view["actions"][0]["label"] == "<ship.pay>" &&
                    view["subtitle"] == "<ship.last_payment> 1 September 1654",
-               "the shares window as figures, the pay button with its sum");
+               "the shares window as figures, the game's pay button with no sum of ours");
         router.OnEvent({"shares-pay", "click", ""});
         ExpectEqual(surface.Last(), "widget:ship\tPARTITION_OK\t-1\tpress", "paid by the game's button");
         Remove("PARTITION_");

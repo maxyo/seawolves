@@ -695,8 +695,7 @@ void AndroidShipFacts(int subject)
 	row.port = GetBortCannonsQtyMax(chr, "cannonl");
 }
 
-// The crew's shares (ship.c ShowPartitionWindow writes them into one text): the month's
-// shares, the debts and what DoPartitionPay would pay now.
+// The crew's shares (ship.c ShowPartitionWindow writes them into one text): the month's shares and the debts.
 int AndroidShipShare(ref mc, string path)
 {
 	if (!CheckAttribute(mc, path)) return 0;
@@ -711,36 +710,10 @@ void AndroidShipShares()
 	row.captain = AndroidShipShare(mc, "Partition.MonthPart.Hero");
 	row.officers = AndroidShipShare(mc, "Partition.MonthPart.Officers");
 	row.crew = AndroidShipShare(mc, "Partition.MonthPart.Crew");
-	int month = AndroidShipShare(mc, "Partition.MonthPart");
-	int state = AndroidShipShare(mc, "Partition.MonthPart.Gower");
-	int last = AndroidShipShare(mc, "CrewPayment");
-	row.month = month;
-	row.state = state;
-	row.last = last;
+	row.month = AndroidShipShare(mc, "Partition.MonthPart");
+	row.state = AndroidShipShare(mc, "Partition.MonthPart.Gower");
+	row.last = AndroidShipShare(mc, "CrewPayment");
 	if (CheckAttribute(mc, "paymentdate")) row.paid = mc.paymentdate;
-	int money = sti(mc.money);
-	int pay = 0;
-	int part = 0;
-	if (last > 0)
-	{
-		pay = last;
-		if (money < pay) pay = money;
-	}
-	else
-	{
-		if (month > 0)
-		{
-			pay = month;
-			if (money < pay) pay = money;
-		}
-		if (state > 0)
-		{
-			part = state;
-			if (money < part) part = money;
-			pay = pay + part;
-		}
-	}
-	row.pay = pay;
 }
 
 // Crew hire (hirecrew.c): the limits its ChangeQTY_EDIT applies to a hire and the screen cannot read from the

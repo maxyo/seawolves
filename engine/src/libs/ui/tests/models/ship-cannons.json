@@ -6,7 +6,7 @@
 "screen":"ship",
 "widgets":[
 {"node":"ANDROID_SHIP","type":"fact","index":0,"rowId":"s0","context":{"hero":"0","exchange":"1","money":"500","type":"Sloop","rename":"1","morale":"45","moraleprice":"340","sailors":"62","cannoners":"18","soldiers":"30","bow":"2","stern":"2","port":"4","starboard":"4"}},
-{"node":"ANDROID_SHARES","type":"fact","index":0,"rowId":"s0","context":{"captain":"400","officers":"300","crew":"500","month":"1200","state":"0","last":"0","pay":"500","paid":"1 September 1654"}},
+{"node":"ANDROID_SHARES","type":"fact","index":0,"rowId":"s0","context":{"captain":"400","officers":"300","crew":"500","month":"1200","state":"0","last":"0","paid":"1 September 1654"}},
 {"node":"TITLE","type":"heading","label":" Ship  ","index":-1},
 {"node":"I_CHARACTER","type":"button","label":"Character","index":-1},
 {"node":"I_CHARACTER_2","type":"button","label":"Character","index":-1},

@@ -965,18 +965,13 @@ class ShipScreen final : public Screen
         Json actions = Json::array();
         if (pay)
         {
-            const int sum = FieldAmount(bindings, shares, "pay");
-            const bool owed = FieldAmount(bindings, shares, "month") > 0 || FieldAmount(bindings, shares, "last") > 0;
-            const std::string reason = pay->Offers("press") ? std::string()
-                                       : owed               ? bindings.Text("ship.no_money")
-                                                            : bindings.Text("ship.nothing_owed");
-            actions.push_back(
-                Json{{"id", "shares-pay"},
-                     {"label", bindings.Text("ship.pay") + (sum > 0 ? " " + Thousands(sum) : std::string())},
-                     {"variant", "primary"},
-                     {"disabled", !pay->Offers("press")},
-                     {"reason", reason},
-                     {"busy", bindings.Pending("shares-pay")}});
+            // What a payment takes and whether it can be made are ship.c DoPartitionPay's and ShowPartitionWindow's.
+            actions.push_back(Json{{"id", "shares-pay"},
+                                   {"label", bindings.Text("ship.pay")},
+                                   {"variant", "primary"},
+                                   {"disabled", !pay->Offers("press")},
+                                   {"reason", pay->unavailable_reason},
+                                   {"busy", bindings.Pending("shares-pay")}});
             bindings.Forward("shares-pay", *pay, "press");
         }
         const std::string paid = StripWhitespace(Field(shares, "paid"));
