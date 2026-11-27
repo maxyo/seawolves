@@ -59,6 +59,8 @@
 - Карта мира: команды карты видны и тогда, когда игра запрещает выход с карты, — на нажатие отвечает сама игра своим
   сообщением; команда мода или другой игры показывается с простой иконкой, а не убирает все кнопки. Число дней
   провизии на компасе больше не краснеет по своему порогу: об остатке предупреждает сама игра.
+- Меню действий на суше: команда зелий доступна тогда же, когда в меню самой игры; одно противоядие при полном
+  здоровье больше не открывает список зелий.
 
 **English**
 
@@ -123,6 +125,8 @@
   own message; a command of a mod or another game shows with a plain icon instead of removing every button. The
   provision days on the compass no longer turn red by a threshold of our own: the game itself warns when provisions
   run low.
+- Land action menu: the potion command is available exactly when the game's own menu offers it; an antidote alone at
+  full health no longer opens the potion list.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

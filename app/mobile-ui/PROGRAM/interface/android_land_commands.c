@@ -18,8 +18,6 @@ void AndroidLandRefresh()
 			if (CheckAttribute(command, "event") && command.event == pending)
 				pendingAllowed = sti(command.enable);
 		}
-		if (pending == "BI_ItemsUse") pendingAllowed = true;
-		// The original child builders retain their own eligibility, including antidotes.
 		Event("BI_CommandEndChecking", "s", pending);
 	}
 	// SendMessage returns the interpreter's pointer-sized value. As in the
