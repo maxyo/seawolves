@@ -75,92 +75,40 @@ NPCharacter::~NPCharacter()
 bool NPCharacter::PostInit()
 {
     charactersGroups = core.GetEntityId("CharactersGroups");
-    float tmp;
-    int32_t tmpBool;
-    VDATA *vd;
-    // Attack parameters
-    vd = core.Event("NPC_Event_GetAttackActive", "i", GetId());
-    tmp = attackCur;
-    if (vd && vd->Get(tmp))
-        attackCur = tmp;
-    vd = core.Event("NPC_Event_GetAttackWeightFast", "i", GetId());
-    tmp = attackPrbFast;
-    if (vd && vd->Get(tmp))
-        attackPrbFast = tmp;
-    vd = core.Event("NPC_Event_GetAttackWeightForce", "i", GetId());
-    tmp = attackPrbForce;
-    if (vd && vd->Get(tmp))
-        attackPrbForce = tmp;
-    vd = core.Event("NPC_Event_GetAttackWeightRound", "i", GetId());
-    tmp = attackPrbRound;
-    if (vd && vd->Get(tmp))
-        attackPrbRound = tmp;
-    vd = core.Event("NPC_Event_GetAttackWeightBreak", "i", GetId());
-    tmp = attackPrbBreak;
-    if (vd && vd->Get(tmp))
-        attackPrbBreak = tmp;
-    vd = core.Event("NPC_Event_GetAttackWeightFeint", "i", GetId());
-    tmp = attackPrbFeint;
-    if (vd && vd->Get(tmp))
-        attackPrbFeint = tmp;
-    // Defence parameters
-    vd = core.Event("NPC_Event_GetDefenceActive", "i", GetId());
-    tmp = defenceCur;
-    if (vd && vd->Get(tmp))
-        defenceCur = tmp;
-    vd = core.Event("NPC_Event_GetDefenceWeightBlock", "i", GetId());
-    tmp = defencePrbBlock;
-    if (vd && vd->Get(tmp))
-        defencePrbBlock = tmp;
-    vd = core.Event("NPC_Event_GetDefenceWeightParry", "i", GetId());
-    tmp = defencePrbParry;
-    if (vd && vd->Get(tmp))
-        defencePrbParry = tmp;
-    vd = core.Event("NPC_Event_EnableRecoil", "i", GetId());
-    tmpBool = isRecoilEnable;
-    if (vd && vd->Get(tmpBool))
-        isRecoilEnable = tmpBool != 0;
-    // Shooting parameters
-    vd = core.Event("NPC_Event_GetFireActive", "i", GetId());
-    tmp = fireCur;
-    if (vd && vd->Get(tmp))
-        fireCur = tmp;
-    vd = core.Event("NPC_Event_EnableFire", "i", GetId());
-    tmpBool = isFireEnable;
-    if (vd && vd->Get(tmpBool))
-        isFireEnable = tmpBool != 0;
-    vd = core.Event("NPC_Event_StunChance", "i", GetId());
-    int32_t tmpInt;
-    if (vd && vd->Get(tmpInt))
-        stunChance = tmpInt;
-
-    // Parameter normalization
-    if (attackCur < 0.0f)
-        attackCur = 0.0f;
-    if (attackCur > 1000.0f)
-        attackCur = 1000.0f;
-    if (defenceCur < 0.0f)
-        defenceCur = 0.0f;
-    if (defenceCur > 1000.0f)
-        defenceCur = 1000.0f;
-    auto p = attackPrbFast + attackPrbForce + attackPrbRound + attackPrbBreak + attackPrbFeint;
-    if (p > 0.0f)
-    {
-        p = 1.0f / p;
-        attackPrbFast *= p;
-        attackPrbForce *= p;
-        attackPrbRound *= p;
-        attackPrbBreak *= p;
-        attackPrbFeint *= p;
-    }
-    p = defencePrbBlock + defencePrbParry;
-    if (p > 0.0f)
-    {
-        p = 1.0f / p;
-        defencePrbBlock *= p;
-        defencePrbParry *= p;
-    }
+    ReadFightParams();
     return true;
+}
+
+void NPCharacter::ReadFightParams()
+{
+    const auto askFloat = [this](const char *event) -> std::optional<float> {
+        float value;
+        if (VDATA *vd = core.Event(event, "i", GetId()); vd && vd->Get(value))
+            return value;
+        return std::nullopt;
+    };
+    const auto askInt = [this](const char *event) -> std::optional<int32_t> {
+        int32_t value;
+        if (VDATA *vd = core.Event(event, "i", GetId()); vd && vd->Get(value))
+            return value;
+        return std::nullopt;
+    };
+    const auto p = storm::location::fightRules().ReadNpcParams(askFloat, askInt, GetLocation()->GetNpcTuning());
+    attackCur = p.attackActive;
+    attackPrbFast = p.weightFast;
+    attackPrbForce = p.weightForce;
+    attackPrbRound = p.weightRound;
+    attackPrbBreak = p.weightBreak;
+    attackPrbFeint = p.weightFeint;
+    defenceCur = p.defenceActive;
+    defencePrbBlock = p.weightBlock;
+    defencePrbParry = p.weightParry;
+    isRecoilEnable = p.recoilEnabled;
+    fireCur = p.fireActive;
+    isFireEnable = p.fireEnabled;
+    if (p.stunChance)
+        stunChance = p.stunChance;
+    cancelParams = p.cancel;
 }
 
 uint32_t NPCharacter::ChlProcessMessage(int32_t messageID, MESSAGE &message)
@@ -176,6 +124,9 @@ uint32_t NPCharacter::ChlProcessMessage(int32_t messageID, MESSAGE &message)
         return PushTask();
     case MSG_NPCHARACTER_POPTASK:
         return PopTask();
+    case MSG_NPCHARACTER_FIGHTPROBABILITIES_UPDATE:
+        ReadFightParams();
+        return 1;
     case MSG_CHARACTER_SETFTGLEVEL:
         fightLevel = message.Float();
         if (fightLevel < 0.0f)
@@ -765,6 +716,7 @@ void NPCharacter::DoFightAction(float dltTime, NPCharacter *enemy)
         enemyFgtType = enemy->fgtCurType;
         isFgtChanged = true;
     }
+    UpdateAttackCancel(dltTime, enemy);
     // look at the current action
     if (blockTime > 0.0f)
     {
@@ -782,6 +734,37 @@ void NPCharacter::DoFightAction(float dltTime, NPCharacter *enemy)
     // Simulating slow turns
     Turn(enemy->curPos.x - curPos.x, enemy->curPos.z - curPos.z);
     isFgtChanged = false;
+}
+
+void NPCharacter::UpdateAttackCancel(float dltTime, NPCharacter *enemy)
+{
+    const auto isAttack = [](FightAction a) { return a >= fgt_attack_fast && a <= fgt_attack_feintc; };
+    const bool hasTarget = enemy && !enemy->deadName && enemy->liveValue >= 0;
+    const FightAction targetState = hasTarget ? enemy->fgtCurType : fgt_none;
+    const storm::location::CancelInput input{
+        isAttack(fgtCurType),
+        attackHitDone,
+        hasTarget,
+        hasTarget ? sqrtf(storm::math::lengthSquared(enemy->curPos - curPos)) : 0.0f,
+        targetState == fgt_parry,
+        (targetState >= fgt_hit_attack && targetState <= fgt_hit_fire) || targetState == fgt_blockbreak};
+    const auto action = attackCancel.Update(
+        dltTime, input, cancelParams, GetLocation()->GetNpcTuning(), [] { return rand() * (1.0f / (RAND_MAX + 1.0f)); },
+        [this](int32_t count) {
+            int32_t answer = 0;
+            if (VDATA *vd = core.Event("NPC_Event_GetCancelFast", "il", GetId(), count))
+                vd->Get(answer);
+            return answer;
+        });
+    if (action == storm::location::CancelAction::None)
+        return;
+    const bool fast = action == storm::location::CancelAction::CancelFast;
+    core.Event("NPC_Event_DoCancelAttack", "is", GetId(), fast ? "fast" : "");
+    StopFightAnimation();
+    if (fast)
+        Attack(enemy, fgt_attack_fast);
+    else
+        blockTime = GetLocation()->GetNpcTuning().cancelBlockDuration;
 }
 
 // Combat behavior - idle
@@ -1182,11 +1165,12 @@ float NPCharacter::GetEnergy() const
 // Get energy for action
 float NPCharacter::GetActEnergy(const char *act) const
 {
-    VDATA *vd = core.Event("NPC_Event_GetActionEnergy", "is", GetId(), act);
-    float energy;
-    if (vd && vd->Get(energy))
-        return energy;
-    return 0.1f;
+    return storm::location::fightRules().ActionEnergy([this, act](const char *event) -> std::optional<float> {
+        float energy;
+        if (VDATA *vd = core.Event(event, "is", GetId(), act); vd && vd->Get(energy))
+            return energy;
+        return std::nullopt;
+    });
 }
 
 void NPCharacter::HitChild(bool isInBlock)

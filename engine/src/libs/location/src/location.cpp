@@ -359,6 +359,7 @@ bool Location::Init()
     enemyBarsTexture = rs->TextureCreate("LocEfx\\state_bars.tga");
 
     lighter = core.CreateEntity("Lighter");
+    LoadNpcTuning();
     // The location's recorded Vulkan pipelines are created while it loads (storm/render/pipelines.hpp).
     const char *id = AttributesPointer ? AttributesPointer->GetAttribute("id") : nullptr;
     if (!id)
@@ -856,6 +857,23 @@ int32_t Location::LoadStaticModel(const char *modelName, const char *tech, int32
     core.Send_Message(lighter, "ssi", "AddModel", modelName, mdl->GetId());
 
     return im;
+}
+
+void Location::LoadNpcTuning()
+{
+    constexpr const char *file = "resource\\ini\\npc_ai_tuning.json";
+    if (!fio->_FileOrDirectoryExists(file))
+        return;
+    char *data = nullptr;
+    uint32_t size = 0;
+    if (!fio->LoadFile(file, &data, &size))
+    {
+        spdlog::error("NPC AI settings: {} cannot be read; the defaults are used", file);
+        return;
+    }
+    const std::unique_ptr<char[]> owned(data);
+    if (const auto error = storm::location::ApplyNpcTuning(std::string_view(data, size), npcTuning))
+        spdlog::error("NPC AI settings: {}: {}; the defaults are used", file, *error);
 }
 
 bool Location::AddObjectContainer(const std::string &name, const char *tech, int32_t level, bool useDynamicLights)

@@ -10,6 +10,7 @@
 #include "character.h"
 #include "android_motion.hpp"
 #include "characters_groups.h"
+#include "fight_rules.hpp"
 #include "land_messages.hpp"
 #include "land_protocol.hpp"
 #include "lights.h"
@@ -980,6 +981,9 @@ uint32_t Character::AttributeChanged(ATTRIBUTES *apnt)
         ReadFightActions(apnt->FindAClass(apnt, "attack_feint"), attackFeint, fnt1);
         ReadFightActions(apnt->FindAClass(apnt, "attack_feintc"), attackFeintC, fnt2);
         numAttackFeint = std::min(fnt1, fnt2);
+        ReadFightActions(apnt->FindAClass(apnt, "attack_block_bypass"), attackBlockBypass, numAttackBlockBypass);
+        ReadFightActions(apnt->FindAClass(apnt, "attack_power_break"), attackPowerBreak, numAttackPowerBreak);
+        ReadFightActions(apnt->FindAClass(apnt, "attack_power_round"), attackPowerRound, numAttackPowerRound);
         ReadFightActions(apnt->FindAClass(apnt, "hit_attack"), hit, numHits);
         ReadFightActions(apnt->FindAClass(apnt, "parry"), parry, numParry);
         // Shot
@@ -1591,12 +1595,63 @@ void Character::Attack(Character *enemy, FightAction type)
     if (res)
     {
         fgtSetType = type;
+        attackHitDone = false;
+        specialAttack = ChooseSpecialAttack(enemy, aname);
     }
     else
     {
         fgtSetType = fgt_none;
         fgtSetIndex = -1;
     }
+}
+
+const Character::ActionCharacter *Character::ChooseSpecialAttack(Character *enemy, const char *type)
+{
+    const bool targetBlocks = enemy && (enemy->fgtCurType == fgt_block || enemy->fgtCurType == fgt_blockhit);
+    const auto special = storm::location::fightRules().Special(
+        type, targetBlocks,
+        [&](const char *event) -> std::optional<int32_t> {
+            int32_t answer;
+            if (VDATA *vd = core.Event(event, "iis", GetId(), enemy->GetId(), type); vd && vd->Get(answer))
+                return answer;
+            return std::nullopt;
+        },
+        [&](const char *event) -> std::optional<int32_t> {
+            int32_t answer;
+            if (VDATA *vd = core.Event(event, "i", GetId()); vd && vd->Get(answer))
+                return answer;
+            return std::nullopt;
+        });
+    const auto pick = [](const ActionCharacter *group, int32_t count) -> const ActionCharacter * {
+        return count > 0 ? &group[rand() % count] : nullptr;
+    };
+    switch (special)
+    {
+    case storm::location::SpecialAttack::BlockBypass:
+        return pick(attackBlockBypass, numAttackBlockBypass);
+    case storm::location::SpecialAttack::PowerBreak:
+        return pick(attackPowerBreak, numAttackPowerBreak);
+    case storm::location::SpecialAttack::PowerRound:
+        return pick(attackPowerRound, numAttackPowerRound);
+    case storm::location::SpecialAttack::None:
+        break;
+    }
+    return nullptr;
+}
+
+void Character::PushByShot(Character *victim)
+{
+    glm::vec3 away = victim->curPos - curPos;
+    away.y = 0.0f;
+    const float distance = glm::length(away);
+    const float speed = storm::location::fightRules().FireRepulse(distance, [&](const char *event) -> std::optional<float> {
+        float answer;
+        if (VDATA *vd = core.Event(event, "ii", GetId(), victim->GetId()); vd && vd->Get(answer))
+            return answer;
+        return std::nullopt;
+    });
+    if (speed > 0.0f && distance > 0.0f)
+        victim->impulse += away / distance * speed;
 }
 
 // Block
@@ -2947,10 +3002,13 @@ void Character::ActionEvent(Animation *animation, int32_t playerIndex, const cha
                                 if (isEnemyHitByGunfire)
                                 {
                                     chr->Hit(fgt_hit_fire);
+                                    PushByShot(chr);
                                 }
                             }
-                            core.Event("Location_CharacterFire", "iifl", GetId(), enemy, kDist,
-                                       chr != nullptr && isEnemyHitByGunfire);
+                            MESSAGE fireEvent;
+                            storm::location::fightRules().ResetFireEvent(
+                                fireEvent, {GetId(), enemy, kDist, chr != nullptr && isEnemyHitByGunfire != 0});
+                            core.Event("Location_CharacterFire", fireEvent);
                         }
                     }
                 }
@@ -4412,7 +4470,7 @@ void Character::UpdateAnimation()
                 switch (fgtSetType)
                 {
                 case fgt_attack_fast: // Quick hit
-                    if (!(isSet = SetAction(attackFast[fgtSetIndex].name, attackFast[fgtSetIndex].tblend, 0.0f, 4.0f)))
+                    if (!(isSet = SetAction(AttackAction(attackFast[fgtSetIndex]).name, AttackAction(attackFast[fgtSetIndex]).tblend, 0.0f, 4.0f)))
                     {
                         core.Trace("Character animation: not set fast attack action: \"%s\"",
                                    attackFast[fgtSetIndex].name);
@@ -4433,7 +4491,7 @@ void Character::UpdateAnimation()
                         fgtSetIndex = rand() % 2;
                     }
                     if (!(isSet =
-                              SetAction(attackForce[fgtSetIndex].name, attackForce[fgtSetIndex].tblend, 0.0f, 4.0f)))
+                              SetAction(AttackAction(attackForce[fgtSetIndex]).name, AttackAction(attackForce[fgtSetIndex]).tblend, 0.0f, 4.0f)))
                     {
                         core.Trace("Character animation: not set force attack action: \"%s\"",
                                    attackForce[fgtSetIndex].name);
@@ -4449,7 +4507,7 @@ void Character::UpdateAnimation()
                     break;
                 case fgt_attack_round: // Circular blow
                     if (!(isSet =
-                              SetAction(attackRound[fgtSetIndex].name, attackRound[fgtSetIndex].tblend, 0.0f, 4.0f)))
+                              SetAction(AttackAction(attackRound[fgtSetIndex]).name, AttackAction(attackRound[fgtSetIndex]).tblend, 0.0f, 4.0f)))
                     {
                         core.Trace("Character animation: not set round attack action: \"%s\"",
                                    attackRound[fgtSetIndex].name);
@@ -4464,7 +4522,7 @@ void Character::UpdateAnimation()
                     break;
                 case fgt_attack_break: // Piercing blow
                     if (!(isSet =
-                              SetAction(attackBreak[fgtSetIndex].name, attackBreak[fgtSetIndex].tblend, 0.0f, 4.0f)))
+                              SetAction(AttackAction(attackBreak[fgtSetIndex]).name, AttackAction(attackBreak[fgtSetIndex]).tblend, 0.0f, 4.0f)))
                     {
                         core.Trace("Character animation: not set break attack action: \"%s\"",
                                    attackBreak[fgtSetIndex].name);
@@ -5081,6 +5139,17 @@ inline void Character::CheckAttackHit(bool isGunBlade)
                 attackAng = static_cast<float>(atof(s));
         }
     }
+    attackHitDone = true;
+    const auto &rules = storm::location::fightRules();
+    const auto askAttack = [this, aname](const char *event) -> std::optional<float> {
+        float value;
+        if (VDATA *vd = core.Event(event, "is", GetId(), aname); vd && vd->Get(value))
+            return value;
+        return std::nullopt;
+    };
+    const auto reach = rules.Reach({attackDist, attackAng}, askAttack);
+    attackDist = reach.distance;
+    attackAng = reach.angle;
     // Find the surrounding characters
     auto *const location = GetLocation();
     if (!location)
@@ -5127,9 +5196,19 @@ inline void Character::CheckAttackHit(bool isGunBlade)
         }
         else if (!isDodge)
         {
-            bool isBlocked = (fc.c->fgtCurType == fgt_block || fc.c->fgtCurType == fgt_blockhit);
-            if (isBlockBreak)
-                isBlocked = false;
+            float defenceAngle = fabsf(fc.c->ay - atan2f(curPos.x - fc.c->curPos.x, curPos.z - fc.c->curPos.z));
+            defenceAngle = fmodf(defenceAngle, PIm2);
+            if (defenceAngle > PI)
+                defenceAngle = PIm2 - defenceAngle;
+            const auto block = rules.Block(
+                {fc.c->fgtCurType == fgt_block || fc.c->fgtCurType == fgt_blockhit, isBlockBreak, defenceAngle},
+                [this, &fc](const char *event) -> std::optional<float> {
+                    float value;
+                    if (VDATA *vd = core.Event(event, "ii", GetId(), fc.c->GetId()); vd && vd->Get(value))
+                        return value;
+                    return std::nullopt;
+                });
+            const bool isBlocked = block.blocked;
             if (isBlocked)
             {
             }
@@ -5148,16 +5227,14 @@ inline void Character::CheckAttackHit(bool isGunBlade)
                     core.Event("Event_ChrSnd_Hit", "i", fc.c->GetId());
                 }
             }
-            fc.c->Hit(hitReaction);
-            int blockTime = -1;
-            if (isBlocked)
-            {
-                blockTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-                                                                                  fc.c->blockStart)
-                                .count();
-            }
-            core.Event("Location_CharacterAttack", "iislll", GetId(), fc.c->GetId(), aname,
-                       static_cast<int32_t>(isBlocked), static_cast<int32_t>(isGunBlade), blockTime);
+            fc.c->Hit(block.blockBreaks ? fgt_blockbreak : hitReaction);
+            const bool victimBlocks = fc.c->fgtCurType == fgt_block || fc.c->fgtCurType == fgt_blockhit;
+            const auto blockHeld = victimBlocks ? std::optional(std::chrono::steady_clock::now() - fc.c->blockStart)
+                                                : std::nullopt;
+            MESSAGE attackEvent;
+            rules.ResetAttackEvent(attackEvent,
+                                   {GetId(), fc.c->GetId(), aname, isBlocked, isGunBlade, blockHeld, defenceAngle});
+            core.Event("Location_CharacterAttack", attackEvent);
             // boal 09/12/06 energy consumption after impact -->
             if (isUseEnergy && fgtCurType != fgt_attack_feintc)
             {

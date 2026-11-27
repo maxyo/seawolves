@@ -7,6 +7,7 @@
 #include "ai_character.h"
 #include "entity.h"
 #include "core.h"
+#include "fight_rules.hpp"
 
 class NPCharacter : public AICharacter
 {
@@ -78,6 +79,10 @@ class NPCharacter : public AICharacter
     // Set a new task
     bool SetNewTask(NPCTask tsk, MESSAGE &message);
     static void ReadBusyPositionCheck(MESSAGE &message);
+    // The fight parameters asked of the scripts
+    void ReadFightParams();
+    // Caribbean Legend's cancel of an attack that will not land
+    void UpdateAttackCancel(float dltTime, NPCharacter *enemy);
 
     bool InitFollowChartacter(entid_t eid);
     bool InitFightChartacter(entid_t eid);
@@ -167,6 +172,9 @@ class NPCharacter : public AICharacter
     // Shooting
     float fireCur;     // The rate of rise of the probability of a shot, in parrots
     bool isFireEnable; // Is the shot allowed
+
+    storm::location::NpcCancelParams cancelParams;
+    storm::location::AttackCancel attackCancel;
 
     float fightTick;    // Time until the next decision tick
     bool wantToAttack;  // Desire to attack

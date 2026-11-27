@@ -404,6 +404,14 @@ class Character : public Entity
     // Caribbean Legend's commands that a dead character refuses; nullopt: not one of them
     std::optional<uint32_t> zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message);
     uint64_t ProcessPositionMessage(int32_t messageID, MESSAGE &message);
+    const ActionCharacter *ChooseSpecialAttack(Character *enemy, const char *type);
+    // A shot that hit `victim` pushes it away where the fight model says so
+    void PushByShot(Character *victim);
+    // The strike to play for the attack's own `action`: the special one when the attack chose it
+    const ActionCharacter &AttackAction(const ActionCharacter &action) const
+    {
+        return specialAttack ? *specialAttack : action;
+    }
     bool zPlaySound(MESSAGE &message);
     bool TestJump(glm::vec3 pos);
     bool BuildJump(glm::vec3 pos, float fAng);
@@ -509,6 +517,11 @@ class Character : public Entity
     bool forceBlend = false;        // forceBlend: the next change of actions blends
     float playbackDlt = 0.0f;       // SetPlaybackDlt: added to the speed of the action playing
     bool musketerByCommand = false; // SetMusketer
+    bool attackHitDone = false;     // the strike of the current attack has landed
+    // Caribbean Legend's special strikes (fight_rules.hpp SpecialAttack), from the actions of the same names
+    ActionCharacter attackBlockBypass[4], attackPowerBreak[4], attackPowerRound[4];
+    int32_t numAttackBlockBypass = 0, numAttackPowerBreak = 0, numAttackPowerRound = 0;
+    const ActionCharacter *specialAttack = nullptr; // the strike the attack being set plays instead of its own
 
     bool isLookFromEyes;
 

@@ -14,6 +14,7 @@
 
 #include "locator_array.h"
 #include "model_array.h"
+#include "fight_rules.hpp"
 #include "object_library.hpp"
 #include "ptc_data.h"
 #include "supervisor.h"
@@ -120,6 +121,11 @@ class Location : public Entity
 
     // Add a damage message
     void AddDamageMessage(const glm::vec3 &pos3D, float hit, float curhp, float maxhp);
+    // The NPC fight constants of the game's resource/ini/npc_ai_tuning.json, the defaults without it
+    const storm::location::NpcTuning &GetNpcTuning() const
+    {
+        return npcTuning;
+    }
     // Add a text over a character (MSG_CHARACTER_VIEWSTRPOS), colour 0xRRGGBB
     void AddTextMessage(const glm::vec3 &pos3D, const std::string &text, uint32_t color);
     // Draw bars above the enemy in this frame
@@ -132,6 +138,7 @@ class Location : public Entity
   private:
     void Update(uint32_t delta_time);
     int32_t LoadStaticModel(const char *modelName, const char *tech, int32_t level, bool useDynamicLights);
+    void LoadNpcTuning();
     bool AddObjectContainer(const std::string &name, const char *tech, int32_t level, bool useDynamicLights);
     void DeleteObjectContainer(const std::string &name);
     bool LoadCharacterPatch(const char *ptcName);
@@ -175,6 +182,7 @@ class Location : public Entity
 
     // All models
     ModelArray model;
+    storm::location::NpcTuning npcTuning;
     // The game's object library, read at the first object container
     std::optional<storm::location::ObjectLibrary> objectLibrary;
     // Folded models path + container name -> the props it placed
