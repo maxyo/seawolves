@@ -30,6 +30,9 @@ native string UiAnswer();
 native void UiAwait();
 native void UiRebuild();
 native int UiFirst();
+// In a build: the subject another part of the interface asked this screen to show, out.{character, position, tab,
+// quest} (-1 and "" where it names none), taken once; 0 without one.
+native int UiSubject(string screen, aref out);
 
 native void UiToast(string text);
 native void UiRead(string title, string text);

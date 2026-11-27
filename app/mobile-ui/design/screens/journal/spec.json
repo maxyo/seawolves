@@ -1,18 +1,115 @@
 {
   "tag": "s-journal",
-  "doc": "Hero section «Судовой журнал» (interface questbook, hero_journal.cpp): sections rail, entries with the open text on parchment, the game's tables.",
+  "doc": "Hero section «Судовой журнал» (interface questbook), filled by the script interface/touch/screens/hero/journal.c through the shapes of its json props: sections rail, entries with the open text on parchment, the game's tables.",
   "props": {
-    "title": {"type": "text", "default": ""},
-    "headerSection": {"type": "text", "default": ""},
-    "date": {"type": "text", "default": ""},
-    "section": {"type": "text", "default": "quests"},
-    "sections": {"type": "json", "default": []},
-    "subtabs": {"type": "json", "default": []},
-    "list": {"type": "json", "default": []},
-    "empty": {"type": "text", "default": ""},
-    "entry": {"type": "json", "default": null},
-    "tables": {"type": "json", "default": []},
-    "noTables": {"type": "text", "default": ""},
-    "extras": {"type": "json", "default": {}}
+    "title": {
+      "type": "text",
+      "default": ""
+    },
+    "headerSection": {
+      "type": "text",
+      "default": ""
+    },
+    "date": {
+      "type": "text",
+      "default": ""
+    },
+    "section": {
+      "type": "text",
+      "default": "quests"
+    },
+    "sections": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "label": "text",
+          "selected": "bool",
+          "count": "text"
+        }
+      ]
+    },
+    "subtabs": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "label": "text",
+          "selected": "bool"
+        }
+      ]
+    },
+    "list": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "cells": [
+            {
+              "text": "text"
+            }
+          ],
+          "selected": "bool"
+        }
+      ]
+    },
+    "empty": {
+      "type": "text",
+      "default": ""
+    },
+    "entry": {
+      "type": "json",
+      "default": null,
+      "shape": {
+        "$null": {
+          "title": "text",
+          "entries": [
+            {
+              "date": "text",
+              "text": "text"
+            }
+          ]
+        }
+      }
+    },
+    "tables": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "interactive": "bool",
+          "height": "int",
+          "columns": [
+            {
+              "label": "text",
+              "w": "text",
+              "align": "text"
+            }
+          ],
+          "rows": [
+            {
+              "selected": "bool",
+              "cells": [
+                {
+                  "text": "text",
+                  "image": "picture"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "noTables": {
+      "type": "text",
+      "default": ""
+    },
+    "extras": {
+      "type": "json",
+      "default": {}
+    }
   }
 }

@@ -4505,6 +4505,7 @@ static void Journal(const std::string &)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel model;
     model.screen = "questbook";
     model.language = "english";
@@ -4543,6 +4544,7 @@ static void Journal(const std::string &)
                        text.widgets.end());
     text.widgets.push_back(
         Make("QUEST_TEXT", "text", "1 May 1654 10:02\nArrived.\nMet the brother.\n2 May 1654 09:00\nLeft."));
+    AnswerAll(router, surface, true);
     router.SetInterface(text);
     view = surface.props;
     Expect(view["list"].size() == 2 && view["list"][1]["selected"] == true && view["entry"]["title"] == "Debts" &&
@@ -4552,6 +4554,7 @@ static void Journal(const std::string &)
     const size_t sent = surface.commands.size();
     router.OnEvent({"entries", "row", "0"});
     ExpectEqual(surface.Last(), "back", "another entry: back to the titles first");
+    AnswerAll(router, surface, true);
     model.revision = text.revision + 1;
     router.SetInterface(model);
     ExpectEqual(surface.Last(), "widget:questbook\tQUEST_TITLE\t0\topen@8:burden", "then open it");
@@ -4560,11 +4563,13 @@ static void Journal(const std::string &)
            "meanwhile the open text stays on the screen, not the titles of the step between: " +
                surface.props["entry"].dump());
 
+    AnswerAll(router, surface, true);
     text.revision = model.revision + 1;
     router.SetInterface(text);
     Expect(router.WantsBack(), "an open text: back is the screen's");
     router.Back();
     ExpectEqual(surface.Last(), "back", "back closes the text");
+    AnswerAll(router, surface, true);
     model.revision = text.revision + 1;
     router.SetInterface(model);
     Expect(surface.commands.back() == "back" && surface.commands[surface.commands.size() - 2] == "back",
@@ -4578,6 +4583,7 @@ static void Journal(const std::string &)
     {
         FakeSurface toast_surface;
         Router toast_router(toast_surface);
+        Scripted(toast_router);
         SubjectMount mount;
         storm::ui::hud::Hud hud(mount);
         toast_router.AttachHud(&hud);
@@ -4600,6 +4606,7 @@ static void Journal(const std::string &)
         closed.index = 0;
         closed.row_id = "closed";
         completed.widgets.push_back(closed);
+        AnswerAll(toast_router, toast_surface, true);
         toast_router.SetInterface(completed);
         ExpectEqual(toast_surface.Last(), "widget:questbook\tQUEST_TITLE\t0\topen@8:closed", "… and opened there");
         Expect(toast_surface.props["list"].size() == 2,

@@ -29,7 +29,6 @@ std::unique_ptr<StateConsumer> CreateSaveFailureConsumer();
 std::unique_ptr<StateConsumer> CreateTitleIntentConsumer();
 std::unique_ptr<Screen> CreateHeroScreen();
 std::unique_ptr<Screen> CreateItemsScreen();
-std::unique_ptr<Screen> CreateJournalScreen();
 std::unique_ptr<Screen> CreateShipScreen();
 std::unique_ptr<Screen> CreateColonyCaptureScreen();
 std::unique_ptr<Screen> CreateLauncherScreen();
@@ -59,7 +58,6 @@ const ScreenEntry kPorted[] = {
     {"lscchar_all", CreateHeroScreen},
     {"character", CreateHeroScreen},
     {"items", CreateItemsScreen},
-    {"questbook", CreateJournalScreen},
     {"ship", CreateShipScreen},
     {"colonycapture", CreateColonyCaptureScreen},
     // The application's own screens, routed from the platform host's "launcher" channel; the

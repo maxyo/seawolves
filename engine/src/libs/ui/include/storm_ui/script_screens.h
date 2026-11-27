@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -58,6 +59,14 @@ struct DealSpec
 };
 // The draft's amount on our side, its change from the origin and the button {label, sub, disabled, reason, busy}
 // (no children while there is none to press: the amount unchanged).
+// The subject another part of the interface asked a screen to show (the HUD's tap on a quest record, a character, a
+// ship): -1 and "" where it names none.
+struct SubjectView
+{
+    int character = -1, position = -1;
+    std::string tab, quest;
+};
+
 struct DealView
 {
     int value = 0, change = 0;
@@ -107,6 +116,8 @@ class ScriptCall
     virtual void Rebuild() = 0;
     // The first build of this opening of the interface: the script's own state starts afresh.
     virtual bool First() const = 0;
+    // Inside a build: the subject asked of screen `screen` (SubjectView), taken by this call; none without one.
+    virtual std::optional<SubjectView> Subject(const std::string &screen) = 0;
 
     virtual void Toast(const std::string &text) = 0;
     virtual void Read(const std::string &title, const std::string &text) = 0;

@@ -1,0 +1,5443 @@
+{
+ "$comment": "The journal's script on the recorded models of questbook (engine/src/libs/ui/tests/models, the titles offering their open): an entry opened, a page, a part and a hero section; the back of an open text; the statistics' own tabs; the asset tables; the journal opened on a quest record's quest.",
+ "cases": [
+  {
+   "calls": [
+    "send QUEST_TITLE#1 open q_debt",
+    "hold",
+    "send TABBTN_QUESTARJ press ",
+    "hold",
+    "send TABBTN_STATISTIC press ",
+    "hold",
+    "send I_SHIP press ",
+    "hold"
+   ],
+   "capability": "journal",
+   "events": [
+    [
+     "entries",
+     "row",
+     "1"
+    ],
+    [
+     "journal-tabs",
+     "select",
+     "TABBTN_QUESTARJ"
+    ],
+    [
+     "section-stats",
+     "click",
+     ""
+    ],
+    [
+     "header",
+     "section",
+     "ship"
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 30,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 115,
+        "imageRevision": 115,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 0,
+      "label": "Брат в беде",
+      "node": "QUEST_TITLE",
+      "rowId": "q_brother",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 1,
+      "label": "Старый долг",
+      "node": "QUEST_TITLE",
+      "rowId": "q_debt",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 2,
+      "label": "Доставка груза в Порт-Ройал",
+      "node": "QUEST_TITLE",
+      "rowId": "q_cargo",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 3,
+      "label": "Части карты сокровищ",
+      "node": "QUEST_TITLE",
+      "rowId": "q_map",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 116,
+        "imageRevision": 116,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 117,
+        "imageRevision": 117,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 118,
+        "imageRevision": 118,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 119,
+        "imageRevision": 119,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 120,
+        "imageRevision": 120,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 121,
+        "imageRevision": 121,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 122,
+        "imageRevision": 122,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook",
+   "props": {
+    "date": "14 сентября 1654",
+    "empty": "<journal.no_quests>",
+    "entry": null,
+    "headerSection": "journal",
+    "list": [
+     {
+      "cells": [
+       {
+        "text": "Брат в беде"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Старый долг"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Доставка груза в Порт-Ройал"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Части карты сокровищ"
+       }
+      ],
+      "selected": false
+     }
+    ],
+    "section": "quests",
+    "sections": [
+     {
+      "count": "4",
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": true
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_QUEST",
+      "label": "<journal.active>",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_QUESTARJ",
+      "label": "<journal.completed>",
+      "selected": false
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [
+    "back ",
+    "hold"
+   ],
+   "capability": "journal",
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "back header-back"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 31,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 123,
+        "imageRevision": 123,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "index": -1,
+      "label": "1 мая 1654 10:02\nПрибыл в Сен-Пьер. Брат, по слухам, в тюрьме.\nНужно поговорить с комендантом.\n3 мая 1654 18:40\nКомендант готов отпустить брата за выкуп.\nБез даты: заметка на полях о долге перед ростовщиком.",
+      "node": "QUEST_TEXT",
+      "type": "text"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 124,
+        "imageRevision": 124,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 125,
+        "imageRevision": 125,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 126,
+        "imageRevision": 126,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 127,
+        "imageRevision": 127,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 128,
+        "imageRevision": 128,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 129,
+        "imageRevision": 129,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 130,
+        "imageRevision": 130,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-text",
+   "props": {
+    "date": "14 сентября 1654",
+    "empty": "<journal.no_quests>",
+    "entry": {
+     "entries": [
+      {
+       "date": "1 мая 1654 10:02",
+       "text": "Прибыл в Сен-Пьер. Брат, по слухам, в тюрьме.\nНужно поговорить с комендантом."
+      },
+      {
+       "date": "3 мая 1654 18:40",
+       "text": "Комендант готов отпустить брата за выкуп.\nБез даты: заметка на полях о долге перед ростовщиком."
+      }
+     ],
+     "title": ""
+    },
+    "headerSection": "journal",
+    "list": [],
+    "section": "quests",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": true
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_QUEST",
+      "label": "<journal.active>",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_QUESTARJ",
+      "label": "<journal.completed>",
+      "selected": false
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [
+    "rebuild"
+   ],
+   "capability": "journal",
+   "events": [
+    [
+     "journal-tabs",
+     "select",
+     "nations"
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 36,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 182,
+        "imageRevision": 182,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 1"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 0,
+      "label": "Класс 1\t0\t0\t0",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 2"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 1,
+      "label": "Класс 2\t1\t0\t1",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 3"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 2,
+      "label": "Класс 3\t2\t0\t0",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 4"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 3,
+      "label": "Класс 4\t0\t0\t1",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 4,
+      "label": "Класс 5\t1\t0\t0",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Класс 6"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Корабли",
+       "Потоплено орудиями",
+       "Потоплено абордажем",
+       "Захвачено абордажем"
+      ],
+      "headerCells": [
+       {
+        "text": "Корабли"
+       },
+       {
+        "text": "Потоплено орудиями"
+       },
+       {
+        "text": "Потоплено абордажем"
+       },
+       {
+        "text": "Захвачено абордажем"
+       }
+      ],
+      "index": 5,
+      "label": "Класс 6\t2\t0\t1",
+      "node": "TABLE_SHIPCLASS",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Солдаты"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "0"
+       }
+      ],
+      "columnHeaders": [
+       "Убито",
+       "Клинками",
+       "Пистолями"
+      ],
+      "headerCells": [
+       {
+        "text": "Убито"
+       },
+       {
+        "text": "Клинками"
+       },
+       {
+        "text": "Пистолями"
+       }
+      ],
+      "index": 0,
+      "label": "Солдаты\t0\t0",
+      "node": "TABLE_HUMAN",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Горожане"
+       },
+       {
+        "text": "5"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Убито",
+       "Клинками",
+       "Пистолями"
+      ],
+      "headerCells": [
+       {
+        "text": "Убито"
+       },
+       {
+        "text": "Клинками"
+       },
+       {
+        "text": "Пистолями"
+       }
+      ],
+      "index": 1,
+      "label": "Горожане\t5\t1",
+      "node": "TABLE_HUMAN",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Нечисть"
+       },
+       {
+        "text": "10"
+       },
+       {
+        "text": "2"
+       }
+      ],
+      "columnHeaders": [
+       "Убито",
+       "Клинками",
+       "Пистолями"
+      ],
+      "headerCells": [
+       {
+        "text": "Убито"
+       },
+       {
+        "text": "Клинками"
+       },
+       {
+        "text": "Пистолями"
+       }
+      ],
+      "index": 2,
+      "label": "Нечисть\t10\t2",
+      "node": "TABLE_HUMAN",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Остальные"
+       },
+       {
+        "text": "15"
+       },
+       {
+        "text": "3"
+       }
+      ],
+      "columnHeaders": [
+       "Убито",
+       "Клинками",
+       "Пистолями"
+      ],
+      "headerCells": [
+       {
+        "text": "Убито"
+       },
+       {
+        "text": "Клинками"
+       },
+       {
+        "text": "Пистолями"
+       }
+      ],
+      "index": 3,
+      "label": "Остальные\t15\t3",
+      "node": "TABLE_HUMAN",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Итого"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "4"
+       }
+      ],
+      "columnHeaders": [
+       "Убито",
+       "Клинками",
+       "Пистолями"
+      ],
+      "headerCells": [
+       {
+        "text": "Убито"
+       },
+       {
+        "text": "Клинками"
+       },
+       {
+        "text": "Пистолями"
+       }
+      ],
+      "index": 4,
+      "label": "Итого\t20\t4",
+      "node": "TABLE_HUMAN",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Фортов разгромлено"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "5"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "Итого"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "images": [
+         {
+          "handle": 177,
+          "height": 32,
+          "imageRevision": 177,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Англия"
+       },
+       {
+        "images": [
+         {
+          "handle": 178,
+          "height": 32,
+          "imageRevision": 178,
+          "source": {
+           "group": "NATIONS",
+           "image": "France",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Франция"
+       },
+       {
+        "images": [
+         {
+          "handle": 179,
+          "height": 32,
+          "imageRevision": 179,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Испания"
+       },
+       {
+        "images": [
+         {
+          "handle": 180,
+          "height": 32,
+          "imageRevision": 180,
+          "source": {
+           "group": "NATIONS",
+           "image": "Holland",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Голландия"
+       },
+       {
+        "images": [
+         {
+          "handle": 181,
+          "height": 32,
+          "imageRevision": 181,
+          "source": {
+           "group": "NATIONS",
+           "image": "Pirate",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Пираты"
+       },
+       {
+        "text": "Итого"
+       }
+      ],
+      "index": 0,
+      "label": "Фортов разгромлено\t0\t1\t2\t0\t1\t5",
+      "node": "TABLE_NATION",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Городов захвачено"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "6"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "Итого"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "images": [
+         {
+          "handle": 177,
+          "height": 32,
+          "imageRevision": 177,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Англия"
+       },
+       {
+        "images": [
+         {
+          "handle": 178,
+          "height": 32,
+          "imageRevision": 178,
+          "source": {
+           "group": "NATIONS",
+           "image": "France",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Франция"
+       },
+       {
+        "images": [
+         {
+          "handle": 179,
+          "height": 32,
+          "imageRevision": 179,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Испания"
+       },
+       {
+        "images": [
+         {
+          "handle": 180,
+          "height": 32,
+          "imageRevision": 180,
+          "source": {
+           "group": "NATIONS",
+           "image": "Holland",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Голландия"
+       },
+       {
+        "images": [
+         {
+          "handle": 181,
+          "height": 32,
+          "imageRevision": 181,
+          "source": {
+           "group": "NATIONS",
+           "image": "Pirate",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Пираты"
+       },
+       {
+        "text": "Итого"
+       }
+      ],
+      "index": 1,
+      "label": "Городов захвачено\t1\t2\t0\t1\t2\t6",
+      "node": "TABLE_NATION",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Кораблей захвачено"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "7"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "Итого"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "images": [
+         {
+          "handle": 177,
+          "height": 32,
+          "imageRevision": 177,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Англия"
+       },
+       {
+        "images": [
+         {
+          "handle": 178,
+          "height": 32,
+          "imageRevision": 178,
+          "source": {
+           "group": "NATIONS",
+           "image": "France",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Франция"
+       },
+       {
+        "images": [
+         {
+          "handle": 179,
+          "height": 32,
+          "imageRevision": 179,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Испания"
+       },
+       {
+        "images": [
+         {
+          "handle": 180,
+          "height": 32,
+          "imageRevision": 180,
+          "source": {
+           "group": "NATIONS",
+           "image": "Holland",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Голландия"
+       },
+       {
+        "images": [
+         {
+          "handle": 181,
+          "height": 32,
+          "imageRevision": 181,
+          "source": {
+           "group": "NATIONS",
+           "image": "Pirate",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Пираты"
+       },
+       {
+        "text": "Итого"
+       }
+      ],
+      "index": 2,
+      "label": "Кораблей захвачено\t2\t0\t1\t2\t0\t7",
+      "node": "TABLE_NATION",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Кораблей потоплено"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "0"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "8"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "Итого"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "images": [
+         {
+          "handle": 177,
+          "height": 32,
+          "imageRevision": 177,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Англия"
+       },
+       {
+        "images": [
+         {
+          "handle": 178,
+          "height": 32,
+          "imageRevision": 178,
+          "source": {
+           "group": "NATIONS",
+           "image": "France",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Франция"
+       },
+       {
+        "images": [
+         {
+          "handle": 179,
+          "height": 32,
+          "imageRevision": 179,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Испания"
+       },
+       {
+        "images": [
+         {
+          "handle": 180,
+          "height": 32,
+          "imageRevision": 180,
+          "source": {
+           "group": "NATIONS",
+           "image": "Holland",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Голландия"
+       },
+       {
+        "images": [
+         {
+          "handle": 181,
+          "height": 32,
+          "imageRevision": 181,
+          "source": {
+           "group": "NATIONS",
+           "image": "Pirate",
+           "kind": "atlas"
+          },
+          "width": 32
+         }
+        ],
+        "text": "Пираты"
+       },
+       {
+        "text": "Итого"
+       }
+      ],
+      "index": 3,
+      "label": "Кораблей потоплено\t0\t1\t2\t0\t1\t8",
+      "node": "TABLE_NATION",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Кораблей продано"
+       },
+       {
+        "text": "2"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "Значение"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "text": "Значение"
+       }
+      ],
+      "index": 0,
+      "label": "Кораблей продано\t2",
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Кораблей куплено"
+       },
+       {
+        "text": "3"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "Значение"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "text": "Значение"
+       }
+      ],
+      "index": 1,
+      "label": "Кораблей куплено\t3",
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Save\nLoad"
+       },
+       {
+        "text": "14\n9"
+       }
+      ],
+      "columnHeaders": [
+       "События",
+       "Значение"
+      ],
+      "headerCells": [
+       {
+        "text": "События"
+       },
+       {
+        "text": "Значение"
+       }
+      ],
+      "index": 2,
+      "label": "Save\nLoad\t14\n9",
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Расходы"
+       },
+       {
+        "text": "48 200"
+       }
+      ],
+      "index": 0,
+      "label": "Расходы\t48 200",
+      "node": "TABLE_MONEY",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Выплаты команде"
+       },
+       {
+        "text": "12 000"
+       }
+      ],
+      "index": 1,
+      "label": "Выплаты команде\t12 000",
+      "node": "TABLE_MONEY",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 183,
+        "imageRevision": 183,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 184,
+        "imageRevision": 184,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 185,
+        "imageRevision": 185,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 186,
+        "imageRevision": 186,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 187,
+        "imageRevision": 187,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 188,
+        "imageRevision": 188,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 189,
+        "imageRevision": 189,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-statistic",
+   "props": {
+    "date": "14 сентября 1654",
+    "headerSection": "journal",
+    "noTables": "<journal.nothing>",
+    "section": "stats",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": false
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": true
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "battles",
+      "label": "<journal.battles>",
+      "selected": true
+     },
+     {
+      "id": "by_nation",
+      "label": "<journal.by_nation>",
+      "selected": false
+     },
+     {
+      "id": "other",
+      "label": "<journal.other>",
+      "selected": false
+     }
+    ],
+    "tables": [
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "Корабли",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "Потоплено орудиями",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Потоплено абордажем",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Захвачено абордажем",
+        "w": "1"
+       }
+      ],
+      "height": 320,
+      "id": "table-TABLE_SHIPCLASS",
+      "interactive": false,
+      "rows": [
+       {
+        "cells": [
+         {
+          "text": "Класс 1"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Класс 2"
+         },
+         {
+          "text": "1"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "1"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Класс 3"
+         },
+         {
+          "text": "2"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Класс 4"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "1"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Класс 5"
+         },
+         {
+          "text": "1"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Класс 6"
+         },
+         {
+          "text": "2"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "1"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     },
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "Убито",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "Клинками",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Пистолями",
+        "w": "1"
+       }
+      ],
+      "height": 276,
+      "id": "table-TABLE_HUMAN",
+      "interactive": false,
+      "rows": [
+       {
+        "cells": [
+         {
+          "text": "Солдаты"
+         },
+         {
+          "text": "0"
+         },
+         {
+          "text": "0"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Горожане"
+         },
+         {
+          "text": "5"
+         },
+         {
+          "text": "1"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Нечисть"
+         },
+         {
+          "text": "10"
+         },
+         {
+          "text": "2"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Остальные"
+         },
+         {
+          "text": "15"
+         },
+         {
+          "text": "3"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "text": "Итого"
+         },
+         {
+          "text": "20"
+         },
+         {
+          "text": "4"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [
+    "send TABBTN_QUEST press ",
+    "hold"
+   ],
+   "capability": "journal",
+   "events": [
+    [
+     "section-quests",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 34,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 160,
+        "imageRevision": 160,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "columnHeaders": [
+       "Кредит в городе",
+       "Сумма",
+       "Дата",
+       "Срок (мес.)",
+       "%"
+      ],
+      "enabled": false,
+      "headerCells": [
+       {
+        "text": "Кредит в городе"
+       },
+       {
+        "text": "Сумма"
+       },
+       {
+        "text": "Дата"
+       },
+       {
+        "text": "Срок (мес.)"
+       },
+       {
+        "text": "%"
+       }
+      ],
+      "index": -1,
+      "node": "TABLE_CREDIT",
+      "type": "table",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "Гавана"
+       },
+       {
+        "text": "25 000"
+       },
+       {
+        "text": "02.08.1654"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "Срочный"
+       }
+      ],
+      "columnHeaders": [
+       "Вклад в городе",
+       "Сумма",
+       "Дата",
+       "%",
+       "Тип вклада"
+      ],
+      "headerCells": [
+       {
+        "text": "Вклад в городе"
+       },
+       {
+        "text": "Сумма"
+       },
+       {
+        "text": "Дата"
+       },
+       {
+        "text": "%"
+       },
+       {
+        "text": "Тип вклада"
+       }
+      ],
+      "index": 0,
+      "label": "Гавана\t25 000\t02.08.1654\t3\tСрочный",
+      "node": "TABLE_DEBIT",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 161,
+        "imageRevision": 161,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 162,
+        "imageRevision": 162,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 163,
+        "imageRevision": 163,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 164,
+        "imageRevision": 164,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 165,
+        "imageRevision": 165,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 166,
+        "imageRevision": 166,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 167,
+        "imageRevision": 167,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-cashbook",
+   "props": {
+    "date": "14 сентября 1654",
+    "headerSection": "journal",
+    "noTables": "<journal.nothing>",
+    "section": "assets",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": false
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": true
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_CASHBOOK",
+      "label": "Финансы",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_SHIP_PLACE",
+      "label": "Стоянки",
+      "selected": false
+     },
+     {
+      "id": "TABBTN_STOREBOOK",
+      "label": "Склады",
+      "selected": false
+     }
+    ],
+    "tables": [
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "Вклад в городе",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "Сумма",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Дата",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "%",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Тип вклада",
+        "w": "1"
+       }
+      ],
+      "height": 100,
+      "id": "table-TABLE_DEBIT",
+      "interactive": false,
+      "rows": [
+       {
+        "cells": [
+         {
+          "text": "Гавана"
+         },
+         {
+          "text": "25 000"
+         },
+         {
+          "text": "02.08.1654"
+         },
+         {
+          "text": "3"
+         },
+         {
+          "text": "Срочный"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [
+    "send TABLE_CITY#1 select ",
+    "hold"
+   ],
+   "capability": "journal",
+   "events": [
+    [
+     "table-TABLE_CITY",
+     "row",
+     "1"
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 33,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 152,
+        "imageRevision": 152,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 147,
+          "height": 26,
+          "imageRevision": 147,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "Гавана"
+       },
+       {
+        "text": "Куба"
+       },
+       {
+        "text": "1200 / 30000"
+       },
+       {
+        "text": "1500"
+       }
+      ],
+      "columnHeaders": [
+       "Нация",
+       "Город",
+       "Местоположение",
+       "Загруженность",
+       "Аренда"
+      ],
+      "headerCells": [
+       {
+        "text": "Нация"
+       },
+       {
+        "text": "Город"
+       },
+       {
+        "text": "Местоположение"
+       },
+       {
+        "text": "Загруженность"
+       },
+       {
+        "text": "Аренда"
+       }
+      ],
+      "index": 0,
+      "label": "\tГавана\tКуба\t1200 / 30000\t1500",
+      "node": "TABLE_CITY",
+      "type": "choice",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 148,
+          "height": 26,
+          "imageRevision": 148,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "Порт-Ройал"
+       },
+       {
+        "text": "Ямайка"
+       },
+       {
+        "text": "0 / 30000"
+       },
+       {
+        "text": "0"
+       }
+      ],
+      "columnHeaders": [
+       "Нация",
+       "Город",
+       "Местоположение",
+       "Загруженность",
+       "Аренда"
+      ],
+      "headerCells": [
+       {
+        "text": "Нация"
+       },
+       {
+        "text": "Город"
+       },
+       {
+        "text": "Местоположение"
+       },
+       {
+        "text": "Загруженность"
+       },
+       {
+        "text": "Аренда"
+       }
+      ],
+      "index": 1,
+      "label": "\tПорт-Ройал\tЯмайка\t0 / 30000\t0",
+      "node": "TABLE_CITY",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 149,
+          "height": 26,
+          "imageRevision": 149,
+          "source": {
+           "group": "GOODS",
+           "image": "Food",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Провиант"
+       },
+       {
+        "text": "800"
+       },
+       {
+        "text": "10"
+       },
+       {
+        "text": "80"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "На складе",
+       "Пачка",
+       "Вес"
+      ],
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "На складе"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": 0,
+      "label": "Провиант\t800\t10\t80",
+      "node": "TABLE_GOODS",
+      "rowId": "Food",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 150,
+          "height": 26,
+          "imageRevision": 150,
+          "source": {
+           "group": "GOODS",
+           "image": "Rum",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Ром"
+       },
+       {
+        "text": "300"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "15"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "На складе",
+       "Пачка",
+       "Вес"
+      ],
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "На складе"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": 1,
+      "label": "Ром\t300\t20\t15",
+      "node": "TABLE_GOODS",
+      "rowId": "Rum",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 151,
+          "height": 26,
+          "imageRevision": 151,
+          "source": {
+           "group": "GOODS",
+           "image": "Balls",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Ядра"
+       },
+       {
+        "text": "100"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "100"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "На складе",
+       "Пачка",
+       "Вес"
+      ],
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "На складе"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": 2,
+      "label": "Ядра\t100\t20\t100",
+      "node": "TABLE_GOODS",
+      "rowId": "Balls",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 153,
+        "imageRevision": 153,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 154,
+        "imageRevision": 154,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 155,
+        "imageRevision": 155,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 156,
+        "imageRevision": 156,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 157,
+        "imageRevision": 157,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 158,
+        "imageRevision": 158,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 159,
+        "imageRevision": 159,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-storebook",
+   "props": {
+    "date": "14 сентября 1654",
+    "headerSection": "journal",
+    "noTables": "<journal.nothing>",
+    "section": "assets",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": false
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": true
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_CASHBOOK",
+      "label": "Финансы",
+      "selected": false
+     },
+     {
+      "id": "TABBTN_SHIP_PLACE",
+      "label": "Стоянки",
+      "selected": false
+     },
+     {
+      "id": "TABBTN_STOREBOOK",
+      "label": "Склады",
+      "selected": true
+     }
+    ],
+    "tables": [
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "Нация",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "Город",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Местоположение",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Загруженность",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Аренда",
+        "w": "1"
+       }
+      ],
+      "height": 144,
+      "id": "table-TABLE_CITY",
+      "interactive": true,
+      "rows": [
+       {
+        "cells": [
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:NATIONS/Spain"
+          },
+          "text": ""
+         },
+         {
+          "text": "Гавана"
+         },
+         {
+          "text": "Куба"
+         },
+         {
+          "text": "1200 / 30000"
+         },
+         {
+          "text": "1500"
+         }
+        ],
+        "selected": true
+       },
+       {
+        "cells": [
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:NATIONS/England"
+          },
+          "text": ""
+         },
+         {
+          "text": "Порт-Ройал"
+         },
+         {
+          "text": "Ямайка"
+         },
+         {
+          "text": "0 / 30000"
+         },
+         {
+          "text": "0"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     },
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "Товар",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "На складе",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Пачка",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Вес",
+        "w": "1"
+       }
+      ],
+      "height": 188,
+      "id": "table-TABLE_GOODS",
+      "interactive": false,
+      "rows": [
+       {
+        "cells": [
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:GOODS/Food"
+          },
+          "text": "Провиант"
+         },
+         {
+          "text": "800"
+         },
+         {
+          "text": "10"
+         },
+         {
+          "text": "80"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:GOODS/Rum"
+          },
+          "text": "Ром"
+         },
+         {
+          "text": "300"
+         },
+         {
+          "text": "20"
+         },
+         {
+          "text": "15"
+         }
+        ],
+        "selected": false
+       },
+       {
+        "cells": [
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:GOODS/Balls"
+          },
+          "text": "Ядра"
+         },
+         {
+          "text": "100"
+         },
+         {
+          "text": "20"
+         },
+         {
+          "text": "100"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [],
+   "capability": "journal",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 35,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 169,
+        "imageRevision": 169,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "text": "1"
+       },
+       {
+        "text": "Шлюп 'Ласточка'"
+       },
+       {
+        "text": "Жак Тест"
+       },
+       {
+        "images": [
+         {
+          "handle": 168,
+          "height": 26,
+          "imageRevision": 168,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Гавана"
+       },
+       {
+        "text": "Куба"
+       },
+       {
+        "text": "01.09.1654"
+       },
+       {
+        "text": "700"
+       }
+      ],
+      "columnHeaders": [
+       "N",
+       "Корабль",
+       "Капитан",
+       "Город",
+       "Местоположение",
+       "Дата стоянки",
+       "Цена в месяц"
+      ],
+      "headerCells": [
+       {
+        "text": "N"
+       },
+       {
+        "text": "Корабль"
+       },
+       {
+        "text": "Капитан"
+       },
+       {
+        "text": "Город"
+       },
+       {
+        "text": "Местоположение"
+       },
+       {
+        "text": "Дата стоянки"
+       },
+       {
+        "text": "Цена в месяц"
+       }
+      ],
+      "index": 0,
+      "label": "1\tШлюп 'Ласточка'\tЖак Тест\tГавана\tКуба\t01.09.1654\t700",
+      "node": "TABLE_SHIP_PLACE",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 170,
+        "imageRevision": 170,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 171,
+        "imageRevision": 171,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 172,
+        "imageRevision": 172,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 173,
+        "imageRevision": 173,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 174,
+        "imageRevision": 174,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 175,
+        "imageRevision": 175,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 176,
+        "imageRevision": 176,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-shipplace",
+   "props": {
+    "date": "14 сентября 1654",
+    "headerSection": "journal",
+    "noTables": "<journal.nothing>",
+    "section": "assets",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": false
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": true
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_CASHBOOK",
+      "label": "Финансы",
+      "selected": false
+     },
+     {
+      "id": "TABBTN_SHIP_PLACE",
+      "label": "Стоянки",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_STOREBOOK",
+      "label": "Склады",
+      "selected": false
+     }
+    ],
+    "tables": [
+     {
+      "columns": [
+       {
+        "align": "left",
+        "label": "N",
+        "w": "2"
+       },
+       {
+        "align": "right",
+        "label": "Корабль",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Капитан",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Город",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Местоположение",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Дата стоянки",
+        "w": "1"
+       },
+       {
+        "align": "right",
+        "label": "Цена в месяц",
+        "w": "1"
+       }
+      ],
+      "height": 100,
+      "id": "table-TABLE_SHIP_PLACE",
+      "interactive": false,
+      "rows": [
+       {
+        "cells": [
+         {
+          "text": "1"
+         },
+         {
+          "text": "Шлюп 'Ласточка'"
+         },
+         {
+          "text": "Жак Тест"
+         },
+         {
+          "image": {
+           "kind": "item",
+           "texture": "atlas:NATIONS/Spain"
+          },
+          "text": "Гавана"
+         },
+         {
+          "text": "Куба"
+         },
+         {
+          "text": "01.09.1654"
+         },
+         {
+          "text": "700"
+         }
+        ],
+        "selected": false
+       }
+      ]
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [],
+   "capability": "journal",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 32,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 131,
+        "imageRevision": 131,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 0,
+      "label": "Первое плавание",
+      "node": "QUEST_TITLE",
+      "rowId": "q_first",
+      "type": "choice",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 1,
+      "label": "Драка в таверне",
+      "node": "QUEST_TITLE",
+      "rowId": "q_tavern",
+      "type": "choice",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 132,
+        "imageRevision": 132,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 133,
+        "imageRevision": 133,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 134,
+        "imageRevision": 134,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 135,
+        "imageRevision": 135,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 136,
+        "imageRevision": 136,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 137,
+        "imageRevision": 137,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 138,
+        "imageRevision": 138,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-completed",
+   "props": {
+    "date": "14 сентября 1654",
+    "empty": "<journal.no_quests>",
+    "entry": null,
+    "headerSection": "journal",
+    "list": [
+     {
+      "cells": [
+       {
+        "text": "Первое плавание"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Драка в таверне"
+       }
+      ],
+      "selected": false
+     }
+    ],
+    "section": "quests",
+    "sections": [
+     {
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": true
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_QUEST",
+      "label": "<journal.active>",
+      "selected": false
+     },
+     {
+      "id": "TABBTN_QUESTARJ",
+      "label": "<journal.completed>",
+      "selected": true
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [],
+   "capability": "journal",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 2,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 9,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 139,
+        "imageRevision": 139,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "QUEST_TITLE",
+      "type": "text"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 140,
+        "imageRevision": 140,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 141,
+        "imageRevision": 141,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 142,
+        "imageRevision": 142,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 143,
+        "imageRevision": 143,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 144,
+        "imageRevision": 144,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 145,
+        "imageRevision": 145,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 146,
+        "imageRevision": 146,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook-empty",
+   "props": {
+    "date": "14 сентября 1654",
+    "empty": "<journal.no_quests>",
+    "entry": null,
+    "headerSection": "journal",
+    "list": [],
+    "section": "quests",
+    "sections": [
+     {
+      "count": "0",
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": true
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_QUEST",
+      "label": "<journal.active>",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_QUESTARJ",
+      "label": "<journal.completed>",
+      "selected": false
+     }
+    ],
+    "title": "Судовой журнал"
+   }
+  },
+  {
+   "calls": [
+    "send QUEST_TITLE#3 open q_map",
+    "hold"
+   ],
+   "capability": "journal",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 30,
+    "schemaVersion": 2,
+    "screen": "questbook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 115,
+        "imageRevision": 115,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "  Судовой журнал  ",
+      "node": "TITLE",
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 0,
+      "label": "Брат в беде",
+      "node": "QUEST_TITLE",
+      "rowId": "q_brother",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 1,
+      "label": "Старый долг",
+      "node": "QUEST_TITLE",
+      "rowId": "q_debt",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 2,
+      "label": "Доставка груза в Порт-Ройал",
+      "node": "QUEST_TITLE",
+      "rowId": "q_cargo",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "open"
+      ],
+      "index": 3,
+      "label": "Части карты сокровищ",
+      "node": "QUEST_TITLE",
+      "rowId": "q_map",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 116,
+        "imageRevision": 116,
+        "source": {
+         "group": "TABS",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUEST",
+      "type": "image",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "Журнал",
+      "node": "TABSTR_QUEST",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 117,
+        "imageRevision": 117,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_QUESTARJ",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Архив событий",
+      "node": "TABSTR_QUESTARJ",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 118,
+        "imageRevision": 118,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_INFO",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Документы",
+      "node": "TABSTR_INFO",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 119,
+        "imageRevision": 119,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_CASHBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Финансы",
+      "node": "TABSTR_CASHBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 120,
+        "imageRevision": 120,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_SHIP_PLACE",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Стоянки",
+      "node": "TABSTR_SHIP_PLACE",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 121,
+        "imageRevision": 121,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STATISTIC",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Статистика",
+      "node": "TABSTR_STATISTIC",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 122,
+        "imageRevision": 122,
+        "source": {
+         "group": "TABS",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "TABBTN_STOREBOOK",
+      "type": "image",
+      "value": "0"
+     },
+     {
+      "index": 0,
+      "label": "Склады",
+      "node": "TABSTR_STOREBOOK",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": 0,
+      "label": "14 сентября 1654",
+      "node": "CURRENT_DATE_CAPTION",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS_2",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Персонажи",
+      "node": "I_CHARACTER",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Корабли",
+      "node": "I_SHIP",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нации",
+      "node": "I_NATIONS",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Торговля",
+      "node": "I_TRADEBOOK",
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Предметы",
+      "node": "I_ITEMS",
+      "type": "button"
+     }
+    ]
+   },
+   "name": "questbook (a quest record tapped)",
+   "props": {
+    "date": "14 сентября 1654",
+    "empty": "<journal.no_quests>",
+    "entry": null,
+    "headerSection": "journal",
+    "list": [
+     {
+      "cells": [
+       {
+        "text": "Брат в беде"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Старый долг"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Доставка груза в Порт-Ройал"
+       }
+      ],
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "text": "Части карты сокровищ"
+       }
+      ],
+      "selected": false
+     }
+    ],
+    "section": "quests",
+    "sections": [
+     {
+      "count": "4",
+      "id": "quests",
+      "label": "<journal.quests>",
+      "selected": true
+     },
+     {
+      "id": "docs",
+      "label": "<journal.docs>",
+      "selected": false
+     },
+     {
+      "id": "assets",
+      "label": "<journal.assets>",
+      "selected": false
+     },
+     {
+      "id": "stats",
+      "label": "<journal.stats>",
+      "selected": false
+     }
+    ],
+    "subtabs": [
+     {
+      "id": "TABBTN_QUEST",
+      "label": "<journal.active>",
+      "selected": true
+     },
+     {
+      "id": "TABBTN_QUESTARJ",
+      "label": "<journal.completed>",
+      "selected": false
+     }
+    ],
+    "title": "Судовой журнал"
+   },
+   "subject": {
+    "quest": "Q_MAP",
+    "screen": "journal"
+   }
+  }
+ ]
+}

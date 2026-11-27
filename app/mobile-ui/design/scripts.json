@@ -46,6 +46,7 @@
     {"file": "interface/touch/contracts/sails.c"},
     {"file": "interface/touch/contracts/repair.c"},
     {"file": "interface/touch/contracts/tradebook.c"},
+    {"file": "interface/touch/contracts/journal.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -321,6 +322,44 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/journal.c",
+      "provides": ["adapter:journal"],
+      "binds": [
+        {
+          "capability": "journal", "interface": "questbook",
+          "nodes": [
+            ["TABBTN_QUEST", "image", true], ["TABBTN_*", "image"], ["TABSTR_*", "text"], ["TITLE", "heading"],
+            ["QUEST_TITLE", "choice|text"], ["QUEST_TEXT", "text"], ["CURRENT_DATE_CAPTION", "text"],
+            ["TABLE_*", "choice|table"], ["MAIN_BACK", "image"], ["EXIT_BTN", "button"], "@hero-sections",
+            ["I_*", "button"]
+          ],
+          "data": {
+            "pages": {
+              "p0": {"node": "TABBTN_QUEST", "part": "quests", "label": "journal.active", "entries": true},
+              "p1": {"node": "TABBTN_QUESTARJ", "part": "quests", "label": "journal.completed", "entries": true},
+              "p2": {"node": "TABBTN_INFO", "part": "docs", "label": "", "entries": true},
+              "p3": {"node": "TABBTN_CASHBOOK", "part": "assets", "label": "", "entries": false},
+              "p4": {"node": "TABBTN_SHIP_PLACE", "part": "assets", "label": "", "entries": false},
+              "p5": {"node": "TABBTN_STOREBOOK", "part": "assets", "label": "", "entries": false},
+              "p6": {"node": "TABBTN_STATISTIC", "part": "stats", "label": "", "entries": false}
+            },
+            "tables": {
+              "t0": {"node": "TABLE_CREDIT", "group": "", "choose": false},
+              "t1": {"node": "TABLE_DEBIT", "group": "", "choose": false},
+              "t2": {"node": "TABLE_SHIP_PLACE", "group": "", "choose": false},
+              "t3": {"node": "TABLE_CITY", "group": "", "choose": true},
+              "t4": {"node": "TABLE_GOODS", "group": "", "choose": false},
+              "t5": {"node": "TABLE_SHIPCLASS", "group": "battles", "choose": false},
+              "t6": {"node": "TABLE_HUMAN", "group": "battles", "choose": false},
+              "t7": {"node": "TABLE_NATION", "group": "by_nation", "choose": false},
+              "t8": {"node": "TABLE_OTHER", "group": "other", "choose": false},
+              "t9": {"node": "TABLE_MONEY", "group": "other", "choose": false}
+            }
+          }
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -449,6 +488,11 @@
       "file": "interface/touch/screens/hero/tradebook.c",
       "uses": ["adapter:tradebook"],
       "screens": [{"capability": "tradebook", "component": "s-tradebook"}]
+    },
+    {
+      "file": "interface/touch/screens/hero/journal.c",
+      "uses": ["adapter:journal"],
+      "screens": [{"capability": "journal", "component": "s-journal"}]
     }
   ]
 }

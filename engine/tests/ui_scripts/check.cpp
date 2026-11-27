@@ -166,6 +166,8 @@ struct Calls final : storm::ui::ScriptCall
     std::vector<std::string> calls, bound, modals;
     std::optional<Json> predicted;
     bool first = true;
+    std::string subject_screen; // the screen the subject is asked of
+    storm::ui::SubjectView subject;
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -205,6 +207,12 @@ struct Calls final : storm::ui::ScriptCall
     void Rebuild() override
     {
         calls.push_back("rebuild");
+    }
+    std::optional<storm::ui::SubjectView> Subject(const std::string &screen) override
+    {
+        if (subject.quest.empty() || subject_screen != screen)
+            return std::nullopt;
+        return std::exchange(subject, {});
     }
     bool First() const override
     {
@@ -807,6 +815,11 @@ void CheckCases(const char *folder, const std::string &file)
         REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
         Calls calls(*spec);
         calls.widgets = model.widgets;
+        if (recorded.contains("subject"))
+        {
+            calls.subject_screen = recorded.at("subject").at("screen");
+            calls.subject.quest = recorded.at("subject").at("quest");
+        }
         const auto &screen = Screen(vm, recorded.at("capability"));
         port.Build(screen, calls.Single(), calls);
         CHECK(calls.props == recorded.at("props"));
@@ -833,6 +846,11 @@ TEST_CASE("the map screen's script gives the pack screen the props and actions o
 TEST_CASE("the trade book's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("tradebook", "tradebook");
+}
+
+TEST_CASE("the journal's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("journal", "journal");
 }
 
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")

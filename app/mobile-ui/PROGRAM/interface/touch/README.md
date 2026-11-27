@@ -97,6 +97,9 @@ The natives (`core/core.c`):
   `UiTap(ui, commit, "", change)`. The deal owns the screen's `primary`: a screen whose primary is something else, or
   with several amounts (the self repair's parts), binds its controls' `change`/`commit` itself and asks the game;
 - `UiOrder(list, field, descending)`: a stable order by a whole number; `UiRebuild`, `UiFirst`;
+- `UiSubject(screen, out)` in a build: the subject another part of the interface asked that screen to show (the
+  HUD's tap on a quest record: `out.quest`; a character, a ship: `out.character`, `out.position`; `out.tab`), taken
+  once; 0 without one;
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
 - `UiToast`, `UiRead`, `UiError(text)`.
 

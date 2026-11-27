@@ -220,6 +220,15 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         return first_;
     }
+    std::optional<SubjectView> Subject(const std::string &screen) override
+    {
+        if (!building_)
+            throw std::runtime_error("a subject is taken only while the screen builds");
+        const std::optional<SubjectRequest> request = bindings_->TakeSubject(screen);
+        if (!request)
+            return std::nullopt;
+        return SubjectView{request->character, request->position, request->tab, request->quest};
+    }
     void Toast(const std::string &text) override
     {
         bindings_->Toast(text);

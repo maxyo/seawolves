@@ -244,6 +244,26 @@ uint32_t UiFirst(VS_STACK *stack)
     return ReturnInt(stack, "UiFirst", [](storm::ui::ScriptCall &call) { return call.First(); });
 }
 
+// UiSubject(screen, &out): out becomes {character, position, tab, quest} of the subject asked of that screen (1), or
+// nothing (0).
+uint32_t UiSubject(VS_STACK *stack)
+{
+    ATTRIBUTES *out = PopObject(stack);
+    const std::string screen = PopText(stack);
+    return ReturnInt(stack, "UiSubject", [&](storm::ui::ScriptCall &call) {
+        while (out->GetAttributesNum() != 0)
+            out->DeleteAttributeClassX(out->GetAttributeClass(0u));
+        const std::optional<storm::ui::SubjectView> subject = call.Subject(screen);
+        if (!subject)
+            return 0;
+        out->SetAttribute("character", std::to_string(subject->character));
+        out->SetAttribute("position", std::to_string(subject->position));
+        out->SetAttribute("tab", subject->tab);
+        out->SetAttribute("quest", subject->quest);
+        return 1;
+    });
+}
+
 uint32_t UiToast(VS_STACK *stack)
 {
     const std::string text = PopText(stack);
@@ -599,6 +619,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiAwait", "void", 0, UiAwait},
             {"UiRebuild", "void", 0, UiRebuild},
             {"UiFirst", "int", 0, UiFirst},
+            {"UiSubject", "int", 2, UiSubject},
             {"UiToast", "void", 1, UiToast},
             {"UiRead", "void", 2, UiRead},
             {"UiError", "void", 1, UiError},
