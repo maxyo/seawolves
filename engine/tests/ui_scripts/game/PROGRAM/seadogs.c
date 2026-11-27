@@ -37,6 +37,12 @@ int GetGoodQuantityByWeight(int good, int weight)
 	return weight / sti(TestGoods.(slot).weight) * sti(TestGoods.(slot).units);
 }
 
+// The goods of a trade window's rows by name, and the open store's trade type of each (store.c's refStore, a global
+// of that interface in the game): good 4 is imported here, good 5 exported, the others plain.
+object Goods[30];
+object TestStore;
+ref refStore;
+
 // The game's items, by the index of a chest's rows: their weight of one piece; item 4 (gold) weighs nothing.
 object Items[8];
 
@@ -192,7 +198,13 @@ void Main()
 		row = "g" + (n - 1);
 		TestGoods.(row).units = 10;
 		TestGoods.(row).weight = 1;
+		Goods[n - 1].name = "Good" + (n - 1);
+		row = "Good" + (n - 1);
+		TestStore.Goods.(row).TradeType = 0;
 	}
+	TestStore.Goods.Good4.TradeType = 4;
+	TestStore.Goods.Good5.TradeType = 3;
+	makeref(refStore, TestStore);
 	Items[0].Weight = 0.1;
 	Items[1].Weight = 3;
 	Items[2].Weight = 2;

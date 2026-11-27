@@ -35,21 +35,18 @@ string TouchLegTrade_Key(aref ui, int k)
 	return row.id;
 }
 
-// The game tells a row's trade type only by the colour of its goods name (store.c AddToTable).
-void TouchLegTrade_Type(aref row, int column, aref out)
+// A row's trade type: its store's TradeType of the row's good (store.c's refStore, a global of the open interface),
+// named by the binding's data.types.t<type>.{word (a string key), tone, profit}; a type it does not name is plain.
+void TouchLegTrade_Type(aref types, aref row, aref out)
 {
-	string cell = "c" + column;
-	if (!CheckAttribute(row, "cells." + cell + ".color")) return;
-	string color = row.cells.(cell).color;
-	object type = {word = "", tone = "", profit = true};
-	if (color == "c4ffc4") { type.word = UiText("trade.export"); type.tone = "ok"; }
-	if (color == "c4c4ff") { type.word = UiText("trade.import"); type.tone = "gold"; }
-	if (color == "ffc462") { type.word = UiText("trade.demand"); type.tone = "gold"; }
-	if (color == "ffc4c4") { type.word = UiText("trade.contraband_goods"); type.tone = "danger"; type.profit = false; }
-	if (type.word == "") return;
-	aref at;
-	makearef(at, out.type);
-	CopyAttributes(at, &type);
+	string good = Goods[TouchLegTrade_Good(row)].name;
+	string slot = "t" + UiGameInt("refStore.Goods." + good + ".TradeType");
+	if (!CheckAttribute(types, slot)) return;
+	aref type;
+	makearef(type, types.(slot));
+	out.type.word = UiText(type.word);
+	out.type.tone = type.tone;
+	out.type.profit = type.profit;
 }
 
 // The game's goods text ends with the line "Вес 1 ц, пачка 20 шт." (the word is written into its scripts, the same in
@@ -110,6 +107,8 @@ void TouchLegTrade_Rows(aref data, aref model, aref out)
 	makearef(rows, model.TABLE_LIST.rows);
 	aref list;
 	makearef(list, out.rows);
+	aref types;
+	makearef(types, data.types);
 	for (int k = 0; k < GetAttributesNum(rows); k++)
 	{
 		aref row = GetAttributeN(rows, k);
@@ -130,7 +129,7 @@ void TouchLegTrade_Rows(aref data, aref model, aref out)
 		aref image;
 		makearef(image, at.image);
 		TouchLegLib_Picture(row, sti(data.name), image);
-		if (sti(data.types)) TouchLegTrade_Type(row, sti(data.name), at);
+		if (GetAttributesNum(types) > 0) TouchLegTrade_Type(types, row, at);
 		at.about = TouchLegTrade_About(data, headers, row);
 		at.buyText = TouchLegLib_Cell(row, sti(data.buy));
 		at.sellText = TouchLegLib_Cell(row, sti(data.sell));
@@ -372,7 +371,9 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.money = sti(data.buy) >= 0;
 	out.weighs = data.goods;
 	out.pieces = data.pieces;
-	out.types = data.types;
+	aref types;
+	makearef(types, data.types);
+	out.types = GetAttributesNum(types) > 0;
 	TouchLegTrade_Rows(data, model, out);
 	int open = TouchLegLib_Window(model);
 	if (open >= 0) TouchLegTrade_Deal(data, model, open, out);

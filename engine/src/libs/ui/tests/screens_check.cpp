@@ -1300,12 +1300,12 @@ struct CommerceRun
 
     void RowFacts()
     {
-        // The row's own facts: the trade type by the name's colour; the open row's prices, weight and pack as the
-        // dock's facts.
+        // The row's own facts: the store's trade type of its good (the fixture game's refStore); the open row's
+        // prices, weight and pack as the dock's facts.
         router.SetInterface(Load(models, "store.json"));
         router.SetInterface(Load(models, "store-deal.json"));
         ExpectEqual(surface.props["list"]["rows"][5]["meta"], "<trade.export>",
-                    "the trade type the colour tells is named from the string table");
+                    "the store's trade type is named from the string table");
         ExpectEqual(surface.props["list"]["rows"][5]["sub"], "<trade.export>",
                     "the dock's second line is the trade type; the pack is a fact");
         {

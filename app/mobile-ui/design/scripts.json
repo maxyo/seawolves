@@ -66,7 +66,7 @@
     {
       "file": "interface/touch/lineages/legacy/trade.c",
       "requires": [
-        "fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items"
+        "fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items", "var:Goods"
       ],
       "provides": ["adapter:trade"],
       "binds": [
@@ -113,7 +113,13 @@
           ],
           "data": {
             "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "items": false,
-            "goods": true, "pieces": false, "types": true, "owners": "SHIPS_SCROLL"
+            "goods": true, "pieces": false, "owners": "SHIPS_SCROLL",
+            "types": {
+              "t3": {"word": "trade.export", "tone": "ok", "profit": true},
+              "t4": {"word": "trade.import", "tone": "gold", "profit": true},
+              "t8": {"word": "trade.demand", "tone": "gold", "profit": true},
+              "t7": {"word": "trade.contraband_goods", "tone": "danger", "profit": false}
+            }
           }
         },
         {

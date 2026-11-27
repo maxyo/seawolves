@@ -90,6 +90,8 @@
 - Грабёж захваченного города: экран — скриптовый. «Забрать самое ценное» по-прежнему берёт сначала самое дорогое на
   центнер трюма, но сколько каждого товара поместится и сколько он весит, считает игра; окно количества показывает
   вес сделки, как его пишет игра.
+- Магазин: пометки «Экспорт», «Импорт», «Спрос» и «Контрабанда» берутся из типа торговли товара в магазине игры,
+  а не из цвета названия; квестовый товар, который игра выделяет своим цветом, тоже получает свою пометку.
 
 **English**
 
@@ -184,6 +186,8 @@
 - Looting a captured town: a script screen. «Take the most valuable» still takes what is worth most per cwt of the
   hold first, but how much of each good fits and what it weighs is the game's to count; the amount window shows the
   deal's weight as the game writes it.
+- Store: the «Export», «Import», «Demand» and «Contraband» tags come from the good's trade type in the game's store,
+  not from the colour of its name; a quest good, which the game colours as its own, gets its tag too.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

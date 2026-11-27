@@ -10,7 +10,7 @@ the game's own (`engine/src/libs/ui_host`, `script_segments` and `script_port`).
 game's scripts' to compute; no screen, adapter or engine code computes them again, not even "the same way". A screen
 sends the action to the game (the adapter performs it on the game's own window) and shows the game's answer: the
 amount its window clamped the offer to, the money and weight it writes, the figures it shows after it. Reading what
-the game displays and interpreting it (a cell's text, a row's colour as its trade type, a dash for "not traded so")
+the game displays and interpreting it (a cell's text, a dash for "not traded so")
 is reading; working out what the game would compute is a copy, and is not written. Where the answer is too slow for
 the interface, the engine's path from the action to the game's script and back is made faster (the answer is drawn in
 the tap's frame: `engine/src/libs/ui_host/README.md`), never the calculation moved here. Nothing checks this rule
