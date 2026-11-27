@@ -24,6 +24,7 @@ struct EnvironmentData
 {
     scene_data::TimeOfDay time_of_day;
     std::optional<scene_data::Atmosphere> atmosphere;
+    std::optional<scene_data::ToneMapping> camera; // aces.json: the camera where the time of day does not grade
     std::optional<scene_data::CloudPreset> clouds; // texture_library.json's default cloud preset
     std::vector<PlacePreset> places;
     std::map<std::string, environment::Hours, std::less<>> rain; // by file name without .json, lower case

@@ -27,6 +27,13 @@ struct CloudLook
     float moon_intensity = 1.0f;
 };
 
+// The camera's grade (a game's data: the period's or the game's own); its exposure is in State::exposure.
+struct CameraGrade
+{
+    float contrast = 1.0f, saturation = 1.0f, temperature = 0.0f, tint = 0.0f;
+    glm::vec3 color_filter{1.0f}, lift{0.0f}, gamma{1.0f}, gain{1.0f};
+};
+
 // Colours are linear. A light's colour carries its intensity in scene units; `exposure` brings the scene to the
 // display.
 struct State
@@ -52,10 +59,14 @@ struct State
 
     glm::vec3 ambient{0.0f}; // the sky's fill light
     glm::vec3 ground{0.0f};  // light from the ground onto downward faces (0: none)
+    // The fill the drawn sky gives on top (renderer: ResolveSkyFill): sky_fill times the cosine-weighted mean of the
+    // sky above, tinted by sky_tint, onto upward faces; ground_fill times that mean's luminance onto downward ones.
+    glm::vec3 sky_fill{0.0f}, sky_tint{1.0f}, ground_fill{0.0f};
     // The fill light's colour and intensity apart (the clouds' ambient light takes them so).
     glm::vec3 fill_color{0.0f};
     float fill_intensity = 0.0f;
-    float exposure = 1.0f; // scene -> display
+    float exposure = 1.0f;            // scene -> display
+    std::optional<CameraGrade> grade; // none: the renderer grades the place by its own moods
 
     // The radiance the sky's air scatters by day and by night; the defaults are Caribbean Legend's engine's own,
     // for a game whose data has none.
@@ -101,6 +112,15 @@ struct State
     float bloom_intensity = 0.0f, bloom_threshold = 0.0f, bloom_soft = 0.0f;
     float emission = 1.0f;
 };
+
+// Adds the drawn sky's fill to `state`'s ambient and ground: `dome` is the cosine-weighted mean of the sky above
+// (linear).
+inline void ResolveSkyFill(State &state, const glm::vec3 &dome)
+{
+    const glm::vec3 sky = dome * state.sky_tint;
+    state.ambient += state.sky_fill * sky;
+    state.ground += state.ground_fill * state.sky_fill * glm::dot(sky, glm::vec3(0.2126f, 0.7152f, 0.0722f));
+}
 
 // A light for the legacy fixed-function pipeline, whose colours stop at 1: exposed, then scaled down until no
 // channel exceeds 1, so its hue stays.

@@ -1,4 +1,5 @@
 // The drawn sky (fx::Sky::Draw, fs_fx_sky.sc) from the scene environment, on OpenGL ES and Vulkan in an SDL window:
+//   * under the rain clouds the haze band takes their colour;
 //   * Caribbean Legend's atmosphere, its haze band, the height fog over the sky and the sun's and the moon's discs draw
 //     the values worked out from its formulas apart from this code (a pixel within 3 of 255 per channel);
 //   * a clear sky is smooth; clouds break it up, the more of it the larger their cover;
@@ -267,6 +268,18 @@ int main()
             expect(Pixel(band, 128, 127, {197.4f, 213.1f, 227.0f}) && Pixel(band, 128, 118, {188.2f, 209.7f, 232.2f}) &&
                        Pixel(band, 128, 90, {133.4f, 169.8f, 224.1f}),
                    "the haze band at the horizon: the sky's colour 1.42 degrees up, fading out by 8.65");
+
+            // Under the rain clouds' full cover the band takes their colour: no bright band below a dark sky.
+            environment::State stormy = hazy;
+            stormy.sun_light = {0.05f, 0.05f, 0.05f};
+            stormy.fill_color = glm::vec3(1.0f);
+            stormy.fill_intensity = 0.1f;
+            stormy.rain_clouds = 1.0f;
+            const Picture dark = harness.render(stormy, 1.0f, true);
+            const auto lum = [](glm::vec3 c) { return glm::dot(c, glm::vec3(0.2126f, 0.7152f, 0.0722f)); };
+            std::printf("storm: band %.3f, clouds above %.3f\n", lum(dark.at(128, 127)), lum(dark.at(128, 90)));
+            expect(lum(dark.at(128, 127)) < lum(dark.at(128, 90)) + 0.03f,
+                   "under the rain clouds the haze band is as dark as they are");
 
             environment::State foggy = Noon();
             foggy.fog_density = 1.0f / 500.0f;

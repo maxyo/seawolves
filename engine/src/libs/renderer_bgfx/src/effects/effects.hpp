@@ -102,6 +102,10 @@ class Host
     {
         sky_.SetCloudLayers(layers);
     }
+    glm::vec3 scene_ambient() const
+    {
+        return env_.ambient;
+    }
     // A location was entered or left: its first weather frame starts at the rain's own wetness.
     void location_changed()
     {

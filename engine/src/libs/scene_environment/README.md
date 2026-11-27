@@ -30,8 +30,11 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   where the place does not rain.
 - **A frame.** Outdoors the periods give the direct light (the sun's colour from the periods between the end of
   dawn and the start of the night, the moon's from the night) and the fill; while an hour rains its table keeps
-  them. Indoors the table alone lights. Without image-based light the fill multiplies an irradiance: the periods'
-  sky radiance times a constant outdoors, a constant indoors. The fog is the table's where its hours have fog
+  them. Indoors the table alone lights. Outdoors the fill multiplies the light of the sky as it is drawn (its mean
+  above under the rain clouds, `ResolveSkyFill` in the renderer), tinted by the periods' sky tint, and the ground's
+  bounce that light's luminance; indoors, without a sky, a constant irradiance. The exposure is the periods' base
+  exposure times two to their camera's `exposure_ev`; the camera's contrast, saturation, white balance, lift, gamma
+  and gain grade the picture after the tone curve (indoors `aces.json`'s camera). The fog is the table's where its hours have fog
   (densities per 100 m), the height fog's for the rest, reaching the sky at its greatest distance; the haze band is
   the atmosphere's. The sky scatters the periods' day and night radiances; the sun's light on its disc is the day
   periods', the moon's the night's, on discs of that game's sky's sizes.

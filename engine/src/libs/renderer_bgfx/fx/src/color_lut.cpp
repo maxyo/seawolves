@@ -105,6 +105,19 @@ ColorGrade SceneGrade(const SkyState &sky, float overcast, float interior)
     return ColorGrade::Lerp(g, ColorGrade::ForMood(ColorGrade::Mood::Interior), glm::clamp(interior, 0.0f, 1.0f));
 }
 
+ColorGrade CameraGrade(const CameraControls &camera)
+{
+    // Its contrast is not taken: it flattens the steep curve of its own tone mapping (ACES), which ours is not.
+    ColorGrade g;
+    g.saturation = camera.saturation;
+    g.temperature = camera.temperature;
+    g.tint = camera.tint;
+    g.lift = camera.lift;
+    g.gamma = camera.gamma;
+    g.gain = glm::pow(glm::max(camera.gain * camera.color_filter, 0.0f), glm::vec3(1.0f / 2.2f));
+    return g;
+}
+
 ColorGrade ColorGrade::Lerp(const ColorGrade &a, const ColorGrade &b, float t)
 {
     ColorGrade g;

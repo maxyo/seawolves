@@ -96,6 +96,7 @@ struct Inputs
 {
     const scene_data::TimeOfDay &time_of_day;
     const scene_data::Atmosphere *atmosphere = nullptr;
+    const scene_data::ToneMapping *camera = nullptr; // the game's camera where the time of day does not grade
     const HourTable *table = nullptr;
     const WeatherDay *weather = nullptr;
     float hour = 12.0f;

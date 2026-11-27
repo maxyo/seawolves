@@ -88,11 +88,19 @@ struct SkyState
     float fog_density = 0.003f;
     float fog_layer = 0.0f; // WeatherInput::fog_layer
     float night = 0.0f;     // 0 day .. 1 night
-    // The haze band's colour (linear) at each azimuth.
+    // The haze band's colour (linear) at each azimuth, under the rain clouds' cover.
     std::array<glm::vec3, kHazeAzimuths> haze{};
 };
 
-SkyState ComputeSky(const WeatherInput &weather);
+// `cloud_ambient`: the strength of the sky's light on the clouds (the game's cloud preset's).
+SkyState ComputeSky(const WeatherInput &weather, float cloud_ambient);
+
+// A cloud lit as fs_fx_sky.sc's fxCloudShade lights it (no layer turned, all its light reaching it): its six-way
+// responses, opacity and ambient response, seen along `view` against the atmosphere `sky` there. rgb linear, a opacity.
+glm::vec4 CloudShade(const WeatherInput &weather, float cloud_ambient, glm::vec3 positive, glm::vec3 negative,
+                     float opacity, float ambient, glm::vec3 view, glm::vec3 sky);
+// The sky along `dir` under the rain clouds' cover (their mean over the reveal), linear.
+glm::vec3 SkyUnderRain(const WeatherInput &weather, float cloud_ambient, glm::vec3 dir);
 
 // The atmosphere along a unit `dir` lit from `light`: the day's sky (`solar`) or the night's; w the optical depth
 // towards the light (red, in powers of two). fs_fx_sky.sc fxAtmosphere.

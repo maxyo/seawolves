@@ -12,10 +12,8 @@ using scene_data::LightingHour;
 using scene_data::Rgb;
 using scene_data::TimeOfDayPeriod;
 
-// Without image-based light the presets' fill multiplies the irradiance these give: the time of day's sky radiance
-// times kFillIrradiance, an hourly preset's a constant one. The values are ours, set by eye on the scenes of the day,
-// sunset and night.
-constexpr float kFillIrradiance = 0.05f;
+// Where no sky is drawn (an interior, a place without the time of day) an hourly preset's fill multiplies this
+// irradiance; ours, set by eye on the interiors. Outdoors the fill multiplies the drawn sky's (State::sky_fill).
 constexpr float kPresetFillIrradiance = 0.1f;
 // The half sizes of the sun's and the moon's sprites in Caribbean Legend's sky (its sky shader's own).
 constexpr float kSunSize = 0.12f, kMoonSize = 0.075f;
@@ -124,6 +122,20 @@ LightingHour MixHour(const LightingHour &a, const LightingHour &b, float t)
         h.point_lights[group] = {Mix(from.color, light.color, t), Mix(from.intensity, light.intensity, t)};
     }
     return h;
+}
+
+CameraGrade Grade(const scene_data::ToneMapping &camera)
+{
+    CameraGrade g;
+    g.contrast = camera.contrast;
+    g.saturation = camera.saturation;
+    g.temperature = camera.temperature;
+    g.tint = camera.tint;
+    g.color_filter = Vec(camera.color_filter);
+    g.lift = Vec(camera.lift);
+    g.gamma = Vec(camera.gamma);
+    g.gain = Vec(camera.gain);
+    return g;
 }
 
 scene_data::CloudPeriod BlendClouds(const scene_data::CloudPeriod &a, const scene_data::CloudPeriod &b, float t)
@@ -441,16 +453,16 @@ State Evaluate(const Inputs &in)
     s.shadow_strength = shadow * c.shadow_fade;
     if (tod.enabled && in.sky)
     {
-        // The weather keeps the direct light and the fill while it rains.
+        // The weather keeps the direct light and the fill while it rains. The fill multiplies the drawn sky's light.
         const float w = std::clamp(1.0f - rain_weight, 0.0f, 1.0f);
         const TimeOfDayPeriod p = PeriodAt(tod, h);
-        const glm::vec3 sky_radiance = glm::mix(Vec(p.sky_night_radiance), Vec(p.sky_day_radiance), c.twilight);
-        const glm::vec3 fill = Vec(p.sky_fill_color) * p.sky_fill_intensity * sky_radiance * kFillIrradiance;
-        s.ambient = glm::mix(hour_fill * hour_fill_intensity * kPresetFillIrradiance, fill, w);
-        s.ground = Vec(p.ground_color) * p.ground_intensity * glm::dot(fill, glm::vec3(0.2126f, 0.7152f, 0.0722f));
         s.fill_color = glm::mix(hour_fill, Vec(p.sky_fill_color), w);
         s.fill_intensity = Mix(hour_fill_intensity, p.sky_fill_intensity, w);
-        s.exposure = p.base_exposure;
+        s.sky_fill = s.fill_color * s.fill_intensity;
+        s.sky_tint = Vec(p.diffuse_sky_tint);
+        s.ground_fill = Vec(p.ground_color) * p.ground_intensity;
+        s.exposure = p.base_exposure * std::exp2(p.camera.exposure_ev);
+        s.grade = Grade(p.camera);
         s.sky_day = Vec(p.sky_day_radiance);
         s.sky_night = Vec(p.sky_night_radiance);
         // The sun's colour is the periods' between the end of dawn and the start of the night, never the night's;
@@ -477,7 +489,9 @@ State Evaluate(const Inputs &in)
         s.fill_color = hour_fill;
         s.fill_intensity = hour_fill_intensity;
         s.light_color = hour_sun;
-        s.exposure = hour_exposure;
+        s.exposure = hour_exposure * std::exp2(in.camera ? in.camera->exposure_ev : 0.0f);
+        if (in.camera)
+            s.grade = Grade(*in.camera);
     }
 
     // Fog: the hour table's where it has fog, the atmosphere's height fog for the rest.

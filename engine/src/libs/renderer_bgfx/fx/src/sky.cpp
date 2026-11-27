@@ -53,7 +53,7 @@ void Sky::Update(const WeatherInput &weather, float camera_height)
     if (state_valid_ && std::memcmp(&weather_, &weather, sizeof weather) == 0)
         return;
     weather_ = weather;
-    state_ = ComputeSky(weather);
+    state_ = ComputeSky(weather, CloudAmbient());
     state_valid_ = true;
 }
 

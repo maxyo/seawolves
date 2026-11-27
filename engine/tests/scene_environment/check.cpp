@@ -246,7 +246,27 @@ TEST_CASE("a frame's state")
     CHECK(night.light_color.x == Approx(0.02f));
     CHECK((night.moon_light.z == Approx(0.1f) && night.sun_light == glm::vec3(0.0f)));
     CHECK(night.exposure == Approx(4.0f));
-    CHECK(glm::length(night.ambient) < glm::length(noon.ambient));
+    // Outdoors the periods' fill multiplies the drawn sky's light; nothing is added apart from it.
+    CHECK((noon.sky_fill == glm::vec3(1.0f) && noon.ambient == glm::vec3(0.0f) && noon.fill_intensity == 1.0f));
+    CHECK(noon.ground_fill == glm::vec3(0.0f)); // the periods' ground intensity is 0
+    // The drawn sky's mean above, tinted, times the fill; the ground's by its luminance.
+    State lit = noon;
+    lit.sky_tint = {1.0f, 0.5f, 1.0f};
+    lit.ground_fill = glm::vec3(0.5f);
+    ResolveSkyFill(lit, glm::vec3(0.2f));
+    CHECK((lit.ambient.x == Approx(0.2f) && lit.ambient.y == Approx(0.1f)));
+    CHECK(lit.ground.x == Approx(0.5f * glm::dot(glm::vec3(0.2f, 0.1f, 0.2f), glm::vec3(0.2126f, 0.7152f, 0.0722f))));
+
+    // The period's camera: its exposure_ev on top of the base exposure, its grade kept for the post chain.
+    scene_data::TimeOfDay graded = tod;
+    graded.periods[scene_data::kDay].camera.exposure_ev = 1.0f;
+    graded.periods[scene_data::kDay].camera.saturation = 1.2f;
+    Inputs camera{graded};
+    camera.table = &table;
+    camera.hour = 13.0f;
+    const State bright = Evaluate(camera);
+    CHECK(bright.exposure == Approx(4.0f));
+    CHECK((bright.grade && bright.grade->saturation == Approx(1.2f)));
 
     // While an hour rains its preset keeps the light.
     table.rain[13] = table.rain[14] = true;
@@ -263,6 +283,15 @@ TEST_CASE("a frame's state")
     const State inside = Evaluate(in);
     CHECK((inside.light_color.x == Approx(0.5f) && inside.exposure == Approx(3.0f)));
     CHECK(inside.haze == 0.0f);
+    CHECK((!inside.grade && inside.sky_fill == glm::vec3(0.0f)));
+    // Indoors the game's own camera grades, its exposure_ev on the hour's.
+    scene_data::ToneMapping aces;
+    aces.exposure_ev = -1.0f;
+    aces.contrast = 0.7f;
+    in.camera = &aces;
+    const State cellar = Evaluate(in);
+    CHECK((cellar.exposure == Approx(1.5f) && cellar.grade && cellar.grade->contrast == Approx(0.7f)));
+    in.camera = nullptr;
 }
 
 TEST_CASE("the clouds' look of the hour")

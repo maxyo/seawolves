@@ -86,6 +86,7 @@ std::unique_ptr<EnvironmentData> Load()
 {
     constexpr const char *kTimeOfDay = "resource\\ini\\time_of_day.json";
     constexpr const char *kAtmosphere = "resource\\ini\\atmosphere.json";
+    constexpr const char *kCamera = "resource\\ini\\aces.json";
     constexpr const char *kTextureLibrary = "resource\\texture_library.json";
     if (!fio->_FileOrDirectoryExists(kTimeOfDay))
         return nullptr;
@@ -109,6 +110,15 @@ std::unique_ptr<EnvironmentData> Load()
     }
     else
         spdlog::error("environment: {} cannot be read: no horizon haze, height fog or cloud look", kAtmosphere);
+    if (const std::optional<std::string> text = Read(kCamera))
+    {
+        scene_data::Report camera_report;
+        scene_data::ToneMapping camera = scene_data::ParseToneMapping(*text, camera_report);
+        if (Reported(kCamera, camera_report))
+            data->camera = camera;
+    }
+    else
+        spdlog::error("environment: {} cannot be read: no camera grade where the time of day does not grade", kCamera);
     // The variant its engine draws by default (another is chosen only in its editor).
     if (const std::optional<std::string> text = Read(kTextureLibrary))
     {

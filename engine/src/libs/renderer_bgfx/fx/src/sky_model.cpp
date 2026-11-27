@@ -100,23 +100,136 @@ float SkyHazeAmount(const WeatherInput &w, float dir_y)
     return w.haze * t * t * (3.0f - 2.0f * t);
 }
 
-SkyState ComputeSky(const WeatherInput &weather)
+namespace
+{
+float SixWay(glm::vec3 positive, glm::vec3 negative, glm::vec3 l)
+{
+    const glm::vec3 r{l.x >= 0.0f ? positive.x : negative.x, l.y >= 0.0f ? positive.y : negative.y,
+                      l.z >= 0.0f ? positive.z : negative.z};
+    return glm::dot(r, l * l);
+}
+
+float ShapeResponse(float response, float peak, float contrast)
+{
+    const float top = std::max(peak, 0.0001f);
+    return top * std::pow(glm::clamp(response / top, 0.0f, 1.0f), glm::clamp(contrast, 0.5f, 2.0f));
+}
+
+float Transmission(float opacity, float alignment, float height, float strength, float radius_deg, float solar)
+{
+    const float spread = std::max(1.0f - std::cos(glm::radians(glm::clamp(radius_deg, 0.5f, 45.0f))), 0.000001f);
+    const float distance = std::max(1.0f - glm::clamp(alignment, -1.0f, 1.0f), 0.0f) / spread;
+    const float mask = glm::mix(0.75f, 0.20f, solar) * std::exp2(-4.0f * distance) +
+                       glm::mix(1.25f, 3.80f, solar) * std::exp2(-glm::mix(24.0f, 80.0f, solar) * distance);
+    const float o = glm::clamp(opacity, 0.0f, 1.0f);
+    return std::max(strength, 0.0f) * mask * o * (2.0f - o) * Smooth(-0.02f, 0.02f, height);
+}
+
+float BlendTransmission(float response, float transmission)
+{
+    const float width = transmission * 0.5f;
+    const float overlap = std::max(width - std::fabs(response - transmission), 0.0f) / std::max(width, 0.000001f);
+    return std::max(response, transmission) + overlap * overlap * width * 0.25f;
+}
+
+float Max3(glm::vec3 v)
+{
+    return std::max(v.r, std::max(v.g, v.b));
+}
+} // namespace
+
+glm::vec4 CloudShade(const WeatherInput &w, float cloud_ambient, glm::vec3 positive, glm::vec3 negative, float opacity,
+                     float ambient, glm::vec3 view, glm::vec3 sky)
+{
+    const glm::vec4 &look = w.cloud_look, &low = w.cloud_sunset, &day = w.cloud_day, &dusk = w.cloud_twilight,
+                    &tint = w.cloud_tint, &tr = w.cloud_transmission;
+    const glm::vec3 sun = w.sun_dir, source = w.sun_light;
+    const float twilight = glm::clamp(look.w, 0.0f, 1.0f);
+    const float edge =
+        glm::mix(1.0f, glm::clamp(look.z, 0.0f, 4.0f), 1.0f - Smooth(0.20f, 0.95f, glm::clamp(opacity, 0.0f, 1.0f)));
+    const float peak = Max3(glm::max(positive, negative));
+    const float baked = SixWay(positive, negative, sun);
+    float response = ShapeResponse(baked, peak, day.w);
+    response = BlendTransmission(response, Transmission(opacity, glm::dot(view, sun), sun.y, tr.x, tr.z, 1.0f));
+
+    const float sunlight = std::max(day.x, 0.0f) * glm::mix(1.0f, std::max(low.x, 0.0f), twilight);
+    const float brightness = Max3(source);
+    const glm::vec3 sunset_colour =
+        glm::mix(glm::vec3(1.0f, 0.52f, 0.16f), glm::vec3(1.0f, 0.26f, 0.025f), 1.0f - Smooth(0.02f, 0.22f, sun.y)) *
+        brightness;
+    const glm::vec3 direct = glm::mix(source, glm::mix(source, sunset_colour, twilight), low.z);
+    const float base = std::max(negative.g, 0.0f) * std::max(low.y, 0.0f) * Smooth(-0.35f, 1.0f, glm::dot(view, sun)) *
+                       Smooth(-0.02f, 0.02f, sun.y) * twilight * (1.0f - Smooth(0.0f, 0.18f, sun.y));
+    const glm::vec3 base_colour =
+        glm::mix(source, glm::vec3(1.0f, 0.10f, 0.015f) * brightness, glm::clamp(low.z, 0.0f, 1.0f));
+    const glm::vec3 sun_radiance = response * direct * sunlight * edge;
+
+    const glm::vec3 luma = kLumaRec709;
+    const float sky_luma = glm::dot(glm::max(sky, 0.0f), luma);
+    const glm::vec3 sky_hue = glm::max(sky, 0.0f) * (glm::dot(w.fill_color, luma) / std::max(sky_luma, 0.0001f));
+    const glm::vec3 ambient_colour =
+        glm::mix(w.fill_color, sky_hue, glm::clamp(day.z, 0.0f, 1.0f) * Smooth(0.0f, 0.01f, sky_luma));
+    const float strength = cloud_ambient * std::max(day.y, 0.0f);
+    glm::vec3 radiance = sun_radiance + ambient * ambient_colour * w.fill_intensity * strength;
+
+    if (const float sun_luma = glm::dot(glm::max(sun_radiance, 0.0f), luma); sun_luma > 0.00001f)
+    {
+        const float total = glm::dot(glm::max(radiance, 0.0f), luma);
+        const float share = glm::clamp(sun_luma / std::max(total, 0.00001f), 0.0f, 1.0f);
+        const float lit = glm::clamp(baked / std::max(peak, 0.0001f), 0.0f, 1.0f);
+        radiance = glm::mix(radiance, sun_radiance * (total / sun_luma),
+                            glm::clamp(low.w, 0.0f, 1.0f) * lit * share * twilight);
+    }
+    radiance += base * base_colour * sunlight * edge;
+
+    const float across = std::sqrt(std::max(sun.x * sun.x + sun.z * sun.z, 0.000001f));
+    const float towards = (view.x * sun.x + view.z * sun.z) / across;
+    const float side = std::sin(glm::radians(glm::clamp(dusk.y, 15.0f, 180.0f) * 0.5f));
+    const float away = (1.0f - Smooth(-side, side, towards)) * twilight * glm::clamp(dusk.x, 0.0f, 1.0f);
+    glm::vec3 dim = glm::clamp(glm::vec3(tint), 0.0f, 1.0f);
+    dim *= std::min(glm::dot(glm::max(ambient_colour, 0.0f), luma), sky_luma) * std::max(dusk.z, 0.0f) /
+           std::max(glm::dot(dim, luma), 0.0001f);
+    radiance = glm::mix(radiance, ambient * dim * w.fill_intensity * strength, away);
+    radiance = glm::mix(radiance, sky * opacity, 0.25f * away * (1.0f - Smooth(0.0f, 0.18f, std::fabs(view.y))));
+
+    if (Max3(w.moon_light) > 0.0f)
+    {
+        float lunar = ShapeResponse(SixWay(positive, negative, w.moon_dir), peak, day.w);
+        lunar =
+            BlendTransmission(lunar, Transmission(opacity, glm::dot(view, w.moon_dir), w.moon_dir.y, tr.y, tr.w, 0.0f));
+        radiance += lunar * w.moon_light * edge * std::max(tint.w, 0.0f);
+    }
+    return {radiance * std::max(look.x, 0.0f), opacity};
+}
+
+glm::vec3 SkyUnderRain(const WeatherInput &w, float cloud_ambient, glm::vec3 dir)
+{
+    const glm::vec3 sky = SkyBackground(w, dir);
+    if (w.rain_clouds <= 0.0f)
+        return sky;
+    const float ambient = glm::dot(kRainPositive + kRainNegative, glm::vec3(1.0f / 6.0f));
+    const glm::vec3 rain =
+        glm::vec3(CloudShade(w, cloud_ambient, kRainPositive, kRainNegative, 1.0f, ambient, dir, sky));
+    return glm::mix(sky, rain, glm::clamp(w.rain_clouds, 0.0f, 1.0f));
+}
+
+SkyState ComputeSky(const WeatherInput &weather, float cloud_ambient)
 {
     SkyState sky;
     sky.sun_dir = weather.sun_dir;
     sky.fog_density = weather.fog_density;
     sky.fog_layer = weather.fog_layer;
     sky.night = 1.0f - glm::clamp(weather.daylight, 0.0f, 1.0f);
-    // The haze band's colour round the horizon; the horizon under its haze, on the display's scale; the dome: the
-    // cosine-weighted mean of the sky above (linear), for the hue of the hemisphere ambient.
+    // Under the rain clouds' cover: the haze band's colour round the horizon; the horizon under its haze, on the
+    // display's scale; the dome: the cosine-weighted mean of the sky above (linear), the light the sky gives.
     for (int i = 0; i < kHazeAzimuths; ++i)
     {
         const float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kHazeAzimuths);
         sky.haze[size_t(i)] =
             weather.haze_from_sky
                 ? weather.haze_color *
-                      SkyBackground(weather,
-                                    glm::normalize(glm::vec3(std::cos(angle), weather.haze_sample, std::sin(angle))))
+                      SkyUnderRain(weather, cloud_ambient,
+                                   glm::normalize(glm::vec3(std::cos(angle), weather.haze_sample, std::sin(angle))))
                 : weather.haze_color;
     }
     constexpr int kAzimuths = 16;
@@ -131,13 +244,13 @@ SkyState ComputeSky(const WeatherInput &weather)
         const float at = (static_cast<float>(i) + 0.5f) * static_cast<float>(kHazeAzimuths) / kAzimuths;
         const int k = static_cast<int>(at);
         const glm::vec3 band = glm::mix(sky.haze[size_t(k)], sky.haze[size_t((k + 1) % kHazeAzimuths)], at - float(k));
-        const glm::vec3 c = glm::mix(SkyBackground(weather, dir), band, haze);
+        const glm::vec3 c = glm::mix(SkyUnderRain(weather, cloud_ambient, dir), band, haze);
         sum += c;
         if (i % 2 == 0)
             for (const float y : {0.3f, 0.65f, 0.95f})
             {
                 const float r = std::sqrt(1.0f - y * y);
-                dome += SkyBackground(weather, {dir.x * r, y, dir.z * r}) * y;
+                dome += SkyUnderRain(weather, cloud_ambient, {dir.x * r, y, dir.z * r}) * y;
                 dome_weight += y;
             }
     }

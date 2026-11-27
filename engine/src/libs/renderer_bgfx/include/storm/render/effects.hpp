@@ -113,6 +113,8 @@ void SetSkyDiscs(uint16_t sun, uint16_t moon);
 void SetSkyClouds(const fx::CloudLayers &layers);
 // The drawn sky's colour at the horizon (linear, on the display's scale), for fog that takes the sky's colour.
 glm::vec3 SkyHorizon();
+// The scene's fill light of this frame's environment with the drawn sky's part in it (linear, scene units).
+glm::vec3 SceneAmbient();
 
 // While CurrentEffectsWorld().lens_flare: how much of the sun the camera sees this frame (0..1: SUNGLOW's traced
 // visibility past terrain, buildings and sails, with its fade at the horizon), and how strong the flare ghosts are

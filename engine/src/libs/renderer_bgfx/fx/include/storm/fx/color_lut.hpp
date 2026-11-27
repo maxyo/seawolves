@@ -62,6 +62,16 @@ inline constexpr int kDefaultLutSize = 32;
 // it as PostChain::Frame::scene_grade every frame.
 ColorGrade SceneGrade(const SkyState &sky, float overcast, float interior);
 
+// A game's camera grade (environment::CameraGrade) on the display's values after the tone curve: its saturation, white
+// balance, lift and gamma as they are, its gain and colour filter (linear multipliers) on the display's gamma; not its
+// contrast, which is made for its own tone curve.
+struct CameraControls
+{
+    float contrast = 1.0f, saturation = 1.0f, temperature = 0.0f, tint = 0.0f;
+    glm::vec3 color_filter{1.0f}, lift{0.0f}, gamma{1.0f}, gain{1.0f};
+};
+ColorGrade CameraGrade(const CameraControls &camera);
+
 // Largest output difference of the two grades over a set of probe colours (0..1).
 float GradeDifference(const ColorGrade &a, const ColorGrade &b);
 

@@ -471,7 +471,10 @@ bool Host::needs_self_test(const fx::Settings &settings)
 void Host::set_environment(const environment::State &state)
 {
     env_ = state;
-    lighting_.set_environment(state);
+    // The fill the drawn sky gives: the mean of the sky above under its clouds.
+    if (state.sky)
+        environment::ResolveSkyFill(env_, sky_state().dome);
+    lighting_.set_environment(env_);
     sun_display_ = glm::sqrt(environment::DisplayLight(state.light_color, state.exposure));
     fog_display_ = glm::sqrt(environment::DisplayLight(state.fog_color, state.exposure));
     // An interior's environment has no sky: like a frame without one.
@@ -602,7 +605,14 @@ uint16_t Host::submit_post(const PostTargets &targets)
         frame.sun_glare = sun_glare_;
         frame.sun_ghosts = sun_ghosts_;
     }
-    if (settings_.scene_grading)
+    // A game's own camera grade where its data gives one; else ours by the place's mood.
+    if (settings_.scene_grading && env_.grade)
+    {
+        const environment::CameraGrade &c = *env_.grade;
+        frame.scene_grade =
+            fx::CameraGrade({c.contrast, c.saturation, c.temperature, c.tint, c.color_filter, c.lift, c.gamma, c.gain});
+    }
+    else if (settings_.scene_grading)
         frame.scene_grade = fx::SceneGrade(sky_state(), env_.overcast, weather ? 0.0f : 1.0f);
     frame.scene_cut = scene_cut_pending_;
     scene_cut_pending_ = false;
@@ -1365,6 +1375,11 @@ void SetSkyClouds(const fx::CloudLayers &layers)
 glm::vec3 SkyHorizon()
 {
     return effects::Host::instance().sky_horizon();
+}
+
+glm::vec3 SceneAmbient()
+{
+    return effects::Host::instance().scene_ambient();
 }
 
 void SetEffectsWobble(const EffectsWobble &wobble)

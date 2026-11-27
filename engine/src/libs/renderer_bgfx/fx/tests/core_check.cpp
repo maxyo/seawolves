@@ -316,18 +316,18 @@ void CheckSky()
     // The state: night by the daylight, the horizon on the display's scale, the dome bluer than the horizon by day.
     WeatherInput day;
     day.sun_dir = noon;
-    const SkyState sky = ComputeSky(day);
+    const SkyState sky = ComputeSky(day, kNoiseCloudAmbient);
     CHECK(sky.night == 0.0f && glm::all(glm::lessThan(sky.horizon, glm::vec3(1.0f))));
     CHECK(sky.dome.b / sky.dome.r > sky.horizon.b / sky.horizon.r);
     day.daylight = 0.0f;
-    CHECK(ComputeSky(day).night == 1.0f);
+    CHECK(ComputeSky(day, kNoiseCloudAmbient).night == 1.0f);
     for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})
     {
         WeatherInput any = day;
         any.daylight = 0.5f;
         any.sun_dir = {0.0f, h, -std::sqrt(1.0f - h * h)};
         any.moon_dir = {0.0f, 1.0f, 0.0f};
-        const SkyState state = ComputeSky(any);
+        const SkyState state = ComputeSky(any, kNoiseCloudAmbient);
         for (int i = 0; i < 3; ++i)
             CHECK(std::isfinite(state.dome[i]) && std::isfinite(state.horizon[i]));
     }
@@ -1787,7 +1787,7 @@ void CheckCheapUpgrades()
     WeatherInput weather;
     weather.sun_dir = {0.6f, 0.8f, 0.0f};
     weather.fog_density = 0.002f;
-    const SkyState noon = ComputeSky(weather);
+    const SkyState noon = ComputeSky(weather, kNoiseCloudAmbient);
 
     // Aerial perspective: the game's fog density, a haze layer that thins with the camera's height, world up
     // taken from the view matrix, haze colour = the horizon (gamma encoded).
@@ -1811,7 +1811,7 @@ void CheckCheapUpgrades()
         WeatherInput w;
         w.sun_dir = {std::sqrt(1.0f - sun_height * sun_height), sun_height, 0.0f};
         w.daylight = glm::clamp(sun_height * 5.0f + 0.5f, 0.0f, 1.0f); // any even ramp through dusk
-        return ComputeSky(w);
+        return ComputeSky(w, kNoiseCloudAmbient);
     };
     const glm::vec3 grey{0.5f, 0.5f, 0.5f};
     const glm::vec3 gain_identity{1.0f, 1.0f, 1.0f};
@@ -1828,6 +1828,17 @@ void CheckCheapUpgrades()
     for (const ColorGrade *mood : {&day, &dusk, &night, &storm, &indoors})
         CHECK(mood->contrast == 1.0f && mood->saturation == 1.0f && mood->vibrance == 0.0f && mood->exposure == 0.0f &&
               mood->gain == gain_identity);
+    // A game's camera grade: neutral is no grade; its controls as they are but its contrast, its linear gain on the
+    // display's gamma.
+    CHECK(CameraGrade({}).IsIdentity());
+    CameraControls camera;
+    camera.contrast = 0.7f;
+    camera.saturation = 1.2f;
+    camera.gain = {0.72f, 0.7f, 0.7f};
+    const ColorGrade graded = CameraGrade(camera);
+    CHECK(graded.contrast == 1.0f && graded.saturation == 1.2f &&
+          Near(graded.gain.r, std::pow(0.72f, 1.0f / 2.2f), 1e-6f));
+    CHECK(graded.Apply(grey)[1] < grey[1]); // the day's gain below 1 darkens
     // A small step of the sun is a small step of the grade (no jump at dusk).
     float worst = 0.0f;
     for (int i = 0; i < 60; ++i)

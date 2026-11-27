@@ -80,13 +80,16 @@ the sea's reflection (`fs_fx_sky.sc`; `sky_model.cpp` is its CPU side):
   `MoonTexture`) on quads facing the eye, of the environment's half sizes: the sun's in its own light, reddened near
   the horizon and turned with the camera's yaw; the moon's white at night, with a faint halo of its light.
 - **Clouds** (below).
-- **Haze band** at the horizon, in the sky's colour a little above it (or its own), computed on the CPU for eight azimuths and blended between them, and the **height fog** between the eye and the
+- **Haze band** at the horizon, in the sky's colour a little above it under the rain clouds' cover (or its own),
+  computed on the CPU for eight azimuths and blended between them, and the **height fog** between the eye and the
   sky's distance in it.
 - The sum times the exposure is compressed into the 8-bit picture as the material programs' light is
-  (`fxCompressHdr`); the post chain's tone curve follows. The sky state keeps the horizon's colour on the display's
-  scale (the aerial fog, fog that takes the sky's colour) and the dome's mean (the hemisphere ambient's hue).
+  (`fxCompressHdr`); the post chain's tone curve follows. The sky state keeps, under the rain clouds' cover, the
+  horizon's colour on the display's scale (the aerial fog, fog that takes the sky's colour) and the dome's mean (the
+  light the sky gives: the fill of the outdoor scene multiplies it, `environment::ResolveSkyFill`).
 
-**Clouds** are lit as Caribbean Legend's textured clouds are, by its period-driven terms (`fxCloudShade`): each texel holds its response to light from the six axes; the response towards the sun, raised to the
+**Clouds** are lit as Caribbean Legend's textured clouds are, by its period-driven terms (`fxCloudShade`, CPU side
+`CloudShade`): each texel holds its response to light from the six axes; the response towards the sun, raised to the
 period's contrast, takes the sun's light, reddened and warmed while the hour is dawn or sunset, with a halo of light
 through the clouds near the sun; the sky's light is the fill tinted towards the atmosphere behind the cloud; at
 twilight the side away from the sun takes a tinted, dim sky light and the low sun lights the clouds' bases; the moon

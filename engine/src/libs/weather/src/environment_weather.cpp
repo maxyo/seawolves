@@ -193,6 +193,7 @@ void WEATHER::UpdateEnvironment()
     const float clock = fFloats[whf_time_counter];
     storm::environment::Inputs in{data_->time_of_day};
     in.atmosphere = data_->atmosphere ? &*data_->atmosphere : nullptr;
+    in.camera = data_->camera ? &*data_->camera : nullptr;
     in.table = table_ ? &*table_ : nullptr;
     in.weather = day_ ? &*day_ : nullptr;
     in.hour = pipeline_.lum_pos == Proc::FixHour ? static_cast<float>(pipeline_.fixed_hour) : clock;
@@ -232,8 +233,8 @@ void WEATHER::ApplyEnvironment()
         density *= std::exp(-std::max(eye.y - state_.fog_base, 0.0f) / state_.fog_layer);
     }
     SetDeviceStates(density > 0.0f, Packed(fog), density,
-                    Packed(storm::environment::DisplayLight(state_.ambient, state_.exposure)), state_.light_dir,
-                    glm::sqrt(storm::environment::DisplayLight(state_.light_color, state_.exposure)));
+                    Packed(storm::environment::DisplayLight(storm::render::SceneAmbient(), state_.exposure)),
+                    state_.light_dir, glm::sqrt(storm::environment::DisplayLight(state_.light_color, state_.exposure)));
 }
 
 void WEATHER::RaiseHourEvents()
