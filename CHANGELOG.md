@@ -21,7 +21,7 @@
 - Экран склада показывал неверный вес товара и сделки: теперь вес пачки и вес перевозимого товара считаются верно.
 - ПК-сборка: графика больше не начинается с телефонного пресета «Низкая». Каждая возможность движка — своя
   настройка (сглаживание, тени солнца и ламп, блум, море, рельеф и другие), по умолчанию полное качество, сцена в
-  размер окна; настройки хранятся отдельно для каждой игры. В «Каждому своё» они на экране настроек игры: флажок
+  размер окна, а создание карт текстур, как на телефоне, выключено; настройки хранятся отдельно для каждой игры. В «Каждому своё» они на экране настроек игры: флажок
   «Графика движка» рядом с «Всегда бежать» показывает их списком, двойной щелчок или Enter меняет значение.
 
 **English**
@@ -44,7 +44,7 @@
   should.
 - Desktop build: graphics no longer start on the phone preset «Низкая» (Low). Every renderer feature is an option of
   its own (anti-aliasing, sun and lamp shadows, bloom, the sea, relief and more), full quality by default with the
-  scene at the window's size; the options are kept per game. In «Каждому своё» they are on the game's options screen:
+  scene at the window's size and, as on phones, no texture-map generation; the options are kept per game. In «Каждому своё» they are on the game's options screen:
   the check box «Графика движка» beside «Всегда бежать» lists them, a double click or Enter changes a value.
 
 ## 1.0.0-alpha.1 — 2026-11-26

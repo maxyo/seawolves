@@ -130,9 +130,11 @@ TEST_CASE("graphics_options.render_scale")
 
 TEST_CASE("graphics_options.desktop_full_quality")
 {
-    // Every effect the desktop's defaults draw is on, apart from the ×2 textures (graphics_options.cpp).
-    for (const char *on : {"sun_shadows", "bloom", "sun_shafts", "lens_flare", "sea_wakes", "texture_normal_maps"})
+    // Every effect the desktop's defaults draw is on; the texture generation is off, as on phones.
+    for (const char *on : {"sun_shadows", "bloom", "sun_shafts", "lens_flare", "sea_wakes"})
         REQUIRE(FindGraphicsOption(on)->desktop == FindGraphicsOption(on)->max);
+    for (const char *off : {"texture_normal_maps", "texture_height_maps", "texture_upscale"})
+        REQUIRE(FindGraphicsOption(off)->desktop == 0);
     REQUIRE(Effects("anti_aliasing", FindGraphicsOption("anti_aliasing")->desktop).at("fx_msaa") == 4);
 }
 

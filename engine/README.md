@@ -95,16 +95,16 @@ by their store app ids). Nothing is owned unless listed there, except where a ga
 
 ## Graphics options
 
-On desktop every renderer feature that can be set is an option of its own, kept per game in that game's `engine.ini`
-of the player's settings folder (above) under the option's name. A fresh start draws the defaults below: the full
-quality, the scene at the window's own size. The game's scripts read, set and list them by name
-(`Graphics_GetOption(name)`, `Graphics_SetOption(name, value)` answering 1 taken or 0 refused, and
-`Graphics_ListOptions(&object)` with each option's kind, range, values, default, the value that runs and whether it is
-taken at the next start; script library `GraphicsOptionsScriptLib`); an unknown name reads as -1; it and a value the
-option does not have are refused (0), each an error in the log.
-What a getter answers is what draws: an option the device or another option keeps from running reads as the value that
-does. Caribbean Legend's own `Graphics_*` natives set the same options (`src/libs/renderer/README.md`). On Android the
-app's presets decide and these natives do not exist.
+On desktop every renderer feature that can be set is an option of its own, kept per game in that game's `engine.ini` of
+the player's settings folder (above) under the option's name. A fresh start draws the defaults below: the full quality,
+the scene at the window's own size; the texture generation (normal maps, parallax, ×2) is off, as on phones. The game's
+scripts read, set and list them by name (`Graphics_GetOption(name)`, `Graphics_SetOption(name, value)` answering 1 taken
+or 0 refused, and `Graphics_ListOptions(&object)` with each option's kind, range, values, default, the value that runs
+and whether it is taken at the next start; script library `GraphicsOptionsScriptLib`); an unknown name reads as -1; it
+and a value the option does not have are refused (0), each an error in the log. What a getter answers is what draws: an
+option the device or another option keeps from running reads as the value that does. Caribbean Legend's own `Graphics_*`
+natives set the same options (`src/libs/renderer/README.md`). On Android the app's presets decide and these natives do
+not exist.
 
 The table is `src/libs/renderer/src/graphics_options.cpp`; `tests/script_graphics` fails when this copy differs and
 prints the current one.
@@ -138,8 +138,8 @@ prints the current one.
 | `sea_wakes` | 0 off, 1 foam astern and at the bow | 1 | at once |
 | `far_lod` | 0 every model whole, 1..4 pixels a far model's simplified level may differ by | 1 | at once |
 | `wet_surfaces` | 0 off, 1 wet in the rain, 2 also puddles | 2 | at once |
-| `texture_normal_maps` | 0 off, 1 relief from normal maps made of the game's textures (old games only) | 1 | at once |
-| `texture_height_maps` | 0 off, 1 parallax from height maps made with the normal maps (drawn through them) (old games only) | 1 | at once |
+| `texture_normal_maps` | 0 off, 1 relief from normal maps made of the game's textures (old games only) | 0 | at once |
+| `texture_height_maps` | 0 off, 1 parallax from height maps made with the normal maps (drawn through them) (old games only) | 0 | at once |
 | `texture_upscale` | 0 off, 1 neural x2 textures near the camera (old games only) | 0 | at once |
 
 ## Checks

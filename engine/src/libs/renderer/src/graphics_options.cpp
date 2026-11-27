@@ -161,13 +161,14 @@ constexpr GraphicsOption kOptions[] = {
      [](int v, uint32_t, Out &out) { One(out, "fx_far_lod", v * 10); }},
     {"wet_surfaces", OptionKind::Choice, 0, 2, kThree, 2, OptionTakes::Live, false,
      "0 off, 1 wet in the rain, 2 also puddles", [](int v, uint32_t, Out &out) { One(out, "fx_wet_surfaces", v); }},
-    {"texture_normal_maps", OptionKind::Toggle, 0, 1, kToggle, 1, OptionTakes::Live, true,
+    // The three texture-generation switches are off as on phones: background GPU work that delays the first scenes,
+    // with no desktop measurement to turn it on.
+    {"texture_normal_maps", OptionKind::Toggle, 0, 1, kToggle, 0, OptionTakes::Live, true,
      "0 off, 1 relief from normal maps made of the game's textures",
      [](int v, uint32_t, Out &out) { One(out, "texture_normal_maps", v); }},
-    {"texture_height_maps", OptionKind::Toggle, 0, 1, kToggle, 1, OptionTakes::Live, true,
+    {"texture_height_maps", OptionKind::Toggle, 0, 1, kToggle, 0, OptionTakes::Live, true,
      "0 off, 1 parallax from height maps made with the normal maps (drawn through them)",
      [](int v, uint32_t, Out &out) { One(out, "texture_height_maps", v); }},
-    // Off: the ×2 network is the slowest and its textures take GPU memory; not measured on desktop GPUs yet.
     {"texture_upscale", OptionKind::Toggle, 0, 1, kToggle, 0, OptionTakes::Live, true,
      "0 off, 1 neural x2 textures near the camera", [](int v, uint32_t, Out &out) { One(out, "texture_upscale", v); }},
 };
