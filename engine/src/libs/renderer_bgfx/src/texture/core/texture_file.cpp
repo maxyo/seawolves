@@ -3,7 +3,7 @@
 #include "mips.hpp"
 
 #include <bx/error.h>
-#include <fmt/format.h>
+#include <format>
 
 #include <algorithm>
 #include <cctype>
@@ -59,17 +59,17 @@ std::optional<TextureFileProblem> ParseDdsTexture(std::vector<uint8_t> bytes, Te
     if (DetectTextureContainer(bytes) != TextureContainer::Dds)
         return TextureFileProblem{"no DDS magic"};
     if (bytes.size() > UINT32_MAX)
-        return TextureFileProblem{fmt::format("{} bytes: larger than bimg reads", bytes.size())};
+        return TextureFileProblem{std::format("{} bytes: larger than bimg reads", bytes.size())};
     bimg::ImageContainer image{};
     bx::Error error;
     if (!bimg::imageParse(image, bytes.data(), static_cast<uint32_t>(bytes.size()), &error) || !error.isOk())
         return TextureFileProblem{
-            fmt::format("bimg cannot parse the header: {}",
+            std::format("bimg cannot parse the header: {}",
                         std::string_view(error.getMessage().getCPtr(), error.getMessage().getLength()))};
     if (image.m_depth > 1)
         return TextureFileProblem{"a volume texture", true};
     if (image.m_numLayers > 1)
-        return TextureFileProblem{fmt::format("a texture array of {} layers", image.m_numLayers), true};
+        return TextureFileProblem{std::format("a texture array of {} layers", image.m_numLayers), true};
     TextureFile file;
     switch (image.m_format)
     {
@@ -84,7 +84,7 @@ std::optional<TextureFileProblem> ParseDdsTexture(std::vector<uint8_t> bytes, Te
         break;
     default:
         return TextureFileProblem{
-            fmt::format("format {}: only BC1, BC2 and BC3 are read", bimg::getName(image.m_format)), true};
+            std::format("format {}: only BC1, BC2 and BC3 are read", bimg::getName(image.m_format)), true};
     }
     file.layout.width = image.m_width;
     file.layout.height = image.m_height;
@@ -92,14 +92,14 @@ std::optional<TextureFileProblem> ParseDdsTexture(std::vector<uint8_t> bytes, Te
     file.layout.faces = image.m_cubeMap ? 6 : 1;
     if (file.layout.width == 0 || file.layout.height == 0 || file.layout.levels == 0)
         return TextureFileProblem{
-            fmt::format("{}x{} with {} levels", file.layout.width, file.layout.height, file.layout.levels)};
+            std::format("{}x{} with {} levels", file.layout.width, file.layout.height, file.layout.levels)};
     if (image.m_cubeMap && file.layout.width != file.layout.height)
-        return TextureFileProblem{fmt::format("a cube map of {}x{} faces", file.layout.width, file.layout.height)};
-    file.source = fmt::format("DDS {}{}{}", bimg::getName(image.m_format), image.m_srgb ? " sRGB" : "",
+        return TextureFileProblem{std::format("a cube map of {}x{} faces", file.layout.width, file.layout.height)};
+    file.source = std::format("DDS {}{}{}", bimg::getName(image.m_format), image.m_srgb ? " sRGB" : "",
                               image.m_cubeMap ? " cube" : "");
     file.payload_offset = image.m_offset;
     if (const uint64_t end = uint64_t(file.payload_offset) + dxt_payload_size(file.layout); end > bytes.size())
-        return TextureFileProblem{fmt::format("the levels need {} bytes, the file has {}", end, bytes.size())};
+        return TextureFileProblem{std::format("the levels need {} bytes, the file has {}", end, bytes.size())};
     file.bytes = std::move(bytes);
     out = std::move(file);
     return std::nullopt;
@@ -115,7 +115,7 @@ std::optional<TextureFileProblem> ParseTxxTexture(std::vector<uint8_t> bytes, Te
                   bits = field[7];
     if (field[0] != 1 || field[4] != 1 || field[8] != 0)
         return TextureFileProblem{
-            fmt::format("header fields {}, {}, {} where 1, 1, 0 are known", field[0], field[4], field[8])};
+            std::format("header fields {}, {}, {} where 1, 1, 0 are known", field[0], field[4], field[8])};
     // The formats seen in files, by their bits per pixel: 9 BC1 (4), 11 BC3 (8).
     TextureFile file;
     if (format == 9 && bits == 4)
@@ -124,21 +124,21 @@ std::optional<TextureFileProblem> ParseTxxTexture(std::vector<uint8_t> bytes, Te
         file.layout.format = DxtFormat::Bc3;
     else
         return TextureFileProblem{
-            fmt::format("format {} with {} bits per pixel: only 9 (BC1, 4) and 11 (BC3, 8) are read", format, bits),
+            std::format("format {} with {} bits per pixel: only 9 (BC1, 4) and 11 (BC3, 8) are read", format, bits),
             true};
     if (width <= 0 || height <= 0 || levels <= 0 ||
         static_cast<uint32_t>(levels) > full_mip_levels(static_cast<uint32_t>(width), static_cast<uint32_t>(height)))
-        return TextureFileProblem{fmt::format("{}x{} with {} levels", width, height, levels)};
+        return TextureFileProblem{std::format("{}x{} with {} levels", width, height, levels)};
     if (int64_t(pitch) * 8 != int64_t(width) * bits)
-        return TextureFileProblem{fmt::format("row pitch {} for {} texels of {} bits", pitch, width, bits)};
+        return TextureFileProblem{std::format("row pitch {} for {} texels of {} bits", pitch, width, bits)};
     file.layout.width = static_cast<uint32_t>(width);
     file.layout.height = static_cast<uint32_t>(height);
     file.layout.levels = static_cast<uint32_t>(levels);
     file.payload_offset = kTxxHeaderBytes;
     const uint64_t expected = kTxxHeaderBytes + dxt_payload_size(file.layout);
     if (expected != bytes.size())
-        return TextureFileProblem{fmt::format("the mip chain needs {} bytes, the file has {}", expected, bytes.size())};
-    file.source = fmt::format("TXX {}", file.layout.format == DxtFormat::Bc1 ? "BC1" : "BC3");
+        return TextureFileProblem{std::format("the mip chain needs {} bytes, the file has {}", expected, bytes.size())};
+    file.source = std::format("TXX {}", file.layout.format == DxtFormat::Bc1 ? "BC1" : "BC3");
     file.bytes = std::move(bytes);
     out = std::move(file);
     return std::nullopt;
