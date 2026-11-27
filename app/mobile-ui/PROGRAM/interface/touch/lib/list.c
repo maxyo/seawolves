@@ -154,3 +154,30 @@ void TouchLib_Words(string text, aref out)
 		}
 	}
 }
+
+// The hero section a screen's header shows: its own (`own`), or the one tapped (TouchLib_SectionAsk) while the game
+// opens it. The press ends this interface and the next opens in a later game frame with no model of this one between:
+// every build awaits it meanwhile; a refused press shows the own section again. `state` is the screen's, kept
+// across its builds.
+string TouchLib_Section(aref state, string own)
+{
+	if (UiFirst()) DeleteAttribute(state, "asked");
+	if (!CheckAttribute(state, "asked")) return own;
+	string answer = UiAnswer();
+	if (answer == "refused" || answer == "")
+	{
+		DeleteAttribute(state, "asked");
+		return own;
+	}
+	UiAwait();
+	return state.asked;
+}
+
+// A section tapped in the header: true when the screen asks the game for it now. Its own section asks nothing; while
+// another opens, the game refuses every press of this ending interface, so nothing more is asked.
+bool TouchLib_SectionAsk(aref state, string own, string tapped)
+{
+	if (tapped == own || CheckAttribute(state, "asked")) return false;
+	state.asked = tapped;
+	return true;
+}

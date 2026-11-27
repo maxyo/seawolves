@@ -1,0 +1,1259 @@
+{
+ "$comment": "The trade book's script on the recorded models of tradebook (engine/src/libs/ui/tests/models): a town chosen, a hero section opened, the book left; a book whose game sends no exit button and the first town's prices unmarked; an unvisited book.",
+ "cases": [
+  {
+   "calls": [
+    "send TABLE_CITY#0 select city:0",
+    "hold",
+    "send I_SHIP press ",
+    "hold",
+    "back EXIT_BTN"
+   ],
+   "capability": "tradebook",
+   "events": [
+    [
+     "towns",
+     "row",
+     "0"
+    ],
+    [
+     "header",
+     "section",
+     "ship"
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 3,
+    "schemaVersion": 2,
+    "screen": "tradebook",
+    "screenRevision": 8,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Торговая книга",
+      "node": "TITLE",
+      "order": 1,
+      "type": "heading"
+     },
+     {
+      "index": -1,
+      "node": "EXIT_BTN",
+      "order": 2,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_CHARACTER",
+      "order": 3,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_SHIP",
+      "order": 4,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_QUESTBOOK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_NATIONS",
+      "order": 6,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_ITEMS",
+      "order": 7,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "node": "I_CHARACTER_2",
+      "order": 8,
+      "type": "button"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "NATIONS",
+           "image": "Spain",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "Гавана"
+       },
+       {
+        "text": "Куба"
+       },
+       {
+        "text": "14.09.1654"
+       }
+      ],
+      "columnHeaders": [
+       "Нация",
+       "Город",
+       "Местоположение",
+       "Актуальность"
+      ],
+      "index": 0,
+      "label": "\tГавана\tКуба\t14.09.1654",
+      "node": "TABLE_CITY",
+      "order": 100,
+      "rowId": "city:0",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "NATIONS",
+           "image": "England",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "Порт-Ройал"
+       },
+       {
+        "text": "Ямайка"
+       },
+       {
+        "text": "02.10.1654"
+       }
+      ],
+      "columnHeaders": [
+       "Нация",
+       "Город",
+       "Местоположение",
+       "Актуальность"
+      ],
+      "index": 1,
+      "label": "\tПорт-Ройал\tЯмайка\t02.10.1654",
+      "node": "TABLE_CITY",
+      "order": 100,
+      "rowId": "city:1",
+      "type": "choice",
+      "value": "1"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "NATIONS",
+           "image": "Pirate",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "Ла Вега"
+       },
+       {
+        "text": "Эспаньола"
+       },
+       {
+        "text": "??.??.????"
+       }
+      ],
+      "columnHeaders": [
+       "Нация",
+       "Город",
+       "Местоположение",
+       "Актуальность"
+      ],
+      "index": 2,
+      "label": "\tЛа Вега\tЭспаньола\t??.??.????",
+      "node": "TABLE_CITY",
+      "order": 100,
+      "rowId": "city:2",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "GOODS",
+           "image": "Food",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Провиант"
+       },
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "TRADE_TYPE",
+           "image": "ico_0",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "6"
+       },
+       {
+        "text": "9"
+       },
+       {
+        "text": "1835"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "Тип",
+       "Продажа",
+       "Покупка",
+       "Запас",
+       "Пачка",
+       "Вес пачки"
+      ],
+      "index": 0,
+      "label": "Провиант\t\t6\t9\t1835\t20\t1",
+      "node": "TABLE_GOODS",
+      "order": 200,
+      "rowId": "goods:0",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "GOODS",
+           "image": "Rum",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Ром"
+       },
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "TRADE_TYPE",
+           "image": "ico_3",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "7"
+       },
+       {
+        "text": "10"
+       },
+       {
+        "text": "940"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "Тип",
+       "Продажа",
+       "Покупка",
+       "Запас",
+       "Пачка",
+       "Вес пачки"
+      ],
+      "index": 1,
+      "label": "Ром\t\t7\t10\t940\t20\t1",
+      "node": "TABLE_GOODS",
+      "order": 200,
+      "rowId": "goods:1",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "GOODS",
+           "image": "Tobacco",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ],
+        "text": "Табак"
+       },
+       {
+        "images": [
+         {
+          "handle": 3,
+          "height": 26,
+          "imageRevision": 3,
+          "source": {
+           "group": "TRADE_TYPE",
+           "image": "ico_7",
+           "kind": "atlas"
+          },
+          "width": 26
+         }
+        ]
+       },
+       {
+        "text": "110"
+       },
+       {
+        "text": "160"
+       },
+       {
+        "text": "45"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "1"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "Тип",
+       "Продажа",
+       "Покупка",
+       "Запас",
+       "Пачка",
+       "Вес пачки"
+      ],
+      "index": 2,
+      "label": "Табак\t\t110\t160\t45\t20\t1",
+      "node": "TABLE_GOODS",
+      "order": 200,
+      "rowId": "goods:2",
+      "type": "choice",
+      "value": "0"
+     }
+    ]
+   },
+   "name": "tradebook",
+   "props": {
+    "columns": [
+     {
+      "label": "Порт-Ройал",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "Продажа",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Покупка",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Запас",
+      "w": "72px"
+     }
+    ],
+    "headerSection": "tradebook",
+    "prices": [
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:GOODS/Food"
+        },
+        "text": "Провиант"
+       },
+       "6",
+       "9",
+       "1835"
+      ]
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:GOODS/Rum"
+        },
+        "tag": "export",
+        "text": "Ром"
+       },
+       "7",
+       "10",
+       "940"
+      ]
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:GOODS/Tobacco"
+        },
+        "tag": "contraband",
+        "text": "Табак"
+       },
+       "110",
+       "160",
+       "45"
+      ]
+     }
+    ],
+    "title": "Торговая книга",
+    "townColumns": [
+     {
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "w": "112px"
+     }
+    ],
+    "towns": [
+     {
+      "cells": [
+       {
+        "icon": "nation-spain",
+        "iconSize": 30,
+        "iconTone": "color",
+        "sub": "Куба",
+        "text": "Гавана"
+       },
+       {
+        "text": "14.09.1654",
+        "tone": ""
+       }
+      ],
+      "disabled": false,
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "icon": "nation-england",
+        "iconSize": 30,
+        "iconTone": "color",
+        "sub": "Ямайка",
+        "text": "Порт-Ройал"
+       },
+       {
+        "text": "02.10.1654",
+        "tone": ""
+       }
+      ],
+      "disabled": false,
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "icon": "nation-pirates",
+        "iconSize": 30,
+        "iconTone": "color",
+        "sub": "Эспаньола",
+        "text": "Ла Вега"
+       },
+       {
+        "text": "<tradebook.no_data>",
+        "tone": "dim"
+       }
+      ],
+      "disabled": false,
+      "selected": false
+     }
+    ]
+   }
+  },
+  {
+   "calls": [
+    "send TABLE_CITY#0 select tradebook:city:town1",
+    "hold",
+    "back "
+   ],
+   "capability": "tradebook",
+   "events": [
+    [
+     "towns",
+     "row",
+     "0"
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 28,
+    "schemaVersion": 2,
+    "screen": "tradebook",
+    "screenRevision": 18,
+    "widgets": [
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "MAIN_BACK",
+      "order": 0,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "I_CHARACTER",
+      "order": 1,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "I_CHARACTER_2",
+      "order": 2,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "I_SHIP",
+      "order": 3,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "I_SHIP_2",
+      "order": 4,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "I_QUESTBOOK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "I_QUESTBOOK_2",
+      "order": 6,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "I_NATIONS",
+      "order": 7,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "I_NATIONS_2",
+      "order": 8,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "I_ITEMS",
+      "order": 9,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "I_ITEMS_2",
+      "order": 10,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "STR_BUTTONS",
+      "order": 11,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "STR_BUTTONS",
+      "order": 12,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "STR_BUTTONS",
+      "order": 13,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "STR_BUTTONS",
+      "order": 14,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "STR_BUTTONS",
+      "order": 15,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "  Книга цен  ",
+      "node": "TITLE",
+      "order": 16,
+      "type": "heading"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 7,
+          "height": 128,
+          "imageRevision": 7,
+          "source": {
+           "group": "NATIONS",
+           "image": "France",
+           "kind": "atlas"
+          },
+          "width": 128
+         }
+        ]
+       },
+       {
+        "text": "Городок"
+       },
+       {
+        "text": "Островок"
+       },
+       {
+        "text": "13:00 01.10.1654"
+       }
+      ],
+      "columnHeaders": [
+       "Флаг",
+       "Порт",
+       "Остров",
+       "Дата"
+      ],
+      "headerCells": [
+       {
+        "text": "Флаг"
+       },
+       {
+        "text": "Порт"
+       },
+       {
+        "text": "Остров"
+       },
+       {
+        "text": "Дата"
+       }
+      ],
+      "index": 0,
+      "label": "\tГородок\tОстровок\t13:00 01.10.1654",
+      "node": "TABLE_CITY",
+      "order": 500,
+      "rowId": "tradebook:city:town1",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 7,
+          "height": 128,
+          "imageRevision": 7,
+          "source": {
+           "group": "GOODS",
+           "image": "Balls",
+           "kind": "atlas"
+          },
+          "width": 128
+         }
+        ],
+        "text": "Ядро"
+       },
+       {},
+       {
+        "text": "48"
+       },
+       {
+        "text": "24"
+       },
+       {
+        "text": "277"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "2"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "Вид",
+       "Продаём",
+       "Покупаем",
+       "Есть",
+       "Пачка",
+       "Вес"
+      ],
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "Вид"
+       },
+       {
+        "text": "Продаём"
+       },
+       {
+        "text": "Покупаем"
+       },
+       {
+        "text": "Есть"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": 0,
+      "label": "Ядро\t\t48\t24\t277\t20\t2",
+      "node": "TABLE_GOODS",
+      "order": 600,
+      "rowId": "Balls",
+      "type": "choice",
+      "value": "0"
+     },
+     {
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 7,
+          "height": 128,
+          "imageRevision": 7,
+          "source": {
+           "group": "GOODS",
+           "image": "Food",
+           "kind": "atlas"
+          },
+          "width": 128
+         }
+        ],
+        "text": "Еда"
+       },
+       {},
+       {
+        "text": "19"
+       },
+       {
+        "text": "10"
+       },
+       {
+        "text": "374"
+       },
+       {
+        "text": "20"
+       },
+       {
+        "text": "2"
+       }
+      ],
+      "columnHeaders": [
+       "Товар",
+       "Вид",
+       "Продаём",
+       "Покупаем",
+       "Есть",
+       "Пачка",
+       "Вес"
+      ],
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "Вид"
+       },
+       {
+        "text": "Продаём"
+       },
+       {
+        "text": "Покупаем"
+       },
+       {
+        "text": "Есть"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": 1,
+      "label": "Еда\t\t19\t10\t374\t20\t2",
+      "node": "TABLE_GOODS",
+      "order": 601,
+      "rowId": "Food",
+      "type": "choice",
+      "value": "0"
+     }
+    ]
+   },
+   "name": "tradebook-first",
+   "props": {
+    "columns": [
+     {
+      "label": "Городок",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "Продаём",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Покупаем",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Есть",
+      "w": "72px"
+     }
+    ],
+    "headerSection": "tradebook",
+    "prices": [
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:GOODS/Balls"
+        },
+        "text": "Ядро"
+       },
+       "48",
+       "24",
+       "277"
+      ]
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:GOODS/Food"
+        },
+        "text": "Еда"
+       },
+       "19",
+       "10",
+       "374"
+      ]
+     }
+    ],
+    "title": "Книга цен",
+    "townColumns": [
+     {
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "w": "112px"
+     }
+    ],
+    "towns": [
+     {
+      "cells": [
+       {
+        "icon": "nation-france",
+        "iconSize": 30,
+        "iconTone": "color",
+        "sub": "Островок",
+        "text": "Городок"
+       },
+       {
+        "sub": "13:00",
+        "text": "01.10.1654",
+        "tone": ""
+       }
+      ],
+      "disabled": false,
+      "selected": true
+     }
+    ]
+   }
+  },
+  {
+   "calls": [
+    "back "
+   ],
+   "capability": "tradebook",
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 28,
+    "schemaVersion": 2,
+    "screen": "tradebook",
+    "screenRevision": 18,
+    "widgets": [
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "MAIN_BACK",
+      "order": 0,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "I_CHARACTER",
+      "order": 1,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "I_CHARACTER_2",
+      "order": 2,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "I_SHIP",
+      "order": 3,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "I_SHIP_2",
+      "order": 4,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "I_QUESTBOOK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "I_QUESTBOOK_2",
+      "order": 6,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "I_NATIONS",
+      "order": 7,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "I_NATIONS_2",
+      "order": 8,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "I_ITEMS",
+      "order": 9,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "I_ITEMS_2",
+      "order": 10,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Герой",
+      "node": "STR_BUTTONS",
+      "order": 11,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Суда",
+      "node": "STR_BUTTONS",
+      "order": 12,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Записи",
+      "node": "STR_BUTTONS",
+      "order": 13,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Страны",
+      "node": "STR_BUTTONS",
+      "order": 14,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Вещи",
+      "node": "STR_BUTTONS",
+      "order": 15,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "  Книга цен  ",
+      "node": "TITLE",
+      "order": 16,
+      "type": "heading"
+     },
+     {
+      "columnHeaders": [
+       "Флаг",
+       "Порт",
+       "Остров",
+       "Дата"
+      ],
+      "enabled": false,
+      "headerCells": [
+       {
+        "text": "Флаг"
+       },
+       {
+        "text": "Порт"
+       },
+       {
+        "text": "Остров"
+       },
+       {
+        "text": "Дата"
+       }
+      ],
+      "index": -1,
+      "node": "TABLE_CITY",
+      "order": 500,
+      "type": "table",
+      "value": "0"
+     },
+     {
+      "columnHeaders": [
+       "Товар",
+       "Вид",
+       "Продаём",
+       "Покупаем",
+       "Есть",
+       "Пачка",
+       "Вес"
+      ],
+      "enabled": false,
+      "headerCells": [
+       {
+        "text": "Товар"
+       },
+       {
+        "text": "Вид"
+       },
+       {
+        "text": "Продаём"
+       },
+       {
+        "text": "Покупаем"
+       },
+       {
+        "text": "Есть"
+       },
+       {
+        "text": "Пачка"
+       },
+       {
+        "text": "Вес"
+       }
+      ],
+      "index": -1,
+      "node": "TABLE_GOODS",
+      "order": 600,
+      "type": "table",
+      "value": "0"
+     }
+    ]
+   },
+   "name": "tradebook-unvisited",
+   "props": {
+    "columns": [
+     {
+      "label": "",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "Продаём",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Покупаем",
+      "w": "72px"
+     },
+     {
+      "align": "right",
+      "label": "Есть",
+      "w": "72px"
+     }
+    ],
+    "headerSection": "tradebook",
+    "prices": [],
+    "title": "Книга цен",
+    "townColumns": [
+     {
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "w": "112px"
+     }
+    ],
+    "towns": []
+   }
+  }
+ ]
+}

@@ -220,10 +220,30 @@ bool TouchLegLib_Purse(aref model, aref out)
 
 // The hero sections' windows (character, ship, journal, trade book, nations, items) open one another by their
 // buttons I_<SECTION>; a section the window has no button for is the screen's defect.
-void TouchLegLib_Section(aref model, string section)
+void TouchLegLib_SectionNodes(aref out)
 {
 	object nodes = {hero = "I_CHARACTER", ship = "I_SHIP", journal = "I_QUESTBOOK", tradebook = "I_TRADEBOOK",
 	                nations = "I_NATIONS", items = "I_ITEMS"};
+	CopyAttributes(out, &nodes);
+}
+
+// The window has a hero section's button: the sections are drawn.
+bool TouchLegLib_Sections(aref model)
+{
+	object nodes;
+	TouchLegLib_SectionNodes(&nodes);
+	for (int k = 0; k < GetAttributesNum(&nodes); k++)
+	{
+		aref node = GetAttributeN(&nodes, k);
+		if (CheckAttribute(model, GetAttributeValue(node))) return true;
+	}
+	return false;
+}
+
+void TouchLegLib_Section(aref model, string section)
+{
+	object nodes;
+	TouchLegLib_SectionNodes(&nodes);
 	if (!CheckAttribute(&nodes, section)) UiError("no hero section " + section);
 	string node = nodes.(section);
 	bool can = false;

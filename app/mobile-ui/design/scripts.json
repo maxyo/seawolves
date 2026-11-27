@@ -45,6 +45,7 @@
     {"file": "interface/touch/contracts/crew.c"},
     {"file": "interface/touch/contracts/sails.c"},
     {"file": "interface/touch/contracts/repair.c"},
+    {"file": "interface/touch/contracts/tradebook.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -306,6 +307,20 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/tradebook.c",
+      "provides": ["adapter:tradebook"],
+      "binds": [
+        {
+          "capability": "tradebook", "interface": "tradebook",
+          "nodes": [
+            ["TABLE_CITY", "choice|table", true], ["TABLE_GOODS", "choice|table"], ["EXIT_BTN", "button"],
+            ["TITLE", "heading|text"], "@hero-sections", ["I_*", "button"]
+          ],
+          "data": {"types": {"ico_3": "export", "ico_4": "import", "ico_7": "contraband", "ico_8": "demand"}}
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -429,6 +444,11 @@
         {"capability": "map_best", "component": "s-map"},
         {"capability": "map_paper", "component": "s-map"}
       ]
+    },
+    {
+      "file": "interface/touch/screens/hero/tradebook.c",
+      "uses": ["adapter:tradebook"],
+      "screens": [{"capability": "tradebook", "component": "s-tradebook"}]
     }
   ]
 }

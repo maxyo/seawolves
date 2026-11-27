@@ -137,7 +137,6 @@ add_library(storm_ui STATIC
     src/screens/script_screen.cpp
     src/screens/script_props.cpp
     src/component_spec.cpp
-    src/screens/hero_tradebook.cpp
     src/screens/launcher.cpp
     src/hud/abilities.cpp
     src/hud/hud.cpp

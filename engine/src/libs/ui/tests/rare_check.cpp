@@ -322,6 +322,7 @@ static void TradeBook(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "tradebook.json"));
     ExpectEqual(surface.tag, "s-tradebook", "trade book is a ported screen");
     Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty(), "every node of the trade book is known");
@@ -356,6 +357,7 @@ static void TradeBookAsSent(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "tradebook-first.json"));
     Expect(router.Using() == "tradebook" && surface.tag == "s-tradebook" && surface.errors.empty() &&
                surface.props["extras"]["rows"].empty(),

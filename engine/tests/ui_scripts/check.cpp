@@ -830,6 +830,11 @@ TEST_CASE("the map screen's script gives the pack screen the props and actions o
     CheckCases("map", "map");
 }
 
+TEST_CASE("the trade book's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("tradebook", "tradebook");
+}
+
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
 {
     Vm vm;

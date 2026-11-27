@@ -212,6 +212,7 @@ static void SectionPrediction(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel model = Load(models, "tradebook.json");
     router.SetInterface(model);
     Expect(surface.props["headerSection"] == "tradebook" && router.Predicted() == 0,
@@ -219,6 +220,7 @@ static void SectionPrediction(const std::string &models)
 
     router.OnEvent({"header", "section", "ship"});
     ExpectEqual(surface.Last(), "widget:tradebook\tI_SHIP\t-1\tpress", "the tap presses the ship section's button");
+    router.Tick();
     Expect(router.Predicted() == 1 && surface.props["headerSection"] == "ship",
            "the tap's own build selects the ship section");
     AnswerAll(router, surface, true);
@@ -228,10 +230,9 @@ static void SectionPrediction(const std::string &models)
     Expect(surface.props.contains("towns") && !surface.props["towns"].empty(), "the trade book's body stays meanwhile");
     const size_t sent = surface.actions.size();
     router.OnEvent({"header", "section", "items"});
-    Expect(surface.actions.size() == sent && surface.props["headerSection"] == "ship" && surface.errors.empty() &&
-               !surface.logs.empty() &&
-               surface.logs.back().find("screen tradebook: section items tapped while ship opens") == 0,
-           "another section tapped while the ship opens is not sent nor drawn, and is logged");
+    router.Tick();
+    Expect(surface.actions.size() == sent && surface.props["headerSection"] == "ship" && surface.errors.empty(),
+           "another section tapped while the ship opens is not sent nor drawn");
     InterfaceModel ship = Load(models, "ship.json");
     router.SetInterface(ship);
     Expect(surface.tag == "s-ship" && surface.props["headerSection"] == "ship" && surface.errors.empty() &&
@@ -240,6 +241,7 @@ static void SectionPrediction(const std::string &models)
 
     router.SetInterface(model);
     router.OnEvent({"header", "section", "items"});
+    router.Tick();
     Expect(surface.props["headerSection"] == "items", "predicted again");
     AnswerAll(router, surface, false, "locked");
     Expect(surface.props["headerSection"] == "tradebook" && surface.errors.size() == 1 &&

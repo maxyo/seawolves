@@ -149,22 +149,6 @@ Json ShipSkills(const std::vector<const Widget *> &table, Bindings &bindings, co
     return skills;
 }
 
-std::string NationOf(const ImageRef *image)
-{
-    if (!image || image->kind != "atlas" || Upper(image->group) != "NATIONS")
-        return {};
-    static const char *const nations[][2] = {{"ENGLAND", "england"},
-                                             {"FRANCE", "france"},
-                                             {"SPAIN", "spain"},
-                                             {"HOLLAND", "holland"},
-                                             {"PIRATE", "pirates"}};
-    const std::string name = Upper(image->image);
-    for (const auto &[game, flag] : nations)
-        if (name == game)
-            return flag;
-    return {};
-}
-
 std::string Fill(std::string text, std::initializer_list<std::string> args)
 {
     int number = 1;
