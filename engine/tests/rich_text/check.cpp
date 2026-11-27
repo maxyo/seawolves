@@ -112,8 +112,8 @@ TEST_CASE("rich_text.layout")
     CHECK(big[0].height == 22.0f); // larger glyphs: line space plus the difference
     CHECK(LayoutRichText(Parse("[scale=2]x[/scale]"), 100.0f, measure, 12.0f, false)[0].height == 12.0f);
     // an icon behind the text takes no room
-    const auto back = LayoutRichText(Parse("ab[icon:group=G,pic=P,width=5,height=50,layer=back]"), 100.0f, measure,
-                                     12.0f, true);
+    const auto back =
+        LayoutRichText(Parse("ab[icon:group=G,pic=P,width=5,height=50,layer=back]"), 100.0f, measure, 12.0f, true);
     CHECK(back[0].height == 12.0f);
     CHECK(back[0].width == 2.0f);
 }

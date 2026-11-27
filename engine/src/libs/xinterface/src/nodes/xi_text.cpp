@@ -20,8 +20,8 @@ CXI_TEXT::~CXI_TEXT()
     ReleaseAll();
 }
 
-bool CXI_TEXT::Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2, VRenderer *rs,
-                    XYRECT &hostRect, XYPOINT &ScreenSize)
+bool CXI_TEXT::Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2, VRenderer *rs, XYRECT &hostRect,
+                    XYPOINT &ScreenSize)
 {
     return CINODE::Init(ini1, name1, ini2, name2, rs, hostRect, ScreenSize);
 }
@@ -41,8 +41,9 @@ void CXI_TEXT::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const ch
         return std::string(param);
     };
     const std::string align = keyword("alignment", "left");
-    align_ = storm::iEquals(align, "center") ? PR_ALIGN_CENTER : storm::iEquals(align, "right") ? PR_ALIGN_RIGHT
-                                                                                              : PR_ALIGN_LEFT;
+    align_ = storm::iEquals(align, "center")  ? PR_ALIGN_CENTER
+             : storm::iEquals(align, "right") ? PR_ALIGN_RIGHT
+                                              : PR_ALIGN_LEFT;
     const std::string valign = keyword("valignment", "top");
     valign_ = storm::iEquals(valign, "center") ? 1 : storm::iEquals(valign, "bottom") ? 2 : 0;
     anchorBottom_ = !storm::iEquals(keyword("vAnchor", "bottom"), "top");
@@ -86,9 +87,7 @@ std::vector<storm::xi::RichLine> CXI_TEXT::Layout(const std::vector<storm::xi::R
         [&](std::string_view text, const storm::xi::RichStyle &style) {
             return static_cast<float>(m_rs->StringWidth(text, Font(style.font), scale * style.scale));
         },
-        [&](const storm::xi::RichStyle &style) {
-            return m_rs->CharHeight(Font(style.font)) * scale * style.scale;
-        }};
+        [&](const storm::xi::RichStyle &style) { return m_rs->CharHeight(Font(style.font)) * scale * style.scale; }};
     const float lineSpace = lineSpace_ > 0 ? lineSpace_ * globalScale_ : m_rs->CharHeight(font_) * scale;
     return storm::xi::LayoutRichText(items, width, measure, lineSpace, adaptive_);
 }
@@ -138,7 +137,7 @@ void CXI_TEXT::Draw(bool, uint32_t)
     {
         if (y + line.height > m_rect.top - 1 && y < m_rect.bottom + 1)
         {
-            const float left = align_ == PR_ALIGN_CENTER ? m_rect.left + (m_rect.right - m_rect.left - line.width) / 2
+            const float left = align_ == PR_ALIGN_CENTER  ? m_rect.left + (m_rect.right - m_rect.left - line.width) / 2
                                : align_ == PR_ALIGN_RIGHT ? m_rect.right - line.width
                                                           : static_cast<float>(m_rect.left);
             for (const auto &piece : line.pieces)
