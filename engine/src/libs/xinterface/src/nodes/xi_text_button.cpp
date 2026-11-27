@@ -1,4 +1,7 @@
 #include "xi_text_button.h"
+#include "string_compare.hpp"
+
+#include <spdlog/spdlog.h>
 
 CXI_TEXTBUTTON::CXI_TEXTBUTTON()
 {
@@ -46,75 +49,8 @@ void CXI_TEXTBUTTON::Draw(bool bSelected, uint32_t Delta_Time)
     {
         if (bSelected ^ m_bCurrentSelected)
         {
-            auto *pVert = static_cast<XI_ONETEX_VERTEX *>(m_rs->LockVertexBuffer(m_idVBuf));
-            if (pVert != nullptr)
-            {
-                FXYRECT texRect;
-                m_bCurrentSelected = bSelected;
-
-                if (m_idSelectMiddle != -1)
-                {
-                    if (bSelected)
-                        pPictureService->GetTexturePos(m_idSelectMiddle, texRect);
-                    else
-                        pPictureService->GetTexturePos(m_idUnSelectMiddle, texRect);
-
-                    pVert[4].tu = pVert[16].tu = pVert[28].tu = pVert[40].tu = texRect.left;
-                    pVert[4].tv = pVert[16].tv = pVert[28].tv = pVert[40].tv = texRect.top;
-                    pVert[5].tu = pVert[17].tu = pVert[29].tu = pVert[41].tu = texRect.right;
-                    pVert[5].tv = pVert[17].tv = pVert[29].tv = pVert[41].tv = texRect.top;
-                    pVert[6].tu = pVert[18].tu = pVert[30].tu = pVert[42].tu = texRect.left;
-                    pVert[6].tv = pVert[18].tv = pVert[30].tv = pVert[42].tv = texRect.bottom;
-                    pVert[7].tu = pVert[19].tu = pVert[31].tu = pVert[43].tu = texRect.right;
-                    pVert[7].tv = pVert[19].tv = pVert[31].tv = pVert[43].tv = texRect.bottom;
-                }
-
-                if (m_idSelectLeft != -1)
-                {
-                    if (bSelected)
-                        pPictureService->GetTexturePos(m_idSelectLeft, texRect);
-                    else
-                        pPictureService->GetTexturePos(m_idUnSelectLeft, texRect);
-
-                    pVert[0].tu = pVert[12].tu = pVert[24].tu = pVert[36].tu = texRect.left;
-                    pVert[0].tv = pVert[12].tv = pVert[24].tv = pVert[36].tv = texRect.top;
-                    pVert[1].tu = pVert[13].tu = pVert[25].tu = pVert[37].tu = texRect.right;
-                    pVert[1].tv = pVert[13].tv = pVert[25].tv = pVert[37].tv = texRect.top;
-                    pVert[2].tu = pVert[14].tu = pVert[26].tu = pVert[38].tu = texRect.left;
-                    pVert[2].tv = pVert[14].tv = pVert[26].tv = pVert[38].tv = texRect.bottom;
-                    pVert[3].tu = pVert[15].tu = pVert[27].tu = pVert[39].tu = texRect.right;
-                    pVert[3].tv = pVert[15].tv = pVert[27].tv = pVert[39].tv = texRect.bottom;
-                }
-
-                if (m_idSelectRight != -1 || m_idSelectLeft != -1)
-                {
-                    if (bSelected)
-                    {
-                        if (m_idSelectRight != -1)
-                            pPictureService->GetTexturePos(m_idSelectRight, texRect);
-                        else
-                            pPictureService->GetTexturePos(TEXTURE_MODIFY_HORZFLIP, m_idSelectLeft, texRect);
-                    }
-                    else
-                    {
-                        if (m_idUnSelectRight != -1)
-                            pPictureService->GetTexturePos(m_idUnSelectRight, texRect);
-                        else
-                            pPictureService->GetTexturePos(TEXTURE_MODIFY_HORZFLIP, m_idUnSelectLeft, texRect);
-                    }
-
-                    pVert[8].tu = pVert[20].tu = pVert[32].tu = pVert[44].tu = texRect.left;
-                    pVert[8].tv = pVert[20].tv = pVert[32].tv = pVert[44].tv = texRect.top;
-                    pVert[9].tu = pVert[21].tu = pVert[33].tu = pVert[45].tu = texRect.right;
-                    pVert[9].tv = pVert[21].tv = pVert[33].tv = pVert[45].tv = texRect.top;
-                    pVert[10].tu = pVert[22].tu = pVert[34].tu = pVert[46].tu = texRect.left;
-                    pVert[10].tv = pVert[22].tv = pVert[34].tv = pVert[46].tv = texRect.bottom;
-                    pVert[11].tu = pVert[23].tu = pVert[35].tu = pVert[47].tu = texRect.right;
-                    pVert[11].tv = pVert[23].tv = pVert[35].tv = pVert[47].tv = texRect.bottom;
-                }
-
-                m_rs->UnLockVertexBuffer(m_idVBuf);
-            }
+            m_bCurrentSelected = bSelected;
+            UpdatePartsUV();
         }
 
         if (m_idShadowTex >= 0)
@@ -179,36 +115,22 @@ void CXI_TEXTBUTTON::Draw(bool bSelected, uint32_t Delta_Time)
         }
 
         if (m_idString != -1 || m_sString != nullptr)
-            if (m_nPressedDelay > 0)
-            {
-                m_rs->ExtPrint(m_nFontNum, m_dwPressedFontColor, 0, PR_ALIGN_CENTER, true, m_fFontScale, m_screenSize.x,
-                               m_screenSize.y, (m_rect.left + m_rect.right) / 2 + static_cast<int>(m_fXDeltaPress),
-                               m_rect.top + m_dwStrOffset + static_cast<int>(m_fYDeltaPress), "%s",
-                               m_idString != -1 ? pStringService->GetString(m_idString) : m_sString);
-            }
-            else
-            {
-                if (m_bSelected)
-                {
-                    if(m_bCurrentSelected)
-                    {    
-                        m_rs->ExtPrint(m_nFontNum, m_dwSelectedFontColor, 0, PR_ALIGN_CENTER, true, m_fFontScale, m_screenSize.x,
-                                       m_screenSize.y, (m_rect.left + m_rect.right) / 2, m_rect.top + m_dwStrOffset, "%s",
-                                       m_idString != -1 ? pStringService->GetString(m_idString) : m_sString);
-                    }
-                    else
-                    {
-                        m_rs->ExtPrint(m_nFontNum, m_dwFontColor, 0, PR_ALIGN_CENTER, true, m_fFontScale, m_screenSize.x,
-                                       m_screenSize.y, (m_rect.left + m_rect.right) / 2, m_rect.top + m_dwStrOffset, "%s",
-                                       m_idString != -1 ? pStringService->GetString(m_idString) : m_sString);
-            }
-    }
-                else
-                    m_rs->ExtPrint(m_nFontNum, m_dwUnselFontColor, 0, PR_ALIGN_CENTER, true, m_fFontScale,
-                                   m_screenSize.x, m_screenSize.y, (m_rect.left + m_rect.right) / 2,
-                                   m_rect.top + m_dwStrOffset, "%s",
-                                   m_idString != -1 ? pStringService->GetString(m_idString) : m_sString);
-            }
+        {
+            const uint32_t color = m_nPressedDelay > 0                       ? m_dwPressedFontColor
+                                   : !m_bSelected                            ? m_dwUnselFontColor
+                                   : m_bCurrentSelected                      ? m_dwSelectedFontColor
+                                                                             : m_dwFontColor;
+            const int32_t dx = m_nPressedDelay > 0 ? static_cast<int32_t>(m_fXDeltaPress) : 0;
+            const int32_t y = m_rect.top + m_dwStrOffset + (m_nPressedDelay > 0 ? static_cast<int32_t>(m_fYDeltaPress) : 0);
+            // the text is centred in what the right text (messages 9 and 10) leaves of the button
+            m_rs->ExtPrint(m_nFontNum, color, 0, PR_ALIGN_CENTER, true, m_fFontScale, m_screenSize.x, m_screenSize.y,
+                           (m_rect.left + m_rect.right - m_nRightTextWidth) / 2 + dx, y, "%s",
+                           m_idString != -1 ? pStringService->GetString(m_idString) : m_sString);
+            if (!m_sRightText.empty())
+                m_rs->ExtPrint(m_nFontNum, color, 0, PR_ALIGN_CENTER, true, m_fFontScale, m_screenSize.x,
+                               m_screenSize.y, m_rect.right - m_nRightTextWidth / 2 + dx, y, "%s",
+                               m_sRightText.c_str());
+        }
     }
 }
 
@@ -523,6 +445,79 @@ void CXI_TEXTBUTTON::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, co
     m_v[7].pos.y = (m_v[3].pos.y = static_cast<float>(m_rect.bottom)) + m_fYDeltaPress;
 }
 
+void CXI_TEXTBUTTON::UpdatePartsUV()
+{
+    auto *pVert = static_cast<XI_ONETEX_VERTEX *>(m_rs->LockVertexBuffer(m_idVBuf));
+    if (pVert == nullptr)
+        return;
+    const bool selected = m_bCurrentSelected;
+    const auto pick = [selected](int32_t select, int32_t unselect) {
+        return selected && select != -1 ? select : unselect;
+    };
+    // a part's four quads: the button, its shadow, pressed and the pressed shadow
+    const auto put = [pVert](int first, const FXYRECT &r) {
+        for (const int quad : {0, 12, 24, 36})
+        {
+            XI_ONETEX_VERTEX *v = pVert + first + quad;
+            v[0].tu = v[2].tu = r.left;
+            v[1].tu = v[3].tu = r.right;
+            v[0].tv = v[1].tv = r.top;
+            v[2].tv = v[3].tv = r.bottom;
+        }
+    };
+    FXYRECT texRect;
+    if (const int32_t middle = pick(m_idSelectMiddle, m_idUnSelectMiddle); middle != -1)
+    {
+        pPictureService->GetTexturePos(middle, texRect);
+        put(4, texRect);
+    }
+    const int32_t left = pick(m_idSelectLeft, m_idUnSelectLeft);
+    if (left != -1)
+    {
+        pPictureService->GetTexturePos(left, texRect);
+        put(0, texRect);
+    }
+    // the right part, else the left one mirrored
+    const bool selectRight = selected && (m_idSelectRight != -1 || m_idSelectLeft != -1);
+    const int32_t right = selectRight ? m_idSelectRight : m_idUnSelectRight;
+    const int32_t mirrored = selectRight ? m_idSelectLeft : m_idUnSelectLeft;
+    if (right != -1)
+        pPictureService->GetTexturePos(right, texRect);
+    else if (mirrored != -1)
+        pPictureService->GetTexturePos(TEXTURE_MODIFY_HORZFLIP, mirrored, texRect);
+    if (right != -1 || mirrored != -1)
+        put(8, texRect);
+    m_rs->UnLockVertexBuffer(m_idVBuf);
+}
+
+void CXI_TEXTBUTTON::ChangePartPicture(const std::string &part, const std::string &group, const std::string &picture)
+{
+    int32_t *const id = storm::iEquals(part, "buttonLeft")           ? &m_idUnSelectLeft
+                        : storm::iEquals(part, "selectButtonLeft")   ? &m_idSelectLeft
+                        : storm::iEquals(part, "buttonMiddle")       ? &m_idUnSelectMiddle
+                        : storm::iEquals(part, "selectButtonMiddle") ? &m_idSelectMiddle
+                        : storm::iEquals(part, "buttonRight")        ? &m_idUnSelectRight
+                        : storm::iEquals(part, "selectButtonRight")  ? &m_idSelectRight
+                                                                     : nullptr;
+    if (!id)
+    {
+        spdlog::error("TEXTBUTTON {}: message 11: no part '{}'", m_nodeName, part);
+        return;
+    }
+    if (!m_sGroupName || !storm::iEquals(m_sGroupName, group))
+    {
+        PICTURE_TEXTURE_RELEASE(pPictureService, m_sGroupName, m_idTex);
+        delete[] m_sGroupName;
+        m_sGroupName = new char[group.size() + 1];
+        memcpy(m_sGroupName, group.c_str(), group.size() + 1);
+        m_idTex = pPictureService->GetTextureID(m_sGroupName);
+    }
+    *id = pPictureService->GetImageNum(m_sGroupName, picture.c_str());
+    if (*id == -1)
+        spdlog::error("TEXTBUTTON {}: message 11: no picture '{}' in '{}'", m_nodeName, picture, group);
+    UpdatePartsUV();
+}
+
 void CXI_TEXTBUTTON::ReleaseAll()
 {
     PICTURE_TEXTURE_RELEASE(pPictureService, m_sGroupName, m_idTex);
@@ -623,13 +618,29 @@ uint32_t CXI_TEXTBUTTON::MessageProc(int32_t msgcode, MESSAGE &message)
     }
     break;
     case 1: // change button position
+    {
         XYRECT newPos;
         newPos.left = message.Long();
         newPos.top = message.Long();
         newPos.right = message.Long();
         newPos.bottom = message.Long();
         ChangePosition(newPos);
+    }
+    break;
+    case 9: // the text in the button's right column
+        m_sRightText = message.String();
         break;
+    case 10: // the width of the right column
+        m_nRightTextWidth = message.Long();
+        break;
+    case 11: // part, picture group, picture: a part of the button from another picture
+    {
+        const std::string part = message.String();
+        const std::string group = message.String();
+        const std::string picture = message.String();
+        ChangePartPicture(part, group, picture);
+    }
+    break;
     }
     return 0;
 }

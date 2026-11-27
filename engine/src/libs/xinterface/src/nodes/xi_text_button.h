@@ -40,6 +40,8 @@ class CXI_TEXTBUTTON : public CINODE
   protected:
     void LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2) override;
     void FillPositionIntoVertices();
+    void UpdatePartsUV(); // the parts' pictures for the current selection
+    void ChangePartPicture(const std::string &part, const std::string &group, const std::string &picture);
 
   protected:
     char *m_sGroupName;
@@ -80,6 +82,8 @@ class CXI_TEXTBUTTON : public CINODE
     int32_t m_idString;
     int m_dwStrOffset;
     char *m_sString;
+    std::string m_sRightText;     // in a column at the button's right (node messages 9, 10)
+    int32_t m_nRightTextWidth = 0;
 
     // picture index & vertex buffers
     int32_t m_idVBuf; // identificator of the vertex buffer
