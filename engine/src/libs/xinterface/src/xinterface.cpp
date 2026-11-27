@@ -2928,15 +2928,14 @@ void XINTERFACE::MobileInterfaceGone()
 // The script events the nodes queued (MSG_INTERFACE_SET_EVENT), newest first.
 void XINTERFACE::RunNodeEvents()
 {
+    // Each event leaves the list before it is raised: its handler may open another interface, which releases the
+    // list (ReleaseOld), while the event's names are still in use.
     while (m_pEvents != nullptr)
     {
-        core.Event(m_pEvents->sEventName, "ls", m_pEvents->nCommandIndex, m_pEvents->sNodeName);
-        if (m_pEvents != nullptr)
-        {
-            auto *const pE = m_pEvents;
-            m_pEvents = m_pEvents->next;
-            delete pE;
-        }
+        const std::unique_ptr<EVENT_Entity> event(m_pEvents);
+        m_pEvents = event->next;
+        event->next = nullptr;
+        core.Event(event->sEventName, "ls", event->nCommandIndex, event->sNodeName);
     }
 }
 
