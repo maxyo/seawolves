@@ -112,6 +112,7 @@ void WEATHER::Realize(uint32_t Delta_Time)
 void WEATHER::Execute(uint32_t Delta_Time)
 {
     const float seconds = static_cast<float>(core.GetDeltaTime()) * 0.001f;
+    flash_now_ = flash_.Advance(seconds, fFloats[whf_time_counter]);
     cloud_drift_ += glm::vec2(std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])) *
                     fFloats[whf_wind_speed] * seconds;
     for (size_t i = 0; i < cloud_turn_.size(); ++i)
@@ -142,6 +143,12 @@ void WEATHER::Execute(uint32_t Delta_Time)
     {
         PushLegacyEnvironment();
     }
+}
+
+void WEATHER::Flash(float seconds)
+{
+    // One or two pulses, at random, as Caribbean Legend's engine flashes.
+    flash_.Start(seconds, 1 + (std::rand() & 1));
 }
 
 // The scripts' attributes as the scene environment.

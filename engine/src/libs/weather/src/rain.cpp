@@ -3,6 +3,8 @@
 
 #include "core.h"
 #include "math_inlines.h"
+#include "shared/messages.h"
+#include "weather.h"
 
 RAIN::RAIN()
 {
@@ -42,6 +44,9 @@ RAIN::RAIN()
 
 RAIN::~RAIN()
 {
+    if (rain_effect_ >= 0)
+        if (const auto effects = core.GetEntityId("effects"))
+            core.Send_Message(effects, "ll", MSG_EFFECT_DELETE, rain_effect_);
     Release();
 }
 
@@ -195,6 +200,40 @@ bool RAIN::Init()
 
 void RAIN::Execute(uint32_t Delta_Time)
 {
+    PlayRainEffect();
+}
+
+void RAIN::PlayRainEffect()
+{
+    // Caribbean Legend's scripts give the rain no drops: its engine plays the effect table's "rain_cl" at the eye
+    // while the weather's hour rains outdoors and the scripts show the rain.
+    constexpr const char *kRainEffect = "rain_cl";
+    if (dwNumDrops != 0)
+        return;
+    const auto *weather = static_cast<const WEATHER *>(core.GetEntityPointerSafe(core.GetEntityId("weather")));
+    const auto effects = core.GetEntityId("effects");
+    const bool falling =
+        bShow && weather && effects && weather->Environment().sky && weather->Environment().rain > 0.0f;
+    if (!falling)
+    {
+        if (rain_effect_ >= 0 && effects)
+            core.Send_Message(effects, "ll", MSG_EFFECT_STOP_ROOT, rain_effect_);
+        rain_effect_ = -1;
+        rain_effect_failed_ = false;
+        return;
+    }
+    glm::vec3 eye, angles;
+    float fov;
+    rs->GetCamera(eye, angles, fov);
+    if (rain_effect_ >= 0)
+        core.Send_Message(effects, "llfff", MSG_EFFECT_UPDATE_POS, rain_effect_, eye.x, eye.y, eye.z);
+    else if (!rain_effect_failed_)
+    {
+        // The Effects entity logs why an effect cannot play; it is not asked again until the next rain.
+        rain_effect_ = static_cast<int32_t>(
+            core.Send_Message(effects, "lsfff", MSG_EFFECT_PLAY, kRainEffect, eye.x, eye.y, eye.z));
+        rain_effect_failed_ = rain_effect_ < 0;
+    }
 }
 
 void RAIN::InitialSomeBlockParameters(int32_t iIdx) const
@@ -520,8 +559,13 @@ uint64_t RAIN::ProcessMessage(MESSAGE &message)
 {
     switch (message.Long())
     {
-    case 1:
+    case 1: // «Каждому своё»'s show message
+    case MSG_WHR_RAIN_SHOW:
         bShow = (0 != message.Long());
+        break;
+    case MSG_WHR_RAIN_LIGHTNING_FLASH:
+        if (auto *weather = static_cast<WEATHER *>(core.GetEntityPointerSafe(core.GetEntityId("weather"))))
+            weather->Flash(message.Float());
         break;
     }
     return 0;

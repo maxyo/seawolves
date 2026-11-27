@@ -99,6 +99,12 @@ class RAIN : public Entity
     VRenderer *rs;
     COLLIDE *cs;
 
+    // The game's own rain effect while it falls (a game whose scripts give the rain no drops of its own), -1 none;
+    // whether it could not be played in this rain.
+    int32_t rain_effect_ = -1;
+    bool rain_effect_failed_ = false;
+    void PlayRainEffect();
+
     void GenerateRandomDrop(glm::vec3 *vPos) const;
     void GenerateRain();
     void InitialSomeBlockParameters(int32_t iIdx) const;

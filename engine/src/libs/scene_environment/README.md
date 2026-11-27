@@ -30,9 +30,10 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   where the place does not rain.
 - **A frame.** Outdoors the periods give the direct light (the sun's colour from the periods between the end of
   dawn and the start of the night, the moon's from the night) and the fill; while an hour rains its table keeps
-  them, and the sun's and the moon's light on the clouds and the discs is the rain's too. Indoors the table alone lights. Outdoors the fill multiplies the light of the sky as it is drawn (the mean of
-  the clear sky above, without its clouds, `ResolveSkyFill` in the renderer), tinted by the periods' sky tint, and the ground's
-  bounce that light's luminance; indoors, without a sky, a constant irradiance. The exposure is the periods' base
+  them, and the sun's and the moon's light on the clouds and the discs is the rain's too. Indoors the table alone
+  lights. Outdoors the fill multiplies the light of the sky as it is drawn (the mean of the clear sky above, without
+  its clouds, `ResolveSkyFill` in the renderer), tinted by the periods' sky tint, and the ground's bounce that
+  light's luminance; indoors, without a sky, a constant irradiance. The exposure is the periods' base
   exposure times two to their camera's `exposure_ev`; the camera's contrast, saturation, white balance, lift, gamma
   and gain grade the picture after the tone curve (indoors `aces.json`'s camera). The fog is the table's where its hours have fog
   (densities per 100 m), the height fog's for the rest, reaching the sky at its greatest distance; the haze band is
@@ -42,6 +43,10 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   rain's intensity and the flags of each hour. The clouds' cover is a fifth of the hour's cloud density, the scale
   the scripts themselves give a rain's intensity by. The rain clouds cover the sky in the hours that rain and grow or thin
   over the hour before or after; a rain that stopped leaves wetness that dries by a third per hour within the next.
+- **Lightning.** A flash (`LightningFlash`, Caribbean Legend's shape: one or two pulses over its seconds) multiplies
+  the sky's radiances and the fill, to half by day and forty times by night (`ApplyFlash`). The scripts decide when
+  lightning strikes: Caribbean Legend's send the rain its flash message, «Каждому своё»'s add a bolt to the lightning
+  entity, whose time is the flash's.
 - **Clouds.** `atmosphere.json`'s `textured_clouds` periods blend by the time of day's transition hours into the
   hour's cloud look (`CloudLook`: brightness, the textured layers' opacity, the sun's, the sky's, the twilight's and
   the moon's light on them, the light through them near the sun or the moon); the share of dawn and sunset in the

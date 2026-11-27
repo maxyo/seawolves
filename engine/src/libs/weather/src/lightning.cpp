@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "game_profile.hpp"
+#include "weather.h"
 
 #include <spdlog/spdlog.h>
 
@@ -141,6 +142,9 @@ uint64_t LIGHTNING::ProcessMessage(MESSAGE &message)
         pL->Flash.fTime = message.Float();
 
         CalcFlashPower(pL);
+        // The bolt's flash lights the scene and the sky as Caribbean Legend's lightning does, over the bolt's time.
+        if (auto *weather = static_cast<WEATHER *>(core.GetEntityPointerSafe(core.GetEntityId("weather"))))
+            weather->Flash(pL->fTime);
     }
     break;
     }

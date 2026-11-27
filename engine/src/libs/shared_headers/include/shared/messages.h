@@ -74,6 +74,8 @@
 
 // Weather Messages
 #define MSG_WHR_LIGHTNING_ADD 54000
+#define MSG_WHR_RAIN_LIGHTNING_FLASH 54100 // "f": a lightning's flash over these seconds (Caribbean Legend's RAIN)
+#define MSG_WHR_RAIN_SHOW 54101            // "l": the rain shown or hidden (Caribbean Legend's RAIN; «Каждому своё» sends 1)
 
 // Location messages
 

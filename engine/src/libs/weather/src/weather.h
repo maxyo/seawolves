@@ -1,6 +1,7 @@
 #pragma once
 
 #include "environment_data.hpp"
+#include "storm/environment/evaluate.hpp"
 #include "storm/environment/legacy.hpp"
 #include "rain.h"
 #include "sky.h"
@@ -49,6 +50,8 @@ class WEATHER : public WEATHER_BASE
     const storm::weather::PlacePreset *place_ = nullptr;
     std::optional<storm::environment::HourTable> table_;
     storm::environment::State state_;
+    storm::environment::LightningFlash flash_;
+    float flash_now_ = 1.0f; // the flash's multiplier this frame
     glm::vec2 cloud_drift_{0.0f}; // metres the wind has carried the clouds
     std::array<float, 3> cloud_turn_{}; // radians the textured cloud layers have turned (upper, base, rain)
     std::vector<int32_t> cloud_textures_; // the renderer's textures of the game's cloud layers
@@ -104,6 +107,9 @@ class WEATHER : public WEATHER_BASE
     {
         return state_;
     }
+
+    // A lightning's flash over `seconds`: the rain's flash message, a bolt of the lightning entity.
+    void Flash(float seconds);
 
     // The fog of the current hour of the place's lighting presets (density per 100 m, linear colour); nullopt when
     // the hour has none or the weather is not evaluated from data.

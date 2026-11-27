@@ -406,6 +406,25 @@ TEST_CASE("rain clouds and wetness")
     CHECK(Evaluate(in).clouds == Approx(0.5f)); // a fifth of the density
 }
 
+TEST_CASE("a lightning's flash")
+{
+    // A tenth into its pulse it is half lit: half way to 0.5 by day, to 40 at night; over, nothing.
+    LightningFlash day;
+    day.Start(0.25f, 1);
+    CHECK(day.Advance(0.0125f, 12.0f) == Approx(0.75f));
+    day.Start(1.0f, 1); // a flash runs: no new one
+    CHECK(day.Advance(0.25f, 12.0f) == 1.0f);
+    LightningFlash night;
+    night.Start(0.25f, 2);
+    CHECK(night.Advance(0.0f, 22.0f) == 1.0f);
+    CHECK(night.Advance(0.1250f + 0.00625f, 22.0f) == Approx(20.5f)); // the second pulse
+    State lit;
+    lit.sky_day = glm::vec3(2.0f);
+    lit.fill_intensity = 1.0f;
+    ApplyFlash(lit, 0.5f);
+    CHECK((lit.sky_day == glm::vec3(1.0f) && lit.fill_intensity == 0.5f && lit.sky_fill == glm::vec3(0.0f)));
+}
+
 TEST_CASE("every preset of an installed game for every hour", "[.corpus]")
 {
     namespace fs = std::filesystem;
