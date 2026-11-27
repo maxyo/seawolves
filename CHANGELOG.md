@@ -61,6 +61,8 @@
   провизии на компасе больше не краснеет по своему порогу: об остатке предупреждает сама игра.
 - Меню действий на суше: команда зелий доступна тогда же, когда в меню самой игры; одно противоядие при полном
   здоровье больше не открывает список зелий.
+- Абордаж: кнопка «Дальше» показывается всё время, пока игра ждёт клавишу действия, чтобы перейти дальше; когда
+  квест не пускает дальше, на нажатие отвечает сама игра.
 
 **English**
 
@@ -127,6 +129,8 @@
   run low.
 - Land action menu: the potion command is available exactly when the game's own menu offers it; an antidote alone at
   full health no longer opens the potion list.
+- Boarding: the «Next» button shows the whole time the game waits for the action key to go on; when a quest holds the
+  boarding, the game itself answers the tap.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

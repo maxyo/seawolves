@@ -247,13 +247,6 @@ TEST_CASE("after a won boarding fight the action key continues the boarding")
         town.refresh();
         CHECK_FALSE(combatInput.hud().Has("interact"));
     }
-    SECTION("a quest forbids the continuation")
-    {
-        town.hero.CreateSubAClass(&town.hero, "GenQuest.CannotReloadBoarding");
-        town.refresh();
-        CHECK_FALSE(combatInput.hud().Has("interact"));
-        CHECK(combatInteractKind == "dialog");
-    }
     SECTION("the handler disarmed: gone with its queued taps")
     {
         Town::frameAction();

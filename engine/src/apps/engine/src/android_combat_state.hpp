@@ -36,21 +36,15 @@ inline int64_t dialogTarget()
     const auto target = core.Send_Message(player, "ls", MSG_CHARACTER_EX_MSG, "FindDialogCharacter");
     return validDialogTarget(target) ? target : -1;
 }
-// The game's way on after a boarding fight (LAi_boarding.c, also in other games on this engine): once the enemy
-// group is dead and its delay has passed, LAi_EnableReload arms the one-shot "Control Activation"
-// handler LAi_ActivateReload, which continues the boarding on the action key (ChrAction) unless a quest
-// set GenQuest.CannotReloadBoarding. The active-action icon it also sets is only a hint: leaving a
-// locator, box or item resets it to "Nothing", and BI_FastCommand ignores its BoardingReload. So
-// the touch HUD offers the action key while that handler is armed, not while the icon happens to show.
+// The game's way on after a boarding fight (LAi_boarding.c): once the enemy group is dead, the scripts arm the
+// one-shot "Control Activation" handler LAi_ActivateReload, which continues on the action key (ChrAction) as it
+// decides. The active-action icon is only a hint (leaving a locator resets it), so the HUD follows the handler.
 inline bool boardingContinueArmed(CorePrivate *scripts)
 {
     auto *process = static_cast<VDATA *>(core.GetScriptVariable("LAi_boarding_process"));
     int32_t boarding = 0;
-    if (!process || !process->Get(boarding) || !boarding || !scripts ||
-        !scripts->HasActiveEventHandler("Control Activation", "LAi_ActivateReload"))
-        return false;
-    auto *character = shipMainCharacter();
-    return character && !character->FindAClass(character, "GenQuest.CannotReloadBoarding");
+    return process && process->Get(boarding) && boarding && scripts &&
+           scripts->HasActiveEventHandler("Control Activation", "LAi_ActivateReload");
 }
 inline std::string combatInteractKind = "dialog";
 // Whom the talk button talks to (the touch HUD's bottom hint): the script character's name and
