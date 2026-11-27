@@ -4,7 +4,7 @@
 
 #include "core.h"
 #include "math_inlines.h"
-#include "sky.h"
+#include "weather.h"
 
 SUNGLOW::SUNGLOW()
 {
@@ -22,7 +22,7 @@ SUNGLOW::SUNGLOW()
     bVisible = false;
     bVisibleFlare = false;
 
-    iSunTex = iMoonTex = iSunGlowTex = -1;
+    iSunGlowTex = -1;
     iFlareTex = -1;
     iOverflowTex = -1;
     iReflTexture = -1;
@@ -80,12 +80,6 @@ void SUNGLOW::SetDevice()
 
 void SUNGLOW::Release()
 {
-    if (iSunTex >= 0)
-        pRS->TextureRelease(iSunTex);
-    iSunTex = -1;
-    if (iMoonTex >= 0)
-        pRS->TextureRelease(iMoonTex);
-    iMoonTex = -1;
     if (iSunGlowTex >= 0)
         pRS->TextureRelease(iSunGlowTex);
     iSunGlowTex = -1;
@@ -107,18 +101,12 @@ void SUNGLOW::GenerateSunGlow()
     int32_t nTex = 0;
 
     iOldTex[nTex++] = iFlareTex;
-    iOldTex[nTex++] = iSunTex;
-    iOldTex[nTex++] = iMoonTex;
     iOldTex[nTex++] = iSunGlowTex;
     iOldTex[nTex++] = iOverflowTex;
     iOldTex[nTex++] = iReflTexture;
 
     if (Flares.sTexture.size())
         iFlareTex = pRS->TextureCreate(static_cast<const char *>(Flares.sTexture.c_str()));
-    if (Glow.sSunTexture.size())
-        iSunTex = pRS->TextureCreate(static_cast<const char *>(Glow.sSunTexture.c_str()));
-    if (Glow.sMoonTexture.size())
-        iMoonTex = pRS->TextureCreate(static_cast<const char *>(Glow.sMoonTexture.c_str()));
     if (Glow.sGlowTexture.size())
         iSunGlowTex = pRS->TextureCreate(static_cast<const char *>(Glow.sGlowTexture.c_str()));
     if (Overflow.sTexture.size())
@@ -234,7 +222,7 @@ void SUNGLOW::Realize(uint32_t Delta_Time)
 
     if (bHaveGlow && vSun.y > fBottomClip - Glow.fGlowSize)
     {
-        fFadeout = GetSunFadeoutFactor(vSun, Glow.fGlowSize);
+        fFadeout = GetSunFadeoutFactor();
 
 
 
@@ -307,36 +295,6 @@ void SUNGLOW::Realize(uint32_t Delta_Time)
     }
 }
 
-void SUNGLOW::DrawSunMoon(bool sun)
-{
-    if (!bMoon && !sun)
-        return;
-    const auto fGlowSize = bMoon ? Glow.fMoonSize : Glow.fSunSize;
-
-    float fFov;
-    glm::vec3 vCamPos, vCamAng;
-    glm::vec3 vSun, vSunPos, vSunDir;
-
-    pWeather->GetVector(whv_sun_pos, &vSunPos);
-    pRS->GetCamera(vCamPos, vCamAng, fFov);
-    vSunDir = storm::math::normalizeOrZero(vSunPos);
-    vSun = vCamPos + (vSunDir * Glow.fDist);
-
-    if (bHaveGlow && vSun.y > fBottomClip - fGlowSize)
-    {
-        const glm::vec3 vGlowColor = COLOR2VECTOR(Glow.dwColor);
-
-        if (bMoon)
-            pRS->TextureSet(0, iMoonTex);
-        else
-            pRS->TextureSet(0, iSunTex);
-
-        uint32_t rgb = makeRGB(static_cast<uint32_t>(vGlowColor.x), static_cast<uint32_t>(vGlowColor.y),
-                               static_cast<uint32_t>(vGlowColor.z));
-        DrawRect(rgb, vSun, fGlowSize, 0.f, Glow.sTechniqueZ.c_str(), fBottomClip);
-    }
-}
-
 uint32_t SUNGLOW::AttributeChanged(ATTRIBUTES *pAttribute)
 {
     if (*pAttribute == "isDone")
@@ -380,16 +338,6 @@ uint32_t SUNGLOW::AttributeChanged(ATTRIBUTES *pAttribute)
             Glow.fDist = pAttribute->GetAttributeAsFloat();
             return 0;
         }
-        if (*pAttribute == "SunSize")
-        {
-            Glow.fSunSize = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "MoonSize")
-        {
-            Glow.fMoonSize = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
         if (*pAttribute == "Size")
         {
             Glow.fGlowSize = pAttribute->GetAttributeAsFloat();
@@ -403,16 +351,6 @@ uint32_t SUNGLOW::AttributeChanged(ATTRIBUTES *pAttribute)
         if (*pAttribute == "Color")
         {
             Glow.dwColor = pAttribute->GetAttributeAsDword();
-            return 0;
-        }
-        if (*pAttribute == "SunTexture")
-        {
-            Glow.sSunTexture = to_string(pAttribute->GetThisAttr());
-            return 0;
-        }
-        if (*pAttribute == "MoonTexture")
-        {
-            Glow.sMoonTexture = to_string(pAttribute->GetThisAttr());
             return 0;
         }
         if (*pAttribute == "GlowTexture")
@@ -721,9 +659,8 @@ void SUNGLOW::DrawRect(uint32_t dwColor, const glm::vec3 &pos, float fSize, floa
 
 }
 
-float SUNGLOW::GetSunFadeoutFactor(const glm::vec3 &vSunPos, float fSunSize)
+float SUNGLOW::GetSunFadeoutFactor() const
 {
-    // Day/night and location transitions can replace the sky while this glow entity survives.
-    auto *sky = static_cast<SKY *>(core.GetEntityPointerSafe(core.GetEntityId("sky")));
-    return sky ? sky->CalculateAlphaForSun(vSunPos, fSunSize) : 1.0f;
+    // The rain clouds hide the sun; the fair-weather clouds drift past it.
+    return 1.0f - static_cast<const WEATHER *>(pWeather)->Environment().rain_clouds;
 }

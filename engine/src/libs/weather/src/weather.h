@@ -1,6 +1,8 @@
 #pragma once
 
 #include "environment_data.hpp"
+#include "math_inlines.h"
+#include "storm/environment/legacy.hpp"
 #include "rain.h"
 #include "sky.h"
 #include "weather_base.h"
@@ -23,20 +25,11 @@ class WEATHER : public WEATHER_BASE
     // timer data
     float fUpdateFrequence;
 
-    // sun moving data
-    bool bSunPresent;
-    float fSunHeight;
-    float fSunBegAngle;
-    float fSunBegTime;
-    float fSunEndAngle;
-    float fSunEndTime;
-    // moon moving data
-    bool bMoonPresent;
-    float fMoonHeight;
-    float fMoonBegAngle;
-    float fMoonBegTime;
-    float fMoonEndAngle;
-    float fMoonEndTime;
+    // The scripts' arcs of the sun and the moon, and the light they place while the clock stands.
+    storm::environment::LegacyArc sun_{3.0f / 4.0f * PId2, 0.0f, 5.0f, PI, 23.0f};
+    storm::environment::LegacyArc moon_{5.0f / 4.0f * PId2, PId2, 23.5f, -PId2, 4.5f};
+    float fixed_elevation_ = 0.0f, fixed_azimuth_ = 0.0f;
+    float fog_band_ = 0.0f; // the sine of the height of the scripts' fog band over the horizon
 
     // The environment evaluated from the game's data (GameEnvironment(); null: the scripts' attributes set it).
     struct Pipeline
@@ -61,19 +54,16 @@ class WEATHER : public WEATHER_BASE
     std::optional<storm::environment::HourTable> table_;
     storm::environment::State state_;
     glm::vec2 cloud_drift_{0.0f}; // metres the wind has carried the clouds
-    entid_t sky_ = invalid_entity;
+    entid_t sky_ = invalid_entity; // the sky WEATHER created (environment from data); the scripts' own otherwise
     int event_hour_ = -1;
     bool lightning_ = false, tornado_ = false;
     std::set<std::string> reported_; // problems with the data, each logged once
 
     void SetBeginData();
-    void UpdateSunMoonPos();
-    // The sun at `hour`: false (and straight down) outside the sun's day.
-    bool SunAt(float hour, float &height_angle, float &azimuth_angle, glm::vec3 &pos) const;
-    // The environment of the scripts' attributes, pushed to the renderer.
+    // The environment of the scripts' attributes (environment::EvaluateLegacy).
     void PushLegacyEnvironment();
-
-    void SetCommonStates();
+    // state_ to the renderer, the device and those that ask WEATHER where the light stands.
+    void ApplyEnvironment();
     // The fixed-function device's fog, ambient and sun (light 0); colours as the game's 0..1 gamma-encoded values.
     void SetDeviceStates(bool fog, uint32_t fog_color, float fog_density, uint32_t ambient, const glm::vec3 &to_sun,
                          const glm::vec3 &sun_color);
@@ -108,6 +98,12 @@ class WEATHER : public WEATHER_BASE
     void Realize(uint32_t Delta_Time);
     uint32_t AttributeChanged(ATTRIBUTES *pAttribute) override;
     uint64_t ProcessMessage(MESSAGE &message) override;
+
+    // The frame's scene environment.
+    const storm::environment::State &Environment() const
+    {
+        return state_;
+    }
 
     // The fog of the current hour of the place's lighting presets (density per 100 m, linear colour); nullopt when
     // the hour has none or the weather is not evaluated from data.

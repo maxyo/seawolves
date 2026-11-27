@@ -1,101 +1,32 @@
 #pragma once
 
-#include "typedef.h"
-#include "colored_mesh.hpp"
-#include "textured_mesh.hpp"
-#include <array>
+#include "entity.h"
+#include "storm/environment/legacy.hpp"
+
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
+// The sky: drawn by the renderer (storm/render/effects.hpp DrawSky) in the layers it is placed in and in the sea's
+// reflection. The scripts of «Каждому своё» create it and give it their weather's sky folders (Dir.d<i>, one per
+// part of the day, and Dir = the hour): what the folders show is the clouds' cover (environment::LegacySkyFolder).
+// WEATHER creates one when the environment comes from the game's data.
 class SKY : public Entity
 {
   public:
-    SKY();
-    ~SKY() override;
-
-    bool Init() override;
-    void SetDevice();
-    void Realize(uint32_t Delta_Time);
-    uint32_t AttributeChanged(ATTRIBUTES *pAttribute) override;
-    uint64_t ProcessMessage(MESSAGE &message) override;
-
-    void RestoreRender();
-
-    void ProcessStage(Stage stage, uint32_t delta) override
+    bool Init() override
     {
-        switch (stage)
-        {
-        case Stage::loading_realize:
-            Realize(0);
-            break;
-        case Stage::realize:
-            Realize(delta);
-            break;
-        case Stage::restore_render:
-            RestoreRender();
-            break;
-        }
+        return true;
     }
+    uint32_t AttributeChanged(ATTRIBUTES *attribute) override;
+    uint64_t ProcessMessage(MESSAGE &message) override;
+    void ProcessStage(Stage stage, uint32_t delta) override;
 
-    float CalculateAlphaForSun(const glm::vec3 &vSunPos, float fSunSize);
+    // The folders' cover at `hour`, between the two folders around it; nullopt without folders.
+    std::optional<storm::environment::LegacySky> Cover(float hour) const;
 
   private:
-    enum
-    {
-        SKY_NUM_TEXTURES = 5,
-        SKY_NUM_VERTEX = 40,
-
-        ENUMSKY_FORCE_DWORD = 0x7FFFFFFF
-    };
-
-    static constexpr float kR = 2000.0f;
-    static constexpr uint32_t kNumLevels = 64U;
-    static constexpr uint32_t kNumAngles = 8U;
-
-    static constexpr uint32_t kFogVertsNum = kNumAngles *kNumLevels + 1;
-    static constexpr uint32_t kFogTrgsNum = 3 * (kNumAngles + (kNumLevels - 1) * kNumAngles * 2);
-
-    // string        sSkyDir;
-    std::vector<std::string> aSkyDirArray;
-    uint32_t dwSkyColor;
-    float fSkySpeedRotate, fSkySize, fAngleY, fSkyAngle;
-    std::string sTechSky = "Sky";
-    std::string sTechSkyBlend = "SkyBlend";
-    std::string sTechSkyBlendAlpha = "Skyblend_alpha";
-    std::string sTechSkyFog = "SkyFog";
-
-    VRenderer *pRS;
-    int32_t TexturesID[SKY_NUM_TEXTURES];
-    int32_t TexturesNextID[SKY_NUM_TEXTURES];
-    float fTimeFactor = 0.f;
-    float requestedSkyTimeFactor_ = 0.f;
-    // These identify acquired textures, independently of weather time/table changes.
-    std::array<std::string, 2> loadedSkyDirs_;
-    std::array<std::string, 2> failedSkyDirs_;
-    size_t loadedSkySetCount_ = 0;
-    size_t failedSkySetCount_ = 0;
-
-    std::unique_ptr<storm::render::TexturedMesh> skyMesh_;
-    std::unique_ptr<storm::render::ColoredMesh> fogMesh_;
-
-    Entity *pAstronomy;
-    Entity *pSunGlow;
-
-    // sky section
-    void GenerateSky(bool initialize);
-    void LoadTextures();
-    void Release();
-
-    // fog section
-    void UpdateFogSphere(bool initialize);
-
-    void FillSkyDirArray(ATTRIBUTES *pAttribute);
-    float TimeToFactor(float hours) const;
-    bool SelectSkyTextures(float factor);
-    void UpdateTimeFactor();
-    // Stars and planets (Astronomy) and the SUNGLOW sun / moon sprite (the sun only with `sun_sprite`); false when
-    // neither entity exists.
-    bool DrawSkyObjects(uint32_t Delta_Time, bool sun_sprite);
-
-    uint32_t GetPixelColor(int32_t texture, float fu, float fv) const;
+    std::vector<storm::environment::LegacySky> folders_; // the day in equal parts, from midnight
+    std::set<std::string> reported_;
 };

@@ -142,7 +142,7 @@ Cut coverage_cut(const Level &level, float coverage)
 
 // `cut`: a cut-out level's (null: its alpha as it is). The cut decides each texel's side of the test: the scaled alpha,
 // rounded to 8 bits, must not carry a failing texel over the reference (a 1x1 level of a small disk at 15 % coverage
-// would turn opaque: the planets' grey squares in the night sky) nor a passing one under it.
+// would turn opaque: a small sprite's grey square) nor a passing one under it.
 std::vector<uint8_t> to_rgba8(const Level &level, const Cut *cut, TexelSpace texels)
 {
     std::vector<uint8_t> out(size_t(level.width) * level.height * 4);

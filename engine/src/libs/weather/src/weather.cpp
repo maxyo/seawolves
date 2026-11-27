@@ -1,9 +1,10 @@
 #include "weather.h"
-#include "environment_sky.h"
+#include "weather_library.h"
 #include "astronomy.h"
 #include "core.h"
 #include "lightning.h"
 #include "rain.h"
+#include "sky.h"
 #include "sun_glow.h"
 #include "math_inlines.h"
 #include "storm/render/effects.hpp"
@@ -22,8 +23,6 @@ CREATE_CLASS(LIGHTNING)
 CREATE_CLASS(SKY)
 
 CREATE_CLASS(Astronomy)
-
-CREATE_CLASS(EnvironmentSky)
 
 CREATE_SCRIPTLIBRIARY(WEATHER_LIBRARY)
 
@@ -49,7 +48,7 @@ bool WEATHER::Init()
     SetBeginData();
     data_ = storm::weather::GameEnvironment();
     if (data_)
-        sky_ = core.CreateEntity("EnvironmentSky");
+        sky_ = core.CreateEntity("Sky");
     return true;
 }
 
@@ -58,21 +57,6 @@ void WEATHER::SetBeginData()
     fFloats[whf_time_counter] = 0.f;
     fFloats[whf_time_speed] = 0.f;
     fUpdateFrequence = 0.f;
-
-    // sun moving data
-    bSunPresent = false;
-    fSunHeight = 3.f / 4.f * PId2;
-    fSunBegAngle = 0.f;
-    fSunBegTime = 5.f;
-    fSunEndAngle = PI;
-    fSunEndTime = 23.f;
-    // moon moving data
-    bMoonPresent = false;
-    fMoonHeight = 5.f / 4.f * PId2;
-    fMoonBegAngle = PId2;
-    fMoonBegTime = 23.5f;
-    fMoonEndAngle = -PId2;
-    fMoonEndTime = 4.5f;
 }
 
 void WEATHER::Realize(uint32_t Delta_Time)
@@ -91,9 +75,6 @@ void WEATHER::Execute(uint32_t Delta_Time)
         if (fFloats[whf_time_counter] > 24.f)
             fFloats[whf_time_counter] -= 24.f;
 
-        if (!data_)
-            UpdateSunMoonPos();
-
         if (static_cast<int32_t>(fFloats[whf_time_counter] * fUpdateFrequence) !=
             static_cast<int32_t>(fOldTimer * fUpdateFrequence))
         {
@@ -108,99 +89,45 @@ void WEATHER::Execute(uint32_t Delta_Time)
         PlaceSky();
     }
     else
+    {
+        // The scripts colour a band of fog over the horizon on a sphere of this radius, fading out at their fog's
+        // height (WEATHER_CALC_FOG_COLOR: its alpha at a point). Asked here, never while a script runs: the event
+        // would re-enter the script machine.
+        constexpr float kFogBandRadius = 2000.0f, kProbe = 100.0f;
+        if (VDATA *band = core.Event(WEATHER_CALC_FOG_COLOR, "fff", kFogBandRadius, kProbe, 0.0f))
+        {
+            const float alpha = static_cast<float>(static_cast<uint32_t>(band->GetInt()) >> 24) / 255.0f;
+            fog_band_ = alpha < 1.0f ? std::min(kProbe / (1.0f - alpha) / kFogBandRadius, 1.0f) : 1.0f;
+        }
         PushLegacyEnvironment();
+    }
 }
 
-// The scripts' attributes as the scene environment: their colours are gamma encoded, their sun or moon is the light.
+// The scripts' attributes as the scene environment.
 void WEATHER::PushLegacyEnvironment()
 {
-    storm::environment::State out;
-    out.hour = fFloats[whf_time_counter];
-    glm::vec3 light = vVectors[whv_sun_pos];
-    if (const float length = glm::length(light); length > 0.0f)
-        light /= length;
-    out.light_dir = light;
-    out.light_is_sun = bSunPresent && !bMoonPresent;
-    // The sun from the time of day, also below the horizon, for the sky's day / night state.
-    float height, azimuth;
-    glm::vec3 sun;
-    SunAt(fFloats[whf_time_counter], height, azimuth, sun);
-    out.sun_dir = glm::normalize(sun);
-    glm::vec3 color;
-    GetColor(whc_sun_color, &color);
-    out.light_color = color * color;
-    GetColor(whc_sun_ambient, &color);
-    out.ambient = color * color;
-    GetColor(whc_fog_color, &color);
-    out.fog_color = color * color;
-    out.fog_density = fFloats[whf_fog_density];
-    // Rain and overcast from the RAIN entity's drop count: these scripts give WEATHER no rain or lightning state.
+    storm::environment::LegacyInputs in;
+    in.hour = fFloats[whf_time_counter];
+    in.sun = sun_;
+    in.moon = moon_;
+    in.fixed_light = fFloats[whf_time_speed] == 0.f;
+    in.light_elevation = fixed_elevation_;
+    in.light_azimuth = fixed_azimuth_;
+    GetColor(whc_sun_color, &in.sun_color);
+    GetColor(whc_sun_ambient, &in.ambient);
+    GetColor(whc_fog_color, &in.fog_color);
+    in.fog = iLongs[whi_fog_enable] != 0;
+    in.fog_density = fFloats[whf_fog_density];
+    in.haze_height = fog_band_;
     if (const auto rain_id = core.GetEntityId("rain"))
         if (const auto *rain = static_cast<RAIN *>(core.GetEntityPointer(rain_id)))
-        {
-            // A full rain at the game's day-rain drop count (3500..5000; a light evening rain 1500, storms 25000+).
-            out.rain = std::min(static_cast<float>(rain->NumDrops()) / 5000.0f, 1.0f);
-            out.overcast = out.rain;
-        }
-    out.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
-    out.wind_speed = fFloats[whf_wind_speed];
-    out.cloud_drift = cloud_drift_;
-    storm::render::SetSceneEnvironment(out);
-}
-
-bool WEATHER::SunAt(float hour, float &height_angle, float &azimuth_angle, glm::vec3 &pos) const
-{
-    const auto fK = (hour - fSunBegTime) / (fSunEndTime - fSunBegTime);
-    if (fK < 0.f || fK > 1.f)
-    {
-        height_angle = -PId2;
-        azimuth_angle = 0.f;
-        pos = glm::vec3(0, -5000.f, 0);
-        return false;
-    }
-    height_angle = (fSunHeight + 0.2f) * sinf(fK * PI) - 0.2f;
-    azimuth_angle = fSunBegAngle + fK * (fSunEndAngle - fSunBegAngle);
-    pos = glm::vec3(5000.0f, 0.0f, 0.0f);
-    RotateAroundY(pos.x, pos.y, cosf(-height_angle), sinf(-height_angle));
-    RotateAroundY(pos.x, pos.z, cosf(azimuth_angle), sinf(azimuth_angle));
-    return true;
-}
-
-void WEATHER::UpdateSunMoonPos()
-{
-    // sun
-    bSunPresent = SunAt(fFloats[whf_time_counter], fFloats[whf_sun_height_angle], fFloats[whf_sun_azimuth_angle],
-                        vVectors[whv_sun_pos]);
-    float fK;
-
-    // moon
-    if (fMoonBegTime < fMoonEndTime)
-        fK = (fFloats[whf_time_counter] - fMoonBegTime) / (fMoonEndTime - fMoonBegTime);
-    else
-    {
-        fK = (fFloats[whf_time_counter] - fMoonBegTime);
-        if (fK < 0.f)
-            fK += 24.f;
-        fK /= 24.f + fMoonEndTime - fMoonBegTime;
-    }
-    if (fK < 0.f || fK > 1.f)
-    {
-        bMoonPresent = false;
-    }
-    else
-    {
-        bMoonPresent = true;
-        fFloats[whf_sun_height_angle] = (fK < 0.5f) ? (fMoonHeight * fK * 2.f) : (fMoonHeight * (1.f - fK) * 2.f);
-        fFloats[whf_sun_azimuth_angle] = fMoonBegAngle + fK * (fMoonEndAngle - fMoonBegAngle);
-
-        glm::vec3 vMoon;
-        vMoon.x = 5000.0f;
-        vMoon.y = 0.0f;
-        RotateAroundY(vMoon.x, vMoon.y, cosf(-fFloats[whf_sun_height_angle]), sinf(-fFloats[whf_sun_height_angle]));
-        vMoon.z = 0.0f;
-        RotateAroundY(vMoon.x, vMoon.z, cosf(fFloats[whf_sun_azimuth_angle]), sinf(fFloats[whf_sun_azimuth_angle]));
-        vVectors[whv_sun_pos] = vMoon;
-    }
+            in.rain_drops = static_cast<float>(rain->NumDrops());
+    if (const auto *sky = static_cast<const SKY *>(core.GetEntityPointerSafe(core.GetEntityId("sky"))))
+        in.sky = sky->Cover(in.hour).value_or(storm::environment::LegacySky{});
+    in.wind_angle = fFloats[whf_wind_angle];
+    in.wind_speed = fFloats[whf_wind_speed];
+    state_ = storm::environment::EvaluateLegacy(in);
+    ApplyEnvironment();
 }
 
 void WEATHER::CleanUP()
@@ -211,35 +138,6 @@ void WEATHER::CleanUP()
     pRS->LightEnable(0, false);
 }
 
-
-void WEATHER::SetCommonStates()
-{
-    // setup sun light
-    const auto fSunHeightAngle = GetFloat(whf_sun_height_angle);
-    const auto fSunAzimuthAngle = GetFloat(whf_sun_azimuth_angle);
-    glm::vec3 vSun, vSunColor;
-
-    if (fFloats[whf_time_speed] == 0.f)
-    {
-        vSun.x = 5000.0f;
-        vSun.y = 0.0f;
-        RotateAroundY(vSun.x, vSun.y, cosf(-fSunHeightAngle), sinf(-fSunHeightAngle));
-
-        vSun.z = 0.0f;
-        RotateAroundY(vSun.x, vSun.z, cosf(fSunAzimuthAngle), sinf(fSunAzimuthAngle));
-
-        vVectors[whv_sun_pos] = vSun;
-    }
-    else
-    {
-        UpdateSunMoonPos();
-        vSun = vVectors[whv_sun_pos];
-    }
-
-    GetColor(whc_sun_color, &vSunColor);
-    SetDeviceStates(GetInt(whi_fog_enable) != 0, GetColor(whc_fog_color), GetFloat(whf_fog_density),
-                    GetColor(whc_sun_ambient), storm::math::normalizeOrZero(vSun), vSunColor);
-}
 
 void WEATHER::SetDeviceStates(bool fog, uint32_t fog_color, float fog_density, uint32_t ambient,
                               const glm::vec3 &to_sun, const glm::vec3 &sun_color)
@@ -336,27 +234,27 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
     {
         if (*pAttribute == "Height")
         {
-            fSunHeight = pAttribute->GetAttributeAsFloat();
+            sun_.height = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "BegAngle")
         {
-            fSunBegAngle = pAttribute->GetAttributeAsFloat();
+            sun_.beg_angle = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "BegTime")
         {
-            fSunBegTime = pAttribute->GetAttributeAsFloat();
+            sun_.beg_time = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "EndAngle")
         {
-            fSunEndAngle = pAttribute->GetAttributeAsFloat();
+            sun_.end_angle = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "EndTime")
         {
-            fSunEndTime = pAttribute->GetAttributeAsFloat();
+            sun_.end_time = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "Color")
@@ -373,12 +271,12 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
         {
             if (*pAttribute == "HeightAngle")
             {
-                fFloats[whf_sun_height_angle] = pAttribute->GetAttributeAsFloat();
+                fixed_elevation_ = pAttribute->GetAttributeAsFloat();
                 return 0;
             }
             if (*pAttribute == "AzimuthAngle")
             {
-                fFloats[whf_sun_azimuth_angle] = pAttribute->GetAttributeAsFloat();
+                fixed_azimuth_ = pAttribute->GetAttributeAsFloat();
                 return 0;
             }
         }
@@ -387,27 +285,27 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
     {
         if (*pAttribute == "Height")
         {
-            fMoonHeight = pAttribute->GetAttributeAsFloat();
+            moon_.height = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "BegAngle")
         {
-            fMoonBegAngle = pAttribute->GetAttributeAsFloat();
+            moon_.beg_angle = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "BegTime")
         {
-            fMoonBegTime = pAttribute->GetAttributeAsFloat();
+            moon_.beg_time = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "EndAngle")
         {
-            fMoonEndAngle = pAttribute->GetAttributeAsFloat();
+            moon_.end_angle = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "EndTime")
         {
-            fMoonEndTime = pAttribute->GetAttributeAsFloat();
+            moon_.end_time = pAttribute->GetAttributeAsFloat();
             return 0;
         }
     }
@@ -441,7 +339,7 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
         if (data_)
             UpdateEnvironment();
         else
-            SetCommonStates();
+            PushLegacyEnvironment();
     }
     return 0;
 }

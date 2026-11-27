@@ -513,16 +513,10 @@ src/libs/util/testsuite/string_compare.cpp
 src/libs/water_rings/src/water_rings.cpp
 src/libs/water_rings/src/water_rings.h
 src/libs/weather/include/weather_base.h
-src/libs/weather/src/astronomy.cpp
-src/libs/weather/src/astronomy.h
 src/libs/weather/src/lightning.cpp
 src/libs/weather/src/lightning.h
-src/libs/weather/src/planets.cpp
 src/libs/weather/src/rain.cpp
 src/libs/weather/src/rain.h
-src/libs/weather/src/sky.cpp
-src/libs/weather/src/sky.h
-src/libs/weather/src/stars.cpp
 src/libs/weather/src/sun_glow.cpp
 src/libs/weather/src/sun_glow.h
 src/libs/weather/src/typedef.h

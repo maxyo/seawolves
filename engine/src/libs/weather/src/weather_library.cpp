@@ -1,27 +1,12 @@
-#include "environment_sky.h"
+#include "weather_library.h"
 
 #include "core.h"
 #include "s_import_func.h"
-#include "shared/messages.h"
-#include "storm/render/effects.hpp"
 #include "v_s_stack.h"
 #include "weather.h"
 
 #include <algorithm>
 #include <cmath>
-
-uint64_t EnvironmentSky::ProcessMessage(MESSAGE &message)
-{
-    if (message.Long() == MSG_SEA_REFLECTION_DRAW)
-        storm::render::DrawSky();
-    return 0;
-}
-
-void EnvironmentSky::ProcessStage(Stage stage, uint32_t)
-{
-    if (stage == Stage::realize || stage == Stage::loading_realize)
-        storm::render::DrawSky();
-}
 
 namespace
 {

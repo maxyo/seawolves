@@ -38,5 +38,21 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   the scripts themselves give a rain's intensity by. The rain clouds cover the sky in the hours that rain and grow or thin
   over the hour before or after; a rain that stopped leaves wetness that dries by a third per hour within the next.
 
+## From the scripts' attributes (`storm/environment/legacy.hpp`)
+
+A game without the data («Каждому своё») sets its weather through the WEATHER entity's attributes and its sky through
+the sky entity's folders; `EvaluateLegacy` makes the same state of them:
+
+- **Sun and moon.** The scripts' arcs (`Weather.Sun.*`, `Weather.Moon.*`): the sun's elevation follows a sine that
+  dips 0.2 rad below the horizon at the arc's ends, the moon's rises and falls evenly, both turning evenly in azimuth;
+  an arc may run through midnight. The moon lights the scene while it is up and the sun then casts no shadow; with the
+  clock stopped the light stands where the scripts put it.
+- **Colours.** The scripts' gamma-encoded sun, ambient and fog colours, squared; no fog when it is off. The scripts'
+  fog band over the horizon (the height where their band colour fades out) is the haze band, in the fog's colour.
+- **Clouds.** The sky folders, one per part of the day, say what each part's painted sky showed (`LegacySkyFolder`,
+  a table by folder: the cover of fair-weather clouds, rain clouds for the storms'); between two parts the cover
+  blends. The rain's drops add rain clouds (a full rain at 5000 drops); the sun's shadows fade as the rain clouds
+  close.
+
 `tests/scene_environment` checks the evaluation on data written there and, with `$STORM_GAME_DIR`, every preset of
 an installed game for every quarter hour.

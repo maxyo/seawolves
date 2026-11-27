@@ -206,11 +206,17 @@ void WEATHER::UpdateEnvironment()
     state_ = storm::environment::Evaluate(in);
     state_.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
     state_.wind_speed = fFloats[whf_wind_speed];
+    ApplyEnvironment();
+}
+
+void WEATHER::ApplyEnvironment()
+{
     state_.cloud_drift = cloud_drift_;
     storm::render::SetSceneEnvironment(state_);
     // The sun glow and the others that ask WEATHER where the light stands.
     vVectors[whv_sun_pos] = state_.light_dir * 5000.0f;
     fFloats[whf_sun_height_angle] = std::asin(std::clamp(state_.light_dir.y, -1.0f, 1.0f));
+    fFloats[whf_sun_azimuth_angle] = std::atan2(-state_.light_dir.z, state_.light_dir.x);
 
     // The fixed-function device takes the light through the exposure, its colours stopping at 1.
     const glm::vec3 fog = state_.fog_from_sky ? storm::render::SkyHorizon() * state_.fog_color
@@ -246,7 +252,7 @@ void WEATHER::RaiseHourEvents()
 
 void WEATHER::PlaceSky()
 {
-    // Before the scene's own draws, where the game's sky entity used to be; the sea's reflection draws it first.
+    // Before the scene's own draws, where the scripts of other games place theirs; the sea's reflection draws it first.
     constexpr priority_t kSkyRealize = 3, kSkyReflection = 1;
     if (sky_ == invalid_entity)
         return;

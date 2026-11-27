@@ -1,5 +1,5 @@
 // The atmosphere state of the weather (fx::SkyState: the place-and-hour grade, the hemisphere ambient, the aerial
-// perspective), the uniforms of the emulator's FX_AERIAL variant and the drawn sky of a game without sky textures.
+// perspective), the uniforms of the emulator's FX_AERIAL variant and the drawn sky.
 #pragma once
 
 #include "storm/fx/sky_model.hpp"

@@ -2,6 +2,7 @@
 // and rain preset of the installed game in $STORM_GAME_DIR evaluated for every hour (not run without a game that has
 // a time of day).
 #include "storm/environment/evaluate.hpp"
+#include "storm/environment/legacy.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -387,4 +388,67 @@ TEST_CASE("every preset of an installed game for every hour", "[.corpus]")
             }
         }
     std::printf("%zu place presets, %zu rain presets, %d states\n", places.size(), rain.size(), states);
+}
+
+TEST_CASE("the scripts' attribute weather")
+{
+    LegacyInputs in;
+    in.sun = {1.2f, 0.0f, 6.0f, glm::pi<float>(), 20.0f};
+    in.moon = {0.8f, 0.0f, 22.0f, -1.0f, 5.0f}; // through midnight
+    in.sun_color = {0.5f, 0.6f, 0.8f};
+    in.ambient = {0.2f, 0.2f, 0.4f};
+    in.fog_color = {0.5f, 0.5f, 0.5f};
+    in.fog = true;
+    in.fog_density = 0.002f;
+
+    in.hour = 13.0f; // the sun's mid-arc: at its height, half way round
+    State noon = EvaluateLegacy(in);
+    CHECK(noon.sun_dir.y == Approx(std::sin(1.2f)));
+    CHECK(noon.sun_dir.z == Approx(-std::cos(1.2f)).margin(1e-5)); // azimuth pi/2: x 0, z -cos
+    CHECK(noon.sun_dir.x == Approx(0.0f).margin(1e-5));
+    CHECK((noon.light_is_sun && noon.light_dir == noon.sun_dir && noon.moon_dir.y < 0.0f));
+    CHECK(noon.light_color.g == Approx(0.36f)); // gamma 2 to linear
+    CHECK(noon.ambient.b == Approx(0.16f));
+    CHECK(noon.fog_density == 0.002f);
+
+    in.hour = 6.25f; // just after its rise the arc is still below the horizon
+    CHECK(EvaluateLegacy(in).sun_dir.y < 0.0f);
+    in.hour = 7.0f;
+    CHECK(EvaluateLegacy(in).sun_dir.y > 0.0f);
+
+    in.hour = 1.5f; // the moon's mid-arc (22 + 3.5 of its 7 hours): at its height; it lights the night
+    const State night = EvaluateLegacy(in);
+    CHECK(night.moon_dir.y == Approx(std::sin(0.8f)));
+    CHECK((!night.light_is_sun && night.light_dir == night.moon_dir));
+    CHECK(night.sun_dir == glm::vec3(0.0f, -1.0f, 0.0f));
+    CHECK(night.twilight == 0.0f);
+
+    in.moon.end_time = 8.0f; // a morning moon over the rising sun lights the scene and the sun casts no shadow
+    in.hour = 7.0f;
+    CHECK((!EvaluateLegacy(in).light_is_sun && EvaluateLegacy(in).sun_dir.y > 0.0f));
+    in.moon.end_time = 5.0f;
+
+    in.fixed_light = true; // the clock stands: the light where the scripts put it
+    in.light_elevation = 0.5f;
+    in.light_azimuth = 0.0f;
+    CHECK(EvaluateLegacy(in).light_dir.y == Approx(std::sin(0.5f)));
+    in.fixed_light = false;
+
+    // Clouds: the folders' cover; the rain's drops raise the rain clouds; a storm's folder is overcast.
+    in.sky = *LegacySkyFolder("weather\\skies\\16\\");
+    in.rain_drops = 2500.0f;
+    const State showers = EvaluateLegacy(in);
+    CHECK((showers.clouds == Approx(0.65f) && showers.rain == Approx(0.5f) && showers.rain_clouds == Approx(0.5f)));
+    in.sky = *LegacySkyFolder("WEATHER/SKIES/Storm02");
+    const State storm = EvaluateLegacy(in);
+    CHECK((storm.rain_clouds == 1.0f && storm.overcast == 1.0f && storm.shadow_strength == 0.0f));
+    CHECK(showers.shadow_strength == Approx(0.5f));
+    CHECK(LegacySkyFolder("weather\\skies\\12\\")->clouds < LegacySkyFolder("weather\\skies\\18\\")->clouds);
+    CHECK(!LegacySkyFolder("weather\\skies\\Twilight1\\"));
+
+    // The fog's band at the horizon; no fog: neither.
+    in.haze_height = 0.2f;
+    CHECK((EvaluateLegacy(in).haze == 1.0f && EvaluateLegacy(in).haze_color == glm::vec3(0.25f)));
+    in.fog = false;
+    CHECK((EvaluateLegacy(in).fog_density == 0.0f && EvaluateLegacy(in).haze == 0.0f));
 }

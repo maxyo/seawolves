@@ -68,8 +68,8 @@ a single copy; passes that are off cost nothing. Everything runs in gamma-encode
 The scene environment (`src/libs/scene_environment`) is turned into a sky state: a 64 x 32 panorama of single
 scattering (Rayleigh and Mie) around the sun, its horizon and dome averages, rebuilt on a thread of its own when the
 sun, the light or the weather move. The panorama drives the scene grade, the hemisphere ambient and the aerial fog;
-the environment's sky radiance scales it, so a game's data can make it brighter, warmer or darker. For a game
-without sky textures (`render::DrawSky`) it is also the visible sky: one triangle at the far plane behind what the
+the environment's sky radiance scales it, so a game's data can make it brighter, warmer or darker. It is also the
+visible sky of every game (`render::DrawSky`, from the weather's sky entity): one triangle at the far plane behind what the
 scene has drawn, the panorama by direction, the sun's and the moon's discs, stars on a hashed grid of cells by night,
 the clouds and a haze band at the horizon; in the scene before its geometry and in the sea's reflection.
 

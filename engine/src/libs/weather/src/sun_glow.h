@@ -37,7 +37,6 @@ class SUNGLOW : public Entity
     }
 
     // The sun or moon sprite; the sun only with `sun` (the fx sky draws its own disc).
-    void DrawSunMoon(bool sun);
 
   private:
     enum
@@ -55,14 +54,12 @@ class SUNGLOW : public Entity
 
     struct sunglow_t
     {
-        float fSunSize;
-        float fMoonSize;
         float fGlowSize;
         float fDist;
         float fDecayTime;
         float fRotateSpeed;
         uint32_t dwColor;
-        std::string sSunTexture, sMoonTexture, sGlowTexture, sTechniqueZ, sTechniqueNoZ;
+        std::string sGlowTexture, sTechniqueZ, sTechniqueNoZ;
     };
 
     struct flare_t
@@ -114,7 +111,7 @@ class SUNGLOW : public Entity
     bool bSimpleSea;
     int32_t iNumFlares;
     float fFadeout, fAlpha, fAlphaFlare, fAlphaOverflow, fMaxOverflowAlphaValue;
-    int32_t iSunTex, iMoonTex, iSunGlowTex, iFlareTex, iOverflowTex, iReflTexture;
+    int32_t iSunGlowTex, iFlareTex, iOverflowTex, iReflTexture;
     bool bVisible, bVisibleFlare;
     bool bHaveGlow, bHaveFlare, bHaveOverflow, bHaveReflection;
     bool bMoon;
@@ -130,5 +127,5 @@ class SUNGLOW : public Entity
     void DrawRect(uint32_t dwColor, const glm::vec3 &pos, float fSize, float fAngle, const char *pcTechnique,
                   float fBottomClip) const;
 
-    float GetSunFadeoutFactor(const glm::vec3 &vSunPos, float fSunSize);
+    float GetSunFadeoutFactor() const;
 };

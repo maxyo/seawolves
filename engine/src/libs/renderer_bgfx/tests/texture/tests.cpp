@@ -472,7 +472,7 @@ void test_mips()
     CHECK(coverage(plain[2]) < top * 0.6);
     for (int level = 0; level < 3; ++level)
         CHECK(std::abs(coverage(kept[level]) - top) < 0.05);
-    // A small disk (15 % coverage, the night sky's planets): its 1x1 level stays transparent. The scaled alpha of the
+    // A small disk (15 % coverage, a small sprite): its 1x1 level stays transparent. The scaled alpha of the
     // failing texel must not round up to the reference (it did: the whole sprite drawn as an opaque square).
     std::vector<uint8_t> disk(64 * 64 * 4, 0);
     for (int y = 0; y < 64; ++y)
