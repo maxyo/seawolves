@@ -439,6 +439,7 @@ bool Host::needs_self_test(const fx::Settings &settings)
 void Host::set_environment(const environment::State &state)
 {
     env_ = state;
+    lighting_.set_environment(state);
     sun_display_ = glm::sqrt(environment::DisplayLight(state.light_color, state.exposure));
     fog_display_ = glm::sqrt(environment::DisplayLight(state.fog_color, state.exposure));
     // An interior's environment has no sky: like a frame without one.
@@ -932,11 +933,6 @@ void DeclareMaterialMap(storm::shim::BaseTexture *texture)
                             "colour's",
                             store->name);
     store->material_map = true;
-}
-
-void SetEffectsSceneLight(const EffectsSceneLight &light)
-{
-    effects::Host::instance().lighting().set_scene_light(light);
 }
 
 void SetEffectsSeaFrame(const EffectsSeaFrame &frame)

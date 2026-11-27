@@ -123,27 +123,13 @@ struct EffectsSurfaceMaterial
     shim::BaseTexture *rma = nullptr;        // R roughness, G metal, B occlusion
     shim::BaseTexture *emission = nullptr;   // colour, encoded as the albedo
     float roughness = 1.0f, metallic = 0.0f; // without an rma map
-    float emission_strength = 0.0f;          // the emission map's, times EffectsSceneLight::emission
+    float emission_strength = 0.0f;          // the emission map's, times the environment's emission
     bool occlusion_uv1 = false;
 };
 void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material);
 // A texture the game ships as a material's normal or rma map: its mips are averaged as numbers, not as colour.
 // Before its first draw (one drawn as colour first keeps its colour mips: an error names it).
 void DeclareMaterialMap(shim::BaseTexture *texture);
-
-// The scene's light for the material programs, from the scene-light driver every frame it runs. The sun and the
-// ambient are the device's directional light and ambient of every lit draw, taken as linear light (their colour
-// squared, the targets' gamma 2.0) times `sun` and `ambient`; the lit colour times `exposure` is compressed into the
-// picture as the post chain expands it again (fx_tonemap.sh fxCompressHdr). `emission`: the hour's emission factor.
-// A frame without the call keeps the last one; before the first, all 1 (logged at the first material draw).
-struct EffectsSceneLight
-{
-    float sun = 1.0f;
-    float ambient = 1.0f;
-    float exposure = 1.0f;
-    float emission = 1.0f;
-};
-void SetEffectsSceneLight(const EffectsSceneLight &light);
 
 // Renderer, whenever its camera moves: the game's Renderer keeps the device camera-relative (the D3D view has no
 // translation; every world matrix and D3D light is shifted by minus the camera position, for float precision far

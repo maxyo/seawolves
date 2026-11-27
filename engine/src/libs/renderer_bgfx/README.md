@@ -207,10 +207,10 @@ once each.
 - Colour and data: the albedo and the emission are colour (squared: the targets' gamma 2.0); normal and rma maps are
   numbers (`render::DeclareMaterialMap`): their rebuilt mips are plain averages (`texture::TexelSpace::Data`, its own
   cache key), whatever the file's header says; the GPU format is the transcode tier's as for every texture.
-- Light and exposure: the sun's and the ambient's colours of every lit draw, as linear light, times the scene light's
-  scales (`render::EffectsSceneLight`, from the scene-light driver; 1 before it), plus the emission times the hour's
-  factor; the sum times the exposure is compressed into the 8-bit target by the inverse of the composite's expansion
-  (`fx_tonemap.sh` `fxCompressHdr`): up to a luminance of 3 the post chain gives it back, and on «Низкая» (no post
+- Light and exposure: the scene environment's (`environment::State`, render::SetSceneEnvironment): its direct light,
+  the sky's fill above and the ground's below, linear in scene units, plus the emission times its factor; the sum times
+  its exposure is compressed into the 8-bit target by the inverse of the composite's expansion (`fx_tonemap.sh`
+  `fxCompressHdr`): up to a luminance of 3 the post chain gives it back, and on «Низкая» (no post
   chain) the compression is the tone curve.
 
 ### Lamps (`lamp_shadows.hpp`)

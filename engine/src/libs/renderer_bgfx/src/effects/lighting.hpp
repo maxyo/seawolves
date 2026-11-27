@@ -270,10 +270,11 @@ class Lighting
     {
         surface_ = surface;
     }
-    void set_scene_light(const render::EffectsSceneLight &light)
+    // The frame's scene environment (render::SetSceneEnvironment): the material draws' light and exposure.
+    void set_environment(const environment::State &state)
     {
-        scene_light_ = light;
-        scene_light_set_ = true;
+        environment_ = state;
+        environment_set_ = true;
     }
 
     // Fixed-function draw (no shader ports). `cube_variant` = the fs_ff_cube* variant the shim picked (0 = none);
@@ -526,9 +527,9 @@ class Lighting
     fx::Settings settings_{};
     uint32_t flags_ = 0;
     const render::EffectsSurfaceMaterial *surface_ = nullptr;
-    render::EffectsSceneLight scene_light_{};
-    bool scene_light_set_ = false;
-    bool scene_light_reported_ = false;
+    environment::State environment_{};
+    bool environment_set_ = false;
+    bool environment_reported_ = false;
     bgfx::UniformHandle u_pbr_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_emission_ = BGFX_INVALID_HANDLE;
     bool lighting_ = false; // per-pixel sun or point lights

@@ -19,10 +19,10 @@ $input v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v
 
 SAMPLER2D(s_tex0, 0);       // the albedo (stage 0)
 SAMPLER2D(s_tex1, 1);       // the occlusion on the second texture coordinates (stage 1), with u_fxPbr[0].w
-SAMPLER2D(s_fxEmission, 2); // the emission (fx::kEmissionStage), with u_fxPbr[1].w
+SAMPLER2D(s_fxEmission, 2); // the emission (fx::kEmissionStage), with u_fxPbr[1].y
 // [0] x roughness, y metal (the material's, without a map), z 1 = the rma map is bound (s_fxMaterial: R roughness,
 //     G metal, B occlusion), w 1 = stage 1 is the occlusion
-// [1] x the sun's, y the ambient's scale over their linear light, z the exposure, w the emission's strength (0: no map)
+// [1] x the exposure, y the emission's strength (0: no map)
 uniform vec4 u_fxPbr[2];
 
 void main()
@@ -89,24 +89,24 @@ void main()
     float sunShadow = 0.0;
     if (sunReach > 0.0 && dot(N, L) > 0.0)
         sunShadow = fxSunShadow(P, Ng) * sunReach;
-    vec3 sun = fxLightColor(u_fxLight[1].rgb) * u_fxPbr[1].x;
+    vec3 sun = fxLightColor(u_fxLight[1].rgb);
     vec3 direct = sun * (max(dot(N, L), 0.0) * sunShadow) + pointDiffuse + lamps.rgb + lampMoved;
     float ambientShade = occlusion * aoVolume;
-    vec3 ambient = fxAmbient(N) * (u_fxPbr[1].y * ambientShade);
+    vec3 ambient = fxAmbient(N) * ambientShade;
     vec3 color = base * (1.0 - metal) * (direct + ambient);
     // Schlick's Fresnel at N.V for every light, F0 0.04 for dielectrics and the albedo for metals.
     vec3 F0 = mix(vec3_splat(0.04), base, metal);
     float nv = max(dot(N, V), 1e-4);
     vec3 fresnel = F0 + (vec3_splat(1.0) - F0) * pow(1.0 - nv, 5.0);
-    color += fresnel * (fxSunSpecular(N, V, spec) * (u_fxPbr[1].x * sunShadow) + pointSpecular + lampSpecular);
+    color += fresnel * (fxSunSpecular(N, V, spec) * sunShadow + pointSpecular + lampSpecular);
     // The ambient's reflection: the hemisphere along the reflected ray through the split sum's analytic fit.
-    color += fxEnvSpecular(F0, roughness, nv) * fxAmbient(reflect(-V, N)) * (u_fxPbr[1].y * ambientShade * spec.y);
-    if (u_fxPbr[1].w > 0.0)
+    color += fxEnvSpecular(F0, roughness, nv) * fxAmbient(reflect(-V, N)) * (ambientShade * spec.y);
+    if (u_fxPbr[1].y > 0.0)
     {
         vec3 emission = texture2D(s_fxEmission, uv).rgb;
-        color += emission * emission * u_fxPbr[1].w;
+        color += emission * emission * u_fxPbr[1].y;
     }
-    color = fxCompressHdr(color * u_fxPbr[1].z);
+    color = fxCompressHdr(color * u_fxPbr[1].x);
     gl_FragColor = ffFinish(vec4(sqrt(clamp(color, 0.0, 1.0)), albedo.a));
     FF_SLOPE_DEPTH();
 }

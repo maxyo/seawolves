@@ -282,7 +282,10 @@ class Harness
         glm::vec3 to_sun;
         float sun;        // the D3D sun's colour (grey)
         uint32_t ambient; // D3DRS_AMBIENT
-        render::EffectsSceneLight scene;
+        struct
+        {
+            float sun, ambient, exposure, emission;
+        } scene;   // the scene environment's scales over the device's lights
         bool lamp; // a warm point light in front of the model
     };
 
@@ -291,14 +294,15 @@ class Harness
                               const std::vector<render::EffectsSurfaceMaterial> *surfaces, const Light &light,
                               bool objects = true)
     {
-        render::SetEffectsSceneLight(light.scene);
-        render::EffectsWeather weather;
-        weather.sun_dir = glm::normalize(light.to_sun);
-        weather.sun_present = light.to_sun.y > 0.0f && light.sun > 0.2f;
-        weather.sky_sun_dir = weather.sun_dir;
-        weather.sun_color = glm::vec3(light.sun);
-        weather.ambient = glm::vec3(float(light.ambient & 255) / 255.0f);
-        render::SetEffectsWeather(weather);
+        environment::State environment;
+        environment.light_dir = environment.sun_dir = glm::normalize(light.to_sun);
+        environment.light_is_sun = light.to_sun.y > 0.0f && light.sun > 0.2f;
+        environment.light_color = glm::vec3(light.sun * light.sun) * light.scene.sun;
+        const float fill = float(light.ambient & 255) / 255.0f;
+        environment.ambient = glm::vec3(fill * fill) * light.scene.ambient;
+        environment.exposure = light.scene.exposure;
+        environment.emission = light.scene.emission;
+        render::SetSceneEnvironment(environment);
         check(device_->BeginScene(), "BeginScene");
         check(device_->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF101820, 1.0f, 0), "Clear");
         const glm::vec3 center(model.head.bbox_center.x, model.head.bbox_center.y, model.head.bbox_center.z);

@@ -8,7 +8,7 @@
 //   its colour; the rma map's roughness, metal and occlusion draw as the same constants;
 //   the emission map adds its colour by its strength and the scene's emission factor, without any light;
 //   the second texture coordinates' occlusion darkens by twice its texel (the modulate-2x stage), only when set;
-//   a higher exposure is brighter.
+//   the light is the scene environment's (environment::State), and a higher exposure is brighter.
 #include "device.hpp"
 #include "check_backend.hpp"
 #include "storm/render/effects.hpp"
@@ -126,12 +126,23 @@ class Harness
     glm::vec3 to_sun{0.5f, 0.3f, -1.0f};
     float sun = 0.8f; // the D3D light's colour
     uint32_t ambient = 0x404040;
-    render::EffectsSceneLight light{};
+    float exposure = 1.0f, emission = 1.0f, sun_scale = 1.0f; // the scene environment's
 
     // The quad with `material` (null: the legacy lit program); the mean of the middle half of the picture.
     Mean Render(const render::EffectsSurfaceMaterial *material)
     {
-        render::SetEffectsSceneLight(light);
+        // The scene environment the material draws take their light from: the same sun and ambient as the device's
+        // lights, linear.
+        environment::State environment;
+        environment.light_dir = glm::normalize(to_sun);
+        environment.sun_dir = environment.light_dir;
+        environment.light_color = glm::vec3(sun * sun * sun_scale);
+        environment.light_is_sun = true;
+        const float fill = float(ambient & 255) / 255.0f;
+        environment.ambient = glm::vec3(fill * fill);
+        environment.exposure = exposure;
+        environment.emission = emission;
+        render::SetSceneEnvironment(environment);
         check(device_->BeginScene(), "BeginScene");
         check(device_->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0), "Clear");
         D3DMATRIX identity{};
@@ -314,9 +325,9 @@ TEST_CASE("the emission map adds its colour by its strength and the scene's fact
     h.ambient = 0;
     render::EffectsSurfaceMaterial glowing{.emission = h.Texture(0xFFC00000), .emission_strength = 1.0f};
     const Mean on = h.Render(&glowing);
-    h.light.emission = 0.0f;
+    h.emission = 0.0f;
     const Mean day = h.Render(&glowing);
-    h.light.emission = 1.0f;
+    h.emission = 1.0f;
     glowing.emission_strength = 0.0f;
     const Mean off = h.Render(&glowing);
     INFO("glowing " << on.r << "/" << on.g << ", by day " << day.r << ", strength 0 " << off.r);
@@ -348,15 +359,21 @@ TEST_CASE("the second texture coordinates' occlusion darkens by twice its texel,
     CHECK(half.luma() < 0.75f * without.luma());
 }
 
-TEST_CASE("a higher exposure is brighter")
+TEST_CASE("the light is the scene environment's; a higher exposure is brighter")
 {
     Harness &h = harness();
     h.Settle(2);
     const render::EffectsSurfaceMaterial matte{};
     const Mean one = h.Render(&matte);
-    h.light.exposure = 2.0f;
+    h.exposure = 2.0f;
     const Mean two = h.Render(&matte);
-    h.light.exposure = 1.0f;
+    h.exposure = 1.0f;
+    // The environment's direct light stronger, the device's light the same.
+    h.sun_scale = 3.0f;
+    const Mean stronger = h.Render(&matte);
+    h.sun_scale = 1.0f;
+    INFO("the environment's sun x3 " << stronger.luma());
+    CHECK(stronger.luma() > one.luma() + 10.0f);
     INFO("exposure 1 " << one.luma() << ", 2 " << two.luma());
     CHECK(two.luma() > one.luma() + 10.0f);
 }

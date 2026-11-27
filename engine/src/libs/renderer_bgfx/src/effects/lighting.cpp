@@ -1230,27 +1230,48 @@ void Lighting::prepare_material(DrawPrep &p)
         return;
     DrawLights lights;
     gather_device_lights(p, lights);
+    // The material's light is the scene environment's, linear and in scene units (its colours carry the intensity):
+    // the direct light, the sky's fill above and the ground's below. Without one (a game that draws no environment)
+    // the device's lights stand in, as linear light at exposure 1 (logged once).
+    if (environment_set_)
+    {
+        lights.input.sun_dir = environment_.light_dir;
+        lights.input.sun_diffuse = glm::sqrt(glm::max(environment_.light_color, glm::vec3(0.0f)));
+        lights.input.ambient = glm::sqrt(glm::max(environment_.ambient, glm::vec3(0.0f)));
+    }
+    else if (render::Once(environment_reported_))
+        render::Log().warn("effects: a material draw without a scene environment: the device's lights at exposure 1");
     compute_light_terms(p, lights);
-    // The material's own light: no wrap, rim, translucency or desaturation of the legacy materials; linear light; the
-    // game's normal map at full strength. The ambient flat where the preset has no hemisphere.
+    // No wrap, rim, translucency or desaturation of the legacy materials; linear light (fxLightColor squares the
+    // colours back); the game's normal map at full strength.
     auto &u = draw.light.u_fxLight;
-    u[2][3] = u[3][3] = 0.0f;
-    if (!(flags_ & fx::kLightingHemisphere))
+    if (environment_set_)
+        for (int i = 0; i < 3; ++i)
+        {
+            u[1][i] = lights.input.sun_diffuse[i];
+            u[3][i] = lights.input.ambient[i];
+            u[4][i] = std::sqrt(std::max(environment_.ambient[i] + environment_.ground[i], 0.0f));
+        }
+    else if (!(flags_ & fx::kLightingHemisphere))
         for (int i = 0; i < 3; ++i)
             u[3][i] = u[4][i] = lights.input.ambient[i];
+    u[2][3] = u[3][3] = 0.0f;
     u[5] = {1.0f, 0.0f, 0.0f, 1.0f};
     draw.ff = {};
-    if (!scene_light_set_ && render::Once(scene_light_reported_))
-        render::Log().warn("effects: a material draw before any scene light: sun, ambient, exposure and emission 1");
     const bool normal = settings_.material_maps && surface.normal;
     draw.pbr = true;
     draw.pbr_maps = {normal ? surface.normal : nullptr, surface.rma, surface.emission};
     const bool occlusion = surface.occlusion_uv1 && p.device.s.textures[1];
-    draw.pbr_uniform = {
-        surface.roughness,         surface.metallic,
-        surface.rma ? 1.0f : 0.0f, occlusion ? 1.0f : 0.0f,
-        scene_light_.sun,          scene_light_.ambient,
-        scene_light_.exposure,     surface.emission ? surface.emission_strength * scene_light_.emission : 0.0f};
+    const float exposure = environment_set_ ? environment_.exposure : 1.0f;
+    const float emission = environment_set_ ? environment_.emission : 1.0f;
+    draw.pbr_uniform = {surface.roughness,
+                        surface.metallic,
+                        surface.rma ? 1.0f : 0.0f,
+                        occlusion ? 1.0f : 0.0f,
+                        exposure,
+                        surface.emission ? surface.emission_strength * emission : 0.0f,
+                        0.0f,
+                        0.0f};
     finish_lit(p, lights, normal ? 1 : 0, std::max(budget_, kMaterialPointLights));
 }
 
