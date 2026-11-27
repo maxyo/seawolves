@@ -4,9 +4,9 @@
 #
 # STORM_ANDROID_BUILD_TYPE=debug (default): debuggable APKs signed with a debug key generated on the first build
 #   ($apk_root/debug.keystore), versionName <VERSION>-dev.
-# STORM_ANDROID_BUILD_TYPE=release: the engine's Release (LTO) build; needs the signing variables
-#   STORM_ANDROID_KEYSTORE/KEY_ALIAS/STORE_PASSWORD/KEY_PASSWORD (build_apk.py refuses to build without them) and
-#   the release tag STORM_RELEASE_TAG, checked before anything is built (tools/android/RELEASE.md).
+# STORM_ANDROID_BUILD_TYPE=release: the engine's Release (LTO) build of the release tag STORM_RELEASE_TAG, checked
+#   before anything is built (tools/android/RELEASE.md). The APK is left unsigned and the STORM_ANDROID_* signing
+#   variables are refused: no key is present during a release build (tools/android/sign_release.py signs afterwards).
 # STORM_ANDROID_ABI=x86_64 (debug only): APKs that run natively on x86_64 emulators, from the engine's x86_64
 #   build directories (engine/tools/android/README.md, ABIs); not distributable, so no build/dist manifest.
 # STORM_ANDROID_APPLICATION_ID / STORM_ANDROID_APP_LABEL (debug only): another application id and launcher label, so the
@@ -50,6 +50,10 @@ fi
 if [[ $build_type == release ]]; then
   if [[ -z ${STORM_RELEASE_TAG:-} ]]; then
     echo "Release APKs are built only from a release tag: set STORM_RELEASE_TAG=v<VERSION> (tools/android/RELEASE.md)" >&2
+    exit 2
+  fi
+  if [[ -n ${STORM_ANDROID_KEYSTORE:-}${STORM_ANDROID_KEY_ALIAS:-}${STORM_ANDROID_STORE_PASSWORD:-}${STORM_ANDROID_KEY_PASSWORD:-} ]]; then
+    echo "A release build signs nothing: unset the STORM_ANDROID_* signing variables (tools/android/RELEASE.md)" >&2
     exit 2
   fi
   rehearse=(); [[ ${STORM_RELEASE_REHEARSAL:-0} == 1 ]] && rehearse=(--rehearse)

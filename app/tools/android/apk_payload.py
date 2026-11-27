@@ -20,6 +20,11 @@ SDL_LICENSES = {'SDL-hidapi-LICENSE.txt': 'src/hidapi/LICENSE.txt',
                 'SDL-yuv2rgb-LICENSE.txt': 'src/video/yuv2rgb/LICENSE'}
 
 
+def apk_name(arch, build_type):
+    """The packaged APK's file name. A release is packaged unsigned: sign_release.py signs it."""
+    return f'seawolves-{arch}-{build_type}{"-unsigned" if build_type == "release" else ""}.apk'
+
+
 def app_java_sources(root, ui_gallery=False, test_loop=False):
     """The application's Java sources for one build: the single list javac sees in packaging and checks."""
     game = root / 'android/game'

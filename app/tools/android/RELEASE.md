@@ -43,9 +43,10 @@ APK in place and a released APK never updates it: Android refuses an update sign
    section, as written, is the text of the release notes. Merge it and wait for CI.
 2. **Rehearse that commit** (optional, recommended; nothing is published):
    `gh workflow run release.yml --ref main -f rehearse_tag=v1.0.0-alpha.1`. The run makes exactly the release build
-   with the tag's versionName and versionCode and the release key, runs every publication check, and uploads
-   `android-release-draft` (the versioned APK, SHA256SUMS and the release notes it would publish) next to
-   `android-release-apk` and `android-native-debug-symbols`.
+   with the tag's versionName and versionCode, signs it with the release key in the same signing job as a release,
+   runs every publication check, and uploads `android-release-draft` (the versioned APK, SHA256SUMS and the
+   release notes it would publish) next to `android-release-unsigned`, `android-release-apk` and
+   `android-native-debug-symbols`.
 3. **Tag and push** the same commit:
 
    ```sh
@@ -56,9 +57,14 @@ APK in place and a released APK never updates it: Android refuses an update sign
    The push starts the workflow. It refuses a tag that does not match VERSION, a tag not on the checked-out
    commit, a dirty tree, an undated or empty CHANGELOG section, a versionCode not above every earlier release,
    and a tagged commit that is not on `main` (the published source of a release is a commit of the main branch).
-   It builds the APK from the Release (LTO) engine in `engine/`, signs it with the release key and checks its
-   signer.
-4. **Publish** (the `publish` job of the same run; it is the only job that can write to the repository and it
+   The `build` job builds the APK from the Release (LTO) engine in `engine/` and leaves it aligned and unsigned
+   (`seawolves-arm64-release-unsigned.apk` with its checksum and build manifest): the job has no secret.
+4. **Sign** (the `sign` job of the same run; the only job with the release key, and it builds nothing).
+   `app/tools/android/sign_release.py` repeats the tag checks, checks the unsigned APK as the publication does
+   (checksum, build manifest, packaged build-info), signs it with the pinned SDK's `apksigner`, and checks that its
+   only signer is the release key and that it is still aligned. Its artifact `android-release-apk` is the signed
+   `seawolves-arm64-release.apk` with its checksum and the manifest.
+5. **Publish** (the `publish` job of the same run; it is the only job that can write to the repository and it
    builds nothing). `app/tools/android/publish_release.py` checks the APK again (checksum, build manifest:
    the tag's commit, clean sources, release build, the tag's versionName/versionCode; packaged build-info) and
    that its only signer is the release key (`release_signing.py`, `MAIN_RELEASE_CERT_SHA256`), then creates the
@@ -66,7 +72,7 @@ APK in place and a released APK never updates it: Android refuses an update sign
    with `seawolves-<version>-arm64.apk`, `SHA256SUMS` and notes made of the CHANGELOG section plus the APK
    checksum, the certificate digest and a link to the exact source commit. It downloads the APK back and compares
    it. An existing release is never replaced.
-5. **After the release**, bump VERSION to the next planned version and open its section as `— unreleased`.
+6. **After the release**, bump VERSION to the next planned version and open its section as `— unreleased`.
 
 Keep the run's `android-native-debug-symbols` (90 days) for crash
 symbolication: a player's report names each native frame's build id, and the NDK's
@@ -78,9 +84,12 @@ exists its tag is never moved or reused: the fix ships as the next version (`1.0
 
 ## The release key
 
-The workflow reads the key from the secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`,
-`ANDROID_STORE_PASSWORD` and `ANDROID_KEY_PASSWORD` of the `release` environment; the key exists on the runner
-only as a file for the packaging step. The SHA-256 digest of its certificate is public
+The workflow's `sign` job reads the key from the secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`,
+`ANDROID_STORE_PASSWORD` and `ANDROID_KEY_PASSWORD` of the `release` environment (restrict the environment to
+`v*` tags and `main` in the repository settings). No other job has them: nothing is fetched, compiled or
+packaged while the key is present. The key exists on the runner only as a 0600 file under `RUNNER_TEMP` during
+the `apksigner` call of `sign_release.py`, which removes it whether signing succeeds or fails; the passwords reach
+`apksigner` through the environment of that one step, not its command line. The SHA-256 digest of its certificate is public
 (`MAIN_RELEASE_CERT_SHA256` in `app/tools/android/release_signing.py`, repeated in every release's notes), so
 anyone can check that a downloaded APK is ours:
 
@@ -92,9 +101,11 @@ A fork that publishes its own builds uses its own key: change the digest and the
 (`build_apk.py --application-id`), since builds signed with different keys cannot share one.
 
 A local release build (`STORM_ANDROID_BUILD_TYPE=release bash app/tools/android/build_debug.sh`) needs
-`STORM_RELEASE_TAG` and the four `STORM_ANDROID_*` signing variables and passes the same checks.
-`python3 app/tests/android_release_artifact/run.py` (part of the host checks) tests the version scheme, the guards
-and the publication against a throwaway repository with a fake tag, `gh` and `apksigner`.
+`STORM_RELEASE_TAG`, passes the same checks and leaves the unsigned APK in `app/build/dist/`; it refuses the
+`STORM_ANDROID_*` signing variables. `sign_release.py` signs that directory with the key named by the four
+`ANDROID_*` variables. `python3 app/tests/android_release_artifact/run.py` (part of the host checks) tests the
+version scheme, the guards, the signing and the publication against a throwaway repository with a fake tag, `gh`
+and `apksigner`.
 
 ## Boot smoke before a release
 

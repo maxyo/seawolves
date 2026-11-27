@@ -7,7 +7,7 @@
 The APK may hold only the interface pack, the engine's shaders, the script patches, the relief models, the
 platform resources, the native libraries and the licence notices; anything else fails the build, as does a
 missing native library or third-party notice. The output directory gets the APK under its distribution name, SHA256SUMS and build-manifest.json (commit, clean or dirty tree, build types, version),
-which the release publication checks again (publish_release.py). The manifest records what the build checked; it
+which the release signing and publication check again (sign_release.py, publish_release.py). The manifest records what the build checked; it
 says nothing about installation or gameplay on a device.
 """
 import argparse
@@ -74,13 +74,13 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--aapt2', type=Path)
     p.add_argument('--build-type', choices=('debug', 'release'), default='debug')
-    p.add_argument('--apk-root', type=Path, help='Directory holding seawolves-arm64-<build type>.apk')
+    p.add_argument('--apk-root', type=Path, help='Directory holding the APK build_apk.py made (apk_payload.apk_name)')
     a = p.parse_args()
 
     app = a.app.resolve()
     repository = app.parent
-    # The APK keeps its name in the output directory: the release publication expects it (publish_release.py).
-    name = f'seawolves-arm64-{a.build_type}.apk'
+    # The APK keeps its name in the output directory: the release signing expects it (sign_release.py).
+    name = apk_payload.apk_name('arm64', a.build_type)
     a.output.mkdir(parents=True, exist_ok=True)
     apk = a.output / name
     shutil.copyfile((a.apk_root or app / 'build/apk') / name, apk)
@@ -96,7 +96,8 @@ def main():
         'build_type': a.build_type,
         'native_build_type': os.environ.get('STORM_NATIVE_BUILD_TYPE', 'RelWithDebInfo'),
         'game_resources_included': False,
-        'verified': ['native libraries linked for arm64-v8a', 'Java and DEX compile', 'APK signature and alignment',
+        'verified': ['native libraries linked for arm64-v8a', 'Java and DEX compile',
+                     'APK alignment' if a.build_type == 'release' else 'APK signature and alignment',
                      'APK entries are the packaged layers'],
         'not_verified': ['installation on a device', 'game import', 'launch and gameplay'],
     }

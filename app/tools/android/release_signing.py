@@ -5,7 +5,7 @@
 
 Each APK must carry exactly one signer whose certificate SHA-256 digest is MAIN_RELEASE_CERT_SHA256. Any other key
 (a local debug key) is refused: only the release workflow signs with the main key, so a locally built APK never
-reaches a release. Used by publish_release.py and by the release workflow right after it signs.
+reaches a release. Used by sign_release.py right after it signs and by publish_release.py.
 """
 import argparse
 from pathlib import Path
@@ -13,8 +13,8 @@ import re
 import subprocess
 import sys
 
-# The main release key (GitHub secrets ANDROID_KEYSTORE_BASE64/ANDROID_KEY_ALIAS of the repository, used only by
-# the release workflow): the SHA-256 digest of its signing certificate, as `apksigner verify --print-certs` prints it.
+# The main release key (GitHub secrets of the repository's `release` environment, used only by the release
+# workflow's signing job): the SHA-256 digest of its signing certificate, as `apksigner verify --print-certs` prints it.
 # Public information; changing it means a new update identity, which no installed build accepts.
 MAIN_RELEASE_CERT_SHA256 = '31c67a4b0d1471f1e800dc498b07b0c65d5268167bfc7b578fb8dd5f6e7879ea'
 

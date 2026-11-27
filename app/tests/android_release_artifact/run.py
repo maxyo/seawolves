@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Release from a tag: version parsing, the release guards and the publication, with a fake tag, gh and apksigner.
+"""Release from a tag: version parsing, the release guards, the signing and the publication, with a fake tag, gh
+and apksigner.
 
 No GitHub, no APK execution, no tag in this repository. The scripts run from a throwaway Git repository laid out
 like this one (app/tools/android, engine/, VERSION and CHANGELOG.md at the root) with the tags each case needs:
@@ -7,11 +8,16 @@ like this one (app/tools/android, engine/, VERSION and CHANGELOG.md at the root)
 - tools/android/release_version.py: SemVer versions only, the versionCode scheme and its order, a tag that does
   not match VERSION, an untagged commit, a tag on another commit, a dirty tree (also under engine/), a draft or empty CHANGELOG section,
   a versionCode not above an earlier release;
+- tools/android/sign_release.py: the build's unsigned APK is signed only when the publication would accept it, the
+  key file exists (mode 0600) only while apksigner runs and is gone after a success and after a failure, an APK of
+  another key is not kept, and what it leaves is the artifact the publication takes;
 - tools/android/publish_release.py: the dry run stages the release and publishes nothing; the release of the tag is
   created (pre-release for a beta) only for the main key's APK matching its checksum, manifest and build-info, never
   over an existing release, and downloaded back;
-- tools/android/build_debug.sh refuses a release build without a release tag before it builds anything.
+- tools/android/build_debug.sh refuses a release build without a release tag, or with signing variables, before it
+  builds anything.
 """
+import base64
 import hashlib
 import importlib.util
 import json
@@ -89,9 +95,22 @@ elif args[:2] == ['release', 'download']:
     name = args[args.index('--pattern') + 1]
     shutil.copyfile(state / name, Path(args[args.index('--dir') + 1]) / name)
 '''
-FAKE_APKSIGNER = '''#!/bin/sh
-echo "Signer #1 certificate DN: CN=test"
-echo "Signer #1 certificate SHA-256 digest: $(cat "$FAKE_STATE/digest")"
+# `sign` works only as sign_release.py must call it: the key in a 0600 file, the passwords in the environment.
+FAKE_APKSIGNER = r'''#!/usr/bin/env python3
+import os, shutil, stat, sys
+from pathlib import Path
+state = Path(os.environ['FAKE_STATE'])
+args = sys.argv[1:]
+if args[0] == 'sign':
+    key = Path(args[args.index('--ks') + 1])
+    passwords = [os.environ[args[args.index(option) + 1].removeprefix('env:')] for option in ('--ks-pass', '--key-pass')]
+    if (stat.S_IMODE(key.stat().st_mode) != 0o600 or key.read_bytes() != b'keystore'
+            or passwords != ['store-secret', 'key-secret'] or (state / 'sign-fails').exists()):
+        sys.exit('apksigner: cannot sign')
+    shutil.copyfile(args[-1], args[args.index('--out') + 1])
+else:
+    print('Signer #1 certificate DN: CN=test')
+    print('Signer #1 certificate SHA-256 digest: ' + (state / 'digest').read_text())
 '''
 
 
@@ -102,7 +121,7 @@ def git(repo, *args):
 def make_repo(path, version='1.0.0-beta', date='2026-11-20'):
     shutil.rmtree(path, ignore_errors=True)
     (path / 'app/tools/android').mkdir(parents=True)
-    for name in ('release_version.py', 'release_signing.py', 'publish_release.py'):
+    for name in ('release_version.py', 'release_signing.py', 'publish_release.py', 'sign_release.py', 'apk_payload.py'):
         shutil.copyfile(root / 'tools/android' / name, path / 'app/tools/android' / name)
     (path / 'VERSION').write_text(version + '\n')
     (path / 'engine').mkdir()
@@ -174,27 +193,28 @@ with tempfile.TemporaryDirectory(prefix='release-check-') as temp:
 
     # Publication.
     (temp / 'bin').mkdir()
-    for name, text in (('gh', FAKE_GH), ('apksigner', FAKE_APKSIGNER)):
+    for name, text in (('gh', FAKE_GH), ('apksigner', FAKE_APKSIGNER), ('zipalign', '#!/bin/sh\n')):
         (temp / 'bin' / name).write_text(text)
         (temp / 'bin' / name).chmod(0o755)
 
-    def artifact(directory, head, info=None, **changes):
+    def artifact(directory, head, info=None, name='seawolves-arm64-release.apk', **changes):
         shutil.rmtree(directory, ignore_errors=True)
         directory.mkdir(parents=True)
-        apk = directory / 'seawolves-arm64-release.apk'
+        apk = directory / name
         with zipfile.ZipFile(apk, 'w') as z:
             z.writestr('assets/build-info.json', json.dumps(
                 {'testLoop': False, 'commit': head,
                  'versionCode': 100004000, 'versionName': '1.0.0-beta', **(info or {})}))
         digest = hashlib.sha256(apk.read_bytes()).hexdigest()
         manifest = {'apk_sha256': digest, 'commit': head, 'dirty': False, 'build_type': 'release', 'native_build_type': 'Release',
-                    'abi': 'arm64-v8a', 'game_resources_included': False,
+                    'abi': 'arm64-v8a', 'game_resources_included': False, 'verified': [],
                     'version_code': 100004000, 'version_name': '1.0.0-beta', **changes}
         (directory / 'build-manifest.json').write_text(json.dumps(manifest))
         (directory / 'SHA256SUMS').write_text(f'{digest}  {apk.name}\n')
         return digest
 
-    def publish(tag='v1.0.0-beta', dry_run=False, digest=MAIN, released=False, info=None, extra=None, **changes):
+    def publish(tag='v1.0.0-beta', dry_run=False, digest=MAIN, released=False, info=None, extra=None, signed=None,
+                **changes):
         commit = git(repo, 'rev-parse', 'HEAD')
         state = temp / 'state'
         shutil.rmtree(state, ignore_errors=True)
@@ -203,12 +223,12 @@ with tempfile.TemporaryDirectory(prefix='release-check-') as temp:
         (state / 'digest').write_text(digest)
         if released:
             (state / 'released').write_text('')
-        apk_digest = artifact(repo / 'build/artifact', commit, info, **changes)
+        apk_digest = None if signed else artifact(repo / 'build/artifact', commit, info, **changes)
         if extra:
             (repo / 'build/artifact' / extra).write_text('extra')
         env = dict(os.environ, FAKE_STATE=str(state), PATH=f'{temp / "bin"}{os.pathsep}{os.environ["PATH"]}')
         result = subprocess.run([sys.executable, str(repo / 'app/tools/android/publish_release.py'), '--tag', tag,
-                                 '--artifact', str(repo / 'build/artifact'), '--commit', commit,
+                                 '--artifact', str(signed or repo / 'build/artifact'), '--commit', commit,
                                  '--apksigner', str(temp / 'bin/apksigner'), '--out', str(repo / 'build/release'),
                                  '--repository', 'example/app', *(['--dry-run'] if dry_run else [])],
                                 env=env, capture_output=True, text=True)
@@ -251,6 +271,54 @@ with tempfile.TemporaryDirectory(prefix='release-check-') as temp:
     assert '--prerelease' in creates[0] and '--latest=false' in creates[0], creates
     assert creates[0][creates[0].index('--title') + 1] == '1.0.0-beta'
     assert 'downloaded back' in result.stdout and digest in result.stdout
+
+    # Signing: the job between the build and the publication.
+    SECRETS = {'ANDROID_KEYSTORE_BASE64': base64.b64encode(b'keystore').decode(), 'ANDROID_KEY_ALIAS': 'alias',
+               'ANDROID_STORE_PASSWORD': 'store-secret', 'ANDROID_KEY_PASSWORD': 'key-secret'}
+    keystore, signed = temp / 'release-signing.keystore', temp / 'signed'
+
+    def sign(digest=MAIN, sign_fails=False, corrupt=False, without=None, **changes):
+        commit = git(repo, 'rev-parse', 'HEAD')
+        state = temp / 'state'
+        for directory in (state, signed):
+            shutil.rmtree(directory, ignore_errors=True)
+        state.mkdir()
+        (state / 'digest').write_text(digest)
+        if sign_fails:
+            (state / 'sign-fails').write_text('')
+        artifact(temp / 'unsigned', commit, name='seawolves-arm64-release-unsigned.apk', **changes)
+        if corrupt:
+            with open(temp / 'unsigned/seawolves-arm64-release-unsigned.apk', 'ab') as file:
+                file.write(b'changed after the build')
+        env = {name: value for name, value in {**os.environ, **SECRETS, 'FAKE_STATE': str(state)}.items() if name != without}
+        result = subprocess.run([sys.executable, str(repo / 'app/tools/android/sign_release.py'), '--tag', 'v1.0.0-beta',
+                                 '--commit', commit, '--unsigned', str(temp / 'unsigned'), '--build-tools', str(temp / 'bin'),
+                                 '--keystore', str(keystore), '--out', str(signed)], env=env, capture_output=True, text=True)
+        output = result.stdout + result.stderr
+        assert not keystore.exists(), 'the key file was left behind: ' + output
+        assert not any(secret in output for secret in ('store-secret', 'key-secret', SECRETS['ANDROID_KEYSTORE_BASE64'])), output
+        return result.returncode, output
+
+    code, output = sign()
+    assert code == 0 and sorted(p.name for p in signed.iterdir()) == ['SHA256SUMS', 'build-manifest.json',
+                                                                    'seawolves-arm64-release.apk'], output
+    result, creates, _ = publish(dry_run=True, signed=signed)
+    assert result.returncode == 0 and not creates, result.stdout + result.stderr
+    unsigned_refused = [
+        ('a key other than the main release key', dict(digest=OTHER_KEY)),
+        ('apksigner failing', dict(sign_fails=True)),
+        ('an APK changed after the build', dict(corrupt=True)),
+        ('dirty tree', dict(dirty=True)),
+        ('debug build type', dict(build_type='debug')),
+        ('other commit', dict(commit='b' * 40)),
+        ('a missing secret', dict(without='ANDROID_KEY_PASSWORD')),
+    ]
+    for label, case in unsigned_refused:
+        code, output = sign(**case)
+        assert code and not (signed / 'seawolves-arm64-release.apk').exists(), f'{label}: signed ({output})'
+    print(f'PASS signing: the key file exists only for apksigner; {len(unsigned_refused)} refusals leave no key and no '
+          'APK; the signed artifact passes the publication checks')
+
     # A final release is not a pre-release.
     make_repo(repo, version='1.0.0')
     (repo / 'CHANGELOG.md').write_text('## 1.0.0 — 2026-12-01\n\nRelease.\n')
@@ -271,5 +339,9 @@ with tempfile.TemporaryDirectory(prefix='release-build-guard-') as work:
     result = subprocess.run(['bash', str(root / 'tools/android/build_debug.sh')], env=dict(env, STORM_RELEASE_TAG='v0.0.1'),
                             capture_output=True, text=True)
     assert result.returncode != 0 and 'release_version' in result.stderr, result.stdout + result.stderr
+    result = subprocess.run(['bash', str(root / 'tools/android/build_debug.sh')],
+                            env=dict(env, STORM_RELEASE_TAG='v0.0.1', STORM_ANDROID_KEYSTORE='release.jks'),
+                            capture_output=True, text=True)
+    assert result.returncode == 2 and 'signs nothing' in result.stderr, result.stdout + result.stderr
     assert not any(Path(work).iterdir()), 'the refused release build wrote into its work directory'
-print('PASS build_debug.sh: a release build without a valid release tag stops before building')
+print('PASS build_debug.sh: a release build without a valid release tag, or with signing variables, stops before building')

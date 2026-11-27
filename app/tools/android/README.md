@@ -39,14 +39,14 @@ Environment of `build_debug.sh`:
 
 | Variable | Meaning |
 |---|---|
-| `STORM_ANDROID_BUILD_TYPE` | `debug` (default) or `release`; a release needs the signing variables and `STORM_RELEASE_TAG` ([RELEASE.md](RELEASE.md)) |
+| `STORM_ANDROID_BUILD_TYPE` | `debug` (default) or `release`; a release needs `STORM_RELEASE_TAG` and is left unsigned ([RELEASE.md](RELEASE.md)) |
 | `STORM_ANDROID_ABI` | `arm64-v8a` (default) or `x86_64`: a debug APK for x86_64 emulators in `app/build/apk-x86_64/`, not distributable |
 | `STORM_APK_BUILD_DIR`, `STORM_DIST_DIR` | where the packaging work and the distributable copies go |
 | `STORM_CI_WORK` | the native build workspace (default `engine/build/android-ci`) |
 | `STORM_NATIVE_BUILD_TYPE` | the engine's CMake build type: `RelWithDebInfo` for debug APKs (default), `Debug` unoptimized; a release is always `Release` (LTO) |
 | `STORM_NATIVE_BUILD_DIR`, `STORM_SKIP_NATIVE_BUILD=1` | package an existing engine build; its build stamp must still match the checkout |
 | `STORM_ARCHIVE_LIBRARY`, `STORM_TORRENT_LIBRARY` | reader libraries built elsewhere |
-| `STORM_ANDROID_KEYSTORE` (+ `_KEY_ALIAS`, `_STORE_PASSWORD`, `_KEY_PASSWORD`) | sign with an existing key; a missing keystore fails instead of generating one |
+| `STORM_ANDROID_KEYSTORE` (+ `_KEY_ALIAS`, `_STORE_PASSWORD`, `_KEY_PASSWORD`) | debug only: sign with an existing key; a missing keystore fails instead of generating one |
 | `STORM_ANDROID_TEST_LOOP_SIBLING=1` | also package the `--test-loop` APK for the boot smoke (below) |
 | `STORM_ANDROID_APPLICATION_ID`, `STORM_ANDROID_APP_LABEL` | debug only, together: another application id and launcher label, an APK that installs beside the game with its own data (the renderer bench: `com.dustoff.seawolves.bench`, «Seawolves bench»); give it its own `STORM_APK_BUILD_DIR`, whose generated debug key later builds of it must keep |
 | `STORM_BUILD_JOBS` | parallel jobs of the native builds |
@@ -93,7 +93,8 @@ non-debuggable APK:
   `-sym native-debug-symbols.zip`) resolves the native frames of a crash in a player's report by build id; a debug
   build's `symbols/<abi>/` links to the libraries as built;
 - every ELF `LOAD` segment must be 16 KiB aligned and the APK is `zipalign -P 16` (both build types);
-- a signing key is mandatory; there is no generated release key.
+- the APK is not signed (`seawolves-arm64-release-unsigned.apk`): no key is present during a build, and
+  `sign_release.py` signs it afterwards with the release key.
 
 How a release is tagged, built by CI and published: [RELEASE.md](RELEASE.md).
 

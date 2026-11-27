@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Package the full engine as a signed APK.
+"""Package the full engine as an APK.
 
 --build-type debug (default): debuggable, native libraries packaged as built, signed with a locally generated
 debug key unless STORM_ANDROID_KEYSTORE names another one; versionName <VERSION>-dev with the versionCode of VERSION.
 --build-type release: not debuggable, native libraries stripped, unstripped copies kept beside the APK for crash
-symbolication (symbols/ and native-debug-symbols.zip), the release signing key required (STORM_ANDROID_*), version
-from the release tag (build_debug.sh).
+symbolication (symbols/ and native-debug-symbols.zip), version from the release tag (build_debug.sh). The APK is
+final and aligned but not signed: no key is present while anything is built (sign_release.py signs it afterwards).
 Both types require 16 KiB ELF LOAD alignment and 16 KiB zip alignment.
 
 The inputs are the SDK, NDK and SDL sources the engine's build workspace already holds and the engine's build
@@ -96,12 +96,6 @@ if release and a.test_loop:
 triple = android_abi.triple(a.abi)
 if release and a.abi != 'arm64-v8a':
     p.error('Release APKs are arm64-v8a only; --abi ' + a.abi + ' is for emulator debug builds')
-SIGNING = ('STORM_ANDROID_KEYSTORE', 'STORM_ANDROID_KEY_ALIAS', 'STORM_ANDROID_STORE_PASSWORD', 'STORM_ANDROID_KEY_PASSWORD')
-if release:
-    # A release key never falls back to a generated key, the debug alias or passwords.
-    missing = [name for name in SIGNING if not os.environ.get(name)]
-    if missing:
-        p.error('Release packaging needs ' + ', '.join(missing) + ' (the release key; tools/android/RELEASE.md)')
 FFMPEG_LIBRARIES = ('libavcodec.so', 'libavformat.so', 'libavutil.so', 'libswresample.so', 'libswscale.so')
 missing_ffmpeg = [name for name in FFMPEG_LIBRARIES if not (a.ffmpeg_libraries / name).is_file()]
 if missing_ffmpeg or not (a.ffmpeg_libraries / 'configure.txt').is_file():
@@ -473,21 +467,25 @@ with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as z:
     add_file(z, a.ndk / 'NOTICE.toolchain', 'assets/licenses/NDK-toolchain-NOTICE.txt')
 aligned = b / 'aligned.apk'
 run(a.build_tools / 'zipalign', '-f', '-P', '16', '4', unsigned, aligned)
-key = Path(os.environ.get('STORM_ANDROID_KEYSTORE', a.default_keystore or b / 'debug.keystore')).resolve()
-if not key.exists():
-    if os.environ.get('STORM_ANDROID_KEYSTORE'):
-        raise RuntimeError('Persistent signing keystore missing; refusing to generate a different update identity')
-    run('keytool', '-genkeypair', '-keystore', key, '-storepass', 'android', '-keypass', 'android',
-        '-alias', 'androiddebugkey', '-dname', 'CN=Android Debug,O=Android,C=US',
-        '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000')
-output = b / f'seawolves-{android_abi.arch(a.abi)}-{a.build_type}.apk'
-os.environ.setdefault('STORM_ANDROID_STORE_PASSWORD', 'android')
-os.environ.setdefault('STORM_ANDROID_KEY_PASSWORD', 'android')
-run(a.build_tools / 'apksigner', 'sign', '--ks', key,
-    '--ks-key-alias', os.environ.get('STORM_ANDROID_KEY_ALIAS', 'androiddebugkey'),
-    '--ks-pass', 'env:STORM_ANDROID_STORE_PASSWORD', '--key-pass', 'env:STORM_ANDROID_KEY_PASSWORD',
-    '--out', output, aligned)
-run(a.build_tools / 'apksigner', 'verify', '--verbose', output)
+output = b / apk_payload.apk_name(android_abi.arch(a.abi), a.build_type)
+if release:
+    # Signed afterwards by sign_release.py: no release key is present while anything is built or packaged.
+    shutil.copyfile(aligned, output)
+else:
+    key = Path(os.environ.get('STORM_ANDROID_KEYSTORE', a.default_keystore or b / 'debug.keystore')).resolve()
+    if not key.exists():
+        if os.environ.get('STORM_ANDROID_KEYSTORE'):
+            raise RuntimeError('Persistent signing keystore missing; refusing to generate a different update identity')
+        run('keytool', '-genkeypair', '-keystore', key, '-storepass', 'android', '-keypass', 'android',
+            '-alias', 'androiddebugkey', '-dname', 'CN=Android Debug,O=Android,C=US',
+            '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000')
+    os.environ.setdefault('STORM_ANDROID_STORE_PASSWORD', 'android')
+    os.environ.setdefault('STORM_ANDROID_KEY_PASSWORD', 'android')
+    run(a.build_tools / 'apksigner', 'sign', '--ks', key,
+        '--ks-key-alias', os.environ.get('STORM_ANDROID_KEY_ALIAS', 'androiddebugkey'),
+        '--ks-pass', 'env:STORM_ANDROID_STORE_PASSWORD', '--key-pass', 'env:STORM_ANDROID_KEY_PASSWORD',
+        '--out', output, aligned)
+    run(a.build_tools / 'apksigner', 'verify', '--verbose', output)
 run(a.build_tools / 'zipalign', '-c', '-P', '16', '4', output)
 if release:
     # The packaged manifest, not the one we wrote, is what Android reads.

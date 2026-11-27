@@ -1,7 +1,8 @@
 name: Release
 # A release is built only from its tag v<VERSION> (app/tools/android/RELEASE.md): the push of the tag builds the
-# APK, signs it with the release key and publishes the GitHub release of that tag. A manual run rehearses a
-# tag that does not exist yet (rehearse_tag): the same build and checks, nothing published.
+# APK unsigned, signs it with the release key in a separate job and publishes the GitHub release of that tag. A
+# manual run rehearses a tag that does not exist yet (rehearse_tag): the same build, signing and checks, nothing
+# published.
 on:
   push:
     tags: ['v*']
@@ -17,12 +18,12 @@ concurrency:
   group: release-${{ github.ref_name }}
   cancel-in-progress: false
 jobs:
+  # Everything that fetches, compiles and packages code, the pinned third-party sources included. It has no
+  # environment and no secret: the APK leaves it unsigned.
   build:
-    name: Build and sign
+    name: Build
     runs-on: ubuntu-24.04
     timeout-minutes: 150
-    # The signing secrets belong to this environment: restrict it to v* tags and main in the repository settings.
-    environment: release
     env:
       STORM_ANDROID_BUILD_TYPE: release
       STORM_NATIVE_BUILD_TYPE: Release
@@ -98,56 +99,20 @@ jobs:
           export JAVA_HOME="$JAVA_HOME_17_X64"
           export PATH="$JAVA_HOME/bin:$PATH"
           python3 app/tools/android/run_host_tests.py
-      # The release key exists only as a 0600 file under RUNNER_TEMP for the packaging step and is removed
-      # afterwards. Missing secrets fail the run; there is no other key to fall back to.
-      - name: Install the release signing key
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          missing=()
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD; do
-            [[ -n "${!name}" ]] || missing+=("$name")
-          done
-          if (( ${#missing[@]} )); then
-            echo "::error::Missing release signing secrets: ${missing[*]}"
-            exit 1
-          fi
-          keystore="$RUNNER_TEMP/release-signing.keystore"
-          (umask 077; printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore")
-          chmod 600 "$keystore"
-          test -s "$keystore"
-          echo "STORM_ANDROID_KEYSTORE=$keystore" >> "$GITHUB_ENV"
-      - name: Build the ARM64 release APK
-        env:
-          STORM_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          STORM_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          STORM_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Build the unsigned ARM64 release APK
         run: |
           export JAVA_HOME="$JAVA_HOME_17_X64"
           export PATH="$JAVA_HOME/bin:$PATH"
           # Free disk and memory every five minutes: a runner that runs out of either is lost without a log.
           (while sleep 300; do echo "resources: $(df -h --output=avail / /mnt | tail -2 | xargs) avail; $(free -m | awk 'NR==2{print $7" MB memory available"}')"; done) &
           bash app/tools/android/build_debug.sh
-      - name: Remove the release signing key
+      - name: Report the runner's free disk space
         if: always()
-        run: |
-          rm -f "$RUNNER_TEMP/release-signing.keystore"
-          df -h / /mnt
-      - name: Check the release key on the built APK
-        run: |
-          set -euo pipefail
-          export JAVA_HOME="$JAVA_HOME_17_X64"
-          export PATH="$JAVA_HOME/bin:$PATH"
-          python3 app/tools/android/release_signing.py --apksigner "$STORM_CI_WORK/tools/buildtools-36/android-16/apksigner" \
-            app/build/dist/*.apk
-      - name: Retain the release APK
+        run: df -h / /mnt
+      - name: Hand the unsigned APK to the signing job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-release-apk
+          name: android-release-unsigned
           path: app/build/dist/
           if-no-files-found: error
           retention-days: 14
@@ -161,12 +126,68 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  # The GitHub release of the tag from the APK the build job made. A rehearsal runs every check and stages the
+  # The only job with the release key (the secrets of the `release` environment). It builds nothing: it takes the
+  # build job's unsigned APK, the released commit's own scripts and the SDK build tools the build pins by SHA-256
+  # (prepare_sdk.sh), with the runner image's Python and JDK. The key is in the environment and on disk during the
+  # one signing step only, after everything the job fetches is in place.
+  sign:
+    name: Sign
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # The signing secrets belong to this environment: restrict it to v* tags and main in the repository settings.
+    environment: release
+    env:
+      STORM_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.rehearse_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download the unsigned APK of this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-release-unsigned
+          path: app/build/unsigned
+      - name: Prepare the pinned build tools
+        run: bash app/tools/android/prepare_sdk.sh "$RUNNER_TEMP/sdk"
+      # sign_release.py writes the key to a 0600 file under RUNNER_TEMP for its apksigner call and removes it;
+      # apksigner reads the passwords from this step's environment. Missing secrets fail the run: there is no
+      # other key to fall back to.
+      - name: Sign the release APK and check its signer
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          REHEARSE: ${{ github.event_name == 'workflow_dispatch' && '--rehearse' || '' }}
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          # REHEARSE is empty or one option: unquoted on purpose.
+          # shellcheck disable=SC2086
+          python3 app/tools/android/sign_release.py --tag "$STORM_RELEASE_TAG" $REHEARSE --commit "$GITHUB_SHA" \
+            --unsigned app/build/unsigned --build-tools "$RUNNER_TEMP/sdk/tools/buildtools-36/android-16" \
+            --keystore "$RUNNER_TEMP/release-signing.keystore" --out app/build/dist
+      - name: Remove the release signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release-signing.keystore"
+      - name: Retain the release APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-release-apk
+          path: app/build/dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  # The GitHub release of the tag from the APK the signing job made. A rehearsal runs every check and stages the
   # release (android-release-draft) without publishing. Only this job can write to the repository, and it runs
   # no build.
   publish:
     name: Check and publish
-    needs: build
+    needs: sign
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

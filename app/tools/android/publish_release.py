@@ -8,7 +8,7 @@ Run by the release workflow's publish job on the tag's checkout. It publishes no
 
 - the tag is a release tag for VERSION, names this commit, its CHANGELOG section is dated and its versionCode is
   above every earlier one (release_version.py check; `--dry-run` rehearses a tag that does not exist yet);
-- the artifact is exactly the release APK, SHA256SUMS and build-manifest.json; the APK matches
+- the artifact (the signing job's, sign_release.py) is exactly the release APK, SHA256SUMS and build-manifest.json; the APK matches
   its checksum and the manifest (this commit, a clean tree, release build of the Release engine, the tag's
   versionName and versionCode) and its packaged build-info;
 - the APK has one signer, the main release key (release_signing.py).
@@ -34,7 +34,6 @@ import release_version  # noqa: E402
 from release_signing import SigningError, check_signature  # noqa: E402
 
 APK = 'seawolves-arm64-release.apk'
-ARTIFACT_FILES = {APK, 'SHA256SUMS', 'build-manifest.json'}
 REPOSITORY = 'maxyo/seawolves'
 
 
@@ -55,15 +54,16 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def check_artifact(directory, commit, version):
-    """Validate the downloaded android-release-apk artifact; return (apk path, its SHA-256)."""
+def check_artifact(directory, commit, version, name=APK):
+    """Validate a downloaded artifact of the release run (the signed APK, or the build's unsigned one for
+    sign_release.py); return (apk path, its SHA-256)."""
     entries = list(directory.iterdir())
-    require({path.name for path in entries} == ARTIFACT_FILES,
-            f'unexpected android-release-apk contents: {sorted(path.name for path in entries)}')
+    require({path.name for path in entries} == {name, 'SHA256SUMS', 'build-manifest.json'},
+            f'unexpected artifact contents: {sorted(path.name for path in entries)}')
     require(all(path.is_file() and not path.is_symlink() for path in entries), 'artifact entries must be regular files')
-    apk = directory / APK
+    apk = directory / name
     digest = sha256(apk)
-    require((directory / 'SHA256SUMS').read_text() == f'{digest}  {APK}\n', 'SHA256SUMS does not match the APK')
+    require((directory / 'SHA256SUMS').read_text() == f'{digest}  {name}\n', 'SHA256SUMS does not match the APK')
     manifest = json.loads((directory / 'build-manifest.json').read_text())
     expected = {'apk_sha256': digest, 'commit': commit, 'dirty': False,
                 'build_type': 'release', 'native_build_type': 'Release', 'abi': 'arm64-v8a',
