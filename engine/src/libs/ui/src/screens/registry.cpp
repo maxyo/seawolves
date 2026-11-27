@@ -16,8 +16,6 @@ std::unique_ptr<StateConsumer> CreateAppSettingsConsumer();
 std::unique_ptr<StateConsumer> CreateRenderCapsConsumer();
 std::unique_ptr<Screen> CreateTitleScreen();
 std::unique_ptr<Screen> CreateNewGameScreen();
-std::unique_ptr<Screen> CreateDiceScreen();
-std::unique_ptr<Screen> CreateCardsScreen();
 std::unique_ptr<Screen> CreateTransferScreen();
 std::unique_ptr<Screen> CreateAlchemyScreen();
 std::unique_ptr<Screen> CreateGoodsOrderScreen();
@@ -45,8 +43,6 @@ const ScreenEntry kPorted[] = {
     {"option_screen", CreateSettingsScreen},
     {"mainmenu", CreateTitleScreen},
     {"selectcharacter", CreateNewGameScreen},
-    {"boal_dice", CreateDiceScreen},
-    {"boal_cards", CreateCardsScreen},
     {"transfer_main", CreateTransferScreen},
     {"alchemy", CreateAlchemyScreen},
     {"game_over", CreateGameOverScreen}, // state channel gameOver, not a game interface

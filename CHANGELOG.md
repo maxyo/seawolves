@@ -97,6 +97,10 @@
 - Верфь построена скриптами интерфейса. Покупка и продажа — обычные кнопки: игра задаёт свой вопрос с ценой сделки
   (при обмене — с разницей, как её считает игра), и он показывается листом. На кнопке покупки при обмене стоят обе
   цены игры: корабля и того, что верфь платит за наш. Кнопка описания корабля убрана: описание и так на карточке.
+- Кости и карты в таверне построены скриптами интерфейса. Очки карт и комбинации костей — те, что считает игра, имя
+  соперника — как его пишет игра. После кона итог говорит строка самой игры: отдельной плашки «выигрыш» и «забрал»
+  больше нет. Кубик, карта и бросок больше не запрещаются экраном за нехватку денег на ставку — игра сама отвечает,
+  хватает ли.
 
 **English**
 
@@ -198,6 +202,10 @@
   with the deal's price (for a trade-in with the difference as the game works it out), shown as a sheet. When a ship
   is traded in, the buy button names both of the game's prices: the ship's and what the yard pays for ours. The ship
   description button is gone: the card already shows the description.
+- Tavern dice and cards are built by the interface scripts. Card points and dice combinations are the ones the game
+  counts, and the opponent's name is written as the game writes it. After a round the game's own line tells the
+  outcome: the separate «winnings» and «pot taken by» badge is gone. A die, a card or a throw is no longer refused by
+  the screen for want of money for the stake: the game answers whether there is enough.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

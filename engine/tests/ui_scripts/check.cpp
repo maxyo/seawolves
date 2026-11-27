@@ -922,6 +922,11 @@ TEST_CASE("the shipyard's script gives the pack screen the props and actions of 
     CheckCases("shipyard", "shipyard");
 }
 
+TEST_CASE("the table games' script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("table-game", "table");
+}
+
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
 {
     Vm vm;

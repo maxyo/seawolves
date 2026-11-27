@@ -33,5 +33,6 @@
 {"node":"Money","type":"text","label":"7 600","index":-1,"order":0,"enabled":false},
 {"node":"MoneyInChest","type":"text","label":"2 000","index":-1,"order":0,"enabled":false},
 {"node":"Beta_TXT","type":"text","index":-1,"order":0,"enabled":false},
-{"node":"ANDROID_TABLE_GAME","type":"table_game","index":-1,"order":0,"enabled":false,"context":{"rate":"200","opponent":"Жак Дюбуа","opponentFace":"377","compDice":"5,5,2,2,6","compMix":"0,0,0,0,0","heroType":"5","compType":"6","moneyHero":"7600","moneyOpponent":"9000","bank":"2400","open":"0","stage":"2","turn":"1","first":"1","locked":"0","heroDice":"3,3,3,6,1","heroMix":"0,0,0,1,1"}}
-]}
+{"node":"ANDROID_TABLE_GAME","type":"table_game","index":-1,"order":0,"enabled":false,"context":{"rate":"200","opponent":"11","heroType":"5","compType":"6","moneyHero":"7600","bank":"2400","open":"0","stage":"2","turn":"1","first":"1","locked":"0","heroDie1":"3","heroDie2":"3","heroDie3":"3","heroDie4":"6","heroDie5":"1","heroMix1":"0","heroMix2":"0","heroMix3":"0","heroMix4":"1","heroMix5":"1"}}
+]
+}

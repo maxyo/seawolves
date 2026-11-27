@@ -353,11 +353,8 @@
   "games.point_one": "punto",
   "games.point_few": "puntos",
   "games.point_many": "puntos",
-  "games.won": "Su ganancia",
-  "games.taken": "Se lleva el bote",
   "games.wait": "Es el turno del rival",
   "games.round": "Termine primero la partida",
-  "games.no_money": "No hay dinero para la apuesta",
   "games.combo_1": "póquer",
   "games.combo_2": "escalera",
   "games.combo_3": "póquer de cuatro",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Gráficos: {1} — elegidos para este dispositivo",
   "host.settings_not_saved": "Los ajustes gráficos no se guardaron",
   "host.cache_clear_not_marked": "No se pudo marcar la caché para vaciarla",
-  "host.interface_error": "Error de la interfaz"
+  "host.interface_error": "Error de la interfaz",
+  "plural.form": "one"
 }

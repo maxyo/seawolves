@@ -1,5 +1,6 @@
 // Included inside xinterface.cpp's Android implementation: the facts of the tavern mini-games
-// (PROGRAM/interface/boal_dice.c, boal_cards.c) for mobile_table_game.hpp. All rules stay in script.
+// (PROGRAM/interface/boal_dice.c, boal_cards.c) for mobile_table_game.hpp: the variables of the game's window,
+// which the touch interface's scripts cannot name. All rules stay in script.
 namespace {
 std::optional<std::string> TableInteger(const char *name){
     const auto n=MobileVariableInteger(name);
@@ -11,40 +12,30 @@ std::optional<std::string> TableAttribute(ATTRIBUTES *root,const char *path){
     auto *a=root?root->FindAClass(root,path):nullptr;
     if(!a)return std::nullopt;const char *s=a->GetThisAttr();return std::string(s?s:"");
 }
-// DiceState.<side>.d1..d5 (faces) and .Mix (marked for the cup) as "3,3,3,6,1" / "0,0,0,1,1".
-void TableDice(ATTRIBUTES *state,const char *side,std::vector<std::pair<std::string,std::optional<std::string>>> &facts){
-    std::optional<std::string> faces=std::string(),mix=std::string();
+// DiceState.Hero.d<n> (faces) and .d<n>.Mix (marked for the cup) as heroDie<n> and heroMix<n> ("0" or "1"), and
+// the combination types of both rows.
+void TableDice(ATTRIBUTES *state,std::vector<std::pair<std::string,std::optional<std::string>>> &facts){
     for(int i=1;i<=5;++i){
-        const std::string die=std::string(side)+".d"+std::to_string(i);
-        const auto face=TableAttribute(state,die.c_str());const auto marked=TableAttribute(state,(die+".Mix").c_str());
-        if(!face)faces.reset();else if(faces)*faces+=(i>1?",":"")+*face;
-        if(!marked)mix.reset();else if(mix)*mix+=(i>1?",":"")+std::string(*marked=="0"||marked->empty()?"0":"1");
+        const std::string die="Hero.d"+std::to_string(i);
+        facts.emplace_back("heroDie"+std::to_string(i),TableAttribute(state,die.c_str()));
+        auto marked=TableAttribute(state,(die+".Mix").c_str());
+        if(marked)marked=*marked=="0"||marked->empty()?"0":"1";
+        facts.emplace_back("heroMix"+std::to_string(i),marked);
     }
-    const std::string key=std::string(side)=="Hero"?"hero":"comp";
-    facts.emplace_back(key+"Dice",faces);facts.emplace_back(key+"Mix",mix);
-    facts.emplace_back(key+"Type",TableAttribute(state,(std::string(side)+".Result.Type").c_str()));
+    facts.emplace_back("heroType",TableAttribute(state,"Hero.Result.Type"));
+    facts.emplace_back("compType",TableAttribute(state,"Comp.Result.Type"));
 }
 }
 
 void XINTERFACE::MobileCollectTableGame(std::vector<MobileWidget> &widgets)
 {
     storm::mobile::TableGameSource source;
-    // What the game counts each card (characters_init.c NullCharacter.Cards.cN: pic, count; boal_cards.c CountCardsP).
-    std::map<std::string,std::string> points;
-    auto *deck=storm::android::mobileScreen=="boal_cards"?MobileVariableObject("NullCharacter"):nullptr;
-    if(auto *cards=deck?deck->FindAClass(deck,"Cards"):nullptr)
-        for(size_t i=0;i<cards->GetAttributesNum();++i)
-            if(auto *card=cards->GetAttributeClass(i)){
-                const auto pic=TableAttribute(card,"pic"),count=TableAttribute(card,"count");
-                if(pic&&count)points[*pic]=*count;
-            }
     for(auto *p=m_imgLists;p;p=p->next){
         if(!p->sImageName)continue;
         storm::mobile::TableGameImage image{p->sImageName,static_cast<int>(p->position.left),static_cast<int>(p->position.top)};
         if(p->sImageListName&&*p->sImageListName&&p->sPicture&&*p->sPicture){
             image.image=storm::mobile::AtlasReference(pPictureService,p->sImageListName,p->sPicture);
             image.image.source={"atlas",p->sImageListName,p->sPicture,{},{},-1};
-            if(const auto found=points.find(p->sPicture);found!=points.end())image.points=found->second;
         }
         source.images.push_back(std::move(image));
     }
@@ -55,16 +46,14 @@ void XINTERFACE::MobileCollectTableGame(std::vector<MobileWidget> &widgets)
         }
     auto &facts=source.facts;
     for(const auto &[key,name]:std::initializer_list<std::pair<const char*,const char*>>{
-        {"rate","iRate"},{"moneyHero","iMoneyP"},{"moneyOpponent","iMoneyN"},{"bank","iChest"},{"open","openExit"},
+        {"rate","iRate"},{"moneyHero","iMoneyP"},{"bank","iChest"},{"open","openExit"},
         {"stage","bStartGame"},{"turn","dir_i"},{"first","dir_i_start"}})facts.emplace_back(key,TableInteger(name));
-    auto *person=MobileVariableObject("npchar");
-    const auto index=TableAttribute(person,"index");
-    facts.emplace_back("opponent",index?MobileCharacterName(std::atoi(index->c_str())):std::nullopt);
-    facts.emplace_back("opponentFace",TableAttribute(person,"FaceId"));
+    // The opponent's character index: his name and face are the game's (GetFullName, FaceId), read by the adapter.
+    facts.emplace_back("opponent",TableAttribute(MobileVariableObject("npchar"),"index"));
     if(storm::android::mobileScreen=="boal_dice"){
         facts.emplace_back("locked",TableInteger("bLockClick"));
         auto *state=MobileVariableObject("DiceState");
-        TableDice(state,"Hero",facts);TableDice(state,"Comp",facts);
+        TableDice(state,facts);
     }else facts.emplace_back("cardMove",TableInteger("cardMove"));
     storm::mobile::CollectTableGame(source,widgets);
 }

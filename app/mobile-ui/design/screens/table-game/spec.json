@@ -1,16 +1,127 @@
 {
   "tag": "s-table-game",
-  "doc": "Tavern mini-games on the felt (interfaces boal_dice, boal_cards), filled by extra_games.cpp: opponent with his line, the bank, the opponent's row on top, ours below, the cup or the deck, the buttons in the right column.",
+  "doc": "Tavern mini-games on the felt (interfaces boal_dice, boal_cards), filled by the script interface/touch/screens/table.c through the shapes of its json props: opponent with his line, the bank, the opponent's row on top, ours below, the cup or the deck, the buttons in the right column.",
   "props": {
-    "kind": {"type": "enum", "options": ["dice", "cards"], "default": "dice"},
-    "title": {"type": "text", "default": ""},
-    "stats": {"type": "json", "default": []},
-    "locked": {"type": "bool", "default": false, "class": false},
-    "table": {"type": "json", "default": {}},
-    "top": {"type": "json", "default": {}},
-    "bottom": {"type": "json", "default": {}},
-    "pack": {"type": "json", "default": []},
-    "buttons": {"type": "json", "default": []},
-    "extras": {"type": "json", "default": {}}
+    "kind": {
+      "type": "enum",
+      "options": [
+        "dice",
+        "cards"
+      ],
+      "default": "dice"
+    },
+    "title": {
+      "type": "text",
+      "default": ""
+    },
+    "stats": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "label": "text",
+          "value": "text"
+        }
+      ]
+    },
+    "locked": {
+      "type": "bool",
+      "default": false,
+      "class": false
+    },
+    "table": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "opponent": "text",
+        "portrait": "text",
+        "line": "text",
+        "bank": "text",
+        "coins": "text"
+      }
+    },
+    "top": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "pieces": [
+          {
+            "kind": "text",
+            "rot": "int",
+            "pips": [
+              "numbers"
+            ],
+            "lift": "bool",
+            "action": "text",
+            "value": "text",
+            "disabled": "bool",
+            "reason": "text",
+            "suit": "text",
+            "red": "bool",
+            "rank": "text"
+          }
+        ],
+        "label": "text",
+        "size": "int",
+        "below": "bool"
+      }
+    },
+    "bottom": {
+      "type": "json",
+      "default": {},
+      "shape": {
+        "pieces": [
+          {
+            "kind": "text",
+            "rot": "int",
+            "pips": [
+              "numbers"
+            ],
+            "lift": "bool",
+            "action": "text",
+            "value": "text",
+            "disabled": "bool",
+            "reason": "text",
+            "suit": "text",
+            "red": "bool",
+            "rank": "text"
+          }
+        ],
+        "label": "text",
+        "size": "int"
+      }
+    },
+    "pack": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "kind": "text",
+          "action": "text",
+          "value": "text",
+          "disabled": "bool",
+          "reason": "text"
+        }
+      ]
+    },
+    "buttons": {
+      "type": "json",
+      "default": [],
+      "shape": [
+        {
+          "id": "text",
+          "label": "text",
+          "sub": "text",
+          "variant": "text",
+          "disabled": "bool",
+          "reason": "text",
+          "busy": "bool"
+        }
+      ]
+    },
+    "extras": {
+      "type": "json",
+      "default": {}
+    }
   }
 }

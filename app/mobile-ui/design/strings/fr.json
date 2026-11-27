@@ -353,11 +353,8 @@
   "games.point_one": "point",
   "games.point_few": "points",
   "games.point_many": "points",
-  "games.won": "Vos gains",
-  "games.taken": "Le pot va à",
   "games.wait": "C'est au tour de l'adversaire",
   "games.round": "Terminez d'abord la partie",
-  "games.no_money": "Pas assez d'argent pour la mise",
   "games.combo_1": "poker",
   "games.combo_2": "suite",
   "games.combo_3": "carré",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Graphismes : {1} — choisis pour cet appareil",
   "host.settings_not_saved": "Les réglages graphiques n'ont pas été enregistrés",
   "host.cache_clear_not_marked": "Impossible de marquer le cache pour le vider",
-  "host.interface_error": "Erreur de l'interface"
+  "host.interface_error": "Erreur de l'interface",
+  "plural.form": "one"
 }

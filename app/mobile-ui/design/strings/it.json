@@ -353,11 +353,8 @@
   "games.point_one": "punto",
   "games.point_few": "punti",
   "games.point_many": "punti",
-  "games.won": "La tua vincita",
-  "games.taken": "Il piatto va a",
   "games.wait": "Tocca all'avversario",
   "games.round": "Finisci prima la partita",
-  "games.no_money": "Soldi insufficienti per la puntata",
   "games.combo_1": "poker",
   "games.combo_2": "scala",
   "games.combo_3": "poker di quattro",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Grafica: {1} — scelta per questo dispositivo",
   "host.settings_not_saved": "Le impostazioni grafiche non sono state salvate",
   "host.cache_clear_not_marked": "Impossibile segnare la cache da svuotare",
-  "host.interface_error": "Errore dell'interfaccia"
+  "host.interface_error": "Errore dell'interfaccia",
+  "plural.form": "one"
 }

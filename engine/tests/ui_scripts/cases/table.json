@@ -1,0 +1,3183 @@
+{
+ "$comment": "The table games' script screen on recorded models of boal_dice and boal_cards (engine/src/libs/ui/tests/models/boal_*.json): the props its view gives s-table-game and what its events send. The fixture game gives the opponent's name and what its cards count.",
+ "cases": [
+  {
+   "calls": [
+    "send B_HeroDice2 press ",
+    "send B_PACK press ",
+    "send B_PACK press ",
+    "toast <games.round>"
+   ],
+   "capability": "table_dice",
+   "events": [
+    [
+     "bottom",
+     "mark",
+     "2"
+    ],
+    [
+     "throw",
+     "click",
+     ""
+    ],
+    [
+     "pack",
+     "press",
+     ""
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_dice",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Решай, какие кости бросить ещё раз.",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice1",
+      "node": "B_HeroDice1",
+      "order": 4055115,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice2",
+      "node": "B_HeroDice2",
+      "order": 4055195,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice3",
+      "node": "B_HeroDice3",
+      "order": 4055275,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice4",
+      "node": "B_HeroDice4",
+      "order": 4055355,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice5",
+      "node": "B_HeroDice5",
+      "order": 4055435,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "cup",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "cup",
+      "node": "DiceCup",
+      "order": 328140,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "GOLD",
+         "image": "GOLD",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "GOLD",
+      "node": "GOLD",
+      "order": 3637730,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "silver",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "silver",
+      "node": "Money_0",
+      "order": 2540050,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "silver",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "silver",
+      "node": "Money_1",
+      "order": 2515477,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "silver",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "silver",
+      "node": "Money_2",
+      "order": 2490904,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "silver",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "silver",
+      "node": "Money_3",
+      "order": 2466331,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "silver",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "silver",
+      "node": "Money_4",
+      "order": 2441758,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice1",
+      "order": 3981372,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice2",
+      "order": 3981452,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice3",
+      "order": 3981532,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice1",
+      "order": 344124,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice2",
+      "order": 344204,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice3",
+      "order": 344284,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice4",
+      "order": 344364,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "CompDice5",
+      "order": 344444,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "7 600",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "2 000",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "Beta_TXT",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "2400",
+       "compType": "6",
+       "first": "1",
+       "heroDie1": "3",
+       "heroDie2": "3",
+       "heroDie3": "3",
+       "heroDie4": "6",
+       "heroDie5": "1",
+       "heroMix1": "0",
+       "heroMix2": "0",
+       "heroMix3": "0",
+       "heroMix4": "1",
+       "heroMix5": "1",
+       "heroType": "5",
+       "locked": "0",
+       "moneyHero": "7600",
+       "open": "0",
+       "opponent": "11",
+       "rate": "200",
+       "stage": "2",
+       "turn": "1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "dice: our reroll, two dice in the cup",
+   "props": {
+    "bottom": {
+     "label": "",
+     "pieces": [
+      {
+       "action": "mark",
+       "disabled": false,
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "reason": "<games.wait>",
+       "rot": -3,
+       "value": "1"
+      },
+      {
+       "action": "mark",
+       "disabled": false,
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "reason": "<games.wait>",
+       "rot": 2,
+       "value": "2"
+      },
+      {
+       "action": "mark",
+       "disabled": false,
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "reason": "<games.wait>",
+       "rot": -2,
+       "value": "3"
+      },
+      {
+       "kind": "die",
+       "lift": true,
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "lift": true,
+       "pips": [
+        [
+         50.0,
+         50.0
+        ]
+       ],
+       "rot": -1
+      }
+     ],
+     "size": 60
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "throw",
+      "label": "<games.roll>",
+      "reason": "",
+      "sub": "2 <games.die_many>",
+      "variant": "primary"
+     }
+    ],
+    "kind": "dice",
+    "locked": true,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": false,
+      "kind": "cup",
+      "reason": "<games.wait>",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "200"
+     },
+     {
+      "label": "<games.money>",
+      "value": "7 600"
+     }
+    ],
+    "table": {
+     "bank": "2 400",
+     "coins": "silver",
+     "line": "Решай, какие кости бросить ещё раз.",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.dice>",
+    "top": {
+     "below": true,
+     "label": "<games.combo_6>",
+     "pieces": [
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -1
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": 2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": -3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 1
+      }
+     ],
+     "size": 44
+    }
+   }
+  },
+  {
+   "calls": [
+    "send B_PACK press ",
+    "send B_PACK press ",
+    "back EXIT_BTN",
+    "back EXIT_BTN"
+   ],
+   "capability": "table_dice",
+   "events": [
+    [
+     "again",
+     "click",
+     ""
+    ],
+    [
+     "pack",
+     "press",
+     ""
+    ],
+    [
+     "leave",
+     "click",
+     ""
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_dice",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Фул бьёт две пары. Ещё партию?",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice1",
+      "node": "B_HeroDice1",
+      "order": 4055115,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice2",
+      "node": "B_HeroDice2",
+      "order": 4055195,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice3",
+      "node": "B_HeroDice3",
+      "order": 4055275,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice4",
+      "node": "B_HeroDice4",
+      "order": 4055355,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice5",
+      "node": "B_HeroDice5",
+      "order": 4055435,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "cup",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "cup",
+      "node": "DiceCup",
+      "order": 328140,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "GOLD",
+         "image": "GOLD",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "GOLD",
+      "node": "GOLD",
+      "order": 3637730,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice1",
+      "order": 3981372,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice2",
+      "order": 3981452,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice3",
+      "order": 3981532,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "HeroDice4",
+      "order": 3981612,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "HeroDice5",
+      "order": 3981692,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice1",
+      "order": 344124,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice2",
+      "order": 344204,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice3",
+      "order": 344284,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice4",
+      "order": 344364,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "CompDice5",
+      "order": 344444,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "7 600",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "2 000",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "Beta_TXT",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "0",
+       "compType": "6",
+       "first": "1",
+       "heroDie1": "3",
+       "heroDie2": "3",
+       "heroDie3": "3",
+       "heroDie4": "6",
+       "heroDie5": "6",
+       "heroMix1": "0",
+       "heroMix2": "0",
+       "heroMix3": "0",
+       "heroMix4": "0",
+       "heroMix5": "0",
+       "heroType": "4",
+       "locked": "0",
+       "moneyHero": "10000",
+       "open": "1",
+       "opponent": "11",
+       "rate": "200",
+       "stage": "4",
+       "turn": "-1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "dice: after our win, another round or leave",
+   "props": {
+    "bottom": {
+     "label": "<games.combo_4>",
+     "pieces": [
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": 2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": -1
+      }
+     ],
+     "size": 60
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "leave",
+      "label": "<games.leave>",
+      "reason": "",
+      "sub": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "again",
+      "label": "<games.again>",
+      "reason": "",
+      "sub": "<games.stake_short> 200",
+      "variant": "primary"
+     }
+    ],
+    "kind": "dice",
+    "locked": false,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": false,
+      "kind": "cup",
+      "reason": "",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "200"
+     },
+     {
+      "label": "<games.money>",
+      "value": "10 000"
+     }
+    ],
+    "table": {
+     "bank": "",
+     "coins": "silver",
+     "line": "Фул бьёт две пары. Ещё партию?",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.dice>",
+    "top": {
+     "below": true,
+     "label": "<games.combo_6>",
+     "pieces": [
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -1
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": 2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": -3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 1
+      }
+     ],
+     "size": 44
+    }
+   }
+  },
+  {
+   "calls": [
+    "back EXIT_BTN"
+   ],
+   "capability": "table_dice",
+   "events": [
+    [
+     "leave",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_dice",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Денег на ставку больше нет, игра окончена.",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice1",
+      "node": "B_HeroDice1",
+      "order": 4055115,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice2",
+      "node": "B_HeroDice2",
+      "order": 4055195,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice3",
+      "node": "B_HeroDice3",
+      "order": 4055275,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice4",
+      "node": "B_HeroDice4",
+      "order": 4055355,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_HeroDice5",
+      "node": "B_HeroDice5",
+      "order": 4055435,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "cup",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "cup",
+      "node": "DiceCup",
+      "order": 328140,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "GOLD",
+         "image": "GOLD",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "GOLD",
+      "node": "GOLD",
+      "order": 3637730,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice1",
+      "order": 3981372,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice2",
+      "order": 3981452,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_3_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_3_1",
+      "node": "HeroDice3",
+      "order": 3981532,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "HeroDice4",
+      "order": 3981612,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "HeroDice5",
+      "order": 3981692,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice1",
+      "order": 344124,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_5_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_5_1",
+      "node": "CompDice2",
+      "order": 344204,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice3",
+      "order": 344284,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_2_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_2_1",
+      "node": "CompDice4",
+      "order": 344364,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "DICE",
+         "image": "dice_6_1",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "dice_6_1",
+      "node": "CompDice5",
+      "order": 344444,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "7 600",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "2 000",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "node": "Beta_TXT",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "0",
+       "compType": "6",
+       "first": "1",
+       "heroDie1": "3",
+       "heroDie2": "3",
+       "heroDie3": "3",
+       "heroDie4": "6",
+       "heroDie5": "6",
+       "heroMix1": "0",
+       "heroMix2": "0",
+       "heroMix3": "0",
+       "heroMix4": "0",
+       "heroMix5": "0",
+       "heroType": "4",
+       "locked": "1",
+       "moneyHero": "12400",
+       "open": "1",
+       "opponent": "11",
+       "rate": "200",
+       "stage": "4",
+       "turn": "-1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "dice: the opponent quits",
+   "props": {
+    "bottom": {
+     "label": "<games.combo_4>",
+     "pieces": [
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": 2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": -1
+      }
+     ],
+     "size": 60
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "again",
+      "label": "<games.again>",
+      "reason": "",
+      "sub": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "leave",
+      "label": "<games.leave>",
+      "reason": "",
+      "sub": "",
+      "variant": "primary"
+     }
+    ],
+    "kind": "dice",
+    "locked": false,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": true,
+      "kind": "cup",
+      "reason": "",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "200"
+     },
+     {
+      "label": "<games.money>",
+      "value": "12 400"
+     }
+    ],
+    "table": {
+     "bank": "",
+     "coins": "silver",
+     "line": "Денег на ставку больше нет, игра окончена.",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.dice>",
+    "top": {
+     "below": true,
+     "label": "<games.combo_6>",
+     "pieces": [
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": 3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         26.0,
+         26.0
+        ],
+        [
+         74.0,
+         26.0
+        ],
+        [
+         50.0,
+         50.0
+        ],
+        [
+         26.0,
+         74.0
+        ],
+        [
+         74.0,
+         74.0
+        ]
+       ],
+       "rot": -1
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": 2
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         28.0
+        ],
+        [
+         72.0,
+         72.0
+        ]
+       ],
+       "rot": -3
+      },
+      {
+       "kind": "die",
+       "pips": [
+        [
+         28.0,
+         24.0
+        ],
+        [
+         72.0,
+         24.0
+        ],
+        [
+         28.0,
+         50.0
+        ],
+        [
+         72.0,
+         50.0
+        ],
+        [
+         28.0,
+         76.0
+        ],
+        [
+         72.0,
+         76.0
+        ]
+       ],
+       "rot": 1
+      }
+     ],
+     "size": 44
+    }
+   }
+  },
+  {
+   "calls": [
+    "send B_PACK press ",
+    "send B_ICON_1 press "
+   ],
+   "capability": "table_cards",
+   "events": [
+    [
+     "throw",
+     "click",
+     ""
+    ],
+    [
+     "pass",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_cards",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Твой ход, бери карту.",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "pack",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "pack",
+      "node": "Pack",
+      "order": 1663016,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "BLANK",
+      "order": 0,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_0",
+      "order": 2294040,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_1",
+      "order": 2269467,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_2",
+      "order": 2244894,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_3",
+      "order": 2220321,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_4",
+      "order": 2195748,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "spades_7",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "spades_7",
+      "node": "PCard0",
+      "order": 3227948,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "hearts_J",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "hearts_J",
+      "node": "PCard1",
+      "order": 3228008,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "diamonds_10",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "diamonds_10",
+      "node": "PCard2",
+      "order": 3228068,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "blank",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "blank",
+      "node": "PCard18",
+      "order": 295242,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "blank",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "blank",
+      "node": "PCard19",
+      "order": 295302,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "9450",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "2500",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "2500",
+       "cardMove": "0",
+       "first": "1",
+       "moneyHero": "9450",
+       "open": "0",
+       "opponent": "11",
+       "rate": "500",
+       "stage": "3",
+       "turn": "1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "cards: our turn",
+   "props": {
+    "bottom": {
+     "label": "20 <games.point_many>",
+     "pieces": [
+      {
+       "kind": "card",
+       "rank": "7",
+       "red": false,
+       "rot": -6,
+       "suit": "spades"
+      },
+      {
+       "kind": "card",
+       "rank": "<games.rank_J>",
+       "red": true,
+       "rot": 4,
+       "suit": "hearts"
+      },
+      {
+       "kind": "card",
+       "rank": "10",
+       "red": true,
+       "rot": -4,
+       "suit": "diamonds"
+      }
+     ],
+     "size": 90
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "pass",
+      "label": "<games.enough>",
+      "reason": "",
+      "sub": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "throw",
+      "label": "<games.take>",
+      "reason": "",
+      "sub": "",
+      "variant": "primary"
+     }
+    ],
+    "kind": "cards",
+    "locked": true,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": false,
+      "kind": "deck",
+      "reason": "<games.wait>",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "500"
+     },
+     {
+      "label": "<games.money>",
+      "value": "9 450"
+     }
+    ],
+    "table": {
+     "bank": "2 500",
+     "coins": "gold",
+     "line": "Твой ход, бери карту.",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.cards>",
+    "top": {
+     "label": "",
+     "pieces": [
+      {
+       "kind": "back",
+       "rot": -6
+      },
+      {
+       "kind": "back",
+       "rot": 4
+      }
+     ],
+     "size": 90
+    }
+   }
+  },
+  {
+   "calls": [],
+   "capability": "table_cards",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_cards",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Теперь моя очередь брать.",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "pack",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "pack",
+      "node": "Pack",
+      "order": 1663016,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "BLANK",
+      "order": 0,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_0",
+      "order": 2294040,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_1",
+      "order": 2269467,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_2",
+      "order": 2244894,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_3",
+      "order": 2220321,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_4",
+      "order": 2195748,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "spades_7",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "spades_7",
+      "node": "PCard0",
+      "order": 3227948,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "hearts_J",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "hearts_J",
+      "node": "PCard1",
+      "order": 3228008,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "diamonds_10",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "diamonds_10",
+      "node": "PCard2",
+      "order": 3228068,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "blank",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "blank",
+      "node": "PCard18",
+      "order": 295242,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "blank",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "blank",
+      "node": "PCard19",
+      "order": 295302,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "blank",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "blank",
+      "node": "PCard20",
+      "order": 295362,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "8950",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "3000",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "3000",
+       "cardMove": "1",
+       "first": "1",
+       "moneyHero": "8950",
+       "open": "0",
+       "opponent": "11",
+       "rate": "500",
+       "stage": "4",
+       "turn": "-1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "cards: the opponent plays",
+   "props": {
+    "bottom": {
+     "label": "20 <games.point_many>",
+     "pieces": [
+      {
+       "kind": "card",
+       "rank": "7",
+       "red": false,
+       "rot": -6,
+       "suit": "spades"
+      },
+      {
+       "kind": "card",
+       "rank": "<games.rank_J>",
+       "red": true,
+       "rot": 4,
+       "suit": "hearts"
+      },
+      {
+       "kind": "card",
+       "rank": "10",
+       "red": true,
+       "rot": -4,
+       "suit": "diamonds"
+      }
+     ],
+     "size": 90
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "pass",
+      "label": "<games.enough>",
+      "reason": "<games.wait>",
+      "sub": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "throw",
+      "label": "<games.take>",
+      "reason": "<games.wait>",
+      "sub": "",
+      "variant": "primary"
+     }
+    ],
+    "kind": "cards",
+    "locked": true,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": true,
+      "kind": "deck",
+      "reason": "<games.wait>",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "500"
+     },
+     {
+      "label": "<games.money>",
+      "value": "8 950"
+     }
+    ],
+    "table": {
+     "bank": "3 000",
+     "coins": "gold",
+     "line": "Теперь моя очередь брать.",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.cards>",
+    "top": {
+     "label": "",
+     "pieces": [
+      {
+       "kind": "back",
+       "rot": -6
+      },
+      {
+       "kind": "back",
+       "rot": 4
+      },
+      {
+       "kind": "back",
+       "rot": -4
+      }
+     ],
+     "size": 90
+    }
+   }
+  },
+  {
+   "calls": [
+    "send B_PACK press "
+   ],
+   "capability": "table_cards",
+   "events": [
+    [
+     "again",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_cards",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "EXIT_BTN",
+      "node": "EXIT_BTN",
+      "order": 777,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_PACK",
+      "node": "B_PACK",
+      "order": 655920,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "У меня двадцать, у тебя девятнадцать. Повторим?",
+      "node": "INFO_TEXT",
+      "order": 3260896,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_1",
+      "node": "B_ICON_1",
+      "order": 3211974,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "B_ICON_2",
+      "node": "B_ICON_2",
+      "order": 4096710,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "pack",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "pack",
+      "node": "Pack",
+      "order": 1663016,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "node": "BLANK",
+      "order": 0,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_0",
+      "order": 2294040,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_1",
+      "order": 2269467,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_2",
+      "order": 2244894,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_3",
+      "order": 2220321,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "gold",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "gold",
+      "node": "Money_4",
+      "order": 2195748,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "spades_7",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "spades_7",
+      "node": "PCard0",
+      "order": 3227948,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "hearts_J",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "hearts_J",
+      "node": "PCard1",
+      "order": 3228008,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "diamonds_10",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "diamonds_10",
+      "node": "PCard2",
+      "order": 3228068,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "spades_A",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "spades_A",
+      "node": "PCard18",
+      "order": 295242,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "source": {
+         "group": "CARDS",
+         "image": "hearts_9",
+         "kind": "atlas"
+        }
+       }
+      ],
+      "index": -1,
+      "label": "hearts_9",
+      "node": "PCard19",
+      "order": 295302,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "8950",
+      "node": "Money",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "3000",
+      "node": "MoneyInChest",
+      "order": 0,
+      "type": "text"
+     },
+     {
+      "context": {
+       "bank": "3000",
+       "cardMove": "0",
+       "first": "1",
+       "moneyHero": "8950",
+       "open": "1",
+       "opponent": "11",
+       "rate": "500",
+       "stage": "2",
+       "turn": "-1"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "ANDROID_TABLE_GAME",
+      "order": 0,
+      "type": "table_game"
+     }
+    ]
+   },
+   "name": "cards: opened, his points",
+   "props": {
+    "bottom": {
+     "label": "20 <games.point_many>",
+     "pieces": [
+      {
+       "kind": "card",
+       "rank": "7",
+       "red": false,
+       "rot": -6,
+       "suit": "spades"
+      },
+      {
+       "kind": "card",
+       "rank": "<games.rank_J>",
+       "red": true,
+       "rot": 4,
+       "suit": "hearts"
+      },
+      {
+       "kind": "card",
+       "rank": "10",
+       "red": true,
+       "rot": -4,
+       "suit": "diamonds"
+      }
+     ],
+     "size": 90
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "leave",
+      "label": "<games.leave>",
+      "reason": "",
+      "sub": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "again",
+      "label": "<games.again>",
+      "reason": "",
+      "sub": "<games.stake_short> 500",
+      "variant": "primary"
+     }
+    ],
+    "kind": "cards",
+    "locked": false,
+    "pack": [
+     {
+      "action": "press",
+      "disabled": false,
+      "kind": "deck",
+      "reason": "",
+      "value": ""
+     }
+    ],
+    "stats": [
+     {
+      "label": "<games.stake>",
+      "value": "500"
+     },
+     {
+      "label": "<games.money>",
+      "value": "8 950"
+     }
+    ],
+    "table": {
+     "bank": "3 000",
+     "coins": "gold",
+     "line": "У меня двадцать, у тебя девятнадцать. Повторим?",
+     "opponent": "Jacques Dubois",
+     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+    },
+    "title": "<games.cards>",
+    "top": {
+     "label": "20 <games.point_many>",
+     "pieces": [
+      {
+       "kind": "card",
+       "rank": "<games.rank_A>",
+       "red": false,
+       "rot": -6,
+       "suit": "spades"
+      },
+      {
+       "kind": "card",
+       "rank": "9",
+       "red": true,
+       "rot": 4,
+       "suit": "hearts"
+      }
+     ],
+     "size": 90
+    }
+   }
+  }
+ ]
+}

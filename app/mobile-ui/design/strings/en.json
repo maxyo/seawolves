@@ -353,11 +353,8 @@
   "games.point_one": "point",
   "games.point_few": "points",
   "games.point_many": "points",
-  "games.won": "Your winnings",
-  "games.taken": "Pot taken by",
   "games.wait": "It is your opponent's turn",
   "games.round": "Finish the round first",
-  "games.no_money": "Not enough money for the stake",
   "games.combo_1": "five of a kind",
   "games.combo_2": "straight",
   "games.combo_3": "four of a kind",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Graphics: {1} — chosen for this device",
   "host.settings_not_saved": "Graphics settings were not saved",
   "host.cache_clear_not_marked": "The cache could not be marked for clearing",
-  "host.interface_error": "Interface error"
+  "host.interface_error": "Interface error",
+  "plural.form": "one"
 }

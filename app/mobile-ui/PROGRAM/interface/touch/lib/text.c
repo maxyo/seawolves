@@ -111,3 +111,25 @@ string TouchLib_FillTwo(string text, string first, string second)
 	if (at >= 0) text = TouchLib_Cut(text, 0, at) + second + TouchLib_Cut(text, at + 3, strlen(text));
 	return UiFill(text, first);
 }
+
+// "3 кубика": a count with the word of `stem` (stem_one, stem_few, stem_many) in the form the language takes for it;
+// the language's rule is its text plural.form ("slavic": 1, 2-4, the rest, the teens many; else 1 and the rest).
+string TouchLib_Counted(int n, string stem)
+{
+	string form = "_many";
+	if (UiText("plural.form") == "slavic")
+	{
+		int tens = n % 100;
+		int units = n % 10;
+		if (tens < 11 || tens > 14)
+		{
+			if (units == 1) form = "_one";
+			if (units >= 2 && units <= 4) form = "_few";
+		}
+	}
+	else
+	{
+		if (n == 1) form = "_one";
+	}
+	return "" + n + " " + UiText(stem + form);
+}

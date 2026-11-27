@@ -353,11 +353,8 @@
   "games.point_one": "очко",
   "games.point_few": "очка",
   "games.point_many": "очков",
-  "games.won": "Ваш выигрыш",
-  "games.taken": "Банк забрал",
   "games.wait": "Сейчас ход соперника",
   "games.round": "Сначала доиграйте партию",
-  "games.no_money": "Не хватает денег на ставку",
   "games.combo_1": "покер",
   "games.combo_2": "стрит",
   "games.combo_3": "каре",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Графика: {1} — подобрана под это устройство",
   "host.settings_not_saved": "Настройки графики не сохранены",
   "host.cache_clear_not_marked": "Не удалось отметить кэш для очистки",
-  "host.interface_error": "Ошибка интерфейса"
+  "host.interface_error": "Ошибка интерфейса",
+  "plural.form": "slavic"
 }

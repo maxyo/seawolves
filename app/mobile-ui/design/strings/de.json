@@ -353,11 +353,8 @@
   "games.point_one": "Punkt",
   "games.point_few": "Punkte",
   "games.point_many": "Punkte",
-  "games.won": "Ihr Gewinn",
-  "games.taken": "Den Pott nimmt",
   "games.wait": "Ihr Gegner ist am Zug",
   "games.round": "Spielen Sie die Runde erst zu Ende",
-  "games.no_money": "Nicht genug Geld für den Einsatz",
   "games.combo_1": "Poker",
   "games.combo_2": "Straße",
   "games.combo_3": "Vierling",
@@ -756,5 +753,6 @@
   "host.graphics_preset_measured": "Grafik: {1} — für dieses Gerät gewählt",
   "host.settings_not_saved": "Grafikeinstellungen wurden nicht gespeichert",
   "host.cache_clear_not_marked": "Der Cache konnte nicht zum Leeren vorgemerkt werden",
-  "host.interface_error": "Fehler der Oberfläche"
+  "host.interface_error": "Fehler der Oberfläche",
+  "plural.form": "one"
 }

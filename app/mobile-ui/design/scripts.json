@@ -31,6 +31,11 @@
     "reading-news": [
       ["B_OK", "button", true], ["INFO_TEXT*", "text"], ["INFO_CAPTION", "text|heading"], ["Nat1", "image"],
       ["Nat2", "image"], ["RelNat", "image"]
+    ],
+    "table-game": [
+      ["B_PACK", "button", true], ["ANDROID_TABLE_GAME", "table_game"], ["EXIT_BTN", "button"], ["B_ICON_*", "button"],
+      ["INFO_TEXT", "text"], ["Money", "text"], ["MoneyInChest", "text"], ["ICON_*", "image"], ["Money_*", "image"],
+      ["GOLD", "image"]
     ]
   },
   "segments": [
@@ -49,6 +54,7 @@
     {"file": "interface/touch/contracts/journal.c"},
     {"file": "interface/touch/contracts/items.c"},
     {"file": "interface/touch/contracts/shipyard.c"},
+    {"file": "interface/touch/contracts/table.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -469,6 +475,26 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/table.c",
+      "requires": ["fn:GetFullName/1", "var:NullCharacter"],
+      "provides": ["adapter:table"],
+      "binds": [
+        {
+          "capability": "table_dice", "interface": "boal_dice",
+          "nodes": [
+            "@table-game", ["B_HeroDice*", "button"], ["HeroDice*", "image"], ["CompDice*", "image"],
+            ["Dice*", "image"]
+          ],
+          "data": {"kind": "dice"}
+        },
+        {
+          "capability": "table_cards", "interface": "boal_cards",
+          "nodes": ["@table-game", ["PCard*", "image"], ["Pack", "image"], ["BLANK", "image"]],
+          "data": {"kind": "cards"}
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -620,6 +646,14 @@
       "file": "interface/touch/screens/shipyard.c",
       "uses": ["adapter:shipyard"],
       "screens": [{"capability": "shipyard", "component": "s-shipyard"}]
+    },
+    {
+      "file": "interface/touch/screens/table.c",
+      "uses": ["adapter:table"],
+      "screens": [
+        {"capability": "table_dice", "component": "s-table-game", "look": {"title": "games.dice"}},
+        {"capability": "table_cards", "component": "s-table-game", "look": {"title": "games.cards"}}
+      ]
     }
   ]
 }

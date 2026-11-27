@@ -125,7 +125,6 @@ add_library(storm_ui STATIC
     src/screens/menu_saves.cpp
     src/screens/menu_settings.cpp
     src/screens/menu_title.cpp
-    src/screens/extra_games.cpp
     src/screens/extra_transfer.cpp
     src/screens/extra_alchemy.cpp
     src/screens/extra_goods.cpp

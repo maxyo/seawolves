@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[27];
+object Interfaces[29];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -338,6 +338,8 @@ void Main()
 	Interfaces[24].IniFile = "RESOURCE\INI\INTERFACES\ColonyCapture.ini";
 	Interfaces[25].IniFile = "RESOURCE\INI\INTERFACES\items.ini";
 	Interfaces[26].IniFile = "RESOURCE\INI\INTERFACES\shipyard.ini";
+	Interfaces[27].IniFile = "RESOURCE\INI\INTERFACES\boal_dice.ini";
+	Interfaces[28].IniFile = "RESOURCE\INI\INTERFACES\boal_cards.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -410,6 +412,19 @@ void Main()
 		GameInterface.SHIPS_SCROLL.(row).str1 = "#";
 		GameInterface.SHIPS_SCROLL.(row).str2 = "";
 	}
+	// the table games of the recorded models (ui/tests/models/boal_*.json): the opponent, what the cards they show
+	// count (a deck whose jack counts 3)
+	TestPerson(11, "Jacques", "Dubois", "377");
+	NullCharacter.Cards.c1.pic = "spades_A";
+	NullCharacter.Cards.c1.count = 11;
+	NullCharacter.Cards.c2.pic = "diamonds_10";
+	NullCharacter.Cards.c2.count = 10;
+	NullCharacter.Cards.c3.pic = "hearts_9";
+	NullCharacter.Cards.c3.count = 9;
+	NullCharacter.Cards.c4.pic = "hearts_J";
+	NullCharacter.Cards.c4.count = 3;
+	NullCharacter.Cards.c5.pic = "spades_7";
+	NullCharacter.Cards.c5.count = 7;
 	GameValue = 7;
 	GameName = "kept";
 }
