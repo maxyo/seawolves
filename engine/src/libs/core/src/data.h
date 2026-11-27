@@ -151,6 +151,7 @@ class DATA final : public VDATA
     }
     bool Convert(S_TOKEN_TYPE type);
     void Error(const char *);
+    void ConversionError(S_TOKEN_TYPE type);
     DATA *GetArrayElement(uint32_t index) override;
 
     S_TOKEN_TYPE GetType()
@@ -159,6 +160,14 @@ class DATA final : public VDATA
     };
     uint32_t GetElementsNum() override;
     void SetElementsNum(uint32_t asize) override;
+    // makes this an array of `size` elements of its type (also 0 or 1 element)
+    void SetArraySize(uint32_t size);
+    // function reference: the function's name, empty for a null reference
+    void SetFref(std::string name);
+    // null reference, attribute reference or function reference
+    bool IsNull();
+    // value of the referenced variable, an attribute reference's attribute value as a string
+    bool Truth();
 
     bool IsArray() override
     {
@@ -181,7 +190,7 @@ class DATA final : public VDATA
     // The variable itself, or the one a chain of references ends at (nullptr: an unset reference, reported).
     DATA *GetVarPointer() override
     {
-        return Data_type != VAR_REFERENCE ? this : GetReferencedVar();
+        return Data_type != VAR_REFERENCE || bArray ? this : GetReferencedVar(); // an array of refs is a variable
     }
     [[gnu::always_inline]] void ClearType()
     {
@@ -193,6 +202,12 @@ class DATA final : public VDATA
         Data_type = UNKNOWN;
         pReference = nullptr;
         sValue.clear();
+        if (bArray) [[unlikely]] // a register or stack slot that held an array (array literals and returns)
+        {
+            bArray = false;
+            ArrayPTR.clear();
+            Number_of_elements = 1;
+        }
     }
 
     entid_t GetObjectIDPTR() override

@@ -24,13 +24,24 @@ struct LocalVarInfo
 
     bool IsArray()
     {
-        return elements > 1;
+        return array || elements != 1; // 0: an array sized at run time
     }
 
     std::string name;
     size_t hash; // for faster comparison
     S_TOKEN_TYPE type;
     size_t elements;
+    bool array{}; // declared with [], also "int a[1]"
+};
+
+// value of a defaulted trailing parameter: NUMBER (int), FLOAT_NUMBER, STRING or, for a ref/aref
+// parameter declared "= nullptr", VAR_REFERENCE (null reference)
+struct DefaultArgument
+{
+    S_TOKEN_TYPE type;
+    int32_t int_value{};
+    float float_value{};
+    std::string string_value;
 };
 
 struct FuncInfo
@@ -55,6 +66,14 @@ struct FuncInfo
     // imported func info
     SIMPORTFUNC imported_func;
     uint32_t extern_arguments;
+
+    // values of the last default_args.size() arguments, filled in when a call passes fewer
+    std::vector<DefaultArgument> default_args;
+    // declared with "..." after its named arguments: GetArg/GetArgCount read the extra ones
+    bool varargs{};
+    // declared "native": implemented by an engine library (segment_id becomes IMPORTED_SEGMENT_ID
+    // when a library provides it)
+    bool native{};
 };
 
 // The argument count a call with `called` arguments should have had, when the compiler must report it; nullopt for a
@@ -65,7 +84,7 @@ inline std::optional<uint32_t> CallArgumentsDeclared(const FuncInfo &fi, uint32_
     uint32_t declared = fi.arguments;
     if (fi.segment_id == IMPORTED_SEGMENT_ID)
         return std::nullopt;
-    if (fi.offset == INVALID_FUNC_OFFSET)
+    if (fi.offset == INVALID_FUNC_OFFSET && !fi.native) // a native no library provides keeps its declaration
     {
         // an unloaded segment's function has the segment id INVALID_SEGMENT_ID (the value of INTERNAL_SEGMENT_ID, whose
         // functions have their table index as offset); a segment's extern declaration has the segment's id
@@ -75,7 +94,10 @@ inline std::optional<uint32_t> CallArgumentsDeclared(const FuncInfo &fi, uint32_
     }
     else if (fi.segment_id == INTERNAL_SEGMENT_ID && varArgs)
         return std::nullopt;
-    return declared == called ? std::nullopt : std::optional<uint32_t>(declared);
+    // trailing parameters with a default may be left out; "..." takes any number more
+    const auto defaults = static_cast<uint32_t>(fi.default_args.size());
+    const uint32_t required = declared > defaults ? declared - defaults : 0;
+    return called >= required && (fi.varargs || called <= declared) ? std::nullopt : std::optional<uint32_t>(declared);
 }
 
 // Per-call view of a function. A frame (copying FuncInfo with its two strings
@@ -97,6 +119,8 @@ struct FuncFrame
     uint32_t stack_offset{};
     uint32_t arguments{};
     S_TOKEN_TYPE return_type{TVOID};
+    // arguments passed after the declared ones to a function declared with "..." (GetArg)
+    std::vector<DATA> varargs;
 };
 
 class FuncTable
@@ -116,6 +140,14 @@ class FuncTable
     // or nullptr. The pointer stays valid until Release(); the entry itself may be
     // updated when its segment is unloaded or reloaded.
     const FuncInfo *GetFuncPtr(size_t func_index) const;
+    // the table entry whether loaded or not, nullptr for an invalid index (compiler checks)
+    const FuncInfo *GetFuncInfo(size_t func_index) const;
+    size_t FuncsNum() const
+    {
+        return funcs_.size();
+    }
+    // defaults of the trailing arguments and "..." from the declaration
+    void SetFuncSignature(size_t func_index, std::vector<DefaultArgument> default_args, bool varargs);
     // invalidate all segment's functions
     void InvalidateBySegmentID(uint32_t segment_id);
 
@@ -125,7 +157,8 @@ class FuncTable
     // add arg to func (must precede all regular local vars in order not to break compiler logic)
     bool AddFuncArg(size_t func_index, const LocalVarInfo &lvi, bool is_extern = false);
     // get func's local var or arg index by name
-    size_t FindVar(size_t func_index, const std::string &var_name) const;
+    // the local variable code of the bytecode, INVALID_VAR_CODE when there is none
+    uint32_t FindVar(size_t func_index, const std::string &var_name) const;
     // get local var or arg by index
     bool GetVar(LocalVarInfo &lvi, size_t func_index, size_t var_index) const;
 

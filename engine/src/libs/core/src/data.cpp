@@ -11,7 +11,6 @@
 const char *UNINIT_REF = {"Using reference variable without initializing"};
 const char *INVALID_REF_OP = {"Invalid operation on reference object"};
 const char *NO_INDEX = {"Missed array index"};
-const char *INVALID_CONVERSATION = {"Invalid conversation"};
 const char *INDEX_ON_SINGLE = {"Incorrect usage of index on single variable"};
 const char *INCORRECT_TYPE_ASSIGMENT = {"Incorrect type assigment"};
 const char *INCORRECT_INDEX = {"Incorrect index"};
@@ -167,6 +166,32 @@ DATA::~DATA()
 void DATA::Error(const char *text)
 {
     pVCompiler->SetError(text);
+}
+
+void DATA::ConversionError(S_TOKEN_TYPE type)
+{
+    const auto name = [](S_TOKEN_TYPE value_type) {
+        switch (value_type)
+        {
+        case VAR_INTEGER:
+            return "int";
+        case VAR_FLOAT:
+            return "float";
+        case VAR_STRING:
+            return "string";
+        case VAR_OBJECT:
+            return "object";
+        case VAR_REFERENCE:
+            return "ref";
+        case VAR_AREFERENCE:
+            return "aref";
+        case VAR_FREF:
+            return "fref";
+        default:
+            return "untyped";
+        }
+    };
+    pVCompiler->SetError("Invalid conversation: %s to %s", name(Data_type), name(type));
 }
 
 void DATA::SetReference(DATA *pRef)
@@ -857,6 +882,32 @@ bool DATA::Convert(S_TOKEN_TYPE type)
         return false;
     } // yet
     char buffer[128];
+    if (Data_type == VAR_AREFERENCE && (type == VAR_STRING || type == VAR_INTEGER || type == VAR_FLOAT))
+    {
+        // the attribute's value (CL passes attribute references where values are expected)
+        const std::string text = AttributesClass ? to_string(AttributesClass->GetThisAttr()) : std::string();
+        ClearType();
+        Set(text);
+        return Convert(type);
+    }
+    if (Data_type == VAR_FREF || type == VAR_FREF)
+    {
+        // a function reference is the function's name
+        if (Data_type == type)
+            return true;
+        if (Data_type == VAR_FREF && type == VAR_STRING)
+        {
+            Data_type = VAR_STRING;
+            return true;
+        }
+        if (Data_type == VAR_STRING && type == VAR_FREF)
+        {
+            Data_type = VAR_FREF;
+            return true;
+        }
+        ConversionError(type);
+        return false;
+    }
     switch (Data_type)
     {
     case VAR_INTEGER:
@@ -878,7 +929,7 @@ bool DATA::Convert(S_TOKEN_TYPE type)
             Set(buffer);
             return true;
         default:
-            Error(INVALID_CONVERSATION);
+            ConversionError(type);
             return false;
         }
         break;
@@ -901,7 +952,7 @@ bool DATA::Convert(S_TOKEN_TYPE type)
             Set(buffer);
             return true;
         default:
-            Error(INVALID_CONVERSATION);
+            ConversionError(type);
             return false;
         }
         break;
@@ -924,7 +975,7 @@ bool DATA::Convert(S_TOKEN_TYPE type)
         case VAR_STRING:
             return true;
         default:
-            Error(INVALID_CONVERSATION);
+            ConversionError(type);
             return false;
         }
         break;
@@ -986,16 +1037,83 @@ bool DATA::Convert(S_TOKEN_TYPE type)
             lValue = static_cast<int32_t>(pValue);
             return true;
         default:
-            Error(INVALID_CONVERSATION);
+            ConversionError(type);
             return false;
         }
     }
     return false;
 }
 
-void DATA::SetElementsNum(uint32_t _asize)
+void DATA::SetFref(std::string name)
 {
     if (Data_type == VAR_REFERENCE)
+    {
+        if (pReference)
+        {
+            pReference->SetFref(std::move(name));
+            return;
+        }
+        Error(UNINIT_REF);
+        return;
+    }
+    Data_type = VAR_FREF;
+    sValue = std::move(name);
+}
+
+bool DATA::IsNull()
+{
+    switch (Data_type)
+    {
+    case VAR_REFERENCE:
+        return pReference == nullptr || pReference->IsNull();
+    case VAR_AREFERENCE:
+        return AttributesClass == nullptr;
+    case VAR_FREF:
+        return sValue.empty();
+    default:
+        return false;
+    }
+}
+
+bool DATA::Truth()
+{
+    switch (Data_type)
+    {
+    case VAR_REFERENCE:
+        return pReference != nullptr && pReference->Truth();
+    case VAR_INTEGER:
+        return lValue != 0;
+    case VAR_PTR:
+        return pValue != 0;
+    case VAR_FLOAT:
+        return fValue != 0.0f;
+    case VAR_STRING:
+        // attribute values are strings: "0", "" and "false" are false
+        return !sValue.empty() && sValue != "0" && !storm::iEquals(sValue, "false");
+    case VAR_AREFERENCE:
+        return AttributesClass != nullptr;
+    case VAR_FREF:
+        return !sValue.empty();
+    case VAR_OBJECT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void DATA::SetArraySize(uint32_t size)
+{
+    SetType(Data_type, size > 1 ? size : 2);
+    if (size < 2)
+    {
+        ArrayPTR.resize(size);
+        Number_of_elements = size;
+    }
+}
+
+void DATA::SetElementsNum(uint32_t _asize)
+{
+    if (Data_type == VAR_REFERENCE && !bArray) // an array of references has its own elements
     {
         if (pReference)
         {
@@ -1027,14 +1145,14 @@ void DATA::SetElementsNum(uint32_t _asize)
     for (auto n = Number_of_elements; n < _asize; n++)
     {
         ArrayPTR.emplace_back(Data_type);
-        ArrayPTR.back().SetVCompiler(ArrayPTR[0].pVCompiler);
+        ArrayPTR.back().SetVCompiler(pVCompiler); // also when the array was empty
     }
     Number_of_elements = _asize;
 }
 
 uint32_t DATA::GetElementsNum()
 {
-    if (Data_type == VAR_REFERENCE)
+    if (Data_type == VAR_REFERENCE && !bArray) // an array of references has its own elements
     {
         if (pReference)
         {
@@ -1834,6 +1952,15 @@ bool DATA::CopyAny(DATA *pV)
         }
     }
 
+    if (Data_type == UNKNOWN && pV->IsArray())
+    {
+        // a fresh value (stack slot, expression register, return value) takes the whole array
+        Data_type = pV->Data_type;
+        bArray = true;
+        Number_of_elements = pV->Number_of_elements;
+        ArrayPTR = pV->ArrayPTR;
+        return true;
+    }
     if (IsArray() && !pV->IsArray())
     {
         Error("Incorrect copy from single to array");
@@ -1875,6 +2002,9 @@ bool DATA::CopyAny(DATA *pV)
         break;
     case VAR_STRING:
         SetText(pV->sValue);
+        break;
+    case VAR_FREF:
+        SetFref(pV->sValue);
         break;
     case VAR_OBJECT:
         Set(pV->object_id);
@@ -2180,6 +2310,22 @@ bool DATA::CompareAndSetResult(DATA *pV, S_TOKEN_TYPE op)
         return false;
     }
 
+    if (Data_type == VAR_FREF || pV->GetType() == VAR_FREF)
+    {
+        // function references compare by function name
+        const bool equal = (Data_type == VAR_FREF || Data_type == VAR_STRING) &&
+                           (pV->GetType() == VAR_FREF || pV->GetType() == VAR_STRING) &&
+                           storm::iEquals(sValue, pV->sValue);
+        if (op != OP_BOOL_EQUAL && op != OP_NOT_EQUAL)
+        {
+            Error("function references can only be compared with == and !=");
+            Set(0);
+            return false;
+        }
+        ClearType();
+        Set(static_cast<int32_t>(op == OP_BOOL_EQUAL ? equal : !equal));
+        return true;
+    }
     if (Data_type == VAR_STRING && pV->GetType() == VAR_INTEGER)
     {
         if (!Convert(VAR_INTEGER))
@@ -2549,7 +2695,19 @@ void DATA::BadIndex(uint32_t index, uint32_t array_size)
 
 int32_t DATA::GetInt()
 {
-    return lValue;
+    // natives read arguments through these getters: convert numbers and text by the value's type
+    // (CL passes ints where floats are declared, e.g. Degree2Radian(14))
+    switch (Data_type)
+    {
+    case VAR_FLOAT:
+        return static_cast<int32_t>(fValue);
+    case VAR_STRING:
+        return static_cast<int32_t>(strtoll(sValue.c_str(), nullptr, 10));
+    case VAR_REFERENCE:
+        return pReference ? pReference->GetInt() : lValue;
+    default:
+        return lValue;
+    }
 }
 
 uintptr_t DATA::GetPtr()
@@ -2559,7 +2717,17 @@ uintptr_t DATA::GetPtr()
 
 float DATA::GetFloat()
 {
-    return fValue;
+    switch (Data_type)
+    {
+    case VAR_INTEGER:
+        return static_cast<float>(lValue);
+    case VAR_STRING:
+        return static_cast<float>(atof(sValue.c_str()));
+    case VAR_REFERENCE:
+        return pReference ? pReference->GetFloat() : fValue;
+    default:
+        return fValue;
+    }
 }
 
 const char *DATA::GetString()

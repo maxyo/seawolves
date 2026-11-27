@@ -71,6 +71,19 @@ const FuncInfo *FuncTable::GetFuncPtr(size_t func_index) const
     return func.offset != INVALID_FUNC_OFFSET ? &func : nullptr;
 }
 
+const FuncInfo *FuncTable::GetFuncInfo(size_t func_index) const
+{
+    return func_index < funcs_.size() ? &funcs_[func_index] : nullptr;
+}
+
+void FuncTable::SetFuncSignature(size_t func_index, std::vector<DefaultArgument> default_args, bool varargs)
+{
+    if (func_index >= funcs_.size())
+        return;
+    funcs_[func_index].default_args = std::move(default_args);
+    funcs_[func_index].varargs = varargs;
+}
+
 bool FuncTable::GetFunc(FuncInfo &fi, size_t func_index) const
 {
     const auto *func = GetFuncPtr(func_index);
@@ -161,7 +174,7 @@ bool FuncTable::AddFuncArg(size_t func_index, const LocalVarInfo &lvi, bool is_e
     return AddFuncVar(func_index, lvi);
 }
 
-size_t FuncTable::FindVar(size_t func_index, const std::string &var_name) const
+uint32_t FuncTable::FindVar(size_t func_index, const std::string &var_name) const
 {
     if (func_index >= funcs_.size())
     {
@@ -184,7 +197,7 @@ size_t FuncTable::FindVar(size_t func_index, const std::string &var_name) const
         return INVALID_VAR_CODE;
     }
 
-    return result - vars.begin();
+    return static_cast<uint32_t>(result - vars.begin());
 }
 
 bool FuncTable::GetVar(LocalVarInfo &lvi, size_t func_index, size_t var_index) const

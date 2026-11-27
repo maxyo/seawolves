@@ -6,6 +6,7 @@
 
 #include <execution>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #define INVALID_FA "Invalid function argument"
 #define BAD_FA "Bad function argument"
@@ -113,6 +114,11 @@ enum FUNCTION_CODE
     FUNC_CHECKFUNCTION,
     FUNC_GETENGINEVERSION,
     FUNC_SORT,
+    FUNC_GET_ARG,
+    FUNC_GET_ARG_COUNT,
+    FUNC_SET_CLASSTABLE,
+    FUNC_GET_TYPE_NAME_BY_TYPE_ID,
+    FUNC_COUNT_
 };
 
 INTFUNCDESC IntFuncTable[] = {
@@ -145,7 +151,12 @@ INTFUNCDESC IntFuncTable[] = {
     VAR_INTEGER, 1, "FindEntityNext", VAR_INTEGER, 2, "GetSymbol", VAR_STRING, 2, "IsDigit", VAR_INTEGER, 2,
     "SaveVariable", VAR_INTEGER, 2, "LoadVariable", VAR_INTEGER, 2, "SetControlTreshold", TVOID, 2, "LockControl",
     TVOID, 1, "TestRef", VAR_INTEGER, 1, "SetTimeScale", TVOID, 1, "CheckFunction", VAR_INTEGER, 0, "GetEngineVersion",
-    VAR_INTEGER, 1, "sort", TVOID};
+    VAR_INTEGER, 1, "sort", TVOID,
+    // arguments of the running script function, also those passed to its "..."
+    1, "GetArg", VAR_REFERENCE, 0, "GetArgCount", VAR_INTEGER,
+    // object->Method: the class table (a global object) of an object; names of typeid values
+    2, "SetClasstable", TVOID, 1, "GetTypeNameByTypeID", VAR_STRING};
+static_assert(sizeof(IntFuncTable) / sizeof(INTFUNCDESC) == FUNC_COUNT_, "IntFuncTable must list every FUNCTION_CODE in order");
 
 
 uint32_t COMPILER::GetInternalFunctionArgumentsNum(uint32_t code)
@@ -163,8 +174,69 @@ uint32_t COMPILER::GetIntFunctionsNum()
     return sizeof(IntFuncTable) / sizeof(INTFUNCDESC);
 }
 
+namespace
+{
+// Built-ins that take a range of argument counts, so that one signature serves every game: fts(value[, digits])
+// (Caribbean Legend declares the one-argument form), MapControl(control, key[, extra]) (Caribbean Legend declares an
+// extra argument it never passes), findSubStr(&text, part, start) (Caribbean Legend declares no parameters).
+struct ArgumentRange
+{
+    uint32_t code;
+    uint32_t min;
+    uint32_t max;
+};
+constexpr ArgumentRange kArgumentRanges[] = {{FUNC_FTS, 1, 2}, {FUNC_MAP_CONTROL, 2, 3}, {FUNC_FINDSUBSTR, 3, 3}};
+
+const ArgumentRange *FindArgumentRange(uint32_t code)
+{
+    for (const auto &range : kArgumentRanges)
+        if (range.code == code)
+            return &range;
+    return nullptr;
+}
+
+S_TOKEN_TYPE ToTokenType(storm::ScriptType type)
+{
+    switch (type)
+    {
+    case storm::ScriptType::Int:
+        return VAR_INTEGER;
+    case storm::ScriptType::Float:
+        return VAR_FLOAT;
+    case storm::ScriptType::String:
+        return VAR_STRING;
+    case storm::ScriptType::Void:
+        break;
+    }
+    return TVOID;
+}
+} // namespace
+
+S_TOKEN_TYPE COMPILER::GetIntFunctionReturnType(uint32_t code)
+{
+    const INTFUNCDESC &desc = IntFuncTable[code];
+    for (const auto &entry : storm::gameProfileFacts().builtin_returns)
+        if (entry.name == desc.pName)
+            return ToTokenType(entry.type);
+    return desc.ReturnType;
+}
+
+bool COMPILER::IntFuncArgumentsInRange(uint32_t code, uint32_t arguments)
+{
+    const auto *range = FindArgumentRange(code);
+    if (!range || (arguments >= range->min && arguments <= range->max))
+        return true;
+    SetError("function '%s' takes %u to %u arguments, not %u", IntFuncTable[code].pName, range->min, range->max,
+             arguments);
+    for (uint32_t n = 0; n < arguments; n++)
+        SStack.Pop();
+    return false;
+}
+
 bool COMPILER::IsIntFuncVarArgsNum(uint32_t code)
 {
+    if (FindArgumentRange(code))
+        return true;
     switch (code)
     {
     case FUNC_SEND_MESSAGE:
@@ -553,6 +625,18 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         break;
 
     case FUNC_MAP_CONTROL:
+        // MapControl(control, key[, extra]): CL declares a third parameter and never passes it; its
+        // meaning is unknown, so a passed value is reported and not used
+        if (!IntFuncArgumentsInRange(func_code, arguments))
+            return nullptr;
+        if (arguments == 3)
+        {
+            SStack.Pop();
+            static bool reported = false;
+            if (!reported)
+                spdlog::warn("MapControl: the third argument has no known meaning and is ignored");
+            reported = true;
+        }
         pV2 = SStack.Pop();
         if (!pV2)
         {
@@ -726,7 +810,10 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         break;
     case FUNC_GETDELTATIME:
         pV = SStack.Push();
-        pV->Set(static_cast<int32_t>(core_internal.GetDeltaTime()));
+        if (GetIntFunctionReturnType(func_code) == VAR_FLOAT)
+            pV->Set(static_cast<float>(core_internal.GetDeltaTime()));
+        else
+            pV->Set(static_cast<int32_t>(core_internal.GetDeltaTime()));
         pVResult = pV;
         return pV;
 
@@ -830,6 +917,8 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
     }
 
     case FUNC_FINDSUBSTR:
+        if (!IntFuncArgumentsInRange(func_code, arguments))
+            return nullptr;
         pV3 = SStack.Pop();
         if (!pV3)
         {
@@ -1548,30 +1637,27 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         pVResult = pV;
         return pV;
     case FUNC_FTS:
-        pV2 = SStack.Pop();
-        if (!pV2)
+        // fts(value[, significant digits]); CL's one-argument form uses 6 digits, as printf's %g
+        if (!IntFuncArgumentsInRange(func_code, arguments))
+            return nullptr;
+        TempLong1 = 6;
+        if (arguments == 2)
         {
-            SetError(INVALID_FA);
-            break;
+            pV2 = SStack.Pop();
+            if (!pV2 || pV2->GetType() != VAR_INTEGER)
+            {
+                SetError(INVALID_FA);
+                break;
+            }
+            pV2->Get(TempLong1);
         }
         pV = SStack.Pop();
-        if (!pV)
-        {
-            SetError(INVALID_FA);
-            break;
-        }
-        if (pV->GetType() != VAR_FLOAT)
-        {
-            SetError(INVALID_FA);
-            break;
-        }
-        if (pV2->GetType() != VAR_INTEGER)
+        if (!pV || pV->GetType() != VAR_FLOAT)
         {
             SetError(INVALID_FA);
             break;
         }
         pV->Get(TempFloat1);
-        pV2->Get(TempLong1);
         pV = SStack.Push();
 #ifdef __ANDROID__
         snprintf(gs, sizeof(gs), "%.*g", std::clamp(TempLong1, 1, 32), static_cast<double>(TempFloat1));
@@ -2171,8 +2257,13 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         }
         pV->Convert(VAR_STRING);
         pV->Get(pChar);
-        core_internal.SaveState(pChar);
-        break;
+        TempBool = core_internal.SaveState(pChar);
+        if (GetIntFunctionReturnType(func_code) == TVOID)
+            break;
+        pV = SStack.Push(); // whether the state was saved, where the game declares it so
+        pV->Set(static_cast<int32_t>(TempBool));
+        pVResult = pV;
+        return pV;
     case FUNC_LOADENGINESTATE:
         pV = SStack.Pop();
         if (!pV)
@@ -2184,6 +2275,68 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         pV->Get(pChar);
         core_internal.InitiateStateLoading(pChar);
         break;
+    case FUNC_GET_ARG: {
+        pV = SStack.Pop();
+        pV = pV ? pV->GetVarPointer() : nullptr;
+        if (!pV || !pRun_fi)
+        {
+            SetError(INVALID_FA);
+            break;
+        }
+        pV->Convert(VAR_INTEGER);
+        pV->Get(TempLong1);
+        const auto passed = pRun_fi->arguments + static_cast<uint32_t>(pRun_fi->varargs.size());
+        if (TempLong1 < 0 || static_cast<uint32_t>(TempLong1) >= passed)
+        {
+            SetError("GetArg(%d): '%s' was passed %u arguments", TempLong1, pRun_fi->info->name.c_str(), passed);
+            break;
+        }
+        const auto index = static_cast<uint32_t>(TempLong1);
+        pV = index < pRun_fi->arguments ? SStack.Read(pRun_fi->stack_offset, index)
+                                         : &pRun_fi->varargs[index - pRun_fi->arguments];
+        pResult = SStack.Push();
+        pResult->SetType(VAR_REFERENCE);
+        pResult->SetReference(pV->GetVarPointer());
+        pVResult = pResult;
+        return pResult;
+    }
+    case FUNC_SET_CLASSTABLE: {
+        // SetClasstable(object, table): object->Method calls the function table.Method names
+        pV2 = SStack.Pop(); // table
+        pV = SStack.Pop();  // object
+        DATA *table = pV2 ? Deref(pV2) : nullptr;
+        ATTRIBUTES *object = pV ? AttributesOf(pV) : nullptr;
+        const VarInfo *global = nullptr;
+        for (size_t n = 0; table && !global && n < VarTab.GetVarNum(); n++)
+            if (const auto *vi = VarTab.GetVarX(n); vi && vi->value.get() == table && !table->IsArray())
+                global = vi;
+        if (!global || !object)
+        {
+            SetError("SetClasstable: the class table must be a global object");
+            break;
+        }
+        object->SetAttribute("classtable", global->name);
+        break;
+    }
+    case FUNC_GET_TYPE_NAME_BY_TYPE_ID: {
+        pV = SStack.Pop();
+        static constexpr const char *names[] = {"", "int", "string", "float", "aref", "object", "ref", "bool", "fref"};
+        const int32_t id = pV ? IntValue(pV) : 0;
+        pResult = SStack.Push();
+        pResult->Set(std::string(id > 0 && id < static_cast<int32_t>(std::size(names)) ? names[id] : ""));
+        pVResult = pResult;
+        return pResult;
+    }
+    case FUNC_GET_ARG_COUNT:
+        if (!pRun_fi)
+        {
+            SetError("GetArgCount outside a script function");
+            break;
+        }
+        pResult = SStack.Push();
+        pResult->Set(static_cast<int32_t>(pRun_fi->arguments + pRun_fi->varargs.size()));
+        pVResult = pResult;
+        return pResult;
     case FUNC_SORT:
         pV = SStack.Pop();
         if (!pV || pV->GetType() != VAR_AREFERENCE)

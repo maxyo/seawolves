@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <set>
 #include <string_view>
 #include <tuple>
 
@@ -121,8 +122,6 @@ class COMPILER : public VIRTUAL_COMPILER
     void DTrace(const char *data_PTR, ...);
     void SetError(const char *data_PTR, ...);
     void SetWarning(const char *data_PTR, ...);
-    // Compile time, error log: a call in an expression whose argument count differs from the function's.
-    void CheckCallArguments(const FuncInfo &fi, uint32_t func_code, uint32_t func_args);
     bool CreateProgram(const char *file_name);
     bool AddProgramFile(const char *file_name);
 
@@ -169,7 +168,11 @@ class COMPILER : public VIRTUAL_COMPILER
     void CompileToken(SEGMENT_DESC &Segment, S_TOKEN_TYPE Token_type, uint32_t data_blocks_num = 0, ...);
     bool BC_LoadSegment(const char *file_name);
     bool BC_SegmentIsLoaded(const char *file_name);
-    bool BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const char *pDbgExpSource = nullptr);
+    // passed_args: number of arguments the caller pushed (kArgsAsDeclared: as many as declared)
+    static constexpr uint32_t kArgsAsDeclared = 0xffffffff;
+    bool BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const char *pDbgExpSource = nullptr,
+                    uint32_t passed_args = kArgsAsDeclared);
+    bool BindPassedArguments(const FuncInfo &fi, FuncFrame &frame, uint32_t passed_args);
     bool BC_CallFunction(uint32_t func_code, uint32_t &ip, DATA *&pVResult);
     // Value of an integer #define of a loaded script segment; nullopt when there is none.
     std::optional<int32_t> FindIntegerDefine(const char *name);
@@ -218,6 +221,44 @@ class COMPILER : public VIRTUAL_COMPILER
     }
 
     S_TOKEN_TYPE SkipAuxiliaryTokens();
+    S_TOKEN_TYPE NextTokenType();
+    bool SkipToTopLevel(uint32_t depth);
+    static bool IsIdentifier(const char *text);
+    static std::string LowerName(const std::string &name);
+    static std::string LocalSlotName(const std::string &name, uint32_t occurrence);
+    static std::string LabelKey(const std::string &func_name, const char *label);
+    static constexpr uint32_t kRuntimeArraySize = 0; // elements of an array sized at run time
+    uint32_t ScanLocalArraySize();
+    uint32_t ConstantArraySize();
+    uint32_t SkipInitializer(bool &resumed);
+    // pass 2: block scoped locals
+    uint32_t FindLocal(const char *name) const;
+    bool AssignValue(DATA *destination, DATA *value);
+    int32_t IntValue(DATA *pV);
+    static DATA *Deref(DATA *pV);
+    static ATTRIBUTES *AttributesOf(DATA *pV);
+    int32_t TypeidOf(DATA *pV);
+    bool CastValue(DATA *pV, S_TOKEN_TYPE target);
+    static bool ReturnTypesMatch(S_TOKEN_TYPE declared, S_TOKEN_TYPE engine);
+    const std::string &CurrentFunctionName() const;
+    // script function name of a CALL_FUNCTION code (codes depend on the order functions were seen)
+    const char *GetFunctionName(uint32_t code) const
+    {
+        const auto *fi = FuncTab.GetFuncInfo(code);
+        return fi ? fi->name.c_str() : "?";
+    }
+    uint32_t BindLocal(const char *name, uint32_t depth);
+    bool CompileLocalDeclarator(SEGMENT_DESC &Segment, uint32_t depth, bool first);
+    bool CompileArrayInitializer(SEGMENT_DESC &Segment, S_TOKEN_TYPE var_type, uint32_t var_code);
+    void CloseLocalScopes(uint32_t depth);
+    bool ScanParameterList(uint32_t func_code, bool bExtern, FuncInfo &declared);
+    bool ScanDefaultArgument(S_TOKEN_TYPE param_type, DefaultArgument &value);
+    static int32_t ParseIntLiteral(const char *text);
+    bool CompileCallArguments(SEGMENT_DESC &Segment, uint32_t &func_args);
+    // in_expression: a count mismatch only warns, as calls inside expressions were never checked
+    // (TEHO has a few) and still compile as before
+    bool CheckCallArguments(uint32_t func_code, uint32_t func_args, bool in_expression = false);
+    bool ReportMissingNative(const std::string &name);
 
     uint32_t CurrentFuncCode;
     void CompileNumber(SEGMENT_DESC &Segment);
@@ -234,6 +275,8 @@ class COMPILER : public VIRTUAL_COMPILER
     void DumpAttributes(ATTRIBUTES *pA, int32_t level);
 
     bool IsIntFuncVarArgsNum(uint32_t code);
+    S_TOKEN_TYPE GetIntFunctionReturnType(uint32_t code);
+    bool IntFuncArgumentsInRange(uint32_t code, uint32_t arguments);
     uint32_t GetInternalFunctionArgumentsNum(uint32_t code);
     bool CreateMessage(MESSAGE *pMs, uint32_t stack_offset, uint32_t vindex, bool s2s = false);
     void ProcessEvent(const char *event_name, MESSAGE *pMs);
@@ -263,6 +306,48 @@ class COMPILER : public VIRTUAL_COMPILER
     uint32_t SetScriptFunction(IFUNCINFO *pFuncInfo);
 
     bool CompileExpression(SEGMENT_DESC &Segment);
+    bool CompileTernary(SEGMENT_DESC &Segment);
+    bool CompileBinaryLevel(SEGMENT_DESC &Segment, bool (COMPILER::*operand)(SEGMENT_DESC &),
+                            std::initializer_list<S_TOKEN_TYPE> ops, S_TOKEN_TYPE emitted_for_and);
+    bool CompileBitOr(SEGMENT_DESC &Segment);
+    bool CompileBitAnd(SEGMENT_DESC &Segment);
+    bool CompileShift(SEGMENT_DESC &Segment);
+    bool CompileCast(SEGMENT_DESC &Segment);
+    bool CompileTypeid(SEGMENT_DESC &Segment);
+    bool CompileAttributeDefault(SEGMENT_DESC &Segment);
+    bool CompileAttributeRoot(SEGMENT_DESC &Segment);
+    S_TOKEN_TYPE DetectCallThrough();
+    bool CompileCallThrough(SEGMENT_DESC &Segment, S_TOKEN_TYPE call_type);
+    bool CompileObjectLiteral(SEGMENT_DESC &Segment);
+    bool IsAccessVariable();
+    bool IsPlainAttributePath();
+    bool IsTextVariable(S_TOKEN_TYPE var_type, uint32_t var_code);
+    bool CompileNewArray(SEGMENT_DESC &Segment);
+    std::deque<DATA> newArrays_; // arrays made by "new type[n]" (scripts keep references to them)
+    bool CompileChainTail(SEGMENT_DESC &Segment);
+    bool IsAttributeCall();
+    bool IsArefVariable(S_TOKEN_TYPE var_type, uint32_t var_code);
+    bool IsIndexedChain();
+    static constexpr uint32_t kAccessRead = 0, kAccessQuiet = 1, kAccessCreate = 2; // ADVANCE_AP_EXPR modes
+    bool CompileAccessExpression(SEGMENT_DESC &Segment, uint32_t mode);
+    void QuietChainElement(SEGMENT_DESC &Segment, uint32_t offset);
+    bool CompileAttributeAddress(SEGMENT_DESC &Segment, S_TOKEN_TYPE var_type, uint32_t var_code, uint32_t mode);
+    static bool IsAttributeIntrinsic(const char *name);
+    bool CompileAttributeIntrinsic(SEGMENT_DESC &Segment);
+    bool CompileArrayLiteral(SEGMENT_DESC &Segment);
+    bool IsSlice();
+    bool CompileSlice(SEGMENT_DESC &Segment, S_TOKEN_TYPE source, uint32_t source_code);
+    uint32_t FindMethod(DATA *self, const char *method);
+    bool ScanObjectLiteral(ATTRIBUTES *object);
+    bool PeekRangeFor(S_TOKEN_TYPE &loop_type);
+    bool CompileRangeFor(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_t &inout, S_TOKEN_TYPE loop_type,
+                         STRINGS_LIST &BreakUpdateTable);
+    static constexpr const char *kRangeContainer = "#rangecontainer"; // hidden locals of a range-for
+    static constexpr const char *kRangePosition = "#rangeposition";
+    S_TOKEN_TYPE NextScanToken();
+    // typeid values
+    static constexpr int32_t kTypeidInt = 1, kTypeidString = 2, kTypeidFloat = 3, kTypeidAref = 4, kTypeidObject = 5,
+                             kTypeidRef = 6, kTypeidBool = 7, kTypeidFref = 8;
     bool CompileExpression_L0(SEGMENT_DESC &Segment);
     bool CompileExpression_L1(SEGMENT_DESC &Segment);
     bool CompileExpression_L2(SEGMENT_DESC &Segment);
@@ -280,6 +365,44 @@ class COMPILER : public VIRTUAL_COMPILER
     void CollectCallStack() const;
 
     // printout script functions usage
+
+    // Host compile check (src/apps/script_check): every compile diagnostic is also appended to
+    // `sink`; source line tracking is on, the script cache is off and a segment that fails to
+    // compile keeps its declarations, so the segments compiled after it are checked against them.
+    // missing_natives_are_errors: false for a game check (no engine library is linked), true for
+    // script tests (as in the game)
+    void ConfigureCompileCheck(std::vector<std::string> *sink, bool missing_natives_are_errors);
+    // engine.ini [script] call_time_limit (seconds); script_check tests use a short one
+    void SetScriptCallTimeLimit(uint32_t milliseconds)
+    {
+        scriptCallTimeLimitMs_ = milliseconds;
+    }
+    // script tests: store and load the script cache in this folder (also checks its integrity)
+    void UseScriptCache(std::filesystem::path folder);
+    // whether the last BC_LoadSegment took the segment from the script cache
+    bool LastSegmentFromCache() const
+    {
+        return lastSegmentFromCache_;
+    }
+    // the game language for %language% in include paths (CL); by default language.ini's default
+    // language, the one the string service starts with
+    void SetScriptLanguage(std::string language)
+    {
+        scriptLanguage_ = std::move(language);
+        cacheKeyCalculated_ = false; // segments compiled from now on include that language's files
+    }
+    // bytecode of a loaded segment, nullptr if it is not loaded
+    const char *GetSegmentCode(const char *segment_name, uint32_t &size) const;
+    // names a loaded segment defines (functions, globals, defines): script_check retries a segment
+    // that uses them with that segment loaded, as the game loads segments together
+    std::vector<std::string> GetSegmentSymbols(const char *segment_name);
+    // runs a script function that takes no arguments; `value` receives its result as text
+    bool RunScriptFunction(const char *func_name, std::string &value);
+    // attribute name of an ACCESS_WORD_CODE (codes depend on the order names were first seen)
+    const char *GetAccessWord(uint32_t code)
+    {
+        return SCodec.Convert(code);
+    }
 
 private:
 #ifdef __ANDROID__
@@ -376,5 +499,40 @@ private:
 
     // attempt to read/write script cache?
     int script_cache_mode_;
+
+    // see ConfigureCompileCheck
+    std::vector<std::string> *diagnosticsSink_ = nullptr;
+    bool compileCheck_ = false;
+    // endless loop guard (BC_Execute): time of the outermost call from the engine
+    uint32_t scriptCallDepth_ = 0;
+    uint32_t scriptStatements_ = 0; // counts to the next clock reading
+    std::chrono::steady_clock::time_point scriptCallStart_{};
+    uint32_t scriptCallTimeLimitMs_ = 60000;
+    bool scriptCallAborted_ = false;
+    bool ScriptCallInTime();
+    std::filesystem::path cacheFolder_; // UseScriptCache; empty: the stash folder
+    bool lastSegmentFromCache_ = false;
+    [[nodiscard]] std::filesystem::path CacheFolder() const;
+    std::string ScriptLanguageDirectory(bool report);
+    bool cacheKeyCalculated_ = false; // the script cache key (scripts, build, language)
+    uint64_t cacheKey_ = 0;
+    std::string scriptLanguage_; // see SetScriptLanguage
+    uint32_t compileErrors_ = 0; // errors reported while compiling the current segment
+    bool missingNativesAreErrors_ = true;
+    std::set<std::string> missingNatives_; // reported once per segment
+    // pass 2: locals visible at the current point, innermost last
+    struct LocalBinding
+    {
+        std::string name;
+        uint32_t slot;
+        uint32_t depth;
+    };
+    std::vector<LocalBinding> localScopes_;
+    std::unordered_map<std::string, uint32_t> localDeclarations_; // declarations so far per name
+    bool declListActive_ = false; // inside "int a, b;"
+    bool declExpectName_ = false; // a ',' of that list was just compiled
+    std::vector<uint32_t> *switchFallthrough_ = nullptr; // innermost switch: jumps into the next case
+    std::vector<std::string> *undeclaredNatives_ = nullptr; // SetScriptFunction during a library's Init
+    std::unordered_map<std::string, IFUNCINFO> pendingNatives_; // registered, not declared yet (lowercase)
     storm::ScriptCache script_cache_;
 };

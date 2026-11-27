@@ -13,7 +13,7 @@
             pTokenData[0] = 0;                                                                                         \
     }
 #define INVALID_ARG_DCHARS 32
-const char *TokenTypeName[] = {
+const char *TokenTypeName[] = { // in S_TOKEN_TYPE order
     "END_OF_PROGRAMM",
     "INVALID_TOKEN",
     "UNKNOWN",
@@ -21,12 +21,12 @@ const char *TokenTypeName[] = {
     "COMMENT",
     "INCLIDE_FILE",
     "integer",
-    "pointer",
     "float",
     "string",
     "object",
     "reference",
     "attribute reference",
+    "pointer",
     "BLOCK_IN",
     "BLOCK_OUT",
     "NUMBER",
@@ -119,8 +119,6 @@ const char *TokenTypeName[] = {
     "OP_DECADD",
     "OP_MULTIPLYEQ",
     "OP_DIVIDEEQ",
-    "CLASS_DECL",
-    "CLASS_OBJECT",
     "IMPORT",
     "INCLUDE_LIBRIARY",
     "CALL",
@@ -142,8 +140,50 @@ const char *TokenTypeName[] = {
     "LEFTOP_INDEX",
     "PUSH_OBJID",
     "PUSH_OBJID_BXINDEX",
+    "OP_QUESTION",
+    "OP_BIT_OR",
+    "OP_BIT_AND",
+    "OP_BIT_NOT",
+    "OP_SHL",
+    "OP_SHR",
+    "OP_OREQ",
+    "OP_ANDEQ",
+    "OP_ARROW",
+    "OP_COLON_EQUAL",
+    "OP_SIZEOF",
+    "OP_DOLLAR",
+    "function reference",
+    "SET_ARRAY_SIZE",
+    "OP_CAST",
+    "PUSH_NULL",
+    "OP_IS_NULL",
+    "OP_TYPEID",
+    "PUSH_AP",
+    "ATTR_DEFAULT",
+    "ADVANCE_AP_QUIET",
+    "OP_IN",
+    "OP_SIZEOF_REF",
+    "RESIZE_ARRAY",
+    "CALL_METHOD",
+    "OBJ_NEW",
+    "OBJ_SET",
+    "RANGE_NEXT",
+    "OP_SLICE",
+    "ARRAY_BUILD",
+    "ADVANCE_AP_EXPR",
+    "ACCESS_EXPR",
+    "ATTR_PARENT",
+    "ATTR_DELETE",
+    "AP_CHILD",
+    "CALL_NAMED",
+    "NEW_ARRAY",
+    "STACK_INDEX",
+    "LEFTOP_SUBINDEX",
+    "AP_FROM_STACK",
 
 };
+
+static_assert(sizeof(TokenTypeName) / sizeof(TokenTypeName[0]) == TOKEN_TYPES_COUNT);
 
 struct S_KEYWORD
 {
@@ -287,9 +327,38 @@ S_KEYWORD Keywords[] = {
     "!",
     IMPORT,
     "native",
+    IMPORT,
+    "lua", // CL: functions implemented in Lua, called like natives
     CALL,
     "call",
-
+    OP_QUESTION,
+    "?",
+    OP_BIT_OR,
+    "|",
+    OP_OREQ,
+    "|=",
+    OP_ANDEQ,
+    "&=",
+    OP_BIT_NOT,
+    "~",
+    OP_SHL,
+    "<<",
+    OP_SHR,
+    ">>",
+    OP_ARROW,
+    "->",
+    OP_COLON_EQUAL,
+    ":=",
+    OP_SIZEOF,
+    "@",
+    OP_DOLLAR,
+    "$",
+    VAR_INTEGER,
+    "uint",
+    VAR_STRING,
+    "kstring",
+    VAR_FREF,
+    "fref",
 };
 
 TOKEN::TOKEN()
@@ -326,6 +395,12 @@ void TOKEN::SetProgram(char *pProgramBase, char *pProgramControl)
     ProgramBase = pProgramBase;
     std::ranges::fill(ProgramSteps, std::ptrdiff_t{});
     ProgramStepsNum = 0;
+}
+
+void TOKEN::SetProgramControl(char *pProgramControl)
+{
+    Program = pProgramControl;
+    ProgramStepsNum = 0; // the cached steps lie elsewhere: StepBack must not use them
 }
 
 char *TOKEN::GetProgramControl()
@@ -458,12 +533,14 @@ S_TOKEN_TYPE TOKEN::Get(bool bKeepData)
         eTokenType = INVALID_TOKEN;
         return eTokenType;
     case '"':
+    case '`': { // CL also quotes strings with backticks
+        const char quote = sym;
         Program += utf8::u8_inc(Program);
         pBase = Program;
         do
         {
             sym = *Program;
-            if (sym == '"')
+            if (sym == quote)
             {
                 SetNTokenData(pBase, Program - pBase);
                 eTokenType = STRING;
@@ -478,6 +555,7 @@ S_TOKEN_TYPE TOKEN::Get(bool bKeepData)
         SetNTokenData(pBase, counter);
         eTokenType = INVALID_TOKEN;
         return eTokenType;
+    }
     }
     const auto stt = ProcessToken(Program, bKeepData);
     if (stt == HOLD_COMPILATION)
@@ -532,6 +610,12 @@ ptrdiff_t TOKEN::SetNTokenData(const char *pointer, ptrdiff_t Data_size)
 // search throw the program code until find non significant argument character:
 // SPACE,TAB,0,'\r','\n'
 // return number of significant symbols
+// UTF-8 no-break space (C2 A0): a blank between tokens (TEHO scripts have them)
+static bool IsNoBreakSpace(const char *pointer)
+{
+    return static_cast<unsigned char>(pointer[0]) == 0xC2 && static_cast<unsigned char>(pointer[1]) == 0xA0;
+}
+
 int32_t TOKEN::StopArgument(const char *pointer, bool bKeepControlSymbols)
 {
     int32_t size = 0;
@@ -568,13 +652,19 @@ int32_t TOKEN::StopArgument(const char *pointer, bool bKeepControlSymbols)
                 return size;
             }
         }
-        if (sym <= ' ')
+        if (static_cast<unsigned char>(sym) <= ' ' || IsNoBreakSpace(pointer)) // UTF-8 letters belong to it
             return size;
         if (sym == ';')
             return size;
 
+        if (sym == ':' && pointer[1] == '=')
+        {
+            if (size == 0)
+                return 2;
+            return size;
+        }
         if (sym == '{' || sym == '}' || sym == ':' || sym == '(' || sym == ')' || sym == '[' || sym == ']' ||
-            sym == '^' || sym == '%' || sym == ',')
+            sym == '^' || sym == '%' || sym == ',' || sym == '?' || sym == '~' || sym == '@' || sym == '$')
         {
             if (size == 0)
                 return 1;
@@ -609,6 +699,12 @@ int32_t TOKEN::StopArgument(const char *pointer, bool bKeepControlSymbols)
         if (sym == '>' || sym == '<')
         {
             pointer++;
+            if (*pointer == sym) // << >>
+            {
+                if (size == 0)
+                    return 2;
+                return size;
+            }
             sym = *pointer;
             if (sym != '=')
             {
@@ -649,11 +745,25 @@ int32_t TOKEN::StopArgument(const char *pointer, bool bKeepControlSymbols)
                 return 2;
             return size;
         }
+        if (sym == '|')
+        {
+            pointer++;
+            sym = *pointer;
+            if (sym != '|' && sym != '=')
+            {
+                if (size == 0)
+                    return 1;
+                return size;
+            }
+            if (size == 0)
+                return 2;
+            return size;
+        }
         if (sym == '&')
         {
             pointer++;
             sym = *pointer;
-            if (sym != '&')
+            if (sym != '&' && sym != '=')
             {
                 if (size == 0)
                     return 1;
@@ -688,6 +798,7 @@ int32_t TOKEN::StopArgument(const char *pointer, bool bKeepControlSymbols)
             {
             case '=':
             case '-':
+            case '>':
                 if (size == 0)
                     return 2;
                 return size;
@@ -736,8 +847,10 @@ void TOKEN::StartArgument(char *&pointer, bool bKeepControlSymbols)
             if (sym == '\t' || sym == ' ')
                 return;
         }
-        if (sym <= ' ')
+        if (static_cast<unsigned char>(sym) <= ' ') // UTF-8 letters are not blanks
             pointer++;
+        else if (IsNoBreakSpace(pointer))
+            pointer += 2;
         else
             return;
     } while (true);
@@ -747,6 +860,21 @@ bool TOKEN::IsNumber(const char *pointer)
 {
     if (pointer == nullptr)
         return false;
+    if (pointer[0] == '0' && (pointer[1] == 'x' || pointer[1] == 'X') && std::isxdigit(static_cast<unsigned char>(pointer[2])))
+    {
+        size_t n = 2;
+        while (std::isxdigit(static_cast<unsigned char>(pointer[n])))
+            n++;
+        return pointer[n] == 0 || ((pointer[n] == 'u' || pointer[n] == 'U') && pointer[n + 1] == 0);
+    }
+    if (pointer[0] >= '0' && pointer[0] <= '9')
+    {
+        size_t n = 1;
+        while (pointer[n] >= '0' && pointer[n] <= '9')
+            n++;
+        if ((pointer[n] == 'u' || pointer[n] == 'U') && pointer[n + 1] == 0)
+            return true; // unsigned literal, e.g. 2u
+    }
     for (uint32_t n = 0; pointer[n]; n++)
     {
         if (pointer[n] < 0x20 && pointer[n] > 0)
@@ -804,6 +932,7 @@ bool TOKEN::StepBack()
 
 S_TOKEN_TYPE TOKEN::ProcessToken(char *&pointer, bool bKeepData)
 {
+    bTypeCast = false;
     char sym;
     char *pBase;
 
@@ -867,6 +996,17 @@ S_TOKEN_TYPE TOKEN::ProcessToken(char *&pointer, bool bKeepData)
         } while (sym != 0);
         SetNTokenData(pBase, Program - pBase);
         break;
+    case OP_QUESTION:
+    case OP_BIT_OR:
+    case OP_OREQ:
+    case OP_ANDEQ:
+    case OP_BIT_NOT:
+    case OP_SHL:
+    case OP_SHR:
+    case OP_ARROW:
+    case OP_COLON_EQUAL:
+    case OP_SIZEOF:
+    case OP_DOLLAR:
     case CALL:
     case IMPORT:
     case EXTERN:
@@ -936,6 +1076,17 @@ S_TOKEN_TYPE TOKEN::ProcessToken(char *&pointer, bool bKeepData)
             break;
 
         StartArgument(pointer);
+        if (*pointer == '(') // function-style cast, e.g. int(x): the data stays the type keyword
+        {
+            bTypeCast = true;
+            break;
+        }
+        if (*pointer == ')' || *pointer == ';' || *pointer == ',' || *pointer == ']')
+        {
+            // no name follows (typeid(int), x$aref;): the punctuation stays a token of its own
+            DISCARD_DATABUFFER
+            break;
+        }
         pointer += SetTokenData(pointer);
         break;
     }

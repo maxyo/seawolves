@@ -131,8 +131,51 @@ enum S_TOKEN_TYPE
     LEFTOP_INDEX,
     PUSH_OBJID,
     PUSH_OBJID_BXINDEX,
+    // Caribbean Legend script extensions (appended: bytecode stores these values)
+    OP_QUESTION,
+    OP_BIT_OR,
+    OP_BIT_AND,
+    OP_BIT_NOT,
+    OP_SHL,
+    OP_SHR,
+    OP_OREQ,
+    OP_ANDEQ,
+    OP_ARROW,
+    OP_COLON_EQUAL,
+    OP_SIZEOF,
+    OP_DOLLAR,
+    VAR_FREF,
+    SET_ARRAY_SIZE,
+    OP_CAST,
+    PUSH_NULL,
+    OP_IS_NULL,
+    OP_TYPEID,
+    PUSH_AP,
+    ATTR_DEFAULT,
+    ADVANCE_AP_QUIET,
+    OP_IN,
+    OP_SIZEOF_REF,
+    RESIZE_ARRAY,
+    CALL_METHOD,
+    OBJ_NEW,
+    OBJ_SET,
+    RANGE_NEXT,
+    OP_SLICE,
+    ARRAY_BUILD,
+    ADVANCE_AP_EXPR,
+    ACCESS_EXPR,
+    ATTR_PARENT,
+    ATTR_DELETE,
+    AP_CHILD,
+    CALL_NAMED,
+    NEW_ARRAY,
+    STACK_INDEX,
+    LEFTOP_SUBINDEX,
+    AP_FROM_STACK,
     TOKEN_TYPES_COUNT
 };
+// bytecode stores the instruction in one byte (read as uint8_t)
+static_assert(TOKEN_TYPES_COUNT <= 256);
 
 struct INTFUNCDESC
 {
@@ -168,6 +211,7 @@ class TOKEN
     char *Program;
     char *ProgramBase;
     uint32_t dwKeywordsNum;
+    bool bTypeCast = false;
 
   public:
     TOKEN();
@@ -175,6 +219,7 @@ class TOKEN
     void Release();
     void Reset();
     void SetProgram(char *pProgramBase, char *pProgramControl);
+    void SetProgramControl(char *pProgramControl);
     char *GetProgramControl();
 
     char *GetProgramBase()
@@ -182,6 +227,11 @@ class TOKEN
         return ProgramBase;
     };
     S_TOKEN_TYPE Get(bool bKeepData = false);
+    // the current token is a type keyword directly followed by '(' (int(x)); its data is the keyword
+    bool TypeCast() const
+    {
+        return bTypeCast;
+    }
     S_TOKEN_TYPE ProcessToken(char *&pointer, bool bKeepData = false);
     S_TOKEN_TYPE GetType();
     void CacheToken(const char *pointer);

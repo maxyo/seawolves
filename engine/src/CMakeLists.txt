@@ -18,6 +18,8 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
 # Matrices, vertex data and D3D structures are viewed through differently
 # typed pointers throughout the engine (storm_glm.h accessors, vertex locks).
 add_compile_options(-fno-strict-aliasing)
+# Narrowing in braced initializers is ill-formed C++: clang (the NDK, the host) rejects it, GCC only warns.
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror=narrowing>)
 
 if(ANDROID)
     # Same optimization level as the RelWithDebInfo builds that were tested on
