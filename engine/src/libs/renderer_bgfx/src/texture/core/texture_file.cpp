@@ -45,6 +45,33 @@ std::string TextureFilePath(std::string_view name)
     return file;
 }
 
+std::optional<std::string> ResolveTextureFile(std::string_view name,
+                                              const std::function<bool(const std::string &)> &exists)
+{
+    std::string file = TextureFilePath(name);
+    if (exists(file))
+        return file;
+    std::string base(name);
+    const auto strip = [&base](std::string_view extension) {
+        const bool has = base.size() > extension.size() &&
+                         std::equal(extension.rbegin(), extension.rend(), base.rbegin(),
+                                    [](char a, char b) { return a == std::tolower(static_cast<unsigned char>(b)); });
+        if (has)
+            base.resize(base.size() - extension.size());
+        return has;
+    };
+    strip(".tx");
+    for (const std::string_view image : {".png", ".tga", ".bmp", ".jpg", ".dds", ".txx"})
+        if (strip(image))
+            break;
+    // .dds first, as Caribbean Legend's own engine tries it after the named file; the others for the names it would
+    // not find (a .png name shipped as .tga.tx).
+    for (const std::string_view extension : {".dds", ".tga.tx", ".tx", ".txx"})
+        if (file = TextureFilePath(base + std::string(extension)); exists(file))
+            return file;
+    return std::nullopt;
+}
+
 std::span<const uint8_t> TextureFile::level(uint32_t face, uint32_t level) const
 {
     size_t offset = payload_offset + face * (dxt_payload_size(layout) / layout.faces);

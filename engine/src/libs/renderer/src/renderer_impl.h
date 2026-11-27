@@ -607,6 +607,10 @@ private:
     // TextureCreate's name of `fname` under texture path variant `variant` (TexPaths[variant] put before the file
     // name; -1: as given), upper case; none when that variant is not set.
     std::optional<std::string> TextureVariantName(const char *fname, int32_t variant) const;
+    // The game file of a texture name (texture::ResolveTextureFile over the resource index), once per name: the
+    // name's own file, or the one the game ships under another extension (logged); none when neither exists.
+    std::optional<std::string> TextureFile(const std::string &name);
+    std::unordered_map<std::string, std::optional<std::string>> textureFiles_;
     // The slot of a loaded texture of that name (TextureVariantName), or -1.
     int32_t FindLoadedTexture(const std::string &name, uint32_t hash) const;
 };

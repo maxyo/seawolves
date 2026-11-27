@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -27,6 +28,11 @@ TextureContainer DetectTextureContainer(std::span<const uint8_t> head);
 // The file of a texture name (relative to the game, backslashes): under resource\textures, without doubled separators,
 // with ".tx" appended unless the name already names a texture file (.tx, .dds, .txx).
 std::string TextureFilePath(std::string_view name);
+// The file of a texture name among the files that exist (`exists`: a path as TextureFilePath gives it): the named file,
+// else the same base name (without its .png, .tga, .bmp, .jpg, .dds, .txx, .tx) as .dds, .tga.tx, .tx or .txx, the
+// first that exists: a game's models may name x.png or x.tga where it ships x.tga.tx or x.dds. nullopt: none exists.
+std::optional<std::string> ResolveTextureFile(std::string_view name,
+                                              const std::function<bool(const std::string &)> &exists);
 
 // A whole DDS or TXX file and where its levels are: faces one after another (DDS cube order +X, -X, +Y, -Y, +Z, -Z,
 // which is D3DCUBEMAP_FACES order), each face's levels from the full size down, tightly packed whole blocks.

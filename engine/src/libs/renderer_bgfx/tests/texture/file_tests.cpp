@@ -1,10 +1,11 @@
 // The texture files beside .tx (texture_file.hpp) on synthetic DDS and TXX files, and the texture name -> file rule.
 // --corpus: every DDS and TXX file of the installed game in $STORM_GAME_DIR (77, not run, without it); a damaged file
-// fails, a variant the renderer does not read is listed.
+// fails, a variant the renderer does not read is listed; every texture name resolves to the file the name rule gives.
 #include "texture_file.hpp"
 #include "../check.hpp"
 
 #include <algorithm>
+#include <set>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -197,6 +198,27 @@ void test_names()
     CHECK(TextureFilePath("Resource\\Textures\\\\Props//Box.dds") == "Resource\\Textures\\Props/Box.dds");
     CHECK(TextureFilePath("Particles_New.TXX") == "resource\\textures\\Particles_New.TXX");
     CHECK(TextureFilePath("ships\\deck.dds.bak") == "resource\\textures\\ships\\deck.dds.bak.tx");
+
+    // The file a name resolves to among the files that exist (lower case here, as a case-blind index answers).
+    const std::set<std::string> files{"resource\\textures\\mainmenu\\plantscollection1.tga.tx",
+                                      "resource\\textures\\props\\box.dds", "resource\\textures\\wall.tga.tx",
+                                      "resource\\textures\\wall.dds"};
+    const auto exists = [&files](const std::string &path) {
+        std::string lower = path;
+        std::ranges::transform(lower, lower.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return files.contains(lower);
+    };
+    const auto resolved = [&](const char *name) { return ResolveTextureFile(name, exists).value_or("none"); };
+    CHECK(resolved("MainMenu\\plantscollection1.png") == "resource\\textures\\MainMenu\\plantscollection1.tga.tx");
+    CHECK(resolved("Props\\Box.tga") == "resource\\textures\\Props\\Box.dds");
+    CHECK(resolved("props\\box.tga.tx") == "resource\\textures\\props\\box.dds");
+    // The named file wins over another that exists: what resolved before resolves the same.
+    CHECK(resolved("WALL.TGA") == "resource\\textures\\WALL.TGA.tx");
+    CHECK(resolved("wall.dds") == "resource\\textures\\wall.dds");
+    CHECK(resolved("Props\\Crate.png") == "none");
+    // Both under other extensions: the .dds, which the game's own engine tries first.
+    CHECK(resolved("wall.png") == "resource\\textures\\wall.dds");
 }
 
 int corpus()
@@ -238,7 +260,40 @@ int corpus()
     for (const auto &[reason, count] : refused)
         std::printf("  not read   %6d  %s\n", count, reason.c_str());
     std::printf("%s: %d DDS and TXX files, %d damaged\n", root, files, bad);
-    return bad ? 1 : 0;
+    // Every texture file under resource\textures resolves from its own name to itself, and from the name its models
+    // give (x.tga for x.tga.tx) to the file the name rule alone gives: the extensions the game ships take nothing
+    // from a name that resolved before.
+    std::set<std::string> index;
+    std::vector<std::string> names;
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
+    {
+        if (!entry.is_regular_file())
+            continue;
+        std::string relative = std::filesystem::relative(entry.path(), root).string();
+        std::ranges::replace(relative, '/', '\\');
+        std::string lower = relative;
+        std::ranges::transform(lower, lower.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        index.insert(lower);
+        if (lower.starts_with("resource\\textures\\") && (lower.ends_with(".tx") || lower.ends_with(".dds")))
+            names.push_back(relative.substr(18));
+    }
+    const auto exists = [&index](const std::string &path) {
+        std::string lower = path;
+        std::ranges::transform(lower, lower.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return index.contains(lower);
+    };
+    int moved = 0;
+    for (const std::string &name : names)
+        for (const std::string &given : {name, name.ends_with(".tx") ? name.substr(0, name.size() - 3) : name})
+            if (const auto file = ResolveTextureFile(given, exists); !file || *file != TextureFilePath(given))
+            {
+                ++moved;
+                std::printf("RESOLVED ELSEWHERE %s: %s\n", given.c_str(), file ? file->c_str() : "none");
+            }
+    std::printf("%zu texture names, %d resolved otherwise than by the name rule\n", names.size(), moved);
+    return bad || moved ? 1 : 0;
 }
 } // namespace
 

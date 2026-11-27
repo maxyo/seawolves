@@ -1971,6 +1971,18 @@ std::optional<std::string> Renderer::TextureVariantName(const char *fname, int32
     return name;
 }
 
+std::optional<std::string> Renderer::TextureFile(const std::string &name)
+{
+    const auto known = textureFiles_.find(name);
+    if (known != textureFiles_.end())
+        return known->second;
+    std::optional<std::string> file = storm::texture::ResolveTextureFile(
+        name, [this](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); });
+    if (file && !storm::iEquals(*file, storm::texture::TextureFilePath(name)))
+        spdlog::info("texture {}: the game ships it as {}", name, *file);
+    return textureFiles_.emplace(name, std::move(file)).first->second;
+}
+
 int32_t Renderer::FindLoadedTexture(const std::string &name, uint32_t hash) const
 {
     for (int32_t t = 0; t < MAX_STEXTURES; t++)
@@ -1992,7 +2004,8 @@ std::vector<std::string> Renderer::TextureFileCandidates(const char *fname)
             continue;
         if (FindLoadedTexture(*name, MakeHashValue(name->c_str())) >= 0)
             break; // TextureCreate stops at this variant: it has it
-        files.push_back(fio->ConvertPathResource(storm::texture::TextureFilePath(*name).c_str()));
+        if (const std::optional<std::string> file = TextureFile(*name))
+            files.push_back(fio->ConvertPathResource(file->c_str()));
     }
     return files;
 }
@@ -2308,7 +2321,8 @@ bool Renderer::TextureLoad(int32_t t)
     {
         return false;
     }
-    const std::string file = storm::texture::TextureFilePath(Textures[t].name);
+    const std::string file =
+        TextureFile(Textures[t].name).value_or(storm::texture::TextureFilePath(Textures[t].name));
     const char *fn = file.c_str();
     // Opening the file (or taking the bytes a background read brought for it)
     TextureFileReader fileS;
