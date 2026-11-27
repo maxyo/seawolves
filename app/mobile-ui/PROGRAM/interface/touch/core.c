@@ -12,6 +12,6 @@ native int UiPending(string id);
 native int UiOffers(string node, string verb);
 native string UiText(string key);
 
-// The admitted widgets of the screen being built, UiModel.<node>.{type, label, value, min, max, reason}: filled by
-// the engine before each UiBuild.
+// The admitted widgets of the screen being built, filled by the engine before each UiBuild (script_port.cpp
+// FillModel): UiModel.<node>.{type, label, value, min, max, reason, offers.<verb>, context, headers, rows.r<index>}.
 object UiModel;

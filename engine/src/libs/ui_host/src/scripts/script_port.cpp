@@ -7,7 +7,10 @@
 #include "v_s_stack.h"
 #include "vma.hpp"
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
+
+#include <algorithm>
 
 #include <stdexcept>
 
@@ -137,7 +140,68 @@ uint32_t UiText(VS_STACK *stack)
     });
 }
 
-// The admitted widgets as UiModel.<node>.{type, label, value, min, max, reason}.
+// The child `name` of `at`, made when it has none.
+ATTRIBUTES &Child(ATTRIBUTES &at, const std::string &name)
+{
+    ATTRIBUTES *child = at.GetAttributeClass(name);
+    return child ? *child : at.CreateAttribute(name);
+}
+
+// An image of the game as the view's "picture" shape reads it back (screens/script_props.cpp).
+void FillImage(ATTRIBUTES &at, const storm::ui::ImageRef &image)
+{
+    at.SetAttribute("kind", image.kind);
+    at.SetAttribute("group", image.group);
+    at.SetAttribute("image", image.image);
+}
+
+// The verbs the engine accepts for the widget now: of its list, or its type's (Widget::Offers).
+void FillOffers(ATTRIBUTES &at, const storm::ui::Widget &widget)
+{
+    ATTRIBUTES &offers = at.CreateAttribute("offers");
+    const std::vector<std::string> defaults{"press", "select", "toggle", "edit", "left", "right"};
+    for (const std::string &verb : widget.actions.empty() ? defaults : widget.actions)
+        if (widget.Offers(verb))
+            offers.SetAttribute(verb, "1");
+}
+
+// A table row: UiModel.<node>.rows.r<index>.{index, id, label, value, enabled, reason, offers.<verb>,
+// cells.c<column>.{text, color, images}, images, context.<key>}; a cell's color is the game's RGB as six hex digits.
+void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
+{
+    ATTRIBUTES &row = rows.CreateAttribute("r" + std::to_string(widget.index));
+    row.SetAttribute("index", std::to_string(widget.index));
+    row.SetAttribute("id", widget.row_id);
+    row.SetAttribute("label", widget.label);
+    row.SetAttribute("value", widget.value);
+    row.SetAttribute("enabled", widget.enabled ? "1" : "0");
+    row.SetAttribute("reason", widget.unavailable_reason);
+    FillOffers(row, widget);
+    size_t columns = widget.column_headers.size();
+    for (const storm::ui::Cell &cell : widget.cells)
+        columns = std::max(columns, static_cast<size_t>(cell.column) + 1);
+    columns = std::max(columns, static_cast<size_t>(std::ranges::count(widget.label, '\t')) + 1);
+    ATTRIBUTES &cells = row.CreateAttribute("cells");
+    for (size_t column = 0; column < columns; column++)
+    {
+        ATTRIBUTES &at = cells.CreateAttribute("c" + std::to_string(column));
+        at.SetAttribute("text", widget.CellText(static_cast<int>(column)));
+        for (const storm::ui::Cell &cell : widget.cells)
+            if (cell.column == static_cast<int>(column))
+            {
+                at.SetAttribute("color", fmt::format("{:06x}", cell.color_argb & 0xffffffu));
+                for (size_t i = 0; i < cell.images.size(); i++)
+                    FillImage(Child(at, "images").CreateAttribute("i" + std::to_string(i)), cell.images[i]);
+            }
+    }
+    for (size_t i = 0; i < widget.images.size(); i++)
+        FillImage(Child(row, "images").CreateAttribute("i" + std::to_string(i)), widget.images[i]);
+    for (const auto &[key, value] : widget.context)
+        Child(row, "context").SetAttribute(key, value);
+}
+
+// The admitted widgets as UiModel.<node>.{type, label, value, min, max, reason, offers.<verb>, context.<key>,
+// headers.c<column>, rows}: a node's first widget stands for it, its widgets with an index are its rows (FillRow).
 void FillModel(const std::vector<const storm::ui::Widget *> &widgets)
 {
     auto *model = static_cast<VDATA *>(core.GetScriptVariable("UiModel"));
@@ -148,16 +212,27 @@ void FillModel(const std::vector<const storm::ui::Widget *> &widgets)
         root->DeleteAttributeClassX(root->GetAttributeClass(0u));
     for (const storm::ui::Widget *widget : widgets)
     {
-        ATTRIBUTES &node = root->CreateAttribute(widget->node);
-        node.SetAttribute("type", widget->type);
-        node.SetAttribute("label", widget->label);
-        node.SetAttribute("value", widget->value);
-        node.SetAttribute("reason", widget->unavailable_reason);
-        if (widget->type == "slider")
+        ATTRIBUTES *node = root->GetAttributeClass(widget->node);
+        if (!node)
         {
-            node.SetAttribute("min", std::to_string(widget->min));
-            node.SetAttribute("max", std::to_string(widget->max));
+            node = &root->CreateAttribute(widget->node);
+            node->SetAttribute("type", widget->type);
+            node->SetAttribute("label", widget->label);
+            node->SetAttribute("value", widget->value);
+            node->SetAttribute("reason", widget->unavailable_reason);
+            if (widget->type == "slider")
+            {
+                node->SetAttribute("min", std::to_string(widget->min));
+                node->SetAttribute("max", std::to_string(widget->max));
+            }
+            FillOffers(*node, *widget);
+            for (const auto &[key, value] : widget->context)
+                Child(*node, "context").SetAttribute(key, value);
+            for (size_t column = 0; column < widget->column_headers.size(); column++)
+                Child(*node, "headers").SetAttribute("c" + std::to_string(column), widget->column_headers[column]);
         }
+        if (widget->index >= 0)
+            FillRow(Child(*node, "rows"), *widget);
     }
 }
 } // namespace

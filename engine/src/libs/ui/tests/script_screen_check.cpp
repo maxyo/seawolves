@@ -111,8 +111,8 @@ void Routing()
     router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
     router.SetInterface(Model("salary"));
     ExpectEqual(surface.tag, "s-demo", "a script screen replaces the ported screen of its interface");
-    Expect(port.nodes == std::vector<std::string>{"SLIDER ", "OK ", "CANCEL ", "INFO first"},
-           "the script gets the admitted widgets, a node's first one (a text node's lines are rows)");
+    Expect(port.nodes == std::vector<std::string>{"SLIDER ", "OK ", "CANCEL ", "INFO first", "INFO second"},
+           "the script gets every admitted widget (a text node's lines are rows)");
     ExpectEqual(surface.props["items"].dump(), R"([{"id":"a","n":1.5,"on":false}])",
                 "list items converted by the shape, fields named as the spec names them");
     Expect(surface.props["count"] == 3 && surface.props["open"] == true && surface.props["title"] == "Отдых",

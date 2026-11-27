@@ -414,6 +414,55 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     }
 }
 
+TEST_CASE("a screen's script gets the admitted widgets in UiModel, a table's rows with their cells")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const auto spec = PackScreen("rest");
+    Calls calls(*spec);
+    storm::ui::Widget gold{
+        .node = "OUR_GOLD", .type = "text", .label = "1 500", .context = {{"currency", "doubloons"}}};
+    storm::ui::Widget row{.node = "TABLE_LIST",
+                          .type = "choice",
+                          .label = "200\t1840",
+                          .value = "1",
+                          .index = 2,
+                          .row_id = "goods:2",
+                          .cells = {{.column = 3,
+                                     .text = "Ядра",
+                                     .color_argb = 0xffc4ffc4,
+                                     .images = {{.kind = "atlas", .group = "GOODS", .image = "Balls"}}}},
+                          .actions = {"select", "activate"},
+                          .column_headers = {"В трюме", "В магазине", "", "Товар"}};
+    storm::ui::Widget other = row;
+    other.index = 3;
+    other.enabled = false;
+    other.cells.clear();
+    calls.widgets = {gold, row, other};
+    // A capability no script draws: the model is filled all the same.
+    port.Build({"model", "store", "s-rest", {}}, calls.Single(), calls);
+    auto *model = static_cast<VDATA *>(core.GetScriptVariable("UiModel"))->GetAClass();
+    const auto at = [&](const char *path) {
+        const ATTRIBUTES *found = model->FindAClass(model, path);
+        return found && found->HasValue() ? std::string(found->GetValue()) : std::string("<none>");
+    };
+    CHECK(at("OUR_GOLD.label") == "1 500");
+    CHECK(at("OUR_GOLD.context.currency") == "doubloons");
+    CHECK(at("TABLE_LIST.headers.c3") == "Товар");
+    CHECK(at("TABLE_LIST.rows.r2.id") == "goods:2");
+    CHECK(at("TABLE_LIST.rows.r2.cells.c0.text") == "200"); // from the label's columns
+    CHECK(at("TABLE_LIST.rows.r2.cells.c1.text") == "1840");
+    CHECK(at("TABLE_LIST.rows.r2.cells.c3.text") == "Ядра");
+    CHECK(at("TABLE_LIST.rows.r2.cells.c3.color") == "c4ffc4");
+    CHECK(at("TABLE_LIST.rows.r2.cells.c3.images.i0.image") == "Balls");
+    CHECK(at("TABLE_LIST.rows.r2.offers.activate") == "1");
+    CHECK(at("TABLE_LIST.rows.r3.enabled") == "0");
+    CHECK(at("TABLE_LIST.rows.r3.offers.activate") == "<none>"); // disabled: the engine takes nothing of it
+    CHECK(model->GetAttributeClass("TABLE_LIST")->GetAttributeClass("rows")->GetAttributesNum() == 2);
+    CHECK(model->GetAttributesNum() == 2); // one entry per node
+}
+
 TEST_CASE("script screen events are refused while a script runs; natives outside a screen fail")
 {
     Log log;
