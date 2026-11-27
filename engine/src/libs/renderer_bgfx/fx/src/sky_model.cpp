@@ -107,8 +107,18 @@ SkyState ComputeSky(const WeatherInput &weather)
     sky.fog_density = weather.fog_density;
     sky.fog_layer = weather.fog_layer;
     sky.night = 1.0f - glm::clamp(weather.daylight, 0.0f, 1.0f);
-    // The horizon: the atmosphere round it under its haze band, on the display's scale; the dome: the atmosphere's
-    // cosine-weighted mean over the upper half (linear), for the hue of the hemisphere ambient.
+    // The haze band's colour round the horizon; the horizon under its haze, on the display's scale; the dome: the
+    // cosine-weighted mean of the sky above (linear), for the hue of the hemisphere ambient.
+    for (int i = 0; i < kHazeAzimuths; ++i)
+    {
+        const float angle = 2.0f * kPi * static_cast<float>(i) / static_cast<float>(kHazeAzimuths);
+        sky.haze[size_t(i)] =
+            weather.haze_from_sky
+                ? weather.haze_color *
+                      SkyBackground(weather,
+                                    glm::normalize(glm::vec3(std::cos(angle), weather.haze_sample, std::sin(angle))))
+                : weather.haze_color;
+    }
     constexpr int kAzimuths = 16;
     const float haze = SkyHazeAmount(weather, 0.0f);
     glm::vec3 sum{0.0f}, dome{0.0f};
@@ -117,14 +127,11 @@ SkyState ComputeSky(const WeatherInput &weather)
     {
         const float angle = 2.0f * kPi * (static_cast<float>(i) + 0.5f) / static_cast<float>(kAzimuths);
         const glm::vec3 dir{std::cos(angle), 0.0f, std::sin(angle)};
-        glm::vec3 c = SkyBackground(weather, dir);
-        if (haze > 0.0f)
-        {
-            glm::vec3 colour = weather.haze_color;
-            if (weather.haze_from_sky)
-                colour *= SkyBackground(weather, glm::normalize(glm::vec3(dir.x, weather.haze_sample, dir.z)));
-            c = glm::mix(c, colour, haze);
-        }
+        // Between two of the band's colours, as the drawn sky takes them.
+        const float at = (static_cast<float>(i) + 0.5f) * static_cast<float>(kHazeAzimuths) / kAzimuths;
+        const int k = static_cast<int>(at);
+        const glm::vec3 band = glm::mix(sky.haze[size_t(k)], sky.haze[size_t((k + 1) % kHazeAzimuths)], at - float(k));
+        const glm::vec3 c = glm::mix(SkyBackground(weather, dir), band, haze);
         sum += c;
         if (i % 2 == 0)
             for (const float y : {0.3f, 0.65f, 0.95f})

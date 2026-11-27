@@ -86,6 +86,7 @@ std::unique_ptr<EnvironmentData> Load()
 {
     constexpr const char *kTimeOfDay = "resource\\ini\\time_of_day.json";
     constexpr const char *kAtmosphere = "resource\\ini\\atmosphere.json";
+    constexpr const char *kTextureLibrary = "resource\\texture_library.json";
     if (!fio->_FileOrDirectoryExists(kTimeOfDay))
         return nullptr;
     const auto started = std::chrono::steady_clock::now();
@@ -107,7 +108,23 @@ std::unique_ptr<EnvironmentData> Load()
             data->atmosphere = std::move(atmosphere);
     }
     else
-        spdlog::error("environment: {} cannot be read: no horizon haze or height fog", kAtmosphere);
+        spdlog::error("environment: {} cannot be read: no horizon haze, height fog or cloud look", kAtmosphere);
+    // The variant its engine draws by default (another is chosen only in its editor).
+    if (const std::optional<std::string> text = Read(kTextureLibrary))
+    {
+        scene_data::Report library_report;
+        scene_data::TextureLibrary library = scene_data::ParseTextureLibrary(*text, library_report);
+        if (Reported(kTextureLibrary, library_report))
+        {
+            if (const auto found = library.clouds.find("default"); found != library.clouds.end())
+                data->clouds = found->second;
+            else
+                spdlog::error("environment: {} has no default cloud preset: the clouds come from noise",
+                              kTextureLibrary);
+        }
+    }
+    else
+        spdlog::info("environment: no {}: the clouds come from noise", kTextureLibrary);
     LoadPresets(*data, "resource\\lighting");
     LoadPresets(*data, "resource\\weather");
     spdlog::info(

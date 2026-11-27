@@ -265,6 +265,35 @@ TEST_CASE("a frame's state")
     CHECK(inside.haze == 0.0f);
 }
 
+TEST_CASE("the clouds' look of the hour")
+{
+    // Caribbean Legend's engine's own periods by its own transition hours (5, 6, 7, 9, 17, 18, 19, 20).
+    const auto &periods = EngineCloudPeriods();
+    const CloudLook noon = EvaluateCloudLook(periods, kEngineTransitionHours, 12.0f);
+    CHECK((noon.intensity == Approx(2.09f) && noon.opacity == Approx(0.28f) && noon.twilight == 0.0f));
+    const CloudLook dusk = EvaluateCloudLook(periods, kEngineTransitionHours, 18.5f);
+    CHECK((dusk.opacity == Approx(0.95f) && dusk.twilight == 1.0f));
+    // Half way from the sunset to the night (smoothstep of 0.5): the twilight's share halves, the opacity rises to 1.
+    const CloudLook late = EvaluateCloudLook(periods, kEngineTransitionHours, 19.5f);
+    CHECK((late.twilight == Approx(0.5f) && late.opacity == Approx(0.975f) && late.ambient_intensity == Approx(0.54f)));
+    const CloudLook night = EvaluateCloudLook(periods, kEngineTransitionHours, 2.0f);
+    CHECK((night.intensity == Approx(0.35f) && night.twilight == 0.0f));
+    // A game's periods come from its data, the layers' speeds in degrees per second.
+    scene_data::TimeOfDay tod = Day();
+    scene_data::Atmosphere atmosphere;
+    scene_data::TexturedClouds &clouds = atmosphere.textured_clouds.emplace();
+    clouds.enabled = true;
+    clouds.periods = periods;
+    clouds.periods[scene_data::kDay].opacity = 0.5f;
+    clouds.rotation_speeds = {0.1f, 0.3f, 1.0f};
+    Inputs in{tod};
+    in.atmosphere = &atmosphere;
+    in.hour = 13.0f;
+    const State s = Evaluate(in);
+    CHECK(s.cloud_look.opacity == Approx(0.5f));
+    CHECK(s.cloud_spin[2] == Approx(0.06f * 1000.0f / 350.0f));
+}
+
 TEST_CASE("fog of the hour and of the height")
 {
     const scene_data::TimeOfDay tod = Day();
@@ -434,7 +463,7 @@ TEST_CASE("the scripts' attribute weather")
     CHECK(evening.ambient.b == Approx(0.16f));
     CHECK(evening.fog_density == 0.002f);
     CHECK(evening.twilight == 1.0f);
-    CHECK((evening.sun_light == evening.light_color && evening.moon_light == glm::vec3(0.0f)));
+    CHECK((evening.sun_light.x == Approx(evening.light_color.x / 0.74f) && evening.moon_light == glm::vec3(0.0f)));
 
     in.light_elevation = -1.0f; // a weather whose light is under the horizon: night, nothing casts
     CHECK((!EvaluateLegacy(in).light_is_sun && EvaluateLegacy(in).twilight == 0.0f));
@@ -446,7 +475,8 @@ TEST_CASE("the scripts' attribute weather")
     const State night = EvaluateLegacy(in);
     CHECK(night.moon_dir.y == Approx(std::sin(0.3f)));
     CHECK((!night.light_is_sun && night.light_dir == night.moon_dir && night.moon_size == 0.03f &&
-           night.sun_size == 0.05f && night.moon_light == night.light_color && night.sun_light == glm::vec3(0.0f)));
+           night.sun_size == 0.05f && night.moon_light.z == Approx(night.light_color.z / 0.74f) &&
+           night.sun_light == glm::vec3(0.0f)));
     CHECK(night.sun_dir.y < 0.0f);
     CHECK(night.twilight == 0.0f);
     in.moon = false;

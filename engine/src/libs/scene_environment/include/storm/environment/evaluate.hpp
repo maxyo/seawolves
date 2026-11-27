@@ -36,6 +36,18 @@ struct Celestial
 Celestial EvaluateCelestial(const scene_data::CelestialTimes &times, float hour, float noon_elevation_deg,
                             float azimuth_deg);
 
+// Caribbean Legend's engine's own transition hours, cloud periods and the layers' rotation speeds (upper, base, rain),
+// for a game whose data gives none.
+inline constexpr scene_data::TransitionHours kEngineTransitionHours{5.0f, 6.0f, 7.0f, 9.0f, 17.0f, 18.0f, 19.0f, 20.0f};
+const std::array<scene_data::CloudPeriod, scene_data::kPeriods> &EngineCloudPeriods();
+inline constexpr std::array<float, 3> kEngineCloudSpeeds{0.1f, 0.3f, 1.0f};
+// Degrees per second a layer turns per unit of its rotation speed: its engine turns a layer by 0.06 degrees per unit
+// of its clock, which runs 1/350 per millisecond.
+inline constexpr float kCloudSpinPerSpeed = 0.06f * 1000.0f / 350.0f;
+// The clouds' look at `hour`: the periods blended by the transition hours.
+CloudLook EvaluateCloudLook(const std::array<scene_data::CloudPeriod, scene_data::kPeriods> &periods,
+                            const scene_data::TransitionHours &hours, float hour);
+
 // A preset's 24 hours with the absent ones filled in between the present neighbours on the 24-hour circle; nullopt
 // when no hour is present.
 using Hours = std::array<scene_data::LightingHour, 24>;

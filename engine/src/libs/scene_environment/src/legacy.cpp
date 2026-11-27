@@ -1,5 +1,7 @@
 #include "storm/environment/legacy.hpp"
 
+#include "storm/environment/evaluate.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -55,8 +57,21 @@ State EvaluateLegacy(const LegacyInputs &in)
     s.light_dir = light;
     s.light_is_sun = !in.moon && light.y > 0.0f;
     s.light_color = in.sun_color * in.sun_color;
-    (in.moon ? s.moon_light : s.sun_light) = s.light_color;
+    // The sun's and the moon's own light (their discs, the clouds) in Caribbean Legend's units, where its engine's
+    // own day is 1: the scripts' light over its luminance in the clear noons of the game's day records (Day.c,
+    // 214..234 of 255 gamma-encoded).
+    constexpr float kClearNoonSun = 0.74f;
+    (in.moon ? s.moon_light : s.sun_light) = s.light_color / kClearNoonSun;
     s.ambient = in.ambient * in.ambient;
+    // The clouds' fill in Caribbean Legend's units, where a clear day's is 1: the scripts' ambient over its luminance
+    // in the clear noons of the game's day records (Day.c, 95..105 of 255 gamma-encoded).
+    constexpr float kClearNoonFill = 0.154f;
+    const float fill = glm::dot(s.ambient, glm::vec3(0.2126f, 0.7152f, 0.0722f));
+    s.fill_color = fill > 0.0f ? s.ambient / fill : glm::vec3(1.0f);
+    s.fill_intensity = fill / kClearNoonFill;
+    s.cloud_look = EvaluateCloudLook(EngineCloudPeriods(), kEngineTransitionHours, in.hour);
+    for (size_t i = 0; i < kEngineCloudSpeeds.size(); ++i)
+        s.cloud_spin[i] = kEngineCloudSpeeds[i] * kCloudSpinPerSpeed;
     s.fog_color = in.fog_color * in.fog_color;
     s.fog_density = in.fog ? in.fog_density : 0.0f;
     // The haze band of Caribbean Legend's atmosphere (its shape: 8.65 degrees high, fading over all of it, in the

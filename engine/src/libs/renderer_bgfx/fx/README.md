@@ -79,21 +79,33 @@ the sea's reflection (`fs_fx_sky.sc`; `sky_model.cpp` is its CPU side):
 - **Discs.** The game's sun and moon sprites (`render::SetSkyDiscs`, from the sun glow's `SunTexture` and
   `MoonTexture`) on quads facing the eye, of the environment's half sizes: the sun's in its own light, reddened near
   the horizon and turned with the camera's yaw; the moon's white at night, with a faint halo of its light.
-- **Haze band** at the horizon, in the atmosphere's colour a little above it (or its own), and the **height fog**
-  between the eye and the sky's distance in it.
+- **Clouds** (below).
+- **Haze band** at the horizon, in the sky's colour a little above it (or its own), computed on the CPU for eight azimuths and blended between them, and the **height fog** between the eye and the
+  sky's distance in it.
 - The sum times the exposure is compressed into the 8-bit picture as the material programs' light is
   (`fxCompressHdr`); the post chain's tone curve follows. The sky state keeps the horizon's colour on the display's
   scale (the aerial fog, fog that takes the sky's colour) and the dome's mean (the hemisphere ambient's hue).
 
-The clouds need no texture of the game's: a layer at 1500 m seen from below, a fractal sum of one tiling octave of
-gradient noise (`CloudNoise`, 128² R8 with mips, 21 KB) turned and doubled per octave, kept where it rises above a
-threshold the environment's cover lowers (the coverage remap of Schneider 2015). The rain clouds grow over the same
-noise from its high values down as their cover rises, grey and even when it is full. The wind's drift moves the layer.
-The atmosphere above and at the horizon lights them (its colours carry the twilight's tint), and the direct light
-(the sun, or the moon at night) where the layer thins towards it: a second lookup a step towards the light, a
-directional derivative (Quílez), with a silver lining round the light. `Settings::cloud_octaves`: «Низкая» 2 octaves
-and no lookup towards the light, «Средняя» 3, «Высокая» 4. A fog with a height
-layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
+**Clouds** are lit as Caribbean Legend's textured clouds are, by its period-driven terms (`fxCloudShade`): each texel holds its response to light from the six axes; the response towards the sun, raised to the
+period's contrast, takes the sun's light, reddened and warmed while the hour is dawn or sunset, with a halo of light
+through the clouds near the sun; the sky's light is the fill tinted towards the atmosphere behind the cloud; at
+twilight the side away from the sun takes a tinted, dim sky light and the low sun lights the clouds' bases; the moon
+lights them by night; thin edges take a multiplier. The hour's look (`environment::CloudLook`) blends the periods.
+
+- A game that ships cloud textures (`render::SetSkyClouds`, from `texture_library.json`'s cloud preset) draws three
+  layers of two cubes each (`fs_fx_sky_cubes`): the rain layer, revealed by its cover through three octaves of value
+  noise and opaque where full (it replaces the sky), the base layer over the upper one, both shown by the hour's
+  opacity. Each layer turns about the vertical at its own speed. The cubes load as shipped (2048² BC3, one level:
+  25 MB per cube, 150 MB for the three layers).
+- Without textures (`fs_fx_sky`) the clouds are a layer at 1500 m seen from below, a fractal sum of one tiling octave
+  of gradient noise (`CloudNoise`, 128² R8 with mips, 21 KB) turned and doubled per octave, kept where it rises above
+  a threshold the environment's cover lowers (the coverage remap of Schneider 2015); the wind's drift moves it. Its
+  six-way response is the mean of Caribbean Legend's cumulus cube's where opaque times the noise's density, a lookup
+  a step towards the light shading where the layer thins (a directional derivative, Quílez). The rain clouds are the
+  same reveal over the mean of its rain cube's response. `Settings::cloud_octaves`: «Низкая» 2 octaves and no lookup
+  towards the light, «Средняя» 3, «Высокая» 4.
+
+A fog with a height layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
 (`ComputeAerialFogHaze`).
 
 ### Light falloff (`light_falloff.hpp`)

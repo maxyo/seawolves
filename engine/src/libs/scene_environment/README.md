@@ -39,6 +39,11 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   rain's intensity and the flags of each hour. The clouds' cover is a fifth of the hour's cloud density, the scale
   the scripts themselves give a rain's intensity by. The rain clouds cover the sky in the hours that rain and grow or thin
   over the hour before or after; a rain that stopped leaves wetness that dries by a third per hour within the next.
+- **Clouds.** `atmosphere.json`'s `textured_clouds` periods blend by the time of day's transition hours into the
+  hour's cloud look (`CloudLook`: brightness, the textured layers' opacity, the sun's, the sky's, the twilight's and
+  the moon's light on them, the light through them near the sun or the moon); the share of dawn and sunset in the
+  blend is the twilight's. Its rotation speeds turn the upper, base and rain layers (WEATHER adds up the turn). The
+  layers' textures come from `texture_library.json`'s default cloud preset.
 
 ## From the scripts' attributes (`storm/environment/legacy.hpp`)
 
@@ -55,7 +60,8 @@ the sky entity's folders; `EvaluateLegacy` makes the same state of them:
 - **Clouds.** The sky folders, one per part of the day, say what each part's painted sky showed (`LegacySkyFolder`,
   a table by folder: the cover of fair-weather clouds, rain clouds for the storms'); between two parts the cover
   blends. The rain's drops add rain clouds (a full rain at 5000 drops); the sun's shadows fade as the rain clouds
-  close.
+  close. The clouds look and are lit by Caribbean Legend's engine's own periods (`EngineCloudPeriods`) at its
+  own transition hours; their fill is the scripts' ambient in its units (a clear noon's is 1).
 
 `tests/scene_environment` checks the evaluation on data written there and, with `$STORM_GAME_DIR`, every preset of
 an installed game for every quarter hour.

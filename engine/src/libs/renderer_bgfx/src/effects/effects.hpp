@@ -98,6 +98,10 @@ class Host
     {
         sky_.SetDiscs(sun, moon);
     }
+    void set_sky_clouds(const fx::CloudLayers &layers)
+    {
+        sky_.SetCloudLayers(layers);
+    }
     // A location was entered or left: its first weather frame starts at the rain's own wetness.
     void location_changed()
     {

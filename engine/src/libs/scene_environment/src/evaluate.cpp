@@ -125,6 +125,34 @@ LightingHour MixHour(const LightingHour &a, const LightingHour &b, float t)
     }
     return h;
 }
+
+scene_data::CloudPeriod BlendClouds(const scene_data::CloudPeriod &a, const scene_data::CloudPeriod &b, float t)
+{
+    scene_data::CloudPeriod p;
+    const auto mix = [t](float x, float y) { return Mix(x, y, t); };
+    p.intensity = mix(a.intensity, b.intensity);
+    p.opacity = mix(a.opacity, b.opacity);
+    p.edge_lighting_strength = mix(a.edge_lighting_strength, b.edge_lighting_strength);
+    p.reflection_strength = mix(a.reflection_strength, b.reflection_strength);
+    p.moon_intensity = mix(a.moon_intensity, b.moon_intensity);
+    p.sun_transmission_strength = mix(a.sun_transmission_strength, b.sun_transmission_strength);
+    p.moon_transmission_strength = mix(a.moon_transmission_strength, b.moon_transmission_strength);
+    p.sun_transmission_radius = mix(a.sun_transmission_radius, b.sun_transmission_radius);
+    p.moon_transmission_radius = mix(a.moon_transmission_radius, b.moon_transmission_radius);
+    p.sun_intensity = mix(a.sun_intensity, b.sun_intensity);
+    p.ambient_intensity = mix(a.ambient_intensity, b.ambient_intensity);
+    p.sky_tint = mix(a.sky_tint, b.sky_tint);
+    p.lighting_contrast = mix(a.lighting_contrast, b.lighting_contrast);
+    p.twilight_sun_multiplier = mix(a.twilight_sun_multiplier, b.twilight_sun_multiplier);
+    p.twilight_base_lighting = mix(a.twilight_base_lighting, b.twilight_base_lighting);
+    p.twilight_warmth = mix(a.twilight_warmth, b.twilight_warmth);
+    p.twilight_edge_color = mix(a.twilight_edge_color, b.twilight_edge_color);
+    p.twilight_opposite_strength = mix(a.twilight_opposite_strength, b.twilight_opposite_strength);
+    p.twilight_transition_width = mix(a.twilight_transition_width, b.twilight_transition_width);
+    p.twilight_ambient_intensity = mix(a.twilight_ambient_intensity, b.twilight_ambient_intensity);
+    p.twilight_tint = Mix(a.twilight_tint, b.twilight_tint, t);
+    return p;
+}
 } // namespace
 
 PeriodMix MixPeriods(const scene_data::TransitionHours &hours, float hour)
@@ -166,6 +194,80 @@ Celestial EvaluateCelestial(const scene_data::CelestialTimes &times, float hour,
     c.shadow_fade = std::min(fade(times.shadow_evening_hour, times.shadow_evening_fade_minutes),
                              fade(times.shadow_morning_hour, times.shadow_morning_fade_minutes));
     return c;
+}
+
+const std::array<scene_data::CloudPeriod, scene_data::kPeriods> &EngineCloudPeriods()
+{
+    // Its engine's built-in textured_clouds: one look for every period but the intensity, opacity, sunlight and
+    // ambient of dawn, sunset and night.
+    static const std::array<scene_data::CloudPeriod, scene_data::kPeriods> periods = [] {
+        scene_data::CloudPeriod day;
+        day.intensity = 2.09f;
+        day.opacity = 0.28f;
+        day.edge_lighting_strength = 0.96f;
+        day.reflection_strength = 0.24f;
+        day.moon_intensity = 1.0f;
+        day.sun_transmission_strength = 1.96f;
+        day.moon_transmission_strength = 5.13f;
+        day.sun_transmission_radius = 19.1f;
+        day.moon_transmission_radius = 15.1f;
+        day.sun_intensity = 1.05f;
+        day.ambient_intensity = 3.22f;
+        day.sky_tint = 0.63f;
+        day.lighting_contrast = 1.59f;
+        day.twilight_sun_multiplier = 0.98f;
+        day.twilight_base_lighting = 2.12f;
+        day.twilight_warmth = 1.0f;
+        day.twilight_edge_color = 0.22f;
+        day.twilight_opposite_strength = 0.76f;
+        day.twilight_transition_width = 130.9f;
+        day.twilight_ambient_intensity = 1.42f;
+        day.twilight_tint = {0.4196f, 0.5098f, 0.6824f};
+        std::array<scene_data::CloudPeriod, scene_data::kPeriods> p{day, day, day, day};
+        for (const int twilight : {scene_data::kDawn, scene_data::kSunset})
+        {
+            p[size_t(twilight)].intensity = 2.1f;
+            p[size_t(twilight)].opacity = 0.95f;
+            p[size_t(twilight)].sun_intensity = 1.0f;
+            p[size_t(twilight)].ambient_intensity = 1.0f;
+        }
+        p[scene_data::kNight].intensity = 0.35f;
+        p[scene_data::kNight].opacity = 1.0f;
+        p[scene_data::kNight].ambient_intensity = 0.08f;
+        return p;
+    }();
+    return periods;
+}
+
+CloudLook EvaluateCloudLook(const std::array<scene_data::CloudPeriod, scene_data::kPeriods> &periods,
+                            const scene_data::TransitionHours &hours, float hour)
+{
+    const PeriodMix m = MixPeriods(hours, hour);
+    const scene_data::CloudPeriod p = BlendClouds(periods[size_t(m.from)], periods[size_t(m.to)], m.t);
+    const auto twilight = [](int period) { return period == scene_data::kDawn || period == scene_data::kSunset; };
+    CloudLook look;
+    look.intensity = p.intensity;
+    look.opacity = p.opacity;
+    look.edge = p.edge_lighting_strength;
+    look.twilight = (twilight(m.from) ? 1.0f - m.t : 0.0f) + (twilight(m.to) ? m.t : 0.0f);
+    look.sun_transmission = p.sun_transmission_strength;
+    look.moon_transmission = p.moon_transmission_strength;
+    look.sun_radius = p.sun_transmission_radius;
+    look.moon_radius = p.moon_transmission_radius;
+    look.sun_intensity = p.sun_intensity;
+    look.ambient_intensity = p.ambient_intensity;
+    look.sky_tint = p.sky_tint;
+    look.contrast = p.lighting_contrast;
+    look.twilight_sun = p.twilight_sun_multiplier;
+    look.twilight_base = p.twilight_base_lighting;
+    look.twilight_warmth = p.twilight_warmth;
+    look.twilight_edge = p.twilight_edge_color;
+    look.twilight_opposite = p.twilight_opposite_strength;
+    look.twilight_width = p.twilight_transition_width;
+    look.twilight_ambient = p.twilight_ambient_intensity;
+    look.twilight_tint = Vec(p.twilight_tint);
+    look.moon_intensity = p.moon_intensity;
+    return look;
 }
 
 std::optional<Hours> CompleteHours(const scene_data::LightingPreset &preset)
@@ -296,7 +398,8 @@ State Evaluate(const Inputs &in)
     s.sea = in.sea;
 
     // The hour table: what the place's presets give between this hour and the next.
-    glm::vec3 hour_sun{0.0f}, hour_ambient{0.0f};
+    glm::vec3 hour_sun{0.0f}, hour_fill{0.0f};
+    float hour_fill_intensity = 0.0f;
     float hour_exposure = 1.0f, rain_weight = 0.0f, shadow = 1.0f;
     float fog_weight = 0.0f; // the share of the fog the hour table gives
     glm::vec3 hour_fog_color{0.0f};
@@ -306,7 +409,8 @@ State Evaluate(const Inputs &in)
         const LightingHour &a = in.table->hours[size_t(h0)], &b = in.table->hours[size_t(h1)];
         const LightingHour m = MixHour(a, b, f);
         hour_sun = Vec(m.sun_color) * m.sun_intensity;
-        hour_ambient = Vec(m.ambient_color) * m.ambient_intensity * kPresetFillIrradiance;
+        hour_fill = Vec(m.ambient_color);
+        hour_fill_intensity = m.ambient_intensity;
         hour_exposure = Mix(a.exposure, b.exposure, f);
         shadow = m.shadow_ao;
         rain_weight = Mix(in.table->rain[size_t(h0)] ? 1.0f : 0.0f, in.table->rain[size_t(h1)] ? 1.0f : 0.0f, f);
@@ -342,8 +446,10 @@ State Evaluate(const Inputs &in)
         const TimeOfDayPeriod p = PeriodAt(tod, h);
         const glm::vec3 sky_radiance = glm::mix(Vec(p.sky_night_radiance), Vec(p.sky_day_radiance), c.twilight);
         const glm::vec3 fill = Vec(p.sky_fill_color) * p.sky_fill_intensity * sky_radiance * kFillIrradiance;
-        s.ambient = glm::mix(hour_ambient, fill, w);
+        s.ambient = glm::mix(hour_fill * hour_fill_intensity * kPresetFillIrradiance, fill, w);
         s.ground = Vec(p.ground_color) * p.ground_intensity * glm::dot(fill, glm::vec3(0.2126f, 0.7152f, 0.0722f));
+        s.fill_color = glm::mix(hour_fill, Vec(p.sky_fill_color), w);
+        s.fill_intensity = Mix(hour_fill_intensity, p.sky_fill_intensity, w);
         s.exposure = p.base_exposure;
         s.sky_day = Vec(p.sky_day_radiance);
         s.sky_night = Vec(p.sky_night_radiance);
@@ -356,10 +462,20 @@ State Evaluate(const Inputs &in)
         s.light_color = glm::mix(hour_sun, s.sun_light + s.moon_light, w);
         s.sun_size = kSunSize;
         s.moon_size = kMoonSize;
+        const scene_data::TexturedClouds *clouds =
+            in.atmosphere && in.atmosphere->textured_clouds && in.atmosphere->textured_clouds->enabled
+                ? &*in.atmosphere->textured_clouds
+                : nullptr;
+        s.cloud_look = EvaluateCloudLook(clouds ? clouds->periods : EngineCloudPeriods(), tod.transition_hours, h);
+        const std::array<float, 3> &speeds = clouds ? clouds->rotation_speeds : kEngineCloudSpeeds;
+        for (size_t i = 0; i < speeds.size(); ++i)
+            s.cloud_spin[i] = speeds[i] * kCloudSpinPerSpeed;
     }
     else
     {
-        s.ambient = hour_ambient;
+        s.ambient = hour_fill * hour_fill_intensity * kPresetFillIrradiance;
+        s.fill_color = hour_fill;
+        s.fill_intensity = hour_fill_intensity;
         s.light_color = hour_sun;
         s.exposure = hour_exposure;
     }

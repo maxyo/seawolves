@@ -4,8 +4,28 @@
 
 #include <storm_glm.h>
 
+#include <array>
+#include <optional>
+
 namespace storm::environment
 {
+
+// How the clouds look and are lit in this hour (the periods of Caribbean Legend's textured clouds, blended; the
+// defaults are its engine's own day). Radii and widths in degrees.
+struct CloudLook
+{
+    float intensity = 2.09f; // their radiance multiplier
+    float opacity = 0.28f;   // how much of the base and upper layers shows
+    float edge = 0.96f;      // the thin edges' light multiplier
+    float twilight = 0.0f;   // the share of dawn and sunset in the hour's blend
+    float sun_transmission = 1.96f, moon_transmission = 5.13f;
+    float sun_radius = 19.1f, moon_radius = 15.1f;
+    float sun_intensity = 1.05f, ambient_intensity = 3.22f, sky_tint = 0.63f, contrast = 1.59f;
+    float twilight_sun = 0.98f, twilight_base = 2.12f, twilight_warmth = 1.0f, twilight_edge = 0.22f;
+    float twilight_opposite = 0.76f, twilight_width = 130.9f, twilight_ambient = 1.42f;
+    glm::vec3 twilight_tint{0.4196f, 0.5098f, 0.6824f};
+    float moon_intensity = 1.0f;
+};
 
 // Colours are linear. A light's colour carries its intensity in scene units; `exposure` brings the scene to the
 // display.
@@ -32,7 +52,10 @@ struct State
 
     glm::vec3 ambient{0.0f}; // the sky's fill light
     glm::vec3 ground{0.0f};  // light from the ground onto downward faces (0: none)
-    float exposure = 1.0f;   // scene -> display
+    // The fill light's colour and intensity apart (the clouds' ambient light takes them so).
+    glm::vec3 fill_color{0.0f};
+    float fill_intensity = 0.0f;
+    float exposure = 1.0f; // scene -> display
 
     // The radiance the sky's air scatters by day and by night; the defaults are Caribbean Legend's engine's own,
     // for a game whose data has none.
@@ -56,11 +79,15 @@ struct State
     float fog_start = 0.0f, fog_end = 0.0f, fog_max = 1.0f;
     bool fog_from_sky = false; // the fog takes the sky's colour at the horizon
 
-    // Clouds: how much of the sky the fair-weather clouds and the rain clouds cover, 0..1; how far the wind has
-    // carried them (metres, x and z).
+    // Clouds: how much of the sky the fair-weather clouds and the rain clouds cover, 0..1 (with cloud textures the
+    // base layer's own opacity stands for `clouds`); how far the wind has carried them (metres, x and z); how fast the
+    // textured layers turn about the vertical (degrees per second: upper, base, rain) and how far they have (radians,
+    // WEATHER adds it up).
     float clouds = 0.0f;
     float rain_clouds = 0.0f;
     glm::vec2 cloud_drift{0.0f};
+    std::array<float, 3> cloud_spin{}, cloud_turn{};
+    CloudLook cloud_look;
 
     float overcast = 0.0f; // 0 clear .. 1 storm
     float rain = 0.0f;     // falling now, 0..1

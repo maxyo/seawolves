@@ -200,7 +200,20 @@ TEST_CASE("atmosphere")
                                     R"(, "Evening": )" + fog(400, 96) + R"(, "Night": )" + fog(night_attenuation, 20) +
                                     "}";
         const char *haze_color = R"({"tint": [1, 1, 1], "radiance": [0.5, 0.7, 0.9], "brightness": 0.9})";
-        return R"({"version": 1, "textured_clouds": {"enabled": true},
+        const auto cloud = [](float opacity) {
+            return R"({"intensity": 2, "opacity": )" + std::to_string(opacity) +
+                   R"(, "edge_lighting_strength": 1, "reflection_strength": 0.2, "moon_intensity": 1,
+                "sun_transmission_strength": 2, "moon_transmission_strength": 5, "sun_transmission_radius": 19,
+                "moon_transmission_radius": 15, "sun_intensity": 1, "ambient_intensity": 3, "sky_tint": 0.6,
+                "lighting_contrast": 1.6, "twilight_sun_multiplier": 1, "twilight_base_lighting": 2, "twilight_warmth": 1,
+                "twilight_edge_color": 0.2, "twilight_opposite_strength": 0.8, "twilight_transition_width": 131,
+                "twilight_ambient_intensity": 1.4, "twilight_tint": [0.4, 0.5, 0.7]})";
+        };
+        const std::string clouds = R"({"version": 1, "enabled": true, "rotation_speeds": [0.1, 0.3, 1],
+            "periods": {"dawn": )" +
+                                   cloud(0.67f) + R"(, "day": )" + cloud(0.28f) + R"(, "sunset": )" + cloud(0.53f) +
+                                   R"(, "night": )" + cloud(1.0f) + "}}";
+        return R"({"version": 1, "textured_clouds": )" + clouds + R"(,
             "horizon_haze": {"enabled": true, "sky_color": true, "intensity": 1, "sea_width_degrees": 30,
                 "sky_width_degrees": 8.6, "edge_fade": 1, "sea_start": 0, "sea_fade": 2000, "sample_elevation_degrees": 1.4,
                 "transition_hours": [5, 7, 8, 10, 17, 18, 19, 20],
@@ -214,8 +227,11 @@ TEST_CASE("atmosphere")
     Report report;
     const Atmosphere atmosphere = ParseAtmosphere(json(30), report);
     CHECK(report.ok());
-    CHECK(contains(report.unknown_keys, "$.textured_clouds"));
-    REQUIRE((atmosphere.horizon_haze && atmosphere.land && !atmosphere.sea && atmosphere.height_fog));
+    REQUIRE((atmosphere.horizon_haze && atmosphere.land && !atmosphere.sea && atmosphere.height_fog &&
+             atmosphere.textured_clouds));
+    CHECK((atmosphere.textured_clouds->enabled && atmosphere.textured_clouds->rotation_speeds[1] == 0.3f &&
+           atmosphere.textured_clouds->periods[kDay].opacity == 0.28f &&
+           atmosphere.textured_clouds->periods[kNight].twilight_tint[2] == 0.7f));
     CHECK((atmosphere.horizon_haze->sky_width_degrees == 8.6f &&
            atmosphere.horizon_haze->colors[kNight].brightness == 0.9f));
     CHECK((atmosphere.land->periods[kNight].attenuation_distance == 30 &&
@@ -223,6 +239,32 @@ TEST_CASE("atmosphere")
     Report zero;
     ParseAtmosphere(json(0), zero); // a density of 1 / 0
     CHECK(zero.errors.size() == 1);
+}
+
+TEST_CASE("texture library")
+{
+    const char *json = R"({"grass_preset": {}, "cloud_preset": {"default": {
+        "albedo_texture": "resource/Textures/WEATHER/Cloud/cumulus_1/CloudA.dds",
+        "lighting_texture": "resource/Textures/WEATHER/Cloud/cumulus_1/CloudB.dds",
+        "radiance_scale": 4.0, "premultiplied_alpha": true, "ambient_scale": 1.0, "ambient_strength": 0.15,
+        "has_ambient": false, "day_sun_intensity": 1.05,
+        "rain_layer": {"albedo_texture": "a.dds", "lighting_texture": "b.dds", "radiance_scale": 2.0,
+                       "premultiplied_alpha": true, "has_ambient": true, "ambient_scale": 0.5}}}})";
+    Report report;
+    const TextureLibrary library = ParseTextureLibrary(json, report);
+    CHECK(report.ok());
+    // Only the cloud presets; the keys of the lighting without the time of day's periods are not used.
+    CHECK((contains(report.unknown_keys, "$.grass_preset") &&
+           contains(report.unknown_keys, "$.cloud_preset.default.day_sun_intensity")));
+    REQUIRE(library.clouds.contains("default"));
+    const CloudPreset &clouds = library.clouds.at("default");
+    CHECK((clouds.base.radiance_scale == 4.0f && clouds.base.premultiplied_alpha && clouds.ambient_strength == 0.15f));
+    CHECK(MaterialTextureName(clouds.base.albedo_texture) == "WEATHER\\Cloud\\cumulus_1\\CloudA.dds");
+    CHECK((clouds.rain.radiance_scale == 2.0f && clouds.rain.has_ambient && clouds.rain.ambient_scale == 0.5f &&
+           clouds.upper.albedo_texture.empty()));
+    Report missing;
+    ParseTextureLibrary(R"({"cloud_preset": {"default": {"albedo_texture": "x.dds"}}})", missing);
+    CHECK(!missing.ok());
 }
 
 TEST_CASE("scene data of an installed game", "[.corpus]")

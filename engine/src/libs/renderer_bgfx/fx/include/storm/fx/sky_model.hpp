@@ -32,18 +32,53 @@ struct WeatherInput
     glm::vec3 fog_color{0.0f};
     float fog_density = 0.0f, fog_base = 0.0f, fog_layer = 0.0f, fog_start = 0.0f, fog_end = 0.0f, fog_max = 1.0f;
     bool fog_from_sky = false;
-    // The clouds: the cover of the fair-weather and the rain clouds (0..1), how far the wind carried them (metres, x
-    // and z), and the light on them (towards it; linear, exposed: the sun, or the moon at night).
+    // The clouds: the cover of the fair-weather and the rain clouds (0..1) and how far the wind carried them (metres,
+    // x and z); they are lit by the sun's and the moon's lights above and the fill.
     float clouds = 0.0f;
     float rain_clouds = 0.0f;
     glm::vec2 cloud_drift{0.0f};
-    glm::vec3 cloud_light_dir{0.0f, 1.0f, 0.0f};
-    glm::vec3 cloud_light{0.0f};
+    // How the clouds look and are lit (environment::CloudLook): x their radiance multiplier, y how much of the
+    // textured base and upper layers shows, z the thin edges' light multiplier, w the share of dawn and sunset in
+    // the hour; the sun's and the moon's transmission strengths and radii (degrees); the low sun's light multiplier,
+    // its light on the clouds' bases, its warmth and its colour on their edges; the sun's and the sky's light on
+    // them, the sky's tint of it and the contrast of the sun's; the twilight's strength on the side away from the
+    // sun, the width of that side (degrees) and its ambient light; the twilight's tint and the moon's light on them.
+    glm::vec4 cloud_look{0.0f}, cloud_transmission{0.0f}, cloud_sunset{0.0f}, cloud_day{0.0f}, cloud_twilight{0.0f},
+        cloud_tint{0.0f};
+    glm::vec3 fill_color{0.0f}; // the fill light: its colour and intensity apart
+    float fill_intensity = 0.0f;
+    std::array<float, 3> cloud_turn{}; // the textured layers' turn about the vertical (radians: upper, base, rain)
+};
+
+// One textured cloud layer (texture_library.json's cloud_preset): two cubes (bgfx::TextureHandle::idx, 0xffff: no
+// layer) holding its response to light from +x, +y, +z with its opacity, and from -x, -y, -z with its ambient
+// response.
+struct CloudLayer
+{
+    uint16_t positive = 0xffff, negative = 0xffff;
+    float radiance_scale = 1.0f;
+    float ambient_scale = 1.0f;
+    bool has_ambient = false; // the negative cube's alpha is the ambient response; else the mean of the six
+};
+struct CloudLayers
+{
+    CloudLayer base, upper, rain;
+    float ambient_strength = 0.0f; // the sky's light on them
 };
 
 // The share of a pixel's cells of 1/2500 of a direction that hold no star (fs_fx_sky.sc fxStars): Caribbean Legend's
 // engine's own setting.
 inline constexpr float kStarDensity = 0.96f;
+
+// Six-way responses of the clouds drawn without textures: the means of Caribbean Legend's cumulus and rain cubes where
+// they are opaque, times their radiance scale (measured over their texels above the horizon); and the strength of the
+// sky's light on them, its cloud presets'.
+inline constexpr glm::vec3 kCumulusPositive{0.59f, 1.34f, 0.60f}, kCumulusNegative{0.54f, 1.40f, 0.56f};
+inline constexpr glm::vec3 kRainPositive{0.12f, 1.02f, 0.10f}, kRainNegative{0.12f, 1.44f, 0.10f};
+inline constexpr float kNoiseCloudAmbient = 0.15f;
+
+// The haze band's colour by azimuth: kHazeAzimuths colours round the horizon from +x towards +z (fs_fx_sky.sc).
+inline constexpr int kHazeAzimuths = 8;
 
 struct SkyState
 {
@@ -53,6 +88,8 @@ struct SkyState
     float fog_density = 0.003f;
     float fog_layer = 0.0f; // WeatherInput::fog_layer
     float night = 0.0f;     // 0 day .. 1 night
+    // The haze band's colour (linear) at each azimuth.
+    std::array<glm::vec3, kHazeAzimuths> haze{};
 };
 
 SkyState ComputeSky(const WeatherInput &weather);

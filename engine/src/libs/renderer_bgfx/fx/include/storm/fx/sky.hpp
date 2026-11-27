@@ -26,6 +26,9 @@ class Sky
 
     // The game's sun and moon sprites (bgfx::TextureHandle::idx, 0xffff: none, no disc). The caller keeps them alive.
     void SetDiscs(uint16_t sun, uint16_t moon);
+    // A game's textured cloud layers; a base layer without cubes draws the clouds from noise. The caller keeps the
+    // cubes alive.
+    void SetCloudLayers(const CloudLayers &layers);
 
     // FX_AERIAL variant of the fixed-function emulator: set u_fxAerial (needs the scene's world -> view matrix)
     // for the next draw call.
@@ -41,11 +44,14 @@ class Sky
 
   private:
     void EnsureResources();
+    bool Textured() const;      // a base layer's cubes are there
+    float CloudAmbient() const; // the sky's light on the clouds
 
     WeatherInput weather_{};
     SkyState state_{};
     bool state_valid_ = false;
     bgfx::TextureHandle sun_disc_ = BGFX_INVALID_HANDLE, moon_disc_ = BGFX_INVALID_HANDLE;
+    CloudLayers clouds_{};
     float camera_height_ = 0.0f;
     bool resources_ = false;
     bgfx::UniformHandle u_aerial_ = BGFX_INVALID_HANDLE;
@@ -53,7 +59,8 @@ class Sky
     bgfx::UniformHandle s_sun_disc_ = BGFX_INVALID_HANDLE, s_moon_disc_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_noise_ = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle noise_ = BGFX_INVALID_HANDLE;
-    bgfx::ProgramHandle program_ = BGFX_INVALID_HANDLE;
+    std::array<bgfx::UniformHandle, 6> s_cubes_{}; // base, upper, rain: positive, negative
+    bgfx::ProgramHandle program_ = BGFX_INVALID_HANDLE, program_cubes_ = BGFX_INVALID_HANDLE;
 };
 
 } // namespace storm::fx

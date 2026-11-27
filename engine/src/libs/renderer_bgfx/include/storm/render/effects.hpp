@@ -10,6 +10,7 @@
 
 #include "storm/environment/state.hpp"
 #include "storm/fx/aggregate_light.hpp"
+#include "storm/fx/sky_model.hpp"
 
 #include <storm_glm.h>
 
@@ -107,6 +108,9 @@ void DrawSky();
 // The game's sun and moon sprites the drawn sky puts on its discs (bgfx::TextureHandle::idx, 0xffff: none, no disc),
 // kept alive by the caller until it replaces them.
 void SetSkyDiscs(uint16_t sun, uint16_t moon);
+// A game's textured cloud layers for the drawn sky (a base layer without cubes: clouds from noise), kept alive by the
+// caller until it replaces them.
+void SetSkyClouds(const fx::CloudLayers &layers);
 // The drawn sky's colour at the horizon (linear, on the display's scale), for fog that takes the sky's colour.
 glm::vec3 SkyHorizon();
 

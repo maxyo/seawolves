@@ -1,4 +1,5 @@
-// Resource/INI/atmosphere.json: the haze band at the horizon and the height fog of land and sea, per period.
+// Resource/INI/atmosphere.json: the haze band at the horizon, the height fog of land and sea and the textured clouds'
+// look, per period.
 #include "json_reader.hpp"
 
 namespace storm::scene_data
@@ -115,6 +116,86 @@ void ReadProfile(Reader &reader, const Json &object, const std::string &path, He
         return true;
     });
 }
+
+void ReadCloudPeriod(Reader &reader, const Json &object, const std::string &path, CloudPeriod &period)
+{
+    const std::pair<const char *, float *> numbers[] = {
+        {"intensity", &period.intensity},
+        {"opacity", &period.opacity},
+        {"edge_lighting_strength", &period.edge_lighting_strength},
+        {"reflection_strength", &period.reflection_strength},
+        {"moon_intensity", &period.moon_intensity},
+        {"sun_transmission_strength", &period.sun_transmission_strength},
+        {"moon_transmission_strength", &period.moon_transmission_strength},
+        {"sun_transmission_radius", &period.sun_transmission_radius},
+        {"moon_transmission_radius", &period.moon_transmission_radius},
+        {"sun_intensity", &period.sun_intensity},
+        {"ambient_intensity", &period.ambient_intensity},
+        {"sky_tint", &period.sky_tint},
+        {"lighting_contrast", &period.lighting_contrast},
+        {"twilight_sun_multiplier", &period.twilight_sun_multiplier},
+        {"twilight_base_lighting", &period.twilight_base_lighting},
+        {"twilight_warmth", &period.twilight_warmth},
+        {"twilight_edge_color", &period.twilight_edge_color},
+        {"twilight_opposite_strength", &period.twilight_opposite_strength},
+        {"twilight_transition_width", &period.twilight_transition_width},
+        {"twilight_ambient_intensity", &period.twilight_ambient_intensity}};
+    reader.Require(object, path,
+                   {"intensity",
+                    "opacity",
+                    "edge_lighting_strength",
+                    "reflection_strength",
+                    "moon_intensity",
+                    "sun_transmission_strength",
+                    "moon_transmission_strength",
+                    "sun_transmission_radius",
+                    "moon_transmission_radius",
+                    "sun_intensity",
+                    "ambient_intensity",
+                    "sky_tint",
+                    "lighting_contrast",
+                    "twilight_sun_multiplier",
+                    "twilight_base_lighting",
+                    "twilight_warmth",
+                    "twilight_edge_color",
+                    "twilight_opposite_strength",
+                    "twilight_transition_width",
+                    "twilight_ambient_intensity",
+                    "twilight_tint"});
+    reader.Object(object, path, [&](const std::string &key, const Json &value, const std::string &child) {
+        for (const auto &[name, number] : numbers)
+            if (key == name)
+                return reader.Float(value, child, *number), true;
+        if (key == "twilight_tint")
+            return reader.Color(value, child, period.twilight_tint), true;
+        return false;
+    });
+}
+
+void ReadClouds(Reader &reader, const Json &object, const std::string &path, TexturedClouds &clouds)
+{
+    reader.Require(object, path, {"enabled", "rotation_speeds", "periods"});
+    reader.Object(object, path, [&](const std::string &key, const Json &value, const std::string &child) {
+        if (key == "version")
+        {
+            int version = 0;
+            if (reader.Int(value, child, version) && version != 1)
+                reader.Error(child, "only version 1 is known");
+        }
+        else if (key == "enabled")
+            reader.Bool(value, child, clouds.enabled);
+        else if (key == "rotation_speeds")
+            reader.Floats(value, child, clouds.rotation_speeds);
+        else if (key == "periods")
+            ReadPeriods(reader, value, child, {"dawn", "day", "sunset", "night"}, clouds.periods,
+                        [&](const Json &v, const std::string &p, CloudPeriod &period) {
+                            ReadCloudPeriod(reader, v, p, period);
+                        });
+        else
+            return false;
+        return true;
+    });
+}
 } // namespace
 
 Atmosphere ParseAtmosphere(std::string_view json, Report &report)
@@ -129,6 +210,8 @@ Atmosphere ParseAtmosphere(std::string_view json, Report &report)
             reader.Int(value, path, out.version);
         else if (key == "horizon_haze")
             ReadHaze(reader, value, path, out.horizon_haze.emplace());
+        else if (key == "textured_clouds")
+            ReadClouds(reader, value, path, out.textured_clouds.emplace());
         else if (key == "height_fog")
             reader.Object(value, path, [&](const std::string &k, const Json &v, const std::string &p) {
                 if (k == "enabled")

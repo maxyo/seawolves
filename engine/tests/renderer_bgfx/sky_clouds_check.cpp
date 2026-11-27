@@ -2,10 +2,13 @@
 //   * Caribbean Legend's atmosphere, its haze band, the height fog over the sky and the sun's and the moon's discs draw
 //     the values worked out from its formulas apart from this code (a pixel within 3 of 255 per channel);
 //   * a clear sky is smooth; clouds break it up, the more of it the larger their cover;
-//   * the rain clouds' full cover is an even grey, less blue than the clear sky;
+//   * the rain clouds' full cover is an even grey, less blue than the clear sky, lit as the textured rain layer;
 //   * the wind's drift moves the clouds; the same drift draws the same picture;
 //   * at night clouds hide the stars (seen through a narrow view: a star covers a pixel);
-//   * three octaves shade the clouds towards the light, a fourth adds detail.
+//   * three octaves shade the clouds towards the light, a fourth adds detail;
+//   * Caribbean Legend's textured layers draw its lighting's values worked out apart from this code: the base layer
+//     over the upper one at the hour's opacity, the rain layer's full cover in place of the sky, its reveal growing
+//     with its cover.
 #include <bits/stdc++.h> // every standard header before the access change below
 
 #define private public // the host's active settings (the clouds' octaves)
@@ -158,8 +161,9 @@ class Harness
 environment::State Day(float clouds, float rain_clouds = 0.0f)
 {
     environment::State state = SunlitEnvironment(glm::normalize(glm::vec3(0.4f, 0.8f, 0.2f)));
-    state.light_color = glm::vec3(1.0f, 0.95f, 0.85f);
-    state.ambient = glm::vec3(0.2f, 0.25f, 0.35f);
+    state.light_color = state.sun_light = glm::vec3(1.0f, 0.95f, 0.85f);
+    state.fill_color = glm::vec3(1.0f);
+    state.fill_intensity = 1.0f;
     state.clouds = clouds;
     state.rain_clouds = state.overcast = rain_clouds;
     return state;
@@ -180,6 +184,30 @@ bool Pixel(const Picture &picture, uint32_t x, uint32_t y, glm::vec3 expected)
     std::printf("  pixel %u,%u: %.0f %.0f %.0f, expected %.0f %.0f %.0f\n", x, y, got.r, got.g, got.b, expected.r,
                 expected.g, expected.b);
     return glm::all(glm::lessThanEqual(glm::abs(got - expected), glm::vec3(3.0f)));
+}
+
+// A cube of 4 x 4 faces, every texel `rgba`.
+bgfx::TextureHandle Cube(std::array<uint8_t, 4> rgba)
+{
+    std::vector<uint8_t> texels(6 * 4 * 4 * 4);
+    for (size_t i = 0; i < texels.size(); i += 4)
+        std::copy(rgba.begin(), rgba.end(), texels.begin() + std::ptrdiff_t(i));
+    return bgfx::createTextureCube(4, false, 1, bgfx::TextureFormat::RGBA8, 0,
+                                   bgfx::copy(texels.data(), uint32_t(texels.size())));
+}
+
+// A clear noon whose clouds are lit by a white sun and the day's fill, a third as bright as Caribbean Legend's, half of
+// the base and upper layers shown.
+environment::State CloudNoon()
+{
+    environment::State state = Noon();
+    state.sun_light = {1.0f, 0.95f, 0.85f};
+    state.fill_color = glm::vec3(1.0f);
+    state.fill_intensity = 1.0f;
+    state.cloud_look.intensity = 0.3f;
+    state.cloud_look.opacity = 0.5f;
+    state.cloud_look.twilight_tint = {0.42f, 0.51f, 0.68f};
+    return state;
 }
 
 environment::State Night(float clouds)
@@ -309,6 +337,47 @@ int main()
             expect(rain.blueness() < clear.blueness() - 0.3f && rain.blueness() < 1.25f,
                    "the rain clouds' full cover is grey");
             expect(rain.rough(0.03f) < 0.02f, "the rain clouds' full cover is even");
+            environment::State overcast = CloudNoon();
+            overcast.rain_clouds = 1.0f;
+            expect(Pixel(harness.render(overcast), 128, 128, {125.6f, 125.5f, 126.0f}),
+                   "without textures the rain clouds are lit as Caribbean Legend's rain layer");
+
+            // Caribbean Legend's textured layers: cubes of one texel colour each, the base layer's 60 % opaque over
+            // the upper's opaque one, the rain layer's opaque.
+            const std::array<bgfx::TextureHandle, 6> cubes = {Cube({26, 77, 26, 153}), Cube({26, 89, 26, 0}),
+                                                              Cube({51, 51, 51, 255}), Cube({51, 51, 51, 0}),
+                                                              Cube({8, 65, 8, 255}),   Cube({8, 92, 8, 0})};
+            fx::CloudLayers layers;
+            layers.base = {cubes[0].idx, cubes[1].idx, 4.0f, 1.0f, false};
+            layers.upper = {cubes[2].idx, cubes[3].idx, 1.0f, 1.0f, false};
+            layers.rain = {cubes[4].idx, cubes[5].idx, 4.0f, 1.0f, false};
+            layers.ambient_strength = 0.15f;
+            render::SetSkyClouds(layers);
+            const Picture layered = harness.render(CloudNoon());
+            expect(Pixel(layered, 128, 128, {137.3f, 146.4f, 165.9f}),
+                   "the base layer over the upper one, both shown by the hour's opacity, lit as Caribbean Legend's");
+            environment::State raining = CloudNoon();
+            raining.rain_clouds = 1.0f;
+            expect(Pixel(harness.render(raining), 128, 128, {125.8f, 125.7f, 126.3f}),
+                   "the rain layer's full cover replaces the sky");
+            // Part of a cover: the reveal shows the rain layer over a share of the sky that grows with it.
+            const auto rained = [&](float cover) {
+                environment::State state = CloudNoon();
+                state.rain_clouds = cover;
+                const Picture part = harness.render(state);
+                int count = 0;
+                for (uint32_t y = 0; y < kSize; y += 2)
+                    for (uint32_t x = 0; x < kSize; x += 2)
+                        count += glm::length(part.at(x, y) - layered.at(x, y)) > 0.02f;
+                return float(count) / float(kSize * kSize / 4);
+            };
+            const float little = rained(0.2f), half_rain = rained(0.5f);
+            std::printf("rain layer share: cover 0.2 %.2f, 0.5 %.2f\n", little, half_rain);
+            expect(little < half_rain && half_rain > 0.25f && half_rain < 0.85f,
+                   "the rain clouds' reveal grows with their cover");
+            render::SetSkyClouds({});
+            for (const bgfx::TextureHandle cube : cubes)
+                bgfx::destroy(cube);
 
             // A view narrow enough that a pixel spans fewer than four of the stars' cells.
             const int starry = harness.render(Night(0.0f), 8.0f).points();

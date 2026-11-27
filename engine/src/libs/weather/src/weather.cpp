@@ -7,6 +7,7 @@
 #include "sky.h"
 #include "sun_glow.h"
 #include "math_inlines.h"
+#include "storm/render/d3d_interop.hpp"
 #include "storm/render/effects.hpp"
 
 #include <algorithm>
@@ -48,8 +49,53 @@ bool WEATHER::Init()
     SetBeginData();
     data_ = storm::weather::GameEnvironment();
     if (data_)
+    {
         sky_ = core.CreateEntity("Sky");
+        LoadClouds();
+    }
     return true;
+}
+
+void WEATHER::LoadClouds()
+{
+    if (!data_->clouds)
+        return;
+    const storm::scene_data::CloudPreset &preset = *data_->clouds;
+    // A cube of the renderer by the file the library names; 0xffff: not loaded (reported).
+    const auto cube = [this](const std::string &file) -> uint16_t {
+        const std::optional<std::string> name = storm::scene_data::MaterialTextureName(file);
+        const int32_t id = name ? pRS->TextureCreate(name->c_str()) : -1;
+        const uint16_t handle =
+            id >= 0 ? storm::render::BgfxTextureOf(pRS->GetTextureFromID(id), nullptr, nullptr) : 0xffff;
+        if (id >= 0)
+            cloud_textures_.push_back(id);
+        if (handle == 0xffff)
+            ReportOnce("the cloud texture " + file + " is not loaded: its layer is not drawn");
+        return handle;
+    };
+    const auto layer = [&](const storm::scene_data::CloudLayerFiles &files, const char *which) {
+        storm::fx::CloudLayer out;
+        if (files.albedo_texture.empty())
+            return out;
+        // Their engine draws only layers whose colours carry their opacity.
+        if (!files.premultiplied_alpha)
+        {
+            ReportOnce(std::string("the ") + which + " cloud layer's textures are not premultiplied: it is not drawn");
+            return out;
+        }
+        out.positive = cube(files.albedo_texture);
+        out.negative = cube(files.lighting_texture);
+        out.radiance_scale = files.radiance_scale;
+        out.ambient_scale = files.ambient_scale;
+        out.has_ambient = files.has_ambient;
+        return out;
+    };
+    storm::fx::CloudLayers layers;
+    layers.base = layer(preset.base, "base");
+    layers.upper = layer(preset.upper, "upper");
+    layers.rain = layer(preset.rain, "rain");
+    layers.ambient_strength = preset.ambient_strength;
+    storm::render::SetSkyClouds(layers);
 }
 
 void WEATHER::SetBeginData()
@@ -65,8 +111,12 @@ void WEATHER::Realize(uint32_t Delta_Time)
 
 void WEATHER::Execute(uint32_t Delta_Time)
 {
+    const float seconds = static_cast<float>(core.GetDeltaTime()) * 0.001f;
     cloud_drift_ += glm::vec2(std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])) *
-                    fFloats[whf_wind_speed] * static_cast<float>(core.GetDeltaTime()) * 0.001f;
+                    fFloats[whf_wind_speed] * seconds;
+    for (size_t i = 0; i < cloud_turn_.size(); ++i)
+        cloud_turn_[i] =
+            std::remainder(cloud_turn_[i] + glm::radians(state_.cloud_spin[i]) * seconds, glm::two_pi<float>());
     if (fFloats[whf_time_speed] != 0.f)
     {
         const auto fOldTimer = fFloats[whf_time_counter];
@@ -132,6 +182,10 @@ void WEATHER::PushLegacyEnvironment()
 
 void WEATHER::CleanUP()
 {
+    storm::render::SetSkyClouds({});
+    for (const int32_t texture : cloud_textures_)
+        pRS->TextureRelease(texture);
+    cloud_textures_.clear();
     if (sky_ != invalid_entity)
         core.EraseEntity(sky_);
     pRS->SetRenderState(D3DRS_FOGENABLE, false);

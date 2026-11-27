@@ -544,8 +544,16 @@ fx::WeatherInput Host::weather_input() const
     input.clouds = env_.clouds;
     input.rain_clouds = env_.rain_clouds;
     input.cloud_drift = env_.cloud_drift;
-    input.cloud_light_dir = env_.light_dir;
-    input.cloud_light = environment::DisplayLight(env_.light_color, env_.exposure);
+    const environment::CloudLook &c = env_.cloud_look;
+    input.cloud_look = {c.intensity, c.opacity, c.edge, c.twilight};
+    input.cloud_transmission = {c.sun_transmission, c.moon_transmission, c.sun_radius, c.moon_radius};
+    input.cloud_sunset = {c.twilight_sun, c.twilight_base, c.twilight_warmth, c.twilight_edge};
+    input.cloud_day = {c.sun_intensity, c.ambient_intensity, c.sky_tint, c.contrast};
+    input.cloud_twilight = {c.twilight_opposite, c.twilight_width, c.twilight_ambient, 0.0f};
+    input.cloud_tint = {c.twilight_tint, c.moon_intensity};
+    input.fill_color = env_.fill_color;
+    input.fill_intensity = env_.fill_intensity;
+    input.cloud_turn = env_.cloud_turn;
     return input;
 }
 
@@ -1347,6 +1355,11 @@ void DrawSky()
 void SetSkyDiscs(uint16_t sun, uint16_t moon)
 {
     effects::Host::instance().set_sky_discs(sun, moon);
+}
+
+void SetSkyClouds(const fx::CloudLayers &layers)
+{
+    effects::Host::instance().set_sky_clouds(layers);
 }
 
 glm::vec3 SkyHorizon()

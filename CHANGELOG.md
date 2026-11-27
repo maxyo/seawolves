@@ -10,9 +10,12 @@
 - Знак квеста над персонажем скрывается, пока тот дерётся, мёртв или уходит из локации.
 - Небо одно для всех игр: вместо нарисованных небесных текстур — небо, рассчитанное так же, как в Caribbean Legend,
   со сменой времени суток, тёплым закатом, дымкой у горизонта, солнцем, луной, звёздами и облаками, которые плывут по
-  ветру. Облачность каждого часа взята из погоды игры; в дождь и шторм небо затягивают серые тучи. Звёзды строятся
-  заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна — диски неба с картинками самой игры (луна —
-  в фазе по дате).
+  ветру. Облачность каждого часа взята из погоды игры; облака освещены так же, как облака Caribbean Legend (тёплые на
+  закате, лунные ночью); в дождь и шторм небо затягивают тёмные тучи.
+  Звёзды строятся заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна — диски неба с картинками
+  самой игры (луна — в фазе по дате).
+- Caribbean Legend: облака неба — три слоя облачных текстур самой игры (дождевые тучи, основные облака, перистые),
+  освещённые и медленно вращающиеся, как в её движке.
 - В «Каждому своё» тени от солнца теперь падают по направлению света самого часа, как его задаёт погода игры.
 - Под дождевыми тучами солнце не отбрасывает теней и не даёт ореола.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
@@ -32,9 +35,11 @@
 - The quest sign over a character is hidden while that character fights, is dead or leaves the location.
 - One sky for every game: instead of the painted sky textures, a sky computed as Caribbean Legend computes it, that
   follows the time of day, with a warm sunset, haze at the horizon, the sun, the moon, stars and clouds that drift
-  with the wind. Each hour's cloud cover comes from the game's weather; rain and storms close the sky with grey
-  clouds. The stars are made anew (the game's star catalogue and planets are no longer drawn), and the sun and the
+  with the wind. Each hour's cloud cover comes from the game's weather; the clouds are lit as Caribbean Legend's are
+  (warm at sunset, moonlit at night); rain and storms close the sky with dark clouds. The stars are made anew (the game's star catalogue and planets are no longer drawn), and the sun and the
   moon are discs of the sky with the game's own pictures (the moon in its phase by the date).
+- Caribbean Legend: the sky's clouds are the game's own three cloud texture layers (rain clouds, the main clouds,
+  cirrus), lit and slowly turning as its engine draws them.
 - In «Каждому своё» the sun's shadows now follow the hour's own light direction, as the game's weather sets it.
 - Under rain clouds the sun casts no shadows and has no glow.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.

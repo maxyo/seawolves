@@ -50,12 +50,16 @@ class WEATHER : public WEATHER_BASE
     std::optional<storm::environment::HourTable> table_;
     storm::environment::State state_;
     glm::vec2 cloud_drift_{0.0f}; // metres the wind has carried the clouds
+    std::array<float, 3> cloud_turn_{}; // radians the textured cloud layers have turned (upper, base, rain)
+    std::vector<int32_t> cloud_textures_; // the renderer's textures of the game's cloud layers
     entid_t sky_ = invalid_entity; // the sky WEATHER created (environment from data); the scripts' own otherwise
     int event_hour_ = -1;
     bool lightning_ = false, tornado_ = false;
     std::set<std::string> reported_; // problems with the data, each logged once
 
     void SetBeginData();
+    // The game's textured cloud layers (texture_library.json) into the drawn sky.
+    void LoadClouds();
     // The environment of the scripts' attributes (environment::EvaluateLegacy).
     void PushLegacyEnvironment();
     // state_ to the renderer, the device and those that ask WEATHER where the light stands.

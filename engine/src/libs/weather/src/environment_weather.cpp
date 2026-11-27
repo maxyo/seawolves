@@ -212,6 +212,7 @@ void WEATHER::UpdateEnvironment()
 void WEATHER::ApplyEnvironment()
 {
     state_.cloud_drift = cloud_drift_;
+    state_.cloud_turn = cloud_turn_;
     storm::render::SetSceneEnvironment(state_);
     // The sun glow and the others that ask WEATHER where the light stands.
     vVectors[whv_sun_pos] = state_.light_dir * 5000.0f;

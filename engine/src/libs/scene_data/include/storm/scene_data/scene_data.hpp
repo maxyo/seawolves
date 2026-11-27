@@ -3,7 +3,9 @@
 //  * lighting presets, one per place      Lighting/*.json                    {"hours": {"0".."23": ...}}
 //  * the camera's tone mapping and grade  INI/aces.json                      {type, exposure_ev, contrast, ...}
 //  * the periods of the day               INI/time_of_day.json               {transition_hours, presets, celestial}
-//  * horizon haze and height fog          INI/atmosphere.json                {horizon_haze, height_fog}
+//  * horizon haze, height fog, clouds     INI/atmosphere.json                {horizon_haze, height_fog,
+//  textured_clouds}
+//  * the cloud layers' textures           texture_library.json               {cloud_preset: {<variant>: ...}}
 // Every parser returns its result with a Report: `errors` are malformed JSON or values of the wrong type (the entry
 // is skipped), `unknown_keys` the keys it does not model (JSON-path style), so nothing in a file is dropped unsaid.
 #pragma once
@@ -233,14 +235,70 @@ struct HeightFogProfile
     TransitionHours transition_hours{};
 };
 
+// How the textured cloud layers look and are lit in one period (atmosphere.json textured_clouds.periods).
+struct CloudPeriod
+{
+    float intensity = 0.0f;              // the clouds' radiance multiplier
+    float opacity = 0.0f;                // how much of the base and upper layers shows, 0..1
+    float edge_lighting_strength = 1.0f; // the thin edges' light multiplier
+    float reflection_strength = 0.0f;
+    float moon_intensity = 0.0f;
+    float sun_transmission_strength = 0.0f, moon_transmission_strength = 0.0f;
+    float sun_transmission_radius = 0.0f, moon_transmission_radius = 0.0f; // degrees
+    float sun_intensity = 0.0f, ambient_intensity = 0.0f, sky_tint = 0.0f, lighting_contrast = 1.0f;
+    float twilight_sun_multiplier = 0.0f, twilight_base_lighting = 0.0f, twilight_warmth = 0.0f;
+    float twilight_edge_color = 0.0f, twilight_opposite_strength = 0.0f;
+    float twilight_transition_width = 0.0f; // degrees
+    float twilight_ambient_intensity = 0.0f;
+    Rgb twilight_tint{};
+};
+
+// The periods blend by the time of day's transition hours.
+struct TexturedClouds
+{
+    bool enabled = false;
+    std::array<float, 3> rotation_speeds{}; // the upper, base and rain layers'; 0 holds a layer, below 0 reverses it
+    std::array<CloudPeriod, kPeriods> periods{};
+};
+
 struct Atmosphere
 {
     int version = 0;
     std::optional<HorizonHaze> horizon_haze;
     bool height_fog = false;                   // height_fog.enabled
     std::optional<HeightFogProfile> land, sea; // height_fog.profiles.Land / Sea
+    std::optional<TexturedClouds> textured_clouds;
 };
 
 Atmosphere ParseAtmosphere(std::string_view json, Report &report);
+
+// ---- texture library --------------------------------------------------------------------------
+
+// One cloud layer's cube textures and how their texels read (texture_library.json cloud_preset).
+struct CloudLayerFiles
+{
+    // As written ("resource/Textures/WEATHER/Cloud/cumulus_1/CloudA.dds"; MaterialTextureName gives the renderer's
+    // name): the response to light from +x, +y, +z with the opacity in alpha, and to light from -x, -y, -z with the
+    // ambient response in alpha.
+    std::string albedo_texture, lighting_texture;
+    float radiance_scale = 1.0f;
+    bool premultiplied_alpha = false;
+    float ambient_scale = 1.0f;
+    bool has_ambient = false; // the lighting texture's alpha is the ambient response
+};
+
+struct CloudPreset
+{
+    CloudLayerFiles base, upper, rain; // the preset's own files are the base layer's
+    float ambient_strength = 0.0f;
+};
+
+// Resource/texture_library.json: the cloud presets by variant name. The keys only the textured clouds' lighting
+// without time-of-day periods reads are reported as unknown.
+struct TextureLibrary
+{
+    std::map<std::string, CloudPreset> clouds;
+};
+TextureLibrary ParseTextureLibrary(std::string_view json, Report &report);
 
 } // namespace storm::scene_data
