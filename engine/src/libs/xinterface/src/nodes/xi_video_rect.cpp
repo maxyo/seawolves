@@ -27,18 +27,18 @@ void CXI_VIDEORECT::Draw(bool bSelected, uint32_t Delta_Time)
                 v[0].pos.x = static_cast<float>(m_rect.left);
                 v[0].pos.y = static_cast<float>(m_rect.top);
                 v[0].tu = m_rectTex.left;
-                v[0].tv = m_rectTex.bottom;
+                v[0].tv = m_rectTex.top;
                 v[1].pos.x = static_cast<float>(m_rect.left);
                 v[1].pos.y = static_cast<float>(m_rect.bottom);
                 v[1].tu = m_rectTex.left;
-                v[1].tv = m_rectTex.top;
+                v[1].tv = m_rectTex.bottom;
                 v[2].pos.x = static_cast<float>(m_rect.right);
                 v[2].pos.y = static_cast<float>(m_rect.top);
                 v[2].tu = m_rectTex.right;
-                v[2].tv = m_rectTex.bottom;
+                v[2].tv = m_rectTex.top;
                 v[3].pos.x = static_cast<float>(m_rect.right), v[3].pos.y = static_cast<float>(m_rect.bottom);
                 v[3].tu = m_rectTex.right;
-                v[3].tv = m_rectTex.top;
+                v[3].tv = m_rectTex.bottom;
                 for (auto i = 0; i < 4; i++)
                 {
                     v[i].color = m_dwColor;
@@ -132,8 +132,6 @@ void CXI_VIDEORECT::StartVideoPlay(const char *videoFileName)
         return;
 
     m_eiVideo = core.CreateEntity("CAviPlayer");
-    m_rectTex.bottom = 1.f - m_rectTex.bottom;
-    m_rectTex.top = 1.f - m_rectTex.top;
     if (auto *const ptr = core.GetEntityPointer(m_eiVideo))
         static_cast<xiBaseVideo *>(ptr)->SetShowVideo(false);
     core.Send_Message(m_eiVideo, "ll", MSG_SET_VIDEO_FLAGS, m_dwFlags);
