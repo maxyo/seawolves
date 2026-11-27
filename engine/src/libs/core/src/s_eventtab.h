@@ -2,6 +2,8 @@
 
 #include "data.h"
 
+#include <functional>
+
 #define BUFFER_BLOCK_SIZE 4
 #define INVALID_EVENT_CODE 0xffffffff
 #define INVALID_SEGMENT_ID 0xffffffff
@@ -45,6 +47,8 @@ class S_EVENTTAB
     // The event of a code FindEvent returned, or nullptr. The pointer is good until a handler is added to the table
     // (a running handler may do that): ask again after every script call.
     const EVENTINFO *GetEvent(uint32_t event_code) const;
+    // Every event that has a handler now.
+    void ForEachHandled(const std::function<void(const EVENTINFO &)> &visit) const;
     // Whether the function is an executable handler of the event now: registered and not deleted.
     bool HasActiveHandler(const char *event_name, uint32_t func_code);
     uint32_t MakeHashValue(const char *string);

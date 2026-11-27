@@ -25,6 +25,7 @@
 #include "s_vartab.h"
 
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -53,13 +54,14 @@ struct AttributePlace
 class ReferenceIndex
 {
   public:
-    explicit ReferenceIndex(const VarTable &variables)
+    // `saved`: whether a variable enters the save; a reference to one that does not is saved empty.
+    explicit ReferenceIndex(const VarTable &variables, const std::function<bool(const VarInfo &)> &saved = {})
     {
         const auto count = static_cast<uint32_t>(variables.GetVarNum());
         for (uint32_t n = 0; n < count; ++n)
         {
             const VarInfo *info = variables.GetVarX(n);
-            if (info == nullptr || info->value == nullptr)
+            if (info == nullptr || info->value == nullptr || (saved && !saved(*info)))
                 continue;
             DATA *value = info->value.get();
             if (!value->IsArray())
@@ -77,7 +79,7 @@ class ReferenceIndex
         for (uint32_t n = 0; n < count && unresolved_ != 0; ++n)
         {
             const VarInfo *info = variables.GetVarX(n);
-            if (info == nullptr || info->value == nullptr || info->type != VAR_OBJECT)
+            if (info == nullptr || info->value == nullptr || info->type != VAR_OBJECT || (saved && !saved(*info)))
                 continue;
             DATA *value = info->value.get();
             if (!value->IsArray())

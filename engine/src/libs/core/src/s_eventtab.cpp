@@ -63,6 +63,21 @@ const EVENTINFO *S_EVENTTAB::GetEvent(uint32_t event_code) const
     return &pTable[ti][tc];
 }
 
+void S_EVENTTAB::ForEachHandled(const std::function<void(const EVENTINFO &)> &visit) const
+{
+    for (uint32_t ti = 0; ti < HASHTABLE_SIZE; ti++)
+        for (uint32_t tc = 0; tc < Event_num[ti]; tc++)
+        {
+            const EVENTINFO &event = pTable[ti][tc];
+            for (uint32_t n = 0; n < event.elements; n++)
+                if (event.pFuncInfo[n].status == FSTATUS_NORMAL)
+                {
+                    visit(event);
+                    break;
+                }
+        }
+}
+
 bool S_EVENTTAB::HasActiveHandler(const char *event_name, uint32_t func_code)
 {
     const EVENTINFO *event = GetEvent(FindEvent(event_name));

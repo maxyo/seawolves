@@ -6,6 +6,7 @@
 #include "platform/android_script_errors.hpp"
 #endif
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <stdexcept>
@@ -44,6 +45,8 @@
 
 namespace
 {
+storm::script::Attacher *attacher = nullptr; // storm::script::SetAttacher
+
 enum CacheMode : int
 {
     kCacheDisabled = 0,             // Disable script caching
@@ -140,9 +143,8 @@ COMPILER::~COMPILER()
 
 void COMPILER::Release()
 {
-#ifdef __ANDROID__
-    androidUi_.reset();
-#endif
+    if (attacher)
+        attacher->Released();
     for (uint32_t n = 0; n < SegmentsNum; n++)
     {
         if (SegmentTable[n].Files_list)
@@ -479,15 +481,48 @@ bool COMPILER::CreateProgram(const char *file_name)
     return bRes;
 }
 
-#ifdef __ANDROID__
-void COMPILER::LoadAndroidUiAdapter()
+void storm::script::SetAttacher(Attacher *engine)
 {
-    androidUi_.load(
-        ProgramDirectory ? ProgramDirectory : "", [&](const char *segment) { return BC_SegmentIsLoaded(segment); },
-        [&](const char *path) { return fio->_FileOrDirectoryExists(path); },
-        [&](const char *segment) { return BC_LoadSegment(segment); });
+    attacher = engine;
 }
-#endif
+
+void COMPILER::AttachEngineSegments()
+{
+    if (attacher)
+        attacher->Attach(*this);
+}
+
+bool COMPILER::Attach(const char *segment)
+{
+    if (BC_SegmentIsLoaded(segment))
+    {
+        SetError("Attach: segment %s is loaded already", segment);
+        return false;
+    }
+    if (!BC_LoadSegment(segment))
+        return false;
+    SegmentTable.back().attached = true;
+    return true;
+}
+
+void COMPILER::ForEachFunction(const std::function<void(const storm::script::Function &)> &visit) const
+{
+    for (size_t n = 0; n < FuncTab.FuncsNum(); n++)
+        if (const FuncInfo *function = FuncTab.GetFuncPtr(n))
+            visit({function->name, function->arguments});
+}
+
+void COMPILER::ForEachGlobal(const std::function<void(std::string_view name)> &visit) const
+{
+    for (size_t n = 0; n < VarTab.GetVarNum(); n++)
+        if (const VarInfo *variable = VarTab.GetVar(n))
+            visit(variable->name);
+}
+
+void COMPILER::ForEachEvent(const std::function<void(std::string_view name)> &visit) const
+{
+    EventTab.ForEachHandled([&](const EVENTINFO &event) { visit(event.name); });
+}
 
 bool COMPILER::Run()
 {
@@ -497,11 +532,11 @@ bool COMPILER::Run()
     bFirstRun = false;
     const bool executed = BC_Execute(function_code, pResult);
     pRun_fi = nullptr;
+    if (executed)
+        AttachEngineSegments();
 #ifdef __ANDROID__
-    if (executed) LoadAndroidUiAdapter();
-    else storm::android::traceLandAdapter(0, "main-execution-failed");
-#else
-    (void)executed;
+    else
+        storm::android::traceLandAdapter(0, "main-execution-failed");
 #endif
 #ifdef STORM_SCENE_SWEEP
     LoadSceneSweep();
@@ -684,7 +719,9 @@ VDATA *COMPILER::ProcessEvent(const char *event_name)
             storm::platform::frame_work::EndEvent(end);
             EventWork &work = compiler.event_work_[key];
             work.calls++;
-            work.ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            const int64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            work.ns += ns;
+            work.max_ns = std::max(work.max_ns, ns);
             compiler.event_origin_ = storm::platform::frame_work::Phase::Script;
         }
     } timed{*this, event_code | (static_cast<uint64_t>(event_origin_) << 32), execute_depth_ == 0,
@@ -1011,6 +1048,15 @@ void COMPILER::ReportScriptWork()
                             storm::platform::frame_work::kPhaseNames[events[n].first >> 32],
                             events[n].second.ns / 1e6 / frames, events[n].second.calls / frames);
     }
+    // The touch interface's events always, however rare: a build or a tap answered in script, per call.
+    std::string attached;
+    for (const auto &[key, work] : events)
+        if (const EVENTINFO *event = EventTab.GetEvent(static_cast<uint32_t>(key)); event && AttachedEvent(*event))
+            attached += fmt::format("{}{}@{}:{}x avg={:.3f} max={:.3f}", attached.empty() ? "" : ",", event->name,
+                                    storm::platform::frame_work::kPhaseNames[key >> 32], work.calls,
+                                    work.ns / 1e6 / work.calls, work.max_ns / 1e6);
+    if (!attached.empty())
+        line += "; interface scripts (ms per call): " + attached;
     storm::ScriptNameLookups &lookups = storm::NameLookups();
     line += fmt::format("; engine lookups by name per frame: attributes={:.1f} (interface adapters {:.1f}, hud {:.1f}) "
                         "variables={:.1f} (hud {:.1f})",
@@ -1025,6 +1071,21 @@ void COMPILER::ReportScriptWork()
     event_work_.clear();
     work_frames_ = 0;
     work_window_ = now;
+}
+
+bool COMPILER::AttachedEvent(const EVENTINFO &event) const
+{
+    bool any = false;
+    for (uint32_t n = 0; n < event.elements; n++)
+    {
+        if (event.pFuncInfo[n].status != FSTATUS_NORMAL)
+            continue;
+        const auto segment = std::ranges::find(SegmentTable, event.pFuncInfo[n].segment_id, &SEGMENT_DESC::id);
+        if (segment == SegmentTable.end() || !segment->attached)
+            return false;
+        any = true;
+    }
+    return any;
 }
 
 void COMPILER::CompileToken(SEGMENT_DESC &Segment, S_TOKEN_TYPE Token_type, uint32_t data_blocks_num, ...)
@@ -6863,11 +6924,11 @@ bool COMPILER::OnLoad()
     const uint32_t function_code = FuncTab.FindFunc("OnLoad");
     DATA *pResult;
     const bool executed = BC_Execute(function_code, pResult);
+    if (executed)
+        AttachEngineSegments();
 #ifdef __ANDROID__
-    if (executed) LoadAndroidUiAdapter();
-    else storm::android::traceLandAdapter(0, "onload-execution-failed");
-#else
-    (void)executed;
+    else
+        storm::android::traceLandAdapter(0, "onload-execution-failed");
 #endif
 #ifdef STORM_SCENE_SWEEP
     LoadSceneSweep(); // a loaded save replaced the script state, the sweep's segment with it
@@ -6876,32 +6937,41 @@ bool COMPILER::OnLoad()
 }
 
 // The script state as a save holds it: the head (save_state.hpp writeHead) and every global variable with its
-// attributes.
+// attributes, except those of attached segments (Attach): the engine loads them again with every program.
 std::vector<char> COMPILER::SerializeState()
 {
+    std::vector<uint32_t> attached;
+    for (const SEGMENT_DESC &segment : SegmentTable)
+        if (segment.attached)
+            attached.push_back(segment.id);
+    const auto saved = [&](const VarInfo &info) { return std::ranges::find(attached, info.segment_id) == attached.end(); };
+
+    // A variable of an unloaded segment is written as the one before it again (the format's old semantics).
+    std::vector<const VarInfo *> variables;
+    const VarInfo *last_var{nullptr};
+    for (uint32_t n = 0; n < VarTab.GetVarNum(); n++)
+    {
+        const VarInfo *real_var = VarTab.GetVar(n);
+        if (real_var != nullptr && !saved(*real_var))
+            continue;
+        if (real_var == nullptr)
+            real_var = last_var;
+        else
+            last_var = real_var;
+        variables.push_back(real_var);
+    }
+
     storm::save::StateWriter out(*this);
     // The table has a first segment with a name: a save runs from a script, and a segment stays in the table only
     // when the file it names compiled.
-    const uint32_t nVarNum = VarTab.GetVarNum();
-    storm::save::writeHead(out, ProgramDirectory, SCodec, SegmentTable.front().name, nVarNum);
-
+    storm::save::writeHead(out, ProgramDirectory, SCodec, SegmentTable.front().name,
+                           static_cast<uint32_t>(variables.size()));
     // Built after OnSave has run: the script may still delete attributes there.
-    const storm::save::ReferenceIndex references(VarTab);
-    const VarInfo *last_var{nullptr};
-    for (uint32_t n = 0; n < nVarNum; n++)
+    const storm::save::ReferenceIndex references(VarTab, saved);
+    for (const VarInfo *variable : variables)
     {
-        const VarInfo *real_var = VarTab.GetVar(n);
-        if (real_var == nullptr)
-        {
-            real_var = last_var; // preserve old semanthics
-        }
-        else
-        {
-            last_var = real_var;
-        }
-
-        out.string(real_var->name.c_str()); // ***
-        out.variable(real_var->value.get(), real_var->name.c_str(), references);
+        out.string(variable->name.c_str()); // ***
+        out.variable(variable->value.get(), variable->name.c_str(), references);
     }
     return out.take();
 }

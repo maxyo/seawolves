@@ -129,8 +129,6 @@ storm_host_check(android_ship_telemetry INCLUDES ${util_include} OPTIONS ${asan}
 storm_host_check(android_shortcuts INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_spyglass INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_time_scale INCLUDES ${src}/apps/engine/src OPTIONS -Wall -Werror ${asan} CATCH2)
-storm_host_check(android_ui_bootstrap INCLUDES ${src}/libs/core/src ${util_include} ${CMAKE_CURRENT_LIST_DIR}/core_fake
-    DEFINES __ANDROID__ OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(android_window SOURCES check.cpp ${src}/libs/window/src/sdl_window.cpp
     INCLUDES ${STORM_TEST_SDL_INCLUDE} ${src}/libs/window/include ${src}/libs/window/src
     DEFINES __ANDROID__ OPTIONS -pthread ${asan} -fno-omit-frame-pointer LIBS ${sdl_runtime}

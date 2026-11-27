@@ -24,7 +24,7 @@
 
 #include "platform/frame_work.hpp"
 #include "ringbuffer_stack.hpp"
-#include "android_ui_bootstrap.hpp"
+#include "script_program.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -42,6 +42,7 @@ struct SEGMENT_DESC
     uint32_t id;
     uint32_t lines;
     bool bUnload;
+    bool attached = false; // loaded by the engine for itself (COMPILER::Attach): its globals never enter a save
     std::vector<char> code; // the bytecode
 
     STRINGS_LIST *Files_list;
@@ -101,7 +102,7 @@ class ReferenceIndex;
 struct ParsedState;
 }
 
-class COMPILER : public VIRTUAL_COMPILER
+class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
 {
     friend CoreImpl;
 
@@ -193,6 +194,7 @@ class COMPILER : public VIRTUAL_COMPILER
     {
         uint64_t calls = 0;
         int64_t ns = 0;
+        int64_t max_ns = 0;
     };
     std::unordered_map<uint64_t, EventWork> event_work_; // event code | phase << 32
     storm::platform::frame_work::Phase event_origin_ = storm::platform::frame_work::Phase::Script;
@@ -204,9 +206,12 @@ class COMPILER : public VIRTUAL_COMPILER
         int64_t ms = 0, slowest_ms = 0;
         std::string slowest;
     } cache_loads_;
-    void ReportScriptWork();
+    // Every handler of the event is in an attached segment (the touch interface's events).
+    bool AttachedEvent(const EVENTINFO &event) const;
 
   public:
+    // The "script work:" line now (ProcessFrame writes it every 30 s), and a new window.
+    void ReportScriptWork();
     void SetEventOrigin(storm::platform::frame_work::Phase phase)
     {
         if (execute_depth_ == 0)
@@ -286,6 +291,15 @@ class COMPILER : public VIRTUAL_COMPILER
     void WriteStateDump(const char *label); // scene_sweep.cpp
 #endif
     std::vector<char> SerializeState(); // the script state of a save (save_state.hpp)
+    // storm::script::Program
+    bool Attach(const char *segment) override;
+    bool Executing() const override
+    {
+        return execute_depth_ != 0;
+    }
+    void ForEachFunction(const std::function<void(const storm::script::Function &)> &visit) const override;
+    void ForEachGlobal(const std::function<void(std::string_view name)> &visit) const override;
+    void ForEachEvent(const std::function<void(std::string_view name)> &visit) const override;
     bool LoadState(const std::vector<char> &raw, const storm::save::ParsedState &state);
     bool OnLoad();
 
@@ -405,10 +419,7 @@ class COMPILER : public VIRTUAL_COMPILER
     }
 
 private:
-#ifdef __ANDROID__
-    storm::android::UiBootstrap androidUi_;
-    void LoadAndroidUiAdapter();
-#endif
+    void AttachEngineSegments(); // the Attacher's, after Main or OnLoad
 #ifdef STORM_SCENE_SWEEP
     void LoadSceneSweep(); // scene_sweep.cpp
 #endif
