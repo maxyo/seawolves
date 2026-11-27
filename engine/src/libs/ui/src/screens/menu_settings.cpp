@@ -76,7 +76,8 @@ Json &AppSettings()
 }
 
 // What the renderer reports about the device (UI channel "renderCaps"): {"upscale": "supported" | "unsupported" |
-// "unknown"}, whether «Апскейл текстур ×2» can work.
+// "unknown"}, whether «Апскейл текстур ×2» can work; "texture_processing": false for a game that ships its own
+// texture maps, which gets no «Обработка текстур».
 Json &RenderCaps()
 {
     static Json caps = Json::object();
@@ -435,9 +436,11 @@ class SettingsScreen final : public Screen
     // three switches applied at once with «Готово» whatever the preset. «Параллакс» is made with the normal maps and
     // drawn through them: while «Карты нормалей» is off it is disabled with its stored value, and a tap says why.
     // «Апскейл текстур ×2» works where the renderer reports the device can show it (channel "renderCaps"); elsewhere
-    // disabled with why.
+    // disabled with why. None of it for a game that ships its own texture maps.
     void TextureProcessing(Bindings &bindings, Column &column)
     {
+        if (!RenderCaps().value("texture_processing", true))
+            return;
         column.rows.push_back(Json{{"kind", "heading"},
                                    {"id", "texture-processing"},
                                    {"label", bindings.Text("settings.texture_processing")}});

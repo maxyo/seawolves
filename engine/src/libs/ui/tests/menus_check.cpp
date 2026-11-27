@@ -447,6 +447,13 @@ struct SettingsRun
                    processing(7)["reason"] == "<settings.texture_upscale_unsupported>" && processing(6)["on"] == false,
                "a device without ETC2 or BC textures shows the ×2 disabled with that reason: " + processing(7).dump());
         router.OnEvent({"app-texture_height_maps", "change", "1"});
+        router.SetState("renderCaps", Json{{"upscale", "unsupported"}, {"texture_processing", false}});
+        router.OnEvent({"app-texture_height_maps", "change", "1"});
+        const Json &rows = surface.props["sections"][0]["columns"][1]["rows"];
+        Expect(std::none_of(rows.begin(), rows.end(),
+                            [](const Json &row) { return row.value("id", "") == "texture-processing"; }),
+               "a game that ships its own texture maps: no «Обработка текстур»: " + rows.dump());
+        router.SetState("renderCaps", Json{{"upscale", "unsupported"}});
     }
 
     void Cache()
