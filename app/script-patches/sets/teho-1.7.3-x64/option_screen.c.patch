@@ -1,0 +1,279 @@
+--- a/PROGRAM/interface/option_screen.c
++++ b/PROGRAM/interface/option_screen.c
+@@ -54,6 +54,7 @@
+ 	IReadVariableAfterInit();
+ 
+ 	SetControlsTabMode(1);
++	GfxInit();
+ 
+ 	SetEventHandler("exitCancel","ProcessCancelExit",0);
+ 	SetEventHandler("InterfaceBreak","ProcessCancelExit",0);  // boal
+@@ -123,6 +124,7 @@
+ 
+ void ProcessCancelExit()
+ {
++	GfxRevert();
+ 	LoadGameOptions();
+ 	ProcessExit();
+ }
+@@ -273,6 +275,7 @@
+ 
+ void SetControlsTabMode(int nMode)
+ {
++	if (g_bGfxPage) GfxShowPage(false);
+ 	int nColor1 = argb(255,196,196,196);
+ 	int nColor2 = nColor1;
+ 	int nColor3 = nColor1;
+@@ -361,6 +364,10 @@
+ 	int nBtnIndex = GetEventData();
+ 	int bBtnState = GetEventData();
+ 
++	if (sNodName == "QUESTMARK_CHECKBOX") {
++		GfxShowPage(bBtnState);
++		return;
++	}
+ 	if( sNodName == "HERB_CHECKBOX" ) {
+ 		if( bBtnState==true ) {
+ 			switch( nBtnIndex ) {
+@@ -770,6 +777,10 @@
+ 
+ void procKeyChange()
+ {
++	if (g_bGfxPage) {
++		GfxStep();
++		return;
++	}
+ 	//FillControlsList();
+ 	string srow = "tr" + GameInterface.controls_list.select;
+ 	if( !CheckAttribute(&GameInterface,"controls_list."+srow) ) {return;}
+@@ -1159,3 +1170,230 @@
+ 	}
+ }
+ 
++
++// Seawolves, desktop: the engine's graphics options (its natives list them) as a page of the controls list. The
++// unused QUESTMARK_CHECKBOX of this screen opens the page; double click or Enter on a row takes its next value, which
++// draws at once and is kept by the engine; Cancel restores the values the screen opened with.
++#libriary "GraphicsOptionsScriptLib"
++native int Graphics_GetOption(string name);
++native int Graphics_SetOption(string name, int value);
++native void Graphics_ListOptions(ref list);
++
++bool g_bGfxPage = false;
++object GfxOptions;
++object GfxOpened;
++
++bool GfxRussian()
++{
++	return LanguageGetLanguage() == "russian";
++}
++
++string GfxText(string ru, string en)
++{
++	if (GfxRussian()) return ru;
++	return en;
++}
++
++string GfxLabel(string name)
++{
++	switch (name)
++	{
++	case "render_scale": return GfxText("Масштаб сцены", "Render scale"); break;
++	case "full_screen": return GfxText("Полный экран", "Full screen"); break;
++	case "vsync": return GfxText("Вертикальная синхронизация", "Vertical sync"); break;
++	case "anti_aliasing": return GfxText("Сглаживание", "Anti-aliasing"); break;
++	case "anisotropic_filtering": return GfxText("Анизотропная фильтрация", "Anisotropic filtering"); break;
++	case "texture_quality": return GfxText("Качество текстур", "Texture quality"); break;
++	case "sun_shadows": return GfxText("Тени от солнца", "Sun shadows"); break;
++	case "lamp_shadows": return GfxText("Тени от ламп", "Lamp shadows"); break;
++	case "lamps_per_pixel": return GfxText("Ламп на точку", "Lamps per pixel"); break;
++	case "ambient_occlusion": return GfxText("Затенение в помещениях", "Interior occlusion"); break;
++	case "point_lights": return GfxText("Источники света", "Point lights"); break;
++	case "flash_lights": return GfxText("Вспышки выстрелов", "Shot flashes"); break;
++	case "specular": return GfxText("Блики", "Highlights"); break;
++	case "town_light": return GfxText("Свет в городах", "Town light"); break;
++	case "aerial_perspective": return GfxText("Воздушная перспектива", "Aerial perspective"); break;
++	case "bloom": return GfxText("Свечение", "Bloom"); break;
++	case "sun_shafts": return GfxText("Солнечные лучи", "Sun shafts"); break;
++	case "lens_flare": return GfxText("Блик солнца", "Sun glare"); break;
++	case "tone_mapping": return GfxText("Тональная кривая", "Tone mapping"); break;
++	case "colour_grade": return GfxText("Цветокоррекция", "Colour grade"); break;
++	case "colour_temperature": return GfxText("Теплота цвета", "Colour warmth"); break;
++	case "colour_saturation": return GfxText("Насыщенность", "Saturation"); break;
++	case "sharpen": return GfxText("Резкость", "Sharpening"); break;
++	case "sea_detail": return GfxText("Детали моря", "Sea detail"); break;
++	case "sea_wakes": return GfxText("Следы кораблей", "Ship wakes"); break;
++	case "far_lod": return GfxText("Упрощение дальних моделей", "Far model simplification"); break;
++	case "wet_surfaces": return GfxText("Мокрые поверхности", "Wet surfaces"); break;
++	case "texture_normal_maps": return GfxText("Карты нормалей", "Normal maps"); break;
++	case "texture_height_maps": return GfxText("Параллакс", "Parallax"); break;
++	case "texture_upscale": return GfxText("Апскейл текстур x2", "Texture upscale x2"); break;
++	}
++	trace("graphics options: no label for " + name);
++	return name;
++}
++
++string GfxValue(string name, aref option, int value)
++{
++	if (option.kind == "toggle") {
++		if (value == 0) return GfxText("выкл.", "off");
++		return GfxText("вкл.", "on");
++	}
++	switch (name)
++	{
++	case "anti_aliasing":
++		switch (value) {
++		case 0: return GfxText("выкл.", "off"); break;
++		case 1: return "SMAA"; break;
++		case 2: return "MSAA 2x"; break;
++		case 3: return "MSAA 4x"; break;
++		}
++	break;
++	case "anisotropic_filtering":
++		if (value <= 1) return GfxText("выкл.", "off");
++		return "" + value + "x";
++	break;
++	case "texture_quality":
++		if (value == 0) return GfxText("низкое", "low");
++		if (value == 1) return GfxText("среднее", "medium");
++		return GfxText("высокое", "high");
++	break;
++	case "sun_shadows":
++		if (value == 0) return GfxText("выкл.", "off");
++		if (value == 1) return GfxText("простые", "simple");
++		return GfxText("мягкие", "soft");
++	break;
++	case "sea_detail":
++		if (value == 0) return GfxText("как в игре", "as the game");
++		if (value == 1) return GfxText("среднее", "medium");
++		return GfxText("высокое", "high");
++	break;
++	case "wet_surfaces":
++		if (value == 0) return GfxText("выкл.", "off");
++		if (value == 1) return GfxText("мокрые", "wet");
++		return GfxText("и лужи", "with puddles");
++	break;
++	case "ambient_occlusion":
++		switch (value) {
++		case 0: return GfxText("выкл.", "off"); break;
++		case 1: return GfxText("как в игре", "as the game"); break;
++		case 2: return GfxText("среднее", "moderate"); break;
++		case 3: return GfxText("сильное", "strong"); break;
++		}
++	break;
++	case "colour_grade":
++		switch (value) {
++		case 0: return GfxText("оригинал", "original"); break;
++		case 1: return GfxText("Карибы", "Caribbean"); break;
++		case 2: return GfxText("пасмурно", "overcast"); break;
++		}
++	break;
++	case "lamp_shadows":
++		if (value == 0) return GfxText("выкл.", "off");
++	break;
++	case "point_lights":
++		if (value == 0) return GfxText("как в игре", "as the game");
++	break;
++	case "render_scale":
++		return "" + value + "%";
++	break;
++	case "colour_saturation":
++		return "" + value + "%";
++	break;
++	}
++	return "" + value;
++}
++
++void GfxFill(int selected)
++{
++	Graphics_ListOptions(&GfxOptions);
++	DeleteAttribute(&GameInterface, "controls_list");
++	GameInterface.controls_list.select = selected;
++	int n = GetAttributesNum(&GfxOptions);
++	for (int i = 0; i < n; i++)
++	{
++		aref option = GetAttributeN(&GfxOptions, i);
++		string name = GetAttributeName(option);
++		string row = "tr" + (i + 1);
++		string text = GfxLabel(name) + ": " + GfxValue(name, option, sti(option.value));
++		if (sti(option.start) && sti(option.kept) != sti(option.value)) {
++			text = text + GfxText(" (после перезапуска)", " (after a restart)");
++		}
++		GameInterface.controls_list.(row).userdata.option = name;
++		GameInterface.controls_list.(row).td1.str = "";
++		GameInterface.controls_list.(row).td2.str = text;
++	}
++	SendMessage(&GameInterface, "lsl", MSG_INTERFACE_MSG_TO_NODE, "CONTROLS_LIST", 0);
++}
++
++void GfxInit()
++{
++	Graphics_ListOptions(&GfxOpened);
++	XI_MakeNode("RESOURCE\INI\INTERFACES\option_screen.ini", "CHECKBUTTON", "QUESTMARK_CHECKBOX", 120);
++	// The right half of the row of "Always run", which keeps the left half for its clicks (the node messages -1, 5
++	// and -1, 4 get and set a position in the screen's pixels).
++	int left, top, right, bottom;
++	SendMessage(&GameInterface, "lslleeee", MSG_INTERFACE_MSG_TO_NODE, "ALWAYS_RUN_CHECKBOX", -1, 5, &left, &top, &right, &bottom);
++	SendMessage(&GameInterface, "lsllllll", MSG_INTERFACE_MSG_TO_NODE, "ALWAYS_RUN_CHECKBOX", -1, 4, left, top, (left + right) / 2 - 1, bottom);
++	SendMessage(&GameInterface, "lsllllll", MSG_INTERFACE_MSG_TO_NODE, "QUESTMARK_CHECKBOX", -1, 4, (left + right) / 2, top, right, bottom);
++	SendMessage(&GameInterface, "lslls", MSG_INTERFACE_MSG_TO_NODE, "QUESTMARK_CHECKBOX", 1, 1, GfxText("Графика движка", "Engine graphics"));
++}
++
++void GfxShowPage(bool show)
++{
++	g_bGfxPage = show;
++	SendMessage(&GameInterface, "lslll", MSG_INTERFACE_MSG_TO_NODE, "QUESTMARK_CHECKBOX", 2, 1, show);
++	SetNodeUsing("TABBTN_SAILING_1ST", !show);
++	SetNodeUsing("TABBTN_PRIMARY_LAND", !show);
++	SetNodeUsing("TABBTN_SAILING_3RD", !show);
++	SetNodeUsing("TABBTN_FIGHT_MODE", !show);
++	SetNodeUsing("TABSTR_SAILING_1ST", !show);
++	SetNodeUsing("TABSTR_PRIMARY_LAND", !show);
++	SetNodeUsing("TABSTR_SAILING_3RD", !show);
++	SetNodeUsing("TABSTR_FIGHT_MODE", !show);
++	SetNodeUsing("BTN_CONTROLS_DEFAULT", !show);
++	if (show) {
++		GfxFill(1);
++		return;
++	}
++	g_nCurControlsMode = -1;
++	FillControlsList(1);
++}
++
++// The next value of the selected row's option: a toggle or a choice takes its next value, a number a tenth of its
++// range; after the last the first.
++void GfxStep()
++{
++	string row = "tr" + GameInterface.controls_list.select;
++	if (!CheckAttribute(&GameInterface, "controls_list." + row + ".userdata.option")) return;
++	string name = GameInterface.controls_list.(row).userdata.option;
++	aref option; makearef(option, GfxOptions.(name));
++	int value = sti(option.kept);
++	int next = sti(option.min);
++	if (option.kind == "number") {
++		int step = (sti(option.max) - sti(option.min)) / 10;
++		if (step < 1) step = 1;
++		if (value + step <= sti(option.max)) next = value + step;
++	} else {
++		aref choices; makearef(choices, option.choices);
++		int count = GetAttributesNum(choices);
++		next = sti(GetAttributeValue(GetAttributeN(choices, 0)));
++		for (int i = 0; i < count - 1; i++) {
++			if (sti(GetAttributeValue(GetAttributeN(choices, i))) == value) {
++				next = sti(GetAttributeValue(GetAttributeN(choices, i + 1)));
++			}
++		}
++	}
++	Graphics_SetOption(name, next);
++	GfxFill(sti(GameInterface.controls_list.select));
++}
++
++void GfxRevert()
++{
++	int n = GetAttributesNum(&GfxOpened);
++	for (int i = 0; i < n; i++)
++	{
++		aref option = GetAttributeN(&GfxOpened, i);
++		Graphics_SetOption(GetAttributeName(option), sti(option.kept));
++	}
++}

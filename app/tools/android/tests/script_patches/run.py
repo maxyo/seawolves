@@ -61,18 +61,28 @@ with tempfile.TemporaryDirectory(prefix='storm-script-patches-') as work:
 
     source = json.loads((shipped / 'sets' / teho / 'set.json').read_text())
     android_fixes, android_targets = fixes_and_targets(files)
-    assert android_fixes == {fix['id'] for fix in source['fixes']}, 'Android applies every fix'
     desktop_files, _ = script_patch_assets.collect(shipped, 'desktop')
     write_layer(desktop_files, work / 'desktop')
     subprocess.run([str(tool), 'check', str(work / 'desktop')], check=True)
     desktop_fixes, desktop_targets = fixes_and_targets(desktop_files)
-    android_only = {fix['id'] for fix in source['fixes'] if fix.get('platforms') == ['android']}
-    assert android_only and desktop_fixes == android_fixes - android_only, desktop_fixes ^ android_fixes
-    only_android = {path.lower() for fix in source['fixes'] if fix['id'] in android_only for path in fix['targets']}
-    assert desktop_targets == android_targets - only_android, desktop_targets ^ android_targets
+
+    def only(platform):
+        return {fix['id'] for fix in source['fixes'] if fix.get('platforms') == [platform]}
+
+    android_only, desktop_only = only('android'), only('desktop')
+    shared = {fix['id'] for fix in source['fixes']} - android_only - desktop_only
+    assert android_only and android_fixes == shared | android_only, android_fixes ^ (shared | android_only)
+    assert desktop_only and desktop_fixes == shared | desktop_only, desktop_fixes ^ (shared | desktop_only)
+
+    def targets(fixes):
+        return {path.lower() for fix in source['fixes'] if fix['id'] in fixes for path in fix['targets']}
+
+    assert android_targets == targets(shared | android_only), android_targets ^ targets(shared | android_only)
+    assert desktop_targets == targets(shared | desktop_only), desktop_targets ^ targets(shared | desktop_only)
     assert not any(name.endswith(('option_sl.c.patch', 'encounters_map.c.patch')) for name in desktop_files)
-    print('PASS desktop layer:', len(desktop_fixes), 'of', len(android_fixes), 'fixes; Android only:',
-          ', '.join(sorted(android_only)))
+    assert not any(name.endswith('option_screen.c.patch') for name in files)
+    print('PASS layers: Android', len(android_fixes), 'fixes, desktop', len(desktop_fixes), '; Android only:',
+          ', '.join(sorted(android_only)), '; desktop only:', ', '.join(sorted(desktop_only)))
     manifest = json.loads(files['manifest.json'])
     assert set(manifest) == set(files) - {'manifest.json'}, 'manifest must cover every layer file'
     assert b'no game files are included' in notice
@@ -100,14 +110,23 @@ with tempfile.TemporaryDirectory(prefix='storm-script-patches-') as work:
     if not game:
         print('SKIP end-to-end apply: set STORM_SCRIPT_PATCH_GAME to a vanilla TEHO 1.7.3 game directory')
     else:
-        result = subprocess.run([str(tool), 'apply', str(layer), game, str(work / 'derived')],
-                                capture_output=True, text=True)
-        print(result.stdout, end='')
-        assert result.returncode == 0, result.stderr
-        for target in json.loads((shipped / 'sets' / teho / 'set.json').read_text())['targets']:
-            derived = [p for p in (work / 'derived').rglob('*')
-                       if p.is_file() and p.as_posix().lower().endswith('/' + target['path'].lower())]
-            assert len(derived) == 1, (target['path'], derived)
-            assert script_patch_assets.sha256(derived[0].read_bytes()) == target['result_sha256'], target['path']
+        targets = json.loads((shipped / 'sets' / teho / 'set.json').read_text())['targets']
+        applied = set()
+        for platform, platform_layer, platform_targets in (('android', layer, android_targets),
+                                                           ('desktop', work / 'desktop', desktop_targets)):
+            derived_root = work / ('derived-' + platform)
+            result = subprocess.run([str(tool), 'apply', str(platform_layer), game, str(derived_root)],
+                                    capture_output=True, text=True)
+            print(result.stdout, end='')
+            assert result.returncode == 0, result.stderr
+            for target in targets:
+                if target['path'].lower() not in platform_targets:
+                    continue
+                derived = [p for p in derived_root.rglob('*')
+                           if p.is_file() and p.as_posix().lower().endswith('/' + target['path'].lower())]
+                assert len(derived) == 1, (platform, target['path'], derived)
+                assert script_patch_assets.sha256(derived[0].read_bytes()) == target['result_sha256'], target['path']
+                applied.add(target['path'])
+        assert applied == {target['path'] for target in targets}, applied
         print('PASS end-to-end apply of', teho, 'against', game)
 print('PASS script patch layer')

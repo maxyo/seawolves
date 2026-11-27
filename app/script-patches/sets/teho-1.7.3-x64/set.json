@@ -200,6 +200,12 @@
       "base_sha256": "ce271954cb500a96ee1b55d057a7fea0494354f53c883692f031f5d46c1055fe",
       "result_sha256": "1e1bbc1c559bbdda9e78b05d0d738a6205db4c185bfbdf2c33a529241bb74e1c",
       "patch": "locations_loader.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/option_screen.c",
+      "base_sha256": "80a9dc8f8c0b66cf45d31df9ff6e29b8c12710607aafbc88259f25fdba4facd4",
+      "result_sha256": "24101a5d1d90b9b02e40691cc66663f3fed92c24f038822cc576428057634cf3",
+      "patch": "option_screen.c.patch"
     }
   ],
   "fixes": [
@@ -471,6 +477,18 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "An overloaded hero (GetItemsWeight > GetMaxItemsWeight) gets the walk animation as his run (characters.c CheckAndSetOverloadMode); the game decides it again only when the chest or item exchange screen closes, a quest asks or the hero is set up in a new location, so after lightening the load in the items screen (potions, food, a destroyed item) or equipping a carrying amulet (totem_06, obereg_3) he kept walking at full stick until the next location. Start_InterfaceDoExit now runs the same check for the hero as the player in a loaded location.",
       "save_compatibility": "Code only; no new globals or saved attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "desktop-graphics-options",
+      "title": "The options screen shows the engine's graphics options (anti-aliasing, shadows, light, bloom, the sea and more) on a page of their own",
+      "targets": [
+        "PROGRAM/interface/option_screen.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect of the game: the desktop engine draws effects the original engine did not have, and the game's options screen has no controls for them. The check box «Графика движка» beside «Всегда бежать» turns the controls list into a list of the engine's graphics options as the engine lists them (GraphicsOptionsScriptLib); double click or Enter on a row takes its next value, which draws at once and is kept by the engine for this game; Cancel restores the values the screen opened with",
+      "save_compatibility": "Code only; no globals or saved attributes are added to saves (the options are kept in the engine's settings, not in saves). Existing saves load unchanged.",
+      "platforms": ["desktop"]
     }
   ]
 }
