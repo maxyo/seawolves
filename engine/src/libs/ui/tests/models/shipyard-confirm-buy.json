@@ -7,6 +7,7 @@
 "widgets":[
 {"node":"MAIN_BACK","type":"image","index":-1,"enabled":false,"images":[{"handle":24,"imageRevision":24,"tintArgb":4286611584}]},
 {"node":"ANDROID_SHIPYARD_CATALOG","type":"shipyard_catalog","index":-1,"enabled":false,"cells":[{"text":"Корабль"},{"text":"Класс"},{"text":"Орудия"},{"text":"Дедвейт"},{"text":"Цена"}]},
+{"node":"ANDROID_YARDDEAL","type":"fact","index":0,"enabled":false,"rowId":"d0","context":{"tradein":"-9405"}},
 {"node":"SHIP_BIG_PICTURE","type":"shipyard_control","index":-2,"enabled":false,"actions":["help"]},
 {"node":"MAIN_CHARACTER_PICTURE","type":"shipyard_control","index":-2,"enabled":false,"actions":["help"]},
 {"node":"SHIPS_SCROLL","type":"shipyard_control","index":-2,"enabled":false,"actions":["help"]},

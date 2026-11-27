@@ -46,7 +46,7 @@ void AndroidInterfaceFacts()
 		AndroidItemInfo();
 	}
 	if (screen == "hirecrew") AndroidCrewHire();
-	if (screen == "shipyard") AndroidYardRepair(subject, partner);
+	if (screen == "shipyard") AndroidYardDeal(subject, partner);
 	if (screen == "colonycapture") AndroidLootValues();
 	if (screen == "ship")
 	{
@@ -783,32 +783,18 @@ void AndroidCrewQuality(aref row, ref crew, string prefix)
 	row.(key) = sti(crew.Ship.Crew.Exp.Soldiers);
 }
 
-// The shipyard's repair window (shipyard.c ShowRepairMenu, ClickRepairArror): the ship's hull and sails as the
-// window counts them (MakeInt of GetHullPercent / GetSailPercent), the purse, and what each amount of repair
-// costs at this yard, "c0,c1,…" for 0 … the percent missing (GetHullRepairCost / GetSailRepairCost with the
-// window's refNPCShipyard). The screen keeps the sliders within the purse and fills «Все» hull first.
-void AndroidYardRepair(int subject, int partner)
+// The shipyard (shipyard.c, subject = the owner of the chosen slot, partner = the master whose offer is on the card):
+// what buying that offer comes to with our ship traded in, as ShowMessageInfo asks it before the purchase (its
+// GetShipBuyPrice of the offer less GetShipSellPrice of our ship; negative: the yard pays).
+void AndroidYardDeal(int subject, int partner)
 {
 	if (subject < 0 || partner < 0) return;
 	ref chr = GetCharacter(subject);
-	int st = GetCharacterShipType(chr);
-	if (st == 1000) return;
+	if (sti(chr.ship.type) == 1000) return;
 	ref yard = GetCharacter(partner);
-	int hp = MakeInt(GetHullPercent(chr));
-	int sp = MakeInt(GetSailPercent(chr));
 	aref row;
-	makearef(row, GameInterface.AndroidFacts.yardrepair.r0);
-	row.hull = hp;
-	row.sails = sp;
-	ref mc = GetMainCharacter();
-	row.money = sti(mc.money);
-	string costs = "0";
-	int i;
-	for (i = 1; i <= 100 - hp; i++) costs = costs + "," + GetHullRepairCost(st, i, yard);
-	row.hullcost = costs;
-	costs = "0";
-	for (i = 1; i <= 100 - sp; i++) costs = costs + "," + GetSailRepairCost(st, i, yard);
-	row.sailscost = costs;
+	makearef(row, GameInterface.AndroidFacts.yarddeal.d0);
+	row.tradein = GetShipBuyPrice(sti(yard.Ship.Type), yard) - GetShipSellPrice(chr, yard);
 }
 
 // Looting a town (ColonyCapture.c): what a pack of each listed good is worth (Goods[].Cost, the good's base

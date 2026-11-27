@@ -27,6 +27,10 @@
   настройка (сглаживание, тени солнца и ламп, блум, море, рельеф и другие), по умолчанию полное качество, сцена в
   размер окна, а создание карт текстур, как на телефоне, выключено; настройки хранятся отдельно для каждой игры. В «Каждому своё» они на экране настроек игры: флажок
   «Графика движка» рядом с «Всегда бежать» показывает их списком, двойной щелчок или Enter меняет значение.
+- Верфь: «Все» в окне ремонта чинила сначала корпус, а сама игра чинит сначала паруса, поэтому при нехватке денег
+  ремонт выходил другим; ползунки ремонта останавливались не там, где игра, а цена ремонта и доплата при обмене
+  корабля считались экраном. Теперь «Все» — кнопка игры, ползунки встают там, где их остановила игра, цена и доплата
+  — числа игры.
 
 **English**
 
@@ -54,6 +58,10 @@
   its own (anti-aliasing, sun and lamp shadows, bloom, the sea, relief and more), full quality by default with the
   scene at the window's size and, as on phones, no texture-map generation; the options are kept per game. In «Каждому своё» they are on the game's options screen:
   the check box «Графика движка» beside «Всегда бежать» lists them, a double click or Enter changes a value.
+- Shipyard: «Все» in the repair window repaired the hull first, while the game repairs the sails first, so with too
+  little money the repair came out different; the repair sliders stopped where the game did not, and the repair price
+  and the trade-in difference were the screen's own sums. «Все» is now the game's button, the sliders stop where the
+  game stopped them, and the price and the difference are the game's.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

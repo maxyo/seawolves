@@ -13,9 +13,8 @@
 // offers is a capability token "yard@<opening>:<generation>:<verb>" that is valid for that
 // snapshot only: the screen sends the token itself, at most one per model revision, and
 // nothing while the engine says the state is not ready. No money, eligibility or repair
-// rule lives here; the game decides and answers with the next model. The repair window's
-// sliders are kept within the purse by the game's own prices (the adapter's ANDROID_YARDREPAIR,
-// GetHullRepairCost / GetSailRepairCost of each amount).
+// rule lives here; the game decides and answers with the next model: the repair window's
+// sliders are led by the game's arrows, which stop where the purse does.
 #include "amount.h"
 #include "controls.h"
 #include "hero.h"
@@ -73,7 +72,7 @@ constexpr NodeRule kNodes[] = {
     {"REPAIR_CANCEL", "button"},
     {"REPAIR_EXIT_BTN", "button"},
     {"REPAIR_*", "image"},
-    {"ANDROID_YARDREPAIR", "fact"}, // the adapter's repair prices
+    {"ANDROID_YARDDEAL", "fact"}, // the adapter's price of a trade-in
     {"OFFICERS_WINDOW_CAPTION", "text|heading"},
     {"PASSENGERSLIST", "choice"},
     {"OFFICER_NAME", "text"},
@@ -251,49 +250,6 @@ class ShipyardScreen final : public Screen
     }
 
   private:
-    // The repair window's prices (android_hero.c AndroidYardRepair): the purse and what n % more of the hull or
-    // the sails cost at this yard, cost[0] = 0 … cost[100 - now]. Amounts are the window's percentages (now … 100).
-    struct YardPart
-    {
-        int now = 0;
-        std::vector<int> cost;
-        int Of(int percent) const
-        {
-            const int n = std::clamp(percent - now, 0, int(cost.size()) - 1);
-            return cost.empty() ? 0 : cost[n];
-        }
-        // The highest percentage `budget` pays for.
-        int Most(int budget) const
-        {
-            int n = 0;
-            while (n + 1 < int(cost.size()) && cost[n + 1] <= budget)
-                ++n;
-            return now + n;
-        }
-    };
-    struct YardRepair
-    {
-        int money = 0;
-        YardPart hull, sails;
-        int Cost(int h, int s) const
-        {
-            return hull.Of(h) + sails.Of(s);
-        }
-        int HullCeiling(int s) const
-        {
-            return hull.Most(money - sails.Of(s));
-        }
-        int SailsCeiling(int h) const
-        {
-            return sails.Most(money - hull.Of(h));
-        }
-        // «Все»: the hull as far as the purse goes, then the sails with what is left.
-        std::pair<int, int> All() const
-        {
-            const int h = hull.Most(money);
-            return {h, sails.Most(money - hull.Of(h))};
-        }
-    };
     struct Repair
     {
         int base = -1;        // the percentage when the window opened (nothing ordered)
@@ -609,14 +565,17 @@ class ShipyardScreen final : public Screen
         }
         else if (const Widget *buy = Typed(admitted, "BUTTON_BUY", "button"))
         {
-            // shipyard.c ShowMessageInfo: a ship in the chosen slot is traded in for the difference.
+            // A ship in the chosen slot is traded in: what the game asks then (the adapter's ANDROID_YARDDEAL).
             std::string label = buy->label, sub = chosen ? Grouped(chosen->CellText(4)) : std::string();
             if (yard.has_owned_ship && chosen)
             {
-                const int price = Amount(bindings, chosen->CellText(4), "the offer's price (TABLE_SHIPYARD column 4)");
-                const int quote = Amount(bindings, Context(yard.owned, "saleQuote"), "saleQuote");
-                label = bindings.Text(price >= quote ? StringKey("yard.trade_pay") : StringKey("yard.trade_get"));
-                sub = Grouped(std::to_string(std::abs(price - quote)));
+                const Widget *deal = admitted.One("ANDROID_YARDDEAL");
+                if (!deal)
+                    bindings.ErrorOnce("deal", "shipyard: no ANDROID_YARDDEAL from the interface adapter: the "
+                                               "trade-in price is unknown");
+                const int pay = deal ? Amount(bindings, Context(deal, "tradein"), "tradein") : 0;
+                label = bindings.Text(pay >= 0 ? StringKey("yard.trade_pay") : StringKey("yard.trade_get"));
+                sub = deal ? Grouped(std::to_string(std::abs(pay))) : std::string();
             }
             action("primary", buy, "press", std::move(label), std::move(sub), "primary", true);
             bindings.On("primary", "", [this, &bindings, send, buy](const Event &) {
@@ -655,78 +614,40 @@ class ShipyardScreen final : public Screen
                     {"width", 400}};
     }
 
-    // The adapter's costs (android_hero.c AndroidYardRepair); `facts` null: none.
-    static YardRepair RepairPlan(Bindings &bindings, const Widget *facts)
-    {
-        const auto costs = [&bindings, facts](const char *key) {
-            std::vector<int> list;
-            const std::string text = Context(facts, key);
-            for (size_t at = 0; at < text.size();)
-            {
-                const size_t comma = std::min(text.find(',', at), text.size());
-                list.push_back(Amount(bindings, std::string_view(text).substr(at, comma - at), key));
-                at = comma + 1;
-            }
-            return list;
-        };
-        YardRepair plan;
-        if (facts)
-            plan = YardRepair{Amount(bindings, Context(facts, "money"), "money"),
-                              {Amount(bindings, Context(facts, "hull"), "hull"), costs("hullcost")},
-                              {Amount(bindings, Context(facts, "sails"), "sails"), costs("sailscost")}};
-        return plan;
-    }
-
-    // The repair window: the sliders run over the whole 0…100 %, start at the ship's state, cannot go below it nor
-    // past what the purse pays for the other part as it is set.
+    // The repair window: the sliders run over the whole 0…100 %, start at the ship's state and cannot go below it;
+    // the game's arrows stop where its purse does. The price and «Все» are the game's.
     Json RepairSheet(const Admission &admitted, Bindings &bindings, const Yard &yard, const Sender &send,
                      const Offered &offers, Close &close)
     {
         close.widget = Typed(admitted, "REPAIR_CANCEL", "button");
-        const Widget *facts = admitted.One("ANDROID_YARDREPAIR");
-        if (!facts && last_mode_ != "repair")
-            bindings.Error("shipyard: no ANDROID_YARDREPAIR from the interface adapter: repair costs unknown");
-        const YardRepair plan = RepairPlan(bindings, facts);
         int shown[2] = {0, 0};
         bool stepping = false;
-        const Json parts = RepairParts(admitted, bindings, yard, send, offers, facts, plan, shown, stepping);
+        const Json parts = RepairParts(admitted, bindings, yard, send, offers, shown, stepping);
         const Widget *all = Typed(admitted, "REPAIR_ALL", "button");
         const Widget *ok = Typed(admitted, "REPAIR_OK", "button");
-        // The order's price: the adapter's costs of the amounts set (the game's text lags behind the steps).
-        std::string price = StripWhitespace(admitted.Label("REPAIR_WINDOW_TEXT"));
-        if (facts)
-            price = hero::Thousands(plan.Cost(shown[0], shown[1]));
+        // shipyard.c RepairMoneyShow: the price of what its arrows have set (a step behind while steps are on their
+        // way).
+        const std::string price = Grouped(StripWhitespace(admitted.Label("REPAIR_WINDOW_TEXT")));
         Json actions = Json::array();
         if (all)
-        {
-            const bool more = facts ? plan.All() != std::pair{shown[0], shown[1]} : offers(all, "press");
             actions.push_back(
                 Json{{"id", "sheet-all"},
                      {"label", bindings.Text("common.all")}, // the word of every fill-to-the-end in the port
-                     {"disabled", !yard.ready || !more},
-                     {"reason", !facts || !yard.ready               ? all->unavailable_reason
-                                : plan.All() == std::pair{100, 100} ? std::string()
-                                                                    : bindings.Text("trade.no_money")}});
-        }
+                     {"disabled", !offers(all, "press")},
+                     {"reason", all->unavailable_reason}});
         if (ok)
             actions.push_back(
                 Json{{"id", "sheet-ok"},
                      {"label", bindings.Text("repair.do")}, // as the self repair names it (the game says «Ок»)
-                     {"sub", price},
+                     {"sub", KeepTogether(price)},
                      {"variant", "primary"},
                      {"disabled", !offers(ok, "press") || (shown[0] <= hull_.base && shown[1] <= sails_.base)},
                      {"reason", ok->unavailable_reason}});
-        // «Все»: as far as the purse goes, the hull first and the sails with the rest (the game's own sets the
-        // sails first).
-        if (facts)
-            bindings.On("sheet-all", "", [this, &bindings, plan](const Event &) {
-                const auto [hull, sails] = plan.All();
-                hull_.target = hull;
-                sails_.target = sails;
-                bindings.Rebuild();
-            });
-        else
-            bindings.On("sheet-all", "", [send, all](const Event &) { send(all, "press"); });
+        // «Все» is the game's (shipyard.c RepairAll): the sliders then show what it set.
+        bindings.On("sheet-all", "", [this, send, all](const Event &) {
+            if (send(all, "press"))
+                hull_.target = sails_.target = -1;
+        });
         // OK repairs what the game has set: while steps toward the amounts are still on their way it waits for
         // them.
         if (confirm_after_steps_ && !stepping && send(ok, "press"))
@@ -746,9 +667,10 @@ class ShipyardScreen final : public Screen
     }
 
     // The hull's and the sails' sliders; `shown`: the amounts they show. The game moves a part by its arrow buttons
-    // only: one step toward the amount asked for goes out per model revision (`stepping` while one is due).
+    // only: one step toward the amount asked for goes out per model revision (`stepping` while one is due); where the
+    // game stops moving (its purse, a whole part) the slider shows where it stopped.
     Json RepairParts(const Admission &admitted, Bindings &bindings, const Yard &yard, const Sender &send,
-                     const Offered &offers, const Widget *facts, const YardRepair &plan, int shown[2], bool &stepping)
+                     const Offered &offers, int shown[2], bool &stepping)
     {
         Json parts = Json::array();
         int value_of[2] = {-1, -1};
@@ -761,8 +683,7 @@ class ShipyardScreen final : public Screen
             if (last_mode_ != "repair")
             {
                 part = Repair();
-                part.base =
-                    facts ? (k == 0 ? plan.hull : plan.sails).now : value; // the window opens with nothing ordered yet
+                part.base = value; // the window opens with nothing ordered yet
             }
             value_of[k] = value;
             shown[k] = part.target >= 0 ? part.target : std::max(0, value);
@@ -776,36 +697,25 @@ class ShipyardScreen final : public Screen
             const int value = value_of[k];
             Repair &part = k == 0 ? hull_ : sails_;
             const int floor = std::max(0, part.base);
-            const int ceiling = facts ? (k == 0 ? plan.HullCeiling(shown[1]) : plan.SailsCeiling(shown[0])) : 100;
             std::string label;
             for (const Widget *row : admitted.All("TABLE_OTHER"))
                 if (row->row_id == stat)
                     label = row->CellText(1);
             const std::string id = k == 0 ? "hull" : "sails";
-            Json q{{"value", shown[k]},
-                   {"min", 0},
-                   {"max", 100},
-                   {"floor", floor},
-                   {"unit", "%"},
-                   {"label", label},
-                   {"steps", Json::array({1, 5})},
-                   {"disabled", !yard.ready}};
-            if (facts)
-            {
-                q["ceiling"] = ceiling;
-                q["moreReason"] = ceiling < 100 ? bindings.Text("trade.no_money") : std::string();
-            }
-            parts.push_back(Json{{"id", id}, {"q", q}});
-            const auto set = [this, &bindings, k, floor, ceiling](const Event &event) {
+            parts.push_back(Json{{"id", id},
+                                 {"q", Json{{"value", shown[k]},
+                                            {"min", 0},
+                                            {"max", 100},
+                                            {"floor", floor},
+                                            {"unit", "%"},
+                                            {"label", label},
+                                            {"steps", Json::array({1, 5})},
+                                            {"disabled", !yard.ready}}}});
+            const auto set = [this, &bindings, k, floor](const Event &event) {
                 int wanted = 0;
                 if (!EventNumber(bindings, event, wanted))
                     return;
-                if (wanted > ceiling && bindings.Now() - reason_at_ > 1.5)
-                {
-                    reason_at_ = bindings.Now();
-                    bindings.Toast(bindings.Text("trade.no_money"));
-                }
-                (k == 0 ? hull_ : sails_).target = std::clamp(wanted, floor, std::max(floor, ceiling));
+                (k == 0 ? hull_ : sails_).target = std::clamp(wanted, floor, 100);
                 bindings.Rebuild();
             };
             bindings.On(id, "change", set);
@@ -979,7 +889,6 @@ class ShipyardScreen final : public Screen
     std::string last_mode_;
     Repair hull_, sails_;
     bool confirm_after_steps_ = false; // OK was pressed while steps toward the amounts were on their way
-    double reason_at_ = -10.0;         // when "no money" was last said for a slider push
     // Our ships' figures by fleet slot, kept from the last time each was on the card.
     std::map<std::string, std::map<std::string, std::string>> own_figures_;
     // A deal held on its button (the game's message mode it will ask about) and when.

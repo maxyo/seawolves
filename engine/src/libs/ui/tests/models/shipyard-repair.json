@@ -58,6 +58,5 @@
 {"node":"REPAIR_RIGHT_S","type":"shipyard_control","index":-5,"actions":["yard@7:30:step5"]},
 {"node":"REPAIR_OK","type":"button","label":"Ремонт","index":-1,"actions":["yard@7:30:press"]},
 {"node":"REPAIR_ALL","type":"button","label":"Всё","index":-1,"actions":["yard@7:30:press"]},
-{"node":"REPAIR_CANCEL","type":"button","label":"Отмена","index":-1,"actions":["yard@7:30:press"]},
-{"node":"ANDROID_YARDREPAIR","type":"fact","index":0,"enabled":false,"rowId":"r0","context":{"hull":"50","sails":"70","money":"2500","hullcost":"0,47,93,139,186,232,278,325,371,417,463,510,556,602,649,695,741,788,834,880,926,973,1019,1065,1112,1158,1204,1251,1297,1343,1389,1436,1482,1528,1575,1621,1667,1714,1760,1806,1852,1899,1945,1991,2038,2084,2130,2177,2223,2269,2315","sailscost":"0,15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240,255,270,285,300,315,330,345,360,375,390,405,420,435,450"}}
+{"node":"REPAIR_CANCEL","type":"button","label":"Отмена","index":-1,"actions":["yard@7:30:press"]}
 ]}
