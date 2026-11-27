@@ -35,6 +35,9 @@
 - Доли команды: на кнопке «Заплатить» стояла сумма, посчитанная экраном, и при одном лишь долге перед государством
   она не совпадала с тем, что платит игра; причина недоступной кнопки тоже была догадкой экрана. Теперь кнопка — кнопка
   игры, без своей суммы.
+- Ремонт своими силами: число досок и парусины на кнопке «Починить» было прикидкой экрана, а предел ползунков
+  вычитывался из русских подписей окна. Теперь материалы — те, что считает игра, а ползунок встаёт там, где игра
+  остановила починку.
 
 **English**
 
@@ -71,6 +74,9 @@
 - Crew shares: the «Заплатить» button carried a sum the screen worked out, which with only a debt to the state was not
   what the game pays, and the reason given for a disabled button was the screen's guess. It is now the game's button,
   without a sum of its own.
+- Self repair: the planks and sailcloth on the «Починить» button were the screen's estimate, and the sliders' limits
+  were read from the window's Russian captions. The materials are now the game's figures, and a slider stops where the
+  game stopped the repair.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

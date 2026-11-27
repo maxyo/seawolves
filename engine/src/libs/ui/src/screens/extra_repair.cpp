@@ -1,15 +1,17 @@
 // Self repair (interface "repair"): hull, masts and sails as amount
-// rows with the materials each takes, the ship selector in the header, the planks and
-// sailcloth in stock and the repair button with its time. Fills the pack screen <s-repair>.
+// rows, the ship selector in the header, the planks and sailcloth in stock and the repair
+// button with its time and the materials the order takes. Fills the pack screen <s-repair>.
 //
 // The game moves an amount only by its arrows (hull and sails 1 % per press, masts all at
-// once) and clamps them to what the materials allow, so a new amount is sent as presses
-// once it settles; its texts carry the numbers ("Состояние: 61% Текущий предел
-// восстановления: 74%", "Доступно всего: 40/40 шт. Необходимо для полного ремонта: 117 шт.").
+// once) and stops them where the materials end, so a new amount is sent as presses once it
+// settles and the row then shows where the game stopped. The amounts are the game's captions
+// ("61%", "2/3"); what the order has set and takes, the sails' maximum and the stock are the
+// adapter's ANDROID_REPAIR (repair.c chr.repair).
 #include "controls.h"
 
+#include "amount.h"
+
 #include <algorithm>
-#include <cmath>
 #include <cstdlib>
 
 namespace storm::ui::screens
@@ -25,6 +27,7 @@ constexpr NodeRule kNodes[] = {
     {"REPAIR_OK", "button", true},
     {"REPAIR_QTY_M", "text"},
     {"REPAIR_QTY_S", "text"},
+    {"ANDROID_REPAIR", "fact"}, // the adapter's order and stock
     {"REPAIR_LEFT_M", "button"},
     {"REPAIR_RIGHT_M", "button"},
     {"REPAIR_LEFT_S", "button"},
@@ -82,17 +85,23 @@ struct Part
     char kind;      // H hull, M masts, S sails: suffix of the game's nodes
     const char *id; // element id in the view
     const char *icon;
-    bool masts;                     // counted in masts ("2/3"), else in per cent
-    const char *material, *missing; // what it takes, and the word when there is none
+    bool masts;          // counted in masts ("2/3"), else in per cent
+    const char *set;     // the adapter's field: the amount the order has set
+    const char *stock;   // the adapter's field: the material it takes in the squadron's holds
+    const char *missing; // the word when there is none
 };
 constexpr Part kParts[] = {
-    {'H', "hull", "hull", false, StringKey("repair.planks"), StringKey("repair.no_planks")},
-    {'M', "masts", "sail-furled", true, StringKey("repair.planks"), StringKey("repair.no_planks")},
-    {'S', "sails", "sail-full", false, StringKey("repair.sailcloth"), StringKey("repair.no_sailcloth")},
+    {'H', "hull", "hull", false, "hull", "planks_stock", StringKey("repair.no_planks")},
+    {'M', "masts", "sail-furled", true, "mast", "planks_stock", StringKey("repair.no_planks")},
+    {'S', "sails", "sail-full", false, "sail", "sailcloth_stock", StringKey("repair.no_sailcloth")},
 };
-constexpr const char *kStatus[] = {"REPAIR_STATUS_HULL_STR", "REPAIR_STATUS_MAST_STR", "REPAIR_STATUS_SAIL_STR"};
-constexpr const char *kStock[] = {"REPAIR_QTY_HULL_STR", "REPAIR_QTY_MAST_STR", "REPAIR_QTY_SAIL_STR"};
 constexpr const char *kCaption[] = {"REPAIR_HULL_CAPTION", "REPAIR_MAST_CAPTION", "REPAIR_SAIL_CAPTION"};
+
+std::string Field(const Widget &facts, const char *key)
+{
+    const auto found = facts.context.find(key);
+    return found == facts.context.end() ? std::string() : found->second;
+}
 
 class RepairScreen final : public Screen
 {
@@ -111,22 +120,30 @@ class RepairScreen final : public Screen
         Json view = Json::object();
         view["title"] = bindings.Text("repair.title");
 
+        // repair.c keeps the order of the ship shown in chr.repair; the adapter hands it over.
+        const Widget *facts = admitted.One("ANDROID_REPAIR");
+        if (!facts)
+            bindings.ErrorOnce("facts", "repair: no ANDROID_REPAIR from the interface adapter: the order is unknown");
+        const auto fact = [&bindings, facts](const char *key) {
+            return facts ? Amount(bindings, Field(*facts, key), key) : 0;
+        };
         Json parts = Json::array();
-        Totals totals;
-        for (size_t p = 0; p < std::size(kParts); ++p)
-            if (Json row = PartView(admitted, bindings, p, totals); !row.is_null())
-                parts.push_back(std::move(row));
+        if (facts)
+            for (size_t p = 0; p < std::size(kParts); ++p)
+                if (Json row = PartView(admitted, bindings, p, fact); !row.is_null())
+                    parts.push_back(std::move(row));
         view["parts"] = parts;
 
         Json stock = Json::array();
-        if (totals.planks_total >= 0)
+        if (facts)
+        {
             stock.push_back(Json{{"icon", "planks"},
                                  {"label", bindings.Text("repair.planks")},
-                                 {"value", std::to_string(totals.planks_total)}});
-        if (totals.sailcloth_total >= 0)
+                                 {"value", std::to_string(fact("planks_stock"))}});
             stock.push_back(Json{{"icon", "sailcloth"},
                                  {"label", bindings.Text("repair.sailcloth")},
-                                 {"value", std::to_string(totals.sailcloth_total)}});
+                                 {"value", std::to_string(fact("sailcloth_stock"))}});
+        }
         view["stock"] = stock;
 
         // The ship being repaired.
@@ -148,9 +165,11 @@ class RepairScreen final : public Screen
         std::string sub;
         if (At(hours, 0) > 0)
             sub = std::to_string(At(hours, 0)) + " " + bindings.Text("save.hours");
-        if (totals.planks_planned > 0)
-            sub += (sub.empty() ? "" : " · ") + bindings.Text("repair.planks") + " " +
-                   std::to_string(totals.planks_planned);
+        // What the order takes (repair.c RepairMatherialShow: chr.repair.preq, sreq).
+        for (const auto &[key, word] :
+             {std::pair{"planks", StringKey("repair.planks")}, std::pair{"sailcloth", StringKey("repair.sailcloth")}})
+            if (const int takes = facts ? fact(key) : 0; takes > 0)
+                sub += (sub.empty() ? "" : " · ") + bindings.Text(word) + " " + std::to_string(takes);
         view["primary"] = Json{{"label", bindings.Text("repair.do")},
                                {"sub", sub},
                                {"disabled", !ok->Offers("press") || At(hours, 0) <= 0},
@@ -165,64 +184,39 @@ class RepairScreen final : public Screen
     }
 
   private:
-    // The materials on board and what the amounts set take of the planks.
-    struct Totals
-    {
-        int planks_total = -1, sailcloth_total = -1, planks_planned = 0;
-    };
-
-    // One part (hull, sails, masts): its slider and what it takes; null when the game's texts cannot be read.
-    // A settled new amount goes out as the game's presses.
-    Json PartView(const Admission &admitted, Bindings &bindings, size_t p, Totals &totals)
+    // One part (hull, sails, masts): its slider; null when the game's caption cannot be read. A settled new amount
+    // goes out as the game's presses.
+    template <class Fact> Json PartView(const Admission &admitted, Bindings &bindings, size_t p, const Fact &fact)
     {
         const Part &part = kParts[p];
         const std::string suffix(1, part.kind);
         const Widget *less = admitted.One("REPAIR_LEFT_" + suffix);
         const Widget *more = admitted.One("REPAIR_RIGHT_" + suffix);
-        const std::vector<int> amount = Numbers(admitted.Label("REPAIR_QTY_" + suffix)); // "61%" | "3/4"
-        const std::vector<int> status = Numbers(admitted.Label(kStatus[p])); // now, limit (masts: now/all, limit/all)
-        const std::vector<int> stock = Numbers(admitted.Label(kStock[p]));   // left/total, full repair needs
-        if (amount.empty() || status.size() < 2 || stock.size() < 3)
+        const std::vector<int> amount = Numbers(admitted.Label("REPAIR_QTY_" + suffix)); // "61%" | "2/3"
+        if (amount.empty() || (part.masts && amount.size() < 2))
         {
             if (part.kind == 'H')
-                bindings.Error("repair: unreadable hull texts");
+                bindings.Error("repair: unreadable hull caption");
             return Json();
         }
-        const int full = part.masts ? At(amount, 1) : 100;
-        const int now = At(status, 0);
+        // The masts' whole is the caption's; the sails' the game's maximum (repair.c SetSailMaximum).
+        const int full = part.masts ? At(amount, 1) : part.kind == 'S' ? fact("sailmax") : 100;
         const int shown = At(amount, 0);
-        // The game's "limit" is how far the materials still left reach from the part's
-        // state, i.e. on top of the amount already set.
-        const int top = std::min(full, shown + std::max(0, (part.masts ? At(status, 2) : At(status, 1)) - now));
+        const int now = shown - fact(part.set); // the part's state: what the caption shows less what is set
         State &state = state_[p];
         const bool recent = state.target >= 0 && (state.send >= 0 || bindings.Now() - state.send_at < 1.0);
         if (recent && state.send < 0)
             bindings.RebuildAfter(state.send_at + 1.0 - bindings.Now());
         const int value = recent ? state.target : shown;
-        if (part.material == kParts[0].material)
-            totals.planks_total = At(stock, 1);
-        else
-            totals.sailcloth_total = At(stock, 1);
-
-        // What the amount set takes: the game's "full repair needs" scales linearly.
-        const int needs_full = At(stock, 2);
-        const int needs =
-            full > now ? static_cast<int>(std::lround(double(needs_full) * (value - now) / (full - now))) : 0;
-        if (part.material == kParts[0].material)
-            totals.planks_planned += needs;
-        const bool none = now < full && At(stock, 1) == 0;
-        const bool idle = now >= full || top <= now;
-        std::string need = none        ? bindings.Text(part.missing)
-                           : needs > 0 ? bindings.Text(part.material) + " " + std::to_string(needs)
-                                       : std::string();
+        const bool none = now < full && fact(part.stock) == 0;
+        const bool idle = now >= full;
         const std::string unit = part.masts ? std::string() : "%";
-        // The whole 0…full with the knob at the part's state: it cannot go below it nor past what the materials
-        // reach.
+        // The whole 0…full with the knob at the part's state: it cannot go below it; the game stops the arrows where
+        // the materials end.
         Json q{{"value", value},
                {"min", 0},
                {"max", full},
                {"floor", now},
-               {"ceiling", std::max(now, top)},
                {"unit", unit},
                {"summary", part.masts ? bindings.Text("common.of") + " " + std::to_string(full) : std::string("-")},
                {"steps", Json::array({1, 10})},
@@ -235,7 +229,7 @@ class RepairScreen final : public Screen
                  {"now", bindings.Text("repair.now") + " " + std::to_string(now) +
                              (part.masts ? " " + bindings.Text("common.of") + " " + std::to_string(full) : "%")},
                  {"q", q},
-                 {"need", need},
+                 {"need", none ? bindings.Text(part.missing) : std::string()},
                  {"short", none},
                  {"disabled", idle}};
 
@@ -256,7 +250,7 @@ class RepairScreen final : public Screen
         }
         else if (state.send >= 0)
             bindings.RebuildAfter(state.send_at - bindings.Now());
-        const auto set = [this, &bindings, p, low = now, high = std::max(now, top)](const Event &event) {
+        const auto set = [this, &bindings, p, low = now, high = std::max(now, full)](const Event &event) {
             int wanted = 0;
             if (!EventNumber(bindings, event, wanted))
                 return;

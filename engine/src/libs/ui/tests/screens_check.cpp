@@ -1636,18 +1636,16 @@ static void Repair(const std::string &models)
     Expect(router.Using() == "repair" && surface.tag == "s-repair" && surface.errors.empty(),
            "repair is drawn by the repair screen");
     const Json &parts = surface.props["parts"];
-    Expect(parts.size() == 3 && parts[0]["q"]["value"] == 75 && parts[0]["q"]["min"] == 0 &&
-               parts[0]["q"]["max"] == 100 && parts[0]["q"]["floor"] == 62 && parts[0]["q"]["ceiling"] == 80,
-           "hull: 75 % on the 0…100 % scale, kept within 62…80 %");
-    ExpectEqual(parts[0]["need"], "<repair.planks> 17",
-                "the planks the set amount takes (linear in the full-repair need)");
+    Expect(
+        parts.size() == 3 && parts[0]["q"]["value"] == 75 && parts[0]["q"]["min"] == 0 && parts[0]["q"]["max"] == 100 &&
+            parts[0]["q"]["floor"] == 62 && !parts[0]["q"].contains("ceiling"),
+        "hull: 75 % on the 0…100 % scale from its state, 62 % (75 shown less the 13 set); the game stops the arrows");
     ExpectEqual(parts[0]["q"]["allLabel"], "<common.all>", "fill to the end is «Все», as everywhere");
-    Expect(parts[2]["short"] == true && parts[2]["disabled"] == true,
-           "sails without sailcloth: the row is off and says why");
+    Expect(parts[2]["short"] == true && parts[2]["need"] == "<repair.no_sailcloth>", "sails without sailcloth say so");
     Expect(surface.props["stock"][0]["value"] == "40" && surface.props["stock"][1]["value"] == "0",
-           "planks and sailcloth in stock");
-    ExpectEqual(surface.props["primary"]["sub"], "6 <save.hours> · <repair.planks> 17",
-                "repair button: time and planks");
+           "planks and sailcloth in stock: the adapter's");
+    ExpectEqual(surface.props["primary"]["sub"], "6 <save.hours> · <repair.planks> 16",
+                "repair button: time and the planks the game says the order takes");
     std::string prefix = "widget:repair\t";
 
     surface.commands.clear();

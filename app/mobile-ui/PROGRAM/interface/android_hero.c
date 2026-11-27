@@ -47,6 +47,7 @@ void AndroidInterfaceFacts()
 	}
 	if (screen == "hirecrew") AndroidCrewHire();
 	if (screen == "shipyard") AndroidYardDeal(subject, partner);
+	if (screen == "repair") AndroidRepairOrder(subject);
 	if (screen == "colonycapture") AndroidLootValues();
 	if (screen == "ship")
 	{
@@ -768,6 +769,27 @@ void AndroidYardDeal(int subject, int partner)
 	aref row;
 	makearef(row, GameInterface.AndroidFacts.yarddeal.d0);
 	row.tradein = GetShipBuyPrice(sti(yard.Ship.Type), yard) - GetShipSellPrice(chr, yard);
+}
+
+// Self repair (repair.c, subject = the ship shown): the order its arrows have set for that ship (chr.repair: the
+// amounts, the sails' maximum, the planks and sailcloth they take: RepairMatherialShow's preq / sreq) and what the
+// squadron carries of both (GetSquadronGoods, the window's pAvail / sAvail).
+void AndroidRepairOrder(int subject)
+{
+	if (subject < 0) return;
+	ref chr = GetCharacter(subject);
+	if (!CheckAttribute(chr, "repair.preq")) return;
+	ref mc = GetMainCharacter();
+	aref row;
+	makearef(row, GameInterface.AndroidFacts.repair.r0);
+	row.hull = chr.repair.hull;
+	row.mast = chr.repair.mast;
+	row.sail = chr.repair.sail;
+	row.sailmax = chr.repair.sailmax;
+	row.planks = chr.repair.preq;
+	row.sailcloth = chr.repair.sreq;
+	row.planks_stock = GetSquadronGoods(mc, FindGood("Planks"));
+	row.sailcloth_stock = GetSquadronGoods(mc, FindGood("Sailcloth"));
 }
 
 // Looting a town (ColonyCapture.c): what a pack of each listed good is worth (Goods[].Cost, the good's base
