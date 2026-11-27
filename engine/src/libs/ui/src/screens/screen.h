@@ -5,6 +5,7 @@
 
 #include "../template.h"
 #include "storm_ui/interface_model.h"
+#include "storm_ui/script_screens.h"
 #include "storm_ui/ui.h"
 
 #include <functional>
@@ -88,18 +89,22 @@ struct SubjectRequest
     int position = -1;
     std::string tab;   // character: the tab to show ("perks"), "" = the screen's own
     std::string quest; // journal: the quest to open (its QuestInfo id)
-    double until = 0.0;
+};
+
+// A note left for a screen that opens later (Router::Pass); one that `lapses` (a time of Bindings::Now, 0 never) is
+// dropped by the screen that takes it later than that.
+struct Note
+{
+    ViewTree what;
+    double lapses = 0.0;
 };
 
 // What the screens of one router share across interfaces.
 struct SharedState
 {
-    // The menus run from the title screen (no game in progress): the title screen sets it, the pause menu clears
-    // it. Loading a record then needs no question.
-    bool from_title = false;
-    // What the title screen opens once, as if tapped ("Load", "Options", "Continue"): the death screen's choice,
-    // or the host's (channel titleIntent).
-    std::string title_intent;
+    // The notes for screens by the screen's name (Bindings::Pass / Take): what the death screen or the host asks of
+    // the title ("title" {intent}), that the save list opens from the title ("saves" {from}), a HUD tap's subject.
+    std::unordered_map<std::string, Note> notes;
     // The application's last state of its own screens (channel launcher).
     Json app = Json::object();
 };
@@ -185,8 +190,12 @@ class Bindings
     // tap's frame), so the view it changed is built with the model of that answer, or at the next tick without one,
     // not twice.
     void BuildLater();
-    // The subject a HUD tap asked this screen to open on (hud::Hud::RequestSubject), taken once.
-    std::optional<SubjectRequest> TakeSubject(const std::string &screen);
+    // The note for `screen` (SharedState::notes), taken once; a lapsed one is dropped with a log line.
+    void Pass(const std::string &screen, ViewTree what);
+    std::optional<ViewTree> Take(const std::string &screen);
+    // The last state of channel `channel` (Router::SetState), null before the first; throws for a channel no
+    // consumer reads.
+    const Json &State(const std::string &channel) const;
     // Builds the view again after `seconds` even if no new model comes (local state that
     // expires, such as the amount the player set being preferred over the game's for a moment).
     void RebuildAfter(double seconds);
@@ -363,14 +372,15 @@ class Router
     // called again (a large number when idle).
     double Tick();
     // The HUD that the HUD channel consumers fill; null in a host without one.
-    void AttachHud(hud::Hud *hud)
-    {
-        hud_ = hud;
-    }
+    void AttachHud(hud::Hud *hud);
     hud::Hud *Hud() const
     {
         return hud_;
     }
+    // A note for `screen` (SharedState::notes) that a later screen takes once; `lapse` seconds, when not 0, it waits
+    // at most (a HUD tap's subject: the game may refuse to open the screen it asked for).
+    void Pass(const std::string &screen, ViewTree what, double lapse = 0.0);
+    std::optional<ViewTree> Take(const std::string &screen);
     // For consumers: something is wrong with the data of their channel.
     void ReportError(const std::string &line);
     SharedState &Shared()
@@ -493,6 +503,7 @@ class Router
     std::map<uint64_t, Request> outstanding_;
     std::map<uint64_t, Answered> answers_; // the latest answers, for the amount drafts (AnsweredSince)
     SharedState shared_;
+    std::unordered_map<std::string, Json> states_; // the last state of each channel (Bindings::State)
     std::set<std::string> logged_; // once per (screen, node set): extras, generic use, rejection lines; ErrorOnce keys
     // The notices (Bindings::Notice) of the view on the screen and of the one being built: a notice is logged when
     // it appears, not again at every build while it stays.

@@ -212,6 +212,14 @@ class SavesScreen final : public Screen
 
     Json Build(const Admission &admitted, Bindings &bindings) override
     {
+        // The title opens the list with a note (UiPass "saves" {from: title}); without one a game is in progress.
+        if (!from_title_)
+        {
+            const std::optional<ViewTree> note = bindings.Take("saves");
+            from_title_ = note && std::any_of(note->children.begin(), note->children.end(), [](const ViewTree &field) {
+                              return field.name == "from" && field.value == "title";
+                          });
+        }
         // What the player asked for (a load, save, overwrite, delete, or the answer to the game's
         // question about it) refused by the game: the player is told which record it was.
         if (asked_floor_)
@@ -390,7 +398,7 @@ class SavesScreen final : public Screen
         bool asked_here = asked_ == "save";
         for (const Record &record : records)
             asked_here = asked_here || (!record.fresh && record.row->label == asked_row_);
-        if (asked_here && asked_ == "load" && bindings.Shared().from_title && yes->Offers("press") &&
+        if (asked_here && asked_ == "load" && *from_title_ && yes->Offers("press") &&
             confirmed_ != admitted.model->revision)
         {
             confirmed_ = admitted.model->revision;
@@ -433,13 +441,14 @@ class SavesScreen final : public Screen
         return view;
     }
 
-    std::string asked_;        // what the player asked for last: load, save, overwrite, delete
-    std::string asked_row_;    // and the record it was asked for (the game's name of it)
-    std::string asked_name_;   // as the player sees it
-    uint64_t asked_floor_ = 0; // its first request (Bindings::RequestFloor) until the game applied or refused it
-    std::string chosen_;       // row identity of the record in the detail column
-    uint64_t named_ = 0;       // model revision whose name editor was accepted
-    uint64_t confirmed_ = 0;   // model revision whose load question was answered for the player
+    std::optional<bool> from_title_; // the list opened from the title, taken at the first build
+    std::string asked_;              // what the player asked for last: load, save, overwrite, delete
+    std::string asked_row_;          // and the record it was asked for (the game's name of it)
+    std::string asked_name_;         // as the player sees it
+    uint64_t asked_floor_ = 0;       // its first request (Bindings::RequestFloor) until the game applied or refused it
+    std::string chosen_;             // row identity of the record in the detail column
+    uint64_t named_ = 0;             // model revision whose name editor was accepted
+    uint64_t confirmed_ = 0;         // model revision whose load question was answered for the player
 };
 
 // Channel "loadFailure" {record, reason}: a load the player asked for was refused or never

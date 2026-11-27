@@ -156,7 +156,7 @@ void TouchJournal_Build()
 	TouchAdpJournal_State(ui, game);
 	// A quest's record tapped on the HUD opened the journal: its entry opens.
 	object subject;
-	if (UiSubject("journal", &subject)) TouchAdpJournal_Find(ui, subject.quest);
+	if (UiTake("journal", &subject)) TouchAdpJournal_Find(ui, subject.quest);
 	DeleteAttribute(&TouchJournal_View, "");
 	aref view;
 	makearef(view, TouchJournal_View);

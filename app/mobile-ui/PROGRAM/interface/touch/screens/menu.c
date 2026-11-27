@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The menus: the title's column over the game's menu scene, the pause menu over the paused game, the plate of a
 // quick save being written and the death screen. The look's mode ("title", "pause", "saving", "over") says which.
-// The title's commands and the quick save and load are the engine's (UiTitle, UiQuickGame); what the death screen
-// chose the title opens once (UiAskTitle, UiTitleAsked).
+// The title's commands and the quick save and load are the engine's (UiCommand); what the death screen chose the
+// title opens once (a note, UiPass and UiTake).
 
 #event_handler("UiBuild", "TouchMenu_Build");
 #event_handler("UiTap", "TouchMenu_Tap");
@@ -19,9 +19,19 @@ aref TouchMenu_Button(aref list, string id, string label)
 	return at;
 }
 
+// A command of the title; the save list it opens loads a record without a question (no game is in progress).
+void TouchMenu_TitleCommand(string command)
+{
+	if (command == "Load")
+	{
+		object from = {from = "title"};
+		UiPass("saves", &from);
+	}
+	TouchLib_Command("title", "command", command);
+}
+
 void TouchMenu_Title(aref ui)
 {
-	UiMenusFrom("title");
 	object game;
 	TouchAdpMenu_Title(ui, &game);
 	bool any = game.last != "";
@@ -48,9 +58,10 @@ void TouchMenu_Title(aref ui)
 	CopyAttributes(at, &about);
 	UiOn("about", "");
 	// Chosen on the death screen, or asked by the host: done once the title is up.
-	string intent = UiTitleAsked();
-	if (intent == "Continue" && !any) UiToast(UiText("menu.no_saves"));
-	else { if (intent != "") UiTitle(intent); }
+	object asked;
+	if (!UiTake("title", &asked)) return;
+	if (asked.intent == "Continue" && !any) UiToast(UiText("menu.no_saves"));
+	else { if (asked.intent != "") TouchMenu_TitleCommand(asked.intent); }
 }
 
 // «Шарль де Мор · Сен-Пьер, улицы · 1 окт. 1654»
@@ -87,7 +98,6 @@ void TouchMenu_Quick(aref list, aref game, string id, bool can, string reason)
 
 void TouchMenu_Pause(aref ui)
 {
-	UiMenusFrom("game");
 	object game;
 	TouchAdpMenu_Pause(ui, &game);
 	TouchMenu.line = TouchMenu_Line(&game);
@@ -191,13 +201,13 @@ void TouchMenu_PauseTap(aref ui, string id)
 		if (id == "quick-save" && can) can = sti(game.buttons.save.can);
 		if (!can) return;
 		TouchAdpMenu_Resume(ui);
-		UiQuickGame(TouchLib_Cut(id, 6, strlen(id)));
+		TouchLib_Command("quick", "which", TouchLib_Cut(id, 6, strlen(id)));
 		return;
 	}
 	if (id == "confirm-confirm")
 	{
 		// Before the answer: the host must know why the engine ends before it ends.
-		if (!sti(game.home)) UiHost("app-exit-to-main-menu");
+		if (!sti(game.home)) TouchLib_Command("host", "action", "app-exit-to-main-menu");
 		TouchAdpMenu_Answer(ui, true);
 		return;
 	}
@@ -218,15 +228,16 @@ void TouchMenu_Tap()
 		string intent = "";
 		if (id == "go-load") intent = "Load";
 		if (id == "go-options") intent = "Options";
-		UiAskTitle(intent);
+		object asked = {intent = intent};
+		UiPass("title", &asked);
 		TouchAdpMenu_End(ui);
 		return;
 	}
-	if (id == "about") { UiHost("app-about"); return; }
-	if (id == "continue") { UiTitle("Continue"); return; }
-	if (id == "new") { UiTitle("New"); return; }
-	if (id == "load") { UiTitle("Load"); return; }
-	if (id == "options") { UiTitle("Options"); return; }
-	if (id == "credits") { UiTitle("Credits"); return; }
-	if (id == "exit") UiTitle("Exit");
+	if (id == "about") { TouchLib_Command("host", "action", "app-about"); return; }
+	if (id == "continue") { TouchMenu_TitleCommand("Continue"); return; }
+	if (id == "new") { TouchMenu_TitleCommand("New"); return; }
+	if (id == "load") { TouchMenu_TitleCommand("Load"); return; }
+	if (id == "options") { TouchMenu_TitleCommand("Options"); return; }
+	if (id == "credits") { TouchMenu_TitleCommand("Credits"); return; }
+	if (id == "exit") TouchMenu_TitleCommand("Exit");
 }

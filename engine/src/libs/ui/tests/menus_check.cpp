@@ -69,7 +69,6 @@ static void GameMenu(const std::string &models)
         ExpectEqual(surface.Last(), std::string("widget:game_menu\t") + node + "\t-1\tpress",
                     std::string(id) + " presses its button");
     }
-    Expect(!router.Shared().from_title, "the pause menu means a game is in progress");
     {
         InterfaceModel quick = Load(models, "game-menu.json");
         quick.opening = 95;
@@ -226,10 +225,11 @@ static void Saves(const std::string &models)
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), "widget:save_load\tCONFIRM_NO\t-1\tpress", "← during a question answers no");
 
-    // From the title screen a load needs no question.
+    // From the title screen (its note, UiPass "saves" {from: title}) a load needs no question.
+    router.CloseInterface();
+    router.Pass("saves", ViewTree{"", "", {{"from", "title", {}}}});
     router.SetInterface(Load(models, "saves-load.json"));
     router.OnEvent({"primary", "click", ""});
-    router.Shared().from_title = true;
     surface.commands.clear();
     question.revision = 3;
     router.SetInterface(question);
@@ -238,7 +238,7 @@ static void Saves(const std::string &models)
            "load from the title screen: the question is answered at once");
     router.SetInterface(question);
     Expect(surface.commands.size() == 1, "and only once per revision");
-    router.Shared().from_title = false;
+    router.CloseInterface();
 
     router.SetInterface(Load(models, "saves-save.json"));
     ExpectEqual(surface.props["title"], "<save.title_save>", "save title");
@@ -651,7 +651,7 @@ static void Title(const std::string &models)
     router.SetInterface(Load(models, "title.json"));
     ExpectEqual(router.Using(), "mainmenu", "title is a ported screen");
     ExpectEqual(surface.tag, "s-title", "title mounted");
-    Expect(surface.errors.empty() && router.Shared().from_title, "no errors; the menus now run from the title screen");
+    Expect(surface.errors.empty(), "no errors");
     Expect(surface.props["primary"]["label"] == "<menu.continue>" && surface.props["buttons"].size() == 4,
            "«Продолжить» and four buttons");
     ExpectEqual(surface.props["primary"]["sub"], "Герой Альфа · Порт Альфа", "«Продолжить» names the newest record");
@@ -672,6 +672,8 @@ static void Title(const std::string &models)
         router.OnEvent({id, "click", ""});
         ExpectEqual(surface.Last(), std::string("main:") + command,
                     std::string(id) + " sends the engine's title command");
+        Expect(NoteField(router.Take("saves"), "from") == (std::string(command) == "Load" ? "title" : ""),
+               std::string(id) + ": only the save list is told it opens from the title");
     }
     router.OnEvent({"about", "click", ""});
     ExpectEqual(surface.Last(), "host app-about ", "«О программе» asks the host for its about page");
@@ -679,7 +681,6 @@ static void Title(const std::string &models)
     router.OnEvent({"continue", "click", ""});
     ExpectEqual(surface.Last(), "main:Continue",
                 "«Продолжить» asks the engine to load the newest record directly, no save list");
-    router.Shared().from_title = false;
     {
         // The host's «Продолжить» (titleIntent, the app's Game Loop test intent): once, at the next title build or at
         // once.
@@ -707,7 +708,6 @@ static void Title(const std::string &models)
         router.SetState("titleIntent", Json{{"intent", "New"}});
         Expect(surface.errors.size() == errors2 + 1, "an unknown intent is an error (title up)");
         surface.errors.clear();
-        router.Shared().from_title = false;
     }
 }
 

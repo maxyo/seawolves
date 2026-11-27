@@ -26,6 +26,7 @@
 #include <fstream>
 #include <map>
 #include <optional>
+#include <type_traits>
 
 namespace fs = std::filesystem;
 using storm::ui::Json;
@@ -190,9 +191,9 @@ struct Calls final : storm::ui::ScriptCall
     std::vector<std::string> calls, bound, modals;
     std::optional<Json> predicted;
     bool first = true;
-    std::string subject_screen; // the screen the subject is asked of, "" none (or taken)
-    storm::ui::SubjectView subject;
-    std::string answer; // of the hold the build is for
+    std::map<std::string, storm::ui::ViewTree> notes; // UiPass / UiTake, by screen
+    std::map<std::string, Json> states;               // UiState, by channel
+    std::string answer;                               // of the hold the build is for
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -233,42 +234,50 @@ struct Calls final : storm::ui::ScriptCall
     {
         calls.push_back("rebuild");
     }
-    std::optional<storm::ui::SubjectView> Subject(const std::string &screen) override
-    {
-        if (subject_screen.empty() || subject_screen != screen)
-            return std::nullopt;
-        subject_screen.clear();
-        return std::exchange(subject, {});
-    }
     bool First() const override
     {
         return first;
     }
-    void Host(const std::string &action) override
+    void Command(const storm::ui::ScriptCommand &command) override
     {
-        calls.push_back("host " + action);
+        calls.push_back(std::visit(
+            [](const auto &asked) {
+                using Kind = std::decay_t<decltype(asked)>;
+                if constexpr (std::is_same_v<Kind, storm::ui::HostCommand>)
+                    return "host " + asked.action;
+                else if constexpr (std::is_same_v<Kind, storm::ui::QuickCommand>)
+                    return "quick " + asked.which;
+                else
+                    return "title " + asked.command;
+            },
+            command));
     }
-    void QuickGame(const std::string &which) override
+    void Pass(const std::string &screen, const storm::ui::ViewTree &note) override
     {
-        calls.push_back("quick " + which);
+        std::string line = "pass " + screen;
+        for (const storm::ui::ViewTree &field : note.children)
+            line += " " + field.name + "=" + field.value;
+        calls.push_back(line);
+        notes[screen] = note;
     }
-    void TitleCommand(const std::string &command) override
+    std::optional<storm::ui::ViewTree> Take(const std::string &screen) override
     {
-        calls.push_back("title " + command);
+        const auto found = notes.find(screen);
+        if (found == notes.end())
+            return std::nullopt;
+        storm::ui::ViewTree note = std::move(found->second);
+        notes.erase(found);
+        return note;
     }
-    std::string intent; // the title's, as the death screen or the host left it
-    void AskTitle(const std::string &asked) override
+    std::optional<storm::ui::ViewTree> State(const std::string &channel) const override
     {
-        calls.push_back("ask title " + asked);
-        intent = asked;
-    }
-    std::string TitleAsked() override
-    {
-        return std::exchange(intent, std::string());
-    }
-    void MenusFrom(const std::string &where) override
-    {
-        calls.push_back("from " + where);
+        const auto found = states.find(channel);
+        if (found == states.end())
+            return std::nullopt;
+        storm::ui::ViewTree tree{channel, "", {}};
+        for (const auto &[key, value] : found->second.items())
+            tree.children.push_back({key, value.is_string() ? value.get<std::string>() : value.dump(), {}});
+        return tree;
     }
     void Toast(const std::string &text) override
     {
@@ -901,16 +910,16 @@ void CheckCases(const char *folder, const std::string &file)
         const auto spec = PackScreen(recorded.value("folder", std::string(folder)).c_str());
         Calls calls(*spec);
         calls.widgets = model.widgets;
-        calls.intent = recorded.value("intent", std::string()); // what the title is asked to open
-        if (recorded.contains("subject"))
+        // The notes waiting for the screen (UiTake): {screen: {field: value}}; the states of channels (UiState).
+        const Json notes = recorded.value("notes", Json::object()), states = recorded.value("states", Json::object());
+        for (const auto &[screen, fields] : notes.items())
         {
-            const Json &subject = recorded.at("subject");
-            calls.subject_screen = subject.at("screen");
-            calls.subject.quest = subject.value("quest", "");
-            calls.subject.position = subject.value("position", -1);
-            calls.subject.character = subject.value("character", -1);
-            calls.subject.tab = subject.value("tab", "");
+            storm::ui::ViewTree &note = calls.notes[screen];
+            for (const auto &[name, value] : fields.items())
+                note.children.push_back({name, value.is_string() ? value.get<std::string>() : value.dump(), {}});
         }
+        for (const auto &[channel, state] : states.items())
+            calls.states[channel] = state;
         SetGame(recorded);
         const auto &screen = Screen(vm, recorded.at("capability"));
         port.Build(screen, calls.Single(), calls);
@@ -1097,7 +1106,10 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     for (const auto &[capability, failure] :
          {std::pair{"nogame", "UiGameInt: the game has no global NoSuchGlobal"},
           std::pair{"gametext", "UiGameInt: the game's GameName is not an int"},
-          std::pair{"gamepath", "UiGameInt: the game has no GameInterface.TABLE_LIST.nothing"}})
+          std::pair{"gamepath", "UiGameInt: the game has no GameInterface.TABLE_LIST.nothing"},
+          // A command the engine has no kind for, or with a field its kind does not read.
+          std::pair{"command", "UiCommand: no command kind 'nosuch'"},
+          std::pair{"commandfield", "UiCommand: no field extra is known"}})
         CHECK_THROWS_WITH(
             port.Build({.capability = capability, .interface = capability, .component = "s-rest"}, {}, calls),
             Catch::Contains(failure));

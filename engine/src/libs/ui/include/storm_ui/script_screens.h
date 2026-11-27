@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace storm::ui
@@ -62,13 +63,22 @@ struct DealSpec
 };
 // The draft's amount on our side, its change from the origin and the button {label, sub, disabled, reason, busy}
 // (no children while there is none to press: the amount unchanged).
-// The subject another part of the interface asked a screen to show (the HUD's tap on a quest record, a character, a
-// ship): -1 and "" where it names none.
-struct SubjectView
+// What a script asks of the engine or the platform host that is not a node of the game's window (UiCommand), one
+// struct per kind: an action of the application's contract (app_ui_names.hpp host_action), the game's quick save or
+// load once the menu has resumed ("save", "load"), a command of the title interface ("New", "Load", …).
+struct HostCommand
 {
-    int character = -1, position = -1;
-    std::string tab, quest;
+    std::string action;
 };
+struct QuickCommand
+{
+    std::string which;
+};
+struct TitleCommand
+{
+    std::string command;
+};
+using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand>;
 
 struct DealView
 {
@@ -119,21 +129,16 @@ class ScriptCall
     virtual void Rebuild() = 0;
     // The first build of this opening of the interface: the script's own state starts afresh.
     virtual bool First() const = 0;
-    // Inside a build: the subject asked of screen `screen` (SubjectView), taken by this call; none without one.
-    virtual std::optional<SubjectView> Subject(const std::string &screen) = 0;
-
-    // The menus' engine commands, sent as the C++ menus sent them: a host action of the application's contract
-    // (app_ui_names.hpp host_action), the game's quick save or load ("save", "load": the screen resumes first), a
-    // title command ("New", "Load", "Options", "Credits", "Exit", "Continue"). Another name throws.
-    virtual void Host(const std::string &action) = 0;
-    virtual void QuickGame(const std::string &which) = 0;
-    virtual void TitleCommand(const std::string &command) = 0;
-    // What the title screen opens once, as if tapped: set by the death screen ("" none, "Load", "Options"), taken by
-    // the title (it also holds the host's "Continue"); and whether the menus now run from the title ("title") or over
-    // a game in progress ("game"): the save list loads a record from the title without a question.
-    virtual void AskTitle(const std::string &intent) = 0;
-    virtual std::string TitleAsked() = 0;
-    virtual void MenusFrom(const std::string &where) = 0;
+    // A command of the engine or the platform host; a value it does not know throws.
+    virtual void Command(const ScriptCommand &command) = 0;
+    // A note for screen `screen` that opens later (what the death screen asks of the title, the subject a HUD tap
+    // asks of the character screen): kept by the runtime across interfaces and script programs, replaced by a newer
+    // one, taken once.
+    virtual void Pass(const std::string &screen, const ViewTree &note) = 0;
+    virtual std::optional<ViewTree> Take(const std::string &screen) = 0;
+    // The last state the engine or the host published on state channel `channel` (app settings, the renderer's
+    // device caps), none before the first; a channel no consumer reads throws.
+    virtual std::optional<ViewTree> State(const std::string &channel) const = 0;
 
     virtual void Toast(const std::string &text) = 0;
     virtual void Read(const std::string &title, const std::string &text) = 0;

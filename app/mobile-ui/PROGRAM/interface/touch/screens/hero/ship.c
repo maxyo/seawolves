@@ -560,7 +560,7 @@ void TouchShip_Build()
 	TouchAdpShip_State(ui, game);
 	// A squadron ship tapped on the world map opened the screen: the game shows that one.
 	object asked;
-	if (UiSubject("ship", &asked))
+	if (UiTake("ship", &asked))
 	{
 		int position = sti(asked.position);
 		int count = TouchLib_Count(game, "ships");

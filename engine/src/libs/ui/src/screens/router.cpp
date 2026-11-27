@@ -431,9 +431,51 @@ void Bindings::ErrorOnce(const std::string &key, const std::string &text)
         Error(text);
 }
 
-std::optional<SubjectRequest> Bindings::TakeSubject(const std::string &screen)
+void Router::AttachHud(hud::Hud *hud)
 {
-    return router_.hud_ ? router_.hud_->TakeSubject(screen) : std::nullopt;
+    hud_ = hud;
+    if (hud)
+        hud->AttachRouter(this);
+}
+
+void Router::Pass(const std::string &screen, ViewTree what, double lapse)
+{
+    shared_.notes[screen] = Note{std::move(what), lapse == 0.0 ? 0.0 : surface_.Now() + lapse};
+}
+
+void Bindings::Pass(const std::string &screen, ViewTree what)
+{
+    router_.Pass(screen, std::move(what));
+}
+
+std::optional<ViewTree> Router::Take(const std::string &screen)
+{
+    const auto found = shared_.notes.find(screen);
+    if (found == shared_.notes.end())
+        return std::nullopt;
+    Note note = std::move(found->second);
+    shared_.notes.erase(found);
+    if (note.lapses != 0.0 && surface_.Now() > note.lapses)
+    {
+        surface_.Log("the " + screen + " screen opened after the note left for it lapsed");
+        return std::nullopt;
+    }
+    return std::move(note.what);
+}
+
+std::optional<ViewTree> Bindings::Take(const std::string &screen)
+{
+    return router_.Take(screen);
+}
+
+const Json &Bindings::State(const std::string &channel) const
+{
+    if (std::none_of(router_.consumers_.begin(), router_.consumers_.end(),
+                     [&](const auto &consumer) { return channel == consumer->Channel(); }))
+        throw std::runtime_error("no state channel " + channel + " is read");
+    static const Json none;
+    const auto found = router_.states_.find(channel);
+    return found == router_.states_.end() ? none : found->second;
 }
 
 void Bindings::Rebuild()
@@ -741,17 +783,19 @@ void Router::CloseGameInterface(const std::string &screen)
 
 void Router::SetState(const std::string &channel, const Json &state)
 {
-    bool consumed = false;
+    if (std::none_of(consumers_.begin(), consumers_.end(),
+                     [&](const auto &consumer) { return channel == consumer->Channel(); }))
+    {
+        surface_.Error("state channel " + channel + " has no consumer");
+        return;
+    }
+    // Before the consumers: a screen one of them builds again reads it (Bindings::State).
+    states_[channel] = state;
     for (const auto &consumer : consumers_)
         if (channel == consumer->Channel())
-        {
             // A consumer that throws: its state is dropped and reported (a screen it builds has
             // the screen boundary of Build).
             Consume(channel, "OnState", [&] { consumer->OnState(state, *this); });
-            consumed = true;
-        }
-    if (!consumed)
-        surface_.Error("state channel " + channel + " has no consumer");
 }
 
 void Router::SetDialogue(const Dialogue &dialogue)

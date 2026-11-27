@@ -2481,7 +2481,7 @@ static void OpenOnSubject(const std::string &models)
         Scripted(router);
         hud.RequestSubject({"character", 1, -1});
         router.SetInterface(Load(models, "hero.json"));
-        Expect(surface.commands.empty() && !hud.TakeSubject("character"),
+        Expect(surface.commands.empty() && !router.Take("character"),
                "the hero's portrait: the captain is already the subject, nothing to select");
         hud.RequestSubject({"character", 77, -1});
         InterfaceModel again = Load(models, "hero.json");

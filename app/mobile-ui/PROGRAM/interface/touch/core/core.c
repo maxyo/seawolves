@@ -30,20 +30,22 @@ native string UiAnswer();
 native void UiAwait();
 native void UiRebuild();
 native int UiFirst();
-// In a build: the subject another part of the interface asked this screen to show, out.{character, position, tab,
-// quest} (-1 and "" where it names none), taken once; 0 without one.
-native int UiSubject(string screen, aref out);
-
-// The menus' engine commands: a host action of the application ("app-about", "app-exit-to-main-menu", …), the
-// game's quick save or load after the menu resumes ("save", "load"), a title command ("New", "Load", "Options",
-// "Credits", "Exit", "Continue"); what the title opens once (UiAskTitle: "", "Load", "Options"; UiTitleAsked takes
-// it, also the host's "Continue"); where the menus run from ("title", "game").
-native void UiHost(string action);
-native void UiQuickGame(string which);
-native void UiTitle(string command);
-native void UiAskTitle(string intent);
-native string UiTitleAsked();
-native void UiMenusFrom(string where);
+// What a screen asks of the engine or the phone that is no node of the game's window: UiCommand(kind, &fields), one
+// object of named fields per kind; an unknown kind, a missing or unknown field or a value the engine does not know
+// fails the tap. Kinds: "host" {action: "app-about", "app-exit-to-main-menu", …}, "quick" {which: "save" | "load":
+// the game's quick key, pressed once the menu has resumed}, "title" {command: "New", "Load", "Options", "Credits",
+// "Exit", "Continue"}.
+native void UiCommand(string kind, aref fields);
+// A note for a screen that opens later, kept by the engine across interfaces and loads, taken once: UiPass(screen,
+// &note) replaces the one waiting; UiTake(screen, &out) gives it (1) or nothing (0). "title" {intent} (what the title
+// does once it is up: the death screen's choice, the host's "Continue"), "saves" {from: "title"} (the list loads a
+// record without a question), "character" / "ship" / "journal" {character, position, tab, quest} (a HUD tap's
+// subject; -1 and "" where it names none; it lapses unless taken soon).
+native void UiPass(string screen, aref note);
+native int UiTake(string screen, aref out);
+// The last state the engine or the phone published on a state channel ("appSettings", "renderCaps", …), 0 before
+// the first; a channel nothing reads fails.
+native int UiState(string channel, aref out);
 native void UiToast(string text);
 native void UiRead(string title, string text);
 native void UiEditText(string node, string title);
@@ -82,3 +84,4 @@ native void UiTreeLayout(aref nodes, aref edges, aref out);
 // .{capability, screen (the screen file's stem), look (the screen entry's presentation), data (the binding's), model
 // (the admitted widgets: <node>.{type, label, value, min, max, reason, offers.<verb>, context, headers, rows.r<index>})}.
 object UiScreens;
+

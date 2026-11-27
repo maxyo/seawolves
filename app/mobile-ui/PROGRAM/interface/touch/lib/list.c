@@ -268,3 +268,11 @@ void TouchLib_ShipSkills(aref skills, aref out)
 		at.tone = skill.tone;
 	}
 }
+
+// UiCommand of a kind with one field, on one line.
+void TouchLib_Command(string kind, string field, string value)
+{
+	object fields;
+	fields.(field) = value;
+	UiCommand(kind, &fields);
+}

@@ -1830,9 +1830,13 @@
      }
     ]
    },
-   "subject": {
-    "screen": "ship",
-    "position": 0
+   "notes": {
+    "ship": {
+     "character": -1,
+     "position": 0,
+     "tab": "",
+     "quest": ""
+    }
    },
    "events": [],
    "props": {

@@ -26,6 +26,10 @@ void BadBuild()
 	aref ui = GetEventData();
 	int two[2];
 	int at = 5;
+	object asked = {which = "save"};
+	if (ui.capability == "command") UiCommand("nosuch", &asked);
+	asked.extra = 1;
+	if (ui.capability == "commandfield") UiCommand("quick", &asked);
 	if (ui.capability == "fault") two[at] = 1; // a runtime error: the interpreter logs it and goes on
 	if (ui.capability == "gameint")
 	{

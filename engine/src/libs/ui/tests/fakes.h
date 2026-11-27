@@ -163,8 +163,9 @@ struct QuietSurface final : storm::ui::screens::Surface
     void Shown(const std::string &, const std::string &, const std::string &) const override
     {
     }
-    void Log(const std::string &) override
+    void Log(const std::string &line) override
     {
+        logs.push_back(line);
     }
     void Error(const std::string &line) override
     {
@@ -172,9 +173,21 @@ struct QuietSurface final : storm::ui::screens::Surface
     }
     double Now() const override
     {
-        return 0.0;
+        return now;
     }
+    std::vector<std::string> logs;
+    double now = 0.0;
 };
+
+// Field `name` of a note left for a screen (Router::Take), "" when it has none.
+inline std::string NoteField(const std::optional<storm::ui::ViewTree> &note, const std::string &name)
+{
+    if (note)
+        for (const storm::ui::ViewTree &field : note->children)
+            if (field.name == name)
+                return field.value;
+    return "";
+}
 
 // Records what a HUD scene shows and sends.
 struct FakeMount final : storm::ui::hud::Mount

@@ -245,59 +245,76 @@ uint32_t UiFirst(VS_STACK *stack)
     return ReturnInt(stack, "UiFirst", [](storm::ui::ScriptCall &call) { return call.First(); });
 }
 
-// UiSubject(screen, &out): out becomes {character, position, tab, quest} of the subject asked of that screen (1), or
-// nothing (0).
-uint32_t UiSubject(VS_STACK *stack)
+// `out`'s attributes become `tree`'s children, emptied first.
+void Write(ATTRIBUTES &out, const storm::ui::ViewTree &tree)
 {
-    ATTRIBUTES *out = PopObject(stack);
-    const std::string screen = PopText(stack);
-    return ReturnInt(stack, "UiSubject", [&](storm::ui::ScriptCall &call) {
-        while (out->GetAttributesNum() != 0)
-            out->DeleteAttributeClassX(out->GetAttributeClass(0u));
-        const std::optional<storm::ui::SubjectView> subject = call.Subject(screen);
-        if (!subject)
-            return 0;
-        out->SetAttribute("character", std::to_string(subject->character));
-        out->SetAttribute("position", std::to_string(subject->position));
-        out->SetAttribute("tab", subject->tab);
-        out->SetAttribute("quest", subject->quest);
-        return 1;
+    while (out.GetAttributesNum() != 0)
+        out.DeleteAttributeClassX(out.GetAttributeClass(0u));
+    for (const storm::ui::ViewTree &child : tree.children)
+    {
+        ATTRIBUTES &at = out.CreateAttribute(child.name);
+        at.SetValue(child.value);
+        Write(at, child);
+    }
+}
+
+// UiCommand(kind, &fields): one struct per kind, each field named; an unknown kind or field fails.
+storm::ui::ScriptCommand Command(const std::string &kind, Fields &fields)
+{
+    using namespace storm::ui;
+    static const std::pair<const char *, ScriptCommand (*)(Fields &)> kinds[] = {
+        {"host", [](Fields &f) -> ScriptCommand { return HostCommand{f.Text("action")}; }},
+        {"quick", [](Fields &f) -> ScriptCommand { return QuickCommand{f.Text("which")}; }},
+        {"title", [](Fields &f) -> ScriptCommand { return TitleCommand{f.Text("command")}; }},
+    };
+    for (const auto &[name, make] : kinds)
+        if (kind == name)
+        {
+            ScriptCommand command = make(fields);
+            fields.Done();
+            return command;
+        }
+    throw std::runtime_error("no command kind '" + kind + "'");
+}
+
+uint32_t UiCommand(VS_STACK *stack)
+{
+    ATTRIBUTES *fields = PopObject(stack);
+    const std::string kind = PopText(stack);
+    return Native("UiCommand", [&](storm::ui::ScriptCall &call) {
+        Fields read(*fields);
+        call.Command(Command(kind, read));
     });
 }
 
-uint32_t UiHost(VS_STACK *stack)
+uint32_t UiPass(VS_STACK *stack)
 {
-    const std::string action = PopText(stack);
-    return Native("UiHost", [&](storm::ui::ScriptCall &call) { call.Host(action); });
+    ATTRIBUTES *note = PopObject(stack);
+    const std::string screen = PopText(stack);
+    return Native("UiPass", [&](storm::ui::ScriptCall &call) { call.Pass(screen, Tree(*note)); });
 }
 
-uint32_t UiQuickGame(VS_STACK *stack)
+// UiTake(screen, &out) and UiState(channel, &out): out becomes the note or the state (1), or is emptied (0).
+uint32_t UiTake(VS_STACK *stack)
 {
-    const std::string which = PopText(stack);
-    return Native("UiQuickGame", [&](storm::ui::ScriptCall &call) { call.QuickGame(which); });
+    ATTRIBUTES *out = PopObject(stack);
+    const std::string screen = PopText(stack);
+    return ReturnInt(stack, "UiTake", [&](storm::ui::ScriptCall &call) {
+        const std::optional<storm::ui::ViewTree> note = call.Take(screen);
+        Write(*out, note.value_or(storm::ui::ViewTree{}));
+        return note.has_value();
+    });
 }
 
-uint32_t UiTitle(VS_STACK *stack)
+uint32_t UiState(VS_STACK *stack)
 {
-    const std::string command = PopText(stack);
-    return Native("UiTitle", [&](storm::ui::ScriptCall &call) { call.TitleCommand(command); });
-}
-
-uint32_t UiAskTitle(VS_STACK *stack)
-{
-    const std::string intent = PopText(stack);
-    return Native("UiAskTitle", [&](storm::ui::ScriptCall &call) { call.AskTitle(intent); });
-}
-
-uint32_t UiTitleAsked(VS_STACK *stack)
-{
-    return ReturnText(stack, "UiTitleAsked", [](storm::ui::ScriptCall &call) { return call.TitleAsked(); });
-}
-
-uint32_t UiMenusFrom(VS_STACK *stack)
-{
-    const std::string where = PopText(stack);
-    return Native("UiMenusFrom", [&](storm::ui::ScriptCall &call) { call.MenusFrom(where); });
+    ATTRIBUTES *out = PopObject(stack);
+    const std::string channel = PopText(stack);
+    return ReturnInt(stack, "UiState", [&](storm::ui::ScriptCall &call) {
+        const std::optional<storm::ui::ViewTree> state = call.State(channel);
+        Write(*out, state.value_or(storm::ui::ViewTree{}));
+        return state.has_value();
+    });
 }
 
 uint32_t UiToast(VS_STACK *stack)
@@ -755,14 +772,11 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiAwait", "void", 0, UiAwait},
             {"UiRebuild", "void", 0, UiRebuild},
             {"UiFirst", "int", 0, UiFirst},
-            {"UiSubject", "int", 2, UiSubject},
+            {"UiCommand", "void", 2, UiCommand},
+            {"UiPass", "void", 2, UiPass},
+            {"UiTake", "int", 2, UiTake},
+            {"UiState", "int", 2, UiState},
             {"UiToast", "void", 1, UiToast},
-            {"UiHost", "void", 1, UiHost},
-            {"UiQuickGame", "void", 1, UiQuickGame},
-            {"UiTitle", "void", 1, UiTitle},
-            {"UiAskTitle", "void", 1, UiAskTitle},
-            {"UiTitleAsked", "string", 0, UiTitleAsked},
-            {"UiMenusFrom", "void", 1, UiMenusFrom},
             {"UiRead", "void", 2, UiRead},
             {"UiEditText", "void", 2, UiEditText},
             {"UiError", "void", 1, UiError},

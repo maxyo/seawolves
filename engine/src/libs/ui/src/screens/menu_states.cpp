@@ -22,7 +22,7 @@ class TitleIntentConsumer final : public StateConsumer
     {
         if (state.is_object() && state.contains("intent") && state["intent"] == "Continue")
         {
-            router.Shared().title_intent = "Continue";
+            router.Pass("title", ViewTree{"", "", {{"intent", "Continue", {}}}});
             // Asked while the title is up (after the automatic preset measured it): act now, not at its next build.
             if (router.Using() == "mainmenu")
                 router.RebuildActive();

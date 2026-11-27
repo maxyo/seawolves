@@ -343,14 +343,16 @@ class Hud
     // Event lines shown top-centre by the scene's `log` element; newest first.
     Json LogLines() const;
 
-    // A tap on a party portrait or a squadron ship opens a game screen on that subject: the
-    // scene sends the opening shortcut and leaves the subject here; the screen that opens takes
-    // it once (the character script screen: UiSubject, the switch over the people; the ship screen's script: the
-    // squadron's ship). A request nobody takes lapses after kSubjectSeconds.
+    // A tap on a party portrait or a squadron ship opens a game screen on that subject: the scene sends the opening
+    // shortcut and passes the subject to that screen (Router::Pass), which takes it once (UiTake); one nobody takes
+    // lapses after kSubjectSeconds (the game may refuse to open the screen).
     static constexpr double kSubjectSeconds = 5.0;
     void RequestSubject(const SubjectRequest &request);
-    // The pending subject of `screen` ("character" | "ship"), cleared by taking it.
-    std::optional<SubjectRequest> TakeSubject(const std::string &screen);
+    // The router the subjects go to (Router::AttachHud).
+    void AttachRouter(screens::Router *router)
+    {
+        router_ = router;
+    }
 
     // A scene sent what leads into a scene change (a fast-travel place chosen): the HUD stays
     // hidden from now until the game reports the transition (gameplay blocked "transition" or
@@ -446,7 +448,7 @@ class Hud
     bool transition_accepted_ = false;
     double transition_until_ = -1.0; // ExpectTransition: hidden until then at most (-1 = none)
     std::string transition_what_;
-    std::optional<SubjectRequest> subject_;
+    screens::Router *router_ = nullptr;
     std::span<const SceneEntry> scenes_;
     States states_;
     const SceneEntry *entry_ = nullptr;

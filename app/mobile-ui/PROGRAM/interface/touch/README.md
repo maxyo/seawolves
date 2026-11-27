@@ -108,20 +108,26 @@ The natives (`core/core.c`):
   `UiTap(ui, commit, "", change)`. The deal owns the screen's `primary`: a screen whose primary is something else, or
   with several amounts (the self repair's parts), binds its controls' `change`/`commit` itself and asks the game;
 - `UiOrder(list, field, descending)`: a stable order by a whole number; `UiRebuild`, `UiFirst`;
-- `UiSubject(screen, out)` in a build: the subject another part of the interface asked that screen to show (the
-  HUD's tap on a quest record: `out.quest`; a character, a ship: `out.character`, `out.position`; `out.tab`), taken
-  once; 0 without one;
 - `UiTreeLayout(nodes, edges, out)`: where the icons of a tree stand and how its links run (the perk tree);
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
 - the game's state that no model shows: `UiGameInt(path)`, a whole number of a global ("iHourWait") or of an
   attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
   open interface, which a segment attached before that interface cannot name. Absent or not a whole number, it fails.
   The checks give such globals per recorded state (a case's `game`);
-- the menus' engine commands, sent as the router's own: `UiHost(action)` (a host action of the application's
-  contract: `app-about`, `app-exit-to-main-menu`, …), `UiQuickGame("save"|"load")` (the engine presses the game's
-  quick key once the menu has resumed), `UiTitle(command)` (the title's `New`, `Load`, `Options`, `Credits`, `Exit`,
-  `Continue`); what the title opens once, `UiAskTitle("" | "Load" | "Options")` and `UiTitleAsked()` (takes it, also
-  the host's `Continue`); `UiMenusFrom("title" | "game")` (the save list loads from the title without a question);
+- what is asked of the engine or the phone that is no node of the game's window: `UiCommand(kind, &fields)`, one
+  object of named fields per kind (`TouchLib_Command(kind, field, value)` for one field): `"host"` {action} (a host
+  action of the application's contract: `app-about`, `app-exit-to-main-menu`, …), `"quick"` {which: `save` | `load`}
+  (the engine presses the game's quick key once the menu has resumed), `"title"` {command: `New`, `Load`, `Options`,
+  `Credits`, `Exit`, `Continue`}. An unknown kind, a missing or unknown field or a value the engine does not know
+  fails the tap. A new engine or host command is a new kind (the table in `ui_host/src/scripts/script_port.cpp` and
+  its struct in `storm_ui/script_screens.h`), never a new native;
+- a note for a screen that opens later, which outlives the script program (a load resets it): `UiPass(screen,
+  &note)` replaces the one waiting, `UiTake(screen, &out)` takes it once (0 without one). `"title"` {intent} (the
+  death screen's choice, the host's `Continue`), `"saves"` {from: `title`} (the list loads without a question),
+  `"character"`, `"ship"`, `"journal"` {character, position, tab, quest} (a HUD tap's subject; it lapses if the
+  screen does not open soon);
+- `UiState(channel, &out)`: the last state the engine or the phone published on a state channel (`appSettings`,
+  `renderCaps`, …), 0 before the first; a channel nothing reads fails;
 - `UiToast`, `UiRead`, `UiError(text)`;
 - `UiEditText(node, title)` in a tap: the phone's text editor over the game's field `node` with its text; the text
   the player accepts goes to the field as its `edit` (the game's own handler takes it), nothing when he cancels.

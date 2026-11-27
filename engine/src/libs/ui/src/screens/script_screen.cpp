@@ -12,6 +12,7 @@
 #include <set>
 #include <stdexcept>
 #include <utility>
+#include <variant>
 
 namespace storm::ui::screens
 {
@@ -226,56 +227,70 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         return first_;
     }
-    std::optional<SubjectView> Subject(const std::string &screen) override
+    void Command(const ScriptCommand &command) override
     {
-        if (!building_)
-            throw std::runtime_error("a subject is taken only while the screen builds");
-        const std::optional<SubjectRequest> request = bindings_->TakeSubject(screen);
-        if (!request)
-            return std::nullopt;
-        return SubjectView{request->character, request->position, request->tab, request->quest};
+        std::visit([this](const auto &asked) { Run(asked); }, command);
     }
-    void Host(const std::string &action) override
+    void Run(const HostCommand &command)
     {
         namespace host = app::host_action;
         for (const char *known : {host::app_about, host::app_cache_clear, host::app_cache_measure,
                                   host::app_exit_to_main_menu, host::app_settings})
-            if (action == known)
-                return bindings_->SendHost(action, "");
-        throw std::runtime_error("'" + action + "' is not a host action of the application");
+            if (command.action == known)
+                return bindings_->SendHost(command.action, "");
+        throw std::runtime_error("'" + command.action + "' is not a host action of the application");
     }
-    void QuickGame(const std::string &which) override
+    void Run(const QuickCommand &command)
     {
-        if (which != "save" && which != "load")
-            throw std::runtime_error("'" + which + "' is neither the quick save nor the quick load");
-        bindings_->QuickGame(which);
+        if (command.which != "save" && command.which != "load")
+            throw std::runtime_error("'" + command.which + "' is neither the quick save nor the quick load");
+        bindings_->QuickGame(command.which);
     }
     // The title's commands go out as presses of command widgets of the title interface (the router's "main:").
-    void TitleCommand(const std::string &command) override
+    void Run(const TitleCommand &command)
     {
-        if (command != "New" && command != "Load" && command != "Options" && command != "Credits" &&
-            command != "Exit" && command != "Continue")
-            throw std::runtime_error("'" + command + "' is not a title command");
+        const std::string &name = command.command;
+        if (name != "New" && name != "Load" && name != "Options" && name != "Credits" && name != "Exit" &&
+            name != "Continue")
+            throw std::runtime_error("'" + name + "' is not a title command");
         Widget widget;
-        widget.node = command;
+        widget.node = name;
         widget.type = "button";
         bindings_->Send(widget, "press");
     }
-    void AskTitle(const std::string &intent) override
+    void Pass(const std::string &screen, const ViewTree &note) override
     {
-        if (!intent.empty() && intent != "Load" && intent != "Options")
-            throw std::runtime_error("'" + intent + "' is not what the title screen opens");
-        bindings_->Shared().title_intent = intent;
+        bindings_->Pass(screen, note);
     }
-    std::string TitleAsked() override
+    std::optional<ViewTree> Take(const std::string &screen) override
     {
-        return std::exchange(bindings_->Shared().title_intent, std::string());
+        return bindings_->Take(screen);
     }
-    void MenusFrom(const std::string &where) override
+    std::optional<ViewTree> State(const std::string &channel) const override
     {
-        if (where != "title" && where != "game")
-            throw std::runtime_error("the menus run from the title or a game, not '" + where + "'");
-        bindings_->Shared().from_title = where == "title";
+        const Json &state = bindings_->State(channel);
+        if (state.is_null())
+            return std::nullopt;
+        return Tree(channel, state);
+    }
+    // A channel's JSON as the VM's attributes hold it: an array's items named by their place, true and false as 1
+    // and 0, null as an empty text.
+    static ViewTree Tree(const std::string &name, const Json &json)
+    {
+        ViewTree tree{name, {}, {}};
+        if (json.is_object())
+            for (const auto &[key, value] : json.items())
+                tree.children.push_back(Tree(key, value));
+        else if (json.is_array())
+            for (size_t n = 0; n < json.size(); n++)
+                tree.children.push_back(Tree(std::to_string(n), json[n]));
+        else if (json.is_string())
+            tree.value = json.get<std::string>();
+        else if (json.is_boolean())
+            tree.value = json.get<bool>() ? "1" : "0";
+        else if (!json.is_null())
+            tree.value = json.dump();
+        return tree;
     }
     void Toast(const std::string &text) override
     {

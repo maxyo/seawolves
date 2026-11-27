@@ -5434,9 +5434,13 @@
     ],
     "title": "Судовой журнал"
    },
-   "subject": {
-    "quest": "Q_MAP",
-    "screen": "journal"
+   "notes": {
+    "journal": {
+     "character": -1,
+     "position": -1,
+     "tab": "",
+     "quest": "Q_MAP"
+    }
    }
   }
  ]

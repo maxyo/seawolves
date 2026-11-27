@@ -680,7 +680,7 @@ void TouchCharacter_Dialog(aref ui, aref game, aref view)
 void TouchCharacter_Asked(aref ui, aref game)
 {
 	object subject;
-	if (UiSubject("character", &subject))
+	if (UiTake("character", &subject))
 	{
 		if (subject.tab == "perks") TouchCharacter.tab = "perks";
 		TouchCharacter.asked = subject.character;

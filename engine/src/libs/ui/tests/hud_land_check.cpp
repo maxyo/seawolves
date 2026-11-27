@@ -339,14 +339,14 @@ struct ExploreRun
             const auto key = [&](size_t i) { return lines[i]["key"].get<std::string>(); };
             bench.Press("log", "open", key(1));
             ExpectEqual(mount.Last(), "shortcut:journalscreen", "a quest record opens the journal");
-            const auto journal = bench.hud.TakeSubject("journal");
-            Expect(journal && journal->quest == "Sharlie", "… on that quest");
+            const auto journal = bench.router.Take("journal");
+            Expect(NoteField(journal, "quest") == "Sharlie", "… on that quest");
             bench.Frame();
             Expect(mount.shown.elements["log"]["lines"][1]["leaving"] == true, "the tapped line is dismissed");
             bench.Press("log", "open", key(2));
             ExpectEqual(mount.Last(), "shortcut:characterscreen", "a new level opens the character screen");
-            const auto character = bench.hud.TakeSubject("character");
-            Expect(character && character->character == 12 && character->tab == "perks",
+            const auto character = bench.router.Take("character");
+            Expect(NoteField(character, "character") == "12" && NoteField(character, "tab") == "perks",
                    "… of that character, on its abilities");
             const size_t sent = mount.commands.size();
             bench.Press("log", "open", key(0));
@@ -707,17 +707,17 @@ static void CheckStatus()
     mount.commands.clear();
     bench.Press("party", "member", "2");
     ExpectEqual(mount.Last(), "shortcut:characterscreen", "a tap on an officer opens the character screen");
-    auto subject = bench.hud.TakeSubject("character");
-    Expect(subject && subject->character == 32 && !bench.hud.TakeSubject("character"),
+    auto subject = bench.router.Take("character");
+    Expect(NoteField(subject, "character") == "32" && !bench.router.Take("character"),
            "… on that officer (character 32), taken once");
     bench.Press("party", "member", "0");
-    subject = bench.hud.TakeSubject("character");
-    Expect(subject && subject->character == 1 && !bench.hud.TakeSubject("ship"),
+    subject = bench.router.Take("character");
+    Expect(NoteField(subject, "character") == "1" && !bench.router.Take("ship"),
            "the hero's portrait: the character screen on the hero");
     bench.Press("party", "member", "0");
     bench.Frame(Hud::kSubjectSeconds + 1.0);
-    Expect(!bench.hud.TakeSubject("character") && !mount.logs.empty() &&
-               mount.logs.back().find("lapsed") != std::string::npos,
+    Expect(!bench.router.Take("character") && !bench.surface.logs.empty() &&
+               bench.surface.logs.back().find("lapsed") != std::string::npos,
            "a request no screen takes in time lapses, and that is said");
 
     Json combat = State("combat-melee");

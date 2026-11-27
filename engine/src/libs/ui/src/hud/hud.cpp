@@ -149,21 +149,19 @@ void HoldSet::Send(const std::string &control, const Held &held, const Gameplay 
 
 void Hud::RequestSubject(const SubjectRequest &request)
 {
-    subject_ = request;
-    subject_->until = Now() + kSubjectSeconds;
-}
-
-std::optional<SubjectRequest> Hud::TakeSubject(const std::string &screen)
-{
-    if (!subject_ || subject_->screen != screen)
-        return std::nullopt;
-    std::optional<SubjectRequest> taken;
-    if (Now() <= subject_->until)
-        taken = subject_;
-    else
-        Log("HUD: the " + screen + " screen opened after its subject request lapsed; it shows its own first subject");
-    subject_.reset();
-    return taken;
+    if (!router_)
+    {
+        Error("HUD: no router takes the subject of the " + request.screen + " screen");
+        return;
+    }
+    ViewTree note;
+    for (const auto &[name, value] :
+         {std::pair<const char *, std::string>{"character", std::to_string(request.character)},
+          {"position", std::to_string(request.position)},
+          {"tab", request.tab},
+          {"quest", request.quest}})
+        note.children.push_back({name, value, {}});
+    router_->Pass(request.screen, std::move(note), kSubjectSeconds);
 }
 
 Json MemberCell(const std::string &name, const Picture &picture, std::initializer_list<MemberBar> bars, bool tap)

@@ -62,11 +62,11 @@ static void CheckScene()
            "the squadron: the map signs' ship pictures with hull, sails and crew inside: " + ships.dump());
     // A tap on a ship opens the ship screen on it.
     bench.Press("fleet", "ship", "1");
-    const auto subject = bench.hud.TakeSubject("ship");
-    Expect(mount.Last() == "shortcut:shipscreen" && subject && subject->position == 1,
+    const auto subject = bench.router.Take("ship");
+    Expect(mount.Last() == "shortcut:shipscreen" && NoteField(subject, "position") == "1",
            "a tap on a ship opens the ship screen on that ship: " + mount.Last());
     bench.Press("fleet", "ship", "5");
-    Expect(mount.Last() == "shortcut:shipscreen" && !bench.hud.TakeSubject("ship"),
+    Expect(mount.Last() == "shortcut:shipscreen" && !bench.router.Take("ship"),
            "a ship that is not there opens nothing");
     Expect(shown["compass"]["course"] == 130 && shown["compass"]["windFrom"] == 140 && shown["compass"]["wind"] == 82 &&
                shown["compass"]["time"] == "12:31" && shown["compass"]["days"] == "18" &&

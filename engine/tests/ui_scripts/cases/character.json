@@ -1683,10 +1683,7 @@
      }
     ]
    },
-   "subject": {
-    "screen": "character",
-    "tab": "perks"
-   },
+   "notes": {"character": {"character": -1, "position": -1, "tab": "perks", "quest": ""}},
    "props": {
     "card": {
      "actions": [],
@@ -2615,10 +2612,7 @@
      }
     ]
    },
-   "subject": {
-    "screen": "character",
-    "character": 12
-   },
+   "notes": {"character": {"character": 12, "position": -1, "tab": "", "quest": ""}},
    "props": {
     "card": {
      "actions": [],
@@ -7109,10 +7103,7 @@
      }
     ]
    },
-   "subject": {
-    "screen": "character",
-    "tab": "perks"
-   },
+   "notes": {"character": {"character": -1, "position": -1, "tab": "perks", "quest": ""}},
    "props": {
     "card": {
      "actions": [],

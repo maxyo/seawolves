@@ -101,6 +101,7 @@ struct Bench
     void Frame(double seconds = 0.0)
     {
         mount.now += seconds;
+        surface.now = mount.now;
         hud.Tick();
         hud.Drawn();
     }

@@ -1,5 +1,5 @@
 {
- "$comment": "The menus' script on recorded models, per capability (folder: the pack screen): the props its view gives, the modal it binds and the calls its build and events make; intent: what the title is asked to open.",
+ "$comment": "The menus' script on recorded models, per capability (folder: the pack screen): the props its view gives, the modal it binds and the calls its build and events make; notes: what waits for the screen (UiTake).",
  "cases": [
   {
    "name": "the title with a record: continue names it, every command the engine's",
@@ -104,9 +104,9 @@
    },
    "modals": [],
    "calls": [
-    "from title",
     "title Continue",
     "title New",
+    "pass saves from=title",
     "title Load",
     "title Options",
     "title Credits",
@@ -169,9 +169,7 @@
     }
    },
    "modals": [],
-   "calls": [
-    "from title"
-   ]
+   "calls": []
   },
   {
    "name": "the title opens what the death screen chose",
@@ -196,7 +194,7 @@
      }
     ]
    },
-   "intent": "Load",
+   "notes": {"title": {"intent": "Load"}},
    "events": [],
    "props": {
     "about": {
@@ -241,7 +239,7 @@
    },
    "modals": [],
    "calls": [
-    "from title",
+    "pass saves from=title",
     "title Load"
    ]
   },
@@ -257,7 +255,7 @@
     "screen": "mainmenu",
     "widgets": []
    },
-   "intent": "Continue",
+   "notes": {"title": {"intent": "Continue"}},
    "events": [],
    "props": {
     "about": {
@@ -302,7 +300,6 @@
    },
    "modals": [],
    "calls": [
-    "from title",
     "toast <menu.no_saves>"
    ]
   },
@@ -487,7 +484,6 @@
    },
    "modals": [],
    "calls": [
-    "from game",
     "back ",
     "quick save",
     "back ",
@@ -654,7 +650,6 @@
    },
    "modals": [],
    "calls": [
-    "from game",
     "back ",
     "quick load"
    ]
@@ -816,7 +811,6 @@
    },
    "modals": [],
    "calls": [
-    "from game",
     "send MB_EXITMENU press "
    ]
   },
@@ -990,7 +984,6 @@
     "confirm confirm-cancel"
    ],
    "calls": [
-    "from game",
     "host app-exit-to-main-menu",
     "send CONFIRM_EXIT_YES press ",
     "send CONFIRM_EXIT_NO press "
@@ -1109,9 +1102,9 @@
    },
    "modals": [],
    "calls": [
-    "ask title Load",
+    "pass title intent=Load",
     "send END press ",
-    "ask title ",
+    "pass title intent=",
     "send END press "
    ]
   }
