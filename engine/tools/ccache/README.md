@@ -19,8 +19,8 @@ same result, only rebuilds take longer, and configuring a CMake project prints
   `CCACHE_COMPILERCHECK=content`, sloppiness `include_file_ctime,include_file_mtime,time_macros,locale`,
   `CCACHE_MAXSIZE=30G` and compression.
 - Compile definitions hold no absolute paths (`-DX="/abs/path"`): they would differ between checkouts and miss
-  the cache. A header generated into a build include directory carries such paths instead (as
-  `src/libs/diagnostics/include/watermark.hpp` does).
+  every compile of the target. Text that differs per checkout or commit (the build stamp) goes into a generated
+  header that one small file includes (`cmake/build_watermark.cpp`): only that file misses.
 - Two checkouts share cache hits when their build directories lie at the same depth: `build/<name>`, or the
   script defaults (`build/android-ci/<name>`).
 - Pinned FetchContent sources are fetched once per machine into `~/.cache/storm-deps/fetchcontent/`
@@ -32,6 +32,8 @@ same result, only rebuilds take longer, and configuring a CMake project prints
   (`src/libs/renderer_bgfx/cmake/storm_shaderc.cmake`; `-DSTORM_SHADERC=<binary>` overrides); compiled shaders
   are cached by content in `~/.cache/storm-deps/shader-cache`.
 - Android Release (ThinLTO) links with lld's ThinLTO cache `~/.cache/storm-deps/thinlto-cache`.
+- Host builds link with [mold](https://github.com/rui314/mold) when it is installed (`cmake/StormBuildCache.cmake`);
+  without it, with the default linker.
 
 ## Useful commands
 

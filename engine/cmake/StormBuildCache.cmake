@@ -22,6 +22,17 @@ foreach(lang C CXX)
     endif()
 endforeach()
 
+# Host builds link with mold when it is installed: a host check relinks in a tenth of GNU ld's time, and one edit of
+# a library relinks every check that uses it. Without mold the default linker links the same programs.
+if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT CMAKE_CROSSCOMPILING)
+    find_program(STORM_MOLD_PROGRAM mold NO_CACHE)
+    if(STORM_MOLD_PROGRAM)
+        add_link_options(-fuse-ld=mold)
+    else()
+        message(STATUS "mold not found: linking with the default linker (installing mold makes relinks faster)")
+    endif()
+endif()
+
 if(NOT STORM_DEPS_CACHE)
     if(DEFINED ENV{STORM_DEPS_CACHE})
         set(STORM_DEPS_CACHE "$ENV{STORM_DEPS_CACHE}")

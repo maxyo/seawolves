@@ -46,14 +46,16 @@ inline int findBuildId(dl_phdr_info *info, size_t, void *data)
         const auto &segment = info->dlpi_phdr[i];
         if (segment.p_type != PT_NOTE)
             continue;
-        const size_t alignment = segment.p_align >= 8 ? 8 : 4;
         const auto *notes = reinterpret_cast<const unsigned char *>(info->dlpi_addr + segment.p_vaddr);
         for (size_t at = 0; at + sizeof(ElfW(Nhdr)) <= segment.p_memsz;)
         {
             ElfW(Nhdr) note;
             std::memcpy(&note, notes + at, sizeof note);
+            // Only GNU property notes are 8-aligned; mold puts them in one PT_NOTE (p_align 8) with the 4-aligned
+            // ABI tag and build ID, which GNU ld and lld give segments of their own.
+            const size_t alignment = segment.p_align >= 8 && note.n_type == NT_GNU_PROPERTY_TYPE_0 ? 8 : 4;
             const size_t name = at + sizeof note;
-            const size_t desc = name + noteAlign(note.n_namesz, alignment);
+            const size_t desc = at + noteAlign(sizeof note + note.n_namesz, alignment);
             const size_t next = desc + noteAlign(note.n_descsz, alignment);
             if (next > segment.p_memsz)
                 break;
