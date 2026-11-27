@@ -1,5 +1,7 @@
 #include "xi_border.h"
 
+#include <spdlog/spdlog.h>
+
 #include "core.h"
 
 #include "v_file_service.h"
@@ -252,6 +254,19 @@ void CXI_BORDER::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const 
         pPictureService->GetTexturePos(m_nRightLinePicture, m_frRightLineUV);
     m_nRightLineWidth = GetIniLong(ini1, name1, ini2, name2, "rightline_width", 5);
 
+    // the frame's lines and corners drawn inside (or outside) the node's rectangle by these distances
+    m_rFrameOffset = GetIniLongRect(ini1, name1, ini2, name2, "frameoffset", XYRECT{0, 0, 0, 0});
+    // the line under the caption: its own picture, else the top line's
+    m_frCaptionLineUV = m_frTopLineUV;
+    if (ReadIniString(ini1, name1, ini2, name2, "captionline_pic", param, sizeof(param), ""))
+    {
+        const int32_t picture = pPictureService->GetImageNum(m_sGroupName.c_str(), param);
+        if (picture < 0)
+            spdlog::error("FRAME {}: captionline_pic: no picture '{}' in '{}'", m_nodeName, param, m_sGroupName);
+        else
+            pPictureService->GetTexturePos(picture, m_frCaptionLineUV);
+    }
+
     if (m_pCaptionImage && m_nCaptionHeight > 0)
     {
         XYRECT rCapRect{};
@@ -294,6 +309,8 @@ void CXI_BORDER::FillVertexBuffers()
         return;
     auto *pV = static_cast<XI_ONETEX_VERTEX *>(m_rs->LockVertexBuffer(m_idVBuf));
 
+    const XYRECT r{m_rect.left + m_rFrameOffset.left, m_rect.top + m_rFrameOffset.top,
+                   m_rect.right + m_rFrameOffset.right, m_rect.bottom + m_rFrameOffset.bottom};
     for (int32_t n = 0; n < m_nSquareQ * 4; n++)
     {
         pV[n].color = m_dwColor;
@@ -301,37 +318,37 @@ void CXI_BORDER::FillVertexBuffers()
     }
 
     // top line
-    WriteVertexForSquare(&pV[0], m_frTopLineUV, m_dwColor, m_rect.left + m_pntLeftTopSize.x, m_rect.top,
-                         m_rect.right - m_pntRightTopSize.x, m_rect.top + m_nTopLineHeight);
+    WriteVertexForSquare(&pV[0], m_frTopLineUV, m_dwColor, r.left + m_pntLeftTopSize.x, r.top,
+                         r.right - m_pntRightTopSize.x, r.top + m_nTopLineHeight);
     // bottom line
-    WriteVertexForSquare(&pV[4], m_frBottomLineUV, m_dwColor, m_rect.left + m_pntLeftTopSize.x,
-                         m_rect.bottom - m_nBottomLineHeight, m_rect.right - m_pntRightTopSize.x, m_rect.bottom);
+    WriteVertexForSquare(&pV[4], m_frBottomLineUV, m_dwColor, r.left + m_pntLeftTopSize.x,
+                         r.bottom - m_nBottomLineHeight, r.right - m_pntRightTopSize.x, r.bottom);
     // left line
-    WriteVertexForSquare(&pV[8], m_frLeftLineUV, m_dwColor, m_rect.left, m_rect.top + m_pntLeftTopSize.y,
-                         m_rect.left + m_nLeftLineWidth, m_rect.bottom - m_pntLeftBottomSize.y);
+    WriteVertexForSquare(&pV[8], m_frLeftLineUV, m_dwColor, r.left, r.top + m_pntLeftTopSize.y,
+                         r.left + m_nLeftLineWidth, r.bottom - m_pntLeftBottomSize.y);
     // right line
-    WriteVertexForSquare(&pV[12], m_frRightLineUV, m_dwColor, m_rect.right - m_nRightLineWidth,
-                         m_rect.top + m_pntRightTopSize.y, m_rect.right, m_rect.bottom - m_pntRightBottomSize.y);
+    WriteVertexForSquare(&pV[12], m_frRightLineUV, m_dwColor, r.right - m_nRightLineWidth,
+                         r.top + m_pntRightTopSize.y, r.right, r.bottom - m_pntRightBottomSize.y);
     // left top corner
-    WriteVertexForSquare(&pV[16], m_frLeftTopUV, m_dwColor, m_rect.left, m_rect.top, m_rect.left + m_pntLeftTopSize.x,
-                         m_rect.top + m_pntLeftTopSize.y);
+    WriteVertexForSquare(&pV[16], m_frLeftTopUV, m_dwColor, r.left, r.top, r.left + m_pntLeftTopSize.x,
+                         r.top + m_pntLeftTopSize.y);
     // right top corner
-    WriteVertexForSquare(&pV[20], m_frRightTopUV, m_dwColor, m_rect.right - m_pntRightTopSize.x, m_rect.top,
-                         m_rect.right, m_rect.top + m_pntRightTopSize.y);
+    WriteVertexForSquare(&pV[20], m_frRightTopUV, m_dwColor, r.right - m_pntRightTopSize.x, r.top,
+                         r.right, r.top + m_pntRightTopSize.y);
     // left bottom corner
-    WriteVertexForSquare(&pV[24], m_frLeftBottomUV, m_dwColor, m_rect.left, m_rect.bottom - m_pntLeftBottomSize.y,
-                         m_rect.left + m_pntLeftBottomSize.x, m_rect.bottom);
+    WriteVertexForSquare(&pV[24], m_frLeftBottomUV, m_dwColor, r.left, r.bottom - m_pntLeftBottomSize.y,
+                         r.left + m_pntLeftBottomSize.x, r.bottom);
     // right bottom corner
-    WriteVertexForSquare(&pV[28], m_frRightBottomUV, m_dwColor, m_rect.right - m_pntRightBottomSize.x,
-                         m_rect.bottom - m_pntRightBottomSize.y, m_rect.right, m_rect.bottom);
+    WriteVertexForSquare(&pV[28], m_frRightBottomUV, m_dwColor, r.right - m_pntRightBottomSize.x,
+                         r.bottom - m_pntRightBottomSize.y, r.right, r.bottom);
 
     // caption
     if (m_nCaptionHeight > 0 && m_pCaptionImage)
     {
         // caption line
-        WriteVertexForSquare(&pV[32], m_frTopLineUV, m_dwColor, m_rect.left + m_nLeftLineWidth,
-                             m_rect.top + m_nCaptionHeight, m_rect.right - m_nRightLineWidth,
-                             m_rect.top + m_nCaptionHeight + m_mCaptionDividerHeight);
+        WriteVertexForSquare(&pV[32], m_frCaptionLineUV, m_dwColor, r.left + m_nLeftLineWidth,
+                             r.top + m_nCaptionHeight, r.right - m_nRightLineWidth,
+                             r.top + m_nCaptionHeight + m_mCaptionDividerHeight);
     }
 
     m_rs->UnLockVertexBuffer(m_idVBuf);

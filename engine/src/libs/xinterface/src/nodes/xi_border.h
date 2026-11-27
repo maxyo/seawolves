@@ -70,6 +70,8 @@ class CXI_BORDER : public CINODE
 
     int32_t m_nTopLinePicture;
     FXYRECT m_frTopLineUV;
+    FXYRECT m_frCaptionLineUV;
+    XYRECT m_rFrameOffset{};
     int32_t m_nTopLineHeight;
 
     int32_t m_nBottomLinePicture;
