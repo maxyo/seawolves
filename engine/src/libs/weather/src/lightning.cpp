@@ -1,6 +1,9 @@
 #include "lightning.h"
 
 #include "core.h"
+#include "game_profile.hpp"
+
+#include <spdlog/spdlog.h>
 
 LIGHTNING::LIGHTNING()
 {
@@ -112,6 +115,12 @@ uint64_t LIGHTNING::ProcessMessage(MESSAGE &message)
         Realize(0);
         break;
     case MSG_WHR_LIGHTNING_ADD: {
+        if (storm::collidingIdMeaning(storm::gameProfile(), storm::CollidingIdDomain::Message, MSG_WHR_LIGHTNING_ADD) !=
+            storm::CollidingIdMeaning::WhrLightningAdd)
+        {
+            spdlog::error("lightning: message {} is a weather message in this game, not a lightning", MSG_WHR_LIGHTNING_ADD);
+            break;
+        }
         // add new lightning
         aLightnings.push_back(lightning_t{});
         auto *pL = &aLightnings.back();

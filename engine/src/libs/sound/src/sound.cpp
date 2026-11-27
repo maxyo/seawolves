@@ -4,6 +4,9 @@
 #include "sound.h"
 
 #include "core.h"
+#include "game_profile.hpp"
+
+#include <spdlog/spdlog.h>
 #include "vma.hpp"
 
 CREATE_CLASS(SOUND)
@@ -98,6 +101,12 @@ uint64_t SOUND::ProcessMessage(MESSAGE &message)
         const std::string &tempString = message.String(); // filename
 
         temp = message.Long(); // type
+        if (storm::collidingIdMeaning(storm::gameProfile(), storm::CollidingIdDomain::SoundPlayType, temp) ==
+            storm::CollidingIdMeaning::SoundTypeFmodEvent)
+        {
+            spdlog::error("MSG_SOUND_PLAY '{}': FMOD event sounds are not supported; not played", tempString);
+            break;
+        }
         // defaults
         vt = static_cast<int>(VOLUME_FX); // volume type
         temp2 = 0;
@@ -204,9 +213,18 @@ uint64_t SOUND::ProcessMessage(MESSAGE &message)
         id = message.Long();
         soundService->SoundRestart(id);
         break;
-    case MSG_SOUND_RESUME:
+    case MSG_SOUND_RESUME: // MSG_SOUND_PAUSE (id, paused) where the game profile says so
         id = message.Long();
         temp = message.Long();
+        if (storm::collidingIdMeaning(storm::gameProfile(), storm::CollidingIdDomain::Message, MSG_SOUND_RESUME) ==
+            storm::CollidingIdMeaning::SoundPause)
+        {
+            if (temp == 0)
+                soundService->SoundResume(id, 0);
+            else
+                spdlog::error("MSG_SOUND_PAUSE: the sound service cannot pause sound {}; it keeps playing", id);
+            break;
+        }
         soundService->SoundResume(id, temp);
         break;
     case MSG_SOUND_SCHEME_RESET:
