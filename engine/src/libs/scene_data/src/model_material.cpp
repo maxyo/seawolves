@@ -122,8 +122,7 @@ std::vector<std::string> UndrawnMaterialKeys(const ModelMaterial &material)
                                        {material.shadow_cw, "shadow_cw"},
                                        {material.point_shadow, "point_shadow"},
                                        {material.point_light, "PointLight"},
-                                       {!material.animation.empty(), "animation"},
-                                       {material.layer_material, "layer_material"}})
+                                       {!material.animation.empty(), "animation"}})
         if (present)
             keys.emplace_back(key);
     return keys;

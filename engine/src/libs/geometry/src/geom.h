@@ -13,9 +13,15 @@ Import library class
 #include "geos.h"
 #include "geom_far_lod.hpp"
 
+#include <functional>
 #include <memory>
-
+#include <string>
 #include <vector>
+
+namespace storm::scene_data
+{
+struct ModelMaterial;
+}
 
 #define EPSILON 4e-7
 
@@ -71,6 +77,8 @@ class GEOM : public GEOS
     std::vector<SURFACE> surface_;
     std::vector<ID> surface_textures_;
     void LoadSurfaces(const char *fname);
+    void LoadLayers(const storm::scene_data::ModelMaterial &entry, SURFACE &surface,
+                    const std::function<ID(const std::string &, bool)> &texture, const char *fname);
 
   public:
     GEOM(const char *fname, const char *lightname, GEOM_SERVICE &srv, int32_t flags);

@@ -2,6 +2,7 @@
 #include "effects/scene_reveal.hpp"
 
 #include "effects/effects.hpp"
+#include "effects/layer_arrays.hpp"
 #include "effects/loading_upload.hpp"
 #include "effects/relief_generator.hpp"
 #include "effects/upscale.hpp"
@@ -148,6 +149,7 @@ SceneSample &Sample(ShadowState sun, ShadowState lamps)
         s.products.add(SceneProduct::Place);
     if (host.lighting().town_light().preparing())
         s.products.add(SceneProduct::TownLight);
+    s.products.add(SceneProduct::Layers, LayerArraysPending());
     return s;
 }
 // The sample has been taken: its names go with the stores.

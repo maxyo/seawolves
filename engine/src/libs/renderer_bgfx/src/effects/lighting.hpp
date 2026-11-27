@@ -227,10 +227,18 @@ struct FfDraw
     // A game's own material (fs_ff_pbr.sc): its maps (normal, rma, emission; null: none), made with the stages'
     // textures (Device::bind_textures), which sets `normal_map`, `material` and `emission` from them; u_fxPbr.
     bool pbr = false;
-    std::array<shim::BaseTexture *, 3> pbr_maps{};
+    std::array<shim::BaseTexture *, 4> pbr_maps{}; // and the layer mask
     bgfx::TextureHandle emission = BGFX_INVALID_HANDLE;
     uint32_t emission_flags = 0;
     std::array<float, 8> pbr_uniform{};
+    // A layered material (the pbr_layer families): its mask (made with the maps), its arrays (albedo, rma, normal;
+    // invalid: the empty one) sampled as stage 0, u_fxLayer.
+    bool layer = false;
+    bgfx::TextureHandle layer_mask = BGFX_INVALID_HANDLE;
+    uint32_t layer_mask_flags = 0;
+    uint32_t layer_flags = 0;
+    std::array<bgfx::TextureHandle, 3> layer_arrays{{BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE}};
+    std::array<float, 16> layer_uniform{};
 };
 
 // The rain's wetness of this frame for the draws outdoors (effects::Host from the weather, fx::Wetness).
@@ -532,6 +540,13 @@ class Lighting
     bool environment_reported_ = false;
     bgfx::UniformHandle u_pbr_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_emission_ = BGFX_INVALID_HANDLE;
+    void prepare_layers(DrawPrep &p, bool normal);
+    void bind_layers(const FfDraw &draw);
+    bgfx::UniformHandle u_layer_ = BGFX_INVALID_HANDLE;
+    std::array<bgfx::UniformHandle, 4> s_layer_{{BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE,
+                                                 BGFX_INVALID_HANDLE}}; // mask, albedo, rma, normal
+    bgfx::TextureHandle empty_layers_ = BGFX_INVALID_HANDLE;            // bound for an array not there (yet)
+    bool layer_emission_reported_ = false;
     bool lighting_ = false; // per-pixel sun or point lights
     bool gloss_ = false;    // gloss maps on (Settings::gloss with per-pixel specular)
     bgfx::UniformHandle u_gloss_ = BGFX_INVALID_HANDLE;

@@ -185,6 +185,11 @@ class Renderer : public VRenderer
     // Renderer: Textures Section
     int32_t TextureCreate(const char *fname) override;
     std::vector<std::string> TextureFileCandidates(const char *fname) override;
+    std::optional<std::string> TextureFilePath(const char *fname) override;
+    int32_t TextureLevelsSkipped() const override
+    {
+        return nTextureDegradation;
+    }
     int32_t TextureCreate(UINT width, UINT height, UINT levels, uint32_t usage, D3DFORMAT format, D3DPOOL pool) override;
     int32_t TextureMissing() override;
     int32_t CubeTextureCreate(UINT edgeLength, UINT levels, uint32_t usage, D3DFORMAT format, D3DPOOL pool) override;

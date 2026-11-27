@@ -264,6 +264,11 @@ class Service final : public GEOM_SERVICE
     {
         return -1;
     }
+    std::shared_ptr<storm::render::EffectsLayerSet> CreateLayerSet(const std::array<std::array<std::string, 3>, 3> &,
+                                                                   const char *) override
+    {
+        return nullptr;
+    }
     void SetSurface(const GEOS::SURFACE *) override
     {
     }

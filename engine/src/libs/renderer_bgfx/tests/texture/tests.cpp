@@ -1,7 +1,8 @@
-// Unit tests of the DXT transcode (rebuilt mip chains, ETC2 and BC), the mip chains themselves and the disk cache on
-// synthetic textures.
+// Unit tests of the DXT transcode (rebuilt mip chains, ETC2 and BC), the mip chains themselves, the layer arrays and
+// the disk cache on synthetic textures.
 #include "cache.hpp"
 #include "../check.hpp"
+#include "layer_array.hpp"
 #include "mips.hpp"
 #include "service.hpp"
 #include "synthetic.hpp"
@@ -10,6 +11,8 @@
 #include <bx/allocator.h>
 #include <bx/error.h>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -757,6 +760,86 @@ void test_alpha_opaque()
     CHECK(alpha_opaque(23u, nullptr, 1, 1)); // R5G6B5 has no alpha
 }
 
+namespace
+{
+// A DXT chain of w x h (levels from the top, packed), its top level solid `c`, the levels below solid `below`.
+std::vector<uint8_t> solid_chain(DxtFormat format, uint32_t w, uint32_t h, uint32_t levels, const uint8_t (&c)[4],
+                                 const uint8_t (&below)[4])
+{
+    std::vector<uint8_t> chain;
+    for (uint32_t level = 0; level < levels; ++level)
+    {
+        const uint32_t lw = std::max(1u, w >> level), lh = std::max(1u, h >> level);
+        std::vector<uint8_t> rgba(size_t(lw) * lh * 4);
+        for (size_t i = 0; i < rgba.size(); ++i)
+            rgba[i] = level ? below[i % 4] : c[i % 4];
+        const std::vector<uint8_t> level_bytes = test::encode_dxt(format, rgba.data(), lw, lh);
+        chain.insert(chain.end(), level_bytes.begin(), level_bytes.end());
+    }
+    return chain;
+}
+
+// One level of one layer of a built array, decoded (bimg), block-aligned RGBA8.
+std::vector<uint8_t> array_level(const std::vector<uint8_t> &array, const ArrayShape &shape, GpuFormat format,
+                                 uint32_t layer, uint32_t level)
+{
+    size_t offset = layer * layer_array_bytes({shape.width, shape.height, shape.levels, 1}, format);
+    for (uint32_t l = 0; l < level; ++l)
+        offset += gpu_level_size(format, std::max(1u, shape.width >> l), std::max(1u, shape.height >> l));
+    const uint32_t w = std::max(1u, shape.width >> level), h = std::max(1u, shape.height >> level);
+    std::vector<uint8_t> rgba(size_t(blocks_x(w)) * 4 * blocks_x(h) * 4 * 4);
+    bimg::imageDecodeToRgba8(&allocator, rgba.data(), array.data() + offset, blocks_x(w) * 4, blocks_x(h) * 4,
+                             blocks_x(w) * 16, bimg_format(format));
+    return rgba;
+}
+
+bool near(const std::vector<uint8_t> &rgba, const uint8_t (&c)[4], int tolerance)
+{
+    for (size_t i = 0; i < rgba.size(); i += 4)
+        for (int k = 0; k < 3; ++k)
+            if (std::abs(int(rgba[i + k]) - int(c[k])) > tolerance)
+                return false;
+    return true;
+}
+
+// Layers of different sizes and formats become one array of the largest (within its limit), each layer its own colour
+// on every level, a missing layer zero; a BC1 layer's level of the array's size is kept as it is on BC1.
+void test_layer_array()
+{
+    // The red layer's levels below the top are orange: an array of 32 starts from them, one of 64 rebuilds them red.
+    constexpr uint8_t red[4] = {200, 40, 30, 255}, orange[4] = {230, 140, 20, 255}, green[4] = {40, 180, 60, 255};
+    const std::vector<uint8_t> r = solid_chain(DxtFormat::Bc1, 64, 64, 7, red, orange);
+    const std::vector<uint8_t> g = solid_chain(DxtFormat::Bc3, 32, 32, 1, green, green);
+    Layout lr, lg;
+    lr.format = DxtFormat::Bc1, lr.width = lr.height = 64, lr.levels = 7;
+    lg.format = DxtFormat::Bc3, lg.width = lg.height = 32, lg.levels = 1;
+    const std::array<std::optional<LayerSource>, 3> layers{LayerSource{lr, r}, LayerSource{lg, g}, std::nullopt};
+    CHECK((layer_array_shape(layers, 2048) == ArrayShape{64, 64, 7, 3}));
+    CHECK((layer_array_shape(layers, 32) == ArrayShape{32, 32, 6, 3}));
+    const std::array<std::optional<LayerSource>, 3> none{};
+    CHECK(layer_array_shape(none, 2048).layers == 0);
+    for (const GpuFormat format : {GpuFormat::Bc1, GpuFormat::Etc2Rgb8})
+        for (const uint32_t side : {2048u, 32u})
+        {
+            const ArrayShape shape = layer_array_shape(layers, side);
+            const std::vector<uint8_t> array = build_layer_array(layers, shape, format, TexelSpace::Colour);
+            CHECK(array.size() == layer_array_bytes(shape, format));
+            for (uint32_t level = 0; level < shape.levels; ++level)
+            {
+                CHECK(near(array_level(array, shape, format, 0, level), side == 2048 ? red : orange, 12));
+                CHECK(near(array_level(array, shape, format, 1, level), green, 12));
+            }
+            const size_t layer_bytes = layer_array_bytes({shape.width, shape.height, shape.levels, 1}, format);
+            CHECK(std::all_of(array.begin() + 2 * layer_bytes, array.end(), [](uint8_t b) { return b == 0; }));
+            // The red layer's own level of the array's size: level 0 at 64, level 1 at 32.
+            const size_t own = side == 2048 ? 0 : dxt_level_size(DxtFormat::Bc1, 64, 64);
+            if (format == GpuFormat::Bc1)
+                CHECK(std::memcmp(array.data(), r.data() + own, gpu_level_size(format, shape.width, shape.height)) ==
+                      0);
+        }
+}
+} // namespace
+
 int main()
 {
     const fs::path directory = fs::temp_directory_path() / ("storm_texture_tests_" + std::to_string(getpid()));
@@ -772,6 +855,7 @@ int main()
     test_quality();
     test_cube();
     test_mips();
+    test_layer_array();
     test_cache_files(directory / "files");
     test_service(directory / "service");
     fs::remove_all(directory);

@@ -10,6 +10,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <set>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -423,6 +424,27 @@ GEOS::ID GEOM_SERVICE_R::CreateMaterialTexture(const char *name, bool map, const
     return texture;
 }
 
+std::shared_ptr<storm::render::EffectsLayerSet> GEOM_SERVICE_R::CreateLayerSet(
+    const std::array<std::array<std::string, 3>, 3> &names, const char *requester)
+{
+    if (!RenderService)
+        return nullptr;
+    static std::set<std::string> reported;
+    storm::render::EffectsLayerFiles files;
+    for (size_t kind = 0; kind < names.size(); ++kind)
+        for (size_t layer = 0; layer < 3; ++layer)
+        {
+            const std::string &name = names[kind][layer];
+            if (name.empty())
+                continue;
+            if (std::optional<std::string> file = RenderService->TextureFilePath(name.c_str()))
+                files[kind][layer] = std::move(*file);
+            else if (reported.insert(name).second)
+                spdlog::error("materials: {} of {} is missing: its layer is drawn from the base", name, requester);
+        }
+    return storm::render::MakeEffectsLayerSet(files, uint32_t(std::max(RenderService->TextureLevelsSkipped(), 0)));
+}
+
 void GEOM_SERVICE_R::SetSurface(const GEOS::SURFACE *surface)
 {
     if (!surface)
@@ -437,7 +459,11 @@ void GEOM_SERVICE_R::SetSurface(const GEOS::SURFACE *surface)
                 .roughness = surface->roughness,
                 .metallic = surface->metallic,
                 .emission_strength = surface->emission_strength,
-                .occlusion_uv1 = surface->occlusion_uv1};
+                .occlusion_uv1 = surface->occlusion_uv1,
+                .layers = surface->layers.get(),
+                .layer_mask = texture(surface->layer_mask),
+                .layer_tiling = surface->layer_tiling,
+                .normal_strength = surface->normal_strength};
     storm::render::SetEffectsSurfaceMaterial(&surface_);
     // SetMaterial left blending off; techniques that set these states still override them for their passes.
     RenderService->SetRenderState(D3DRS_ALPHABLENDENABLE, surface->blended);

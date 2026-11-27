@@ -10,12 +10,18 @@ Import library main header
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "storm_glm.h"
+
+namespace storm::render
+{
+class EffectsLayerSet;
+}
 
 class GEOS
 {
@@ -143,6 +149,12 @@ class GEOS
         float emission_strength = 0.0f;
         bool occlusion_uv1 = false; // the material's second texture is the occlusion on the second uv set
         bool blended = false;       // drawn alpha-blended, without depth writes
+        // A layered material: its layers (null: none), the mask of their weights, the tiling of the base and of the
+        // layers r, g, b, the strength of the normal maps.
+        std::shared_ptr<storm::render::EffectsLayerSet> layers;
+        ID layer_mask = -1;
+        std::array<float, 4> layer_tiling{1.0f, 1.0f, 1.0f, 1.0f};
+        float normal_strength = 1.0f;
     };
 
     virtual int32_t FindMaterialN(int32_t start_index, int32_t name_id) = 0;
@@ -365,6 +377,11 @@ class GEOM_SERVICE
     // A texture a material file names, relative to resource\textures (without the model's texture path); `map`: a
     // normal or rma map, whose texels are numbers. -1 when it cannot be created (named in the log).
     virtual GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) = 0;
+    // The layers of a layered material from the textures a material file names ([kind albedo, rma, normal][layer r, g,
+    // b], relative to resource\textures; empty: none). A texture the game does not have is named once in the log and
+    // its layer drawn from the base. Null without a renderer.
+    virtual std::shared_ptr<storm::render::EffectsLayerSet> CreateLayerSet(
+        const std::array<std::array<std::string, 3>, 3> &names, const char *requester) = 0;
     // The draws that follow take this material (null: none).
     virtual void SetSurface(const GEOS::SURFACE *surface) = 0;
 

@@ -8,9 +8,13 @@
 //   its colour; the rma map's roughness, metal and occlusion draw as the same constants;
 //   the emission map adds its colour by its strength and the scene's emission factor, without any light;
 //   the second texture coordinates' occlusion darkens by twice its texel (the modulate-2x stage), only when set;
-//   the light is the scene environment's (environment::State), and a higher exposure is brighter.
+//   the light is the scene environment's (environment::State), and a higher exposure is brighter;
+//   a layered material: the mask picks the layers (b over g over r over the base), each layer tiles by its own
+//   factor and leans the light by its own normal map («Средняя», «Высокая»; «Низкая» draws the layers flat), and a
+//   layer whose file is missing draws the base. The layers are DXT1 files the check writes (nothing of a game).
 #include "device.hpp"
 #include "check_backend.hpp"
+#include "effects/layer_arrays.hpp"
 #include "storm/render/effects.hpp"
 
 #include <storm_glm.h>
@@ -20,8 +24,12 @@
 #include <catch2/catch.hpp>
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <vector>
 
 using namespace storm;
@@ -126,7 +134,22 @@ class Harness
     glm::vec3 to_sun{0.5f, 0.3f, -1.0f};
     float sun = 0.8f; // the D3D light's colour
     uint32_t ambient = 0x404040;
-    float exposure = 1.0f, emission = 1.0f, sun_scale = 1.0f; // the scene environment's
+    float exposure = 1.0f, emission = 1.0f, sun_scale = 1.0f;  // the scene environment's
+    std::array<uint32_t, 2> columns{kSize / 4, 3 * kSize / 4}; // of the picture the mean takes
+
+    // A layered material's picture once its arrays are there (asked for by the first draw, made on a worker).
+    Mean RenderLayered(const render::EffectsSurfaceMaterial &material)
+    {
+        Render(&material);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+        while (effects::LayerArraysPending() && std::chrono::steady_clock::now() < deadline)
+        {
+            SDL_Delay(2);
+            Render(&material);
+        }
+        REQUIRE(effects::LayerArraysPending() == 0);
+        return Render(&material);
+    }
 
     // The quad with `material` (null: the legacy lit program); the mean of the middle half of the picture.
     Mean Render(const render::EffectsSurfaceMaterial *material)
@@ -195,7 +218,7 @@ class Harness
         Mean mean;
         uint32_t n = 0;
         for (uint32_t y = kSize / 4; y < 3 * kSize / 4; ++y)
-            for (uint32_t x = kSize / 4; x < 3 * kSize / 4; ++x, ++n)
+            for (uint32_t x = columns[0]; x < columns[1]; ++x, ++n)
             {
                 const uint8_t *p = static_cast<uint8_t *>(locked.pBits) + y * locked.Pitch + x * 4; // B, G, R, A
                 mean.r += p[2];
@@ -228,6 +251,47 @@ uint32_t Leaning(float x)
 {
     const auto r = static_cast<uint32_t>(std::lround((0.5f + 0.5f * x) * 255.0f));
     return 0xFF000000u | r << 16 | 128u << 8 | 255u;
+}
+
+// An 8 x 8 DXT1 file of solid 4 x 4 blocks (colour of block x, y as A8R8G8B8) in the check's own folder.
+std::string LayerFile(const std::string &name, const std::function<uint32_t(uint32_t, uint32_t)> &block)
+{
+    static const std::filesystem::path folder = [] {
+        const std::filesystem::path path = std::filesystem::temp_directory_path() / "storm_materials_check_layers";
+        std::filesystem::remove_all(path);
+        std::filesystem::create_directories(path);
+        return path;
+    }();
+    const std::filesystem::path path = folder / (name + ".dds");
+    uint32_t header[32] = {};
+    std::memcpy(header, "DDS ", 4);
+    header[1] = 124;
+    header[2] = 0x1 | 0x2 | 0x4 | 0x1000 | 0x80000;
+    header[3] = header[4] = 8;
+    header[5] = 32;
+    header[7] = 1;
+    header[19] = 32;
+    header[20] = 0x4;
+    std::memcpy(&header[21], "DXT1", 4);
+    header[27] = 0x1000;
+    std::ofstream out(path, std::ios::binary);
+    out.write(reinterpret_cast<const char *>(header), sizeof(header));
+    for (uint32_t by = 0; by < 2; ++by)
+        for (uint32_t bx = 0; bx < 2; ++bx)
+        {
+            const uint32_t c = block(bx, by);
+            const uint16_t rgb565 = uint16_t(((c >> 19) & 31) << 11 | ((c >> 10) & 63) << 5 | ((c >> 3) & 31));
+            const uint16_t ends[2] = {rgb565, rgb565};
+            const uint32_t indices = 0;
+            out.write(reinterpret_cast<const char *>(ends), 4);
+            out.write(reinterpret_cast<const char *>(&indices), 4);
+        }
+    return path.string();
+}
+
+std::string SolidLayer(const std::string &name, uint32_t argb)
+{
+    return LayerFile(name, [argb](uint32_t, uint32_t) { return argb; });
 }
 } // namespace
 
@@ -376,4 +440,121 @@ TEST_CASE("the light is the scene environment's; a higher exposure is brighter")
     CHECK(stronger.luma() > one.luma() + 10.0f);
     INFO("exposure 1 " << one.luma() << ", 2 " << two.luma());
     CHECK(two.luma() > one.luma() + 10.0f);
+}
+
+namespace
+{
+constexpr uint32_t kRed = 0xFFC02020, kGreen = 0xFF20C020, kBlue = 0xFF2020C0;
+
+// The layers of `albedo` (r, g, b; empty: none) and of `normal`, drawn by `mask` over the harness's albedo.
+render::EffectsSurfaceMaterial Layered(const std::shared_ptr<render::EffectsLayerSet> &set, shim::Texture2D *mask)
+{
+    render::EffectsSurfaceMaterial material;
+    material.layers = set.get();
+    material.layer_mask = mask;
+    return material;
+}
+
+std::shared_ptr<render::EffectsLayerSet> Layers(const std::array<std::string, 3> &albedo,
+                                                const std::array<std::string, 3> &normal = {})
+{
+    return render::MakeEffectsLayerSet({albedo, std::array<std::string, 3>{}, normal}, 0);
+}
+
+bool Dominant(const Mean &m, float Mean::*channel)
+{
+    const float others = channel == &Mean::r   ? std::max(m.g, m.b)
+                         : channel == &Mean::g ? std::max(m.r, m.b)
+                                               : std::max(m.r, m.g);
+    return m.*channel > others + 30.0f;
+}
+} // namespace
+
+TEST_CASE("a layered material: the mask picks the layers, b over g over r over the base, on every preset")
+{
+    Harness &h = harness();
+    h.to_sun = {0.5f, 0.3f, -1.0f};
+    const auto set = Layers({SolidLayer("red", kRed), SolidLayer("green", kGreen), SolidLayer("blue", kBlue)});
+    for (const int preset : {2, 0})
+    {
+        INFO("preset " << preset);
+        h.Settle(preset);
+        const render::EffectsSurfaceMaterial plain{};
+        const Mean base = h.Render(&plain);
+        const Mean none = h.RenderLayered(Layered(set, h.Texture(0xFF000000, true)));
+        CHECK(std::fabs(none.luma() - base.luma()) < 2.0f);
+        CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFFFF0000, true))), &Mean::r));
+        CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFF00FF00, true))), &Mean::g));
+        CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFF0000FF, true))), &Mean::b));
+        CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFFFFFFFF, true))), &Mean::b));
+        CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFFFFFF00, true))), &Mean::g));
+    }
+}
+
+TEST_CASE("each layer tiles by its own factor")
+{
+    Harness &h = harness();
+    h.Settle(2);
+    // Black on the texture's left half, white on its right.
+    const auto set = Layers({LayerFile("stripes", [](uint32_t x, uint32_t) { return x ? 0xFFFFFFFF : 0xFF000000; }),
+                             std::string(), std::string()});
+    render::EffectsSurfaceMaterial material = Layered(set, h.Texture(0xFFFF0000, true));
+    const auto halves = [&] {
+        h.columns = {4, 28};
+        const Mean left = h.RenderLayered(material);
+        h.columns = {36, 60};
+        const Mean right = h.RenderLayered(material);
+        h.columns = {kSize / 4, 3 * kSize / 4};
+        return std::pair{left.luma(), right.luma()};
+    };
+    const auto [left1, right1] = halves();
+    INFO("tiling 1: " << left1 << " | " << right1);
+    CHECK(right1 > left1 + 80.0f);
+    material.layer_tiling = {1.0f, 2.0f, 1.0f, 1.0f};
+    const auto [left2, right2] = halves();
+    INFO("tiling 2: " << left2 << " | " << right2);
+    CHECK(std::fabs(right2 - left2) < 20.0f);
+    CHECK(left2 > left1 + 30.0f);
+}
+
+TEST_CASE("each layer leans the light by its own normal map, on «Средняя» and «Высокая» only")
+{
+    Harness &h = harness();
+    h.to_sun = {0.8f, 0.0f, -0.6f}; // low on the picture's right
+    const std::string grey = SolidLayer("grey", 0xFFB4B4B4);
+    const auto set = Layers({grey, grey, grey}, {SolidLayer("towards", Leaning(0.6f)), std::string(), std::string()});
+    for (const int preset : {2, 1, 0})
+    {
+        INFO("preset " << preset);
+        h.Settle(preset);
+        render::EffectsSurfaceMaterial material = Layered(set, h.Texture(0xFF000000, true));
+        material.normal = h.Texture(Leaning(0.0f), true);
+        const Mean flat = h.RenderLayered(material);
+        material.layer_mask = h.Texture(0xFFFF0000, true);
+        const Mean leaning = h.RenderLayered(material);
+        material.layer_mask = h.Texture(0xFF00FF00, true); // the g layer has no normal map: the base's
+        const Mean other = h.RenderLayered(material);
+        INFO("flat " << flat.luma() << ", r layer " << leaning.luma() << ", g layer " << other.luma());
+        // Within the layers' DXT1 grey against the base's A8R8G8B8 one.
+        CHECK(std::fabs(other.luma() - flat.luma()) < 3.0f);
+        if (preset > 0)
+            CHECK(leaning.luma() > flat.luma() + 8.0f);
+        else
+            CHECK(std::fabs(leaning.luma() - flat.luma()) < 3.0f);
+    }
+}
+
+TEST_CASE("a layer whose file is missing draws the base")
+{
+    Harness &h = harness();
+    h.to_sun = {0.5f, 0.3f, -1.0f};
+    h.Settle(2);
+    const std::string missing = (std::filesystem::temp_directory_path() / "storm_materials_check_none.dds").string();
+    const auto set = Layers({SolidLayer("red", kRed), missing, SolidLayer("blue", kBlue)});
+    const render::EffectsSurfaceMaterial plain{};
+    const Mean base = h.Render(&plain);
+    const Mean green = h.RenderLayered(Layered(set, h.Texture(0xFF00FF00, true)));
+    INFO("base " << base.luma() << ", missing layer " << green.luma());
+    CHECK(std::fabs(green.luma() - base.luma()) < 2.0f);
+    CHECK(Dominant(h.RenderLayered(Layered(set, h.Texture(0xFFFF0000, true))), &Mean::r));
 }

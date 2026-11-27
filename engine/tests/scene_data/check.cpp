@@ -90,9 +90,8 @@ TEST_CASE("model material textures and the keys the renderer does not draw")
     material.layer_material = true;
     material.reflection = true;
     const std::vector<std::string> undrawn = UndrawnMaterialKeys(material);
-    CHECK(undrawn.size() == 3);
+    CHECK(undrawn.size() == 2);
     CHECK(contains(undrawn, "animation"));
-    CHECK(contains(undrawn, "layer_material"));
     CHECK(contains(undrawn, "reflection"));
 }
 

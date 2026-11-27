@@ -346,4 +346,20 @@ void encode_gpu(GpuFormat format, const uint8_t *rgba, uint32_t aligned_width, u
            is_etc2(format) ? bimg::Quality::Default : bimg::Quality::Fastest);
 }
 
+void encode_gpu_level(GpuFormat format, const uint8_t *rgba, uint32_t width, uint32_t height, uint8_t *out)
+{
+    const uint32_t aw = blocks_x(width) * 4, ah = blocks_x(height) * 4;
+    if (aw == width && ah == height)
+    {
+        encode_gpu(format, rgba, aw, ah, out);
+        return;
+    }
+    std::vector<uint8_t> aligned(size_t(aw) * ah * 4);
+    for (uint32_t y = 0; y < ah; ++y)
+        for (uint32_t x = 0; x < aw; ++x)
+            memcpy(aligned.data() + (size_t(y) * aw + x) * 4,
+                   rgba + (size_t(std::min(y, height - 1)) * width + std::min(x, width - 1)) * 4, 4);
+    encode_gpu(format, aligned.data(), aw, ah, out);
+}
+
 } // namespace storm::texture

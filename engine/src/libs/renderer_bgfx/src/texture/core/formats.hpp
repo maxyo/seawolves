@@ -154,5 +154,8 @@ bool tx_format_known(uint32_t format);
 // Encodes a block-aligned RGBA8 image (R first) of aligned_width x aligned_height texels (bimg_encode: etcpak for
 // ETC2, libsquish for BC; BC1 makes texels with alpha below 128 transparent).
 void encode_gpu(GpuFormat format, const uint8_t *rgba, uint32_t aligned_width, uint32_t aligned_height, uint8_t *out);
+// One level of width x height RGBA8 texels (R first, tightly packed) in `format`, its edge texels repeated up to whole
+// blocks; `out`: gpu_level_size() bytes.
+void encode_gpu_level(GpuFormat format, const uint8_t *rgba, uint32_t width, uint32_t height, uint8_t *out);
 
 } // namespace storm::texture

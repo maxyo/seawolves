@@ -207,6 +207,26 @@ once each.
 - Colour and data: the albedo and the emission are colour (squared: the targets' gamma 2.0); normal and rma maps are
   numbers (`render::DeclareMaterialMap`): their rebuilt mips are plain averages (`texture::TexelSpace::Data`, its own
   cache key), whatever the file's header says; the GPU format is the transcode tier's as for every texture.
+- Layered materials (`layer_material`: a town's or a jungle's ground, `render::EffectsLayerSet`,
+  `effects/layer_arrays.hpp`): the families `pbr_layer` and `pbr_layer_lamps`. The base (stage 0's texture and the
+  material's rma and normal maps, `base_tiling` times the first texture coordinates) and three layers r, g, b (each
+  its albedo, rma and normal map at its own tiling) are blended by the mask's R, G, B on stage 1's coordinates (the
+  models' unique layout; the first ones where stage 1 has no texture): b over g over r over the base, each by its
+  weight; the normal is the blended map's at `normal_strength`. Units: 1 the mask (in place of the occlusion, which a
+  layered object of Caribbean Legend has only as a neutral grey placeholder), 2-4 the arrays of the layers' albedo,
+  rma and normal maps (in place of the emission, which a layered material does not draw, and of the stages' fades,
+  which the material programs do not read). Fetches per pixel: 9 on «Низкая» (mask, base and three layers of albedo
+  and rma), 13 with the normal maps. A layer whose rma or normal map is missing takes the base's there; without the
+  base's map the layers' are not read either.
+- Layer arrays: per kind one 2D texture array of the three layers, made from the game files by a texture worker the
+  first time a draw needs it (the normal maps' only with `material_maps`), kept in the cache directory (key: the
+  files' contents, the kind, the size, the format) and counted as the scene reveal's product `layer arrays` until
+  drawable. Size: the largest layer's, at most 2048 (`EffectsLayerSet::kMaxSide`) halved per top level the texture
+  quality skips; a smaller layer is resampled up (wrapping), a larger one takes its own mip of that size. Format: the
+  transcode tier's RGB format (BC1, or ETC2 RGB8 without S3TC; a BC1 level of the array's size is kept as it is),
+  the chain rebuilt as numbers for rma and normal maps; on a GPU with neither, or without texture arrays, the layered
+  materials draw their base (an ERROR says so). A layer file the game does not have is named once by the geometry and
+  its layer drawn from the base. Models of the same layers share one set.
 - Light and exposure: the scene environment's (`environment::State`, render::SetSceneEnvironment): its direct light,
   the sky's fill above and the ground's below, linear in scene units, plus the emission times its factor; the sum times
   its exposure is compressed into the 8-bit target by the inverse of the composite's expansion (`fx_tonemap.sh`

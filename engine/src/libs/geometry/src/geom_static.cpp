@@ -452,7 +452,41 @@ void GEOM::LoadSurfaces(const char *fname)
         surface.metallic = entry.metallic.value_or(0.0f);
         surface.emission_strength = entry.emission.value_or(0.0f);
         surface.blended = entry.alpha || entry.alpha_ccw;
+        if (entry.layer_material)
+            LoadLayers(entry, surface, texture, fname);
     }
+}
+
+// A layered material: the mask as one of the model's maps, the layers' files as a set the renderer makes arrays of.
+void GEOM::LoadLayers(const storm::scene_data::ModelMaterial &entry, SURFACE &surface,
+                      const std::function<ID(const std::string &, bool)> &texture, const char *fname)
+{
+    namespace scene = storm::scene_data;
+    surface.layer_mask = texture(entry.mask_texture, true);
+    if (surface.layer_mask < 0)
+    {
+        spdlog::error("materials: a layered material of {} has no mask: drawn as its base", fname);
+        return;
+    }
+    std::array<std::array<std::string, 3>, 3> names;
+    for (size_t layer = 0; layer < 3; ++layer)
+    {
+        const scene::LayerTextures &files = entry.layers[layer];
+        const std::string *paths[3] = {&files.albedo, &files.rma, &files.normal};
+        for (size_t kind = 0; kind < 3; ++kind)
+            if (!paths[kind]->empty())
+            {
+                if (const std::optional<std::string> name = scene::MaterialTextureName(*paths[kind]))
+                    names[kind][layer] = *name;
+                else
+                    spdlog::error("materials: {} names {}, which is not under resource\\textures", fname,
+                                  *paths[kind]);
+            }
+        surface.layer_tiling[layer + 1] = files.tiling;
+    }
+    surface.layer_tiling[0] = entry.base_tiling;
+    surface.normal_strength = entry.normal_strength;
+    surface.layers = srv.CreateLayerSet(names, fname);
 }
 
 // delete all textures, buffers, memory

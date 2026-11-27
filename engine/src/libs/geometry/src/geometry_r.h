@@ -75,6 +75,8 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     bool ModelMaterials() const override;
     std::string ReadMaterialFile(const char *model) override;
     GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) override;
+    std::shared_ptr<storm::render::EffectsLayerSet> CreateLayerSet(const std::array<std::array<std::string, 3>, 3> &names,
+                                                                   const char *requester) override;
     void SetSurface(const GEOS::SURFACE *surface) override;
     void ReleaseTexture(GEOS::ID tex);
 

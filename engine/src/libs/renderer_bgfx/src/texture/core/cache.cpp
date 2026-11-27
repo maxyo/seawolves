@@ -138,19 +138,16 @@ Blob transcode_to_ktx(const Layout &layout, const uint8_t *payload, GpuFormat fo
                 encode_gpu(format, blocks.data(), aw0, ah0, destination);
                 continue;
             }
-            // Edge texels repeated up to whole blocks.
             const uint8_t *rgba = chain[level - 1].data();
-            const uint32_t aw = blocks_x(w) * 4, ah = blocks_x(h) * 4;
-            aligned.resize(size_t(aw) * ah * 4);
-            for (uint32_t y = 0; y < ah; ++y)
-                for (uint32_t x = 0; x < aw; ++x)
-                    memcpy(aligned.data() + (size_t(y) * aw + x) * 4,
-                           rgba + (size_t(std::min(y, h - 1)) * w + std::min(x, w - 1)) * 4, 4);
             // BC1 makes a texel transparent below 128: the game tests its alpha against kCutoutReference.
             if (format == GpuFormat::Bc1 && punch)
+            {
+                aligned = chain[level - 1];
                 for (size_t i = 3; i < aligned.size(); i += 4)
                     aligned[i] = aligned[i] >= kCutoutReference ? 255 : 0;
-            encode_gpu(format, aligned.data(), aw, ah, destination);
+                rgba = aligned.data();
+            }
+            encode_gpu_level(format, rgba, w, h, destination);
         }
     }
     Blob blob;
@@ -172,20 +169,12 @@ Blob encode_rgba_to_ktx(const uint8_t *rgba, uint32_t width, uint32_t height, Gp
     size_t total = 0;
     for (uint32_t level = 0; level < out.levels; ++level)
         total += gpu_level_size(format, out.level_width(level), out.level_height(level));
-    std::vector<uint8_t> encoded(total), aligned;
+    std::vector<uint8_t> encoded(total);
     size_t offset = 0;
     for (uint32_t level = 0; level < out.levels; ++level)
     {
         const uint32_t w = out.level_width(level), h = out.level_height(level);
-        const uint8_t *source = level == 0 ? rgba : chain[level - 1].data();
-        // Edge texels repeated up to whole blocks.
-        const uint32_t aw = blocks_x(w) * 4, ah = blocks_x(h) * 4;
-        aligned.resize(size_t(aw) * ah * 4);
-        for (uint32_t y = 0; y < ah; ++y)
-            for (uint32_t x = 0; x < aw; ++x)
-                memcpy(aligned.data() + (size_t(y) * aw + x) * 4,
-                       source + (size_t(std::min(y, h - 1)) * w + std::min(x, w - 1)) * 4, 4);
-        encode_gpu(format, aligned.data(), aw, ah, encoded.data() + offset);
+        encode_gpu_level(format, level == 0 ? rgba : chain[level - 1].data(), w, h, encoded.data() + offset);
         offset += gpu_level_size(format, w, h);
     }
     Blob blob;

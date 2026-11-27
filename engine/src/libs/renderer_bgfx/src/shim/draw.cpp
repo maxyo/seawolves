@@ -1762,8 +1762,12 @@ bool Device::bind_textures(const DrawCall &call, const LayoutInfo &layout, uint3
     if (fx_draw.pbr)
     {
         const bool scene_draw = rt == back_color && !layout.rhw && s.proj.m[2][3] != 0.0f;
-        bgfx::TextureHandle *handles[3] = {&fx_draw.normal_map, &fx_draw.material, &fx_draw.emission};
-        uint32_t *flags[3] = {&fx_draw.normal_map_flags, &fx_draw.material_flags, &fx_draw.emission_flags};
+        bgfx::TextureHandle *handles[4] = {&fx_draw.normal_map, &fx_draw.material, &fx_draw.emission,
+                                           &fx_draw.layer_mask};
+        uint32_t *flags[4] = {&fx_draw.normal_map_flags, &fx_draw.material_flags, &fx_draw.emission_flags,
+                              &fx_draw.layer_mask_flags};
+        if (TexStore *base = store_of(s.textures[0]); fx_draw.layer && base)
+            fx_draw.layer_flags = sampler_flags(0, *base); // the layers tile as the base
         for (size_t i = 0; i < fx_draw.pbr_maps.size(); ++i)
         {
             TexStore *store = store_of(fx_draw.pbr_maps[i]);

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -117,6 +118,21 @@ void SetEffectsTechnique(const char *name);
 // README, "Materials") on every preset: stage 0's texture is the albedo, stage 1's on the second texture coordinates
 // the occlusion with `occlusion_uv1`; the technique's texture stage operations do not apply. The maps are textures of
 // the renderer; normal and rma maps are declared with DeclareMaterialMap.
+// The layers of a layered material: per kind (albedo, rma, normal) the game files of the layers r, g, b (resolved
+// paths; empty: the game has none, and the base shows through where that layer would be). Kept by the models that
+// draw it (one set for the same files); its texture arrays are made the first time a draw needs them (renderer_bgfx
+// README, "Materials").
+enum class EffectsLayerKind : uint8_t
+{
+    Albedo,
+    Rma,
+    Normal,
+};
+using EffectsLayerFiles = std::array<std::array<std::string, 3>, 3>; // [kind][layer]
+class EffectsLayerSet;
+// `skipped_levels`: the top mip levels the renderer skips of every texture (the texture quality).
+std::shared_ptr<EffectsLayerSet> MakeEffectsLayerSet(const EffectsLayerFiles &files, uint32_t skipped_levels);
+
 struct EffectsSurfaceMaterial
 {
     shim::BaseTexture *normal = nullptr;     // tangent space: x, y in R, G; y along the texture's v
@@ -125,6 +141,12 @@ struct EffectsSurfaceMaterial
     float roughness = 1.0f, metallic = 0.0f; // without an rma map
     float emission_strength = 0.0f;          // the emission map's, times the environment's emission
     bool occlusion_uv1 = false;
+    // A layered material (with `layers`): the base (stage 0, the maps above) and the layers blended by the mask's R,
+    // G, B on stage 1's texture coordinates (the first ones without `occlusion_uv1`), which then hold no occlusion.
+    EffectsLayerSet *layers = nullptr;
+    shim::BaseTexture *layer_mask = nullptr;
+    std::array<float, 4> layer_tiling{1.0f, 1.0f, 1.0f, 1.0f}; // base, r, g, b: times the first texture coordinates
+    float normal_strength = 1.0f;
 };
 void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material);
 // A texture the game ships as a material's normal or rma map: its mips are averaged as numbers, not as colour.

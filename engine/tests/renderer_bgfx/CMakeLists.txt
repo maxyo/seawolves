@@ -147,7 +147,7 @@ storm_renderer_check(wet_surfaces_check GPU)
 # The sample effects of the pinned efkbgfx sources (MIT) drawn through the shim.
 FetchContent_GetProperties(storm_efkbgfx)
 storm_renderer_check(effekseer_check GPU CATCH2 ENV "STORM_EFFEKSEER_SAMPLES=${storm_efkbgfx_SOURCE_DIR}/examples/resources")
-storm_renderer_check(materials_check GPU CATCH2)
+storm_renderer_check(materials_check GPU CATCH2 INCLUDES ${renderer})
 # A game's real models with their materials, when STORM_GAME_DIR names a game that ships them.
 storm_renderer_check(game_materials_check GPU CATCH2 INCLUDES ${renderer} ${src}/libs/geometry/src)
 target_link_libraries(game_materials_check PRIVATE scene_data)

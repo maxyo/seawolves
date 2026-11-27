@@ -4,7 +4,7 @@
 
 # The product blocks of include/ff_fragment.sh. A family's programs compile FX_FF_<block> for each block it names and
 # nothing else, so the lamps' code is only in the programs of the draws the lamps light.
-set(ff_blocks LAMPS AO TOWN_WALL WET)
+set(ff_blocks LAMPS AO TOWN_WALL WET LAYER)
 
 # name | entry (lit: fs_ff_lit.sc, baked: fs_ff_baked.sc, pbr: fs_ff_pbr.sc) | blocks. A draw takes the narrowest
 # family of its entry that holds every block it reads (src/effects/lighting.cpp ChooseProgram).
@@ -14,6 +14,8 @@ set(ff_blocks LAMPS AO TOWN_WALL WET)
 #   baked_lamps  baked colours relit by the lamps or in the AO volume
 #   pbr          a game's own materials (renderer_bgfx/README.md, "Materials") without lamps or the AO volume
 #   pbr_lamps    a game's own materials lit by the lamps or in the AO volume
+#   pbr_layer    a game's own layered materials (a mask and three layers over the base), without lamps or the AO volume
+#   pbr_layer_lamps  the layered materials lit by the lamps or in the AO volume
 # Each family adds 12 programs to the «Высокая» switch (6 axis variants and their opaque twins), so the small blocks
 # (AO, town wall, rain) ride with a family instead of having their own.
 set(ff_families
@@ -22,7 +24,9 @@ set(ff_families
     "baked|baked|TOWN_WALL,WET"
     "baked_lamps|baked|LAMPS,AO,TOWN_WALL,WET"
     "pbr|pbr|"
-    "pbr_lamps|pbr|LAMPS,AO")
+    "pbr_lamps|pbr|LAMPS,AO"
+    "pbr_layer|pbr|LAYER"
+    "pbr_layer_lamps|pbr|LAMPS,AO,LAYER")
 
 # Every family in every combination of the axes, each value "letters|defines". A program is named
 # fs_ff_<family>[_<specular letters><relief letters><shadow letters>]. Linear light and the soft sun filter are

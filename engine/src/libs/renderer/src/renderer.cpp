@@ -2029,6 +2029,13 @@ std::vector<std::string> Renderer::TextureFileCandidates(const char *fname)
     return files;
 }
 
+std::optional<std::string> Renderer::TextureFilePath(const char *fname)
+{
+    const std::optional<std::string> name = TextureVariantName(fname, -1);
+    const std::optional<std::string> file = name ? TextureFile(*name) : std::nullopt;
+    return file ? std::optional<std::string>(fio->ConvertPathResource(file->c_str())) : std::nullopt;
+}
+
 int32_t Renderer::AddCodeTexture(storm::shim::BaseTexture *texture, uint32_t size, bool cubeMap)
 {
     const auto slot = std::find_if(std::begin(Textures), std::end(Textures),

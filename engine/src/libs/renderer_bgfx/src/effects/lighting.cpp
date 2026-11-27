@@ -1,4 +1,5 @@
 #include "effects/lighting.hpp"
+#include "effects/layer_arrays.hpp"
 #include "storm/render/skinned_vertex.hpp"
 #include "storm/fx/texture_pixels.hpp"
 #include "storm/fx/skin_tone.hpp"
@@ -223,10 +224,10 @@ FfChoice ChooseProgram(const DrawFacts &facts)
 {
     const auto contains = [](const FfBlocks &has, const FfBlocks &needs) {
         return (has.lamps || !needs.lamps) && (has.ao || !needs.ao) && (has.town_wall || !needs.town_wall) &&
-               (has.wet || !needs.wet);
+               (has.wet || !needs.wet) && (has.layer || !needs.layer);
     };
     const auto holds = [&](const FfBlocks &has) { return contains(has, facts.needs); };
-    const auto width = [](const FfBlocks &b) { return b.lamps + b.ao + b.town_wall + b.wet; };
+    const auto width = [](const FfBlocks &b) { return b.lamps + b.ao + b.town_wall + b.wet + b.layer; };
     std::optional<size_t> narrowest, widest;
     for (size_t f = 0; f < kFfFamilyRows.size(); ++f)
     {
@@ -1206,7 +1207,7 @@ void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief, int
     }
     choose_program(p, {.lit = true,
                        .pbr = draw.pbr,
-                       .needs = {.lamps = draw.lamps, .ao = draw.ao, .wet = p.wet},
+                       .needs = {.lamps = draw.lamps, .ao = draw.ao, .wet = p.wet, .layer = draw.layer},
                        .specular = specular,
                        .relief = static_cast<uint8_t>(relief),
                        .shadow = draw.shadow_variant});
@@ -1260,7 +1261,7 @@ void Lighting::prepare_material(DrawPrep &p)
     draw.ff = {};
     const bool normal = settings_.material_maps && surface.normal;
     draw.pbr = true;
-    draw.pbr_maps = {normal ? surface.normal : nullptr, surface.rma, surface.emission};
+    draw.pbr_maps = {normal ? surface.normal : nullptr, surface.rma, surface.emission, nullptr};
     const bool occlusion = surface.occlusion_uv1 && p.device.s.textures[1];
     const float exposure = environment_set_ ? environment_.exposure : 1.0f;
     const float emission = environment_set_ ? environment_.emission : 1.0f;
@@ -1272,7 +1273,45 @@ void Lighting::prepare_material(DrawPrep &p)
                         surface.emission ? surface.emission_strength * emission : 0.0f,
                         0.0f,
                         0.0f};
+    draw.layer = false;
+    if (surface.layers && surface.layer_mask)
+        prepare_layers(p, normal);
     finish_lit(p, lights, normal ? 1 : 0, std::max(budget_, kMaterialPointLights));
+    if (draw.layer)
+        draw.light.u_fxLight[5][0] = surface.normal_strength;
+}
+
+// A layered material: its mask on unit 1 in place of the occlusion, the arrays of the kinds the preset draws on units
+// 2-4 in place of the emission and the stages' fades (the material programs read neither), each layer's share of a
+// kind zero where the array has no such layer or is not there yet: the base shows through.
+void Lighting::prepare_layers(DrawPrep &p, bool normal)
+{
+    const render::EffectsSurfaceMaterial &surface = *surface_;
+    FfDraw &draw = p.draw;
+    draw.layer = true;
+    draw.pbr_maps[3] = surface.layer_mask;
+    if (surface.emission && render::Once(layer_emission_reported_))
+        render::Log().warn("materials: the emission of a layered material is not drawn");
+    draw.pbr_uniform[3] = 0.0f; // no occlusion
+    draw.pbr_uniform[5] = 0.0f; // no emission
+    std::array<float, 16> &u = draw.layer_uniform;
+    u = {};
+    std::copy(surface.layer_tiling.begin(), surface.layer_tiling.end(), u.begin());
+    u[7] = surface.occlusion_uv1 && p.device.s.textures[1] ? 1.0f : 0.0f; // the mask's coordinates
+    for (const render::EffectsLayerKind kind :
+         {render::EffectsLayerKind::Albedo, render::EffectsLayerKind::Rma, render::EffectsLayerKind::Normal})
+    {
+        const size_t k = size_t(kind);
+        draw.layer_arrays[k] = BGFX_INVALID_HANDLE;
+        // The layers' rma and normal maps lean on the base's: without it the material reads none of that kind.
+        if ((kind == render::EffectsLayerKind::Rma && !surface.rma) ||
+            (kind == render::EffectsLayerKind::Normal && !normal))
+            continue;
+        const render::EffectsLayerSet::Array array = surface.layers->array(kind);
+        draw.layer_arrays[k] = array.handle;
+        for (size_t layer = 0; layer < 3; ++layer)
+            u[4 * (k + 1) + layer] = bgfx::isValid(array.handle) && array.present[layer] ? 1.0f : 0.0f;
+    }
 }
 
 // A baked draw: its dynamic lights, the town wall's or the ground's sun shadows and the program.
@@ -1518,6 +1557,30 @@ void Lighting::log_coverage()
     render::Log().info("effects parallax coverage, textures drawn in the last {} frames: {}", kCoverageFrames, table);
 }
 
+void Lighting::bind_layers(const FfDraw &draw)
+{
+    if (!bgfx::isValid(u_layer_))
+    {
+        u_layer_ = bgfx::createUniform("u_fxLayer", bgfx::UniformType::Vec4, 4);
+        const char *names[] = {"s_fxLayerMask", "s_fxLayerAlbedo", "s_fxLayerMaterial", "s_fxLayerNormal"};
+        for (size_t i = 0; i < s_layer_.size(); ++i)
+            s_layer_[i] = bgfx::createUniform(names[i], bgfx::UniformType::Sampler);
+    }
+    if (!bgfx::isValid(empty_layers_))
+    {
+        // An array the shader may read with no weight: one black texel per layer.
+        const bgfx::Memory *texels = bgfx::alloc(3 * 4);
+        std::memset(texels->data, 0, texels->size);
+        empty_layers_ = bgfx::createTexture2D(1, 1, false, 3, bgfx::TextureFormat::RGBA8, BGFX_TEXTURE_NONE, texels);
+    }
+    bgfx::setUniform(u_layer_, draw.layer_uniform.data(), 4);
+    if (bgfx::isValid(draw.layer_mask))
+        bgfx::setTexture(1, s_layer_[0], draw.layer_mask, draw.layer_mask_flags);
+    for (size_t k = 0; k < draw.layer_arrays.size(); ++k)
+        bgfx::setTexture(uint8_t(2 + k), s_layer_[k + 1],
+                         bgfx::isValid(draw.layer_arrays[k]) ? draw.layer_arrays[k] : empty_layers_, draw.layer_flags);
+}
+
 void Lighting::submit(const FfDraw &draw)
 {
     if (!bgfx::isValid(u_coverage_))
@@ -1559,7 +1622,9 @@ void Lighting::submit(const FfDraw &draw)
             s_emission_ = bgfx::createUniform("s_fxEmission", bgfx::UniformType::Sampler);
         }
         bgfx::setUniform(u_pbr_, draw.pbr_uniform.data(), 2);
-        if (bgfx::isValid(draw.emission))
+        if (draw.layer)
+            bind_layers(draw);
+        else if (bgfx::isValid(draw.emission))
             bgfx::setTexture(fx::kEmissionStage, s_emission_, draw.emission, draw.emission_flags);
     }
     if (draw.parallax_variant)
@@ -1882,9 +1947,14 @@ void Lighting::shutdown()
         bgfx::destroy(visibility_open_);
     visibility_open_ = BGFX_INVALID_HANDLE;
     ao_open_ = BGFX_INVALID_HANDLE;
-    for (bgfx::UniformHandle *u : {&u_coverage_, &u_ff_, &u_wet_, &u_gloss_, &u_skin_tone_, &u_aerial_up_,
-                                   &s_ao_volume_, &u_ao_matrix_, &u_ao_params_, &s_visibility_, &u_visibility_matrix_,
-                                   &u_visibility_params_, &u_town_wall_, &u_pbr_, &s_emission_})
+    if (bgfx::isValid(empty_layers_))
+        bgfx::destroy(empty_layers_);
+    empty_layers_ = BGFX_INVALID_HANDLE;
+    for (bgfx::UniformHandle *u :
+         {&u_coverage_,  &u_ff_,        &u_wet_,       &u_gloss_,      &u_skin_tone_,         &u_aerial_up_,
+          &s_ao_volume_, &u_ao_matrix_, &u_ao_params_, &s_visibility_, &u_visibility_matrix_, &u_visibility_params_,
+          &u_town_wall_, &u_pbr_,       &s_emission_,  &u_layer_,      &s_layer_[0],          &s_layer_[1],
+          &s_layer_[2],  &s_layer_[3]})
     {
         if (bgfx::isValid(*u))
             bgfx::destroy(*u);

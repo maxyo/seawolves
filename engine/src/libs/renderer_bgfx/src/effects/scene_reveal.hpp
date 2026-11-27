@@ -34,6 +34,7 @@ enum class SceneProduct : uint8_t
     Upscale,   // neural x2 of the textures the residency plan chose (near the camera)
     Place,     // the place's probes: its visibility and AO volumes (cache load or bake)
     TownLight, // the town light: the lightmap set (cache load or bake) and its first composition
+    Layers,    // the texture arrays of the layered materials drawn (cache read or made)
     Count
 };
 struct SceneProducts
@@ -54,8 +55,9 @@ struct SceneProducts
     // "relief/gloss maps 12, town light 1", or "nothing".
     std::string describe() const
     {
-        static constexpr const char *kNames[] = {"texture transcodes", "relief/gloss maps", "x2 textures",
-                                                 "place probes (visibility/AO volume)", "town light"};
+        static constexpr const char *kNames[] = {"texture transcodes", "relief/gloss maps",
+                                                 "x2 textures",        "place probes (visibility/AO volume)",
+                                                 "town light",         "layer arrays"};
         std::string text;
         for (size_t i = 0; i < count.size(); ++i)
             if (count[i])
