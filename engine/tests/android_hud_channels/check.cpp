@@ -83,8 +83,8 @@ void battleAbilities()
     battleAbilityTiming(a, std::nullopt, std::nullopt, 12.0, 72.0, false);
     REQUIRE(a.state == BattleAbility::Blocked);
     battleAbilityTiming(a, 5.0, std::nullopt, std::nullopt, 72.0,
-                        true); // a counter without its timing: the scripts' verdict
-    REQUIRE(a.state == BattleAbility::Ready);
+                        true); // a running effect without its TimeDuration: running, with no fill
+    REQUIRE((a.state == BattleAbility::Active && a.fill == 0 && a.left == 5));
     a.state = BattleAbility::Recovery, a.fill = 0.26, a.left = 54;
     const auto shown = hudAbilities({a});
     REQUIRE((shown.size() == 1 && shown[0].id == "Rush" && shown[0].label == "Tincture \"O\"" &&

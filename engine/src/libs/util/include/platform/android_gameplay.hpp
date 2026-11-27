@@ -177,6 +177,15 @@ struct GameplaySnapshot
 //          was used and its delay runs), blocked (owned, not usable now)
 //   fill   active: what is left of the effect; recovery: how far it has recovered (0…1)
 //   left   active / recovery: whole seconds the scripts still count (perks.c procChrPerkDelay)
+// The ship's battle abilities a touch HUD offers: the perk commands of the scripts' battle interface
+// (BattleInterface.Commands.<X>, launched as "BI_<X>").
+inline constexpr std::array<std::string_view, 4> ShipAbilityNames{"ImmediateReload", "LightRepair", "InstantRepair",
+                                                                  "Turn180"};
+inline bool shipAbilityControl(std::string_view control)
+{
+    return control.starts_with("BI_") &&
+           std::find(ShipAbilityNames.begin(), ShipAbilityNames.end(), control.substr(3)) != ShipAbilityNames.end();
+}
 struct BattleAbility
 {
     enum State
@@ -193,25 +202,28 @@ struct BattleAbility
     bool operator==(const BattleAbility &) const = default;
 };
 // The state of a perk ability from the scripts' counters (perks.c ActivateCharacterPerk sets
-// perks.list.<X>.active = ChrPerksList TimeDuration and .delay = TimeDelay, procChrPerkDelay counts
-// both down once a second and deletes them at 0): absent counters are std::nullopt. `enabled` is
-// the scripts' own verdict on the command (its .enable), asked only when neither counter runs.
+// perks.list.<X>.active and .delay, procChrPerkDelay counts both down once a second and deletes them at 0): the
+// effect runs while .active exists, the perk recovers while only .delay does. The fill is the share of ChrPerksList
+// TimeDuration / TimeDelay, the values the game counts from; none without them. Absent counters are std::nullopt.
+// `enabled` is the scripts' own verdict on the command (its .enable), asked only when neither counter runs.
 inline void battleAbilityTiming(BattleAbility &ability, std::optional<double> active, std::optional<double> delay,
                                 std::optional<double> duration, std::optional<double> cooldown, bool enabled)
 {
     const auto seconds = [](double value) { return static_cast<int>(std::ceil(std::clamp(value, 0.0, 86400.0))); };
     ability.fill = 0.0;
     ability.left = 0;
-    if (active && *active > 0 && duration && *duration > 0)
+    if (active && *active > 0)
     {
         ability.state = BattleAbility::Active;
-        ability.fill = std::clamp(*active / *duration, 0.0, 1.0); // what is left of the effect
+        if (duration && *duration > 0)
+            ability.fill = std::clamp(*active / *duration, 0.0, 1.0); // what is left of the effect
         ability.left = seconds(*active);
     }
-    else if (delay && *delay > 0 && cooldown && *cooldown > 0)
+    else if (delay && *delay > 0)
     {
         ability.state = BattleAbility::Recovery;
-        ability.fill = std::clamp(1.0 - *delay / *cooldown, 0.0, 1.0); // how far it has recovered
+        if (cooldown && *cooldown > 0)
+            ability.fill = std::clamp(1.0 - *delay / *cooldown, 0.0, 1.0); // how far it has recovered
         ability.left = seconds(*delay);
     }
     else
@@ -282,13 +294,13 @@ class GameplayState
     // Control Activation handler takes are activated this way; held and polled ones go through HeldControls.
     bool offer(const storm::ui::hud::GameplayControl &tap)
     {
-        static constexpr std::string_view kActivated[] = {
-            "Ship_Fire",          "Sea_CameraSwitch", "hk_charge1",       "hk_charge2",  "hk_charge3",
-            "hk_charge4",         "TimeScaleX1",      "TimeScaleX2",      "TimeScaleX4", "TimeScaleX8",
-            "BI_ImmediateReload", "BI_LightRepair",   "BI_InstantRepair", "BI_Turn180", // the ship abilities
-            "TelescopeIn",        "TelescopeOut"}; // the spyglass: raise, lower (main.cpp)
+        static constexpr std::string_view kActivated[] =
+            {"Ship_Fire",   "Sea_CameraSwitch", "hk_charge1",  "hk_charge2",
+             "hk_charge3",  "hk_charge4",       "TimeScaleX1", "TimeScaleX2",
+             "TimeScaleX4", "TimeScaleX8",      "TelescopeIn", "TelescopeOut"}; // the spyglass: raise, lower (main.cpp)
         if (tap.revision != revision_ ||
-            std::find(std::begin(kActivated), std::end(kActivated), tap.control) == std::end(kActivated) ||
+            (std::find(std::begin(kActivated), std::end(kActivated), tap.control) == std::end(kActivated) &&
+             !shipAbilityControl(tap.control)) ||
             !allows(tap.control))
             return false;
         pending_.push_back({tap.revision, tap.control});

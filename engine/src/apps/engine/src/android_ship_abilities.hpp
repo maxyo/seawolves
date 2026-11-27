@@ -1,17 +1,16 @@
 #pragma once
 #ifdef __ANDROID__
-// The ship's battle abilities a touch HUD offers: the four perk commands of the scripts' battle
-// interface (BattleInterface.c BI_InitializeCommands / procSetUsingAbility): immediate reload
-// (cannoner), light and instant repair (carpenter), the 180° turn (navigator). Everything is read
-// from the scripts' own state:
-//   holder   the main character when it has the perk, otherwise the officer of the perk's
-//            OfficerType (pchar.Fellows.Passengers.<type>) who has it; none = not offered;
+// The ship's battle abilities a touch HUD offers (ShipAbilityNames): the perk commands of the scripts' battle
+// interface (BattleInterface.c BI_InitializeCommands / procSetUsingAbility). Everything is read from the scripts'
+// own state:
+//   holder   the character whose perk counters run: the main character when it has the perk, otherwise the officer
+//            of the perk's OfficerType (pchar.Fellows.Passengers.<type>), where CheckOfficersPerkWOSelf reads them;
+//            none = not offered;
 //   label    BattleInterface.Commands.<X>.note, the game's own name (AbilityDescribe.txt);
 //   active   holder.perks.list.<X>.active counts down from ChrPerksList TimeDuration;
 //   recovery holder.perks.list.<X>.delay counts down from TimeDelay while not active;
 //   ready    BattleInterface.Commands.<X>.enable, which the scripts' procSetUsingAbility
-//            computes (asked when its inputs change, never inside a command menu: see
-//            refreshShipAbilities).
+//            computes (asked once a second, never inside a command menu: see refreshShipAbilities).
 // A tap launches the ability exactly as the native command list does:
 // Event("BI_LaunchCommand", "lsls", mainIndex, "BI_<X>", -1, "").
 #include "platform/android_ship_telemetry.hpp"
@@ -19,17 +18,13 @@
 #include "core.h"
 #include "v_data.h"
 
-#include <array>
+#include <chrono>
+#include <optional>
 #include <cmath>
 #include <cstdlib>
 
-#include <spdlog/spdlog.h>
-
 namespace storm::android
 {
-inline constexpr std::array<std::string_view, 4> ShipAbilityNames{"ImmediateReload", "LightRepair", "InstantRepair",
-                                                                  "Turn180"};
-
 namespace abilities
 {
 inline ATTRIBUTES *scriptObject(const char *name)
@@ -102,77 +97,29 @@ inline std::vector<BattleAbility> readShipAbilities()
     return out;
 }
 
-// What procSetUsingAbility (BattleInterface.c) decides Commands.<X>.enable from, read natively:
-// the officers (Fellows.Passengers); the main ship's hull and sails in whole percent of their
-// maximum (CheckInstantRepairCondition compares them with InstantRepairRATE) and its planks and
-// sailcloth (Ship.Cargo.Goods.Planks / .Sailcloth, the GOOD_PLANKS / GOOD_SAILCLOTH names).
-//
-// The original asks procSetUsingAbility only when its command menu opens (BI_SetPossibleCommands)
-// and shows readiness only there. The touch HUD shows the ability buttons all the time, and these
-// inputs have no script-side signal: a hit lowers the hull, a perk's delay runs out, the hold is
-// emptied, all without any event or message to the battle interface. So this is the one state
-// the HUD re-asks for on a change of its inputs instead of on an update message; nothing is
-// asked while they stay the same.
-inline std::string shipAbilityInputs(const ShipTelemetryFrame &frame)
+// Asks the scripts which abilities can be used now (procSetUsingAbility, the menu's own ask). The original asks
+// only when its command menu opens and shows readiness only there; the touch HUD shows the buttons all the time and
+// the enable has no script-side signal (a hit, an emptied hold, a delay running out), so it is asked once a second:
+// the scripts' perk counters move once a second (evntChrPerkDelay). Inside the command menu the menu asks itself;
+// right after it the HUD asks again.
+inline void refreshShipAbilities(bool commandMenuOpen)
 {
-    std::string out;
-    auto *main = shipMainCharacter();
-    auto *perks = abilities::scriptObject("ChrPerksList");
-    if (!main || !perks)
-        return out;
-    const auto value = [&](ATTRIBUTES *root, const char *path) {
-        auto *a = root ? root->FindAClass(root, path) : nullptr;
-        out += a ? (a->HasValue() ? a->GetValue() : "+") : "-";
-        out += '|';
-    };
-    for (const auto name : ShipAbilityNames)
-    {
-        auto *owner = abilities::holder(main, perks, name);
-        const std::string perk = "perks.list." + std::string(name);
-        out += owner ? std::to_string(reinterpret_cast<uintptr_t>(owner)) : "none";
-        out += owner && abilities::has(owner, perk) ? "P" : "";
-        out += owner && abilities::has(owner, perk + ".active") ? "A" : "";
-        out += owner && abilities::has(owner, perk + ".delay") ? "D" : "";
-        out += '|';
-    }
-    if (auto *passengers = main->FindAClass(main, "Fellows.Passengers"))
-        for (uint32_t i = 0; i < passengers->GetAttributesNum(); ++i)
-            if (auto *officer = passengers->GetAttributeClass(i); officer && officer->HasValue())
-                (out += officer->GetValue()) += ',';
-    const auto percent = [&](const std::optional<ShipMetric> &metric) {
-        out += metric && metric->maximum > 0
-                   ? std::to_string(static_cast<int>(std::floor(100.0 * metric->current / metric->maximum)))
-                   : "-";
-        out += '|';
-    };
-    percent(frame.ship.hull);
-    percent(frame.ship.sails);
-    value(main, "Ship.Cargo.Goods.Planks");
-    value(main, "Ship.Cargo.Goods.Sailcloth");
-    return out;
-}
-
-// Asks the scripts to recompute which abilities can be used now (procSetUsingAbility) when its
-// inputs changed (shipAbilityInputs). Inside the command menu the menu computes it itself; after
-// the menu the HUD asks again.
-inline void refreshShipAbilities(const ShipTelemetryFrame &frame, bool commandMenuOpen)
-{
-    static std::string last;
+    using Clock = std::chrono::steady_clock;
+    static std::optional<Clock::time_point> asked;
+    const auto now = Clock::now();
     if (commandMenuOpen)
     {
-        last.clear();
+        asked.reset();
         return;
     }
-    auto inputs = shipAbilityInputs(frame);
-    if (inputs.empty() || inputs == last)
+    if (asked && now - *asked < std::chrono::seconds(1))
         return;
-    last = std::move(inputs);
-    // Debug level: one line per ask, with the inputs that made it (the documented exception above).
-    spdlog::debug("ship abilities: inputs changed, asking procSetUsingAbility: {}", last);
     auto *main = shipMainCharacter();
     const auto index = main ? abilities::number(main, "index") : std::nullopt;
-    if (index && *index >= 0)
-        core.Event("evntSetUsingAbility", "l", static_cast<int32_t>(*index));
+    if (!index || *index < 0)
+        return;
+    asked = now;
+    core.Event("evntSetUsingAbility", "l", static_cast<int32_t>(*index));
 }
 
 // A tap: the ability is launched only while the scripts call it ready.
@@ -196,13 +143,13 @@ inline bool launchShipAbility(std::string_view control)
     }
     return false;
 }
-// The ship telemetry with the abilities; the scripts recompute what can be used first when its inputs changed.
+// The ship telemetry with the abilities; the scripts recompute what can be used first (once a second).
 inline ShipTelemetryFrame readShipFrame(const GameplayState &gameplay, bool commandMenuOpen)
 {
     auto frame = readShipTelemetry(gameplay);
     if (frame.valid)
     {
-        refreshShipAbilities(frame, commandMenuOpen);
+        refreshShipAbilities(commandMenuOpen);
         frame.abilities = readShipAbilities();
     }
     return frame;
