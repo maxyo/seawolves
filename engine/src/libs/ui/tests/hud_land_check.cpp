@@ -655,21 +655,15 @@ static void CheckStatus()
                states[1]["icon"] == "potion" && states[1]["label"] == "hud.effect.healing",
            "effects: one small icon each, in a fixed order");
     {
-        // The game makes the hero walk at a full stick: the row says why, the load or a quest.
+        // The game makes the hero walk at a full stick (the load, a quest: the game does not say which).
         Bench walking;
         walking.Explore();
-        Json overload = State("vitals-status");
-        overload["effects"] = Json::array({"overload"});
-        walking.Set("vitals", overload);
+        Json walk = State("vitals-status");
+        walk["effects"] = Json::array({"walkonly"});
+        walking.Set("vitals", walk);
         const Json shown = walking.mount.shown.elements["effects"]["states"];
-        Expect(shown.size() == 1 && shown[0]["icon"] == "weight" && shown[0]["fillTone"] == "danger" &&
-                   shown[0]["label"] == "hud.effect.overload",
-               "effects: an overloaded hero (walk only) shows the weight");
-        overload["effects"] = Json::array({"cantrun"});
-        walking.Set("vitals", overload);
-        const Json quest = walking.mount.shown.elements["effects"]["states"];
-        Expect(quest.size() == 1 && quest[0]["icon"] == "lock" && quest[0]["label"] == "hud.effect.cantrun",
-               "effects: a quest that forbids running shows the lock");
+        Expect(shown.size() == 1 && shown[0]["icon"] == "lock" && shown[0]["label"] == "hud.effect.walkonly",
+               "effects: walking only shows the lock");
     }
     bench.Press("abilities");
     Expect(mount.shown.elements["abilities-1"]["badge"] == "3" &&

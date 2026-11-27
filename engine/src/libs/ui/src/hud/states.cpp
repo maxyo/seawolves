@@ -269,8 +269,7 @@ std::string ReadVitals(const Json &state, Vitals &next)
             return "effects: expected an array";
         for (const Json &effect : *effects)
         {
-            if (!effect.is_string() ||
-                !OneOf(effect.get<std::string>(), {"poison", "drunk", "healing", "overload", "cantrun"}))
+            if (!effect.is_string() || !OneOf(effect.get<std::string>(), {"poison", "drunk", "healing", "walkonly"}))
                 return "effects: unknown effect " + effect.dump();
             next.effects.push_back(effect.get<std::string>());
         }

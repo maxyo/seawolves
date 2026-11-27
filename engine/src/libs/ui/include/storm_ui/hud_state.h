@@ -100,7 +100,7 @@ struct Vitals
     Picture picture;                                 // the hero's land interface picture
     double health = 0.0, energy = 0.0, reload = 0.0; // 0…1
     int loaded = 0, capacity = 0;
-    std::vector<std::string> effects; // poison, drunk, healing, overload, cantrun
+    std::vector<std::string> effects; // poison, drunk, healing, walkonly
     int potions = 0;                  // the game's potions carried
     std::vector<Officer> officers;
     double dash = -1.0;             // backstep cooldown left 0…1; -1 outside fight mode

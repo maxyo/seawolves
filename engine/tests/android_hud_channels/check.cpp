@@ -56,15 +56,14 @@ void boardingMen()
     std::printf("  %-14s men from bodies x crew_per_chr, refused without a start or a crew per body\n", "boarding");
 }
 
-// The game's walk-only rule as an effect (land_status.hpp readLandStatus): its run is its walk.
+// Walking only (land_status.hpp readLandStatus): the scripts gave the hero his walk as his run.
 void walkOnly()
 {
-    REQUIRE((!landWalkOnlyEffect("run", "walk", false) && !landWalkOnlyEffect("run", "walk", true)));
-    REQUIRE(std::string_view(landWalkOnlyEffect("walk", "walk", false)) == "overload");
-    REQUIRE(std::string_view(landWalkOnlyEffect("walk", "walk", true)) == "cantrun");
+    REQUIRE(!landWalksOnly("run", "walk"));
+    REQUIRE(landWalksOnly("walk", "walk"));
     // No actions read (a chest, the hero not set up yet): no claim.
-    REQUIRE(!landWalkOnlyEffect("", "", false));
-    std::printf("  %-14s overload / cantrun only while the run animation is the walk\n", "walk-only");
+    REQUIRE(!landWalksOnly("", ""));
+    std::printf("  %-14s only while the run animation is the walk\n", "walk-only");
 }
 
 } // namespace

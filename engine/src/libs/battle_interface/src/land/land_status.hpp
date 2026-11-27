@@ -213,10 +213,8 @@ inline void readLandStatus(ATTRIBUTES *root, ATTRIBUTES *icons, LandVitals &v)
          {std::pair{"poison", "chr_ai.poison"}, {"drunk", "chr_ai.drunk"}, {"healing", "chr_ai.hp_bottle"}})
         if (landNumber(hero, path) > 0.f)
             v.effects.emplace_back(name);
-    if (const char *walkOnly = landWalkOnlyEffect(landText(hero, "actions.run"), landText(hero, "actions.walk"),
-                                                  (hero && hero->FindAClass(hero, "GenQuest.CantRun")) ||
-                                                      landText(hero, "model") == "protocusto"))
-        v.effects.emplace_back(walkOnly);
+    if (landWalksOnly(landText(hero, "actions.run"), landText(hero, "actions.walk")))
+        v.effects.emplace_back("walkonly");
     v.hero =
         landPortrait(heroIcon ? static_cast<int>(heroIcon->GetAttributeAsDword("chrindex", -1)) : -1, hero, heroIcon);
     v.potions = potions(hero);

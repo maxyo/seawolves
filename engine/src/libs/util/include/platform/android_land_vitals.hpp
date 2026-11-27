@@ -58,15 +58,11 @@ inline std::optional<LandBoarding> landBoardingMen(int oursReserve, int oursAliv
                         men(std::max(0, theirsReserve) + theirsAlive, theirsPerBody), men(oursStart, oursPerBody),
                         men(theirsStart, theirsPerBody)};
 }
-// The game's walk-only rule (TEHO characters.c CheckAndSetOverloadMode): an overloaded hero, one a quest
-// forbids to run (GenQuest.CantRun) or one in the "protocusto" model gets the walk animation as his run
-// (actions.run = actions.walk), so a full stick only walks. The HUD names why: "overload" when the load is
-// the reason, "cantrun" when a quest or the model is. Nothing while his run is a run.
-inline const char *landWalkOnlyEffect(std::string_view run, std::string_view walk, bool scripted)
+// The scripts make the hero walk at a full stick by giving him the walk animation as his run (characters.c
+// CheckAndSetOverloadMode); why (the load, a quest) is theirs and not told.
+inline bool landWalksOnly(std::string_view run, std::string_view walk)
 {
-    if (run.empty() || run != walk)
-        return nullptr;
-    return scripted ? "cantrun" : "overload";
+    return !run.empty() && run == walk;
 }
 struct LandVitals
 {
@@ -76,7 +72,7 @@ struct LandVitals
     // (the party's first portrait).
     LandPortrait hero;
     // "poison", "drunk", "healing" (the hero's chr_ai.poison / chr_ai.drunk / chr_ai.hp_bottle,
-    // Loc_ai/LAi_character.c), then "overload" or "cantrun" while his run is the walk (landWalkOnlyEffect).
+    // Loc_ai/LAi_character.c), then "walkonly" while his run is the walk (landWalksOnly).
     std::vector<std::string> effects;
     int potions = 0; // the game's potions the hero carries (land_status.hpp potionIds)
     // data.icons.id1… of the land interface (landinterface.c SetCharacterIconData: without a FaceId its texture and uv,
