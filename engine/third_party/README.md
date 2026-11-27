@@ -77,4 +77,6 @@ reserved.
 | CMake, Ninja | 3.28.4, 1.13.0 (pip) | BSD-3-Clause, Apache-2.0 | fetched: `tools/android/ci_dependencies.sh` | building |
 | google-java-format | 1.28.0 | Apache-2.0 | fetched: `app/tools/android/java_format.py` | formatting the Java sources |
 | AOSP org.json (`com.vaadin.external.google:android-json`) | 0.0.20131108.vaadin1 | Apache-2.0 | fetched: `app/tests/java_check.py` | Android's own `org.json` on the classpath of the app's Java host checks; never packaged |
-| the host's SDL2 and zlib | the distribution's | Zlib | system packages (`cmake/host.cmake`) | the Linux host engine |
+| the host's SDL2 and zlib | the distribution's | Zlib | system packages (`cmake/host.cmake`) | the Linux host engine; zlib also the audio import tool |
+| libogg | 1.3.6, pin `libogg` | BSD-3-Clause | fetched: `tools/audio-import/cmake/xiph.cmake` | the audio import tool (`tools/audio-import`) and its checks; never packaged |
+| libvorbis (with vorbisenc) | 1.3.7, pin `libvorbis` | BSD-3-Clause | fetched: `tools/audio-import/cmake/xiph.cmake` | the audio import tool and its checks; never packaged |
