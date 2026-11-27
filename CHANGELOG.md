@@ -24,7 +24,8 @@
 - В «Каждому своё» тени от солнца теперь падают по направлению света самого часа, как его задаёт погода игры.
 - Под дождевыми тучами солнце не даёт ореола, а в «Каждому своё» и не отбрасывает теней.
 - Молния освещает небо и сцену вспышкой, как в Caribbean Legend: ночью облака и всё вокруг на миг высвечиваются, днём
-  небо и рассеянный свет на миг приглушаются. В «Каждому своё» вспышку даёт каждая молния игры.
+  небо и рассеянный свет на миг приглушаются. В «Каждому своё» каждая молния ночью на миг высвечивает облака и всё
+  вокруг, а днём вспышкой остаётся её собственное сияние.
 - Caribbean Legend: пока час дождливый и скрипты показывают дождь, вокруг камеры идёт дождь — эффект самой игры.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
@@ -108,7 +109,7 @@
 - Under rain clouds the sun has no glow, and in «Каждому своё» it casts no shadows either.
 - Lightning flashes light the sky and the scene as in Caribbean Legend: at night the clouds and everything around
   light up for a moment, by day the sky and the fill light dim for a moment. In «Каждому своё» each of the game's
-  lightning bolts gives a flash.
+  lightning bolts lights the clouds and everything around for a moment at night; by day its own glow is the flash.
 - Caribbean Legend: while the hour rains and the scripts show the rain, the game's own rain effect falls around the
   camera.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.

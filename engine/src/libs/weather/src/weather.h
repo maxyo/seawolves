@@ -107,8 +107,8 @@ class WEATHER : public WEATHER_BASE
         return state_;
     }
 
-    // A lightning's flash over `seconds`: the rain's flash message, a bolt of the lightning entity.
-    void Flash(float seconds);
+    // A lightning's flash over `seconds`, raised by the rain's flash message or a bolt of the lightning entity.
+    void Flash(float seconds, storm::environment::LightningFlash::Source source);
 
     // The fog of the current hour of the place's lighting presets (density per 100 m, linear colour); nullopt when
     // the hour has none or the weather is not evaluated from data.

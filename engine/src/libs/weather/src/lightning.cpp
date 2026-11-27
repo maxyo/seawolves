@@ -142,9 +142,9 @@ uint64_t LIGHTNING::ProcessMessage(MESSAGE &message)
         pL->Flash.fTime = message.Float();
 
         CalcFlashPower(pL);
-        // The bolt's flash lights the scene and the sky as Caribbean Legend's lightning does, over the bolt's time.
+        // At night the bolt lights the clouds and the fill over its time; by day its flash sprite is the whole flash.
         if (auto *weather = static_cast<WEATHER *>(core.GetEntityPointerSafe(core.GetEntityId("weather"))))
-            weather->Flash(pL->fTime);
+            weather->Flash(pL->fTime, storm::environment::LightningFlash::Source::Bolt);
     }
     break;
     }

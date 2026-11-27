@@ -108,18 +108,26 @@ State Evaluate(const Inputs &in);
 
 // A lightning's flash, shaped as Caribbean Legend's engine shapes it: over its seconds one or two pulses, each rising
 // over a tenth of its share and falling over the rest. It multiplies the sky's light and the fill by
-// 1 + pulse * (peak - 1), the peak 0.5 from 6 to 19 o'clock and 40 at night.
+// 1 + pulse * (peak - 1), the peak 40 at night. By day (6 to 19 o'clock) the flash message's peak is 0.5, as in
+// Caribbean Legend; a bolt of the old lightning entity leaves sky and fill alone by day, its own sprite being the
+// flash.
 class LightningFlash
 {
   public:
+    enum class Source
+    {
+        Message, // the rain's flash message, sent by the game with its bolt effect
+        Bolt,    // a bolt of the lightning entity
+    };
     // A flash asked for while one runs is not started.
-    void Start(float seconds, int pulses);
+    void Start(float seconds, int pulses, Source source);
     // The multiplier after `seconds` more at `hour`; 1 without a flash.
     float Advance(float seconds, float hour);
 
   private:
     float time_ = 0.0f, duration_ = 0.0f;
     int pulses_ = 0;
+    Source source_ = Source::Message;
 };
 // The flash on a frame's state: the sky's radiances, the fill the clouds take and the fill added apart from the sky
 // (the fill the drawn sky gives follows its radiances).

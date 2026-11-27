@@ -409,13 +409,19 @@ TEST_CASE("rain clouds and wetness")
 TEST_CASE("a lightning's flash")
 {
     // A tenth into its pulse it is half lit: half way to 0.5 by day, to 40 at night; over, nothing.
+    using Source = LightningFlash::Source;
     LightningFlash day;
-    day.Start(0.25f, 1);
+    day.Start(0.25f, 1, Source::Message);
     CHECK(day.Advance(0.0125f, 12.0f) == Approx(0.75f));
-    day.Start(1.0f, 1); // a flash runs: no new one
+    day.Start(1.0f, 1, Source::Message); // a flash runs: no new one
     CHECK(day.Advance(0.25f, 12.0f) == 1.0f);
+    // A bolt of the lightning entity leaves the day alone and lights the night.
+    LightningFlash bolt;
+    bolt.Start(0.25f, 1, Source::Bolt);
+    CHECK(bolt.Advance(0.0125f, 12.0f) == 1.0f);
+    CHECK(bolt.Advance(0.0f, 22.0f) == Approx(20.5f));
     LightningFlash night;
-    night.Start(0.25f, 2);
+    night.Start(0.25f, 2, Source::Message);
     CHECK(night.Advance(0.0f, 22.0f) == 1.0f);
     CHECK(night.Advance(0.1250f + 0.00625f, 22.0f) == Approx(20.5f)); // the second pulse
     State lit;

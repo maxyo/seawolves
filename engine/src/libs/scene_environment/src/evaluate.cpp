@@ -557,13 +557,14 @@ State Evaluate(const Inputs &in)
     return s;
 }
 
-void LightningFlash::Start(float seconds, int pulses)
+void LightningFlash::Start(float seconds, int pulses, Source source)
 {
     if (duration_ > 0.0f || seconds <= 0.0f)
         return;
     time_ = 0.0f;
     duration_ = seconds;
     pulses_ = std::max(pulses, 1);
+    source_ = source;
 }
 
 float LightningFlash::Advance(float seconds, float hour)
@@ -579,7 +580,8 @@ float LightningFlash::Advance(float seconds, float hour)
     const float p = std::fmod(time_ / duration_ * float(pulses_), 1.0f);
     const float pulse = std::min((1.0f - p) / 0.9f, p * 10.0f);
     const int h = int(Wrap24(hour));
-    const float peak = h >= 6 && h <= 19 ? 0.5f : 40.0f;
+    const bool day = h >= 6 && h <= 19;
+    const float peak = !day ? 40.0f : source_ == Source::Message ? 0.5f : 1.0f;
     return 1.0f + pulse * (peak - 1.0f);
 }
 

@@ -145,10 +145,10 @@ void WEATHER::Execute(uint32_t Delta_Time)
     }
 }
 
-void WEATHER::Flash(float seconds)
+void WEATHER::Flash(float seconds, storm::environment::LightningFlash::Source source)
 {
     // One or two pulses, at random, as Caribbean Legend's engine flashes.
-    flash_.Start(seconds, 1 + (std::rand() & 1));
+    flash_.Start(seconds, 1 + (std::rand() & 1), source);
 }
 
 // The scripts' attributes as the scene environment.

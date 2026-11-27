@@ -565,7 +565,7 @@ uint64_t RAIN::ProcessMessage(MESSAGE &message)
         break;
     case MSG_WHR_RAIN_LIGHTNING_FLASH:
         if (auto *weather = static_cast<WEATHER *>(core.GetEntityPointerSafe(core.GetEntityId("weather"))))
-            weather->Flash(message.Float());
+            weather->Flash(message.Float(), storm::environment::LightningFlash::Source::Message);
         break;
     }
     return 0;
