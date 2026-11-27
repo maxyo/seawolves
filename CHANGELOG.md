@@ -80,6 +80,9 @@
 - Орудия и торговля предметами: экраны — скриптовые. Сколько можно купить или продать, решает окно игры: продажа
   тоже упирается в то, что игра принимает (место у торговца, его деньги, квестовые предметы не продаются), а не
   только покупка в наши деньги и трюм.
+- Найм команды, ремонт своими силами и символика на парусах теперь построены скриптами интерфейса. В ремонте
+  каждое перемещение ползунка сразу отдаётся стрелкам самой игры, и строка показывает, где игра остановилась; слово
+  морали в найме пишется так, как его пишет игра.
 
 **English**
 
@@ -165,6 +168,9 @@
 - Cannons and items trade: script screens. How much can be bought or sold is the game's window's to decide: a sale
   too stops where the game stops it (the merchant's room and money; quest items are not sold), not only a purchase
   by our purse and hold.
+- Crew hire, self repair and the sail emblem are now built by the interface scripts. In the repair every move of a
+  slider goes to the game's own arrows at once, and the row shows where the game stopped; the morale word of the hire
+  is written as the game writes it.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

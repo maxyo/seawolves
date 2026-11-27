@@ -57,6 +57,9 @@ of the providers the first that attaches is chosen), and:
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
 
+A required node is looked up in the interface's ini file: a node the engine adds to the model (`ANDROID_*`) is listed
+without `true`, and the adapter that needs it says so with `UiError` when it is absent.
+
 The node types of `binds` are the model's widget types (`engine/src/libs/ui/include/storm_ui/interface_model.h`):
 `choice` (a list's rows, a scroll of ships or characters), `table` (a list with no rows), `edit`, `slider`, `check`,
 `button`, `text`, `heading`, `image`; `a|b` takes either. A node name ending in `*` takes every node it starts
@@ -88,7 +91,8 @@ The natives (`core/core.c`):
   `UiTap(ui, offer, "", change asked)`, whose handler offers it to the game's window (and holds); the control then
   shows `answer` (our side as the game's window holds it now) and says `cutReason` when the game cut what was asked.
   `out.value`, `out.change` and `out.button` (absent while unchanged); the button's press raises
-  `UiTap(ui, commit, "", change)`;
+  `UiTap(ui, commit, "", change)`. The deal owns the screen's `primary`: a screen whose primary is something else, or
+  with several amounts (the self repair's parts), binds its controls' `change`/`commit` itself and asks the game;
 - `UiOrder(list, field, descending)`: a stable order by a whole number; `UiRebuild`, `UiFirst`;
 - texts: `UiAmount`, `UiNumber` (fail naming the text without a number), `UiHasAmount`, `UiDecimal`, `UiOneLine`, `UiFill`;
 - `UiToast`, `UiRead`, `UiError(text)`.
@@ -163,7 +167,8 @@ full one):
 - Commands (from the repository root; `XDG_STATE_HOME` to a private directory when run by hand):
   `python3 engine/tools/ci/run_host_tests.py --only ui_scripts` (with `STORM_GAME_DIR` set, `ui_scripts.game` too),
   `ctest --test-dir engine/build/ui-host -R 'ui_screens|ui_script_screen|ui_trade_parity'`,
-  `python3 app/mobile-ui/design/build.py --check`, `python3 app/tests/ui_pack_contract/run.py`.
+  `python3 app/mobile-ui/design/build.py --check`, `python3 app/tests/ui_pack_contract/run.py`. Both test trees take
+  the scripts as a copy made when they build: rebuild (`ui_scripts_check`, the UI host) after editing a script.
 
 ## Retiring a C++ screen
 
@@ -181,4 +186,6 @@ are mostly the C++ screen's own arithmetic loses its parity case instead (named 
 - The trade family's last interfaces (colony capture, the ship exchange) are still C++
   (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); their recorded parity
   (`trade-parity.json`) goes with them.
-- The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet.
+- The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
+  crew hire's and the self repair's are gone (their adapters read the game themselves).
+- The shipyard and the hero's ship screen are still C++ (`trade_shipyard.cpp`, `hero_ship.cpp`).
