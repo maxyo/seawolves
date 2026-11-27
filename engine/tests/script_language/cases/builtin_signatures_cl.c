@@ -13,5 +13,5 @@ int test_return_types()
 
 int test_argument_ranges()
 {
-	return fts(1.5) == "1.5" && fts(2.25, 2) == "2.2";
+	return fts(1.5) == "1.5" && fts(2.25, 2) == "2.25";
 }

@@ -935,7 +935,7 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         slen = strlen(pChar);
         pV2->Get(TempLong1);
         pV3->Get(TempLong2);
-        if (TempLong1 > TempLong2 || TempLong1 >= slen || TempLong2 >= slen)
+        if (TempLong1 < 0 || TempLong1 > TempLong2 || TempLong2 >= slen)
         {
             SetError("Invalid range");
             pV = SStack.Push();
@@ -1673,10 +1673,11 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         pVResult = pV;
         return pV;
     case FUNC_FTS:
-        // fts(value[, significant digits]); CL's one-argument form uses 6 digits, as printf's %g
+        // fts(value): 6 significant digits, as printf's %g; fts(value, n): n digits after the point
+        // (Caribbean Legend's scripts cut the text at its '.')
         if (!IntFuncArgumentsInRange(func_code, arguments))
             return nullptr;
-        TempLong1 = 6;
+        TempLong1 = -1;
         if (arguments == 2)
         {
             pV2 = SStack.Pop();
@@ -1686,21 +1687,26 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
                 break;
             }
             pV2->Get(TempLong1);
+            if (TempLong1 < 0)
+            {
+                SetError("fts: %d digits after the point", TempLong1);
+                break;
+            }
         }
         pV = SStack.Pop();
-        if (!pV || pV->GetType() != VAR_FLOAT)
+        if (pV)
+            pV = Deref(pV);
+        if (!pV || (pV->GetType() != VAR_FLOAT && pV->GetType() != VAR_INTEGER))
         {
             SetError(INVALID_FA);
             break;
         }
-        pV->Get(TempFloat1);
-        pV = SStack.Push();
-#ifdef __ANDROID__
-        snprintf(gs, sizeof(gs), "%.*g", std::clamp(TempLong1, 1, 32), static_cast<double>(TempFloat1));
-#else
-        gcvt(TempFloat1, TempLong1, gs);
-#endif
-        pV->Set(gs);
+        {
+            const double value = pV->GetType() == VAR_FLOAT ? pV->GetFloat() : static_cast<double>(pV->GetInt());
+            const std::string text = TempLong1 < 0 ? fmt::format("{:.6g}", value) : fmt::format("{:.{}f}", value, TempLong1);
+            pV = SStack.Push();
+            pV->Set(text.c_str());
+        }
         pVResult = pV;
         return pV;
     case FUNC_ABS:
