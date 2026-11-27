@@ -9532,6 +9532,2691 @@
     "send GAME_ACCEPT press ",
     "hold"
    ]
+  },
+  {
+   "name": "the captain's Commerce described: the treasurer on his post lends it, the step names him",
+   "capability": "character",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 10,
+    "screenRevision": 4,
+    "screen": "lscchar_all",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Character  ",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_ITEMS",
+      "type": "button",
+      "label": "Items",
+      "index": -1
+     },
+     {
+      "node": "I_ITEMS_2",
+      "type": "button",
+      "label": "Items",
+      "index": -1
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Ships",
+      "index": 0
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "CHARACTER_BIG_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "kind": "portrait",
+         "image": "7"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "Personal 1",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Ship 0",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TABLE_SKILL_1",
+      "type": "choice",
+      "label": "\tCharisma\t40%\t\t12",
+      "value": "0",
+      "index": 0,
+      "rowId": "Leadership",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Leadership skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Charisma"
+       },
+       {
+        "text": "40%"
+       },
+       {},
+       {
+        "text": "12"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_1",
+      "type": "choice",
+      "label": "\tRapiers\t0%\t(-2)\t3",
+      "value": "0",
+      "index": 1,
+      "rowId": "FencingL",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "FencingL skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Rapiers"
+       },
+       {
+        "text": "0%"
+       },
+       {
+        "text": "(-2)"
+       },
+       {
+        "text": "3"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_2",
+      "type": "choice",
+      "label": "\tSailing\t0%\t\t11",
+      "value": "0",
+      "index": 0,
+      "rowId": "Sailing",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Sailing skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Sailing"
+       },
+       {
+        "text": "0%"
+       },
+       {},
+       {
+        "text": "11"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_2",
+      "type": "choice",
+      "label": "\tCommerce\t0%\t\t5",
+      "value": "0",
+      "index": 1,
+      "rowId": "Commerce",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Commerce skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Commerce"
+       },
+       {
+        "text": "0%"
+       },
+       {},
+       {
+        "text": "5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SPECIAL",
+      "type": "choice",
+      "label": "S\tStrength\t\t5",
+      "value": "0",
+      "index": 0,
+      "enabled": false,
+      "rowId": "Strength",
+      "cells": [
+       {
+        "text": "S"
+       },
+       {
+        "text": "Strength"
+       },
+       {},
+       {
+        "text": "5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SPECIAL",
+      "type": "choice",
+      "label": "S\tAgility\t+1\t7",
+      "value": "0",
+      "index": 1,
+      "enabled": false,
+      "rowId": "Agility",
+      "cells": [
+       {
+        "text": "S"
+       },
+       {
+        "text": "Agility"
+       },
+       {
+        "text": "(+1)"
+       },
+       {
+        "text": "7"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tRank\t4\t",
+      "value": "0",
+      "index": 0,
+      "rowId": "Rank",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Rank"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Rank"
+       },
+       {
+        "text": "4"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tLife\t90 / 120\t",
+      "value": "0",
+      "index": 1,
+      "rowId": "Life",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Life"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Life"
+       },
+       {
+        "text": "90 / 120"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tHealth\tEXCELLENT\t",
+      "value": "0",
+      "index": 2,
+      "rowId": "Health",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Health"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Health"
+       },
+       {
+        "text": "EXCELLENT"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tEnergy\t30 / 40\t",
+      "value": "0",
+      "index": 3,
+      "rowId": "Energy",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Energy"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Energy"
+       },
+       {
+        "text": "30 / 40"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tMoney\t500\t",
+      "value": "0",
+      "index": 4,
+      "rowId": "Money",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Money"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Money"
+       },
+       {
+        "text": "500"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "LOYALITY_STR",
+      "type": "text",
+      "label": "Authority",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "REPUTATION_STR",
+      "type": "text",
+      "label": "Unknown adventurer",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "FREE_SKILL",
+      "type": "text",
+      "label": "2",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "B_SKILLUP",
+      "type": "button",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABLE_PERKS",
+      "type": "choice",
+      "label": "\tBasic defense",
+      "value": "1",
+      "index": 0,
+      "rowId": "basicdefense",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "PERK_DISABLE",
+           "image": "basicdefense"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Basic defense"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_PERKS",
+      "type": "choice",
+      "label": "\tCritical hit",
+      "value": "0",
+      "index": 1,
+      "rowId": "criticalhit",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "PERK_DISABLE",
+           "image": "criticalhit"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Critical hit"
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne · Bonny · 4",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack · Rackham · 5",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Boatswain · Not assigned",
+      "value": "0",
+      "index": 2,
+      "rowId": "1:2",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Cannoner · Mary · Read · 6",
+      "value": "0",
+      "index": 3,
+      "rowId": "1:3",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Doctor · Mary · Read · 6",
+      "value": "0",
+      "index": 4,
+      "rowId": "1:4",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Treasurer · Not assigned",
+      "value": "0",
+      "index": 5,
+      "rowId": "1:5",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Carpenter · Not assigned",
+      "value": "0",
+      "index": 6,
+      "rowId": "1:6",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Israel · Hands · 5",
+      "value": "0",
+      "index": 7,
+      "rowId": "1:7",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Not assigned",
+      "value": "0",
+      "index": 8,
+      "rowId": "1:8",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Not assigned",
+      "value": "0",
+      "index": 9,
+      "rowId": "1:9",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Companion · Edward · Teach · 9",
+      "value": "0",
+      "index": 10,
+      "rowId": "1:10",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Passenger · Bartholomew · de la Fontaine-Beaumarchais · 3",
+      "value": "0",
+      "index": 11,
+      "rowId": "1:11",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Prisoner · Charles · Vane · 7",
+      "value": "0",
+      "index": 12,
+      "rowId": "1:12",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "card": {
+     "actions": [],
+     "energy": {
+      "text": "30",
+      "value": 75
+     },
+     "free": "2",
+     "health": {
+      "text": "90",
+      "value": 75
+     },
+     "lines": [
+      {
+       "k": "Health",
+       "tone": "ok",
+       "v": "EXCELLENT"
+      },
+      {
+       "k": "Authority",
+       "v": "63 / 100"
+      }
+     ],
+     "portrait": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_7"
+     },
+     "roles": "Captain",
+     "sub": "Rank 4",
+     "title": "Anne Bonny"
+    },
+    "dialog": null,
+    "headerSection": "hero",
+    "personal": {
+     "columns": [
+      {
+       "label": "Personal",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Charisma"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "12",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Rapiers"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "3",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "points": true,
+    "ship": {
+     "columns": [
+      {
+       "label": "Ship",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Sailing"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "11",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Commerce"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "5",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "special": {
+     "columns": [
+      {
+       "label": "<hero.special>",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "32px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Strength"
+        },
+        {
+         "bold": true,
+         "text": "5"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Agility"
+        },
+        {
+         "bold": true,
+         "text": "8",
+         "tone": "ok"
+        }
+       ]
+      }
+     ]
+    },
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_30"
+       },
+       "label": "Maximiliane von Hohenzollern-Sigmaringen",
+       "meta": "Cannoner · Treasurer · Carpenter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_14"
+       },
+       "label": "Israel Hands",
+       "meta": "Fighter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_41"
+       },
+       "label": "Edward Teach",
+       "meta": "Companion",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_3"
+       },
+       "label": "Bartholomew de la Fontaine-Beaumarchais",
+       "meta": "Passenger",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_25"
+       },
+       "label": "Charles Vane",
+       "meta": "Prisoner",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 7",
+     "title": "<hero.subjects>"
+    },
+    "tab": "skills",
+    "tabs": [
+     {
+      "badge": "2",
+      "id": "skills",
+      "label": "<hero.tab_skills>",
+      "selected": true
+     },
+     {
+      "badge": "1",
+      "id": "perks1",
+      "label": "Personal",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "perks2",
+      "label": "Ship",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "officers",
+      "label": "<hero.tab_officers>",
+      "selected": false
+     }
+    ],
+    "title": "  Character  "
+   },
+   "modals": [],
+   "events": [
+    [
+     "ship",
+     "row",
+     "1"
+    ]
+   ],
+   "calls": [
+    "rebuild"
+   ],
+   "game": {
+    "TestHero.Fellows.Passengers.treasurer": 13
+   },
+   "after": {
+    "card": {
+     "actions": [],
+     "energy": {
+      "text": "30",
+      "value": 75
+     },
+     "free": "2",
+     "health": {
+      "text": "90",
+      "value": 75
+     },
+     "lines": [
+      {
+       "k": "Health",
+       "tone": "ok",
+       "v": "EXCELLENT"
+      },
+      {
+       "k": "Authority",
+       "v": "63 / 100"
+      }
+     ],
+     "portrait": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_7"
+     },
+     "roles": "Captain",
+     "sub": "Rank 4",
+     "title": "Anne Bonny"
+    },
+    "dialog": {
+     "actions": [
+      {
+       "id": "skill-help-close",
+       "label": "<common.close>",
+       "variant": "primary"
+      }
+     ],
+     "kind": "skill",
+     "steps": [
+      {
+       "k": "<hero.step_base>",
+       "tone": "dim",
+       "v": "5"
+      },
+      {
+       "k": "<hero.step_officer> Jean Bart",
+       "tone": "ok",
+       "v": "+2"
+      },
+      {
+       "k": "<hero.step_navy> 3",
+       "tone": "danger",
+       "v": "−2"
+      },
+      {
+       "k": "<hero.step_result>",
+       "v": "5"
+      }
+     ],
+     "text": "Commerce text\n\nmore",
+     "title": "Commerce"
+    },
+    "headerSection": "hero",
+    "personal": {
+     "columns": [
+      {
+       "label": "Personal",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Charisma"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "12",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Rapiers"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "3",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "points": true,
+    "ship": {
+     "columns": [
+      {
+       "label": "Ship",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Sailing"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "11",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Commerce"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "5",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "special": {
+     "columns": [
+      {
+       "label": "<hero.special>",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "32px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Strength"
+        },
+        {
+         "bold": true,
+         "text": "5"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Agility"
+        },
+        {
+         "bold": true,
+         "text": "8",
+         "tone": "ok"
+        }
+       ]
+      }
+     ]
+    },
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_30"
+       },
+       "label": "Maximiliane von Hohenzollern-Sigmaringen",
+       "meta": "Cannoner · Treasurer · Carpenter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_14"
+       },
+       "label": "Israel Hands",
+       "meta": "Fighter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_41"
+       },
+       "label": "Edward Teach",
+       "meta": "Companion",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_3"
+       },
+       "label": "Bartholomew de la Fontaine-Beaumarchais",
+       "meta": "Passenger",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_25"
+       },
+       "label": "Charles Vane",
+       "meta": "Prisoner",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 7",
+     "title": "<hero.subjects>"
+    },
+    "tab": "skills",
+    "tabs": [
+     {
+      "badge": "2",
+      "id": "skills",
+      "label": "<hero.tab_skills>",
+      "selected": true
+     },
+     {
+      "badge": "1",
+      "id": "perks1",
+      "label": "Personal",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "perks2",
+      "label": "Ship",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "officers",
+      "label": "<hero.tab_officers>",
+      "selected": false
+     }
+    ],
+    "title": "  Character  "
+   }
+  },
+  {
+   "name": "the captain's Commerce described with the treasurer's post empty: nothing lent, no officer's step",
+   "capability": "character",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 10,
+    "screenRevision": 4,
+    "screen": "lscchar_all",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Character  ",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_ITEMS",
+      "type": "button",
+      "label": "Items",
+      "index": -1
+     },
+     {
+      "node": "I_ITEMS_2",
+      "type": "button",
+      "label": "Items",
+      "index": -1
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Ships",
+      "index": 0
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "CHARACTER_BIG_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "kind": "portrait",
+         "image": "7"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "Personal 1",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Ship 0",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TABLE_SKILL_1",
+      "type": "choice",
+      "label": "\tCharisma\t40%\t\t12",
+      "value": "0",
+      "index": 0,
+      "rowId": "Leadership",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Leadership skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Charisma"
+       },
+       {
+        "text": "40%"
+       },
+       {},
+       {
+        "text": "12"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_1",
+      "type": "choice",
+      "label": "\tRapiers\t0%\t(-2)\t3",
+      "value": "0",
+      "index": 1,
+      "rowId": "FencingL",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "FencingL skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Rapiers"
+       },
+       {
+        "text": "0%"
+       },
+       {
+        "text": "(-2)"
+       },
+       {
+        "text": "3"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_2",
+      "type": "choice",
+      "label": "\tSailing\t0%\t\t11",
+      "value": "0",
+      "index": 0,
+      "rowId": "Sailing",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Sailing skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Sailing"
+       },
+       {
+        "text": "0%"
+       },
+       {},
+       {
+        "text": "11"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SKILL_2",
+      "type": "choice",
+      "label": "\tCommerce\t0%\t\t5",
+      "value": "0",
+      "index": 1,
+      "rowId": "Commerce",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_SPEC",
+           "image": "Commerce skill icon"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Commerce"
+       },
+       {
+        "text": "0%"
+       },
+       {},
+       {
+        "text": "5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SPECIAL",
+      "type": "choice",
+      "label": "S\tStrength\t\t5",
+      "value": "0",
+      "index": 0,
+      "enabled": false,
+      "rowId": "Strength",
+      "cells": [
+       {
+        "text": "S"
+       },
+       {
+        "text": "Strength"
+       },
+       {},
+       {
+        "text": "5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_SPECIAL",
+      "type": "choice",
+      "label": "S\tAgility\t+1\t7",
+      "value": "0",
+      "index": 1,
+      "enabled": false,
+      "rowId": "Agility",
+      "cells": [
+       {
+        "text": "S"
+       },
+       {
+        "text": "Agility"
+       },
+       {
+        "text": "(+1)"
+       },
+       {
+        "text": "7"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tRank\t4\t",
+      "value": "0",
+      "index": 0,
+      "rowId": "Rank",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Rank"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Rank"
+       },
+       {
+        "text": "4"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tLife\t90 / 120\t",
+      "value": "0",
+      "index": 1,
+      "rowId": "Life",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Life"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Life"
+       },
+       {
+        "text": "90 / 120"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tHealth\tEXCELLENT\t",
+      "value": "0",
+      "index": 2,
+      "rowId": "Health",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Health"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Health"
+       },
+       {
+        "text": "EXCELLENT"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tEnergy\t30 / 40\t",
+      "value": "0",
+      "index": 3,
+      "rowId": "Energy",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Energy"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Energy"
+       },
+       {
+        "text": "30 / 40"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "TABLE_OTHER",
+      "type": "choice",
+      "label": "\tMoney\t500\t",
+      "value": "0",
+      "index": 4,
+      "rowId": "Money",
+      "actions": [
+       "select"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ICONS_CHAR",
+           "image": "Money"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Money"
+       },
+       {
+        "text": "500"
+       },
+       {}
+      ]
+     },
+     {
+      "node": "LOYALITY_STR",
+      "type": "text",
+      "label": "Authority",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "REPUTATION_STR",
+      "type": "text",
+      "label": "Unknown adventurer",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "FREE_SKILL",
+      "type": "text",
+      "label": "2",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "B_SKILLUP",
+      "type": "button",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABLE_PERKS",
+      "type": "choice",
+      "label": "\tBasic defense",
+      "value": "1",
+      "index": 0,
+      "rowId": "basicdefense",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "PERK_DISABLE",
+           "image": "basicdefense"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Basic defense"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_PERKS",
+      "type": "choice",
+      "label": "\tCritical hit",
+      "value": "0",
+      "index": 1,
+      "rowId": "criticalhit",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "PERK_DISABLE",
+           "image": "criticalhit"
+          }
+         }
+        ]
+       },
+       {
+        "text": "Critical hit"
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne · Bonny · 4",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack · Rackham · 5",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Boatswain · Not assigned",
+      "value": "0",
+      "index": 2,
+      "rowId": "1:2",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Cannoner · Mary · Read · 6",
+      "value": "0",
+      "index": 3,
+      "rowId": "1:3",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Doctor · Mary · Read · 6",
+      "value": "0",
+      "index": 4,
+      "rowId": "1:4",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Treasurer · Not assigned",
+      "value": "0",
+      "index": 5,
+      "rowId": "1:5",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Carpenter · Not assigned",
+      "value": "0",
+      "index": 6,
+      "rowId": "1:6",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Israel · Hands · 5",
+      "value": "0",
+      "index": 7,
+      "rowId": "1:7",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Not assigned",
+      "value": "0",
+      "index": 8,
+      "rowId": "1:8",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Fighter · Not assigned",
+      "value": "0",
+      "index": 9,
+      "rowId": "1:9",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Companion · Edward · Teach · 9",
+      "value": "0",
+      "index": 10,
+      "rowId": "1:10",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Passenger · Bartholomew · de la Fontaine-Beaumarchais · 3",
+      "value": "0",
+      "index": 11,
+      "rowId": "1:11",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Prisoner · Charles · Vane · 7",
+      "value": "0",
+      "index": 12,
+      "rowId": "1:12",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "card": {
+     "actions": [],
+     "energy": {
+      "text": "30",
+      "value": 75
+     },
+     "free": "2",
+     "health": {
+      "text": "90",
+      "value": 75
+     },
+     "lines": [
+      {
+       "k": "Health",
+       "tone": "ok",
+       "v": "EXCELLENT"
+      },
+      {
+       "k": "Authority",
+       "v": "63 / 100"
+      }
+     ],
+     "portrait": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_7"
+     },
+     "roles": "Captain",
+     "sub": "Rank 4",
+     "title": "Anne Bonny"
+    },
+    "dialog": null,
+    "headerSection": "hero",
+    "personal": {
+     "columns": [
+      {
+       "label": "Personal",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Charisma"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "12",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Rapiers"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "3",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "points": true,
+    "ship": {
+     "columns": [
+      {
+       "label": "Ship",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Sailing"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "11",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Commerce"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "5",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "special": {
+     "columns": [
+      {
+       "label": "<hero.special>",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "32px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Strength"
+        },
+        {
+         "bold": true,
+         "text": "5"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Agility"
+        },
+        {
+         "bold": true,
+         "text": "8",
+         "tone": "ok"
+        }
+       ]
+      }
+     ]
+    },
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_30"
+       },
+       "label": "Maximiliane von Hohenzollern-Sigmaringen",
+       "meta": "Cannoner · Treasurer · Carpenter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_14"
+       },
+       "label": "Israel Hands",
+       "meta": "Fighter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_41"
+       },
+       "label": "Edward Teach",
+       "meta": "Companion",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_3"
+       },
+       "label": "Bartholomew de la Fontaine-Beaumarchais",
+       "meta": "Passenger",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_25"
+       },
+       "label": "Charles Vane",
+       "meta": "Prisoner",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 7",
+     "title": "<hero.subjects>"
+    },
+    "tab": "skills",
+    "tabs": [
+     {
+      "badge": "2",
+      "id": "skills",
+      "label": "<hero.tab_skills>",
+      "selected": true
+     },
+     {
+      "badge": "1",
+      "id": "perks1",
+      "label": "Personal",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "perks2",
+      "label": "Ship",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "officers",
+      "label": "<hero.tab_officers>",
+      "selected": false
+     }
+    ],
+    "title": "  Character  "
+   },
+   "modals": [],
+   "events": [
+    [
+     "ship",
+     "row",
+     "1"
+    ]
+   ],
+   "calls": [
+    "rebuild"
+   ],
+   "game": {
+    "TestHero.Fellows.Passengers.treasurer": -1
+   },
+   "after": {
+    "card": {
+     "actions": [],
+     "energy": {
+      "text": "30",
+      "value": 75
+     },
+     "free": "2",
+     "health": {
+      "text": "90",
+      "value": 75
+     },
+     "lines": [
+      {
+       "k": "Health",
+       "tone": "ok",
+       "v": "EXCELLENT"
+      },
+      {
+       "k": "Authority",
+       "v": "63 / 100"
+      }
+     ],
+     "portrait": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_7"
+     },
+     "roles": "Captain",
+     "sub": "Rank 4",
+     "title": "Anne Bonny"
+    },
+    "dialog": {
+     "actions": [
+      {
+       "id": "skill-help-close",
+       "label": "<common.close>",
+       "variant": "primary"
+      }
+     ],
+     "kind": "skill",
+     "steps": [
+      {
+       "k": "<hero.step_base>",
+       "tone": "dim",
+       "v": "5"
+      },
+      {
+       "k": "<hero.step_navy> 3",
+       "tone": "danger",
+       "v": "−2"
+      },
+      {
+       "k": "<hero.step_result>",
+       "v": "5"
+      }
+     ],
+     "text": "Commerce text\n\nmore",
+     "title": "Commerce"
+    },
+    "headerSection": "hero",
+    "personal": {
+     "columns": [
+      {
+       "label": "Personal",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Charisma"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "12",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Rapiers"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "3",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "points": true,
+    "ship": {
+     "columns": [
+      {
+       "label": "Ship",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "112px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Sailing"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "11",
+         "tone": "gold"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Commerce"
+        },
+        {
+         "arrows": true,
+         "bold": true,
+         "noLeft": true,
+         "text": "5",
+         "tone": "gold"
+        }
+       ]
+      }
+     ]
+    },
+    "special": {
+     "columns": [
+      {
+       "label": "<hero.special>",
+       "w": "1fr"
+      },
+      {
+       "align": "right",
+       "label": "",
+       "w": "32px"
+      }
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Strength"
+        },
+        {
+         "bold": true,
+         "text": "5"
+        }
+       ]
+      },
+      {
+       "cells": [
+        {
+         "lines": 2,
+         "text": "Agility"
+        },
+        {
+         "bold": true,
+         "text": "8",
+         "tone": "ok"
+        }
+       ]
+      }
+     ]
+    },
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_30"
+       },
+       "label": "Maximiliane von Hohenzollern-Sigmaringen",
+       "meta": "Cannoner · Treasurer · Carpenter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_14"
+       },
+       "label": "Israel Hands",
+       "meta": "Fighter",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_41"
+       },
+       "label": "Edward Teach",
+       "meta": "Companion",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_3"
+       },
+       "label": "Bartholomew de la Fontaine-Beaumarchais",
+       "meta": "Passenger",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_25"
+       },
+       "label": "Charles Vane",
+       "meta": "Prisoner",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 7",
+     "title": "<hero.subjects>"
+    },
+    "tab": "skills",
+    "tabs": [
+     {
+      "badge": "2",
+      "id": "skills",
+      "label": "<hero.tab_skills>",
+      "selected": true
+     },
+     {
+      "badge": "1",
+      "id": "perks1",
+      "label": "Personal",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "perks2",
+      "label": "Ship",
+      "selected": false
+     },
+     {
+      "badge": "",
+      "id": "officers",
+      "label": "<hero.tab_officers>",
+      "selected": false
+     }
+    ],
+    "title": "  Character  "
+   }
   }
  ]
 }

@@ -687,7 +687,8 @@ string GetSkillOfficerPost(string skill)
 int GetSummonSkillFromNameSimple(ref chr, string id)
 {
 	int value = GetSkillValue(chr, "Skill", id);
-	if (id == "Commerce" && sti(chr.index) == 1) return value + 2; // the treasurer's higher skill
+	// the treasurer's higher skill, while the post has a holder
+	if (id == "Commerce" && sti(chr.index) == 1 && sti(TestHero.Fellows.Passengers.treasurer) >= 0) return value + 2;
 	return value;
 }
 

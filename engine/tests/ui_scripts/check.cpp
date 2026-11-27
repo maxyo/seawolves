@@ -931,6 +931,13 @@ void CheckCases(const char *folder, const std::string &file)
             port.Event(screen, event[0], event[1], event[2], calls);
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+        // "after": the view a build of the same model gives once the events have run (a window a tap opened).
+        if (recorded.contains("after"))
+        {
+            calls.first = false;
+            port.Build(screen, calls.Single(), calls);
+            CHECK(calls.props == recorded.at("after"));
+        }
     }
 }
 
