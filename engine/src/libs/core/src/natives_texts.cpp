@@ -64,7 +64,7 @@ std::string scalarText(DATA *v)
 // argument give no context.
 ATTRIBUTES *contextOf(DATA *v)
 {
-    if (!v)
+    if (!v || (v->GetType() == VAR_REFERENCE && !v->GetReference()))
         return nullptr;
     v = v->GetVarPointer();
     if (!v || (v->GetType() != VAR_OBJECT && v->GetType() != VAR_AREFERENCE))
