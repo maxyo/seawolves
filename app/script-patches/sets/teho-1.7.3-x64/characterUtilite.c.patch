@@ -19,7 +19,42 @@
  				Statistic_AddValue(Pchar, "Money_spend", abs(_Money));
  			}
  		}
-@@ -2603,7 +2605,7 @@
+@@ -2518,6 +2520,12 @@
+ 	return drain;
+ }
+ 
++// Whether the gun item is a musket, worn in the musketeer's place rather than as a pistol.
++bool IsMushketItem(string itemID)
++{
++	return HasSubStr(itemID, "mushket");
++}
++
+ void EquipCharacterByItem(ref chref, string itemID)
+ {
+ 	aref arItm;
+@@ -2540,7 +2548,7 @@
+ 		
+ 		if(chref.index != GetMainCharacterIndex())
+ 		{			
+-			if (groupName == GUN_ITEM_TYPE && !HasSubStr(arItm.id, "mushket")) return;			
++			if (groupName == GUN_ITEM_TYPE && !IsMushketItem(arItm.id)) return;			
+ 		}
+ 	}
+ 	else
+@@ -2557,9 +2565,9 @@
+ 				if (!IsCharacterPerkOn(chref,"GunProfessional")) return;
+ 			}
+ 			// Для мушкетов нужен соответствующий перк
+-			if(HasSubStr(arItm.id, "mushket") && !IsCharacterPerkOn(chref,"Gunman"))	return;		
+-		}
+-		if (groupName == GUN_ITEM_TYPE && HasSubStr(arItm.id, "mushket")) return;
++			if(IsMushketItem(arItm.id) && !IsCharacterPerkOn(chref,"Gunman"))	return;		
++		}
++		if (groupName == GUN_ITEM_TYPE && IsMushketItem(arItm.id)) return;
+ 	}
+ 	
+ 	if(groupName != MAPS_ITEM_TYPE) // ugeen  18.06.09
+@@ -2603,7 +2611,7 @@
  	int iItemQuantity = 0;
  	if( !CheckCharacterItem(chref, itemID))
  	{
@@ -28,7 +63,7 @@
  		if(iItemQuantity == 1 && IsEquipCharacterByItem(pchar, itemID) == true)
  		{
  			return;
-@@ -2841,7 +2843,7 @@
+@@ -2841,7 +2849,7 @@
  	int iItemQuantity = 0;
  	if( !CheckCharacterItem(chref, itemID))
  	{

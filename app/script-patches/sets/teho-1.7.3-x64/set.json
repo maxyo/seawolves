@@ -48,7 +48,7 @@
     {
       "path": "PROGRAM/interface/items.c",
       "base_sha256": "db9befc7372467a37161ad018909b4f2bbf0d1ff7fc6300a088bcb2374823d67",
-      "result_sha256": "063c06b75c85b93212e7cbfdb97746f564b93de83cb5c6d2a7a6eee54608c27e",
+      "result_sha256": "afab35bea01d0bec3de12fe696e52382595df558fc7416dd00da012e031dc176",
       "patch": "items.c.patch"
     },
     {
@@ -144,7 +144,7 @@
     {
       "path": "PROGRAM/characters/characterUtilite.c",
       "base_sha256": "aaf497e2b44b957e05df2596797540892750ed1bbd8028621080471da2e58fd2",
-      "result_sha256": "e2beb5c720ae0b8bdce93a130005b114b8e44dd85a78fce87c7e6a50502d0b74",
+      "result_sha256": "e9482c0ff10f8c9e3664d59215502ab4e89774a357da01673ebfc861d42dd243",
       "patch": "characterUtilite.c.patch"
     },
     {
@@ -584,6 +584,18 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: FlagsProcess refused a flag change inline, with a knock and no word (a change still under way, on land, a companion under attack at sea, the squadron unable to go to the map), so an interface could neither tell the player why nor keep from offering it. Its checks are now the function FlagChangeRefusal, in the same order and with the same calls, which names the reason and which FlagsProcess calls; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "musket-item",
+      "title": "The game names which guns are muskets",
+      "targets": [
+        "PROGRAM/characters/characterUtilite.c",
+        "PROGRAM/interface/items.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: the equipment code told a musket from a pistol inline by \"mushket\" in the item's id (EquipCharacterByItem, ThisItemCanBeEquip), so an interface that lists the guns of the pistol's and the musket's places had to copy the test. It is now the function IsMushketItem, which both call; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]

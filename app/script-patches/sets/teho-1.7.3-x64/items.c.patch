@@ -9,3 +9,19 @@
  			return;
  		}
  	}
+@@ -649,13 +649,13 @@
+ 		}
+ 				
+ 		// Для мушкетов нужен соответствующий перк
+-		if(HasSubStr(arItem.id, "mushket") && !IsCharacterPerkOn(xi_refCharacter,"Gunman"))
++		if(IsMushketItem(arItem.id) && !IsCharacterPerkOn(xi_refCharacter,"Gunman"))
+ 		{
+ 			return false;
+ 		}
+ 		
+ 		// Нельзя экипировать мушкет в непредназначенных для этого локациях (Таверна)
+-		if(HasSubStr(arItem.id, "mushket") && !CanEquipMushketOnLocation(PChar.Location))
++		if(IsMushketItem(arItem.id) && !CanEquipMushketOnLocation(PChar.Location))
+ 		{
+ 			return false;
+ 		}
