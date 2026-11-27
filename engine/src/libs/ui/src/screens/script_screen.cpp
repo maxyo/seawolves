@@ -3,6 +3,7 @@
 #include "script_props.h"
 #include "storm_ui/interface_model.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace storm::ui::screens
@@ -32,16 +33,13 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         bindings_ = &bindings;
         widgets_.clear();
-        std::vector<const Widget *> single;
+        // A node's first widget stands for it, as Admission::One reads it (a text node's lines come as rows).
+        std::vector<const Widget *> first;
         for (const Widget *widget : admitted.known)
-        {
-            if (widget->index >= 0)
-                throw std::runtime_error("script screen " + screen_.capability + ": node " + widget->node +
-                                         " has rows; script screens take single widgets");
-            widgets_.push_back(*widget);
-        }
+            if (std::ranges::none_of(widgets_, [&](const Widget &seen) { return SameNode(seen.node, widget->node); }))
+                widgets_.push_back(*widget);
         for (const Widget &widget : widgets_)
-            single.push_back(&widget);
+            first.push_back(&widget);
         view_.reset();
         building_ = true;
         struct Done
@@ -52,7 +50,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
                 flag = false;
             }
         } done{building_};
-        port_.Build(screen_, single, *this);
+        port_.Build(screen_, first, *this);
         if (!view_)
             throw std::runtime_error("script screen " + screen_.capability + " showed no view");
         return std::move(*view_);

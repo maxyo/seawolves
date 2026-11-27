@@ -31,7 +31,7 @@ ViewTree Leaf(std::string name, std::string value)
 struct DemoPort final : ScriptPort
 {
     std::vector<std::string> events;
-    std::vector<std::string> nodes; // the widgets of the last build
+    std::vector<std::string> nodes; // the widgets of the last build: node and label
     ViewTree view{"view",
                   "",
                   {Leaf("title", "Отдых"),
@@ -44,7 +44,7 @@ struct DemoPort final : ScriptPort
     {
         nodes.clear();
         for (const Widget *widget : widgets)
-            nodes.push_back(widget->node);
+            nodes.push_back(widget->node + " " + widget->label);
         call.On("tabs", "select");
         call.On("go", "");
         call.Modal("dlg", "dlg-close");
@@ -82,12 +82,22 @@ InterfaceModel Model(const std::string &screen)
     ok.type = "button";
     Widget cancel = ok;
     cancel.node = "CANCEL";
-    model.widgets = {slider, ok, cancel};
+    Widget line;
+    line.node = "INFO";
+    line.type = "text";
+    line.index = 0;
+    line.label = "first";
+    Widget next = line;
+    next.index = 1;
+    next.label = "second";
+    model.widgets = {slider, ok, cancel, line, next};
     return model;
 }
 
-const ScriptScreen kDemo{
-    "demo", "salary", "s-demo", {{"SLIDER", "slider", true}, {"OK", "button", true}, {"CANCEL", "button"}}};
+const ScriptScreen kDemo{"demo",
+                         "salary",
+                         "s-demo",
+                         {{"SLIDER", "slider", true}, {"OK", "button", true}, {"CANCEL", "button"}, {"INFO", "text"}}};
 
 void Routing()
 {
@@ -98,7 +108,8 @@ void Routing()
     router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
     router.SetInterface(Model("salary"));
     ExpectEqual(surface.tag, "s-demo", "a script screen replaces the ported screen of its interface");
-    Expect(port.nodes == std::vector<std::string>{"SLIDER", "OK", "CANCEL"}, "the script gets the admitted widgets");
+    Expect(port.nodes == std::vector<std::string>{"SLIDER ", "OK ", "CANCEL ", "INFO first"},
+           "the script gets the admitted widgets, a node's first one (a text node's lines are rows)");
     ExpectEqual(surface.props["items"].dump(), R"([{"id":"a","n":1.5,"on":false}])",
                 "list items converted by the shape, fields named as the spec names them");
     Expect(surface.props["count"] == 3 && surface.props["open"] == true && surface.props["title"] == "Отдых",

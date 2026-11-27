@@ -1036,6 +1036,157 @@
     "send OK_BTN press ",
     "back "
    ]
+  },
+  {
+   "name": "device",
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "tavernwait",
+    "screenRevision": 4,
+    "widgets": [
+     {
+      "actions": [
+       "set"
+      ],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "",
+      "max": 100,
+      "min": 0,
+      "node": "HOURS_SLIDE",
+      "rowId": "",
+      "step": 1,
+      "type": "slider",
+      "value": "50"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": 0,
+      "label": "(the game's line)",
+      "node": "INFO_TEXT",
+      "rowId": "",
+      "type": "text",
+      "value": "1"
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "OK",
+      "node": "OK_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     },
+     {
+      "actions": [],
+      "cells": [],
+      "enabled": true,
+      "images": [],
+      "index": -1,
+      "label": "Отмена",
+      "node": "CANCEL_BTN",
+      "rowId": "",
+      "type": "button",
+      "value": ""
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "go",
+      "label": "<rest.go>",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "hours": [
+     {
+      "id": "1",
+      "label": "<rest.h1>",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "<rest.h3>",
+      "selected": false
+     },
+     {
+      "id": "6",
+      "label": "<rest.h6>",
+      "selected": false
+     },
+     {
+      "id": "12",
+      "label": "<rest.h12>",
+      "selected": true
+     },
+     {
+      "id": "24",
+      "label": "<rest.day>",
+      "selected": false
+     }
+    ],
+    "title": "<rest.title>"
+   },
+   "events": [
+    [
+     "hours",
+     "select",
+     "1"
+    ],
+    [
+     "hours",
+     "select",
+     "3"
+    ],
+    [
+     "hours",
+     "select",
+     "6"
+    ],
+    [
+     "hours",
+     "select",
+     "12"
+    ],
+    [
+     "hours",
+     "select",
+     "24"
+    ],
+    [
+     "go",
+     "click",
+     ""
+    ],
+    [
+     "rest-close",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send HOURS_SLIDE set 5",
+    "send HOURS_SLIDE set 13",
+    "send HOURS_SLIDE set 25",
+    "send HOURS_SLIDE set 50",
+    "send HOURS_SLIDE set 100",
+    "send OK_BTN press ",
+    "back CANCEL_BTN"
+   ]
   }
  ]
 }

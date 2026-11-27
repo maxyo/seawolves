@@ -66,7 +66,7 @@ class ScriptPort
 {
   public:
     virtual ~ScriptPort() = default;
-    // Builds the view of `screen` from the admitted single widgets of the model.
+    // Builds the view of `screen` from the admitted widgets of the model, the first one of each node.
     virtual void Build(const ScriptScreen &screen, const std::vector<const Widget *> &widgets, ScriptCall &call) = 0;
     // An event the script asked for (ScriptCall::On, a modal's cancel).
     virtual void Event(const ScriptScreen &screen, const std::string &id, const std::string &verb,
