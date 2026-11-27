@@ -1519,10 +1519,10 @@ static void CheckRush()
     bench.Press("abilities");
     Expect(mount.Has("abilities") && mount.Has("abilities-1") && !mount.Has("abilities-2"),
            "no Rush offered: the button stays for the potion alone");
-    vitals["abilities"] = Json::array({Json{{"id", "Turn180"}, {"state", "ready"}}});
+    vitals["abilities"] = Json::array({Json{{"id", ""}, {"state", "ready"}}});
     const size_t errors = mount.errors.size();
     bench.Set("vitals", vitals);
-    Expect(mount.errors.size() > errors, "a ship ability in the land vitals is rejected aloud");
+    Expect(mount.errors.size() > errors, "an unnamed ability in the land vitals is rejected aloud");
 }
 
 int main(int argc, char **argv)

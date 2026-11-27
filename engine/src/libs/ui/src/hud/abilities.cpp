@@ -13,7 +13,7 @@ struct Look
 {
     const char *id, *icon;
 };
-// The icon of each ability the channels admit (states.cpp ReadAbilities).
+// The icon of each ability the engine offers; one it does not know (a mod's) gets a plain icon.
 constexpr Look kLooks[] = {
     {"ImmediateReload", "reload"}, {"LightRepair", "repair"}, {"InstantRepair", "perk-instantrepair"},
     {"Turn180", "maneuver"},       {"Rush", "flame"},
@@ -24,7 +24,7 @@ const char *IconOf(const std::string &id)
     for (const Look &look : kLooks)
         if (id == look.id)
             return look.icon;
-    return "actions"; // unreachable: the consumers admit the ids of the table only
+    return "actions";
 }
 
 } // namespace

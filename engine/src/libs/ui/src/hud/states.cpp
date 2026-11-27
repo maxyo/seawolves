@@ -101,9 +101,9 @@ double Ratio(const Json &object, const char *key)
     return std::isfinite(number) ? std::clamp(number, 0.0, 1.0) : 0.0;
 }
 
-// The optional "abilities" list of a channel (ship, vitals): the known ids, each with a known state; label and
-// left are optional.
-std::string ReadAbilities(const Json &state, std::initializer_list<const char *> ids, std::vector<Ability> &out)
+// The optional "abilities" list of a channel (ship, vitals): each named, with a known state; label and left are
+// optional.
+std::string ReadAbilities(const Json &state, std::vector<Ability> &out)
 {
     out.clear();
     const auto abilities = state.find("abilities");
@@ -121,8 +121,8 @@ std::string ReadAbilities(const Json &state, std::initializer_list<const char *>
         ability.state = Text(source, "state").value_or("");
         ability.fill = Ratio(source, "fill");
         ability.left = static_cast<int>(Whole(source, "left").value_or(0));
-        if (!OneOf(ability.id, ids) || !OneOf(ability.state, {"ready", "active", "recovery", "blocked"}))
-            return "an unknown ability or ability state";
+        if (ability.id.empty() || !OneOf(ability.state, {"ready", "active", "recovery", "blocked"}))
+            return "an unnamed ability or an unknown ability state";
         out.push_back(std::move(ability));
     }
     return {};
@@ -308,7 +308,7 @@ std::string ReadVitals(const Json &state, Vitals &next)
             return "dash: expected a number";
         next.dash = Ratio(state, "dash");
     }
-    if (std::string problem = ReadAbilities(state, {"Rush"}, next.abilities); !problem.empty())
+    if (std::string problem = ReadAbilities(state, next.abilities); !problem.empty())
         return problem;
     if (const auto opponent = state.find("opponent"); opponent != state.end())
     {
@@ -538,9 +538,7 @@ std::string ReadShip(const Json &state, Ship &out)
     out.wind = Amount(state, "windSpeed");
     out.cannon_charge = Amount(state, "cannonCharge") < 0.0 ? -1.0 : std::min(1.0, Amount(state, "cannonCharge"));
     out.time_scale = Amount(state, "timeScale");
-    if (std::string problem =
-            ReadAbilities(state, {"ImmediateReload", "LightRepair", "InstantRepair", "Turn180"}, out.abilities);
-        !problem.empty())
+    if (std::string problem = ReadAbilities(state, out.abilities); !problem.empty())
         return problem;
     out.date_time = Text(state, "dateTimeText").value_or("");
     out.location = Text(state, "locationText").value_or("");
