@@ -67,6 +67,9 @@ KeyBuilder::KeyBuilder(const Layout &layout, bool bc)
                                layout.height,   layout.levels,           layout.faces,
                                bc ? 1u : 0u};
     state_ = hash64(shape, sizeof(shape), 0x53544f524d544558ull);
+    // Colour keys stay those of every texture cached so far.
+    if (layout.texels == TexelSpace::Data)
+        state_ = hash64("data", 4, state_);
 }
 
 void KeyBuilder::add(const uint8_t *data, size_t size)
@@ -116,9 +119,10 @@ Blob transcode_to_ktx(const Layout &layout, const uint8_t *payload, GpuFormat fo
         const bool punch = layout.format == DxtFormat::Bc1 &&
                            bc1_has_transparency(source, dxt_level_size(layout.format, layout.width, layout.height));
         const bool alpha = format != GpuFormat::Etc2Rgb8 && (format != GpuFormat::Bc1 || punch);
-        const bool cutout = alpha && (punch || is_cutout_alpha(top.data(), texels));
+        const bool cutout =
+            layout.texels == TexelSpace::Colour && alpha && (punch || is_cutout_alpha(top.data(), texels));
         const std::vector<std::vector<uint8_t>> chain =
-            build_mip_chain(top.data(), layout.width, layout.height, out.levels, cutout);
+            build_mip_chain(top.data(), layout.width, layout.height, out.levels, cutout, layout.texels);
         for (uint32_t level = 0; level < out.levels; ++level)
         {
             const uint32_t w = out.level_width(level), h = out.level_height(level);
@@ -163,7 +167,8 @@ Blob encode_rgba_to_ktx(const uint8_t *rgba, uint32_t width, uint32_t height, Gp
     out.width = width;
     out.height = height;
     out.levels = full_mip_levels(width, height);
-    const std::vector<std::vector<uint8_t>> chain = build_mip_chain(rgba, width, height, out.levels, false);
+    const std::vector<std::vector<uint8_t>> chain =
+        build_mip_chain(rgba, width, height, out.levels, false, TexelSpace::Colour);
     size_t total = 0;
     for (uint32_t level = 0; level < out.levels; ++level)
         total += gpu_level_size(format, out.level_width(level), out.level_height(level));

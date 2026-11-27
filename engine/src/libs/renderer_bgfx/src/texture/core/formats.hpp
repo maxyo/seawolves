@@ -34,11 +34,20 @@ inline bool is_etc2(GpuFormat format)
     return format == GpuFormat::Etc2Rgb8 || format == GpuFormat::Etc2Rgba8;
 }
 
-// Shape of a D3D texture: `faces` is 1 or 6; levels start at the full size.
+// What a texture's texels are: colour (sRGB-encoded: its mips averaged in linear light, weighted by alpha) or data
+// (a material's normal or roughness / metal / occlusion map: its mips are plain averages of the stored numbers).
+enum class TexelSpace : uint8_t
+{
+    Colour,
+    Data,
+};
+
+// Shape of a D3D texture: `faces` is 1 or 6; levels start at the full size. `texels`: how its mips are made.
 struct Layout
 {
     DxtFormat format = DxtFormat::Bc1;
     uint32_t width = 0, height = 0, levels = 1, faces = 1;
+    TexelSpace texels = TexelSpace::Colour;
     uint32_t level_width(uint32_t level) const
     {
         return width >> level ? width >> level : 1;

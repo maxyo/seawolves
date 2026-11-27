@@ -41,9 +41,25 @@ const std::vector<uint8_t> &to_srgb_table()
     return table;
 }
 
+const std::array<float, 256> &to_unit_table()
+{
+    static const std::array<float, 256> table = [] {
+        std::array<float, 256> t{};
+        for (int i = 0; i < 256; ++i)
+            t[i] = i / 255.0f;
+        return t;
+    }();
+    return table;
+}
+
 uint8_t to_srgb(float linear)
 {
     return to_srgb_table()[size_t(std::clamp(linear, 0.0f, 1.0f) * kToSrgbSize + 0.5f)];
+}
+
+uint8_t to_unit(float value)
+{
+    return uint8_t(std::clamp(value * 255.0f + 0.5f, 0.0f, 255.0f));
 }
 
 // One level in linear light: alpha-weighted colour (r, g, b times alpha), alpha, and the plain colour average for
@@ -127,7 +143,7 @@ Cut coverage_cut(const Level &level, float coverage)
 // `cut`: a cut-out level's (null: its alpha as it is). The cut decides each texel's side of the test: the scaled alpha,
 // rounded to 8 bits, must not carry a failing texel over the reference (a 1x1 level of a small disk at 15 % coverage
 // would turn opaque: the planets' grey squares in the night sky) nor a passing one under it.
-std::vector<uint8_t> to_rgba8(const Level &level, const Cut *cut)
+std::vector<uint8_t> to_rgba8(const Level &level, const Cut *cut, TexelSpace texels)
 {
     std::vector<uint8_t> out(size_t(level.width) * level.height * 4);
     const float *t = level.texels.data();
@@ -136,7 +152,7 @@ std::vector<uint8_t> to_rgba8(const Level &level, const Cut *cut)
         const float a = t[3];
         const bool weighted = a > 1.0f / 1024.0f;
         for (int c = 0; c < 3; ++c)
-            out[i + c] = to_srgb(weighted ? t[c] / a : t[4 + c]);
+            out[i + c] = texels == TexelSpace::Colour ? to_srgb(weighted ? t[c] / a : t[4 + c]) : to_unit(t[4 + c]);
         int alpha = int(std::clamp(a * (cut ? cut->scale : 1.0f) * 255.0f + 0.5f, 0.0f, 255.0f));
         if (cut)
             alpha = alpha_bin(a) >= cut->bin ? std::max(alpha, int(kCutoutReference))
@@ -169,12 +185,12 @@ bool is_cutout_alpha(const uint8_t *rgba, size_t texels)
 }
 
 std::vector<std::vector<uint8_t>> build_mip_chain(const uint8_t *rgba, uint32_t width, uint32_t height, uint32_t levels,
-                                                  bool cutout)
+                                                  bool cutout, TexelSpace texels)
 {
     std::vector<std::vector<uint8_t>> chain;
     if (levels <= 1)
         return chain;
-    const std::array<float, 256> &linear = to_linear_table();
+    const std::array<float, 256> &linear = texels == TexelSpace::Colour ? to_linear_table() : to_unit_table();
     float coverage = 0.0f;
     if (cutout)
     {
@@ -197,7 +213,7 @@ std::vector<std::vector<uint8_t>> build_mip_chain(const uint8_t *rgba, uint32_t 
     for (uint32_t l = 1; l < levels; ++l)
     {
         const Cut cut = cutout ? coverage_cut(level, coverage) : Cut{};
-        chain.push_back(to_rgba8(level, cutout ? &cut : nullptr));
+        chain.push_back(to_rgba8(level, cutout ? &cut : nullptr, texels));
         if (l + 1 < levels)
         {
             const Level &below = level;

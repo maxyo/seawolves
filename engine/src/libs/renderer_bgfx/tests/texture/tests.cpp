@@ -273,6 +273,12 @@ void test_key()
     KeyBuilder d(other, false);
     d.add(payload.data(), payload.size());
     CHECK(d.key() != a.key());
+    // The same bytes as a material's data map make other mips: another entry.
+    Layout data = layout;
+    data.texels = TexelSpace::Data;
+    KeyBuilder e(data, false);
+    e.add(payload.data(), payload.size());
+    CHECK(e.key() != a.key());
 }
 
 // The reference of a transcoded chain: the decoded top level and the chain mips.hpp builds from it, each level
@@ -286,9 +292,9 @@ std::vector<std::vector<uint8_t>> reference_chain(const Layout &layout, const ui
     for (uint32_t y = 0; y < layout.height; ++y)
         memcpy(top.data() + size_t(y) * layout.width * 4, blocks.data() + size_t(y) * aw * 4, size_t(layout.width) * 4);
     std::vector<std::vector<uint8_t>> chain{blocks};
-    const auto mips =
-        build_mip_chain(top.data(), layout.width, layout.height, levels,
-                        punch || (alpha && is_cutout_alpha(top.data(), size_t(layout.width) * layout.height)));
+    const auto mips = build_mip_chain(
+        top.data(), layout.width, layout.height, levels,
+        punch || (alpha && is_cutout_alpha(top.data(), size_t(layout.width) * layout.height)), TexelSpace::Colour);
     for (uint32_t level = 1; level < levels; ++level)
     {
         const uint32_t w = std::max(layout.width >> level, 1u), h = std::max(layout.height >> level, 1u);
@@ -422,15 +428,27 @@ void test_mips()
         checker[i * 4] = checker[i * 4 + 1] = checker[i * 4 + 2] = v;
         checker[i * 4 + 3] = 255;
     }
-    auto chain = build_mip_chain(checker.data(), 8, 8, full_mip_levels(8, 8), false);
+    auto chain = build_mip_chain(checker.data(), 8, 8, full_mip_levels(8, 8), false, TexelSpace::Colour);
     CHECK(chain.size() == 3 && chain[0].size() == 4 * 4 * 4 && chain[2].size() == 4);
     CHECK(std::abs(int(chain[0][0]) - 188) <= 1 && std::abs(int(chain[2][1]) - 188) <= 1 && chain[0][3] == 255);
     // Red opaque texels next to transparent green ones: the mip keeps red (no green fringe), alpha is the average.
     std::vector<uint8_t> edge(2 * 2 * 4, 0);
     edge[0] = 255, edge[3] = 255;                             // red, opaque
     edge[4 + 1] = 255, edge[8 + 1] = 255, edge[12 + 1] = 255; // green, transparent
-    chain = build_mip_chain(edge.data(), 2, 2, 2, false);
+    chain = build_mip_chain(edge.data(), 2, 2, 2, false, TexelSpace::Colour);
     CHECK(chain[0][0] == 255 && chain[0][1] == 0 && std::abs(int(chain[0][3]) - 64) <= 1);
+    // A material's data map: the plain average of its numbers, whatever its alpha (a normal map leaning 0.25 either
+    // way averages to flat, 128; in linear light it would be 74).
+    std::vector<uint8_t> tilted(8 * 8 * 4);
+    for (int i = 0; i < 64; ++i)
+    {
+        tilted[i * 4] = tilted[i * 4 + 1] = tilted[i * 4 + 2] = ((i % 8) + (i / 8)) % 2 ? 192 : 64;
+        tilted[i * 4 + 3] = 255;
+    }
+    chain = build_mip_chain(tilted.data(), 8, 8, full_mip_levels(8, 8), false, TexelSpace::Data);
+    CHECK(std::abs(int(chain[0][0]) - 128) <= 1 && std::abs(int(chain[2][1]) - 128) <= 1);
+    chain = build_mip_chain(edge.data(), 2, 2, 2, false, TexelSpace::Data);
+    CHECK(std::abs(int(chain[0][0]) - 64) <= 1 && std::abs(int(chain[0][1]) - 191) <= 1);
     // A cut-out of thin rings (a quarter of the texels pass the test).
     std::vector<uint8_t> rings(128 * 128 * 4, 128);
     for (int y = 0; y < 128; ++y)
@@ -447,8 +465,8 @@ void test_mips()
         return double(passed) / double(level.size() / 4);
     };
     const double top = coverage(rings);
-    const auto plain = build_mip_chain(rings.data(), 128, 128, 5, false);
-    const auto kept = build_mip_chain(rings.data(), 128, 128, 5, true);
+    const auto plain = build_mip_chain(rings.data(), 128, 128, 5, false, TexelSpace::Colour);
+    const auto kept = build_mip_chain(rings.data(), 128, 128, 5, true, TexelSpace::Colour);
     // Down to 16x16 (a ring a texel wide): plain averaging loses most of the rings, the kept chain stays close (texels
     // of one alpha pass or fail together, so a level matches only as finely as its alpha values allow).
     CHECK(coverage(plain[2]) < top * 0.6);
@@ -465,7 +483,7 @@ void test_mips()
                 p[0] = p[1] = p[2] = 200;
                 p[3] = 255;
             }
-    const auto disk_chain = build_mip_chain(disk.data(), 64, 64, full_mip_levels(64, 64), true);
+    const auto disk_chain = build_mip_chain(disk.data(), 64, 64, full_mip_levels(64, 64), true, TexelSpace::Colour);
     CHECK(coverage(disk) < 0.2 && disk_chain.back().size() == 4 && disk_chain.back()[3] < kCutoutReference);
     for (size_t level = 0; level + 4 < disk_chain.size(); ++level) // 32x32 and 16x16
         CHECK(std::abs(coverage(disk_chain[level]) - coverage(disk)) < 0.03);

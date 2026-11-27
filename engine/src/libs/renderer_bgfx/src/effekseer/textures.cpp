@@ -197,7 +197,7 @@ Effekseer::TextureRef TextureLoader::upload_rgba(const std::vector<uint8_t> &rgb
                                                  const std::string &name)
 {
     const uint32_t levels = tex::full_mip_levels(width, height);
-    const auto chain = tex::build_mip_chain(rgba.data(), width, height, levels, false);
+    const auto chain = tex::build_mip_chain(rgba.data(), width, height, levels, false, tex::TexelSpace::Colour);
     size_t bytes = rgba.size();
     for (const auto &level : chain)
         bytes += level.size();
