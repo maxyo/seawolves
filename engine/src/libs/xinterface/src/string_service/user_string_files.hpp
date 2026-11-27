@@ -14,6 +14,14 @@
 
 namespace storm::strings
 {
+// A string name as the string service compares it: ASCII letters in either case.
+inline std::string FoldedName(std::string_view text)
+{
+    std::string folded(text);
+    for (auto &c : folded)
+        c = static_cast<char>(FoldCase(c));
+    return folded;
+}
 
 // The user string files of the current language (resource/ini/texts/<language>/*.txt) that scripts
 // open by name (LanguageOpenFile), translate from by id and close again. Ids, reference counts and
@@ -40,7 +48,7 @@ class UserStringFiles
     // The id of the open file, or -1 when it cannot be loaded (the loader reports why).
     int32_t Open(std::string_view fileName, const Loader &load)
     {
-        const auto key = Fold(fileName);
+        const auto key = FoldedName(fileName);
         for (auto &[id, file] : files_)
             if (file.key == key)
             {
@@ -77,11 +85,30 @@ class UserStringFiles
         if (found == files_.end() || found->second.refs <= 0)
             return nullptr;
         const auto &file = found->second;
-        const auto row = file.index.find(Fold(name));
+        const auto row = file.index.find(FoldedName(name));
         if (row == file.index.end())
             return nullptr;
         const auto &text = file.rows[row->second].second;
         return text ? text->c_str() : nullptr;
+    }
+
+    // The number of named strings of an open file; -1 for an id that is not open.
+    int32_t Count(int32_t id) const
+    {
+        const auto found = files_.find(id);
+        if (found == files_.end() || found->second.refs <= 0)
+            return -1;
+        return static_cast<int32_t>(found->second.index.size());
+    }
+
+    // Every name of an open file, folded (StringFromKey indexes its key files by them).
+    std::vector<std::string> Names(int32_t id) const
+    {
+        std::vector<std::string> names;
+        if (const auto found = files_.find(id); found != files_.end() && found->second.refs > 0)
+            for (const auto &entry : found->second.index)
+                names.push_back(entry.first);
+        return names;
     }
 
     // The language changed: closed files are dropped, open ones are re-read under their ids and
@@ -141,17 +168,9 @@ class UserStringFiles
             rows = std::move(parsed);
             for (size_t i = 0; i < rows.size(); ++i)
                 if (rows[i].first)
-                    index.emplace(Fold(*rows[i].first), i);
+                    index.emplace(FoldedName(*rows[i].first), i);
         }
     };
-
-    static std::string Fold(std::string_view text)
-    {
-        std::string folded(text);
-        for (auto &c : folded)
-            c = static_cast<char>(FoldCase(c));
-        return folded;
-    }
 
     int32_t FreeId() const
     {

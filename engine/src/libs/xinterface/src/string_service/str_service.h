@@ -4,10 +4,14 @@
 
 #include "script_libriary.h"
 #include "../string_service.h"
+#include "text_templates.hpp"
 #include "user_string_files.hpp"
 
+#include <string>
+#include <unordered_map>
+
 //-----------SDEVICE-----------
-class STRSERVICE : public VSTRSERVICE
+class STRSERVICE : public VSTRSERVICE, public storm::strings::TemplateTexts
 {
   public:
     STRSERVICE();
@@ -32,6 +36,20 @@ class STRSERVICE : public VSTRSERVICE
     char *TranslateFromUsers(int32_t id, const char *inStr) override;
 
     void SetDialogSourceFile(const char *fileName);
+
+    // the localisation templates (text_templates.hpp)
+    std::optional<std::string> Value(std::string_view file, std::string_view key) override;
+    std::optional<std::string> KeyValue(std::string_view key) override;
+    std::string_view Language() override;
+    int Random(int bound) override;
+    void Report(std::string_view problem) override;
+    // LanguageGetFileStringsQuantity; -1 for an id that is not open
+    int32_t UsersStringCount(int32_t id) const
+    {
+        return m_usersFiles.Count(id);
+    }
+    // __RefreshLocalization: the texts are read again from the files
+    void RefreshTexts();
 
     char *TranslateForDialog(const char *str)
     {
@@ -58,6 +76,14 @@ class STRSERVICE : public VSTRSERVICE
     storm::strings::UserStringFiles m_usersFiles{32};
 
     int32_t m_nDialogSourceFile;
+
+    std::unordered_map<std::string, int32_t> m_commonIndex; // folded name -> first common string of that name
+    // StringFromKey: the files under Localization_Assets, open while the language is, by folded key
+    std::vector<int32_t> m_keyFiles;
+    std::unordered_map<std::string, int32_t> m_keyIndex;
+    bool m_keyFilesLoaded = false;
+    void CloseKeyFiles();
+    storm::strings::TextTemplateLanguage m_templates{*this};
 };
 
 class SCRIPT_INTERFACE_FUNCTIONS : public SCRIPT_LIBRIARY

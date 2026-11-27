@@ -6,11 +6,16 @@
 #include "core.h"
 #include "string_compare.hpp"
 
+#include "../rich_text.hpp"
 #include "../xinterface.h"
 #include "s_import_func.h"
 #include "v_s_stack.h"
 
 #include <filesystem>
+#include <map>
+
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #define USER_BLOCK_BEGINER '{'
 #define USER_BLOCK_ENDING '}'
@@ -100,6 +105,8 @@ STRSERVICE::STRSERVICE()
 
 STRSERVICE::~STRSERVICE()
 {
+    storm::texts::InstallTextTemplates(nullptr);
+    CloseKeyFiles();
     int i;
 
     CloseUsersStringFile(m_nDialogSourceFile);
@@ -132,6 +139,7 @@ STRSERVICE::~STRSERVICE()
 bool STRSERVICE::Init()
 {
     LoadIni();
+    storm::texts::InstallTextTemplates(&m_templates);
     return true;
 }
 
@@ -346,6 +354,13 @@ void STRSERVICE::SetLanguage(const char *sLanguage)
     }
 
 
+    m_commonIndex.clear();
+    for (i = 0; i < m_nStringQuantity; i++)
+        if (m_psStrName[i] != nullptr)
+            m_commonIndex.emplace(storm::strings::FoldedName(m_psStrName[i]), i);
+    CloseKeyFiles();
+    storm::texts::SetScriptLanguage(m_sLanguage);
+
     // Re-read the open user files in the new language under their ids
     for (const auto &problem : m_usersFiles.Reload([this](const std::string &name) { return LoadUsersStringFile(name); }))
         core.Trace("Warning: language %s: %s", m_sLanguage, problem.c_str());
@@ -363,9 +378,9 @@ char *STRSERVICE::GetString(const char *stringName, char *sBuffer, size_t buffer
 {
 
     if (stringName != nullptr)
-        for (int i = 0; i < m_nStringQuantity; i++)
-            if (storm::iEquals(m_psStrName[i], stringName))
+        if (const auto found = m_commonIndex.find(storm::strings::FoldedName(stringName)); found != m_commonIndex.end())
             {
+                const int32_t i = found->second;
                 auto len = strlen(m_psString[i]) + 1;
                 if (sBuffer == nullptr)
                     bufferSize = 0;
@@ -379,6 +394,83 @@ char *STRSERVICE::GetString(const char *stringName, char *sBuffer, size_t buffer
             }
 
     return nullptr;
+}
+
+std::optional<std::string> STRSERVICE::Value(std::string_view file, std::string_view key)
+{
+    if (file.empty())
+    {
+        const char *value = GetString(std::string(key).c_str());
+        return value ? std::optional<std::string>(value) : std::nullopt;
+    }
+    const int32_t id = OpenUsersStringFile(std::string(file).c_str());
+    if (id < 0)
+        return std::nullopt;
+    const char *value = m_usersFiles.Translate(id, key);
+    std::optional<std::string> result = value ? std::optional<std::string>(value) : std::nullopt;
+    CloseUsersStringFile(id);
+    return result;
+}
+
+std::optional<std::string> STRSERVICE::KeyValue(std::string_view key)
+{
+    if (!m_keyFilesLoaded)
+    {
+        m_keyFilesLoaded = true;
+        constexpr std::string_view folder = "Localization_Assets";
+        const std::string root = fmt::format("resource\\ini\\texts\\{}\\{}", m_sLanguageDir ? m_sLanguageDir : "", folder);
+        for (const auto &path : fio->_GetPathsOrFilenamesByMask(root.c_str(), "*.txt", true, false, true, true))
+        {
+            const std::string folded = storm::strings::FoldedName(path);
+            const size_t at = folded.rfind(storm::strings::FoldedName(folder));
+            const int32_t id = OpenUsersStringFile(path.substr(at).c_str());
+            if (id < 0)
+                continue;
+            m_keyFiles.push_back(id);
+            for (auto &name : m_usersFiles.Names(id))
+                m_keyIndex.emplace(std::move(name), id);
+        }
+        if (m_keyFiles.empty())
+            spdlog::error("StringFromKey: no text files under {}", root);
+    }
+    const auto found = m_keyIndex.find(storm::strings::FoldedName(key));
+    if (found == m_keyIndex.end())
+        return std::nullopt;
+    const char *value = m_usersFiles.Translate(found->second, key);
+    return value ? std::optional<std::string>(value) : std::nullopt;
+}
+
+void STRSERVICE::CloseKeyFiles()
+{
+    for (const int32_t id : m_keyFiles)
+        CloseUsersStringFile(id);
+    m_keyFiles.clear();
+    m_keyIndex.clear();
+    m_keyFilesLoaded = false;
+}
+
+std::string_view STRSERVICE::Language()
+{
+    return m_sLanguageDir ? m_sLanguageDir : "";
+}
+
+int STRSERVICE::Random(int bound)
+{
+    return bound <= 1 ? 0 : rand() % bound; // the engine's rand(), as the scripts' rand()
+}
+
+void STRSERVICE::Report(std::string_view problem)
+{
+    spdlog::warn("{}", problem);
+}
+
+void STRSERVICE::RefreshTexts()
+{
+    CloseKeyFiles();
+    const std::string language = m_sLanguage ? m_sLanguage : "";
+    delete[] m_sLanguage;
+    m_sLanguage = nullptr; // SetLanguage reads everything again only for another language
+    SetLanguage(language.c_str());
 }
 
 void STRSERVICE::SetDialogSourceFile(const char *fileName)
@@ -766,6 +858,50 @@ uint32_t _Language_SetLanguage(VS_STACK *pS)
 
     g_StringServicePointer->SetLanguage(strLngName);
 
+    return IFUNCRESULT_OK;
+}
+
+uint32_t _LanguageGetFileStringsQuantity(VS_STACK *pS)
+{
+    const int32_t id = static_cast<VDATA *>(pS->Pop())->GetInt();
+    static_cast<VDATA *>(pS->Push())->Set(static_cast<STRSERVICE *>(g_StringServicePointer)->UsersStringCount(id));
+    return IFUNCRESULT_OK;
+}
+
+// GetRichTextWidth(text, font, scale): the widest line of the text in pixels; -1 when the font does not exist
+uint32_t _GetRichTextWidth(VS_STACK *pS)
+{
+    const float scale = static_cast<VDATA *>(pS->Pop())->GetFloat();
+    const std::string font = static_cast<VDATA *>(pS->Pop())->GetString();
+    const std::string text = static_cast<VDATA *>(pS->Pop())->GetString();
+    auto *render = static_cast<VRenderer *>(core.GetService("renderer"));
+    std::map<std::string, int32_t> fonts;
+    const auto fontId = [&](const std::string &name) {
+        auto found = fonts.find(name);
+        if (found == fonts.end())
+            found = fonts.emplace(name, render->LoadFont(name.c_str())).first;
+        return found->second;
+    };
+    int32_t width = -1;
+    if (fontId(font) < 0)
+        spdlog::error("GetRichTextWidth: no font '{}'", font);
+    else
+        width = storm::xi::RichTextWidth(
+            storm::xi::ParseRichText(text, [](std::string_view tag) { spdlog::warn("richtext: unknown tag {}", tag); }),
+            [&](std::string_view run, const storm::xi::RichStyle &style) {
+                const int32_t id = style.font.empty() || fontId(style.font) < 0 ? fontId(font) : fontId(style.font);
+                return render->StringWidth(run, id, scale * style.scale);
+            });
+    for (const auto &[name, id] : fonts)
+        if (id >= 0)
+            render->UnloadFont(id);
+    static_cast<VDATA *>(pS->Push())->Set(width);
+    return IFUNCRESULT_OK;
+}
+
+uint32_t _RefreshLocalization(VS_STACK *)
+{
+    static_cast<STRSERVICE *>(g_StringServicePointer)->RefreshTexts();
     return IFUNCRESULT_OK;
 }
 
@@ -1471,6 +1607,24 @@ bool SCRIPT_INTERFACE_FUNCTIONS::Init()
     sIFuncInfo.pFuncName = "XI_RegistryExitKey";
     sIFuncInfo.nArguments = 1;
     sIFuncInfo.pFuncAddress = _RegistryExitKey;
+    core.SetScriptFunction(&sIFuncInfo);
+
+    sIFuncInfo.pReturnValueName = "int";
+    sIFuncInfo.pFuncName = "LanguageGetFileStringsQuantity";
+    sIFuncInfo.nArguments = 1;
+    sIFuncInfo.pFuncAddress = _LanguageGetFileStringsQuantity;
+    core.SetScriptFunction(&sIFuncInfo);
+
+    sIFuncInfo.pReturnValueName = "int";
+    sIFuncInfo.pFuncName = "GetRichTextWidth";
+    sIFuncInfo.nArguments = 3;
+    sIFuncInfo.pFuncAddress = _GetRichTextWidth;
+    core.SetScriptFunction(&sIFuncInfo);
+
+    sIFuncInfo.pReturnValueName = "void";
+    sIFuncInfo.pFuncName = "__RefreshLocalization";
+    sIFuncInfo.nArguments = 0;
+    sIFuncInfo.pFuncAddress = _RefreshLocalization;
     core.SetScriptFunction(&sIFuncInfo);
 
     sIFuncInfo.pReturnValueName = "int";

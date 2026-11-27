@@ -420,6 +420,11 @@ storm_host_check(thermal_api.sensor SOURCES poll.cpp ${src}/libs/renderer_bgfx/s
     INCLUDES ${src}/libs/renderer_bgfx/src ${render_log_headers} DEFINES ${render_log_defines}
     OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(ui_host_dialogue INCLUDES ${src}/libs/ui_host/src ${src}/libs/ui/include OPTIONS ${warnings} ${asan} CATCH2)
+storm_host_check(text_templates SOURCES check.cpp ${src}/libs/xinterface/src/string_service/text_templates.cpp
+    INCLUDES ${util_include} ${src}/libs/core/include ${src}/libs/xinterface/src/string_service ${fmt_headers}
+    DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
+storm_host_check(rich_text SOURCES check.cpp ${src}/libs/xinterface/src/rich_text.cpp
+    INCLUDES ${src}/libs/xinterface/src ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(user_string_files INCLUDES ${util_include} ${src}/libs/xinterface/src/string_service
     OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(utf8 INCLUDES ${util_include}
