@@ -154,17 +154,6 @@ static void Topology()
     Expect(!cache.Get(ids, cycle).valid, "cyclic data cannot produce an invented partial graph");
     Expect(!cache.Get({"a"}, {{"missing", "a"}}).valid, "a missing source is not a root");
     Expect(!cache.Get({"A", "a"}, {}).valid, "case alias duplicate rejected");
-    Expect(tree::CanLearn(true, true, false, 1, "stock-all-v1", true, {true, true}),
-           "ALL two satisfied plus actual eligibility");
-    Expect(!tree::CanLearn(true, true, false, 1, "stock-all-v1", true, {true, false}),
-           "one missing AND prerequisite locks");
-    Expect(!tree::CanLearn(true, true, false, 1, "any", true, {true, false}), "unexported OR rule never invented");
-    Expect(!tree::CanLearn(true, true, false, 1, "stock-all-v1", false, {true, true}),
-           "stock extra eligibility denies");
-    Expect(!tree::CanLearn(false, true, false, 1, "stock-all-v1", true, {}),
-           "external node cannot learn in wrong group");
-    Expect(!tree::CanLearn(true, true, false, 0, "stock-all-v1", true, {}), "group points required");
-    Expect(!tree::CanLearn(true, true, true, 1, "stock-all-v1", true, {}), "learned node cannot spend again");
 }
 
 struct SurfaceProbe final : Surface
@@ -219,7 +208,7 @@ struct SurfaceProbe final : Surface
         return 1.0;
     }
 };
-static Widget Fact(const std::string &id, const std::string &type, bool learned, bool eligible, int requirements = 0)
+static Widget Fact(const std::string &id, const std::string &type, bool learned, int requirements = 0)
 {
     Widget w;
     w.node = "ANDROID_PERKS";
@@ -231,8 +220,7 @@ static Widget Fact(const std::string &id, const std::string &type, bool learned,
                  {"type", type},
                  {"learned", learned ? "1" : "0"},
                  {"rule", "stock-all-v1"},
-                 {"requirements", std::to_string(requirements)},
-                 {"eligible", eligible ? "1" : "0"}};
+                 {"requirements", std::to_string(requirements)}};
     return w;
 }
 static Widget Edge(const char *from, const char *to, bool met)
@@ -299,15 +287,14 @@ struct PerkScreenRun
                    "selection preserves every graph position");
         {
             const Json &detail = surface.props["detail"];
-            Expect(detail["requires"].size() == 2 && detail["learn"]["disabled"] == true,
-                   "detail lists every actual requirement");
+            Expect(detail["requires"].size() == 2, "detail lists every actual requirement");
             Expect(detail["requires"][0]["perk"] == "advancedcommerce" && detail["requires"][0]["met"] == false &&
                        detail["requires"][0]["groupIcon"] == "ship" && detail["requires"][1]["perk"] == "ironwill" &&
                        detail["requires"][1]["met"] == true && detail["requires"][1]["groupIcon"] == "",
                    "missing requirements first; a row of the other group carries its glyph");
             Expect(!detail.contains("blocked") && detail["learn"]["label"] == "hero.learn" &&
-                       detail["learn"]["disabled"] == true && !detail["learn"].contains("reason"),
-                   "a locked perk: the button disabled, no reason line or toast");
+                       detail["learn"]["disabled"] == false && !detail["learn"].contains("reason"),
+                   "a perk with a missing prerequisite is still offered: the game decides");
             Expect(surface.props["perkInfo"] == "hero.free_points 1 · hero.next_point 340 / 1\xC2\xA0"
                                                 "000",
                    "free points and the progress to the next one stay over the tree");
@@ -316,13 +303,60 @@ struct PerkScreenRun
                        (links.find("0 ") != std::string::npos || links.find("1 ") != std::string::npos),
                    "the selected perk's links are highlighted, the others drawn faint");
         }
-        router.OnEvent({"perk-learn", "click", ""});
-        Expect(surface.props["dialog"].is_null() && surface.sent.empty(), "a locked perk's hold learns nothing");
-        router.OnEvent({"perk-learn", "refused", ""});
-        Expect(surface.props["detail"]["requires"][0]["nudge"] == true &&
-                   surface.props["detail"]["requires"][1]["nudge"] == false &&
-                   surface.props["perkInfoNudge"] == false && surface.sent.empty(),
-               "a tap on the disabled «Изучить» makes the missing prerequisite pulse, not the met one");
+        Asked();
+    }
+
+    // A learn the game refuses (on a router of its own: the rest of the run starts with nothing sent).
+    void Asked()
+    {
+        SurfaceProbe ask;
+        Router asking(ask);
+        asking.SetInterface(model);
+        asking.OnEvent({"header-tabs", "select", "perks1"});
+        asking.OnEvent({"perks", "row", "trustworthy"});
+        asking.OnEvent({"perk-learn", "click", ""});
+        Expect(ask.sent.size() == 1 &&
+                   EngineCommand(ask.sent.back()).find("TABLE_PERKS\t1\tselect") != std::string::npos,
+               "the hold asks the game: its perk row is selected first");
+        Refuse(model, asking, 1);
+        Expect(EngineCommand(ask.sent.back()).find("PERK_CANCEL") != std::string::npos &&
+                   ask.props["detail"]["learn"]["disabled"] == true &&
+                   ask.props["detail"]["requires"][0]["nudge"] == true &&
+                   ask.props["detail"]["requires"][1]["nudge"] == false && ask.props["perkInfoNudge"] == false,
+               "the game refuses: its window is closed, the button is off and the missing prerequisite pulses");
+        const size_t sent = ask.sent.size();
+        asking.OnEvent({"perk-learn", "click", ""});
+        Expect(ask.sent.size() == sent, "a refused perk is not asked again in the same state");
+        auto learned = model;
+        learned.revision += 3;
+        for (auto &w : learned.widgets)
+            if (w.node == "ANDROID_PERKS" && w.row_id == "advancedcommerce")
+                w.context["learned"] = "1";
+        asking.SetInterface(learned);
+        asking.OnEvent({"perks", "row", "trustworthy"});
+        Expect(ask.props["detail"]["learn"]["disabled"] == false,
+               "once another perk is learned the game is asked again");
+    }
+
+    // The game's answer to a learn: ChoosePerk's window over the perk's selected row, PERK_ACCEPT not selectable.
+    static void Refuse(const InterfaceModel &base, Router &on, int row)
+    {
+        auto refused = base;
+        refused.revision += 2;
+        for (auto &w : refused.widgets)
+            if (w.node == "TABLE_PERKS")
+                w.value = w.index == row ? "1" : "0";
+        Widget accept;
+        accept.node = "PERK_ACCEPT";
+        accept.type = "button";
+        accept.enabled = false;
+        Widget cancel;
+        cancel.node = "PERK_CANCEL";
+        cancel.type = "button";
+        cancel.actions = {"press"};
+        refused.widgets.push_back(accept);
+        refused.widgets.push_back(cancel);
+        on.SetInterface(refused);
     }
 
     void Requires()
@@ -383,7 +417,7 @@ struct PerkScreenRun
     void FreePoints()
     {
         {
-            // Without free points a reachable perk still reads open; only its learn button says why not.
+            // Without free points a reachable perk still reads open and is offered: the game says why not.
             auto poor = model;
             for (auto &w : poor.widgets)
                 if (w.node == "ANDROID_SUBJECT")
@@ -395,12 +429,15 @@ struct PerkScreenRun
             poor_router.OnEvent({"perks", "row", "basicdefense"});
             Expect(Node(poor_surface.props, "basicdefense")["state"] == "open" &&
                        Node(poor_surface.props, "trustworthy")["state"] == "locked" &&
-                       poor_surface.props["detail"]["learn"]["disabled"] == true &&
+                       poor_surface.props["detail"]["learn"]["disabled"] == false &&
                        poor_surface.props["detail"]["learn"]["label"] == "hero.learn" &&
                        !poor_surface.props["detail"].contains("blocked"),
-                   "no free points: reachable perks stay open, the button is disabled");
+                   "no free points: reachable perks stay open, the button asks the game");
+            poor_router.OnEvent({"perk-learn", "click", ""});
+            Refuse(poor, poor_router, 0);
+            const size_t sent = poor_surface.sent.size();
             poor_router.OnEvent({"perk-learn", "refused", ""});
-            Expect(poor_surface.props["perkInfoNudge"] == true && poor_surface.sent.empty(),
+            Expect(poor_surface.props["perkInfoNudge"] == true && poor_surface.sent.size() == sent,
                    "without free points a refused tap makes the points line pulse");
         }
     }
@@ -413,9 +450,6 @@ struct PerkScreenRun
         std::erase_if(incomplete.widgets, [](const Widget &w) {
             return w.node == "ANDROID_PERKEDGES" && w.context.at("source") == "advancedcommerce";
         });
-        for (auto &w : incomplete.widgets)
-            if (w.node == "ANDROID_PERKS" && w.row_id == "trustworthy")
-                w.context["eligible"] = "1";
         SurfaceProbe partial_surface;
         Router partial(partial_surface);
         partial.SetInterface(incomplete);
@@ -535,6 +569,7 @@ struct PerkScreenRun
         router.SetInterface(model);
         for (const auto &a : surface.sent)
             Expect(EngineCommand(a).find("PERK_ACCEPT") == std::string::npos, "stock refusal is never bypassed");
+        Expect(surface.props["detail"]["learn"]["disabled"] == true, "the game's refusal stays on the button");
     }
 };
 
@@ -560,13 +595,13 @@ static void CheckScreen(const std::string &directory)
         }
     std::erase_if(model.widgets,
                   [](const Widget &w) { return w.node == "ANDROID_PERKS" || w.node == "ANDROID_PERKEDGES"; });
-    model.widgets.push_back(Fact("basicdefense", "self", false, true));
-    model.widgets.push_back(Fact("trustworthy", "self", false, false, 2));
-    auto iron = Fact("ironwill", "self", true, false);
+    model.widgets.push_back(Fact("basicdefense", "self", false));
+    model.widgets.push_back(Fact("trustworthy", "self", false, 2));
+    auto iron = Fact("ironwill", "self", true);
     iron.context["label"] = "Iron, will";
     model.widgets.push_back(iron);
-    model.widgets.push_back(Fact("advancedcommerce", "ship", false, true, 1));
-    model.widgets.push_back(Fact("basiccommerce", "ship", true, false));
+    model.widgets.push_back(Fact("advancedcommerce", "ship", false, 1));
+    model.widgets.push_back(Fact("basiccommerce", "ship", true));
     model.widgets.push_back(Edge("basiccommerce", "advancedcommerce", true));
     model.widgets.push_back(Edge("advancedcommerce", "trustworthy", false));
     model.widgets.push_back(Edge("ironwill", "trustworthy", true));

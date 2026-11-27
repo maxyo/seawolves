@@ -462,13 +462,4 @@ class Cache
     std::vector<Edge> edges_;
     Layout layout_;
 };
-
-inline bool CanLearn(bool local, bool full, bool learned, int points, const std::string &rule, bool stock_eligible,
-                     const std::vector<bool> &requirements)
-{
-    // ChoosePerk evaluates ALL condition attributes. Unknown/OR rules stay locked until an
-    // authoritative adapter and evaluator exist for them.
-    return local && full && !learned && points > 0 && rule == "stock-all-v1" && stock_eligible &&
-           std::all_of(requirements.begin(), requirements.end(), [](bool met) { return met; });
-}
 } // namespace storm::ui::screens::perk_tree

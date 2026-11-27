@@ -375,6 +375,7 @@ class HeroScreen final : public Screen
     std::string perk_;           // the perk in the detail panel
     perk_tree::Cache perk_tree_; // topology only; selection/state changes do not relayout
     double nudge_until_ = 0.0;   // until then what keeps the selected perk from being learned pulses
+    std::string refused_;        // LearnState of the perk the game last refused to learn
     Json skill_help_ = nullptr;  // presentation-only stock skill description, never a game selection
     int wanted_ship_ = -1;       // the perk group the player asked for until the game shows it (0 personal, 1 ship)
     std::map<std::string, int> added_; // points the player put into a skill during this visit
@@ -495,7 +496,13 @@ class HeroScreen final : public Screen
                 }
                 CloseWindow(bindings); // another perk's window, or the game refuses: close it
                 if (selected && selected->row_id == intent_.row)
+                {
+                    // The game's answer: not now. What it needs pulses, and the button stays off in this state.
+                    refused_ = LearnState(intent_.row);
+                    nudge_until_ = bindings.Now() + kNudgeSeconds;
+                    bindings.RebuildAfter(kNudgeSeconds + 0.05);
                     Drop(bindings, {});
+                }
                 return;
             }
             if (window_ != Window::None)
@@ -905,8 +912,8 @@ class HeroScreen final : public Screen
     }
 
     // The perks of the snapshot. Rows: the stock table of the group shown (TABLE_PERKS); facts: the
-    // adapter's (ANDROID_PERKS: label, text, type self|ship, learned, officer, rule, requirements,
-    // eligible) for those rows and for every prerequisite of theirs, also of the other group;
+    // adapter's (ANDROID_PERKS: label, text, type self|ship, learned, officer, rule, requirements)
+    // for those rows and for every prerequisite of theirs, also of the other group;
     // edges: ANDROID_PERKEDGES (source, target, met, rule).
     struct PerkGraph
     {
@@ -995,14 +1002,23 @@ class HeroScreen final : public Screen
     {
         return GroupCaption(a_->Label(ship ? "TABSTR_2" : "TABSTR_1")).first;
     }
-    bool Available(const PerkGraph &graph, const std::string &id, bool full, int free) const
+    // Whether «Изучить» is offered: the game decides (ChoosePerk sets PERK_ACCEPT), so it is offered for every
+    // perk of the group not learned yet, and taken back once the game refused it in this state.
+    bool Available(const PerkGraph &graph, const std::string &id, bool full) const
     {
-        const Widget *fact = FactOf(graph, id);
-        std::vector<bool> met;
-        for (const Widget *edge : graph.incoming.count(id) ? graph.incoming.at(id) : std::vector<const Widget *>())
-            met.push_back(Field(edge, "met") == "1" && Field(edge, "rule") == "stock-all-v1");
-        return graph.complete && perk_tree::CanLearn(graph.rows.count(id) > 0, full, Learned(graph, id), free,
-                                                     Field(fact, "rule"), Field(fact, "eligible") == "1", met);
+        return graph.complete && full && graph.rows.count(id) && !Learned(graph, id) && refused_ != LearnState(id);
+    }
+    // What the game's answer for a perk depends on: whose perk, its group, the free points and the perks learned.
+    std::string LearnState(const std::string &id) const
+    {
+        const Widget *subject = a_->One("ANDROID_SUBJECT");
+        const Widget *group = a_->One("TABBTN_2");
+        const bool ship = group && group->value == "1";
+        int learned = 0;
+        for (const Widget *fact : a_->All("ANDROID_PERKS"))
+            learned += Field(fact, "learned") == "1";
+        return Field(subject, "character") + "/" + (ship ? "ship" : "self") + "/" + perk_tree::Id(id) + "/" +
+               Field(subject, ship ? "freeship" : "freeself") + "/" + std::to_string(learned);
     }
 
     Json PerkImage(const Widget &row, bool locked) const
@@ -1087,8 +1103,8 @@ class HeroScreen final : public Screen
         PerkDetail(view, bindings, graph, selected, full, ship, free);
     }
 
-    // A node is locked only by a missing prerequisite; free points and the stock window's other checks
-    // decide the learn button, so a tree without points still reads which perks are reachable.
+    // A node is locked only by a missing prerequisite (the adapter's edges); the learn button is the game's
+    // answer, so a tree without points still reads which perks are reachable.
     static const char *PerkState(const PerkGraph &graph, const std::string &id)
     {
         if (Learned(graph, id))
@@ -1153,7 +1169,7 @@ class HeroScreen final : public Screen
     {
         const std::string reveal_group = ship ? "ship:" : "self:";
         const Widget *fact = FactOf(graph, selected);
-        const bool learned = Learned(graph, selected), can_learn = Available(graph, selected, full, free);
+        const bool learned = Learned(graph, selected), can_learn = Available(graph, selected, full);
         const bool external = !graph.rows.count(selected), ship_perk = ShipPerk(graph, selected);
         std::map<std::string, std::pair<bool, bool>> targets; // a row's perk -> (of the ship group, in this table)
         const auto link = [&](const std::string &id, bool met) {
@@ -1218,10 +1234,10 @@ class HeroScreen final : public Screen
         else if (full)
         {
             // «Изучить», learned by a hold (for what cannot be undone: an early release shakes,
-            // nothing is sent, no caption). A perk that cannot be learned has the button disabled; a tap shakes it
-            // (what it needs stands in its description, the free points over the tree). The hold starts the stock learn
-            // at once (Intent::Learn: the row's ChoosePerk, then its PERK_ACCEPT, never drawn), so points, flags and
-            // unlocks are the stock ones.
+            // nothing is sent, no caption). The hold starts the stock learn at once (Intent::Learn: the row's
+            // ChoosePerk, then its PERK_ACCEPT, never drawn), so the game decides and points, flags and unlocks are the
+            // stock ones. A perk the game refused has the button disabled; a tap shakes it (what it needs stands in its
+            // description, the free points over the tree).
             detail["learn"] = Json{{"id", "perk-learn"},
                                    {"label", bindings.Text(learned ? "hero.learned" : "hero.learn")},
                                    {"disabled", !can_learn},

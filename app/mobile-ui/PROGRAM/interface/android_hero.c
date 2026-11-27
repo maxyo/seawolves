@@ -315,11 +315,11 @@ void AndroidHeroSubject(int subject)
 // The perk tree of the hero screens (engine hero_character.cpp, perk_tree.hpp): every perk of
 // TABLE_PERKS and, recursively, every perk it requires, also of the other group (those are shown
 // read-only; only TABLE_PERKS rows can be learned). Per perk: its stock caption and description
-// (AbilityDescribe.txt), group, learned, held by an officer, the number of required perks, and
-// whether ChoosePerk would allow it now (eligible: not learned, all required perks learned, a free
-// point of its group). Per requirement an edge (source, target, met). ChoosePerk requires ALL
-// condition attributes (their values are not OR operators): rule "stock-all-v1". IDs stay apart from
-// the localized text. The rule field marks a visited perk (cycles end); depth bounds modded graphs.
+// (AbilityDescribe.txt), group, learned, held by an officer and the number of required perks. Per
+// requirement an edge (source, target, met). Whether a perk can be learned is ChoosePerk's answer
+// (PERK_ACCEPT), not decided here. ChoosePerk requires ALL condition attributes: rule "stock-all-v1".
+// IDs stay apart from the localized text. The rule field marks a visited perk (cycles end); depth
+// bounds modded graphs.
 void AndroidHeroPerkGraph(ref chr, string perk, int depth)
 {
 	if (depth > 64) return;
@@ -337,10 +337,6 @@ void AndroidHeroPerkGraph(ref chr, string perk, int depth)
 	if (CheckCharacterPerk(chr, perk)) row.learned = "1";
 	row.officer = "0";
 	if (sti(chr.index) == GetMainCharacterIndex() && row.learned == "0" && GetOfficersPerkUsing(chr, perk)) row.officer = "1";
-	string balance = "FreePoints_" + row.type;
-	int points = 0;
-	if (CheckAttribute(chr, "perks." + balance)) points = sti(chr.perks.(balance));
-	int missing = 0;
 	string cond, key;
 	int c;
 	if (CheckAttribute(&ChrPerksList, "list." + perk + ".condition"))
@@ -357,12 +353,9 @@ void AndroidHeroPerkGraph(ref chr, string perk, int depth)
 			edge.rule = "stock-all-v1";
 			edge.met = "0";
 			if (CheckCharacterPerk(chr, cond)) edge.met = "1";
-			else missing = missing + 1;
 			AndroidHeroPerkGraph(chr, cond, depth + 1);
 		}
 	}
-	row.eligible = "0";
-	if (row.learned != "1" && missing == 0 && points > 0) row.eligible = "1";
 }
 
 void AndroidHeroPerks(int subject)

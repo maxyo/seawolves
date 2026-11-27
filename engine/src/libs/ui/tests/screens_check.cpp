@@ -3116,14 +3116,32 @@ struct HeroRun
                    view["detail"]["opens"][0]["perk"] == "criticalhit",
                "a perk with a missing requirement is locked; the open one names what it opens");
         router.OnEvent({"perks", "row", "criticalhit"});
-        Expect(surface.commands.empty() && surface.props["detail"]["learn"]["disabled"] == true &&
+        Expect(surface.commands.empty() && surface.props["detail"]["learn"]["disabled"] == false &&
                    surface.props["detail"]["requires"].size() == 1 &&
                    surface.props["detail"]["requires"][0]["name"] == "Basic defense" &&
                    !surface.props["detail"].contains("blocked"),
-               "the locked perk's detail names what it needs, in words");
+               "the locked perk's detail names what it needs, in words; learning it is the game's to refuse");
         router.OnEvent({"perk-learn", "click", ""});
-        Expect(surface.props["dialog"].is_null() && surface.commands.empty(),
-               "a perk that cannot be learned learns nothing");
+        ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_PERKS\t1\tselect@4:criticalhit",
+                    "the hold asks the game: the perk's row first");
+        {
+            auto refused = model;
+            refused.revision += 1;
+            Row(refused, "TABLE_PERKS", 0)->value = "0";
+            Row(refused, "TABLE_PERKS", 1)->value = "1";
+            Widget accept = Make("PERK_ACCEPT", "button", "Learn");
+            accept.enabled = false; // ChoosePerk: SetSelectable("PERK_ACCEPT", false)
+            refused.widgets.push_back(accept);
+            refused.widgets.push_back(Make("PERK_CANCEL", "button", "Cancel", {"press"}));
+            router.SetInterface(refused);
+            ExpectEqual(surface.Last(), "widget:lscchar_all\tPERK_CANCEL\t-1\tpress",
+                        "the game's window refuses it: closed, never accepted");
+            Expect(surface.props["dialog"].is_null() && surface.props["detail"]["learn"]["disabled"] == true,
+                   "a perk the game refused is not offered again");
+            model.revision = refused.revision + 1;
+            router.SetInterface(model);
+            surface.commands.clear();
+        }
         router.OnEvent({"perk-detail", "go", "basicdefense"});
         Expect(surface.commands.empty() && surface.props["detail"]["title"] == "Basic defense",
                "«Требует» selects that perk");
