@@ -28,6 +28,9 @@
 namespace storm::effects
 {
 
+// The D3D projection `proj` in the backend's clip space for draws into the device's current target (world.cpp).
+std::array<float, 16> BackendProjection(const shim::Device &device, const D3DMATRIX &proj);
+
 // GPU time of the frame and of the effect passes, from bgfx view stats (option fx_gpu_profile=1, timer queries).
 struct PassTimes
 {

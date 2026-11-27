@@ -1,6 +1,7 @@
 #include "device.hpp"
 #include "texture_fades.hpp"
 #include "effects/effects.hpp"
+#include "effekseer/system.hpp"
 #include "effects/thermal.hpp"
 #include "frame_pacing.hpp"
 #include "gpu_passes.hpp"
@@ -856,6 +857,7 @@ void Context::shutdown()
     for (auto &entry : clients_)
         entry.client->OnDeviceLost();
     dump_traps();
+    render::effekseer::ShutdownDevice();
     effects::Host::instance().shutdown();
     texture_fades().shutdown(); // after the effects retired their last lightmaps
     bone_palettes_.shutdown();

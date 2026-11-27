@@ -3,6 +3,7 @@
 #include "perf.hpp"
 #include "storm/render/depth_stencil.hpp"
 #include "texture_fades.hpp"
+#include "texture_tier.hpp"
 
 #include <chrono>
 #include <thread>
@@ -287,13 +288,18 @@ Tier resolve_tier(uint16_t need, const char *kind)
     return tier;
 }
 
+Tier tier_2d()
+{
+    static const Tier tier = resolve_tier(BGFX_CAPS_FORMAT_TEXTURE_2D, "2D");
+    return tier;
+}
+
 Tier select_tier(const TexStore &store)
 {
     if (!format_info(store.format).block_bytes)
         return Tier::Direct;
-    static const Tier tier_2d = resolve_tier(BGFX_CAPS_FORMAT_TEXTURE_2D, "2D");
     static const Tier tier_cube = resolve_tier(BGFX_CAPS_FORMAT_TEXTURE_CUBE, "cube");
-    return store.kind == TexKind::Cube ? tier_cube : tier_2d;
+    return store.kind == TexKind::Cube ? tier_cube : tier_2d();
 }
 
 // The bgfx format of a sampled texture's D3D texels as they are (texture/core d3d_format). Its support on this GPU
@@ -447,6 +453,16 @@ bgfx::TextureFormat::Enum bgfx_format(texture::GpuFormat format)
     return bgfx::TextureFormat::Unknown;
 }
 } // namespace
+
+std::optional<texture::GpuFormat> compressed_2d_format(bool alpha)
+{
+    const Tier tier = tier_2d();
+    if (tier == Tier::Bc)
+        return alpha ? texture::GpuFormat::Bc3 : texture::GpuFormat::Bc1;
+    if (tier == Tier::Etc2)
+        return alpha ? texture::GpuFormat::Etc2Rgba8 : texture::GpuFormat::Etc2Rgb8;
+    return std::nullopt;
+}
 
 // DXT payloads are never patched in place by the game, and file textures are marked immutable by
 // the renderer, so their CPU copy (the bulk of all texture memory) is dropped once the GPU texture

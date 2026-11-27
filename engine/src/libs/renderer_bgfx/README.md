@@ -22,6 +22,8 @@ on Android and on the Linux development host alike.
   `.tx` files or, told apart by their first bytes, DDS (BC1-3, read by bimg) and TXX files
   (`src/texture/core/texture_file.hpp`); other DDS formats are refused with the file named.
 - `fx/` — optional effects package ([fx/README.md](fx/README.md)), driven by `src/effects/`.
+- `effekseer/` — Effekseer effects at their pins, drawn into the game's scene after its opaque geometry
+  ([effekseer/README.md](effekseer/README.md)), driven by `src/effekseer/`.
 - `host-tools/` — builds only the host `shaderc` from the same pin.
 
 ## Backends

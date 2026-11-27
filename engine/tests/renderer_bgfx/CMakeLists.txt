@@ -142,6 +142,9 @@ storm_renderer_check(pipeline_stress_check GPU INCLUDES ${renderer})
 storm_renderer_check(background_stay_check GPU CATCH2 INCLUDES ${renderer} ${src}/libs/util/include)
 storm_renderer_check(start_memory_check CATCH2 INCLUDES ${renderer} ${src}/libs/util/include)
 storm_renderer_check(wet_surfaces_check GPU)
+# The sample effects of the pinned efkbgfx sources (MIT) drawn through the shim.
+FetchContent_GetProperties(storm_efkbgfx)
+storm_renderer_check(effekseer_check GPU CATCH2 ENV "STORM_EFFEKSEER_SAMPLES=${storm_efkbgfx_SOURCE_DIR}/examples/resources")
 # It counts the GL backend's glUniform calls (patches/bgfx-gl-uniform-commit.patch).
 storm_renderer_check(uniform_commit_check GPU GLES_ONLY)
 # bgfx's Vulkan backend resolves in the render pass (patches/bgfx-vulkan-resolve-in-pass.patch).
@@ -187,6 +190,9 @@ storm_check_test(renderer_bgfx.scene_passes_check.vulkan_resolve_pass COMMAND sc
     LABELS gpu display vulkan)
 set_tests_properties(renderer_bgfx.scene_passes_check.vulkan_resolve_pass PROPERTIES
     FAIL_REGULAR_EXPRESSION "render backend: OpenGL ES \\(render_backend = vulkan\\)")
+# Every effect of the installed game in $STORM_GAME_DIR (Caribbean Legend's Resource/Effects).
+storm_check_test(renderer_bgfx.effekseer_check.corpus COMMAND effekseer_check "[corpus]"
+    ENV "STORM_EFFEKSEER_SAMPLES=${storm_efkbgfx_SOURCE_DIR}/examples/resources" LABELS gpu display game)
 # The scene's targets, the effects' self-test and the sea's backdrop as on a device that renders to no D24S8
 # (no_d24s8.hpp).
 foreach(check preset_switch_check sea_edge_check)

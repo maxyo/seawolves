@@ -23,10 +23,22 @@ constexpr uint8_t kWakeStage = 12;
 // Metres one repeat of the game's foam texture (pena.tga, a photograph of churned water) covers.
 constexpr double kFoamTile = 10.0;
 
+// D3D perspective: _33 = f / (f - n), _43 = -n f / (f - n). Leaves the planes as they are for other matrices.
+void clip_planes(const D3DMATRIX &p, float &near_plane, float &far_plane)
+{
+    if (p.m[2][2] != 0.0f && p.m[2][2] != 1.0f)
+    {
+        near_plane = -p.m[3][2] / p.m[2][2];
+        far_plane = p.m[3][2] / (1.0f - p.m[2][2]);
+    }
+}
+
+} // namespace
+
 // D3D clip space -> backend clip space, as Device::apply_ff_uniforms builds it for the fixed-function draws (without
 // depth bias): y flipped on bottom-left-origin backends, D3D's half-pixel offset, depth 0..1 -> -1..1 where the
 // backend wants it. The fx draws then land on exactly the pixels and depths of the shim's own geometry.
-std::array<float, 16> backend_projection(const shim::Device &device, const D3DMATRIX &proj)
+std::array<float, 16> BackendProjection(const shim::Device &device, const D3DMATRIX &proj)
 {
     const auto &context = shim::Context::instance();
     const float vw = static_cast<float>(std::max<DWORD>(1, device.s.viewport.Width));
@@ -43,18 +55,6 @@ std::array<float, 16> backend_projection(const shim::Device &device, const D3DMA
     bx::mtxMul(out.data(), &proj.m[0][0], &fix[0][0]);
     return out;
 }
-
-// D3D perspective: _33 = f / (f - n), _43 = -n f / (f - n). Leaves the planes as they are for other matrices.
-void clip_planes(const D3DMATRIX &p, float &near_plane, float &far_plane)
-{
-    if (p.m[2][2] != 0.0f && p.m[2][2] != 1.0f)
-    {
-        near_plane = -p.m[3][2] / p.m[2][2];
-        far_plane = p.m[3][2] / (1.0f - p.m[2][2]);
-    }
-}
-
-} // namespace
 
 render::EffectsWorld Host::world() const
 {
@@ -77,7 +77,7 @@ bool Host::begin_world_pass(WorldPass &pass, const render::EffectsMatrix &view, 
     if (!device || !device_ready_ || !shim::Context::instance().ready())
         return false;
     pass.view_mtx = view;
-    pass.projection = backend_projection(*device, device->s.proj);
+    pass.projection = BackendProjection(*device, device->s.proj);
     std::array<float, 32> transform;
     std::copy(pass.view_mtx.begin(), pass.view_mtx.end(), transform.begin());
     std::copy(pass.projection.begin(), pass.projection.end(), transform.begin() + 16);
@@ -156,7 +156,7 @@ void Host::prepare_sea(shim::Device &device)
             // Nothing drew depth before the sea: the backdrop is the cleared depth, as the scene's is.
             std::array<float, 32> transform{};
             memcpy(transform.data(), &device.s.view.m[0][0], sizeof(float) * 16);
-            const std::array<float, 16> projection = backend_projection(device, device.s.proj);
+            const std::array<float, 16> projection = BackendProjection(device, device.s.proj);
             std::copy(projection.begin(), projection.end(), transform.begin() + 16);
             if (open_sea_backdrop_view(device, transform))
                 bgfx::touch(sea_backdrop_view_);
@@ -462,7 +462,7 @@ bool Host::sea_backdrop(shim::Device &device, const shim::LayoutInfo &layout, bo
     sea_backdrop_material_ = caster_material(device, layout);
     if (!sea_backdrop_material_.casts)
         return false;
-    const std::array<float, 16> projection = backend_projection(device, device.s.proj);
+    const std::array<float, 16> projection = BackendProjection(device, device.s.proj);
     std::array<float, 32> transform;
     memcpy(transform.data(), &device.s.view.m[0][0], sizeof(float) * 16);
     std::copy(projection.begin(), projection.end(), transform.begin() + 16);
