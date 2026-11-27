@@ -99,7 +99,7 @@ bool SunShadows::prepare(shim::Device &device, const std::array<float, 16> &view
         render::Log().info("effects: sun shadows: the shadowed region is centred {}, {:.0f} m from the camera",
                            what[centre], centre == 0 ? kAhead : player_distance);
     }
-    const float strength = fx::SunShadowStrength(sun_dir_[1]);
+    const float strength = this->strength();
     if (strength <= 0.0f)
         return false;
     if (tiles_dirty_)

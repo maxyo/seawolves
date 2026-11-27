@@ -34,13 +34,13 @@ int main()
     lamps.slots_ = 0;
     assert(lamps.initial_state() == 0); // disabled resources are not mandatory
 
-    // The sun's shadows: outdoors they are required before the reveal; indoors (not applicable) and without a sun
-    // above the horizon they are not.
+    // The sun's shadows: outdoors they are required before the reveal; indoors (not applicable), in an hour without
+    // shadows and without a sun above the horizon they are not.
     effects::SunShadows sun;
     fx::Settings settings;
     settings.shadows = fx::ShadowQuality::Low;
     sun.configure(settings);
-    sun.set_sun({0.0f, 1.0f, 0.0f}, true);
+    sun.set_sun({0.0f, 1.0f, 0.0f}, true, 1.0f);
     assert(sun.initial_state(false) == 0);
     assert(sun.initial_state(true) == 1); // not prepared yet
     sun.prepared_ = true;
@@ -54,8 +54,10 @@ int main()
     assert(sun.initial_state(true) == 2); // the tiles' buffer failed
     sun.tiles_vb_ = {1};
     assert(sun.initial_state(true) == 0);
-    sun.set_sun({0.0f, -1.0f, 0.0f}, true);
     sun.tiles_vb_ = BGFX_INVALID_HANDLE;
+    sun.set_sun({0.0f, 1.0f, 0.0f}, true, 0.0f);
+    assert(sun.initial_state(true) == 0); // an hour without shadows (the rain clouds hide the sun) casts nothing
+    sun.set_sun({0.0f, -1.0f, 0.0f}, true, 1.0f);
     assert(sun.initial_state(true) == 0); // the sun below the horizon casts nothing
 
     puts("actual producer initial-state chain: PASS");

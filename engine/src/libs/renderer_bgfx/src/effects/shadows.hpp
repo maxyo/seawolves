@@ -9,6 +9,7 @@
 #include "effects/shadow_casters.hpp"
 #include "storm/render/effects.hpp"
 
+#include <algorithm>
 #include <bgfx/bgfx.h>
 
 #include <array>
@@ -37,11 +38,13 @@ class SunShadows
     {
         return settings_.shadows != fx::ShadowQuality::Off;
     }
-    // World direction towards the sun of this frame (WEATHER); none: no shadows this frame.
-    void set_sun(const glm::vec3 &sun_dir, bool present)
+    // World direction towards the sun of this frame (WEATHER); none: no shadows this frame. `strength`: the scene
+    // environment's shadow strength of the hour (0 none .. 1 full).
+    void set_sun(const glm::vec3 &sun_dir, bool present, float strength)
     {
         sun_dir_ = sun_dir;
         sun_present_ = present;
+        hour_strength_ = std::clamp(strength, 0.0f, 1.0f);
     }
     // The place's still, collidable geometry (render::SetEffectsLocationGeometry, outdoors): it casts into the
     // static layer in tiles, with the holes its textures' alpha cuts (effects/casters.hpp). Empty: none (indoors, at
@@ -84,7 +87,7 @@ class SunShadows
     void before_frame();
     int initial_state(bool applicable = true) const
     {
-        if (!applicable || !enabled() || !sun_present_ || fx::SunShadowStrength(sun_dir_[1]) <= 0.0f)
+        if (!applicable || !enabled() || !sun_present_ || strength() <= 0.0f)
             return 0;
         if (!prepared_)
             return 1;
@@ -136,6 +139,11 @@ class SunShadows
     glm::vec3 sun_dir_{0.0f, 1.0f, 0.0f};
     glm::vec3 origin_{};
     bool sun_present_ = false;
+    float hour_strength_ = 1.0f;
+    float strength() const
+    {
+        return fx::SunShadowStrength(sun_dir_[1]) * hour_strength_;
+    }
     bool prepared_ = false; // prepare() ran this frame
     bool active_ = false;   // ... and fx::Shadows::Begin() accepted it
     // The place's still geometry in tiles of kTileSize metres (xz): the tiles the static layer reaches are drawn into

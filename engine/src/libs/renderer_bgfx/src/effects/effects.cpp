@@ -448,7 +448,7 @@ void Host::set_environment(const environment::State &state)
     weather_this_frame_ = true;
     update_wetness();
     // The hemisphere ambient takes its tint from the sky dome; the aerial perspective needs a sky (no interiors).
-    lighting_.shadows().set_sun(state.light_dir, state.light_is_sun);
+    lighting_.shadows().set_sun(state.light_dir, state.light_is_sun, state.shadow_strength);
     lighting_.set_weather_sun(state.light_dir, sun_display_, state.light_is_sun);
     if (settings_.lighting_flags & (fx::kLightingHemisphere | fx::kLightingAerial))
         lighting_.set_sky(&sky_state());
@@ -713,8 +713,8 @@ void Host::end_weather_frame()
     weather_last_frame_ = weather_this_frame_;
     if (!weather_this_frame_)
     {
-        lighting_.set_sky(nullptr);                             // interiors: no sky tint on the hemisphere
-        lighting_.shadows().set_sun({0.0f, 1.0f, 0.0f}, false); // and no sun shadows
+        lighting_.set_sky(nullptr);                                   // interiors: no sky tint on the hemisphere
+        lighting_.shadows().set_sun({0.0f, 1.0f, 0.0f}, false, 0.0f); // and no sun shadows
     }
     weather_this_frame_ = false;
 }
