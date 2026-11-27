@@ -69,5 +69,5 @@
 {"node":"TABLE_CREW2","type":"choice","label":"\tМатросы\tСредние\t","index":0,"rowId":"row:0","actions":["select"],"cells":[{"column":1,"text":"Матросы"},{"column":2,"text":"Средние"}]},
 {"node":"TABLE_CREW2","type":"choice","label":"\tКанониры\tНовички\t","index":1,"rowId":"row:1","actions":["select"],"cells":[{"column":1,"text":"Канониры"},{"column":2,"text":"Новички"}]},
 {"node":"TABLE_CREW2","type":"choice","label":"\tСолдаты\tНовички\t","index":2,"rowId":"row:2","actions":["select"],"cells":[{"column":1,"text":"Солдаты"},{"column":2,"text":"Новички"}]},
-{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"mode":"CREW_WINDOW","exchange":"1","captainAlive":"1","crewMin":"9","crewMax":"160","crewMin2":"21","crewMax2":"165"}}
+{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"mode":"CREW_WINDOW","exchange":"1","captainAlive":"1","crewMin":"9","crewMin2":"21"}}
 ]}

@@ -6,7 +6,7 @@
 "screenRevision":7,
 "widgets":[
 {"enabled":false,"images":[{"handle":84,"imageRevision":84,"source":{"image":"interfaces/card_desk","kind":"texture"},"tintArgb":4286611584}],"index":-1,"node":"MAIN_BACK","type":"image"},
-{"context":{"captainAlive":"1","crewMax":"195","crewMax2":"126","crewMin":"26","crewMin2":"21","exchange":"1","mode":""},"enabled":false,"index":-1,"node":"ANDROID_TRANSFER","type":"transfer"},
+{"context":{"captainAlive":"1","crewMin":"26","crewMin2":"21","exchange":"1","mode":""},"enabled":false,"index":-1,"node":"ANDROID_TRANSFER","type":"transfer"},
 {"context":{"x":"9","y":"53"},"images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPLEFT","kind":"atlas"},"tintArgb":4286611584}],"index":0,"node":"SHIP_BIG_PICTURE_BORDER","rowId":"BORDER_UPLEFT","type":"image"},
 {"context":{"x":"582","y":"53"},"images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPLEFT","kind":"atlas"},"tintArgb":4286611584}],"index":0,"node":"SHIP_BIG_PICTURE_BORDER2","rowId":"BORDER_UPLEFT","type":"image"},
 {"context":{"x":"210","y":"53"},"images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPRIGHT","kind":"atlas"},"tintArgb":4286611584}],"index":1,"node":"SHIP_BIG_PICTURE_BORDER","rowId":"BORDER_UPRIGHT","type":"image"},
