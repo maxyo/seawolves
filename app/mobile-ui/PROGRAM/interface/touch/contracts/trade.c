@@ -19,10 +19,9 @@
 //     not told), currency (the string key of what is paid, "" money)
 //   buttons.b<k>.{label, can, reason}: the place's own; takeAll.{label ("" ours), can, reason} (absent: none)
 extern void TouchAdpTrade_State(aref ui, aref out);
-// What `amount` of row k weighs, as the game counts it.
-extern float TouchAdpTrade_Weight(aref ui, int row, int amount);
-// What moving `amount` of row k costs (> 0: taken) or brings (< 0: given), as the game charges it.
-extern int TouchAdpTrade_Total(aref ui, int row, int amount);
+// What moving `amount` of row k (> 0: taken, < 0: given) is, as the game counts it: out.total (the money it costs or
+// brings, 0 without prices), out.weight (what it weighs), out.note (what else the game says of it, a fee; "" none).
+extern void TouchAdpTrade_Terms(aref ui, int row, int amount, aref out);
 // How far a deal on row k can go: out.take, out.give (pieces), out.takeWhy, out.giveWhy (the string key of what stops
 // it short of the other side's amount, "" nothing).
 extern void TouchAdpTrade_Reach(aref ui, int row, aref out);

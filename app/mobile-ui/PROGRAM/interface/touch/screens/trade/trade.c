@@ -131,10 +131,11 @@ void TouchTrade_Deal(aref ui, aref game, aref deal)
 	deal.high = spec.high;
 	deal.moreReason = spec.moreReason;
 	deal.nothing = money && sti(spec.high) <= sti(spec.low) && spec.moreReason != "";
-	deal.total = 0;
-	if (money) deal.total = TouchAdpTrade_Total(ui, k, sti(deal.change));
-	deal.weight = 0.0;
-	if (sti(game.weighs)) deal.weight = TouchAdpTrade_Weight(ui, k, abs(sti(deal.change)));
+	object terms;
+	TouchAdpTrade_Terms(ui, k, sti(deal.change), &terms);
+	deal.total = terms.total;
+	deal.weight = terms.weight;
+	deal.note = terms.note;
 }
 
 // One slider for both directions: what we hold is the origin, the zone to its left gives, the zone to its right
@@ -438,10 +439,12 @@ string TouchTrade_Sub(aref game, aref deal)
 {
 	string sub = "";
 	if (sti(game.money)) sub = TouchLib_Thousands(sti(deal.total));
-	if (!sti(game.weighs)) return sub;
+	if (!sti(game.weighs) && deal.note == "") return sub;
+	if (!sti(game.weighs)) return sub + " · " + deal.note;
 	if (sub != "") sub += " · ";
 	sub += TouchTrade_Weight(game, stf(deal.weight));
 	if (!sti(game.pieces)) sub += " " + UiText("transfer.cwt");
+	if (deal.note != "") sub += " · " + deal.note;
 	return sub;
 }
 

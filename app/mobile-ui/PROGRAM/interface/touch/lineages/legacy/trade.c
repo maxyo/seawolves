@@ -424,8 +424,17 @@ void TouchAdpTrade_Leave(aref ui)
 	UiBack(exit);
 }
 
+void TouchAdpTrade_Terms(aref ui, int row, int amount, aref out)
+{
+	out.total = 0;
+	if (sti(ui.data.buy) >= 0) out.total = TouchLegTrade_Total(ui, row, amount);
+	out.weight = 0.0;
+	if (sti(ui.data.goods)) out.weight = TouchLegTrade_Weight(ui, row, abs(amount));
+	out.note = "";
+}
+
 // rule copy: store.c ChangeQTY_EDIT charges makeint(price * pieces / units + 0.5) for a part of a pack's price.
-int TouchAdpTrade_Total(aref ui, int row, int amount)
+int TouchLegTrade_Total(aref ui, int row, int amount)
 {
 	aref at = TouchLegTrade_Row(ui, row);
 	int column = sti(ui.data.sell);
@@ -436,7 +445,7 @@ int TouchAdpTrade_Total(aref ui, int row, int amount)
 	return makeint(makefloat(UiAmount(TouchLegLib_Cell(at, column), "the price column")) * abs(amount) / units + 0.5);
 }
 
-float TouchAdpTrade_Weight(aref ui, int row, int amount)
+float TouchLegTrade_Weight(aref ui, int row, int amount)
 {
 	return makefloat(GetGoodWeightByType(TouchLegTrade_Good(TouchLegTrade_Row(ui, row)), amount));
 }
@@ -486,7 +495,7 @@ int TouchLegTrade_Largest(aref ui, int row, int stock, aref hold, bool paid)
 bool TouchLegTrade_Passes(aref ui, int row, int amount, aref hold, bool paid)
 {
 	float capacity = stf(hold.capacity);
-	if (capacity >= 0.0 && stf(hold.load) + TouchAdpTrade_Weight(ui, row, amount) > capacity) return false;
+	if (capacity >= 0.0 && stf(hold.load) + TouchLegTrade_Weight(ui, row, amount) > capacity) return false;
 	if (!paid || sti(hold.balance) < 0) return true;
-	return TouchAdpTrade_Total(ui, row, amount) <= sti(hold.balance);
+	return TouchLegTrade_Total(ui, row, amount) <= sti(hold.balance);
 }
