@@ -1,9 +1,9 @@
 #include "script_state.hpp"
 #include "compiler.h"
+#include "platform/android_script_errors.hpp"
 #ifdef __ANDROID__
 #include "platform/android_land_commands.hpp"
 #include "platform/android_land_diagnostics.hpp"
-#include "platform/android_script_errors.hpp"
 #endif
 
 #include <algorithm>
@@ -266,9 +266,7 @@ void COMPILER::SetError(const char *data_PTR, ...)
         return;
     if (data_PTR == nullptr)
         return;
-#ifdef __ANDROID__
     ++storm::android::scriptErrorEpoch;
-#endif
     char LogBuffer[BUFSIZ];
     char ErrorBuffer[MAX_PATH + BUFSIZ];
     va_list args;
