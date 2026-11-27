@@ -27,6 +27,8 @@
   небо и рассеянный свет на миг приглушаются. В «Каждому своё» каждая молния ночью на миг высвечивает облака и всё
   вокруг, а днём вспышкой остаётся её собственное сияние.
 - Caribbean Legend: пока час дождливый и скрипты показывают дождь, вокруг камеры идёт дождь — эффект самой игры.
+- Caribbean Legend: арифметика над числом, переданным в функцию по ссылке, больше не записывает результат в само это
+  число, — так считались, например, скидки бюджета эскадры и цены торговых сделок.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
   обновляется при каждой оплате.
@@ -112,6 +114,8 @@
   lightning bolts lights the clouds and everything around for a moment at night; by day its own glow is the flash.
 - Caribbean Legend: while the hour rains and the scripts show the rain, the game's own rain effect falls around the
   camera.
+- Caribbean Legend: arithmetic on a number passed to a function by reference no longer writes its result into that
+  number; the squadron budget's discounts and trade deal prices, among others, were computed so.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.
   In «Каждому своё» this changes one place: the date of the previous payment in the ship's debts window is updated on
   every payment.

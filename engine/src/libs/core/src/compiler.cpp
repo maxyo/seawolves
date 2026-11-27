@@ -6706,6 +6706,8 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            // a reference on the left is its value: the operation must not write into the referenced variable
+            pV->RefConvert();
             pV->Plus(pVV);
             break;
         case OP_MINUS:
@@ -6715,6 +6717,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            pV->RefConvert();
             pV->Minus(pVV);
             break;
         case OP_MULTIPLY:
@@ -6724,6 +6727,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            pV->RefConvert();
             pV->Multiply(pVV);
             break;
         case OP_DIVIDE:
@@ -6733,6 +6737,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            pV->RefConvert();
             pV->Divide(pVV);
             break;
         case OP_MODUL:
@@ -6742,6 +6747,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            pV->RefConvert();
             pV->Modul(pVV);
             break;
         case OP_POWER:
@@ -6751,18 +6757,21 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = GetOperand(pCodeBase, ip);
             if (!pVV)
                 return false;
+            pV->RefConvert();
             pV->Power(pVV);
             break;
         case OP_SMINUS:
             pV = GetOperand(pCodeBase, ip);
             if (!pV)
                 return false;
+            pV->RefConvert();
             pV->Inverse();
             break;
         case OP_BOOL_NEG:
             pV = GetOperand(pCodeBase, ip);
             if (!pV)
                 return false;
+            pV->RefConvert();
             pV->Neg();
             break;
 
