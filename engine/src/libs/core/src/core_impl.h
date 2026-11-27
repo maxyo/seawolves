@@ -13,8 +13,6 @@
 #include <optional>
 #include <string>
 
-#define ENGINE_SCRIPT_VERSION 54128
-
 namespace storm::loading
 {
 struct SceneTransaction;

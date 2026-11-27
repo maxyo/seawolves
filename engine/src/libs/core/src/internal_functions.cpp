@@ -2,6 +2,7 @@
 #include "compiler.h"
 #include "core_impl.h"
 #include "debug-trap.h"
+#include "game_profile.hpp"
 
 #include <execution>
 #include <fmt/format.h>
@@ -224,7 +225,7 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
     {
     case FUNC_GETENGINEVERSION:
         pV = SStack.Push();
-        pV->Set(static_cast<int32_t>(ENGINE_SCRIPT_VERSION));
+        pV->Set(storm::gameProfileFacts().script_version);
         pVResult = pV;
         return pV;
         break;

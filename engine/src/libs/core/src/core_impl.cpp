@@ -7,6 +7,7 @@
 #include "platform/android_ui.hpp"
 #endif
 #include "core_impl.h"
+#include "game_profile.hpp"
 #include "loading_scene.hpp"
 #include "scene_hold.hpp"
 
@@ -416,10 +417,11 @@ void CoreImpl::ProcessEngineIniFile()
             if (pVScriptVersion)
                 pVScriptVersion->Get(iScriptVersion);
 
-            if (iScriptVersion != ENGINE_SCRIPT_VERSION)
+            const auto expected = storm::gameProfileFacts().script_version;
+            if (iScriptVersion != expected)
             {
                 spdlog::error("dialog \"Error\": Wrong script version (scripts {}, engine {})", iScriptVersion,
-                              ENGINE_SCRIPT_VERSION);
+                              expected);
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Wrong script version", nullptr);
                 Compiler->ExitProgram();
             }
