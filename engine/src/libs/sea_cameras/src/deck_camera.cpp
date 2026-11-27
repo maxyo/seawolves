@@ -354,6 +354,9 @@ uint64_t DECK_CAMERA::ProcessMessage(MESSAGE &message)
         SetViewPoint(cv);
     }
     break;
+    case MSG_DECK_CAMERA_GET_AY:
+        message.ScriptVariablePointer()->Set(camera_ang.y);
+        break;
     }
 
     return 0;

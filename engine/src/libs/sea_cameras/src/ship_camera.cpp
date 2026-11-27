@@ -4,6 +4,7 @@
 #include "ship_camera.h"
 
 #include "math_inlines.h"
+#include "shared/messages.h"
 
 #ifdef __ANDROID__
 #include <platform/android_camera.hpp>
@@ -227,6 +228,20 @@ void SHIP_CAMERA::ApplyView([[maybe_unused]] bool acceptZoom)
 void SHIP_CAMERA::SetCharacter(ATTRIBUTES *_pACharacter)
 {
     pACharacter = _pACharacter;
+}
+
+uint64_t SHIP_CAMERA::ProcessMessage(MESSAGE &message)
+{
+    switch (message.Long())
+    {
+    case MSG_SHIP_CAMERA_GET_AY:
+        message.ScriptVariablePointer()->Set(vAng.y);
+        break;
+    case MSG_SHIP_CAMERA_SET_AY:
+        vAng.y = message.Float();
+        break;
+    }
+    return 0;
 }
 
 uint32_t SHIP_CAMERA::AttributeChanged(ATTRIBUTES *pAttr)

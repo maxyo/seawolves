@@ -98,6 +98,12 @@ class COMMON_CAMERA : public Entity
         return bActive;
     };
 
+    // SEA_CAMERAS switches to the camera (AI_CAMERAS_SET_CAMERA) only when it can be; one that cannot says why.
+    virtual bool CanBeSwitchedTo() const
+    {
+        return true;
+    }
+
     virtual void Save(CSaveLoad *pSL) = 0;
     virtual void Load(CSaveLoad *pSL) = 0;
 

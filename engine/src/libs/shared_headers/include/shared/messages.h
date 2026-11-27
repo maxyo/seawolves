@@ -334,5 +334,9 @@
 
 // Camera on ship
 #define MSG_DECK_CAMERA_SET_VIEWPOINT 41800 //"fff"        point.x, point.y, point.z
+// Caribbean Legend: the camera's azimuth relative to the ship, radians; "e" a float variable to get it into, "f" to set
+#define MSG_SHIP_CAMERA_GET_AY 41900
+#define MSG_SHIP_CAMERA_SET_AY 41901
+#define MSG_DECK_CAMERA_GET_AY 41910
 
 #endif

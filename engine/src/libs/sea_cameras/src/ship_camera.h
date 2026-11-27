@@ -68,6 +68,7 @@ class SHIP_CAMERA : public COMMON_CAMERA
     void SetCharacter(ATTRIBUTES *_pACharacter) override;
 
     uint32_t AttributeChanged(ATTRIBUTES *) override;
+    uint64_t ProcessMessage(MESSAGE &message) override;
     void ShipsCollision(glm::vec3 &pos);
     bool IslandCollision(glm::vec3 &pos);
 

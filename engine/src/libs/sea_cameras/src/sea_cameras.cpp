@@ -1,5 +1,6 @@
 #include "sea_cameras.h"
 #include "deck_camera.h"
+#include "fire_camera.h"
 #include "free_camera.h"
 #include "ship_camera.h"
 #include "shared/sea_ai/script_defines.h"
@@ -11,6 +12,8 @@ CREATE_CLASS(FREE_CAMERA)
 CREATE_CLASS(SHIP_CAMERA)
 
 CREATE_CLASS(DECK_CAMERA)
+
+CREATE_CLASS(FIRE_CAMERA)
 
 SEA_CAMERAS::SEA_CAMERAS()
 {
@@ -40,6 +43,8 @@ uint64_t SEA_CAMERAS::ProcessMessage(MESSAGE &message)
         const auto eidCamera = message.EntityID();
         auto *const pACharacter = message.AttributePointer();
         auto *pCamera = static_cast<COMMON_CAMERA *>(core.GetEntityPointer(eidCamera));
+        if (!pCamera->CanBeSwitchedTo())
+            break;
         const auto it = std::find(CamerasArray.begin(), CamerasArray.end(), pCamera);
         if (it == CamerasArray.end())
             CamerasArray.push_back(pCamera);
