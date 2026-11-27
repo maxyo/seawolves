@@ -58,7 +58,7 @@ The UI host (the interface library with its tests; no game, no GPU):
 ```sh
 cmake -S src/libs/ui -B build/ui-host -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build/ui-host
-xvfb-run -a ctest --test-dir build/ui-host --output-on-failure   # without xvfb-run when a display is there
+xvfb-run -a -s -noreset ctest --test-dir build/ui-host --output-on-failure   # without xvfb-run when a display is there
 ```
 
 The whole engine on the Linux host uses the same pinned sources as Android plus the distribution's SDL2 and zlib

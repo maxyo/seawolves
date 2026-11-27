@@ -218,7 +218,7 @@ jobs:
           SELECT: ${{ matrix.select }}
         run: |
           # shellcheck disable=SC2086  # SELECT is an option and check names
-          xvfb-run -a python3 tools/ci/run_host_tests.py $SELECT
+          xvfb-run -a -s -noreset python3 tools/ci/run_host_tests.py $SELECT  # engine/tools/ci/README.md, Display
       # The C/C++ format check uses the clang-format of the pinned NDK (tools/format/cxx_format.py): --fetch
       # downloads the NDK archive once and keeps clang-format alone, cached per NDK pin.
       - name: Restore the NDK's clang-format

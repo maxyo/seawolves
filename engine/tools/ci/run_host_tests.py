@@ -8,8 +8,8 @@ Configures <work> once, builds it (cmake --build), runs ctest and prints one lin
 output) or NOT_RUN (exit 77: this machine cannot run it; never a pass), and a summary. A NAME is a check (a ctest
 name such as utf8 or renderer_bgfx.skinning_check.vulkan) or a group: the part of the names before the first '.'
 (input_std, renderer_bgfx: every renderer check). --changed-since REF runs only the checks the changes since REF can
-affect (tools/ci/affected.py) and names each one it leaves out. The checks that draw need a display (xvfb-run -a when
-headless).
+affect (tools/ci/affected.py) and names each one it leaves out. The checks that draw need a display
+(xvfb-run -a -s -noreset when headless: README.md, Display).
 """
 
 import argparse

@@ -122,7 +122,7 @@ forward.
 ## Host checks
 
 `python3 tools/ci/run_host_tests.py` builds and runs the host checks (the CTest project `tests/CMakeLists.txt`;
-the pinned sources in `build/host-ci/sources`; under `xvfb-run -a` without a display). `/.github/workflows/ci.yml` runs it with the
+the pinned sources in `build/host-ci/sources`; under `xvfb-run -a -s -noreset` without a display). `/.github/workflows/ci.yml` runs it with the
 host build on pushes and pull requests to `main` that change `engine/`.
 
 ## The application contract

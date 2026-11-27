@@ -1,7 +1,7 @@
 # The engine's host checks: one CMake project, run with CTest (README.md here).
 #
 #   cmake -S tests -B build/host-ci -G Ninja && cmake --build build/host-ci
-#   ctest --test-dir build/host-ci -j8 --output-on-failure        # all (headless: under xvfb-run -a)
+#   ctest --test-dir build/host-ci -j8 --output-on-failure        # all (headless: under xvfb-run -a -s -noreset)
 #   ctest --test-dir build/host-ci -L renderer                     # one label
 #   ctest --test-dir build/host-ci -R '^utf8$'                     # one check
 #

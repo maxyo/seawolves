@@ -57,7 +57,7 @@ APK собирает приложение: `bash app/tools/android/build_debug.s
 ```sh
 cmake -S src/libs/ui -B build/ui-host -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build/ui-host
-xvfb-run -a ctest --test-dir build/ui-host --output-on-failure   # без xvfb-run, если есть дисплей
+xvfb-run -a -s -noreset ctest --test-dir build/ui-host --output-on-failure   # без xvfb-run, если есть дисплей
 ```
 
 Весь движок под Linux собирается из тех же закреплённых исходников, что и для Android, плюс SDL2 и zlib системы

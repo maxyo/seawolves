@@ -260,7 +260,10 @@ bool native_handles(SDL_Window *window, void **nwh, void **ndt)
     SDL_VERSION(&info.version);
     if (!SDL_GetWindowWMInfo(window, &info))
     {
-        render::Log().error("SDL_GetWindowWMInfo failed: {}", SDL_GetError());
+        // On X, SDL's offscreen driver here means the display could not be opened when SDL started.
+        const char *driver = SDL_GetCurrentVideoDriver();
+        render::Log().error("SDL_GetWindowWMInfo failed on SDL's video driver {}: {}", driver ? driver : "(none)",
+                            SDL_GetError());
         return false;
     }
     *ndt = nullptr;

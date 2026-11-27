@@ -21,7 +21,7 @@ The host checks are one CMake project, `tests/CMakeLists.txt`, run with CTest. T
 check and a summary:
 
 ```sh
-python3 tools/ci/run_host_tests.py                       # all of them; headless: under xvfb-run -a
+python3 tools/ci/run_host_tests.py                       # all of them; headless: under xvfb-run -a -s -noreset
 python3 tools/ci/run_host_tests.py --only utf8 renderer_bgfx  # checks or groups (the part of a name before the '.')
 python3 tools/ci/run_host_tests.py --skip renderer_bgfx  # all but these; the renderer's then not even configured
 python3 tools/ci/run_host_tests.py --changed-since origin/main
@@ -35,7 +35,7 @@ The same with CTest directly, once `build/host-ci` is configured and built
 (`cmake -S tests -B build/host-ci -G Ninja && cmake --build build/host-ci`):
 
 ```sh
-xvfb-run -a ctest --test-dir build/host-ci -j8 --output-on-failure   # all
+xvfb-run -a -s -noreset ctest --test-dir build/host-ci -j8 --output-on-failure   # all
 ctest --test-dir build/host-ci -L renderer                            # one label: renderer, gpu, vulkan, asan,
                                                                       # native, script, tools, format, game, display
 ctest --test-dir build/host-ci -R '^utf8$' --output-on-failure        # one check
@@ -52,6 +52,13 @@ ctest run) and a deadlock guard (`TIMEOUT`). A check that cannot run on this mac
 it lacks (`cxx_format` without the NDK's clang-format, a Vulkan check without a Vulkan device): CTest skips it and the
 runner reports `NOT_RUN`, never a pass; the gate names it in its summary. The Python packages the scripts import are
 in `requirements.txt` (`python3 -m pip install -r tools/ci/requirements.txt`).
+
+### Display
+
+The checks that draw open an SDL window on X. Headless, the X server is Xvfb started with `-noreset`
+(`xvfb-run -a -s -noreset`): by default the X server resets whenever its last client disconnects, and a check that
+connects during the reset (the next window of the same check, or another check starting) cannot open the display.
+SDL then takes its offscreen video driver, whose window has no native handle, and the check fails.
 
 ## Before a pull request (`gate.py`)
 

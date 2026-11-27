@@ -71,7 +71,8 @@ def tail(stage, lines=15):
 
 
 def xvfb():
-    return ['xvfb-run', '-a'] if shutil.which('xvfb-run') and not os.environ.get('DISPLAY') else []
+    # -noreset: tools/ci/README.md (Display).
+    return ['xvfb-run', '-a', '-s', '-noreset'] if shutil.which('xvfb-run') and not os.environ.get('DISPLAY') else []
 
 
 def stage_ui_host():
