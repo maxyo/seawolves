@@ -307,7 +307,8 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect of the game: a balance setting of the port («Частота пиратов на карте», default 20% of the game's frequency; 100% is the unchanged game). Valid random pirate events are thinned, rather than the shared population cap or the scheduler's accumulating probability. The kept share comes from the engine's PirateEncounterPercent() (library PirateFrequencyScriptLib)",
-      "save_compatibility": "Code only; no globals or saved attributes added. Existing fleets stay until their normal expiry. New random pirate events are kept with the chosen probability (20/50/100%, read at every event, so a change counts at once), including whole pirate battles; their non-pirate opponents are omitted with the battle. Quest events bypass this rule. Shared population cap can change the realized density ratio."
+      "save_compatibility": "Code only; no globals or saved attributes added. Existing fleets stay until their normal expiry. New random pirate events are kept with the chosen probability (20/50/100%, read at every event, so a change counts at once), including whole pirate battles; their non-pirate opponents are omitted with the battle. Quest events bypass this rule. Shared population cap can change the realized density ratio.",
+      "platforms": ["android"]
     },
     {
       "id": "stock-loading-initialization-tail",
@@ -364,7 +365,8 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "option_sl.c read and wrote the root \"options\" file on the title screen (option_screen.c drops PlayerProfile.name there) and save/<profile>/options/options in a game, and LoadGame re-applied the profile file over the save; the two settings screens showed different values and a change on the title screen never reached a game. The title screen's write also dropped the new game's parameters (StartGameParam: last profile, difficulty) kept in the same file. Now every read and write uses the root file and keeps StartGameParam; the first read (no GlobalOptions in the file) lays the options of the profile named by StartGameParam.PlayerProfile (else \"Player\", the only profile the Android new-game screen uses) over the title screen's and writes the result as the one set",
-      "save_compatibility": "Code only; no new globals or saved attributes (GlobalOptions is written to the options file, not to saves). Existing saves load unchanged and take the one set of options on load, as they took their profile's before. Old profile option files stay on disk unread."
+      "save_compatibility": "Code only; no new globals or saved attributes (GlobalOptions is written to the options file, not to saves). Existing saves load unchanged and take the one set of options on load, as they took their profile's before. Old profile option files stay on disk unread.",
+      "platforms": ["android"]
     },
     {
       "id": "puancie-jail-actor",

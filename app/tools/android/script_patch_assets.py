@@ -18,7 +18,15 @@ set.json:
    "targets": [{"path": "PROGRAM/...", "base_sha256": "...", "result_sha256": "...", "patch": "<file>"}],
    "fixes": [{"id": "...", "title": "...", "targets": ["PROGRAM/..."], "license": "GPL-3.0-only",
               "source": "<upstream repository>", "bug": "<issue or report URL>",
-              "save_compatibility": "<what an existing save sees>"}]}
+              "save_compatibility": "<what an existing save sees>",
+              "platforms": ["android"]}]}
+
+`platforms` (optional, default every one of PLATFORMS) names where a fix is applied: a fix that needs another part
+of one platform (its interface, its settings) is packaged only for it. A script one fix changes for one platform and
+another for both cannot be split: packaging refuses it.
+
+The layer for a platform (the APK's assets/script-patches, the files a desktop engine build installs beside it):
+  python3 tools/android/script_patch_assets.py layer --platform desktop --source script-patches --out <dir>
 
 Authoring:
   python3 tools/android/script_patch_assets.py diff --base <vanilla file> --edited <fixed file> \\
@@ -32,11 +40,13 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import sys
 
 # Licences under which modified game scripts may be shipped in the APK, and the
 # notice file (already in assets/licenses) that carries their text.
 REDISTRIBUTABLE = {'GPL-3.0-only': 'storm-GPLv3.txt', 'GPL-3.0-or-later': 'storm-GPLv3.txt'}
+PLATFORMS = ('android', 'desktop')
 SHA256 = re.compile(r'^[0-9a-f]{64}$')
 ID = re.compile(r'^[a-z0-9._-]{1,64}$')
 
@@ -102,6 +112,9 @@ def load_set(directory: Path):
                              f'shipping modified scripts (allowed: {", ".join(sorted(REDISTRIBUTABLE))})')
         if not fix.get('targets'):
             raise ValueError(f'{where}: fix {fid} has no targets')
+        platforms = fix.get('platforms', list(PLATFORMS))
+        if not platforms or not set(platforms) <= set(PLATFORMS) or len(set(platforms)) != len(platforms):
+            raise ValueError(f'{where}: fix {fid} platforms {platforms!r} must name some of {", ".join(PLATFORMS)}')
         for path in fix['targets']:
             if path.lower() not in targets:
                 raise ValueError(f'{where}: fix {fid} names unknown target {path}')
@@ -110,6 +123,19 @@ def load_set(directory: Path):
     if unused:
         raise ValueError(f'{where}: targets belonging to no fix: {", ".join(sorted(unused))}')
     return data, patches
+
+
+def for_platform(data, patches, platform):
+    """The set as one platform applies it: its fixes and their targets only."""
+    fixes = [fix for fix in data['fixes'] if platform in fix.get('platforms', PLATFORMS)]
+    kept = {path.lower() for fix in fixes for path in fix['targets']}
+    for fix in data['fixes']:
+        shared = kept & {path.lower() for path in fix['targets']}
+        if fix not in fixes and shared:
+            raise ValueError(f'{data["id"]}/set.json: fix {fix["id"]} is not applied on {platform} but changes '
+                             f'{", ".join(sorted(shared))} with a fix that is')
+    targets = [target for target in data['targets'] if target['path'].lower() in kept]
+    return {**data, 'fixes': fixes, 'targets': targets}, {t['patch']: patches[t['patch']] for t in targets}
 
 
 def index(data):
@@ -122,14 +148,16 @@ def index(data):
     return ('\n'.join(lines) + '\n').encode()
 
 
-def collect(root: Path):
-    """Layer files (path -> bytes) for assets/script-patches, plus the About notice text."""
+def collect(root: Path, platform):
+    """Layer files (path -> bytes) of one platform, plus the About notice text."""
+    if platform not in PLATFORMS:
+        raise ValueError(f'unknown platform {platform!r} (one of {", ".join(PLATFORMS)})')
     files, provenance = {}, []
     sets = root / 'sets'
     for directory in sorted(sets.iterdir()) if sets.is_dir() else []:
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError(f'Unexpected entry in script-patches/sets: {directory.name}')
-        data, patches = load_set(directory)
+        data, patches = for_platform(*load_set(directory), platform)
         files[f'sets/{data["id"]}/index.txt'] = index(data)
         for name, patch in patches.items():
             files[f'sets/{data["id"]}/{name}'] = patch
@@ -190,7 +218,18 @@ def main():
     diff.add_argument('--edited', type=Path, required=True)
     diff.add_argument('--target', required=True, help='game-relative path, e.g. PROGRAM/dialog.c')
     diff.add_argument('--out', type=Path, required=True)
+    layer = sub.add_parser('layer', help="write one platform's layer into a new directory")
+    layer.add_argument('--platform', choices=PLATFORMS, required=True)
+    layer.add_argument('--source', type=Path, required=True, help='the script-patches folder (sets/<set>/set.json)')
+    layer.add_argument('--out', type=Path, required=True, help='the layer directory, replaced')
     arguments = parser.parse_args()
+    if arguments.command == 'layer':
+        files, notice = collect(arguments.source, arguments.platform)
+        shutil.rmtree(arguments.out, ignore_errors=True)
+        for name, data in {**files, 'NOTICE.txt': notice}.items():
+            (arguments.out / name).parent.mkdir(parents=True, exist_ok=True)
+            (arguments.out / name).write_bytes(data)
+        return 0
     base, edited = arguments.base.read_bytes(), arguments.edited.read_bytes()
     arguments.out.write_bytes(unified_diff(base, edited, _relative(arguments.target, '--target')))
     print(json.dumps({'path': arguments.target, 'base_sha256': sha256(base), 'result_sha256': sha256(edited),

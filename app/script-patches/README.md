@@ -10,6 +10,11 @@ the layer, the checks and what the player sees when a fix cannot be applied).
 Shipped set: `sets/teho-1.7.3-x64` (Корсары: Каждому своё, ver. 1.7.3 (26.11.21) x64). Each fix's title,
 licence, source, bug and save compatibility are in its `set.json`.
 
+The same sets serve the APK and the desktop engine (its build installs the desktop layer beside it,
+`engine/README.md`, "Where files live"). A fix that needs a part of one platform, such as a setting or a screen of
+the Android app, names it in `platforms`; the other platforms do not get it, and the game there runs that script
+unchanged.
+
 A game copy no set identifies runs unpatched. The launcher says so on the installed game and on each copy offered for
 choice («Это не «ver. 1.7.3 (26.11.21) x64»: …», the version as the sets' `version` spells it, the game's own text),
 and the diagnostics report («Поделиться отчётом», Share a report) names the set or "no set matched". Both identify the

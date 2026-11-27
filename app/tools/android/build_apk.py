@@ -390,7 +390,7 @@ with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as z:
         if not loads or any(align < 16384 for align in loads):
             raise RuntimeError(f'Native library needs 16 KiB LOAD alignment: {file}')
         add_file(z, file, 'lib/' + a.abi + '/' + source.name)
-    script_patches, script_patch_notice = collect_script_patches(ROOT / 'script-patches')
+    script_patches, script_patch_notice = collect_script_patches(ROOT / 'script-patches', 'android')
     add(z, 'assets/licenses/script-patches.txt', script_patch_notice)
     for layer, files in [('mobile-ui', collect_mobile_ui(ROOT / 'mobile-ui')),
                          ('engine-shaders', collect_shaders(a.engine_root)),

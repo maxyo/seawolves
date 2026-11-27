@@ -169,7 +169,7 @@ int main() {
 
 with tempfile.TemporaryDirectory(prefix='pirate-spawn-', dir=os.environ.get('TMPDIR')) as tmp:
     work = Path(tmp)
-    files, _ = assets.collect(app / 'script-patches')
+    files, _ = assets.collect(app / 'script-patches', 'android')
     for name, value in files.items():
         path = work / 'layer' / name
         path.parent.mkdir(parents=True, exist_ok=True)
