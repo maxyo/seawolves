@@ -9,3 +9,12 @@
  			return;
  		}
  	}
+@@ -1012,7 +1012,7 @@
+ void ShipChange()
+ {
+ 	bool bOk;
+-	if (!CheckAttribute(pchar,"SystemInfo.ShowShip") && xi_refCharacter.id != pchar.id && sti(pchar.ship.type) != SHIP_NOTUSED)
++	if (IsShipChangeOffered(xi_refCharacter))
+ 	{
+ 		SetFormatedText("REMOVE_WINDOW_CAPTION", XI_ConvertString("companionship"));
+ 		SetFormatedText("REMOVE_WINDOW_TEXT", "Перейти в режим обмена между кораблями?");

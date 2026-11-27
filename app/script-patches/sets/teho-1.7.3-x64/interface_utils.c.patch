@@ -1,0 +1,16 @@
+--- a/PROGRAM/interface/interface_utils.c
++++ b/PROGRAM/interface/interface_utils.c
+@@ -794,4 +794,11 @@
+ 		
+ 		SendMessage(&GameInterface, "lslll", MSG_INTERFACE_MSG_TO_NODE, _node, 8, -1, color);	
+ 	}
+-}
+\ No newline at end of file
++}
++
++// Whether the ship screen offers the exchange with chr's ship (ship.c ShipChange): a companion's ship, not one of
++// the ships at anchor the journal shows, while the hero has a ship of his own.
++bool IsShipChangeOffered(ref chr)
++{
++	return !CheckAttribute(pchar, "SystemInfo.ShowShip") && chr.id != pchar.id && sti(pchar.ship.type) != SHIP_NOTUSED;
++}

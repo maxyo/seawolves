@@ -60,7 +60,7 @@
     {
       "path": "PROGRAM/interface/ship.c",
       "base_sha256": "5b1dc32cb8b01942aa0d7837a8d3bee27ddfaf62172f3a75f01d082d8cf3b480",
-      "result_sha256": "8b9db689cd7cb1f927dd4e51f1f3a19a79fa9c6927473a52271ff60a7ad98aad",
+      "result_sha256": "cb44dee87230f55bb3e7995ba0d050ea383065d69c3238bf0b2348f403620232",
       "patch": "ship.c.patch"
     },
     {
@@ -212,6 +212,12 @@
       "base_sha256": "876fd384c6a99d8864b6febec602d46e12fe16fd552c51d784372317b93078a0",
       "result_sha256": "a228e4d1b7bbaa8aafd1eeecc07c981f9dba701eb8a111289f780995041c71a3",
       "patch": "ispyglass.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/interface_utils.c",
+      "base_sha256": "5efc55bcff8e780d0c16c474a97653060c405f174216ee805dba5427c74e086a",
+      "result_sha256": "5832c2ce1999e209a194d412223bff9c2bc0dd3a8d6df650d5d22caccdf0765c",
+      "patch": "interface_utils.c.patch"
     }
   ],
   "fixes": [
@@ -331,7 +337,9 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect of the game: a balance setting of the port («Частота пиратов на карте», default 20% of the game's frequency; 100% is the unchanged game). Valid random pirate events are thinned, rather than the shared population cap or the scheduler's accumulating probability. The kept share comes from the engine's PirateEncounterPercent() (library PirateFrequencyScriptLib)",
       "save_compatibility": "Code only; no globals or saved attributes added. Existing fleets stay until their normal expiry. New random pirate events are kept with the chosen probability (20/50/100%, read at every event, so a change counts at once), including whole pirate battles; their non-pirate opponents are omitted with the battle. Quest events bypass this rule. Shared population cap can change the realized density ratio.",
-      "platforms": ["android"]
+      "platforms": [
+        "android"
+      ]
     },
     {
       "id": "stock-loading-initialization-tail",
@@ -389,7 +397,9 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "option_sl.c read and wrote the root \"options\" file on the title screen (option_screen.c drops PlayerProfile.name there) and save/<profile>/options/options in a game, and LoadGame re-applied the profile file over the save; the two settings screens showed different values and a change on the title screen never reached a game. The title screen's write also dropped the new game's parameters (StartGameParam: last profile, difficulty) kept in the same file. Now every read and write uses the root file and keeps StartGameParam; the first read (no GlobalOptions in the file) lays the options of the profile named by StartGameParam.PlayerProfile (else \"Player\", the only profile the Android new-game screen uses) over the title screen's and writes the result as the one set",
       "save_compatibility": "Code only; no new globals or saved attributes (GlobalOptions is written to the options file, not to saves). Existing saves load unchanged and take the one set of options on load, as they took their profile's before. Old profile option files stay on disk unread.",
-      "platforms": ["android"]
+      "platforms": [
+        "android"
+      ]
     },
     {
       "id": "puancie-jail-actor",
@@ -505,7 +515,9 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect of the game: the desktop engine draws effects the original engine did not have, and the game's options screen has no controls for them. The check box «Графика движка» beside «Всегда бежать» turns the controls list into a list of the engine's graphics options as the engine lists them (GraphicsOptionsScriptLib); double click or Enter on a row takes its next value, which draws at once and is kept by the engine for this game; Cancel restores the values the screen opened with",
       "save_compatibility": "Code only; no globals or saved attributes are added to saves (the options are kept in the engine's settings, not in saves). Existing saves load unchanged.",
-      "platforms": ["desktop"]
+      "platforms": [
+        "desktop"
+      ]
     },
     {
       "id": "spyglass-captain-parts",
@@ -517,7 +529,21 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: SetSpyGlassData sends the cannon type, the musket volley mark and the captain's name as one line of spaced-out text (MSG_ISG_UPDATE), so an interface that shows them apart had to split the text, and a volley mark without a cannon type was taken for the cannon type. It now also sets objISpyGlass.captainline.cannontype and .name before the line is sent",
       "save_compatibility": "Code only; no new globals. objISpyGlass.captainline is rewritten for every target shown and nothing reads it on load. Existing saves load unchanged.",
-      "platforms": ["android"]
+      "platforms": [
+        "android"
+      ]
+    },
+    {
+      "id": "ship-exchange-offered",
+      "title": "The ship screen tells whether it offers the exchange with a companion's ship",
+      "targets": [
+        "PROGRAM/interface/interface_utils.c",
+        "PROGRAM/interface/ship.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: ShipChange decided inline whether the ship screen offers the exchange with a companion's ship (not a ship at anchor shown from the journal, not the hero's own, the hero has a ship), and an interface that shows the button had to copy the condition. The condition is now the function IsShipChangeOffered, which ShipChange calls; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]
 }
