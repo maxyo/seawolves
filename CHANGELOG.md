@@ -86,6 +86,7 @@
 - Найм команды, ремонт своими силами и символика на парусах теперь построены скриптами интерфейса. В ремонте
   каждое перемещение ползунка сразу отдаётся стрелкам самой игры, и строка показывает, где игра остановилась; слово
   морали в найме пишется так, как его пишет игра.
+- Сундук: вес одного предмета — вес самого предмета в игре, а не общий вес из таблицы, делённый на число предметов.
 
 **English**
 
@@ -176,6 +177,7 @@
 - Crew hire, self repair and the sail emblem are now built by the interface scripts. In the repair every move of a
   slider goes to the game's own arrows at once, and the row shows where the game stopped; the morale word of the hire
   is written as the game writes it.
+- Chest: the weight of one item is the game's weight of that item, not the table's total divided by the count.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

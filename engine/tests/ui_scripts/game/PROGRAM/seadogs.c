@@ -30,6 +30,9 @@ int GetGoodWeightByType(int good, int quantity)
 	return (quantity + units - 1) / units * sti(TestGoods.(slot).weight);
 }
 
+// The game's items, by the index of a chest's rows: their weight of one piece; item 4 (gold) weighs nothing.
+object Items[8];
+
 // What the nations adapter calls of the game: five nations, their relations TestNations.r<a>_<b> (b's to a's), the
 // hero's score with each TestNations.score<n> and its word: one word for 0..20, else the number.
 #define MAX_NATIONS 5
@@ -182,6 +185,12 @@ void Main()
 		TestGoods.(row).units = 10;
 		TestGoods.(row).weight = 1;
 	}
+	Items[0].Weight = 0.1;
+	Items[1].Weight = 3;
+	Items[2].Weight = 2;
+	Items[3].Weight = 0.5;
+	for (int i = 4; i < 8; i++) Items[i].Weight = 0.0;
+	Items[5].Weight = 0.45;
 	for (int a = 0; a < 5; a++)
 	{
 		string score = "score" + a;

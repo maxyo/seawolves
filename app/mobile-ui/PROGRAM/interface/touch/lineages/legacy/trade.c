@@ -15,7 +15,7 @@ void TouchLegTrade_Step(string step, string key, string name, int side)
 	CopyAttributes(&TouchLegTrade, &at);
 }
 
-// The good of a table row: the game keeps it beside the row it shows (GameInterface.TABLE_LIST.tr<n>.index).
+// The good or item of a table row: the game keeps it beside the row it shows (GameInterface.TABLE_LIST.tr<n>.index).
 int TouchLegTrade_Good(aref row)
 {
 	string tr = "tr" + (sti(row.index) + 1);
@@ -78,23 +78,18 @@ string TouchLegTrade_WithoutPackLine(string text, int units)
 	return TouchLib_Cut(out, 0, last + 1);
 }
 
-// The weight of what a row's figures are for: a pack of goods as the game counts it, or one piece from a chest's
-// total weight of the side that has more pieces (the finer figure; "-" is gold, which weighs nothing: itemsbox.c
-// writes it in both weight columns).
+// The weight of what a row's figures are for: a pack of goods as the game counts it, or one of the game's items (the
+// row's index is its Items[] entry; "" for one that weighs nothing, such as gold, whose weight the game writes as "-").
 string TouchLegTrade_PieceWeight(aref data, aref row, aref at)
 {
 	if (sti(data.packWeight) >= 0) return UiOneLine(TouchLegLib_Cell(row, sti(data.packWeight)));
 	if (sti(data.goods)) return "" + GetGoodWeightByType(TouchLegTrade_Good(row), sti(at.pack));
-	if (sti(data.ownTotal) < 0) return "";
-	int count = sti(at.own);
-	string cell = TouchLegLib_Cell(row, sti(data.ownTotal));
-	if (sti(at.other) > count)
-	{
-		count = sti(at.other);
-		cell = TouchLegLib_Cell(row, sti(data.otherTotal));
-	}
-	if (cell == "-" || count <= 0) return "";
-	return Sprintf("%.2g", UiNumber(cell, "the total weight column") / count);
+	if (!sti(data.items)) return "";
+	int item = TouchLegTrade_Good(row);
+	if (!CheckAttribute(&Items[item], "Weight")) UiError("trade: the game's item " + item + " has no weight");
+	float weight = stf(Items[item].Weight);
+	if (weight <= 0.0) return "";
+	return Sprintf("%.2g", weight);
 }
 
 void TouchLegTrade_Rows(aref data, aref model, aref out)

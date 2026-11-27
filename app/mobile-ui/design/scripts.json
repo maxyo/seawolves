@@ -65,7 +65,7 @@
     },
     {
       "file": "interface/touch/lineages/legacy/trade.c",
-      "requires": ["fn:GetGoodWeightByType/2", "var:GameInterface"],
+      "requires": ["fn:GetGoodWeightByType/2", "var:GameInterface", "var:Items"],
       "provides": ["adapter:trade"],
       "binds": [
         {
@@ -80,8 +80,7 @@
             "sell": -1,
             "pack": -1,
             "packWeight": -1,
-            "ownTotal": 1,
-            "otherTotal": 3,
+            "items": true,
             "goods": false,
             "pieces": false,
             "types": false,
@@ -97,8 +96,8 @@
             ["STORAGE_INFO", "text"], "@qty-window"
           ],
           "data": {
-            "own": 0, "other": 3, "name": 2, "buy": -1, "sell": -1, "pack": 4, "packWeight": -1, "ownTotal": -1,
-            "otherTotal": -1, "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL"
+            "own": 0, "other": 3, "name": 2, "buy": -1, "sell": -1, "pack": 4, "packWeight": -1, "items": false,
+            "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL"
           }
         },
         {
@@ -111,8 +110,8 @@
             ["MAIN_CHARACTER_PICTURE", "image"], ["OTHER_PICTURE", "image"], "@qty-window"
           ],
           "data": {
-            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "ownTotal": -1,
-            "otherTotal": -1, "goods": true, "pieces": false, "types": true, "owners": "SHIPS_SCROLL"
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "items": false,
+            "goods": true, "pieces": false, "types": true, "owners": "SHIPS_SCROLL"
           }
         },
         {
@@ -122,8 +121,8 @@
             "@goods-head", ["SHIPS_SCROLL", "choice"], ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"], "@qty-window"
           ],
           "data": {
-            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "ownTotal": -1,
-            "otherTotal": -1, "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL"
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "items": false,
+            "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL"
           }
         },
         {
@@ -133,8 +132,8 @@
             "@goods-head", ["SHIPS_SCROLL", "choice"], ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"], "@qty-window"
           ],
           "data": {
-            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "ownTotal": -1,
-            "otherTotal": -1, "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL",
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "items": false,
+            "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL",
             "details": {"d1": 7, "d2": 8, "d3": 9}
           }
         },
@@ -146,8 +145,8 @@
             "@qty-window"
           ],
           "data": {
-            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "ownTotal": -1,
-            "otherTotal": -1, "goods": false, "pieces": true, "types": false, "owners": "CHARACTERS_SCROLL"
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "items": false,
+            "goods": false, "pieces": true, "types": false, "owners": "CHARACTERS_SCROLL"
           }
         }
       ]

@@ -1228,13 +1228,23 @@ struct CommerceRun
                    "itemsbox: the weight of one piece by its icon: " + facts.dump());
         }
         {
-            // Gold has no weight: itemsbox.c writes "-" in both weight columns of its row, and the game shows it so.
+            // Gold has no weight (the fixture game's item 4 weighs nothing): itemsbox.c writes "-" in both weight
+            // columns of its row, and the game shows it so.
             InterfaceModel gold = Load(models, "itemsbox-deal.json");
+            Widget coins;
             for (Widget &widget : gold.widgets)
                 if (widget.node == "TABLE_LIST" && widget.value == "1")
-                    for (Cell &cell : widget.cells)
-                        if (cell.column == 1 || cell.column == 3)
-                            cell.text = "-";
+                {
+                    widget.value = "0";
+                    coins = widget;
+                }
+            coins.value = "1";
+            coins.index = 4;
+            coins.row_id = "row:4";
+            for (Cell &cell : coins.cells)
+                if (cell.column == 1 || cell.column == 3)
+                    cell.text = "-";
+            gold.widgets.push_back(coins);
             FakeSurface gold_surface;
             Router box(gold_surface);
             Scripted(box);
@@ -1246,6 +1256,39 @@ struct CommerceRun
             Expect(facts.empty() && gold_surface.errors.empty(),
                    "itemsbox: a weightless row has no weight and is no error: " + facts.dump() + " " +
                        Json(gold_surface.errors).dump());
+        }
+        {
+            // One piece weighs what the game's item says (the fixture's item 5: 0.45), not the shown total of one
+            // decimal divided by the count (1.4 / 3).
+            InterfaceModel fine = Load(models, "itemsbox-deal.json");
+            Widget potions;
+            for (Widget &widget : fine.widgets)
+                if (widget.node == "TABLE_LIST" && widget.value == "1")
+                {
+                    widget.value = "0";
+                    potions = widget;
+                }
+            potions.value = "1";
+            potions.index = 5;
+            potions.row_id = "row:5";
+            for (Cell &cell : potions.cells)
+            {
+                if (cell.column == 0)
+                    cell.text = "3";
+                if (cell.column == 1)
+                    cell.text = "1.4";
+            }
+            fine.widgets.push_back(potions);
+            FakeSurface fine_surface;
+            Router box(fine_surface);
+            Scripted(box);
+            box.SetInterface(fine);
+            Json facts = Json::array();
+            for (const Json &row : fine_surface.props["list"]["rows"])
+                if (row["selected"] == true)
+                    facts = row["facts"];
+            Expect(facts.size() == 1 && facts[0]["v"] == "0,45",
+                   "itemsbox: a piece's weight is the game's item's: " + facts.dump());
         }
         // A chest, a body, an officer's pockets: picking the amount must not move the items at once (regression).
         {
