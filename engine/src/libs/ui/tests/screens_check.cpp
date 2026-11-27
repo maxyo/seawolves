@@ -1324,42 +1324,27 @@ struct CommerceRun
 
     void OtherTrades()
     {
-        // The other money trades use the same local arithmetic with their own script's formula.
-        {
-            // itemstrade.c: pieces, makeint(price * qty + 0.5), fWeight * qty with one decimal; a doubloon merchant's
-            // balance is named. «Лечебное зелье»: 3 ours, 12 theirs, 150 to buy, 75 to sell, 0.5 a piece; 34 / 120
-            // carried.
-            InterfaceModel doubloons = Load(models, "itemstrade-deal.json");
-            for (Widget &widget : doubloons.widgets)
-                if (widget.node == "OUR_GOLD")
-                    widget.context["currency"] = "doubloons";
-            router.SetInterface(doubloons);
-            ExpectEqual(surface.props["subject"]["label"], "Шарль де Мор",
-                        "items trade: the character selector is the subject");
-            Expect(surface.props["deal"]["value"] == 3 && surface.props["deal"]["max"] == 13 &&
-                       surface.props["primary"].is_null(),
-                   "items trade opens at the pivot too");
-            surface.commands.clear();
-            router.OnEvent({"goods", "change", "8"});
-            Expect(
-                surface.commands.empty() && surface.props["primary"]["label"] == "<trade.buy> 5" &&
-                    surface.props["primary"]["sub"] == "750 \xC2\xB7 2,5" &&
-                    surface.props["stats"][1]["label"] == "<trade.doubloons>" &&
-                    !surface.props["stats"][1].contains("icon") && surface.props["stats"][1]["preview"] == "750",
-                "five pieces: 750 and 2.5 of weight as itemstrade.c says («Деньги 750, вес 2.5»), the named balance 1 "
-                "500 → 750: " +
-                    surface.props["primary"].dump() + surface.props["stats"].dump());
-            router.OnEvent({"goods", "change", "15"});
-            Expect(surface.props["deal"]["value"] == 13 && surface.props["primary"]["label"] == "<trade.buy> 10",
-                   "the purse stops it at ten pieces (ten cost 1 500)");
-            router.OnEvent({"goods", "change", "1"});
-            router.OnEvent({"primary", "click", ""});
-            router.Tick();
-            Expect(surface.commands.size() == 3 &&
-                       surface.commands[1] == "widget:itemstrade\tQTY_EDIT\t-1\tguard@7:row:0|-2" &&
-                       surface.commands[2].find("QTY_OK_BUTTON") != std::string::npos,
-                   "«Продать 2»: the signed amount and the game's OK: " + Json(surface.commands).dump());
-        }
+        // itemstrade.c: single pieces; a doubloon merchant's balance is named. «Лечебное зелье»: 3 ours, 12 theirs; the
+        // window holds 5 bought («Деньги 750, вес 2.5»).
+        InterfaceModel doubloons = Load(models, "itemstrade-deal.json");
+        for (Widget &widget : doubloons.widgets)
+            if (widget.node == "OUR_GOLD")
+                widget.context["currency"] = "doubloons";
+        router.SetInterface(doubloons);
+        ExpectEqual(surface.props["subject"]["label"], "Шарль де Мор",
+                    "items trade: the character selector is the subject");
+        Expect(surface.props["deal"]["value"] == 8 && surface.props["deal"]["max"] == 15 &&
+                   surface.props["stats"][1]["label"] == "<trade.doubloons>" &&
+                   !surface.props["stats"][1].contains("icon") && !surface.props["stats"][1].contains("preview"),
+               "items trade: the window's amount, both stacks reachable, the named balance as the game writes it: " +
+                   surface.props.dump());
+        OfferFlow("items trade", router, surface, doubloons, 3, 1, 1, "<trade.sell> 2",
+                  "widget:itemstrade\tQTY_EDIT\t-1\tguard@7:row:0|",
+                  "widget:itemstrade\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
+        GameAnswers(router, surface, doubloons, 8, "Деньги 750, вес 2.5");
+        Expect(surface.props["primary"]["label"] == "<trade.buy> 5" && surface.props["primary"]["sub"] == "750 · 2,5",
+               "five pieces: the game's money and weight, a piece's weight without a unit: " +
+                   surface.props["primary"].dump());
     }
 
     void Cannons()

@@ -649,7 +649,7 @@ TEST_CASE("the trade screens' script gives the pack screen the props and actions
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("trade");
-    for (const std::string capability : {"trade_store", "trade_contraband", "trade_cannons"})
+    for (const std::string capability : {"trade_store", "trade_contraband", "trade_cannons", "trade_items"})
     {
         INFO(capability);
         const auto &screen = Screen(vm, capability);

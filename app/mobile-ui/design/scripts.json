@@ -114,6 +114,18 @@
             "otherTotal": -1, "goods": true, "pieces": false, "types": false, "owners": "SHIPS_SCROLL",
             "details": {"d1": 7, "d2": 8, "d3": 9}
           }
+        },
+        {
+          "capability": "trade_items",
+          "interface": "itemstrade",
+          "nodes": [
+            "@goods-head", ["CHARACTERS_SCROLL", "choice"], ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"],
+            "@qty-window"
+          ],
+          "data": {
+            "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": -1, "packWeight": 6, "ownTotal": -1,
+            "otherTotal": -1, "goods": false, "pieces": true, "types": false, "owners": "CHARACTERS_SCROLL"
+          }
         }
       ]
     },
@@ -194,6 +206,14 @@
             "title": "trade.cannons", "small": true, "quick": false, "carryIcon": "capacity", "baseIcon": "store",
             "ownCaption": "trade.in_hold", "ownIcon": "capacity", "otherCaption": "trade.in_store",
             "otherIcon": "store"
+          }
+        },
+        {
+          "capability": "trade_items",
+          "component": "s-trade",
+          "look": {
+            "title": "trade.items", "small": true, "quick": false, "carryIcon": "weight", "baseIcon": "store",
+            "ownCaption": "", "ownIcon": "", "otherCaption": "", "otherIcon": ""
           }
         }
       ]

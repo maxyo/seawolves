@@ -77,6 +77,9 @@
 - Контрабандисты: экран торговли с ними — скриптовый. Сколько можно купить или продать, решает окно игры (раньше
   экран сам ограничивал только покупку деньгами и трюмом); у товаров больше нет пометок «Импорт» и «Экспорт» и
   фильтра «Выгодно»: цвет названия у контрабандистов значит не тип торговли.
+- Орудия и торговля предметами: экраны — скриптовые. Сколько можно купить или продать, решает окно игры: продажа
+  тоже упирается в то, что игра принимает (место у торговца, его деньги, квестовые предметы не продаются), а не
+  только покупка в наши деньги и трюм.
 
 **English**
 
@@ -159,6 +162,9 @@
 - Smugglers: their trade screen is a script screen. How much can be bought or sold is the game's window's to decide
   (the screen limited only a purchase, by the purse and the hold); goods no longer carry «Import» and «Export» tags
   or a «Profitable» filter: with smugglers the colour of a name is not a trade type.
+- Cannons and items trade: script screens. How much can be bought or sold is the game's window's to decide: a sale
+  too stops where the game stops it (the merchant's room and money; quest items are not sold), not only a purchase
+  by our purse and hold.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -1,4 +1,4 @@
-// Commerce: items trade and colony loot — one
+// Commerce: colony loot — one
 // buy / sell / transfer layout (pack screen <s-trade>). Goods are one C-TradeList that never
 // moves: filter chips and sortable columns in its head, 44 dp rows; the row whose quantity
 // window the game has open shows in the dock beside the list (object, description, C-Quantity
@@ -68,11 +68,6 @@ constexpr Layout Captioned(Layout layout, const char *own, const char *own_icon,
     layout.other_icon = other_icon;
     return layout;
 }
-constexpr Layout Carrying(Layout layout, const char *icon)
-{
-    layout.carry_icon = icon;
-    return layout;
-}
 
 // The arithmetic of a money deal exactly as the game's scripts do it (ChangeQTY_EDIT of store.c, cannons.c,
 // contraband.c for goods in packs; itemstrade.c for pieces), so that what the player sees while choosing is
@@ -122,10 +117,6 @@ struct DealMath
 };
 
 // clang-format off
-constexpr Layout kItemsTrade = Carrying(
-    {StringKey("trade.items"), 0, 5, 3, 2, 4, -1, "CHARACTERS_SCROLL", true, {-1, -1, -1}, false,
-     6, true},
-    "weight");
 // Looting a captured colony (ColonyCapture.c): the hold, the town's stores, a free transfer.
 constexpr Layout kColonyCapture = Captioned(
     {StringKey("trade.loot"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
@@ -1315,10 +1306,6 @@ class CommerceScreen final : public Screen
 
 } // namespace
 
-std::unique_ptr<Screen> CreateItemsTradeScreen()
-{
-    return std::make_unique<CommerceScreen>(kItemsTrade);
-}
 // Used inside the loot / exchange screen (extra_transfer.cpp), which adds its windows.
 std::unique_ptr<Screen> CreateTransferGoods()
 {
