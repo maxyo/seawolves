@@ -299,6 +299,12 @@ void TestItems()
 	GameInterface.CHARACTERS_SCROLL.pic1.str1 = "#Captain";
 	GameInterface.CHARACTERS_SCROLL.pic2.character = 9;
 	GameInterface.CHARACTERS_SCROLL.pic2.str1 = "#Navigator";
+	// Two guns the game wears in two places: the pistol, and the musket (TestMusket: what the game tells of it).
+	TestItem(38, "pistol1", "gun", "3", "A pistol.");
+	TestItem(39, "mushket1", "gun", "15", "A musket.");
+	Items[39].TestMusket = true;
+	GameInterface.TABLE_ITEMS.tr6.index = 38;
+	GameInterface.TABLE_ITEMS.tr7.index = 39;
 	// The window's rows: tr1 the rapier, tr2 the dagger, tr3 the potion, tr4 and tr5 the amulets.
 	GameInterface.TABLE_ITEMS.tr1.index = 7;
 	GameInterface.TABLE_ITEMS.tr2.index = 9;
@@ -329,6 +335,13 @@ int GetCharacterShipType(ref chr)
 #define SHIP_NOTUSED 1000
 ref xi_refCharacter;
 int iShipQty;
+
+// Whether a gun is a musket (a script fix's function).
+bool IsMushketItem(string id)
+{
+	int index = GetItemIndex(id);
+	return index >= 0 && CheckAttribute(&Items[index], "TestMusket");
+}
 
 // Whether the game would refuse a flag change now (a script fix's function); a case sets TestFlagRefused, and
 // TestFlagAsked counts the questions (the game's check writes, so a screen asks only when the game has just checked).

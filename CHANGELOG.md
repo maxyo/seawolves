@@ -131,6 +131,8 @@
   которые игра берёт у него для героя.
 - Экран наций: когда игра отказывает в смене флага (смена ещё идёт, на суше, компаньон под ударом, эскадра не может
   выйти на карту), под кнопкой «Сменить флаг» пишется почему, а не только звучит стук.
+- Экран предметов: под местом пистолета перечисляются только пистолеты, под местом мушкета — только мушкеты, как
+  их различает сама игра.
 
 **English**
 
@@ -268,6 +270,8 @@
   both of which the game takes from him for the hero.
 - The nations screen: when the game refuses to change the flag (a change still under way, on land, a companion under
   attack, the squadron unable to go to the map), the «Change flag» button says why, not only with a knock.
+- The items screen: the pistol's place lists only pistols and the musket's place only muskets, as the game tells
+  them apart.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

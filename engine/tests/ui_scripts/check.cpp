@@ -1021,6 +1021,11 @@ TEST_CASE("the items screen's script gives the pack screen the props and actions
             port.Event(screen, event[0], event[1], event[2], calls);
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+        if (recorded.contains("after")) // the view of a build once the events have run
+        {
+            port.Build(screen, calls.Single(), calls);
+            CHECK(calls.props == recorded.at("after"));
+        }
     }
 }
 

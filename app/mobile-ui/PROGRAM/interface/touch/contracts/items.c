@@ -9,9 +9,11 @@
 //   people.p<k>.{label, meta (the slots' captions), image (picture, "" none)}; shown (k whose things the game shows);
 //     waiting (the game is still to show the person picked, k picked: this build is a step)
 //   tabs.t<n>.{label, selected, can} (none: the game has no categories)
-//   slots.s<k>.{label, icon (ours of the slot), group (its items' group), image (absent: empty), row (k of the row of
-//     what it holds, -1 none in the list), days ("" none: the days of force left)}
-//   rows.r<k>.{label, image (picture), count, weight (as the game writes it), selected, group ("" none), worn, quest}
+//   slots.s<k>.{label, icon (ours of the slot), group (its items' group), place (of a group worn in two places, which:
+//     "pistol", "musket"; "" the group's only), image (absent: empty), row (k of the row of what it holds, -1 none in
+//     the list), days ("" none: the days of force left)}
+//   rows.r<k>.{label, image (picture), count, weight (as the game writes it), selected, group ("" none), place (where
+//     the game wears it of its group's places, "" any), worn, quest}
 //   detail (absent: none selected).{row, title, image, slot (the caption of its slot, "" none), worn, kind, weight,
 //     text, term ("" none: the days of force), left ("" none: of them left), figures.f<n>.{key (string key), value
 //     (number), digits, better (1 more is better, -1 less, 0 neither), against (absent: nothing worn to set it

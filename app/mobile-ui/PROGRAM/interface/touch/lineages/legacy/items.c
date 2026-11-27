@@ -3,7 +3,8 @@
 // shows Items[] of tr<n>.index), what each slot holds the game's equipment functions and its pictures ITEM_<n> /
 // SLOT_ITEM_<n>; the button EQUIP_BUTTON is the game's: its caption and whether it may be pressed are the game's
 // answer to the row chosen (items.c SetItemInfo).
-// data: slots.s<k>.{node, group, label, icon} (the window's pictures of what is worn, in our order), artefact.{group,
+// data: slots.s<k>.{node, group, label, icon, place} (the window's pictures of what is worn, in our order; place: of
+// the two of a group the game wears in two places, places.<group>, which one), artefact.{group,
 // label, icon, nodes.<the game's slot>} (the artefact slots: a person has those of chr.equip_item),
 // figures.<group>.f<n>.{attr, key, digits, better} (the attributes of an item of that group set against the worn
 // one), kinds.<group> (the attribute naming its kind), quest.<item type> (the quest items' types), texts (the game's
@@ -85,6 +86,13 @@ void TouchLegItems_Rows(aref ui, ref chr, aref out)
 		at.weight = UiDecimal(UiOneLine(TouchLegLib_Cell(row, 3)));
 		at.selected = row.value == "1";
 		at.group = TouchLegItems_Group(index);
+		// The place of a gun: the game's musket, or a pistol; "" a game that cannot say, or not a gun.
+		at.place = "";
+		if (CheckAttribute(data, "places." + at.group) && sti(ui.data.optional.musket))
+		{
+			at.place = "pistol";
+			if (TouchAdpMusket_Is(id)) at.place = "musket";
+		}
 		at.item = index;
 		at.worn = false;
 		if (IsEquipCharacterByItem(chr, id)) at.worn = true;
@@ -117,6 +125,8 @@ void TouchLegItems_Slot(aref ui, aref out, aref slot, string node, string held, 
 	at.label = UiText(slot.label);
 	at.icon = slot.icon;
 	at.group = slot.group;
+	at.place = "";
+	if (CheckAttribute(slot, "place")) at.place = slot.place;
 	at.row = -1;
 	at.days = "";
 	if (!CheckAttribute(model, node + ".images.i0")) return;

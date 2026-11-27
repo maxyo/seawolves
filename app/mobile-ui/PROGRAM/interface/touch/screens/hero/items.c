@@ -29,6 +29,7 @@ bool TouchItems_Fits(aref game, aref at, int k)
 	if (filter < 0) return true;
 	aref slot = TouchLib_Item(game, "slots", filter);
 	if (at.group != slot.group) return false;
+	if (slot.place != "" && at.place != "" && slot.place != at.place) return false;
 	if (!sti(at.worn)) return true;
 	return sti(slot.row) == k;
 }

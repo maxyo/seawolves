@@ -64,6 +64,7 @@
     {"file": "interface/touch/contracts/skill_post.c"},
     {"file": "interface/touch/contracts/new_game.c"},
     {"file": "interface/touch/contracts/flag_change.c"},
+    {"file": "interface/touch/contracts/musket.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -508,6 +509,11 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/musket.c",
+      "requires": ["fn:IsMushketItem/1"],
+      "provides": ["adapter:musket"]
+    },
+    {
       "file": "interface/touch/lineages/legacy/items.c",
       "requires": [
         "fn:GetCharacter/1", "fn:GetFullName/1", "fn:IsEquipCharacterByItem/2", "fn:IsEquipCharacterByArtefact/2",
@@ -515,6 +521,7 @@
         "fn:GetCharacterSlotRemainTime/2", "fn:GetItemIndex/1", "var:Items", "var:GameInterface"
       ],
       "provides": ["adapter:items"],
+      "optional": ["adapter:musket"],
       "binds": [
         {
           "capability": "items",
@@ -529,10 +536,11 @@
             ["MAIN_BACK", "image"], ["EXIT_BTN", "button"], "@hero-sections", ["MAP_*", "text|image|button"]
           ],
           "data": {
+            "places": {"gun": true},
             "slots": {
               "s0": {"node": "ITEM_1", "group": "blade", "label": "items.slot_blade", "icon": "sabre"},
-              "s1": {"node": "ITEM_2", "group": "gun", "label": "items.slot_gun", "icon": "pistol"},
-              "s2": {"node": "ITEM_5", "group": "gun", "label": "items.slot_musket", "icon": "musket"},
+              "s1": {"node": "ITEM_2", "group": "gun", "label": "items.slot_gun", "icon": "pistol", "place": "pistol"},
+              "s2": {"node": "ITEM_5", "group": "gun", "label": "items.slot_musket", "icon": "musket", "place": "musket"},
               "s3": {"node": "ITEM_3", "group": "spyglass", "label": "items.slot_spyglass", "icon": "spyglass"},
               "s4": {"node": "ITEM_4", "group": "cirass", "label": "items.slot_cirass", "icon": "shield"},
               "s5": {"node": "ITEM_6", "group": "talisman", "label": "items.slot_talisman", "icon": "c-ruby"},
