@@ -23,4 +23,5 @@ class VSTRSERVICE : public SERVICE
     virtual int32_t OpenUsersStringFile(const char *fileName) = 0;
     virtual void CloseUsersStringFile(int32_t id) = 0;
     virtual char *TranslateFromUsers(int32_t id, const char *inStr) = 0;
+    virtual void MergeCommonStrings(const char *fileName) = 0;
 };

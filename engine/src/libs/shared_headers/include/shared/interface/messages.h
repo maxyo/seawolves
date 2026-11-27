@@ -61,6 +61,8 @@
 #define MSG_HELPCHOOSER_START 45200
 
 #define MSG_INTERFACE_GET_FREE_SPACE 45300
+// "s": a file of common strings under the language's text folder merged over them (a mod's common.ini)
+#define MSG_INTERFACE_LOAD_STRINGS_INI_FILE 45401
 // "ssss": file, section, key, value; "ssse": file, section, key, out value. A strings file the game keeps state in
 // (Caribbean Legend: the news it has shown); the player's copy is in the settings folder.
 #define MSG_INTERFACE_SAVE_STRINGS_TO_FILE 45402

@@ -1573,6 +1573,12 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
     }
     break;
 
+    case MSG_INTERFACE_LOAD_STRINGS_INI_FILE: {
+        const std::string file = message.String();
+        pStringService->MergeCommonStrings(file.c_str());
+    }
+    break;
+
     case MSG_INTERFACE_SAVE_STRINGS_TO_FILE: {
         const std::string file = message.String();
         const std::string section = message.String();

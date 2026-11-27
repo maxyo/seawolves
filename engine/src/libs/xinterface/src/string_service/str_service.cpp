@@ -95,10 +95,6 @@ STRSERVICE::STRSERVICE()
     m_sIniFileName = nullptr;
     m_sLanguageDir = nullptr;
 
-    m_nStringQuantity = 0;
-    m_psStrName = nullptr;
-    m_psString = nullptr;
-
     g_StringServicePointer = this;
     m_nDialogSourceFile = -1;
 }
@@ -107,27 +103,10 @@ STRSERVICE::~STRSERVICE()
 {
     storm::texts::InstallTextTemplates(nullptr);
     CloseKeyFiles();
-    int i;
 
     CloseUsersStringFile(m_nDialogSourceFile);
     m_nDialogSourceFile = -1;
 
-    if (m_psStrName != nullptr)
-    {
-        for (i = 0; i < m_nStringQuantity; i++)
-            if (m_psStrName[i] != nullptr)
-                delete[] m_psStrName[i];
-        delete[] m_psStrName;
-        m_psStrName = nullptr;
-    }
-    if (m_psString != nullptr)
-    {
-        for (i = 0; i < m_nStringQuantity; i++)
-            if (m_psString[i] != nullptr)
-                delete[] m_psString[i];
-        delete[] m_psString;
-        m_psString = nullptr;
-    }
     delete[] m_sIniFileName;
     m_sIniFileName = nullptr;
     delete[] m_sLanguage;
@@ -271,93 +250,15 @@ void STRSERVICE::SetLanguage(const char *sLanguage)
 #endif
 
 
-    if (m_psString != nullptr)
-    {
-        for (i = 0; i < m_nStringQuantity; i++)
-            delete[] m_psString[i];
-        delete[] m_psString;
-        m_psString = nullptr;
-    }
-    if (m_psStrName != nullptr)
-    {
-        for (i = 0; i < m_nStringQuantity; i++)
-            delete[] m_psStrName[i];
-        delete[] m_psStrName;
-        m_psStrName = nullptr;
-    }
-
     sprintf_s(param, "resource\\ini\\texts\\%s\\%s", m_sLanguageDir, m_sIniFileName);
-    auto ini = fio->OpenIniFile(param);
-    if (!ini)
-    {
-        core.Trace("WARNING! ini file \"%s\" not found!", param);
+    const int32_t before = m_common.Size();
+    m_common.Clear();
+    if (!ReadCommonStrings(param, false))
         return;
-    }
-
-    auto newSize = 0;
-    if (ini->ReadString(nullptr, "string", param, sizeof(param) - 1, ""))
-        do
-        {
-            newSize++;
-        } while (ini->ReadStringNext(nullptr, "string", param, sizeof(param) - 1));
-
-    // check to right of ini files
-    if (newSize != m_nStringQuantity && m_nStringQuantity != 0)
+    if (before != m_common.Size() && before != 0)
         core.Trace("WARNING: language %s ini file has different size", sLanguage);
-    m_nStringQuantity = newSize;
-
-    // create strings & string names arreys
-    if (newSize > 0)
-    {
-        m_psString = new char *[newSize];
-        m_psStrName = new char *[newSize];
-        if (m_psStrName == nullptr || m_psString == nullptr)
-            throw std::runtime_error("Allocate memory error");
-    }
-    else
-    {
-        m_psString = nullptr;
-        m_psStrName = nullptr;
-    }
-
-    char strName[sizeof(param)];
-    char string[sizeof(param)];
-    ini->ReadString(nullptr, "string", param, sizeof(param) - 1, "");
-    for (i = 0; i < m_nStringQuantity; i++)
-    {
-        if (GetStringDescribe(param, strName, string))
-        {
-            auto len = strlen(param) + 1;
-            m_psStrName[i] = new char[len];
-            if (m_psStrName[i] == nullptr)
-                throw std::runtime_error("allocate memory error");
-            strcpy_s(m_psStrName[i], len, strName);
-
-            len = strlen(string) + 1;
-            m_psString[i] = new char[len];
-            if (m_psString[i] == nullptr)
-            {
-                delete[] m_psStrName[i];
-                throw std::runtime_error("allocate memory error");
-            }
-            memcpy(m_psString[i], string, len);
-        }
-        else
-        {
-            // invalid string
-            m_psStrName[i] = nullptr;
-            m_psString[i] = nullptr;
-        }
-
-        // next string
-        ini->ReadStringNext(nullptr, "string", param, sizeof(param) - 1);
-    }
-
-
-    m_commonIndex.clear();
-    for (i = 0; i < m_nStringQuantity; i++)
-        if (m_psStrName[i] != nullptr)
-            m_commonIndex.emplace(storm::strings::FoldedName(m_psStrName[i]), i);
+    for (const auto &file : m_mergedFiles)
+        ReadCommonStrings(fmt::format("resource\\ini\\texts\\{}\\{}", m_sLanguageDir, file), true);
     CloseKeyFiles();
     storm::texts::SetScriptLanguage(m_sLanguage);
 
@@ -365,6 +266,38 @@ void STRSERVICE::SetLanguage(const char *sLanguage)
     for (const auto &problem : m_usersFiles.Reload([this](const std::string &name) { return LoadUsersStringFile(name); }))
         core.Trace("Warning: language %s: %s", m_sLanguage, problem.c_str());
 
+}
+
+// The `string = name,{text}` lines of a common strings file: appended (the language's own file) or merged over them
+bool STRSERVICE::ReadCommonStrings(const std::string &path, bool merge)
+{
+    auto ini = fio->OpenIniFile(path.c_str());
+    if (!ini)
+    {
+        core.Trace("WARNING! ini file \"%s\" not found!", path.c_str());
+        return false;
+    }
+    char param[2048];
+    char name[sizeof(param)];
+    char text[sizeof(param)];
+    for (bool more = ini->ReadString(nullptr, "string", param, sizeof(param) - 1, ""); more;
+         more = ini->ReadStringNext(nullptr, "string", param, sizeof(param) - 1))
+    {
+        const bool described = GetStringDescribe(param, name, text);
+        if (merge && described)
+            m_common.Merge(name, text);
+        else if (!merge)
+            m_common.Append(described ? name : "", described ? text : "");
+    }
+    return true;
+}
+
+// MSG_INTERFACE_LOAD_STRINGS_INI_FILE: a file under the language's text folder (a mod's common.ini) whose strings
+// replace or add common strings, in this language and in every language set later
+void STRSERVICE::MergeCommonStrings(const char *fileName)
+{
+    if (ReadCommonStrings(fmt::format("resource\\ini\\texts\\{}\\{}", m_sLanguageDir, fileName), true))
+        m_mergedFiles.emplace_back(fileName);
 }
 
 char *STRSERVICE::GetLanguage()
@@ -378,19 +311,19 @@ char *STRSERVICE::GetString(const char *stringName, char *sBuffer, size_t buffer
 {
 
     if (stringName != nullptr)
-        if (const auto found = m_commonIndex.find(storm::strings::FoldedName(stringName)); found != m_commonIndex.end())
+        if (const int32_t i = m_common.Find(stringName); i >= 0)
             {
-                const int32_t i = found->second;
-                auto len = strlen(m_psString[i]) + 1;
+                char *text = m_common.Text(i);
+                auto len = strlen(text) + 1;
                 if (sBuffer == nullptr)
                     bufferSize = 0;
                 if (bufferSize < len)
                     len = bufferSize;
 
                 if (len > 0)
-                    strcpy_s(sBuffer, bufferSize, m_psString[i]);
+                    strcpy_s(sBuffer, bufferSize, text);
 
-                return m_psString[i];
+                return text;
             }
 
     return nullptr;
@@ -512,29 +445,21 @@ void STRSERVICE::LoadIni()
 int32_t STRSERVICE::GetStringNum(const char *stringName)
 {
 
-    if (stringName != nullptr)
-        for (int32_t i = 0; i < m_nStringQuantity; i++)
-            if (storm::iEquals(m_psStrName[i], stringName))
-                return i;
-    return -1L;
+    return stringName != nullptr ? m_common.Find(stringName) : -1;
 
 }
 
 char *STRSERVICE::GetString(int32_t strNum)
 {
 
-    if (strNum < 0 || strNum >= m_nStringQuantity)
-        return nullptr;
-    return m_psString[strNum];
+    return m_common.Text(strNum);
 
 }
 
 char *STRSERVICE::GetStringName(int32_t strNum)
 {
 
-    if (strNum < 0 || strNum >= m_nStringQuantity)
-        return nullptr;
-    return m_psStrName[strNum];
+    return m_common.Name(strNum);
 
 }
 

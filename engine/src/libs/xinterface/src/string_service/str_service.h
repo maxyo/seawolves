@@ -5,6 +5,7 @@
 #include "script_libriary.h"
 #include "../string_service.h"
 #include "text_templates.hpp"
+#include "common_strings.hpp"
 #include "user_string_files.hpp"
 
 #include <string>
@@ -34,6 +35,7 @@ class STRSERVICE : public VSTRSERVICE, public storm::strings::TemplateTexts
     int32_t OpenUsersStringFile(const char *fileName) override;
     void CloseUsersStringFile(int32_t id) override;
     char *TranslateFromUsers(int32_t id, const char *inStr) override;
+    void MergeCommonStrings(const char *fileName) override;
 
     void SetDialogSourceFile(const char *fileName);
 
@@ -66,9 +68,9 @@ class STRSERVICE : public VSTRSERVICE, public storm::strings::TemplateTexts
     char *m_sIniFileName;
     char *m_sLanguageDir;
 
-    int32_t m_nStringQuantity;
-    char **m_psStrName;
-    char **m_psString;
+    storm::strings::CommonStrings m_common;
+    std::vector<std::string> m_mergedFiles; // merged into every language's common strings
+    bool ReadCommonStrings(const std::string &path, bool merge);
 
     // Kept parsed after their last close: the interface scripts reopen the same few files
     // every frame (user_string_files.hpp).
@@ -76,7 +78,6 @@ class STRSERVICE : public VSTRSERVICE, public storm::strings::TemplateTexts
 
     int32_t m_nDialogSourceFile;
 
-    std::unordered_map<std::string, int32_t> m_commonIndex; // folded name -> first common string of that name
     // StringFromKey: the files under Localization_Assets, open while the language is, by folded key
     std::vector<int32_t> m_keyFiles;
     std::unordered_map<std::string, int32_t> m_keyIndex;
