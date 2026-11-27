@@ -1978,9 +1978,11 @@ std::optional<std::string> Renderer::TextureFile(const std::string &name)
         return known->second;
     std::optional<std::string> file = storm::texture::ResolveTextureFile(
         name, [this](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); });
-    if (file && !storm::iEquals(*file, storm::texture::TextureFilePath(name)))
+    if (!file)
+        return std::nullopt; // not kept: a file the game gains later (an import, an overlay) is found then
+    if (!storm::iEquals(*file, storm::texture::TextureFilePath(name)))
         spdlog::info("texture {}: the game ships it as {}", name, *file);
-    return textureFiles_.emplace(name, std::move(file)).first->second;
+    return textureFiles_.emplace(name, std::move(*file)).first->second;
 }
 
 int32_t Renderer::FindLoadedTexture(const std::string &name, uint32_t hash) const
