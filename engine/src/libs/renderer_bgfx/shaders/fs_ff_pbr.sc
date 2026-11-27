@@ -17,6 +17,9 @@ $input v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v
 #ifdef FX_FF_LAMPS
 #include "ff_lamps.sh"
 #endif
+#ifdef FX_FF_WET
+#include "ff_wet.sh"
+#endif
 
 SAMPLER2D(s_tex0, 0); // the albedo (stage 0)
 #ifdef FX_FF_LAYER
@@ -114,12 +117,16 @@ void main()
     }
     // GGX stays finite; the highlight fades out towards full roughness, as the materials were authored (a map's
     // roughness 1 is a matte surface without one).
-    roughness = clamp(roughness, 0.045, 1.0);
-    vec2 spec = vec2(roughness, 1.0 - roughness);
-
     vec3 Pw = mul(u_fxLampView, vec4(P, 1.0)).xyz;
     vec3 Nw = normalize(mul(u_fxLampView, vec4(Ng, 0.0)).xyz);
     vec2 skySeen = ffVisibility(P, Ng);
+#ifdef FX_FF_WET
+    // Caribbean Legend's weather roughness where the rain reaches: (2 - wetness) / 2, halved when soaked.
+    roughness *= 1.0 - 0.5 * ffWetAt(Nw.y, skySeen.y);
+#endif
+    roughness = clamp(roughness, 0.045, 1.0);
+    vec2 spec = vec2(roughness, 1.0 - roughness);
+
     float sunReach = ffSunReach(skySeen.y);
     vec3 pointDiffuse;
     vec3 pointSpecular;

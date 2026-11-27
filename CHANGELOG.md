@@ -27,6 +27,10 @@
   небо и рассеянный свет на миг приглушаются. В «Каждому своё» каждая молния ночью на миг высвечивает облака и всё
   вокруг, а днём вспышкой остаётся её собственное сияние.
 - Caribbean Legend: пока час дождливый и скрипты показывают дождь, вокруг камеры идёт дождь — эффект самой игры.
+- Сырость после дождя одна для всех игр и считается, как в движке Caribbean Legend: в дождь улица мокрая по силе
+  дождя, а после него сохнет около трёх игровых часов (на треть за час), а не за четыре минуты. В «Каждому своё»
+  улица остаётся мокрой и после выхода из таверны или дома. На «Средней» и «Высокой» в Caribbean Legend материалы
+  под открытым небом в дождь и после него становятся глаже (шероховатость до половины), как в её движке.
 - Caribbean Legend: арифметика над числом, переданным в функцию по ссылке, больше не записывает результат в само это
   число, — так считались, например, скидки бюджета эскадры и цены торговых сделок.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
@@ -142,6 +146,11 @@
   lightning bolts lights the clouds and everything around for a moment at night; by day its own glow is the flash.
 - Caribbean Legend: while the hour rains and the scripts show the rain, the game's own rain effect falls around the
   camera.
+- Wetness after a rain is one for every game and is computed as Caribbean Legend's engine computes it: in the rain the
+  street is wet by the rain's strength, and after it dries over about three game hours (a third per hour) instead of
+  four minutes. In «Каждому своё» the street stays wet after leaving a tavern or a house too. On «Средняя» and
+  «Высокая» Caribbean Legend's materials under the open sky get smoother in and after the rain (roughness down to
+  half), as in its engine.
 - Caribbean Legend: arithmetic on a number passed to a function by reference no longer writes its result into that
   number; the squadron budget's discounts and trade deal prices, among others, were computed so.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.

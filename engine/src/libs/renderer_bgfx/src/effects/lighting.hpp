@@ -241,7 +241,7 @@ struct FfDraw
     std::array<float, 16> layer_uniform{};
 };
 
-// The rain's wetness of this frame for the draws outdoors (effects::Host from the weather, fx::Wetness).
+// The weather's wetness of this frame for the draws outdoors (effects::Host, environment::State::wetness).
 struct WetFrame
 {
     float level = 0.0f; // 0 dry (or no weather: interiors) .. 1 soaked

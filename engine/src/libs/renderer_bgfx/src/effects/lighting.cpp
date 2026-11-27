@@ -1227,6 +1227,8 @@ void Lighting::prepare_material(DrawPrep &p)
     p.per_pixel = true;
     p.specular = true;
     p.ao = ao_volume_ && p.target && p.target == p.picture;
+    p.wet = settings_.wet_surfaces && wet_.level > 0.0f && p.target && p.target == p.picture && !lamps_.interior() &&
+            material_ != Material::Character && material_ != Material::Sail;
     if (!begin_variant(p))
         return;
     DrawLights lights;

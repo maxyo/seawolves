@@ -14,7 +14,6 @@
 #include "storm/fx/sky_model.hpp"
 #include "storm/fx/sea_depth.hpp"
 #include "storm/fx/sea_wakes.hpp"
-#include "storm/fx/wetness.hpp"
 #include "storm/render/effects.hpp"
 #include "storm/render/program_cache.hpp"
 
@@ -105,11 +104,6 @@ class Host
     glm::vec3 scene_ambient() const
     {
         return env_.ambient;
-    }
-    // A location was entered or left: its first weather frame starts at the rain's own wetness.
-    void location_changed()
-    {
-        wetness_.Interrupt();
     }
     void set_sun_glare(float glare, float ghosts)
     {
@@ -267,9 +261,7 @@ class Host
     float sun_glare_ = 0.0f;          // SetEffectsSunGlare since the last presented frame
     float sun_ghosts_ = 0.0f;
     bool weather_last_frame_ = false;
-    // The rain's wetness outdoors (Settings::wet_surfaces), advanced by the weather frames.
-    fx::Wetness wetness_;
-    std::chrono::steady_clock::time_point wetness_time_{};
+    // The weather's wetness outdoors (Settings::wet_surfaces) to the draws.
     void update_wetness();
     bool wet_unsheltered_logged_ = false;
     bool scene_cut_pending_ = true;

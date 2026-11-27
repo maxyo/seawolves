@@ -543,13 +543,18 @@ State Evaluate(const Inputs &in)
         const float rise = Smooth01(f);
         s.rain_clouds = wet(a) || (previous && wet(b)) ? 1.0f : wet(b) ? rise : previous ? 1.0f - rise : 0.0f;
         s.overcast = s.rain_clouds;
-        for (int p = h0; p >= 0; --p)
-            if (const float left = in.weather->hours[size_t(p)].post_rain; left > 0.0f)
-            {
-                // A third of the rain's wetness dries per hour, within the hour after it.
-                s.wetness = h < float(p) + left ? std::max(left - (h - float(p)) / 3.0f, 0.0f) : 0.0f;
-                break;
-            }
+        // In a rainy hour its intensity (rising over the hour before it, which the scripts also mark rainy); after
+        // it the last rain dries from the hour it stopped. That engine also cuts the drying short at the hour plus
+        // the wetness when a place is entered, but not in play: here as in play.
+        if (a.rain)
+            s.wetness = a.rain_intensity > 0.0f ? a.rain_intensity : s.rain;
+        else
+            for (int p = h0; p >= 0; --p)
+                if (const float left = in.weather->hours[size_t(p)].post_rain; left > 0.0f)
+                {
+                    s.wetness = WetnessAfter(left, h - float(p));
+                    break;
+                }
         s.lightning = a.lightning;
         s.tornado = a.tornado;
         s.rainbow = a.rainbow;

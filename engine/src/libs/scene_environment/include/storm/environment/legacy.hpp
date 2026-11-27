@@ -39,4 +39,18 @@ struct LegacyInputs
 };
 State EvaluateLegacy(const LegacyInputs &in);
 
+// The wetness of a game whose weather has no rows of hours: at least the rain's strength while it rains, drying as
+// WetnessAfter over the game's hours that passed (a skip of hours dries too), so a rain that thins out leaves the
+// place as wet as it made it.
+class LegacyWetness
+{
+  public:
+    // `rain` the state's rain now, `hour` the game's hour (0..24).
+    float Update(float rain, float hour);
+
+  private:
+    float level_ = 0.0f;
+    float hour_ = -1.0f; // the previous update's (< 0: none yet)
+};
+
 } // namespace storm::environment

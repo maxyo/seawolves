@@ -184,6 +184,9 @@ void WEATHER::PushLegacyEnvironment()
     in.wind_angle = fFloats[whf_wind_angle];
     in.wind_speed = fFloats[whf_wind_speed];
     state_ = storm::environment::EvaluateLegacy(in);
+    // The scripts make WEATHER anew for every place: the drying goes on from the last place outdoors.
+    static storm::environment::LegacyWetness wetness;
+    state_.wetness = wetness.Update(state_.rain, in.hour);
     ApplyEnvironment();
 }
 

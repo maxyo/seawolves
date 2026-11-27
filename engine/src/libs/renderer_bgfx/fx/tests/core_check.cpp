@@ -30,7 +30,6 @@
 #include "storm/fx/shadow_model.hpp"
 #include "storm/fx/cloud_cubes.hpp"
 #include "storm/fx/sky_model.hpp"
-#include "storm/fx/wetness.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -3522,42 +3521,6 @@ void CheckUpscale()
     }
 }
 
-void CheckWetness()
-{
-    // The first weather frame starts at the rain's level (a place entered in the rain is wet already).
-    Wetness w;
-    w.Update(0.8f, 0.016f);
-    CHECK(Near(w.Level(), 0.8f, 1e-6f));
-    // The rain stops: drying is slow, kWetDrySeconds from soaked to dry.
-    for (int i = 0; i < 60; ++i)
-        w.Update(0.0f, 1.0f);
-    CHECK(Near(w.Level(), 0.8f - 60.0f / kWetDrySeconds, 1e-4f));
-    for (int i = 0; i < 400; ++i)
-        w.Update(0.0f, 1.0f);
-    CHECK(w.Level() == 0.0f);
-    // The rain starts: a full rain soaks the dry place in kWetRiseSeconds (30..60 s), never overshooting.
-    float t = 0.0f;
-    while (w.Level() < 1.0f && t < 200.0f)
-    {
-        w.Update(1.0f, 0.1f);
-        t += 0.1f;
-    }
-    CHECK(t >= 30.0f && t <= 60.0f && Near(t, kWetRiseSeconds, 0.2f) && w.Level() == 1.0f);
-    CHECK(kWetDrySeconds > 2.0f * kWetRiseSeconds);
-    // A lighter rain: the level settles at it, from above as from below.
-    w.Update(0.3f, 1000.0f);
-    CHECK(Near(w.Level(), 0.3f, 1e-6f));
-    w.Update(0.5f, 1000.0f);
-    CHECK(Near(w.Level(), 0.5f, 1e-6f));
-    // A gap (an interior, a loading screen): the next weather frame jumps to its rain, dry or wet.
-    w.Interrupt();
-    w.Update(0.0f, 0.016f);
-    CHECK(w.Level() == 0.0f);
-    w.Interrupt();
-    w.Update(1.0f, 0.016f);
-    CHECK(w.Level() == 1.0f);
-}
-
 int main()
 {
     CheckParallaxGeometry();
@@ -3594,7 +3557,6 @@ int main()
     CheckParallaxTrust();
     CheckGlossMaps();
     CheckUpscale();
-    CheckWetness();
     if (failures)
     {
         std::printf("%d check(s) failed\n", failures);

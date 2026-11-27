@@ -41,7 +41,9 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
 - **Weather.** The scripts' rows of the day (`WeatherState`, 24 hours and the next day's first) give the clouds, the
   rain's intensity and the flags of each hour. The clouds' cover is a fifth of the hour's cloud density, the scale
   the scripts themselves give a rain's intensity by. The rain clouds cover the sky in the hours that rain and grow or thin
-  over the hour before or after; a rain that stopped leaves wetness that dries by a third per hour within the next.
+  over the hour before or after. The wetness (`State::wetness`, Caribbean Legend's engine's): in an hour the scripts
+  mark rainy the hour's rain intensity (the rain's rising strength in the marked hour before a rain); after the rain
+  the last rainy hour's intensity drying by a third per game hour (`WetnessAfter`).
 - **Lightning.** A flash (`LightningFlash`, Caribbean Legend's shape: one or two pulses over its seconds) multiplies
   the sky's radiances and the fill, to half by day and forty times by night (`ApplyFlash`). The scripts decide when
   lightning strikes: Caribbean Legend's send the rain its flash message, «Каждому своё»'s add a bolt to the lightning
@@ -70,6 +72,9 @@ the sky entity's folders; `EvaluateLegacy` makes the same state of them:
   close. The clouds look and are lit by Caribbean Legend's engine's own periods (`EngineCloudPeriods`) at its
   own transition hours, shown whole (the folders' cover is what showed); their fill is the scripts' ambient in its
   units (a clear noon's is 1).
+- **Wetness.** The scripts give only the rain's drops now, not a day of hours: `LegacyWetness` keeps the wetness at
+  least the rain's strength while it rains and dries it as `WetnessAfter` over the game's hours that pass (WEATHER
+  keeps one across the places, which the scripts make it anew for).
 
 `tests/scene_environment` checks the evaluation on data written there and, with `$STORM_GAME_DIR`, every preset of
 an installed game for every quarter hour.

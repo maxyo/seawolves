@@ -1,5 +1,5 @@
-// Rain wetness of the outdoor surfaces (src/effects/lighting.hpp "wet surfaces", fx/wetness.hpp). Included by
-// ff_fragment.sh in the FX_FF_LIT / FX_FF_BAKED programs. The physically based wet surface of Lagarde, "Water drop 3b -
+// Rain wetness of the outdoor surfaces (src/effects/lighting.hpp "wet surfaces", environment::State::wetness).
+// Included by ff_fragment.sh in the FX_FF_LIT / FX_FF_BAKED programs and by fs_ff_pbr.sc (ffWetAt alone). The physically based wet surface of Lagarde, "Water drop 3b -
 // Physically based wet surfaces" (2013): water fills the pores of a rough (porous) surface, which darkens it, and a
 // film of it covers the surface, which raises its gloss; a smooth surface (or metal) only takes the film. In the
 // hollows of the relief (the material texture's height, R of stage 7) water gathers into puddles: flat, a mirror,
@@ -26,13 +26,19 @@ uniform vec4 u_fxWet[2];
 // (1 the top, 0 the deepest; 1 where the draw has none).
 // The wet surface of the pixel: x its wetness (0: dry, nothing of this file changes the pixel), y the puddle's water
 // 0..1, z its gloss (Lagarde's, 0..1 as a gloss map's), w its diffuse colour's factor (gamma).
+// The place's wetness at a pixel facing up by `up` (world normal's height) and open to the sky by `open`: the rain
+// falls on what faces up; walls take a little of it, what faces down none, and none arrives under a roof.
+float ffWetAt(float up, float open)
+{
+    return u_fxWet[0].x * (0.3 * smoothstep(-0.4, 0.0, up) + 0.7 * smoothstep(0.0, 0.8, up)) * smoothstep(0.15, 0.6, open);
+}
+
 vec4 ffWetPrepare(vec3 Nw, float open, float gloss, float metal, float height)
 {
     if (u_fxWet[0].x <= 0.0)
         return vec4(0.0, 0.0, 0.0, 1.0);
-    // The rain falls on what faces up; walls take a little of it, what faces down none.
     float up = Nw.y;
-    float wet = u_fxWet[0].x * (0.3 * smoothstep(-0.4, 0.0, up) + 0.7 * smoothstep(0.0, 0.8, up)) * smoothstep(0.15, 0.6, open);
+    float wet = ffWetAt(up, open);
     if (wet <= 0.0)
         return vec4(0.0, 0.0, 0.0, 1.0);
     // Puddles: on flat ground, the water rises in the relief's hollows over the second half of the wetting, at most to

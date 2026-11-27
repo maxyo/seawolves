@@ -225,10 +225,10 @@ struct Settings
     float lamp_tint = 0.0f;       // the share of a lamp's own colour in what it adds to baked surfaces (0..1)
     float lamp_baked = 0.25f;     // the part of the lamp light the baked colours already hold (0..1)
     float lamp_model_lift = 0.2f; // indoors the lit models stand this much above the room light around them
-    // Rain wetness outdoors where the rain reaches (wetness.hpp, ff_wet.sh): 0 off, 1 wet, 2 also puddles in the
-    // relief's hollows.
+    // Rain wetness outdoors where the rain reaches (environment::State::wetness, ff_wet.sh): 0 off, 1 wet, 2 also
+    // puddles in the relief's hollows.
     uint8_t wet_surfaces = 0;
-    float wet_force = -1.0f;      // development: 0..1 = this wetness outdoors whatever the weather, < 0 = the rain's
+    float wet_force = -1.0f;      // development: 0..1 = this wetness outdoors whatever the weather, < 0 = the weather's
     LightFalloff light_falloff{}; // the one falloff of every light (light_falloff.hpp); the same on every preset
     // A fixed-function draw whose stage setup has a specialised program (shaders/ff_programs.cmake) takes it; the
     // same picture as its general program, without the stage interpreter. Every preset.

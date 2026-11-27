@@ -174,9 +174,9 @@ terms move to the fragment shader (`fx_lighting.sh`, `fx_coverage.sh`), then cal
   with it, most with fully opaque textures and vertex alpha. When every stage alpha is 1 (opaque textures, checked
   when the game file is loaded; vertex, material and texture-factor alpha) the draw takes the opaque twin, without
   the discard or alpha to coverage, so early depth and a tile GPU's hidden-surface removal stay on.
-- Wet surfaces (`fx/wetness.hpp`, `ff_wet.sh`): in the rain, outdoor lit and baked draws (not characters or sails) get
-  wet where the visibility volume shows the sky above them; the wet gloss drives the highlights, so wet baked draws
-  take the specular variant.
+- Wet surfaces (`environment::State::wetness`, `ff_wet.sh`): in and after the rain, outdoor lit and baked draws (not
+  characters or sails) get wet where the visibility volume shows the sky above them; the wet gloss drives the
+  highlights, so wet baked draws take the specular variant.
 - Aerial perspective (`kLightingAerial`): every fixed-function draw whose fog is the game's exp fog takes fog mode 5
   (`fx_aerial.sh`); draws with a ported vertex shader keep the fixed-function fog (reported once), and without weather
   (interiors) the game's fog stays.
@@ -232,6 +232,9 @@ once each.
   its exposure is compressed into the 8-bit target by the inverse of the composite's expansion (`fx_tonemap.sh`
   `fxCompressHdr`): up to a luminance of 3 the post chain gives it back, and on «Низкая» (no post
   chain) the compression is the tone curve.
+- Rain: with the wet surfaces (`Settings::wet_surfaces`) an outdoor material's roughness where the rain reaches
+  (`ffWetAt`, as the wet surfaces above) is multiplied by Caribbean Legend's weather roughness, (2 - wetness) / 2 of
+  the environment's wetness; characters and sails keep theirs. All four families hold the WET block for it.
 
 ### Lamps (`lamp_shadows.hpp`)
 

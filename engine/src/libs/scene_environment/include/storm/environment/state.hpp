@@ -100,7 +100,7 @@ struct State
 
     float overcast = 0.0f; // 0 clear .. 1 storm
     float rain = 0.0f;     // falling now, 0..1
-    float wetness = 0.0f;  // left by a rain that stopped, 0..1
+    float wetness = 0.0f;  // how wet the place outdoors is, 0..1 (WetnessAfter)
     bool lightning = false, tornado = false, rainbow = false;
 
     glm::vec2 wind_dir{1.0f, 0.0f}; // the direction the wind blows to (x, z), unit
@@ -110,6 +110,13 @@ struct State
     float bloom_intensity = 0.0f, bloom_threshold = 0.0f, bloom_soft = 0.0f;
     float emission = 1.0f;
 };
+
+// Caribbean Legend's engine's wetness: while an hour rains it is the rain's strength; once the rain stopped it dries
+// by a third per game hour from where it was. `left` the wetness when the rain stopped, `hours` since then.
+inline float WetnessAfter(float left, float hours)
+{
+    return glm::max(left - hours / 3.0f, 0.0f);
+}
 
 // Adds the drawn sky's fill to `state`'s ambient and ground: `dome` is the cosine-weighted mean of the sky above
 // (linear).

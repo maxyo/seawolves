@@ -23,10 +23,10 @@ set(ff_families
     "lit_lamps|lit|LAMPS,AO,WET"
     "baked|baked|TOWN_WALL,WET"
     "baked_lamps|baked|LAMPS,AO,TOWN_WALL,WET"
-    "pbr|pbr|"
-    "pbr_lamps|pbr|LAMPS,AO"
-    "pbr_layer|pbr|LAYER"
-    "pbr_layer_lamps|pbr|LAMPS,AO,LAYER")
+    "pbr|pbr|WET"
+    "pbr_lamps|pbr|LAMPS,AO,WET"
+    "pbr_layer|pbr|LAYER,WET"
+    "pbr_layer_lamps|pbr|LAMPS,AO,LAYER,WET")
 
 # Every family in every combination of the axes, each value "letters|defines". A program is named
 # fs_ff_<family>[_<specular letters><relief letters><shadow letters>]. Linear light and the soft sun filter are

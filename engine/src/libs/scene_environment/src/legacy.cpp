@@ -93,4 +93,12 @@ State EvaluateLegacy(const LegacyInputs &in)
     return s;
 }
 
+float LegacyWetness::Update(float rain, float hour)
+{
+    const float passed = hour_ < 0.0f ? 0.0f : std::fmod(hour - hour_ + 24.0f, 24.0f);
+    hour_ = hour;
+    level_ = std::max(rain, WetnessAfter(level_, passed));
+    return level_;
+}
+
 } // namespace storm::environment

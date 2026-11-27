@@ -400,10 +400,43 @@ TEST_CASE("rain clouds and wetness")
     CHECK(after.rain_clouds == Approx(1.0f - 0.15625f)); // smoothstep of 0.25
     CHECK(after.wetness == Approx(1.0f - 0.25f / 3.0f));
     in.hour = 14.0f;
-    CHECK((Evaluate(in).rain_clouds == 0.0f && Evaluate(in).wetness == 0.0f));
+    CHECK(Evaluate(in).rain_clouds == 0.0f);
     in.hour = 8.0f;
     CHECK(Evaluate(in).rain_clouds == 0.0f);
     CHECK(Evaluate(in).clouds == Approx(0.5f)); // a fifth of the density
+}
+
+TEST_CASE("wetness over the hours")
+{
+    // A rain of 0.6 at 10 and 11; the scripts mark 9, the hour before, rainy without an intensity.
+    const scene_data::TimeOfDay tod = Day();
+    Inputs in{tod};
+    WeatherDay day = Weather({10, 11}, 0.6f, "rain_1");
+    day.hours[9].rain = true;
+    in.weather = &day;
+    const auto wet = [&](float hour) {
+        in.hour = hour;
+        return Evaluate(in).wetness;
+    };
+    CHECK(wet(8.5f) == 0.0f);
+    CHECK(wet(9.5f) == Approx(0.3f)); // rising with the rain into the rainy hour
+    CHECK(wet(10.2f) == Approx(0.6f));
+    CHECK(wet(11.9f) == Approx(0.6f));
+    // It stopped at 12: a third per hour from 0.6, dry at 13.8, not cut short at 12.6.
+    CHECK(wet(12.0f) == Approx(0.6f));
+    CHECK(wet(13.0f) == Approx(0.6f - 1.0f / 3.0f));
+    CHECK(wet(13.7f) == Approx(0.6f - 1.7f / 3.0f));
+    CHECK(wet(13.9f) == 0.0f);
+    CHECK(wet(20.0f) == 0.0f);
+
+    // A game without hours: the rain thins out, the place stays as wet as it made it, then dries by the game's hours.
+    LegacyWetness legacy;
+    CHECK(legacy.Update(0.8f, 22.0f) == Approx(0.8f));
+    CHECK(legacy.Update(0.1f, 22.1f) == Approx(0.8f - 0.1f / 3.0f));
+    CHECK(legacy.Update(0.0f, 23.0f) == Approx(0.8f - 1.0f / 3.0f));
+    CHECK(legacy.Update(0.0f, 0.2f) == Approx(0.8f - 2.2f / 3.0f)); // across midnight
+    CHECK(legacy.Update(0.0f, 2.5f) == 0.0f);
+    CHECK(legacy.Update(0.5f, 2.5f) == Approx(0.5f));
 }
 
 TEST_CASE("a lightning's flash")

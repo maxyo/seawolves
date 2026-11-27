@@ -119,7 +119,7 @@ const Option kOptions[] = {
      [](fx::Settings &s, int v) { s.lamp_model_lift = static_cast<float>(std::clamp(v, 0, 100)) / 100.0f; }},
     {"fx_wet_surfaces", "rain wetness outdoors: 0 off, 1 wet surfaces, 2 also puddles in the relief's hollows",
      [](fx::Settings &s, int v) { s.wet_surfaces = static_cast<uint8_t>(std::clamp(v, 0, 2)); }},
-    {"fx_wet_force", "0..100 %: this wetness outdoors whatever the rain (review); -1 = the rain's",
+    {"fx_wet_force", "0..100 %: this wetness outdoors whatever the weather (review); -1 = the weather's",
      [](fx::Settings &s, int v) { s.wet_force = static_cast<float>(std::clamp(v, 0, 100)) / 100.0f; }},
     {"fx_ao_volume", "interiors: 0 off, 1 as the game's data, 2 moderate, 3 strong",
      [](fx::Settings &s, int v) { s.ao_volume = static_cast<uint8_t>(std::clamp(v, 0, 3)); }},
@@ -491,15 +491,10 @@ void Host::set_environment(const environment::State &state)
 
 void Host::update_wetness()
 {
-    const auto now = std::chrono::steady_clock::now();
-    // Real time between weather frames, at most half a second: a long frame (a hitch, a save) does not dry the place.
-    const float seconds = std::min(std::chrono::duration<float>(now - wetness_time_).count(), 0.5f);
-    wetness_time_ = now;
-    wetness_.Update(env_.rain, seconds);
     WetFrame wet;
     if (settings_.wet_surfaces)
     {
-        wet.level = settings_.wet_force >= 0.0f ? std::min(settings_.wet_force, 1.0f) : wetness_.Level();
+        wet.level = settings_.wet_force >= 0.0f ? std::min(settings_.wet_force, 1.0f) : env_.wetness;
         // The fog colour is the sky's at the horizon by day; the night sky the surfaces reflect is darker than its fog.
         const float t = std::clamp((env_.sun_dir[1] + 0.1f) / 0.25f, 0.0f, 1.0f);
         const float day = t * t * (3.0f - 2.0f * t);
@@ -770,9 +765,7 @@ void Host::end_weather_frame()
 {
     if (!weather_this_frame_ && !weather_last_frame_)
     {
-        // Two frames without the weather: an interior or a loading screen. Nothing is wet there, and the next
-        // place outdoors starts at its own rain.
-        wetness_.Interrupt();
+        // Two frames without the weather: an interior or a loading screen. Nothing is wet there.
         lighting_.set_wet({});
     }
     weather_last_frame_ = weather_this_frame_;
@@ -1055,7 +1048,6 @@ void SetEffectsLocationGeometry(const EffectsLocationGeometry &geometry)
     for (const auto &surface : geometry.surfaces)
         effects::ObserveSceneTexture(shim::shared_store_of(surface.texture));
     effects::generation_focus().set_scene(geometry.name);
-    effects::Host::instance().location_changed();
     effects::Host::instance().lighting().lamp_shadows().set_geometry(geometry);
     effects::Host::instance().place().set_geometry(geometry);
     // Outdoors the still geometry casts the sun's shadows (in tiles, with its textures' holes); an interior has no sun.
