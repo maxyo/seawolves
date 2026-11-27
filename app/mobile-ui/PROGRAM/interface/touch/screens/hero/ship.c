@@ -148,16 +148,6 @@ void TouchShip_Overview(aref game, aref view)
 	}
 }
 
-aref TouchShip_Button(aref list, string id, string label, string variant, aref from)
-{
-	object button = {id = id, label = label, variant = variant, disabled = !sti(from.can), reason = from.reason,
-	                 busy = UiPending(id)};
-	aref at = TouchLib_Add(list, "a");
-	CopyAttributes(at, &button);
-	UiOn(id, "");
-	return at;
-}
-
 void TouchShip_Crew(aref game, aref view)
 {
 	view.empty = "";
@@ -188,12 +178,12 @@ void TouchShip_Crew(aref game, aref view)
 	if (CheckAttribute(game, "shares"))
 	{
 		makearef(from2, game.shares);
-		TouchShip_Button(actions, "crew-shares", UiText("ship.shares"), "secondary", from2);
+		TouchLib_Button(actions, "crew-shares", UiText("ship.shares"), "secondary", from2);
 	}
 	if (CheckAttribute(game, "morale"))
 	{
 		makearef(from2, game.morale);
-		TouchShip_Button(actions, "crew-morale", UiText("ship.raise_morale"), "primary", from2);
+		TouchLib_Button(actions, "crew-morale", UiText("ship.raise_morale"), "primary", from2);
 	}
 }
 
@@ -327,13 +317,13 @@ void TouchShip_Cargo(aref game, aref view)
 	if (CheckAttribute(game, "drop.mine"))
 	{
 		makearef(from2, game.drop.mine);
-		TouchShip_Button(actions, "goods-mine", from2.label, "secondary", from2);
+		TouchLib_Button(actions, "goods-mine", from2.label, "secondary", from2);
 	}
 	int dropping = sti(game.drop.dropping);
 	string label = UiText("ship.overboard");
 	if (dropping > 0) label += " " + dropping;
 	makearef(from2, game.drop.ok);
-	aref drop = TouchShip_Button(actions, "goods-drop", label, "danger", from2);
+	aref drop = TouchLib_Button(actions, "goods-drop", label, "danger", from2);
 	drop.hold = true;
 	drop.disabled = !sti(game.drop.ok.can) || dropping <= 0;
 	// The window takes the back key: it closes, the ship screen stays.
@@ -413,7 +403,7 @@ void TouchShip_Dialog(aref game, aref view)
 	close.variant = "quiet";
 	aref accept;
 	makearef(accept, question.accept);
-	if (accept.label != "") TouchShip_Button(actions, "dialog-accept", accept.label, "primary", accept);
+	if (accept.label != "") TouchLib_Button(actions, "dialog-accept", accept.label, "primary", accept);
 	UiOn("dialog-close", "");
 	UiModal("dialog", "dialog-close");
 }
@@ -485,18 +475,18 @@ void TouchShip_Sheet(aref game, aref view)
 	if (CheckAttribute(cannons, "fit"))
 	{
 		makearef(from2, cannons.fit);
-		aref fit = TouchShip_Button(actions, "cannons-fit", from2.label, "secondary", from2);
+		aref fit = TouchLib_Button(actions, "cannons-fit", from2.label, "secondary", from2);
 		fit.sub = picked;
 	}
 	if (CheckAttribute(cannons, "remove"))
 	{
 		makearef(from2, cannons.remove);
-		TouchShip_Button(actions, "cannons-remove", from2.label, "secondary", from2);
+		TouchLib_Button(actions, "cannons-remove", from2.label, "secondary", from2);
 	}
 	if (CheckAttribute(cannons, "ok"))
 	{
 		makearef(from2, cannons.ok);
-		TouchShip_Button(actions, "cannons-ok", from2.label, "primary", from2);
+		TouchLib_Button(actions, "cannons-ok", from2.label, "primary", from2);
 	}
 	UiOn("sheet-close", "");
 	UiModal("sheet", "sheet-close");

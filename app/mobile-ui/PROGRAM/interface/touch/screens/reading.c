@@ -34,13 +34,9 @@ string TouchReading_Key(aref look, string field)
 // An answer of the game as a button; `label` and `refused` are the look's keys of its caption and of why it is off.
 void TouchReading_Button(aref actions, aref answer, string id, string variant, string label, string refused)
 {
-	object button = {id = id, label = answer.label, variant = variant, disabled = !sti(answer.can),
-	                 reason = answer.reason, busy = UiPending(id)};
-	if (label != "") button.label = label;
-	if (!sti(answer.can) && answer.reason == "") button.reason = refused;
-	aref at = TouchLib_Add(actions, "a");
-	CopyAttributes(at, &button);
-	UiOn(id, "");
+	aref at = TouchLib_Button(actions, id, answer.label, variant, answer);
+	if (label != "") at.label = label;
+	if (!sti(answer.can) && answer.reason == "") at.reason = refused;
 }
 
 void TouchReading_Card(aref ui, aref game)

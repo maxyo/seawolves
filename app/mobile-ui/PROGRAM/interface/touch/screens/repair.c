@@ -38,12 +38,10 @@ void TouchRepair_Build()
 	view.actions = "";
 	if (CheckAttribute(game, "all"))
 	{
-		object all = {id = "all-ships", label = UiText("repair.all_ships"), variant = "quiet",
-		              disabled = !sti(game.all.can), reason = game.all.reason, busy = UiPending("all-ships")};
-		aref at;
-		makearef(at, view.actions.a0);
-		CopyAttributes(at, &all);
-		UiOn("all-ships", "");
+		aref actions, all;
+		makearef(actions, view.actions);
+		makearef(all, game.all);
+		TouchLib_Button(actions, "all-ships", UiText("repair.all_ships"), "quiet", all);
 	}
 	TouchRepair_Primary(game, view);
 	UiOn("header-back", "");

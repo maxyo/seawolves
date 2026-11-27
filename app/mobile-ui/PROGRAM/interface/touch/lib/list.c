@@ -111,7 +111,18 @@ aref TouchLib_Stat(aref stats, string label, string value, string icon)
 	return at;
 }
 
-// The secondary buttons of a view from {label, can, reason} entries, ids action-<k>, bound.
+// The next button of `list` for an action the adapter offers (`offer` {can, reason}), busy while its tap waits, bound.
+aref TouchLib_Button(aref list, string id, string label, string variant, aref offer)
+{
+	object button = {id = id, label = label, variant = variant, disabled = !sti(offer.can), reason = offer.reason,
+	                 busy = UiPending(id)};
+	aref at = TouchLib_Add(list, "a");
+	CopyAttributes(at, &button);
+	UiOn(id, "");
+	return at;
+}
+
+// The secondary buttons of a view from {label, can, reason} entries, ids action-<k>.
 void TouchLib_Actions(aref view, aref buttons)
 {
 	aref actions;
@@ -119,11 +130,7 @@ void TouchLib_Actions(aref view, aref buttons)
 	for (int k = 0; k < GetAttributesNum(buttons); k++)
 	{
 		aref button = GetAttributeN(buttons, k);
-		object action = {id = "action-" + k, label = button.label, variant = "secondary", disabled = !sti(button.can),
-		                 reason = button.reason, busy = UiPending("action-" + k)};
-		aref at = TouchLib_Add(actions, "a");
-		CopyAttributes(at, &action);
-		UiOn("action-" + k, "");
+		TouchLib_Button(actions, "action-" + k, button.label, "secondary", button);
 	}
 }
 
