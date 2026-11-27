@@ -117,7 +117,7 @@ result. Three rules keep that free of flicker:
   the game shows, as the card and the lists do).
 - **Do not draw a step.** A model the screen knows to be a step of the game's answer (the store's row selected
   before its amount window, a confirmed deal closed before it reopens) is not drawn: the build returns the view
-  it had (`trade_commerce.cpp` `holding`) and says `bindings.Await()`. A rule about models, never about time; a
+  it had and says `bindings.Await()` (a script screen: `UiAwait()`). A rule about models, never about time; a
   timeout there only reports a game that never completed the step.
 - **The busy mark is feedback.** `bindings.Pending(id)` marks the pressed control busy in the tap's frame.
 

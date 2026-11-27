@@ -101,6 +101,10 @@
   соперника — как его пишет игра. После кона итог говорит строка самой игры: отдельной плашки «выигрыш» и «забрал»
   больше нет. Кубик, карта и бросок больше не запрещаются экраном за нехватку денег на ставку — игра сама отвечает,
   хватает ли.
+- Обмен с другим кораблём (добыча после абордажа, компаньон, встречный корабль): экран — скриптовый. Ползунок товара и
+  команды сразу двигает стрелки самой игры и показывает, где игра остановилась (полный трюм, предел команды), а не
+  предел, посчитанный заранее; у «Перегрузить всё» больше нет подписи с весом, которая могла превышать то, что
+  поместится.
 
 **English**
 
@@ -206,6 +210,9 @@
   counts, and the opponent's name is written as the game writes it. After a round the game's own line tells the
   outcome: the separate «winnings» and «pot taken by» badge is gone. A die, a card or a throw is no longer refused by
   the screen for want of money for the stake: the game answers whether there is enough.
+- Exchange with another ship (a boarded prize, a companion, a ship met at sea): a script screen. The goods and crew
+  sliders move the game's own arrows at once and show where the game stopped (a full hold, the crew's limit) instead
+  of a limit worked out beforehand; «Take all cargo» no longer has a weight line, which could exceed what fits.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

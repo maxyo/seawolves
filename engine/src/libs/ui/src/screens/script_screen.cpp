@@ -293,7 +293,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         }
         if (!deal.asking)
             draft.Answered(spec.answer);
-        draft.Bind(*bindings_, spec.element, spec.low, spec.high, {}, 1, {},
+        draft.Bind(*bindings_, spec.element, spec.low, spec.high, {}, {},
                    [this, &deal, offer = spec.offer, origin = spec.origin, answer = spec.answer](int target) {
                        if (target == answer && !deal.asking)
                            return;

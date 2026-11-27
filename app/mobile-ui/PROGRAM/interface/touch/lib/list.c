@@ -248,3 +248,23 @@ int TouchLib_SubjectTap(aref state, string id, string verb, int shown, int count
 	if (k == shown) return -1;
 	return k;
 }
+
+// A captain's ship skills {key (the game's skill: "Sailing"), value, tone} as a sheet lists them: {icon, k, v, tone}.
+void TouchLib_ShipSkills(aref skills, aref out)
+{
+	object icons = {Sailing = "wheel", Accuracy = "accuracy", Cannons = "cannon", Grappling = "grapple",
+	                Defence = "shield", Repair = "repair", Commerce = "commerce"};
+	object keys = {Sailing = "sailing", Accuracy = "accuracy", Cannons = "cannons", Grappling = "grappling",
+	               Defence = "defence", Repair = "repair", Commerce = "commerce"};
+	for (int k = 0; k < GetAttributesNum(skills); k++)
+	{
+		aref skill = GetAttributeN(skills, k);
+		string key = skill.key;
+		if (!CheckAttribute(&icons, key)) UiError("a captain's table names an unknown ship skill " + key);
+		aref at = TouchLib_Add(out, "s");
+		at.icon = icons.(key);
+		at.k = UiText("skill." + keys.(key));
+		at.v = skill.value;
+		at.tone = skill.tone;
+	}
+}

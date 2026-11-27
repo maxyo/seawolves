@@ -55,6 +55,7 @@
     {"file": "interface/touch/contracts/items.c"},
     {"file": "interface/touch/contracts/shipyard.c"},
     {"file": "interface/touch/contracts/table.c"},
+    {"file": "interface/touch/contracts/transfer.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -495,6 +496,45 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/transfer.c",
+      "requires": ["fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items", "var:Goods"],
+      "provides": ["adapter:transfer"],
+      "binds": [
+        {
+          "capability": "transfer",
+          "interface": "transfer_main",
+          "nodes": [
+            ["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["TITLE", "heading|text"],
+            ["ANDROID_TRANSFER", "transfer"], ["TAKE_GOODS", "button"], ["CAPTAN_BUTTON", "button"],
+            ["SWAP_BUTTON", "button"], ["CREW_BUTTON", "button"], ["B_LEFT", "button"], ["B_RIGHT", "button"],
+            ["SHIP_NAME", "text"], ["SHIP_NAME2", "text"], ["SHIP_TYPE", "text"], ["SHIP_TYPE2", "text"],
+            ["SHIP_RANK", "text"], ["SHIP_RANK2", "text"], ["TABLE_OTHER", "choice"], ["TABLE_OTHER2", "choice"],
+            ["CREW_EXIT_BTN", "button"], ["CREW_LEFT", "button"],
+            ["CREW_RIGHT", "button"], ["CREW_QTY", "text"], ["CREW_QTY2", "text"], ["CREW_MORALE_TEXT", "text"],
+            ["CREW_MORALE_TEXT2", "text"], ["TABLE_CREW", "choice|text"], ["TABLE_CREW2", "choice|text"],
+            ["REMOVE_WINDOW_CAPTION", "text"], ["REMOVE_WINDOW_TEXT", "text"], ["REMOVE_OK", "button"],
+            ["REMOVE_ACCEPT_OFFICER", "button"], ["REMOVE_CANCEL_OFFICER", "button"], ["CAPTURE_CAPTION", "text"],
+            ["CAPTUR_PICTURE", "image"], ["CAPTURE_TEXT", "text"], ["CAPTURE_CAPTAIN_KILL", "button"],
+            ["CAPTURE_CAPTAIN_PRISON", "button"], ["CAPTURE_CANCEL", "button"], ["CAPTURE_TEXT_CREW", "text"],
+            ["CAPTURE_CREW_KILL", "button"], ["CAPTURE_CREW_PRISON", "button"], ["CAPTURE_CREW_FREE", "button"],
+            ["HIRE_QTY_TypeOperation", "text"], ["HIRED_CREW", "text"], ["HIRE_CREW_QTY", "text"],
+            ["HIRE_QTY_OK_BUTTON", "button"], ["HIRE_QTY_CANCEL_BUTTON", "button"], ["HIRE_QTY_ADD_BUTTON", "button"],
+            ["HIRE_QTY_REMOVE_BUTTON", "button"], ["OFFICERS_WINDOW_CAPTION", "text"], ["PASSENGERSLIST", "choice"],
+            ["OFFICER_NAME", "text"], ["ACCEPT_ADD_OFFICER", "button"], ["CANCEL_ADD_OFFICER", "button"],
+            ["OFFICER_EXIT_BTN", "button"], ["TABLE_SMALL*", "choice|text"], ["FOOD", "text"], ["FOOD_SHIP", "text"],
+            ["MONEY_SHIP", "text"], ["Money_TEXT", "text"], ["QTY_EDIT", "edit"], ["QTY_*", "button|text|heading|image"],
+            ["CREW_CAPTION", "text"], ["CREW_Win_fix", "text"], ["BAR_*", "image|slider|text"],
+            ["REMOVE_EXIT_BTN", "button"], ["CAPTURE_EXIT_BTN", "button"], ["CAPTURE_CREW_CAPTION", "text"],
+            ["HIRECAPTION1", "text"], ["HIRE_*", "button|text|choice|image"], ["CAPACITY", "text"],
+            ["MAIN_HERO_NAME", "text"], ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"],
+            ["MAIN_CHARACTER_PICTURE*", "image"], ["SHIP_BIG_PICTURE*", "image"]
+          ],
+          "data": {"own": 0, "other": 3, "name": 2, "buy": -1, "sell": -1, "pack": 5, "packWeight": -1,
+                   "items": false, "goods": true, "pieces": false, "types": false}
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -654,6 +694,11 @@
         {"capability": "table_dice", "component": "s-table-game", "look": {"title": "games.dice"}},
         {"capability": "table_cards", "component": "s-table-game", "look": {"title": "games.cards"}}
       ]
+    },
+    {
+      "file": "interface/touch/screens/transfer/transfer.c",
+      "uses": ["adapter:transfer"],
+      "screens": [{"capability": "transfer", "component": "s-transfer", "look": {"title": "transfer.title"}}]
     }
   ]
 }

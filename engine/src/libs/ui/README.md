@@ -35,8 +35,7 @@ and any element marked `ui-error`; a ported screen or a script screen with no ca
 Script screens are checked like the C++ ones: `tools/script_game.h` runs the application's interface scripts (its
 mobile-ui layer as the APK ships it, `STORM_MOBILE_UI`) over the fixture game of the engine's `tests/ui_scripts/game`
 on the engine's script VM (`tests/script_vm`, built into this project), and the pack check and `ui_modals` give the
-screens it attaches to their hosts and routers. `ui_trade_parity` holds the trade screens to what their C++ screens
-did on the crawl's taps and the store's flows (`tests/trade-parity.json`). A screen that needs more of the game than the fixture game offers
+screens it attaches to their hosts and routers. A screen that needs more of the game than the fixture game offers
 gets it there (functions with fixed results, interface rows). It is the
 ctest `ui_pack_contract` when configured with `-DSTORM_UI_PACK=<built pack>`, and the application runs it
 in `tests/ui_pack_contract`. It also checks the pack's prewarm list (pack.json `prewarm`: the font uses and icons

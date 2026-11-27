@@ -864,6 +864,11 @@ TEST_CASE("the trade book's script gives the pack screen the props and actions o
     CheckCases("tradebook", "tradebook");
 }
 
+TEST_CASE("the ship exchange's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("transfer", "transfer");
+}
+
 TEST_CASE("the journal's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("journal", "journal");

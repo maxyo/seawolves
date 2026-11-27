@@ -367,31 +367,15 @@ void TouchShipyard_Captain(aref window, aref sheet, aref actions)
 		f.v = fact.value;
 	}
 	sheet.skills = "";
-	aref skills;
+	aref skills, own;
 	makearef(skills, sheet.skills);
-	object words = {Sailing = "wheel", Accuracy = "accuracy", Cannons = "cannon", Grappling = "grapple",
-	                Defence = "shield", Repair = "repair", Commerce = "commerce"};
-	for (k = 0; k < TouchLib_Count(window, "skills"); k++)
+	if (CheckAttribute(window, "skills"))
 	{
-		aref skill = TouchLib_Item(window, "skills", k);
-		string key = skill.key;
-		if (!CheckAttribute(&words, key)) UiError("shipyard: the captain's table names an unknown skill " + key);
-		aref s = TouchLib_Add(skills, "s");
-		s.icon = words.(key);
-		s.k = UiText("skill." + TouchShipyard_Lower(key));
-		s.v = skill.value;
-		s.tone = skill.tone;
+		makearef(own, window.skills);
+		TouchLib_ShipSkills(own, skills);
 	}
 	if (CheckAttribute(window, "ok.label") && window.ok.label != "")
 		TouchShipyard_Button(actions, "sheet-ok", window.ok.label, "", "primary", window, "ok");
-}
-
-// The string key of a ship skill: skill.sailing for the game's Sailing.
-string TouchShipyard_Lower(string key)
-{
-	object keys = {Sailing = "sailing", Accuracy = "accuracy", Cannons = "cannons", Grappling = "grappling",
-	               Defence = "defence", Repair = "repair", Commerce = "commerce"};
-	return keys.(key);
 }
 
 void TouchShipyard_Tap()

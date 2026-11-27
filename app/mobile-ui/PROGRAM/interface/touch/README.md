@@ -174,28 +174,22 @@ full one):
   models of a flow's frames), recorded or derived from recorded ones; they are game states, so a model must show what
   the game shows in that state (a fresh amount window holds nothing). Router behaviour of the screen with a game that
   answers (`screens_check.cpp`: `GameAnswers` sets what the game's window answers to an offer), the pack contract's
-  cases and flows (`pack-contract.json`), and the recorded parity of the trade family (`trade-parity.json`).
+  cases and flows (`pack-contract.json`).
 - Commands (from the repository root; `XDG_STATE_HOME` to a private directory when run by hand):
   `python3 engine/tools/ci/run_host_tests.py --only ui_scripts` (with `STORM_GAME_DIR` set, `ui_scripts.game` too),
-  `ctest --test-dir engine/build/ui-host -R 'ui_screens|ui_script_screen|ui_trade_parity'`,
+  `ctest --test-dir engine/build/ui-host -R 'ui_screens|ui_script_screen'`,
   `python3 app/mobile-ui/design/build.py --check`, `python3 app/tests/ui_pack_contract/run.py`. Both test trees take
   the scripts as a copy made when they build: rebuild (`ui_scripts_check`, the UI host) after editing a script.
 
 ## Retiring a C++ screen
 
 The script screen, its pack screen and checks land in the same commit that deletes the C++ screen's `Layout` and its
-registration (`engine/src/libs/ui/src/screens/registry.cpp`). Its recorded parity (`trade-parity.json`) is kept until
-the family's C++ is gone; a difference in it is re-recorded only when it is the game's answer shown where the C++
-screen computed its own (named in the commit), never to make a regression pass. A retired screen whose recorded runs
-are mostly the C++ screen's own arithmetic loses its parity case instead (named in the commit): its
-`cases/<capability>.json` and the host checks on the game's answers are its record then.
+registration (`engine/src/libs/ui/src/screens/registry.cpp`); the host checks that covered the C++ screen run on the
+script screen.
 
 ## Not done
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
-- The trade family's last interface, the ship exchange, is still C++
-  (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); its recorded parity
-  (`trade-parity.json`) goes with it.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet; the
   crew hire's, the self repair's and the shipyard's are gone (their adapters read the game themselves); the hero
   screens still in C++ (character, ship) read the facts of `android_hero.c`.

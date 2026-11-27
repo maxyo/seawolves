@@ -1626,384 +1626,130 @@ static void Repair(const std::string &models)
     ExpectEqual(surface.Last(), prefix + "REPAIR_CANCEL\t-1\tpress", "back cancels");
 }
 
-// The captain choice of a prize without a captain (transfer-captain.json, recorded on a device after a boarding:
-// transfer_main.c OFFICERS_WINDOW over a lugger whose captain fell, three passengers). Every candidate carries the
-// game's portrait (PASSENGERSLIST pic<N>.img1 of its FACE128_<FaceId> group, CXI_SCROLLIMAGE::MobileRowImage); the
-// selected one's ship skills (TABLE_SMALLSKILL) and facts (TABLE_SMALLOTHER) as SetOfficersSkills shows them; a tap
-// selects, «Назначить» is the game's ACCEPT_ADD_OFFICER (AcceptAddOfficer), ✕ / the scrim / back its «Отмена».
-static void TransferCaptain(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    const std::string prefix = "widget:transfer_main\t";
-    router.SetInterface(Load(models, "transfer-captain.json"));
-    const Json &sheet = surface.props["sheet"];
-    Expect(router.Using() == "transfer_main" && surface.errors.empty() && sheet.is_object() &&
-               sheet["kind"] == "captain" && sheet["closable"] == true &&
-               sheet["title"] == "Назначение капитана корабля",
-           "the captain window is the shipyard's captain sheet, every widget known: " + sheet.dump().substr(0, 300));
-    const Json &candidates = sheet["candidates"];
-    Expect(candidates.size() == 3 && candidates[0]["id"] == "candidate-0" &&
-               candidates[0]["title"] == "Флоран Габриель" && candidates[0]["selected"] == true &&
-               candidates[1]["selected"] == false && candidates[2]["disabled"] == false,
-           "the three passengers, the first selected: " + candidates.dump().substr(0, 300));
-    bool portraits = candidates.size() == 3;
-    for (const Json &candidate : candidates)
-        portraits = portraits && candidate["image"].is_object() && candidate["image"]["kind"] == "item" &&
-                    candidate["image"]["texture"].get<std::string>().rfind("atlas:FACE128_", 0) == 0;
-    Expect(portraits && candidates[1]["image"]["texture"] == "atlas:FACE128_18/face",
-           "each row shows the officer's own portrait: " + candidates[1].dump());
-    Expect(sheet["name"] == "Флоран Габриель" && !sheet.contains("subtitle"),
-           "the selected one's name above his facts, not as the subtitle");
-    Expect(sheet["skills"].size() == 7 &&
-               sheet["skills"][0] == Json({{"icon", "wheel"}, {"k", "<skill.sailing>"}, {"v", "14"}, {"tone", ""}}) &&
-               sheet["skills"][6]["k"] == "<skill.commerce>" && sheet["skills"][6]["v"] == "13",
-           "his ship skills from the game's mini table: " + sheet["skills"].dump());
-    Expect(sheet["facts"].size() == 5 && sheet["facts"][0] == Json({{"k", "Ранг"}, {"v", "7"}}) &&
-               sheet["facts"][1]["v"] == "93 / 93",
-           "his facts as the game's table lists them: " + sheet["facts"].dump());
-    Expect(sheet["actions"].size() == 1 && sheet["actions"][0]["id"] == "sheet-ok" &&
-               sheet["actions"][0]["label"] == "Назначить" && sheet["actions"][0]["disabled"] == false,
-           "«Назначить», the game's own button: " + sheet["actions"].dump());
-
-    router.OnEvent({"candidate-2", "click", ""});
-    ExpectEqual(surface.Last(), prefix + "PASSENGERSLIST\t2\tselect@4:1:2",
-                "a tap selects that passenger in the game's list (guarded by his row of this revision)");
-    surface.commands.clear();
-    router.OnEvent({"candidate-0", "click", ""});
-    Expect(surface.commands.empty(), "a tap on the selected one sends nothing");
-    router.OnEvent({"sheet-ok", "click", ""});
-    ExpectEqual(surface.Last(), prefix + "ACCEPT_ADD_OFFICER\t-1\tpress",
-                "«Назначить» appoints him (AcceptAddOfficer)");
-    router.OnEvent({"sheet-close", "click", ""});
-    ExpectEqual(surface.Last(), prefix + "CANCEL_ADD_OFFICER\t-1\tpress", "✕ is the game's «Отмена» (ExitOfficerMenu)");
-    router.OnEvent({"sheet", "dismiss", ""});
-    ExpectEqual(surface.Last(), prefix + "CANCEL_ADD_OFFICER\t-1\tpress", "so is a tap beside it");
-    router.OnEvent({"header-back", "click", ""});
-    ExpectEqual(surface.Last(), prefix + "CANCEL_ADD_OFFICER\t-1\tpress", "and back");
-}
-
-// The transfer screen on one router: the loot's cargo, a cargo row, the prisoners, the crew and the ships.
+// The ship exchange on its script screen (screens/transfer/transfer.c; its props and calls per model are
+// engine/tests/ui_scripts/cases/transfer.json): what the router does with a game that answers across models.
 struct TransferRun
 {
     std::string models;
     FakeSurface surface;
     Router router{surface};
     const std::string prefix = "widget:transfer_main\t";
+    explicit TransferRun(std::string path) : models(std::move(path))
+    {
+        Scripted(router);
+    }
 
-    void Loot()
+    size_t Count(const std::string &command) const
+    {
+        return std::count(surface.commands.begin(), surface.commands.end(), prefix + command);
+    }
+
+    void Tabs()
     {
         router.SetInterface(Load(models, "transfer-loot.json"));
-        Expect(router.Using() == "transfer_main" && surface.tag == "s-transfer" && surface.errors.empty(),
-               "loot is drawn by the transfer screen");
-        Expect(surface.props["tabs"].size() == 3 && surface.props["tabs"][0]["selected"] == true &&
-                   surface.props["tabs"][2]["id"] == "ships" && surface.props["ships"].is_null(),
-               "cargo, crew and ships tabs, cargo open");
-        {
-            // The other ship's card of the dock, and the «Корабли» tab: both ships' figures side by side.
-            const Json &prize = surface.props["prize"];
-            Expect(prize["title"] == "Корабль 2" && prize["facts"].size() == 3 && prize["facts"][0]["k"] == "Корпус",
-                   "the other ship's card: " + prize.dump());
-            surface.commands.clear();
-            router.OnEvent({"header", "tab", "2"});
-            const Json &ships = surface.props["ships"];
-            Expect(surface.commands.empty() && surface.props["tabs"][2]["selected"] == true &&
-                       ships["ours"]["title"] == "Корабль 1" && ships["rows"].size() >= 8 &&
-                       ships["rows"][0]["k"] == "Корпус" && ships["rows"][0]["icon"] == "hull",
-                   "the ships tab is ours: nothing is sent, the figures are listed row by row: " +
-                       ships["rows"][0].dump());
-            bool toned = false;
-            for (const Json &row : ships["rows"])
-                toned = toned || row.contains("tone");
-            Expect(toned, "a figure where the other ship is plainly better or worse is toned");
-            router.OnEvent({"header", "tab", "0"});
-            Expect(surface.props["ships"].is_null() && surface.props["tabs"][0]["selected"] == true,
-                   "back to the cargo");
-        }
-        Expect(surface.props["stats"][1]["value"] == "<transfer.no_captain>", "the captured ship has no captain");
-        {
-            // A captain commands the other ship (a companion, or an officer just appointed to the prize): his name
-            // heads its card, as the stock screen's portrait of him does (xinterface ANDROID_TRANSFER captain).
-            FakeSurface named_surface;
-            Router named_router(named_surface);
-            InterfaceModel companion = Load(models, "transfer-companion.json");
-            for (Widget &widget : companion.widgets)
-                if (widget.node == "ANDROID_TRANSFER")
-                    widget.context["captain"] = "Ги Дабри";
-            named_router.SetInterface(companion);
-            const Json &prize = named_surface.props["prize"];
-            Expect(prize["facts"].size() == 4 && prize["facts"][0]["k"] == "<transfer.captain>" &&
-                       prize["facts"][0]["v"] == "Ги Дабри",
-                   "the other ship's card names its captain: " + prize.dump());
-        }
-        Expect(surface.props["list"]["cols"][0]["label"] == "Корабль 1" && surface.props["list"]["rows"].size() > 5,
-               "goods columns named by the ships");
-        ExpectEqual(surface.props["primary"]["label"], "<transfer.take_all>", "take all the cargo");
-        router.OnEvent({"primary", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "TAKE_GOODS\t-1\tpress", "take all = the game's take goods");
-        router.OnEvent({"header", "tab", "1"});
-        ExpectEqual(surface.Last(), prefix + "CREW_BUTTON\t-1\tpress", "crew tab opens the crew window");
-        router.OnEvent({"action-CAPTAN_BUTTON", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "CAPTAN_BUTTON\t-1\tpress", "captain button");
-        router.OnEvent({"header-back", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "EXIT_BTN\t-1\tpress",
-                    "back leaves through the game's exit (it asks about the ship)");
-    }
-
-    void CargoRow()
-    {
-        router.OnEvent({"goods", "row", "0"});
-        ExpectEqual(surface.Last(), prefix + "TABLE_LIST\t0\tselect",
-                    "a tap selects the cargo row (the game's rows carry no identity here)");
-        router.SetInterface(Load(models, "transfer-loot-row.json"));
-        const Json &shot = surface.props["list"]["rows"][0];
-        Expect(shot["q"]["value"] == 100 && shot["q"]["max"] == 595 && shot["q"]["steps"][0] == 20,
-               "the selected row: ours of both, in packs of 20");
-        {
-            const auto arrows = [this](const std::string &command) {
-                return command == prefix + "B_LEFT\t-1\tpress" || command == prefix + "B_RIGHT\t-1\tpress";
-            };
-            const auto presses = [this](const std::string &node, size_t count) {
-                return [this, node, count](const std::vector<std::string> &commands) {
-                    return commands.size() == count &&
-                           std::all_of(commands.begin(), commands.end(),
-                                       [&](const std::string &c) { return c == prefix + node + "\t-1\tpress"; });
-                };
-            };
-            // The game moves whole packs of 20: 145 is 140, two presses.
-            DraftFlow(
-                "transfer cargo: take", router, surface, "goods", 145, "<trade.take> 40", arrows, presses("B_LEFT", 2),
-                [] {}, 100);
-            Expect(surface.props["list"]["rows"][0]["q"]["value"] == 140,
-                   "the control shows what was sent until the game answers");
-            InterfaceModel answered = Load(models, "transfer-loot-row.json");
-            answered.revision += 5;
-            router.SetInterface(answered); // a revision with the same figures: not the answer yet
-            Expect(surface.props["list"]["rows"][0]["q"]["value"] == 140 && surface.props["primary"]["busy"] == true,
-                   "a revision that does not change the figures is not the answer: the sent amount waits");
-            AnswerAll(router, surface, true); // the presses were applied ...
-            Expect(surface.props["list"]["rows"][0]["q"]["value"] == 140,
-                   "applied answers alone are not the result: the model after them is");
-            answered.revision += 1;
-            router.SetInterface(answered); // ... and the model after them still has the old figures: the game said no
-            Expect(surface.props["list"]["rows"][0]["q"]["value"] == 100 &&
-                       surface.props["primary"]["label"] == "<transfer.take_all>",
-                   "a refused move opens the amount again at the game's figure; the bar is the place's again");
-            DraftFlow(
-                "transfer cargo: give", router, surface, "goods", 0, "<trade.give> 100", arrows, presses("B_RIGHT", 5),
-                [] {}, 100);
-            AnswerAll(router, surface, false,
-                      "the button cannot be pressed now"); // refused: open again at once, no model needed
-            Expect(surface.props["list"]["rows"][0]["q"]["value"] == 100 &&
-                       surface.props["primary"]["label"] == "<transfer.take_all>",
-                   "a move the engine refused opens the amount again at once");
-            answered.revision += 5;
-            router.SetInterface(answered);
-            surface.commands.clear();
-            router.OnEvent({"goods", "change", "300"});
-            router.OnEvent({"header-back", "click", ""});
-            Expect(surface.commands.empty() && surface.props["primary"]["label"] == "<transfer.take_all>",
-                   "back drops the amount set first, moving nothing");
-        }
-        {
-            // Regression: a good the other ship no longer has could not be given back. The game shows
-            // (and exports) only the arrows whose way is possible: without B_LEFT the whole control was disabled.
-            InterfaceModel back = Load(models, "transfer-loot-row.json");
-            back.widgets.erase(std::remove_if(back.widgets.begin(), back.widgets.end(),
-                                              [](const Widget &w) { return w.node == "B_LEFT"; }),
-                               back.widgets.end());
-            FakeSurface back_surface;
-            Router back_router(back_surface);
-            back_router.SetInterface(back);
-            const Json q = back_surface.props["list"]["rows"][0]["q"];
-            Expect(q["disabled"] == false && q["min"] == 0 && q["max"] == 100 && q["origin"] == 100,
-                   "without the take arrow the row still gives: ours down to none, nothing to take: " + q.dump());
-            back_router.OnEvent({"goods", "commit", "45"});
-            Expect(back_surface.props["primary"]["label"] == "<trade.give> 60" &&
-                       back_surface.props["primary"]["sub"] == "6 <transfer.cwt>",
-                   "the amount steps by packs of 20 (45 is 40 left, 60 given), the hold's change below: " +
-                       back_surface.props["primary"].dump());
-            back_surface.commands.clear();
-            back_router.OnEvent({"primary", "click", ""});
-            Expect(back_surface.commands == std::vector<std::string>(3, prefix + "B_RIGHT\t-1\tpress"),
-                   "three packs given: " + Json(back_surface.commands).dump());
-            {
-                // Back from the crew window the game hides both arrows (its focus is off the table): the row is
-                // selected again once, and not on every build while they stay hidden.
-                InterfaceModel hidden = Load(models, "transfer-loot-row.json");
-                hidden.widgets.erase(
-                    std::remove_if(hidden.widgets.begin(), hidden.widgets.end(),
-                                   [](const Widget &w) { return w.node == "B_LEFT" || w.node == "B_RIGHT"; }),
-                    hidden.widgets.end());
-                FakeSurface hidden_surface;
-                Router hidden_router(hidden_surface);
-                hidden_router.SetInterface(hidden);
-                hidden.revision += 1;
-                hidden_router.SetInterface(hidden);
-                const auto selects = std::count(hidden_surface.commands.begin(), hidden_surface.commands.end(),
-                                                prefix + "TABLE_LIST\t0\tselect");
-                Expect(selects == 1, "arrows hidden: the selected row is selected again once: " +
-                                         Json(hidden_surface.commands).dump());
-            }
-            Expect(back_surface.props["list"]["rows"][0]["facts"][0]["icon"] == "weight" &&
-                       back_surface.props["list"]["rows"][0]["facts"][1]["v"] == "<trade.per_units>",
-                   "the dock says what a pack weighs and how many pieces it is");
-        }
-        {
-            // The hand at a row's end: the row is selected, then all of the other hold is asked for by the game's
-            // arrow.
-            FakeSurface quick_surface;
-            Router quick(quick_surface);
-            quick.SetInterface(Load(models, "transfer-loot.json"));
-            Expect(quick_surface.props["list"]["quick"] == "hand" &&
-                       quick_surface.props["list"]["rows"][0]["quick"] == true,
-                   "cargo: rows the other hold has offer the quick take");
-            quick.OnEvent({"goods", "quick", "0"});
-            ExpectEqual(quick_surface.Last(), prefix + "TABLE_LIST\t0\tselect",
-                        "quick take: the row is selected first");
-            quick_surface.commands.clear();
-            quick.SetInterface(Load(models, "transfer-loot-row.json"));
-            quick.Tick();
-            Expect(quick_surface.commands.size() == 25 && quick_surface.commands[0] == prefix + "B_LEFT\t-1\tpress" &&
-                       quick_surface.props["dealing"] == true,
-                   "quick take: 495 of theirs = 25 packs of 20 taken: " +
-                       std::to_string(quick_surface.commands.size()));
-        }
-    }
-
-    void Prisoners()
-    {
-        router.SetInterface(Load(models, "transfer-hire.json"));
-        const Json &hire = surface.props["modal"];
-        Expect(hire["step"] == "1/2" && hire["q"]["value"] == 8 && hire["q"]["max"] == 8,
-               "defectors: all 8 willing are taken by default");
-        ExpectEqual(hire["actions"][1]["label"], "<transfer.take> 8", "take 8");
+        Expect(router.Using() == "transfer_main" && surface.tag == "s-transfer" && surface.errors.empty() &&
+                   surface.props["tabs"].size() == 3 && surface.props["ships"].is_null(),
+               "loot is drawn by the transfer script screen, cargo open: " + Json(surface.errors).dump());
         surface.commands.clear();
-        router.OnEvent({"hire", "commit", "5"});
-        Expect(surface.commands.size() == 3 && surface.commands[0] == prefix + "HIRE_QTY_REMOVE_BUTTON\t-1\tpress",
-               "8 → 5 = three presses down");
-        router.OnEvent({"hire-ok", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "HIRE_QTY_OK_BUTTON\t-1\tpress", "accept the defectors");
-        router.OnEvent({"header-back", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "HIRE_QTY_CANCEL_BUTTON\t-1\tpress", "back refuses them");
-
-        router.SetInterface(Load(models, "transfer-crew-capture.json"));
-        const Json &fate = surface.props["modal"];
-        Expect(fate["step"] == "2/2" && fate["actions"].size() == 3 && fate["actions"][0]["hold"] == true &&
-                   fate["actions"][0]["variant"] == "danger",
-               "crew fate after the defectors: overboard is held, never asked");
-        router.OnEvent({"fate-kill", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "CAPTURE_CREW_KILL\t-1\tpress", "overboard once the hold completes");
-
-        {
-            // The surrendered captain: his portrait beside the question, overboard held, prison the plain answer.
-            InterfaceModel capture = Load(models, "transfer-loot.json");
-            capture.widgets.push_back(Make("CAPTURE_CAPTION", "text", "Решение по пленным"));
-            capture.widgets.push_back(Make("CAPTURE_TEXT", "text", "Выберите участь сдавшегося капитана."));
-            capture.widgets.push_back(Make("CAPTURE_CAPTAIN_KILL", "button", "Выкинуть за борт", {"press"}));
-            capture.widgets.push_back(Make("CAPTURE_CAPTAIN_PRISON", "button", "Взять пленником", {"press"}));
-            capture.widgets.push_back(Make("CAPTURE_CANCEL", "button", "Отмена", {"press"}));
-            Widget face = Make("CAPTUR_PICTURE", "image", "");
-            ImageRef portrait;
-            portrait.kind = "portrait";
-            portrait.image = "100";
-            face.images.push_back(portrait);
-            capture.widgets.push_back(face);
-            FakeSurface capture_surface;
-            Router capture_router(capture_surface);
-            capture_router.SetInterface(capture);
-            const Json &asked = capture_surface.props["modal"];
-            Expect(capture_surface.errors.empty() && capture_surface.props["extras"]["rows"].empty() &&
-                       asked["image"] ==
-                           Json({{"kind", "portrait"}, {"texture", "INTERFACES/PORTRAITS/128/face_100"}}) &&
-                       asked["actions"][0]["hold"] == true && asked["actions"][0]["variant"] == "danger" &&
-                       asked["actions"][1]["variant"] == "primary",
-                   "the captain's fate: his portrait, overboard held: " + asked.dump());
-            capture_surface.commands.clear();
-            capture_router.OnEvent({"modal", "dismiss", ""});
-            Expect(capture_surface.errors.empty() && capture_surface.Last() == prefix + "CAPTURE_CANCEL\t-1\tpress",
-                   "a tap beside the question is its «Отмена»: the captain stays as he is");
-            capture_router.OnEvent({"capture-prison", "click", ""});
-            ExpectEqual(capture_surface.Last(), prefix + "CAPTURE_CAPTAIN_PRISON\t-1\tpress",
-                        "prison is the game's own button");
-        }
-        router.SetInterface(Load(models, "transfer-fate.json"));
-        const Json &ship = surface.props["modal"];
-        Expect(ship["actions"].size() == 2 && ship["actions"][0]["label"] == "<transfer.sink>" &&
-                   ship["actions"][0]["hold"] == true,
-               "a ship without a captain: sink (held) or keep");
-        router.OnEvent({"fate-ship", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "REMOVE_ACCEPT_OFFICER\t-1\tpress", "sink = the game's yes");
-        router.OnEvent({"fate-keep", "click", ""});
-        ExpectEqual(surface.Last(), prefix + "REMOVE_CANCEL_OFFICER\t-1\tpress", "keep = back to appoint a captain");
-    }
-
-    void Crew()
-    {
-        router.SetInterface(Load(models, "transfer-crew.json"));
-        {
-            // The slider marks the least crew each ship sails with (MinCrew): ours where our crew is
-            // 9, theirs where what we leave them is their 21 (96 + 58 - 21 = 133).
-            const Json &marks = surface.props["crew"]["rows"][0]["q"]["marks"];
-            Expect(marks.size() == 2 && marks[0]["at"] == 9 && marks[1]["at"] == 133 &&
-                       marks[0]["label"] == "Корабль 1 <transfer.min_mark>" &&
-                       marks[1]["label"] == "Корабль 2 <transfer.min_mark>",
-                   "crew: the two MinCrew marks on our crew's scale: " + marks.dump());
-            const Json &cells = surface.props["crew"]["rows"][0]["cells"];
-            Expect(cells[0]["text"] == "96" && cells[0]["sub"] == "<transfer.min_mark>" && cells[1]["text"] == "58" &&
-                       cells[1]["sub"] == "<transfer.min_mark>",
-                   "crew: each ship's minimum under its crew: " + cells.dump());
-            Expect(surface.errors.empty(), "crew marks read from ANDROID_TRANSFER");
-        }
-        Expect(surface.props["crew"]["rows"][0]["q"]["value"] == 96 &&
-                   surface.props["crew"]["rows"][0]["q"]["max"] == 154 &&
-                   surface.props["tabs"][1]["selected"] == true && surface.props["primary"].is_null(),
-               "crew window: our 96 of both crews, crew tab open");
-        DraftFlow(
-            "transfer crew", router, surface, "crew", 100, "<trade.take> 4",
-            [this](const std::string &command) {
-                return command == prefix + "CREW_LEFT\t-1\tpress" || command == prefix + "CREW_RIGHT\t-1\tpress";
-            },
-            [this](const std::vector<std::string> &commands) {
-                return commands == std::vector<std::string>(4, prefix + "CREW_LEFT\t-1\tpress");
-            },
-            [] {}, 96);
+        router.OnEvent({"header", "tab", "2"});
+        Expect(surface.commands.empty() && surface.props["tabs"][2]["selected"] == true &&
+                   surface.props["ships"]["rows"][0]["icon"] == "hull",
+               "the ships tab is ours: nothing is sent, the figures are listed");
         router.OnEvent({"header", "tab", "0"});
-        ExpectEqual(surface.Last(), prefix + "CREW_EXIT_BTN\t-1\tpress", "cargo tab closes the crew window");
+        Expect(surface.props["ships"].is_null() && surface.props["tabs"][0]["selected"] == true, "back to the cargo");
+        // «Корабли» from the crew window: the game closes it first, the models until it has still show it open.
+        InterfaceModel crew = Load(models, "transfer-crew.json");
+        crew.revision = 100;
+        router.SetInterface(crew);
+        router.OnEvent({"header", "tab", "2"});
+        ExpectEqual(surface.Last(), prefix + "CREW_EXIT_BTN\t-1\tpress", "ships tab closes the crew window");
+        AnswerAll(router, surface, true);
+        crew.revision += 1;
+        router.SetInterface(crew);
+        Expect(surface.props["tabs"][2]["selected"] == true && surface.props["ships"].is_null(),
+               "while the crew window is still open: the ships tab is chosen, the crew stays drawn");
+        InterfaceModel closed = Load(models, "transfer-loot.json");
+        closed.revision = crew.revision + 1;
+        router.SetInterface(closed);
+        Expect(surface.props["tabs"][2]["selected"] == true && !surface.props["ships"].is_null(),
+               "the crew window closed: the ships tab opens");
     }
 
-    void ShipsFromCrew()
+    void QuickTake()
     {
-        // «Корабли» from the crew window (device, scenario fleet: the cargo opened instead): the game closes the crew
-        // window first, and the models until it has still show it open.
-        {
-            FakeSurface tabs_surface;
-            Router tabs_router(tabs_surface);
-            InterfaceModel crew = Load(models, "transfer-crew.json");
-            tabs_router.SetInterface(crew);
-            tabs_router.OnEvent({"header", "tab", "2"});
-            ExpectEqual(tabs_surface.Last(), prefix + "CREW_EXIT_BTN\t-1\tpress", "ships tab closes the crew window");
-            crew.revision += 1;
-            tabs_router.SetInterface(crew);
-            Expect(tabs_surface.props["tabs"][2]["selected"] == true && tabs_surface.props["ships"].is_null(),
-                   "while the crew window is still open: the ships tab is chosen, the crew stays drawn");
-            InterfaceModel closed = Load(models, "transfer-loot.json");
-            closed.revision = crew.revision + 1;
-            tabs_router.SetInterface(closed);
-            Expect(tabs_surface.props["tabs"][2]["selected"] == true && !tabs_surface.props["ships"].is_null(),
-                   "the crew window closed: the ships tab opens");
-        }
+        // The hand on a row not selected: the game selects it, then its arrow takes all of theirs (495 in packs of
+        // 20: 25 presses, the last what is left).
+        FakeSurface quick_surface;
+        Router quick(quick_surface);
+        Scripted(quick);
+        quick.SetInterface(Load(models, "transfer-loot.json"));
+        quick.OnEvent({"goods", "quick", "0"});
+        ExpectEqual(quick_surface.Last(), prefix + "TABLE_LIST\t0\tselect", "quick take: the row is selected first");
+        AnswerAll(quick, quick_surface, true);
+        quick_surface.commands.clear();
+        InterfaceModel row = Load(models, "transfer-loot-row.json");
+        row.revision = 100;
+        quick.SetInterface(row);
+        Expect(quick_surface.commands == std::vector<std::string>(25, prefix + "B_LEFT\t-1\tpress"),
+               "quick take: then all of theirs by the game's arrow: " + Json(quick_surface.commands).dump());
+    }
+
+    void Arrows()
+    {
+        // Back from the crew window the game hides both arrows (its focus is off the table): the row is selected
+        // again once, not on every build while they stay hidden.
+        FakeSurface hidden_surface;
+        Router hidden_router(hidden_surface);
+        Scripted(hidden_router);
+        InterfaceModel hidden = Load(models, "transfer-loot-row.json");
+        hidden.widgets.erase(std::remove_if(hidden.widgets.begin(), hidden.widgets.end(),
+                                            [](const Widget &w) { return w.node == "B_LEFT" || w.node == "B_RIGHT"; }),
+                             hidden.widgets.end());
+        hidden_router.SetInterface(hidden);
+        AnswerAll(hidden_router, hidden_surface, true);
+        hidden.revision += 1;
+        hidden_router.SetInterface(hidden);
+        const auto selects = std::count(hidden_surface.commands.begin(), hidden_surface.commands.end(),
+                                        prefix + "TABLE_LIST\t0\tselect");
+        Expect(selects == 1,
+               "arrows hidden: the selected row is selected again once: " + Json(hidden_surface.commands).dump());
+    }
+
+    void Questions()
+    {
+        // A tap beside a question whose way out leaves things as they are takes it; beside one whose every answer
+        // decides something (the prisoners) it is refused.
+        InterfaceModel capture = Load(models, "transfer-crew-capture.json");
+        capture.revision = 200;
+        router.SetInterface(capture);
+        surface.commands.clear();
+        router.OnEvent({"modal", "dismiss", ""});
+        Expect(surface.commands.empty(), "the prisoners' fate is answered by its buttons only");
+        InterfaceModel fate = Load(models, "transfer-fate.json");
+        fate.revision = 201;
+        router.SetInterface(fate);
+        router.OnEvent({"modal", "dismiss", ""});
+        ExpectEqual(surface.Last(), prefix + "REMOVE_CANCEL_OFFICER\t-1\tpress",
+                    "beside the ship's question: keep the ship");
+        InterfaceModel captain = Load(models, "transfer-captain.json");
+        captain.revision = 202;
+        router.SetInterface(captain);
+        Expect(surface.props["sheet"]["kind"] == "captain" && surface.props["sheet"]["skills"].size() == 7 &&
+                   surface.props["sheet"]["skills"][0]["k"] == "<skill.sailing>",
+               "the captain choice is the captain sheet with the chosen one's ship skills: " +
+                   surface.props["sheet"]["skills"].dump());
+        router.OnEvent({"sheet", "dismiss", ""});
+        ExpectEqual(surface.Last(), prefix + "CANCEL_ADD_OFFICER\t-1\tpress", "beside the captain sheet: «Отмена»");
     }
 };
 
 static void Transfer(const std::string &models)
 {
     TransferRun run{models};
-    run.Loot();
-    run.CargoRow();
-    run.Prisoners();
-    run.Crew();
-    run.ShipsFromCrew();
+    run.Tabs();
+    run.QuickTake();
+    run.Arrows();
+    run.Questions();
 }
 
 static void Alchemy(const std::string &models)
@@ -4710,7 +4456,6 @@ int main(int argc, char **argv)
     Games(models);
     Repair(models);
     Transfer(models);
-    TransferCaptain(models);
     Alchemy(models);
     GoodsOrder(models);
     SailEmblem(models);

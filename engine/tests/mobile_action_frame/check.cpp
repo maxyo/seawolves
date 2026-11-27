@@ -102,7 +102,7 @@ void Reselect(Interface &game, bool each)
     game.Frame(each);
     REQUIRE((game.store.open && game.store.deal && game.store.row == 0));
     game.store.amount = 40;             // the player sets an amount on A
-    game.actions = {"cancel", "row:1"}; // trade_commerce.cpp: close A's deal, open B
+    game.actions = {"cancel", "row:1"}; // the trade adapter: close A's deal, open B
     game.Frame(each);                   // one frame answers both
 }
 

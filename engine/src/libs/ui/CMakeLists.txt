@@ -116,7 +116,6 @@ add_library(storm_ui STATIC
     src/screens/parse_amount.cpp
     src/screens/registry.cpp
     src/screens/generic.cpp
-    src/screens/trade_commerce.cpp
     src/screens/hero.cpp
     src/screens/hero_character.cpp
     src/screens/hero_ship.cpp
@@ -126,7 +125,6 @@ add_library(storm_ui STATIC
     src/screens/menu_saves.cpp
     src/screens/menu_settings.cpp
     src/screens/menu_title.cpp
-    src/screens/extra_transfer.cpp
     src/screens/extra_alchemy.cpp
     src/screens/extra_goods.cpp
     src/screens/menu_game_over.cpp
@@ -274,11 +272,6 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     storm_ui_check(screens screens_check.cpp "${models}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_screens_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_screens_unit storm_ui_app_pack)
-    storm_ui_check(trade_parity trade_parity_check.cpp "${models}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/trade-parity.json"
-                   "${CMAKE_BINARY_DIR}/app-pack")
-    target_link_libraries(storm_ui_trade_parity_unit PRIVATE storm_ui_script_game)
-    add_dependencies(storm_ui_trade_parity_unit storm_ui_app_pack)
-    set_tests_properties(ui_trade_parity PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
     storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}" "${STORM_MOBILE_UI}/design")
     target_link_libraries(storm_ui_taps_unit PRIVATE storm_ui_script_game)
     storm_ui_check(routing routing_check.cpp "${states}" "${pack}")

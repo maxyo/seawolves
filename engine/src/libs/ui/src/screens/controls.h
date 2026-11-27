@@ -106,11 +106,9 @@ class AmountDraft
     int Value(int low, int high) const;
     // Binds `<id> change` and `<id> commit` of the control: both move the draft and build again; `moved`, when
     // given, is told the new amount (a script screen offers it to the game). Past `high` a `more_reason` (the
-    // purse, the room) is said once per push, past `low` a `less_reason` (the other side's room or money). A
-    // `grain` above 1 keeps the draft on what the game can make of it: the origin plus or minus whole grains (the
-    // packs the exchange of ships moves by its arrows), or one of the ends.
+    // purse, the room) is said once per push, past `low` a `less_reason` (the other side's room or money).
     void Bind(Bindings &bindings, const std::string &id, int low, int high, const std::string &more_reason,
-              int grain = 1, const std::string &less_reason = {}, std::function<void(int)> moved = {});
+              const std::string &less_reason = {}, std::function<void(int)> moved = {});
     // The game's window holds `value` now: the draft shows it (not while a press of its button is answered).
     void Answered(int value)
     {
@@ -125,15 +123,14 @@ class AmountDraft
     // «Отмена» (id "deal-cancel") appended to `actions` while a changed draft is not sent: it drops the draft.
     // Only for a setting kept as a draft (the treasurer's standing order), never for a transfer.
     void CancelAction(Bindings &bindings, Json &actions);
-    // The deal was sent by other means (the quick take of a whole stack): wait for the answer like after Buttons.
-    // Call it before sending: the actions sent from now on are the deal's.
-    void Sent(int value, Bindings &bindings);
     // Drops a changed draft (the platform back); false when there was nothing to drop.
     bool Drop();
 
   private:
     static constexpr double kNoAnswer = 5.0; // s: a sent draft without an answer by then is an error
     void Open(const std::string &key, int origin, int other);
+    // The deal was sent: it waits for the answer to the actions sent from now on.
+    void Sent(int value, Bindings &bindings);
     bool open_ = false;
     std::string key_;
     int origin_ = 0, other_ = 0;
