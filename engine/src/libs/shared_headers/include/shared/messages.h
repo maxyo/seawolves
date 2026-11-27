@@ -222,6 +222,9 @@
 #define MSG_CAMERA_SET_RADIUS 30521 // "lf" set radius
 
 #define MSG_CAMERA_SET_PERSPECTIVE 30530 // "lf" set perspective
+#define MSG_CAMERA_SPECIALMODE 30531      // "ll" the character does not turn with the camera
+#define MSG_CAMERA_GET_AY 30532           // "le" &float: the camera's direction
+#define MSG_CAMERA_SHOOTING_FX 30533      // "lsl" "shot", two-handed: recoil and shake; "ls" "clear"
 
 // Blots on the ship
 #define MSG_BLOTS_SETMODEL 30600 // "li" set the model, model_id

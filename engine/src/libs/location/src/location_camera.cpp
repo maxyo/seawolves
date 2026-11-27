@@ -4,6 +4,8 @@
 //    LocationCamera
 
 #include "location_camera.h"
+#include "land_messages.hpp"
+#include "land_protocol.hpp"
 #include <cmath>
 #ifdef __ANDROID__
 #include <platform/android_camera.hpp>
@@ -139,7 +141,7 @@ void LocationCamera::Realize(uint32_t delta_time)
     // Camera mode
     CONTROL_STATE cs;
     core.Controls->GetControlState("ChrCamSpecMode", cs);
-    isSpecialMode = cs.state == CST_ACTIVE;
+    isSpecialMode = cs.state == CST_ACTIVE || scriptSpecialMode;
     // Time period
     const auto dltTime = delta_time * 0.001f;
     if (isSleep)
@@ -345,7 +347,7 @@ void LocationCamera::Realize(uint32_t delta_time)
         {
             camPos = oldPos + (camPos - oldPos) * kMorph;
             lookTo = oldLookTo + (lookTo - oldLookTo) * kMorph;
-            kMorph += dltTime * 1.0f;
+            kMorph += dltTime * morphSpeed;
         }
         else
         {
@@ -403,7 +405,8 @@ void LocationCamera::Execute(uint32_t delta_time)
 
 uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
 {
-    switch (message.Long())
+    const auto code = message.Long();
+    switch (code)
     {
     case MSG_CAMERA_SETTARGET:
         chr = message.EntityID();
@@ -421,6 +424,10 @@ uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
             oldLookTo = lookTo;
             kMorph = 0.0f;
         }
+        // Caribbean Legend may ask to be there at once
+        if (storm::location::ReadOptionalLong(message, 1).value_or(0) != 0)
+            kMorph = 1.0f;
+        morphSpeed = 1.0f;
         wmode = cwm_follow;
         return 1;
     case MSG_CAMERA_TOPOS:
@@ -439,6 +446,8 @@ uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
         }
         else
             kMorph = 1.0f;
+        // Caribbean Legend may give the speed of the move there
+        morphSpeed = message.GetFormat().size() > 5 ? message.Float() : 1.0f;
         wmode = cwm_topos;
         return 1;
     case MSG_CAMERA_MOVE:
@@ -507,11 +516,36 @@ uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
         pos.y = message.Float();
         pos.z = message.Float();
         forcedPos = true;
-
+        if (storm::location::ReadOptionalLong(message, 8).value_or(0) != 0)
+            storm::location::ReportWithoutEffect("location camera from-to (-4)",
+                                                 "looking at the character instead of the point is not done");
         return 1;
 
+    case MSG_CAMERA_SPECIALMODE:
+        scriptSpecialMode = message.Long() != 0;
+        return 1;
+    case MSG_CAMERA_GET_AY:
+        message.ScriptVariablePointer()->Set(cf.camay);
+        return 1;
+    case MSG_CAMERA_SHOOTING_FX: {
+        const std::string &kind = message.String();
+        if (kind != "shot" && kind != "clear")
+            return 0;
+        storm::location::ReportWithoutEffect("MSG_CAMERA_SHOOTING_FX", "the camera's shot recoil and shake are not run");
+        return 1;
+    }
+    case -5:
+        message.String();
+        storm::location::ReportWithoutEffect("location camera view mode (-5)", "the view modes are not run");
+        return 1;
+    case -8: // turn the follow camera to the character's direction
+        if (wmode == cwm_follow && character)
+            cf.camay = character->GetAY();
+        return 1;
+    case -9: // whether the camera looks from the character's eyes
+        return wmode == cwm_follow && isLookMode;
     default:
-        ;
+        storm::location::ReportUnknownCommand("location camera message", std::to_string(code));
     }
 
     return 0;

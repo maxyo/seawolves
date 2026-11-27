@@ -115,6 +115,8 @@ class LocationCamera : public Entity
     float radInertia;    // Inertia of approaching
 
     bool isSpecialMode;
+    bool scriptSpecialMode = false; // MSG_CAMERA_SPECIALMODE
+    float morphSpeed = 1.0f;        // of the move to a new position, per second
     bool isLockFPMode;
     bool isViewExecute;
 
