@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera_shake.hpp"
 #include "game_pictures.hpp"
 #ifdef __ANDROID__
 #include "android_render_resolution.hpp"
@@ -414,6 +415,11 @@ class Renderer : public VRenderer
     char *GetTipsImage() override;
 
     void SetColorParameters(float fGamma, float fBrightness, float fContrast) override;
+    // Starts or stops the scripts' camera shake (SetCameraShake).
+    void ShakeCamera(const storm::render::CameraShakeRequest &request, uint32_t seed)
+    {
+        cameraShake_.Start(request, seed);
+    }
     // The texture path of `level` (0..3) as SetTexturePath set it, empty when it was not.
     const char *TexturePath(int32_t level) const
     {
@@ -582,6 +588,10 @@ private:
     int32_t iSetupPath;
     uint64_t dwSetupNumber;
     texpaths_t TexPaths[4]{};
+    storm::render::CameraShake cameraShake_;
+    float cameraShakeScale_ = 1.0f; // the scripts' factor of this frame (CamShakeScaler)
+    // The camera of SetCamera moved and turned by the shake of this frame (none when no shake runs).
+    void ShakeView(glm::vec3 &pos, glm::vec3 &ang) const;
 
     bool bDropVideoConveyor;
 

@@ -146,6 +146,26 @@ uint32_t ScriptSetTexturePath(VS_STACK *pS)
     return IFUNCRESULT_OK;
 }
 
+uint32_t ScriptSetCameraShake(VS_STACK *pS)
+{
+    storm::render::CameraShakeRequest request;
+    int32_t flag = 0;
+    static_cast<VDATA *>(pS->Pop())->Get(request.fade);
+    static_cast<VDATA *>(pS->Pop())->Get(flag);
+    request.scaled = flag != 0;
+    static_cast<VDATA *>(pS->Pop())->Get(flag);
+    request.camera_axes = flag != 0;
+    static_cast<VDATA *>(pS->Pop())->Get(request.turn_range);
+    static_cast<VDATA *>(pS->Pop())->Get(request.move_range);
+    static_cast<VDATA *>(pS->Pop())->Get(request.turn_frequency);
+    static_cast<VDATA *>(pS->Pop())->Get(request.move_frequency);
+    static_cast<VDATA *>(pS->Pop())->Get(request.time);
+    if (!Renderer::pRS)
+        core.GetService("renderer");
+    Renderer::pRS->ShakeCamera(request, SDL_GetTicks());
+    return IFUNCRESULT_OK;
+}
+
 uint32_t ScriptGetTexturePath(VS_STACK *pS)
 {
     const int32_t level = static_cast<VDATA *>(pS->Pop())->GetInt();
@@ -208,6 +228,12 @@ bool DX9RENDER_SCRIPT_LIBRIARY::Init()
     sIFuncInfo.pFuncName = "SetTexturePath";
     sIFuncInfo.pReturnValueName = "int";
     sIFuncInfo.pFuncAddress = ScriptSetTexturePath;
+    core.SetScriptFunction(&sIFuncInfo);
+
+    sIFuncInfo.nArguments = 8;
+    sIFuncInfo.pFuncName = "SetCameraShake";
+    sIFuncInfo.pReturnValueName = nullptr;
+    sIFuncInfo.pFuncAddress = ScriptSetCameraShake;
     core.SetScriptFunction(&sIFuncInfo);
 
     sIFuncInfo.nArguments = 1;
@@ -2885,8 +2911,27 @@ bool Renderer::SetCamera(const glm::vec3 &pos, const glm::vec3 &ang, float fov)
     return true;
 }
 
-bool Renderer::SetCamera(const glm::vec3 &pos, const glm::vec3 &ang)
+void Renderer::ShakeView(glm::vec3 &pos, glm::vec3 &ang) const
 {
+    if (!cameraShake_.Active())
+        return;
+    const storm::render::CameraShakeOffset shake = cameraShake_.Offset(cameraShakeScale_);
+    if (cameraShake_.CameraAxes())
+    {
+        // the camera's right and up of its yaw (ang.y) and pitch (ang.x), as SetCamera(lookFrom, lookTo, up) derives them
+        const glm::vec3 forward{std::sin(ang.y) * std::cos(ang.x), -std::sin(ang.x), std::cos(ang.y) * std::cos(ang.x)};
+        const glm::vec3 right{std::cos(ang.y), 0.0f, -std::sin(ang.y)};
+        pos += right * shake.move.x + glm::cross(forward, right) * shake.move.y;
+    }
+    else
+        pos += glm::vec3(shake.move.x, shake.move.y, 0.0f);
+    ang += shake.turn;
+}
+
+bool Renderer::SetCamera(const glm::vec3 &unshaken_pos, const glm::vec3 &unshaken_ang)
+{
+    glm::vec3 pos = unshaken_pos, ang = unshaken_ang;
+    ShakeView(pos, ang);
     glm::mat4 mtx;
     const glm::vec3 vOldWordRelationPos = vWordRelationPos;
     {
@@ -2911,6 +2956,22 @@ bool Renderer::SetCamera(const glm::vec3 &pos, const glm::vec3 &ang)
 
 bool Renderer::SetCamera(glm::vec3 lookFrom, glm::vec3 lookTo, glm::vec3 up)
 {
+    if (cameraShake_.Active())
+    {
+        // shaken as SetCamera(pos, angles) is: the view's angles turned, then rolled about its direction
+        const glm::vec3 view = lookTo - lookFrom;
+        const float distance = glm::length(view);
+        if (distance > 0.0f)
+        {
+            glm::vec3 ang{std::atan2(-view.y, std::sqrt(view.x * view.x + view.z * view.z)), std::atan2(view.x, view.z),
+                          0.0f};
+            ShakeView(lookFrom, ang);
+            const glm::vec3 forward{std::sin(ang.y) * std::cos(ang.x), -std::sin(ang.x),
+                                    std::cos(ang.y) * std::cos(ang.x)};
+            up = glm::angleAxis(ang.z, forward) * up;
+            lookTo = lookFrom + forward * distance;
+        }
+    }
     glm::mat4 mtx;
     if (!storm::math::viewMatrix(mtx, lookFrom, lookTo, up))
         return false;
@@ -3567,6 +3628,11 @@ void SyncSceneDetail()
 void Renderer::RunStart()
 {
     SyncSceneDetail();
+    cameraShake_.Advance(static_cast<float>(core.GetDeltaTime()) * 0.001f);
+    cameraShakeScale_ = 1.0f;
+    if (cameraShake_.Scaled())
+        if (VDATA *scale = core.Event("CamShakeScaler"); !scale || !scale->Get(cameraShakeScale_))
+            spdlog::error("CamShakeScaler: no factor from the scripts; the shake is not scaled");
 #ifdef __ANDROID__
     if (pendingViewResize_.width > 0)
         ApplyViewResize();
