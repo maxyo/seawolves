@@ -6,39 +6,10 @@
 
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <utility>
-#include <vector>
 
 namespace storm::android
 {
-
-// The script's captain line is "<cannon type>  [<musket volley>]  <name>": parts apart by
-// runs of two or more spaces. Returns {cannon type, captain name}.
-inline std::pair<std::string, std::string> spyglassCaptainLine(std::string_view line)
-{
-    std::vector<std::string> parts;
-    size_t i = 0;
-    while (i < line.size())
-    {
-        while (i < line.size() && line[i] == ' ')
-            ++i;
-        size_t end = i;
-        while (end < line.size() && !(line[end] == ' ' && end + 1 < line.size() && line[end + 1] == ' '))
-            ++end;
-        std::string part(line.substr(i, end - i));
-        while (!part.empty() && part.back() == ' ')
-            part.pop_back();
-        if (!part.empty())
-            parts.push_back(std::move(part));
-        i = end;
-    }
-    if (parts.empty())
-        return {};
-    if (parts.size() == 1) // a line without its cannon type: only the name was sent
-        return {std::string(), parts.front()};
-    return {parts.front(), parts.back()};
-}
 
 // The telescope and its target (MSG_ISG_UPDATE): what the channel shows. The game's indices (class, charge,
 // nation) are checked where the target is read (spyglass.cpp).

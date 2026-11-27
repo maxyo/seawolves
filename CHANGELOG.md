@@ -67,6 +67,8 @@
 - Значок «только шагом» под полосками больше не гадает о причине (перегруз или квест): игра её не сообщает.
 - Выбор зарядов на море предлагает и те, которых нет в трюме (с красным 0), как клавиши 1–4 игры: игра переключает
   заряд и сама не заряжает пушки без ядер.
+- Подзорная труба: если у капитана мушкетный залп, а тип пушек не показан, надпись «Мушкетный залп» больше не
+  выдаётся за тип пушек.
 
 **English**
 
@@ -139,6 +141,8 @@
 - The «walking only» icon under the bars no longer guesses the reason (overload or a quest): the game does not tell it.
 - The charge picker at sea also offers the kinds the hold lacks (with a red 0), as the game's keys 1–4 do: the game
   switches the charge and itself does not load guns without shot.
+- Spyglass: when the captain has the musket volley and the cannon type is not shown, «Musket volley» is no longer shown
+  as the cannon type.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

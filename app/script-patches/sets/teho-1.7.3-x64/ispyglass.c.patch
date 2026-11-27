@@ -1,0 +1,12 @@
+--- a/PROGRAM/battle_interface/ispyglass.c
++++ b/PROGRAM/battle_interface/ispyglass.c
+@@ -280,6 +280,9 @@
+ 		}
+ 	}	
+ 	
++	// Seawolves: the line's parts apart, for an interface that shows them apart.
++	objISpyGlass.captainline.cannontype = CannonTypeName;
++	objISpyGlass.captainline.name = sCaptainName;
+ 	if (CheckAttribute(arScopeItm,"scope.show.mushketshot") && sti(arScopeItm.scope.show.mushketshot) != 0  && CheckCharacterPerk(chref, "MusketsShoot") && !isFort)	
+ 	{
+ 		sCaptainName = CannonTypeName + "  Мушкетный залп   " + sCaptainName;

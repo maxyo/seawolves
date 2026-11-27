@@ -6,12 +6,6 @@
 TEST_CASE("android_spyglass")
 {
     using namespace storm::android;
-    REQUIRE(spyglassCaptainLine("24 фунт.       Мигель де Сандоваль") ==
-            std::make_pair(std::string("24 фунт."), std::string("Мигель де Сандоваль")));
-    REQUIRE(spyglassCaptainLine("Кулеврины  Мушкетный залп   Ян ван Дейк").second == "Ян ван Дейк");
-    REQUIRE((spyglassCaptainLine("       Хуан").first.empty() && spyglassCaptainLine("       Хуан").second == "Хуан"));
-    REQUIRE(spyglassCaptainLine("   ").second.empty());
-
     SpyglassState s;
     REQUIRE((s.hud().known && !s.hud().on && !s.hud().target));
     s.turn(true);

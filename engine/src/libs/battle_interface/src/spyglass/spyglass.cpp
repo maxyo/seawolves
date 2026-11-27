@@ -813,7 +813,7 @@ void ISPYGLASS::ChangeTargetData(const char *pcShipName, const char *pcShipType,
     target.kind = fort ? "fort" : "ship";
     target.name = scriptText(pcShipName ? pcShipName : "", "spyglass");
     target.type = scriptText(pcShipType ? pcShipType : "", "spyglass");
-    target.ship_class = scriptIndex(nShipClass > 0 ? nShipClass : -1, 1, 7, "spyglass", "ship class");
+    target.ship_class = nShipClass > 0 ? nShipClass : -1;
     target.hull = static_cast<int>(fRelativeHP * 100.f + .5f);
     target.sails = fort ? -1 : static_cast<int>(fRelativeSP * 100.f + .5f);
     target.crew = nShipCrew;
@@ -821,11 +821,20 @@ void ISPYGLASS::ChangeTargetData(const char *pcShipName, const char *pcShipType,
     target.distance = fSailTo;
     target.cannons = nMaxCannons >= 0 ? nCurCannons : -1;
     target.cannons_max = nCurCannons >= 0 ? nMaxCannons : -1;
-    target.charge = scriptIndex(nCharge, 0, 4, "spyglass", "charge");
-    target.nation = scriptIndex(nNation, 0, 5, "spyglass", "nation");
+    target.charge = scriptIndex(nCharge, 0, storm::ui::hud::Spyglass::kCharges, "spyglass", "charge");
+    target.nation = scriptIndex(nNation, 0, storm::ui::hud::Spyglass::kNations, "spyglass", "nation");
     target.sail = nSailState;
-    std::tie(target.cannon_type, target.captain) =
-        storm::android::spyglassCaptainLine(scriptText(pcCaptainName ? pcCaptainName : "", "spyglass"));
+    // The captain line's parts as the script set them beside the line (script patch spyglass-captain-parts).
+    if (auto *line = GetAttr("captainline"))
+    {
+        std::string cannons = scriptText(line->GetAttribute("cannontype") ? line->GetAttribute("cannontype") : "",
+                                         "spyglass");
+        cannons.erase(0, cannons.find_first_not_of(' ')); // the script's names start with a space
+        target.cannon_type = std::move(cannons);
+        target.captain = scriptText(line->GetAttribute("name") ? line->GetAttribute("name") : "", "spyglass");
+    }
+    else
+        storm::android::logChannelDefect("spyglass", "objISpyGlass.captainline is missing: no captain shown");
     if (nFace >= 0)
         target.portrait = "INTERFACES/PORTRAITS/128/face_" + std::to_string(nFace);
     const int32_t skills[] = {nFencing, nCannon, nAccuracy, nNavigation, nBoarding};

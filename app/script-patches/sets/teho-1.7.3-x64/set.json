@@ -206,6 +206,12 @@
       "base_sha256": "80a9dc8f8c0b66cf45d31df9ff6e29b8c12710607aafbc88259f25fdba4facd4",
       "result_sha256": "24101a5d1d90b9b02e40691cc66663f3fed92c24f038822cc576428057634cf3",
       "patch": "option_screen.c.patch"
+    },
+    {
+      "path": "PROGRAM/battle_interface/ispyglass.c",
+      "base_sha256": "876fd384c6a99d8864b6febec602d46e12fe16fd552c51d784372317b93078a0",
+      "result_sha256": "a228e4d1b7bbaa8aafd1eeecc07c981f9dba701eb8a111289f780995041c71a3",
+      "patch": "ispyglass.c.patch"
     }
   ],
   "fixes": [
@@ -500,6 +506,18 @@
       "bug": "Not a defect of the game: the desktop engine draws effects the original engine did not have, and the game's options screen has no controls for them. The check box «Графика движка» beside «Всегда бежать» turns the controls list into a list of the engine's graphics options as the engine lists them (GraphicsOptionsScriptLib); double click or Enter on a row takes its next value, which draws at once and is kept by the engine for this game; Cancel restores the values the screen opened with",
       "save_compatibility": "Code only; no globals or saved attributes are added to saves (the options are kept in the engine's settings, not in saves). Existing saves load unchanged.",
       "platforms": ["desktop"]
+    },
+    {
+      "id": "spyglass-captain-parts",
+      "title": "The spyglass card shows the target's guns and its captain apart",
+      "targets": [
+        "PROGRAM/battle_interface/ispyglass.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: SetSpyGlassData sends the cannon type, the musket volley mark and the captain's name as one line of spaced-out text (MSG_ISG_UPDATE), so an interface that shows them apart had to split the text, and a volley mark without a cannon type was taken for the cannon type. It now also sets objISpyGlass.captainline.cannontype and .name before the line is sent",
+      "save_compatibility": "Code only; no new globals. objISpyGlass.captainline is rewritten for every target shown and nothing reads it on load. Existing saves load unchanged.",
+      "platforms": ["android"]
     }
   ]
 }
