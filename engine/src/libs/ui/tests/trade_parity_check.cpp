@@ -1,8 +1,8 @@
-// The trade screens (store, contraband, cannons, items trade, storage, colony loot, chests, the cargo of the ship
-// exchange) on recorded models, driven by the taps the pack check's crawl makes (tests/trade/parity.json): the view
-// after each tap and once the game has answered, and what each tap sent, against what is recorded there. The router
-// prefers the screens of the application's scripts, so a screen moved to script must give what its C++ screen gave.
-// On a difference the results are written to trade-parity-actual.json in the working directory.
+// The trade screens (store, storage, colony loot, chests, the cargo of the ship exchange) on recorded models, driven by
+// the taps the pack check's crawl makes (tests/trade/parity.json): the view after each tap and once the game has
+// answered, and what each tap sent, against what is recorded there. The router prefers the screens of the application's
+// scripts, so a screen moved to script must give what its C++ screen gave. On a difference the results are written to
+// trade-parity-actual.json in the working directory.
 #include "fakes.h"
 #include "../tools/script_game.h"
 

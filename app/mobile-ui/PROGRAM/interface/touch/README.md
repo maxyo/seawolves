@@ -170,12 +170,15 @@ full one):
 The script screen, its pack screen and checks land in the same commit that deletes the C++ screen's `Layout` and its
 registration (`engine/src/libs/ui/src/screens/registry.cpp`). Its recorded parity (`trade-parity.json`) is kept until
 the family's C++ is gone; a difference in it is re-recorded only when it is the game's answer shown where the C++
-screen computed its own (named in the commit), never to make a regression pass.
+screen computed its own (named in the commit), never to make a regression pass. A retired screen whose recorded runs
+are mostly the C++ screen's own arithmetic loses its parity case instead (named in the commit): its
+`cases/<capability>.json` and the host checks on the game's answers are its record then.
 
 ## Not done
 
 - Variants of a shared screen per game (parts and slots): there is none yet; the first real variant brings them.
 - The rest adapter still reads the hours from the slider by the game's formula (`lineages/legacy/rest.c`).
-- The trade family's other interfaces (contraband, cannons, items trade, colony capture, the ship exchange) are still
-  C++ (`engine/src/libs/ui/src/screens/trade_commerce.cpp`); their recorded parity (`trade-parity.json`) goes with them.
+- The trade family's last interfaces (colony capture, the ship exchange) are still C++
+  (`engine/src/libs/ui/src/screens/trade_commerce.cpp`, `extra_transfer.cpp`); their recorded parity
+  (`trade-parity.json`) goes with them.
 - The game hooks before this structure (`interface/android_*.c`, `android_ui_bootstrap.c`) are not moved yet.
