@@ -31,16 +31,8 @@ std::unique_ptr<Screen> CreateHeroScreen();
 std::unique_ptr<Screen> CreateItemsScreen();
 std::unique_ptr<Screen> CreateJournalScreen();
 std::unique_ptr<Screen> CreateShipScreen();
-std::unique_ptr<Screen> CreateMapEncounterScreen();
-std::unique_ptr<Screen> CreateDirSailScreen();
-std::unique_ptr<Screen> CreateLeaveBattleScreen();
-std::unique_ptr<Screen> CreateSalaryScreen();
-std::unique_ptr<Screen> CreateFrameScreen();
-std::unique_ptr<Screen> CreateColonyNewsScreen();
-std::unique_ptr<Screen> CreateNationNewsScreen();
 std::unique_ptr<Screen> CreateTradeBookScreen();
 std::unique_ptr<Screen> CreateColonyCaptureScreen();
-std::unique_ptr<Screen> CreateFortCaptureScreen();
 std::unique_ptr<Screen> CreateMapScreen();
 std::unique_ptr<Screen> CreateLauncherScreen();
 std::unique_ptr<Screen> CreateDownloadsScreen();
@@ -71,16 +63,8 @@ const ScreenEntry kPorted[] = {
     {"items", CreateItemsScreen},
     {"questbook", CreateJournalScreen},
     {"ship", CreateShipScreen},
-    {"map", CreateMapEncounterScreen},
-    {"dirsailenc", CreateDirSailScreen},
-    {"leavebattle", CreateLeaveBattleScreen},
-    {"salary", CreateSalaryScreen},
-    {"boal_frame", CreateFrameScreen},
-    {"colonyinfo", CreateColonyNewsScreen},
-    {"nationlegend", CreateNationNewsScreen},
     {"tradebook", CreateTradeBookScreen},
     {"colonycapture", CreateColonyCaptureScreen},
-    {"fortcapture", CreateFortCaptureScreen},
     {"mapview", CreateMapScreen},
     {"mapbest", CreateMapScreen},
     {"papermap", CreateMapScreen},

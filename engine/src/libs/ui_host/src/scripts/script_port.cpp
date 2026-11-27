@@ -393,12 +393,14 @@ ATTRIBUTES &Child(ATTRIBUTES &at, const std::string &name)
     return child ? *child : at.CreateAttribute(name);
 }
 
-// An image of the game as the view's "picture" shape reads it back (screens/script_props.cpp).
+// An image of the game as the view's "picture" and "texture" shapes read it back (screens/script_props.cpp); uv is
+// the part of a texture shown, "left,top,right,bottom".
 void FillImage(ATTRIBUTES &at, const storm::ui::ImageRef &image)
 {
     at.SetAttribute("kind", image.kind);
     at.SetAttribute("group", image.group);
     at.SetAttribute("image", image.image);
+    at.SetAttribute("uv", fmt::format("{:g},{:g},{:g},{:g}", image.uv[0], image.uv[1], image.uv[2], image.uv[3]));
 }
 
 // The verbs the engine accepts for the widget now: of its list, or its type's (Widget::Offers).

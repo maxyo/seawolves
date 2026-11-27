@@ -5,6 +5,7 @@
 #include "storm_ui/interface_model.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <stdexcept>
 
 namespace storm::ui::screens
@@ -39,7 +40,7 @@ Json Scalar(const ViewTree &node, const std::string &type, const std::string &pa
     throw Mismatch(path, "the spec's shape names an unknown type '" + type + "'");
 }
 
-Json Picture(const ViewTree &node, const std::string &path);
+ImageRef Image(const ViewTree &node, const std::string &path);
 
 // A shape object with one of these keys alone says how to read a node, not a field of it.
 const Json *Meta(const Json &shape, const char *key)
@@ -50,12 +51,19 @@ const Json *Meta(const Json &shape, const char *key)
 // `shape`: a type name, an object of fields, a one-element array: a list of items of that shape; {"$null": shape}:
 // that shape, or null where the view gives the node no value and no children; {"$either": [scalar, structure]}:
 // the scalar where the node has no children, else the structure (a table's cells: plain text or {text, bold});
-// "picture": a game image {kind, group, image} as the pack draws it (PictureOf: null for none or a kind it does not
-// draw).
+// "picture": a game image {kind, group, image, uv} as the pack draws it in a row (PictureOf: null for none or a kind
+// it does not draw); "texture": the same image as a backdrop or a map draws it (TextureOf: {texture, uv}, or null).
 Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
 {
-    if (shape == "picture")
-        return Picture(node, path);
+    if (shape == "picture" || shape == "texture")
+    {
+        if (!node.value.empty())
+            throw Mismatch(path, "a picture has no value, only kind, group, image and uv");
+        if (node.children.empty())
+            return Json();
+        const ImageRef image = Image(node, path);
+        return shape == "picture" ? PictureOf(&image) : TextureOf(&image);
+    }
     if (const Json *inner = Meta(shape, "$null"))
         return node.children.empty() && node.value.empty() ? Json() : Convert(node, *inner, path);
     if (const Json *either = Meta(shape, "$either"))
@@ -93,12 +101,8 @@ Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
     return object;
 }
 
-Json Picture(const ViewTree &node, const std::string &path)
+ImageRef Image(const ViewTree &node, const std::string &path)
 {
-    if (!node.value.empty())
-        throw Mismatch(path, "a picture has no value, only kind, group and image");
-    if (node.children.empty())
-        return Json();
     ImageRef image;
     for (const ViewTree &child : node.children)
     {
@@ -106,11 +110,15 @@ Json Picture(const ViewTree &node, const std::string &path)
                              : SameNode(child.name, "group") ? &image.group
                              : SameNode(child.name, "image") ? &image.image
                                                              : nullptr;
-        if (!field || !child.children.empty())
-            throw Mismatch(path + "/" + child.name, "is not kind, group or image of a picture");
-        *field = child.value;
+        if (!child.children.empty() || (!field && !SameNode(child.name, "uv")))
+            throw Mismatch(path + "/" + child.name, "is not kind, group, image or uv of a picture");
+        if (field)
+            *field = child.value;
+        else if (std::sscanf(child.value.c_str(), "%f,%f,%f,%f", &image.uv[0], &image.uv[1], &image.uv[2],
+                             &image.uv[3]) != 4)
+            throw Mismatch(path + "/uv", "'" + child.value + "' is not left,top,right,bottom");
     }
-    return PictureOf(&image);
+    return image;
 }
 
 } // namespace

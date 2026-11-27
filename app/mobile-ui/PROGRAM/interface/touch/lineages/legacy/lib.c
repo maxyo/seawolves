@@ -10,9 +10,10 @@ aref TouchLegLib_Model(aref ui)
 	return model;
 }
 
-// The caption of an optional node, "" without it.
+// The caption of an optional node, "" without it (or without a node named).
 string TouchLegLib_Label(aref model, string node)
 {
+	if (node == "") return "";
 	if (!CheckAttribute(model, node)) return "";
 	return model.(node).label;
 }
@@ -250,4 +251,22 @@ ref TouchLegLib_ScrollCaptain(string node)
 	if (!CheckAttribute(&GameInterface, node + "." + pic + ".companionIndex"))
 		UiError("the game's scroll " + node + " has no captain for its " + pic);
 	return &Characters[sti(GameInterface.(node).(pic).companionIndex)];
+}
+
+// Our flag icon of a nation the game names (its NATIONS picture, GetNationNameByType), "" for a name it has none of.
+string TouchLegLib_Flag(string nation)
+{
+	if (nation == "England") return "nation-england";
+	if (nation == "France") return "nation-france";
+	if (nation == "Spain") return "nation-spain";
+	if (nation == "Holland") return "nation-holland";
+	if (nation == "Pirate") return "nation-pirates";
+	return "";
+}
+
+// The flag icon of a picture of the game's NATIONS group, "" for another picture.
+string TouchLegLib_FlagOf(aref image)
+{
+	if (image.kind != "atlas" || image.group != "NATIONS") return "";
+	return TouchLegLib_Flag(image.image);
 }

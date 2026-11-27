@@ -15,6 +15,15 @@
     "qty-window": [
       ["QTY_EDIT", "edit"], ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"],
       ["QTY_*", "text|heading|image"]
+    ],
+    "reading-card": [
+      ["B_OK", "button", true], ["B_CANCEL", "button"], ["MAP_CAPTION", "text|heading"],
+      ["MAIN_WINDOW_CAPTION", "text|heading"], ["INFO_TEXT*", "text"], ["INFO_PICTURE", "image"],
+      ["INFO_BORDERS", "image"], ["STATICIMAGES", "image"]
+    ],
+    "reading-news": [
+      ["B_OK", "button", true], ["INFO_TEXT*", "text"], ["INFO_CAPTION", "text|heading"], ["Nat1", "image"],
+      ["Nat2", "image"], ["RelNat", "image"]
     ]
   },
   "segments": [
@@ -23,6 +32,7 @@
     {"file": "interface/touch/lib/list.c", "core": true},
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
+    {"file": "interface/touch/contracts/reading.c"},
     {"file": "interface/touch/contracts/nations.c"},
     {"file": "interface/touch/contracts/crew.c"},
     {"file": "interface/touch/contracts/sails.c"},
@@ -151,10 +161,6 @@
             ["INFO_CLICK", "text"], ["INFO_CLICK2", "text"], ["ICON_*", "image"]
           ],
           "data": {
-            "flags": {
-              "England": "nation-england", "France": "nation-france", "Spain": "nation-spain",
-              "Holland": "nation-holland", "Pirate": "nation-pirates"
-            },
             "help": {"standing": {"title": "Hunter_type", "text": "Hunter_hint"}, "flag": {"title": "Nation", "text": "Nation_hint"}}
           }
         }
@@ -222,6 +228,48 @@
             ["NAME_STR", "text"], ["LOCATION_STR", "text"], ["TIME_STR", "text"], ["REPAIR_*", "image"],
             ["MAIN_CHARACTER_*", "image"], ["OTHER_*", "image"]
           ]
+        }
+      ]
+    },
+    {
+      "file": "interface/touch/lineages/legacy/reading.c",
+      "provides": ["adapter:reading"],
+      "binds": [
+        {
+          "capability": "card_encounter", "interface": "map", "nodes": ["@reading-card"],
+          "data": {"title": "MAP_CAPTION", "amount": "", "picture": ""}
+        },
+        {
+          "capability": "card_course", "interface": "dirsailenc", "nodes": ["@reading-card"],
+          "data": {"title": "MAP_CAPTION", "amount": "", "picture": ""}
+        },
+        {
+          "capability": "card_leave_battle", "interface": "leavebattle", "nodes": ["@reading-card"],
+          "data": {"title": "MAP_CAPTION", "amount": "", "picture": ""}
+        },
+        {
+          "capability": "card_wages", "interface": "salary", "nodes": ["@reading-card"],
+          "data": {"title": "MAIN_WINDOW_CAPTION", "amount": "INFO_TEXT3", "picture": ""}
+        },
+        {
+          "capability": "news_colony", "interface": "colonyinfo", "nodes": ["@reading-news"],
+          "data": {"title": "INFO_CAPTION", "amount": "", "picture": "", "flags": {"n1": "Nat1", "n2": "Nat2"},
+                   "relation": "RelNat"}
+        },
+        {
+          "capability": "news_nations", "interface": "nationlegend", "nodes": ["@reading-news"],
+          "data": {"title": "INFO_CAPTION", "amount": "", "picture": "", "flags": {"n1": "Nat1", "n2": "Nat2"},
+                   "relation": "RelNat"}
+        },
+        {
+          "capability": "interlude", "interface": "boal_frame",
+          "nodes": [["INFO_TEXT", "text"], ["SCROLLPICT", "image"], ["BACKSCROLLPICT", "image"], ["BORDERS", "image"]],
+          "data": {"title": "", "amount": "", "picture": "SCROLLPICT", "ornament": "interfaces/frameform"}
+        },
+        {
+          "capability": "fort_capture", "interface": "fortcapture",
+          "nodes": [["SCROLLPICT", "image"], ["EXIT_BTN", "button"]],
+          "data": {"title": "", "amount": "", "picture": ""}
         }
       ]
     },
@@ -305,6 +353,41 @@
       "file": "interface/touch/screens/repair.c",
       "uses": ["adapter:repair"],
       "screens": [{"capability": "self_repair", "component": "s-repair"}]
+    },
+    {
+      "file": "interface/touch/screens/reading.c",
+      "uses": ["adapter:reading"],
+      "screens": [
+        {
+          "capability": "card_encounter", "component": "s-reading",
+          "look": {
+            "mode": "card", "icon": "spyglass", "decline": "quiet", "acceptLabel": "", "declineLabel": "", "acceptRefused": "", "declineRefused": "reading.cannot_leave", "aside": true
+          }
+        },
+        {
+          "capability": "card_course", "component": "s-reading",
+          "look": {
+            "mode": "card", "icon": "spyglass", "decline": "quiet", "acceptLabel": "", "declineLabel": "", "acceptRefused": "", "declineRefused": "reading.cannot_leave", "aside": true
+          }
+        },
+        {
+          "capability": "card_leave_battle", "component": "s-reading",
+          "look": {
+            "mode": "card", "icon": "swords", "decline": "danger", "acceptLabel": "", "declineLabel": "", "acceptRefused": "", "declineRefused": "reading.cannot_leave", "aside": true
+          }
+        },
+        {
+          "capability": "card_wages", "component": "s-reading",
+          "look": {
+            "mode": "card", "icon": "money", "decline": "danger", "acceptLabel": "reading.salary_pay", "declineLabel": "reading.salary_refuse",
+            "acceptRefused": "reading.no_money", "declineRefused": "reading.no_choice", "aside": false
+          }
+        },
+        {"capability": "news_colony", "component": "s-reading", "look": {"mode": "notice", "title": "reading.colony_news"}},
+        {"capability": "news_nations", "component": "s-reading", "look": {"mode": "notice", "title": "reading.nation_news"}},
+        {"capability": "interlude", "component": "s-reading", "look": {"mode": "frame"}},
+        {"capability": "fort_capture", "component": "s-reading", "look": {"mode": "none"}}
+      ]
     }
   ]
 }

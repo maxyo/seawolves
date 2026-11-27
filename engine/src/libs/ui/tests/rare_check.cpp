@@ -19,10 +19,20 @@ static void Without(InterfaceModel &model, const char *node)
         model.widgets.end());
 }
 
+// The application's pack: the reading windows are drawn by its scripts (tools/script_game.h).
+static std::string app_pack;
+
+static Router &Scripted(Router &router)
+{
+    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
+    return router;
+}
+
 static void Card(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "reading-map.json"));
     ExpectEqual(router.Using(), "map", "world map signal is a ported screen");
     ExpectEqual(surface.tag, "s-reading", "reading card mounted");
@@ -78,6 +88,7 @@ static void Frame(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "reading-frame.json"));
     Expect(surface.tag == "s-reading" && surface.props["mode"] == "frame" &&
                surface.props["text"] == "Прошёл один час…",
@@ -98,6 +109,7 @@ static void FramePicture(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "reading-frame.json"));
     Expect(surface.props["picture"].is_null(),
            "the interlude without a quest picture shows none (the ini's frame ornament is left out)");
@@ -113,6 +125,7 @@ static void FramePictureOnly(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "reading-frame-picture-only.json"));
     surface.now += 2.0;
     router.Tick();
@@ -279,6 +292,7 @@ static void Notices(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "reading-colonyinfo.json"));
     Expect(surface.tag == "s-reading" && surface.props["mode"] == "notice" && surface.errors.empty(),
            "colony news is a notice");
@@ -514,6 +528,7 @@ static void ColonyLoot(const std::string &models)
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
+    app_pack = argc > 2 ? argv[2] : "";
     Card(models);
     Frame(models);
     FramePicture(models);
@@ -522,7 +537,7 @@ int main(int argc, char **argv)
     Notices(models);
     TradeBook(models);
     TradeBookAsSent(models);
-    EmptyChest(models, argc > 2 ? argv[2] : "");
+    EmptyChest(models, app_pack);
     ColonyLoot(models);
     if (failures)
         std::fprintf(stderr, "%d check(s) failed\n", failures);

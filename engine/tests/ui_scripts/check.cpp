@@ -787,6 +787,35 @@ TEST_CASE("the self repair's script gives the pack screen the props and actions 
     }
 }
 
+// The reading windows: one script screen for several capabilities, each on its recorded model. The props its view
+// gives, the modal it binds and what its events send.
+TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const auto spec = PackScreen("reading");
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/reading.json"));
+    for (const Json &recorded : fixture.at("cases"))
+    {
+        INFO(recorded.at("name").get<std::string>());
+        storm::ui::InterfaceModel model;
+        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        Calls calls(*spec);
+        calls.widgets = model.widgets;
+        const auto &screen = Screen(vm, recorded.at("capability"));
+        port.Build(screen, calls.Single(), calls);
+        CHECK(calls.props == recorded.at("props"));
+        CHECK(calls.modals == recorded.at("modals").get<std::vector<std::string>>());
+        for (const Json &event : recorded.at("events"))
+        {
+            REQUIRE(calls.Binds(event[0], event[1]));
+            port.Event(screen, event[0], event[1], event[2], calls);
+        }
+        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+    }
+}
+
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
 {
     Vm vm;

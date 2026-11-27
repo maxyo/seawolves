@@ -343,6 +343,12 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
     components["components"].push_back(Json::parse(R"({
         "tag": "c-line", "behaviors": ["press"], "props": {"title": {"type": "text", "default": ""}},
         "template": "<div style=\"display: block; width: 100%; height: 100%;\">{{title}}</div>"})"));
+    // The reading card is the application's script screen: its props as the pack's spec shapes them.
+    Json reading_actions;
+    const Json app_components = Json::parse(ReadText(app_pack / "components.json"));
+    for (const Json &component : app_components.at("components"))
+        if (component.at("tag") == "s-reading")
+            reading_actions = component["props"]["actions"];
     const char *screen_style = "position: absolute; left: 0; top: 0; right: 0; bottom: 0; font-family: LatoLatin;";
     const char *dialog_style = "display: flex; position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 20; "
                                "justify-content: center; align-items: center;";
@@ -355,6 +361,9 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
                          {"confirm", {{"type", "json"}, {"default", nullptr}}},
                          {"mode", {{"type", "text"}, {"default", ""}}},
                          {"title", {{"type", "text"}, {"default", ""}}},
+                         {"icon", {{"type", "text"}, {"default", ""}}},
+                         {"text", {{"type", "text"}, {"default", ""}}},
+                         {"actions", reading_actions},
                          {"extras", {{"type", "json"}, {"default", Json::object()}}}}},
                        {"template", std::string("<div style=\"") + screen_style +
                                         "\"><c-line id=\"under\" title=\"under\" style=\"display: block; position: "
@@ -390,6 +399,7 @@ static void Runtime(const fs::path &base, const fs::path &font)
     Expect(host != nullptr, "the runtime starts: " + error);
     if (!host)
         return;
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
     const auto frames = [&](double seconds) {
         for (double t = 0.0; t < seconds; t += 1.0 / 60.0)
         {

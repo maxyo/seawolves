@@ -1,0 +1,942 @@
+{
+ "$comment": "The reading screen's script on recorded models, per capability: the props its view gives the pack screen s-reading, the modal it binds and the calls its events make.",
+ "cases": [
+  {
+   "calls": [
+    "send B_OK press "
+   ],
+   "capability": "card_encounter",
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ],
+    [
+     "cancel",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card "
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "map",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Вахтенный",
+      "node": "MAP_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_PICTURE",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "По курсу два торговца.",
+      "node": "INFO_TEXT",
+      "order": 3,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Что делаем?",
+      "node": "INFO_TEXT_QUESTION",
+      "order": 4,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Напасть",
+      "node": "B_OK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Плыть дальше",
+      "node": "B_CANCEL",
+      "order": 6,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "a forced encounter: sail on is off",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "cancel",
+      "label": "Плыть дальше",
+      "reason": "<reading.cannot_leave>",
+      "variant": "quiet"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "Напасть",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "spyglass",
+    "mode": "card",
+    "text": "По курсу два торговца. Что делаем?",
+    "title": "Вахтенный"
+   }
+  },
+  {
+   "calls": [
+    "send B_CANCEL press "
+   ],
+   "capability": "card_encounter",
+   "events": [
+    [
+     "cancel",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card cancel"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "map",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "enabled": true,
+      "index": -1,
+      "label": "Вахтенный",
+      "node": "MAP_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": true,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_PICTURE",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "enabled": true,
+      "index": -1,
+      "label": "По курсу два торговца.",
+      "node": "INFO_TEXT",
+      "order": 3,
+      "type": "text"
+     },
+     {
+      "enabled": true,
+      "index": -1,
+      "label": "Что делаем?",
+      "node": "INFO_TEXT_QUESTION",
+      "order": 4,
+      "type": "text"
+     },
+     {
+      "enabled": true,
+      "index": -1,
+      "label": "Напасть",
+      "node": "B_OK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "enabled": true,
+      "index": -1,
+      "label": "Плыть дальше",
+      "node": "B_CANCEL",
+      "order": 6,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "an encounter that can be passed",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "cancel",
+      "label": "Плыть дальше",
+      "reason": "",
+      "variant": "quiet"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "Напасть",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "spyglass",
+    "mode": "card",
+    "text": "По курсу два торговца. Что делаем?",
+    "title": "Вахтенный"
+   }
+  },
+  {
+   "calls": [
+    "send B_OK press "
+   ],
+   "capability": "card_course",
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card "
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "dirsailenc",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Вахтенный",
+      "node": "MAP_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_PICTURE",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "По курсу два торговца.",
+      "node": "INFO_TEXT",
+      "order": 3,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Есть!",
+      "node": "B_OK",
+      "order": 5,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "the straight-sail signal: one answer",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "Есть!",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "spyglass",
+    "mode": "card",
+    "text": "По курсу два торговца.",
+    "title": "Вахтенный"
+   }
+  },
+  {
+   "calls": [
+    "send B_OK press ",
+    "send B_CANCEL press "
+   ],
+   "capability": "card_leave_battle",
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ],
+    [
+     "cancel",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card cancel"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "leavebattle",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Выйти из боя?",
+      "node": "MAP_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_PICTURE",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Компаньон ещё в бою.",
+      "node": "INFO_TEXT",
+      "order": 3,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Что делаем?",
+      "node": "INFO_TEXT_QUESTION",
+      "order": 4,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Уйти",
+      "node": "B_OK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Остаться",
+      "node": "B_CANCEL",
+      "order": 6,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "leaving a battle",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "cancel",
+      "label": "Остаться",
+      "reason": "",
+      "variant": "danger"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "Уйти",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "swords",
+    "mode": "card",
+    "text": "Компаньон ещё в бою. Что делаем?",
+    "title": "Выйти из боя?"
+   }
+  },
+  {
+   "calls": [
+    "send B_CANCEL press "
+   ],
+   "capability": "card_wages",
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ],
+    [
+     "cancel",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card "
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "salary",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Жалованье",
+      "node": "MAIN_WINDOW_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_PICTURE",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Команда ждёт жалованье.",
+      "node": "INFO_TEXT1",
+      "order": 3,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "1 860 песо",
+      "node": "INFO_TEXT3",
+      "order": 4,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "index": -1,
+      "label": "Да",
+      "node": "B_OK",
+      "order": 5,
+      "type": "button"
+     },
+     {
+      "index": -1,
+      "label": "Нет",
+      "node": "B_CANCEL",
+      "order": 6,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "wages without the money",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "cancel",
+      "label": "<reading.salary_refuse>",
+      "reason": "",
+      "variant": "danger"
+     },
+     {
+      "busy": false,
+      "disabled": true,
+      "id": "ok",
+      "label": "<reading.salary_pay>",
+      "reason": "<reading.no_money>",
+      "sub": "−1 860 песо",
+      "variant": "primary"
+     }
+    ],
+    "icon": "money",
+    "mode": "card",
+    "text": "Команда ждёт жалованье.",
+    "title": "Жалованье"
+   }
+  },
+  {
+   "calls": [
+    "send B_OK press ",
+    "send B_OK press "
+   ],
+   "capability": "news_colony",
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ],
+    [
+     "card-close",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card ok"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 2,
+    "schemaVersion": 2,
+    "screen": "colonyinfo",
+    "screenRevision": 4,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 5,
+        "height": 128,
+        "imageRevision": 5,
+        "source": {
+         "group": "NATIONS",
+         "image": "Spain",
+         "kind": "atlas"
+        },
+        "width": 128
+       }
+      ],
+      "index": -1,
+      "node": "Nat1",
+      "order": 1,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Эскадра осадила город. Десять дней на снятие осады.",
+      "node": "INFO_TEXT",
+      "order": 2,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Ok",
+      "node": "B_OK",
+      "order": 3,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "colony news under one flag",
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "Ok",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "flags": [
+     {
+      "icon": "nation-spain"
+     }
+    ],
+    "icon": "",
+    "mode": "notice",
+    "text": "Эскадра осадила город. Десять дней на снятие осады.",
+    "title": "<reading.colony_news>"
+   }
+  },
+  {
+   "calls": [
+    "send B_OK press "
+   ],
+   "capability": "news_nations",
+   "events": [
+    [
+     "card-close",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [
+    "card ok"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 2,
+    "schemaVersion": 2,
+    "screen": "nationlegend",
+    "screenRevision": 4,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "События",
+      "node": "INFO_CAPTION",
+      "order": 1,
+      "type": "text"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 5,
+        "height": 128,
+        "imageRevision": 5,
+        "source": {
+         "group": "NATIONS",
+         "image": "England",
+         "kind": "atlas"
+        },
+        "width": 128
+       }
+      ],
+      "index": -1,
+      "node": "Nat1",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 5,
+        "height": 128,
+        "imageRevision": 5,
+        "source": {
+         "group": "RELATIONS",
+         "image": "Enemy",
+         "kind": "atlas"
+        },
+        "width": 128
+       }
+      ],
+      "index": -1,
+      "node": "RelNat",
+      "order": 3,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 5,
+        "height": 128,
+        "imageRevision": 5,
+        "source": {
+         "group": "NATIONS",
+         "image": "Spain",
+         "kind": "atlas"
+        },
+        "width": 128
+       }
+      ],
+      "index": -1,
+      "node": "Nat2",
+      "order": 4,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Две державы воюют.",
+      "node": "INFO_TEXT",
+      "order": 5,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Ok",
+      "node": "B_OK",
+      "order": 6,
+      "type": "button"
+     }
+    ]
+   },
+   "name": "two nations at war",
+   "props": {
+    "actions": [],
+    "flags": [
+     {
+      "icon": "nation-england"
+     },
+     {
+      "icon": "rel-war",
+      "tone": "war",
+      "word": "<reading.war>"
+     },
+     {
+      "icon": "nation-spain"
+     }
+    ],
+    "icon": "",
+    "mode": "notice",
+    "text": "Две державы воюют.",
+    "title": "События"
+   }
+  },
+  {
+   "calls": [
+    "back "
+   ],
+   "capability": "interlude",
+   "events": [
+    [
+     "frame",
+     "click",
+     ""
+    ]
+   ],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "boal_frame",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "BACKSCROLLPICT",
+      "order": 1,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "Прошёл один час…",
+      "node": "INFO_TEXT",
+      "order": 2,
+      "type": "text"
+     }
+    ]
+   },
+   "name": "the interlude's line",
+   "props": {
+    "actions": [],
+    "icon": "",
+    "mode": "frame",
+    "text": "Прошёл один час…",
+    "title": ""
+   }
+  },
+  {
+   "calls": [],
+   "capability": "interlude",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 5,
+    "schemaVersion": 2,
+    "screen": "boal_frame",
+    "screenRevision": 7,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "image": "loading/imgback",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "BACKSCROLLPICT",
+      "order": 1,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "image": "loading/inside/kiss",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "SCROLLPICT",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "index": 0,
+      "label": "Прошло несколько часов...",
+      "node": "INFO_TEXT",
+      "order": 3,
+      "type": "text",
+      "value": "1"
+     }
+    ]
+   },
+   "name": "the interlude over a quest picture",
+   "props": {
+    "actions": [],
+    "icon": "",
+    "mode": "frame",
+    "picture": {
+     "texture": "loading/inside/kiss",
+     "uv": "0,0,1,1"
+    },
+    "text": "Прошло несколько часов...",
+    "title": ""
+   }
+  },
+  {
+   "calls": [],
+   "capability": "interlude",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 22,
+    "schemaVersion": 2,
+    "screen": "boal_frame",
+    "screenRevision": 22,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "image": "loading/imgback",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "BACKSCROLLPICT",
+      "order": 1,
+      "type": "image"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "image": "loading/inside/censored1",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "SCROLLPICT",
+      "order": 2,
+      "type": "image"
+     }
+    ]
+   },
+   "name": "the interlude's picture alone",
+   "props": {
+    "actions": [],
+    "icon": "",
+    "mode": "frame",
+    "picture": {
+     "texture": "loading/inside/censored1",
+     "uv": "0,0,1,1"
+    },
+    "text": "",
+    "title": ""
+   }
+  },
+  {
+   "calls": [],
+   "capability": "fort_capture",
+   "events": [],
+   "modals": [],
+   "model": {
+    "language": "russian",
+    "revision": 1,
+    "schemaVersion": 2,
+    "screen": "fortcapture",
+    "screenRevision": 3,
+    "widgets": [
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 190,
+        "imageRevision": 190,
+        "source": {
+         "image": "interfaces/card_desk",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "SCROLLPICT",
+      "type": "image"
+     }
+    ]
+   },
+   "name": "a fort captured",
+   "props": {
+    "actions": [],
+    "icon": "",
+    "mode": "none",
+    "text": "",
+    "title": ""
+   }
+  }
+ ]
+}

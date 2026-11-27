@@ -9,5 +9,13 @@
   "trade_items": "Buy and sell items with a merchant",
   "crew_hire": "Hire sailors in a tavern, or dismiss them",
   "sail_emblem": "Paint an emblem on the ship's sails at the shipyard, or take it off",
-  "self_repair": "Repair the squadron's ships with the planks and sailcloth in their holds"
+  "self_repair": "Repair the squadron's ships with the planks and sailcloth in their holds",
+  "card_encounter": "A ship sighted on the world map: engage or sail on",
+  "card_course": "A ship sighted while sailing straight to an island",
+  "card_leave_battle": "Leave a battle with companions still in it",
+  "card_wages": "Pay the crew's wages or refuse",
+  "news_colony": "News of a colony (a siege, a capture)",
+  "news_nations": "News between two nations (war, peace, alliance)",
+  "interlude": "A moment passing: a line over a dark scene or a picture",
+  "fort_capture": "A captured fort: the game closes it at once, nothing is drawn"
 }

@@ -73,7 +73,9 @@ not send are string keys (`UiText`) of `../../../design/strings/<lang>.json`, ev
 
 Each capability has its object `ui` = `UiScreens.<capability>`: `capability`, `screen` (the screen file's stem), `look`,
 `data`, `model` (the admitted widgets of its last build: `<NODE>.{type, label, value, min, max, reason, offers.<verb>,
-context, headers, images.i<k>.{kind, group, image}, rows.r<index>.{index, id, label, value, reason, offers, cells.c<n>.{text, color, images}}}`). The
+context, headers, images (a node without rows), rows.r<index>.{index, id, label, value, reason, offers, images,
+cells.c<n>.{text, color, images}}}`; an image is `i<n>.{kind, group, image, uv}`, copied whole into a view's
+`picture` or `texture`). The
 events are `UiBuild(ui)` and `UiTap(ui, id, verb, value)`, raised to every screen: a screen's handler starts with
 `aref ui = GetEventData(); if (ui.screen != "<stem>") return;`. Only adapters read `ui.model`; the screen hands `ui` to
 every contract call.
@@ -154,7 +156,8 @@ full one):
 
 ## Tests
 
-- `engine/tests/ui_scripts/cases/<capability>.json` (copy `cases/trade_store.json`, the reference screen's): recorded
+- `engine/tests/ui_scripts/cases/<capability>.json` (copy `cases/trade_store.json`, the reference screen's; a screen
+  of several capabilities has one file, `cases/<screen>.json`, each case naming its `capability`): recorded
   models of the game's interface, the props the screen's view gives the pack screen for each, and the calls its build
   and a list of events make (`check.cpp` runs them on the production VM). The fixture game under it
   (`engine/tests/ui_scripts/game/PROGRAM/seadogs.c`) gives only what an adapter calls of the game (its functions and

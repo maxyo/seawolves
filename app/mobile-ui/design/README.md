@@ -53,7 +53,9 @@ that is not in the icon set (in gallery pages, component templates, spec constan
 
 Level 2 (specs and HUD layout): `spec.json` is the contract of a component. A `json` prop that a script screen fills
 names its structure in `shape` (a type, `{field: shape}`, `[item shape]`, `{"$null": shape}` for a part that may be
-null, `{"$either": [type, structure]}` for plain text or a structure): the script's view is converted by it. The game reads `components.json`
+null, `{"$either": [type, structure]}` for plain text or a structure, `picture` for a game image drawn in a row and
+`texture` for one drawn as a backdrop or a map: either given as the model's `{kind, group, image, uv}`): the script's
+view is converted by it. The game reads `components.json`
 and `hud-layout.json` from the pack at run time.
 
 **Licence rule.** No game picture is ever stored here or in the APK. Portraits, item

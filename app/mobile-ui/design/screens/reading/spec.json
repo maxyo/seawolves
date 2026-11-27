@@ -1,6 +1,6 @@
 {
   "tag": "s-reading",
-  "doc": "Reading cards over the game (interfaces `map`, `dirsailenc`, `leavebattle`, `salary`), news notices (`colonyinfo`, `nationlegend`), the interlude `boal_frame` and nothing at all for `fortcapture`, which the game closes at once, filled by reading.cpp.",
+  "doc": "Reading cards over the game (interfaces `map`, `dirsailenc`, `leavebattle`, `salary`), news notices (`colonyinfo`, `nationlegend`), the interlude `boal_frame` and nothing at all for `fortcapture`, which the game closes at once, filled by the script interface/touch/screens/reading.c through the shapes of its json props.",
   "props": {
     "mode": {
       "type": "enum",
@@ -26,11 +26,14 @@
     },
     "flags": {
       "type": "json",
-      "default": []
+      "default": [],
+      "shape": [{"icon": "text", "word": "text", "tone": "text"}]
     },
     "actions": {
       "type": "json",
-      "default": []
+      "default": [],
+      "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool",
+                 "sub": "text"}]
     },
     "extras": {
       "type": "json",
@@ -38,7 +41,8 @@
     },
     "picture": {
       "type": "json",
-      "default": null
+      "default": null,
+      "shape": "texture"
     }
   }
 }

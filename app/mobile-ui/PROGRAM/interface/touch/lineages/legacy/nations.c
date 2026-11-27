@@ -2,8 +2,7 @@
 // The nations from the interface nationrelation. Implements contracts/nations.c. The relations, the hero's standing
 // and its word are the game's functions' (as its window reads them); the flags the game lets the ship fly are its
 // window's: SetNewNation moves the candidate FlagPic over them one press of › at a time.
-// data: flags.<NATIONS picture> (our flag icon of a nation), help.<part>.{title, text} (the game's string and text
-// keys of the window's help).
+// data: help.<part>.{title, text} (the game's string and text keys of the window's help).
 
 // The pick under way: asked (the nation's picture asked for), start (the candidate before), presses; refused.<picture>:
 // a flag the game's cycle did not reach in this opening.
@@ -110,8 +109,7 @@ void TouchAdpNations_State(aref ui, aref out)
 		aref nation = TouchLib_Add(nations, "n");
 		nation.key = name;
 		nation.label = XI_ConvertString(name);
-		nation.icon = "";
-		if (CheckAttribute(ui, "data.flags." + name)) nation.icon = ui.data.flags.(name);
+		nation.icon = TouchLegLib_Flag(name);
 		TouchLegNations_Image(nation, "NATIONS", name);
 		TouchLegNations_Relations(nation, n);
 		nation.flown = name == current;
