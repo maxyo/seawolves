@@ -1,17 +1,23 @@
 {
   "tag": "s-crew",
-  "doc": "Crew hire (interface `hirecrew`), filled by trade_crew.cpp.",
+  "doc": "Crew hire (interface `hirecrew`), filled by the script interface/touch/screens/crew.c through the shapes of its json props.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "subject": {"type": "json", "default": null},
-    "stats": {"type": "json", "default": []},
-    "list": {"type": "json", "default": {}},
+    "subject": {"type": "json", "default": null,
+               "shape": {"$null": {"label": "text", "sub": "text", "prev": "bool", "next": "bool", "list": "bool"}}},
+    "stats": {"type": "json", "default": [],
+             "shape": [{"label": "text", "value": "text", "icon": "text", "preview": "text", "tone": "text"}]},
+    "list": {"type": "json", "default": {},
+            "shape": {"label": "text", "cols": [{"label": "text", "icon": "text"}], "rows": [{"id": "text", "name": "text", "image": {"kind": "text", "icon": "text"}, "meta": "text", "cells": [{"$either": ["text", {"text": "text", "bold": "bool"}]}], "selected": "bool", "q": {"value": "int", "min": "int", "max": "int", "zones": "bool", "origin": "int", "lessLabel": "text", "moreLabel": "text", "label": "text", "allLabel": "text", "summary": "text", "steps": ["int"], "disabled": "bool"}}]}},
     "shipLabel": {"type": "text", "default": ""},
     "tavernLabel": {"type": "text", "default": ""},
-    "ship": {"type": "json", "default": {"groups": []}},
-    "tavern": {"type": "json", "default": {"groups": []}},
+    "ship": {"type": "json", "default": {"groups": []},
+            "shape": {"groups": [{"label": "text", "value": "int", "word": "text"}], "moraleLabel": "text", "morale": "int", "moraleWord": "text"}},
+    "tavern": {"type": "json", "default": {"groups": []},
+              "shape": {"groups": [{"label": "text", "value": "int", "word": "text"}], "moraleLabel": "text", "morale": "int", "moraleWord": "text"}},
     "notes": {"type": "text", "default": ""},
-    "primary": {"type": "json", "default": null},
+    "primary": {"type": "json", "default": null,
+               "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "extras": {"type": "json", "default": {}}
   }
 }

@@ -37,7 +37,7 @@ std::string AfterColon(const std::string &text);
 // caption, word) with the adapter's numbers 0…100 (fields <prefix>sailors, <prefix>cannoners,
 // <prefix>soldiers of `fact`) and the morale (field <prefix>morale, its word after the colon of the
 // game's `morale_text`). {groups: [{label, value, word}], moraleLabel, morale, moraleWord}. The ship
-// screen (hero_ship.cpp) and the crew hire (trade_crew.cpp) show crews with it.
+// screen (hero_ship.cpp) shows crews with it.
 Json CrewQuality(const Admission &admitted, Bindings &bindings, const char *table, const char *morale_text,
                  const Widget *fact, const std::string &prefix = std::string());
 // The row image of a game portrait by face, null without one.

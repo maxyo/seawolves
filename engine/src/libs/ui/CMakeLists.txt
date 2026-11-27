@@ -116,7 +116,6 @@ add_library(storm_ui STATIC
     src/screens/registry.cpp
     src/screens/generic.cpp
     src/screens/trade_commerce.cpp
-    src/screens/trade_crew.cpp
     src/screens/trade_shipyard.cpp
     src/screens/hero.cpp
     src/screens/hero_character.cpp

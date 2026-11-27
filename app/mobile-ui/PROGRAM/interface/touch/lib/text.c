@@ -78,3 +78,21 @@ bool TouchLib_Figure(string text, aref out)
 	out.value = UiOneLine(TouchLib_Cut(text, value, strlen(text)));
 	return true;
 }
+
+// The text without the spaces and line ends around it.
+string TouchLib_Trim(string text)
+{
+	int begin = 0;
+	int end = strlen(text);
+	while (begin < end && findSubStr(TouchLib_LineEnds(), strcut(text, begin, begin), 0) >= 0) begin++;
+	while (end > begin && findSubStr(TouchLib_LineEnds(), strcut(text, end - 1, end - 1), 0) >= 0) end--;
+	return TouchLib_Cut(text, begin, end);
+}
+
+// What a caption says after its colon, "Мораль: Хорошая" -> "Хорошая"; the whole text without one.
+string TouchLib_AfterColon(string text)
+{
+	int colon = findSubStr(text, ":", 0);
+	if (colon < 0) return TouchLib_Trim(text);
+	return TouchLib_Trim(TouchLib_Cut(text, colon + 1, strlen(text)));
+}

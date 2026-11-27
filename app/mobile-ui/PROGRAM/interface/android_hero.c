@@ -44,7 +44,6 @@ void AndroidInterfaceFacts()
 		AndroidItemSlots(subject);
 		AndroidItemInfo();
 	}
-	if (screen == "hirecrew") AndroidCrewHire();
 	if (screen == "shipyard") AndroidYardDeal(subject, partner);
 	if (screen == "repair") AndroidRepairOrder(subject);
 	if (screen == "colonycapture") AndroidLootValues();
@@ -707,47 +706,6 @@ void AndroidShipShares()
 	row.state = AndroidShipShare(mc, "Partition.MonthPart.Gower");
 	row.last = AndroidShipShare(mc, "CrewPayment");
 	if (CheckAttribute(mc, "paymentdate")) row.paid = mc.paymentdate;
-}
-
-// Crew hire (hirecrew.c): what the screen cannot read from the nodes. The crew the window started from
-// (ChangeQTY_EDIT puts the amount set on the crews at once; SetBackupQty keeps the crew before it in
-// NullCharacter.TavernBak) and the purse. The ship is the scroll's current picture (hirecrew.c SetDescription).
-void AndroidCrewHire()
-{
-	if (!CheckAttribute(&GameInterface, "SHIPS_SCROLL.current")) return;
-	string pic = "pic" + (sti(GameInterface.SHIPS_SCROLL.current) + 1);
-	if (!CheckAttribute(&GameInterface, "SHIPS_SCROLL." + pic + ".companionIndex")) return;
-	ref chr = GetCharacter(sti(GameInterface.SHIPS_SCROLL.(pic).companionIndex));
-	if (!CheckAttribute(&NullCharacter, "TavernBak.Hero.Quantity")) return;
-	aref row;
-	makearef(row, GameInterface.AndroidFacts.crewhire.c0);
-	row.character = sti(chr.index);
-	row.base = sti(NullCharacter.TavernBak.Hero.Quantity);
-	ref mc = GetMainCharacter();
-	row.money = sti(mc.money);
-	// The crews' quality as numbers (the stock window draws them as BAR_Sailors.. / BAR_Sailors2..): the
-	// ship's as AndroidShipFacts has them, the tavern's (hirecrew.c refTown, the colony of the location's
-	// fast reload) prefixed town_.
-	AndroidCrewQuality(row, chr, "");
-	if (!CheckAttribute(loadedLocation, "fastreload")) return;
-	int colony = FindColony(loadedLocation.fastreload);
-	if (colony < 0) return;
-	AndroidCrewQuality(row, GetColonyByIndex(colony), "town_");
-}
-
-// SetCrewExpTable's numbers of a ship or a town crew: experience of the three groups (only while it has men,
-// as the stock table) and the morale.
-void AndroidCrewQuality(aref row, ref crew, string prefix)
-{
-	string key = prefix + "morale";
-	row.(key) = sti(crew.Ship.crew.morale);
-	if (GetCrewQuantity(crew) <= 0) return;
-	key = prefix + "sailors";
-	row.(key) = sti(crew.Ship.Crew.Exp.Sailors);
-	key = prefix + "cannoners";
-	row.(key) = sti(crew.Ship.Crew.Exp.Cannoners);
-	key = prefix + "soldiers";
-	row.(key) = sti(crew.Ship.Crew.Exp.Soldiers);
 }
 
 // The shipyard (shipyard.c, subject = the owner of the chosen slot, partner = the master whose offer is on the card):

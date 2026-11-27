@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[8];
+object Interfaces[9];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -91,6 +91,38 @@ string GetRPGText(string key)
 more";
 }
 
+// What the crew adapter reads of the game: the characters whose ships the hire's scroll shows, the colony whose
+// tavern it is, and the crews the window keeps from before the amount set (NullCharacter.TavernBak).
+object Characters[3];
+object Colonies[2];
+object NullCharacter;
+object TestLocation;
+ref loadedLocation;
+
+int FindColony(string id)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		if (Colonies[i].id == id) return i;
+	}
+	return -1;
+}
+
+ref GetColonyByIndex(int colony)
+{
+	return &Colonies[colony];
+}
+
+// A crew of `men` with its experience and morale.
+void TestCrew(ref at, int men, int sailors, int cannoners, int soldiers, int morale)
+{
+	at.Ship.Crew.Quantity = men;
+	at.Ship.Crew.Exp.Sailors = sailors;
+	at.Ship.Crew.Exp.Cannoners = cannoners;
+	at.Ship.Crew.Exp.Soldiers = soldiers;
+	at.Ship.Crew.Morale = morale;
+}
+
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\TavernWait.ini";
@@ -101,6 +133,7 @@ void Main()
 	Interfaces[5].IniFile = "RESOURCE\INI\INTERFACES\contraband.ini";
 	Interfaces[6].IniFile = "RESOURCE\INI\INTERFACES\cannons.ini";
 	Interfaces[7].IniFile = "RESOURCE\INI\INTERFACES\itemstrade.ini";
+	Interfaces[8].IniFile = "RESOURCE\INI\INTERFACES\hirecrew.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -126,6 +159,19 @@ void Main()
 	GameInterface.strings.titul = "Reputation with the nations";
 	TestNations.score2 = -40;
 	TestNations.score1 = 35;
+	// the crew hire of the recorded models (ui/tests/models/hirecrew*.json): the hero's ship of 40 men, a tavern of 25
+	Colonies[0].id = "Elsewhere";
+	Colonies[1].id = "Tortuga";
+	makeref(loadedLocation, TestLocation);
+	loadedLocation.fastreload = "Tortuga";
+	TestCrew(&Characters[1], 40, 71, 34, 18, 62);
+	TestCrew(&Characters[2], 12, 50, 50, 50, 50);
+	TestCrew(&Colonies[1], 25, 22, 30, 12, 55);
+	GameInterface.SHIPS_SCROLL.current = 0;
+	GameInterface.SHIPS_SCROLL.pic1.companionIndex = 1;
+	GameInterface.SHIPS_SCROLL.pic2.companionIndex = 2;
+	NullCharacter.TavernBak.Hero.Quantity = 40;
+	NullCharacter.TavernBak.Tavern.Quantity = 25;
 	GameValue = 7;
 	GameName = "kept";
 }

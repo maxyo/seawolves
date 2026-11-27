@@ -24,6 +24,7 @@
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/touch/contracts/nations.c"},
+    {"file": "interface/touch/contracts/crew.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c"},
     {
@@ -158,6 +159,31 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/crew.c",
+      "requires": [
+        "fn:FindColony/1", "fn:GetColonyByIndex/1", "var:GameInterface", "var:NullCharacter", "var:Characters",
+        "var:loadedLocation"
+      ],
+      "provides": ["adapter:crew"],
+      "binds": [
+        {
+          "capability": "crew_hire",
+          "interface": "hirecrew",
+          "nodes": [
+            ["SHIPS_SCROLL", "choice", true], ["QTY_EDIT", "edit", true], ["CREW_QTY", "text", true],
+            ["CREW_QTY2", "text", true], ["TAVERN_PRICE", "text", true], ["QTY_OK_BUTTON", "button"],
+            ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|button"], ["EXIT_BTN", "button"],
+            ["TITLE", "heading|text"], ["STORECAPTION1", "text"], ["LEFTSCROLLBUTTON", "button"],
+            ["RIGHTSCROLLBUTTON", "button"], ["OUR_GOLD", "text"], ["CAPACITY", "text"], ["STORE_CAPACITY", "text"],
+            ["FOOD_SHIP", "text"], ["MONEY_SHIP", "text"], ["INFO_SHIP", "text"], ["CREW_MORALE_TEXT", "text"],
+            ["CREW_MORALE_TEXT2", "text"], ["TABLE_CREW", "choice|text"], ["TABLE_CREW2", "choice|text"],
+            ["CREW_PICTURE*", "image"], ["CREW_MORALE_PIC*", "image"], ["MAIN_CHARACTER_PICTURE", "image"],
+            ["OTHER_PICTURE", "image"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -222,6 +248,11 @@
       "file": "interface/touch/screens/hero/nations.c",
       "uses": ["adapter:nations"],
       "screens": [{"capability": "nations", "component": "s-nations"}]
+    },
+    {
+      "file": "interface/touch/screens/crew.c",
+      "uses": ["adapter:crew"],
+      "screens": [{"capability": "crew_hire", "component": "s-crew"}]
     }
   ]
 }

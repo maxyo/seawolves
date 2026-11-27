@@ -218,3 +218,26 @@ string TouchLegLib_StockText(string text)
 	}
 	return out;
 }
+
+// A crew as the game's windows draw it (SetCrewExpTable): the rows Sailors, Cannoners, Soldiers of `table` with their
+// caption and word, the crew's figure of each where the game words it (a crew without men has none: an empty bar),
+// the morale with its word after the colon of `moraleText`. out.{groups.g<k>.{label, value, word}, morale,
+// moraleWord}.
+void TouchLegLib_Crew(aref model, string table, string moraleText, ref crew, aref out)
+{
+	aref groups;
+	makearef(groups, out.groups);
+	string group;
+	for (int k = 0; k < TouchLib_Count(model, table + ".rows"); k++)
+	{
+		aref row = TouchLib_Item(model, table + ".rows", k);
+		group = row.id;
+		object figure = {label = TouchLib_Trim(TouchLegLib_Cell(row, 1)), value = 0,
+		                 word = TouchLib_Trim(TouchLegLib_Cell(row, 2))};
+		if (figure.word != "") figure.value = sti(crew.Ship.Crew.Exp.(group));
+		aref at = TouchLib_Add(groups, "g");
+		CopyAttributes(at, &figure);
+	}
+	out.morale = sti(crew.Ship.Crew.Morale);
+	out.moraleWord = TouchLib_AfterColon(UiOneLine(TouchLegLib_Label(model, moraleText)));
+}

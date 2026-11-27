@@ -7,7 +7,6 @@
 namespace storm::ui::screens
 {
 
-std::unique_ptr<Screen> CreateCrewScreen();
 std::unique_ptr<Screen> CreateShipyardScreen();
 std::unique_ptr<Screen> CreateDialogueScreen();
 std::unique_ptr<StateConsumer> CreateDialogueConsumer();
@@ -57,7 +56,6 @@ namespace
 const ScreenEntry kPorted[] = {
     {"goodstransfer", CreateGoodsOrderScreen},
     {"sailsgerald", CreateSailEmblemScreen},
-    {"hirecrew", CreateCrewScreen},
     {"shipyard", CreateShipyardScreen},
     {"dialogue", CreateDialogueScreen},
     {"game_menu", CreateGameMenuScreen},

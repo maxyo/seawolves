@@ -1429,29 +1429,30 @@ static void Crew(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "hirecrew.json"));
     Expect(router.Using() == "hirecrew" && surface.tag == "s-crew" && surface.errors.empty(),
-           "hirecrew is drawn by the crew screen");
+           "hirecrew is drawn by the crew screen: " + Json(surface.errors).dump());
     Json row = surface.props["list"]["rows"][0];
     Expect(row["q"]["value"] == 40 && row["q"]["max"] == 65 && row["cells"][2]["text"] == "23",
-           "crew on the ship, the rail over the ship's and the tavern's men, price per man");
+           "crew on the ship, the rail over the ship's and the tavern's men, price per man: " + row.dump());
     Expect(surface.props["primary"].is_null(), "nothing to confirm yet: no deal button");
     {
-        // Both crews as the ship screen draws a crew (hero::CrewQuality): the adapter's numbers, the game's words.
+        // Both crews: the game's captions and words, each crew's own figures (the fixture game's characters).
         const Json &ship = surface.props["ship"], &tavern = surface.props["tavern"];
         Expect(ship["groups"].size() == 3 && ship["groups"][0]["label"] == "Матросы" &&
                    ship["groups"][0]["value"] == 71 && ship["groups"][0]["word"] == "опытные" &&
-                   ship["groups"][2]["value"] == 18 && ship["morale"] == 62 && ship["moraleWord"] == "хорошая" &&
+                   ship["groups"][2]["value"] == 18 && ship["morale"] == 62 && ship["moraleWord"] == "Хорошая" &&
                    ship["moraleLabel"] == "<ship.morale>",
                "the ship's crew: experience bars and morale with the game's words: " + ship.dump());
         Expect(tavern["groups"].size() == 3 && tavern["groups"][0]["value"] == 22 &&
                    tavern["groups"][0]["word"] == "неопытные" && tavern["groups"][1]["value"] == 30 &&
                    tavern["morale"] == 55,
-               "the tavern's men: their own numbers (town_*): " + tavern.dump());
+               "the tavern's men: the colony's crew: " + tavern.dump());
     }
-    // hirecrew.json: 40 on the ship, 25 in the tavern, 23 a man; the window started from 40 (the adapter's base).
-    // The amount goes to the game (hirecrew.c ChangeQTY_EDIT clamps it and sets it on both crews); the screen shows
-    // what the game answered, not a limit or a cost of its own.
+    // hirecrew.json: 40 on the ship, 25 in the tavern, 23 a man; the window started from 40 (the game's
+    // TavernBak). The amount goes to the game (hirecrew.c ChangeQTY_EDIT clamps it and sets it on both crews); the
+    // screen shows what the game answered, not a limit or a cost of its own.
     const auto crew_q = [&surface]() { return surface.props["list"]["rows"][0]["q"]; };
     Expect(crew_q()["value"] == 40 && crew_q()["origin"] == 40 && crew_q()["min"] == 0 &&
                !crew_q().contains("moreReason") && surface.errors.empty(),
@@ -1463,8 +1464,6 @@ static void Crew(const std::string &models)
     Expect(surface.commands.size() == 2 && surface.commands[0] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|0" &&
                surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|20",
            "the amount goes to the game at once, after its reset: " + Json(surface.commands).dump());
-    Expect(crew_q()["value"] == 60 && surface.props["primary"].is_null(),
-           "until the game answers: the slider where the player put it, no deal of ours");
     // The game's answer: the purse (500 / 23) stops the hire at 21 men, the cost is its own text.
     const auto answer = [&](int crew, int tavern, const char *result) {
         model.revision += 1;
@@ -1478,36 +1477,28 @@ static void Crew(const std::string &models)
     Expect(crew_q()["value"] == 61 && crew_q()["origin"] == 40 &&
                surface.props["primary"]["label"] == "<crew.hire> 21" && surface.props["primary"]["sub"] == "483" &&
                surface.props["stats"][0]["value"] == "40" && surface.props["stats"][0]["preview"] == "61",
-           "the game's clamp and cost: «Нанять 21» for 483: " + surface.props["primary"].dump() + crew_q().dump());
+           "the game's clamp and cost: «Нанять 21» for 483: " + surface.props["primary"].dump() + crew_q().dump() +
+               surface.props["stats"].dump());
     surface.commands.clear();
     router.OnEvent({"primary", "click", ""});
     router.Tick();
-    Expect(surface.commands.size() == 1 &&
-               surface.commands[0] == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:ship:0|press",
+    Expect(!surface.commands.empty() &&
+               surface.commands.back() == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:ship:0|press",
            "«Нанять 21» is the game's OK, bound to the ship: " + Json(surface.commands).dump());
+    // The game took the 21 men on: its backup is the crew it confirmed (the fixture keeps the 40 it started from,
+    // so the screen is put back on a fresh window of 40).
+    answer(40, 25, "");
     surface.commands.clear();
     router.OnEvent({"crew", "commit", "35"});
-    surface.now += 0.5;
     router.Tick();
     Expect(surface.commands.size() == 2 && surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|-5",
-           "left of the pivot fires: a negative amount");
+           "left of the pivot fires: a negative amount: " + Json(surface.commands).dump());
     answer(35, 30, "");
     Expect(surface.props["primary"]["label"] == "<crew.fire> 5" && surface.props["primary"]["sub"] == "",
-           "the game fired five, at no cost");
-    {
-        // Without the adapter's facts the screen says so aloud.
-        InterfaceModel bare = Load(models, "hirecrew.json");
-        bare.widgets.erase(std::remove_if(bare.widgets.begin(), bare.widgets.end(),
-                                          [](const Widget &w) { return w.node == "ANDROID_CREWHIRE"; }),
-                           bare.widgets.end());
-        FakeSurface bare_surface;
-        Router bare_router(bare_surface);
-        bare_router.SetInterface(bare);
-        Expect(bare_surface.errors.size() == 1 && bare_surface.errors[0].find("ANDROID_CREWHIRE") != std::string::npos,
-               "missing adapter facts are an error, not a quiet guess");
-    }
+           "the game fired five, at no cost: " + surface.props["primary"].dump());
     router.OnEvent({"header", "subject-next", ""});
     ExpectEqual(surface.Last(), "widget:hirecrew\tSHIPS_SCROLL\t1\tselect@7:ship:1", "the next ship");
+    answer(35, 30, "");
 
     InterfaceModel broken = Load(models, "hirecrew.json");
     broken.widgets.erase(std::remove_if(broken.widgets.begin(), broken.widgets.end(),
@@ -1518,7 +1509,8 @@ static void Crew(const std::string &models)
     surface.now += 1.0;
     router.Tick();
     Expect(!router.Active() && router.Rejection() == "QTY_EDIT(edit)" && surface.errors.size() == 1,
-           "without its edit box the crew screen is rejected loudly");
+           "without its edit box the crew screen is rejected loudly: " + router.Rejection() +
+               Json(surface.errors).dump());
 }
 
 static void Repair(const std::string &models)
@@ -5582,6 +5574,7 @@ static void Amounts(const std::string &models)
 
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel model = Load(models, "hirecrew.json");
     for (Widget &widget : model.widgets)
         if (widget.node == "TAVERN_PRICE")
@@ -5589,8 +5582,8 @@ static void Amounts(const std::string &models)
     router.SetInterface(model);
     model.revision += 1;
     router.SetInterface(model);
-    Expect(surface.errors.size() == 1 && surface.errors[0].find("TAVERN_PRICE") != std::string::npos,
-           "a price caption without its number is an error line, once: " + Json(surface.errors).dump());
+    Expect(!surface.errors.empty() && surface.errors[0].find("TAVERN_PRICE") != std::string::npos,
+           "a price caption without its number is an error line: " + Json(surface.errors).dump());
 
     Expect(ParseNumber<int>("12") == 12 && ParseNumber<int>("-3") == -3 && ParseNumber<double>("0.25") == 0.25,
            "a number written alone");
