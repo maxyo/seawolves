@@ -20,7 +20,8 @@
     },
     {
       "file": "interface/touch/lineages/legacy/trade.c",
-      "requires": ["interface:itemsbox", "node:itemsbox#TABLE_LIST"],
+      "requires": ["interface:itemsbox", "node:itemsbox#TABLE_LIST", "interface:storage", "node:storage#TABLE_LIST",
+                   "fn:GetGoodWeightByType/2", "var:GameInterface"],
       "provides": ["adapter:trade"],
       "binds": [
         {
@@ -29,6 +30,17 @@
           "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
                     ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["CHARACTERS_SCROLL", "choice"],
                     ["CAPACITY", "text"], ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
+                    ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
+                    ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
+                    ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
+        },
+        {
+          "capability": "trade_storage",
+          "interface": "storage",
+          "nodes": [["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
+                    ["TITLE", "heading|text"], ["INFO_TEXT", "text"], ["SHIPS_SCROLL", "choice"],
+                    ["CAPACITY", "text"], ["STORE_CAPACITY", "text"], ["STORAGE_INFO", "text"],
+                    ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
                     ["GETALL_BUTTON", "button"], ["ANDROID_TAKE_ALL", "button"], ["DELBODY_BUTTON", "button"],
                     ["SKULL_BUTTON", "button"], ["QTY_EDIT", "edit"], ["QTY_EDITBOX", "edit"],
                     ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_*", "text|heading|image"]]
@@ -43,7 +55,8 @@
     {
       "file": "interface/touch/screens/trade/commerce.c",
       "uses": ["adapter:trade"],
-      "screens": [{"capability": "trade_chest", "component": "s-trade"}]
+      "screens": [{"capability": "trade_chest", "component": "s-trade"},
+                  {"capability": "trade_storage", "component": "s-trade"}]
     }
   ]
 }

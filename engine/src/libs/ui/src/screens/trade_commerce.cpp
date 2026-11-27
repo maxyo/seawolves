@@ -1,4 +1,4 @@
-// Commerce: store, contraband, cannons, items trade, storage and colony loot — one
+// Commerce: store, contraband, cannons, items trade and colony loot — one
 // buy / sell / transfer layout (pack screen <s-trade>). Goods are one C-TradeList that never
 // moves: filter chips and sortable columns in its head, 44 dp rows; the row whose quantity
 // window the game has open shows in the dock beside the list (object, description, C-Quantity
@@ -138,10 +138,6 @@ constexpr Layout kItemsTrade = Carrying(
     {StringKey("trade.items"), 0, 5, 3, 2, 4, -1, "CHARACTERS_SCROLL", true, {-1, -1, -1}, false,
      6, true},
     "weight");
-constexpr Layout kStorage = Captioned(
-    {StringKey("trade.storage"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
-     5},
-    StringKey("trade.in_hold"), "capacity", nullptr, "");
 // Looting a captured colony (ColonyCapture.c): the hold, the town's stores, a free transfer.
 constexpr Layout kColonyCapture = Captioned(
     {StringKey("trade.loot"), 0, 3, 2, -1, -1, 4, "SHIPS_SCROLL", false, {-1, -1, -1}, true,
@@ -569,7 +565,7 @@ class CommerceScreen final : public Screen
         Captions out{Header(goods, columns.own), Header(goods, columns.other)};
         // Personal stock, a merchant/store or a container/other ship are distinct at a glance.
         out.own_icon = columns.small ? "hero" : "capacity";
-        out.other_icon = &columns == &kTransfer ? "ship" : &columns == &kStorage ? "chest" : "store";
+        out.other_icon = &columns == &kTransfer ? "ship" : "store";
         if (out.own.empty() || out.own == out.other)
         {
             out.own = bindings.Text("trade.yours");
@@ -1346,10 +1342,6 @@ std::unique_ptr<Screen> CreateCannonsScreen()
 std::unique_ptr<Screen> CreateItemsTradeScreen()
 {
     return std::make_unique<CommerceScreen>(kItemsTrade);
-}
-std::unique_ptr<Screen> CreateStorageScreen()
-{
-    return std::make_unique<CommerceScreen>(kStorage);
 }
 // Used inside the loot / exchange screen (extra_transfer.cpp), which adds its windows.
 std::unique_ptr<Screen> CreateTransferGoods()

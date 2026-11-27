@@ -16,6 +16,7 @@
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
   обновляется при каждой оплате.
+- Экран склада показывал неверный вес товара и сделки: теперь вес пачки и вес перевозимого товара считаются верно.
 
 **English**
 
@@ -31,6 +32,8 @@
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.
   In «Каждому своё» this changes one place: the date of the previous payment in the ship's debts window is updated on
   every payment.
+- The storage screen showed a wrong weight for goods and for the deal; a pack and the goods moved now weigh what they
+  should.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

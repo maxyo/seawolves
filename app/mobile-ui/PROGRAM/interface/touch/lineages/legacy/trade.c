@@ -3,16 +3,16 @@
 // window, the amount window QTY_*, the side switch and the place's buttons. Implements contracts/trade.c, which it
 // does not include: a segment cannot define what it declares extern.
 
-// The columns of each window's table (-1: none): ours, theirs, the name, the pack, the weight of one pack or piece,
-// the total weight of each side's pieces; the side switch's node.
+// The columns of each window's table (-1: none): ours, theirs, the name, the pack, the total weight of each side's
+// pieces; whether its rows are goods in packs (their weight is the game's GetGoodWeightByType); the side switch's node.
 void TouchLegTrade_Columns(string capability, aref out)
 {
 	out.own = 0;
 	out.name = 2;
 	out.pack = -1;
-	out.weight = -1;
 	out.ownTotal = -1;
 	out.otherTotal = -1;
+	out.goods = false;
 	out.pieces = false;
 	if (capability == TOUCH_CAP_TRADE_CHEST)
 	{
@@ -22,7 +22,27 @@ void TouchLegTrade_Columns(string capability, aref out)
 		out.owners = "CHARACTERS_SCROLL";
 		return;
 	}
+	if (capability == TOUCH_CAP_TRADE_STORAGE)
+	{
+		out.other = 3;
+		out.pack = 4;
+		out.goods = true;
+		out.owners = "SHIPS_SCROLL";
+		return;
+	}
 	UiError("trade: no columns for " + capability);
+}
+
+// The good of a table row: the game keeps it beside the row it shows (GameInterface.TABLE_LIST.tr<n>.index).
+int TouchLegTrade_Good(int index)
+{
+	string row = "tr" + (index + 1);
+	if (!CheckAttribute(&GameInterface, "TABLE_LIST." + row + ".index"))
+	{
+		UiError("trade: the game's table has no good for its row " + row);
+		return -1;
+	}
+	return sti(GameInterface.TABLE_LIST.(row).index);
 }
 
 string TouchLegTrade_Label(string node)
@@ -165,7 +185,7 @@ void TouchLegTrade_Rows(aref columns, aref out)
 		at.pack = TouchLegTrade_Cell(row, sti(columns.pack));
 		at.weight = TouchLegTrade_PieceWeight(columns, row, sti(at.own), sti(at.other));
 		at.weightUnit = "";
-		if (sti(columns.weight) >= 0 && !sti(columns.pieces)) at.weightUnit = "cwt";
+		if (sti(columns.goods)) at.weightUnit = "cwt";
 		if (row.value == "1") out.selected = k;
 	}
 }
@@ -177,11 +197,16 @@ string TouchLegTrade_Header(aref headers, int column)
 	return UiOneLine(headers.(cell));
 }
 
-// The weight of one piece of a row: the column of it, or a chest's total weight of the side that has more pieces
-// (the finer figure; "-" is gold, which weighs nothing: itemsbox.c writes it in both weight columns).
+// The weight of what a row's figures are for: a pack of goods as the game counts it, or one piece from a chest's
+// total weight of the side that has more pieces (the finer figure; "-" is gold, which weighs nothing: itemsbox.c
+// writes it in both weight columns).
 string TouchLegTrade_PieceWeight(aref columns, aref row, int own, int other)
 {
-	if (sti(columns.weight) >= 0) return UiOneLine(TouchLegTrade_Cell(row, sti(columns.weight)));
+	if (sti(columns.goods))
+	{
+		int units = UiAmount(TouchLegTrade_Cell(row, sti(columns.pack)), "the pack column", 1);
+		return "" + GetGoodWeightByType(TouchLegTrade_Good(sti(row.index)), units);
+	}
 	if (sti(columns.ownTotal) < 0) return "";
 	int count = own;
 	string cell = TouchLegTrade_Cell(row, sti(columns.ownTotal));
@@ -285,7 +310,7 @@ void TouchAdpTrade_State(string capability, aref out)
 	if (out.title == "") out.title = UiOneLine(TouchLegTrade_Label("STORECAPTION1"));
 	out.pieces = columns.pieces;
 	out.money = false;
-	out.weighs = sti(columns.weight) >= 0;
+	out.weighs = columns.goods;
 	TouchLegTrade_Rows(&columns, out);
 	int selected = sti(out.selected);
 	string edit = TouchLegTrade_Edit();
@@ -319,7 +344,8 @@ void TouchAdpTrade_State(string capability, aref out)
 
 float TouchAdpTrade_Weight(string capability, int row, int amount)
 {
-	return 0.0;
+	aref at = TouchLegTrade_Row(row);
+	return makefloat(GetGoodWeightByType(TouchLegTrade_Good(sti(at.index)), amount));
 }
 
 aref TouchLegTrade_Row(int k)

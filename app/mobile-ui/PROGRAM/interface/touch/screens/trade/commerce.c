@@ -38,12 +38,21 @@ void TouchCommerce_Layout(string capability, aref out)
 		out.baseIcon = "chest";
 		return;
 	}
+	if (capability == TOUCH_CAP_TRADE_STORAGE)
+	{
+		out.title = "trade.storage";
+		out.quick = true;
+		out.ownCaption = "trade.in_hold";
+		out.ownIcon = "capacity";
+		out.baseIcon = "chest";
+		return;
+	}
 	UiError("trade: no layout for " + capability);
 }
 
 bool TouchCommerce_Is(string capability)
 {
-	return capability == TOUCH_CAP_TRADE_CHEST;
+	return capability == TOUCH_CAP_TRADE_CHEST || capability == TOUCH_CAP_TRADE_STORAGE;
 }
 
 void TouchCommerce_Reset(string capability)

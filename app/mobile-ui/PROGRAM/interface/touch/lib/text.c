@@ -12,7 +12,8 @@ string TouchLib_Newline()
 string TouchLib_LineEnds()
 {
 	return "
- ";
+
+ ";
 }
 
 // The bytes [from, to) of `text`, "" for an empty range (strcut takes none).
@@ -38,7 +39,9 @@ bool TouchLib_Digit(string text, int at)
 int TouchLib_FindDigit(string text, int from, bool digit)
 {
 	for (int i = from; i < strlen(text); i++)
+	{
 		if (TouchLib_Digit(text, i) == digit) return i;
+	}
 	return -1;
 }
 
