@@ -50,7 +50,6 @@ storm_fx_add_shader(fx_shaders fs_fx_shadow_caster "${fx_sc}/fs_fx_shadow_caster
 storm_fx_add_shader(fx_shaders fs_fx_sun_relight "${fx_sc}/fs_fx_sun_relight.sc")
 storm_fx_add_shader(fx_shaders vs_fx_sky "${fx_sc}/vs_fx_sky.sc")
 storm_fx_add_shader(fx_shaders fs_fx_sky "${fx_sc}/fs_fx_sky.sc")
-storm_fx_add_shader(fx_shaders fs_fx_sky_cubes "${fx_sc}/fs_fx_sky.sc" DEFINES FX_SKY_CUBES)
 
 storm_fx_build_shaders(TARGET storm_fx_shaders NAMESPACE storm_fx_shaders VARYING "${fx_sc}/varying.def.sc"
     INCLUDES "${fx_sc}/include" "${storm_smaa_SOURCE_DIR}" "${storm_fidelityfx_fsr_SOURCE_DIR}/ffx-fsr" SHADERS ${fx_shaders})

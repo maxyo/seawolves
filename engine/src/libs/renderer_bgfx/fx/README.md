@@ -96,18 +96,24 @@ through the clouds near the sun; the sky's light is the fill tinted towards the 
 twilight the side away from the sun takes a tinted, dim sky light and the low sun lights the clouds' bases; the moon
 lights them by night; thin edges take a multiplier. The hour's look (`environment::CloudLook`) blends the periods.
 
-- A game that ships cloud textures (`render::SetSkyClouds`, from `texture_library.json`'s cloud preset) draws three
-  layers of two cubes each (`fs_fx_sky_cubes`): the rain layer, revealed by its cover through three octaves of value
-  noise and opaque where full (it replaces the sky), the base layer over the upper one, both shown by the hour's
-  opacity. Each layer turns about the vertical at its own speed. The cubes load as shipped (2048² BC3, one level:
-  25 MB per cube, 150 MB for the three layers).
-- Without textures (`fs_fx_sky`) the clouds are a layer at 1500 m seen from below, a fractal sum of one tiling octave
-  of gradient noise (`CloudNoise`, 128² R8 with mips, 21 KB) turned and doubled per octave, kept where it rises above
-  a threshold the environment's cover lowers (the coverage remap of Schneider 2015); the wind's drift moves it. Its
-  six-way response is the mean of Caribbean Legend's cumulus cube's where opaque times the noise's density, a lookup
-  a step towards the light shading where the layer thins (a directional derivative, Quílez). The rain clouds are the
-  same reveal over the mean of its rain cube's response. `Settings::cloud_octaves`: «Низкая» 2 octaves and no lookup
-  towards the light, «Средняя» 3, «Высокая» 4.
+Three layers of two cubes each draw them: the rain layer, revealed by its cover through three octaves of value noise
+and opaque where full (it replaces the sky), the base layer over the upper one, both shown by the hour's opacity.
+Each layer turns about the vertical at its own speed and shows where its alpha passes a cut (`u_fxSky[11..12]`; a
+game's layers show their alpha as it is).
+
+- A game that ships cloud textures (`render::SetSkyClouds`, from `texture_library.json`'s cloud preset) draws its
+  own. The cubes load as shipped (2048² BC3, one level: 25 MB per cube, 150 MB for the three layers).
+- For a game without them the sky makes a base and a rain layer at load (`GenerateClouds`, `cloud_cubes.cpp`; about
+  0.3 s on four threads of a desktop CPU; 256² and 128² RGBA8 faces, 3.9 MB). The base layer's density over a plane
+  at 1500 m is large masses with heaped Worley puffs, warped and eroded at the edges; above the plane a cloud is
+  where the density less the square of the height over 1100 m passes the cut, so the cut keeps clouds with flat bases
+  and round tops that rise the denser they are. A texel's alpha is the largest such value along its view ray (the
+  pixel is cloud at any cover where the cut is below it: low clouds stand up from the horizon, seen from the side);
+  the cut is the alpha the cover's share of the sky passes (`GeneratedClouds::ForCover`). Its responses are marched
+  from where the eye meets the cloud of half the cover, up, down and along the four horizontal axes, through a
+  single and two multiply scattered terms, and scaled so their means are Caribbean Legend's cumulus cube's (rain
+  deck: its rain cube's); sRGB-encoded, the alpha linear. The rain layer is an opaque deck whose base sinks where it
+  is denser.
 
 A fog with a height layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
 (`ComputeAerialFogHaze`).

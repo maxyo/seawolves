@@ -546,7 +546,6 @@ fx::WeatherInput Host::weather_input() const
     input.fog_from_sky = env_.fog_from_sky;
     input.clouds = env_.clouds;
     input.rain_clouds = env_.rain_clouds;
-    input.cloud_drift = env_.cloud_drift;
     const environment::CloudLook &c = env_.cloud_look;
     input.cloud_look = {c.intensity, c.opacity, c.edge, c.twilight};
     input.cloud_transmission = {c.sun_transmission, c.moon_transmission, c.sun_radius, c.moon_radius};

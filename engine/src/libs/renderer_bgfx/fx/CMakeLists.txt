@@ -31,7 +31,7 @@ FetchContent_MakeAvailable(storm_bvh storm_smaa storm_fidelityfx_fsr)
 include(shaders/shaders.cmake)
 
 add_library(storm_bgfx_fx_core STATIC
-    src/color_lut.cpp src/sky_model.cpp
+    src/color_lut.cpp src/sky_model.cpp src/cloud_cubes.cpp
     src/lighting_model.cpp src/light_falloff.cpp src/light_set.cpp src/shadow_model.cpp src/normal_map.cpp src/settings.cpp
     src/ao_volume.cpp src/lamp_shadows.cpp src/bakes.cpp src/sun_fit.cpp src/town_light.cpp src/visibility.cpp src/place_probes.cpp src/relief_model.cpp src/relief_store.cpp src/gloss_map.cpp src/upscale.cpp
     src/height_map.cpp src/parallax_trust.cpp src/parallax_exclusions.cpp src/cutout.cpp src/wetness.cpp src/gpu_crash_guard.cpp

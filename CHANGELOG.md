@@ -9,8 +9,10 @@
 - Блок больше не спасает от удара в спину: удар сзади (дальше 150° от взгляда защищающегося) пробивает блок.
 - Знак квеста над персонажем скрывается, пока тот дерётся, мёртв или уходит из локации.
 - Небо одно для всех игр: вместо нарисованных небесных текстур — небо, рассчитанное так же, как в Caribbean Legend,
-  со сменой времени суток, тёплым закатом, дымкой у горизонта, солнцем, луной, звёздами и облаками, которые плывут по
-  ветру. Облачность каждого часа взята из погоды игры; облака освещены так же, как облака Caribbean Legend (тёплые на
+  со сменой времени суток, тёплым закатом, дымкой у горизонта, солнцем, луной, звёздами и облаками, которые медленно
+  плывут по небу. Облачность каждого часа взята из погоды игры. Игре без облачных текстур небо при загрузке строит
+  объёмные кучевые облака разной величины с плоским основанием и круглыми вершинами, освещённой и теневой стороной,
+  меньше и плотнее к горизонту; они рисуются и освещаются тем же путём, что облачные слои Caribbean Legend (тёплые на
   закате, лунные ночью); в дождь и шторм небо затягивают тёмные тучи, и горизонт с морем темнеют вместе с ними.
   Звёзды строятся заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна — диски неба с картинками
   самой игры (луна — в фазе по дате).
@@ -78,8 +80,10 @@
 - A block no longer stops a blow from behind: a strike from more than 150° off the defender's facing breaks it.
 - The quest sign over a character is hidden while that character fights, is dead or leaves the location.
 - One sky for every game: instead of the painted sky textures, a sky computed as Caribbean Legend computes it, that
-  follows the time of day, with a warm sunset, haze at the horizon, the sun, the moon, stars and clouds that drift
-  with the wind. Each hour's cloud cover comes from the game's weather; the clouds are lit as Caribbean Legend's are
+  follows the time of day, with a warm sunset, haze at the horizon, the sun, the moon, stars and clouds that slowly
+  drift across the sky. Each hour's cloud cover comes from the game's weather. For a game without cloud textures the
+  sky makes cumulus at load: of many sizes, with flat bases and round tops, a lit and a shadowed side, smaller and
+  closer together towards the horizon; they are drawn and lit by the same path as Caribbean Legend's cloud layers
   (warm at sunset, moonlit at night); rain and storms close the sky with dark clouds, and the horizon and the sea
   darken with them. The stars are made anew (the game's star catalogue and planets are no longer drawn), and the sun and the
   moon are discs of the sky with the game's own pictures (the moon in its phase by the date).

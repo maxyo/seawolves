@@ -6,19 +6,16 @@ $input v_wpos
 #include "fx_common.sh"
 #include "fx_tonemap.sh"
 
-SAMPLER2D(s_fxCloudNoise, 1); // fx::CloudNoise: one octave of gradient noise that tiles
-SAMPLER2D(s_fxSunDisc, 2);    // the game's sun and moon sprites (fx::Sky::SetDiscs)
-SAMPLER2D(s_fxMoonDisc, 3);
-#if FX_SKY_CUBES
-// A game's textured cloud layers (fx::Sky::SetCloudLayers): A the response to light from +x, +y, +z with the opacity
-// in alpha, B the response to light from -x, -y, -z with the ambient response in alpha.
-SAMPLERCUBE(s_fxCloudBaseA, 4);
-SAMPLERCUBE(s_fxCloudBaseB, 5);
-SAMPLERCUBE(s_fxCloudUpperA, 6);
-SAMPLERCUBE(s_fxCloudUpperB, 7);
-SAMPLERCUBE(s_fxCloudRainA, 8);
-SAMPLERCUBE(s_fxCloudRainB, 9);
-#endif
+SAMPLER2D(s_fxSunDisc, 1); // the game's sun and moon sprites (fx::Sky::SetDiscs)
+SAMPLER2D(s_fxMoonDisc, 2);
+// The cloud layers (fx::Sky::SetCloudLayers: a game's, or made by GenerateClouds): A the response to light from +x,
+// +y, +z with the opacity in alpha, B the response to light from -x, -y, -z with the ambient response in alpha.
+SAMPLERCUBE(s_fxCloudBaseA, 3);
+SAMPLERCUBE(s_fxCloudBaseB, 4);
+SAMPLERCUBE(s_fxCloudUpperA, 5);
+SAMPLERCUBE(s_fxCloudUpperB, 6);
+SAMPLERCUBE(s_fxCloudRainA, 7);
+SAMPLERCUBE(s_fxCloudRainB, 8);
 
 // [0] xyz towards the sun, w the sky's daylight (1 day .. 0 night)
 // [1] xyz towards the moon, w the scene's exposure
@@ -32,8 +29,8 @@ SAMPLERCUBE(s_fxCloudRainB, 9);
 //     tint of the atmosphere's
 // [9] rgb the fog's colour
 // [10] xy cos and sin of the camera's yaw (the sun's sprite turns with it)
-// [11] xy the clouds' drift (noise tiles), z the fair-weather clouds' cover, w the rain clouds' cover
-// [12] x the noise octaves (2..4; from 3 a tap towards the light shades the clouds), y noise tiles per cloud height
+// [11] xyz the upper, base and rain layers' opacity: where their alpha passes this, w the rain clouds' cover
+// [12] xyz times this (a game's layers 0 and 1: the alpha itself)
 // [13] the clouds' look: x their radiance multiplier, y how much of the textured base and upper layers shows, z the
 //      thin edges' light multiplier, w the share of dawn and sunset in the hour
 // [14] transmission: x the sun's strength, y the moon's, z the sun's radius, w the moon's (degrees)
@@ -45,9 +42,8 @@ SAMPLERCUBE(s_fxCloudRainB, 9);
 // [19] rgb the fill light's colour, w its intensity
 // [20..22] the upper, base and rain layers: xy the cosine and sine of its turn, z its radiance scale (0: no cubes),
 //      w its ambient response's scale (below 0: the mean of its six responses)
-// [23..26] rgb the six-way responses of the clouds without textures: fair-weather +x+y+z, -x-y-z, rain +, rain -
-// [27..34] rgb the haze band's colour at the azimuths 0, 45 .. 315 degrees from +x towards +z
-uniform vec4 u_fxSky[35];
+// [23..30] rgb the haze band's colour at the azimuths 0, 45 .. 315 degrees from +x towards +z
+uniform vec4 u_fxSky[31];
 
 // ---- the atmosphere: three shells of air over a planet (fx::SkyAtmosphere) ----
 #define FX_EARTH_RADIUS 6371000.0
@@ -228,10 +224,9 @@ float fxMax3(vec3 v)
 }
 
 // A cloud texel lit by the sun, the sky's fill, the twilight and the moon: `positive`, `negative` its six responses
-// (times its radiance scale), `ambient` its response to the sky's light, `shadow` what of the direct light reaches it;
+// (times its radiance scale), `ambient` its response to the sky's light;
 // `l`, `m` towards the sun and the moon in the layer's frame, `view` the view direction, `sky` the atmosphere behind.
-vec4 fxCloudShade(vec3 positive, vec3 negative, float opacity, float ambient, float shadow, vec3 l, vec3 m, vec3 view,
-                  vec3 sky)
+vec4 fxCloudShade(vec3 positive, vec3 negative, float opacity, float ambient, vec3 l, vec3 m, vec3 view, vec3 sky)
 {
     vec4 look = u_fxSky[13];
     vec4 low = u_fxSky[15];
@@ -244,7 +239,7 @@ vec4 fxCloudShade(vec3 positive, vec3 negative, float opacity, float ambient, fl
     float twilight = clamp(look.w, 0.0, 1.0);
     float edge = mix(1.0, clamp(look.z, 0.0, 4.0), 1.0 - smoothstep(0.20, 0.95, clamp(opacity, 0.0, 1.0)));
     float peak = fxMax3(max(positive, negative));
-    float baked = fxSixWay(positive, negative, l) * shadow;
+    float baked = fxSixWay(positive, negative, l);
     float response = fxShapeResponse(baked, peak, day.w);
     response = fxBlendTransmission(response, fxTransmission(opacity, dot(view, sun), sun.y, u_fxSky[14].x,
                                                             u_fxSky[14].z, 1.0));
@@ -296,7 +291,7 @@ vec4 fxCloudShade(vec3 positive, vec3 negative, float opacity, float ambient, fl
     if (fxMax3(moonLight) > 0.0)
     {
         vec3 moon = u_fxSky[1].xyz;
-        float lunar = fxShapeResponse(fxSixWay(positive, negative, m) * shadow, peak, day.w);
+        float lunar = fxShapeResponse(fxSixWay(positive, negative, m), peak, day.w);
         lunar = fxBlendTransmission(lunar, fxTransmission(opacity, dot(view, moon), moon.y, u_fxSky[14].y,
                                                           u_fxSky[14].w, 0.0));
         radiance += lunar * moonLight * edge * max(tint.w, 0.0);
@@ -344,21 +339,23 @@ vec3 fxOver(vec3 background, vec4 cloud)
     return cloud.rgb + background * (1.0 - cloud.a);
 }
 
-#if FX_SKY_CUBES
-// One textured layer along `dir` (its uniform `layer`, the cubes A and B sampled at the turned direction).
-vec4 fxShadeLayer(vec4 a, vec4 b, vec4 layer, vec3 dir, vec3 sky)
+// One layer along `dir` (its uniform `layer`, the cubes A and B sampled at the turned direction, its alpha's cut
+// `from` and `scale`). The responses carry the alpha: they follow the opacity the cut leaves.
+vec4 fxShadeLayer(vec4 a, vec4 b, vec4 layer, float from, float scale, vec3 dir, vec3 sky)
 {
     vec3 l = fxTurnLayer(u_fxSky[0].xyz, layer.xy);
     vec3 m = fxTurnLayer(u_fxSky[1].xyz, layer.xy);
-    vec3 positive = a.rgb * layer.z;
-    vec3 negative = b.rgb * layer.z;
-    float ambient = layer.w >= 0.0 ? b.a * layer.w : dot(positive + negative, vec3_splat(1.0 / 6.0));
-    return fxCloudShade(positive, negative, clamp(a.a, 0.0, 1.0), ambient, 1.0, l, m, dir, sky);
+    float opacity = clamp((a.a - from) * scale, 0.0, 1.0);
+    float k = layer.z * opacity / max(a.a, 1.0 / 255.0);
+    vec3 positive = a.rgb * k;
+    vec3 negative = b.rgb * k;
+    float ambient = layer.w >= 0.0 ? b.a * layer.w * k : dot(positive + negative, vec3_splat(1.0 / 6.0));
+    return fxCloudShade(positive, negative, opacity, ambient, l, m, dir, sky);
 }
 
 // The rain layer revealed by its cover (opaque, it replaces the sky), the base layer over the upper one, both shown
 // by the hour's opacity.
-vec3 fxTexturedClouds(vec3 background, vec3 sky, vec3 dir)
+vec3 fxClouds(vec3 background, vec3 sky, vec3 dir)
 {
     vec4 rain = vec4_splat(0.0);
     vec4 rainLayer = u_fxSky[22];
@@ -370,7 +367,7 @@ vec3 fxTexturedClouds(vec3 background, vec3 sky, vec3 dir)
         if (reveal > 0.0)
         {
             rain = fxShadeLayer(textureCubeLod(s_fxCloudRainA, local, 0.0), textureCubeLod(s_fxCloudRainB, local, 0.0),
-                                rainLayer, dir, sky) * reveal;
+                                rainLayer, u_fxSky[11].z, u_fxSky[12].z, dir, sky) * reveal;
             if (rain.a >= 1.0)
                 return rain.rgb;
         }
@@ -384,90 +381,20 @@ vec3 fxTexturedClouds(vec3 background, vec3 sky, vec3 dir)
         vec4 lower = vec4_splat(0.0);
         if (baseLayer.z > 0.0)
             lower = fxShadeLayer(textureCubeLod(s_fxCloudBaseA, local, 0.0),
-                                 textureCubeLod(s_fxCloudBaseB, local, 0.0), baseLayer, dir, sky);
+                                 textureCubeLod(s_fxCloudBaseB, local, 0.0), baseLayer, u_fxSky[11].y,
+                                 u_fxSky[12].y, dir, sky);
         vec4 upperLayer = u_fxSky[20];
         if (lower.a < 1.0 && upperLayer.z > 0.0)
         {
             local = fxTurnLayer(dir, upperLayer.xy);
             result = fxOver(result, fxShadeLayer(textureCubeLod(s_fxCloudUpperA, local, 0.0),
-                                                 textureCubeLod(s_fxCloudUpperB, local, 0.0), upperLayer, dir, sky));
+                                                 textureCubeLod(s_fxCloudUpperB, local, 0.0), upperLayer,
+                                                 u_fxSky[11].x, u_fxSky[12].x, dir, sky));
         }
         result = mix(background, fxOver(result, lower), shown);
     }
     return fxOver(result, rain);
 }
-#endif
-
-// ---- clouds without a texture: fractal noise on a layer ----
-float fxCloudNoise(vec2 uv, float octaves)
-{
-    float sum = 0.0;
-    float weight = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 4; ++i)
-    {
-        if (float(i) >= octaves)
-            break;
-        sum += amplitude * texture2D(s_fxCloudNoise, uv).r;
-        weight += amplitude;
-        uv = vec2(1.6 * uv.x - 1.2 * uv.y, 1.2 * uv.x + 1.6 * uv.y) + 0.37;
-        amplitude *= 0.5;
-    }
-    return sum / weight;
-}
-
-// The cover keeps the noise above a threshold that falls as the cover grows (the coverage remap of Schneider,
-// "The real-time volumetric cloudscapes of Horizon Zero Dawn", 2015).
-float fxCloudDensity(float noise, float cover)
-{
-    float t = 0.78 - 0.56 * cover;
-    return smoothstep(t, t + 0.22, noise);
-}
-
-#if !FX_SKY_CUBES
-// The clouds over `dir` lit as the textured layers are: the rain clouds revealed by their cover (opaque, they
-// replace the sky), and a layer at the cloud height seen from below, its noise thresholded by the fair-weather cover,
-// a tap towards the light shading where it thins (a directional derivative: Quilez, "Directional derivative",
-// iquilezles.org).
-vec3 fxNoiseClouds(vec3 background, vec3 sky, vec3 dir)
-{
-    vec4 cover = u_fxSky[11];
-    vec3 sun = u_fxSky[0].xyz;
-    vec3 moon = u_fxSky[1].xyz;
-    vec4 rain = vec4_splat(0.0);
-    vec2 turn = u_fxSky[22].xy;
-    float reveal = fxRainReveal(fxTurnLayer(dir, turn), clamp(cover.w, 0.0, 1.0));
-    if (reveal > 0.0)
-    {
-        float ambient = dot(u_fxSky[25].rgb + u_fxSky[26].rgb, vec3_splat(1.0 / 6.0));
-        rain = fxCloudShade(u_fxSky[25].rgb, u_fxSky[26].rgb, 1.0, ambient, 1.0, fxTurnLayer(sun, turn),
-                            fxTurnLayer(moon, turn), dir, sky) * reveal;
-        if (rain.a >= 1.0)
-            return rain.rgb;
-    }
-    vec3 result = background;
-    if (dir.y > 0.0 && cover.z > 0.0)
-    {
-        vec2 uv = dir.xz / (dir.y + 0.12) * u_fxSky[12].y + cover.xy;
-        float octaves = u_fxSky[12].x;
-        float density = fxCloudDensity(fxCloudNoise(uv, octaves), cover.z);
-        float shadow = 1.0;
-        if (octaves > 2.5)
-        {
-            vec3 toLight = sun.y > 0.0 ? sun : moon;
-            float towards = fxCloudDensity(fxCloudNoise(uv + toLight.xz * 0.03, 2.0), cover.z);
-            shadow = clamp(0.6 + 1.5 * (density - towards), 0.15, 1.0) / 0.6;
-        }
-        // Thinning towards the horizon, where the layer is seen edge on.
-        float opacity = density * smoothstep(0.0, 0.1, dir.y);
-        float ambient = dot(u_fxSky[23].rgb + u_fxSky[24].rgb, vec3_splat(1.0 / 6.0)) * opacity;
-        result = fxOver(result, fxCloudShade(u_fxSky[23].rgb * opacity, u_fxSky[24].rgb * opacity, opacity,
-                                             ambient, shadow, sun, moon, dir, sky));
-    }
-    return fxOver(result, rain);
-}
-#endif
-
 // ---- height fog over the sky ----
 // The fog's optical depth along `interval` metres between two heights, the density falling by 1/e per layer above its
 // base and even below it.
@@ -531,11 +458,7 @@ void main()
                exp2(-atmosphere.a * 0.5) * 0.005 * moonUp * (1.0 - day);
     }
 
-#if FX_SKY_CUBES
-    sky = fxTexturedClouds(sky, atmosphere.rgb, dir);
-#else
-    sky = fxNoiseClouds(sky, atmosphere.rgb, dir);
-#endif
+    sky = fxClouds(sky, atmosphere.rgb, dir);
 
     // The haze band at the horizon, in the atmosphere's colour a little above it or in its own.
     vec4 haze = u_fxSky[6];
@@ -548,7 +471,7 @@ void main()
         at = at < 0.0 ? at + 8.0 : at;
         float k = min(floor(at), 7.0);
         int i = int(k);
-        vec3 colour = mix(u_fxSky[27 + i].rgb, u_fxSky[27 + (i + 1) - 8 * ((i + 1) / 8)].rgb, at - k);
+        vec3 colour = mix(u_fxSky[23 + i].rgb, u_fxSky[23 + (i + 1) - 8 * ((i + 1) / 8)].rgb, at - k);
         sky = mix(sky, colour, haze.x * t * t * (3.0 - 2.0 * t));
     }
 

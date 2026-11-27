@@ -28,6 +28,7 @@
 #include "storm/fx/settings.hpp"
 #include "storm/fx/skin_tone.hpp"
 #include "storm/fx/shadow_model.hpp"
+#include "storm/fx/cloud_cubes.hpp"
 #include "storm/fx/sky_model.hpp"
 #include "storm/fx/wetness.hpp"
 
@@ -119,10 +120,6 @@ void CheckSettings()
     const Settings medium = Settings::FromPreset(QualityPreset::Medium);
     const Settings high = Settings::FromPreset(QualityPreset::High);
     CHECK(original.far_lod_pixels >= medium.far_lod_pixels && medium.far_lod_pixels >= high.far_lod_pixels);
-    // Every preset draws the clouds, the shading towards the light (three octaves) from «Средняя» up; the shader sums
-    // at most four.
-    CHECK((original.cloud_octaves >= 1 && original.cloud_octaves < 3 && medium.cloud_octaves >= 3 &&
-           medium.cloud_octaves <= high.cloud_octaves && high.cloud_octaves <= 4));
     CHECK(!medium.PostIsIdentity() && !high.PostIsIdentity());
     // FSR 1 on every preset, by an internal scene height; «Низкая» otherwise the original look.
     CHECK(original.sharpen && medium.sharpen && high.sharpen);
@@ -316,48 +313,87 @@ void CheckSky()
     // The state: night by the daylight, the horizon on the display's scale, the dome bluer than the horizon by day.
     WeatherInput day;
     day.sun_dir = noon;
-    const SkyState sky = ComputeSky(day, kNoiseCloudAmbient);
+    const SkyState sky = ComputeSky(day, kGeneratedCloudAmbient);
     CHECK(sky.night == 0.0f && glm::all(glm::lessThan(sky.horizon, glm::vec3(1.0f))));
     CHECK(sky.dome.b / sky.dome.r > sky.horizon.b / sky.horizon.r);
     // The light the sky gives is the clear atmosphere's under a rain too.
     WeatherInput rainy = day;
     rainy.rain_clouds = 1.0f;
     rainy.sun_light = glm::vec3(0.4f);
-    const SkyState overcast = ComputeSky(rainy, kNoiseCloudAmbient);
+    const SkyState overcast = ComputeSky(rainy, kGeneratedCloudAmbient);
     CHECK(near3(overcast.dome, sky.dome));
     day.daylight = 0.0f;
-    CHECK(ComputeSky(day, kNoiseCloudAmbient).night == 1.0f);
+    CHECK(ComputeSky(day, kGeneratedCloudAmbient).night == 1.0f);
     for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})
     {
         WeatherInput any = day;
         any.daylight = 0.5f;
         any.sun_dir = {0.0f, h, -std::sqrt(1.0f - h * h)};
         any.moon_dir = {0.0f, 1.0f, 0.0f};
-        const SkyState state = ComputeSky(any, kNoiseCloudAmbient);
+        const SkyState state = ComputeSky(any, kGeneratedCloudAmbient);
         for (int i = 0; i < 3; ++i)
             CHECK(std::isfinite(state.dome[i]) && std::isfinite(state.horizon[i]));
     }
 
-    // The clouds' noise tiles: across each edge it steps no more than inside; every level is there, and it spans the
-    // range the cover's thresholds cut (fs_fx_sky.sc fxCloudDensity).
-    const std::vector<uint8_t> noise = CloudNoise();
-    size_t texels = 0;
-    for (int size = kCloudNoiseSize; size >= 1; size /= 2)
-        texels += size_t(size) * size_t(size);
-    CHECK(noise.size() == texels);
-    const auto at = [&](int x, int y) { return int(noise[size_t(y) * kCloudNoiseSize + size_t(x)]); };
-    int inside = 0, across = 0, low = 255, high = 0;
-    for (int i = 0; i < kCloudNoiseSize; ++i)
+    // The generated layers (cloud_cubes.hpp): the cut leaves the share of the sky above the horizon the cover asks
+    // for; the clouds have a lit and a shadowed side and are not of one tone; the rain deck is opaque above the
+    // horizon and empty below.
+    const GeneratedClouds clouds = GenerateClouds();
+    const auto direction = [](int face, int x, int y, int size) {
+        const float u = 2.0f * (float(x) + 0.5f) / float(size) - 1.0f,
+                    v = 2.0f * (float(y) + 0.5f) / float(size) - 1.0f;
+        const std::array<glm::vec3, 6> d = {glm::vec3(1.0f, -v, -u), glm::vec3(-1.0f, -v, u), glm::vec3(u, 1.0f, v),
+                                            glm::vec3(u, -1.0f, -v), glm::vec3(u, -v, 1.0f),  glm::vec3(-u, -v, -1.0f)};
+        return d[size_t(face)];
+    };
+    const int n = clouds.base.size;
+    for (const float cover : {0.25f, 0.5f, 0.75f})
     {
-        for (int j = 0; j + 1 < kCloudNoiseSize; ++j)
-            inside = std::max({inside, std::abs(at(j, i) - at(j + 1, i)), std::abs(at(i, j) - at(i, j + 1))});
-        across = std::max(
-            {across, std::abs(at(kCloudNoiseSize - 1, i) - at(0, i)), std::abs(at(i, kCloudNoiseSize - 1) - at(i, 0))});
-        for (int j = 0; j < kCloudNoiseSize; ++j)
-            low = std::min(low, at(j, i)), high = std::max(high, at(j, i));
+        const GeneratedClouds::Remap cut = clouds.ForCover(cover);
+        double covered = 0.0, total = 0.0;
+        for (int face = 0; face < 6; ++face)
+            for (int y = 0; y < n; ++y)
+                for (int x = 0; x < n; ++x)
+                {
+                    const glm::vec3 d = direction(face, x, y, n);
+                    if (d.y <= 0.0f)
+                        continue;
+                    const double weight = 1.0 / std::pow(double(glm::dot(d, d)), 1.5);
+                    const float alpha = float(clouds.base.a[((size_t(face) * n + y) * n + x) * 4 + 3]) / 255.0f;
+                    covered += (alpha - cut.from) * cut.scale > 0.5f ? weight : 0.0;
+                    total += weight;
+                }
+        CHECK(std::abs(covered / total - cover) < 0.03);
     }
-    CHECK(across <= inside);
-    CHECK((low < 60 && high > 195));
+    // Over the clouds half the cover keeps.
+    const GeneratedClouds::Remap half = clouds.ForCover(0.5f);
+    double sides = 0.0, sum = 0.0, top = 0.0, top2 = 0.0;
+    int opaque = 0;
+    for (size_t i = 0; i < clouds.base.a.size(); i += 4)
+        if ((float(clouds.base.a[i + 3]) / 255.0f - half.from) * half.scale > 0.5f)
+        {
+            const double plus = clouds.base.a[i], minus = clouds.base.b[i], up = clouds.base.a[i + 1];
+            sides += std::abs(plus - minus);
+            sum += 0.5 * (plus + minus);
+            top += up;
+            top2 += up * up;
+            ++opaque;
+        }
+    CHECK(opaque > 0);
+    CHECK(sides / sum > 0.1);
+    const double mean = top / opaque;
+    CHECK(std::sqrt(top2 / opaque - mean * mean) / mean > 0.1);
+    const int r = clouds.rain.size;
+    bool deck = true;
+    for (int face = 0; face < 6; ++face)
+        for (int y = 0; y < r; ++y)
+            for (int x = 0; x < r; ++x)
+            {
+                const float up = direction(face, x, y, r).y;
+                const uint8_t alpha = clouds.rain.a[((size_t(face) * r + y) * r + x) * 4 + 3];
+                deck = deck && (up > 0.0f ? alpha == 255 : alpha == 0);
+            }
+    CHECK(deck);
 }
 
 void CheckLighting()
@@ -1793,7 +1829,7 @@ void CheckCheapUpgrades()
     WeatherInput weather;
     weather.sun_dir = {0.6f, 0.8f, 0.0f};
     weather.fog_density = 0.002f;
-    const SkyState noon = ComputeSky(weather, kNoiseCloudAmbient);
+    const SkyState noon = ComputeSky(weather, kGeneratedCloudAmbient);
 
     // Aerial perspective: the game's fog density, a haze layer that thins with the camera's height, world up
     // taken from the view matrix, haze colour = the horizon (gamma encoded).
@@ -1817,7 +1853,7 @@ void CheckCheapUpgrades()
         WeatherInput w;
         w.sun_dir = {std::sqrt(1.0f - sun_height * sun_height), sun_height, 0.0f};
         w.daylight = glm::clamp(sun_height * 5.0f + 0.5f, 0.0f, 1.0f); // any even ramp through dusk
-        return ComputeSky(w, kNoiseCloudAmbient);
+        return ComputeSky(w, kGeneratedCloudAmbient);
     };
     const glm::vec3 grey{0.5f, 0.5f, 0.5f};
     const glm::vec3 gain_identity{1.0f, 1.0f, 1.0f};

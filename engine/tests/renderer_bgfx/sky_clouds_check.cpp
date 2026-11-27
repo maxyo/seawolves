@@ -2,21 +2,17 @@
 //   * under the rain clouds the haze band takes their colour;
 //   * Caribbean Legend's atmosphere, its haze band, the height fog over the sky and the sun's and the moon's discs draw
 //     the values worked out from its formulas apart from this code (a pixel within 3 of 255 per channel);
-//   * a clear sky is smooth; clouds break it up, the more of it the larger their cover;
-//   * the rain clouds' full cover is an even grey, less blue than the clear sky, lit as the textured rain layer;
-//   * the wind's drift moves the clouds; the same drift draws the same picture;
+//   * without a game's textures (the generated layers) a clear sky is smooth; clouds break it up, the more of it the
+//     larger their cover; the rain clouds' full cover is an even grey, less blue than the clear sky;
+//   * the layer's turn moves the clouds; the same turn draws the same picture;
 //   * at night clouds hide the stars (seen through a narrow view: a star covers a pixel);
-//   * three octaves shade the clouds towards the light, a fourth adds detail;
 //   * Caribbean Legend's textured layers draw its lighting's values worked out apart from this code: the base layer
 //     over the upper one at the hour's opacity, the rain layer's full cover in place of the sky, its reveal growing
 //     with its cover.
 #include <bits/stdc++.h> // every standard header before the access change below
 
-#define private public // the host's active settings (the clouds' octaves)
-#include "device.hpp"
-#include "effects/effects.hpp"
-#undef private
 #include "check_backend.hpp"
+#include "device.hpp"
 #include "environment.hpp"
 #include "storm/render/effects.hpp"
 
@@ -167,6 +163,7 @@ environment::State Day(float clouds, float rain_clouds = 0.0f)
     state.fill_intensity = 1.0f;
     state.clouds = clouds;
     state.rain_clouds = state.overcast = rain_clouds;
+    state.cloud_look.opacity = 1.0f; // as «Каждому своё»'s weather shows the generated layer
     return state;
 }
 
@@ -221,6 +218,7 @@ environment::State Night(float clouds)
     state.fog_color = glm::vec3(0.004f, 0.005f, 0.008f);
     state.twilight = 0.0f;
     state.clouds = clouds;
+    state.cloud_look.opacity = 1.0f;
     return state;
 }
 } // namespace
@@ -277,8 +275,15 @@ int main()
             stormy.rain_clouds = 1.0f;
             const Picture dark = harness.render(stormy, 1.0f, true);
             const auto lum = [](glm::vec3 c) { return glm::dot(c, glm::vec3(0.2126f, 0.7152f, 0.0722f)); };
-            std::printf("storm: band %.3f, clouds above %.3f\n", lum(dark.at(128, 127)), lum(dark.at(128, 90)));
-            expect(lum(dark.at(128, 127)) < lum(dark.at(128, 90)) + 0.03f,
+            // Along a row: the rain clouds' shading varies.
+            const auto row = [&](uint32_t y) {
+                float sum = 0.0f;
+                for (uint32_t x = 0; x < kSize; ++x)
+                    sum += lum(dark.at(x, y));
+                return sum / float(kSize);
+            };
+            std::printf("storm: band %.3f, clouds above %.3f\n", row(127), row(90));
+            expect(row(127) < row(90) + 0.03f,
                    "under the rain clouds the haze band is as dark as they are");
 
             environment::State foggy = Noon();
@@ -328,32 +333,18 @@ int main()
                    "the larger the cover, the more of the sky the clouds hide");
 
             environment::State moved = Day(0.5f);
-            moved.cloud_drift = {300.0f, 0.0f};
-            const Picture drifted = harness.render(moved);
+            moved.cloud_turn = {0.0f, 0.3f, 0.0f};
+            const Picture turned = harness.render(moved);
             const Picture again = harness.render(Day(0.5f));
-            std::printf("drift difference %.4f, same drift %.4f\n", half.difference(drifted), half.difference(again));
-            expect(half.difference(drifted) > 0.01f, "the drift moves the clouds");
-            expect(half.difference(again) < 0.001f, "the same drift draws the same clouds");
-
-            effects::Host::instance().settings_.cloud_octaves = 3;
-            const Picture shaded = harness.render(Day(0.5f));
-            effects::Host::instance().settings_.cloud_octaves = 4;
-            const Picture detailed = harness.render(Day(0.5f));
-            std::printf("three octaves against two: %.4f, four against three: %.4f\n", half.difference(shaded),
-                        shaded.difference(detailed));
-            expect(half.difference(shaded) > 0.005f, "from three octaves the clouds are shaded towards the light");
-            expect(shaded.difference(detailed) > 0.002f, "the fourth octave adds detail");
-            effects::Host::instance().settings_.cloud_octaves = 2;
+            std::printf("turn difference %.4f, same turn %.4f\n", half.difference(turned), half.difference(again));
+            expect(half.difference(turned) > 0.01f, "the layer's turn moves the clouds");
+            expect(half.difference(again) < 0.001f, "the same turn draws the same clouds");
 
             const Picture rain = harness.render(Day(0.0f, 1.0f));
             std::printf("blueness: clear %.2f, rain clouds %.2f\n", clear.blueness(), rain.blueness());
             expect(rain.blueness() < clear.blueness() - 0.3f && rain.blueness() < 1.25f,
                    "the rain clouds' full cover is grey");
             expect(rain.rough(0.03f) < 0.02f, "the rain clouds' full cover is even");
-            environment::State overcast = CloudNoon();
-            overcast.rain_clouds = 1.0f;
-            expect(Pixel(harness.render(overcast), 128, 128, {125.6f, 125.5f, 126.0f}),
-                   "without textures the rain clouds are lit as Caribbean Legend's rain layer");
 
             // Caribbean Legend's textured layers: cubes of one texel colour each, the base layer's 60 % opaque over
             // the upper's opaque one, the rain layer's opaque.

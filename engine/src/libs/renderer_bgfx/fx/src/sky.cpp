@@ -2,7 +2,10 @@
 
 #include "gpu_util.hpp"
 
+#include "storm/render/log.hpp"
+
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 
@@ -12,9 +15,8 @@ using namespace detail;
 
 namespace
 {
-constexpr uint32_t kNoiseSampler = 0;                 // repeat, trilinear
-constexpr uint16_t kSkyUniforms = 27 + kHazeAzimuths; // u_fxSky, fs_fx_sky.sc
-constexpr uint8_t kFirstCube = 4;                     // s_fxCloud*, fs_fx_sky.sc
+constexpr uint16_t kSkyUniforms = 23 + kHazeAzimuths; // u_fxSky, fs_fx_sky.sc
+constexpr uint8_t kFirstCube = 3;                     // s_fxCloud*, fs_fx_sky.sc
 
 // A textured layer's uniform: its turn's cosine and sine, its radiance scale (0: no layer) and its ambient response's
 // scale (below 0: the mean of its six responses).
@@ -37,12 +39,13 @@ void Sky::Shutdown()
     Destroy(u_sky_);
     Destroy(s_sun_disc_);
     Destroy(s_moon_disc_);
-    Destroy(s_noise_);
-    Destroy(noise_);
+    Destroy(blank_);
     for (bgfx::UniformHandle &cube : s_cubes_)
         Destroy(cube);
+    for (bgfx::TextureHandle &cube : generated_cubes_)
+        Destroy(cube);
+    generated_ = {};
     Destroy(program_);
-    Destroy(program_cubes_);
     resources_ = false;
 }
 
@@ -53,7 +56,7 @@ void Sky::Update(const WeatherInput &weather, float camera_height)
     if (state_valid_ && std::memcmp(&weather_, &weather, sizeof weather) == 0)
         return;
     weather_ = weather;
-    state_ = ComputeSky(weather, CloudAmbient());
+    state_ = ComputeSky(weather, Layers().ambient_strength);
     state_valid_ = true;
 }
 
@@ -67,6 +70,8 @@ void Sky::SetCloudLayers(const CloudLayers &layers)
 {
     clouds_ = layers;
     state_valid_ = false;
+    if (!Textured())
+        EnsureGenerated();
 }
 
 bool Sky::Textured() const
@@ -74,9 +79,33 @@ bool Sky::Textured() const
     return clouds_.base.positive != bgfx::kInvalidHandle && clouds_.base.negative != bgfx::kInvalidHandle;
 }
 
-float Sky::CloudAmbient() const
+const CloudLayers &Sky::Layers() const
 {
-    return Textured() ? clouds_.ambient_strength : kNoiseCloudAmbient;
+    return Textured() ? clouds_ : generated_;
+}
+
+void Sky::EnsureGenerated()
+{
+    if (bgfx::isValid(generated_cubes_[0]))
+        return;
+    const auto started = std::chrono::steady_clock::now();
+    generated_cover_ = GenerateClouds();
+    const auto cube = [](const std::vector<uint8_t> &texels, int size, uint64_t format) {
+        return bgfx::createTextureCube(uint16_t(size), false, 1, bgfx::TextureFormat::RGBA8, format,
+                                       bgfx::copy(texels.data(), uint32_t(texels.size())));
+    };
+    // The responses are sRGB-encoded, the alpha linear (cloud_cubes.hpp).
+    constexpr uint64_t kSrgb = BGFX_TEXTURE_SRGB;
+    const CloudCube &base = generated_cover_.base, &rain = generated_cover_.rain;
+    generated_cubes_ = {cube(base.a, base.size, kSrgb), cube(base.b, base.size, kSrgb), cube(rain.a, rain.size, kSrgb),
+                        cube(rain.b, rain.size, kSrgb)};
+    generated_.base = {generated_cubes_[0].idx, generated_cubes_[1].idx, base.radiance_scale, 0.0f, false};
+    generated_.rain = {generated_cubes_[2].idx, generated_cubes_[3].idx, rain.radiance_scale, 0.0f, false};
+    generated_.ambient_strength = kGeneratedCloudAmbient;
+    render::Log().info("fx: sky clouds made in {:.0f} ms",
+                       std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
+    generated_cover_.base = {};
+    generated_cover_.rain = {};
 }
 
 void Sky::EnsureResources()
@@ -89,25 +118,25 @@ void Sky::EnsureResources()
     s_sun_disc_ = bgfx::createUniform("s_fxSunDisc", bgfx::UniformType::Sampler);
     s_moon_disc_ = bgfx::createUniform("s_fxMoonDisc", bgfx::UniformType::Sampler);
     program_ = LoadProgram("vs_fx_sky", "fs_fx_sky");
-    program_cubes_ = LoadProgram("vs_fx_sky", "fs_fx_sky_cubes");
     static constexpr std::array<const char *, 6> kCubes = {"s_fxCloudBaseA",  "s_fxCloudBaseB", "s_fxCloudUpperA",
                                                            "s_fxCloudUpperB", "s_fxCloudRainA", "s_fxCloudRainB"};
     for (size_t i = 0; i < kCubes.size(); ++i)
         s_cubes_[i] = bgfx::createUniform(kCubes[i], bgfx::UniformType::Sampler);
-    s_noise_ = bgfx::createUniform("s_fxCloudNoise", bgfx::UniformType::Sampler);
-    const std::vector<uint8_t> noise = CloudNoise();
-    noise_ = bgfx::createTexture2D(kCloudNoiseSize, kCloudNoiseSize, true, 1, bgfx::TextureFormat::R8, kNoiseSampler,
-                                   bgfx::copy(noise.data(), static_cast<uint32_t>(noise.size())));
+    const uint32_t black = 0;
+    blank_ = bgfx::createTexture2D(1, 1, false, 1, bgfx::TextureFormat::RGBA8, 0, bgfx::copy(&black, sizeof black));
 }
 
-void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y, int cloud_octaves)
+void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y)
 {
     EnsureResources();
-    // The textured layers draw where a base layer's cubes are there; else the clouds come from noise.
-    const bool cubes = Textured();
-    const bgfx::ProgramHandle program = cubes ? program_cubes_ : program_;
-    if (!bgfx::isValid(program))
+    if (!Textured())
+        EnsureGenerated();
+    if (!bgfx::isValid(program_))
         return;
+    const CloudLayers &clouds = Layers();
+    // A game's layers show as their alpha says; the generated base layer's alpha is cut at its cover's threshold.
+    const GeneratedClouds::Remap base =
+        Textured() ? GeneratedClouds::Remap{} : generated_cover_.ForCover(weather_.clouds);
     const WeatherInput &w = weather_;
     const bool sun_disc = bgfx::isValid(sun_disc_), moon_disc = bgfx::isValid(moon_disc_);
     // The camera's yaw from the direction through the view's centre (half way between two opposite corners' rays).
@@ -125,44 +154,35 @@ void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool 
         {w.fog_start, w.fog_end, camera_height_, w.fog_from_sky ? 1.0f : 0.0f},
         {w.fog_color, 0.0f},
         {std::cos(yaw), std::sin(yaw), 0.0f, 0.0f},
-        {glm::fract(w.cloud_drift / kCloudHeight * kCloudTilesPerHeight), w.clouds, w.rain_clouds},
-        {float(cloud_octaves), kCloudTilesPerHeight, 0.0f, 0.0f},
+        {0.0f, base.from, 0.0f, w.rain_clouds},
+        {1.0f, base.scale, 1.0f, 0.0f},
         w.cloud_look,
         w.cloud_transmission,
         w.cloud_sunset,
         w.cloud_day,
-        {glm::vec3(w.cloud_twilight), CloudAmbient()},
+        {glm::vec3(w.cloud_twilight), clouds.ambient_strength},
         w.cloud_tint,
         {w.fill_color, w.fill_intensity},
-        LayerUniform(clouds_.upper, w.cloud_turn[0]),
-        LayerUniform(clouds_.base, w.cloud_turn[1]),
-        LayerUniform(clouds_.rain, w.cloud_turn[2]),
-        {kCumulusPositive, 0.0f},
-        {kCumulusNegative, 0.0f},
-        {kRainPositive, 0.0f},
-        {kRainNegative, 0.0f},
+        LayerUniform(clouds.upper, w.cloud_turn[0]),
+        LayerUniform(clouds.base, w.cloud_turn[1]),
+        LayerUniform(clouds.rain, w.cloud_turn[2]),
     }};
     for (int i = 0; i < kHazeAzimuths; ++i)
-        u[size_t(27 + i)] = {state_.haze[size_t(i)], 0.0f};
+        u[size_t(23 + i)] = {state_.haze[size_t(i)], 0.0f};
     bgfx::setUniform(u_sky_, u.data(), kSkyUniforms);
-    bgfx::setTexture(1, s_noise_, noise_, kNoiseSampler);
     // Without a sprite its disc is off (size 0); the sampler still needs a texture.
-    bgfx::setTexture(2, s_sun_disc_, sun_disc ? sun_disc_ : noise_, kClampLinear);
-    bgfx::setTexture(3, s_moon_disc_, moon_disc ? moon_disc_ : noise_, kClampLinear);
-    if (cubes)
+    bgfx::setTexture(1, s_sun_disc_, sun_disc ? sun_disc_ : blank_, kClampLinear);
+    bgfx::setTexture(2, s_moon_disc_, moon_disc ? moon_disc_ : blank_, kClampLinear);
+    // A layer without cubes (radiance scale 0 above) still needs a cube on its samplers: the base layer's.
+    const std::array<const CloudLayer *, 3> layers = {&clouds.base, &clouds.upper, &clouds.rain};
+    for (size_t i = 0; i < layers.size(); ++i)
     {
-        // A layer without cubes (radiance scale 0 above) still needs a cube on its samplers: the base layer's.
-        const std::array<const CloudLayer *, 3> layers = {&clouds_.base, &clouds_.upper, &clouds_.rain};
-        for (size_t i = 0; i < layers.size(); ++i)
-        {
-            const bool drawn =
-                layers[i]->positive != bgfx::kInvalidHandle && layers[i]->negative != bgfx::kInvalidHandle;
-            const CloudLayer &l = drawn ? *layers[i] : clouds_.base;
-            bgfx::setTexture(uint8_t(kFirstCube + 2 * i), s_cubes_[2 * i], {l.positive}, kClampLinear);
-            bgfx::setTexture(uint8_t(kFirstCube + 2 * i + 1), s_cubes_[2 * i + 1], {l.negative}, kClampLinear);
-        }
+        const bool drawn = layers[i]->positive != bgfx::kInvalidHandle && layers[i]->negative != bgfx::kInvalidHandle;
+        const CloudLayer &l = drawn ? *layers[i] : clouds.base;
+        bgfx::setTexture(uint8_t(kFirstCube + 2 * i), s_cubes_[2 * i], {l.positive}, kClampLinear);
+        bgfx::setTexture(uint8_t(kFirstCube + 2 * i + 1), s_cubes_[2 * i + 1], {l.negative}, kClampLinear);
     }
-    SubmitScreenTriangle(view, program, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_DEPTH_TEST_LEQUAL,
+    SubmitScreenTriangle(view, program_, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_DEPTH_TEST_LEQUAL,
                          flip_y, &corners);
 }
 

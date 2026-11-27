@@ -212,7 +212,6 @@ void WEATHER::UpdateEnvironment()
 
 void WEATHER::ApplyEnvironment()
 {
-    state_.cloud_drift = cloud_drift_;
     state_.cloud_turn = cloud_turn_;
     storm::environment::ApplyFlash(state_, flash_now_);
     storm::render::SetSceneEnvironment(state_);

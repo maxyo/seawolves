@@ -261,53 +261,6 @@ SkyState ComputeSky(const WeatherInput &weather, float cloud_ambient)
     return sky;
 }
 
-std::vector<uint8_t> CloudNoise()
-{
-    // Perlin's gradient noise on a lattice that wraps at the tile's edge; the gradients from an integer hash.
-    const auto gradient = [](int x, int y) {
-        uint32_t h = uint32_t(x % kCloudNoiseCells) * 73856093u ^ uint32_t(y % kCloudNoiseCells) * 19349663u;
-        h = (h ^ (h >> 13)) * 0x5bd1e995u;
-        h ^= h >> 15;
-        const float angle = float(h & 0xffffu) / 65536.0f * 2.0f * kPi;
-        return glm::vec2(std::cos(angle), std::sin(angle));
-    };
-    const auto fade = [](float t) { return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f); };
-    std::vector<uint8_t> out;
-    out.reserve(size_t(kCloudNoiseSize) * kCloudNoiseSize * 4 / 3 + 1);
-    for (int y = 0; y < kCloudNoiseSize; ++y)
-        for (int x = 0; x < kCloudNoiseSize; ++x)
-        {
-            const glm::vec2 p =
-                (glm::vec2(float(x), float(y)) + 0.5f) * float(kCloudNoiseCells) / float(kCloudNoiseSize);
-            const glm::ivec2 i = glm::ivec2(glm::floor(p));
-            const glm::vec2 f = p - glm::floor(p);
-            const float a = glm::dot(gradient(i.x, i.y), f);
-            const float b = glm::dot(gradient(i.x + 1, i.y), f - glm::vec2(1.0f, 0.0f));
-            const float c = glm::dot(gradient(i.x, i.y + 1), f - glm::vec2(0.0f, 1.0f));
-            const float d = glm::dot(gradient(i.x + 1, i.y + 1), f - glm::vec2(1.0f, 1.0f));
-            const float v = glm::mix(glm::mix(a, b, fade(f.x)), glm::mix(c, d, fade(f.x)), fade(f.y));
-            // The noise stays within about ±0.7.
-            out.push_back(uint8_t(std::lround(std::clamp(0.5f + 0.7f * v, 0.0f, 1.0f) * 255.0f)));
-        }
-    // Mips: 2 x 2 averages, which tile as the level above does.
-    size_t level = 0;
-    for (int size = kCloudNoiseSize; size > 1; size /= 2)
-    {
-        const int half = size / 2;
-        const size_t next = out.size();
-        for (int y = 0; y < half; ++y)
-            for (int x = 0; x < half; ++x)
-            {
-                const auto at = [&](int u, int v) { return int(out[level + size_t(v) * size_t(size) + size_t(u)]); };
-                out.push_back(uint8_t(
-                    (at(2 * x, 2 * y) + at(2 * x + 1, 2 * y) + at(2 * x, 2 * y + 1) + at(2 * x + 1, 2 * y + 1) + 2) /
-                    4));
-            }
-        level = next;
-    }
-    return out;
-}
-
 AerialUniforms ComputeAerial(const SkyState &sky, float camera_height, const std::array<float, 16> &view)
 {
     AerialUniforms u;

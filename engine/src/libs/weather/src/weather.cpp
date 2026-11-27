@@ -49,17 +49,19 @@ bool WEATHER::Init()
     SetBeginData();
     data_ = storm::weather::GameEnvironment();
     if (data_)
-    {
         sky_ = core.CreateEntity("Sky");
-        LoadClouds();
-    }
+    // Here, behind the location's loading screen: the sky makes its own layers for a game without cloud textures.
+    LoadClouds();
     return true;
 }
 
 void WEATHER::LoadClouds()
 {
-    if (!data_->clouds)
+    if (!data_ || !data_->clouds)
+    {
+        storm::render::SetSkyClouds({});
         return;
+    }
     const storm::scene_data::CloudPreset &preset = *data_->clouds;
     // A cube of the renderer by the file the library names; 0xffff: not loaded (reported).
     const auto cube = [this](const std::string &file) -> uint16_t {
@@ -113,8 +115,6 @@ void WEATHER::Execute(uint32_t Delta_Time)
 {
     const float seconds = static_cast<float>(core.GetDeltaTime()) * 0.001f;
     flash_now_ = flash_.Advance(seconds, fFloats[whf_time_counter]);
-    cloud_drift_ += glm::vec2(std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])) *
-                    fFloats[whf_wind_speed] * seconds;
     for (size_t i = 0; i < cloud_turn_.size(); ++i)
         cloud_turn_[i] =
             std::remainder(cloud_turn_[i] + glm::radians(state_.cloud_spin[i]) * seconds, glm::two_pi<float>());

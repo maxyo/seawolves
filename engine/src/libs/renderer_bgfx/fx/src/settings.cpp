@@ -55,7 +55,6 @@ Settings Settings::FromPreset(QualityPreset preset)
     {
         s.render_height = kMediumRenderHeight;
         s.far_lod_pixels = 1.5f;
-        s.cloud_octaves = 3;
         s.bloom_downscale = 4;
         s.bloom_levels = 3;
         s.sea_band_limit = true;
@@ -89,7 +88,6 @@ Settings Settings::FromPreset(QualityPreset preset)
         return s;
     }
     s.render_height = kHighRenderHeight;
-    s.cloud_octaves = 4;
     s.msaa = 4; // twice Medium's samples: the thinnest lines (rigging against the sky) stay whole
     s.far_lod_pixels = 1.f;
     // The bloom as «Средняя» draws it: from a quarter of the scene, three levels (eight passes of a quarter of the

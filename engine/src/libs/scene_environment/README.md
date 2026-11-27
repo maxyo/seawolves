@@ -2,8 +2,7 @@
 
 One state per frame of everything the place's light, sky and air are (`storm/environment/state.hpp`): the sun and
 the moon, the direct light and its shadow strength, the sky's fill and the ground's bounce, the exposure, the sky's
-radiance, the haze band at the horizon, height fog, the clouds' and the rain's state, the wind and how far it has
-carried the clouds (WEATHER adds the wind over the game's time). The WEATHER entity
+radiance, the haze band at the horizon, height fog, the clouds' and the rain's state and the wind. The WEATHER entity
 (`src/libs/weather`) fills it every frame and hands it to the renderer (`storm::render::SetSceneEnvironment`), which
 draws the sky, lights and fogs the scene with it. Colours are linear; a light's colour carries its intensity in the
 scene's units and `exposure` brings the scene to the display. The fixed-function pipeline takes its lights through
@@ -69,7 +68,8 @@ the sky entity's folders; `EvaluateLegacy` makes the same state of them:
   a table by folder: the cover of fair-weather clouds, rain clouds for the storms'); between two parts the cover
   blends. The rain's drops add rain clouds (a full rain at 5000 drops); the sun's shadows fade as the rain clouds
   close. The clouds look and are lit by Caribbean Legend's engine's own periods (`EngineCloudPeriods`) at its
-  own transition hours; their fill is the scripts' ambient in its units (a clear noon's is 1).
+  own transition hours, shown whole (the folders' cover is what showed); their fill is the scripts' ambient in its
+  units (a clear noon's is 1).
 
 `tests/scene_environment` checks the evaluation on data written there and, with `$STORM_GAME_DIR`, every preset of
 an installed game for every quarter hour.

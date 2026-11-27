@@ -91,12 +91,10 @@ struct State
     bool fog_from_sky = false; // the fog takes the sky's colour at the horizon
 
     // Clouds: how much of the sky the fair-weather clouds and the rain clouds cover, 0..1 (with cloud textures the
-    // base layer's own opacity stands for `clouds`); how far the wind has carried them (metres, x and z); how fast the
-    // textured layers turn about the vertical (degrees per second: upper, base, rain) and how far they have (radians,
-    // WEATHER adds it up).
+    // base layer's own opacity stands for `clouds`); how fast the layers turn about the vertical (degrees per second:
+    // upper, base, rain) and how far they have (radians, WEATHER adds it up).
     float clouds = 0.0f;
     float rain_clouds = 0.0f;
-    glm::vec2 cloud_drift{0.0f};
     std::array<float, 3> cloud_spin{}, cloud_turn{};
     CloudLook cloud_look;
 

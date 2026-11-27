@@ -32,11 +32,10 @@ struct WeatherInput
     glm::vec3 fog_color{0.0f};
     float fog_density = 0.0f, fog_base = 0.0f, fog_layer = 0.0f, fog_start = 0.0f, fog_end = 0.0f, fog_max = 1.0f;
     bool fog_from_sky = false;
-    // The clouds: the cover of the fair-weather and the rain clouds (0..1) and how far the wind carried them (metres,
-    // x and z); they are lit by the sun's and the moon's lights above and the fill.
+    // The clouds: the cover of the fair-weather and the rain clouds (0..1); they are lit by the sun's and the moon's
+    // lights above and the fill.
     float clouds = 0.0f;
     float rain_clouds = 0.0f;
-    glm::vec2 cloud_drift{0.0f};
     // How the clouds look and are lit (environment::CloudLook): x their radiance multiplier, y how much of the
     // textured base and upper layers shows, z the thin edges' light multiplier, w the share of dawn and sunset in
     // the hour; the sun's and the moon's transmission strengths and radii (degrees); the low sun's light multiplier,
@@ -70,12 +69,12 @@ struct CloudLayers
 // engine's own setting.
 inline constexpr float kStarDensity = 0.96f;
 
-// Six-way responses of the clouds drawn without textures: the means of Caribbean Legend's cumulus and rain cubes where
-// they are opaque, times their radiance scale (measured over their texels above the horizon); and the strength of the
-// sky's light on them, its cloud presets'.
+// The means of Caribbean Legend's cumulus and rain cubes' six-way responses where they are opaque, times their
+// radiance scale (measured over their texels above the horizon): the generated layers' (cloud_cubes.hpp) and, under
+// a rain, the sky's state's; and the strength of the sky's light on the generated layers, its cloud presets'.
 inline constexpr glm::vec3 kCumulusPositive{0.59f, 1.34f, 0.60f}, kCumulusNegative{0.54f, 1.40f, 0.56f};
 inline constexpr glm::vec3 kRainPositive{0.12f, 1.02f, 0.10f}, kRainNegative{0.12f, 1.44f, 0.10f};
-inline constexpr float kNoiseCloudAmbient = 0.15f;
+inline constexpr float kGeneratedCloudAmbient = 0.15f;
 
 // The haze band's colour by azimuth: kHazeAzimuths colours round the horizon from +x towards +z (fs_fx_sky.sc).
 inline constexpr int kHazeAzimuths = 8;
@@ -109,15 +108,6 @@ glm::vec4 SkyAtmosphere(const WeatherInput &weather, glm::vec3 dir, glm::vec3 li
 glm::vec3 SkyBackground(const WeatherInput &weather, glm::vec3 dir);
 // The haze band's opacity at an elevation sine (fs_fx_sky.sc main).
 float SkyHazeAmount(const WeatherInput &weather, float dir_y);
-
-// The clouds' noise (fs_fx_sky.sc fxCloudNoise): kCloudNoiseSize² texels of one octave of gradient noise that tiles,
-// R8 around 0.5, with its mips down to 1 x 1 (each level after the other).
-inline constexpr int kCloudNoiseSize = 128;
-inline constexpr int kCloudNoiseCells = 16; // lattice cells across the tile
-std::vector<uint8_t> CloudNoise();
-// The cloud plane's height (metres) and how many noise tiles one height spans: the wind's drift in tiles.
-inline constexpr float kCloudHeight = 1500.0f;
-inline constexpr float kCloudTilesPerHeight = 0.2f;
 
 // ---- aerial perspective and height haze (shaders/include/fx_aerial.sh) ----
 inline constexpr float kHazeLayerHeight = 60.0f;  // metres: the haze over the sea thins out by 1/e per this height

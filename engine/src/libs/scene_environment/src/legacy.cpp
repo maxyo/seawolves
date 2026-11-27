@@ -70,6 +70,8 @@ State EvaluateLegacy(const LegacyInputs &in)
     s.fill_color = fill > 0.0f ? s.ambient / fill : glm::vec3(1.0f);
     s.fill_intensity = fill / kClearNoonFill;
     s.cloud_look = EvaluateCloudLook(EngineCloudPeriods(), kEngineTransitionHours, in.hour);
+    // The sky folders' cover is what the painted skies showed: the generated layer shows it whole.
+    s.cloud_look.opacity = 1.0f;
     for (size_t i = 0; i < kEngineCloudSpeeds.size(); ++i)
         s.cloud_spin[i] = kEngineCloudSpeeds[i] * kCloudSpinPerSpeed;
     s.fog_color = in.fog_color * in.fog_color;
