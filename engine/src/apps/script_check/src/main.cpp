@@ -22,6 +22,7 @@
 #include "platform/storage.hpp"
 #include "s_import_func.h"
 #include "script_libriary.h"
+#include "script_texts.hpp"
 #include "v_s_stack.h"
 #include "vma.hpp"
 
@@ -92,6 +93,54 @@ class script_check_test_library : public SCRIPT_LIBRIARY
 };
 
 CREATE_SCRIPTLIBRIARY(script_check_test_library)
+
+namespace
+{
+// The texts of the script tests: each "text" is one request to the running scripts, so that the cases check what
+// the localisation natives read and call. "player:<path>", "npc:<path>", "context:<path>" read an attribute,
+// "call:<function>:<argument>" calls a script function with a text and a reference to the context, "define:<name>"
+// reads a #define; anything else comes back as it is.
+class ScriptCheckTemplates final : public storm::texts::TextTemplates
+{
+  public:
+    std::string Expand(std::string_view text, storm::texts::ScriptAccess &scripts) override
+    {
+        using storm::texts::ScriptArg;
+        using storm::texts::Who;
+        const auto colon = text.find(':');
+        const std::string_view kind = text.substr(0, colon), rest = colon == text.npos ? "" : text.substr(colon + 1);
+        std::optional<std::string> value;
+        if (kind == "player" || kind == "npc" || kind == "context")
+            value = scripts.Attribute(kind == "player" ? Who::Player : kind == "npc" ? Who::Npc : Who::Context, rest);
+        else if (kind == "call")
+        {
+            const auto at = rest.find(':');
+            const ScriptArg args[] = {{ScriptArg::Kind::Text, std::string(rest.substr(at + 1))},
+                                      {ScriptArg::Kind::Context, {}}};
+            value = scripts.Call(rest.substr(0, at), args);
+        }
+        else if (kind == "define")
+            value = scripts.Constant(rest);
+        else
+            return std::string(text);
+        return value.value_or("<none>");
+    }
+
+    std::string Convert(std::string_view file, std::string_view key, bool empty_if_missing,
+                        storm::texts::ScriptAccess &scripts) override
+    {
+        return file == "missing" ? (empty_if_missing ? "" : std::string(key)) : Expand(key, scripts);
+    }
+
+    std::string StringFromKey(std::string_view key, std::span<const std::string> args) override
+    {
+        std::string out(key);
+        for (const auto &arg : args)
+            out += "|" + arg;
+        return out;
+    }
+};
+} // namespace
 
 namespace
 {
@@ -492,6 +541,10 @@ int main(int argc, char **argv)
     if (mode == "check")
         return check(argc - 2, argv + 2);
     if (mode == "test")
+    {
+        ScriptCheckTemplates templates;
+        storm::texts::InstallTextTemplates(&templates);
         return test(argc - 2, argv + 2);
+    }
     return usage();
 }

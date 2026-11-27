@@ -10,6 +10,9 @@ class COMPILER;
 class DATA;
 class S_STACK;
 class POSTEVENTS_LIST;
+class FuncTable;
+class VarTable;
+class S_DEFTAB;
 
 namespace storm::natives
 {
@@ -22,6 +25,10 @@ struct NativeCall
     std::string_view callers_caller; // the function that called `caller`, empty at the top
     uint32_t instruction;            // code offset of the call: the call site within `caller`
     uint32_t arguments;
+    // for natives that read globals and defines or run script functions (natives_texts.cpp)
+    const FuncTable &functions;
+    const VarTable &variables;
+    S_DEFTAB &defines;
 };
 
 // `index` = function code - FUNC_NATIVE_EXT_BASE. Consumes the arguments; returns the pushed result (also stored in

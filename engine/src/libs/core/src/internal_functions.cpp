@@ -316,7 +316,8 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
             return calls.empty() ? std::string_view{} : std::string_view(std::get<2>(calls.back()));
         };
         const std::string_view caller = pop_name();
-        storm::natives::NativeCall call{*this, SStack, EventMsg, caller, pop_name(), InstructionPointer, arguments};
+        storm::natives::NativeCall call{*this, SStack, EventMsg, caller, pop_name(), InstructionPointer, arguments,
+                                                FuncTab, VarTab, DefTab};
         return storm::natives::callNativeExt(func_code - FUNC_NATIVE_EXT_BASE, call, pVResult);
     }
 
