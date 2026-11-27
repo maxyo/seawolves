@@ -62,9 +62,17 @@ std::vector<uint8_t> ReadAll(const fs::path &path)
 class GameFiles
 {
   public:
+    // The game's resource folder, whatever its case ("Resource", "RESOURCE"); none: no files.
     explicit GameFiles(const fs::path &root)
     {
-        for (const auto &entry : fs::recursive_directory_iterator(root / "Resource"))
+        std::error_code error;
+        for (const auto &top : fs::directory_iterator(root, error))
+            if (top.is_directory() && Lower(top.path().filename().string()) == "resource")
+                Walk(root, top.path());
+    }
+    void Walk(const fs::path &root, const fs::path &resource)
+    {
+        for (const auto &entry : fs::recursive_directory_iterator(resource))
             if (entry.is_regular_file())
                 files_[Lower(fs::relative(entry.path(), root).string())] = entry.path();
     }
