@@ -276,6 +276,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     bool BC_Jump(SEGMENT_DESC &Segment, uint32_t offset);
     void UpdateOffsets(SEGMENT_DESC &Segment, STRINGS_LIST &list, uint32_t offset, const char *sname = nullptr);
     S_TOKEN_TYPE DetectUnknown(uint32_t &code);
+    bool NextIsOpenBracket();
 
     void DumpAttributes(ATTRIBUTES *pA, int32_t level);
 

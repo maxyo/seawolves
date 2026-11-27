@@ -3516,6 +3516,7 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
             {
                 CompileToken(Segment, FUNCTION_RETURN_VOID);
                 bFunctionBlock = false; // sign if we are out of function
+                CurrentFuncCode = INVALID_FUNC_CODE; // no locals between functions
                 break;
             }
             if (bound_type == BLOCK_OUT)
@@ -6918,38 +6919,21 @@ void COMPILER::CompileString(SEGMENT_DESC &Segment)
 
 bool COMPILER::CompileUnknown(SEGMENT_DESC &Segment)
 {
-    uint32_t func_code;
-    uint32_t var_code;
-
-    func_code = FuncTab.FindFunc(Token.GetData());
-
-    if (func_code != INVALID_FUNC_CODE)
+    uint32_t code;
+    switch (DetectUnknown(code))
     {
-        // this is function call
-        CompileToken(Segment, CALL_FUNCTION, 1, (char *)&func_code, sizeof(uint32_t));
+    case CALL_FUNCTION:
+        CompileToken(Segment, CALL_FUNCTION, 1, (char *)&code, sizeof(uint32_t));
         return true;
-    }
-
-    var_code = FindLocal(Token.GetData());
-    if (var_code != INVALID_VAR_CODE)
-    {
-        CompileToken(Segment, LOCAL_VARIABLE, 1, (char *)&var_code, sizeof(uint32_t));
+    case LOCAL_VARIABLE:
+        CompileToken(Segment, LOCAL_VARIABLE, 1, (char *)&code, sizeof(uint32_t));
         return true;
-    }
-
-    var_code = VarTab.FindVar(Token.GetData());
-    if (var_code != INVALID_VAR_CODE)
-    {
-        // this is gloabl variable
-        CompileToken(Segment, VARIABLE, 1, (char *)&var_code, sizeof(uint32_t));
+    case VARIABLE:
+        CompileToken(Segment, VARIABLE, 1, (char *)&code, sizeof(uint32_t));
         return true;
-    }
-
-    const uint32_t def_code = DefTab.FindDef(Token.GetData());
-    if (def_code != INVALID_DEF_CODE)
-    {
+    case DEFINE_VAL: {
         DEFINFO di;
-        DefTab.GetDef(di, def_code);
+        DefTab.GetDef(di, code);
         switch (di.deftype)
         {
         case NUMBER:
@@ -6966,24 +6950,41 @@ bool COMPILER::CompileUnknown(SEGMENT_DESC &Segment)
         }
         return true;
     }
-
-
+    default:
+        break;
+    }
     SetError("Undeclared identifier: %s", Token.GetData());
     return false;
+}
+
+// On an identifier: whether "(" follows it. The token stream is left where it was.
+bool COMPILER::NextIsOpenBracket()
+{
+    const bool call = Token.Get() == OPEN_BRACKET;
+    Token.StepBack();
+    Token.StepBack();
+    Token.Get();
+    return call;
 }
 
 S_TOKEN_TYPE COMPILER::DetectUnknown(uint32_t &code)
 {
     const uint32_t func_code = FuncTab.FindFunc(Token.GetData());
 
+    uint32_t var_code = FindLocal(Token.GetData());
     if (func_code != INVALID_FUNC_CODE)
     {
-        // this is function call
+        // A local or parameter shadows a function of the same name except where the name is called: which functions
+        // are known depends on the segments loaded so far, a local's meaning must not
+        if (var_code != INVALID_VAR_CODE && !NextIsOpenBracket())
+        {
+            code = var_code;
+            return LOCAL_VARIABLE;
+        }
         code = func_code;
         return CALL_FUNCTION;
     }
 
-    uint32_t var_code = FindLocal(Token.GetData());
     if (var_code != INVALID_VAR_CODE)
     {
         code = var_code;
