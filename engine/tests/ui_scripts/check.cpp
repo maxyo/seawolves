@@ -42,8 +42,8 @@ std::string ReadText(const fs::path &path)
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
-// A game directory: tests/ui_scripts/game as its program, with the application's interface scripts and the generated
-// capability header added, as the APK's layer adds them. The working directory is the game's, as in the engine.
+// The game: tests/ui_scripts/game with the application's mobile-ui layer over it. The working directory is the game's,
+// as in the engine.
 void MakeGame()
 {
     static bool made = false;
@@ -52,22 +52,16 @@ void MakeGame()
     made = true;
     for (auto *c : __STORM_CLASSES_REGISTRY) // as CoreImpl::Init: libraries are found by the hash of their name
         c->SetHash(MakeHashValue(c->GetName()));
-    const fs::path root = fs::temp_directory_path() / "game";
-    fs::remove_all(root);
-    const fs::path program = root / "PROGRAM";
-    fs::create_directories(program);
-    fs::copy(Environment("STORM_UI_APP") + "/PROGRAM", program, fs::copy_options::recursive);
-    fs::copy(Environment("STORM_UI_TESTS") + "/game", program,
-             fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-    fs::copy_file(Environment("STORM_UI_HEADER"), program / "interface/touch/capabilities.h");
+    // The fixture game, read only (saves are made in memory), with the interface's layer over it as on a phone.
+    const fs::path root = Environment("STORM_UI_TESTS") + "/game";
     fs::current_path(root);
-    storm::storage::select({.game = root}); // read only: saves are made in memory
+    storm::storage::select({.game = root, .layers = {.mobileUi = Environment("STORM_UI_LAYER")}});
     fio->ScanResourcePaths();
 }
 
 std::string PackList()
 {
-    return ReadText(Environment("STORM_UI_APP") + "/design/scripts.json");
+    return ReadText(Environment("STORM_MOBILE_UI") + "/design/scripts.json");
 }
 
 // The lines the engine and the compiler log while it lives.
@@ -207,7 +201,7 @@ struct Calls final : storm::ui::ScriptCall
 std::unique_ptr<storm::ui::ComponentSpec> PackScreen(const char *folder)
 {
     return storm::ui::ParseComponentSpec(
-        Json::parse(ReadText(Environment("STORM_UI_APP") + "/design/screens/" + folder + "/spec.json")));
+        Json::parse(ReadText(Environment("STORM_MOBILE_UI") + "/design/screens/" + folder + "/spec.json")));
 }
 
 const storm::ui::ScriptScreen &Screen(const Vm &vm, const std::string &capability)

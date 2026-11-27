@@ -90,3 +90,22 @@ def collect_shaders(engine: Path):
     files['manifest.json'] = json.dumps({n: hashlib.sha256(d).hexdigest() for n,d in files.items()},
                                        sort_keys=True, indent=2).encode() + b'\n'
     return files
+
+
+def main():
+    """mobile_ui_assets.py layer <mobile-ui dir> <out dir>: write the mobile-ui layer as the APK ships it (the engine's
+    host checks run the interface scripts from it)."""
+    import shutil
+    import sys
+    if len(sys.argv) != 4 or sys.argv[1] != 'layer':
+        sys.exit(main.__doc__)
+    out = Path(sys.argv[3])
+    if out.exists():
+        shutil.rmtree(out)
+    for name, data in collect(Path(sys.argv[2]).resolve()).items():
+        (out / name).parent.mkdir(parents=True, exist_ok=True)
+        (out / name).write_bytes(data)
+
+
+if __name__ == '__main__':
+    main()

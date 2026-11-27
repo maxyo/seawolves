@@ -11,6 +11,7 @@
 // checks that a tap on the scrim never reaches what lies under it, and the refusal's shake.
 // Synthetic models only; no GL context, no game data.
 #include "fakes.h"
+#include "../tools/script_game.h"
 #include "runtime_stub.h"
 #include "../src/screens/screen.h"
 #include "storm_ui/ui.h"
@@ -100,6 +101,13 @@ static Json DownloadSets()
                              {"menu", {"details", "delete"}}}});
 }
 
+// The script screens of the application's scripts (tools/script_game.h) with its pack's components.
+static fs::path app_pack;
+static void Scripted(Router &router)
+{
+    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
+}
+
 static std::vector<Case> Cases()
 {
     const auto file = [](const char *name) { return [name](Router &router) { Interface(router, name); }; };
@@ -121,6 +129,7 @@ static std::vector<Case> Cases()
         {"encounter card without a way past", file("reading-dirsailenc.json"), "card", {}},
         {"crew wages card", file("reading-salary.json"), "card", {}},
         {"notice card", file("reading-colonyinfo.json"), "card", {"card-close", "click", ""}},
+        {"rest (a script screen)", file("rest.json"), "rest", {"rest-close", "click", ""}},
         {"nations help", file("nationrelation-help.json"), "help", {"help-close", "click", ""}},
         {"shipyard help", file("shipyard-help.json"), "sheet", {"sheet-close", "click", ""}},
         {"shipyard buy question", file("shipyard-confirm-buy.json"), "sheet", {"sheet-cancel", "click", ""}},
@@ -211,6 +220,8 @@ static void Walk(const Case &c)
     const std::string expected = std::string(c.modal) + (dismissible ? "" : " (must be answered)");
     FakeSurface tapped_surface, back_surface;
     Router tapped(tapped_surface), back(back_surface);
+    Scripted(tapped);
+    Scripted(back);
     c.open(tapped);
     c.open(back);
     Expect(Topmost(tapped) == expected && tapped.WantsBack(),
@@ -224,6 +235,7 @@ static void Walk(const Case &c)
     {
         FakeSurface cancelled_surface;
         Router cancelled(cancelled_surface);
+        Scripted(cancelled);
         c.open(cancelled);
         cancelled_surface.commands.clear();
         cancelled.OnEvent(c.cancel);
@@ -271,6 +283,8 @@ static void EveryModel()
         const std::string name = entry.path().filename().string();
         FakeSurface tapped_surface, back_surface;
         Router tapped(tapped_surface), back(back_surface);
+        Scripted(tapped);
+        Scripted(back);
         tapped.SetInterface(Load(name));
         back.SetInterface(Load(name));
         const auto modals = tapped.Modals();
@@ -430,12 +444,13 @@ static void Runtime(const fs::path &base, const fs::path &font)
 
 int main(int argc, char **argv)
 {
-    if (argc < 4)
+    if (argc < 5)
     {
-        std::fprintf(stderr, "usage: storm_ui_modals_unit <tests/models> <tests/pack> <font.ttf>\n");
+        std::fprintf(stderr, "usage: storm_ui_modals_unit <tests/models> <tests/pack> <font.ttf> <application pack>\n");
         return 2;
     }
     models = argv[1];
+    app_pack = argv[4];
     for (const Case &c : Cases())
         Walk(c);
     EveryModel();

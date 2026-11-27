@@ -13,6 +13,7 @@
 #include "../src/screens/screen.h"
 #include "../src/template.h"
 #include "storm_ui/ui.h"
+#include "script_game.h"
 
 #include <RmlUi/Core.h>
 
@@ -211,7 +212,10 @@ class Session
         config.on_text_request = [this](const TextRequest &request) { observed_.texts.push_back(request); };
         host_ = Host::Create(config, &error);
         if (host_)
+        {
+            host_->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
             Feed(settle);
+        }
     }
 
     // The crawl's way back to the case's state on the same host (a host starts slowly: fonts, the pack): the
@@ -1447,7 +1451,7 @@ int AddModelCases(const fs::path &fixtures, const std::set<fs::path> &used, std:
     return problems;
 }
 
-// Coverage: every ported screen is drawn by a case, or listed with its reason.
+// Coverage: every ported screen and every script screen is drawn by a case, or listed with its reason.
 int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shard)
 {
     int problems = 0;
@@ -1463,25 +1467,32 @@ int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shar
         }
     }
     const Json &uncovered = manifest["uncovered"];
-    for (const screens::ScreenEntry &entry :
-         shard == 0 ? screens::PortedScreens() : std::span<const screens::ScreenEntry>())
+    std::vector<std::string> screens; // the ported screens and those of the scripts, by interface
+    if (shard == 0)
     {
-        const bool listed = uncovered.contains(entry.id);
-        if (covered.count(entry.id) && listed)
+        for (const screens::ScreenEntry &entry : screens::PortedScreens())
+            screens.push_back(entry.id);
+        for (const ScriptScreen &screen : ScriptGame::Get().Screens())
+            screens.push_back(screen.interface);
+    }
+    for (const std::string &id : screens)
+    {
+        const bool listed = uncovered.contains(id);
+        if (covered.count(id) && listed)
         {
             std::printf("FAIL coverage: %s is drawn by a case and still listed as uncovered in pack-contract.json\n",
-                        entry.id);
+                        id.c_str());
             ++problems;
         }
-        else if (!covered.count(entry.id) && !listed)
+        else if (!covered.count(id) && !listed)
         {
-            std::printf("FAIL coverage: the ported screen %s has no case (add a recorded model, or list it as "
+            std::printf("FAIL coverage: the screen %s has no case (add a recorded model, or list it as "
                         "uncovered with the reason)\n",
-                        entry.id);
+                        id.c_str());
             ++problems;
         }
         else if (listed)
-            std::printf("UNCOVERED %s: %s\n", entry.id, uncovered[entry.id].get<std::string>().c_str());
+            std::printf("UNCOVERED %s: %s\n", id.c_str(), uncovered[id].get<std::string>().c_str());
     }
 
     return problems;

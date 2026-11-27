@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """The UI pack contract: this application's UI pack (mobile-ui/design, built by build.py) drawn
-with the engine's real screen and HUD adapters (engine/src/libs/ui) on the engine's recorded
+with the engine's real screen and HUD adapters (engine/src/libs/ui) and this application's interface scripts on the
+engine's script VM (engine src/libs/ui/tools/script_game.h) on the engine's recorded
 models and states, through the engine's storm_ui_pack_check (engine/src/libs/ui/tools/pack_check.cpp).
 
 The pack is the application's and the adapters that fill it are the engine's; this is where they meet
@@ -13,7 +14,7 @@ tools/pack_check.cpp). With --game DIR (an installed game: PROGRAM/ and RESOURCE
 followed into the game's interface scripts and this application's Java (game_bindings.py); without it that part is
 not run, and the run says so. The cases run in parallel shards, one process each (one UI host per process).
 
-Needs cmake and a C++20 compiler; Ninja and ccache when installed. No render backend is built (no bgfx, shaderc, X11 or OpenGL). The build directory is build/ui-pack-contract (incremental); the pack is
+Needs cmake, a C++20 compiler and the SDL2 runtime library (the script VM links it); Ninja and ccache when installed. No render backend is built (no bgfx, shaderc, X11 or OpenGL). The build directory is build/ui-pack-contract (incremental); the pack is
 built into a temporary directory.
 """
 from pathlib import Path

@@ -217,8 +217,23 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     # The pack contract check (tools/pack_check.cpp): a real pack with the real adapters on the
     # recorded fixtures. The application's host checks run it on its pack (tests/ui_pack_contract);
     # here it runs when STORM_UI_PACK names a built pack.
+    # The touch interface's scripts on the engine's script VM over the fixture game (tools/script_game.h): the checks
+    # that draw the pack's screens draw the script screens too.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/script_vm/script_vm.cmake")
+    storm_script_vm(storm_ui_script_vm)
+    storm_mobile_ui_layer(storm_ui_scripts_layer "${CMAKE_BINARY_DIR}/mobile-ui-layer")
+    add_library(storm_ui_script_game STATIC tools/script_game.cpp ../ui_host/src/scripts/script_segments.cpp
+        ../ui_host/src/scripts/script_port.cpp)
+    add_dependencies(storm_ui_script_game storm_ui_scripts_layer)
+    target_include_directories(storm_ui_script_game PUBLIC ../ui_host/src/scripts)
+    target_compile_definitions(storm_ui_script_game PRIVATE
+        STORM_UI_SCRIPT_GAME="${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/ui_scripts/game"
+        STORM_UI_SCRIPT_LAYER="${CMAKE_BINARY_DIR}/mobile-ui-layer"
+        STORM_UI_SCRIPT_LIST="${STORM_MOBILE_UI}/design/scripts.json")
+    target_link_libraries(storm_ui_script_game PUBLIC storm_ui storm_ui_script_vm)
     add_executable(storm_ui_pack_check tools/pack_check.cpp)
-    target_link_libraries(storm_ui_pack_check PRIVATE storm_ui)
+    target_link_libraries(storm_ui_pack_check PRIVATE storm_ui storm_ui_script_game)
     set(STORM_UI_PACK "" CACHE PATH "A built UI pack (the application's build.py --pack output) for the ui_pack_contract test")
     enable_testing()
     set(models "${CMAKE_CURRENT_SOURCE_DIR}/tests/models")
@@ -255,7 +270,15 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     target_include_directories(storm_ui_frame_cost_unit PRIVATE src)
     storm_ui_check(text text_check.cpp)
     storm_ui_check(boundary boundary_check.cpp)
-    storm_ui_check(modals modals_check.cpp "${models}" "${pack}" "${font}")
+    # The application's pack, for the checks of the script screens' components.
+    file(GLOB_RECURSE storm_ui_app_design CONFIGURE_DEPENDS "${STORM_MOBILE_UI}/design/*")
+    add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/app-pack/pack.json"
+        COMMAND "${Python3_EXECUTABLE}" "${STORM_MOBILE_UI}/design/build.py" --pack "${CMAKE_BINARY_DIR}/app-pack"
+                --engine-root "${CMAKE_CURRENT_SOURCE_DIR}/../../.." DEPENDS ${storm_ui_app_design})
+    add_custom_target(storm_ui_app_pack DEPENDS "${CMAKE_BINARY_DIR}/app-pack/pack.json")
+    storm_ui_check(modals modals_check.cpp "${models}" "${pack}" "${font}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_modals_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_modals_unit storm_ui_app_pack)
     storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}")
     storm_ui_check(routing routing_check.cpp "${states}" "${pack}")
     storm_ui_check(script_screen script_screen_check.cpp)
