@@ -72,6 +72,8 @@
   заряд и сама не заряжает пушки без ядер.
 - Подзорная труба: если у капитана мушкетный залп, а тип пушек не показан, надпись «Мушкетный залп» больше не
   выдаётся за тип пушек.
+- Магазин: деньги в шапке — те, что у вас по игре; они меняются, когда сделка совершена, а не предсказываются
+  экраном, пока выбирается количество.
 
 **English**
 
@@ -149,6 +151,8 @@
   switches the charge and itself does not load guns without shot.
 - Spyglass: when the captain has the musket volley and the cannon type is not shown, «Musket volley» is no longer shown
   as the cannon type.
+- Store: the money in the header is what the game says you have; it changes when the deal is made instead of being
+  predicted by the screen while the amount is chosen.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

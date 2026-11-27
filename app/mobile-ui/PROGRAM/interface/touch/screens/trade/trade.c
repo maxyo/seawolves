@@ -46,7 +46,7 @@ void TouchTrade_Build()
 	TouchTrade_Deal(ui, game, &deal);
 	TouchTrade_List(game, look, &captions, &deal, view);
 	TouchTrade_Subject(game, view);
-	TouchTrade_Stats(game, look, &deal, view);
+	TouchTrade_Stats(game, look, view);
 	TouchTrade_Info(game, view);
 	TouchTrade_Primary(game, &deal, view);
 	UiOn("header-back", "");
@@ -314,10 +314,10 @@ void TouchTrade_Subject(aref game, aref view)
 	UiOn("header", "subject-next");
 }
 
-// The header's figures, the adapter's: what we carry, the place's load, the purse. While a deal is open they show the
-// figures it had with no amount set and, as their preview, the game's figures now (the purse: with the deal's money),
-// from the moment it opens, so the header does not reflow at the first step.
-void TouchTrade_Stats(aref game, aref look, aref deal, aref view)
+// The header's figures, the adapter's: what we carry, the place's load, the purse. While a deal is open the load
+// figures show what they were with no amount set and, as their preview, the game's figures now, from the moment it
+// opens, so the header does not reflow at the first step. The purse is the game's: it changes when the deal is made.
+void TouchTrade_Stats(aref game, aref look, aref view)
 {
 	aref stats;
 	makearef(stats, view.stats);
@@ -329,7 +329,7 @@ void TouchTrade_Stats(aref game, aref look, aref deal, aref view)
 		aref figure = TouchLib_Item(game, "figures", k);
 		string kind = figure.kind;
 		if (!moved) TouchTrade.figures.(kind) = figure.value;
-		if (kind == "purse") TouchTrade_Purse(game, figure, deal, stats, dealing);
+		if (kind == "purse") TouchTrade_Purse(figure, stats);
 		else
 		{
 			string icon = "";
@@ -352,19 +352,12 @@ void TouchTrade_Stats(aref game, aref look, aref deal, aref view)
 }
 
 // The purse takes the second place of a full header.
-void TouchTrade_Purse(aref game, aref figure, aref deal, aref stats, bool dealing)
+void TouchTrade_Purse(aref figure, aref stats)
 {
 	if (GetAttributesNum(stats) == 2) DeleteAttribute(stats, "s1");
 	object purse = {value = figure.value, tone = "gold"};
 	if (figure.currency != "") purse.label = UiText(figure.currency);
 	else purse.icon = "money";
-	if (dealing && sti(game.money))
-	{
-		int balance = UiAmount(figure.value, "the purse");
-		if (sti(game.deal.amount) > 0) balance -= sti(deal.total);
-		else balance += sti(deal.total);
-		purse.preview = TouchLib_Thousands(balance);
-	}
 	aref at = TouchLib_Add(stats, "s");
 	CopyAttributes(at, &purse);
 }

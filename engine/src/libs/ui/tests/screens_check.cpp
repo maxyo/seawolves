@@ -647,8 +647,9 @@ struct StoreRun
                "100 bought: the game's money and weight for it: " + surface.props["primary"].dump());
         Expect(surface.props["stats"][0]["value"] == "189 / 199" &&
                    surface.props["stats"][0]["preview"] == "194 / 199" &&
-                   surface.props["stats"][1]["value"] == "1 500" && surface.props["stats"][1]["preview"] == "1 475",
-               "the header shows the game's figures after the deal: the hold 189 → 194, the purse 1 500 → 1 475: " +
+                   surface.props["stats"][1]["value"] == "1 500" && !surface.props["stats"][1].contains("preview"),
+               "the header shows the game's hold after the deal 189 → 194; the purse is the game's 1 500 until the "
+               "deal is made: " +
                    surface.props["stats"].dump());
     }
 
@@ -674,7 +675,7 @@ struct StoreRun
                    surface.props["primary"]["sub"] == "2 \xC2\xB7 1 <transfer.cwt>" &&
                    surface.toasts == std::vector<std::string>{"<trade.limit>"} &&
                    surface.props["stats"][0]["preview"] == "188 / 199" &&
-                   surface.props["stats"][1]["preview"] == "1 502",
+                   !surface.props["stats"][1].contains("preview"),
                "a sale past the game's limit shows the amount it clamped it to, its money and weight, and says so: " +
                    surface.props["primary"].dump() + Json(surface.toasts).dump());
     }
