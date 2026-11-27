@@ -1749,45 +1749,26 @@ static void Transfer(const std::string &models)
     run.Questions();
 }
 
+// Alchemy on its script screen (cases/alchemy.json has the views of the recorded models and the game's answers): a
+// recipe chosen by the scroll's own tap, bound to the opening; the game's exit.
 static void Alchemy(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     const std::string prefix = "widget:alchemy\t";
     router.SetInterface(Load(models, "alchemy.json"));
     Expect(router.Using() == "alchemy" && surface.tag == "s-alchemy" && surface.errors.empty(),
-           "alchemy is drawn by the alchemy screen");
-    const Json &recipes = surface.props["recipes"]["rows"];
-    Expect(recipes.size() == 4 && recipes[0]["selected"] == true && recipes[0]["meta"] == "<alchemy.kind_ammo>" &&
-               recipes[1]["meta"] == "",
-           "the four real recipes, the shown one selected, the item group as its word");
-    const Json &parts = surface.props["parts"]["rows"];
-    Expect(parts.size() == 2 && parts[0]["cells"][0]["text"] == "<alchemy.none>" && parts[1]["cells"][0] == "28" &&
-               parts[1]["cells"][1] == "1",
-           "components: none of the bullets, 28 powder, one each per batch");
-    Expect(surface.props["q"]["value"] == 0 && surface.props["q"]["disabled"] == true &&
-               surface.props["primary"]["disabled"] == true,
-           "nothing to craft: no batches, the craft is off");
+           "alchemy is drawn by its script screen: " + Json(surface.errors).dump());
     router.OnEvent({"recipes", "row", "potion1"});
     ExpectEqual(surface.Last(), prefix + "ANDROID_ALCHEMY_RECIPE\t1\tchoose@11:potion1",
                 "another recipe: the scroll's own tap, bound to the opening");
+    AnswerAll(router, surface, true);
     surface.commands.clear();
     router.OnEvent({"recipes", "row", "cartridge"});
     Expect(surface.commands.empty(), "the shown recipe is not chosen again");
-    router.OnEvent({"info", "click", ""});
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), prefix + "EXIT_BTN\t-1\tpress", "back leaves through the game's exit");
-
-    router.SetInterface(Load(models, "alchemy-craft.json"));
-    Expect(surface.props["q"]["value"] == 1 && surface.props["q"]["max"] == 22,
-           "bullets bought: one batch set, up to 22");
-    ExpectEqual(surface.props["primary"]["label"], "<alchemy.craft> ×3", "one batch makes three cartridges");
-    router.OnEvent({"batches", "commit", "2"});
-    ExpectEqual(surface.props["primary"]["label"], "<alchemy.craft> ×6", "two batches make six");
-    ExpectEqual(surface.props["primary"]["sub"], "20 <alchemy.minutes>", "15 minutes and 5 for the second batch");
-    router.OnEvent({"primary", "click", ""});
-    ExpectEqual(surface.Last(), prefix + "ANDROID_ALCHEMY\t-1\tcraft@11:cartridge=2",
-                "craft two batches of the shown recipe");
 }
 
 // Shipyard on its script screen (cases/shipyard.json has the views of the recorded models): our ship's figures

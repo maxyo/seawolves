@@ -1,13 +1,6 @@
-// Included inside xinterface.cpp's Android implementation: the facts of the alchemy screen
-// (PROGRAM/interface/alchemy.c) for mobile_alchemy.hpp, and its two guarded actions. Every item
-// move and the crafting itself stay the script's own (TableSelectChange, TransactionOK,
-// «Результат»); the engine only fills in what a player would.
+// Included inside xinterface.cpp's Android implementation: the recipes of the alchemy screen
+// (PROGRAM/interface/alchemy.c) for mobile_alchemy.hpp, and choosing one as a tap on the scroll does.
 namespace {
-ATTRIBUTES *AlchemyObject(const char *name, std::optional<uint32_t> index = std::nullopt){
-    if(!index)return MobileVariableObject(name);
-    auto *v=static_cast<VDATA*>(core.GetScriptVariable(name));
-    return v?v->GetAClass(*index):nullptr;
-}
 std::optional<int> AlchemyInteger(const char *name){
     const auto n=MobileVariableInteger(name);
     return n?std::optional<int>(*n):std::nullopt;
@@ -31,7 +24,7 @@ std::map<std::string,uint32_t> AlchemyItemIndex(const std::set<std::string> &ids
 }
 }
 
-storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource(const std::vector<MobileWidget> &widgets)
+storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource()
 {
     storm::mobile::AlchemySource source;
     auto *root=AttributesPointer;
@@ -72,34 +65,11 @@ storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource(const std::vector<M
         storm::mobile::AlchemyRecipe recipe;recipe.id=id;recipe.index=position;
         recipe.name=text(AlchemyAttr(item,"name"));
         if(recipe.name.empty())source.missing.push_back("name:"+id);
-        const char *group=AlchemyAttr(item,"groupID");recipe.group=group?group:"";
         const char *tex=AlchemyAttr(item,"picTexture"),*pic=AlchemyAttr(item,"picIndex");
         recipe.atlasGroup=tex?tex:"";recipe.atlasImage=pic?std::string("itm")+pic:"";
-        // What a batch makes (alchemy.c onGetAllBtnClick: Qty * multiobject.qty); a recipe without it is the game's error.
-        if(const char *yield=AlchemyAttr(item,"multiobject.qty"))recipe.yield=std::atoi(yield);
-        else source.missing.push_back("yield:"+id);
         source.recipes.push_back(std::move(recipe));
     }
     if(source.recipes.empty())source.missing.push_back("recipes");
-
-    // The shown recipe's components, in the order the table lists them (AddToTable).
-    const auto shown=index.find(source.current);
-    auto *recipeItem=shown!=index.end()?items->GetAClass(shown->second):nullptr;
-    auto *components=recipeItem?recipeItem->GetAttributeClass("component"):nullptr;
-    if(!components)source.missing.push_back("component:"+source.current);
-    else{
-        source.description=text(AlchemyAttr(recipeItem,"describe"));
-        for(uint32_t i=0;i<components->GetAttributesNum();++i){
-            auto *part=components->GetAttributeClass(i);
-            storm::mobile::AlchemyComponent c;
-            const char *id=AlchemyAttr(part,"id"),*use=AlchemyAttr(part,"use"),*qty=AlchemyAttr(part,"qty");
-            c.itemId=id?id:"";c.need=qty?std::atoi(qty):0;
-            c.catalyst=use&&!storm::iEquals(use,"component");
-            if(c.itemId.empty()||c.need<=0)source.missing.push_back("component:"+source.current+"#"+std::to_string(i+1));
-            source.components.push_back(std::move(c));
-        }
-        source.busy=storm::mobile::AlchemyFillCounts(widgets,source.components);
-    }
 
     // Ready only when the script shows what the scroll shows and nothing is in flight.
     auto *images=static_cast<CXI_SCROLLIMAGE*>(scroll);
@@ -117,53 +87,22 @@ storm::mobile::AlchemySource XINTERFACE::MobileAlchemySource(const std::vector<M
 
 void XINTERFACE::MobileCollectAlchemy(std::vector<MobileWidget> &widgets)
 {
-    storm::mobile::CollectAlchemy(MobileAlchemySource(widgets),widgets);
+    const auto source=MobileAlchemySource();
+    // What the script lacks leaves no recipe to choose: said once per change, not every model.
+    std::string missing;
+    for(const auto &fact:source.missing)missing+=(missing.empty()?"":",")+fact;
+    if(missing!=m_mobileAlchemyMissing&&!missing.empty())core.Trace("alchemy: the script lacks %s",missing.c_str());
+    m_mobileAlchemyMissing=missing;
+    storm::mobile::CollectAlchemy(source,widgets);
 }
 
-bool XINTERFACE::MobileApplyAlchemy(const std::string &node,const std::string &value)
+bool XINTERFACE::MobileApplyAlchemy(const std::string &value)
 {
-    const uint64_t revision=storm::android::mobileScreenRevision;
-    std::vector<MobileWidget> live;MobileCollectWidgets(live);
-    const auto source=MobileAlchemySource(live);
+    const auto source=MobileAlchemySource();
     if(!source.busy.empty()||!source.missing.empty()){core.Trace("alchemy: %s refused: %s",value.c_str(),source.busy.c_str());return false;}
-    if(node=="ANDROID_ALCHEMY_RECIPE"){
-        const auto choose=storm::mobile::ParseAlchemyAction(value,"choose",revision,false);
-        const auto recipe=choose?std::find_if(source.recipes.begin(),source.recipes.end(),[&](const auto &r){return r.id==choose->item;}):source.recipes.end();
-        if(recipe==source.recipes.end()||recipe->id==source.current)return false;
-        static_cast<CXI_SCROLLIMAGE*>(FindNode("ITEMS_SCROLL",nullptr))->MobileSelect(recipe->index);
-        return true;
-    }
-    const auto craft=storm::mobile::ParseAlchemyAction(value,"craft",revision,true);
-    if(!craft||craft->item!=source.current)return false;
-    const auto changes=storm::mobile::AlchemyPotChanges(source.components,craft->batches);
-    if(!changes){core.Trace("alchemy: %d batches of %s are not possible",craft->batches,craft->item.c_str());return false;}
-    // The pot as the script keeps it (NullCharacter.alchemy.Items, read by GetCharacterFreeItem);
-    // the table shows it a frame later.
-    auto *pot=AlchemyObject("NullCharacter");
-    const auto inPot=[&](const std::string &id){const char *n=AlchemyAttr(pot,"alchemy.Items."+id);return n?std::atoi(n):0;};
-    for(size_t i=0;i<changes->size();++i){
-        const auto &part=source.components[i];
-        const int want=part.catalyst?part.need:part.need*craft->batches;
-        const int change=want-inPot(part.itemId);
-        if(change==0)continue;
-        // The player's way: select the row (ShowGoodsInfo), type the amount, confirm. A negative
-        // amount gives from the hero to the pot, a positive one takes back.
-        core.Event("TableSelectChange","sll","TABLE_LIST",static_cast<int32_t>(i+1),1);
-        ATTRIBUTES *edit=AttributesPointer->GetAttributeClass("qty_edit");
-        if(!edit)edit=AttributesPointer->CreateSubAClass(AttributesPointer,"qty_edit");
-        if(!edit)return false;
-        edit->SetAttribute("str",std::to_string(-change));
-        core.Event("TransactionOK");
-        if(inPot(part.itemId)!=want){
-            core.Trace("alchemy: the pot of %s holds %d, not %d",part.itemId.c_str(),inPot(part.itemId),want);
-            return false;
-        }
-    }
-    auto *result=FindNode("GETALL_BUTTON",nullptr);
-    if(!result||!result->m_bUse||!result->m_bSelected||result->m_bLockedNode||result->m_bLockStatus){
-        core.Trace("alchemy: «Результат» is not available after filling the pot");return false;
-    }
-    const int code=result->CheckCommandUsed(ACTION_MOUSECLICK)?ACTION_MOUSECLICK:ACTION_ACTIVATE;
-    bool stop=false;if(auto *next=result->DoAction(code,stop,true))SetCurNode(next);
+    const std::string item=storm::mobile::ParseAlchemyChoice(value,storm::android::mobileScreenRevision);
+    const auto recipe=std::find_if(source.recipes.begin(),source.recipes.end(),[&](const auto &r){return r.id==item;});
+    if(item.empty()||recipe==source.recipes.end()||recipe->id==source.current)return false;
+    static_cast<CXI_SCROLLIMAGE*>(FindNode("ITEMS_SCROLL",nullptr))->MobileSelect(recipe->index);
     return true;
 }

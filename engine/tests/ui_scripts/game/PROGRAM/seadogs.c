@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[36];
+object Interfaces[37];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -330,6 +330,59 @@ int GetCharacterShipType(ref chr)
 ref xi_refCharacter;
 int iShipQty;
 
+// The alchemy of the recorded models (ui/tests/models/alchemy*.json): the recipes cartridge (Items[33]), potion1,
+// grenade (34) and potion3 (35), the cartridge of a bullet (36) and a measure of gunpowder (37) a batch; the hero's
+// free items TestHero.items.<id>, the pot NullCharacter.alchemy.Items.<id>. What the game counts is the cases' own
+// (TestAlchemyBatches); making batches takes them off it.
+int TestAlchemyBatches;
+
+int GetCharacterFreeItem(ref chr, string id)
+{
+	if (CheckAttribute(chr, "items." + id)) return sti(chr.items.(id));
+	return 0;
+}
+
+int AlchemyBatches(string id, bool withHero)
+{
+	return TestAlchemyBatches;
+}
+
+int AlchemyMinutes(int batches)
+{
+	return 100 + batches;
+}
+
+bool AlchemyMake(string id, int batches)
+{
+	TestAlchemyBatches = TestAlchemyBatches - batches;
+	return true;
+}
+
+void TestAlchemy()
+{
+	TestItem(33, "cartridge", "ammo", "0.1", "itmdescr_cartridge");
+	TestItem(34, "grenade", "ammo", "1", "itmdescr_grenade");
+	TestItem(35, "potion3", "", "0.2", "itmdescr_potion3");
+	TestItem(36, "bullet", "ammo", "0.1", "itmdescr_bullet");
+	TestItem(37, "gunpowder", "ammo", "0.1", "itmdescr_gunpowder");
+	Items[33].multiobject.qty = 3;
+	Items[33].component.t1.id = "bullet";
+	Items[33].component.t1.use = "component";
+	Items[33].component.t1.qty = 1;
+	Items[33].component.t2.id = "gunpowder";
+	Items[33].component.t2.use = "component";
+	Items[33].component.t2.qty = 1;
+	Items[36].name = "itmname_bullet";
+	Items[36].picTexture = "ITEMS_18";
+	Items[36].picIndex = 1;
+	Items[37].name = "itmname_gunpowder";
+	Items[37].picTexture = "ITEMS_18";
+	Items[37].picIndex = 2;
+	TestHero.items.gunpowder = 28;
+	TestHero.items.bullet = 0;
+	NullCharacter.alchemy.Items.bullet = 0;
+}
+
 bool GetShipRemovable(ref chr)
 {
 	return true;
@@ -385,6 +438,7 @@ void Main()
 	Interfaces[33].IniFile = "RESOURCE\INI\INTERFACES\quick_save.ini";
 	Interfaces[34].IniFile = "RESOURCE\INI\INTERFACES\LSCchar_all.ini";
 	Interfaces[35].IniFile = "RESOURCE\INI\INTERFACES\character.ini";
+	Interfaces[36].IniFile = "RESOURCE\INI\INTERFACES\alchemy.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -445,6 +499,7 @@ void Main()
 	TestHold.g0 = 40;
 	TestHold.g1 = 0;
 	TestItems();
+	TestAlchemy();
 	// the shipyard of the recorded models (ui/tests/models/shipyard-*.json): FillShipsScroll's places, our ketch
 	// first (its captain Characters[1]), the other four free
 	GameInterface.SHIPS_SCROLL.pic1.character = 1;

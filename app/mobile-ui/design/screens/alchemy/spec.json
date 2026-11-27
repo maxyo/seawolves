@@ -1,13 +1,19 @@
 {
   "tag": "s-alchemy",
-  "doc": "Alchemy (interface `alchemy`): the known recipes on the left, the shown recipe's components and the number of batches on the right, filled by extra_alchemy.cpp.",
+  "doc": "Alchemy (interface `alchemy`), filled by the script interface/touch/screens/alchemy.c through the shapes of its json props: the known recipes on the left, the shown recipe's components and the number of batches on the right.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "recipes": {"type": "json", "default": {}},
-    "recipe": {"type": "json", "default": null},
-    "parts": {"type": "json", "default": {}},
-    "q": {"type": "json", "default": null},
-    "primary": {"type": "json", "default": null},
+    "recipes": {"type": "json", "default": {},
+               "shape": {"label": "text", "rows": [{"id": "text", "name": "text", "image": "picture", "meta": "text", "selected": "bool", "disabled": "bool", "reason": "text", "cells": ["text"]}]}},
+    "recipe": {"type": "json", "default": null,
+              "shape": {"$null": {"title": "text", "sub": "text", "image": "picture", "info": "bool"}}},
+    "parts": {"type": "json", "default": {},
+             "shape": {"label": "text", "cols": [{"label": "text", "icon": "text"}],
+                       "rows": [{"id": "text", "name": "text", "image": "picture", "meta": "text", "cells": [{"$either": ["text", {"text": "text", "tone": "text"}]}]}]}},
+    "q": {"type": "json", "default": null,
+         "shape": {"$null": {"value": "int", "min": "int", "max": "int", "label": "text", "summary": "text", "steps": ["int"], "all": "bool", "allLabel": "text", "disabled": "bool"}}},
+    "primary": {"type": "json", "default": null,
+               "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "extras": {"type": "json", "default": {}}
   }
 }

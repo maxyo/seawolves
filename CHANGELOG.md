@@ -110,6 +110,10 @@
   одной, и борт показывает, где игра остановилась. Слова опыта команды и морали пишутся так, как их пишет игра.
 - Персонаж и способности: экран — скриптовый. Состояние здоровья и роли пишутся так, как их пишет игра; разбор
   значения навыка показывает шаги самой игры без нашей сверки.
+- Экран алхимии построен скриптами интерфейса. Сколько партий можно изготовить, сколько минут они займут и само
+  изготовление — функции самой игры (исправление скрипта для «Каждому своё» 1.7.3): число партий по-прежнему
+  выбирается ползунком, игра сама кладёт в котёл нужное и изготавливает. На кнопке «Изготовить» больше нет числа
+  предметов. Без этого исправления (другая версия игры) окно алхимии остаётся окном самой игры.
 
 **English**
 
@@ -224,6 +228,10 @@
   The crew's experience and morale words are written as the game writes them.
 - Character and abilities: a script screen. The health word and the roles are written as the game writes them; a
   skill's breakdown shows the game's own steps without our cross-check.
+- The alchemy screen is built by the interface scripts. How many batches can be made, how many minutes they take and
+  the making itself are the game's own functions (a script fix for TEHO 1.7.3): the number of batches is still set
+  with the slider, and the game lays what they take into its pot and makes them. The «Craft» button no longer shows a
+  count of items. Without that fix (another game version) the alchemy window stays the game's own.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

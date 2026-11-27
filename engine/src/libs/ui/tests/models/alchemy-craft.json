@@ -1,24 +1,17 @@
-{
-"schemaVersion":2,
-"language":"russian",
-"revision":10,
-"screenRevision":11,
-"screen":"alchemy",
-"widgets":[
+{"schemaVersion": 2, "language": "russian", "revision": 10, "screenRevision": 11, "screen": "alchemy", "widgets": [
 {"node":"STORECAPTION1","type":"text","label":"  Алхимия  ","value":"1","index":0},
 {"node":"EXIT_BTN","type":"button","label":"EXIT_BTN","index":-1},
 {"node":"MAIN_CHARACTER_PICTURE","type":"image","index":-1,"enabled":false,"images":[{"handle":16,"imageRevision":16,"tintArgb":4286611584}]},
 {"node":"OTHER_PICTURE","type":"image","index":-1,"enabled":false,"images":[{"handle":17,"imageRevision":17,"tintArgb":4286611584}]},
 {"node":"LEFTSCROLLBUTTON","type":"button","label":"LEFTSCROLLBUTTON","index":-1},
 {"node":"RIGHTSCROLLBUTTON","type":"button","label":"RIGHTSCROLLBUTTON","index":-1},
-{"node":"TABLE_LIST","type":"choice","label":"22\tКомпонент\tСвинцовые пули\t1\t0","value":"1","index":0,"actions":["select","activate"],"columnHeaders":["Предметов","Назначение","Наименование предметов","Необходимо","Предметов"],"headerCells":[{"text":"Предметов"},{"text":"Назначение"},{"text":"Наименование предметов"},{"text":"Необходимо"},{"text":"Предметов"}],"cells":[{"text":"22"},{"text":"Компонент"},{"text":"Свинцовые пули","images":[{"handle":14,"imageRevision":14,"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm2"}}]},{"text":"1"},{"text":"0"}],"context":{"itemId":"bullet","use":"component"}},
-{"node":"TABLE_LIST","type":"choice","label":"28\tКомпонент\tГранулированный порох\t1\t0","value":"0","index":1,"actions":["select","activate"],"columnHeaders":["Предметов","Назначение","Наименование предметов","Необходимо","Предметов"],"headerCells":[{"text":"Предметов"},{"text":"Назначение"},{"text":"Наименование предметов"},{"text":"Необходимо"},{"text":"Предметов"}],"cells":[{"text":"28"},{"text":"Компонент"},{"text":"Гранулированный порох","images":[{"handle":15,"imageRevision":15,"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm1"}}]},{"text":"1"},{"text":"0"}],"context":{"itemId":"gunpowder","use":"component"}},
+{"node":"TABLE_LIST","type":"choice","label":"22\tКомпонент\tСвинцовые пули\t1\t0","value":"1","index":0,"actions":["select","activate"],"columnHeaders":["Предметов","Назначение","Наименование предметов","Необходимо","Предметов"],"headerCells":[{"text":"Предметов"},{"text":"Назначение"},{"text":"Наименование предметов"},{"text":"Необходимо"},{"text":"Предметов"}],"cells":[{"text":"22"},{"text":"Компонент"},{"text":"Свинцовые пули","images":[{"handle":14,"imageRevision":14,"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm2"}}]},{"text":"1"},{"text":"0"}]},
+{"node":"TABLE_LIST","type":"choice","label":"28\tКомпонент\tГранулированный порох\t1\t0","value":"0","index":1,"actions":["select","activate"],"columnHeaders":["Предметов","Назначение","Наименование предметов","Необходимо","Предметов"],"headerCells":[{"text":"Предметов"},{"text":"Назначение"},{"text":"Наименование предметов"},{"text":"Необходимо"},{"text":"Предметов"}],"cells":[{"text":"28"},{"text":"Компонент"},{"text":"Гранулированный порох","images":[{"handle":15,"imageRevision":15,"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm1"}}]},{"text":"1"},{"text":"0"}]},
 {"node":"TABLE_ADD_ALL_BUTTON","type":"button","label":"TABLE_ADD_ALL_BUTTON","index":-1},
 {"node":"TABLE_REMOVE_ALL_BUTTON","type":"button","label":"TABLE_REMOVE_ALL_BUTTON","index":-1},
 {"node":"GETALL_BUTTON","type":"button","label":"Результат","index":-1,"enabled":false},
-{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Бумажный патрон","value":"1","index":0,"rowId":"cartridge","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm8"}}],"context":{"group":"ammo","yield":"3"}},
-{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Лечебное зелье","value":"0","index":1,"rowId":"potion1","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm3"}}],"actions":["choose"],"context":{"group":"","yield":"1"}},
-{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Ручная граната","value":"0","index":2,"rowId":"grenade","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm9"}}],"actions":["choose"],"context":{"group":"ammo","yield":"1"}},
-{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Противоядие","value":"0","index":3,"rowId":"potion3","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm5"}}],"actions":["choose"],"context":{"group":"","yield":"1"}},
-{"node":"ANDROID_ALCHEMY","type":"alchemy","index":-1,"actions":["craft"],"context":{"recipe":"cartridge","yield":"3","description":"Бумажный патрон: пуля и порох в одной гильзе.","batches":"22","ready":"1"}}
+{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Бумажный патрон","value":"1","index":0,"rowId":"cartridge","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm8"}}]},
+{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Лечебное зелье","value":"0","index":1,"rowId":"potion1","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm3"}}],"actions":["choose"]},
+{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Ручная граната","value":"0","index":2,"rowId":"grenade","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_18","image":"itm9"}}],"actions":["choose"]},
+{"node":"ANDROID_ALCHEMY_RECIPE","type":"choice","label":"Противоядие","value":"0","index":3,"rowId":"potion3","images":[{"width":128,"height":128,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm5"}}],"actions":["choose"]}
 ]}

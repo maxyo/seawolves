@@ -2696,8 +2696,8 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(storm::android::UiWid
     if(action.screen=="goodstransfer"&&action.node=="ANDROID_GOODS_ORDER"){
         return MobileApplyGoodsTransfer(action.value)?applied:refused("the goods order does not apply now");
     }
-    if(action.screen=="alchemy"&&(action.node=="ANDROID_ALCHEMY"||action.node=="ANDROID_ALCHEMY_RECIPE")){
-        return MobileApplyAlchemy(action.node,action.value)?applied:refused("the alchemy step does not apply now");
+    if(action.screen=="alchemy"&&action.node=="ANDROID_ALCHEMY_RECIPE"){
+        return MobileApplyAlchemy(action.value)?applied:refused("the alchemy step does not apply now");
     }
     if(action.screen=="itemsbox"&&action.node=="ANDROID_TAKE_ALL"){
         return MobileApplyItemsBoxTakeAll(action.value)?applied:refused("take-all does not apply now");

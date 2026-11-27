@@ -60,6 +60,7 @@
     {"file": "interface/touch/contracts/menu.c"},
     {"file": "interface/touch/contracts/ship_change.c"},
     {"file": "interface/touch/contracts/character.c"},
+    {"file": "interface/touch/contracts/alchemy.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -699,6 +700,25 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/alchemy.c",
+      "requires": [
+        "fn:AlchemyBatches/2", "fn:AlchemyMinutes/1", "fn:AlchemyMake/2", "fn:GetItemIndex/1", "fn:GetConvertStr/2",
+        "fn:GetCharacterFreeItem/2", "fn:GetMainCharacter/0", "var:Items", "var:NullCharacter"
+      ],
+      "provides": ["adapter:alchemy"],
+      "binds": [
+        {
+          "capability": "alchemy",
+          "interface": "alchemy",
+          "nodes": [
+            ["GETALL_BUTTON", "button", true], ["ANDROID_ALCHEMY_RECIPE", "choice"], ["STORECAPTION1", "text|heading"],
+            ["EXIT_BTN", "button"]
+          ],
+          "data": {"kinds": {"ammo": "alchemy.kind_ammo", "tool": "alchemy.kind_tool", "talisman": "alchemy.kind_talisman"}}
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -885,6 +905,11 @@
       "screens": [
         {"capability": "character", "component": "s-hero"}, {"capability": "character_card", "component": "s-hero"}
       ]
+    },
+    {
+      "file": "interface/touch/screens/alchemy.c",
+      "uses": ["adapter:alchemy"],
+      "screens": [{"capability": "alchemy", "component": "s-alchemy"}]
     }
   ]
 }

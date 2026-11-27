@@ -1,120 +1,32 @@
 #pragma once
-// Alchemy (PROGRAM/interface/alchemy.c) keeps its recipes in a scroll of pictures and makes the
-// player fill a pot row by row before «Результат» crafts as many batches as the pot allows.
-// This exports what the portable UI needs and one guarded action per intent:
+// Alchemy (PROGRAM/interface/alchemy.c) keeps its recipes in a scroll of pictures. This exports them as rows the
+// touch interface's script lists, and choosing one the way a tap on the scroll does:
 //   choice ANDROID_ALCHEMY_RECIPE  one row per recipe (the scroll's picN records with an item;
 //          ListSize/NotUsed padding is never a row): label = the item's name, rowId = item id,
-//          value "1" = the recipe shown, index = its scroll position, images[0] = the item's atlas
-//          picture, context group; actions ["choose"] while the screen is ready and the row is not the shown recipe.
-//   TABLE_LIST rows (the components of the shown recipe) get context itemId and use
-//          (component | catalyst).
-//   ANDROID_ALCHEMY (type alchemy)  context: recipe, yield, description (the recipe's text),
-//          batches (what the hero's items and the pot allow together), ready; actions ["craft"];
-//          what the script lacks is named in its unavailableReason (alchemy:missing=…); context
-//          busy names why the screen is not ready right now.
-// `choose@<screen revision>:<item>` selects that recipe in the scroll the way a tap does.
-// `craft@<screen revision>:<item>=<N>` crafts N batches of the shown recipe: the pot is set to
-// exactly what N batches take (N × qty of a component, qty of a catalyst) through the script's
-// own row selection and transaction, then «Результат» is pressed. Anything inconsistent → nothing.
+//          value "1" = the recipe shown (sCurItem), index = its scroll position, images[0] = the item's atlas
+//          picture; actions ["choose"] while the screen is ready and the row is not the shown recipe.
+// `choose@<screen revision>:<item>` selects that recipe in the scroll. The batches, their making and their time are
+// the game's (the script's adapter asks them of the game's functions).
 #include "mobile_widget.hpp"
-#include <algorithm>
-#include <climits>
-#include <optional>
+#include <string>
+#include <vector>
 
 namespace storm::mobile
 {
 
 struct AlchemyRecipe
 {
-    std::string id, name, group, atlasGroup, atlasImage;
+    std::string id, name, atlasGroup, atlasImage;
     int index = 0; // scroll position (picN → N − 1)
-    int yield = 0; // multiobject.qty
-};
-
-struct AlchemyComponent
-{
-    std::string itemId;
-    bool catalyst = false;
-    int need = 0;          // per batch (catalyst: needed once)
-    int hero = 0, pot = 0; // free items of the hero, items in the pot
 };
 
 struct AlchemySource
 {
     std::vector<AlchemyRecipe> recipes;
-    std::string current; // the recipe shown (sCurItem)
-    std::string description;
-    std::vector<AlchemyComponent> components; // in TABLE_LIST order
-    std::string busy;                         // why the screen is not ready now, "" = ready
-    std::vector<std::string> missing;
+    std::string current;              // the recipe shown (sCurItem)
+    std::string busy;                 // why the screen is not ready now, "" = ready
+    std::vector<std::string> missing; // what the script lacks: reported, and nothing can be chosen
 };
-
-// The hero's free items and the pot of each component as the table shows them (column 1 and 5 of
-// the exported TABLE_LIST rows, in the order AddToTable lists the components). Returns why they
-// cannot be read ("" when they all were).
-inline std::string AlchemyFillCounts(const std::vector<MobileWidget> &widgets,
-                                     std::vector<AlchemyComponent> &components)
-{
-    std::vector<const MobileWidget *> rows;
-    for (const auto &w : widgets)
-        if (w.node == "TABLE_LIST" && w.type == "choice")
-            rows.push_back(&w);
-    if (rows.size() != components.size())
-        return "table-pending:rows=" + std::to_string(rows.size()) + "/" + std::to_string(components.size());
-    const auto cell = [](const MobileWidget &row, int column) -> std::optional<int> {
-        for (const auto &c : row.cells)
-            if (c.column == column && !c.text.empty() && c.text.size() < 9 &&
-                c.text.find_first_not_of("0123456789") == std::string::npos)
-                return std::stoi(c.text);
-        return std::nullopt;
-    };
-    for (size_t i = 0; i < rows.size(); ++i)
-    {
-        const auto hero = cell(*rows[i], 0), pot = cell(*rows[i], 4);
-        if (!hero || !pot)
-            return "table-pending:cells#" + std::to_string(i + 1);
-        components[i].hero = *hero;
-        components[i].pot = *pot;
-    }
-    return {};
-}
-
-// Batches the hero's items and the pot allow together. rule copy: alchemy.c CheckAlchemy counts the pot only, and
-// the game has no value for what the hero carries besides; crafting itself is the game's (it fills the pot through
-// its own transactions and makes CheckAlchemy batches). To go when the engine can ask the game in the same frame.
-inline int AlchemyBatches(const std::vector<AlchemyComponent> &components)
-{
-    if (components.empty())
-        return 0;
-    int batches = INT_MAX;
-    bool any = false;
-    for (const auto &c : components)
-    {
-        const int have = c.hero + c.pot;
-        if (c.need <= 0)
-            return 0;
-        if (c.catalyst)
-        {
-            if (have < c.need)
-                return 0;
-            continue;
-        }
-        any = true;
-        batches = std::min(batches, have / c.need);
-    }
-    return any ? batches : 0;
-}
-
-// What the pot must change by, per component, for exactly `batches` batches: > 0 hero → pot.
-inline std::optional<std::vector<int>> AlchemyPotChanges(const std::vector<AlchemyComponent> &components, int batches)
-{
-    if (batches < 1 || batches > AlchemyBatches(components))
-        return std::nullopt;
-    std::vector<int> changes;
-    for (const auto &c : components)
-        changes.push_back((c.catalyst ? c.need : c.need * batches) - c.pot);
-    return changes;
-}
 
 inline void CollectAlchemy(const AlchemySource &source, std::vector<MobileWidget> &widgets)
 {
@@ -129,73 +41,17 @@ inline void CollectAlchemy(const AlchemySource &source, std::vector<MobileWidget
         ImageRef image;
         image.source = {"atlas", recipe.atlasGroup, recipe.atlasImage, {}, {}, -1};
         row.images.push_back(image);
-        row.context["group"] = recipe.group;
-        row.context["yield"] = std::to_string(recipe.yield);
         if (ready && !shown)
             row.actions.push_back("choose");
         widgets.push_back(std::move(row));
     }
-    size_t index = 0;
-    for (auto &w : widgets)
-        if (w.node == "TABLE_LIST" && w.type == "choice" && index < source.components.size())
-        {
-            const auto &c = source.components[index++];
-            w.context["itemId"] = c.itemId;
-            w.context["use"] = c.catalyst ? "catalyst" : "component";
-        }
-    MobileWidget marker{"ANDROID_ALCHEMY", "alchemy", "", "", -1, 99, false};
-    const int batches = AlchemyBatches(source.components);
-    marker.context["recipe"] = source.current;
-    for (const auto &recipe : source.recipes)
-        if (recipe.id == source.current)
-            marker.context["yield"] = std::to_string(recipe.yield);
-    marker.context["description"] = source.description;
-    marker.context["batches"] = std::to_string(batches);
-    marker.context["ready"] = ready ? "1" : "0";
-    if (!source.busy.empty())
-        marker.context["busy"] = source.busy;
-    if (ready && batches > 0)
-    {
-        marker.enabled = true;
-        marker.actions.push_back("craft");
-    }
-    std::string missing;
-    for (const auto &fact : source.missing)
-        missing += (missing.empty() ? "" : ",") + fact;
-    if (!missing.empty())
-        marker.unavailableReason = "alchemy:missing=" + missing;
-    widgets.push_back(std::move(marker));
 }
 
-// `<verb>@<revision>:<item>[=<N>]` of this screen opening; N absent → 0.
-struct AlchemyAction
+// `choose@<revision>:<item>` of this screen opening: the item, empty when the value is not that.
+inline std::string ParseAlchemyChoice(const std::string &value, uint64_t revision)
 {
-    std::string item;
-    int batches = 0;
-};
-inline std::optional<AlchemyAction> ParseAlchemyAction(const std::string &value, const char *verb, uint64_t revision,
-                                                       bool counted)
-{
-    const std::string prefix = std::string(verb) + "@" + std::to_string(revision) + ":";
-    if (value.rfind(prefix, 0) != 0)
-        return std::nullopt;
-    std::string rest = value.substr(prefix.size());
-    AlchemyAction action;
-    if (counted)
-    {
-        const size_t equals = rest.rfind('=');
-        if (equals == std::string::npos || equals == 0 || equals + 1 == rest.size())
-            return std::nullopt;
-        const std::string digits = rest.substr(equals + 1);
-        if (digits.size() > 4 || digits.find_first_not_of("0123456789") != std::string::npos)
-            return std::nullopt;
-        action.batches = std::stoi(digits);
-        rest.resize(equals);
-    }
-    if (rest.empty())
-        return std::nullopt;
-    action.item = rest;
-    return action;
+    const std::string prefix = "choose@" + std::to_string(revision) + ":";
+    return value.rfind(prefix, 0) == 0 ? value.substr(prefix.size()) : std::string();
 }
 
 } // namespace storm::mobile

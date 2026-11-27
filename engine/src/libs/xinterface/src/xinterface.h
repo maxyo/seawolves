@@ -384,14 +384,15 @@ class XINTERFACE : public XINTERFACE_BASE
     void MobileCollectTableGame(std::vector<MobileWidget> &widgets);
     void MobileCollectGoodsTransfer(std::vector<MobileWidget> &widgets);
     bool MobileApplyGoodsTransfer(const std::string &value);
-    storm::mobile::AlchemySource MobileAlchemySource(const std::vector<MobileWidget> &widgets);
+    storm::mobile::AlchemySource MobileAlchemySource();
     void MobileCollectAlchemy(std::vector<MobileWidget> &widgets);
-    bool MobileApplyAlchemy(const std::string &node,const std::string &value);
+    bool MobileApplyAlchemy(const std::string &value);
     void MobileCollectItemsBox(std::vector<MobileWidget> &widgets);
     bool MobileApplyItemsBoxTakeAll(const std::string &value);
     bool MobileApplyColonyLoot(const std::string &value);
     int32_t m_mobileAlchemyStrings=-1;
     std::string m_mobileAlchemyLanguage;
+    std::string m_mobileAlchemyMissing; // the last lack reported
 #endif
 
     // dynamic images data

@@ -1,0 +1,167 @@
+{
+ "$comment": "The alchemy screen's script on the recorded models of the alchemy window (engine/src/libs/ui/tests/models/alchemy*.json) and the fixture game's answers (what it counts, how long it takes, what it makes): the props its view gives the pack screen s-alchemy, the modals it binds and the calls its build and events make.",
+ "cases": [
+  {
+   "name": "nothing to make yet: the recipes, the shown one's components (none of the bullets), no batches; another recipe chosen, the shown one not again, its description, leaving",
+   "capability": "alchemy",
+   "game": {
+    "TestAlchemyBatches": 0,
+    "TestHero.items.bullet": 0
+   },
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 10,
+    "screenRevision": 11,
+    "screen": "alchemy",
+    "widgets": [
+     {"node": "STORECAPTION1", "type": "text", "label": "  Алхимия  ", "value": "1", "index": 0},
+     {"node": "EXIT_BTN", "type": "button", "label": "EXIT_BTN", "index": -1},
+     {"node": "LEFTSCROLLBUTTON", "type": "button", "label": "LEFTSCROLLBUTTON", "index": -1},
+     {"node": "RIGHTSCROLLBUTTON", "type": "button", "label": "RIGHTSCROLLBUTTON", "index": -1},
+     {"node": "TABLE_LIST", "type": "choice", "label": "0\tКомпонент\tСвинцовые пули\t1\t0", "value": "1", "index": 0, "actions": ["select", "activate"], "columnHeaders": ["Предметов", "Назначение", "Наименование предметов", "Необходимо", "Предметов"], "headerCells": [{"text": "Предметов"}, {"text": "Назначение"}, {"text": "Наименование предметов"}, {"text": "Необходимо"}, {"text": "Предметов"}], "cells": [{"text": "0"}, {"text": "Компонент"}, {"text": "Свинцовые пули", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm2"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_LIST", "type": "choice", "label": "28\tКомпонент\tГранулированный порох\t1\t0", "value": "0", "index": 1, "actions": ["select", "activate"], "cells": [{"text": "28"}, {"text": "Компонент"}, {"text": "Гранулированный порох", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm1"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_ADD_ALL_BUTTON", "type": "button", "label": "TABLE_ADD_ALL_BUTTON", "index": -1},
+     {"node": "TABLE_REMOVE_ALL_BUTTON", "type": "button", "label": "TABLE_REMOVE_ALL_BUTTON", "index": -1},
+     {"node": "GETALL_BUTTON", "type": "button", "label": "Результат", "index": -1, "enabled": false},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Бумажный патрон", "value": "1", "index": 0, "rowId": "cartridge", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm8"}}]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Лечебное зелье", "value": "0", "index": 1, "rowId": "potion1", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm3"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Ручная граната", "value": "0", "index": 2, "rowId": "grenade", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm9"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Противоядие", "value": "0", "index": 3, "rowId": "potion3", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm5"}}], "actions": ["choose"]}
+    ]
+   },
+   "props": {
+    "parts": {"cols": [{"icon": "chest", "label": "<alchemy.have>"}, {"icon": "potion", "label": "<alchemy.per_batch>"}], "label": "<alchemy.component>", "rows": [{"cells": [{"text": "<alchemy.none>", "tone": "danger"}, "1"], "id": "bullet", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm1"}, "meta": "", "name": "itmname_bullet (ItemsDescribe.txt)"}, {"cells": ["28", "1"], "id": "gunpowder", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm2"}, "meta": "", "name": "itmname_gunpowder (ItemsDescribe.txt)"}]},
+    "primary": {"busy": false, "disabled": true, "label": "<alchemy.craft>", "reason": "", "sub": ""},
+    "q": {"all": true, "allLabel": "<alchemy.max>", "disabled": true, "label": "<alchemy.batches>", "max": 1, "min": 0, "steps": [1, 10], "summary": "-", "value": 0},
+    "recipe": {"image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "info": true, "sub": "× 3 <alchemy.yield> · 101 <alchemy.minutes>", "title": "Бумажный патрон"},
+    "recipes": {"label": "<alchemy.recipe>", "rows": [{"cells": [], "disabled": false, "id": "cartridge", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "meta": "<alchemy.kind_ammo>", "name": "Бумажный патрон", "reason": "", "selected": true}, {"cells": [], "disabled": false, "id": "potion1", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm3"}, "meta": "", "name": "Лечебное зелье", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "grenade", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm9"}, "meta": "<alchemy.kind_ammo>", "name": "Ручная граната", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "potion3", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm5"}, "meta": "", "name": "Противоядие", "reason": "", "selected": false}]},
+    "title": "Алхимия"
+   },
+   "modals": [],
+   "events": [
+    [
+     "recipes",
+     "row",
+     "potion1"
+    ],
+    [
+     "recipes",
+     "row",
+     "cartridge"
+    ],
+    [
+     "info",
+     "",
+     ""
+    ],
+    [
+     "header-back",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send ANDROID_ALCHEMY_RECIPE#1 choose potion1",
+    "hold",
+    "read Бумажный патрон: itmdescr_cartridge (ItemsDescribe.txt)",
+    "back EXIT_BTN"
+   ]
+  },
+  {
+   "name": "bullets bought: one batch set, up to the game's 22; two set, their time the game's; made by the game, which then counts 20",
+   "capability": "alchemy",
+   "game": {
+    "TestAlchemyBatches": 22,
+    "TestHero.items.bullet": 22
+   },
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 10,
+    "screenRevision": 11,
+    "screen": "alchemy",
+    "widgets": [
+     {"node": "STORECAPTION1", "type": "text", "label": "  Алхимия  ", "value": "1", "index": 0},
+     {"node": "EXIT_BTN", "type": "button", "label": "EXIT_BTN", "index": -1},
+     {"node": "LEFTSCROLLBUTTON", "type": "button", "label": "LEFTSCROLLBUTTON", "index": -1},
+     {"node": "RIGHTSCROLLBUTTON", "type": "button", "label": "RIGHTSCROLLBUTTON", "index": -1},
+     {"node": "TABLE_LIST", "type": "choice", "label": "22\tКомпонент\tСвинцовые пули\t1\t0", "value": "1", "index": 0, "actions": ["select", "activate"], "columnHeaders": ["Предметов", "Назначение", "Наименование предметов", "Необходимо", "Предметов"], "headerCells": [{"text": "Предметов"}, {"text": "Назначение"}, {"text": "Наименование предметов"}, {"text": "Необходимо"}, {"text": "Предметов"}], "cells": [{"text": "22"}, {"text": "Компонент"}, {"text": "Свинцовые пули", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm2"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_LIST", "type": "choice", "label": "28\tКомпонент\tГранулированный порох\t1\t0", "value": "0", "index": 1, "actions": ["select", "activate"], "cells": [{"text": "28"}, {"text": "Компонент"}, {"text": "Гранулированный порох", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm1"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_ADD_ALL_BUTTON", "type": "button", "label": "TABLE_ADD_ALL_BUTTON", "index": -1},
+     {"node": "TABLE_REMOVE_ALL_BUTTON", "type": "button", "label": "TABLE_REMOVE_ALL_BUTTON", "index": -1},
+     {"node": "GETALL_BUTTON", "type": "button", "label": "Результат", "index": -1, "enabled": false},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Бумажный патрон", "value": "1", "index": 0, "rowId": "cartridge", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm8"}}]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Лечебное зелье", "value": "0", "index": 1, "rowId": "potion1", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm3"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Ручная граната", "value": "0", "index": 2, "rowId": "grenade", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm9"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Противоядие", "value": "0", "index": 3, "rowId": "potion3", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm5"}}], "actions": ["choose"]}
+    ]
+   },
+   "props": {
+    "parts": {"cols": [{"icon": "chest", "label": "<alchemy.have>"}, {"icon": "potion", "label": "<alchemy.per_batch>"}], "label": "<alchemy.component>", "rows": [{"cells": ["22", "1"], "id": "bullet", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm1"}, "meta": "", "name": "itmname_bullet (ItemsDescribe.txt)"}, {"cells": ["28", "1"], "id": "gunpowder", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm2"}, "meta": "", "name": "itmname_gunpowder (ItemsDescribe.txt)"}]},
+    "primary": {"busy": false, "disabled": false, "label": "<alchemy.craft>", "reason": "", "sub": "101 <alchemy.minutes>"},
+    "q": {"all": true, "allLabel": "<alchemy.max>", "disabled": false, "label": "<alchemy.batches>", "max": 22, "min": 0, "steps": [1, 10], "summary": "", "value": 1},
+    "recipe": {"image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "info": true, "sub": "× 3 <alchemy.yield> · 101 <alchemy.minutes>", "title": "Бумажный патрон"},
+    "recipes": {"label": "<alchemy.recipe>", "rows": [{"cells": [], "disabled": false, "id": "cartridge", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "meta": "<alchemy.kind_ammo>", "name": "Бумажный патрон", "reason": "", "selected": true}, {"cells": [], "disabled": false, "id": "potion1", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm3"}, "meta": "", "name": "Лечебное зелье", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "grenade", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm9"}, "meta": "<alchemy.kind_ammo>", "name": "Ручная граната", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "potion3", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm5"}, "meta": "", "name": "Противоядие", "reason": "", "selected": false}]},
+    "title": "Алхимия"
+   },
+   "modals": [],
+   "events": [
+    [
+     "batches",
+     "commit",
+     "2"
+    ],
+    [
+     "primary",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "rebuild",
+    "rebuild"
+   ]
+  },
+  {
+   "name": "after two were made the game counts 20 (its count is not set here: what the last case's making left)",
+   "capability": "alchemy",
+   "game": {
+    "TestHero.items.bullet": 20
+   },
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 10,
+    "screenRevision": 11,
+    "screen": "alchemy",
+    "widgets": [
+     {"node": "STORECAPTION1", "type": "text", "label": "  Алхимия  ", "value": "1", "index": 0},
+     {"node": "EXIT_BTN", "type": "button", "label": "EXIT_BTN", "index": -1},
+     {"node": "LEFTSCROLLBUTTON", "type": "button", "label": "LEFTSCROLLBUTTON", "index": -1},
+     {"node": "RIGHTSCROLLBUTTON", "type": "button", "label": "RIGHTSCROLLBUTTON", "index": -1},
+     {"node": "TABLE_LIST", "type": "choice", "label": "22\tКомпонент\tСвинцовые пули\t1\t0", "value": "1", "index": 0, "actions": ["select", "activate"], "columnHeaders": ["Предметов", "Назначение", "Наименование предметов", "Необходимо", "Предметов"], "headerCells": [{"text": "Предметов"}, {"text": "Назначение"}, {"text": "Наименование предметов"}, {"text": "Необходимо"}, {"text": "Предметов"}], "cells": [{"text": "22"}, {"text": "Компонент"}, {"text": "Свинцовые пули", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm2"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_LIST", "type": "choice", "label": "28\tКомпонент\tГранулированный порох\t1\t0", "value": "0", "index": 1, "actions": ["select", "activate"], "cells": [{"text": "28"}, {"text": "Компонент"}, {"text": "Гранулированный порох", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm1"}}]}, {"text": "1"}, {"text": "0"}]},
+     {"node": "TABLE_ADD_ALL_BUTTON", "type": "button", "label": "TABLE_ADD_ALL_BUTTON", "index": -1},
+     {"node": "TABLE_REMOVE_ALL_BUTTON", "type": "button", "label": "TABLE_REMOVE_ALL_BUTTON", "index": -1},
+     {"node": "GETALL_BUTTON", "type": "button", "label": "Результат", "index": -1, "enabled": false},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Бумажный патрон", "value": "1", "index": 0, "rowId": "cartridge", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm8"}}]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Лечебное зелье", "value": "0", "index": 1, "rowId": "potion1", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm3"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Ручная граната", "value": "0", "index": 2, "rowId": "grenade", "images": [{"source": {"kind": "atlas", "group": "ITEMS_18", "image": "itm9"}}], "actions": ["choose"]},
+     {"node": "ANDROID_ALCHEMY_RECIPE", "type": "choice", "label": "Противоядие", "value": "0", "index": 3, "rowId": "potion3", "images": [{"source": {"kind": "atlas", "group": "ITEMS_1", "image": "itm5"}}], "actions": ["choose"]}
+    ]
+   },
+   "props": {
+    "parts": {"cols": [{"icon": "chest", "label": "<alchemy.have>"}, {"icon": "potion", "label": "<alchemy.per_batch>"}], "label": "<alchemy.component>", "rows": [{"cells": ["20", "1"], "id": "bullet", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm1"}, "meta": "", "name": "itmname_bullet (ItemsDescribe.txt)"}, {"cells": ["28", "1"], "id": "gunpowder", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm2"}, "meta": "", "name": "itmname_gunpowder (ItemsDescribe.txt)"}]},
+    "primary": {"busy": false, "disabled": false, "label": "<alchemy.craft>", "reason": "", "sub": "101 <alchemy.minutes>"},
+    "q": {"all": true, "allLabel": "<alchemy.max>", "disabled": false, "label": "<alchemy.batches>", "max": 20, "min": 0, "steps": [1, 10], "summary": "", "value": 1},
+    "recipe": {"image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "info": true, "sub": "× 3 <alchemy.yield> · 101 <alchemy.minutes>", "title": "Бумажный патрон"},
+    "recipes": {"label": "<alchemy.recipe>", "rows": [{"cells": [], "disabled": false, "id": "cartridge", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm8"}, "meta": "<alchemy.kind_ammo>", "name": "Бумажный патрон", "reason": "", "selected": true}, {"cells": [], "disabled": false, "id": "potion1", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm3"}, "meta": "", "name": "Лечебное зелье", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "grenade", "image": {"kind": "item", "texture": "atlas:ITEMS_18/itm9"}, "meta": "<alchemy.kind_ammo>", "name": "Ручная граната", "reason": "", "selected": false}, {"cells": [], "disabled": false, "id": "potion3", "image": {"kind": "item", "texture": "atlas:ITEMS_1/itm5"}, "meta": "", "name": "Противоядие", "reason": "", "selected": false}]},
+    "title": "Алхимия"
+   },
+   "modals": [],
+   "events": [],
+   "calls": []
+  }
+ ]
+}
