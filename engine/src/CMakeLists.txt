@@ -13,7 +13,8 @@ if(STORM_SCENE_SWEEP)
 endif()
 option(STORM_VM_VERIFY "Script VM: check every fast path against its plain computation (tools/vm_verify; never for shipped builds)" OFF)
 
-add_compile_options(-std=c++20)
+# C sources (third-party audio decoders) must not get it.
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
 # Matrices, vertex data and D3D structures are viewed through differently
 # typed pointers throughout the engine (storm_glm.h accessors, vertex locks).
 add_compile_options(-fno-strict-aliasing)
