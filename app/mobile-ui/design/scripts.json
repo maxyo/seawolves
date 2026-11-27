@@ -84,8 +84,39 @@
       "file": "interface/touch/screens/trade/commerce.c",
       "uses": ["adapter:trade"],
       "screens": [
-        {"capability": "trade_chest", "component": "s-trade"}, {"capability": "trade_storage", "component": "s-trade"},
-        {"capability": "trade_store", "component": "s-trade"}
+        {
+          "capability": "trade_chest",
+          "component": "s-trade",
+          "look": {
+            "title": "trade.chest",
+            "small": true,
+            "quick": true,
+            "carryIcon": "weight",
+            "baseIcon": "chest",
+            "ownCaption": "",
+            "ownIcon": "",
+            "otherCaption": "",
+            "otherIcon": "",
+            "tabs": {"t1": "common.all", "t2": "trade.tab_mine", "t3": "trade.tab_here", "t4": "trade.tab_weapons"}
+          }
+        },
+        {
+          "capability": "trade_storage",
+          "component": "s-trade",
+          "look": {
+            "title": "trade.storage", "small": false, "quick": true, "carryIcon": "capacity", "baseIcon": "chest",
+            "ownCaption": "trade.in_hold", "ownIcon": "capacity", "otherCaption": "", "otherIcon": ""
+          }
+        },
+        {
+          "capability": "trade_store",
+          "component": "s-trade",
+          "look": {
+            "title": "trade.store", "small": false, "quick": false, "carryIcon": "capacity", "baseIcon": "store",
+            "ownCaption": "trade.in_hold", "ownIcon": "capacity", "otherCaption": "trade.in_store",
+            "otherIcon": "store"
+          }
+        }
       ]
     }
   ]

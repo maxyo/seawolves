@@ -14,59 +14,6 @@ object TouchCommerce;
 object TouchCommerce_View;
 aref TouchCommerce_Ui; // the screen's object of the build or tap running now
 
-// The trade windows' own presentation: our title, single items (steps of 1 and 10), the hand at a row's end that
-// takes a whole stack, our short captions of the game's category tabs by position, our captions of the two amount
-// columns (string keys, "" the game's) with their icons, and the icon of what we carry.
-void TouchCommerce_Layout(string capability, aref out)
-{
-	out.ownCaption = "";
-	out.otherCaption = "";
-	out.ownIcon = "";
-	out.otherIcon = "";
-	out.carryIcon = "capacity";
-	out.small = false;
-	out.quick = false;
-	if (capability == TOUCH_CAP_TRADE_CHEST)
-	{
-		out.title = "trade.chest";
-		out.small = true;
-		out.quick = true;
-		out.tabs.t1 = "common.all";
-		out.tabs.t2 = "trade.tab_mine";
-		out.tabs.t3 = "trade.tab_here";
-		out.tabs.t4 = "trade.tab_weapons";
-		out.carryIcon = "weight";
-		out.baseIcon = "chest";
-		return;
-	}
-	if (capability == TOUCH_CAP_TRADE_STORAGE)
-	{
-		out.title = "trade.storage";
-		out.quick = true;
-		out.ownCaption = "trade.in_hold";
-		out.ownIcon = "capacity";
-		out.baseIcon = "chest";
-		return;
-	}
-	if (capability == TOUCH_CAP_TRADE_STORE)
-	{
-		out.title = "trade.store";
-		out.ownCaption = "trade.in_hold";
-		out.ownIcon = "capacity";
-		out.otherCaption = "trade.in_store";
-		out.otherIcon = "store";
-		out.baseIcon = "store";
-		return;
-	}
-	UiError("trade: no layout for " + capability);
-}
-
-bool TouchCommerce_Is(string capability)
-{
-	return capability == TOUCH_CAP_TRADE_CHEST || capability == TOUCH_CAP_TRADE_STORAGE ||
-	       capability == TOUCH_CAP_TRADE_STORE;
-}
-
 void TouchCommerce_Reset(string capability)
 {
 	DeleteAttribute(&TouchCommerce, "");
@@ -935,11 +882,11 @@ void TouchCommerce_Build()
 	makearef(game, TouchCommerce.game);
 	TouchAdpTrade_State(ui, game);
 	TouchCommerce.revision = UiRevision();
-	object layout;
-	TouchCommerce_Layout(capability, &layout);
+	aref layout; // the screen entry's look: title, small, quick, tabs, captions and icons
+	makearef(layout, ui.look);
 	bool holding = TouchCommerce_Follow(game);
 	object captions;
-	TouchCommerce_Captions(game, &layout, &captions);
+	TouchCommerce_Captions(game, layout, &captions);
 	aref deal;
 	makearef(deal, TouchCommerce.deal);
 	DeleteAttribute(deal, "");
@@ -958,12 +905,12 @@ void TouchCommerce_Build()
 	if (view.title == "") view.title = UiText(layout.title);
 	makearef(list, view.list);
 	makearef(quantity, view.deal);
-	if (TouchCommerce_Rows(game, &layout, deal, &captions, list, quantity) == 0) list.rows = "";
-	TouchCommerce_BindList(game, &layout, deal);
+	if (TouchCommerce_Rows(game, layout, deal, &captions, list, quantity) == 0) list.rows = "";
+	TouchCommerce_BindList(game, layout, deal);
 	TouchCommerce_Subject(game, view);
-	TouchCommerce_Stats(game, &layout, deal, view);
-	TouchCommerce_Columns(game, &layout, &captions, list);
-	TouchCommerce_Filters(game, &layout, &captions, list);
+	TouchCommerce_Stats(game, layout, deal, view);
+	TouchCommerce_Columns(game, layout, &captions, list);
+	TouchCommerce_Filters(game, layout, &captions, list);
 	TouchCommerce_Info(game, view);
 	TouchCommerce_Primary(game, deal, view);
 	UiOn("header-back", "");

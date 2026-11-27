@@ -355,14 +355,15 @@ std::unique_ptr<storm::ui::ComponentSpec> PackScreen(const char *folder)
         Json::parse(ReadText(Environment("STORM_MOBILE_UI") + "/design/screens/" + folder + "/spec.json")));
 }
 
-// How many screens the pack's list declares: on the fixture game every one of them attaches.
-size_t PackScreens()
+// The capabilities of the screens the pack's list declares, in its order: on the fixture game every one attaches.
+std::vector<std::string> PackCapabilities()
 {
-    size_t screens = 0;
+    std::vector<std::string> capabilities;
     const Json list = Json::parse(PackList());
     for (const Json &segment : list.at("segments"))
-        screens += segment.value("screens", Json::array()).size();
-    return screens;
+        for (const Json &screen : segment.value("screens", Json::array()))
+            capabilities.push_back(screen.at("capability"));
+    return capabilities;
 }
 
 const storm::ui::ScriptScreen &Screen(const Vm &vm, const std::string &capability)
@@ -426,7 +427,10 @@ TEST_CASE("the pack's segments are attached after Main, each on its own")
     // The game's adapters need the game's scripts, which this program does not have: left out, loudly, the rest kept.
     CHECK_FALSE(vm.Loaded("interface/android_ui_bootstrap.c"));
     CHECK(log.Has("UI script interface/android_ui_bootstrap.c is off: does not compile"));
-    CHECK(log.Has("capabilities offered: rest, trade_chest, trade_storage, trade_store; missing: none"));
+    std::string offered;
+    for (const std::string &capability : PackCapabilities())
+        offered += (offered.empty() ? "" : ", ") + capability;
+    CHECK(log.Has("capabilities offered: " + offered + "; missing: none"));
 }
 
 TEST_CASE("a segment that fails is left out with its screens; the core stops the start")
@@ -601,7 +605,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     REQUIRE(loaded.compiler.LoadState(raw, state));
     CHECK(loaded.Integer("GameValue") == 7);
     CHECK(loaded.Loaded("interface/touch/screens/rest.c")); // attached again after OnLoad
-    CHECK(loaded.screens.size() == PackScreens());
+    CHECK(loaded.screens.size() == PackCapabilities().size());
     CHECK_FALSE(log.Has("'UiScreens' is not declared"));
     CHECK_FALSE(log.Has("'TouchRest' is not declared"));
 }
@@ -616,7 +620,7 @@ TEST_CASE("a program replaced releases the attached screens and attaches them ag
     REQUIRE(storm::save::parseState(raw.data(), raw.size(), state, error));
     REQUIRE(vm.compiler.LoadState(raw, state));
     CHECK(vm.released >= 1);
-    CHECK(vm.screens.size() == PackScreens());
+    CHECK(vm.screens.size() == PackCapabilities().size());
     CHECK(vm.attacher.Running() == &vm.compiler);
 }
 
