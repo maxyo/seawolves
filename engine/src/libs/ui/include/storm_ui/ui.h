@@ -26,6 +26,8 @@ class FileSource
 std::unique_ptr<FileSource> DirectoryFiles(std::string root);
 
 struct InterfaceModel; // interface_model.h
+struct ScriptScreen;   // script_screens.h
+class ScriptPort;
 
 // The one path out of the UI. For a game interface: the widget (`node`, `index`) of the
 // open `screen`, the verb the player chose and its value. For a document loaded with
@@ -277,6 +279,9 @@ class Host
     // it cannot admit closes the interface as a defect), the generic layout for an id with no
     // ported screen. Call again for every model revision.
     virtual void SetInterface(const InterfaceModel &model) = 0;
+    // The screens the attached scripts provide, run through `port` (script_screens.h); they replace a ported screen
+    // of the same interface. A screen whose pack component is missing is an error line and is left out.
+    virtual void SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port) = 0;
     virtual void CloseInterface() = 0;
     // The game opens an interface whose model is still to come (it can take seconds: the
     // interface loads first). From now the UI covers the game: WantsTouch is true everywhere

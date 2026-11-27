@@ -681,6 +681,21 @@ void Router::Answer(uint64_t request, bool applied, const std::string &reason)
                 mark.answered = true;
 }
 
+void Router::SetScriptScreens(ScriptScreens screens)
+{
+    const auto scripted = [this](const ScriptScreens &list) {
+        return std::ranges::any_of(list, [this](const auto &entry) { return entry.first == model_.screen; });
+    };
+    // The open interface's screen comes from another implementation now (the script program was replaced).
+    const bool open = !model_.screen.empty() && (scripted(script_screens_) || scripted(screens));
+    script_screens_ = std::move(screens);
+    if (!open)
+        return;
+    screen_.reset();
+    using_.clear();
+    Build();
+}
+
 void Router::SetInterface(const InterfaceModel &model)
 {
     const bool reopened =
@@ -809,10 +824,14 @@ void Router::BuildView()
     // cannot draw the interface: that is a defect, reported, and the interface closes like
     // one whose screen threw (CloseOnDefect). Only an interface with no ported screen at all
     // is the generic layout's.
-    const ScreenEntry *ported = nullptr;
+    std::string ported;
+    std::function<std::unique_ptr<Screen>()> create;
+    for (const auto &[id, make] : script_screens_)
+        if (model_.screen == id)
+            ported = id, create = make;
     for (const ScreenEntry &entry : screens_)
-        if (model_.screen == entry.id)
-            ported = &entry;
+        if (!create && model_.screen == entry.id)
+            ported = entry.id, create = entry.create;
     // The model's distinct nodes, "a,b,c": the key of the log-once lines below, built only for them.
     const auto nodes = [this] {
         std::string list;
@@ -823,12 +842,12 @@ void Router::BuildView()
         return list;
     };
     Admission admitted;
-    if (ported)
+    if (create)
     {
-        if (using_ != ported->id || !screen_)
+        if (using_ != ported || !screen_)
         {
-            screen_ = ported->create();
-            using_ = ported->id;
+            screen_ = create();
+            using_ = ported;
         }
         admitted = Admit(model_, screen_->Nodes());
         if (!admitted.accepted)
@@ -853,7 +872,7 @@ void Router::BuildView()
     }
     settle_until_ = 0.0;
     rejection_.clear();
-    if (!ported)
+    if (!create)
     {
         if (using_ != "generic" || !screen_)
         {

@@ -336,6 +336,9 @@ class Router
     ~Router();
 
     void SetInterface(const InterfaceModel &model);
+    // Screens of scripts by interface id, preferred to the ported ones; a model open now is built again.
+    using ScriptScreens = std::vector<std::pair<std::string, std::function<std::unique_ptr<Screen>()>>>;
+    void SetScriptScreens(ScriptScreens screens);
     void CloseInterface();
     // The game closed its interface `screen`: it goes, unless a state channel's screen replaced
     // it (a dialogue the closing interface's script started); a channel screen it covered comes back.
@@ -478,6 +481,7 @@ class Router
 
     Surface &surface_;
     std::span<const ScreenEntry> screens_;
+    ScriptScreens script_screens_;
     std::unique_ptr<Screen> (*generic_)();
     hud::Hud *hud_ = nullptr;
     InterfaceModel model_;

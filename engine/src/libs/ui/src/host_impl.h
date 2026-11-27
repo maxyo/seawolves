@@ -154,6 +154,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
 
     void Answer(uint64_t request, bool applied, const std::string &reason) override;
     void SetInterface(const InterfaceModel &model) override;
+    void SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port) override;
     void CloseInterface() override;
     void ExpectInterface() override;
     bool SetState(const std::string &channel, const std::string &json) override;

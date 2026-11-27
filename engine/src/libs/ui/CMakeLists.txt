@@ -140,6 +140,9 @@ add_library(storm_ui STATIC
     src/screens/maps.cpp
     src/screens/reading.cpp
     src/screens/rest.cpp
+    src/screens/script_screen.cpp
+    src/screens/script_props.cpp
+    src/component_spec.cpp
     src/screens/hero_tradebook.cpp
     src/screens/launcher.cpp
     src/hud/abilities.cpp
@@ -256,6 +259,7 @@ elseif(NOT CMAKE_CROSSCOMPILING)
     storm_ui_check(modals modals_check.cpp "${models}" "${pack}" "${font}")
     storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}")
     storm_ui_check(routing routing_check.cpp "${states}" "${pack}")
+    storm_ui_check(script_screen script_screen_check.cpp)
     # A new picture is shown whole or not yet (RenderBackend::FrameHeld), through the bgfx backend: six
     # panels with a box shadow each appear, with too few views to make their textures beside the frame.
     if(STORM_UI_RENDER_BACKEND)

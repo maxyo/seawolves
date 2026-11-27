@@ -7,6 +7,12 @@ into the props of a pack screen (`<s-…>`, the application's
 `mobile-ui/design/screens/<name>/`) and component events back into engine actions.
 Interfaces without a ported screen (`kPorted` in `registry.cpp`) get the generic layout (`generic.cpp`).
 
+A *script screen* (`script_screen.h`) is the same thing written in the game's script language by the touch
+interface's scripts (`Host::SetScriptScreens`, preferred to a ported screen of the same interface): the router admits
+its nodes as for any screen, its script builds the view through the engine's VM side (`storm_ui/script_screens.h`,
+engine `src/libs/ui_host/README.md`) and binds the events it answers; `script_props.h` converts the view to the pack
+screen's props by their types and, for a `json` prop, by its `shape` in the spec.
+
 ```text
 engine ──InterfaceModel──▶ Router ──admission──▶ ported Screen ─┐
                                    └─(unknown id)─▶ generic layout ─┤─▶ props ─▶ <s-…> in the pack

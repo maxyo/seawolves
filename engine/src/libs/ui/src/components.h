@@ -2,6 +2,7 @@
 // components.json (props, template, behaviours).
 #pragma once
 
+#include "component_spec.h"
 #include "template.h"
 
 #include "storm_ui/ui.h"
@@ -19,39 +20,6 @@ namespace storm::ui
 class ComponentElement;
 struct RmlNode; // components.cpp: a template render as a light tree
 
-struct PropSpec
-{
-    enum class Type
-    {
-        Text,
-        Bool,
-        Int,
-        Number,
-        Enum,
-        Json
-    };
-    std::string name;      // camelCase, as in components.json
-    std::string attribute; // kebab-case RML attribute
-    Type type = Type::Text;
-    Json fallback;
-    bool as_class = false;     // bool → "name", enum → "name-value" on the root element
-    std::vector<Json> options; // enum values
-};
-
-struct ComponentSpec
-{
-    std::string tag;
-    std::vector<PropSpec> props;
-    std::string body; // template
-    std::vector<std::string> behaviors;
-    Json constants; // sizes and other numbers of the component ("spec" in templates)
-    // Root classes computed from props: class name -> template expression.
-    std::vector<std::pair<std::string, std::string>> class_rules;
-    const PropSpec *FindAttribute(const std::string &attribute) const;
-};
-
-// One entry of components.json.
-std::unique_ptr<ComponentSpec> ParseComponentSpec(const Json &entry);
 // Attributes every component accepts besides its props: id, class, style, props, slot, data-*.
 bool IsGenericAttribute(const std::string &attribute);
 // Empty when `value` is acceptable for the prop, else what is wrong (enum value not listed).

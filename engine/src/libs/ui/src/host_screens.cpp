@@ -1,6 +1,7 @@
 // What the game hands the host (interface models, state channels, the dialogue, a full-screen video, the back
 // key) and the screens' surface (Show, Hide, Send, text requests, refusals).
 #include "host_impl.h"
+#include "screens/script_screen.h"
 
 namespace storm::ui
 {
@@ -10,6 +11,25 @@ void HostImpl::Answer(uint64_t request, bool applied, const std::string &reason)
     const auto started = std::chrono::steady_clock::now();
     router_->Answer(request, applied, reason);
     counters_.apply_ms += Milliseconds(started, std::chrono::steady_clock::now());
+}
+
+void HostImpl::SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port)
+{
+    screens::Router::ScriptScreens entries;
+    for (const ScriptScreen &screen : screens)
+    {
+        const ComponentSpec *component = registry_->Find(screen.component);
+        if (!component)
+        {
+            Error("script screen " + screen.capability + ": the pack has no component " + screen.component +
+                  "; interface " + screen.interface + " is not drawn by it");
+            continue;
+        }
+        entries.emplace_back(screen.interface, [screen, component, port] {
+            return screens::CreateScriptScreen(screen, *component, *port);
+        });
+    }
+    router_->SetScriptScreens(std::move(entries));
 }
 
 void HostImpl::SetInterface(const InterfaceModel &model)
