@@ -444,6 +444,7 @@ storm_host_check(node_events INCLUDES ${src}/libs/xinterface/src OPTIONS ${warni
 storm_host_check(rich_text SOURCES check.cpp ${src}/libs/xinterface/src/rich_text.cpp
     INCLUDES ${src}/libs/xinterface/src ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(tooltip_layout INCLUDES ${src}/libs/xinterface/src OPTIONS ${warnings} ${asan} CATCH2)
+storm_host_check(picture_fan INCLUDES ${src}/libs/xinterface/src/nodes OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(user_string_files INCLUDES ${util_include} ${src}/libs/xinterface/src/string_service
     OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(common_strings INCLUDES ${util_include} ${src}/libs/xinterface/src/string_service

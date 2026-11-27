@@ -1,5 +1,7 @@
 #pragma once
 
+#include "picture_fan.hpp"
+
 #include "../inode.h"
 
 class INIFILE;
@@ -56,6 +58,10 @@ class CXI_PICTURE : public CINODE
     int32_t m_idTex;
     CVideoTexture *m_pTex;
     XI_ONETEX_VERTEX m_v[4];
+
+    void DrawFan();
+    bool m_bFan = false; // FanPrimitive: drawn as an arc of a circle (picture_fan.hpp)
+    float m_fFanStep = 0.f, m_fFanStart = 0.f, m_fFanEnd = storm::xi::kFullTurn;
 
     bool m_bMakeBlind;
     float m_fCurBlindTime;

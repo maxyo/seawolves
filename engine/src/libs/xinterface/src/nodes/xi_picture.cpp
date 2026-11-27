@@ -63,7 +63,10 @@ void CXI_PICTURE::Draw(bool bSelected, uint32_t Delta_Time)
                 m_rs->TextureSet(0, m_idTex);
             else
                 m_rs->TextureSet(0, m_pTex ? m_pTex->m_texture : -1);
-            m_rs->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, XI_ONETEX_FVF, 2, m_v, sizeof(XI_ONETEX_VERTEX), "iVideo");
+            if (m_bFan)
+                DrawFan();
+            else
+                m_rs->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, XI_ONETEX_FVF, 2, m_v, sizeof(XI_ONETEX_VERTEX), "iVideo");
         }
     }
 }
@@ -129,6 +132,10 @@ void CXI_PICTURE::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const
         m_v[i].pos.z = 1.f;
     }
 
+    m_bFan = GetIniBool(ini1, name1, ini2, name2, "FanPrimitive", false);
+    if (m_bFan)
+        m_fFanStep = storm::xi::FanStep(GetIniFloat(ini1, name1, ini2, name2, "FanAngleStep", 3.f));
+
     m_bMakeBlind = GetIniBool(ini1, name1, ini2, name2, "blind", false);
     m_fCurBlindTime = 0.f;
     m_bBlindUp = true;
@@ -160,6 +167,20 @@ bool CXI_PICTURE::IsClick(int buttonID, int32_t xPos, int32_t yPos)
             return true;
     }
     return false;
+}
+
+void CXI_PICTURE::DrawFan()
+{
+    const auto fan = storm::xi::FanVertices(m_v[0].pos.x, m_v[0].pos.y, m_v[3].pos.x, m_v[3].pos.y, m_v[0].tu, m_v[0].tv,
+                                            m_v[3].tu, m_v[3].tv, m_fFanStart, m_fFanEnd, m_fFanStep);
+    if (fan.empty())
+        return;
+    std::vector<XI_ONETEX_VERTEX> vertices;
+    vertices.reserve(fan.size());
+    for (const auto &v : fan)
+        vertices.push_back({{v.x, v.y, 1.f}, m_v[0].color, v.u, v.v});
+    m_rs->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, XI_ONETEX_FVF, static_cast<uint32_t>(vertices.size() - 2), vertices.data(),
+                          sizeof(XI_ONETEX_VERTEX), "iVideo");
 }
 
 void CXI_PICTURE::ChangePosition(XYRECT &rNewPos)
@@ -339,6 +360,13 @@ uint32_t CXI_PICTURE::MessageProc(int32_t msgcode, MESSAGE &message)
             pTex = message.Long();
         }
         SetNewPictureByPointer(pTex);
+    }
+    break;
+
+    case 9: // the fan's arc: start and end angle
+    {
+        m_fFanStart = message.Float();
+        m_fFanEnd = storm::xi::FanEnd(m_fFanStart, message.Float());
     }
     break;
 
