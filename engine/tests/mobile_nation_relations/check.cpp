@@ -130,13 +130,12 @@ struct Interface
     {
         current = node;
     }
-    std::string MobileNationScore(const std::string &nation) const
+    std::optional<storm::mobile::NationStanding> MobileNationStanding(const std::string &nation) const
     {
-        return nation == "Spa" ? "-40" : "5";
-    }
-    std::string MobileNationFlags() const
-    {
-        return "England=0,France=1,Spain=1,Holland=0,Pirate=1";
+        if (nation == "Hol")
+            return std::nullopt; // the adapter did not answer for it
+        return nation == "Spa" ? storm::mobile::NationStanding{"-40", "hostile"}
+                               : storm::mobile::NationStanding{"5", ""};
     }
     void MobileNationPickFailed(const std::string &)
     {
@@ -325,21 +324,28 @@ TEST_CASE("a matrix that does not pair up is refused with a reason and adds noth
     CHECK(CollectNationMatrix(bad, out));
 }
 
-TEST_CASE("the screen is complete only with every reputation caption; reputations carry their score")
+TEST_CASE("the screen is complete only with every reputation caption; reputations carry the game's standing")
 {
     Screen s;
     CHECK(s.control("ANDROID_NATION_RELATIONS").value == "1");
     CHECK(s.control("ANDROID_NATION_RELATIONS").label == "titul");
-    int scored = 0, reputations = 0;
+    int scored = 0, hostile = 0, reputations = 0, unanswered = 0;
     for (auto &w : s.widgets())
         if (w.type == "nation_reputation")
         {
             ++reputations;
-            scored += w.context.at("score") == "-40";
+            unanswered += !w.context.count("score");
+            if (w.context.count("score"))
+            {
+                scored += w.context.at("score") == "-40";
+                hostile += w.context.at("tone") == "hostile";
+            }
         }
     CHECK(reputations == 4);
     CHECK(scored == 1);
-    CHECK(s.control("FlagPic").context.at("flags") == "England=0,France=1,Spain=1,Holland=0,Pirate=1");
+    CHECK(hostile == 1);
+    CHECK(unanswered == 1);
+    CHECK(!s.control("FlagPic").context.count("flags"));
     CHECK(s.control("FlagPic").label == "France");
 
     s.texts->SetAttribute("EngH", "");
@@ -442,15 +448,28 @@ TEST_CASE("a flag pick presses › until the candidate is the flag, at most once
     CHECK(s.xi.pickFailed == 0);
 
     pick = s.control("RIGHTCHANGE_NATION").actions.back();
-    // The candidate never reaches Spain: eight presses, then the failure is reported.
+    // A press that does not move the candidate: back at the start at once, the failure is reported.
     CHECK(s.apply("RIGHTCHANGE_NATION", pick + "=Spain").state == ActionOutcome::Refused);
-    CHECK(right.fired == 8);
+    CHECK(right.fired == 1);
     CHECK(s.xi.pickFailed == 1);
     CHECK(s.apply("RIGHTCHANGE_NATION", pick + "=Spain").state == ActionOutcome::Refused); // used up
-    CHECK(right.fired == 8);
+    CHECK(right.fired == 1);
+
+    // The game cycles over the flags it allows (SetNewNation): Spain is not one, so the round ends where it began.
+    auto &candidate = s.named("FlagPic").model[0].images[0].source.image;
+    right.pressed = [&] {
+        static const std::vector<std::string> allowed = {"France", "England", "Holland", "Pirate"};
+        const auto at = std::find(allowed.begin(), allowed.end(), candidate);
+        candidate = allowed[(at - allowed.begin() + 1) % allowed.size()];
+    };
+    right.fired = 0;
+    pick = s.control("RIGHTCHANGE_NATION").actions.back();
+    CHECK(s.apply("RIGHTCHANGE_NATION", pick + "=Spain").state == ActionOutcome::Refused);
+    CHECK(right.fired == 4);
+    CHECK(candidate == "France");
+    CHECK(s.xi.pickFailed == 2);
 
     // Each press shows the next nation, as the script does.
-    auto &candidate = s.named("FlagPic").model[0].images[0].source.image;
     right.pressed = [&] {
         static const std::vector<std::string> order = {"France", "England", "Spain", "Holland", "Pirate"};
         const auto at = std::find(order.begin(), order.end(), candidate);
@@ -464,5 +483,5 @@ TEST_CASE("a flag pick presses › until the candidate is the flag, at most once
     CHECK(right.firstPress == std::vector<bool>{true, false}); // the presses are one gesture
     CHECK(candidate == "Spain");
     CHECK(s.xi.current == &right);
-    CHECK(s.xi.pickFailed == 1);
+    CHECK(s.xi.pickFailed == 2);
 }

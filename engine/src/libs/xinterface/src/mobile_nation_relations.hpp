@@ -9,12 +9,21 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace storm::mobile
 {
+// The hero's standing with a nation as the game keeps it (interface adapter android_nations.c): the number behind the
+// reputation word and that word's tone ("" neutral, "hostile", "good").
+struct NationStanding
+{
+    std::string score, tone;
+};
+
 // Source-only dynamic CreateImage records. Positions associate an actual relation
 // with its actual labelled axes; they never identify a country or relation value.
 struct NationImage
@@ -183,11 +192,11 @@ template <class Interface> void CollectNations(Interface &xi, uint64_t opening, 
         MobileWidget row{"ANDROID_NATION_REPUTATION", "nation_reputation", text(r.caption), w->label, -1, 0, false};
         row.rowId = p->image.source.image;
         row.images.push_back(p->image);
-        // The number behind the word (RPGUtilite.c ChangeCharacterNationReputation): the hero's
-        // reputation.<nation>hunter negated, -5 when unset, so -100 … 100; ≤ -10 is a bounty.
-        const std::string score = xi.MobileNationScore(r.image);
-        if (!score.empty())
-            row.context["score"] = score;
+        if (const auto standing = xi.MobileNationStanding(r.image))
+        {
+            row.context["score"] = standing->score;
+            row.context["tone"] = standing->tone;
+        }
         widgets.push_back(std::move(row));
     }
     bool candidateSeen = false;
@@ -202,8 +211,6 @@ template <class Interface> void CollectNations(Interface &xi, uint64_t opening, 
                 continue;
             }
             w.label = caption(w.images.front().source.image.c_str());
-            if (w.type == "image")
-                w.context["flags"] = xi.MobileNationFlags();
             if (w.label.empty())
             {
                 complete = false;
@@ -304,8 +311,9 @@ ActionOutcome ApplyNationAction(Interface &xi, Node *node, const Action &action)
     ++xi.m_mobileNationGeneration; // Consume this frame capability before callbacks or delayed native events.
     if (pick != std::string::npos)
     {
-        // The script cycles the candidate one nation per press (NationRelation.c SetNewNation):
-        // press › until the candidate is the tapped flag, within one frame, at most once round.
+        // The script cycles the candidate one nation per press over the flags it allows (NationRelation.c
+        // SetNewNation): press › until the candidate is the tapped flag, within one frame; back at the start the
+        // game does not offer that flag, and the candidate is the one it was.
         const auto candidate = [&xi] {
             std::vector<MobileWidget> now;
             xi.MobileCollectWidgets(now);
@@ -315,8 +323,9 @@ ActionOutcome ApplyNationAction(Interface &xi, Node *node, const Action &action)
             return std::string();
         };
         const int code = node->CheckCommandUsed(ACTION_MOUSECLICK) ? ACTION_MOUSECLICK : ACTION_ACTIVATE;
+        const std::string start = candidate();
         for (int step = 0; step < 8 && !target.empty() && !storm::iEquals(candidate(), target) && node->m_bUse &&
-                           node->CheckCommandUsed(code);
+                           node->CheckCommandUsed(code) && (step == 0 || !storm::iEquals(candidate(), start));
              ++step)
         {
             xi.SetCurNode(node);

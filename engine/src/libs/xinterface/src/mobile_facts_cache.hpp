@@ -23,7 +23,7 @@ namespace storm::mobile
 //   the interface's own "frame" handler, a node writing GameInterface.<node>.current). Trees the
 //   adapter does not read (the weather, rewritten every frame) do not count.
 // The adapter's own writes (GameInterface.AndroidFacts) are not counted (ScriptStateReads).
-// The nations screen's AndroidNationFlags is cached the same way (MobileNationFlags).
+// The nations screen's AndroidNationFacts is cached the same way (MobileNationStanding).
 template <typename Facts> class FactsCache
 {
   public:

@@ -2737,8 +2737,8 @@ static void Nations(const std::string &models)
     Expect(view["flag"]["label"] == "France" && view["apply"]["disabled"] == true && view["flagsDisabled"] == false &&
                view["flags"].size() == 5 && view["flags"][1]["selected"] == true &&
                view["flags"][1]["id"] == "France" && view["flags"][4]["icon"] == "nation-pirates" &&
-               view["flags"][4]["disabled"] == false && view["flags"][2]["disabled"] == true,
-           "five flags to pick, the candidate selected, «change flag» not offered");
+               view["flags"][4]["disabled"] == false && view["flags"][2]["disabled"] == false,
+           "five flags to pick (the game says which it allows), the candidate selected, «change flag» not offered");
     Expect(view["reputation"][1]["bar"] == 67 && view["reputation"][1]["tone"] == "ok" &&
                view["reputation"][2]["bar"] == 30 && view["reputation"][2]["tone"] == "danger" &&
                view["reputation"][0]["tone"] == "",
@@ -2761,12 +2761,22 @@ static void Nations(const std::string &models)
         for (std::string &action : widget.actions)
             if (action.rfind("nation@6:2:", 0) == 0)
                 action.replace(0, 11, "nation@6:3:");
-    router.SetInterface(next);
-    router.OnEvent({"flags", "pick", "Spain"});
-    Expect(surface.commands.size() == 1, "a flag the hero may not raise is not picked");
+    router.SetInterface(next); // the candidate is still France: the game did not reach the pirate flag
+    Expect(surface.props["flags"][4]["disabled"] == true && surface.props["flags"][2]["disabled"] == false,
+           "a flag the game did not reach is off for this opening");
     router.OnEvent({"flags", "pick", "Pirate"});
-    ExpectEqual(surface.Last(), "widget:nationrelation\tRIGHTCHANGE_NATION\t-1\tnation@6:3:pick=Pirate",
+    Expect(surface.commands.size() == 1, "and is not asked again");
+    router.OnEvent({"flags", "pick", "Spain"});
+    ExpectEqual(surface.Last(), "widget:nationrelation\tRIGHTCHANGE_NATION\t-1\tnation@6:3:pick=Spain",
                 "the next pick in the next revision");
+    next.revision += 1;
+    InterfaceModel reached = next;
+    for (Widget &widget : reached.widgets)
+        if (widget.node == "FlagPic" && widget.type == "image")
+            widget.images[0].image = "Spain";
+    router.SetInterface(reached);
+    Expect(surface.props["flags"][2]["selected"] == true && surface.props["flags"][2]["disabled"] == false,
+           "a flag the game reached is the candidate");
     next.revision += 1;
     router.SetInterface(next);
     router.OnEvent({"help-flag", "click", ""});

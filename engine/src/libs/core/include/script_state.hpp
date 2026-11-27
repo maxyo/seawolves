@@ -5,7 +5,7 @@
 namespace storm
 {
 // A count of the changes to the script state the native caches of the application's interface
-// adapters depend on (xinterface MobileCollectFacts, MobileNationFlags: values computed by
+// adapters depend on (xinterface MobileCollectFacts, MobileNationStanding: values computed by
 // scripts from attributes).
 //
 // Counted: every script segment loaded or unloaded (compiler.cpp), and every attribute write

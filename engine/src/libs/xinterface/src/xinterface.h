@@ -377,9 +377,8 @@ class XINTERFACE : public XINTERFACE_BASE
     } mobileModelStats_; // of the opening, logged at the next one
     std::string mobileModelScreen_; // of that opening
     void MobileKeepSaveProfile();
-    std::string MobileNationScore(const std::string &nation) const;
+    std::optional<storm::mobile::NationStanding> MobileNationStanding(const std::string &nation) const;
     void MobileNationPickFailed(const std::string &target) const;
-    std::string MobileNationFlags() const;
     void MobileCollectHero(std::vector<MobileWidget> &widgets);
     void MobileCollectFacts(std::vector<MobileWidget> &widgets);
     storm::mobile::InterfaceLeaving mobileLeaving_;
@@ -390,7 +389,8 @@ class XINTERFACE : public XINTERFACE_BASE
         bool left = false; // mobileLeft_ as of the collection
     };
     storm::mobile::FactsCache<MobileFacts> mobileFacts_;
-    mutable storm::mobile::FactsCache<std::string> mobileNationFlags_; // MobileNationFlags
+    mutable storm::mobile::FactsCache<std::map<std::string, storm::mobile::NationStanding>>
+        mobileNations_; // MobileNationStanding
     std::pair<uint64_t, std::string> mobileFactsOpening_; // the opening and its screen (diagnostics)
     uint64_t mobileFactsFrames_ = 0; // interface frames of that opening
     void MobileCollectShipyard(std::vector<MobileWidget> &widgets);

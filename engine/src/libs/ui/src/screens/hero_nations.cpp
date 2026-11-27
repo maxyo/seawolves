@@ -13,7 +13,7 @@
 #include "controls.h"
 #include "hero.h"
 
-#include <map>
+#include <set>
 
 namespace storm::ui::screens
 {
@@ -63,17 +63,10 @@ std::string Token(const Widget *widget, const std::string &verb)
 
 // Our own flag icon of a nation the game names in its NATIONS atlas group; empty for a
 // nation this port has no flag for (a mod): the game's own picture is drawn then.
-std::string FlagIcon(const std::string &image)
+std::string FlagIcon(const ImageRef *image)
 {
-    static const char *const flags[][2] = {{"england", "nation-england"},
-                                           {"france", "nation-france"},
-                                           {"spain", "nation-spain"},
-                                           {"holland", "nation-holland"},
-                                           {"pirate", "nation-pirates"}};
-    for (const auto &pair : flags)
-        if (Lower(image) == pair[0])
-            return pair[1];
-    return {};
+    const std::string nation = NationOf(image);
+    return nation.empty() ? std::string() : "nation-" + nation;
 }
 
 // The row image of a nation: our flag, else the game's picture.
@@ -81,7 +74,7 @@ Json NationImage(const ImageRef *image)
 {
     if (!image)
         return nullptr;
-    const std::string icon = FlagIcon(image->image);
+    const std::string icon = FlagIcon(image);
     if (!icon.empty())
         return Json{{"icon", icon}};
     return PictureOf(image);
@@ -168,7 +161,10 @@ class NationsScreen final : public Screen
         sections_.Bind(bindings, view, "nations", [&bindings, send, sections](const Event &event) {
             for (const Widget *button : sections)
                 if (SectionOf(*button) == event.value)
-                    return send(button, "press");
+                {
+                    send(button, "press");
+                    return;
+                }
             bindings.Error("nationrelation: section " + event.value + " cannot be opened (no section button)");
         });
         const Widget *exit = admitted.One("EXIT_BTN");
@@ -191,13 +187,14 @@ class NationsScreen final : public Screen
         NationsScreen *screen;
         Bindings *bindings;
         uint64_t revision;
-        void operator()(const Widget *widget, const std::string &verb, const std::string &target = {}) const
+        bool operator()(const Widget *widget, const std::string &verb, const std::string &target = {}) const
         {
             const std::string token = Token(widget, verb);
             if (token.empty() || screen->sent_revision_ == revision)
-                return;
+                return false;
             screen->sent_revision_ = revision;
             bindings->Send(*widget, target.empty() ? token : token + "=" + target);
+            return true;
         }
     };
 
@@ -249,13 +246,15 @@ class NationsScreen final : public Screen
         for (const Widget *row : admitted.All("ANDROID_NATION_REPUTATION"))
         {
             Json entry{{"label", row->label}, {"value", row->value}, {"image", NationImage(row->FirstImage())}};
-            // The number behind the word, -100 … 100 (0 = neutral, below 0 hostile, ≤ -10 a bounty).
+            // The game's number behind the word, -100 … 100 (ChangeCharacterHunterScore keeps it there), and the
+            // tone of the game's word (the adapter's: "" neutral, hostile, good).
             const auto score = row->context.find("score");
             if (score != row->context.end())
             {
                 const int value = std::clamp(Amount(bindings, score->second, "score"), -100, 100);
+                const std::string tone = hero::Field(row, "tone");
                 entry["bar"] = (value + 100) / 2;
-                entry["tone"] = value < 0 ? "danger" : value > 20 ? "ok" : "";
+                entry["tone"] = tone == "hostile" ? "danger" : tone == "good" ? "ok" : "";
             }
             reputation.push_back(std::move(entry));
         }
@@ -263,9 +262,10 @@ class NationsScreen final : public Screen
         return reputation;
     }
 
-    // The flag the ship raises.
-    static void FlagPicker(const Admission &admitted, Bindings &bindings, const Widget *columns, const Sender &send,
-                           Json &view)
+    // The flag the ship raises. Which flags may be raised is the game's (SetNewNation cycles over them): every flag
+    // is offered while the game offers ›, and one the game did not reach stays off for this opening.
+    void FlagPicker(const Admission &admitted, Bindings &bindings, const Widget *columns, const Sender &send,
+                    Json &view)
     {
         const Widget *candidate = nullptr;
         for (const Widget *widget : admitted.All("FlagPic"))
@@ -277,28 +277,30 @@ class NationsScreen final : public Screen
         // The flags to choose from: the nations of the matrix, in its order. A tap picks one
         // directly (the engine presses › until the script's candidate is that flag).
         const std::string current = candidate && candidate->FirstImage() ? candidate->FirstImage()->image : "";
-        // Which flags may be raised: "England=1,France=0,…" (interface adapter android_nation_flags.c).
-        std::map<std::string, bool> allowed;
-        const std::string listed = candidate && candidate->context.count("flags") ? candidate->context.at("flags") : "";
-        for (size_t at = 0; at < listed.size();)
+        if (opening_ != admitted.model->opening)
         {
-            const size_t end = std::min(listed.find(',', at), listed.size());
-            const std::string pair = listed.substr(at, end - at);
-            const size_t eq = pair.find('=');
-            if (eq != std::string::npos)
-                allowed[Lower(pair.substr(0, eq))] = pair.substr(eq + 1) == "1";
-            at = end + 1;
+            opening_ = admitted.model->opening;
+            refused_.clear();
+            asked_.clear();
         }
-        if (candidate && listed.empty())
-            bindings.ErrorOnce("flag choice",
-                               "nationrelation: no flag choice from the interface adapter (android_nation_flags.c)");
+        // The game's answer to the last pick: the candidate is that flag, or the game does not offer it.
+        if (!asked_.empty() && admitted.model->revision > sent_revision_)
+        {
+            if (Lower(current) != asked_)
+            {
+                refused_.insert(asked_);
+                bindings.Log("nationrelation: the game does not offer the flag " + asked_);
+            }
+            asked_.clear();
+        }
+        const bool offered = !Token(right, "pick").empty();
         Json flags = Json::array();
         std::vector<std::string> flag_ids;
         if (columns->header_cells)
             for (const Cell &cell : *columns->header_cells)
             {
                 const std::string image = cell.images.empty() ? "" : cell.images[0].image;
-                const std::string icon = FlagIcon(image);
+                const std::string icon = FlagIcon(cell.images.empty() ? nullptr : &cell.images[0]);
                 if (icon.empty())
                 {
                     if (!image.empty())
@@ -306,7 +308,7 @@ class NationsScreen final : public Screen
                                                                 "'; it cannot be picked here");
                     continue;
                 }
-                const bool can = allowed.count(Lower(image)) && allowed.at(Lower(image));
+                const bool can = offered && !refused_.count(Lower(image));
                 flags.push_back(Json{{"id", image},
                                      {"icon", icon},
                                      {"label", cell.text},
@@ -315,13 +317,14 @@ class NationsScreen final : public Screen
                 flag_ids.push_back(image);
             }
         view["flags"] = flags;
-        view["flagsDisabled"] = Token(right, "pick").empty();
+        view["flagsDisabled"] = !offered;
         view["flag"] = candidate ? Json{{"label", candidate->label}} : Json(nullptr);
-        bindings.On("flags", "pick", [send, right, current, allowed](const Event &event) {
-            const auto can = allowed.find(Lower(event.value));
-            if (Lower(event.value) == Lower(current) || can == allowed.end() || !can->second)
+        bindings.On("flags", "pick", [this, send, right, current](const Event &event) {
+            const std::string flag = Lower(event.value);
+            if (flag == Lower(current) || refused_.count(flag))
                 return;
-            send(right, "pick", event.value);
+            if (send(right, "pick", event.value))
+                asked_ = flag;
         });
         view["apply"] = apply ? Json{{"id", "flag-apply"},
                                      {"label", apply->label},
@@ -353,6 +356,9 @@ class NationsScreen final : public Screen
     SectionSwitch sections_;
     uint64_t sent_revision_ = 0;
     bool help_open_ = false;
+    uint64_t opening_ = 0;
+    std::string asked_;             // the flag of the pick sent, until the game's answer (lower case)
+    std::set<std::string> refused_; // flags the game did not reach in this opening (lower case)
 };
 
 } // namespace

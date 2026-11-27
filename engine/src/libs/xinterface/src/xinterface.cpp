@@ -464,40 +464,34 @@ void XINTERFACE::Execute(uint32_t)
 }
 
 #ifdef __ANDROID__
-// The hero's reputation with a nation as RPGUtilite.c computes it (ChangeCharacterNationReputation):
-// reputation.<nation>hunter negated, -5 when unset; -100 … 100. Empty without a hero.
-std::string XINTERFACE::MobileNationScore(const std::string &nation) const
-{
-    auto *index=static_cast<VDATA *>(core.GetScriptVariable("nMainCharacterIndex"));
-    auto *characters=static_cast<VDATA *>(core.GetScriptVariable("Characters"));
-    auto *hero=index&&characters&&index->GetInt()>=0?characters->GetAClass(index->GetInt()):nullptr;
-    if(!hero)return {};
-    std::string key="reputation."+nation+"hunter";
-    for(auto &c:key)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    auto *score=hero->FindAClass(hero,key.c_str());
-    const char *value=score?score->GetThisAttr():nullptr;
-    return std::to_string(-(value&&*value?std::atoi(value):-5));
-}
-
-// The flags the ship may raise now, "England=1,France=0,…", from the interface adapter
-// android_nation_flags.c (event AndroidNationFlags); empty when the adapter is not loaded.
+// The hero's standing with a nation (lower-case short name, NationShortName) from the interface adapter
+// android_nations.c (event AndroidNationFacts): the game's number and its word's tone; nullopt without them.
 // Asked again only when the script state it reads changed (mobile_facts_cache.hpp).
-std::string XINTERFACE::MobileNationFlags() const
+std::optional<storm::mobile::NationStanding> XINTERFACE::MobileNationStanding(const std::string &nation) const
 {
-    decltype(mobileNationFlags_)::Key key{storm::android::mobileScreenRevision,-1,"",storm::ScriptStateGeneration()};
-    if(const std::string *flags=mobileNationFlags_.Find(key))return *flags;
-    STORM_PROFILE_ZONE("UI model: adapter nation flags");
+    decltype(mobileNations_)::Key key{storm::android::mobileScreenRevision,-1,"",storm::ScriptStateGeneration()};
+    const auto *nations=mobileNations_.Find(key);
+    if(!nations)
     {
-        const storm::ScriptStateReads reads;
-        core.Event(storm::app::script_event::AndroidNationFlags);
+        STORM_PROFILE_ZONE("UI model: adapter nations");
+        {
+            const storm::ScriptStateReads reads;
+            core.Event(storm::app::script_event::AndroidNationFacts);
+        }
+        std::map<std::string,storm::mobile::NationStanding> out;
+        auto *facts=core.Entity_GetAttributeClass(g_idInterface,"AndroidNations");
+        for(size_t i=0;facts&&i<facts->GetAttributesNum();++i)
+            if(auto *row=facts->GetAttributeClass(i))
+            {
+                const char *score=row->GetAttribute("score"),*tone=row->GetAttribute("tone");
+                out[storm::AsciiLower(row->GetThisName())]={score?score:"",tone?tone:""};
+            }
+        key.state=storm::ScriptStateGeneration();
+        nations=&mobileNations_.Store(std::move(key),std::move(out));
     }
-    auto *flags=core.Entity_GetAttributeClass(g_idInterface,"AndroidFlags");
-    std::string out;
-    for(size_t i=0;flags&&i<flags->GetAttributesNum();++i)
-        if(auto *flag=flags->GetAttributeClass(i))
-            out+=(out.empty()?"":",")+std::string(flag->GetThisName())+"="+(flag->GetThisAttr()?flag->GetThisAttr():"0");
-    key.state=storm::ScriptStateGeneration();
-    return mobileNationFlags_.Store(std::move(key),std::move(out));
+    const auto found=nations->find(storm::AsciiLower(nation));
+    if(found==nations->end())return std::nullopt;
+    return found->second;
 }
 
 void XINTERFACE::MobileNationPickFailed(const std::string &target) const
