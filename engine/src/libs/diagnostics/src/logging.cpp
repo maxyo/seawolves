@@ -45,12 +45,12 @@ logger_ptr getOrCreateLogger(const std::string &name, const spdlog::level::level
 #ifdef __ANDROID__
     if (logcat)
         logger->sinks().push_back(std::make_shared<spdlog::sinks::android_sink_mt>("StormEngine"));
-    // Warnings and errors are flushed at once; everything else every kFlushPeriod (startPeriodicFlush), when the app
-    // goes to the background, on a fatal error and by the crash handler: a flush per line costs the game thread.
-    logger->flush_on(spdlog::level::warn);
 #else
     (void)logcat; // stdout/stderr carry nothing of these loggers off Android
 #endif
+    // Warnings and errors are flushed at once; everything else every kFlushPeriod (startPeriodicFlush), when the app
+    // goes to the background, on a fatal error and by the crash handler: a flush per line costs the game thread.
+    logger->flush_on(spdlog::level::warn);
 
     return logger;
 }

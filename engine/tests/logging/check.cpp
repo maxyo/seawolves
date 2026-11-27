@@ -1,8 +1,8 @@
 // Host check of the engine's loggers (src/libs/diagnostics/src/logging.cpp): every logger's errors also land in
-// error.log, with the logger that wrote them; lines below error stay in their own log; and the periodic flush puts
-// the lines of a producer that stops (a hung game thread) on disk by spdlog's flush thread alone. That wait is on
-// the file, not on a clock (kFlushPeriod is the production constant handed to spdlog::flush_every): a flusher that
-// never runs hangs here and run.py's deadlock guard reports it.
+// error.log, with the logger that wrote them; lines below error stay in their own log; a warning is on disk at once;
+// and the periodic flush puts the lines of a producer that stops (a hung game thread) on disk by spdlog's flush thread
+// alone. That wait is on the file, not on a clock (kFlushPeriod is the production constant handed to
+// spdlog::flush_every): a flusher that never runs hangs here and run.py's deadlock guard reports it.
 #include "logging.hpp"
 
 #include <SDL2/SDL.h>
@@ -77,6 +77,13 @@ TEST_CASE("logging")
     REQUIRE(count(errorLog, "script error line") == 1);                          // error.log keeps its own lines once
     REQUIRE((errorLog.find("info line") == std::string::npos &&
              errorLog.find("warning line") == std::string::npos)); // lines below error stay in their own log
+
+    // A warning reaches the file at once, with the lines logged before it (no flush call, no periodic flush yet).
+    auto warned = getOrCreateLogger("warned");
+    warned->info("the line before the warning");
+    warned->warn("the warning line");
+    const auto warnedLog = read(logs + "warned.log");
+    REQUIRE((count(warnedLog, "the line before the warning") == 1 && count(warnedLog, "the warning line") == 1));
 
     // A producer that writes a line below warn and then hangs: nobody flushes but spdlog's own thread.
     auto hung = getOrCreateLogger("hung");
