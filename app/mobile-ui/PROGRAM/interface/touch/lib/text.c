@@ -96,3 +96,18 @@ string TouchLib_AfterColon(string text)
 	if (colon < 0) return TouchLib_Trim(text);
 	return TouchLib_Trim(TouchLib_Cut(text, colon + 1, strlen(text)));
 }
+
+bool TouchLib_EndsWith(string text, string end)
+{
+	int size = strlen(end);
+	if (size > strlen(text)) return false;
+	return TouchLib_Cut(text, strlen(text) - size, strlen(text)) == end;
+}
+
+// A string of two places, {1} and {2}: UiFill fills the first.
+string TouchLib_FillTwo(string text, string first, string second)
+{
+	int at = findSubStr(text, "{2}", 0);
+	if (at >= 0) text = TouchLib_Cut(text, 0, at) + second + TouchLib_Cut(text, at + 3, strlen(text));
+	return UiFill(text, first);
+}

@@ -3391,746 +3391,132 @@ static void HeroPeople(const std::string &models)
     ExpectEqual(german_surface.props["posts"][0]["meta"], "Navigationsoffizier", "a German post");
 }
 
-// The items screen on one router: the list and its details, the actions, slots, an unavailable item, the map.
-struct ItemsRun
-{
-    std::string models;
-    FakeSurface surface;
-    Router router{surface};
-    InterfaceModel model = Load(models, "items.json");
-    Json view; // what the screen showed last
-
-    void Opening()
-    {
-        router.SetInterface(model);
-        ExpectEqual(router.Using(), "items", "the items draw on the items screen");
-        ExpectEqual(surface.tag, "s-items", "s-items mounted");
-        view = surface.props;
-        Expect(view["slots"].size() == 10 && view["slots"][0]["label"] == "<items.slot_blade>" &&
-                   view["slots"][0]["name"] == "Rapier" &&
-                   view["slots"][0]["image"]["texture"] == "atlas:ITEMS_1/itm1" && view["slots"][1]["empty"] == true,
-               "ten slots: the slot's caption under what the hero wears, the empty ones dashed");
-        {
-            FakeSurface two_surface;
-            Router two(two_surface);
-            auto fewer = model;
-            std::erase_if(fewer.widgets,
-                          [](const Widget &w) { return w.node == "ANDROID_SLOTS" && w.row_id == "slot3"; });
-            two.SetInterface(fewer);
-            Expect(two_surface.props["slots"].size() == 9 && two_surface.props["slots"][8]["id"] == "slot2",
-                   "the artefact slots are the character's own, as the adapter lists them");
-        }
-        Expect(view["rows"].size() == 3 && !view.contains("columns") &&
-                   view["rows"][0]["cells"][0]["badge"] == "check" &&
-                   view["rows"][2]["cells"][1] == "\xC3\x97"
-                                                  "3",
-               "the list: worn mark, a count only above one");
-        Expect(view["stats"][0]["value"] == "4.6 / 140" && view["subject"]["label"] == "Anne Bonny" &&
-                   view["tabs"].size() == 4,
-               "weight in the header, the officer switch, the game's tabs");
-        Expect(view["detail"]["title"] == "Rapier" && view["detail"]["text"] == "A light blade." &&
-                   view["detail"]["action"]["label"] == "Take off" && view["detail"]["action"]["disabled"] == false,
-               "the selected item with the game's own action");
-        {
-            // UI31-01: the real Android model exports itemid (the shared script codec's spelling), not itemId as in
-            // this fixture. Selecting the occupied blade slot must retain its selected worn item's details and action.
-            for (const std::string spelling : {"itemid", "ITEMID"})
-            {
-                FakeSurface occupied_surface;
-                Router occupied(occupied_surface);
-                InterfaceModel live_spelling = model;
-                for (Widget &widget : live_spelling.widgets)
-                    if (auto identity = widget.context.extract("itemId"); !identity.empty())
-                    {
-                        identity.key() = spelling;
-                        widget.context.insert(std::move(identity));
-                    }
-                occupied.SetInterface(live_spelling);
-                occupied.OnEvent({"slot-blade", "click", ""});
-                const Json &shown = occupied_surface.props;
-                Expect(shown["slots"][0]["selected"] == true && !shown["detail"].is_null() &&
-                           shown["detail"]["title"] == "Rapier" && shown["detail"]["text"] == "A light blade." &&
-                           shown["detail"]["action"]["label"] == "Take off" && !shown["detail"]["action"]["disabled"],
-                       "UI31-01: occupied slot preserves details/actions with script attribute casing " + spelling);
-            }
-        }
-        {
-            // The description in parts: the worn rapier's own figures (nothing to compare with), its kind, then the
-            // text.
-            const Json &facts = view["detail"]["facts"];
-            Expect(facts.size() == 4 && facts[0] == Json({{"k", "<items.attack>"}, {"v", "60.0"}}) &&
-                       facts[2]["k"] == "<items.weight>" && facts[3] == Json({{"k", "<items.kind>"}, {"v", "Rapiers"}}),
-                   "the worn weapon: attack, balance, weight, kind: " + facts.dump());
-            // The dagger against the worn rapier: weaker (red), lighter (green); the balance has no better side.
-            FakeSurface dagger_surface;
-            Router dagger(dagger_surface);
-            InterfaceModel selected = model;
-            for (Widget &widget : selected.widgets)
-            {
-                if (widget.node == "TABLE_ITEMS")
-                    widget.value = widget.index == 1 ? "1" : "0";
-                if (widget.node == "ANDROID_INFO")
-                    widget.context = {
-                        {"row", "tr2"}, {"text", "A short blade."}, {"kind", "Rapiers"}, {"weight", "1.5"}};
-            }
-            dagger.SetInterface(selected);
-            const Json &against = dagger_surface.props["detail"]["facts"];
-            Expect(against[0] == Json({{"k", "<items.attack>"},
-                                       {"v", "34.5"},
-                                       {"d", "\xE2\x88\x92"
-                                             "25.5"},
-                                       {"dTone", "danger"}}) &&
-                       against[1] == Json({{"k", "<items.balance>"}, {"v", "2.0"}, {"d", "+0.6"}}) &&
-                       against[2] == Json({{"k", "<items.weight>"},
-                                           {"v", "1.5"},
-                                           {"d", "\xE2\x88\x92"
-                                                 "0.9"},
-                                           {"dTone", "ok"}}) &&
-                       dagger_surface.props["detail"]["text"] == "A short blade.",
-                   "an item against the worn one of its slot: " + against.dump());
-            // A row the adapter did not describe keeps the game's own text.
-            for (Widget &widget : selected.widgets)
-                if (widget.node == "ANDROID_INFO")
-                    widget.context["row"] = "tr9";
-            selected.revision += 1;
-            dagger.SetInterface(selected);
-            Expect(dagger_surface.props["detail"]["text"] == "A light blade.",
-                   "no description from the adapter: the game's INFO_TEXT");
-        }
-        Expect(view["extras"]["rows"].empty(), "every widget is known: no extras");
-        {
-            // An item worn nowhere (the potion: no slot) has no slot line and is no error.
-            FakeSurface potion_surface;
-            Router potion(potion_surface);
-            InterfaceModel selected = model;
-            for (Widget &widget : selected.widgets)
-                if (widget.node == "TABLE_ITEMS")
-                    widget.value = widget.index == 2 ? "1" : "0";
-            potion.SetInterface(selected);
-            Expect(potion_surface.props["detail"]["title"] == "Potion" && potion_surface.props["detail"]["sub"] == "" &&
-                       potion_surface.errors.empty(),
-                   "an item without a slot: no slot line, no missing-string error");
-        }
-    }
-
-    void Actions()
-    {
-        router.OnEvent({"item-equip", "click", ""});
-        ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:7:character:1:role:0",
-                    "the action is the game's guarded press");
-        router.OnEvent({"items", "row", "2"});
-        ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t2\tselect@5:inventory:30:character:1:role:0",
-                    "a row is selected");
-    }
-
-    void Slots()
-    {
-        // A slot filters the list; selecting its row shows details without putting it on.
-        router.OnEvent({"slot-blade", "click", ""});
-        Expect(surface.props["rows"].size() == 2 && surface.props["slots"][0]["selected"] == true,
-               "the blade slot lists the blades");
-        router.OnEvent({"items", "row", "1"});
-        ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
-                    "the dagger is selected");
-        const size_t before_selected_reply = surface.commands.size();
-        model.revision += 1;
-        for (Widget &widget : model.widgets)
-            if (widget.node == "TABLE_ITEMS")
-                widget.value = widget.index == 1 ? "1" : "0";
-            else if (widget.node == "EQUIP_BUTTON")
-                widget.row_id = "inventory:9:character:1:role:0", widget.label = "Equip";
-        router.SetInterface(model);
-        Expect(surface.commands.size() == before_selected_reply && surface.props["detail"]["title"] == "Dagger",
-               "filtered selection shows details and never implicitly equips");
-        router.OnEvent({"items", "row", "1"});
-        Expect(surface.commands.size() == before_selected_reply, "reselecting the row does not equip either");
-        router.OnEvent({"item-equip", "click", ""});
-        ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:9:character:1:role:0",
-                    "only the explicit action puts it on");
-
-        router.OnEvent({"item-tabs", "select", "3"});
-        ExpectEqual(surface.Last(), "widget:items\tTABBTN_3\t-1\tpress", "a game tab");
-        Expect(surface.props["slots"][0]["selected"] == false && surface.props["rows"].size() == 3,
-               "a game category clears the previous blade-slot filter while its response is pending");
-        router.OnEvent({"slot-blade", "click", ""});
-        Expect(surface.props["slots"][0]["selected"] == true && surface.props["rows"].size() == 2, "the blades");
-        router.OnEvent({"header", "subject-next", ""});
-        ExpectEqual(surface.Last(), "widget:items\tCHARACTERS_SCROLL\t1\tselect@5:1:1", "the next officer's items");
-        Expect(surface.props["subject"]["label"] == "Jack Rackham", "his name in the tap's own frame");
-        // The game selects his slot at once and shows his items a game frame later: the step keeps his name and the
-        // captain's items, the slot filter goes with the captain's items.
-        AnswerAll(router, surface, true);
-        model.revision += 1;
-        for (Widget &widget : model.widgets)
-            if (widget.node == "CHARACTERS_SCROLL")
-                widget.value = widget.index == 1 ? "1" : "0";
-        router.SetInterface(model);
-        Expect(surface.props["subject"]["label"] == "Jack Rackham" && surface.props["rows"].size() == 2 &&
-                   surface.props["slots"][0]["selected"] == true,
-               "the step: his name, the captain's blades");
-        model.revision += 1;
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_SUBJECT")
-                widget.context["character"] = "9", widget.label = "Jack Rackham";
-        router.SetInterface(model);
-        // (Earlier taps of this run whose answers the run never modelled are corrected here too: only the pick counts.)
-        Expect(surface.props["subject"]["label"] == "Jack Rackham" && surface.props["slots"][0]["selected"] == false &&
-                   surface.props["rows"].size() == 3 &&
-                   std::none_of(surface.errors.begin(), surface.errors.end(),
-                                [](const std::string &e) { return e.find(" header ") != std::string::npos; }),
-               "the game shows him, as predicted");
-        router.OnEvent({"header", "subject-list", ""});
-        Expect(surface.props["subject"]["open"] == true && surface.props["subject"]["rows"].size() == 2,
-               "the items screen lists the subjects too");
-        router.OnEvent({"header-subjects", "dismiss", ""});
-        Expect(!surface.props["subject"].contains("open"), "a tap beside the list closes it");
-    }
-
-    void Unavailable()
-    {
-        // A selected but unavailable item is an answer from ThisItemCanBeEquip, not an unanswered step.
-        {
-            FakeSurface refused_surface;
-            Router refused(refused_surface);
-            InterfaceModel denied = Load(models, "items.json");
-            refused.SetInterface(denied);
-            refused.OnEvent({"slot-blade", "click", ""});
-            refused.OnEvent({"items", "row", "1"});
-            const size_t sent = refused_surface.commands.size();
-            for (Widget &widget : denied.widgets)
-                if (widget.node == "TABLE_ITEMS")
-                    widget.value = widget.index == 1 ? "1" : "0";
-                else if (widget.node == "EQUIP_BUTTON")
-                {
-                    widget.enabled = false;
-                    widget.actions.clear();
-                    widget.row_id.clear(); // InventoryEquipCapability publishes no token for a disabled button.
-                    widget.unavailable_reason = "Needs a weapon perk";
-                }
-            denied.revision += 1;
-            refused.SetInterface(denied);
-            Expect(refused_surface.commands.size() == sent &&
-                       refused_surface.props["detail"]["action"]["disabled"] == true,
-                   "a refused equip leaves the selected item and its unavailable action visible");
-            Expect(refused_surface.toasts.empty() &&
-                       refused_surface.props["detail"]["action"]["reason"] == "Needs a weapon perk",
-                   "a description-only selection keeps the game's refusal");
-            refused_surface.now = 4.0;
-            denied.revision += 1; // another publication (for example the description or weight).
-            refused.SetInterface(denied);
-            refused.Tick();
-            Expect(refused_surface.errors.empty() && refused_surface.commands.size() == sent,
-                   "a disabled equip answer completes the intent");
-        }
-        {
-            FakeSurface waiting_surface;
-            Router waiting(waiting_surface);
-            waiting.SetInterface(Load(models, "items.json"));
-            waiting.OnEvent({"slot-blade", "click", ""});
-            waiting.OnEvent({"items", "row", "1"});
-            waiting_surface.now = 4.0;
-            waiting.Tick();
-            Expect(waiting_surface.errors.size() == 1 &&
-                       waiting_surface.errors[0].find("the engine did not answer a step") != std::string::npos,
-                   "an actual missing selection response still reports the timeout");
-        }
-    }
-
-    void MapWindow()
-    {
-        // The game's map window.
-        model.revision += 1;
-        model.widgets.push_back(Make("MAP_CAPTION", "text", "Treasure map"));
-        model.widgets.push_back(Make("MAP_TEXT", "text", "A cross on the south shore."));
-        model.widgets.push_back(Make("MAP_EXIT_BTN", "button", "", {"press"}));
-        Widget picture = Make("MAP_PICTURE", "image");
-        picture.images.push_back(ImageRef{});
-        picture.images.back().kind = "texture";
-        picture.images.back().image = "interfaces/maps/treasure";
-        model.widgets.push_back(picture);
-        router.SetInterface(model);
-        Expect(surface.props["map"]["title"] == "Treasure map" &&
-                   surface.props["map"]["image"]["texture"] == "interfaces/maps/treasure",
-               "the map window: the game's picture by its texture name");
-        Expect(router.WantsBack(), "back closes the map first");
-        router.Back();
-        ExpectEqual(surface.Last(), "widget:items\tMAP_EXIT_BTN\t-1\tpress", "back is the map's close");
-    }
-};
-
+// The items screen's script over the fixture game's people and items (engine/tests/ui_scripts/game): the captain Anne
+// Bonny wears the rapier (row 0) and a timed amulet; the dagger (row 1) and three potions (row 2) she carries.
 static void Items(const std::string &models)
 {
-    ItemsRun run{models};
-    run.Opening();
-    run.Actions();
-    run.Slots();
-    run.Unavailable();
-    run.MapWindow();
-}
-
-// Every kind of item gets the action the game's EQUIP_BUTTON has for it (android_hero.c AndroidItemAction, items.c
-// EquipPress), and the one that destroys an item (taking off a timed artefact) is never a plain tap.
-static void ItemActionCases(const std::string &models)
-{
-    struct Case
-    {
-        const char *what;
-        std::map<std::string, std::string> fact; // the selected row's adapter fact (tr1)
-        const char *game_label;                  // EQUIP_BUTTON's label
-        bool ready;                              // the game lets the button be pressed
-        Json action;                             // the expected detail action fields (null: no action)
-        bool error = false;                      // the screen reports the row
-        const char *reason = "";                 // an explicit reason from the game has priority
-    };
-    const Json none = nullptr;
-    const std::vector<Case> cases = {
-        {"a worn weapon: the game's own words",
-         {{"slot", "blade"}, {"worn", "1"}, {"action", "equip"}},
-         "Take off",
-         true,
-         {{"label", "Take off"},
-          {"variant", "primary"},
-          {"hold", false},
-          {"disabled", false},
-          {"reason", "<items.unavailable>"}}},
-        {"the stock game forbids removing a worn blade: its button off, no reason of ours",
-         {{"slot", "blade"}, {"worn", "1"}, {"action", "equip"}},
-         "Take off",
-         false,
-         {{"label", "Take off"}, {"disabled", true}, {"reason", "<items.unavailable>"}}},
-        {"a supplied blade refusal takes precedence",
-         {{"slot", "blade"}, {"worn", "1"}, {"action", "equip"}},
-         "Take off",
-         false,
-         {{"disabled", true}, {"reason", "The character keeps this blade"}},
-         false,
-         "The character keeps this blade"},
-        {"an unworn blade refusal is not a removal restriction",
-         {{"slot", "blade"}, {"worn", "0"}, {"action", "equip"}},
-         "Equip",
-         false,
-         {{"disabled", true}, {"reason", "<items.unavailable>"}}},
-        {"another worn weapon has its own restrictions",
-         {{"slot", "gun"}, {"worn", "1"}, {"action", "equip"}},
-         "Take off",
-         false,
-         {{"disabled", true}, {"reason", "<items.unavailable>"}}},
-        {"a weapon in the bag",
-         {{"slot", "blade"}, {"worn", "0"}, {"action", "equip"}},
-         "Equip",
-         true,
-         {{"label", "Equip"}, {"variant", "primary"}, {"hold", false}, {"disabled", false}}},
-        {"a worn timed artefact: taking it off uses it up, held to confirm",
-         {{"slot", "amulet"}, {"worn", "1"}, {"action", "amulet"}, {"days", "70"}, {"remain", "64"}},
-         "Delete",
-         true,
-         {{"label", "<items.take_off>"}, {"variant", "danger"}, {"hold", true}, {"disabled", false}}},
-        {"a worn artefact without a term stays in the bag: taken off",
-         {{"slot", "amulet"}, {"worn", "1"}, {"action", "amulet"}},
-         "Delete",
-         true,
-         {{"label", "<items.take_off>"}, {"variant", "primary"}, {"hold", false}, {"disabled", false}}},
-        {"an artefact in the bag goes on",
-         {{"slot", "amulet"}, {"worn", "0"}, {"action", "amulet"}, {"days", "70"}},
-         "Equip",
-         true,
-         {{"label", "Equip"}, {"variant", "primary"}, {"hold", false}, {"disabled", false}}},
-        {"an artefact the game will not put on",
-         {{"slot", "amulet"}, {"worn", "0"}, {"action", "amulet"}, {"days", "70"}},
-         "Equip",
-         false,
-         {{"label", "Equip"}, {"disabled", true}, {"reason", "<items.unavailable>"}}},
-        {"a potion, a jewel: the game has no action, none is shown",
-         {{"slot", ""}, {"worn", "0"}, {"action", ""}},
-         "Equip",
-         false,
-         none},
-        {"a quest letter is read (quest items keep the game's action)",
-         {{"slot", ""}, {"worn", "0"}, {"quest", "1"}, {"action", "use"}},
-         "Equip",
-         true,
-         {{"label", "<items.use>"}, {"variant", "primary"}, {"hold", false}, {"disabled", false}}},
-        {"a quest item without a use has no action at all",
-         {{"slot", ""}, {"worn", "0"}, {"quest", "1"}, {"action", ""}},
-         "Equip",
-         false,
-         none},
-        {"a map opens",
-         {{"slot", ""}, {"worn", "0"}, {"map", "1"}, {"action", "map"}},
-         "Equip",
-         true,
-         {{"label", "<items.open_map>"}, {"variant", "primary"}}},
-        {"ammunition is loaded",
-         {{"slot", ""}, {"worn", "0"}, {"action", "ammo"}},
-         "Equip",
-         true,
-         {{"label", "<items.load>"}, {"variant", "primary"}}},
-        {"an action the screen does not know is reported, not guessed",
-         {{"slot", ""}, {"worn", "0"}, {"action", "drop"}},
-         "Equip",
-         true,
-         none,
-         true},
-    };
-    for (const Case &c : cases)
-    {
-        FakeSurface surface;
-        Router router(surface);
-        InterfaceModel model = Load(models, "items.json");
-        for (Widget &widget : model.widgets)
-        {
-            if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr1")
-            {
-                widget.context.clear();
-                for (const auto &[key, value] : c.fact)
-                    widget.context[key] = value;
-            }
-            if (widget.node == "EQUIP_BUTTON")
-            {
-                widget.label = c.game_label;
-                widget.unavailable_reason = c.reason;
-                widget.enabled = c.ready;
-                if (!c.ready)
-                    widget.actions.clear(), widget.row_id.clear();
-            }
-        }
-        router.SetInterface(model);
-        const Json &action = surface.props["detail"]["action"];
-        Expect(c.error == !surface.errors.empty(),
-               std::string(c.what) + ": errors " + std::to_string(surface.errors.size()));
-        if (c.action.is_null())
-        {
-            Expect(action.is_null(), std::string(c.what) + ": no action, got " + action.dump());
-            continue;
-        }
-        bool fields = action.is_object();
-        for (const auto &[key, value] : c.action.items())
-            fields = fields && action.contains(key) && action[key] == value;
-        Expect(fields, std::string(c.what) + ": " + action.dump());
-        if (c.fact.count("action") && c.fact.at("action") == "amulet")
-            Expect(!action.contains("sub"), "amulet action has no extra consumption caption");
-        if (c.fact.count("action") && c.fact.at("action") == "amulet" && !c.fact.count("days"))
-        {
-            bool has_term = false;
-            for (const Json &fact : surface.props["detail"]["facts"])
-                has_term = has_term || fact.value("k", "") == "<items.term>";
-            Expect(!has_term && !action.contains("sub"),
-                   "infinite amulet has no invented countdown or consumption warning");
-        }
-        // Nothing that destroys an item is a plain tap.
-        Expect(action.value("variant", "") != "danger" || action.value("hold", false) == true,
-               std::string(c.what) + ": a destroying action is held");
-    }
-}
-
-// A selected row the adapter did not describe: reported, and no guessed action.
-static void UndescribedRow(const std::string &models)
-{
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel model = Load(models, "items.json");
-    std::erase_if(model.widgets,
-                  [](const Widget &widget) { return widget.node == "ANDROID_ITEMS" && widget.row_id == "tr1"; });
     router.SetInterface(model);
-    Expect(surface.props["detail"].is_object() && surface.props["detail"]["action"].is_null(),
-           "a row without its adapter fact shows no action: " + surface.props["detail"].dump());
-    Expect(surface.errors.size() == 1 && surface.errors[0].find("items: no adapter row for '") != std::string::npos,
-           "a row without its adapter fact is an error, not a guessed equip: " + Json(surface.errors).dump());
-}
+    ExpectEqual(router.Using(), "items", "the items draw on the items screen");
+    ExpectEqual(surface.tag, "s-items", "s-items mounted");
+    const Json &view = surface.props;
+    Expect(view["slots"].size() == 10 && view["slots"][0]["label"] == "<items.slot_blade>" &&
+               view["slots"][0]["image"]["texture"] == "atlas:ITEMS_1/itm1" && view["slots"][1]["empty"] == true,
+           "seven slots and the captain's three artefact slots, what she wears drawn by the game's picture");
+    Expect(view["rows"].size() == 3 && view["rows"][0]["cells"][0]["badge"] == "check" &&
+               view["rows"][2]["cells"][1] == "\xC3\x97"
+                                              "3",
+           "the list: the worn mark, a count only above one");
+    Expect(view["stats"][0]["value"] == "4.6 / 140" && view["subject"]["label"] == "Anne Bonny" &&
+               view["tabs"].size() == 4 && view["title"] == "Items",
+           "the load in the header, the person switch, the game's categories");
+    Expect(view["detail"]["title"] == "Rapier" && view["detail"]["text"] == "A light blade." &&
+               view["detail"]["action"]["label"] == "Take off" && view["detail"]["action"]["disabled"] == false,
+           "the chosen item with the game's own button");
+    Expect(view["extras"]["rows"].empty(), "every widget is known: no extras");
 
-// The worn timed artefact: its term in the facts, the days it has left as its slot's caption.
-static void TimedArtefact(const std::string &models)
-{
-    FakeSurface surface;
-    surface.texts = {{"items.term", "Срок"}, {"items.days", "{1} дн."}, {"items.days_left", "{1} из {2} дн."}};
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    for (Widget &widget : model.widgets)
-        if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr1")
-            widget.context = {
-                {"slot", "amulet"}, {"worn", "1"}, {"action", "amulet"}, {"days", "70"}, {"remain", "64"}};
-    for (Widget &widget : model.widgets)
-        if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
-            widget.context = {{"artefact", "1"}, {"label", "Voodoo doll"}, {"group", "ITEMS_3"},      {"image", "itm1"},
-                              {"remain", "64"},  {"time", "70"},           {"itemId", "fixture-doll"}};
-    for (const char *node : {"SLOT1_TEXT", "SLOT2_TEXT", "SLOT3_TEXT"})
-        model.widgets.push_back(Make(node, "text", "64/70"));
-    router.SetInterface(model);
-    Expect(surface.props["extras"]["rows"].empty() && surface.props["extras"]["note"] == "",
-           "stock counters never become an extras note");
-    bool term = false;
-    for (const Json &fact : surface.props["detail"]["facts"])
-        term = term || fact == Json({{"k", "Срок"}, {"v", "64 из 70 дн."}});
-    Expect(term, "the worn artefact's term: " + surface.props["detail"]["facts"].dump());
-    const Json &tile = surface.props["slots"][7];
-    Expect(tile["id"] == "slot1" && tile["label"] == "64 дн." && !tile.contains("sub"),
-           "the artefact's slot: its days as the caption: " + tile.dump());
-}
-
-// A chosen slot owns the parchment: an empty slot does not show (and offer the action of) the item
-// selected before; a slot that holds an item selects that item's row.
-static void SlotOwnsParchment(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json"); // the worn rapier is selected
-    router.SetInterface(model);
-    router.OnEvent({"slot-gun", "click", ""});
-    Expect(surface.props["slots"][1]["selected"] == true && surface.props["detail"].is_null(),
-           "the empty gun slot: no rapier on the parchment: " + surface.props["detail"].dump());
-    router.OnEvent({"slot-gun", "click", ""});
-    Expect(surface.props["detail"]["title"] == "Rapier", "the slot let go: the game's selection again");
-    for (Widget &widget : model.widgets)
-        if (widget.node == "TABLE_ITEMS")
-            widget.value = widget.index == 2 ? "1" : "0"; // the potion
+    router.OnEvent({"item-equip", "click", ""});
+    ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:7:character:1:role:0",
+                "the action is the game's press on the row it answered for");
+    AnswerAll(router, surface, true);
+    router.OnEvent({"items", "row", "1"});
+    ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
+                "a row is chosen");
+    router.Tick();
+    Expect(surface.props["rows"][1]["selected"] == true, "drawn chosen in the tap's frame");
+    const size_t chosen = surface.commands.size();
+    AnswerAll(router, surface, true);
     model.revision += 1;
-    router.SetInterface(model);
-    router.OnEvent({"slot-blade", "click", ""});
-    ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t0\tselect@5:inventory:7:character:1:role:0",
-                "the blade slot selects the rapier it holds");
-    Expect(surface.props["detail"].is_null(), "until selection returns no stale potion action is exposed");
-}
-
-// Three amulet slots share the list category, but an empty slot must not expose another slot's
-// worn timed amulet and its destructive action. An absent detail also removes its event binding.
-static void AmuletSlots(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    for (Widget &widget : model.widgets)
-        if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr1")
-            widget.context = {{"slot", "amulet"},
-                              {"worn", "1"},
-                              {"action", "amulet"},
-                              {"days", "70"},
-                              {"itemId", "fixture-item-tr1"}};
-    Widget slot = Make("ANDROID_SLOTS", "fact", "Rapier");
-    slot.row_id = "slot1";
-    slot.context["itemId"] = "fixture-item-tr1";
-    model.widgets.push_back(slot);
-    router.SetInterface(model);
-    Expect(surface.props["detail"]["action"]["hold"] == true, "timed amulet starts held to confirm");
-    router.OnEvent({"slot-slot3", "click", ""});
-    Expect(surface.props["slots"][9]["selected"] == true && surface.props["detail"].is_null(),
-           "empty third amulet slot hides the first slot's destructive action");
-    Expect(surface.props["rows"].empty(), "another slot's worn amulet is not offered for an empty slot");
-    const auto before = surface.Last();
-    router.OnEvent({"item-equip", "click", ""});
-    ExpectEqual(surface.Last(), before, "an old action after the empty-slot tap sends no command");
-    router.OnEvent({"slot-slot1", "click", ""});
-    Expect(surface.props["detail"]["title"] == "Rapier" && surface.props["detail"]["action"]["hold"] == true,
-           "the occupied amulet slot exposes only its own held action");
-}
-
-// Slot names are script attribute names too: their first interned case is not a different equipment slot.
-// All three occupied slots must retain only their own item and its guarded removal, never a neighbour's.
-static void SlotNamesFoldCase(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    const char *slot_names[] = {"SLOT1", "Slot2", "slot3"};
-    for (Widget &widget : model.widgets)
-    {
-        if (widget.node == "ANDROID_ITEMS")
-            widget.context = {{"slot", "amulet"},
-                              {"worn", "1"},
-                              {"action", "amulet"},
-                              {"days", "70"},
-                              {"itemid", "amulet-" + std::to_string(widget.index)}};
-        if (widget.node == "TABLE_ITEMS")
-            widget.value = widget.index == 1 ? "1" : "0";
-        if (widget.node == "EQUIP_BUTTON")
-            widget.row_id = "inventory:9:character:1:role:0";
-    }
-    for (int i = 0; i < 3; ++i)
-    {
-        Widget slot = Make("ANDROID_SLOTS", "fact");
-        slot.label = "Amulet " + std::to_string(i);
-        slot.row_id = slot_names[i];
-        slot.context["itemid"] = "amulet-" + std::to_string(i);
-        model.widgets.push_back(std::move(slot));
-    }
-    router.SetInterface(model);
-    router.OnEvent({"slot-slot2", "click", ""});
-    Expect(surface.props["slots"][7]["name"] == "Amulet 0" && surface.props["slots"][8]["name"] == "Amulet 1" &&
-               surface.props["slots"][9]["name"] == "Amulet 2" && surface.props["rows"].size() == 1 &&
-               !surface.props["detail"].is_null() &&
-               surface.props["detail"]["title"] == Row(model, "TABLE_ITEMS", 1)->CellText(0) &&
-               surface.props["detail"]["action"]["hold"] == true,
-           "mixed-case occupied amulet slots retain the correct selected removal action");
-    router.OnEvent({"item-equip", "click", ""});
-    ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:9:character:1:role:0",
-                "the second amulet slot removes only the second slot's selected item");
-}
-
-static void SameDisplayNames(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    for (Widget &widget : model.widgets)
-    {
-        if (widget.node == "TABLE_ITEMS")
-        {
-            widget.cells[0].text = "Same display name";
-            widget.value = widget.index == 2 ? "1" : "0";
-        }
-        if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
-            widget.context["worn"] = "1";
-        if (widget.node == "ANDROID_SLOTS")
-            widget.label = "Same display name", widget.context["itemId"] = "fixture-item-tr2";
-    }
-    router.SetInterface(model);
-    router.OnEvent({"slot-blade", "click", ""});
-    ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
-                "identical display names select the slot's stable item ID, not the first worn row");
-}
-
-static void OtherRowsAction(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    for (Widget &widget : model.widgets)
-        if (widget.node == "EQUIP_BUTTON")
-            widget.row_id = "inventory:9:character:1:role:0";
-    router.SetInterface(model);
-    Expect(surface.props["detail"]["action"]["disabled"] == true, "another row's game action is disabled");
-    const auto before = surface.Last();
-    router.OnEvent({"item-equip", "click", ""});
-    ExpectEqual(surface.Last(), before, "even a queued click cannot execute another row's game action");
-}
-
-static void SlotFilters(const std::string &models)
-{
-    struct Selection
-    {
-        const char *slot;
-        const char *action;
-        bool filtered;
-    };
-    for (const Selection &test : {Selection{"blade", "equip", true},
-                                  {"cirass", "equip", true},
-                                  {"gun", "equip", true},
-                                  {"", "use", false},
-                                  {"", "map", false}})
-    {
-        FakeSurface surface;
-        Router router(surface);
-        InterfaceModel model = Load(models, "items.json");
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
-                widget.context = {{"slot", test.slot}, {"action", test.action}, {"worn", "0"}, {"quest", "1"}};
-        router.SetInterface(model);
-        if (test.filtered)
-            router.OnEvent({std::string("slot-") + test.slot, "click", ""});
-        size_t index = 0;
-        for (const Json &row : surface.props["rows"])
-        {
-            if (row["id"] == "inventory:9:character:1:role:0")
-                break;
-            ++index;
-        }
-        Expect(index < surface.props["rows"].size(), "selection control item is visible");
-        router.OnEvent({"items", "row", std::to_string(index)});
-        const size_t sent = surface.commands.size();
-        ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
-                    "all inventory kinds only select on tap");
-        for (Widget &widget : model.widgets)
-            if (widget.node == "TABLE_ITEMS")
-                widget.value = widget.index == 1 ? "1" : "0";
-            else if (widget.node == "EQUIP_BUTTON")
-                widget.row_id = "inventory:9:character:1:role:0";
-        ++model.revision;
-        router.SetInterface(model);
-        Expect(surface.commands.size() == sent && surface.props["detail"]["title"] == "Dagger",
-               std::string(test.action) + ": selection response shows details without gameplay action");
-        router.OnEvent({"item-equip", "click", ""});
-        Expect(surface.commands.size() == sent + 1,
-               std::string(test.action) + ": explicit button alone runs the game action");
-        ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:9:character:1:role:0",
-                    "explicit action retains exact selected-row capability");
-    }
-}
-
-// Repeated real router actions and authoritative model replies, not a local worn toggle.
-// No game VM is run here: actual inventory consumption/persistence remains a runtime check.
-static void RepeatedActions(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "items.json");
-    for (Widget &widget : model.widgets)
-        if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
-            widget.context = {{"slot", "amulet"}, {"action", "amulet"}, {"worn", "0"}, {"itemId", "test-amulet"}};
-    router.SetInterface(model);
-    router.OnEvent({"slot-slot1", "click", ""});
-    router.OnEvent({"items", "row", "0"}); // only the unworn amulet fits this filter
-    ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
-                "amulet tap selects its description");
-    const size_t selected = surface.commands.size();
     for (Widget &widget : model.widgets)
         if (widget.node == "TABLE_ITEMS")
             widget.value = widget.index == 1 ? "1" : "0";
         else if (widget.node == "EQUIP_BUTTON")
-            widget.row_id = "inventory:9:character:1:role:0", widget.label = "Equip";
-    ++model.revision;
+            widget.label = "Equip that", widget.row_id = "inventory:9:character:1:role:0";
     router.SetInterface(model);
-    Expect(surface.commands.size() == selected && surface.props["detail"]["action"]["label"] == "Equip",
-           "amulet selection acknowledgement never equips");
-    for (int cycle = 0; cycle < 2; ++cycle)
-    {
-        size_t sent = surface.commands.size();
-        router.OnEvent({"item-equip", "click", ""});
-        Expect(surface.commands.size() == sent + 1, "explicit amulet equip sends one guarded game action");
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
-                widget.context["worn"] = "1";
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
-            {
-                widget.label = "Amulet";
-                widget.context = {{"artefact", "1"}, {"label", "Amulet"}, {"itemId", "test-amulet"}};
-            }
-        ++model.revision;
-        router.SetInterface(model);
-        Expect(surface.props["slots"][7].value("name", "") == "Amulet" &&
-                   surface.props["detail"]["action"]["label"] == "<items.take_off>" &&
-                   !surface.props["detail"]["action"]["hold"],
-               "worn reply synchronizes slot and infinite amulet removal action");
-        sent = surface.commands.size();
-        router.OnEvent({"item-equip", "click", ""});
-        Expect(surface.commands.size() == sent + 1, "explicit amulet unequip works again on the repeated cycle");
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_ITEMS" && widget.row_id == "tr2")
-                widget.context["worn"] = "0";
-        for (Widget &widget : model.widgets)
-            if (widget.node == "ANDROID_SLOTS" && widget.row_id == "slot1")
-            {
-                widget.label.clear();
-                widget.context = {{"artefact", "1"}};
-            }
-        ++model.revision;
-        router.SetInterface(model);
-        Expect(surface.props["slots"][7]["empty"] == true && surface.props["detail"]["action"]["label"] == "Equip",
-               "unequipped reply clears worn slot and restores equip without a local equipment mutation");
-    }
-}
+    Expect(surface.commands.size() == chosen && surface.props["detail"]["title"] == "Dagger" &&
+               surface.props["detail"]["facts"][0]["dTone"] == "danger" &&
+               surface.props["detail"]["facts"][2]["dTone"] == "ok",
+           "choosing describes, never equips; its figures against the worn rapier");
+    router.OnEvent({"items", "row", "1"});
+    Expect(surface.commands.size() == chosen, "choosing it again sends nothing");
 
-static void ItemCategories(const std::string &models)
-{
-    ItemActionCases(models);
-    UndescribedRow(models);
-    TimedArtefact(models);
-    SlotOwnsParchment(models);
-    AmuletSlots(models);
-    SlotNamesFoldCase(models);
-    SameDisplayNames(models);
-    OtherRowsAction(models);
-    SlotFilters(models);
-    RepeatedActions(models);
+    // A slot lists what fits it and chooses what it holds.
+    router.OnEvent({"slot-0", "click", ""});
+    ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t0\tselect@5:inventory:7:character:1:role:0",
+                "the blade slot chooses the rapier it holds");
+    AnswerAll(router, surface, true);
+    model.revision += 1;
+    for (Widget &widget : model.widgets)
+        if (widget.node == "TABLE_ITEMS")
+            widget.value = widget.index == 0 ? "1" : "0";
+        else if (widget.node == "EQUIP_BUTTON")
+            widget.label = "Take off", widget.row_id = "inventory:7:character:1:role:0";
+    router.SetInterface(model);
+    Expect(surface.props["rows"].size() == 2 && surface.props["slots"][0]["selected"] == true, "and lists the blades");
+    router.OnEvent({"item-tabs", "select", "2"});
+    ExpectEqual(surface.Last(), "widget:items\tTABBTN_3\t-1\tpress", "a game category");
+    router.Tick();
+    Expect(surface.props["tabs"][2]["selected"] == true, "drawn chosen in the tap's frame");
+    AnswerAll(router, surface, true);
+    model.revision += 1;
+    router.SetInterface(model);
+    Expect(surface.props["slots"][0]["selected"] == false && surface.props["rows"].size() == 3,
+           "a category clears the slot filter");
+
+    // The game refuses the button: it stays, off, with the game's reason.
+    for (Widget &widget : model.widgets)
+        if (widget.node == "EQUIP_BUTTON")
+            widget.enabled = false, widget.actions.clear(), widget.unavailable_reason = "Needs a weapon perk";
+    model.revision += 1;
+    router.SetInterface(model);
+    const size_t refused = surface.commands.size();
+    router.OnEvent({"item-equip", "click", ""});
+    Expect(surface.commands.size() == refused && surface.props["detail"]["action"]["disabled"] == true &&
+               surface.props["detail"]["action"]["reason"] == "Needs a weapon perk",
+           "a refused button is off with the game's reason, and sends nothing");
+
+    // Another person: the game shows him a frame after his slot is chosen.
+    router.OnEvent({"header", "subject-next", ""});
+    ExpectEqual(surface.Last(), "widget:items\tCHARACTERS_SCROLL\t1\tselect@5:1:1", "the next person's things");
+    router.Tick();
+    Expect(surface.props["subject"]["label"] == "Jack Rackham", "his name in the tap's own frame");
+    AnswerAll(router, surface, true);
+    InterfaceModel step = Load(models, "../flows/items-jack-scroll.json");
+    step.revision = model.revision + 1;
+    router.SetInterface(step);
+    Expect(surface.props["subject"]["label"] == "Jack Rackham", "the game's step: still his name");
+    InterfaceModel jack = Load(models, "../flows/items-jack.json");
+    jack.revision = model.revision + 2;
+    router.SetInterface(jack);
+    Expect(surface.props["subject"]["label"] == "Jack Rackham" && surface.props["rows"][1]["cells"][1] == "\xC3\x97"
+                                                                                                          "2",
+           "the game shows his things");
+    router.OnEvent({"header", "subject-list", ""});
+    Expect(surface.props["subject"]["open"] == true && surface.props["subject"]["rows"].size() == 2,
+           "the people listed");
+    router.OnEvent({"header-subjects", "dismiss", ""});
+    Expect(surface.props["subject"]["open"] == false, "a tap beside the list closes it");
+
+    // The game's map window: back closes it.
+    InterfaceModel map = Load(models, "items.json");
+    map.revision = model.revision + 3;
+    map.widgets.push_back(Make("MAP_CAPTION", "text", "Treasure map"));
+    map.widgets.push_back(Make("MAP_EXIT_BTN", "button", "", {"press"}));
+    Widget picture = Make("MAP_PICTURE", "image");
+    picture.images.push_back(ImageRef{});
+    picture.images.back().kind = "texture";
+    picture.images.back().image = "interfaces/maps/treasure";
+    map.widgets.push_back(picture);
+    router.SetInterface(map);
+    Expect(surface.props["map"]["title"] == "Treasure map" &&
+               surface.props["map"]["image"]["texture"] == "interfaces/maps/treasure",
+           "the map window: the game's picture by its texture name");
+    Expect(router.WantsBack(), "back closes the map first");
+    router.Back();
+    ExpectEqual(surface.Last(), "widget:items\tMAP_EXIT_BTN\t-1\tpress", "back is the map's close");
 }
 
 // A HUD tap opens the character or the ship screen on its subject (hud::Hud::RequestSubject):
@@ -5726,7 +5112,6 @@ int main(int argc, char **argv)
     if (argc > 3 && std::string(argv[3]) == "items")
     {
         Items(models);
-        ItemCategories(models);
         return failures ? 1 : 0;
     }
     Amounts(models);
@@ -5757,7 +5142,6 @@ int main(int argc, char **argv)
     Hero(models);
     HeroPeople(models);
     Items(models);
-    ItemCategories(models);
     Ship(models);
     OpenOnSubject(models);
     Journal(models);

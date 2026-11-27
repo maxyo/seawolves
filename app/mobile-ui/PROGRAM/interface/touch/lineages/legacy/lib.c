@@ -328,3 +328,78 @@ string TouchLegLib_FlagOf(aref image)
 	if (image.kind != "atlas" || image.group != "NATIONS") return "";
 	return TouchLegLib_Flag(image.image);
 }
+
+// The people of the hero screens' character list CHARACTERS_SCROLL (FillCharactersScroll): the captain, the officers
+// on their posts, companions, passengers and prisoners, each once in the list's order with the captions of the slots
+// they fill (an officer may hold several posts), as out.people.p<k>.{character, label, meta, image, row (the index of
+// their first slot)}. Returns k of the person whose slot the list has selected, -1 none.
+int TouchLegLib_People(aref model, aref out)
+{
+	aref people;
+	makearef(people, out.people);
+	int listed = -1;
+	for (int n = 0; n < TouchLib_Count(model, "CHARACTERS_SCROLL.rows"); n++)
+	{
+		aref row = TouchLib_Item(model, "CHARACTERS_SCROLL.rows", n);
+		int slot = sti(row.index);
+		string pic = "pic" + (slot + 1);
+		if (!CheckAttribute(&GameInterface, "CHARACTERS_SCROLL." + pic + ".character"))
+			UiError("the character list has no person of its slot " + slot);
+		int character = sti(GameInterface.CHARACTERS_SCROLL.(pic).character);
+		// The list writes "0" for a free post; the captain's slot is the first.
+		if (slot > 0 && character == 0) continue;
+		string caption = "";
+		if (CheckAttribute(&GameInterface, "CHARACTERS_SCROLL." + pic + ".str1"))
+			caption = GameInterface.CHARACTERS_SCROLL.(pic).str1;
+		if (TouchLib_StartsWith(caption, "#")) caption = TouchLib_Cut(caption, 1, strlen(caption));
+		int k = 0;
+		while (k < GetAttributesNum(people))
+		{
+			aref known = GetAttributeN(people, k);
+			if (sti(known.character) == character) break;
+			k++;
+		}
+		aref person;
+		if (k == GetAttributesNum(people))
+		{
+			ref chr = GetCharacter(character);
+			person = TouchLib_Add(people, "p");
+			person.character = character;
+			person.label = GetFullName(chr);
+			person.meta = caption;
+			person.row = slot;
+			person.image = "";
+			if (CheckAttribute(chr, "FaceId"))
+			{
+				person.image.kind = "portrait";
+				person.image.image = chr.FaceId;
+			}
+		}
+		else
+		{
+			person = GetAttributeN(people, k);
+			if (caption != "") person.meta = person.meta + " · " + caption;
+		}
+		if (row.value == "1") listed = k;
+	}
+	return listed;
+}
+
+// Person k of TouchLegLib_People chosen in the character list: their first slot selected.
+void TouchLegLib_PickPerson(aref model, aref people, int k)
+{
+	aref person = TouchLib_Item(people, "people", k);
+	string node = "CHARACTERS_SCROLL";
+	for (int n = 0; n < TouchLib_Count(model, node + ".rows"); n++)
+	{
+		aref row = TouchLib_Item(model, node + ".rows", n);
+		if (sti(row.index) == sti(person.row))
+		{
+			if (!CheckAttribute(row, "offers.select")) UiError("the character list does not offer the slot " + row.index);
+			object action = {node = node, row = row.index, verb = "select", value = row.id};
+			UiSendTo(&action);
+			return;
+		}
+	}
+	UiError("the character list has no slot " + person.row);
+}

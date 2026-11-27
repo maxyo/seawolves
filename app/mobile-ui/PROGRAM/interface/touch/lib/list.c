@@ -181,3 +181,70 @@ bool TouchLib_SectionAsk(aref state, string own, string tapped)
 	state.asked = tapped;
 	return true;
 }
+
+// The header's switch over the people a screen shows one of: `people` entries {label, meta, image ("" none: a picture
+// {kind, group, image})}, k `shown`, its list open or not. Its events (TouchLib_SubjectOn in a build): header
+// subject-prev, subject-next, subject-list, header-subject-<k>, the list's ✕ header-subjects-close and its dismissal.
+void TouchLib_Subject(aref view, aref people, int shown, bool open)
+{
+	int count = GetAttributesNum(people);
+	if (shown < 0 || shown >= count) return;
+	aref person = GetAttributeN(people, shown);
+	view.label = person.label;
+	view.sub = "";
+	if (count > 1) view.sub = (shown + 1) + " " + UiText("common.of") + " " + count;
+	view.prev = shown > 0;
+	view.next = shown + 1 < count;
+	view.list = count > 1;
+	// The list is written closed too: a prediction is a change laid over later views, whose list may be either.
+	view.open = open && count > 1;
+	if (count < 2) return;
+	view.title = UiText("hero.subjects");
+	DeleteAttribute(view, "rows");
+	aref rows;
+	makearef(rows, view.rows);
+	for (int k = 0; k < count; k++)
+	{
+		person = GetAttributeN(people, k);
+		aref at = TouchLib_Add(rows, "r");
+		at.label = person.label;
+		at.meta = person.meta;
+		at.icon = "hero";
+		at.image = "";
+		if (CheckAttribute(person, "image.kind"))
+		{
+			aref image, from;
+			makearef(image, at.image);
+			makearef(from, person.image);
+			CopyAttributes(image, from);
+		}
+		at.selected = k == shown;
+	}
+}
+
+void TouchLib_SubjectOn(aref people, bool open)
+{
+	UiOn("header", "subject-prev");
+	UiOn("header", "subject-next");
+	UiOn("header", "subject-list");
+	int count = GetAttributesNum(people);
+	if (!open || count < 2) return;
+	for (int k = 0; k < count; k++) UiOn("header-subject-" + k, "");
+	UiOn("header-subjects-close", "");
+	UiModal("header-subjects", "header-subjects-close");
+}
+
+// A tap on the switch: k of the person it picks, -1 none; `state.open` follows the list opened and closed.
+int TouchLib_SubjectTap(aref state, string id, string verb, int shown, int count)
+{
+	if (id == "header" && verb == "subject-prev" && shown > 0) return shown - 1;
+	if (id == "header" && verb == "subject-next" && shown + 1 < count) return shown + 1;
+	if (id == "header" && verb == "subject-list") { state.open = true; UiRebuild(); return -1; }
+	if (id == "header-subjects-close") { state.open = false; UiRebuild(); return -1; }
+	if (!TouchLib_StartsWith(id, "header-subject-")) return -1;
+	state.open = false;
+	UiRebuild();
+	int k = TouchLib_TapIndex(TouchLib_Cut(id, 15, strlen(id)), count, "the person");
+	if (k == shown) return -1;
+	return k;
+}

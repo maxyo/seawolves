@@ -24,21 +24,14 @@
 {"node":"TABSTR_3","type":"text","label":"Misc","value":"1","index":-1},
 {"node":"TABBTN_4","type":"image","value":"0","index":-1,"images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"TABS","image":"TabSelected"}}],"actions":["press"]},
 {"node":"TABSTR_4","type":"text","label":"Amulets","value":"1","index":-1},
-{"node":"TABLE_ITEMS","type":"choice","label":"Saber\t3.1\t1\t3.1","value":"1","index":0,"rowId":"inventory:12:character:9:role:1","actions":["select","activate"],"cells":[{"text":"Saber","images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm4"}}]},{"text":"3.1"},{"text":"1"},{"text":"3.1"}]},
-{"node":"TABLE_ITEMS","type":"choice","label":"Potion\t0.2\t2\t0.4","value":"0","index":1,"rowId":"inventory:30:character:9:role:1","actions":["select","activate"],"cells":[{"text":"Potion","images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm3"}}]},{"text":"0.2"},{"text":"2"},{"text":"0.4"}]},
-{"node":"EQUIP_BUTTON","type":"button","label":"Take off","index":-1,"rowId":"inventory:12:character:9:role:1","actions":["press"]},
-{"node":"INFO_TEXT","type":"text","label":"A heavy curved blade.","value":"1","index":-1},
-{"node":"Weight_TEXT","type":"text","label":"Weight: 3.5 / 120","value":"1","index":-1},
+{"node":"TABLE_ITEMS","type":"choice","label":"Rapier\t2.4\t1\t2.4","value":"1","index":0,"rowId":"inventory:7:character:9:role:1","actions":["select","activate"],"cells":[{"text":"Rapier","images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm1"}}]},{"text":"2.4"},{"text":"1"},{"text":"2.4"}]},
+{"node":"TABLE_ITEMS","type":"choice","label":"Dagger\t1.5\t2\t3.0","value":"0","index":1,"rowId":"inventory:9:character:9:role:1","actions":["select","activate"],"cells":[{"text":"Dagger","images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm2"}}]},{"text":"1.5"},{"text":"2"},{"text":"3.0"}]},
+{"node":"EQUIP_BUTTON","type":"button","label":"Take off","index":-1,"rowId":"inventory:7:character:9:role:1","actions":["press"]},
+{"node":"INFO_TEXT","type":"text","label":"A light blade.","value":"1","index":-1},
+{"node":"Weight_TEXT","type":"text","label":"Weight: 5.4 / 120","value":"1","index":-1},
+{"node":"SETUP_FRAME_CAPTION","type":"text","label":"Equipment: Jack Rackham","value":"1","index":-1},
+{"node":"ITEM_1","type":"image","index":-1,"images":[{"handle":1,"imageRevision":1,"source":{"kind":"atlas","group":"ITEMS_1","image":"itm1"}}]},
 {"node":"CHARACTERS_SCROLL","type":"choice","label":"Captain · Anne","value":"0","index":0,"rowId":"1:0","actions":["select"]},
-{"node":"CHARACTERS_SCROLL","type":"choice","label":"Navigator · Jack","value":"1","index":1,"rowId":"1:1","actions":["select"]},
-{"node":"ANDROID_ROSTER","type":"fact","label":"Anne Bonny","index":0,"enabled":false,"rowId":"pic1","context":{"slot":"0","role":"Captain","character":"1","label":"Anne Bonny"}},
-{"node":"ANDROID_ROSTER","type":"fact","label":"Jack Rackham","index":1,"enabled":false,"rowId":"pic2","context":{"slot":"1","post":"navigator","role":"Navigator","character":"9","label":"Jack Rackham"}},
-{"node":"ANDROID_SUBJECT","type":"fact","label":"Jack Rackham","index":0,"enabled":false,"rowId":"s0","context":{"character":"9","label":"Jack Rackham","rank":"5","hero":"0","loyalty":"Good","salary":"1500"}},
-{"node":"ANDROID_ITEMS","type":"fact","index":0,"enabled":false,"rowId":"tr1","context":{"slot":"blade","worn":"1","quest":"0","map":"0","action":"equip","attack":"72.0","balance":"0.9","weight":"3.1","itemId":"fixture-item-saber"}},
-{"node":"ANDROID_ITEMS","type":"fact","index":1,"enabled":false,"rowId":"tr2","context":{"slot":"","worn":"0","quest":"0","map":"0","action":"","itemId":"fixture-item-tr3"}},
-{"node":"ANDROID_SLOTS","type":"fact","label":"Saber","index":0,"enabled":false,"rowId":"blade","context":{"label":"Saber","group":"ITEMS_1","image":"itm4","attack":"72.0","balance":"0.9","weight":"3.1","itemId":"fixture-item-saber"}},
-{"node":"ANDROID_SLOTS","type":"fact","label":"","index":1,"enabled":false,"rowId":"slot1","context":{"artefact":"1"}},
-{"node":"ANDROID_SLOTS","type":"fact","label":"","index":2,"enabled":false,"rowId":"slot2","context":{"artefact":"1"}},
-{"node":"ANDROID_SLOTS","type":"fact","label":"","index":3,"enabled":false,"rowId":"slot3","context":{"artefact":"1"}},
-{"node":"ANDROID_INFO","type":"fact","index":0,"enabled":false,"rowId":"i0","context":{"row":"tr1","text":"A heavy curved blade.","kind":"Sabres","weight":"3.1"}}
-]}
+{"node":"CHARACTERS_SCROLL","type":"choice","label":"Navigator · Jack","value":"1","index":1,"rowId":"1:1","actions":["select"]}
+]
+}

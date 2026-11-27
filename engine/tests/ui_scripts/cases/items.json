@@ -1,0 +1,3999 @@
+{
+ "$comment": "The items screen (interface items) over the fixture game's people and items: recorded models, the props its view gives s-items, the calls of its build and events.",
+ "cases": [
+  {
+   "name": "the captain's things, the worn rapier chosen; a row, the action, a slot, a category, the next person, a section, leaving",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "1",
+      "index": 0,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t1\t1.5",
+      "value": "0",
+      "index": 1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "1.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Potion\t0.2\t3\t0.6",
+      "value": "0",
+      "index": 2,
+      "rowId": "inventory:30:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Potion",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm3"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.2"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "0.6"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Take off",
+      "index": -1,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [
+    [
+     "items",
+     "row",
+     "1"
+    ],
+    [
+     "item-equip",
+     "click",
+     ""
+    ],
+    [
+     "slot-0",
+     "click",
+     ""
+    ],
+    [
+     "item-tabs",
+     "select",
+     "2"
+    ],
+    [
+     "header",
+     "subject-next",
+     ""
+    ],
+    [
+     "header",
+     "section",
+     "ship"
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "item-equip",
+      "label": "Take off",
+      "reason": "<items.unavailable>",
+      "variant": "primary"
+     },
+     "facts": [
+      {
+       "k": "<items.attack>",
+       "v": "60.0"
+      },
+      {
+       "k": "<items.balance>",
+       "v": "1.4"
+      },
+      {
+       "k": "<items.weight>",
+       "v": "2.4"
+      },
+      {
+       "k": "<items.kind>",
+       "v": "Rapiers"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_1/itm1"
+     },
+     "sub": "<items.slot_blade> · <items.worn>",
+     "text": "A light blade.",
+     "title": "Rapier"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm1"
+        },
+        "text": "Rapier"
+       },
+       "",
+       "2.4"
+      ],
+      "id": "r0",
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm2"
+        },
+        "text": "Dagger"
+       },
+       "",
+       "1.5"
+      ],
+      "id": "r1",
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm3"
+        },
+        "text": "Potion"
+       },
+       "×3",
+       "0.6"
+      ],
+      "id": "r2",
+      "selected": false
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "7",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "4.6 / 140"
+     }
+    ],
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 2",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": true
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": false
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": [
+    "send TABLE_ITEMS#1 select inventory:9:character:1:role:0",
+    "hold",
+    "send EQUIP_BUTTON press inventory:7:character:1:role:0",
+    "hold",
+    "rebuild",
+    "send TABBTN_3 press ",
+    "hold",
+    "send CHARACTERS_SCROLL#1 select 1:1",
+    "hold",
+    "send I_SHIP press ",
+    "hold",
+    "back "
+   ]
+  },
+  {
+   "name": "the dagger chosen: its figures against the worn rapier; under the blade slot",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "0",
+      "index": 0,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t1\t1.5",
+      "value": "1",
+      "index": 1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "1.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Potion\t0.2\t3\t0.6",
+      "value": "0",
+      "index": 2,
+      "rowId": "inventory:30:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Potion",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm3"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.2"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "0.6"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Equip that",
+      "index": -1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A short blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [
+    [
+     "slot-0",
+     "click",
+     ""
+    ],
+    [
+     "item-equip",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "item-equip",
+      "label": "Equip that",
+      "reason": "<items.unavailable>",
+      "variant": "primary"
+     },
+     "facts": [
+      {
+       "d": "−25.5",
+       "dTone": "danger",
+       "k": "<items.attack>",
+       "v": "34.5"
+      },
+      {
+       "d": "+0.6",
+       "k": "<items.balance>",
+       "v": "2.0"
+      },
+      {
+       "d": "−0.9",
+       "dTone": "ok",
+       "k": "<items.weight>",
+       "v": "1.5"
+      },
+      {
+       "k": "<items.kind>",
+       "v": "Rapiers"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_1/itm2"
+     },
+     "sub": "<items.slot_blade>",
+     "text": "A short blade.",
+     "title": "Dagger"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm1"
+        },
+        "text": "Rapier"
+       },
+       "",
+       "2.4"
+      ],
+      "id": "r0",
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm2"
+        },
+        "text": "Dagger"
+       },
+       "",
+       "1.5"
+      ],
+      "id": "r1",
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm3"
+        },
+        "text": "Potion"
+       },
+       "×3",
+       "0.6"
+      ],
+      "id": "r2",
+      "selected": false
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "7",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "4.6 / 140"
+     }
+    ],
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 2",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": true
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": false
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": [
+    "send TABLE_ITEMS#0 select inventory:7:character:1:role:0",
+    "hold",
+    "send EQUIP_BUTTON press inventory:9:character:1:role:0",
+    "hold"
+   ]
+  },
+  {
+   "name": "a passenger with a long name",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "1",
+      "index": 0,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t1\t1.5",
+      "value": "0",
+      "index": 1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "1.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Potion\t0.2\t3\t0.6",
+      "value": "0",
+      "index": 2,
+      "rowId": "inventory:30:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Potion",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm3"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.2"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "0.6"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Take off",
+      "index": -1,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Bartholomew de la Fontaine-Beaumarchais",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "0",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Passenger · Bartholomew",
+      "value": "1",
+      "index": 2,
+      "rowId": "1:2",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "item-equip",
+      "label": "Take off",
+      "reason": "<items.unavailable>",
+      "variant": "primary"
+     },
+     "facts": [
+      {
+       "k": "<items.attack>",
+       "v": "60.0"
+      },
+      {
+       "k": "<items.balance>",
+       "v": "1.4"
+      },
+      {
+       "k": "<items.weight>",
+       "v": "2.4"
+      },
+      {
+       "k": "<items.kind>",
+       "v": "Rapiers"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_1/itm1"
+     },
+     "sub": "<items.slot_blade> · <items.worn>",
+     "text": "A light blade.",
+     "title": "Rapier"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm1"
+        },
+        "text": "Rapier"
+       },
+       "",
+       "2.4"
+      ],
+      "id": "r0",
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm2"
+        },
+        "text": "Dagger"
+       },
+       "",
+       "1.5"
+      ],
+      "id": "r1",
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm3"
+        },
+        "text": "Potion"
+       },
+       "×3",
+       "0.6"
+      ],
+      "id": "r2",
+      "selected": false
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "7",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "4.6 / 140"
+     }
+    ],
+    "subject": {
+     "label": "Bartholomew de la Fontaine-Beaumarchais",
+     "list": true,
+     "next": false,
+     "open": false,
+     "prev": true,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_3"
+       },
+       "label": "Bartholomew de la Fontaine-Beaumarchais",
+       "meta": "Passenger",
+       "selected": true
+      }
+     ],
+     "sub": "3 <common.of> 3",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": true
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": false
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": []
+  },
+  {
+   "name": "the navigator picked: his name over what the game still shows of the captain",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "1",
+      "index": 0,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t1\t1.5",
+      "value": "0",
+      "index": 1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "1.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Potion\t0.2\t3\t0.6",
+      "value": "0",
+      "index": 2,
+      "rowId": "inventory:30:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Potion",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm3"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.2"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "0.6"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Take off",
+      "index": -1,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "0",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "1",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "item-equip",
+      "label": "Take off",
+      "reason": "<items.unavailable>",
+      "variant": "primary"
+     },
+     "facts": [
+      {
+       "k": "<items.attack>",
+       "v": "60.0"
+      },
+      {
+       "k": "<items.balance>",
+       "v": "1.4"
+      },
+      {
+       "k": "<items.weight>",
+       "v": "2.4"
+      },
+      {
+       "k": "<items.kind>",
+       "v": "Rapiers"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_1/itm1"
+     },
+     "sub": "<items.slot_blade> · <items.worn>",
+     "text": "A light blade.",
+     "title": "Rapier"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm1"
+        },
+        "text": "Rapier"
+       },
+       "",
+       "2.4"
+      ],
+      "id": "r0",
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm2"
+        },
+        "text": "Dagger"
+       },
+       "",
+       "1.5"
+      ],
+      "id": "r1",
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm3"
+        },
+        "text": "Potion"
+       },
+       "×3",
+       "0.6"
+      ],
+      "id": "r2",
+      "selected": false
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "7",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "4.6 / 140"
+     }
+    ],
+    "subject": {
+     "label": "Jack Rackham",
+     "list": true,
+     "next": false,
+     "open": false,
+     "prev": true,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": true
+      }
+     ],
+     "sub": "2 <common.of> 2",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": true
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": false
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": []
+  },
+  {
+   "name": "the navigator's things: what the game shows of his",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "1",
+      "index": 0,
+      "rowId": "inventory:7:character:9:role:1",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t2\t3.0",
+      "value": "0",
+      "index": 1,
+      "rowId": "inventory:9:character:9:role:1",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "2"
+       },
+       {
+        "text": "3.0"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Take off",
+      "index": -1,
+      "rowId": "inventory:7:character:9:role:1",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 5.4 / 120",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Jack Rackham",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "0",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "1",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": false,
+      "id": "item-equip",
+      "label": "Take off",
+      "reason": "<items.unavailable>",
+      "variant": "primary"
+     },
+     "facts": [
+      {
+       "k": "<items.attack>",
+       "v": "60.0"
+      },
+      {
+       "k": "<items.balance>",
+       "v": "1.4"
+      },
+      {
+       "k": "<items.weight>",
+       "v": "2.4"
+      },
+      {
+       "k": "<items.kind>",
+       "v": "Rapiers"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_1/itm1"
+     },
+     "sub": "<items.slot_blade> · <items.worn>",
+     "text": "A light blade.",
+     "title": "Rapier"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm1"
+        },
+        "text": "Rapier"
+       },
+       "",
+       "2.4"
+      ],
+      "id": "r0",
+      "selected": true
+     },
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_1/itm2"
+        },
+        "text": "Dagger"
+       },
+       "×2",
+       "3.0"
+      ],
+      "id": "r1",
+      "selected": false
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "7",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "5.4 / 120"
+     }
+    ],
+    "subject": {
+     "label": "Jack Rackham",
+     "list": true,
+     "next": false,
+     "open": false,
+     "prev": true,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": false
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": true
+      }
+     ],
+     "sub": "2 <common.of> 2",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": true
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": false
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": []
+  },
+  {
+   "name": "the amulets, the worn timed one chosen: its days, taking it off uses it up",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Charm\t0.5\t1\t0.5",
+      "value": "0",
+      "index": 3,
+      "rowId": "inventory:31:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Charm",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_2",
+           "image": "itm5"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "0.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Worn charm\t0.5\t1\t0.5",
+      "value": "1",
+      "index": 4,
+      "rowId": "inventory:32:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Worn charm",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_2",
+           "image": "itm6"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "0.5"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Delete that",
+      "index": -1,
+      "rowId": "inventory:32:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SLOT_ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_2",
+         "image": "itm6"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SLOT1_TEXT",
+      "type": "text",
+      "label": "12/30",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     }
+    ]
+   },
+   "events": [
+    [
+     "item-equip",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "detail": {
+     "action": {
+      "busy": false,
+      "disabled": false,
+      "hold": true,
+      "id": "item-equip",
+      "label": "Delete that",
+      "reason": "<items.unavailable>",
+      "variant": "danger"
+     },
+     "facts": [
+      {
+       "k": "<items.weight>",
+       "v": "0.5"
+      },
+      {
+       "k": "<items.term>",
+       "v": "<items.days_left> 12"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "atlas:ITEMS_2/itm6"
+     },
+     "sub": "<items.slot_amulet> · <items.worn>",
+     "text": "A charm that wears out.",
+     "title": "Worn charm"
+    },
+    "empty": "<items.none>",
+    "headerSection": "items",
+    "rows": [
+     {
+      "cells": [
+       {
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_2/itm5"
+        },
+        "text": "Charm"
+       },
+       "",
+       "0.5"
+      ],
+      "id": "r0",
+      "selected": false
+     },
+     {
+      "cells": [
+       {
+        "badge": "check",
+        "image": {
+         "kind": "item",
+         "texture": "atlas:ITEMS_2/itm6"
+        },
+        "text": "Worn charm"
+       },
+       "",
+       "0.5"
+      ],
+      "id": "r1",
+      "selected": true
+     }
+    ],
+    "slots": [
+     {
+      "empty": false,
+      "icon": "sabre",
+      "id": "0",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_1/itm1"
+      },
+      "label": "<items.slot_blade>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "pistol",
+      "id": "1",
+      "label": "<items.slot_gun>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "musket",
+      "id": "2",
+      "label": "<items.slot_musket>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "spyglass",
+      "id": "3",
+      "label": "<items.slot_spyglass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "shield",
+      "id": "4",
+      "label": "<items.slot_cirass>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-ruby",
+      "id": "5",
+      "label": "<items.slot_talisman>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "compass",
+      "id": "6",
+      "label": "<items.slot_tool>",
+      "selected": false
+     },
+     {
+      "empty": false,
+      "icon": "c-amulet",
+      "id": "7",
+      "image": {
+       "kind": "item",
+       "texture": "atlas:ITEMS_2/itm6"
+      },
+      "label": "<items.days> 12",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "8",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     },
+     {
+      "empty": true,
+      "icon": "c-amulet",
+      "id": "9",
+      "label": "<items.slot_amulet>",
+      "selected": false
+     }
+    ],
+    "stats": [
+     {
+      "icon": "weight",
+      "value": "4.6 / 140"
+     }
+    ],
+    "subject": {
+     "label": "Anne Bonny",
+     "list": true,
+     "next": true,
+     "open": false,
+     "prev": false,
+     "rows": [
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_7"
+       },
+       "label": "Anne Bonny",
+       "meta": "Captain",
+       "selected": true
+      },
+      {
+       "icon": "hero",
+       "image": {
+        "kind": "portrait",
+        "texture": "INTERFACES/PORTRAITS/128/face_12"
+       },
+       "label": "Jack Rackham",
+       "meta": "Navigator",
+       "selected": false
+      }
+     ],
+     "sub": "1 <common.of> 2",
+     "title": "<hero.subjects>"
+    },
+    "tabs": [
+     {
+      "id": "0",
+      "label": "All",
+      "selected": false
+     },
+     {
+      "id": "1",
+      "label": "Gear",
+      "selected": false
+     },
+     {
+      "id": "2",
+      "label": "Misc",
+      "selected": false
+     },
+     {
+      "id": "3",
+      "label": "Amulets",
+      "selected": true
+     }
+    ],
+    "title": "  Items  "
+   },
+   "calls": [
+    "send EQUIP_BUTTON press inventory:32:character:1:role:0",
+    "hold"
+   ]
+  },
+  {
+   "name": "the game's map window: back closes it",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 20,
+    "screenRevision": 5,
+    "screen": "items",
+    "widgets": [
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Items  ",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Character",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Questbook",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_NATIONS_2",
+      "type": "button",
+      "label": "Nations",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Tradebook",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "value": "1",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_1",
+      "type": "text",
+      "label": "All",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_2",
+      "type": "text",
+      "label": "Gear",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_3",
+      "type": "text",
+      "label": "Misc",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_4",
+      "type": "image",
+      "value": "0",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_4",
+      "type": "text",
+      "label": "Amulets",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Rapier\t2.4\t1\t2.4",
+      "value": "1",
+      "index": 0,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Rapier",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm1"
+          }
+         }
+        ]
+       },
+       {
+        "text": "2.4"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "2.4"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Dagger\t1.5\t1\t1.5",
+      "value": "0",
+      "index": 1,
+      "rowId": "inventory:9:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Dagger",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm2"
+          }
+         }
+        ]
+       },
+       {
+        "text": "1.5"
+       },
+       {
+        "text": "1"
+       },
+       {
+        "text": "1.5"
+       }
+      ]
+     },
+     {
+      "node": "TABLE_ITEMS",
+      "type": "choice",
+      "label": "Potion\t0.2\t3\t0.6",
+      "value": "0",
+      "index": 2,
+      "rowId": "inventory:30:character:1:role:0",
+      "actions": [
+       "select",
+       "activate"
+      ],
+      "cells": [
+       {
+        "text": "Potion",
+        "images": [
+         {
+          "handle": 1,
+          "imageRevision": 1,
+          "source": {
+           "kind": "atlas",
+           "group": "ITEMS_1",
+           "image": "itm3"
+          }
+         }
+        ]
+       },
+       {
+        "text": "0.2"
+       },
+       {
+        "text": "3"
+       },
+       {
+        "text": "0.6"
+       }
+      ]
+     },
+     {
+      "node": "EQUIP_BUTTON",
+      "type": "button",
+      "label": "Take off",
+      "index": -1,
+      "rowId": "inventory:7:character:1:role:0",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "A light blade.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "Weight_TEXT",
+      "type": "text",
+      "label": "Weight: 4.6 / 140",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "SETUP_FRAME_CAPTION",
+      "type": "text",
+      "label": "Equipment: Anne Bonny",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ITEM_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "atlas",
+         "group": "ITEMS_1",
+         "image": "itm1"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Captain · Anne",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHARACTERS_SCROLL",
+      "type": "choice",
+      "label": "Navigator · Jack",
+      "value": "0",
+      "index": 1,
+      "rowId": "1:1",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "MAP_CAPTION",
+      "type": "text",
+      "label": "Treasure map",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "MAP_TEXT",
+      "type": "text",
+      "label": "A cross on the south shore.",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "MAP_EXIT_BTN",
+      "type": "button",
+      "label": "",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "MAP_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "kind": "texture",
+         "image": "interfaces/maps/treasure"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "headerSection": "",
+    "map": {
+     "image": {
+      "kind": "item",
+      "texture": "interfaces/maps/treasure"
+     },
+     "text": "A cross on the south shore.",
+     "title": "Treasure map"
+    },
+    "title": "  Items  "
+   },
+   "calls": [
+    "send MAP_EXIT_BTN press ",
+    "hold"
+   ]
+  }
+ ]
+}

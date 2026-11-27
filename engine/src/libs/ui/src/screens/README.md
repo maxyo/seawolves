@@ -110,7 +110,7 @@ result. Three rules keep that free of flicker:
   declared for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is
   not predicted. A handler that alone knows the result says `bindings.PredictThis(…)`: a script screen's `UiPredict`
   gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (settings, the generic layout,
-  Other), the items screen's rows and category tabs, the hero sections of the header (`SectionSwitch`,
+  Other), the hero sections of the header (`SectionSwitch`,
   controls.h: the tapped section is selected over the shown section's body until the game opens the chosen one,
   a game frame later), and the person picked in the header of the hero screens (`SubjectSwitch::PredictChoice`: the
   game's list selects the slot at once and shows the person a game frame later; the header itself follows the person

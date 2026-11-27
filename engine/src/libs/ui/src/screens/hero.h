@@ -1,4 +1,4 @@
-// Shared parts of the hero section screens (hero_character.cpp, hero_items.cpp, …): reading
+// Shared parts of the hero section screens (hero_character.cpp, hero_ship.cpp, …): reading
 // the interface adapter's facts (android_hero.c, widgets ANDROID_<LIST>), game numbers and
 // words, and the header's switch over the people of the game's character list.
 #pragma once
@@ -17,7 +17,7 @@ namespace storm::ui::screens::hero
 {
 
 // A field of an adapter fact row ("" when absent). Script attribute names are case-insensitive and keep
-// whichever spelling was interned first (itemId may arrive as itemid), so the lookup ignores case.
+// whichever spelling was interned first (rateSelf may arrive as rateself), so the lookup ignores case.
 std::string Field(const Widget *fact, const char *key);
 // A whole-number field of an adapter fact (ParseAmount): 0 when the fact omits it (the adapter leaves out the fields
 // that do not apply, such as the captain's salary), an error line (Amount) when it holds no number.

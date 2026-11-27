@@ -47,6 +47,7 @@
     {"file": "interface/touch/contracts/repair.c"},
     {"file": "interface/touch/contracts/tradebook.c"},
     {"file": "interface/touch/contracts/journal.c"},
+    {"file": "interface/touch/contracts/items.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -379,6 +380,62 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/items.c",
+      "requires": [
+        "fn:GetCharacter/1", "fn:GetFullName/1", "fn:IsEquipCharacterByItem/2", "fn:IsEquipCharacterByArtefact/2",
+        "fn:GetCharacterEquipByGroup/2", "fn:GetCharacterEquipBySlot/2", "fn:GetCharacterEquipSlot/2",
+        "fn:GetCharacterSlotRemainTime/2", "fn:GetItemIndex/1", "var:Items", "var:GameInterface"
+      ],
+      "provides": ["adapter:items"],
+      "binds": [
+        {
+          "capability": "items",
+          "interface": "items",
+          "nodes": [
+            ["TITLE", "heading"], ["TABLE_ITEMS", "choice", true], ["EQUIP_BUTTON", "button", true],
+            ["TABBTN_*", "image"], ["TABSTR_*", "text"], ["CHARACTERS_SCROLL", "choice"], ["UP_BUTTON", "button"],
+            ["DOWN_BUTTON", "button"], ["SETUP_FRAME_CAPTION", "text"], ["SETUP_BIG_PICTURE", "image"],
+            ["ITEM_*", "image"], ["SLOT_ITEM_*", "image"], ["SLOT_PIC_*", "image"], ["SLOT1_TEXT", "text"],
+            ["SLOT2_TEXT", "text"], ["SLOT3_TEXT", "text"], ["INFO_PIC", "image"], ["INFO_TEXT", "text"],
+            ["Weight_PIC", "image"], ["Weight_TEXT", "text"], ["Money_PIC", "image"], ["Money_TEXT", "text"],
+            ["MAIN_BACK", "image"], ["EXIT_BTN", "button"], "@hero-sections", ["MAP_*", "text|image|button"]
+          ],
+          "data": {
+            "slots": {
+              "s0": {"node": "ITEM_1", "group": "blade", "label": "items.slot_blade", "icon": "sabre"},
+              "s1": {"node": "ITEM_2", "group": "gun", "label": "items.slot_gun", "icon": "pistol"},
+              "s2": {"node": "ITEM_5", "group": "gun", "label": "items.slot_musket", "icon": "musket"},
+              "s3": {"node": "ITEM_3", "group": "spyglass", "label": "items.slot_spyglass", "icon": "spyglass"},
+              "s4": {"node": "ITEM_4", "group": "cirass", "label": "items.slot_cirass", "icon": "shield"},
+              "s5": {"node": "ITEM_6", "group": "talisman", "label": "items.slot_talisman", "icon": "c-ruby"},
+              "s6": {"node": "ITEM_7", "group": "tool", "label": "items.slot_tool", "icon": "compass"}
+            },
+            "artefact": {
+              "group": "slot", "label": "items.slot_amulet", "icon": "c-amulet",
+              "nodes": {"slot1": "SLOT_ITEM_1", "slot2": "SLOT_ITEM_2", "slot3": "SLOT_ITEM_3"}
+            },
+            "figures": {
+              "blade": {
+                "f0": {"attr": "Attack", "key": "items.attack", "digits": 1, "better": 1},
+                "f1": {"attr": "Balance", "key": "items.balance", "digits": 1, "better": 0},
+                "f2": {"attr": "Weight", "key": "items.weight", "digits": 1, "better": -1}
+              },
+              "gun": {
+                "f0": {"attr": "dmg_min", "key": "items.dmg_min", "digits": 0, "better": 1},
+                "f1": {"attr": "dmg_max", "key": "items.dmg_max", "digits": 0, "better": 1},
+                "f2": {"attr": "chargespeed", "key": "items.reload", "digits": 0, "better": -1},
+                "f3": {"attr": "accuracy", "key": "items.accuracy", "digits": 0, "better": 1},
+                "f4": {"attr": "Weight", "key": "items.weight", "digits": 1, "better": -1}
+              }
+            },
+            "kinds": {"blade": "FencingType"},
+            "quest": {"QUESTITEMS": true, "QUESTITEM": true},
+            "texts": "ItemsDescribe.txt"
+          }
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -520,6 +577,11 @@
       "file": "interface/touch/screens/hero/journal.c",
       "uses": ["adapter:journal"],
       "screens": [{"capability": "journal", "component": "s-journal"}]
+    },
+    {
+      "file": "interface/touch/screens/hero/items.c",
+      "uses": ["adapter:items"],
+      "screens": [{"capability": "items", "component": "s-items"}]
     }
   ]
 }

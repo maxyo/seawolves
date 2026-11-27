@@ -54,7 +54,9 @@
 - Способности: «Изучить» доступна для любой неизученной способности, решает игра. Если игра отказывает, кнопка
   гаснет, а недостающее (нужные способности или очки) подсвечивается.
 - Предметы: причина недоступной кнопки больше не придумывается (раньше называлась только одна из причин игры);
-  ячеек для амулетов столько, сколько их у персонажа в игре.
+  ячеек для амулетов столько, сколько их у персонажа в игре. Кнопка действия называется так, как её называет игра
+  («Взять», «Снять», «Удалить»), и доступна, когда игра её разрешает. Ячейки пистолета и мушкета показывают всё
+  огнестрельное оружие.
 - Нации: флаги больше не гасятся интерфейсом заранее. Флаг, который игра не даёт поднять, гаснет после
   нажатия, а выбранный флаг остаётся прежним. Оттенок репутации берётся из слова самой игры. Подсказка игры к
   репутации и флагу открывается листом для чтения.
@@ -149,7 +151,8 @@
 - Abilities: "Learn" is offered for every ability not yet learned; the game decides. When the game refuses, the button
   goes off and what is missing (the abilities needed, or points) pulses.
 - Items: a disabled button no longer gives a reason we made up (it named only one of the game's reasons); there are
-  as many amulet slots as the character has in the game.
+  as many amulet slots as the character has in the game. The action button carries the game's own caption (equip,
+  remove, delete) and is enabled when the game allows it. The pistol and musket slots both list every firearm.
 - Nations: flags are no longer greyed out in advance by the interface. A flag the game will not raise goes off
   after a tap, and the chosen flag stays as it was. The tone of a reputation follows the game's own word. The game's
   help on reputation and flags opens as a reading sheet.

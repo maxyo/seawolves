@@ -23,5 +23,6 @@
   "map_paper": "The paper map of the islands and their colonies",
   "tradebook": "The prices the hero has seen in each colony, colony by colony",
   "journal": "The hero's journal: quests, documents, assets and statistics as the game records them",
-  "trade_loot": "Take the goods of a captured town's stores into the hold"
+  "trade_loot": "Take the goods of a captured town's stores into the hold",
+  "items": "What a person of the company carries and wears, and the game's action on one of their things"
 }

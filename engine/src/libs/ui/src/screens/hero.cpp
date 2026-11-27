@@ -19,8 +19,7 @@ std::string Field(const Widget *fact, const char *key)
     if (it != fact->context.end())
         return it->second;
     // Script attributes are case-insensitive and their shared string codec keeps whichever spelling was interned
-    // first. Real AndroidFacts can therefore export itemid although the adapter wrote itemId. Keep that same lookup
-    // rule here: losing the identity makes a selected worn item look unrelated to its slot and hides its parchment.
+    // first: real AndroidFacts can export a field in another case than the adapter wrote it.
     const std::string folded = Lower(key);
     for (const auto &[name, value] : fact->context)
         if (Lower(name) == folded)

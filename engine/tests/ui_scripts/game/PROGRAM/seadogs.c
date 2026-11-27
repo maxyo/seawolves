@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[25];
+object Interfaces[26];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -112,7 +112,7 @@ more";
 
 // What the crew adapter reads of the game: the characters whose ships the hire's scroll shows, the colony whose
 // tavern it is, and the crews the window keeps from before the amount set (NullCharacter.TavernBak).
-object Characters[3];
+object Characters[12];
 object Colonies[2];
 object NullCharacter;
 object TestLocation;
@@ -123,6 +123,34 @@ int FindColony(string id)
 	for (int i = 0; i < 2; i++)
 	{
 		if (Colonies[i].id == id) return i;
+	}
+	return -1;
+}
+
+// What the items adapter calls of the game: Items[] (the rapier 7, the dagger 9, the potion 30, an amulet 31, a timed
+// amulet 32), the people Characters[] (the captain 1 Anne Bonny, the navigator 9 Jack Rackham, the passenger 2
+// Bartholomew de la Fontaine-Beaumarchais), what they wear (equip.<group>, equip_item.<slot>: each the rapier, three
+// artefact slots) and the item texts: their keys.
+object Items[40];
+
+ref GetCharacter(int index)
+{
+	return &Characters[index];
+}
+
+string GetFullName(ref chr)
+{
+	return chr.name + " " + chr.lastname;
+}
+
+int GetItemIndex(string id)
+{
+	for (int i = 0; i < 40; i++)
+	{
+		if (CheckAttribute(&Items[i], "id"))
+		{
+			if (Items[i].id == id) return i;
+		}
 	}
 	return -1;
 }
@@ -162,6 +190,126 @@ int GetSquadronGoods(ref chr, int good)
 	return sti(TestHold.(slot));
 }
 
+bool IsEquipCharacterByItem(ref chr, string id)
+{
+	aref equip;
+	makearef(equip, chr.equip);
+	for (int i = 0; i < GetAttributesNum(equip); i++)
+	{
+		if (GetAttributeValue(GetAttributeN(equip, i)) == id) return true;
+	}
+	return false;
+}
+
+bool IsEquipCharacterByArtefact(ref chr, string id)
+{
+	return GetCharacterEquipSlot(chr, id) != "";
+}
+
+string GetCharacterEquipByGroup(ref chr, string group)
+{
+	if (CheckAttribute(chr, "equip." + group)) return chr.equip.(group);
+	return "";
+}
+
+string GetCharacterEquipBySlot(ref chr, string slot)
+{
+	if (CheckAttribute(chr, "equip_item." + slot)) return chr.equip_item.(slot);
+	return "";
+}
+
+string GetCharacterEquipSlot(ref chr, string id)
+{
+	aref equip;
+	makearef(equip, chr.equip_item);
+	for (int i = 0; i < GetAttributesNum(equip); i++)
+	{
+		if (GetAttributeValue(GetAttributeN(equip, i)) == id) return GetAttributeName(GetAttributeN(equip, i));
+	}
+	return "";
+}
+
+string GetCharacterSlotRemainTime(ref chr, string slot)
+{
+	if (!CheckAttribute(chr, "equip_item." + slot + ".time")) return "";
+	if (sti(chr.equip_item.(slot).time) < 0) return "";
+	return chr.equip_item.(slot).time;
+}
+
+int LanguageOpenFile(string name)
+{
+	return 1;
+}
+
+string LanguageConvertString(int file, string key)
+{
+	return key;
+}
+
+void LanguageCloseFile(int file)
+{
+}
+
+string GetAssembledString(string text, aref item)
+{
+	return text;
+}
+
+void TestItem(int index, string id, string group, string weight, string describe)
+{
+	Items[index].id = id;
+	if (group != "") Items[index].groupID = group;
+	Items[index].Weight = weight;
+	Items[index].describe = describe;
+}
+
+void TestPerson(int index, string name, string lastname, string face)
+{
+	Characters[index].index = index;
+	Characters[index].name = name;
+	Characters[index].lastname = lastname;
+	Characters[index].FaceId = face;
+	Characters[index].equip.blade = "rapier";
+	Characters[index].equip_item.slot1 = "";
+	Characters[index].equip_item.slot2 = "";
+	Characters[index].equip_item.slot3 = "";
+}
+
+void TestItems()
+{
+	TestItem(7, "rapier", "blade", "2.4", "A light blade.");
+	Items[7].Attack = 60;
+	Items[7].Balance = 1.4;
+	Items[7].FencingType = "Rapiers";
+	TestItem(9, "dagger", "blade", "1.5", "A short blade.");
+	Items[9].Attack = 34.5;
+	Items[9].Balance = 2.0;
+	Items[9].FencingType = "Rapiers";
+	TestItem(30, "potion1", "", "0.2", "Heals wounds.");
+	TestItem(31, "amulet1", "slot", "0.5", "A charm.");
+	Items[31].time = -1;
+	TestItem(32, "amulet2", "slot", "0.5", "A charm that wears out.");
+	Items[32].time = 30;
+	TestPerson(1, "Anne", "Bonny", "7");
+	TestPerson(9, "Jack", "Rackham", "12");
+	TestPerson(2, "Bartholomew", "de la Fontaine-Beaumarchais", "3");
+	// The captain wears the timed amulet in her first artefact slot, 12 of its 30 days left.
+	Characters[1].equip_item.slot1 = "amulet2";
+	Characters[1].equip_item.slot1.time = 12;
+	GameInterface.CHARACTERS_SCROLL.pic1.character = 1;
+	GameInterface.CHARACTERS_SCROLL.pic1.str1 = "#Captain";
+	GameInterface.CHARACTERS_SCROLL.pic2.character = 9;
+	GameInterface.CHARACTERS_SCROLL.pic2.str1 = "#Navigator";
+	GameInterface.CHARACTERS_SCROLL.pic3.character = 2;
+	GameInterface.CHARACTERS_SCROLL.pic3.str1 = "#Passenger";
+	// The window's rows: tr1 the rapier, tr2 the dagger, tr3 the potion, tr4 and tr5 the amulets.
+	GameInterface.TABLE_ITEMS.tr1.index = 7;
+	GameInterface.TABLE_ITEMS.tr2.index = 9;
+	GameInterface.TABLE_ITEMS.tr3.index = 30;
+	GameInterface.TABLE_ITEMS.tr4.index = 31;
+	GameInterface.TABLE_ITEMS.tr5.index = 32;
+}
+
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\TavernWait.ini";
@@ -189,6 +337,7 @@ void Main()
 	Interfaces[22].IniFile = "RESOURCE\INI\INTERFACES\tradebook.ini";
 	Interfaces[23].IniFile = "RESOURCE\INI\INTERFACES\QuestBook.ini";
 	Interfaces[24].IniFile = "RESOURCE\INI\INTERFACES\ColonyCapture.ini";
+	Interfaces[25].IniFile = "RESOURCE\INI\INTERFACES\items.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -248,6 +397,7 @@ void Main()
 	Characters[1].repair.sreq = 0;
 	TestHold.g0 = 40;
 	TestHold.g1 = 0;
+	TestItems();
 	GameValue = 7;
 	GameName = "kept";
 }
