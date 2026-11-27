@@ -20,6 +20,7 @@
 #include "shared/sea_ai/script_defines.h"
 #include "shared/sound.h"
 #include "ship_lights.h"
+#include "sea_script_protocol.hpp"
 #include "ship_script_protocol.hpp"
 #include "track.h"
 
@@ -705,6 +706,11 @@ void SHIP::Execute(uint32_t DeltaTime)
             core.Send_Message(vantl_id, "li", MSG_VANT_DEL_GROUP, GetModelEID());
             core.Send_Message(vantz_id, "li", MSG_VANT_DEL_GROUP, GetModelEID());
 
+            if (storm::sea_ai::seaScriptProtocol().ship_sink_events)
+            {
+                core.Event("Event_DeleteShipSailors", "l", GetIndex(GetACharacter()));
+                core.Event("Event_DeleteShipFoam", "l", GetIndex(GetACharacter()));
+            }
             core.RemoveFromLayer(RealizeLayer, GetId());
             core.RemoveFromLayer(SHIP_CANNON_TRACE, GetId());
             core.Event(SHIP_DELETE, "li", GetIndex(GetACharacter()), GetId());
@@ -1814,8 +1820,9 @@ ATTRIBUTES *SHIP::BallOwnerCharacter(int32_t iBallOwner)
     return pAOwner;
 }
 
-float SHIP::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::vec3 &vDst)
+float SHIP::Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &vSrc, const glm::vec3 &vDst)
 {
+    const auto &protocol = storm::sea_ai::seaScriptProtocol();
     MODEL *pModel = GetModel();
     Assert(pModel);
 
@@ -1832,8 +1839,10 @@ float SHIP::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::v
             if (fRes <= 1.0f)
             {
                 const glm::vec3 v1 = vSrc + fRes * (vDst - vSrc);
-                VDATA *pV = core.Event(SHIP_MAST_DAMAGE, "llffffal", SHIP_MAST_TOUCH_BALL, pM->iMastNum, v1.x, v1.y,
-                                       v1.z, pM->fDamage, GetACharacter(), iBallOwner);
+                MESSAGE event;
+                storm::sea_ai::ResetMastDamageByBall(event, protocol, pM->iMastNum, v1, pM->fDamage, GetACharacter(),
+                                                     iBallOwner, iCannonType);
+                VDATA *pV = core.Event(SHIP_MAST_DAMAGE, event);
                 pM->fDamage = Clamp(pV->GetFloat());
                 MastFall(pM);
             }
@@ -1852,9 +1861,8 @@ float SHIP::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::v
                     const glm::vec3 v1 = vSrc + fRes * (vDst - vSrc);
 
                     MESSAGE event;
-                    storm::ship::ResetHullDamageEvent(event, pM->iHullNum, v1.x, v1.y, v1.z, pM->fDamage,
-                                                      GetACharacter(), BallOwnerCharacter(iBallOwner),
-                                                      pM->pNode->GetName());
+                    storm::sea_ai::ResetHullDamage(event, protocol, pM->iHullNum, v1, pM->fDamage, GetACharacter(),
+                                                   BallOwnerCharacter(iBallOwner), pM->pNode->GetName(), iCannonType);
                     VDATA *pV = core.Event(SHIP_HULL_DAMAGE, event);
                     if (pV)
                     {
@@ -1887,8 +1895,10 @@ float SHIP::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::v
                     iBestIndex = i;
                 }
             }
-        core.Event(SHIP_HULL_HIT, "illffflf", GetId(), iBallOwner, iOurIndex, vTemp.x, vTemp.y, vTemp.z, iBestIndex,
-                   fMinDistance);
+        MESSAGE event;
+        storm::sea_ai::ResetShipHullHit(event, protocol, GetId(), iBallOwner, iOurIndex, vTemp, iBestIndex,
+                                        fMinDistance, iCannonType);
+        core.Event(SHIP_HULL_HIT, event);
         // «Вибрация»: a ball in the player's own hull (the script's nMainCharacterIndex names the hero)
         if (auto *hero = static_cast<VDATA *>(core.GetScriptVariable("nMainCharacterIndex")); hero && hero->GetInt() == iOurIndex)
             storm::android::haptic(storm::android::Haptic::Hit);

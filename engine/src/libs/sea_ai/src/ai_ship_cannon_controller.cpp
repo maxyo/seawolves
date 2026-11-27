@@ -5,6 +5,7 @@
 #include "fire_side.hpp"
 #include <platform/android_haptics.hpp>
 #include "math_inlines.h"
+#include "sea_script_protocol.hpp"
 
 float AIShipCannonController::fMaxCannonDamageDistance = 1.0f;
 float AIShipCannonController::fMaxCannonDamageRadiusPoint = 1.0f;
@@ -32,9 +33,10 @@ bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &v
 
     const auto vTempFireDir = storm::math::normalizeOrZero(vTempFirePos - pOurAIShip->GetPos());
 
-    core.Event(SHIP_BORT_FIRE, "lisffffff", GetIndex(GetAIShip()->GetACharacter()), GetAIShip()->GetShipEID(),
-               const_cast<char *>(bort.sName.c_str()), vTempFirePos.x, vTempFirePos.y, vTempFirePos.z, vTempFireDir.x,
-               vTempFireDir.y, vTempFireDir.z);
+    MESSAGE event;
+    storm::sea_ai::ResetBortFire(event, storm::sea_ai::seaScriptProtocol(), GetIndex(GetAIShip()->GetACharacter()),
+                                 GetAIShip()->GetShipEID(), bort.sName, vTempFirePos, vTempFireDir);
+    core.Event(SHIP_BORT_FIRE, event);
 
     for (auto& cannon : bort.aCannons)
     {
@@ -60,13 +62,13 @@ bool AIShipCannonController::Fire2Position(AISHIP_BORT &bort, const glm::vec3 &v
 bool AIShipCannonController::Fire(const glm::vec3 &vFireCamPos, const glm::vec3 &vFireDir)
 {
     const auto vOurPos = GetAIShip()->GetPos();
-    const auto fSpeedV0 = GetSpeedV0();
 
     glm::vec3 vAim;
     const uint32_t dwBort = GetCameraFireBort(vFireDir, vAim);
     if (dwBort == INVALID_BORT_INDEX)
         return false;
     auto &bort = aShipBorts[dwBort];
+    const auto fSpeedV0 = GetSpeedV0(bort);
 
     const auto vTempDir = storm::math::normalizeOrZero(glm::vec3(vAim.x, 0.0f, vAim.z));
     float fAngle = acosf(Clamp(glm::dot(vTempDir, vAim)));
@@ -97,16 +99,25 @@ bool AIShipCannonController::Fire(AIShip *pEnemy)
     Assert(pEnemy);
     Assert(AIBalls::pAIBalls);
 
-    VDATA *pVData = core.Event(CANNON_GET_FIRE_HEIGHT, "aa", GetAIShip()->GetACharacter(), pEnemy->GetACharacter());
+    // The aim height and the mean fire delay are those of the board that faces the enemy now (the callers checked
+    // isCanFire(pEnemy), so there is one).
+    const auto aimBortIt = GetFirstFireBort(pEnemy->GetPos());
+    Assert(IsValid(aimBortIt));
+    const auto &protocol = storm::sea_ai::seaScriptProtocol();
+    MESSAGE event;
+    storm::sea_ai::ResetCannonFireHeight(event, protocol, GetAIShip()->GetACharacter(), pEnemy->GetACharacter(),
+                                         aimBortIt->sName);
+    VDATA *pVData = core.Event(CANNON_GET_FIRE_HEIGHT, event);
     Assert(pVData);
     const float fFireHeight = pVData->GetFloat();
 
-    pVData = core.Event(CANNON_GET_FIRE_TIME, "a", GetAIShip()->GetACharacter());
+    storm::sea_ai::ResetCannonFireTime(event, protocol, GetAIShip()->GetACharacter(), aimBortIt->sName, false, -1);
+    pVData = core.Event(CANNON_GET_FIRE_TIME, event);
     Assert(pVData);
     const float fFireTime = pVData->GetFloat();
 
     const float fDistance = GetAIShip()->GetDistance(*pEnemy);
-    const float fSpeedV0 = GetSpeedV0();
+    const float fSpeedV0 = GetSpeedV0(*aimBortIt);
     const float fRealSpeedV0 = fSpeedV0 * AIBalls::pAIBalls->GetMultiplier();
     const float fSpeedZ = pEnemy->GetShipBasePointer()->GetCurrentSpeed();
     const float fAng = pEnemy->GetShipBasePointer()->GetAng().y;
@@ -195,7 +206,7 @@ void AIShipCannonController::Execute(float fDeltaTime)
         {
             // set maximum MaxFireDistance for all cannons
             const float fMaxBortFireDistance =
-                AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, GetSpeedV0(), bort.fFireAngMax);
+                AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, GetSpeedV0(bort), bort.fFireAngMax);
             for (auto &aCannon : bort.aCannons)
             {
                 aCannon.SetMaxFireDistance(fMaxBortFireDistance);
@@ -277,7 +288,6 @@ float AIShipCannonController::GetBortHeightAngle(const AISHIP_BORT &bort) const
 float AIShipCannonController::GetFireDistance(bool bMaxFireDistance) const
 {
     float fDistance = (bMaxFireDistance) ? 0.0f : 1e10f;
-    const float fSpeedV0 = GetSpeedV0();
 
     const glm::vec3 vOurPos = GetAIShip()->GetPos();
 
@@ -286,7 +296,7 @@ float AIShipCannonController::GetFireDistance(bool bMaxFireDistance) const
         if (!bort.aCannons.empty())
         {
             const float fMaxFireDistance =
-                AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, fSpeedV0,
+                AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, GetSpeedV0(bort),
                                               GetBortHeightAngle(bort) + bort.fFireAngMax);
             if (bMaxFireDistance && fDistance < fMaxFireDistance)
                 fDistance = fMaxFireDistance;
@@ -303,11 +313,18 @@ bool AIShipCannonController::UpdateParameters()
     const glm::vec3 vZ = storm::math::normalizeOrZero(storm::math::vz(*GetAIShip()->GetMatrix()));
 
     // updates borts parameters
-    const float fSpeedV0 = GetSpeedV0();
+    const auto &protocol = storm::sea_ai::seaScriptProtocol();
     for (auto &bort : aShipBorts)
     {
         if (!bort.aCannons.empty())
         {
+            const auto ballistics = storm::sea_ai::ReadBoardBallistics(GetAIShip()->GetACharacter(), bort.sName);
+            if (protocol.board_angles_from_character)
+            {
+                bort.fFireAngMin = ballistics.fireAngMin;
+                bort.fFireAngMax = ballistics.fireAngMax;
+            }
+            const float fSpeedV0 = ballistics.speedV0;
             bort.fSpeedV0 = fSpeedV0;
             bort.fMaxFireDistance = AICannon::CalcMaxFireDistance(bort.fOurBortFireHeight + vOurPos.y, fSpeedV0, GetBortHeightAngle(
                                                                            bort) + bort.fFireAngMax);
@@ -335,7 +352,6 @@ glm::vec3 AIShipCannonController::GetBortDirection(const AISHIP_BORT &bort) cons
 glm::vec3 AIShipCannonController::GetFirePos(const glm::vec3 &vFireDir, float fDistance)
 {
     const glm::vec3 vOurPos = GetAIShip()->GetPos();
-    const float fSpeedV0 = GetSpeedV0();
 
     glm::vec3 vAim;
     const uint32_t dwBort = GetCameraFireBort(vFireDir, vAim);
@@ -343,6 +359,7 @@ glm::vec3 AIShipCannonController::GetFirePos(const glm::vec3 &vFireDir, float fD
     {
         return {1e5f, 0.0f, 1e5f};
     }
+    const float fSpeedV0 = GetSpeedV0(aShipBorts[dwBort]);
 
     const glm::vec3 vTempDir = storm::math::normalizeOrZero(glm::vec3(vAim.x, 0.0f, vAim.z));
     float fAngle = acosf(Clamp(glm::dot(vTempDir, vAim)));
@@ -365,7 +382,6 @@ glm::vec3 AIShipCannonController::GetFirePos(const glm::vec3 &vFireDir, float fD
 glm::vec3 AIShipCannonController::GetFirePos(const glm::vec3 &vFireDir)
 {
     const glm::vec3 vOurPos = GetAIShip()->GetPos();
-    const float fSpeedV0 = GetSpeedV0();
 
     glm::vec3 vAim;
     const uint32_t dwBort = GetCameraFireBort(vFireDir, vAim);
@@ -373,6 +389,7 @@ glm::vec3 AIShipCannonController::GetFirePos(const glm::vec3 &vFireDir)
     {
         return {1e5f, 0.0f, 1e5f};
     }
+    const float fSpeedV0 = GetSpeedV0(aShipBorts[dwBort]);
 
     const glm::vec3 vTempDir = storm::math::normalizeOrZero(glm::vec3(vAim.x, 0.0f, vAim.z));
     float fAngle = acosf(Clamp(glm::dot(vTempDir, vAim)));
@@ -468,7 +485,7 @@ auto AIShipCannonController::GetBestFireBortOnlyDistance(glm::vec3 vFirePos, flo
             if (!bort->isCharged() || bort->isBortDamaged())
                 continue;
 
-            const float fSpeedV0 = GetSpeedV0();
+            const float fSpeedV0 = GetSpeedV0(*bort);
             const float fMaxFireDistance = AICannon::CalcMaxFireDistance(bort->fOurBortFireHeight + vOurPos.y, fSpeedV0,
                                                                          GetBortHeightAngle(*bort) + bort->fFireAngMax);
             if (fFireDist > fMaxFireDistance)
@@ -531,12 +548,9 @@ bool AIShipCannonController::isCanFire(AIShip *pEnemy)
     return IsValid(GetFirstFireBort(pEnemy->GetPos()));
 }
 
-float AIShipCannonController::GetSpeedV0() const
+float AIShipCannonController::GetSpeedV0(const AISHIP_BORT &bort) const
 {
-    ATTRIBUTES *pACharacter = GetAIShip()->GetACharacter();
-    ATTRIBUTES *pACannons = pACharacter->FindAClass(pACharacter, "Ship.Cannons");
-    Assert(pACannons);
-    return pACannons->GetAttributeAsFloat("SpeedV0");
+    return storm::sea_ai::ReadBoardBallistics(GetAIShip()->GetACharacter(), bort.sName).speedV0;
 }
 
 void AIShipCannonController::Realize(float fDeltaTime)
@@ -637,8 +651,8 @@ void AIShipCannonController::Realize(float fDeltaTime)
         if (!bort.aCannons.empty())
         {
             // calc fire range
-            float fDist = SQR(GetSpeedV0()) / AIHelper::fGravity;
-            fDist *= sinf(2.0f * (GetBortHeightAngle(bort) + aShipBorts[0].fFireAngMax));
+            float fDist = SQR(GetSpeedV0(bort)) / AIHelper::fGravity;
+            fDist *= sinf(2.0f * (GetBortHeightAngle(bort) + bort.fFireAngMax));
             // draw baba
             const float fDir = bort.fFireDir;
             const float fRastr = bort.fFireZone;
@@ -698,7 +712,8 @@ bool AIShipCannonController::Init(ATTRIBUTES *_pAShip)
         aShipBorts.emplace_back();
         AISHIP_BORT &bort = aShipBorts.back();
         bort.sName = pBortAttribute->GetThisName();
-        bort.fFireZone = pBortAttribute->GetAttributeAsFloat("FireZone");
+        bort.fFireZone =
+            pBortAttribute->GetAttributeAsFloat("FireZone") * storm::sea_ai::seaScriptProtocol().fire_zone_scale;
         bort.fFireAngMin = pBortAttribute->GetAttributeAsFloat("FireAngMin");
         bort.fFireAngMax = pBortAttribute->GetAttributeAsFloat("FireAngMax");
         bort.fFireDir = pBortAttribute->GetAttributeAsFloat("FireDir");
@@ -744,7 +759,8 @@ bool AIShipCannonController::ScanShipForCannons()
                     const glm::mat4 m;
                     memcpy(storm::math::d3dMatrix(m), label.m, sizeof(m));
                     bort.fOurBortFireHeight += storm::math::pos(m).y;
-                    pCannon->Init(GetAIShip(), GetAIShip()->GetShipEID(), label);
+                    pCannon->Init(GetAIShip(), GetAIShip()->GetShipEID(), label, bort.sName,
+                                  static_cast<int32_t>(bort.aCannons.size() - 1));
 
                     char buf[512];
                     sprintf_s(buf, "%s.damages", label.group_name);
@@ -864,8 +880,10 @@ void AIShipCannonController::CheckCannonsBoom(float fTmpCannonDamage, const glm:
 
             if (fDistance > fMaxCannonDamageDistance)
                 continue;
-            VDATA *pVData = core.Event(CANNON_DAMAGE, "affffff", GetAIShip()->GetACharacter(), fTmpCannonDamage,
-                                       pC->GetDamage(), fDistance, vPnt.x, vPnt.y, vPnt.z);
+            MESSAGE event;
+            storm::sea_ai::ResetCannonDamage(event, storm::sea_ai::seaScriptProtocol(), GetAIShip()->GetACharacter(),
+                                             fTmpCannonDamage, pC->GetDamage(), fDistance, vPnt, bort.sName);
+            VDATA *pVData = core.Event(CANNON_DAMAGE, event);
 
             sprintf_s(str, "c%d", j);
 
@@ -924,6 +942,14 @@ void AIShipCannonController::ResearchCannons()
 }
 
 // boal 08.08.06 method of recalculation of guns on the ship <--
+
+void AIShipCannonController::SetBortRecharge(const std::string &board, float progress)
+{
+    for (auto &bort : aShipBorts)
+        if (storm::iEquals(bort.sName, board))
+            for (auto &cannon : bort.aCannons)
+                cannon.SetRechargeProgress(progress);
+}
 
 void AIShipCannonController::Save(CSaveLoad *pSL)
 {
@@ -986,7 +1012,7 @@ void AIShipCannonController::Load(CSaveLoad *pSL)
         for (uint32_t j = 0; j < dwNumCannons; j++)
         {
             B.aCannons.emplace_back();
-            B.aCannons.back().Load(pSL, GetAIShip(), GetAIShip()->GetShipEID());
+            B.aCannons.back().Load(pSL, GetAIShip(), GetAIShip()->GetShipEID(), B.sName, static_cast<int32_t>(j));
         }
     }
 }

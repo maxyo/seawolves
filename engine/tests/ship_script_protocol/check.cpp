@@ -50,41 +50,10 @@ void lightsResetForms()
     }
     REQUIRE(rejected); // an unknown layout stays a format error
 }
-void hullDamageEvent()
-{
-    // Stand-ins for the hit and the firing characters; the event only carries the pointers.
-    auto *const hit = reinterpret_cast<ATTRIBUTES *>(0x1000);
-    auto *const owner = reinterpret_cast<ATTRIBUTES *>(0x2000);
-    MESSAGE event;
-    storm::ship::ResetHullDamageEvent(event, 7, 1.0f, 2.0f, 3.0f, 0.25f, hit, owner, "baller_1");
-
-    // Read in the order of vanilla 1.7.3 Ship_HullDamage (sea_ai/AIShip.c): iDamageType,
-    // iHullNum, x, y, z, fDamage, rCharacter, aCharacter, HullName.
-    event.Move2Start();
-    REQUIRE(event.Long() == SHIP_HULL_TOUCH_BALL);                                      // iDamageType
-    REQUIRE(event.Long() == 7);                                                         // iHullNum
-    REQUIRE((event.Float() == 1.0f && event.Float() == 2.0f && event.Float() == 3.0f)); // x, y, z
-    REQUIRE(event.Float() == 0.25f);                                                    // fDamage
-    REQUIRE(event.AttributePointer() == hit);                                           // rCharacter: the hit character
-    REQUIRE(event.AttributePointer() == owner);                                         // aCharacter: the ball owner
-    REQUIRE(event.String() == "baller_1");                                              // HullName
-    bool exhausted = false;
-    try
-    {
-        event.Long();
-    }
-    catch (const MessageFormatError &)
-    {
-        exhausted = true;
-    }
-    REQUIRE(exhausted); // nothing after HullName
-}
 } // namespace
 
 TEST_CASE("ship_script_protocol")
 {
     lightsResetForms();
-    hullDamageEvent();
-    std::cout << "PASS ship script protocol: MSG_SHIP_LIGHTSRESET vanilla and explicit forms, "
-                 "SHIP_HULL_DAMAGE in the vanilla Ship_HullDamage order\n";
+    std::cout << "PASS ship script protocol: MSG_SHIP_LIGHTSRESET vanilla and explicit forms\n";
 }

@@ -247,7 +247,7 @@ class SHIP : public SHIP_BASE
     };
 
     // inherit functions CANNON_TRACE_BASE
-    float Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::vec3 &dst) override;
+    float Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &src, const glm::vec3 &dst) override;
 
     // inherit functions VAI_OBJBASE
     void SetACharacter(ATTRIBUTES *pAP) override;

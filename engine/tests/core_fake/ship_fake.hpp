@@ -27,6 +27,8 @@ class FakeShip final : public SHIP_BASE
   public:
     float sailState = 1;
     bool dead = false;
+    glm::mat4 matrix{1.0f};
+    std::vector<glm::vec3> shots; // Fire's points
 
     FakeShip(entid_t id, ATTRIBUTES *character, ATTRIBUTES *ship)
     {
@@ -64,7 +66,7 @@ class FakeShip final : public SHIP_BASE
     {
         unmodelled("GetCollideTriangle");
     }
-    float Cannon_Trace(int32_t, const glm::vec3 &, const glm::vec3 &) override
+    float Cannon_Trace(int32_t, int32_t, const glm::vec3 &, const glm::vec3 &) override
     {
         unmodelled("Cannon_Trace");
     }
@@ -86,7 +88,7 @@ class FakeShip final : public SHIP_BASE
     }
     glm::mat4 *GetMatrix() override
     {
-        unmodelled("GetMatrix");
+        return &matrix;
     }
     glm::vec3 GetBoxsize() const override
     {
@@ -180,9 +182,9 @@ class FakeShip final : public SHIP_BASE
     {
         unmodelled("UnSetLights");
     }
-    void Fire(const glm::vec3 &) override
+    void Fire(const glm::vec3 &point) override
     {
-        unmodelled("Fire");
+        shots.push_back(point);
     }
     void SetFixedSpeed(bool, float) override
     {

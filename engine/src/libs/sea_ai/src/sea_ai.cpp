@@ -323,6 +323,22 @@ uint64_t SEA_AI::ProcessMessage(MESSAGE &message)
     }
     break;
         // boal 08.08.06 method of recounting guns on the ship <--
+    case AI_MESSAGE_SET_CANNON_RECHARGE: {
+        auto *pACharacter = message.AttributePointer();
+        const std::string board = message.String();
+        const float progress = message.Float();
+        auto *pAIShip = AIShip::FindShip(pACharacter);
+        Assert(pAIShip);
+        pAIShip->GetCannonController()->SetBortRecharge(board, progress);
+    }
+    break;
+    case AI_MESSAGE_CANNONS_RANGE:
+        spdlog::warn("sea AI: the cannon range overlay is not implemented (AI_MESSAGE_CANNONS_RANGE)");
+        break;
+    case AI_MESSAGE_FIRE_CAMERA_RESET:
+    case AI_MESSAGE_FIRE_CAMERA_EXIT:
+        spdlog::warn("sea AI: the aiming camera is not implemented (message {})", iCode);
+        break;
     case AI_MESSAGE_SEASAVE: //TODO: check these two
     {
         char str[256]{};

@@ -5,6 +5,7 @@
 #include "weather_base.h"
 #include "entity.h"
 #include "math_inlines.h"
+#include "sea_script_protocol.hpp"
 #include "shared/battle_interface/msg_control.h"
 #include "shared/mast_msg.h"
 #include "shared/sail_msg.h"
@@ -1520,7 +1521,7 @@ void SAIL::FirstRun()
     bUse = sailQuantity > 0;
 }
 
-float SAIL::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::vec3 &dst)
+float SAIL::Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &src, const glm::vec3 &dst)
 {
     bCannonTrace = true;
     g_iBallOwnerIdx = iBallOwner;
@@ -1543,7 +1544,10 @@ float SAIL::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::ve
             int32_t charIdx = -1;
             if (pA != nullptr)
                 charIdx = pA->GetAttributeAsDword("index", -1);
-            core.Event(SHIP_SAIL_DAMAGE, "lfffl", charIdx, damagePoint.x, damagePoint.y, damagePoint.z, iBallOwner);
+            MESSAGE event;
+            storm::sea_ai::ResetSailDamage(event, storm::sea_ai::seaScriptProtocol(), charIdx, damagePoint, iBallOwner,
+                                           iCannonType);
+            core.Event(SHIP_SAIL_DAMAGE, event);
         }
     }
 

@@ -5,6 +5,7 @@
 #include "tornado.h"
 #include "entity.h"
 #include "core.h"
+#include "sea_script_protocol.hpp"
 
 CREATE_CLASS(Tornado)
 
@@ -92,7 +93,8 @@ void Tornado::Execute(uint32_t delta_time)
     noiseCloud.Update(dltTime);
     debris.Update(dltTime);
     eventCounter += dltTime;
-    if (eventCounter > 1.0f)
+    const bool events = storm::sea_ai::seaScriptProtocol().tornado_events;
+    if (events && eventCounter > 1.0f)
         core.Event("TornadoDamage", "fff", eventCounter, pillar.GetX(0.0f), pillar.GetZ(0.0f));
     if (liveTime < 0.0f)
     {
@@ -101,7 +103,8 @@ void Tornado::Execute(uint32_t delta_time)
         if (galhpa < 0.0f)
         {
             galhpa = 0.0f;
-            core.Event("TornadoDelete");
+            if (events)
+                core.Event("TornadoDelete");
             core.EraseEntity(GetId());
         }
     }

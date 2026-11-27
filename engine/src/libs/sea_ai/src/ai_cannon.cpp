@@ -1,5 +1,9 @@
 #include "ai_cannon.h"
+
+#include <algorithm>
+
 #include "math_inlines.h"
+#include "sea_script_protocol.hpp"
 #include "shared/sea_ai/script_defines.h"
 #include "storm/render/effects.hpp"
 
@@ -11,7 +15,7 @@ constexpr float kMuzzleFlashAhead = 0.5f;
 
 uint64_t dwTmpRDTSC;
 
-AICannon::AICannon() : pAHolder(nullptr), eidParent(0), vPos(), vDir(), fSpeedV0(0), vEnemyPos()
+AICannon::AICannon() : pAHolder(nullptr), eidParent(0), iIndex(0), vPos(), vDir(), fSpeedV0(0), vEnemyPos()
 {
     bLoad = false;
     bEmpty = true;
@@ -153,8 +157,12 @@ void AICannon::RealFire()
         fAngle = -fAngle;
     }
 
-    core.Event(CANNON_FIRE, "afffffffff", pAHolder->GetACharacter(), vPosTemp.x, vPosTemp.y, vPosTemp.z, fSpeedV0,
-               fFireDirection, fFireHeightAngle, fDirY, fMaxFireDistance, fAngle);
+    // Every shot is aimed by the engine: the aiming camera, whose shots are not automatic, does not exist here.
+    MESSAGE event;
+    storm::sea_ai::ResetCannonFire(
+        event, storm::sea_ai::seaScriptProtocol(), pAHolder->GetACharacter(),
+        {vPosTemp, fSpeedV0, fFireDirection, fFireHeightAngle, fDirY, fMaxFireDistance, fAngle}, true, sBoard);
+    core.Event(CANNON_FIRE, event);
 
     // Средняя / Высокая: the muzzle flash's light, where the game puts the muzzle fire (the CANNON_FIRE point, at which
     // Ball_AddBall creates "cancloud_fire"), a little ahead along the barrel inside that fire. Низкая keeps the game's
@@ -195,7 +203,10 @@ bool AICannon::Fire(float _fSpeedV0, const glm::vec3 &_vFirePos)
     fSpeedV0 = _fSpeedV0;
 
     // calculate in script timeout before real fire
-    auto *pVData = core.Event(CANNON_GET_FIRE_TIME, "a", pAHolder->GetACharacter());
+    MESSAGE event;
+    storm::sea_ai::ResetCannonFireTime(event, storm::sea_ai::seaScriptProtocol(), pAHolder->GetACharacter(), sBoard,
+                                       true, iIndex);
+    auto *pVData = core.Event(CANNON_GET_FIRE_TIME, event);
     Assert(pVData);
     fTotalTime2Action = fTime2Action = pVData->GetFloat();
     return true;
@@ -233,7 +244,10 @@ void AICannon::Recharge()
     bRecharged = true;
 
     // calculate in script recharge time, and possibility of recharge
-    auto *pVData = core.Event(CANNON_GET_RECHARGE_TIME, "a", pAHolder->GetACharacter());
+    MESSAGE event;
+    storm::sea_ai::ResetCannonRechargeTime(event, storm::sea_ai::seaScriptProtocol(), pAHolder->GetACharacter(),
+                                           sBoard);
+    auto *pVData = core.Event(CANNON_GET_RECHARGE_TIME, event);
     Assert(pVData);
     fTotalTime2Action = fTime2Action = pVData->GetFloat();
 }
@@ -242,6 +256,12 @@ void AICannon::QuickRecharge(bool bHaveEnoughBalls)
 {
     Recharge();
     fTime2Action = (bHaveEnoughBalls) ? 0.0f : fTotalTime2Action;
+}
+
+void AICannon::SetRechargeProgress(float progress)
+{
+    if (isRecharged())
+        fTime2Action = (1.0f - std::clamp(progress, 0.0f, 1.0f)) * fTotalTime2Action;
 }
 
 float AICannon::GetRechargePercent()
@@ -262,10 +282,13 @@ float AICannon::CalcMaxFireDistance(float fFireHeight, float fSpeedV0, float fAn
     return fDistance;
 }
 
-void AICannon::Init(AIAttributesHolder *_pAHolder, const entid_t eid, GEOS::LABEL &lbl)
+void AICannon::Init(AIAttributesHolder *_pAHolder, const entid_t eid, GEOS::LABEL &lbl, std::string board,
+                    int32_t index)
 {
     pAHolder = _pAHolder;
     eidParent = eid;
+    sBoard = std::move(board);
+    iIndex = index;
 
     glm::mat4 m;
     memcpy(&m[0][0], &lbl.m[0][0], sizeof(m));
@@ -291,10 +314,13 @@ void AICannon::Save(CSaveLoad *pSL) const
     pSL->SaveDword(bCanRecharge);
 }
 
-void AICannon::Load(CSaveLoad *pSL, AIAttributesHolder *_pAHolder, const entid_t eid)
+void AICannon::Load(CSaveLoad *pSL, AIAttributesHolder *_pAHolder, const entid_t eid, std::string board,
+                    int32_t index)
 {
     pAHolder = _pAHolder;
     eidParent = eid;
+    sBoard = std::move(board);
+    iIndex = index;
 
     vPos = pSL->LoadVector();
     vDir = pSL->LoadVector();

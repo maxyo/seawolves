@@ -221,17 +221,17 @@ void select(int32_t index)
     live.selected = index;
 }
 const bool scripts = [] {
-    fake.messageEvent = [](std::string_view name, MESSAGE &message) {
+    fake.messageEvent = [](std::string_view name, MESSAGE &message) -> VDATA * {
         if (name == "ScrollPosChange")
         {
             REQUIRE(message.GetFormat() == "fs");
             const float position = message.Float();
             REQUIRE(message.String() == "SAVESCROLL");
             if (!scrolls)
-                return;
+                return nullptr;
             page.Set(int32_t(int(float(live.files.size() / 5) * position) * 5));
             select(value(page));
-            return;
+            return nullptr;
         }
         REQUIRE(name == "eventSaveClick");
         REQUIRE(message.GetFormat() == "ls");
@@ -240,6 +240,7 @@ const bool scripts = [] {
         REQUIRE(node.rfind("SAVEIMG", 0) == 0);
         if (clicks)
             select(value(page) + std::stoi(node.substr(7)) - 1);
+        return nullptr;
     };
     return true;
 }();

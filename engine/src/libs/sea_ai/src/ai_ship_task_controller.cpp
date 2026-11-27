@@ -1,5 +1,6 @@
 #include "ai_fort.h"
 #include "ai_ship.h"
+#include "sea_script_protocol.hpp"
 
 AIShipTaskController::AIShipTaskController(AIShip *pShip)
 {
@@ -121,13 +122,26 @@ void AIShipTaskController::FindRunAwayPoint()
     }
     else
     {
-        // If 1 is returned from the script, then use the script point
-        auto *pV = core.Event(SHIP_GET_RUNAWAY_POINT, "aff", GetAIShip()->GetACharacter(), vRAPoint.x, vRAPoint.z);
-        auto *pARAP = GetAIShip()->GetACharacter()->FindAClass(GetAIShip()->GetACharacter(), "SeaAI.RunAwayPnt");
-        vRAPoint.y = 0.0f;
-        vRAPoint.x = pARAP->GetAttributeAsFloat("x", 0.0f);
-        vRAPoint.z = pARAP->GetAttributeAsFloat("z", 0.0f);
-        SetDestinationPoint(vRAPoint);
+        const auto &protocol = storm::sea_ai::seaScriptProtocol();
+        MESSAGE event;
+        storm::sea_ai::ResetRunawayPoint(event, protocol, GetAIShip()->GetACharacter(), vRAPoint.x, vRAPoint.z);
+        auto *pV = core.Event(SHIP_GET_RUNAWAY_POINT, event);
+        if (protocol.runaway_point_position)
+        {
+            // the script leaves the point in SeaAI.RunAwayPnt
+            auto *pARAP = GetAIShip()->GetACharacter()->FindAClass(GetAIShip()->GetACharacter(), "SeaAI.RunAwayPnt");
+            vRAPoint.y = 0.0f;
+            vRAPoint.x = pARAP->GetAttributeAsFloat("x", 0.0f);
+            vRAPoint.z = pARAP->GetAttributeAsFloat("z", 0.0f);
+            SetDestinationPoint(vRAPoint);
+        }
+        else
+        {
+            // the script answers the course to flee on
+            Assert(pV);
+            const float fCourse = pV->GetFloat();
+            SetDestinationPoint(GetAIShip()->GetPos() + 10000.0f * glm::vec3(sinf(fCourse), 0.0f, cosf(fCourse)));
+        }
     }
 
 }

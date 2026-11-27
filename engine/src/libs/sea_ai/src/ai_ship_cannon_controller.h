@@ -80,7 +80,7 @@ class AIShipCannonController
 
     bool Fire2Position(AISHIP_BORT &bort, const glm::vec3 &vFirePos, float fFireHeight);
 
-    [[nodiscard]] float GetSpeedV0() const;
+    [[nodiscard]] float GetSpeedV0(const AISHIP_BORT &bort) const;
 
     // The player's camera aim (fire_side.hpp): the index of the side that fires toward the view
     // over the full circle, INVALID_BORT_INDEX if none can; vAim: the view turned into that side's
@@ -130,6 +130,8 @@ class AIShipCannonController
     // Cannon boom check
     void CheckCannonsBoom(float fTmpCannonDamage, const glm::vec3 &vPnt);
     void ResearchCannons(); // boal 08.08.06 method of recalculating guns on a ship
+    // AI_MESSAGE_SET_CANNON_RECHARGE: the reloading cannons of `board` have `progress` (0..1) of their reload done.
+    void SetBortRecharge(const std::string &board, float progress);
 
     // execute/realize section
     void Execute(float fDeltaTime);

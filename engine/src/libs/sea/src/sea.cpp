@@ -11,6 +11,7 @@
 #include "core.h"
 #include "sse.h"
 #include "math_inlines.h"
+#include "sea_script_protocol.hpp"
 #include "shared/sea_ai/script_defines.h"
 #include "tga.h"
 #include "v_file_service.h"
@@ -1321,7 +1322,7 @@ float SEA::Trace(const glm::vec3 &vSrc, const glm::vec3 &vDst)
     return 2.0f;
 }
 
-float SEA::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::vec3 &vDst)
+float SEA::Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &vSrc, const glm::vec3 &vDst)
 {
     const float fRes = Trace(vSrc, vDst);
 
@@ -1329,7 +1330,10 @@ float SEA::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::ve
     {
         const glm::vec3 vTemp = vSrc + fRes * (vDst - vSrc);
         const float fTmpY = WaveXZ(vTemp.x, vTemp.z, nullptr);
-        core.Event(BALL_WATER_HIT, "lfff", iBallOwner, vTemp.x, fTmpY, vTemp.z);
+        MESSAGE event;
+        storm::sea_ai::ResetBallHit(event, storm::sea_ai::seaScriptProtocol(), iBallOwner,
+                                    glm::vec3(vTemp.x, fTmpY, vTemp.z), iCannonType);
+        core.Event(BALL_WATER_HIT, event);
     }
 
     return fRes;

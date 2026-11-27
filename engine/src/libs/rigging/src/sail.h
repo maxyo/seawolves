@@ -95,7 +95,7 @@ class SAIL : public SAIL_BASE
     bool GetCollideTriangle(TRIANGLE &triangle) override;
     bool Clip(const PLANE *planes, int32_t nplanes, const glm::vec3 &center, float radius,
               ADD_POLYGON_FUNC addpoly) override;
-    float Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::vec3 &dst) override;
+    float Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &src, const glm::vec3 &dst) override;
 
     entid_t GetShipID() override
     {

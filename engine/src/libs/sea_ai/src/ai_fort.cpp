@@ -1,5 +1,8 @@
 #include "ai_fort.h"
+#include "sea_script_protocol.hpp"
 #include "shared/messages.h"
+
+#include <spdlog/spdlog.h>
 
 AIFort *AIFort::pAIFort = nullptr;
 
@@ -23,15 +26,6 @@ bool AIFort::Init()
     return true;
 }
 
-float AIFort::GetSpeedV0(uint32_t dwFortIndex)
-{
-    ATTRIBUTES *pACannon, *pACharacter;
-    pACharacter = aForts[dwFortIndex]->GetACharacter();
-    pACannon = pACharacter->FindAClass(pACharacter, "Ship.Cannons");
-    Assert(pACannon);
-    return pACannon->GetAttributeAsFloat("SpeedV0");
-}
-
 
 void AIFort::Execute(uint32_t Delta_Time)
 {
@@ -53,6 +47,7 @@ void AIFort::Execute(uint32_t Delta_Time)
 
         auto fSpeedV0 = 0.0f;
         auto dwCurrentCannonType = 0xFFFFFFFF;
+        const char *currentKey = nullptr;
         const auto iMax = pF->GetAllCannonsNum(); // boal fix
         for (uint32_t i = 0; i < iMax; i++)
         {
@@ -70,8 +65,11 @@ void AIFort::Execute(uint32_t Delta_Time)
                 Assert(pACannons);
                 pACannons->SetAttributeUseDword("type", dwCurrentCannonType);
                 core.Event(CANNON_RECALCULATE_PARAMETERS, "l", GetIndex(pF->GetACharacter()));
-
-                fSpeedV0 = GetSpeedV0(k);
+            }
+            if (const char *key = pF->GetCannonKey(i); key != currentKey)
+            {
+                currentKey = key;
+                fSpeedV0 = storm::sea_ai::ReadBoardBallistics(pF->GetACharacter(), key).speedV0;
             }
 
             if (!pC->isFired() && pC->isReady2Fire() && bFiredTimer)
@@ -166,14 +164,25 @@ bool AIFort::AddFort(ATTRIBUTES *pIslandAP, ATTRIBUTES *pFortLabelAP, ATTRIBUTES
     return true;
 }
 
-void AIFort::AddFortHit(int32_t iCharacterIndex, glm::vec3 &vHitPos)
+void AIFort::AddFortHit(int32_t iCharacterIndex, glm::vec3 &vHitPos, int32_t iCannonType)
 {
+    const auto &protocol = storm::sea_ai::seaScriptProtocol();
     uint32_t i, j, iMax;
     for (i = 0; i < aForts.size(); i++)
     {
         auto *pF = aForts[i];
 
         iMax = pF->GetAllCannonsNum(); // boal fix
+        // Fort_Damage goes to every fort, the hit one or not, as the game's scripts expect.
+        if (protocol.fort_damage_event)
+        {
+            const int32_t intact = static_cast<int32_t>(iMax - pF->GetDamagedCannonsNum());
+            auto *pVData = core.Event("Fort_Damage", "lllfffl", iCharacterIndex, GetIndex(pF->GetACharacter()), intact,
+                                      vHitPos.x, vHitPos.y, vHitPos.z, iCannonType);
+            Assert(pVData);
+            for (int32_t destroyed = pVData->GetInt(); destroyed > 0; destroyed--)
+                DestroyRandomCannon(i, iCharacterIndex);
+        }
         for (j = 0; j < iMax; j++)
         {
             auto *pC = pF->GetCannon(j);
@@ -186,11 +195,14 @@ void AIFort::AddFortHit(int32_t iCharacterIndex, glm::vec3 &vHitPos)
             if (fDistance > fMinCannonDamageDistance)
                 continue;
 
-            // VDATA * pVData = core.Event(FORT_CANNON_DAMAGE, "llallfffff", iCharacterIndex,
-            // GetIndex(pF->GetACharacter()), pF->pFortLabelAP, pF->GetAllCannonsNum(), pF->GetDamagedCannonsNum(),
-            auto *pVData = core.Event(FORT_CANNON_DAMAGE, "llallfffff", iCharacterIndex, GetIndex(pF->GetACharacter()),
-                                      pF->pFortLabelAP, iMax, pF->GetDamagedCannonsNum(), vPos.x, vPos.y, vPos.z,
-                                      fDistance, pC->GetDamage());
+            MESSAGE event;
+            storm::sea_ai::ResetFortCannonDamage(event, protocol,
+                                                 {iCharacterIndex, GetIndex(pF->GetACharacter()), pF->pFortLabelAP,
+                                                  static_cast<int32_t>(iMax),
+                                                  static_cast<int32_t>(pF->GetDamagedCannonsNum()), vPos, fDistance,
+                                                  pC->GetDamage()},
+                                                 iCannonType);
+            auto *pVData = core.Event(FORT_CANNON_DAMAGE, event);
             Assert(pVData);
 
             pC->SetDamage(pVData->GetFloat());
@@ -218,13 +230,17 @@ uint64_t AIFort::ProcessMessage(MESSAGE &message)
 
     switch (message.Long())
     {
-    case AI_MESSAGE_FORT_HIT:
+    case AI_MESSAGE_FORT_HIT: {
         iCharacterIndex = message.Long();
         vHit.x = message.Float();
         vHit.y = message.Float();
         vHit.z = message.Float();
-        AddFortHit(iCharacterIndex, vHit);
-        break;
+        // Scripts whose ball events carry the ball's cannon type pass it on ("llfffl"); the others' fort events have
+        // no place for it.
+        const int32_t iCannonType = message.GetFormat() == "llfffl" ? message.Long() : -1;
+        AddFortHit(iCharacterIndex, vHit, iCannonType);
+    }
+    break;
     case AI_MESSAGE_ADD_FORT:
         pIslandAP = message.AttributePointer();
         pFortAPLabel = message.AttributePointer();
@@ -258,6 +274,31 @@ bool AIFort::Mount(ATTRIBUTES *pAttribute)
     return true;
 }
 
+void AIFort::DestroyRandomCannon(uint32_t dwFortIndex, int32_t iBallOwner)
+{
+    auto *pF = aForts[dwFortIndex];
+    const uint32_t all = pF->GetAllCannonsNum();
+    const uint32_t damaged = pF->GetDamagedCannonsNum();
+    if (damaged == all)
+    {
+        spdlog::warn("AIFort: Fort_Damage destroys a cannon of fort {}, which has none left",
+                     GetIndex(pF->GetACharacter()));
+        return;
+    }
+    uint32_t pick = static_cast<uint32_t>(rand()) % (all - damaged);
+    for (uint32_t i = 0; i < all; i++)
+    {
+        auto *pC = pF->GetCannon(i);
+        if (pC->isDamaged() || pick-- != 0)
+            continue;
+        const glm::vec3 vPos = pC->GetPos();
+        core.Event("Fort_CannonDestroy", "lllfff", iBallOwner, GetIndex(pF->GetACharacter()),
+                   static_cast<int32_t>(damaged), vPos.x, vPos.y, vPos.z);
+        pC->SetDamage(1.0f);
+        return;
+    }
+}
+
 bool AIFort::ScanFortForCannons(AI_FORT *pFort, const char *pModelsDir, const char *pLocatorsName) const
 {
     entid_t model_id;
@@ -282,29 +323,32 @@ bool AIFort::ScanFortForCannons(AI_FORT *pFort, const char *pModelsDir, const ch
         for (int32_t i = 0; i < info.nlabels; i++)
         {
             pNode->geo->GetLabel(i, label);
-            AICannon *pCannon = nullptr;
+            const char *key = nullptr;
+            std::vector<AICannon> *group = nullptr;
 
             if (storm::iEquals(label.name, "cannon", 6) && pFort->dwCannonType != -1)
             {
-                pFort->aCannons.push_back(AICannon{});
-                pCannon = &pFort->aCannons.back();
+                key = AI_FORT::kCannonKey;
+                group = &pFort->aCannons;
             }
             if (storm::iEquals(label.name, "culverin", 8) && pFort->dwCulverinType != -1)
             {
-                pFort->aCulverins.push_back(AICannon{});
-                pCannon = &pFort->aCulverins.back();
+                key = AI_FORT::kCulverinKey;
+                group = &pFort->aCulverins;
             }
             if (storm::iEquals(label.name, "mortar", 6) && pFort->dwMortarType != -1)
             {
-                pFort->aMortars.push_back(AICannon{});
-                pCannon = &pFort->aMortars.back();
-                pCannon->SetType(AICannon::CANNONTYPE::CANNONTYPE_MORTAR);
+                key = AI_FORT::kMortarKey;
+                group = &pFort->aMortars;
             }
 
-            if (pCannon)
+            if (group)
             {
-                pCannon->Init(pFort, GetId(), label);
-                pCannon->QuickRecharge(true);
+                auto &cannon = group->emplace_back();
+                if (group == &pFort->aMortars)
+                    cannon.SetType(AICannon::CANNONTYPE::CANNONTYPE_MORTAR);
+                cannon.Init(pFort, GetId(), label, key, static_cast<int32_t>(group->size() - 1));
+                cannon.QuickRecharge(true);
             }
         }
         dwIdx++;
@@ -346,7 +390,7 @@ float AIFort::Trace(const glm::vec3 &vSrc, const glm::vec3 &vDst)
     return fBestRes;
 }
 
-float AIFort::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::vec3 &vDst)
+float AIFort::Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &vSrc, const glm::vec3 &vDst)
 {
     float fBestRes = 2.0;
     for (uint32_t i = 0; i < GetNumForts(); i++)
@@ -359,7 +403,9 @@ float AIFort::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm:
         if (fRes <= 1.0f)
         {
             const glm::vec3 vTemp = vSrc + (vDst - vSrc) * fRes;
-            core.Event(BALL_FORT_HIT, "lfff", iBallOwner, vTemp.x, vTemp.y, vTemp.z);
+            MESSAGE event;
+            storm::sea_ai::ResetBallHit(event, storm::sea_ai::seaScriptProtocol(), iBallOwner, vTemp, iCannonType);
+            core.Event(BALL_FORT_HIT, event);
 
             const glm::vec3 vDir = storm::math::normalizeOrZero(vDst - vSrc);
             core.Send_Message(GetFort(i)->GetBlotEID(), "lffffff", MSG_BLOTS_HIT, vTemp.x, vTemp.y, vTemp.z, vDir.x,
@@ -437,7 +483,7 @@ void AIFort::AI_FORT::Load(CSaveLoad *pSL, entid_t eid)
     uint32_t i;
     for (i = 0; i < aCannons.size(); i++)
     {
-        aCannons[i].Load(pSL, this, eid);
+        aCannons[i].Load(pSL, this, eid, kCannonKey, static_cast<int32_t>(i));
         if (aCannons[i].isDamaged())
         {
             const glm::vec3 vPos = aCannons[i].GetPos();
@@ -447,7 +493,7 @@ void AIFort::AI_FORT::Load(CSaveLoad *pSL, entid_t eid)
 
     for (i = 0; i < aCulverins.size(); i++)
     {
-        aCulverins[i].Load(pSL, this, eid);
+        aCulverins[i].Load(pSL, this, eid, kCulverinKey, static_cast<int32_t>(i));
         if (aCulverins[i].isDamaged())
         {
             const glm::vec3 vPos = aCulverins[i].GetPos();
@@ -457,7 +503,7 @@ void AIFort::AI_FORT::Load(CSaveLoad *pSL, entid_t eid)
 
     for (i = 0; i < aMortars.size(); i++)
     {
-        aMortars[i].Load(pSL, this, eid);
+        aMortars[i].Load(pSL, this, eid, kMortarKey, static_cast<int32_t>(i));
         if (aMortars[i].isDamaged())
         {
             const glm::vec3 vPos = aMortars[i].GetPos();

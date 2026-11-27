@@ -49,7 +49,8 @@ class AIFort : public VAI_OBJBASE
 
             void Fire(const glm::vec3 &vPos) override{};
 
-            float Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::vec3 &dst) override
+            float Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &src,
+                               const glm::vec3 &dst) override
             {
                 return 2.0f;
             };
@@ -119,6 +120,11 @@ class AIFort : public VAI_OBJBASE
 
         uint32_t dwCannonType, dwCulverinType, dwMortarType;
 
+        // The Fort.Cannons.Type child of each container: the board the scripts know its cannons by.
+        static constexpr const char *kCannonKey = "1";
+        static constexpr const char *kCulverinKey = "2";
+        static constexpr const char *kMortarKey = "3";
+
         MODEL *GetModel() const
         {
             return static_cast<MODEL *>(core.GetEntityPointer(GetModelEID()));
@@ -156,6 +162,15 @@ class AIFort : public VAI_OBJBASE
             if (dwCannonIndex < aCannons.size() + aCulverins.size())
                 return dwCulverinType;
             return dwMortarType;
+        }
+
+        const char *GetCannonKey(uint32_t dwCannonIndex) const
+        {
+            if (dwCannonIndex < aCannons.size())
+                return kCannonKey;
+            if (dwCannonIndex < aCannons.size() + aCulverins.size())
+                return kCulverinKey;
+            return kMortarKey;
         }
 
         uint32_t GetDamagedCannonsNum()
@@ -274,8 +289,8 @@ class AIFort : public VAI_OBJBASE
     // Ships lights
     IShipLights *pShipsLights;
 
-    void AddFortHit(int32_t iCharacterIndex, glm::vec3 &vHitPos);
-    float GetSpeedV0(uint32_t dwFortIndex);
+    void AddFortHit(int32_t iCharacterIndex, glm::vec3 &vHitPos, int32_t iCannonType);
+    void DestroyRandomCannon(uint32_t dwFortIndex, int32_t iBallOwner);
     bool ScanFortForCannons(AI_FORT *pFort, const char *pModelsDir, const char *pLocatorsName) const;
     bool AddFort(ATTRIBUTES *pIslandAP, ATTRIBUTES *pFortAP, ATTRIBUTES *pFortCharacter, entid_t eidModel,
                  entid_t eidBlot);
@@ -329,7 +344,7 @@ class AIFort : public VAI_OBJBASE
     };
 
     // inherit functions CANNON_TRACE_BASE
-    float Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::vec3 &vDst) override;
+    float Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &vSrc, const glm::vec3 &vDst) override;
 
     // inherit functions VAI_OBJBASE
     ATTRIBUTES *GetACharacter() override;

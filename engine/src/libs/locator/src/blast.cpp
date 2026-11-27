@@ -135,7 +135,7 @@ void BLAST::ProcessTime(uint32_t DT)
         {
             if (pSea)
             {
-                res = pSea->Cannon_Trace(-1, a, Item[n].pos);
+                res = pSea->Cannon_Trace(-1, -1, a, Item[n].pos);
                 if (res <= 1)
                     Item[n].bEffect = true;
             }

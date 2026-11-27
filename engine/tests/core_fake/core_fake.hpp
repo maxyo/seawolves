@@ -119,8 +119,9 @@ class FakeCore final : public CorePrivate
     // Send_Message: the arguments after the format, as text ('l' int32, 'f' float, 's' string, 'i'/'e' entity id).
     std::function<uint64_t(entid_t, const std::vector<std::string> &)> message;
     std::function<void(std::string_view)> event;
-    // An event with arguments (Event(name, format, ...)); without it the arguments go unread to `event`.
-    std::function<void(std::string_view, MESSAGE &)> messageEvent;
+    // An event with arguments (Event(name, format, ...)) and the handler's answer; without it the arguments go unread
+    // to `event`.
+    std::function<VDATA *(std::string_view, MESSAGE &)> messageEvent;
     // GetSaveData: the save files' bytes by path, and how often they were read.
     std::map<std::string, std::vector<uint8_t>, std::less<>> saveData;
     int saveDataReads = 0;
@@ -215,8 +216,7 @@ class FakeCore final : public CorePrivate
     {
         if (!messageEvent)
             return Event(name);
-        messageEvent(name, message);
-        return nullptr;
+        return messageEvent(name, message);
     }
     bool HasActiveEventHandler(const char *event_name, const char *func_name) override
     {

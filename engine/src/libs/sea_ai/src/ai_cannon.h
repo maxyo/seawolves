@@ -3,6 +3,8 @@
 #include "ai_helper.h"
 #include "vai_objbase.h"
 
+#include <string>
+
 // Master class AICannon
 // Contain functions and parameters for cannon
 class AICannon
@@ -10,6 +12,8 @@ class AICannon
   private:
     AIAttributesHolder *pAHolder;
     entid_t eidParent;       // parent for cannon (ship, or fort entity)
+    std::string sBoard;      // the ship's board, or the fort's cannon type key, the scripts know the cannon by
+    int32_t iIndex;          // the cannon's index on its board
     glm::vec3 vPos, vDir;      // Cannon position and direction(relative to parent)
     float fTime2Action;      // timeout before action(calculated in script)
     float fTotalTime2Action; // total timeout before action(calculated in script)(unchangeable)
@@ -45,7 +49,7 @@ class AICannon
     AICannon();
     virtual ~AICannon();
 
-    void Init(AIAttributesHolder *_pAHolder, entid_t eid, GEOS::LABEL &lbl);
+    void Init(AIAttributesHolder *_pAHolder, entid_t eid, GEOS::LABEL &lbl, std::string board, int32_t index);
 
     void Execute(float fDeltaTime);
 
@@ -63,6 +67,8 @@ class AICannon
     void Unload();
     void Recharge();
     void QuickRecharge(bool bHaveEnoughBalls);
+    // AI_MESSAGE_SET_CANNON_RECHARGE: a reloading cannon has `progress` (0..1) of its reload done.
+    void SetRechargeProgress(float progress);
 
     float GetRechargePercent();
 
@@ -134,7 +140,7 @@ class AICannon
     }
 
     void Save(CSaveLoad *pSL) const;
-    void Load(CSaveLoad *pSL, AIAttributesHolder *_pAHolder, entid_t eid);
+    void Load(CSaveLoad *pSL, AIAttributesHolder *_pAHolder, entid_t eid, std::string board, int32_t index);
 
   private:
     CANNONTYPE CannonType;

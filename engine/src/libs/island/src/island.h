@@ -123,7 +123,7 @@ class ISLAND : public ISLAND_BASE
     };
 
     // inherit functions CANNON_TRACE_BASE
-    float Cannon_Trace(int32_t iBallOwner, const glm::vec3 &src, const glm::vec3 &dst);
+    float Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &src, const glm::vec3 &dst) override;
 
     // inherit functions ISLAND_BASE
     bool GetMovePoint(glm::vec3 &vSrc, glm::vec3 &vDst, glm::vec3 &vRes);

@@ -7,6 +7,7 @@
 #include "foam.h"
 #include "weather_base.h"
 #include "math_inlines.h"
+#include "sea_script_protocol.hpp"
 #include "shared/messages.h"
 #include "shared/sea_ai/script_defines.h"
 #include "tga.h"
@@ -728,13 +729,15 @@ bool ISLAND::Mount(const std::string_view &fname, const std::string_view &fdir, 
     return true;
 }
 
-float ISLAND::Cannon_Trace(int32_t iBallOwner, const glm::vec3 &vSrc, const glm::vec3 &vDst)
+float ISLAND::Cannon_Trace(int32_t iBallOwner, int32_t iCannonType, const glm::vec3 &vSrc, const glm::vec3 &vDst)
 {
     const float fRes = Trace(vSrc, vDst);
     if (fRes <= 1.0f)
     {
         const glm::vec3 vTemp = vSrc + fRes * (vDst - vSrc);
-        core.Event(BALL_ISLAND_HIT, "lfff", iBallOwner, vTemp.x, vTemp.y, vTemp.z);
+        MESSAGE event;
+        storm::sea_ai::ResetBallHit(event, storm::sea_ai::seaScriptProtocol(), iBallOwner, vTemp, iCannonType);
+        core.Event(BALL_ISLAND_HIT, event);
     }
     return fRes;
 }

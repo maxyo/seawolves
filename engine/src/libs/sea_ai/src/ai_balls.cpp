@@ -1,5 +1,6 @@
 #include "ai_balls.h"
 #include "ai_fort.h"
+#include "sea_script_protocol.hpp"
 #include "math_inlines.h"
 #include "shared/messages.h"
 
@@ -188,20 +189,23 @@ void AIBalls::Execute(uint32_t Delta_Time)
                     glm::vec3 vRes, v = fBallFlySoundStereoMultiplier * glm::vec3(x, y, 0.0f);
                     vRes = storm::math::inverseTransformPoint(mView, v);
 
-                    core.Event(BALL_FLY_NEAR_CAMERA, "fff", vRes.x, vRes.y, vRes.z);
+                    MESSAGE event;
+                    storm::sea_ai::ResetBallNearCamera(event, storm::sea_ai::seaScriptProtocol(), vRes,
+                                                       static_cast<int32_t>(pBallsType->dwGoodIndex));
+                    core.Event(BALL_FLY_NEAR_CAMERA, event);
                 }
             }
 
             // sail trace
             if (pSail)
-                pSail->Cannon_Trace(pBall->iBallOwner, vSrc, vDst);
+                pSail->Cannon_Trace(pBall->iBallOwner, pBall->dwCannonType, vSrc, vDst);
 
             auto &&entities = core.GetEntityIds(SHIP_CANNON_TRACE);
             for (auto ent_id : entities)
             {
                 if (auto *pShip = static_cast<CANNON_TRACE_BASE *>(core.GetEntityPointer(ent_id)))
                 {
-                    fRes = pShip->Cannon_Trace(pBall->iBallOwner, vSrc, vDst);
+                    fRes = pShip->Cannon_Trace(pBall->iBallOwner, pBall->dwCannonType, vSrc, vDst);
                     if (fRes <= 1.0f)
                         break;
                 }
@@ -210,16 +214,16 @@ void AIBalls::Execute(uint32_t Delta_Time)
             // fort trace
             if (fRes > 1.0f && AIFort::pAIFort)
             {
-                fRes = AIFort::pAIFort->Cannon_Trace(pBall->iBallOwner, vSrc, vDst);
+                fRes = AIFort::pAIFort->Cannon_Trace(pBall->iBallOwner, pBall->dwCannonType, vSrc, vDst);
             }
 
             // island trace
             if (fRes > 1.0f && pIsland)
-                fRes = pIsland->Cannon_Trace(pBall->iBallOwner, vSrc, vDst);
+                fRes = pIsland->Cannon_Trace(pBall->iBallOwner, pBall->dwCannonType, vSrc, vDst);
 
             // sea trace
             if (fRes > 1.0f && pSea)
-                fRes = pSea->Cannon_Trace(pBall->iBallOwner, vSrc, vDst);
+                fRes = pSea->Cannon_Trace(pBall->iBallOwner, pBall->dwCannonType, vSrc, vDst);
 
             // delete ball
             if (fRes <= 1.0f)
