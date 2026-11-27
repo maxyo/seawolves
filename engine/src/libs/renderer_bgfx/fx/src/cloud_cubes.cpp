@@ -133,7 +133,9 @@ float CumulusDensity(glm::vec2 p, float footprint)
     const glm::vec2 q = p + 220.0f * warp;
     const float masses = 0.5f + 0.5f * Octaves(q, 9000.0f, 3, footprint, false);
     // A puff's mean where it is smaller than the texel's footprint.
-    const auto puffs = [&](float size) { return glm::mix(Puffs(q / size), 0.5f, glm::smoothstep(0.25f, 0.5f, footprint / size)); };
+    const auto puffs = [&](float size) {
+        return glm::mix(Puffs(q / size), 0.5f, glm::smoothstep(0.25f, 0.5f, footprint / size));
+    };
     const float heaps = 0.6f * puffs(1100.0f) + 0.4f * puffs(430.0f);
     const float shape = 0.45f * masses + 0.55f * heaps;
     const float erosion = 0.5f + 0.5f * Octaves(q, 170.0f, 2, footprint, false);
@@ -236,9 +238,7 @@ Texel MarchTexel(const LayerShape &shape, const Field &field, glm::vec3 raw, int
         }
     const glm::vec2 at = glm::vec2(v.x, v.z) * seen->along;
     const float y = std::max(seen->height, 0.0f);
-    const auto inside = [&](glm::vec2 p, float height) {
-        return Density(shape, LayerAt(field, p), height) >= cut;
-    };
+    const auto inside = [&](glm::vec2 p, float height) { return Density(shape, LayerAt(field, p), height) >= cut; };
     // Up to the cloud's top, down to its base, and through its neighbours along the four horizontal axes.
     constexpr int kSteps = 10;
     constexpr float kStep = 60.0f;
@@ -368,8 +368,8 @@ std::vector<Texel> MakeLayer(const LayerShape &shape, int size, ParallelFor &wor
     std::vector<Texel> plain(field.v.size());
     for (size_t i = 0; i < plain.size(); ++i)
     {
-        const glm::vec3 raw = TexelDirection(int(i / size_t(size * size)), int(i % size_t(size)),
-                                             int(i / size_t(size)) % size, size);
+        const glm::vec3 raw =
+            TexelDirection(int(i / size_t(size * size)), int(i % size_t(size)), int(i / size_t(size)) % size, size);
         if (raw.y > 0.0f)
             plain[i] = {field.v[i], 1.0f / std::pow(glm::dot(raw, raw), 1.5f), {}};
     }

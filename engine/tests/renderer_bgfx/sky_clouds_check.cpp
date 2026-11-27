@@ -283,8 +283,7 @@ int main()
                 return sum / float(kSize);
             };
             std::printf("storm: band %.3f, clouds above %.3f\n", row(127), row(90));
-            expect(row(127) < row(90) + 0.03f,
-                   "under the rain clouds the haze band is as dark as they are");
+            expect(row(127) < row(90) + 0.03f, "under the rain clouds the haze band is as dark as they are");
 
             environment::State foggy = Noon();
             foggy.fog_density = 1.0f / 500.0f;

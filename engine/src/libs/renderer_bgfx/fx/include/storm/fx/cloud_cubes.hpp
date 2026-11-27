@@ -38,7 +38,8 @@ struct GeneratedClouds
 };
 
 inline constexpr int kBaseCloudSize = 256, kRainCloudSize = 128;
-// The layers' base (metres); the height over which the fair-weather layer's density falls by one; the rain deck's depth.
+// The layers' base (metres); the height over which the fair-weather layer's density falls by one; the rain deck's
+// depth.
 inline constexpr float kCloudBase = 1500.0f, kCloudRise = 1100.0f, kRainDepth = 2000.0f;
 
 GeneratedClouds GenerateClouds();
