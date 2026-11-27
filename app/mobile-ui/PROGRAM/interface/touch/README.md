@@ -81,7 +81,8 @@ events are `UiBuild(ui)` and `UiTap(ui, id, verb, value)`, raised to every scree
 every contract call.
 
 The natives (`core/core.c`):
-- the view: `UiShow`, `UiPredict` (in a tap: the view the tap leads to), `UiOn`, `UiModal`, `UiPending`, `UiText`;
+- the view: `UiShow`, `UiPredict` (in a tap: the view the tap leads to), `UiOn`, `UiModal`, `UiBackTo` (in a build:
+  the back key raises that tap), `UiPending`, `UiText`;
 - the game: `UiSend(node, verb, value)`, `UiSendTo({node, verb, value, row, guard, lead})`, `UiBack`, `UiOffers`;
 - waiting for the game: after a move, `UiHold(seconds)`; the event is then built once, with the model of the game's
   answer (in the tap's frame). A build from an answer the game completes in a later frame says `UiAwait()` and is not

@@ -134,7 +134,6 @@ add_library(storm_ui STATIC
     src/screens/extra_goods.cpp
     src/screens/menu_game_over.cpp
     src/screens/menu_quick_save.cpp
-    src/screens/maps.cpp
     src/screens/script_screen.cpp
     src/screens/script_props.cpp
     src/component_spec.cpp

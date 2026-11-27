@@ -18,6 +18,44 @@ string TouchLegLib_Label(aref model, string node)
 	return model.(node).label;
 }
 
+// The texts of an optional node in its order as {text} entries <prefix><n> of `out`: the rows of a multi-line text,
+// else its label; an empty one is left out.
+void TouchLegLib_Lines(aref model, string node, aref out, string prefix)
+{
+	if (node == "") return;
+	if (!CheckAttribute(model, node)) return;
+	aref line;
+	if (!CheckAttribute(model, node + ".rows"))
+	{
+		if (model.(node).label == "") return;
+		line = TouchLib_Add(out, prefix);
+		line.text = model.(node).label;
+		return;
+	}
+	aref rows;
+	makearef(rows, model.(node).rows);
+	for (int k = 0; k < GetAttributesNum(rows); k++)
+	{
+		aref row = GetAttributeN(rows, k);
+		if (row.label != "")
+		{
+			line = TouchLib_Add(out, prefix);
+			line.text = row.label;
+		}
+	}
+}
+
+// A node's first picture copied to `out` ({kind, group, image, uv}), false without one.
+bool TouchLegLib_NodeImage(aref model, string node, aref out)
+{
+	if (node == "") return false;
+	if (!CheckAttribute(model, node + ".images.i0")) return false;
+	aref image;
+	makearef(image, model.(node).images.i0);
+	CopyAttributes(out, image);
+	return true;
+}
+
 // The text of a row's column; -1 is a column the window does not have.
 string TouchLegLib_Cell(aref row, int column)
 {

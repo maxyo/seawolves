@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[19];
+object Interfaces[22];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -164,6 +164,9 @@ void Main()
 	Interfaces[16].IniFile = "RESOURCE\INI\INTERFACES\NationLegend.ini";
 	Interfaces[17].IniFile = "RESOURCE\INI\INTERFACES\boal_frame.ini";
 	Interfaces[18].IniFile = "RESOURCE\INI\INTERFACES\fortcapture.ini";
+	Interfaces[19].IniFile = "RESOURCE\INI\INTERFACES\mapview.ini";
+	Interfaces[20].IniFile = "RESOURCE\INI\INTERFACES\MapBest.ini";
+	Interfaces[21].IniFile = "RESOURCE\INI\INTERFACES\PaperMap.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)

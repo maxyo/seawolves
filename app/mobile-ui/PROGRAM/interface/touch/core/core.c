@@ -10,6 +10,8 @@ native void UiShow(aref view);
 native void UiPredict(aref view);
 native void UiOn(string id, string verb);
 native void UiModal(string id, string cancel);
+// In a build: the back key raises the tap `id` while this view is shown (a sheet of the screen's own open).
+native void UiBackTo(string id);
 native int UiPending(string id);
 native string UiText(string key);
 

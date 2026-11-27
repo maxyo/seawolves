@@ -70,9 +70,6 @@ class SectionSwitch
 // "ok" / "danger" where the game colours a raised / lowered skill. A table without those rows, or naming an unknown
 // skill, is an error of `screen`, said once.
 Json ShipSkills(const std::vector<const Widget *> &table, Bindings &bindings, const std::string &screen);
-// The props of c-map-view for a "map" widget (a scrolled picture) and its "map_marker" rows;
-// "base" is empty when the engine's context lacks it (the screen reports that).
-Json MapViewOf(const Widget &map, std::span<const Widget *const> markers);
 // The nation a picture of the game's NATIONS group shows, as our flag name ("england",
 // "france", "spain", "holland", "pirates"), or empty.
 std::string NationOf(const ImageRef *image);

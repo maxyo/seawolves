@@ -21,6 +21,13 @@
       ["MAIN_WINDOW_CAPTION", "text|heading"], ["INFO_TEXT*", "text"], ["INFO_PICTURE", "image"],
       ["INFO_BORDERS", "image"], ["STATICIMAGES", "image"]
     ],
+    "map": [
+      ["MAP", "map|map_marker", true], ["TITLE", "heading|text"], ["EXIT_BTN", "button"], ["OK", "button"],
+      ["TABLE_MAPS", "choice"], ["STR_1", "text"], ["MAPS_LIST", "text"], ["INFO_CAPTION", "text|heading"],
+      ["INFO_NATION_PICTURE", "image"], ["COLONY_*", "text"], ["IMPORT*", "text|image"], ["EXPORT*", "text|image"],
+      ["CONTRABAND_CAPTION", "text"], ["AGGRESSIVE_CAPTION", "text"], ["TRADEASSISTANT_*", "text"],
+      ["GOODS_PICTURES", "image"], ["MAIN_BACK", "image"], ["BOUNDARIES", "image"]
+    ],
     "reading-news": [
       ["B_OK", "button", true], ["INFO_TEXT*", "text"], ["INFO_CAPTION", "text|heading"], ["Nat1", "image"],
       ["Nat2", "image"], ["RelNat", "image"]
@@ -33,6 +40,7 @@
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/touch/contracts/reading.c"},
+    {"file": "interface/touch/contracts/map.c"},
     {"file": "interface/touch/contracts/nations.c"},
     {"file": "interface/touch/contracts/crew.c"},
     {"file": "interface/touch/contracts/sails.c"},
@@ -274,6 +282,30 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/map.c",
+      "provides": ["adapter:map"],
+      "binds": [
+        {"capability": "map_atlas", "interface": "mapview", "nodes": ["@map"], "data": {"exit": "EXIT_BTN", "backdrop": ""}},
+        {
+          "capability": "map_best", "interface": "mapbest", "nodes": ["@map"],
+          "data": {
+            "exit": "EXIT_BTN", "backdrop": "MAIN_BACK",
+            "pictures": {
+              "node": "GOODS_PICTURES", "colonyFrom": 400, "returnFrom": 270,
+              "bands": {
+                "b1": {"caption": "EXPORT_CAPTION", "from": 0, "to": 330},
+                "b2": {"caption": "IMPORT_CAPTION", "from": 330, "to": 415},
+                "b3": {"caption": "CONTRABAND_CAPTION", "from": 415, "to": 470},
+                "b4": {"caption": "AGGRESSIVE_CAPTION", "from": 470, "to": 1048576}
+              },
+              "prices": {"p0": "TRADEASSISTANT_PRICES1", "p1": "TRADEASSISTANT_PRICES2"}
+            }
+          }
+        },
+        {"capability": "map_paper", "interface": "papermap", "nodes": ["@map"], "data": {"exit": "OK", "backdrop": ""}}
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -387,6 +419,15 @@
         {"capability": "news_nations", "component": "s-reading", "look": {"mode": "notice", "title": "reading.nation_news"}},
         {"capability": "interlude", "component": "s-reading", "look": {"mode": "frame"}},
         {"capability": "fort_capture", "component": "s-reading", "look": {"mode": "none"}}
+      ]
+    },
+    {
+      "file": "interface/touch/screens/map.c",
+      "uses": ["adapter:map"],
+      "screens": [
+        {"capability": "map_atlas", "component": "s-map"},
+        {"capability": "map_best", "component": "s-map"},
+        {"capability": "map_paper", "component": "s-map"}
       ]
     }
   ]

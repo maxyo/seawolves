@@ -85,6 +85,9 @@ class ScriptCall
     // The view shows modal `id`; its scrim and the back key raise an event of element `cancel` (no verb), or are
     // refused when `cancel` is empty.
     virtual void Modal(const std::string &id, const std::string &cancel) = 0;
+    // Inside a build: while its view is shown, the back key raises an event of element `id` (no verb) instead of
+    // leaving the interface (a sheet of the screen's own open over it).
+    virtual void BackTo(const std::string &id) = 0;
     virtual bool Pending(const std::string &id) const = 0;
     virtual bool Offers(const std::string &node, const std::string &verb) const = 0;
     virtual std::string Text(const std::string &key) const = 0;

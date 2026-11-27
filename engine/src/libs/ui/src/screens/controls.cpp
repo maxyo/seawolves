@@ -149,59 +149,6 @@ Json ShipSkills(const std::vector<const Widget *> &table, Bindings &bindings, co
     return skills;
 }
 
-namespace
-{
-// "a,b[,c,d]" of the engine's map context as numbers; empty when malformed.
-Json Numbers(const Widget &widget, const char *key, size_t count)
-{
-    const auto found = widget.context.find(key);
-    if (found == widget.context.end())
-        return Json::array();
-    Json out = Json::array();
-    std::string_view text = found->second;
-    while (!text.empty() && out.size() < count)
-    {
-        const size_t comma = text.find(',');
-        const std::optional<double> value = ParseNumber<double>(text.substr(0, comma));
-        if (!value)
-            return Json::array();
-        out.push_back(*value);
-        text = comma == std::string_view::npos ? std::string_view() : text.substr(comma + 1);
-    }
-    return out.size() == count && text.empty() ? out : Json::array();
-}
-double Context(const Widget &widget, const char *key)
-{
-    const Json value = Numbers(widget, key, 1);
-    return value.empty() ? 0.0 : value[0].get<double>();
-}
-} // namespace
-
-Json MapViewOf(const Widget &map, std::span<const Widget *const> markers)
-{
-    const Json picture = TextureOf(map.FirstImage());
-    Json view{{"texture", picture.is_null() ? "" : picture["texture"]},
-              {"uv", picture.is_null() ? "" : picture["uv"]},
-              {"base", Numbers(map, "base", 2)},
-              {"view", Numbers(map, "view", 4)}};
-    Json pins = Json::array();
-    for (const Widget *marker : markers)
-    {
-        const Json texture = TextureOf(marker->FirstImage());
-        if (texture.is_null())
-            continue;
-        pins.push_back(Json{{"texture", texture["texture"]},
-                            {"uv", texture["uv"]},
-                            {"id", marker->row_id},
-                            {"x", Context(*marker, "x")},
-                            {"y", Context(*marker, "y")},
-                            {"w", Context(*marker, "width")},
-                            {"h", Context(*marker, "height")}});
-    }
-    view["markers"] = pins;
-    return view;
-}
-
 std::string NationOf(const ImageRef *image)
 {
     if (!image || image->kind != "atlas" || Upper(image->group) != "NATIONS")

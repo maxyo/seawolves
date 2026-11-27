@@ -133,3 +133,24 @@ int TouchLib_Action(string id)
 	if (!TouchLib_StartsWith(id, "action-")) return -1;
 	return UiAmount(TouchLib_Cut(id, 7, strlen(id)), "the action " + id);
 }
+
+// The words of `text` between spaces, tabs and line breaks, as {text} entries w<n> of `out`.
+void TouchLib_Words(string text, aref out)
+{
+	string separators = " 	" + TouchLib_LineEnds();
+	int from = 0;
+	for (int at = 0; at <= strlen(text); at++)
+	{
+		bool end = at == strlen(text);
+		if (!end) end = findSubStr(separators, strcut(text, at, at), 0) >= 0;
+		if (end)
+		{
+			if (at > from)
+			{
+				aref word = TouchLib_Add(out, "w");
+				word.text = TouchLib_Cut(text, from, at);
+			}
+			from = at + 1;
+		}
+	}
+}

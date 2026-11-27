@@ -5,41 +5,6 @@
 // sum), picture with its ornament (the window's own frame texture, no picture of the moment), flags {n<k>: node},
 // relation. Implements contracts/reading.c.
 
-void TouchLegReading_Line(aref out, string text)
-{
-	if (text == "") return;
-	aref line = TouchLib_Add(out, "l");
-	line.text = text;
-}
-
-// The texts of a node in its order: the rows of a multi-line text, else its label.
-void TouchLegReading_Lines(aref node, aref out)
-{
-	if (!CheckAttribute(node, "rows"))
-	{
-		TouchLegReading_Line(out, node.label);
-		return;
-	}
-	aref rows;
-	makearef(rows, node.rows);
-	for (int k = 0; k < GetAttributesNum(rows); k++)
-	{
-		aref row = GetAttributeN(rows, k);
-		TouchLegReading_Line(out, row.label);
-	}
-}
-
-// A node's first picture, false without one.
-bool TouchLegReading_Image(aref model, string node, aref out)
-{
-	if (node == "") return false;
-	if (!CheckAttribute(model, node + ".images.i0")) return false;
-	aref image;
-	makearef(image, model.(node).images.i0);
-	CopyAttributes(out, image);
-	return true;
-}
-
 void TouchLegReading_Answer(aref model, string node, aref out)
 {
 	object answer = {label = model.(node).label, can = UiOffers(node, "press"), reason = model.(node).reason};
@@ -59,7 +24,7 @@ void TouchLegReading_Flags(aref model, aref data, aref out)
 	for (int k = 0; k < GetAttributesNum(nodes); k++)
 	{
 		DeleteAttribute(&image, "");
-		if (TouchLegReading_Image(model, GetAttributeValue(GetAttributeN(nodes, k)), &image))
+		if (TouchLegLib_NodeImage(model, GetAttributeValue(GetAttributeN(nodes, k)), &image))
 		{
 			string icon = TouchLegLib_FlagOf(&image);
 			if (icon != "")
@@ -72,7 +37,7 @@ void TouchLegReading_Flags(aref model, aref data, aref out)
 	if (GetAttributesNum(flags) != 2) return;
 	DeleteAttribute(&image, "");
 	out.relation = "peace";
-	if (!TouchLegReading_Image(model, data.relation, &image)) return;
+	if (!TouchLegLib_NodeImage(model, data.relation, &image)) return;
 	if (image.image == "Enemy") out.relation = "war";
 	if (image.image == "Friend") out.relation = "alliance";
 }
@@ -90,10 +55,10 @@ void TouchAdpReading_State(aref ui, aref out)
 	{
 		aref node = GetAttributeN(model, k);
 		string name = GetAttributeName(node);
-		if (TouchLib_StartsWith(name, "INFO_TEXT") && name != data.amount) TouchLegReading_Lines(node, lines);
+		if (TouchLib_StartsWith(name, "INFO_TEXT") && name != data.amount) TouchLegLib_Lines(model, name, lines, "l");
 	}
 	object picture;
-	if (TouchLegReading_Image(model, data.picture, &picture))
+	if (TouchLegLib_NodeImage(model, data.picture, &picture))
 	{
 		if (picture.image != data.ornament)
 		{

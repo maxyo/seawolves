@@ -1,6 +1,6 @@
 {
   "tag": "s-map",
-  "doc": "The game's maps (interfaces `mapview`, `mapbest`, `papermap`): the map in c-map-view, the atlas's maps on the left, the tapped colony in a c-colony-sheet on the right. Filled by maps.cpp.",
+  "doc": "The game's maps (interfaces `mapview`, `mapbest`, `papermap`): the map in c-map-view, the atlas's maps on the left, the tapped colony in a c-colony-sheet on the right. Filled by the script interface/touch/screens/map.c through the shapes of its json props.",
   "props": {
     "title": {
       "type": "text",
@@ -8,11 +8,40 @@
     },
     "map": {
       "type": "json",
-      "default": {}
+      "default": {},
+      "shape": {
+        "$texture": {
+          "base": "numbers",
+          "view": "numbers",
+          "markers": [
+            {
+              "$texture": {
+                "id": "text",
+                "x": "number",
+                "y": "number",
+                "w": "number",
+                "h": "number"
+              }
+            }
+          ]
+        }
+      }
     },
     "maps": {
       "type": "json",
-      "default": []
+      "default": [],
+      "shape": [
+        {
+          "cells": [
+            {
+              "text": "text",
+              "icon": "text"
+            }
+          ],
+          "selected": "bool",
+          "disabled": "bool"
+        }
+      ]
     },
     "mapsTitle": {
       "type": "text",
@@ -20,11 +49,62 @@
     },
     "mapColumns": {
       "type": "json",
-      "default": []
+      "default": [],
+      "shape": [
+        {
+          "w": "text"
+        }
+      ]
     },
     "info": {
       "type": "json",
-      "default": null
+      "default": null,
+      "shape": {
+        "$null": {
+          "title": "text",
+          "nation": "text",
+          "sub": "text",
+          "factsTitle": "text",
+          "facts": [
+            {
+              "k": "text",
+              "v": "text"
+            }
+          ],
+          "notes": [
+            {
+              "text": "text"
+            }
+          ],
+          "sections": [
+            {
+              "title": "text",
+              "page": "text",
+              "goods": [
+                {
+                  "$texture": {
+                    "label": "text",
+                    "value": "text"
+                  }
+                }
+              ],
+              "lines": [
+                {
+                  "text": "text"
+                }
+              ]
+            }
+          ],
+          "page": "text",
+          "tabs": [
+            {
+              "id": "text",
+              "label": "text",
+              "selected": "bool"
+            }
+          ]
+        }
+      }
     },
     "extras": {
       "type": "json",

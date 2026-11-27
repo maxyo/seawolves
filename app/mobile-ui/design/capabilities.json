@@ -17,5 +17,8 @@
   "news_colony": "News of a colony (a siege, a capture)",
   "news_nations": "News between two nations (war, peace, alliance)",
   "interlude": "A moment passing: a line over a dark scene or a picture",
-  "fort_capture": "A captured fort: the game closes it at once, nothing is drawn"
+  "fort_capture": "A captured fort: the game closes it at once, nothing is drawn",
+  "map_atlas": "The hero's atlas: the maps he carries, one shown",
+  "map_best": "The excellent map: every colony, its trade and the trade assistant",
+  "map_paper": "The paper map of the islands and their colonies"
 }

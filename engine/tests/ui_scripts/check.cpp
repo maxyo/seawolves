@@ -291,6 +291,10 @@ struct Calls final : storm::ui::ScriptCall
     {
         modals.push_back(id + " " + cancel);
     }
+    void BackTo(const std::string &id) override
+    {
+        modals.push_back("back " + id);
+    }
     bool Pending(const std::string &) const override
     {
         return false;
@@ -787,15 +791,15 @@ TEST_CASE("the self repair's script gives the pack screen the props and actions 
     }
 }
 
-// The reading windows: one script screen for several capabilities, each on its recorded model. The props its view
-// gives, the modal it binds and what its events send.
-TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
+// A script screen of several capabilities on its recorded models (cases/<file>.json, each case naming its
+// capability): the props its view gives, the modals and back key it binds and what its events send.
+void CheckCases(const char *folder, const std::string &file)
 {
     Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("reading");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/reading.json"));
+    const auto spec = PackScreen(folder);
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
     for (const Json &recorded : fixture.at("cases"))
     {
         INFO(recorded.at("name").get<std::string>());
@@ -814,6 +818,16 @@ TEST_CASE("the reading screen's script gives the pack screen the props and actio
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
     }
+}
+
+TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("reading", "reading");
+}
+
+TEST_CASE("the map screen's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("map", "map");
 }
 
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")

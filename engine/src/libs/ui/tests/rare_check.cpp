@@ -154,6 +154,7 @@ static void Maps(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "map-view.json"));
     Expect(router.Using() == "mapview" && surface.tag == "s-map", "the atlas is a ported screen");
     Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty(), "every node of the atlas is known");
@@ -263,6 +264,7 @@ static void Maps(const std::string &models)
         text("CONTRABAND_CAPTION", "Контрабанда");
         FakeSurface real_surface;
         Router real_router(real_surface);
+        Scripted(real_router);
         real_router.SetInterface(real);
         const Json &rows = real_surface.props["info"]["sections"];
         Expect(real_surface.errors.empty() && rows.size() == 5 && rows[0]["title"] == "Экспорт" &&

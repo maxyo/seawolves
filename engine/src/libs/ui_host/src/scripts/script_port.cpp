@@ -368,6 +368,12 @@ uint32_t UiModal(VS_STACK *stack)
     return Native("UiModal", [&](storm::ui::ScriptCall &call) { call.Modal(id, cancel); });
 }
 
+uint32_t UiBackTo(VS_STACK *stack)
+{
+    const std::string id = PopText(stack);
+    return Native("UiBackTo", [&](storm::ui::ScriptCall &call) { call.BackTo(id); });
+}
+
 uint32_t UiPending(VS_STACK *stack)
 {
     const std::string id = PopText(stack);
@@ -581,6 +587,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiPredict", "void", 1, UiPredict},
             {"UiOn", "void", 2, UiOn},
             {"UiModal", "void", 2, UiModal},
+            {"UiBackTo", "void", 1, UiBackTo},
             {"UiPending", "int", 1, UiPending},
             {"UiText", "string", 1, UiText},
             {"UiSend", "void", 3, UiSend},

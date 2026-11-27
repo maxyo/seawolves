@@ -33,6 +33,14 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         return rules_;
     }
+    bool OwnsBack() const override
+    {
+        return !back_.empty();
+    }
+    void Back(Bindings &) override
+    {
+        Raise(back_, "", "");
+    }
 
     Json Build(const Admission &admitted, Bindings &bindings) override
     {
@@ -50,6 +58,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         awaited_ = false;
         dealt_.clear();
         bound_.clear();
+        back_.clear();
         floor_ = bindings.RequestFloor();
         building_ = true;
         struct Done
@@ -155,6 +164,12 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
             return;
         }
         bindings_->Modal(id, [this, cancel](const Event &) { Raise(cancel, "", ""); });
+    }
+    void BackTo(const std::string &id) override
+    {
+        if (!building_)
+            throw std::runtime_error("the back key is taken only while the screen builds");
+        back_ = id;
     }
     bool Pending(const std::string &id) const override
     {
@@ -332,6 +347,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     std::map<std::string, DealState> deals_;    // the deals by their element
     std::set<std::string> dealt_;               // the elements the running build asked a deal of
     std::set<std::string> bound_, shown_bound_; // "<id>\x1f<verb>" the running build and the shown one bound
+    std::string back_;                          // the element the back key raises, "" the router's way out
 };
 } // namespace
 

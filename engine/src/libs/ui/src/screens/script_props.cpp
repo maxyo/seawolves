@@ -35,6 +35,21 @@ Json Scalar(const ViewTree &node, const std::string &type, const std::string &pa
     if (type == "number")
         if (const std::optional<double> value = ParseNumber<double>(node.value))
             return *value;
+    if (type == "numbers")
+    {
+        // "2048,2048": a list of numbers in one text, as the engine's context of a widget gives them.
+        Json list = Json::array();
+        for (size_t at = 0; at <= node.value.size() && !node.value.empty();)
+        {
+            const size_t end = std::min(node.value.find(',', at), node.value.size());
+            const std::optional<double> value = ParseNumber<double>(node.value.substr(at, end - at));
+            if (!value)
+                throw Mismatch(path, "'" + node.value + "' is not a list of numbers");
+            list.push_back(*value);
+            at = end + 1;
+        }
+        return list;
+    }
     if (type == "int" || type == "number")
         throw Mismatch(path, "'" + node.value + "' is not a number");
     throw Mismatch(path, "the spec's shape names an unknown type '" + type + "'");
@@ -52,7 +67,9 @@ const Json *Meta(const Json &shape, const char *key)
 // that shape, or null where the view gives the node no value and no children; {"$either": [scalar, structure]}:
 // the scalar where the node has no children, else the structure (a table's cells: plain text or {text, bold});
 // "picture": a game image {kind, group, image, uv} as the pack draws it in a row (PictureOf: null for none or a kind
-// it does not draw); "texture": the same image as a backdrop or a map draws it (TextureOf: {texture, uv}, or null).
+// it does not draw); "texture": the same image as a backdrop or a map draws it (TextureOf: {texture, uv}, or null);
+// {"$texture": fields}: fields beside an `image` drawn as a texture: those fields with its texture and uv;
+// "numbers": "1,2,3" as a list of numbers.
 Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
 {
     if (shape == "picture" || shape == "texture")
@@ -63,6 +80,27 @@ Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
             return Json();
         const ImageRef image = Image(node, path);
         return shape == "picture" ? PictureOf(&image) : TextureOf(&image);
+    }
+    if (const Json *fields = Meta(shape, "$texture"))
+    {
+        // Fields beside an `image` drawn as a texture: those fields with its texture and uv.
+        ViewTree rest;
+        const ViewTree *image = nullptr;
+        for (const ViewTree &child : node.children)
+            if (SameNode(child.name, "image"))
+                image = &child;
+            else
+                rest.children.push_back(child);
+        if (!image)
+            throw Mismatch(path, "has no image");
+        const ImageRef ref = Image(*image, path + "/image");
+        const Json texture = TextureOf(&ref);
+        if (texture.is_null())
+            throw Mismatch(path + "/image", "'" + ref.kind + "' '" + ref.image + "' is not drawn as a texture");
+        Json object = Convert(rest, *fields, path);
+        object["texture"] = texture["texture"];
+        object["uv"] = texture["uv"];
+        return object;
     }
     if (const Json *inner = Meta(shape, "$null"))
         return node.children.empty() && node.value.empty() ? Json() : Convert(node, *inner, path);
