@@ -379,6 +379,7 @@ class XINTERFACE : public XINTERFACE_BASE
     void MobileKeepSaveProfile();
     std::optional<storm::mobile::NationStanding> MobileNationStanding(const std::string &nation) const;
     void MobileNationPickFailed(const std::string &target) const;
+    std::optional<std::string> MobileCharacterName(int index) const;
     void MobileCollectHero(std::vector<MobileWidget> &widgets);
     void MobileCollectFacts(std::vector<MobileWidget> &widgets);
     storm::mobile::InterfaceLeaving mobileLeaving_;

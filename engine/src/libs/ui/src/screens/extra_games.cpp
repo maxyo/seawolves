@@ -119,20 +119,6 @@ int DieFace(Bindings &bindings, const std::string &picture)
     return picture.starts_with("dice_") ? Amount(bindings, std::string_view(picture).substr(5), "die picture") : 0;
 }
 
-// Points of a card, PROGRAM/characters/characters_init.c (NullCharacter.Cards.*.count).
-int CardPoints(Bindings &bindings, const std::string &rank)
-{
-    if (rank == "A")
-        return 11;
-    if (rank == "K")
-        return 4;
-    if (rank == "Q")
-        return 3;
-    if (rank == "J")
-        return 2;
-    return Amount(bindings, rank, "card rank");
-}
-
 class TableGameScreen final : public Screen
 {
   public:
@@ -428,7 +414,12 @@ class TableGameScreen final : public Screen
                 card["rank"] = rank.size() == 1 && !std::isdigit(static_cast<unsigned char>(rank[0]))
                                    ? bindings.Text("games.rank_" + rank)
                                    : rank;
-                (n < 18 ? our_points : their_points) += CardPoints(bindings, rank);
+                // What the game counts the card (the engine's points: NullCharacter.Cards.<c>.count).
+                if (const auto points = image->context.find("points"); points != image->context.end())
+                    (n < 18 ? our_points : their_points) += Amount(bindings, points->second, "card points");
+                else
+                    bindings.ErrorOnce("card points " + picture,
+                                       "table game: the game counts no points for card " + picture);
             }
             row.push_back(std::move(card));
         }

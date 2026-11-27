@@ -5470,6 +5470,22 @@ static void Games(const std::string &models)
                hand[1]["rank"] == "<games.rank_J>" && hand[1]["red"] == true,
            "our cards: rank and suit from the picture names");
     Expect(cards.props["bottom"]["label"] == "19 <games.point_many>", "our points (7 + J 2 + 10)");
+    {
+        FakeSurface modded;
+        Router other(modded);
+        InterfaceModel deck = Load(models, "boal_cards.json");
+        for (Widget &widget : deck.widgets)
+            if (widget.node == "PCard1")
+                widget.context["points"] = "3"; // a deck that counts the jack 3
+        other.SetInterface(deck);
+        Expect(modded.props["bottom"]["label"] == "20 <games.point_many>", "the points are the game's count, not ours");
+        deck.revision++;
+        for (Widget &widget : deck.widgets)
+            if (widget.node == "PCard1")
+                widget.context.erase("points");
+        other.SetInterface(deck);
+        Expect(modded.errors.size() == 1, "a card the game counts nothing for is reported");
+    }
     Expect(cards.props["top"]["pieces"].size() == 2 && cards.props["top"]["pieces"][0]["kind"] == "back" &&
                cards.props["top"]["label"] == "",
            "the opponent's cards face down, no points");

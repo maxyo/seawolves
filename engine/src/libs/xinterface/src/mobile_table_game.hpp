@@ -2,7 +2,8 @@
 // The tavern mini-games (boal_dice, boal_cards) draw their dice, cards, coins and money lines
 // with script images (CreateImage) and script strings (CreateString), not with nodes. This
 // exports them, plus the script state the UI needs to know whose turn it is, as widgets:
-//   image  <image name>  label = picture, images[0] = the atlas cell (only images with a picture)
+//   image  <image name>  label = picture, images[0] = the atlas cell (only images with a picture); a card's
+//          context points = what the game counts it (NullCharacter.Cards.<c>.count of its picture)
 //   text   <string name> label = the text (GameInterface.strings; the beta-test lines are left out)
 //   table_game ANDROID_TABLE_GAME  context = the script facts below; enabled = false,
 //          unavailableReason names the facts the script did not have (never guessed).
@@ -17,7 +18,8 @@ struct TableGameImage
 {
     std::string node;
     int x = 0, y = 0;
-    ImageRef image; // source.group / source.image name the picture
+    ImageRef image;     // source.group / source.image name the picture
+    std::string points; // a card's count, "" for anything else
 };
 
 struct TableGameSource
@@ -36,6 +38,8 @@ inline void CollectTableGame(const TableGameSource &source, std::vector<MobileWi
             continue; // CreateImage(name, "", "") removes a picture
         MobileWidget widget{image.node, "image", image.image.source.image, "", -1, image.y * 8192 + image.x, false};
         widget.images.push_back(image.image);
+        if (!image.points.empty())
+            widget.context["points"] = image.points;
         widgets.push_back(std::move(widget));
     }
     for (const auto &[name, text] : source.strings)

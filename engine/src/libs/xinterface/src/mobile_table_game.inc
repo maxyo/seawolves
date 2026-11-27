@@ -29,12 +29,22 @@ void TableDice(ATTRIBUTES *state,const char *side,std::vector<std::pair<std::str
 void XINTERFACE::MobileCollectTableGame(std::vector<MobileWidget> &widgets)
 {
     storm::mobile::TableGameSource source;
+    // What the game counts each card (characters_init.c NullCharacter.Cards.cN: pic, count; boal_cards.c CountCardsP).
+    std::map<std::string,std::string> points;
+    auto *deck=storm::android::mobileScreen=="boal_cards"?MobileVariableObject("NullCharacter"):nullptr;
+    if(auto *cards=deck?deck->FindAClass(deck,"Cards"):nullptr)
+        for(size_t i=0;i<cards->GetAttributesNum();++i)
+            if(auto *card=cards->GetAttributeClass(i)){
+                const auto pic=TableAttribute(card,"pic"),count=TableAttribute(card,"count");
+                if(pic&&count)points[*pic]=*count;
+            }
     for(auto *p=m_imgLists;p;p=p->next){
         if(!p->sImageName)continue;
         storm::mobile::TableGameImage image{p->sImageName,static_cast<int>(p->position.left),static_cast<int>(p->position.top)};
         if(p->sImageListName&&*p->sImageListName&&p->sPicture&&*p->sPicture){
             image.image=storm::mobile::AtlasReference(pPictureService,p->sImageListName,p->sPicture);
             image.image.source={"atlas",p->sImageListName,p->sPicture,{},{},-1};
+            if(const auto found=points.find(p->sPicture);found!=points.end())image.points=found->second;
         }
         source.images.push_back(std::move(image));
     }
@@ -48,9 +58,9 @@ void XINTERFACE::MobileCollectTableGame(std::vector<MobileWidget> &widgets)
         {"rate","iRate"},{"moneyHero","iMoneyP"},{"moneyOpponent","iMoneyN"},{"bank","iChest"},{"open","openExit"},
         {"stage","bStartGame"},{"turn","dir_i"},{"first","dir_i_start"}})facts.emplace_back(key,TableInteger(name));
     auto *person=MobileVariableObject("npchar");
-    std::optional<std::string> name=TableAttribute(person,"name");
-    if(name)for(const char *field:{"lastname"})if(auto part=TableAttribute(person,field);part&&!part->empty())*name+=" "+*part;
-    facts.emplace_back("opponent",name);facts.emplace_back("opponentFace",TableAttribute(person,"FaceId"));
+    const auto index=TableAttribute(person,"index");
+    facts.emplace_back("opponent",index?MobileCharacterName(std::atoi(index->c_str())):std::nullopt);
+    facts.emplace_back("opponentFace",TableAttribute(person,"FaceId"));
     if(storm::android::mobileScreen=="boal_dice"){
         facts.emplace_back("locked",TableInteger("bLockClick"));
         auto *state=MobileVariableObject("DiceState");

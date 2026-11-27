@@ -810,14 +810,8 @@ void XINTERFACE::MobileModelFrame()
                     const char *value = index ? index->GetThisAttr() : nullptr;
                     if (value && *value)
                     {
-                        {
-                            const storm::ScriptStateReads reads;
-                            core.Event(storm::app::script_event::AndroidCharacterName, "l", std::atoi(value));
-                        }
-                        auto *name = core.Entity_GetAttributeClass(g_idInterface, "AndroidCharacterName");
-                        const char *text = name ? static_cast<const char *>(name->GetThisAttr()) : nullptr;
-                        if (text)
-                            marker.context["captain"] = std::string(text);
+                        if (const auto name = MobileCharacterName(std::atoi(value)))
+                            marker.context["captain"] = *name;
                         else
                             missing += " AndroidCharacterName (interface adapter android_hero.c)";
                     }
