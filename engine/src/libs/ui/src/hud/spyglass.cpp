@@ -20,14 +20,15 @@ constexpr const char *kSkillKeys[] = {screens::StringKey("spy.skill_fencing"), s
                                       screens::StringKey("spy.skill_navigation"),
                                       screens::StringKey("spy.skill_boarding")};
 // The game's nation order (ENGLAND, FRANCE, SPAIN, HOLLAND, PIRATE).
-constexpr const char *kNations[] = {"england", "france", "spain", "holland", "pirates"};
-constexpr const char *kNationKeys[] = {
+constexpr const char *kNations[Spyglass::kNations] = {"england", "france", "spain", "holland", "pirates"};
+constexpr const char *kNationKeys[Spyglass::kNations] = {
     screens::StringKey("menu.nation_england"), screens::StringKey("menu.nation_france"),
     screens::StringKey("menu.nation_spain"), screens::StringKey("menu.nation_holland"),
     screens::StringKey("menu.nation_pirates")};
 // The script's charge order (ispyglass.c: balls, bombs, chain, grape).
-constexpr const char *kCharges[] = {screens::StringKey("spy.charge_balls"), screens::StringKey("spy.charge_bombs"),
-                                    screens::StringKey("spy.charge_chain"), screens::StringKey("spy.charge_grape")};
+constexpr const char *kCharges[Spyglass::kCharges] = {
+    screens::StringKey("spy.charge_balls"), screens::StringKey("spy.charge_bombs"),
+    screens::StringKey("spy.charge_chain"), screens::StringKey("spy.charge_grape")};
 
 std::string Decimal(double value)
 {

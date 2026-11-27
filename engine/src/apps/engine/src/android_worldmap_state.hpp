@@ -73,27 +73,30 @@ inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready
     auto *battle = core.Entity_GetAttributeClass(core.GetEntityId("WM_INTERFACE"), "wm_sign");
     auto *realShips = static_cast<VDATA *>(core.GetScriptVariable("RealShips"));
     unsigned sign = 1;
-    // Match WM_SetShipData/GetCompanionIndex: TEHO has the player and four
-    // companion slots; zero and characters without a ship are not fleet signs.
-    for (int slot = 0; slot < 5; ++slot)
+    // The signs follow WM_SetShipData: the hero, then his companion slots in order (companionSlots);
+    // characters without a ship are not fleet signs.
+    std::vector<double> members;
+    if (const auto index = shipNumber(main, "index"))
+        members.push_back(*index);
+    for (const int index : companionSlots(main))
+        members.push_back(index);
+    for (size_t member = 0; member < members.size(); ++member)
     {
-        const auto index = slot == 0 ? shipNumber(main, "index")
-                                     : shipNumber(main, ("Fellows.Companions.id" + std::to_string(slot)).c_str());
-        if (!index || std::floor(*index) != *index || *index >= characters->GetElementsNum() ||
-            (slot > 0 && *index < 1))
+        const double index = members[member];
+        if (std::floor(index) != index || index < 0 || index >= characters->GetElementsNum())
             continue;
-        auto *character = characters->GetAClass(static_cast<int>(*index));
+        auto *character = characters->GetAClass(static_cast<int>(index));
         if (!character)
             continue;
         const auto type = shipNumber(character, "Ship.Type");
-        if (slot > 0 && (!type || std::floor(*type) != *type))
+        if (member > 0 && (!type || std::floor(*type) != *type))
             continue;
         MapShipFrame ship;
         ship.name = mapText(character, "Ship.Name");
         const auto characterId = mapText(character, "id");
         if (!characterId.empty())
             ship.id =
-                std::to_string(static_cast<int>(*index)) + ":" + characterId + ":" + shipText(character, "Ship.Type");
+                std::to_string(static_cast<int>(index)) + ":" + characterId + ":" + shipText(character, "Ship.Type");
         auto *badge = battle ? battle->GetAttributeClass(("sign" + std::to_string(sign++)).c_str()) : nullptr;
         if (const auto v = shipNumber(badge, "leftprogress"); v && *v <= 1)
             ship.hull = *v * 100;
@@ -111,7 +114,8 @@ inline WorldMapFrame readWorldMapFrame(const GameplayState &gameplay, bool ready
         {
             auto *shipType = realShips->GetAClass(static_cast<int>(*type));
             ship.type = scriptCaption(shipCanonicalType(shipType), "worldMap");
-            if (const auto c = shipNumber(shipType, "Class"); c && *c >= 1 && *c <= 7 && std::floor(*c) == *c)
+            if (const auto c = shipNumber(shipType, "Class");
+                c && *c >= 1 && *c <= std::numeric_limits<int>::max() && std::floor(*c) == *c)
                 ship.shipClass = static_cast<int>(*c);
             if (const auto m = shipNumber(shipType, "MaxCrew"); m && *m >= 1 && *m <= 100000 && std::floor(*m) == *m)
                 ship.crewMax = static_cast<int>(*m);

@@ -65,6 +65,8 @@
   квест не пускает дальше, на нажатие отвечает сама игра.
 - Число на кнопке зелья считает и противоядия: клавиша зелья игры пьёт и их.
 - Значок «только шагом» под полосками больше не гадает о причине (перегруз или квест): игра её не сообщает.
+- Выбор зарядов на море предлагает и те, которых нет в трюме (с красным 0), как клавиши 1–4 игры: игра переключает
+  заряд и сама не заряжает пушки без ядер.
 
 **English**
 
@@ -135,6 +137,8 @@
   boarding, the game itself answers the tap.
 - The count on the potion button includes antidotes: the game's potion key drinks them too.
 - The «walking only» icon under the bars no longer guesses the reason (overload or a quest): the game does not tell it.
+- The charge picker at sea also offers the kinds the hold lacks (with a red 0), as the game's keys 1–4 do: the game
+  switches the charge and itself does not load guns without shot.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -7,7 +7,9 @@
 #include "core.h"
 #include "v_data.h"
 #include "ship_base.h"
+#include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <limits>
 
 namespace storm::android
@@ -46,6 +48,31 @@ inline std::string shipText(ATTRIBUTES *attributes, const char *path)
         return {};
     return scriptText(value->GetValue(), "ship");
 }
+// The companions the scripts keep in the character's slots (Fellows.Companions.id<slot>, written by
+// SetCompanionIndex within the game's COMPANION_MAX), in slot order: the character indices of the slots that
+// hold one (GetCompanionIndex: an index below 1 is an empty slot). Slot 0, the character himself, is not stored.
+inline std::vector<int> companionSlots(ATTRIBUTES *character)
+{
+    auto *companions = character ? character->FindAClass(character, "Fellows.Companions") : nullptr;
+    std::vector<std::pair<int, int>> slots;
+    for (uint32_t i = 0; companions && i < companions->GetAttributesNum(); ++i)
+    {
+        auto *slot = companions->GetAttributeClass(i);
+        const std::string_view name = slot->GetThisName();
+        int number = 0;
+        if (!name.starts_with("id") ||
+            std::from_chars(name.data() + 2, name.data() + name.size(), number).ptr != name.data() + name.size())
+            continue;
+        const auto index = slot->HasValue() ? shipNumberValue(slot->GetValue()) : std::nullopt;
+        if (index && *index >= 1 && std::floor(*index) == *index && *index <= std::numeric_limits<int>::max())
+            slots.emplace_back(number, static_cast<int>(*index));
+    }
+    std::sort(slots.begin(), slots.end());
+    std::vector<int> out;
+    for (const auto &[slot, index] : slots)
+        out.push_back(index);
+    return out;
+}
 // Stock CreateBaseShip preserves the canonical type before adding a model-folder suffix.
 inline std::string shipCanonicalType(ATTRIBUTES *attributes)
 {
@@ -62,7 +89,7 @@ inline ShipTelemetryEntry shipEntry(SHIP_BASE *ship)
     entry.name = shipText(character, "Ship.Name");
     entry.type = shipCanonicalType(type);
     if (const auto value = shipNumber(type, "Class");
-        value && *value >= 1 && *value <= 7 && std::floor(*value) == *value)
+        value && *value >= 1 && *value <= std::numeric_limits<int32_t>::max() && std::floor(*value) == *value)
         entry.shipClass = static_cast<int32_t>(*value);
     const auto metric = [character, type](const char *currentPath,
                                           const char *maximumPath) -> std::optional<ShipMetric> {
@@ -114,21 +141,15 @@ inline ShipTelemetryFrame readShipTelemetry(const GameplayState &gameplay)
         auto *powder = character->FindAClass(character, "Ship.Cargo.Goods.powder");
         if (powder && powder->HasValue())
             out.powderCount = shipPowderCount(powder->GetValue());
-        // cannon-loadball-v1: verified stock AICannon::Cannon_LoadBall uses
-        // GetCargoGoods(GOOD_POWDER)>0 as the current ship's reload prerequisite.
-        // This explicit adapter replaces stale GetCurrentCharge[3/4], and is
-        // absent when cargo is absent/malformed. UI does not infer the warning.
-        if (out.powderCount)
-            out.navigatorPowderWarning = *out.powderCount <= 0;
         const auto sailState = ship->GetSailState();
         if (std::isfinite(sailState) && sailState >= 0 && sailState <= 1)
             out.sailState = sailState;
         out.canSetSails = shipSailControlAllowed(ship, gameplay);
         if (const float scale = core.GetTimeScale(); std::isfinite(scale) && scale >= 0.f && scale <= 100.f)
             out.timeScale = std::round(scale * 100.0) / 100.0;
-        for (size_t i = 0; i < ShipAmmoNames.size(); ++i)
+        for (size_t i = 0; i < storm::ui::hud::Ship::kAmmo.size(); ++i)
         {
-            const std::string path = std::string("Ship.Cargo.Goods.") + ShipAmmoNames[i];
+            const std::string path = std::string("Ship.Cargo.Goods.") + storm::ui::hud::Ship::kAmmo[i];
             auto *cargo = character->FindAClass(character, path.c_str());
             if (cargo && cargo->HasValue())
                 out.ammoCounts[i] = shipAmmoCount(cargo->GetValue());
@@ -139,7 +160,8 @@ inline ShipTelemetryFrame readShipTelemetry(const GameplayState &gameplay)
         {
             const auto index = static_cast<uint32_t>(*ammoType);
             const auto name = storm::AsciiLower(shipText(goods->GetAClass(index), "Name"));
-            if (name == "balls" || name == "grapes" || name == "knippels" || name == "bombs")
+            if (std::find(storm::ui::hud::Ship::kAmmo.begin(), storm::ui::hud::Ship::kAmmo.end(), name) !=
+                storm::ui::hud::Ship::kAmmo.end())
             {
                 out.ammo = name;
                 out.ammoType = static_cast<int>(index);
@@ -148,20 +170,11 @@ inline ShipTelemetryFrame readShipTelemetry(const GameplayState &gameplay)
         }
         // Original AddShipToInterface marks myShip from Fellows.Companions, not
         // relation/faction. Export only live companions, never remote stale stats.
-        auto *companions = character->FindAClass(character, "Fellows.Companions");
-        if (companions)
         {
             std::vector<int> added;
-            // TEHO's COMPANION_MAX is 5 including the player's slot 0.
-            // Higher Fellows attributes are not members of its active fleet.
-            for (int slot = 1; slot <= 4; ++slot)
+            for (const int index : companionSlots(character))
             {
-                auto *member = companions->GetAttributeClass("id" + std::to_string(slot));
-                if (!member || !member->HasValue())
-                    continue;
-                const int index = static_cast<int>(member->GetAttributeAsDword());
-                if (index <= 0 || index == out.ship.characterIndex ||
-                    std::find(added.begin(), added.end(), index) != added.end())
+                if (index == out.ship.characterIndex || std::find(added.begin(), added.end(), index) != added.end())
                     continue;
                 for (const auto id : core.GetEntityIds("ship"))
                 {

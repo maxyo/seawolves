@@ -224,6 +224,9 @@ struct LandCommands : Menu
 // known = false: the engine has no sea scene to show (the revisions still count).
 struct Ship
 {
+    // The ammunition kinds by their goods' names (Goods[].Name), in the order of the engine's charge controls
+    // (hk_charge1…4).
+    static constexpr std::array<const char *, 4> kAmmo{"balls", "grapes", "knippels", "bombs"};
     struct Vessel
     {
         int character = -1;
@@ -245,12 +248,11 @@ struct Ship
     // Battle abilities (instant repair, immediate reload) the ship's people can use.
     std::vector<Ability> abilities; // ImmediateReload, LightRepair, InstantRepair, Turn180
     std::string date_time, location;
-    std::string ammo; // balls, grapes, knippels, bombs; "" = unknown
+    std::string ammo; // one of kAmmo; "" = unknown
     double ammo_count = -1.0;
-    bool ammo_low = false;                            // the engine's own "not enough shot" warning
-    bool powder_out = false;                          // … and its "no powder" warning
-    double ammo_counts[4] = {-1.0, -1.0, -1.0, -1.0}; // by kind, in the order above
-    double sail_state = -1.0;                         // 0, 0.5, 1
+    bool ammo_low = false;                                       // the game's "not enough shot or powder" warning
+    double ammo_counts[kAmmo.size()] = {-1.0, -1.0, -1.0, -1.0}; // by kind, in kAmmo's order
+    double sail_state = -1.0;                                    // 0, 0.5, 1
     bool can_set_sails = false;
     bool operator==(const Ship &) const = default;
 };
@@ -345,9 +347,11 @@ struct Presentation
 };
 
 // Channel "spyglass": the telescope and what it shows of its target. A field the telescope cannot show at its
-// level is -1 / empty.
+// level is -1 / empty. `nation` is the game's nation id (ENGLAND … PIRATE), `charge` the script's picture of the
+// loaded charge (ispyglass.c: balls, bombs, chain, grape); the HUD has a flag and a name for each of these many.
 struct Spyglass
 {
+    static constexpr int kNations = 5, kCharges = 4;
     bool known = false, on = false, target = false;
     std::string kind, name, type, captain, cannon_type, portrait; // kind: ship | fort
     int ship_class = -1, hull = -1, sails = -1, crew = -1, cannons = -1, cannons_max = -1, charge = -1, nation = -1,

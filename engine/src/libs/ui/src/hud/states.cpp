@@ -543,16 +543,14 @@ std::string ReadShip(const Json &state, Ship &out)
     out.date_time = Text(state, "dateTimeText").value_or("");
     out.location = Text(state, "locationText").value_or("");
     out.ammo = Text(state, "ammo").value_or("");
-    if (!out.ammo.empty() && !OneOf(out.ammo, {"balls", "grapes", "knippels", "bombs"}))
+    if (!out.ammo.empty() && std::find(Ship::kAmmo.begin(), Ship::kAmmo.end(), out.ammo) == Ship::kAmmo.end())
         return "unknown ammo '" + out.ammo + "'";
     out.ammo_count = Amount(state, "ammoCount");
     out.ammo_low = Flag(state, "navigatorAmmoWarning").value_or(false);
-    out.powder_out = Flag(state, "navigatorPowderWarning").value_or(false);
     if (const auto counts = state.find("ammoCounts"); counts != state.end() && counts->is_object())
     {
-        const char *const kinds[] = {"balls", "grapes", "knippels", "bombs"};
-        for (size_t i = 0; i < std::size(kinds); ++i)
-            out.ammo_counts[i] = Amount(*counts, kinds[i]);
+        for (size_t i = 0; i < Ship::kAmmo.size(); ++i)
+            out.ammo_counts[i] = Amount(*counts, Ship::kAmmo[i]);
     }
     out.sail_state = Amount(state, "sailState") > 1.0 ? -1.0 : Amount(state, "sailState");
     out.can_set_sails = Flag(state, "canSetSails").value_or(false);
@@ -786,10 +784,11 @@ std::string ReadSpyglass(const Json &state, Spyglass &next)
         next.cannon_type = Text(t, "cannonType").value_or("");
         next.portrait = Text(t, "portrait").value_or("");
         const int most = std::numeric_limits<int>::max();
-        if (!SpyNumber(t, "class", 1, 7, next.ship_class) || !SpyNumber(t, "hull", 0, most, next.hull) ||
+        if (!SpyNumber(t, "class", 1, most, next.ship_class) || !SpyNumber(t, "hull", 0, most, next.hull) ||
             !SpyNumber(t, "sails", 0, most, next.sails) || !SpyNumber(t, "crew", 0, most, next.crew) ||
             !SpyNumber(t, "cannons", 0, most, next.cannons) || !SpyNumber(t, "cannonsMax", 0, most, next.cannons_max) ||
-            !SpyNumber(t, "charge", 0, 3, next.charge) || !SpyNumber(t, "nation", 0, 4, next.nation) ||
+            !SpyNumber(t, "charge", 0, Spyglass::kCharges - 1, next.charge) ||
+            !SpyNumber(t, "nation", 0, Spyglass::kNations - 1, next.nation) ||
             !SpyNumber(t, "sail", 0, most, next.sail))
             return "a target number has the wrong type or range";
         next.speed = Amount(t, "speed");

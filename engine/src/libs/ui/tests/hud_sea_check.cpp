@@ -725,7 +725,8 @@ static void CheckBattle()
 }
 
 // The loaded kind ran out (regression: no cannonballs, other kinds in the hold, no way to switch):
-// its 0 stays a count on a live switch, and the fan offers what the hold has, the rest greyed with 0.
+// its 0 stays a count on a live switch, and the fan offers every kind the engine binds, an empty one with
+// a red 0, as the scripts switch to any kind (Ship_ChangeCharge) and refuse only the reload.
 static void CheckEmptyAmmo()
 {
     Bench bench;
@@ -745,35 +746,35 @@ static void CheckEmptyAmmo()
     Expect(mount.Has("ammo-1") && mount.Has("ammo-2") && mount.Has("ammo-3"),
            "the fan opens over an empty loaded kind");
     Expect(shown["ammo-1"]["icon"] == "grape" && shown["ammo-1"]["badge"] == "50" &&
-               shown["ammo-1"]["disabled"] == false && shown["ammo-2"]["icon"] == "chain" &&
-               shown["ammo-2"]["badge"] == "0" && shown["ammo-2"]["disabled"] == true &&
-               shown["ammo-3"]["icon"] == "bomb" && shown["ammo-3"]["badge"] == "40" &&
-               shown["ammo-3"]["disabled"] == false,
-           "kinds in the hold are offered, an empty one is greyed with its 0: " + shown["ammo-1"].dump() +
+               shown["ammo-1"]["disabled"] == false && !shown["ammo-1"].contains("countOnly") &&
+               shown["ammo-2"]["icon"] == "chain" && shown["ammo-2"]["badge"] == "0" &&
+               shown["ammo-2"]["disabled"] == false && shown["ammo-2"]["countOnly"] == true &&
+               shown["ammo-2"]["badgeTone"] == "danger" && shown["ammo-3"]["icon"] == "bomb" &&
+               shown["ammo-3"]["badge"] == "40" && shown["ammo-3"]["disabled"] == false,
+           "every bound kind is offered, an empty one with a red 0: " + shown["ammo-1"].dump() +
                shown["ammo-2"].dump() + shown["ammo-3"].dump());
-    const size_t sent = mount.commands.size();
     bench.Press("ammo-2");
-    Expect(mount.commands.size() == sent && mount.Has("ammo-2"), "an empty kind is not loaded");
+    Expect(mount.Last() == "gameplay:9\thk_charge3" && !mount.Has("ammo-1"),
+           "an empty kind is asked of the game like any other: " + mount.Last());
+    bench.Press("ammo");
     bench.Press("ammo-1");
     Expect(mount.Last() == "gameplay:9\thk_charge2" && !mount.Has("ammo-1"), "grapes are loaded: " + mount.Last());
 
-    // Nothing else in the hold either: nothing to switch to, the 0 is spent.
-    ship["ammoCounts"] = Json{{"balls", 0}, {"grapes", 0}, {"knippels", 0}, {"bombs", 0}};
+    // A kind whose control the engine does not bind is greyed and sends nothing.
+    Json gameplay = State("gameplay-sailing");
+    gameplay["revision"] = 10;
+    Json &capabilities = gameplay["capabilities"];
+    capabilities.erase(std::remove(capabilities.begin(), capabilities.end(), Json("hk_charge4")), capabilities.end());
+    bench.Set("gameplay", gameplay);
+    ship["gameplayRevision"] = 10;
     ship["sequence"] = 21;
     bench.Set("ship", ship);
-    Expect(shown["ammo"]["badge"] == "0" && !shown["ammo"].contains("countOnly"),
-           "an empty hold: a spent 0: " + shown["ammo"].dump());
     bench.Press("ammo");
-    Expect(!mount.Has("ammo-1"), "no fan over an empty hold");
-
-    // A full loaded kind and empty others: no fan of greyed kinds only.
-    ship["ammoCount"] = 88;
-    ship["ammoCounts"] = Json{{"balls", 88}, {"grapes", 0}, {"knippels", 0}, {"bombs", 0}};
-    ship["sequence"] = 22;
-    bench.Set("ship", ship);
-    bench.Press("ammo");
-    Expect(shown["ammo"]["badge"] == "88" && !shown["ammo"].contains("countOnly") && !mount.Has("ammo-1"),
-           "nothing else loadable: no fan");
+    Expect(mount.Has("ammo-3") && shown["ammo-3"]["icon"] == "bomb" && shown["ammo-3"]["disabled"] == true,
+           "an unbound kind is greyed: " + shown["ammo-3"].dump());
+    const size_t sent = mount.commands.size();
+    bench.Press("ammo-3");
+    Expect(mount.commands.size() == sent, "an unbound kind sends nothing");
     Expect(mount.errors.empty(), "empty ammunition: no errors");
 }
 

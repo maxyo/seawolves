@@ -148,7 +148,6 @@ struct ShipTelemetryEntry
     std::optional<ShipPicture> picture;
     bool operator==(const ShipTelemetryEntry &) const = default;
 };
-inline constexpr std::array<const char *, 4> ShipAmmoNames{"balls", "grapes", "knippels", "bombs"};
 inline std::optional<int64_t> shipAmmoCount(std::string_view text)
 {
     const auto value = shipNumberValue(text);
@@ -170,7 +169,9 @@ struct ShipTelemetryFrame
     bool captionsVisible = false;
     bool navigatorAvailable = false, navigatorZoomIn = false, navigatorZoomOut = false;
     uint64_t navigatorGeneration = 0, navigatorLayoutId = 0;
-    std::optional<bool> navigatorAmmoWarning, navigatorPowderWarning;
+    // The battle interface's "not enough shot" flag; the scripts fold an empty powder hold into it
+    // (AIShip.c Ship_NotEnoughBalls).
+    std::optional<bool> navigatorAmmoWarning;
 
     std::optional<double> shipSpeedKnots, windSpeed;
     // How far the guns are loaded: the mean charge of the cannon sides the ship has, 0…1.
@@ -350,8 +351,7 @@ class ShipTelemetryState
         out.ammo = f.ammo;
         out.ammo_count = amount(f.ammoCount);
         out.ammo_low = f.navigatorAmmoWarning.value_or(false);
-        out.powder_out = f.navigatorPowderWarning.value_or(false);
-        for (size_t i = 0; i < ShipAmmoNames.size(); ++i)
+        for (size_t i = 0; i < storm::ui::hud::Ship::kAmmo.size(); ++i)
             out.ammo_counts[i] =
                 f.ammoCounts[i] && *f.ammoCounts[i] >= 0 ? static_cast<double>(*f.ammoCounts[i]) : -1.0;
         out.sail_state = amount(f.sailState) > 1.0 ? -1.0 : amount(f.sailState);

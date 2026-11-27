@@ -330,17 +330,16 @@ TEST_CASE("android_sea_navigator")
     }
     ShipTelemetryFrame frame;
     frame.valid = true;
-    frame.navigatorPowderWarning = false;
     frame.navigatorAmmoWarning = false;
     frame.navigatorGeneration = 42;
     frame.navigatorLayoutId = 9;
     ShipTelemetryState telemetry;
     telemetry.update(1, frame);
-    REQUIRE((!telemetry.hud().powder_out && telemetry.hud().navigator_generation == 42 &&
+    REQUIRE((!telemetry.hud().ammo_low && telemetry.hud().navigator_generation == 42 &&
              telemetry.hud().navigator_layout == 9));
-    frame.navigatorPowderWarning = true;
+    frame.navigatorAmmoWarning = true;
     telemetry.update(1, frame);
-    REQUIRE(telemetry.hud().powder_out);
+    REQUIRE(telemetry.hud().ammo_low);
     {
         // The land: a round island of radius 20 cells; its field's coast lies within half a cell of
         // the circle all round, closed (every end point shared by two segments), and the narrow

@@ -30,12 +30,12 @@ struct Named
     const char *key, *icon, *label;
 };
 
-// Ammunition kinds in the engine's order: hk_charge<index + 1> loads kind `index`.
-const Named kAmmo[] = {
-    {"balls", "ammo", StringKey("hud.sea.ammo.balls")},
-    {"grapes", "grape", StringKey("hud.sea.ammo.grapes")},
-    {"knippels", "chain", StringKey("hud.sea.ammo.knippels")},
-    {"bombs", "bomb", StringKey("hud.sea.ammo.bombs")},
+// The look of each ammunition kind of Ship::kAmmo, in its order: hk_charge<index + 1> loads kind `index`.
+const Named kAmmo[Ship::kAmmo.size()] = {
+    {Ship::kAmmo[0], "ammo", StringKey("hud.sea.ammo.balls")},
+    {Ship::kAmmo[1], "grape", StringKey("hud.sea.ammo.grapes")},
+    {Ship::kAmmo[2], "chain", StringKey("hud.sea.ammo.knippels")},
+    {Ship::kAmmo[3], "bomb", StringKey("hud.sea.ammo.bombs")},
 };
 
 // The quick action; `label` holds the button look here.
@@ -535,11 +535,9 @@ class SeaScene final : public Scene
             view.elements["fire"] = std::move(fire);
             input.On("fire", "click", [this](const Event &) { Control("Ship_Fire"); });
         }
-        // A kind can be loaded when the engine binds its control and the hold is not known to be
-        // empty of it (an absent count is not an empty hold).
-        const auto loadable = [&](size_t i) {
-            return gameplay.Has("hk_charge" + std::to_string(i + 1)) && ship->ammo_counts[i] != 0.0;
-        };
+        // Every kind whose control the engine binds can be chosen, an empty one too: the scripts switch
+        // to it (Ship_ChangeCharge) and their reload refuses to load from an empty hold.
+        const auto loadable = [&](size_t i) { return gameplay.Has("hk_charge" + std::to_string(i + 1)); };
         int loaded = -1, others = 0;
         for (size_t i = 0; i < std::size(kAmmo); ++i)
         {
@@ -557,15 +555,14 @@ class SeaScene final : public Scene
         if (ship->ammo_count >= 0.0)
         {
             ammo["badge"] = Count(ship->ammo_count);
-            // No powder fires nothing either: the badge warns for both, the engine's powder line steps aside.
-            ammo["badgeTone"] = ship->ammo_low || ship->powder_out || ship->ammo_count == 0.0 ? "danger" : "gold";
-            // The loaded kind ran out but another is in the hold: its 0 is a count, the switch stays live
+            ammo["badgeTone"] = ship->ammo_low || ship->ammo_count == 0.0 ? "danger" : "gold";
+            // The loaded kind ran out: its 0 is a count, the switch to another kind stays live
             // (a 0 badge alone greys a HUD button and lets no tap through).
             if (ship->ammo_count == 0.0 && others > 0)
                 ammo["countOnly"] = true;
         }
-        // The other kinds fan out around the loaded one, in the engine's order, each with its count;
-        // one the hold lacks is greyed with its 0. Nothing confirmed to choose from: no fan.
+        // The other kinds fan out around the loaded one, in the engine's order, each with its count; one the
+        // hold lacks shows a red 0 and can still be chosen. No other bound kind: no fan.
         std::vector<Fan::Option> options;
         for (size_t i = 0; others > 0 && i < std::size(kAmmo); ++i)
         {
@@ -575,6 +572,8 @@ class SeaScene final : public Scene
                 Json{{"icon", kAmmo[i].icon}, {"label", hud_.Text(kAmmo[i].label)}, {"disabled", !loadable(i)}}, {}};
             if (ship->ammo_counts[i] >= 0.0)
                 option.props["badge"] = Count(ship->ammo_counts[i]);
+            if (ship->ammo_counts[i] == 0.0)
+                option.props["badgeTone"] = "danger", option.props["countOnly"] = true;
             if (loadable(i))
                 option.pick = [this, control = "hk_charge" + std::to_string(i + 1)] { Control(control); };
             options.push_back(std::move(option));

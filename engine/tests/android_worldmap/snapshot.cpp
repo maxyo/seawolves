@@ -102,11 +102,13 @@ int main()
     assert(readWorldMapFrame(game, true).ships[0].type == "Lugger");
     shipType.SetAttribute("BaseName", "");
     shipType.SetAttribute("Name", "Lugger");
-    for (const char *invalid : {"-1", "2.5", "8", "unknown"})
+    for (const char *invalid : {"-1", "0", "2.5", "unknown"})
     {
         shipType.SetAttribute("Class", invalid);
         assert(!shipEntry(&seaShip).shipClass);
     }
+    shipType.SetAttribute("Class", "8"); // a class the game's data has, whatever its range
+    assert(shipEntry(&seaShip).shipClass == 8);
     shipType.SetAttribute("Class", "6");
     // The optional model is a live RealShips field, not the vessel's custom name.
     put(captain, "Ship.Name", "Frigate");
@@ -140,12 +142,11 @@ int main()
         scripts.remove("Weathers");
         worldMapHud.source = {};
     }
-    // WM_SetShipData omits land-only/stale companions, zero sentinel and slots
-    // beyond COMPANION_MAX. They must not consume badge positions or poison all fleet coverage.
+    // WM_SetShipData omits land-only/stale companions and the zero sentinel. They must not consume badge
+    // positions or poison all fleet coverage.
     put(captain, "Fellows.Companions.id1", "0");
     put(captain, "Fellows.Companions.id2", "1");
     put(companion, "Ship.Type", "-1");
-    put(captain, "Fellows.Companions.id5", "1");
     badges.SetName("wm_sign_saved"); // no badges: the strict missing-badges fallback
     assert(!(readWorldMapFrame(game, true).availableMask() & MapShips));
     auto *only = wmInterface.CreateAttribute("wm_sign", nullptr)->CreateAttribute("sign1", nullptr);
