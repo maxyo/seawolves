@@ -235,6 +235,14 @@ storm_host_check(location_land.check DIRECTORY location_land SOURCES objects.cpp
              ${src}/libs/core/include ${src}/libs/shared_headers/include ${src}/libs/renderer_bgfx/include
     DEFINES FMT_HEADER_ONLY OPTIONS -g ${asan_strict} CATCH2)
 storm_check_test(location_land.corpus COMMAND location_land.check "[corpus]" LABELS game)
+# The effect table and the PLAY messages of libs/effects; "[corpus]" reads the game in $STORM_GAME_DIR.
+storm_host_check(effects.table DIRECTORY effects SOURCES check.cpp ${src}/libs/effects/src/effect_table.cpp
+    ${src}/libs/core/src/message.cpp
+    INCLUDES ${src}/libs/effects/src ${util_include} ${glm_headers} ${src}/libs/math/include ${fmt_headers}
+             ${storm_json_SOURCE_DIR}/include ${src}/libs/core/include ${src}/libs/shared_headers/include
+             ${src}/libs/renderer_bgfx/include
+    DEFINES FMT_HEADER_ONLY OPTIONS -g ${asan_strict} CATCH2)
+storm_check_test(effects.corpus COMMAND effects.table "[corpus]" LABELS game)
 storm_host_check(game_profile INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(natives_ext SOURCES check.cpp ${src}/libs/core/src/natives_logic.cpp
     INCLUDES ${src}/libs/core/src ${util_include} ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict}

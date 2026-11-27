@@ -113,6 +113,18 @@ inline float angleY(const glm::vec3 &v, float defAngle = 0.0f)
     return static_cast<float>(len);
 }
 
+// The pitch (x) and heading (y) that turn +Z towards `direction` (an emitter created along a direction); zero for a
+// zero vector. The pitch divides the normalised y by the length once more, as both games' engines do: the same for the
+// unit vectors their scripts pass.
+inline glm::vec3 directionAngles(const glm::vec3 &direction)
+{
+    const double length = glm::length(glm::dvec3(direction));
+    if (length == 0.0)
+        return {};
+    const double pitch = std::asin(glm::clamp(-direction.y / (length * length), -1.0, 1.0));
+    return {static_cast<float>(pitch), angleY(direction), 0.0f};
+}
+
 // Length of the projection onto the horizontal (XZ) plane.
 inline float lengthXZ(const glm::vec3 &v)
 {

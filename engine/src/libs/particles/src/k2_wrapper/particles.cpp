@@ -172,26 +172,11 @@ uint64_t PARTICLES::ProcessMessage(MESSAGE &message)
         pos.y = message.Float();
         pos.z = message.Float();
 
-        glm::vec3 normal;
-        normal.x = message.Float();
-        normal.y = message.Float();
-        normal.z = message.Float();
-        const auto fLen = static_cast<double>(storm::math::normalizeInPlace(normal));
-
-        if (fLen)
-        {
-            angles.y = storm::math::angleY(normal);
-            auto fDiv = -(normal.y / fLen);
-            fDiv = Min(Max(fDiv, -1.0), 1.0);
-            angles.x = static_cast<float>(asin(fDiv));
-        }
-        else
-        {
-            angles.x = 0.0f;
-            angles.y = 0.0f;
-        }
-
-        angles.z = 0.0f;
+        glm::vec3 direction;
+        direction.x = message.Float();
+        direction.y = message.Float();
+        direction.z = message.Float();
+        angles = storm::math::directionAngles(direction);
 
         lifetime = message.Long();
 
