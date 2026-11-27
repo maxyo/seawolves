@@ -168,7 +168,99 @@
  
  	return skillN;
  }
-@@ -1578,6 +1632,46 @@
+@@ -1352,6 +1406,48 @@
+     return sumSkill;
+ }
+ 
++// The officer post whose holder lends the main character a skill (GetSummonSkillFromNameSimple); "" none.
++string GetSkillOfficerPost(string skillName)
++{
++	string sPost = "";
++	switch (skillName)
++	{
++		/*case SKILL_LEADERSHIP:
++			sPost = "boatswain";
++			break;*/
++
++		case SKILL_SAILING:
++			sPost = "navigator";
++			break;
++
++		case SKILL_CANNONS:
++			sPost = "cannoner";
++			break;
++
++		case SKILL_ACCURACY:
++			sPost = "cannoner";
++			break;
++
++		case SKILL_GRAPPLING:
++			sPost = "boatswain";
++			break;
++
++		case SKILL_DEFENCE:
++			sPost = "doctor";
++			break;
++
++		case SKILL_REPAIR:
++			sPost = "carpenter";
++			break;
++
++		case SKILL_COMMERCE:
++			sPost = "treasurer";
++			break;
++	}
++
++	return sPost;
++}
++
+ int GetSummonSkillFromNameSimple(ref _refCharacter, string skillName)
+ {
+     int sumSkill = GetCharacterSkillSimple(_refCharacter,skillName);
+@@ -1360,40 +1456,8 @@
+ 	{
+ 	    int iOfficer = -1;
+ 		int iOffSkill = -1;
+-		switch (skillName)
+-		{
+-			/*case SKILL_LEADERSHIP:
+-				iOfficer = sti(pchar.Fellows.Passengers.boatswain);
+-			break;*/
+-
+-			case SKILL_SAILING:
+-				iOfficer = sti(pchar.Fellows.Passengers.navigator);
+-			break;
+-
+-			case SKILL_CANNONS:
+-				iOfficer = sti(pchar.Fellows.Passengers.cannoner);
+-			break;
+-
+-			case SKILL_ACCURACY:
+-				iOfficer = sti(pchar.Fellows.Passengers.cannoner);
+-			break;
+-
+-			case SKILL_GRAPPLING:
+-				iOfficer = sti(pchar.Fellows.Passengers.boatswain);
+-			break;
+-
+-			case SKILL_DEFENCE:
+-				iOfficer = sti(pchar.Fellows.Passengers.doctor);
+-			break;
+-
+-			case SKILL_REPAIR:
+-				iOfficer = sti(pchar.Fellows.Passengers.carpenter);
+-			break;
+-
+-			case SKILL_COMMERCE:
+-				iOfficer = sti(pchar.Fellows.Passengers.treasurer);
+-			break;
+-		}
++		string sPost = GetSkillOfficerPost(skillName);
++		if (sPost != "") iOfficer = sti(pchar.Fellows.Passengers.(sPost));
+ 
+ 		if(iOfficer != -1)
+ 		{
+@@ -1578,6 +1642,46 @@
  	return ret;
  }
  // boal Вес предметов 19.01.2004 -->
@@ -215,7 +307,7 @@
  float GetItemsWeight(ref _chref)
  {
      float   Amount = 0;
-@@ -1587,19 +1681,7 @@
+@@ -1587,19 +1691,7 @@
  
      if (bCabinStarted || bAbordageStarted || !bSeaActive || !CheckAttribute(_chref, "ItemsWeight"))
      {
@@ -236,7 +328,7 @@
          _chref.ItemsWeight = Amount; // оптимицация тормозов в бою на море
      }
      else
-@@ -3557,7 +3639,15 @@
+@@ -3557,7 +3649,15 @@
  		ch.Ship.Type = SHIP_NOTUSED;
  		Ch.GenQuest.VideoAVI = "intro_Sharle";
  		Ch.GenQuest.VideoAfterQuest = "Sharlie_Start";

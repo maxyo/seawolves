@@ -84,7 +84,7 @@
     {
       "path": "PROGRAM/characters/RPGUtilite.c",
       "base_sha256": "5b62dac991bebb321ad2406f9281b98a34f3c2e872acb8b9104728326f489662",
-      "result_sha256": "56c7614b956f176663d3bb307f15c2257ea938e9e68179c3d774de987170045a",
+      "result_sha256": "70912ba44b71d183219745e4f345cb2b5503bbadeefeb53d0129f15926676667",
       "patch": "RPGUtilite.c.patch"
     },
     {
@@ -543,6 +543,17 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: ShipChange decided inline whether the ship screen offers the exchange with a companion's ship (not a ship at anchor shown from the journal, not the hero's own, the hero has a ship), and an interface that shows the button had to copy the condition. The condition is now the function IsShipChangeOffered, which ShipChange calls; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "skill-officer-post",
+      "title": "The game names the officer post that lends the hero each skill",
+      "targets": [
+        "PROGRAM/characters/RPGUtilite.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: GetSummonSkillFromNameSimple picked inline which officer post lends the main character a skill (navigator: Sailing, cannoner: Cannons and Accuracy, and so on), so an interface that shows an officer's key skill had to keep a table of its own. The choice is now the function GetSkillOfficerPost, which GetSummonSkillFromNameSimple calls; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]
