@@ -8,6 +8,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <spdlog/spdlog.h>
 
 namespace storm::mobile
 {
@@ -307,6 +308,13 @@ inline bool RestoreSaveTarget(const SaveListCapability::Target &target)
     int32_t page = -1;
     if (index < 0 || !selected || !first || !first->Get(page) || index < page || index >= page + 10)
         return false;
+    // The list's delayed first selection (save_load.c posts eventSaveClick 350-500 ms after opening) can move
+    // the game's choice after the player's tap; its click handler would also take focus from the open question,
+    // so the chosen index is put back directly.
+    int32_t current = -1;
+    if (selected->Get(current) && current != index)
+        spdlog::warn("save_load: the game's selection moved to {} after the player chose {}; chosen restored", current,
+                     index);
     selected->Set(static_cast<int32_t>(index));
     return true;
 }

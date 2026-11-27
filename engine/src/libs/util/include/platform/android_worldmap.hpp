@@ -25,7 +25,8 @@ inline std::optional<int> mapStormState(const char *inStorm, const char *tornado
     return funnel == "1" ? 2 : 1;
 }
 // The moon the game shows on that day of the month (WhrSun.c: texture Moon00…Moon07 = day / 4):
-// 0 new (black), 1…3 waxing, 4 full, 5…7 waning.
+// 0 new (black), 1…3 waxing, 4 full, 5…7 waning. A copy of the game's day ranges: the game picks the
+// moon only while it builds a sea or land weather, and the map builds none for its own day.
 inline std::optional<int> mapMoonPhase(int day)
 {
     if (day < 1 || day > 31)
