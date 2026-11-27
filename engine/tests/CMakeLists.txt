@@ -467,6 +467,11 @@ storm_host_check(mobile_images SOURCES check.cpp ${src}/libs/xinterface/src/mobi
 add_subdirectory(${src}/libs/scene_data scene_data_library)
 storm_host_check(scene_data.parsers OPTIONS ${warnings} LIBS scene_data CATCH2)
 storm_check_test(scene_data.corpus COMMAND scene_data.parsers "[corpus]" LABELS game TIMEOUT 600)
+# The scene environment's evaluation as the engine builds it; "[corpus]" evaluates the presets of the installed game
+# in $STORM_GAME_DIR.
+add_subdirectory(${src}/libs/scene_environment scene_environment_library)
+storm_host_check(scene_environment.check OPTIONS ${warnings} LIBS scene_environment CATCH2)
+storm_check_test(scene_environment.corpus COMMAND scene_environment.check "[corpus]" LABELS game TIMEOUT 600)
 
 # The audio import tool and its library (tools/audio-import), checked with stb_vorbis (the copy in the pinned
 # miniaudio); "[corpus]" reads the installed game in $STORM_GAME_DIR.

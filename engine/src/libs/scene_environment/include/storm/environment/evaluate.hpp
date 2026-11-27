@@ -1,0 +1,96 @@
+// The scene environment evaluated from a game's data: the periods of the day, the hourly lighting presets, the
+// scripts' weather of the day (README.md).
+#pragma once
+
+#include "storm/environment/state.hpp"
+#include "storm/scene_data/scene_data.hpp"
+
+#include <array>
+#include <functional>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+
+namespace storm::environment
+{
+
+// Two neighbouring periods and the share of the second.
+struct PeriodMix
+{
+    int from = scene_data::kNight, to = scene_data::kNight;
+    float t = 0.0f;
+};
+// Before the first transition and after the last it is night; inside a transition the periods blend by smoothstep.
+PeriodMix MixPeriods(const scene_data::TransitionHours &hours, float hour);
+
+struct Celestial
+{
+    glm::vec3 sun_dir{0.0f, 1.0f, 0.0f}, moon_dir{0.0f, -1.0f, 0.0f};
+    float sun_weight = 1.0f;  // the sun's share of the direct light: it hands over to the moon at the day's ends
+    float twilight = 1.0f;    // daylight in the sky
+    float shadow_fade = 1.0f; // the shadows fade out while the light that casts them changes
+    bool moon_shadows = false;
+};
+// The sun's day is 6..20; its noon elevation and the azimuth of its arc's plane in degrees.
+Celestial EvaluateCelestial(const scene_data::CelestialTimes &times, float hour, float noon_elevation_deg,
+                            float azimuth_deg);
+
+// A preset's 24 hours with the absent ones filled in between the present neighbours on the 24-hour circle; nullopt
+// when no hour is present.
+using Hours = std::array<scene_data::LightingHour, 24>;
+std::optional<Hours> CompleteHours(const scene_data::LightingPreset &preset);
+
+// One hour of the scripts' weather of the day (WeatherState).
+struct WeatherHour
+{
+    float cloud_height = 0.0f, cloud_detail = 0.0f, cloud_density = 0.0f;
+    float rain_intensity = 0.0f;
+    bool rain = false, storm = false, tornado = false, rainbow = false, lightning = false;
+    std::string preset;     // the rain preset of the hour; empty: none (the scripts write a number, 0, for none)
+    float post_rain = 0.0f; // an hour without rain after one with: the previous hour's rain intensity
+};
+
+// Where in a WeatherState row each value is (the scripts' WS_* defines).
+struct WeatherFields
+{
+    int cloud_height, cloud_detail, cloud_density, preset, rain_intensity, rain, storm, tornado, rainbow, lightning;
+};
+
+// Hours 0..23 of the day and hour 24 (the next day's first), each a row of the scripts' strings, and the rain
+// intensity of the hour before the day (fWhrPreRain). An entry that is not a number is reported by `error`.
+struct WeatherDay
+{
+    std::array<WeatherHour, 25> hours;
+    float pre_rain = 0.0f;
+};
+WeatherDay ParseWeatherDay(std::span<const std::array<std::string, 16>, 25> rows, const WeatherFields &fields,
+                           float pre_rain, const std::function<void(const std::string &)> &error);
+
+// The hour table the light is taken from: a place's preset with its rain presets laid over the hours that rain.
+struct HourTable
+{
+    Hours hours;
+    std::array<bool, 24> rain{}; // the hour's light comes from a rain preset
+};
+// `rain_preset` finds a rain preset by name (nullptr: none of that name, the caller reports it); at sea a preset
+// "<name>_sea" is asked for. A rain preset replaces the sun, ambient, shadow and fog density of its hours, and none
+// is used where `rain_allowed` is false (interiors, places without rain).
+HourTable BuildHourTable(const Hours &base, const WeatherDay *weather, bool sea, bool rain_allowed,
+                         const std::function<const Hours *(const std::string &)> &rain_preset);
+
+// Everything a frame's state comes from. The other pointers may be null when the game has no such data.
+struct Inputs
+{
+    const scene_data::TimeOfDay &time_of_day;
+    const scene_data::Atmosphere *atmosphere = nullptr;
+    const HourTable *table = nullptr;
+    const WeatherDay *weather = nullptr;
+    float hour = 12.0f;
+    bool sky = true; // outdoors
+    bool sea = false;
+    float noon_elevation_deg = 90.0f, azimuth_deg = 0.0f; // the place's sun arc
+};
+State Evaluate(const Inputs &in);
+
+} // namespace storm::environment
