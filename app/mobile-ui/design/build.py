@@ -3,6 +3,8 @@
 
     python3 mobile-ui/design/build.py            # regenerate the UI pack
     python3 mobile-ui/design/build.py --check    # validate only: specs, tokens, textures, strings, unused icons
+    python3 mobile-ui/design/build.py --check --game DIR
+                                                 # and no script name of ours is a name of the game in DIR
     python3 mobile-ui/design/build.py --engine-root DIR
                                                  # another engine tree than engine/ (the UI string keys of its
                                                  # screens are checked); --no-engine-check skips that check explicitly
@@ -511,17 +513,19 @@ def script_code(text):
         if match.group().startswith('"'):
             strings.append(match.group()[1:-1])
             code.append('""')
+        else:
+            code.append("\n" * match.group().count("\n"))  # lines kept: names are reported by line
         i = match.end()
     code.append(text[i:])
-    return re.sub(r"(?m)^\s*#.*$", "", "".join(code)), strings  # directives are not code
+    return re.sub(r"(?m)^[ \t]*#.*$", "", "".join(code)), strings  # directives are not code
 
 
 def declared(code):
-    """Every name a declaration of `code` declares: each declarator of `string a = f(x), b;`, of a parameter list and of a
-    range-for."""
+    """(name, offset) of every name a declaration of `code` declares: each declarator of `string a = f(x), b;`, of a
+    parameter list and of a range-for."""
     names = []
     for match in re.finditer(r"\b" + SCRIPT_TYPE + r"\s+&?([A-Za-z_]\w*)", code):
-        names.append(match.group(1))
+        names.append((match.group(1), match.start(1)))
         depth, i = 0, match.end()
         while i < len(code) and code[i] not in ";{}":
             char = code[i]
@@ -534,32 +538,101 @@ def declared(code):
             elif char == "," and depth == 0:
                 following = re.match(r"\s*(?:" + SCRIPT_TYPE + r"\s+)?&?([A-Za-z_]\w*)", code[i + 1:])
                 if following:
-                    names.append(following.group(1))
+                    names.append((following.group(1), i + 1 + following.start(1)))
             i += 1
     return names
 
 
-def script_definitions(code):
-    """Top-level names of a script: {name: arguments} of functions (natives, externs, bodies) and the set of globals."""
-    functions, globals_, depth, line_start = {}, set(), 0, True
-    top = []
-    for char in code:  # the text at brace depth 0
+def top_level(code):
+    """`code` with the text inside braces blanked, its lines and offsets kept: the declarations at a script's top."""
+    out, depth = [], 0
+    for char in code:
         if char == "{":
             depth += 1
-            top.append(" {")
+            out.append("{" if depth == 1 else " ")
         elif char == "}":
             depth -= 1
-            top.append(" ")
-        elif depth == 0:
-            top.append(char)
-    top = "".join(top)
-    for match in re.finditer(r"(?:native\s+|extern\s+)?" + SCRIPT_TYPE + r"\s+([A-Za-z_]\w*)\s*\(([^)]*)\)", top):
+            out.append(" ")
+        else:
+            out.append(char if depth == 0 or char == "\n" else " ")
+    return "".join(out)
+
+
+TOP_FUNCTION = re.compile(r"(?:native\s+|extern\s+)?" + SCRIPT_TYPE + r"\s+([A-Za-z_]\w*)\s*\(([^)]*)\)")
+TOP_GLOBAL = re.compile(r"(?m)(?:^|(?<=;))[ \t]*" + SCRIPT_TYPE + r"\s+[A-Za-z_]\w*\s*(?:\[[^\]]*\])?\s*(?:[=,][^;]*)?;")
+
+
+def script_definitions(code):
+    """Top-level names of a script: {name: arguments} of functions (natives, externs, bodies) and {global: offset}."""
+    functions, globals_ = {}, {}
+    top = top_level(code)
+    for match in TOP_FUNCTION.finditer(top):
         arguments = [part for part in match.group(2).split(",") if part.strip()]
         functions[match.group(1)] = len(arguments)
-    for statement in re.findall(r"(?m)(?:^|(?<=;))\s*" + SCRIPT_TYPE +
-                                r"\s+[A-Za-z_]\w*\s*(?:\[[^\]]*\])?\s*(?:[=,][^;]*)?;", top):
-        globals_.update(declared(statement))
+    top = re.sub(r"\([^)]*\)", lambda match: re.sub(r"[^\n]", " ", match.group()), top)  # parameter lists
+    for statement in TOP_GLOBAL.finditer(top):
+        for name, offset in declared(statement.group()):
+            globals_.setdefault(name, statement.start() + offset)
     return functions, globals_
+
+
+def game_names(program):
+    """{lower name: {kind: (name, file, line)}} of the functions, globals and defines of every script file of a game's
+    program directory, the first of each name and kind."""
+    found = {}
+    files = sorted(path for path in program.rglob("*") if path.suffix.lower() in (".c", ".h") and path.is_file())
+    for path in files:
+        text = path.read_text("cp1251", errors="replace")
+        where = path.relative_to(program)
+        names = [("define", match.group(1), match.start(1))
+                 for match in re.finditer(r"(?m)^[ \t]*#[ \t]*define[ \t]+([A-Za-z_]\w*)", text)]
+        code = script_code(text)[0]
+        globals_ = script_definitions(code)[1]
+        top = top_level(code)
+        names += [("function", match.group(1), match.start(1)) for match in TOP_FUNCTION.finditer(top)]
+        names += [("global", name, offset) for name, offset in globals_.items()]
+        for kind, name, offset in names:
+            source = text if kind == "define" else code
+            found.setdefault(name.lower(), {}).setdefault(kind, (name, where, source.count("\n", 0, offset) + 1))
+    if not files:
+        raise DesignError(f"--game: no script files below {program}")
+    return found
+
+
+def check_script_names(games):
+    """The names of the interface scripts against every script file of the games, whichever segments of a game are
+    loaded when the scripts compile: a function or global of ours is no function, global or define of a game (names are
+    case-insensitive and program-wide), and a parameter or local of ours is no function of a game. A local or parameter
+    named like a game's global or define is the local, in the game's compiler as in ours."""
+    listed = json.loads((HERE / "scripts.json").read_text(encoding="utf-8"))
+    ours = []
+    for segment in listed["segments"]:
+        code = script_code((PROGRAM / segment["file"]).read_text("utf-8"))[0]
+        globals_ = script_definitions(code)[1]
+        top = top_level(code)
+        program_wide = {match.group(1).lower(): match.start(1) for match in TOP_FUNCTION.finditer(top)}
+        program_wide.update({name.lower(): offset for name, offset in globals_.items()})
+        seen = set()
+        for name, offset in sorted(declared(code) + [(match.group(1), match.start(1)) for match in
+                                                     TOP_FUNCTION.finditer(top)], key=lambda item: item[1]):
+            if name.lower() not in seen:
+                seen.add(name.lower())
+                kinds = ("function", "global", "define") if program_wide.get(name.lower()) == offset else ("function",)
+                ours.append((segment["file"], code.count("\n", 0, offset) + 1, name, kinds))
+    problems = []
+    for game in games:
+        program = next((path for path in game.iterdir() if path.is_dir() and path.name.lower() == "program"), None)
+        if program is None:
+            raise DesignError(f"--game {game}: no program directory")
+        names = game_names(program)
+        for file, line, name, kinds in ours:
+            for kind, (theirs, where, their_line) in names.get(name.lower(), {}).items():
+                if kind not in kinds:
+                    continue
+                problems.append(f"{file}:{line}: '{name}' is the {kind} {theirs} of {game.name}/{program.name}/"
+                                f"{where.as_posix()}:{their_line}")
+    if problems:
+        raise DesignError("\n".join(problems))
 
 
 def camel(stem):
@@ -605,7 +678,7 @@ def lint_script(file, parts, text, uses, natives, contracts):
     functions, globals_ = script_definitions(code)
     prefixes = script_prefixes(parts)
     layer = parts[0]
-    for name in sorted(set(functions) | globals_):
+    for name in sorted(set(functions) | set(globals_)):
         own = name in prefixes or name.startswith(tuple(p for p in prefixes if p.endswith("_") or layer == "core"))
         if not own:
             problems.append(f"{file}: '{name}' does not start with {' or '.join(prefixes)}")
@@ -633,7 +706,7 @@ def lint_script(file, parts, text, uses, natives, contracts):
                 continue
             problems.append(f"{file}: calls {name}; a shared layer calls natives, TouchLib_*, the contracts it uses "
                             "and the language's built-ins only")
-    locals_ = set(declared(code))
+    locals_ = {name for name, _ in declared(code)}
     code = re.sub(r"=\s*\{[^{}]*\}", "= 0", code)  # an object literal's fields are its own
     for match in re.finditer(r"(?:^|[;{}])\s*([A-Za-z_]\w*)\s*(?:[.\[][^;=]*)?=(?!=)", code):
         root = match.group(1)
@@ -642,7 +715,7 @@ def lint_script(file, parts, text, uses, natives, contracts):
     for match in re.finditer(r"\b(?:DeleteAttribute|CopyAttributes)\s*\(\s*&?\s*([A-Za-z_]\w*)", code):
         if match.group(1) not in locals_ and not match.group(1).startswith("Touch"):
             problems.append(f"{file}: writes into {match.group(1)}, which is not its own")
-    return problems, set(functions) | globals_
+    return problems, set(functions) | set(globals_)
 
 
 def check_scripts(capabilities, screens):
@@ -1082,6 +1155,9 @@ def main():
                         help="do not check the engine's UI string keys")
     parser.add_argument("--only", metavar="NAMES", help="comma-separated component folders: build a partial pack with just these "
                         "(and their gallery pages); for work on one component")
+    parser.add_argument("--game", type=Path, action="append", default=[], metavar="DIR",
+                        help="an installed game (repeatable): no name the interface scripts declare is a function, "
+                        "global or define of any of its script files")
     parser.add_argument("--script-header", type=Path, metavar="FILE", help="only write the capability header of the "
                         "interface scripts to FILE")
     args = parser.parse_args()
@@ -1105,6 +1181,7 @@ def main():
         screens = [] if only else load_components(tokens, root="screens")
         if not only:
             check_scripts(load_capabilities(), screens)
+            check_script_names(args.game)
         if not only:
             names = {ident[2:] if ident.startswith("i-") else ident for ident in icon_pack["symbols"] if not ident.endswith("-acc")}
             check_references(components + screens, names)

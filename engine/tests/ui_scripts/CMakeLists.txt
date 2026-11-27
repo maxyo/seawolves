@@ -17,3 +17,9 @@ storm_check_test(ui_scripts COMMAND ui_scripts_check "~[game]" ENV ${environment
     INPUTS ${STORM_MOBILE_UI}/PROGRAM ${STORM_MOBILE_UI}/design ${src}/libs/core)
 storm_check_test(ui_scripts.game COMMAND ui_scripts_check "[game]" ENV ASAN_OPTIONS=detect_leaks=0
     XDG_DATA_HOME=${CMAKE_BINARY_DIR}/tmp/ui_scripts.game)
+# The names of the interface's scripts against every script file of the game in $STORM_GAME_DIR (Not Run without one):
+# the pack's build check with --game (design/build.py check_script_names).
+storm_check_test(ui_scripts.names COMMAND sh -c
+    "[ -z \"$STORM_GAME_DIR\" ] && exit 77 || exec \"$0\" \"$1\" --check --no-engine-check --game \"$STORM_GAME_DIR\""
+    ${Python3_EXECUTABLE} ${STORM_MOBILE_UI}/design/build.py
+    INPUTS ${STORM_MOBILE_UI}/PROGRAM ${STORM_MOBILE_UI}/design)
