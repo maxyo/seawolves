@@ -18,7 +18,9 @@ on Android and on the Linux development host alike.
   `<fx base name>_<shader name>` (unknown keys are logged and their draws skipped).
 - `include/storm/render/frame_owner.hpp` — the frame owner contract (the header is the documentation).
 - `src/texture/` — GPU copies of the game's DXT textures with rebuilt mip chains, made in the background
-  with an on-device cache; the tier (bc / etc2 / rgba8) is chosen per GPU and logged.
+  with an on-device cache; the tier (bc / etc2 / rgba8) is chosen per GPU and logged. The textures come from
+  `.tx` files or, told apart by their first bytes, DDS (BC1-3, read by bimg) and TXX files
+  (`src/texture/core/texture_file.hpp`); other DDS formats are refused with the file named.
 - `fx/` — optional effects package ([fx/README.md](fx/README.md)), driven by `src/effects/`.
 - `host-tools/` — builds only the host `shaderc` from the same pin.
 
@@ -94,7 +96,9 @@ cmake -S . -B build/android -G Ninja -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain
 ninja -C build/android engine
 ```
 
-Texture tests: `-DSTORM_BGFX_BUILD_TESTS=ON` (`storm_texture_tests`, `storm_eac_encoder_tests`).
+Texture tests: `-DSTORM_BGFX_BUILD_TESTS=ON` (`storm_texture_tests`, `storm_eac_encoder_tests`,
+`storm_texture_file_tests`; the last also parses every DDS and TXX file of an installed game named by
+`$STORM_GAME_DIR`, `storm_texture_file_tests --corpus`, and is reported as not run without one).
 
 ## Writing shaders
 

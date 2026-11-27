@@ -293,7 +293,8 @@ void SetEffectsLightmaps(std::string_view name, std::span<const glm::vec3> posit
 
 // The texture's name and the game file it was loaded from (Renderer::TextureLoad, after its levels are filled). Stone,
 // wood, plaster and ground textures and grey height ("bump") textures get a normal map for the per-pixel lighting's
-// relief (fx_light_normal_map, fx/normal_map.hpp, src/effects/relief_generator.hpp).
+// relief (fx_light_normal_map, fx/normal_map.hpp, src/effects/relief_generator.hpp). An empty `file`: a texture that
+// is no .tx file, which the relief and the ×2 do not read.
 void SetEffectsTextureSource(shim::BaseTexture *texture, const char *path, const std::filesystem::path &file);
 
 // Relief maps (fx/relief_store.hpp): made by PBRify's models in the game process the first time a texture needs one,

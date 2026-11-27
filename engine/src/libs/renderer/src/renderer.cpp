@@ -1866,8 +1866,6 @@ int32_t Renderer::TextureCreate(const char *fname)
     return -1;
 }
 
-static std::string TextureFileName(const std::string &name);
-
 std::optional<std::string> Renderer::TextureVariantName(const char *fname, int32_t variant) const
 {
     char _fname[256];
@@ -1918,7 +1916,7 @@ std::vector<std::string> Renderer::TextureFileCandidates(const char *fname)
             continue;
         if (FindLoadedTexture(*name, MakeHashValue(name->c_str())) >= 0)
             break; // TextureCreate stops at this variant: it has it
-        files.push_back(fio->ConvertPathResource(TextureFileName(*name).c_str()));
+        files.push_back(fio->ConvertPathResource(storm::texture::TextureFilePath(*name).c_str()));
     }
     return files;
 }
@@ -2164,30 +2162,6 @@ bool Renderer::TextureIncReference(int32_t texid)
     return true;
 }
 
-// The .tx file TextureLoad reads for a texture name (TextureVariantName): under resource\textures, with the .tx
-// suffix, without doubled separators.
-static std::string TextureFileName(const std::string &name)
-{
-    char fn[_MAX_FNAME];
-    auto lTexture = name;
-    std::transform(lTexture.begin(), lTexture.end(), lTexture.begin(), [](unsigned char c) { return std::tolower(c); });
-    auto has_resource_prefix = starts_with(lTexture, "resource\\textures\\");
-    auto has_tx_postfix = ends_with(lTexture, ".tx");
-
-    sprintf_s(fn, "%s%s%s", has_resource_prefix ? "" : "resource\\textures\\", name.c_str(), has_tx_postfix ? "" : ".tx");
-
-    for (int32_t s = 0, d = 0; fn[d]; s++)
-    {
-        if (d > 0 && (fn[d - 1] == PATH_SEP || fn[d - 1] == WRONG_PATH_SEP) &&
-            (fn[s] == PATH_SEP || fn[s] == WRONG_PATH_SEP))
-        {
-            continue;
-        }
-        fn[d++] = fn[s];
-    }
-    return fn;
-}
-
 bool TextureFileReader::open(const char *fn)
 {
     if (const storm::io::Prefetched *prefetched =
@@ -2258,7 +2232,7 @@ bool Renderer::TextureLoad(int32_t t)
     {
         return false;
     }
-    const std::string file = TextureFileName(Textures[t].name);
+    const std::string file = storm::texture::TextureFilePath(Textures[t].name);
     const char *fn = file.c_str();
     // Opening the file (or taking the bytes a background read brought for it)
     TextureFileReader fileS;
@@ -2280,6 +2254,10 @@ bool Renderer::TextureLoad(int32_t t)
     const char *damaged = nullptr;
     if (!fileS.read(&head, sizeof(head)))
         damaged = "short header";
+    else if (const auto container = storm::texture::DetectTextureContainer(
+                 {reinterpret_cast<const uint8_t *>(&head), sizeof(head)});
+             container != storm::texture::TextureContainer::Tx)
+        return TextureLoadFile(t, fn, fileS, {reinterpret_cast<const uint8_t *>(&head), sizeof(head)}, container);
     else
     {
         storm::texture::TxHeader checked;
@@ -2563,6 +2541,14 @@ bool Renderer::TextureLoad(int32_t t)
         Textures[t].isCubeMap = true;
     }
 
+    TextureLoaded(t, head.width, head.height);
+    // Close the file
+    fileS.close();
+    return true;
+}
+
+void Renderer::TextureLoaded(int32_t t, uint32_t width, uint32_t height)
+{
     // print statistics
     if (texLog)
     {
@@ -2575,8 +2561,8 @@ bool Renderer::TextureLoad(int32_t t)
         }
         std::ofstream fileS2(log, std::ios::binary | std::ios::app);
         totSize += Textures[t].dwSize;
-        sprintf_s(s, "%.2f, size: %d, %d * %d, %s\n", totSize / 1024.0f / 1024.0f, Textures[t].dwSize, head.width,
-                  head.height, Textures[t].name);
+        sprintf_s(s, "%.2f, size: %d, %d * %d, %s\n", totSize / 1024.0f / 1024.0f, Textures[t].dwSize, width, height,
+                  Textures[t].name);
         fileS2.write(s, static_cast<std::streamsize>(strlen(s)));
         if (!fileS2)
             spdlog::error("Cannot write the texture log {}", log.string());
@@ -2584,8 +2570,113 @@ bool Renderer::TextureLoad(int32_t t)
     dwTotalSize += Textures[t].dwSize;
     Textures[t].loaded = true;
     storm::render::MarkTextureImmutable(Textures[t].d3dtex); // the shim keeps no CPU copy after the upload
-    // Close the file
+}
+
+bool Renderer::TextureLoadFile(int32_t t, const char *fn, TextureFileReader &fileS, std::span<const uint8_t> head,
+                               storm::texture::TextureContainer container)
+{
+    using storm::texture::TextureFile;
+    const auto fail = [&](std::string_view reason) {
+        spdlog::error("texture {}: {}, not loading it", fn, reason);
+        delete[] Textures[t].name;
+        Textures[t].name = nullptr;
+        return false;
+    };
+    // The whole file: the header TextureLoad read, then the rest.
+    const std::streamoff size = fileS.size();
+    if (size < static_cast<std::streamoff>(head.size()))
+    {
+        fileS.close();
+        return fail("file size unavailable");
+    }
+    std::vector<uint8_t> bytes(static_cast<size_t>(size));
+    std::memcpy(bytes.data(), head.data(), head.size());
+    const bool read = fileS.read(bytes.data() + head.size(), bytes.size() - head.size());
     fileS.close();
+    if (!read)
+        return fail("short read");
+    TextureFile file;
+    const auto problem = container == storm::texture::TextureContainer::Dds
+                             ? storm::texture::ParseDdsTexture(std::move(bytes), file)
+                             : storm::texture::ParseTxxTexture(std::move(bytes), file);
+    if (problem)
+        return fail(problem->reason);
+    const D3DFORMAT format = file.layout.format == storm::texture::DxtFormat::Bc1   ? D3DFMT_DXT1
+                             : file.layout.format == storm::texture::DxtFormat::Bc2 ? D3DFMT_DXT3
+                                                                                    : D3DFMT_DXT5;
+    // Skipping mips, with the .tx textures' limit
+    uint32_t first = 0;
+    for (int32_t nTD = nTextureDegradation; nTD > 0; nTD--)
+    {
+        if (file.layout.levels - first <= 1 || file.layout.level_width(first) <= 32 ||
+            file.layout.level_height(first) <= 32)
+            break; // degradation limit
+        ++first;
+    }
+    const uint32_t width = file.layout.level_width(first), height = file.layout.level_height(first),
+                   levels = file.layout.levels - first;
+    const auto fill = [&](storm::shim::Surface *surface, uint32_t face, uint32_t level) {
+        const std::span<const uint8_t> data = file.level(face, level);
+        const size_t rows = storm::texture::blocks_x(file.layout.level_height(level));
+        const size_t row_bytes = data.size() / rows;
+        D3DLOCKED_RECT lock;
+        if (CHECKD3DERR(surface->LockRect(&lock, nullptr, 0L)))
+            return false;
+        for (size_t row = 0; row < rows; ++row)
+            std::memcpy(static_cast<uint8_t *>(lock.pBits) + row * lock.Pitch, data.data() + row * row_bytes,
+                        row_bytes);
+        Textures[t].dwSize += static_cast<uint32_t>(data.size());
+        return !CHECKD3DERR(surface->UnlockRect());
+    };
+    if (file.layout.faces == 1)
+    {
+        storm::shim::Texture2D *tex = nullptr;
+        if (CHECKD3DERR(d3d9->CreateTexture(width, height, levels, 0, format, D3DPOOL_MANAGED, &tex, nullptr)) || !tex)
+            return fail(fmt::format("{} {}x{}, {} levels: the texture is not created", file.source, width, height,
+                                    levels));
+        for (uint32_t level = 0; level < levels; ++level)
+        {
+            storm::shim::Surface *surface = nullptr;
+            const bool ok = !CHECKD3DERR(tex->GetSurfaceLevel(level, &surface)) && surface &&
+                            fill(surface, 0, first + level);
+            if (surface)
+                surface->Release();
+            if (!ok)
+            {
+                tex->Release();
+                return fail(fmt::format("{}: level {} is not filled", file.source, level));
+            }
+        }
+        Textures[t].d3dtex = tex;
+        Textures[t].isCubeMap = false;
+        // No game file: the relief and the ×2 read .tx files only.
+        storm::render::SetEffectsTextureSource(tex, Textures[t].name, {});
+    }
+    else
+    {
+        storm::shim::CubeTexture *tex = nullptr;
+        if (CHECKD3DERR(d3d9->CreateCubeTexture(width, levels, 0, format, D3DPOOL_MANAGED, &tex, nullptr)) || !tex)
+            return fail(fmt::format("{} {}x{}, {} levels: the cube texture is not created", file.source, width, height,
+                                    levels));
+        for (uint32_t face = 0; face < 6; ++face)
+            for (uint32_t level = 0; level < levels; ++level)
+            {
+                storm::shim::Surface *surface = nullptr;
+                const bool ok =
+                    !CHECKD3DERR(tex->GetCubeMapSurface(static_cast<D3DCUBEMAP_FACES>(face), level, &surface)) &&
+                    surface && fill(surface, face, first + level);
+                if (surface)
+                    surface->Release();
+                if (!ok)
+                {
+                    tex->Release();
+                    return fail(fmt::format("{}: face {} level {} is not filled", file.source, face, level));
+                }
+            }
+        Textures[t].d3dtex = tex;
+        Textures[t].isCubeMap = true;
+    }
+    TextureLoaded(t, width, height);
     return true;
 }
 

@@ -213,8 +213,10 @@ storm_check_test(renderer_bgfx.relief_device_choice_check COMMAND storm_relief_d
 storm_check_test(renderer_bgfx.relief_finalizer_check COMMAND storm_relief_finalizer_check <tmp>)
 storm_check_test(renderer_bgfx.relief_tx_check COMMAND storm_relief_tx_check <tmp>)
 # The tests the renderer's own CMake files declare (texture transcode, fx).
-set_tests_properties(storm_texture_tests storm_eac_encoder_tests DIRECTORY "${src}/libs/renderer_bgfx"
-    PROPERTIES LABELS "host" TIMEOUT 300 SKIP_RETURN_CODE 77)
+set_tests_properties(storm_texture_tests storm_eac_encoder_tests storm_texture_file_tests
+    DIRECTORY "${src}/libs/renderer_bgfx" PROPERTIES LABELS "host" TIMEOUT 300 SKIP_RETURN_CODE 77)
+set_tests_properties(storm_texture_file_tests.corpus DIRECTORY "${src}/libs/renderer_bgfx"
+    PROPERTIES LABELS "host;game" TIMEOUT 600 SKIP_RETURN_CODE 77)
 set_tests_properties(fx_core fx_aggregate fx_wake_trail fx_sea_wakes_math fx_ff_skin_share
     DIRECTORY "${src}/libs/renderer_bgfx/fx" PROPERTIES LABELS "host" TIMEOUT 300 SKIP_RETURN_CODE 77)
 # The shaders as built: the vertex inputs of the SPIR-V programs, BuiltIn PointSize exported and stored, no texel of a

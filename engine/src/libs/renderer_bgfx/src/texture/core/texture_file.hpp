@@ -1,0 +1,53 @@
+// Texture files beside the game's .tx, told apart by their first bytes: DirectDraw Surface (parsed by bimg) and TXX
+// (a "TXX 1.0 " header and a BC mip chain). Their BC1-3 blocks reach the renderer as D3D DXT1/3/5 levels, the same
+// upload, transcode and cache as .tx textures.
+#pragma once
+
+#include "formats.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace storm::texture
+{
+enum class TextureContainer : uint8_t
+{
+    Tx,  // the game's 24-byte header, no magic (tx_header.hpp)
+    Dds, // "DDS "
+    Txx, // "TXX 1.0 "
+};
+// The container of a file from its first bytes (at least 8 to recognise TXX).
+TextureContainer DetectTextureContainer(std::span<const uint8_t> head);
+
+// The file of a texture name (relative to the game, backslashes): under resource\textures, without doubled separators,
+// with ".tx" appended unless the name already names a texture file (.tx, .dds, .txx).
+std::string TextureFilePath(std::string_view name);
+
+// A whole DDS or TXX file and where its levels are: faces one after another (DDS cube order +X, -X, +Y, -Y, +Z, -Z,
+// which is D3DCUBEMAP_FACES order), each face's levels from the full size down, tightly packed whole blocks.
+struct TextureFile
+{
+    Layout layout;
+    size_t payload_offset = 0;
+    std::string source; // what the file holds, for logs: "DDS BC3 sRGB cube", "TXX BC1"
+    std::vector<uint8_t> bytes;
+
+    std::span<const uint8_t> level(uint32_t face, uint32_t level) const;
+};
+
+// Why a file cannot be used: a variant the renderer does not read (any format other than BC1-3, volumes, arrays) or a
+// damaged file.
+struct TextureFileProblem
+{
+    std::string reason;
+    bool unsupported = false;
+};
+// Each takes the whole file; on success `out` is filled.
+std::optional<TextureFileProblem> ParseDdsTexture(std::vector<uint8_t> bytes, TextureFile &out);
+std::optional<TextureFileProblem> ParseTxxTexture(std::vector<uint8_t> bytes, TextureFile &out);
+} // namespace storm::texture

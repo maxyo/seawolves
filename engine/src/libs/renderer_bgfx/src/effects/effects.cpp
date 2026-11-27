@@ -1128,8 +1128,14 @@ void SetEffectsTextureSource(storm::shim::BaseTexture *texture, const char *path
         // A new material source drops its previous skin reference; a character's atlas starts a new one.
         store->skin.reset(store->name.rfind("characters/", 0) == 0 ? effects::texture_level(*store, fx::kSkinToneLevel)
                                                                    : nullptr);
-        effects::Host::instance().lighting().normal_maps().on_texture_loaded(*store, path, file);
-        effects::upscales().on_texture_loaded(*store, store->name, file);
+        if (!file.empty())
+        {
+            effects::Host::instance().lighting().normal_maps().on_texture_loaded(*store, path, file);
+            effects::upscales().on_texture_loaded(*store, store->name, file);
+        }
+        else if (static bool reported = false; render::Once(reported))
+            render::Log().info("effects: {} and the other textures that are no .tx file get no relief and no ×2",
+                               store->name);
         std::string lower(path ? path : "");
         std::transform(lower.begin(), lower.end(), lower.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });

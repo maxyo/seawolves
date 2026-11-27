@@ -12,6 +12,7 @@
 #include "platform/platform.hpp"
 
 #include "shim/device.hpp"
+#include "texture/core/texture_file.hpp"
 #include "storm/render/perf_stats.hpp"
 #include "script_libriary.h"
 
@@ -583,6 +584,11 @@ private:
 
 
     bool TextureLoad(int32_t texid);
+    // A DDS or TXX file TextureLoad found by its first bytes (`head`, already read from `fileS`).
+    bool TextureLoadFile(int32_t texid, const char *fn, TextureFileReader &fileS, std::span<const uint8_t> head,
+                         storm::texture::TextureContainer container);
+    // The statistics of a loaded texture and its last steps.
+    void TextureLoaded(int32_t texid, uint32_t width, uint32_t height);
     // TextureCreate's name of `fname` under texture path variant `variant` (TexPaths[variant] put before the file
     // name; -1: as given), upper case; none when that variant is not set.
     std::optional<std::string> TextureVariantName(const char *fname, int32_t variant) const;
