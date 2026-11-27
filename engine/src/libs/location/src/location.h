@@ -7,9 +7,14 @@
 #include "storm_glm.h"
 #include "vma.hpp"
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "locator_array.h"
 #include "model_array.h"
+#include "object_library.hpp"
 #include "ptc_data.h"
 #include "supervisor.h"
 
@@ -124,6 +129,8 @@ class Location : public Entity
   private:
     void Update(uint32_t delta_time);
     int32_t LoadStaticModel(const char *modelName, const char *tech, int32_t level, bool useDynamicLights);
+    bool AddObjectContainer(const std::string &name, const char *tech, int32_t level, bool useDynamicLights);
+    void DeleteObjectContainer(const std::string &name);
     bool LoadCharacterPatch(const char *ptcName);
     void LoadCaustic() const;
     bool LoadJumpPatch(const char *modelName);
@@ -165,6 +172,10 @@ class Location : public Entity
 
     // All models
     ModelArray model;
+    // The game's object library, read at the first object container
+    std::optional<storm::location::ObjectLibrary> objectLibrary;
+    // Folded models path + container name -> the props it placed
+    std::unordered_map<std::string, std::vector<entid_t>> objectContainers;
 
     // Grass
     entid_t grass;

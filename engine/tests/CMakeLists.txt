@@ -229,6 +229,12 @@ storm_host_check(load_watch INCLUDES ${src}/libs/core/include ${src}/libs/xinter
     OPTIONS -g ${asan_strict} CATCH2)
 storm_host_check(location_light_choice INCLUDES ${glm_headers} ${src}/libs/location/src
     OPTIONS -O1 -g ${warnings} ${asan} -fno-omit-frame-pointer CATCH2)
+# The location's side of the land scripts' protocol (location/src); "[corpus]" reads the game in $STORM_GAME_DIR.
+storm_host_check(location_land.check DIRECTORY location_land SOURCES objects.cpp
+    ${src}/libs/location/src/object_library.cpp
+    INCLUDES ${src}/libs/location/src ${util_include} ${glm_headers} ${fmt_headers} ${storm_json_SOURCE_DIR}/include
+    DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_check_test(location_land.corpus COMMAND location_land.check "[corpus]" LABELS game)
 storm_host_check(game_profile INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(natives_ext SOURCES check.cpp ${src}/libs/core/src/natives_logic.cpp
     INCLUDES ${src}/libs/core/src ${util_include} ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict}

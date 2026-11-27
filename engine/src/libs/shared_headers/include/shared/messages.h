@@ -79,6 +79,9 @@
 // "lssl" load static model, read its locators, set rendering technique and drawing level
 #define MSG_LOCATION_ADD_MODEL 30100
 #define MSG_LOCATION_GET_MODEL 30101 // "le" get model identifier
+// "lssl[l]" container name, technique, level: place the props its locator groups name (location_objects.json)
+#define MSG_LOCATION_ADD_OBJECT_CONTAINER 30102
+#define MSG_LOCATION_DELETE_OBJECT_CONTAINER 30103 // "ls" container name: remove the props it placed
 // Set the last added model properties
 #define MSG_LOCATION_MODEL_SET_POS 30110 // "lss" put the last loaded model into the locator
 #define MSG_LOCATION_MODEL_SET_ROT 30111 // "lfff" set the rotation speed of the last loaded model
@@ -119,6 +122,8 @@
 // distance of visibility of marks, with colors
 #define MSG_LOCATION_VIEWLGROUP 30180
 #define MSG_LOCATION_HIDELGROUP 30181 // "ls" hide locator group
+#define MSG_LOCATION_SETQUESTPOINTER 30182  // "lss" group, locator: mark the locator as a quest target
+#define MSG_LOCATION_HIDEQUESTPOINTER 30183 // "lss" group, locator: clear the mark
 
 // Characters
 // Character model

@@ -23,6 +23,11 @@
 #include "storm/render/shadow_casters.hpp"
 #include "storm/render/pipelines.hpp"
 #include "string_compare.hpp"
+#include "istring.hpp"
+#include "geometry.h"
+#include "land_protocol.hpp"
+
+#include <spdlog/spdlog.h>
 
 float fCausticScale, fCausticDelta, fFogDensity, fCausticDistance;
 glm::vec4 v4CausticColor;
@@ -491,7 +496,8 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
     float ax, ay, az;
     int32_t level;
     LocatorArray *la;
-    switch (message.Long())
+    const auto code = message.Long();
+    switch (code)
     {
     case MSG_LOCATION_ADD_MODEL: {
         const std::string &name = message.String();
@@ -504,6 +510,16 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
         lastLoadStaticModel = LoadStaticModel(name.c_str(), tech.c_str(), level, dynamicLightsOn == 1);
         return lastLoadStaticModel >= 0;
     }
+    case MSG_LOCATION_ADD_OBJECT_CONTAINER: {
+        const std::string &name = message.String();
+        const std::string &tech = message.String();
+        level = message.Long();
+        const auto dynamicLightsOn = message.GetFormat().size() > 4 ? message.Long() : 0;
+        return AddObjectContainer(name, tech.c_str(), level, dynamicLightsOn == 1);
+    }
+    case MSG_LOCATION_DELETE_OBJECT_CONTAINER:
+        DeleteObjectContainer(message.String());
+        return 1;
     case MSG_LOCATION_GET_MODEL:
         if (lastLoadStaticModel < 0)
             return 0;
@@ -640,6 +656,14 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
         }
         return 1;
     }
+    case MSG_LOCATION_SETQUESTPOINTER:
+    case MSG_LOCATION_HIDEQUESTPOINTER: {
+        const std::string &group = message.String();
+        const std::string &name = message.String();
+        storm::location::ReportNotDrawn("MSG_LOCATION_SETQUESTPOINTER", "quest pointers at locators are not drawn");
+        la = FindLocatorsGroup(group.c_str());
+        return la && la->FindByName(name.c_str()) >= 0;
+    }
     case MSG_LOCATION_GRP_RADIUS: {
         const std::string &name = message.String();
         la = FindLocatorsGroup(name.c_str());
@@ -701,6 +725,8 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
     case MSG_LOCATION_VIEWSTATEBARS:
         bDrawBars = message.Long() != 0;
         return 1;
+    default:
+        storm::location::ReportUnknownCommand("location message", std::to_string(code));
     }
     return 0;
 }
@@ -827,6 +853,95 @@ int32_t Location::LoadStaticModel(const char *modelName, const char *tech, int32
     core.Send_Message(lighter, "ssi", "AddModel", modelName, mdl->GetId());
 
     return im;
+}
+
+bool Location::AddObjectContainer(const std::string &name, const char *tech, int32_t level, bool useDynamicLights)
+{
+    if (!objectLibrary)
+    {
+        constexpr const char *file = "resource\\ini\\location_objects.json";
+        char *data = nullptr;
+        uint32_t size = 0;
+        if (!fio->LoadFile(file, &data, &size))
+            objectLibrary = storm::location::ObjectLibrary{{}, {"object library not found"}, false};
+        else
+        {
+            const std::unique_ptr<char[]> owned(data);
+            objectLibrary = storm::location::ParseObjectLibrary(std::string_view(data, size));
+        }
+        for (const auto &error : objectLibrary->errors)
+            spdlog::error("LocationObjects: {}: {}", file, error);
+        if (objectLibrary->valid)
+            spdlog::info("LocationObjects: loaded {} object definitions", objectLibrary->models.size());
+    }
+    if (!objectLibrary->valid)
+    {
+        spdlog::error("LocationObjects: container '{}' not placed: no object library", name);
+        return false;
+    }
+    auto *gs = static_cast<VGEOMETRY *>(core.GetService("geometry"));
+    if (!gs)
+        throw std::runtime_error("No service: geometry");
+    // The container is read for its locators only.
+    const std::string containerPath = model.modelspath + name;
+    GEOS *container = gs->CreateGeometry(containerPath.c_str(), "", 0);
+    if (!container)
+    {
+        spdlog::error("LocationObjects: cannot load container '{}'", containerPath);
+        return false;
+    }
+    std::vector<storm::location::ContainerLocator> locatorsOfContainer;
+    GEOS::INFO info;
+    container->GetInfo(info);
+    for (int32_t i = 0; i < info.nlabels; i++)
+    {
+        GEOS::LABEL label;
+        container->GetLabel(i, label);
+        if (label.group_name && label.group_name[0])
+            locatorsOfContainer.push_back(
+                {label.group_name, label.name ? label.name : "", *reinterpret_cast<const glm::mat4 *>(label.m)});
+    }
+    gs->DeleteGeometry(container);
+
+    const auto expansion = storm::location::ExpandContainer(locatorsOfContainer, *objectLibrary);
+    for (const auto &problem : expansion.problems)
+        spdlog::error("LocationObjects: container '{}': {}", name, problem);
+    // The props live in the shared models\object folder, not in the location's.
+    const std::string locationModels = model.modelspath;
+    model.modelspath = "object\\";
+    core.Send_Message(lighter, "ss", "ModelsPath", model.modelspath.c_str());
+    auto &placed = objectContainers[storm::AsciiLower(containerPath)];
+    for (const auto &instance : expansion.instances)
+    {
+        const auto im = LoadStaticModel(instance.model.c_str(), tech, level, useDynamicLights);
+        if (im < 0)
+        {
+            spdlog::error("LocationObjects: cannot load model '{}' for locator group '{}' of container '{}'",
+                          instance.model, instance.group, name);
+            continue;
+        }
+        model[im]->mtx = instance.transform;
+        placed.push_back(model.ID(im));
+    }
+    model.modelspath = locationModels;
+    core.Send_Message(lighter, "ss", "ModelsPath", model.modelspath.c_str());
+    spdlog::info("LocationObjects: spawned {} instances from container '{}'", placed.size(), name);
+    return true;
+}
+
+void Location::DeleteObjectContainer(const std::string &name)
+{
+    const auto found = objectContainers.find(storm::AsciiLower(model.modelspath + name));
+    if (found == objectContainers.end())
+        return;
+    for (const auto id : found->second)
+        for (int32_t i = 0; i < model.Models(); i++)
+            if (model.ID(i) == id)
+            {
+                model.DeleteModel(i);
+                break;
+            }
+    objectContainers.erase(found);
 }
 
 bool Location::LoadCharacterPatch(const char *ptcName)
@@ -1009,6 +1124,18 @@ bool Location::MessageEx(const char *name, MESSAGE &message)
     {
         bCausticEnable = message.Long() != 0;
     }
+    else if (storm::iEquals(name, "SetLandQuestMarksVisible"))
+    {
+        AttributesPointer->SetAttributeUseDword("landQuestMarksHidden", message.Long() == 0);
+    }
+    else if (storm::iEquals(name, "SetDialogMarkMode") || storm::iEquals(name, "SetAttackMarkMode") ||
+             storm::iEquals(name, "SetDeadMarkMode") || storm::iEquals(name, "SetArchetypeMarkMode"))
+    {
+        message.Long();
+        storm::location::ReportNotDrawn(name, "the marks over characters are not drawn");
+    }
+    else
+        storm::location::ReportUnknownCommand("location", name);
     return false;
 }
 

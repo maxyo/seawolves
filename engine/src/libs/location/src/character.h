@@ -636,6 +636,7 @@ class Character : public Entity
     // Anchored sign model
     entid_t sign;
     std::string signName;
+    bool signShown = false; // the sign is in the realize layer
     std::string signTechniqueName;
 
     // Circles on the water

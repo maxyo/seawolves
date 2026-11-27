@@ -10,6 +10,7 @@
 #include "character.h"
 #include "android_motion.hpp"
 #include "characters_groups.h"
+#include "land_protocol.hpp"
 #include "lights.h"
 
 #include "debug-trap.h"
@@ -1040,6 +1041,7 @@ void Character::SetSignModel()
     if (gs)
         gs->SetTexturePath("");
     core.AddToLayer(REALIZE, sign, 20000);
+    signShown = true;
     core.AddToLayer(SUN_TRACE, sign, 10);
 }
 
@@ -2472,6 +2474,16 @@ void Character::Update(float dltTime)
             storm::math::vx(signMdl->mtx) = glm::cross(storm::math::vz(signMdl->mtx), storm::math::vy(signMdl->mtx));
         }
         storm::math::pos(signMdl->mtx) = curPos;
+        const bool shown = !location->AttributesPointer->GetAttributeAsDword("landQuestMarksHidden", 0) &&
+                           (!storm::location::landFacts().questSignsOnlyAtPeace || (!isFight && !deadName && liveValue >= 0));
+        if (shown != signShown)
+        {
+            signShown = shown;
+            if (shown)
+                core.AddToLayer(REALIZE, sign, 20000);
+            else
+                core.RemoveFromLayer(REALIZE, sign);
+        }
     }
 
     // character light source
