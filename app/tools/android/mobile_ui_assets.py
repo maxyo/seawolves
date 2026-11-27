@@ -13,6 +13,8 @@ def collect(root: Path):
         lower = name.lower()
         if lower.startswith('design/'):
             continue  # UI design sources; their generated pack is packaged by collect_ui_pack
+        if path.name == 'README.md':
+            continue  # the documents beside the scripts are not payload
         allowed = name == 'SOURCE.json' or (
             lower.startswith('program/interface/') and path.suffix.lower() in ('.c', '.h'))
         if path.is_symlink() or not allowed:
