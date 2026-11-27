@@ -731,6 +731,34 @@ TEST_CASE("the crew hire's script gives the pack screen the props and actions of
     }
 }
 
+// The sail emblem's script on recorded models of sailsgerald: the props its view gives, and what its events send (an
+// emblem chosen, the work the game offers, leaving).
+TEST_CASE("the sail emblem's script gives the pack screen the props and actions of the recorded models")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const auto spec = PackScreen("sail-emblem");
+    const auto &screen = Screen(vm, "sail_emblem");
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/sail_emblem.json"));
+    for (const Json &recorded : fixture.at("cases"))
+    {
+        INFO(recorded.at("name").get<std::string>());
+        storm::ui::InterfaceModel model;
+        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        Calls calls(*spec);
+        calls.widgets = model.widgets;
+        port.Build(screen, calls.Single(), calls);
+        CHECK(calls.props == recorded.at("props"));
+        for (const Json &event : recorded.at("events"))
+        {
+            REQUIRE(calls.Binds(event[0], event[1]));
+            port.Event(screen, event[0], event[1], event[2], calls);
+        }
+        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+    }
+}
+
 TEST_CASE("a screen's script gets the admitted widgets in its object, a table's rows with their cells")
 {
     Vm vm;

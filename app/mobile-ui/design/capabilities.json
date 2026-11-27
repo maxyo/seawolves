@@ -7,5 +7,6 @@
   "trade_contraband": "Buy and sell goods with smugglers",
   "trade_cannons": "Buy and sell a ship's guns",
   "trade_items": "Buy and sell items with a merchant",
-  "crew_hire": "Hire sailors in a tavern, or dismiss them"
+  "crew_hire": "Hire sailors in a tavern, or dismiss them",
+  "sail_emblem": "Paint an emblem on the ship's sails at the shipyard, or take it off"
 }

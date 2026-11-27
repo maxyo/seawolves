@@ -25,6 +25,7 @@
     {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/touch/contracts/nations.c"},
     {"file": "interface/touch/contracts/crew.c"},
+    {"file": "interface/touch/contracts/sails.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c"},
     {
@@ -184,6 +185,21 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/sails.c",
+      "provides": ["adapter:sails"],
+      "binds": [
+        {
+          "capability": "sail_emblem",
+          "interface": "sailsgerald",
+          "nodes": [
+            ["SCROLL_GERALD", "choice", true], ["ANDROID_SAILS_GERALD", "sails_gerald"], ["EXIT_BTN", "button"],
+            ["B_OK", "button"], ["B_REMOVE", "button"], ["B_CANCEL", "button"], ["INFO_CAPTION", "text"],
+            ["SAILS_GERALD_LEFT_BUTTON", "button"], ["SAILS_GERALD_RIGHT_BUTTON", "button"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -253,6 +269,11 @@
       "file": "interface/touch/screens/crew.c",
       "uses": ["adapter:crew"],
       "screens": [{"capability": "crew_hire", "component": "s-crew"}]
+    },
+    {
+      "file": "interface/touch/screens/sails.c",
+      "uses": ["adapter:sails"],
+      "screens": [{"capability": "sail_emblem", "component": "s-sail-emblem"}]
     }
   ]
 }

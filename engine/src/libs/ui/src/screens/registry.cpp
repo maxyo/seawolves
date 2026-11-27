@@ -23,7 +23,6 @@ std::unique_ptr<Screen> CreateRepairScreen();
 std::unique_ptr<Screen> CreateTransferScreen();
 std::unique_ptr<Screen> CreateAlchemyScreen();
 std::unique_ptr<Screen> CreateGoodsOrderScreen();
-std::unique_ptr<Screen> CreateSailEmblemScreen();
 std::unique_ptr<Screen> CreateGameOverScreen();
 std::unique_ptr<StateConsumer> CreateGameOverConsumer();
 std::unique_ptr<StateConsumer> CreateLoadFailureConsumer();
@@ -55,7 +54,6 @@ namespace
 
 const ScreenEntry kPorted[] = {
     {"goodstransfer", CreateGoodsOrderScreen},
-    {"sailsgerald", CreateSailEmblemScreen},
     {"shipyard", CreateShipyardScreen},
     {"dialogue", CreateDialogueScreen},
     {"game_menu", CreateGameMenuScreen},

@@ -5518,11 +5518,11 @@ static void SailEmblem(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "sailsgerald.json"));
     Expect(router.Using() == "sailsgerald" && surface.tag == "s-sail-emblem" && router.Rejection().empty() &&
                surface.errors.empty(),
            "sailsgerald is drawn by the sail emblem screen");
-    Expect(surface.props["extras"]["rows"].empty(), "every exported node is known");
     const Json emblems = surface.props["emblems"];
     Expect(emblems.size() == 7 && emblems[2]["selected"] == true && emblems[0]["applied"] == true &&
                emblems[2]["texture"] == "ships/gerald/emblem_03",
@@ -5534,12 +5534,15 @@ static void SailEmblem(const std::string &models)
            "another emblem chosen: paint it for the price");
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tB_OK\t-1\tpress", "paint");
+    AnswerAll(router, surface, true);
     router.OnEvent({"emblems", "emblem", "5"});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tSCROLL_GERALD\t5\tselect@5:emblem_06.tga.tx",
                 "a tap chooses that emblem in the game");
+    AnswerAll(router, surface, true);
     router.OnEvent({"emblem-prev", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tSCROLL_GERALD\t1\tselect@5:emblem_02.tga.tx",
                 "‹ chooses the previous one");
+    AnswerAll(router, surface, true);
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tEXIT_BTN\t-1\tpress", "← leaves");
 
