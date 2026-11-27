@@ -119,6 +119,10 @@ void CheckSettings()
     const Settings medium = Settings::FromPreset(QualityPreset::Medium);
     const Settings high = Settings::FromPreset(QualityPreset::High);
     CHECK(original.far_lod_pixels >= medium.far_lod_pixels && medium.far_lod_pixels >= high.far_lod_pixels);
+    // Every preset draws the clouds, the shading towards the light (three octaves) from «Средняя» up; the shader sums
+    // at most four.
+    CHECK((original.cloud_octaves >= 1 && original.cloud_octaves < 3 && medium.cloud_octaves >= 3 &&
+           medium.cloud_octaves <= high.cloud_octaves && high.cloud_octaves <= 4));
     CHECK(!medium.PostIsIdentity() && !high.PostIsIdentity());
     // FSR 1 on every preset, by an internal scene height; «Низкая» otherwise the original look.
     CHECK(original.sharpen && medium.sharpen && high.sharpen);
@@ -349,6 +353,32 @@ void CheckSky()
     WeatherInput c;
     c.sky_radiance = {1.0f, 2.0f, 3.0f};
     CHECK(SkyNeedsRebuild(a, c));
+    // The clouds move every frame without a new panorama.
+    WeatherInput cloudy;
+    cloudy.clouds = cloudy.rain_clouds = 1.0f;
+    cloudy.cloud_drift = {100.0f, 0.0f};
+    CHECK(!SkyNeedsRebuild(a, cloudy));
+
+    // The clouds' noise tiles: across each edge it steps no more than inside; every level is there, and it spans the
+    // range the cover's thresholds cut (fs_fx_sky.sc fxCloudDensity).
+    const std::vector<uint8_t> noise = CloudNoise();
+    size_t texels = 0;
+    for (int size = kCloudNoiseSize; size >= 1; size /= 2)
+        texels += size_t(size) * size_t(size);
+    CHECK(noise.size() == texels);
+    const auto at = [&](int x, int y) { return int(noise[size_t(y) * kCloudNoiseSize + size_t(x)]); };
+    int inside = 0, across = 0, low = 255, high = 0;
+    for (int i = 0; i < kCloudNoiseSize; ++i)
+    {
+        for (int j = 0; j + 1 < kCloudNoiseSize; ++j)
+            inside = std::max({inside, std::abs(at(j, i) - at(j + 1, i)), std::abs(at(i, j) - at(i, j + 1))});
+        across = std::max(
+            {across, std::abs(at(kCloudNoiseSize - 1, i) - at(0, i)), std::abs(at(i, kCloudNoiseSize - 1) - at(i, 0))});
+        for (int j = 0; j < kCloudNoiseSize; ++j)
+            low = std::min(low, at(j, i)), high = std::max(high, at(j, i));
+    }
+    CHECK(across <= inside);
+    CHECK((low < 60 && high > 195));
 }
 
 void CheckLighting()

@@ -81,6 +81,8 @@ void WEATHER::Realize(uint32_t Delta_Time)
 
 void WEATHER::Execute(uint32_t Delta_Time)
 {
+    cloud_drift_ += glm::vec2(std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])) *
+                    fFloats[whf_wind_speed] * static_cast<float>(core.GetDeltaTime()) * 0.001f;
     if (fFloats[whf_time_speed] != 0.f)
     {
         const auto fOldTimer = fFloats[whf_time_counter];
@@ -142,6 +144,7 @@ void WEATHER::PushLegacyEnvironment()
         }
     out.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
     out.wind_speed = fFloats[whf_wind_speed];
+    out.cloud_drift = cloud_drift_;
     storm::render::SetSceneEnvironment(out);
 }
 

@@ -501,6 +501,11 @@ fx::WeatherInput Host::weather_input() const
     input.haze = env_.haze;
     input.haze_height = env_.haze_height;
     input.haze_from_sky = env_.haze_from_sky;
+    input.clouds = env_.clouds;
+    input.rain_clouds = env_.rain_clouds;
+    input.cloud_drift = env_.cloud_drift;
+    input.cloud_light_dir = env_.light_dir;
+    input.cloud_light = environment::DisplayLight(env_.light_color, env_.exposure);
     return input;
 }
 

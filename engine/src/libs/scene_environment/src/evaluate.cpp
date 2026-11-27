@@ -238,8 +238,6 @@ WeatherDay ParseWeatherDay(std::span<const std::array<std::string, 16>, 25> rows
             number(field, value);
             return value != 0.0f;
         };
-        number(fields.cloud_height, out.cloud_height);
-        number(fields.cloud_detail, out.cloud_detail);
         number(fields.cloud_density, out.cloud_density);
         number(fields.rain_intensity, out.rain_intensity);
         out.rain = flag(fields.rain);
@@ -403,9 +401,8 @@ State Evaluate(const Inputs &in)
     if (in.weather)
     {
         const WeatherHour &a = in.weather->hours[size_t(h0)], &b = in.weather->hours[size_t(h0 + 1)];
-        s.cloud_height = Mix(a.cloud_height, b.cloud_height, f);
-        s.cloud_density = Mix(a.cloud_density, b.cloud_density, f);
-        s.cloud_detail = Mix(a.cloud_detail, b.cloud_detail, f);
+        // The scripts' own scale: they make a rain's intensity a fifth of its cloud density (WhrRain.c).
+        s.clouds = std::clamp(Mix(a.cloud_density, b.cloud_density, f) / 5.0f, 0.0f, 1.0f);
         s.rain = Mix(a.rain_intensity, b.rain_intensity, f);
         const auto wet = [](const WeatherHour &x) { return x.rain || x.storm; };
         const bool previous = h0 == 0 ? in.weather->pre_rain > 0.0f : wet(in.weather->hours[size_t(h0 - 1)]);

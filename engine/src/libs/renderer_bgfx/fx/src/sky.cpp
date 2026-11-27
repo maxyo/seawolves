@@ -12,8 +12,9 @@ using namespace detail;
 
 namespace
 {
-constexpr uint16_t kSkyUniforms = 6; // u_fxSky, fs_fx_sky.sc
-}
+constexpr uint32_t kNoiseSampler = 0; // repeat, trilinear
+constexpr uint16_t kSkyUniforms = 9;  // u_fxSky, fs_fx_sky.sc
+} // namespace
 
 Sky::~Sky()
 {
@@ -26,6 +27,8 @@ void Sky::Shutdown()
     Destroy(u_sky_);
     Destroy(s_lut_);
     Destroy(lut_);
+    Destroy(s_noise_);
+    Destroy(noise_);
     Destroy(program_);
     lut_current_ = false;
     resources_ = false;
@@ -58,6 +61,11 @@ void Sky::Update(const WeatherInput &weather, float camera_height)
     weather_.haze = weather.haze;
     weather_.haze_height = weather.haze_height;
     weather_.haze_from_sky = weather.haze_from_sky;
+    weather_.clouds = weather.clouds;
+    weather_.rain_clouds = weather.rain_clouds;
+    weather_.cloud_drift = weather.cloud_drift;
+    weather_.cloud_light_dir = weather.cloud_light_dir;
+    weather_.cloud_light = weather.cloud_light;
 }
 
 void Sky::EnsureResources()
@@ -70,6 +78,10 @@ void Sky::EnsureResources()
     s_lut_ = bgfx::createUniform("s_fxSkyLut", bgfx::UniformType::Sampler);
     program_ = LoadProgram("vs_fx_sky", "fs_fx_sky");
     lut_ = bgfx::createTexture2D(kSkyLutWidth, kSkyLutHeight, false, 1, bgfx::TextureFormat::RGBA8, kClampLinear);
+    s_noise_ = bgfx::createUniform("s_fxCloudNoise", bgfx::UniformType::Sampler);
+    const std::vector<uint8_t> noise = CloudNoise();
+    noise_ = bgfx::createTexture2D(kCloudNoiseSize, kCloudNoiseSize, true, 1, bgfx::TextureFormat::R8, kNoiseSampler,
+                                   bgfx::copy(noise.data(), static_cast<uint32_t>(noise.size())));
 }
 
 void Sky::UploadLut()
@@ -81,7 +93,7 @@ void Sky::UploadLut()
     lut_current_ = true;
 }
 
-void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y)
+void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y, int cloud_octaves)
 {
     EnsureResources();
     if (!bgfx::isValid(program_))
@@ -89,23 +101,26 @@ void Sky::Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool 
     UploadLut();
     const WeatherInput &w = weather_;
     // Discs: the sun white-hot in its own colour, the moon pale; both only above the horizon. Stars come out as the
-    // sun goes below it and the clouds hide them.
+    // sun goes below it; the clouds hide them and the discs.
     const float sun_up = glm::smoothstep(-0.02f, 0.02f, state_.sun_dir.y);
     const float moon_up = glm::smoothstep(-0.02f, 0.02f, w.moon_dir.y) * state_.night;
-    const float clear = 1.0f - std::clamp(w.overcast, 0.0f, 1.0f);
     const float peak = std::max(std::max(state_.sun_light.x, state_.sun_light.y), std::max(state_.sun_light.z, 1e-3f));
     const glm::vec3 sun =
         glm::mix(state_.sun_light / peak, glm::vec3(1.0f), 0.6f * std::clamp(state_.sun_dir.y * 4.0f, 0.0f, 1.0f));
     const std::array<glm::vec4, kSkyUniforms> u = {{
-        {state_.sun_dir, sun_up * clear},
+        {state_.sun_dir, sun_up},
         {sun, 0.0f},
-        {w.moon_dir, moon_up * clear},
-        {glm::vec3(0.75f, 0.78f, 0.85f), state_.night * clear},
+        {w.moon_dir, moon_up},
+        {glm::vec3(0.75f, 0.78f, 0.85f), state_.night},
         {w.haze_color, w.haze},
         {1.0f / std::max(w.haze_height, 1e-3f), w.haze_from_sky ? 1.0f : 0.0f, 0.0f, 0.0f},
+        {glm::fract(w.cloud_drift / kCloudHeight * kCloudTilesPerHeight), w.clouds, w.rain_clouds},
+        {w.cloud_light, float(cloud_octaves)},
+        {w.cloud_light_dir, kCloudTilesPerHeight},
     }};
     bgfx::setUniform(u_sky_, u.data(), kSkyUniforms);
     bgfx::setTexture(0, s_lut_, lut_, kClampLinear);
+    bgfx::setTexture(1, s_noise_, noise_, kNoiseSampler);
     SubmitScreenTriangle(view, program_, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_DEPTH_TEST_LEQUAL,
                          flip_y, &corners);
 }

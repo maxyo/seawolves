@@ -70,7 +70,7 @@ Hours Flat(float sun)
 
 WeatherFields Fields()
 {
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    return {2, 3, 4, 5, 6, 7, 8, 9}; // the columns of the scripts' rows
 }
 
 // A day of the scripts' weather: `rain` hours rain at `intensity` with preset `preset`.
@@ -80,7 +80,7 @@ WeatherDay Weather(std::initializer_list<int> rain, float intensity, const std::
     for (auto &row : rows)
     {
         row.fill("0");
-        row[0] = "5.5";
+        row[2] = "2.5"; // the cloud density
     }
     for (const int h : rain)
     {
@@ -174,7 +174,7 @@ TEST_CASE("the scripts' weather of the day")
 {
     const WeatherDay day = Weather({3, 4}, 0.8f, "rain_2", 0.4f);
     CHECK((day.hours[3].rain && day.hours[3].preset == "rain_2" && day.hours[3].rain_intensity == Approx(0.8f)));
-    CHECK((!day.hours[2].rain && day.hours[2].preset.empty() && day.hours[2].cloud_height == 5.5f));
+    CHECK((!day.hours[2].rain && day.hours[2].preset.empty() && day.hours[2].cloud_density == 2.5f));
     CHECK(day.hours[5].post_rain == Approx(0.8f));
     CHECK(day.hours[4].post_rain == 0.0f);
     CHECK(day.hours[0].post_rain == Approx(0.4f));
@@ -315,6 +315,7 @@ TEST_CASE("rain clouds and wetness")
     CHECK((Evaluate(in).rain_clouds == 0.0f && Evaluate(in).wetness == 0.0f));
     in.hour = 8.0f;
     CHECK(Evaluate(in).rain_clouds == 0.0f);
+    CHECK(Evaluate(in).clouds == Approx(0.5f)); // a fifth of the density
 }
 
 TEST_CASE("every preset of an installed game for every hour", "[.corpus]")

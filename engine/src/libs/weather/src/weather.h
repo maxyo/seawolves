@@ -60,6 +60,7 @@ class WEATHER : public WEATHER_BASE
     const storm::weather::PlacePreset *place_ = nullptr;
     std::optional<storm::environment::HourTable> table_;
     storm::environment::State state_;
+    glm::vec2 cloud_drift_{0.0f}; // metres the wind has carried the clouds
     entid_t sky_ = invalid_entity;
     int event_hour_ = -1;
     bool lightning_ = false, tornado_ = false;

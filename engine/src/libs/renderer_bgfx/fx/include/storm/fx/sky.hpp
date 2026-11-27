@@ -35,10 +35,10 @@ class Sky
     void BindAerial(const std::array<float, 16> &view);
 
     // The sky into `view` behind what it holds (depth test at the far plane): the panorama, the sun's and the moon's
-    // discs, the stars by night and the haze band at the horizon. `corners`: the world directions through the view's
-    // bottom-left, bottom-right and top-left corners as D3D orients them; `flip_y`: the backend's clip space is
-    // upside down to D3D's.
-    void Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y);
+    // discs, the stars by night, the clouds and the haze band at the horizon. `corners`: the world directions through
+    // the view's bottom-left, bottom-right and top-left corners as D3D orients them; `flip_y`: the backend's clip
+    // space is upside down to D3D's; `cloud_octaves`: Settings::cloud_octaves.
+    void Draw(bgfx::ViewId view, const std::array<glm::vec3, 3> &corners, bool flip_y, int cloud_octaves);
 
     void Shutdown();
 
@@ -57,6 +57,8 @@ class Sky
     bgfx::UniformHandle u_sky_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_lut_ = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle lut_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_noise_ = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle noise_ = BGFX_INVALID_HANDLE;
     bgfx::ProgramHandle program_ = BGFX_INVALID_HANDLE;
     bool lut_current_ = false; // lut_ holds state_'s panorama
 };

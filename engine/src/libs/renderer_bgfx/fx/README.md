@@ -70,8 +70,17 @@ scattering (Rayleigh and Mie) around the sun, its horizon and dome averages, reb
 sun, the light or the weather move. The panorama drives the scene grade, the hemisphere ambient and the aerial fog;
 the environment's sky radiance scales it, so a game's data can make it brighter, warmer or darker. For a game
 without sky textures (`render::DrawSky`) it is also the visible sky: one triangle at the far plane behind what the
-scene has drawn, the panorama by direction, the sun's and the moon's discs, stars on a hashed grid of cells by night
-and a haze band at the horizon; in the scene before its geometry and in the sea's reflection. A fog with a height
+scene has drawn, the panorama by direction, the sun's and the moon's discs, stars on a hashed grid of cells by night,
+the clouds and a haze band at the horizon; in the scene before its geometry and in the sea's reflection.
+
+The clouds need no texture of the game's: a layer at 1500 m seen from below, a fractal sum of one tiling octave of
+gradient noise (`CloudNoise`, 128² R8 with mips, 21 KB) turned and doubled per octave, kept where it rises above a
+threshold the environment's cover lowers (the coverage remap of Schneider 2015). The rain clouds grow over the same
+noise from its high values down as their cover rises, grey and even when it is full. The wind's drift moves the layer.
+The sky's panorama above and at the horizon lights them (its colours carry the twilight's tint), and the direct light
+(the sun, or the moon at night) where the layer thins towards it: a second lookup a step towards the light, a
+directional derivative (Quílez), with a silver lining round the light. `Settings::cloud_octaves`: «Низкая» 2 octaves
+and no lookup towards the light, «Средняя» 3, «Высокая» 4. A fog with a height
 layer of its own reaches the draws at the eye's density and the aerial fog lays it out with height
 (`ComputeAerialFogHaze`).
 

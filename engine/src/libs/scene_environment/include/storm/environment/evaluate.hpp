@@ -44,7 +44,7 @@ std::optional<Hours> CompleteHours(const scene_data::LightingPreset &preset);
 // One hour of the scripts' weather of the day (WeatherState).
 struct WeatherHour
 {
-    float cloud_height = 0.0f, cloud_detail = 0.0f, cloud_density = 0.0f;
+    float cloud_density = 0.0f;
     float rain_intensity = 0.0f;
     bool rain = false, storm = false, tornado = false, rainbow = false, lightning = false;
     std::string preset;     // the rain preset of the hour; empty: none (the scripts write a number, 0, for none)
@@ -54,7 +54,7 @@ struct WeatherHour
 // Where in a WeatherState row each value is (the scripts' WS_* defines).
 struct WeatherFields
 {
-    int cloud_height, cloud_detail, cloud_density, preset, rain_intensity, rain, storm, tornado, rainbow, lightning;
+    int cloud_density, preset, rain_intensity, rain, storm, tornado, rainbow, lightning;
 };
 
 // Hours 0..23 of the day and hour 24 (the next day's first), each a row of the scripts' strings, and the rain

@@ -48,9 +48,11 @@ struct State
     float fog_start = 0.0f, fog_max = 1.0f;
     bool fog_from_sky = false; // the fog takes the sky's colour at the horizon
 
-    // Clouds (the cloud layers draw these).
-    float cloud_height = 0.0f, cloud_density = 0.0f, cloud_detail = 0.0f;
-    float rain_clouds = 0.0f; // how much of the sky the rain clouds cover, 0..1
+    // Clouds: how much of the sky the fair-weather clouds and the rain clouds cover, 0..1; how far the wind has
+    // carried them (metres, x and z).
+    float clouds = 0.0f;
+    float rain_clouds = 0.0f;
+    glm::vec2 cloud_drift{0.0f};
 
     float overcast = 0.0f; // 0 clear .. 1 storm
     float rain = 0.0f;     // falling now, 0..1

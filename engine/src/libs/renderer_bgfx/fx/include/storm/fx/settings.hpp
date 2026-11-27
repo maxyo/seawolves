@@ -158,6 +158,8 @@ struct Settings
     bool lens_flare = false; // procedural sun glare and flare ghosts (the legacy flare sprites are left out)
     float lens_flare_intensity = 0.5f;
     bool scene_grading = false; // PostChain::Frame::scene_grade (mood of the place and hour)
+    // The drawn sky's clouds: octaves of their noise, 2..4; from 3 a second lookup towards the light shades them.
+    uint8_t cloud_octaves = 2;
 
     // ---- renderer state (RendererStateFor) ----
     uint8_t msaa = 1;               // scene target samples: 1 (off), 2 or 4; the primary anti-aliasing on tile GPUs

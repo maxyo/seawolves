@@ -33,6 +33,13 @@ struct WeatherInput
     float haze = 0.0f;
     float haze_height = 0.15f;
     bool haze_from_sky = false;
+    // The clouds (Sky::Draw): the cover of the fair-weather and the rain clouds (0..1), how far the wind carried them
+    // (metres, x and z), and the light on them (towards it; linear, exposed: the sun, or the moon at night).
+    float clouds = 0.0f;
+    float rain_clouds = 0.0f;
+    glm::vec2 cloud_drift{0.0f};
+    glm::vec3 cloud_light_dir{0.0f, 1.0f, 0.0f};
+    glm::vec3 cloud_light{0.0f};
 };
 
 inline constexpr int kSkyLutWidth = 64;  // azimuth relative to the sun: u = (1 - cos) / 2
@@ -52,6 +59,15 @@ struct SkyState
 };
 
 SkyState ComputeSky(const WeatherInput &weather);
+
+// The clouds' noise (fs_fx_sky.sc fxCloudNoise): kCloudNoiseSize² texels of one octave of gradient noise that tiles,
+// R8 around 0.5, with its mips down to 1 x 1 (each level after the other).
+inline constexpr int kCloudNoiseSize = 128;
+inline constexpr int kCloudNoiseCells = 16; // lattice cells across the tile
+std::vector<uint8_t> CloudNoise();
+// The cloud plane's height (metres) and how many noise tiles one height spans: the wind's drift in tiles.
+inline constexpr float kCloudHeight = 1500.0f;
+inline constexpr float kCloudTilesPerHeight = 0.2f;
 
 // True when `b` differs enough from `a` to justify rebuilding the panorama (what Sky::Draw reads each frame does
 // not count).

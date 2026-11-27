@@ -90,7 +90,7 @@ void Host::draw_sky()
         return world;
     };
     sky_.Draw(device->effects_view(false), {corner(-1.0f, -1.0f), corner(1.0f, -1.0f), corner(-1.0f, 1.0f)},
-              shim::Context::instance().flip_y());
+              shim::Context::instance().flip_y(), settings_.cloud_octaves);
 }
 
 glm::vec3 Host::sky_horizon()

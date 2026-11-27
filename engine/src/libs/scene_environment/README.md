@@ -2,7 +2,8 @@
 
 One state per frame of everything the place's light, sky and air are (`storm/environment/state.hpp`): the sun and
 the moon, the direct light and its shadow strength, the sky's fill and the ground's bounce, the exposure, the sky's
-radiance, the haze band at the horizon, height fog, the clouds' and the rain's state, the wind. The WEATHER entity
+radiance, the haze band at the horizon, height fog, the clouds' and the rain's state, the wind and how far it has
+carried the clouds (WEATHER adds the wind over the game's time). The WEATHER entity
 (`src/libs/weather`) fills it every frame and hands it to the renderer (`storm::render::SetSceneEnvironment`), which
 draws the sky, lights and fogs the scene with it. Colours are linear; a light's colour carries its intensity in the
 scene's units and `exposure` brings the scene to the display. The fixed-function pipeline takes its lights through
@@ -33,7 +34,8 @@ A game that ships `Resource/INI/time_of_day.json` (Caribbean Legend) is evaluate
   sky radiance times a constant outdoors, a constant indoors. The fog is the table's where its hours have fog
   (densities per 100 m), the height fog's for the rest; the haze band is the atmosphere's.
 - **Weather.** The scripts' rows of the day (`WeatherState`, 24 hours and the next day's first) give the clouds, the
-  rain's intensity and the flags of each hour. The rain clouds cover the sky in the hours that rain and grow or thin
+  rain's intensity and the flags of each hour. The clouds' cover is a fifth of the hour's cloud density, the scale
+  the scripts themselves give a rain's intensity by. The rain clouds cover the sky in the hours that rain and grow or thin
   over the hour before or after; a rain that stopped leaves wetness that dries by a third per hour within the next.
 
 `tests/scene_environment` checks the evaluation on data written there and, with `$STORM_GAME_DIR`, every preset of

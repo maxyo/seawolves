@@ -118,14 +118,14 @@ void WEATHER::ReadWeatherState()
     const bool read = ReadRows(static_cast<VDATA *>(core.GetScriptVariable("WeatherState")), 0, 24, rows) &&
                       ReadRows(static_cast<VDATA *>(core.GetScriptVariable("WeatherStateNext")), 24, 1, rows);
     const auto field = [&](const char *name) { return Define(name, report).value_or(-1); };
-    const storm::environment::WeatherFields fields{
-        field("WS_CLOUD_HEIGHT"),   field("WS_CLOUD_DETAIL"),    field("WS_CLOUD_DENSITY"), field("WS_PRESET_NAME"),
-        field("WS_RAIN_INTENSITY"), field("WS_RAIN_ENABLE"),     field("WS_STORM_ENABLE"),  field("WS_TORNADO_ENABLE"),
-        field("WS_RAINBOW_ENABLE"), field("WS_LIGHTNING_ENABLE")};
+    const storm::environment::WeatherFields fields{field("WS_CLOUD_DENSITY"),  field("WS_PRESET_NAME"),
+                                                   field("WS_RAIN_INTENSITY"), field("WS_RAIN_ENABLE"),
+                                                   field("WS_STORM_ENABLE"),   field("WS_TORNADO_ENABLE"),
+                                                   field("WS_RAINBOW_ENABLE"), field("WS_LIGHTNING_ENABLE")};
     const auto in_row = [](int index) { return index >= 0 && index < 16; };
-    if (!read || !in_row(fields.cloud_height) || !in_row(fields.cloud_detail) || !in_row(fields.cloud_density) ||
-        !in_row(fields.preset) || !in_row(fields.rain_intensity) || !in_row(fields.rain) || !in_row(fields.storm) ||
-        !in_row(fields.tornado) || !in_row(fields.rainbow) || !in_row(fields.lightning))
+    if (!read || !in_row(fields.cloud_density) || !in_row(fields.preset) || !in_row(fields.rain_intensity) ||
+        !in_row(fields.rain) || !in_row(fields.storm) || !in_row(fields.tornado) || !in_row(fields.rainbow) ||
+        !in_row(fields.lightning))
     {
         ReportOnce("the scripts' WeatherState / WeatherStateNext cannot be read: no weather of the day");
         day_.reset();
@@ -206,6 +206,7 @@ void WEATHER::UpdateEnvironment()
     state_ = storm::environment::Evaluate(in);
     state_.wind_dir = {std::cos(fFloats[whf_wind_angle]), std::sin(fFloats[whf_wind_angle])};
     state_.wind_speed = fFloats[whf_wind_speed];
+    state_.cloud_drift = cloud_drift_;
     storm::render::SetSceneEnvironment(state_);
     // The sun glow and the others that ask WEATHER where the light stands.
     vVectors[whv_sun_pos] = state_.light_dir * 5000.0f;
