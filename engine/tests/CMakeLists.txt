@@ -443,6 +443,20 @@ add_subdirectory(${src}/libs/scene_data scene_data_library)
 storm_host_check(scene_data.parsers OPTIONS ${warnings} LIBS scene_data CATCH2)
 storm_check_test(scene_data.corpus COMMAND scene_data.parsers "[corpus]" LABELS game TIMEOUT 600)
 
+# The scene data parsers as the engine builds them; "[corpus]" reads the installed game in $STORM_GAME_DIR.
+add_subdirectory(${src}/libs/scene_data scene_data_library)
+storm_host_check(scene_data.parsers OPTIONS ${warnings} LIBS scene_data CATCH2)
+storm_check_test(scene_data.corpus COMMAND scene_data.parsers "[corpus]" LABELS game TIMEOUT 600)
+
+# The audio import tool and its library (tools/audio-import), checked with stb_vorbis (the copy in the pinned
+# miniaudio); "[corpus]" reads the installed game in $STORM_GAME_DIR.
+add_subdirectory(${STORM_ROOT}/tools/audio-import audio_import_tool)
+set(stb_vorbis "${storm_miniaudio_SOURCE_DIR}/extras/stb_vorbis.c")
+set_source_files_properties("${stb_vorbis}" PROPERTIES COMPILE_OPTIONS -w)
+storm_host_check(audio_import.check SOURCES check.cpp "${stb_vorbis}" INCLUDES "${storm_miniaudio_SOURCE_DIR}/extras"
+    LIBS audio_import CATCH2)
+storm_check_test(audio_import.corpus COMMAND audio_import.check "[corpus]" LABELS game TIMEOUT 1800)
+
 # Checks with a CMake file of their own.
 add_subdirectory(far_lod)
 add_subdirectory(glm_math)

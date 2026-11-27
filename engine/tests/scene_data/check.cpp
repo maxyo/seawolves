@@ -1,0 +1,197 @@
+// The scene data parsers (src/libs/scene_data) on JSON written here; "[corpus]": every model material file, lighting
+// preset and tone mapping file of the installed game in $STORM_GAME_DIR (not run without one).
+#include "storm/scene_data/scene_data.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <sstream>
+
+#include <catch2/catch.hpp>
+
+using namespace storm::scene_data;
+
+namespace
+{
+bool contains(const std::vector<std::string> &list, const std::string &value)
+{
+    return std::find(list.begin(), list.end(), value) != list.end();
+}
+
+std::string lower(std::string text)
+{
+    std::ranges::transform(text, text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return text;
+}
+
+std::string read(const std::filesystem::path &path)
+{
+    std::ifstream in(path, std::ios::binary);
+    std::stringstream text;
+    text << in.rdbuf();
+    return text.str();
+}
+} // namespace
+
+TEST_CASE("model materials")
+{
+    const char *json = R"({
+      "models": {
+        "Crate": {"reflection": 1, "alpha": 0, "rma_texture": "Resource\\Textures\\Props\\Crate_RMA.dds",
+                  "normal_texture": "Resource\\Textures\\Props\\Crate_nom.dds", "path_preset": "Props",
+                  "metallic": 0.0, "roughness": 0.5, "sparkle": true},
+        "Ground": {"layer_material": 1, "base_tiling": 4, "normal_strength": 1.5,
+                   "mask_texture": "Resource\\Textures\\ground_mask.dds",
+                   "r_albedo_texture": "a.dds", "r_normal_texture": "an.dds", "r_rma_texture": "ar.dds", "r_tiling": 8,
+                   "g_albedo_texture": "b.dds", "g_tiling": 2.5, "b_rma_texture": "cr.dds", "x_tiling": 3}
+      },
+      "walkCutout": {"Radius": 1.0}
+    })";
+    Report report;
+    const ModelSidecar sidecar = ParseModelSidecar(json, report);
+    REQUIRE(report.ok());
+    REQUIRE(sidecar.models.size() == 2);
+    const ModelMaterial &crate = sidecar.models.at("Crate");
+    CHECK((crate.reflection && !crate.alpha && crate.path_preset == "Props"));
+    CHECK(crate.rma_texture == "Resource\\Textures\\Props\\Crate_RMA.dds");
+    CHECK((crate.metallic == 0.0f && crate.roughness == 0.5f && !crate.emission));
+    const ModelMaterial &ground = sidecar.models.at("Ground");
+    CHECK((ground.layer_material && ground.base_tiling == 4 && ground.normal_strength == 1.5f));
+    CHECK((ground.layers[0].albedo == "a.dds" && ground.layers[0].rma == "ar.dds" && ground.layers[0].tiling == 8));
+    CHECK((ground.layers[1].tiling == 2.5f && ground.layers[2].rma == "cr.dds" && ground.layers[2].tiling == 1));
+    CHECK(contains(report.unknown_keys, "$.models.Crate.sparkle"));
+    CHECK(contains(report.unknown_keys, "$.models.Ground.x_tiling"));
+    CHECK(contains(report.unknown_keys, "$.walkCutout"));
+
+    Report wrong;
+    const ModelSidecar typed = ParseModelSidecar(R"({"models": {"A": {"alpha": 2, "rma_texture": 5}}})", wrong);
+    CHECK((wrong.errors.size() == 2 && typed.models.size() == 1 && !typed.models.at("A").alpha));
+    Report broken;
+    ParseModelSidecar("{\"models\": ", broken);
+    CHECK(broken.errors.size() == 1);
+}
+
+TEST_CASE("lighting presets")
+{
+    const char *json = R"({
+      "schemaVersion": 2, "presetName": "Test", "grass_preset": "grass1", "locationId": ["A_town", "B_port"],
+      "sun_azimuth": 120, "sun_height": 35.5,
+      "good_rays": {"enabled": true, "density": 0.5, "intensity": 1, "length": 2, "quality": 3},
+      "hours": {
+        "0": {"ambient": {"color": [0.1, 0.2, 0.3], "intensity": 0.5},
+              "sun": {"color": [1, 1, 1], "intensity": 0.01},
+              "bloom": {"intensity": 2.0, "treshold": 1.0, "soft_treshold": 0.5},
+              "emission": 1.0, "exposure": 1.5, "hdr_texture": "resource/lighting/Night.hdr",
+              "shadow": {"ao": 0.8},
+              "fog": {"color": [0.5, 0.5, 0.6], "density": 0.02},
+              "point": {"torch": {"color": [1, 0.5, 0.2], "intensity": 3}, "candle": {"color": [1, 1, 0], "intensity": 1}},
+              "sea": {"color": [0, 0.1, 0.2], "params": [1, 2, 3], "sky": {"color": [0.3, 0.3, 0.4]}}},
+        "13": {"exposure": 2, "rain": 1, "ambient": {"color": [1, 2]}},
+        "24": {}
+      }
+    })";
+    Report report;
+    const LightingPreset preset = ParseLightingPreset(json, report);
+    CHECK(report.errors.size() == 2); // hour "24", a colour of two numbers
+    CHECK(contains(report.unknown_keys, "$.hours.13.rain"));
+    CHECK((preset.schema_version == 2 && preset.preset_name == "Test" && preset.location_ids.size() == 2));
+    CHECK((preset.sun_azimuth == 120.0f && preset.god_rays && preset.god_rays->quality == 3));
+    CHECK((preset.hours[0] && preset.hours[13] && !preset.hours[1]));
+    const LightingHour &night = *preset.hours[0];
+    CHECK((night.ambient_color[2] == 0.3f && night.ambient_intensity == 0.5f && night.sun_intensity == 0.01f));
+    CHECK((night.bloom_intensity == 2 && night.bloom_threshold == 1 && night.bloom_soft_threshold == 0.5f));
+    CHECK((night.exposure == 1.5f && night.shadow_ao == 0.8f && night.hdr_texture == "resource/lighting/Night.hdr"));
+    CHECK((night.fog && night.fog->density == 0.02f));
+    CHECK((night.point_lights.size() == 2 && night.point_lights.at("torch").intensity == 3));
+    CHECK((night.sea && night.sea->params[2] == 3 && night.sea->sky_color[2] == 0.4f && !night.sea->deep_color));
+    CHECK((preset.hours[13]->exposure == 2 && !preset.hours[13]->fog));
+}
+
+TEST_CASE("tone mapping")
+{
+    Report report;
+    const ToneMapping tone = ParseToneMapping(
+        R"({"type": "aces", "version": 1, "exposure_ev": -0.5, "contrast": 1.1, "lift": [0, 0, 0.1], "vignette": 1})",
+        report);
+    CHECK(report.ok());
+    CHECK((tone.type == "aces" && tone.version == 1 && tone.exposure_ev == -0.5f && tone.contrast == 1.1f));
+    CHECK((tone.lift[2] == 0.1f && tone.gain[0] == 1.0f));
+    CHECK(contains(report.unknown_keys, "$.vignette"));
+}
+
+TEST_CASE("scene data of an installed game", "[.corpus]")
+{
+    namespace fs = std::filesystem;
+    const char *root = std::getenv("STORM_GAME_DIR");
+    if (!root || !*root)
+    {
+        std::puts("NOT_RUN: set STORM_GAME_DIR to an installed game");
+        std::exit(77);
+    }
+    struct Count
+    {
+        int files = 0, failed = 0, entries = 0;
+        std::map<std::string, int> unknown;
+    };
+    std::map<std::string, Count> counts;
+    const auto record = [&](const std::string &kind, const fs::path &path, const Report &report, int entries) {
+        Count &count = counts[kind];
+        ++count.files;
+        count.entries += entries;
+        if (!report.ok())
+        {
+            ++count.failed;
+            std::printf("FAILED %s: %s\n", path.c_str(), report.errors.front().c_str());
+        }
+        for (std::string key : report.unknown_keys)
+        {
+            // $.models.<object>.key and $.hours.<hour>.key are counted per key.
+            for (const std::string_view prefix : {"$.models.", "$.hours."})
+                if (key.starts_with(prefix))
+                    if (const size_t dot = key.find('.', prefix.size()); dot != std::string::npos)
+                        key = std::string(prefix) + "*" + key.substr(dot);
+            ++count.unknown[key];
+        }
+    };
+    for (const auto &entry : fs::recursive_directory_iterator(root))
+    {
+        const std::string name = lower(entry.path().filename().string());
+        if (!entry.is_regular_file() || !name.ends_with(".json"))
+            continue;
+        const std::string folders = lower(fs::relative(entry.path().parent_path(), root).generic_string()) + "/";
+        // <model>.gm.maya.json and <model>.gm.walkcut.json beside a model are an editor's, not materials.
+        if (folders.find("models/") != std::string::npos && name.find(".gm.") == std::string::npos)
+        {
+            Report report;
+            const ModelSidecar sidecar = ParseModelSidecar(read(entry.path()), report);
+            record("model materials", entry.path(), report, int(sidecar.models.size()));
+        }
+        else if (folders.find("lighting/") != std::string::npos)
+        {
+            Report report;
+            const LightingPreset preset = ParseLightingPreset(read(entry.path()), report);
+            record("lighting preset", entry.path(), report,
+                   int(std::ranges::count_if(preset.hours, [](const auto &hour) { return hour.has_value(); })));
+        }
+        else if (name == "aces.json")
+        {
+            Report report;
+            ParseToneMapping(read(entry.path()), report);
+            record("tone mapping", entry.path(), report, 1);
+        }
+    }
+    int failed = 0;
+    for (const auto &[kind, count] : counts)
+    {
+        std::printf("%-16s files %5d  failed %3d  entries %6d\n", kind.c_str(), count.files, count.failed,
+                    count.entries);
+        for (const auto &[key, n] : count.unknown)
+            std::printf("    not modelled %-40s %6d\n", key.c_str(), n);
+        failed += count.failed;
+    }
+    REQUIRE(failed == 0);
+}
