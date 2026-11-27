@@ -1,6 +1,6 @@
 --- a/PROGRAM/interface/interface_utils.c
 +++ b/PROGRAM/interface/interface_utils.c
-@@ -794,4 +794,166 @@
+@@ -794,4 +794,182 @@
  		
  		SendMessage(&GameInterface, "lslll", MSG_INTERFACE_MSG_TO_NODE, _node, 8, -1, color);	
  	}
@@ -168,4 +168,20 @@
 +	}
 +	AlchemyCraft(sItemID, Qty);
 +	return true;
++}
++
++// Why the nations screen's flag button cannot change the flag now (NationRelation.c FlagsProcess, which knocks): "wait"
++// (the last change is still under way), "land", "companion" (a companion under attack at sea), "map" (the squadron
++// cannot go to the map); "" it can. The checks are FlagsProcess's own, in its order: at sea it asks
++// CheckEnemyCompanionDistance2GoAway, which rewrites pchar.CheckEnemyCompanionDistance, also when on land.
++string FlagChangeRefusal()
++{
++	if (CheckAttribute(pchar, "DisableChangeFlagMode")) return "wait";
++	if (bBettaTestMode) return "";
++	bool bLand = bLandInterfaceStart;
++	bool bCompanion = bSeaActive && !CheckEnemyCompanionDistance2GoAway(false);
++	if (bLand) return "land";
++	if (bCompanion) return "companion";
++	if (bDisableMapEnter) return "map";
++	return "";
 +}

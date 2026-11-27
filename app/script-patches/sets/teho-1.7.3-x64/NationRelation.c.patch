@@ -1,6 +1,51 @@
 --- a/PROGRAM/interface/NationRelation.c
 +++ b/PROGRAM/interface/NationRelation.c
-@@ -323,7 +323,7 @@
+@@ -205,37 +205,13 @@
+ void FlagsProcess()
+ {
+ 	// boal 04.04.2004 -->
+-	bool bTmpBool = true;
+-	int i, cn;
+-	ref chref;
+-	
+-	if (CheckAttribute(pchar, "DisableChangeFlagMode")) return; // нефиг менять файл за 3 секунды сразу
+-	
+-	if (!bBettaTestMode)
+-	{
+-    	//if(LAi_group_IsActivePlayerAlarm()) bTmpBool = false;
+-    	//if(!LAi_IsCharacterControl(GetMainCharacter())) bTmpBool = false;
+-    	if (bLandInterfaceStart)  bTmpBool = false; // на суше нельзя в принципе
+-    	if (bSeaActive && !CheckEnemyCompanionDistance2GoAway(false)) bTmpBool = false; // компаньон под ударом
+-        // проверка класса кораблей в эскадре -->
+-        /*for (i=0; i<4; i++)
+-    	{
+-    		cn = GetCompanionIndex(GetMainCharacter(), i);
+-    		if ( cn>=0 )
+-    		{
+-    			chref = GetCharacter(cn);
+-                if (GetCharacterShipClass(chref) <= 2) bTmpBool = false;
+-    		}
+-    	}  */
+-        // проверка класса кораблей в эскадре <--
+-	}
+-	if (bDisableMapEnter || !bTmpBool)
+-	{
+-        if (!bBettaTestMode)
+-        {
+-            PlaySound("interface\knock.wav");
+-            return;
+-        }
++	// нефиг менять файл за 3 секунды сразу; на суше нельзя в принципе; компаньон под ударом; карта закрыта
++	string sRefusal = FlagChangeRefusal();
++	if (sRefusal == "wait") return;
++	if (sRefusal != "")
++	{
++		PlaySound("interface\knock.wav");
++		return;
+ 	}
+ 	// смена флага
+ 	Sea_ClearCheckFlag(); // сбросить всем в море проверку смотрения на флаг.
+@@ -323,7 +299,7 @@
  		{
              InterfaceStates.ReloadMenuExit = true;
  			IDoExit(RC_INTERFACE_ANY_EXIT);

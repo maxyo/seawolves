@@ -66,7 +66,7 @@
     {
       "path": "PROGRAM/interface/NationRelation.c",
       "base_sha256": "acca41d81f016c1df74329ef8d71e4ba7bb6edd41da712e0b83327ce919c1962",
-      "result_sha256": "e5508f0868428648d65edf6b56dbbad4d575238b1de4ecb8d5d6a95404155d5c",
+      "result_sha256": "0e51f470b181a3a25aa67171a2182db89c0472748f2e00b94db6cebe34ed0466",
       "patch": "NationRelation.c.patch"
     },
     {
@@ -216,7 +216,7 @@
     {
       "path": "PROGRAM/interface/interface_utils.c",
       "base_sha256": "5efc55bcff8e780d0c16c474a97653060c405f174216ee805dba5427c74e086a",
-      "result_sha256": "f0b55b81dcff20170783113470ed99ac41422bb9c35968aad07af3ec77f2f198",
+      "result_sha256": "ac6a253cccfb96e003bfd6641cdb16c8a59149ab4ae8b891e89ce15d36b64b73",
       "patch": "interface_utils.c.patch"
     },
     {
@@ -572,6 +572,18 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: the alchemy window counted the batches of its pot, made them and waited 15 + 5 minutes a further batch inside its own handlers (CheckAlchemy, onGetAllBtnClick), so an interface that lets the player set how many batches to make had to copy those rules. They are now the functions AlchemyBatches (of the pot, or of the pot and the hero's items together), AlchemyMinutes and AlchemyCraft, which the window calls, and AlchemyMake, which lays the items of that many batches into the pot from the hero and makes them; the window behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "flag-change-refusal",
+      "title": "The game names why the nations screen cannot change the flag now",
+      "targets": [
+        "PROGRAM/interface/interface_utils.c",
+        "PROGRAM/interface/NationRelation.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: FlagsProcess refused a flag change inline, with a knock and no word (a change still under way, on land, a companion under attack at sea, the squadron unable to go to the map), so an interface could neither tell the player why nor keep from offering it. Its checks are now the function FlagChangeRefusal, in the same order and with the same calls, which names the reason and which FlagsProcess calls; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]
