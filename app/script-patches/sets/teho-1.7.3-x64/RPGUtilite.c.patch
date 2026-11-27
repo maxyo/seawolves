@@ -168,15 +168,14 @@
  
  	return skillN;
  }
-@@ -1578,6 +1632,64 @@
+@@ -1578,6 +1632,46 @@
  	return ret;
  }
  // boal Вес предметов 19.01.2004 -->
 +// The weight of the items the character carries: what the loop over all TOTAL_ITEMS Items[]
 +// summed (ugeen: the map atlas does not count), found from the character's own items instead.
 +// Their Items[] indices are put in ascending order first, so the float sum is the one the loop
-+// made in the same order. More kinds of items than the order holds: the loop itself.
-+#define ITEMS_WEIGHT_KINDS 256
++// made in the same order; each index is one of Items[TOTAL_ITEMS] and comes once.
 +float GetItemsWeightNow(ref _chref)
 +{
 +	float Amount = 0;
@@ -187,24 +186,7 @@
 +	aref list;
 +	makearef(list, _chref.items);
 +	n = GetAttributesNum(list);
-+	if (n > ITEMS_WEIGHT_KINDS)
-+	{
-+		trace("GetItemsWeight: " + n + " kinds of items, more than " + ITEMS_WEIGHT_KINDS + ": all Items[] are looked through");
-+		for (j=0; j<TOTAL_ITEMS; j++)
-+		{
-+			makeref(itm,Items[j]);
-+			if(CheckAttribute(itm, "ID"))
-+			{
-+				itemID = itm.id;
-+				if (CheckAttribute(_chref, "items."+itemID) && itemID != "MapsAtlas")
-+				{
-+					Amount += sti(_chref.items.(itemID))*stf(itm.Weight);
-+				}
-+			}
-+		}
-+		return Amount;
-+	}
-+	int order[ITEMS_WEIGHT_KINDS];
++	int order[TOTAL_ITEMS];
 +	int m = 0;
 +	for (j = 0; j < n; j++)
 +	{
@@ -233,7 +215,7 @@
  float GetItemsWeight(ref _chref)
  {
      float   Amount = 0;
-@@ -1587,19 +1699,7 @@
+@@ -1587,19 +1681,7 @@
  
      if (bCabinStarted || bAbordageStarted || !bSeaActive || !CheckAttribute(_chref, "ItemsWeight"))
      {
@@ -254,7 +236,7 @@
          _chref.ItemsWeight = Amount; // оптимицация тормозов в бою на море
      }
      else
-@@ -3557,7 +3657,15 @@
+@@ -3557,7 +3639,15 @@
  		ch.Ship.Type = SHIP_NOTUSED;
  		Ch.GenQuest.VideoAVI = "intro_Sharle";
  		Ch.GenQuest.VideoAfterQuest = "Sharlie_Start";

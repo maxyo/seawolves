@@ -1,11 +1,35 @@
 --- a/PROGRAM/interface/selectCharacter.c
 +++ b/PROGRAM/interface/selectCharacter.c
-@@ -727,6 +727,8 @@
+@@ -361,7 +361,7 @@
+         case "LEFTCHANGE_COMPLEX":
+ 			if(comName=="click")
+ 			{
+-				if (MOD_SKILL_ENEMY_RATE > 2)
++				if (ComplexityCanLower())
+ 				{
+ 					MOD_SKILL_ENEMY_RATE -= 2;
+ 				}
+@@ -373,7 +373,7 @@
+ 		case "RIGHTCHANGE_COMPLEX":
+ 			if(comName=="click")
+ 			{
+-			    if (MOD_SKILL_ENEMY_RATE < 10)
++			    if (ComplexityCanRaise())
+ 			    {
+ 	               MOD_SKILL_ENEMY_RATE += 2;
+ 	            }
+@@ -727,7 +727,13 @@
  void TmpI_ShowLevelComplexity()
  {
      SetFormatedText("COMPLEX_TYPE", GetLevelComplexity(MOD_SKILL_ENEMY_RATE));
-+    SetClickable("LEFTCHANGE_COMPLEX", MOD_SKILL_ENEMY_RATE > 2);
-+    SetClickable("RIGHTCHANGE_COMPLEX", MOD_SKILL_ENEMY_RATE < 10);
- }
+-}
++    SetClickable("LEFTCHANGE_COMPLEX", ComplexityCanLower());
++    SetClickable("RIGHTCHANGE_COMPLEX", ComplexityCanRaise());
++}
++
++// Seawolves: the easiest and the hardest level, for the arrows' handlers and their clickable state.
++bool ComplexityCanLower() { return MOD_SKILL_ENEMY_RATE > 2; }
++bool ComplexityCanRaise() { return MOD_SKILL_ENEMY_RATE < 10; }
  
  void ProcessCommandExecuteTypeLeft()
+ {

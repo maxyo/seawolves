@@ -84,7 +84,7 @@
     {
       "path": "PROGRAM/characters/RPGUtilite.c",
       "base_sha256": "5b62dac991bebb321ad2406f9281b98a34f3c2e872acb8b9104728326f489662",
-      "result_sha256": "a226b5e0c8aa711469ae16b8a1e17e84883e723381fefefd4e4aece0c64a7084",
+      "result_sha256": "56c7614b956f176663d3bb307f15c2257ea938e9e68179c3d774de987170045a",
       "patch": "RPGUtilite.c.patch"
     },
     {
@@ -138,7 +138,7 @@
     {
       "path": "PROGRAM/interface/selectCharacter.c",
       "base_sha256": "dadcf57b1176007b570b4100719f43055c33c518f43febde215f4c339fcc2c21",
-      "result_sha256": "fb70151a0463e650f187987a83e6f9b0dabcc2b9e35302de09ddf198d9c6f527",
+      "result_sha256": "c6c9498d9ed41fb5d2789785a02ff180d2ee023229669d9e729fae51bc7e78e6",
       "patch": "selectCharacter.c.patch"
     },
     {
