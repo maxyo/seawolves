@@ -3,6 +3,7 @@
 #include "core_impl.h"
 #include "debug-trap.h"
 #include "game_profile.hpp"
+#include "natives_ext.h"
 
 #include <execution>
 #include <fmt/format.h>
@@ -118,6 +119,12 @@ enum FUNCTION_CODE
     FUNC_GET_ARG_COUNT,
     FUNC_SET_CLASSTABLE,
     FUNC_GET_TYPE_NAME_BY_TYPE_ID,
+    // the built-ins of Caribbean Legend's scripts (natives_ext_list.h) come last
+    FUNC_NATIVE_EXT_BASE,
+    FUNC_NATIVE_EXT_BASE_PREV_ = FUNC_NATIVE_EXT_BASE - 1, // the first of them takes the base value
+#define STORM_NATIVE(id, name, arguments, return_type, varargs) id,
+#include "natives_ext_list.h"
+#undef STORM_NATIVE
     FUNC_COUNT_
 };
 
@@ -155,7 +162,11 @@ INTFUNCDESC IntFuncTable[] = {
     // arguments of the running script function, also those passed to its "..."
     1, "GetArg", VAR_REFERENCE, 0, "GetArgCount", VAR_INTEGER,
     // object->Method: the class table (a global object) of an object; names of typeid values
-    2, "SetClasstable", TVOID, 1, "GetTypeNameByTypeID", VAR_STRING};
+    2, "SetClasstable", TVOID, 1, "GetTypeNameByTypeID", VAR_STRING,
+#define STORM_NATIVE(id, name, arguments, return_type, varargs) arguments, name, return_type,
+#include "natives_ext_list.h"
+#undef STORM_NATIVE
+};
 static_assert(sizeof(IntFuncTable) / sizeof(INTFUNCDESC) == FUNC_COUNT_, "IntFuncTable must list every FUNCTION_CODE in order");
 
 
@@ -237,6 +248,8 @@ bool COMPILER::IsIntFuncVarArgsNum(uint32_t code)
 {
     if (FindArgumentRange(code))
         return true;
+    if (code >= FUNC_NATIVE_EXT_BASE)
+        return storm::natives::isNativeExtVarArgs(code - FUNC_NATIVE_EXT_BASE);
     switch (code)
     {
     case FUNC_SEND_MESSAGE:
@@ -292,6 +305,20 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
 
     int32_t slen, slen2;
     char sVarName[64];
+
+    if (func_code >= FUNC_NATIVE_EXT_BASE)
+    {
+        // the call stack's top is the native itself, then the function calling it, then that one's caller
+        auto calls = callStack_;
+        const auto pop_name = [&calls] {
+            if (!calls.empty())
+                calls.pop();
+            return calls.empty() ? std::string_view{} : std::string_view(std::get<2>(calls.back()));
+        };
+        const std::string_view caller = pop_name();
+        storm::natives::NativeCall call{*this, SStack, EventMsg, caller, pop_name(), InstructionPointer, arguments};
+        return storm::natives::callNativeExt(func_code - FUNC_NATIVE_EXT_BASE, call, pVResult);
+    }
 
     switch (func_code)
     {

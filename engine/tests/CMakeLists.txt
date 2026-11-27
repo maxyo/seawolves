@@ -232,6 +232,9 @@ storm_host_check(load_watch INCLUDES ${src}/libs/core/include ${src}/libs/xinter
 storm_host_check(location_light_choice INCLUDES ${glm_headers} ${src}/libs/location/src
     OPTIONS -O1 -g ${warnings} ${asan} -fno-omit-frame-pointer CATCH2)
 storm_host_check(game_profile INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(natives_ext SOURCES check.cpp ${src}/libs/core/src/natives_logic.cpp
+    INCLUDES ${src}/libs/core/src ${util_include} ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict}
+    CATCH2)
 storm_host_check(log_rotation INCLUDES ${src}/libs/diagnostics/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(logging SOURCES check.cpp ${src}/libs/diagnostics/src/logging.cpp
         ${src}/libs/diagnostics/src/spdlog_sinks/syncable_sink.cpp

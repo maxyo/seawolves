@@ -92,6 +92,9 @@ class ATTRIBUTES final
     size_t SetAttribute(uint32_t name_code, const std::string_view &attribute);
     [[nodiscard]] uint32_t GetThisNameCode() const noexcept;
     void SetNameCode(uint32_t n) noexcept;
+    // Puts the children in a new order: order[i] is the current index of the child that moves to position i. False
+    // (and nothing changes) unless order is a permutation of the children.
+    bool ReorderAttributes(const std::vector<size_t> &order);
 
 private:
     ATTRIBUTES(VSTRING_CODEC &string_codec, ATTRIBUTES *parent, const std::string_view &name);
