@@ -85,7 +85,8 @@ storm_host_check(speed_colors INCLUDES ${src}/libs/core/include OPTIONS ${warnin
 storm_host_check(camera_shake INCLUDES ${src}/libs/renderer/src ${src}/libs/math/include ${glm_headers}
     OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(script_graphics INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include
-    ${src}/libs/renderer_bgfx/fx/include ${src}/libs/window/include ${glm_headers} OPTIONS ${warnings} ${asan_strict} CATCH2)
+    ${src}/libs/renderer_bgfx/fx/include ${src}/libs/window/include ${glm_headers}
+    ${src}/libs/scene_environment/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(android_bench INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include ${fmt_headers}
     DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(android_camera_look INCLUDES ${glm_headers} ${util_include} OPTIONS ${asan} CATCH2)
@@ -318,7 +319,7 @@ storm_host_check(relief_device_choice INCLUDES ${src}/libs/relief OPTIONS ${warn
 storm_host_check(relief_staged SOURCES check.cpp ${src}/libs/renderer_bgfx/src/effects/relief_generator.cpp
     INCLUDES ${glm_headers} ${CMAKE_CURRENT_LIST_DIR}/relief_scheduler/stubs ${src}/libs/renderer_bgfx/src
              ${src}/libs/renderer_bgfx/include ${src}/libs/renderer_bgfx/fx/include ${src}/libs/relief
-             ${src}/libs/renderer_bgfx/src/texture/core ${render_log_headers}
+             ${src}/libs/renderer_bgfx/src/texture/core ${render_log_headers} ${src}/libs/scene_environment/include
     DEFINES ${render_log_defines}
     OPTIONS -O0 -g -pthread ${warnings} -fno-access-control -ffunction-sections -fdata-sections ${asan_strict}
     LIBS -Wl,--gc-sections CATCH2)
@@ -413,6 +414,7 @@ storm_host_check(relief_scheduler SOURCES check.cpp ${src}/libs/renderer_bgfx/sr
         ${src}/libs/renderer_bgfx/fx/src/upscale.cpp
     INCLUDES stubs ${glm_headers} ${src}/libs/renderer_bgfx/src ${src}/libs/renderer_bgfx/include
              ${src}/libs/renderer_bgfx/fx/include ${util_include} ${src}/libs/relief ${render_log_headers} ${model_digests}
+             ${src}/libs/scene_environment/include
     DEFINES ${render_log_defines}
     OPTIONS -pthread ${warnings} -fno-access-control -ffunction-sections -fdata-sections ${asan_strict}
     LIBS storm_xxhash -Wl,--gc-sections ARGS <tmp> TIMEOUT 300)
