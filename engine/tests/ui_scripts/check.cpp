@@ -10,6 +10,7 @@
 #include "save_state.hpp"
 #include "script_libriary.h"
 #include "script_port.hpp"
+#include "screens/amount.h"
 #include "screens/script_props.h"
 #include "storm_ui/interface_model.h"
 #include "v_s_stack.h"
@@ -244,36 +245,16 @@ struct Calls final : storm::ui::ScriptCall
     {
         throw std::runtime_error(text);
     }
-    // The first figure of a text with its groups of three after single spaces ("1 500"); npos: none.
-    static size_t Figure(const std::string &text, std::string &digits)
-    {
-        const auto digit = [&](size_t n) {
-            return n < text.size() && std::isdigit(static_cast<unsigned char>(text[n]));
-        };
-        const size_t at = text.find_first_of("0123456789");
-        if (at == std::string::npos)
-            return at;
-        size_t end = at;
-        while (digit(end))
-            digits += text[end++];
-        while (end < text.size() && text[end] == ' ' && digit(end + 1) && digit(end + 2) && digit(end + 3) &&
-               !digit(end + 4))
-        {
-            digits += text.substr(end + 1, 3);
-            end += 4;
-        }
-        return at;
-    }
+    // The production reading (screens/amount.h), so a case sees the amount the engine sees.
     int Amount(const std::string &text, const std::string &what) const override
     {
-        std::string digits;
-        if (Figure(text, digits) == std::string::npos)
-            throw std::runtime_error("no number in " + what);
-        return std::stoi(digits);
+        if (const std::optional<int> value = storm::ui::screens::ParseAmount(text))
+            return *value;
+        throw std::runtime_error("no number in " + what + " ('" + text + "')");
     }
     bool HasAmount(const std::string &text) const override
     {
-        return text.find_first_of("0123456789") != std::string::npos;
+        return storm::ui::screens::ParseAmount(text).has_value();
     }
     double Number(const std::string &text, const std::string &what) const override
     {

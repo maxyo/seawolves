@@ -113,6 +113,7 @@ add_library(storm_ui STATIC
     src/screens/controls.cpp
     src/screens/pictures.cpp
     src/screens/amount.cpp
+    src/screens/parse_amount.cpp
     src/screens/registry.cpp
     src/screens/generic.cpp
     src/screens/trade_commerce.cpp
