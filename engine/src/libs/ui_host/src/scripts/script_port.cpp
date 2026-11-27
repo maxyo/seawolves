@@ -1,6 +1,7 @@
 #include "script_port.hpp"
 
 #include "core.h"
+#include "platform/android_script_errors.hpp"
 #include "istring.hpp"
 #include "s_import_func.h"
 #include "script_libriary.h"
@@ -505,6 +506,16 @@ ATTRIBUTES &FillUi(const storm::ui::ScriptScreen &screen, const std::vector<cons
     FillModel(ui.CreateAttribute("model"), widgets);
     return ui;
 }
+// A native that failed, or a runtime error of the script (the interpreter logs it and goes on), fails the build or
+// tap: what the script did after it rests on a half-made state.
+void Failed(const storm::ui::ScriptScreen &screen, const Scope &scope, uint64_t errors, const std::string &event)
+{
+    if (!scope.state.failure.empty())
+        throw std::runtime_error("script screen " + screen.capability + ": " + scope.state.failure);
+    if (storm::android::scriptErrorEpoch != errors)
+        throw std::runtime_error("script screen " + screen.capability + ": a script error in " + event +
+                                 " (the error log has it)");
+}
 } // namespace
 
 storm::script::Program &VmPort::Between(const storm::ui::ScriptScreen &screen, const std::string &what) const
@@ -524,9 +535,9 @@ void VmPort::Build(const storm::ui::ScriptScreen &screen, const std::vector<cons
     Between(screen, "build");
     ATTRIBUTES &ui = FillUi(screen, widgets);
     Scope scope(call);
+    const uint64_t errors = storm::android::scriptErrorEpoch;
     core.Event("UiBuild", "a", &ui);
-    if (!scope.state.failure.empty())
-        throw std::runtime_error("script screen " + screen.capability + ": " + scope.state.failure);
+    Failed(screen, scope, errors, "UiBuild");
 }
 
 void VmPort::Event(const storm::ui::ScriptScreen &screen, const std::string &id, const std::string &verb,
@@ -537,9 +548,9 @@ void VmPort::Event(const storm::ui::ScriptScreen &screen, const std::string &id,
     if (!ui.GetAttributeClass("model"))
         throw std::logic_error("script screen " + screen.capability + " event " + id + " before its first build");
     Scope scope(call);
+    const uint64_t errors = storm::android::scriptErrorEpoch;
     core.Event("UiTap", "assss", &ui, id.c_str(), verb.c_str(), value.c_str());
-    if (!scope.state.failure.empty())
-        throw std::runtime_error("script screen " + screen.capability + ": " + scope.state.failure);
+    Failed(screen, scope, errors, "UiTap " + id);
 }
 } // namespace storm::ui_scripts
 

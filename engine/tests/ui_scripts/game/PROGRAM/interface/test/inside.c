@@ -21,6 +21,9 @@ object BadView;
 void BadBuild()
 {
 	aref ui = GetEventData();
+	int two[2];
+	int at = 5;
+	if (ui.capability == "fault") two[at] = 1; // a runtime error: the interpreter logs it and goes on
 	if (ui.capability != "bad") return;
 	BadView.nope = 1;
 	UiShow(&BadView);

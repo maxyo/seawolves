@@ -18,12 +18,9 @@ string TouchLegLib_Cell(aref row, int column)
 	return row.cells.(cell).text;
 }
 
-// The amount a column writes; an empty cell holds none.
 int TouchLegLib_Amount(aref row, int column, string what)
 {
-	string text = TouchLegLib_Cell(row, column);
-	if (text == "") return 0;
-	return UiAmount(text, what);
+	return UiAmount(TouchLegLib_Cell(row, column), what);
 }
 
 // A row's picture: its column's, else the row's own, else the first a cell of it has.

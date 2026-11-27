@@ -6,7 +6,7 @@
 int TouchLegRest_Range(aref slider)
 {
 	int range = sti(slider.max) - sti(slider.min);
-	if (range < 1) return 1;
+	if (range < 1) UiError("rest: HOURS_SLIDE has no range");
 	return range;
 }
 

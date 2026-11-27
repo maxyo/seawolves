@@ -490,6 +490,7 @@ int TouchAdpTrade_Total(aref ui, int row, int amount)
 	if (amount > 0) column = sti(ui.data.buy);
 	int units = 1;
 	if (sti(ui.data.pack) >= 0) units = UiAmount(TouchLegLib_Cell(at, sti(ui.data.pack)), "the pack column");
+	if (units < 1) UiError("trade: a pack of " + units + " pieces");
 	return makeint(makefloat(UiAmount(TouchLegLib_Cell(at, column), "the price column")) * abs(amount) / units + 0.5);
 }
 

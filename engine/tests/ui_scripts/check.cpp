@@ -662,7 +662,7 @@ TEST_CASE("a screen's script gets the admitted widgets in its object, a table's 
     CHECK(model->GetAttributesNum() == 2); // one entry per node
 }
 
-TEST_CASE("script screen events are refused while a script runs; natives outside a screen fail")
+TEST_CASE("script screen events are refused while a script runs; natives outside a screen and script errors fail")
 {
     Log log;
     Vm vm;
@@ -686,6 +686,9 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     const storm::ui::ScriptScreen bad{.capability = "bad", .interface = "bad", .component = "s-rest"};
     CHECK_THROWS_WITH(port.Build(bad, {}, calls),
                       Catch::Contains("script screen bad: UiShow: view nope: is not a prop"));
+    // So does a runtime error of the script.
+    const storm::ui::ScriptScreen fault{.capability = "fault", .interface = "fault", .component = "s-rest"};
+    CHECK_THROWS_WITH(port.Build(fault, {}, calls), Catch::Contains("script screen fault: a script error in UiBuild"));
 
     vm.compiler.Release();
     CHECK(vm.attacher.Running() == nullptr);
