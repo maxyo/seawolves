@@ -5,9 +5,15 @@
 #include "v_file_service.h"
 #include "platform/platform.hpp"
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
+
 #define ERROR_MUL 1.0f
 
 static const char *LISTS_INIFILE = "resource\\ini\\interfaces\\pictures.ini";
+static const char *LISTS_FOLDER = "resource\\ini\\interfaces\\pictures";
 
 XSERVICE::XSERVICE()
     : m_fWScale(0), m_fHScale(0), m_fWAdd(0), m_fHAdd(0)
@@ -206,39 +212,59 @@ void XSERVICE::GetTextureCutForSize(const char *pcImageListName, const FXYPOINT 
     outUV.bottom = fH;
 }
 
+// The picture lists: pictures.ini, or every ini of the folder interfaces\pictures where a game splits them.
+std::vector<std::unique_ptr<INIFILE>> XSERVICE::OpenPictureLists()
+{
+    std::vector<std::unique_ptr<INIFILE>> inis;
+    std::vector<std::string> names;
+    if (fio->_FileOrDirectoryExists(LISTS_FOLDER))
+        names = fio->_GetPathsOrFilenamesByMask(LISTS_FOLDER, "*.ini", false);
+    std::ranges::sort(names);
+    for (const auto &name : names)
+    {
+        const std::string path = std::string(LISTS_FOLDER) + "\\" + name;
+        auto ini = fio->OpenIniFile(path.c_str());
+        if (!ini)
+            throw std::runtime_error("picture list " + path + " cannot be read");
+        inis.push_back(std::move(ini));
+    }
+    if (inis.empty())
+    {
+        auto ini = fio->OpenIniFile(LISTS_INIFILE);
+        if (!ini)
+            throw std::runtime_error(std::string("no picture lists: neither ") + LISTS_INIFILE + " nor " + LISTS_FOLDER);
+        inis.push_back(std::move(ini));
+    }
+    return inis;
+}
+
 void XSERVICE::LoadAllPicturesInfo()
 {
     char section[255];
     char param[255];
 
-    auto ini = fio->OpenIniFile(LISTS_INIFILE);
-    if (!ini)
-    {
-        throw std::runtime_error("ini file not found!");
-    }
+    const auto inis = OpenPictureLists();
 
     m_dwListQuantity = 0;
     m_dwImageQuantity = 0;
 
-    if (ini->GetSectionName(section, sizeof(section) - 1))
-    {
-        do
+    for (const auto &ini : inis)
+        if (ini->GetSectionName(section, sizeof(section) - 1))
         {
-            m_dwListQuantity++;
-        } while (ini->GetSectionNameNext(section, sizeof(section) - 1));
-    }
-    if (m_dwListQuantity > 0)
-    {
-        m_pList = new IMAGELISTDESCR[m_dwListQuantity];
-        if (m_pList == nullptr)
-        {
-            throw std::runtime_error("memory allocate error");
+            do
+            {
+                m_dwListQuantity++;
+            } while (ini->GetSectionNameNext(section, sizeof(section) - 1));
         }
-    }
+    if (m_dwListQuantity > 0)
+        m_pList = new IMAGELISTDESCR[m_dwListQuantity];
 
-    if (ini->GetSectionName(section, sizeof(section) - 1))
+    auto i = 0;
+    for (const auto &ini : inis)
     {
-        for (auto i = 0; true; i++)
+        if (!ini->GetSectionName(section, sizeof(section) - 1))
+            continue;
+        for (;; i++)
         {
             m_pList[i].textureQuantity = 0;
             m_pList[i].textureID = -1L;
@@ -263,8 +289,6 @@ void XSERVICE::LoadAllPicturesInfo()
 
             auto *const oldpImage = m_pImage;
             m_pImage = new PICTUREDESCR[m_dwImageQuantity + m_pList[i].pictureQuantity];
-            if (m_pImage == nullptr)
-                throw std::runtime_error("allocate memory error");
             if (oldpImage != nullptr)
             {
                 memcpy(m_pImage, oldpImage, m_dwImageQuantity * sizeof(PICTUREDESCR));
@@ -292,7 +316,10 @@ void XSERVICE::LoadAllPicturesInfo()
             }
 
             if (!ini->GetSectionNameNext(section, sizeof(section) - 1))
+            {
+                i++;
                 break;
+            }
         }
     }
 }

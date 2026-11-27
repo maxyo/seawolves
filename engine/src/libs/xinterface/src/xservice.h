@@ -3,6 +3,11 @@
 #include "vx_service.h"
 #include "xdefines.h"
 
+#include <memory>
+#include <vector>
+
+class INIFILE;
+
 class XSERVICE : public VXSERVICE
 {
     struct IMAGELISTDESCR
@@ -57,6 +62,7 @@ class XSERVICE : public VXSERVICE
 
   protected:
     void LoadAllPicturesInfo();
+    static std::vector<std::unique_ptr<INIFILE>> OpenPictureLists();
 
   protected:
     VRenderer *m_pRS;
