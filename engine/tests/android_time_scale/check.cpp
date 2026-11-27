@@ -24,17 +24,9 @@ struct Game
     bool noFast = false;          // pchar.questTemp.NoFast
     bool interfaceOpen = false;
     bool exitResetPatch = false; // the app's script fix interface-exit-time-reset is applied
+    int32_t modStep = 0;         // a mod's ladder: every press moves the counter by this much
     int activations = 0;
 
-    bool counter(int32_t &value) const
-    {
-        value = timeScaleCounter;
-        return true;
-    }
-    void setCounter(int32_t value)
-    {
-        timeScaleCounter = value;
-    }
     float scale() const
     {
         return timeScale;
@@ -46,7 +38,10 @@ struct Game
         if (noFast)
             return;
         int32_t &c = timeScaleCounter;
-        if (std::string(control) == "TimeScaleFaster")
+        const bool faster = std::string(control) == "TimeScaleFaster";
+        if (modStep)
+            c += faster ? modStep : -modStep;
+        else if (faster)
             c += c >= 12 ? 4 : c >= 4 ? 2 : 1;
         else
             c -= c >= 16 ? 4 : c >= 6 ? 2 : 1;
@@ -213,7 +208,14 @@ TEST_CASE("android_time_scale")
         Game game;
         game.noFast = true;
         tap(game);
-        REQUIRE((near(game.timeScale, 1.f) && game.timeScaleCounter == 0 && game.activations == 1));
+        REQUIRE((near(game.timeScale, 1.f) && game.timeScaleCounter == 0));
+    }
+
+    { // A mod's ladder: the button lands on the mod's first scale at or above the step, never on one of ours.
+        Game game;
+        game.modStep = 5;
+        tap(game);
+        REQUIRE((near(game.timeScale, 3.f) && game.timeScaleCounter == 8));
     }
 
     { // A step the engine already runs at with the counter in step is not activated again.
@@ -225,5 +227,5 @@ TEST_CASE("android_time_scale")
     }
 
     std::puts("PASS: time acceleration steps, interface exit with and without the x1 reset patch, world-map and fight "
-              "limits, quest lock");
+              "limits, quest lock, a mod's ladder");
 }

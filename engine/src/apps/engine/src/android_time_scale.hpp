@@ -1,18 +1,15 @@
 #pragma once
-// Four steps of the game's time acceleration for a touch HUD: x1, x2, x4, x8. The scripts keep the logic: the
-// counter is set one step of their own ladder below the target and one TimeScaleFaster / TimeScaleSlower activation
-// runs their handler, with its guards, clamps and the TimeSpeed perk. The engine's time scale decides which step is
-// current, not TimeScaleCounter: leaving an interface and dialogues set the scale without the counter.
+// Four steps of the game's time acceleration for a touch HUD: x1, x2, x4, x8. The scripts own the ladder, its caps
+// and refusals: a step only presses their TimeScaleSlower / TimeScaleFaster controls and reads the engine's time
+// scale they set. Their counter can be out of step with the scale (leaving an interface sets x1 and keeps it), so a
+// step first presses Slower down to the bottom of their ladder and then Faster up to the target.
 #include <array>
 #include <cmath>
-#include <cstdint>
 #include <string_view>
 
 namespace storm::android
 {
-// The scripts' counters of x1, x2, x4, x8 and the counter one of their own steps below each.
-inline constexpr std::array<int32_t, 4> TimeScaleCounters{0, 4, 12, 28};
-inline constexpr std::array<int32_t, 4> TimeScaleFrom{1, 3, 10, 24};
+inline constexpr std::array<float, 4> TimeScaleSteps{1.f, 2.f, 4.f, 8.f};
 
 // "TimeScaleX1" … "TimeScaleX8" → the step, or -1.
 inline int timeScaleStep(std::string_view control)
@@ -25,28 +22,31 @@ inline int timeScaleStep(std::string_view control)
 }
 
 // One HUD request for a step. `Game` is the scripts' side:
-//   bool counter(int32_t &value)      TimeScaleCounter (false: no such variable)
-//   void setCounter(int32_t value)
-//   float scale()                     the engine's time scale
+//   float scale()                      the engine's time scale
 //   void activate(const char *control) a control activation the scripts' handler runs
 template <class Game> void requestTimeScaleStep(Game &game, int step)
 {
-    int32_t current = 0;
-    if (step < 0 || step >= static_cast<int>(TimeScaleCounters.size()) || !game.counter(current))
+    if (step < 0 || step >= static_cast<int>(TimeScaleSteps.size()))
         return;
     const float before = game.scale();
-    const float target = 1.f + static_cast<float>(TimeScaleCounters[step]) * 0.25f;
-    if (current == TimeScaleCounters[step] && std::fabs(before - target) < 0.01f)
+    const float target = TimeScaleSteps[step];
+    if (std::fabs(before - target) < 0.01f)
         return;
-    game.setCounter(TimeScaleFrom[step]);
-    game.activate(step == 0 ? "TimeScaleSlower" : "TimeScaleFaster");
-    if (std::fabs(game.scale() - before) >= 0.01f)
-        return;
-    // Nothing changed: the scripts refused (underwater, a quest lock) or their limit (x2.5 on the world map) is
-    // reached. The counter goes back, and a step up goes round to x1 instead of standing still on a button that no
-    // longer changes anything.
-    game.setCounter(current);
-    if (step > 0)
+    // Each press is the scripts' answer; a press that leaves the scale as it was is their floor, cap or refusal.
+    const auto press = [&game](const char *control) {
+        const float was = game.scale();
+        game.activate(control);
+        return std::fabs(game.scale() - was) >= 0.01f;
+    };
+    while (press("TimeScaleSlower"))
+    {
+    }
+    while (game.scale() < target - 0.01f && press("TimeScaleFaster"))
+    {
+    }
+    // Their cap (x2.5 on the world map, x6 in a fight) gave the same scale as before: a step up goes round to x1
+    // instead of standing still on a button that no longer changes anything.
+    if (step > 0 && std::fabs(game.scale() - before) < 0.01f)
         requestTimeScaleStep(game, 0);
 }
 } // namespace storm::android
@@ -54,7 +54,6 @@ template <class Game> void requestTimeScaleStep(Game &game, int step)
 #ifdef __ANDROID__
 #include "core.h"
 #include "platform/android_ui.hpp"
-#include "v_data.h"
 
 namespace storm::android
 {
@@ -63,15 +62,6 @@ inline void applyTimeScaleStep(int step)
 {
     struct Scripts
     {
-        VDATA *variable = static_cast<VDATA *>(core.GetScriptVariable("TimeScaleCounter"));
-        bool counter(int32_t &value) const
-        {
-            return variable && variable->Get(value);
-        }
-        void setCounter(int32_t value) const
-        {
-            variable->Set(value);
-        }
         float scale() const
         {
             return core.GetTimeScale();
