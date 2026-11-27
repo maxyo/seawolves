@@ -33,6 +33,7 @@ class SDLInput : public Input
     bool KeyboardSDLKeyState(const SDL_Scancode &key) const override;
     bool MouseKeyState(const MouseKey &key) const override;
     bool SetRelativeMouseMode(bool enabled) override;
+    std::optional<std::pair<float, float>> PointerInWindow() const override;
 
     uint32_t GetWheelFactor() const override;
 

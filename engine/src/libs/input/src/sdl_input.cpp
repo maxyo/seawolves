@@ -333,7 +333,7 @@ inline unsigned int keyToSDL(KeyboardKey key)
 SDLInput::SDLInput()
 {
     keyStates_ = SDL_GetKeyboardState(nullptr);
-    SetRelativeMouseMode(true);
+    SDL_ShowCursor(SDL_DISABLE); // the interface draws its own cursor; the system pointer stays hidden over the window
 #ifdef __ANDROID__
     InputCancelEventType(); // Register before the watch can run on a JNI producer thread.
 #endif
@@ -511,6 +511,19 @@ bool SDLInput::MouseKeyState(const MouseKey &key) const
 
     return false;
 #endif
+}
+
+std::optional<std::pair<float, float>> SDLInput::PointerInWindow() const
+{
+    SDL_Window *window = SDL_GetMouseFocus();
+    if (!window)
+        return std::nullopt;
+    int x = 0, y = 0, width = 0, height = 0;
+    SDL_GetMouseState(&x, &y);
+    SDL_GetWindowSize(window, &width, &height);
+    if (width <= 0 || height <= 0)
+        return std::nullopt;
+    return std::pair{static_cast<float>(x) / width, static_cast<float>(y) / height};
 }
 
 bool SDLInput::SetRelativeMouseMode(bool enabled)

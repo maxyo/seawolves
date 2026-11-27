@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+#include <utility>
+
 #include <functional>
 #include <SDL2/SDL_scancode.h>
 #include <variant>
@@ -142,6 +145,9 @@ class Input
     //! Mode changes discard pending motion, but must retain key/button releases.
     //! \return true when the platform supports the requested mode
     virtual bool SetRelativeMouseMode(bool enabled) = 0;
+
+    //! The system pointer over the game window, 0..1 of its width and height; none while the pointer is outside it
+    virtual std::optional<std::pair<float, float>> PointerInWindow() const = 0;
 
     //! Platform-specific multiplier to use for scaling
     //! \return unsigned integer representing specific convenient value

@@ -28,7 +28,9 @@ struct SYSTEM_CONTROL_ELEMENT
 class PCS_CONTROLS : public CONTROLS
 {
     bool m_bLockAll;
-    bool updateCursor_ = true;
+    bool updateCursor_ = true;    // the window has the focus
+    bool interfaceCursor_ = false; // an interface screen with a cursor is open
+    void ApplyMouseMode();
 
     float fMouseSensivityX;
     float fMouseSensivityY;
@@ -94,6 +96,8 @@ class PCS_CONTROLS : public CONTROLS
     bool SetControlState(const char *control_name, CONTROL_STATE &_state_struct) override;
     bool SetControlState(int32_t control_code, CONTROL_STATE &_state_struct) override;
     void AppState(bool state) override;
+    void SetInterfaceCursor(bool shown) override;
+    std::optional<std::pair<float, float>> InterfacePointer() override;
     int32_t LastControlTime() override;
     void SetControlTreshold(int32_t control_code, float thval) override;
     void LockControl(const char *control_name, bool mode) override;

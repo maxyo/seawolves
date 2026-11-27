@@ -51,6 +51,37 @@ PCS_CONTROLS::PCS_CONTROLS()
     bindings_ = std::make_unique<controls::ControlBindings>();
     input_ = Input::Create();
     inputHandlerID_ = input_->Subscribe([this](const InputEvent &evt) { HandleEvent(evt); });
+    ApplyMouseMode();
+}
+
+// Raw relative motion only while the mouse turns the camera; an interface screen takes the system pointer, so that
+// absolute pointers (pen tablets, a virtual machine's or a remote desktop's pointer) work there. On Android the
+// mode follows the focus alone, as the touch screens have their own input.
+void PCS_CONTROLS::ApplyMouseMode()
+{
+#ifdef __ANDROID__
+    input_->SetRelativeMouseMode(updateCursor_);
+#else
+    input_->SetRelativeMouseMode(updateCursor_ && !interfaceCursor_);
+#endif
+}
+
+void PCS_CONTROLS::SetInterfaceCursor(bool shown)
+{
+    if (shown == interfaceCursor_)
+        return;
+    interfaceCursor_ = shown;
+    nMouseDx = nMouseDy = 0;
+    ApplyMouseMode();
+}
+
+std::optional<std::pair<float, float>> PCS_CONTROLS::InterfacePointer()
+{
+#ifdef __ANDROID__
+    return std::nullopt;
+#else
+    return interfaceCursor_ && updateCursor_ ? input_->PointerInWindow() : std::nullopt;
+#endif
 }
 
 PCS_CONTROLS::~PCS_CONTROLS()
@@ -67,7 +98,7 @@ void PCS_CONTROLS::AppState(bool state)
     updateCursor_ = state;
     // Focus transitions must not replay pre-pause camera deltas on resume.
     nMouseDx = nMouseDy = 0;
-    input_->SetRelativeMouseMode(state);
+    ApplyMouseMode();
 }
 
 void PCS_CONTROLS::Release()

@@ -4,6 +4,8 @@
 
 #include "utf8.h"
 #include <cstdint>
+#include <optional>
+#include <utility>
 
 #define INVALID_CONTROL_CODE 0xffffffff
 #define UNASSIGNED_CONTROL 0xffffffff
@@ -197,6 +199,15 @@ class CONTROLS
     virtual void SetMouseSensivityX(float){};
 
     virtual void SetMouseSensivityY(float){};
+
+    // An interface screen with a cursor is open: the mouse is the system pointer (absolute) rather than raw
+    // relative motion for the camera.
+    virtual void SetInterfaceCursor(bool shown){};
+    // The system pointer over the game window, 0..1 of its size, while an interface cursor is shown
+    virtual std::optional<std::pair<float, float>> InterfacePointer()
+    {
+        return std::nullopt;
+    }
 
     virtual short GetAsyncKeyState(int vk)
     {

@@ -314,6 +314,7 @@ XINTERFACE::XINTERFACE()
 
 XINTERFACE::~XINTERFACE()
 {
+    core.Controls->SetInterfaceCursor(false);
     ReleaseOld();
 
     if (pPictureService != nullptr)
@@ -405,6 +406,8 @@ void XINTERFACE::Execute(uint32_t)
     m_UtilContainer.FrameUpdate();
 
     auto Delta_Time = core.GetRDeltaTime();
+    // the one fact that makes the mouse an absolute pointer rather than the camera's relative motion
+    core.Controls->SetInterfaceCursor(bActive && m_bUse);
     if (!bActive)
         return;
     IncrementGameTime(Delta_Time);
@@ -3428,6 +3431,14 @@ void XINTERFACE::MouseMove()
         {
             fOutX = fXMousePos - dwScreenWidth;
             fXMousePos = static_cast<float>(dwScreenWidth);
+        }
+
+        // an interface screen takes the system pointer where it is (controls InterfacePointer)
+        if (const auto pointer = core.Controls->InterfacePointer())
+        {
+            fOutX = fOutY = 0.f;
+            fXMousePos = pointer->first * dwScreenWidth;
+            fYMousePos = pointer->second * dwScreenHeight;
         }
 
         m_bShowMouse = true;

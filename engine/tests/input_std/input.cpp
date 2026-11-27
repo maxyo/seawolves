@@ -279,7 +279,19 @@ TEST_CASE("input_std.input")
 #endif
         received.clear();
         input.PumpEvents();
-        REQUIRE(received.empty());             // A delta must not replay next frame.
+        REQUIRE(received.empty()); // A delta must not replay next frame.
+#ifndef __ANDROID__
+        // an interface screen takes the system pointer where it is, as a part of the window
+        REQUIRE(input.SetRelativeMouseMode(false));
+        SDL_WarpMouseInWindow(window, 320, 120);
+        SDL_PumpEvents();
+        const auto pointer = input.PointerInWindow();
+        REQUIRE(pointer);
+        CHECK(pointer->first == Approx(0.5f).margin(0.01f));
+        CHECK(pointer->second == Approx(0.25f).margin(0.01f));
+        REQUIRE(input.SetRelativeMouseMode(true));
+        received.clear();
+#endif
         REQUIRE(!input.KeyboardKeyState('W')); // No press replay in the next frame.
 #ifdef __ANDROID__
         std::thread ui([&] {
