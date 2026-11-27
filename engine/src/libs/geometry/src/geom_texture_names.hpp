@@ -19,7 +19,7 @@ inline std::vector<std::string> TextureNames(const std::vector<char> &file)
     if (file.size() < sizeof(head))
         return result;
     std::memcpy(&head, file.data(), sizeof(head));
-    if (head.version != RDF_VERSION || head.name_size <= 0 || head.names < 0 || head.ntextures <= 0)
+    if (!RdfVersionSupported(head.version) || head.name_size <= 0 || head.names < 0 || head.ntextures <= 0)
         return result;
     const size_t names = sizeof(head);
     const size_t offsets = names + size_t(head.name_size) + size_t(head.names) * sizeof(int32_t);

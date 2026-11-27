@@ -10,3 +10,5 @@ storm_host_check(far_lod.runtime SOURCES runtime_check.cpp ${src}/libs/geometry/
              ${src}/libs/renderer_bgfx/log/include ${fmt_headers}
     DEFINES FMT_HEADER_ONLY SPDLOG_FMT_EXTERNAL OPTIONS -Wall -Wextra -Wno-multichar
     LIBS storm_far_lod CATCH2)
+# The models of an installed game ($STORM_GAME_DIR; not run without one).
+storm_check_test(far_lod.runtime.corpus COMMAND far_lod.runtime "[corpus]" LABELS game TIMEOUT 1800)

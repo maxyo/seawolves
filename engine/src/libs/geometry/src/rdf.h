@@ -41,6 +41,13 @@ BSP_TRIANGLE - bsp triangles
 // header
 
 #define RDF_VERSION '1.05'
+// The newer exporter's files: the records of 1.05 byte for byte (their materials hold fixed defaults; per-object
+// materials come from the model's .json file beside it).
+#define RDF_VERSION_1_06 '1.06'
+inline bool RdfVersionSupported(int32_t version)
+{
+    return version == RDF_VERSION || version == RDF_VERSION_1_06;
+}
 
 enum RDF_FLAGS
 {

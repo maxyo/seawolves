@@ -1,6 +1,7 @@
 // The actual GEOM loader and GeomFarLod runtime, with only their external services replaced.
 // PostBake keeps the production lambda: tests explicitly advance Load/Bake or drop the queue.
 #include "geom.h"
+#include "geom_texture_names.hpp"
 #include <storm/render/frame_owner.hpp>
 #include <storm/render/far_lod.hpp>
 #include <storm/render/shadow_casters.hpp>
@@ -16,6 +17,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <new>
 #include <stdexcept>
 #include <utility>
@@ -197,6 +199,8 @@ class Service final : public GEOM_SERVICE
         Vertices
     } fail_copy = FailCopy::None;
     int32_t triangle_bytes = 0, vertex_bytes = 0;
+    size_t read_end = 0; // where the last read of the model ended, and whether every read was whole
+    bool short_read = false;
     GEOM_FILE OpenFile(const char *) override
     {
         std::ifstream in(file, std::ios::binary);
@@ -209,6 +213,8 @@ class Service final : public GEOM_SERVICE
         if (bytes && whole)
             std::memcpy(data, f.bytes->data() + f.position, size_t(bytes));
         f.position += size_t(bytes);
+        read_end = f.position;
+        short_read |= !whole;
         if (fail_copy == FailCopy::Triangles && bytes == triangle_bytes && !indices.empty() &&
             data == indices[0].data())
             fail_size = size_t(bytes);
@@ -535,18 +541,26 @@ template <class T> void append(std::ofstream &out, const T &value)
 {
     out.write(reinterpret_cast<const char *>(&value), sizeof(value));
 }
-void writeModel(const std::filesystem::path &path, const GeomFarLod::Source &s)
+// `texture`: one texture name in the file (none when empty).
+void writeModel(const std::filesystem::path &path, const GeomFarLod::Source &s, int32_t version = RDF_VERSION,
+                const std::string &texture = {})
 {
     std::ofstream out(path, std::ios::binary);
     RDF_HEAD h{};
-    h.version = RDF_VERSION;
+    h.version = version;
     h.flags = FLAGS_VISIBLE_PRESENT;
-    h.name_size = 1;
+    h.name_size = int32_t(texture.empty() ? 1 : texture.size() + 2);
+    h.ntextures = texture.empty() ? 0 : 1;
     h.nmaterials = h.nobjects = h.nvrtbuffs = 1;
     h.ntriangles = int32_t(s.triangles.size() / 3);
     h.radius = 100;
     append(out, h);
     out.put('\0');
+    if (!texture.empty())
+    {
+        out.write(texture.c_str(), std::streamsize(texture.size() + 1));
+        append(out, int32_t(1)); // its name's offset
+    }
     RDF_MATERIAL material{};
     append(out, material);
     RDF_OBJECT object{};
@@ -610,6 +624,40 @@ void loader(const std::filesystem::path &directory)
     pixels = 2;
     std::puts(
         "CL14 runtime: real GEOM load without readback, source allocation faults preserve original, Full skips copies");
+}
+// The model format versions: 1.05 and 1.06 (the same records) are read to the file's end, others refused.
+void versions(const std::filesystem::path &directory)
+{
+    const auto s = source(2);
+    const auto file = directory / "version-fixture.gm";
+    for (const int32_t version : {int32_t('1.05'), int32_t('1.06'), int32_t('1.04')})
+    {
+        writeModel(file, s, version, "Location\\Wall.dds");
+        std::ifstream in(file, std::ios::binary);
+        const std::vector<char> bytes{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+        const std::vector<std::string> names = storm::geometry::TextureNames(bytes);
+        resetCache();
+        Service srv;
+        srv.file = file;
+        if (version == '1.04')
+        {
+            REQUIRE_THROWS_AS(GEOM(s.name.c_str(), nullptr, srv, LOAD_VISIBLE), std::runtime_error);
+            REQUIRE(names.empty()); // the background read takes no textures from an unread model
+            continue;
+        }
+        {
+            GEOM geom(s.name.c_str(), nullptr, srv, LOAD_VISIBLE);
+            GEOS::INFO info{};
+            geom.GetInfo(info);
+            REQUIRE((info.ntextures == 1 && info.nobjects == 1));
+            REQUIRE(std::string(geom.GetTextureName(0)) == "Location\\Wall.dds");
+            REQUIRE((srv.read_end == bytes.size() && !srv.short_read));
+            REQUIRE(names == std::vector<std::string>{"Location\\Wall.dds"});
+        }
+        queue.clear();
+        clean();
+    }
+    std::filesystem::remove(file);
 }
 // A place's models: one line once the last of them is installed; a model's own line only with detailed diagnostics.
 void logVolume()
@@ -786,5 +834,74 @@ TEST_CASE("far_lod.runtime")
     fixture::installFailures();
     fixture::drawBoundary();
     fixture::loader(std::filesystem::temp_directory_path());
+    fixture::versions(std::filesystem::temp_directory_path());
     fixture::logVolume();
+}
+
+// Every .gm of the installed game in $STORM_GAME_DIR (not run without one): a model of a version the loader reads must
+// load without reading past its end; models with bytes after their records and other versions are listed.
+TEST_CASE("models of an installed game", "[.corpus]")
+{
+    const char *root = std::getenv("STORM_GAME_DIR");
+    if (!root || !*root)
+    {
+        std::puts("NOT_RUN: set STORM_GAME_DIR to an installed game");
+        std::exit(77);
+    }
+    fixture::errors = std::make_shared<fixture::Errors>();
+    spdlog::set_default_logger(std::make_shared<spdlog::logger>("runtime-check", fixture::errors));
+    spdlog::set_level(spdlog::level::err);
+    std::map<std::string, int> read, refused;
+    int damaged = 0;
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
+    {
+        std::string extension = entry.path().extension().string();
+        std::ranges::transform(extension, extension.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (!entry.is_regular_file() || extension != ".gm")
+            continue;
+        char tag[4] = {};
+        std::ifstream(entry.path(), std::ios::binary).read(tag, sizeof(tag));
+        const std::string version{tag[3], tag[2], tag[1], tag[0]};
+        int32_t head = 0;
+        std::memcpy(&head, tag, sizeof(head));
+        if (!RdfVersionSupported(head))
+        {
+            ++refused[version];
+            continue;
+        }
+        fixture::resetCache();
+        fixture::Service srv;
+        srv.file = entry.path();
+        try
+        {
+            GEOM geom(entry.path().c_str(), nullptr, srv, LOAD_VISIBLE);
+            if (srv.short_read)
+            {
+                ++damaged;
+                std::printf("DAMAGED %s: reads past its %ju bytes\n", entry.path().c_str(),
+                            std::uintmax_t(entry.file_size()));
+            }
+            else if (srv.read_end != entry.file_size())
+            {
+                ++read[version + " with bytes after its records"];
+                std::printf("TAIL %s: read to %zu of %ju bytes\n", entry.path().c_str(), srv.read_end,
+                            std::uintmax_t(entry.file_size()));
+            }
+            else
+                ++read[version];
+        }
+        catch (const std::exception &error)
+        {
+            ++damaged;
+            std::printf("DAMAGED %s: %s\n", entry.path().c_str(), error.what());
+        }
+        fixture::queue.clear();
+    }
+    for (const auto &[version, count] : read)
+        std::printf("  read      %6d  %s\n", count, version.c_str());
+    for (const auto &[version, count] : refused)
+        std::printf("  not read  %6d  version %s\n", count, version.c_str());
+    std::printf("%s: %d models of a read version damaged\n", root, damaged);
+    REQUIRE(damaged == 0);
 }
