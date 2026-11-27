@@ -86,6 +86,10 @@ start-up (`src/libs/util/include/platform/storage.hpp`); the file service refuse
 keeps its own. The XDG variables default to `~/.config`, `~/.local/share`, `~/.cache` and `~/.local/state`.
 `engine --game <folder> --folders` prints the folders and exits.
 
+On Linux `settings.json` may also say what the game's store checks would: `"player_name": "<name>"` (the name some
+games give a character after the player) and `"owned_apps": [<app id>, ...]` (the add-ons and games the player owns,
+by their store app ids). Nothing is owned unless listed there, except where a game published its add-ons with it.
+
 ## Checks
 
 Before a pull request run `tools/ci/gate.py` ([tools/ci/README.md](tools/ci/README.md)): it builds and checks

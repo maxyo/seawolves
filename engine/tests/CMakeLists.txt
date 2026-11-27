@@ -488,6 +488,7 @@ add_subdirectory(glm_math)
 add_subdirectory(portability)
 add_subdirectory(script_language)
 add_subdirectory(ui_scripts)
+add_subdirectory(script_natives)
 # The renderer's checks need bgfx's build (X11 and OpenGL development files, the pinned shaderc): a build that runs
 # the others only can leave them out.
 option(STORM_CHECK_RENDERER "the renderer's checks (tests/renderer_bgfx)" ON)

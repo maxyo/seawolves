@@ -65,6 +65,9 @@ struct GameProfileFacts
     int32_t script_version; // the scripts' iScriptVersion the engine accepts, also GetEngineVersion()
     std::span<const BuiltinReturnType> builtin_returns;
     std::span<const CollidingId> colliding_ids; // every value whose meaning differs between the games
+    // GetDLCenabled answers "owned" for every add-on: they were published as part of the game. Otherwise only for
+    // the add-ons the player says he owns (platform/desktop_settings.hpp PlayerSettings).
+    bool dlc_published_with_game;
 };
 
 namespace profile_rows
@@ -88,8 +91,8 @@ inline constexpr BuiltinReturnType kCaribbeanLegendReturns[] = {
 } // namespace profile_rows
 
 inline constexpr std::array<GameProfileFacts, 2> kGameProfiles = {{
-    {"legacy (To Each His Own)", 54128, {}, profile_rows::kLegacyIds},
-    {"Caribbean Legend", 2230981, profile_rows::kCaribbeanLegendReturns, profile_rows::kCaribbeanLegendIds},
+    {"legacy (To Each His Own)", 54128, {}, profile_rows::kLegacyIds, true},
+    {"Caribbean Legend", 2230981, profile_rows::kCaribbeanLegendReturns, profile_rows::kCaribbeanLegendIds, false},
 }};
 
 constexpr const GameProfileFacts &gameProfileFacts(GameProfile profile)

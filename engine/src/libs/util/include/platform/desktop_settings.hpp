@@ -1,15 +1,18 @@
 #pragma once
 
-// The engine's own settings on desktop: the game folder it runs. One JSON object in the per-user settings folder.
+// The engine's own settings on desktop: the game folder it runs and what the player says of himself. One JSON object
+// in the per-user settings folder.
 
 #include "desktop_folders.hpp"
 
 #include <nlohmann/json.hpp>
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace storm::desktop
 {
@@ -54,6 +57,38 @@ inline fs::path rememberedGame(const fs::path &settings)
     if (!game->is_string())
         throw std::runtime_error(settings.string() + ": \"game\" is not a string");
     return storage::utf8Path(game->get<std::string>());
+}
+
+// The player's name ("player_name", empty when unset) and what he owns of the store ("owned_apps": the app ids of
+// add-ons and games the scripts ask about, none when unset). The engine has no store to ask: only the player can say.
+struct PlayerSettings
+{
+    std::string name;
+    std::vector<int32_t> ownedApps;
+};
+
+inline PlayerSettings playerSettings(const fs::path &settings)
+{
+    const auto json = detail::readSettings(settings);
+    PlayerSettings player;
+    if (const auto name = json.find("player_name"); name != json.end())
+    {
+        if (!name->is_string())
+            throw std::runtime_error(settings.string() + ": \"player_name\" is not a string");
+        player.name = name->get<std::string>();
+    }
+    if (const auto owned = json.find("owned_apps"); owned != json.end())
+    {
+        if (!owned->is_array())
+            throw std::runtime_error(settings.string() + ": \"owned_apps\" is not a list of app ids");
+        for (const auto &id : *owned)
+        {
+            if (!id.is_number_integer() || id.get<int64_t>() != static_cast<int32_t>(id.get<int64_t>()))
+                throw std::runtime_error(settings.string() + ": \"owned_apps\" holds " + id.dump() + ", not an app id");
+            player.ownedApps.push_back(static_cast<int32_t>(id.get<int64_t>()));
+        }
+    }
+    return player;
 }
 
 inline void rememberGame(const fs::path &settings, const fs::path &game)

@@ -155,3 +155,25 @@ TEST_CASE("desktop_folders.settings")
     put(file, "[]");
     REQUIRE(failure([&] { rememberedGame(file); }).find("not a JSON object") != std::string::npos);
 }
+
+TEST_CASE("desktop_folders.player")
+{
+    const auto root = fs::temp_directory_path() / "desktop-player";
+    fs::remove_all(root);
+    const auto file = root / "config/seawolves/settings.json";
+    REQUIRE(playerSettings(file).name.empty());
+    REQUIRE(playerSettings(file).ownedApps.empty());
+    put(file, R"({"game": "/g", "player_name": "Шарль", "owned_apps": [2230982, 3000000]})");
+    REQUIRE(playerSettings(file).name == "Шарль");
+    REQUIRE(playerSettings(file).ownedApps == std::vector<int32_t>{2230982, 3000000});
+    put(file, R"({"player_name": 7})");
+    REQUIRE(failure([&] { playerSettings(file); }).find("player_name") != std::string::npos);
+    put(file, R"({"owned_apps": 2230982})");
+    REQUIRE(failure([&] { playerSettings(file); }).find("owned_apps") != std::string::npos);
+    for (const char *bad :
+         {R"({"owned_apps": ["2230982"]})", R"({"owned_apps": [1.5]})", R"({"owned_apps": [4294967296]})"})
+    {
+        put(file, bad);
+        REQUIRE(failure([&] { playerSettings(file); }).find("not an app id") != std::string::npos);
+    }
+}
