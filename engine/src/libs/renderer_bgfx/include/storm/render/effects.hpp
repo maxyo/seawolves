@@ -2,7 +2,8 @@
 // inputs the renderer cannot observe through the D3D9-shaped shim. Game thread only.
 //
 // Presets: «Низкая» (0, the legacy image: no effect runs and the frame is composed exactly as
-// before), «Средняя» (1), «Высокая» (2). The fx_* options are developer overrides (engine.ini), not player settings.
+// before), «Средняя» (1), «Высокая» (2). The fx_* options are developer overrides (engine.ini); on desktop the player's
+// graphics options (renderer/src/graphics_options.hpp) are made of them.
 // What the device cannot do is switched off once, when the options are applied, and reported (log +
 // EffectsReport::changes); nothing is lowered silently later.
 #pragma once
@@ -67,6 +68,9 @@ struct EffectsReport
 // Returns the report of the request.
 EffectsReport ConfigureEffects(int preset, const std::vector<EffectsOption> &options);
 EffectsReport CurrentEffects();
+// Whether the settings to draw (the last request as the device can do it) are what `options` ask: applying them over
+// those settings changes nothing.
+bool EffectsHonour(const std::vector<EffectsOption> &options);
 // The facts of the running game the effects need (core's game profile), before the first ConfigureEffects.
 struct EffectsGame
 {

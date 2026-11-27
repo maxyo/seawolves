@@ -3,7 +3,7 @@
 //   script_check check <game dir> [--program <dir>] [--main <file>] [--dump <dir>] [--warnings]
 //                [--language <name>]   (for %language% in include paths; default: as the engine,
 //                                        language.ini's defaultLanguage)
-//   script_check test [--cache] <script>...
+//   script_check test [--settings <dir>] [--cache] <script>...
 //
 // check: compiles the main segment (seadogs.c) and then every other .c file under the program
 // directory that no script includes, each as its own segment the way LoadSegment loads it, and
@@ -15,7 +15,8 @@
 // "test_"; it must return 1 (int) without a runtime error. A "fail_" function must stop with a
 // runtime error within 5 s (the script call time limit is 1 s here). A script whose first line is
 // "// expect-error: <text>" must instead fail to compile with an error containing <text>. A line
-// "// profile: Caribbean Legend" compiles the script with that game profile (default: legacy).
+// "// profile: Caribbean Legend" compiles the script with that game profile (default: legacy). --settings: the
+// game's settings folder (its engine.ini, written by natives that keep the player's choices); default none.
 #include "compiler.h"
 #include "core_impl.h"
 #include "game_profile.hpp"
@@ -176,8 +177,10 @@ bool isError(const std::string &line)
 
 int usage()
 {
-    std::fprintf(stderr, "usage: script_check check <game dir> [--program <dir>] [--main <file>] [--dump <dir>] "
-                         "[--warnings] [--language <name>]\n       script_check test [--cache] <script>...\n");
+    std::fprintf(
+        stderr,
+        "usage: script_check check <game dir> [--program <dir>] [--main <file>] [--dump <dir>] "
+        "[--warnings] [--language <name>]\n       script_check test [--settings <dir>] [--cache] <script>...\n");
     return 2;
 }
 
@@ -398,8 +401,15 @@ int test(int argc, char **argv)
         return usage();
     // --cache: compile each script into a fresh script cache, then run its tests on a second compiler
     // that loads the segment from that cache
+    fs::path settings;
+    if (argc >= 2 && std::string(argv[0]) == "--settings")
+    {
+        settings = fs::absolute(argv[1]);
+        argv += 2;
+        argc -= 2;
+    }
     fs::path cache;
-    if (std::string(argv[0]) == "--cache")
+    if (argc >= 1 && std::string(argv[0]) == "--cache")
     {
         cache = fs::temp_directory_path() /
                 ("script_check_cache_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
@@ -424,7 +434,10 @@ int test(int argc, char **argv)
                                   ? storm::GameProfile::CaribbeanLegend
                                   : storm::GameProfile::Legacy);
         fs::current_path(script.parent_path());
-        storm::storage::select({.game = fs::current_path()});
+        storm::storage::select(
+            {.game = fs::current_path(),
+             .settings = settings,
+             .settingsFiles = settings.empty() ? std::vector<std::string>{} : std::vector<std::string>{"engine.ini"}});
         fio->ScanResourcePaths();
         const auto name = script.filename().string();
         if (!cache.empty() && expected.empty())

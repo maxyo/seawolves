@@ -54,6 +54,7 @@ class Host
 
     render::EffectsReport configure(int preset, const std::vector<render::EffectsOption> &options);
     void set_game(const render::EffectsGame &game);
+    bool honours(const std::vector<render::EffectsOption> &options) const;
     const render::EffectsReport &report() const
     {
         return report_;
@@ -214,8 +215,9 @@ class Host
     std::vector<render::EffectsOption> options_;
     render::EffectsGame game_{};
     fx::Settings requested_{};
-    fx::Settings settings_{};           // the active ones: what draws
-    fx::BackgroundProducts products_{}; // what settings_ make in the background (activate)
+    fx::TextureProcessing processing_{}; // the texture processing of the request (apply)
+    fx::Settings settings_{};            // the active ones: what draws
+    fx::BackgroundProducts products_{};  // what settings_ make in the background (activate)
     bool products_logged_ = false;
     fx::Settings target_{}; // the request constrained to the device: active once prepared (advance_switch)
     bool switching_ = false;

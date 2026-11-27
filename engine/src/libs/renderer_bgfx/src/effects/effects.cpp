@@ -68,6 +68,8 @@ void set_flag(fx::Settings &s, uint32_t flag, int value)
 const Option kOptions[] = {
     {"fx_tonemap", "0 off, 1 on", [](fx::Settings &s, int v) { s.tonemap = on(v); }},
     {"fx_bloom", "0 off, 1 on", [](fx::Settings &s, int v) { s.bloom = on(v); }},
+    {"fx_sun_shafts", "0 off, 1 on (with the bloom)", [](fx::Settings &s, int v) { s.sun_shafts = on(v); }},
+    {"fx_lens_flare", "0 off, 1 the sun's glare", [](fx::Settings &s, int v) { s.lens_flare = on(v); }},
     {"fx_smaa", "0 off, 1 on", [](fx::Settings &s, int v) { s.smaa = on(v); }},
     {"fx_render_height", "the 3D scene's height in pixels on taller displays, upscaled by FSR 1: 360..4320, 0 = native",
      [](fx::Settings &s, int v) { s.render_height = static_cast<uint16_t>(std::clamp(v, 0, 4320)); }},
@@ -136,6 +138,8 @@ const Option kOptions[] = {
     {"fx_sail_light", "0..300 % sunlight through sails",
      [](fx::Settings &s, int v) { s.sail_light = static_cast<float>(std::clamp(v, 0, 300)) / 100.0f; }},
     {"fx_light_point", "0 off, 1 on", [](fx::Settings &s, int v) { set_flag(s, fx::kLightingPoint, v); }},
+    {"fx_point_lights", "4 or 8 point lights per draw (with fx_light_point)",
+     [](fx::Settings &s, int v) { s.point_lights = static_cast<uint8_t>(v > 4 ? 8 : 4); }},
     {"fx_light_normal_map", "0 off, 1 on", [](fx::Settings &s, int v) { set_flag(s, fx::kLightingNormalMap, v); }},
     {"fx_gloss", "0 off, 1 on: gloss maps shape the sun's and the lamps' highlights",
      [](fx::Settings &s, int v) { s.gloss = on(v); }},
@@ -278,6 +282,31 @@ render::EffectsReport Host::configure(int preset, const std::vector<render::Effe
     return report_;
 }
 
+bool Host::honours(const std::vector<render::EffectsOption> &options) const
+{
+    fx::Settings asked = target_;
+    for (const auto &option : options)
+    {
+        if (option.name == "texture_normal_maps" || option.name == "texture_height_maps" ||
+            option.name == "texture_upscale")
+        {
+            const bool on = (option.name == "texture_normal_maps"   ? processing_.normal_maps
+                             : option.name == "texture_height_maps" ? processing_.height_maps
+                                                                    : processing_.upscale);
+            if (on != (option.value != 0))
+                return false;
+        }
+        else if (const Option *known = find_option(option.name))
+            known->apply(asked, option.value);
+        else
+        {
+            render::Log().error("effects: unknown graphics option '{}' asked", option.name);
+            return false;
+        }
+    }
+    return asked == target_;
+}
+
 void Host::set_game(const render::EffectsGame &game)
 {
     game_ = game;
@@ -303,6 +332,7 @@ void Host::apply()
             render::Log().info("effects: texture processing left off: the game ships its own texture maps");
         processing = {};
     }
+    processing_ = processing;
     fx::ApplyTextureProcessing(requested_, processing);
     requested_.material_programs = !game_.generates_texture_maps;
     bool profile = false;
@@ -900,6 +930,11 @@ const std::vector<EffectsOptionInfo> &EffectsOptionNames()
         return list;
     }();
     return names;
+}
+
+bool EffectsHonour(const std::vector<EffectsOption> &options)
+{
+    return effects::Host::instance().honours(options);
 }
 
 EffectsReport ConfigureEffects(int preset, const std::vector<EffectsOption> &options)

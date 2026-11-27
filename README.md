@@ -80,6 +80,8 @@ Played on Galaxy S24, Xiaomi 15 Ultra and Pixel 10 Pro.
   has no links to the game.
 - **Texture processing** (Settings → Sound & graphics): Normal maps, Parallax and Texture upscaling ×2, off by
   default. The phone makes them from your game files.
+- **Desktop graphics** are not presets but an option per renderer feature, full quality by default, kept per game in
+  its `engine.ini` of the player's settings folder. The list: [engine/README.md](engine/README.md#graphics-options).
 
 <details>
 <summary>Verifying the download</summary>

@@ -2,6 +2,8 @@
 
 #include <catch2/catch.hpp>
 
+#include <fstream>
+#include <iterator>
 #include <map>
 
 using namespace storm::render;
@@ -18,88 +20,129 @@ template <typename Set> ScriptGraphics With(Set set)
 std::map<std::string, int> Options(const ScriptGraphics &graphics)
 {
     std::map<std::string, int> options;
-    for (const auto &option : ScriptGraphicsOptions(graphics))
-        REQUIRE(options.emplace(option.name, option.value).second);
+    for (const auto &[name, value] : ScriptGraphicsOptions(graphics))
+    {
+        const GraphicsOption *option = FindGraphicsOption(name);
+        REQUIRE(option);
+        REQUIRE(GraphicsOptionAllows(*option, value));
+        REQUIRE(options.emplace(name, value).second);
+    }
     return options;
+}
+
+std::map<std::string, int> Effects(const char *option, int value, uint32_t height = 1080)
+{
+    std::map<std::string, int> effects;
+    for (const auto &effect : GraphicsOptionEffects(*FindGraphicsOption(option), value, height))
+        REQUIRE(effects.emplace(effect.name, effect.value).second);
+    return effects;
 }
 } // namespace
 
 TEST_CASE("script_graphics.unset")
 {
-    // A game whose scripts never set an option (the legacy games) keeps the preset entirely.
+    // A game whose scripts never set an option (the legacy games) leaves every option as it is.
     REQUIRE(Options({}).empty());
 }
 
 TEST_CASE("script_graphics.shadows")
 {
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 0; }))["fx_shadows"] == 0);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 1; }))["fx_shadows"] > 0);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 1; }))["fx_shadows"] <=
-            Options(With([&](ScriptGraphics &g) { g.shadows = 3; }))["fx_shadows"]);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.lamp_shadows = 0; }))["fx_lamp_shadows"] == 0);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.ambient_occlusion = 0; }))["fx_ao_volume"] == 0);
-    // Their sizes and levels are the preset's: only off is taken.
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 0; }))["sun_shadows"] == 0);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 1; }))["sun_shadows"] > 0);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.shadows = 1; }))["sun_shadows"] <=
+            Options(With([&](ScriptGraphics &g) { g.shadows = 3; }))["sun_shadows"]);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.lamp_shadows = 0; }))["lamp_shadows"] == 0);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.ambient_occlusion = 0; }))["ambient_occlusion"] == 0);
+    // Their sizes and levels are ours: any of the game's levels is the desktop's default.
     for (int on = 1; on <= 3; ++on)
-        REQUIRE(Options(With([&](ScriptGraphics &g) {
-                    g.lamp_shadows = on;
-                    g.ambient_occlusion = on;
-                })).empty());
+    {
+        const auto options = Options(With([&](ScriptGraphics &g) {
+            g.lamp_shadows = on;
+            g.ambient_occlusion = on;
+        }));
+        REQUIRE(options.at("lamp_shadows") == FindGraphicsOption("lamp_shadows")->desktop);
+        REQUIRE(options.at("ambient_occlusion") == FindGraphicsOption("ambient_occlusion")->desktop);
+    }
 }
 
 TEST_CASE("script_graphics.anti_aliasing")
 {
-    const auto none = Options(With([&](ScriptGraphics &g) {
-        g.fxaa = 0;
-        g.ssaa = 0;
-    }));
-    REQUIRE((none.at("fx_smaa") == 0 && none.at("fx_msaa") == 1));
-    const auto post = Options(With([&](ScriptGraphics &g) {
-        g.fxaa = 2;
-        g.ssaa = 0;
-    }));
-    REQUIRE((post.at("fx_smaa") == 1 && post.at("fx_msaa") == 1));
-    const auto twice = Options(With([&](ScriptGraphics &g) {
-        g.fxaa = 0;
-        g.ssaa = 1;
-    }));
-    const auto most = Options(With([&](ScriptGraphics &g) {
-        g.fxaa = 0;
-        g.ssaa = 3;
-    }));
-    REQUIRE((twice.at("fx_smaa") == 0 && twice.at("fx_msaa") > 1 && most.at("fx_msaa") > twice.at("fx_msaa")));
+    const auto aa = [](int fxaa, int ssaa, bool temporal = false) {
+        return Options(With([&](ScriptGraphics &g) {
+                   g.fxaa = fxaa;
+                   g.ssaa = ssaa;
+                   g.temporal = temporal;
+               }))
+            .at("anti_aliasing");
+    };
+    const auto msaa = [](int value) { return Effects("anti_aliasing", value).at("fx_msaa"); };
+    const auto smaa = [](int value) { return Effects("anti_aliasing", value).at("fx_smaa"); };
+    REQUIRE((msaa(aa(0, 0)) == 1 && smaa(aa(0, 0)) == 0));
+    REQUIRE((msaa(aa(2, 0)) == 1 && smaa(aa(2, 0)) == 1));
+    REQUIRE((smaa(aa(0, 1)) == 0 && msaa(aa(0, 1)) > 1 && msaa(aa(0, 3)) > msaa(aa(0, 1))));
+    // The game's default TAA (and DLAA) is never "none": the most samples.
+    REQUIRE(msaa(aa(0, 0, true)) == 4);
     // Alpha to coverage (the leaves' edges) exactly where MSAA runs.
-    for (const auto *aa : {&none, &post, &twice, &most})
-        REQUIRE(aa->at("fx_alpha_to_coverage") == (aa->at("fx_msaa") > 1 ? 1 : 0));
-}
-
-TEST_CASE("script_graphics.temporal")
-{
-    // The game's default TAA (and DLAA) is never "none": the most samples, with the leaves' edges.
-    const auto taa = Options(With([&](ScriptGraphics &g) {
-        g.fxaa = 0;
-        g.ssaa = 0;
-        g.temporal = true;
-    }));
-    REQUIRE((taa.at("fx_msaa") == 4 && taa.at("fx_alpha_to_coverage") == 1 && taa.at("fx_smaa") == 0));
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temporal = true; })) == taa);
+    for (const int value : FindGraphicsOption("anti_aliasing")->choices)
+        REQUIRE(Effects("anti_aliasing", value).at("fx_alpha_to_coverage") == (msaa(value) > 1 ? 1 : 0));
 }
 
 TEST_CASE("script_graphics.colour")
 {
-    const int neutral = Options(With([&](ScriptGraphics &g) { g.temperature = 0.0f; }))["fx_temperature"];
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temperature = -1.0f; }))["fx_temperature"] < neutral);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temperature = 1.0f; }))["fx_temperature"] > neutral);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temperature = -1.0f; }))["fx_temperature"] >=
-            0); // a negative option value means "the preset's"
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 1.0f; }))["fx_saturation"] == 100);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 0.0f; }))["fx_saturation"] == 0);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 2.0f; }))["fx_saturation"] > 100);
+    const int neutral = Options(With([&](ScriptGraphics &g) { g.temperature = 0.0f; }))["colour_temperature"];
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temperature = -1.0f; }))["colour_temperature"] < neutral);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.temperature = 1.0f; }))["colour_temperature"] > neutral);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 1.0f; }))["colour_saturation"] == 100);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 0.0f; }))["colour_saturation"] == 0);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.saturation = 2.0f; }))["colour_saturation"] > 100);
 }
 
 TEST_CASE("script_graphics.anisotropy")
 {
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 0; }))["fx_anisotropy"] == 1);
-    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 16; }))["fx_anisotropy"] == 16);
+    // The game's levels 0 (off), 4, 8, 16.
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 0; }))["anisotropic_filtering"] == 1);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 4; }))["anisotropic_filtering"] == 4);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 16; }))["anisotropic_filtering"] == 16);
+    REQUIRE(Options(With([&](ScriptGraphics &g) { g.anisotropy = 64; }))["anisotropic_filtering"] == 16);
+}
+
+TEST_CASE("graphics_options.table")
+{
+    for (const GraphicsOption &option : GraphicsOptions())
+    {
+        INFO(option.name);
+        REQUIRE(FindGraphicsOption(option.name) == &option);
+        REQUIRE(GraphicsOptionAllows(option, option.desktop));
+        REQUIRE(!GraphicsOptionAllows(option, option.max + 1));
+        REQUIRE(!GraphicsOptionAllows(option, option.min - 1));
+        REQUIRE((option.kind == OptionKind::Number) == option.choices.empty());
+    }
+    REQUIRE(!FindGraphicsOption("no_such_option"));
+    REQUIRE(!GraphicsOptionAllows(*FindGraphicsOption("anisotropic_filtering"), 3));
+}
+
+TEST_CASE("graphics_options.render_scale")
+{
+    // The window's own size by default; a share of its height below 100 %.
+    REQUIRE(Effects("render_scale", FindGraphicsOption("render_scale")->desktop).at("fx_render_height") == 0);
+    REQUIRE(Effects("render_scale", 75, 1440).at("fx_render_height") == 1080);
+}
+
+TEST_CASE("graphics_options.desktop_full_quality")
+{
+    // Every effect the desktop's defaults draw is on, apart from the ×2 textures (graphics_options.cpp).
+    for (const char *on : {"sun_shadows", "bloom", "sun_shafts", "lens_flare", "sea_wakes", "texture_normal_maps"})
+        REQUIRE(FindGraphicsOption(on)->desktop == FindGraphicsOption(on)->max);
+    REQUIRE(Effects("anti_aliasing", FindGraphicsOption("anti_aliasing")->desktop).at("fx_msaa") == 4);
+}
+
+TEST_CASE("graphics_options.readme")
+{
+    // engine/README.md, "Graphics options", shows this table: on a failure paste the text below over it.
+    std::ifstream file(STORM_ENGINE_README);
+    const std::string readme{std::istreambuf_iterator<char>(file), {}};
+    INFO(GraphicsOptionsMarkdown());
+    REQUIRE(readme.find(GraphicsOptionsMarkdown()) != std::string::npos);
 }
 
 TEST_CASE("script_graphics.display_sizes")

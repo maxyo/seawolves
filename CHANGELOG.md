@@ -17,6 +17,9 @@
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
   обновляется при каждой оплате.
 - Экран склада показывал неверный вес товара и сделки: теперь вес пачки и вес перевозимого товара считаются верно.
+- ПК-сборка: графика больше не начинается с телефонного пресета «Низкая». Каждая возможность движка — своя
+  настройка (сглаживание, тени солнца и ламп, блум, море, рельеф и другие), по умолчанию полное качество, сцена в
+  размер окна; настройки хранятся отдельно для каждой игры.
 
 **English**
 
@@ -34,6 +37,9 @@
   every payment.
 - The storage screen showed a wrong weight for goods and for the deal; a pack and the goods moved now weigh what they
   should.
+- Desktop build: graphics no longer start on the phone preset «Низкая» (Low). Every renderer feature is an option of
+  its own (anti-aliasing, sun and lamp shadows, bloom, the sea, relief and more), full quality by default with the
+  scene at the window's size; the options are kept per game.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -84,9 +84,11 @@ storm_host_check(control_bindings INCLUDES ${src}/libs/pcs_controls/src OPTIONS 
 storm_host_check(speed_colors INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(camera_shake INCLUDES ${src}/libs/renderer/src ${src}/libs/math/include ${glm_headers}
     OPTIONS ${warnings} ${asan_strict} CATCH2)
-storm_host_check(script_graphics INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include
-    ${src}/libs/renderer_bgfx/fx/include ${src}/libs/window/include ${glm_headers}
-    ${src}/libs/scene_environment/include OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(script_graphics SOURCES check.cpp ${src}/libs/renderer/src/graphics_options.cpp
+    INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include
+    ${src}/libs/renderer_bgfx/fx/include ${src}/libs/window/include ${glm_headers} ${fmt_headers}
+    ${src}/libs/scene_environment/include DEFINES FMT_HEADER_ONLY STORM_ENGINE_README="${STORM_ROOT}/README.md"
+    OPTIONS ${warnings} ${asan_strict} CATCH2 INPUTS ${STORM_ROOT}/README.md)
 storm_host_check(android_bench INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include ${fmt_headers}
     DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(android_camera_look INCLUDES ${glm_headers} ${util_include} OPTIONS ${asan} CATCH2)

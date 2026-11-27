@@ -93,6 +93,55 @@ On Linux `settings.json` may also say what the game's store checks would: `"play
 games give a character after the player) and `"owned_apps": [<app id>, ...]` (the add-ons and games the player owns,
 by their store app ids). Nothing is owned unless listed there, except where a game published its add-ons with it.
 
+## Graphics options
+
+On desktop every renderer feature that can be set is an option of its own, kept per game in that game's `engine.ini`
+of the player's settings folder (above) under the option's name. A fresh start draws the defaults below: the full
+quality, the scene at the window's own size. The game's scripts read, set and list them by name
+(`Graphics_GetOption(name)`, `Graphics_SetOption(name, value)` answering 1 taken or 0 refused, and
+`Graphics_ListOptions(&object)` with each option's kind, range, values, default, the value that runs and whether it is
+taken at the next start; script library `GraphicsOptionsScriptLib`); an unknown name reads as -1; it and a value the
+option does not have are refused (0), each an error in the log.
+What a getter answers is what draws: an option the device or another option keeps from running reads as the value that
+does. Caribbean Legend's own `Graphics_*` natives set the same options (`src/libs/renderer/README.md`). On Android the
+app's presets decide and these natives do not exist.
+
+The table is `src/libs/renderer/src/graphics_options.cpp`; `tests/script_graphics` fails when this copy differs and
+prints the current one.
+
+| option | values | desktop default | applies |
+| --- | --- | --- | --- |
+| `render_scale` | the 3D scene's size, % of the window's height (FSR 1 upscale below 100) | 100 | at once |
+| `full_screen` | 0 a window, 1 full screen | 1 | next start |
+| `vsync` | 0 off, 1 in step with the display | 1 | at once |
+| `anti_aliasing` | 0 off, 1 SMAA, 2 MSAA 2x, 3 MSAA 4x (MSAA with alpha to coverage for leaves and rigging) | 3 | at once |
+| `anisotropic_filtering` | 1 off, 2, 4, 8, 16: anisotropic filtering of the world's textures | 16 | at once |
+| `texture_quality` | 0 low, 1 medium, 2 high: the textures from their second mip, their first, their full size | 2 | next start |
+| `sun_shadows` | 0 off, 1 low, 2 soft | 2 | at once |
+| `lamp_shadows` | 0, 8, 16: lamps around the camera that light with their shadows | 16 | at once |
+| `lamps_per_pixel` | 1..8: the most lamps that light one pixel with their shadows | 3 | at once |
+| `ambient_occlusion` | interiors: 0 off, 1 as the game's data, 2 moderate, 3 strong | 2 | at once |
+| `point_lights` | 0 the game's own, 4, 8: lights per draw lit per pixel | 8 | at once |
+| `flash_lights` | 0..8: shots and explosions that light the scene at once | 8 | at once |
+| `specular` | 0 off, 1 highlights of the sun and the lamps (shaped by gloss maps with the normal maps) | 1 | at once |
+| `town_light` | 0 the game's town lightmaps, 1 towns relit for the live sun | 1 | at once |
+| `aerial_perspective` | 0 the game's fog, 1 aerial perspective and height fog | 1 | at once |
+| `bloom` | 0 off, 1 on | 1 | at once |
+| `sun_shafts` | 0 off, 1 on (part of the bloom) | 1 | at once |
+| `lens_flare` | 0 off, 1 the sun's glare | 1 | at once |
+| `tone_mapping` | 0 off, 1 a tone curve | 1 | at once |
+| `colour_grade` | 0 the original, 1 Caribbean (restrained), 2 overcast | 1 | at once |
+| `colour_temperature` | 0..200: 100 the grade's warmth, 0 the coolest, 200 the warmest | 100 | at once |
+| `colour_saturation` | 0..200 % of the grade's saturation | 100 | at once |
+| `sharpen` | 0 off, 1 FSR 1 sharpening after the upscale (render scale below 100) | 1 | at once |
+| `sea_detail` | 0 the game's sea, 1 no shimmer at the horizon and the sun's glint, 2 also soft shores | 2 | at once |
+| `sea_wakes` | 0 off, 1 foam astern and at the bow | 1 | at once |
+| `far_lod` | 0 every model whole, 1..4 pixels a far model's simplified level may differ by | 1 | at once |
+| `wet_surfaces` | 0 off, 1 wet in the rain, 2 also puddles | 2 | at once |
+| `texture_normal_maps` | 0 off, 1 relief from normal maps made of the game's textures (old games only) | 1 | at once |
+| `texture_height_maps` | 0 off, 1 parallax from height maps made with the normal maps (drawn through them) (old games only) | 1 | at once |
+| `texture_upscale` | 0 off, 1 neural x2 textures near the camera (old games only) | 0 | at once |
+
 ## Checks
 
 Before a pull request run `tools/ci/gate.py` ([tools/ci/README.md](tools/ci/README.md)): it builds and checks

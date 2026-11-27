@@ -5,7 +5,6 @@
 #include "core.h"
 #include "renderer_impl.h"
 #include "s_import_func.h"
-#include "storm/render/frame_rate.hpp"
 #include "storm/render/perf_stats.hpp"
 #include "v_file_service.h"
 #include "v_s_stack.h"
@@ -60,8 +59,8 @@ void NotAvailable(const char *native, const char *what)
         spdlog::warn("{}: {}", native, what);
 }
 
-// The game's choices kept by the engine across starts: engine.ini of the player's settings folder, as the game's own
-// engine keeps them.
+// The window's size, kept by the engine across starts: engine.ini of the player's settings folder, as the game's own
+// engine keeps it.
 std::unique_ptr<INIFILE> EngineIni()
 {
     auto ini = fio->OpenIniFile(core.EngineIniFileName());
@@ -85,9 +84,26 @@ void KeepInIni(const char *key, int32_t value)
     }
 }
 
+int Running(const char *option)
+{
+    return RunningGraphicsOption(*FindGraphicsOption(option));
+}
+
+void SetOption(const char *option, int value)
+{
+    SetGraphicsOption(*FindGraphicsOption(option), value);
+}
+
+// The scripts' choices as the engine's options (kept and applied; on Android the app's graphics settings decide).
 uint32_t Apply(VS_STACK *)
 {
-    ApplyScriptGraphics(graphics);
+#ifdef __ANDROID__
+    static bool said = false;
+    if (!std::exchange(said, true))
+        spdlog::info("graphics options of the game's scripts: the app's graphics settings decide on Android");
+#endif
+    for (const auto &[option, value] : ScriptGraphicsOptions(graphics))
+        SetOption(option, value);
     return IFUNCRESULT_OK;
 }
 
@@ -113,20 +129,20 @@ uint32_t SetDynamicShadows(VS_STACK *stack)
 
 uint32_t GetDynamicShadows(VS_STACK *stack)
 {
-    return Return(stack, graphics.lamp_shadows.value_or(3));
+    return Return(stack, Running("lamp_shadows") == 0 ? 0 : graphics.lamp_shadows.value_or(3));
 }
 
 // Characters cast the sun's shadows with everything else: they have them whenever shadows are on.
 uint32_t SetCharacterShadows(VS_STACK *stack)
 {
-    if ((IntArg(stack) != 0) != (graphics.shadows.value_or(2) != 0))
+    if ((IntArg(stack) != 0) != (Running("sun_shadows") != 0))
         NotAvailable("Graphics_SetCharacterShadows", "characters cast shadows exactly when shadows are on");
     return IFUNCRESULT_OK;
 }
 
 uint32_t GetCharacterShadows(VS_STACK *stack)
 {
-    return Return(stack, int32_t{graphics.shadows.value_or(2) != 0});
+    return Return(stack, int32_t{Running("sun_shadows") != 0});
 }
 
 uint32_t SetSSAO(VS_STACK *stack)
@@ -274,15 +290,14 @@ uint32_t SetVSync(VS_STACK *stack)
     if (!on)
         NotAvailable("Graphics_SetVSync", "a phone always presents in step with the display");
 #else
-    render::SetVSync(on);
-    KeepInIni("vsync", on);
+    SetOption("vsync", on);
 #endif
     return IFUNCRESULT_OK;
 }
 
 uint32_t GetVSync(VS_STACK *stack)
 {
-    return Return(stack, int32_t{render::VSync()});
+    return Return(stack, int32_t{Running("vsync")});
 }
 
 uint32_t SetFXAA(VS_STACK *stack)
@@ -357,23 +372,19 @@ uint32_t SetFullScreen(VS_STACK *stack)
 #ifdef __ANDROID__
     NotAvailable("Graphics_SetFullScreen", "the picture fills the phone's screen");
 #else
-    KeepInIni("full_screen", state);
+    SetOption("full_screen", state != 0);
 #endif
     return IFUNCRESULT_OK;
 }
 
 uint32_t GetFullScreen(VS_STACK *stack)
 {
-    return Return(stack, IniValue("full_screen", 0));
+    return Return(stack, KeptGraphicsOption(*FindGraphicsOption("full_screen")));
 }
 
 uint32_t SetAnisotropicFiltering(VS_STACK *stack)
 {
-    const int32_t level = IntArg(stack);
-#ifndef __ANDROID__
-    KeepInIni("anisotropic_filtering", level);
-#endif
-    graphics.anisotropy = level;
+    graphics.anisotropy = IntArg(stack);
     return Apply(stack);
 }
 
@@ -385,7 +396,9 @@ uint32_t PreviewAnisotropicFiltering(VS_STACK *stack)
 
 uint32_t GetAnisotropicFiltering(VS_STACK *stack)
 {
-    return Return(stack, IniValue("anisotropic_filtering", PresetAnisotropy()));
+    // The game's off is 0, ours level 1.
+    const int level = Running("anisotropic_filtering");
+    return Return(stack, level <= 1 ? 0 : level);
 }
 
 // MiB, as the game's own engine answers (the options screen warns when its settings need more). Where the backend
@@ -435,7 +448,7 @@ uint32_t SetTemperature(VS_STACK *stack)
 
 uint32_t GetTemperature(VS_STACK *stack)
 {
-    return Return(stack, graphics.temperature.value_or(0.0f));
+    return Return(stack, static_cast<float>(Running("colour_temperature") - 100) / 100.0f);
 }
 
 uint32_t SetSaturation(VS_STACK *stack)
@@ -446,7 +459,7 @@ uint32_t SetSaturation(VS_STACK *stack)
 
 uint32_t GetSaturation(VS_STACK *stack)
 {
-    return Return(stack, graphics.saturation.value_or(1.0f));
+    return Return(stack, static_cast<float>(Running("colour_saturation")) / 100.0f);
 }
 
 struct Native
@@ -505,13 +518,6 @@ constexpr Native kNatives[] = {
 
 void RegisterScriptGraphics()
 {
-#ifndef __ANDROID__
-    if (const int32_t level = IniValue("anisotropic_filtering", -1); level >= 0)
-    {
-        graphics.anisotropy = level;
-        ApplyScriptGraphics(graphics);
-    }
-#endif
     for (const Native &native : kNatives)
     {
         IFUNCINFO info;

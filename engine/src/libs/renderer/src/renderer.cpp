@@ -3,6 +3,7 @@
 #include "storm/render/pipelines.hpp"
 #include "renderer_impl.h"
 #include "progress_view.hpp"
+#include "graphics_options.hpp"
 #include "script_graphics.hpp"
 #include <platform/android_ui.hpp>
 #include <platform/android_runtime.hpp>
@@ -55,6 +56,7 @@
 #include <spdlog/spdlog.h>
 #include <functional>
 #include <map>
+#include <set>
 #include <optional>
 #include <SDL_rwops.h>
 #include <SDL_timer.h>
@@ -471,38 +473,37 @@ Renderer::Renderer()
 
 namespace
 {
-// Graphics effects (renderer_bgfx/fx): «fx_preset» 0 Низкая / 1 Средняя / 2 Высокая from engine.ini and, on
-// Android, the player's choice in the app, which wins; the individual fx_* options (-1 = the preset's value)
-// are developer keys of engine.ini. STORM_FX_OPTIONS="fx_preset=2,fx_bloom=0" overrides both (measurements);
-// it is logged.
+// Graphics effects (renderer_bgfx/fx). Android: the preset «fx_preset» 0 Низкая / 1 Средняя / 2 Высокая from
+// engine.ini and the player's choice in the app, which wins. Desktop: the player's graphics options
+// (graphics_options.hpp) over «Высокая», or over the preset engine.ini names. The individual fx_* options (-1 = the
+// preset's value) are developer keys of engine.ini over both. STORM_FX_OPTIONS="fx_preset=2,fx_bloom=0" overrides
+// them all (measurements); it is logged.
 int effectsPreset = 0;
-// engine.ini or STORM_FX_OPTIONS named the preset; else it is «Низкая», or on desktop kScriptGraphicsPreset once the
-// game's scripts set their own graphics options (ApplyScriptGraphics).
-bool effectsPresetNamed = false;
-bool scriptGraphicsSet = false;
-// What a game's own options leave out is drawn in full, as its own engine draws it, not as the phone's lowest preset.
-constexpr int kScriptGraphicsPreset = 2;
+#ifndef __ANDROID__
+constexpr int kDesktopPreset = 2;
+// The height of the window the desktop's render scale is a share of (engine.ini screen_y, the window's size).
+uint32_t desktopHeight = 0;
+#endif
 std::vector<storm::render::EffectsOption> effectsOptions;
 // The scene's internal height of the rung below «Низкая» that the automatic preset measured (auto_preset.hpp; the
 // app reports it as fx_auto_render_height only while that automatic choice stands); 0: the preset's own.
 uint16_t effectsAutoHeight = 0;
 
-// «Качество текстур» (fx::TextureQuality: 0 Низкое, 1 Среднее, 2 Высокое): engine.ini texture_quality and, on Android,
-// the player's choice in the app, which wins. Out of range: logged, the default (Высокое).
+#ifdef __ANDROID__
+// «Качество текстур» (fx::TextureQuality: 0 Низкое, 1 Среднее, 2 Высокое): engine.ini texture_quality and the player's
+// choice in the app, which wins. Out of range: logged, the default (Высокое). Desktop: the graphics option.
 int TextureQualitySetting(int ini_value)
 {
-    int value = ini_value;
-#ifdef __ANDROID__
-    value = storm::android::graphicsSetting(storm::app::setting::texture_quality, value);
-#endif
+    const int value = storm::android::graphicsSetting(storm::app::setting::texture_quality, ini_value);
     if (value < 0 || value >= storm::fx::kTextureQualityLevels)
     {
         spdlog::error("graphics: texture quality {} is not one of 0..{}; the default {} is used", value,
                       storm::fx::kTextureQualityLevels - 1, static_cast<int>(storm::fx::kTextureQualityDefault));
-        value = static_cast<int>(storm::fx::kTextureQualityDefault);
+        return static_cast<int>(storm::fx::kTextureQualityDefault);
     }
     return value;
 }
+#endif
 
 // Applies "name=value,..." over `preset` / `options`.
 void ApplyEffectsOverrides(std::string_view list, int &preset, std::vector<storm::render::EffectsOption> &options)
@@ -530,13 +531,24 @@ void ApplyEffectsOverrides(std::string_view list, int &preset, std::vector<storm
     }
 }
 
-// The graphics options of the game's scripts (script_graphics.hpp): under `options`.
-std::vector<storm::render::EffectsOption> scriptEffectsOptions;
+// The desktop's graphics options as effects options: under the developer's.
+std::vector<storm::render::EffectsOption> DesktopEffectsOptions()
+{
+    std::vector<storm::render::EffectsOption> options;
+#ifndef __ANDROID__
+    for (const auto &option : storm::render::GraphicsOptions())
+        if (storm::render::GraphicsOptionOffered(option))
+            for (auto &effect : storm::render::GraphicsOptionEffects(option, storm::render::KeptGraphicsOption(option),
+                                                                     desktopHeight))
+                options.push_back(std::move(effect));
+#endif
+    return options;
+}
 
 // `auto_height` (the measured rung below «Низкая») applies to «Низкая» only; a developer fx_render_height wins.
 void ApplyEffects(int preset, uint16_t auto_height, const std::vector<storm::render::EffectsOption> &options)
 {
-    std::vector<storm::render::EffectsOption> applied = scriptEffectsOptions;
+    std::vector<storm::render::EffectsOption> applied = DesktopEffectsOptions();
     for (const auto &option : options)
     {
         std::erase_if(applied, [&](const auto &script) { return script.name == option.name; });
@@ -557,13 +569,8 @@ std::map<std::string, int> effectsIniValues;
 void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniValue)
 {
     // The preset: engine.ini, and on Android the player's choice in the app, which wins.
-    effectsPresetNamed = iniValue("fx_preset", -1) >= 0;
-    effectsPreset = iniValue("fx_preset", 0);
-#ifndef __ANDROID__
-    if (scriptGraphicsSet && !effectsPresetNamed)
-        effectsPreset = kScriptGraphicsPreset;
-#endif
 #ifdef __ANDROID__
+    effectsPreset = iniValue("fx_preset", 0);
     effectsPreset = storm::android::graphicsSetting(storm::app::setting::fx_preset, effectsPreset);
     effectsAutoHeight = static_cast<uint16_t>(std::clamp(storm::android::graphicsSetting(storm::app::host_fact::fx_auto_render_height, 0), 0, 4320));
     if (effectsAutoHeight > 0 && effectsPreset != 0)
@@ -575,6 +582,9 @@ void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniVa
     else if (effectsAutoHeight > 0)
         spdlog::info("graphics effects: the automatic preset chose «Низкая» at a {}-line scene (the rung below it)",
                      effectsAutoHeight);
+#else
+    effectsPreset = iniValue("fx_preset", kDesktopPreset);
+    desktopHeight = static_cast<uint32_t>(std::max(iniValue("screen_y", 768), 1));
 #endif
     // The single effects (and fx_anisotropy, which the preset decides too) are developer keys of
     // engine.ini; a debuggable Android build also offers some of them on the settings screen
@@ -594,16 +604,14 @@ void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniVa
                 overridden += fmt::format(" {}={}", info.name, value);
             }
         }
+#ifdef __ANDROID__
     // «Обработка текстур» (fx::TextureProcessing): engine.ini texture_normal_maps, texture_height_maps, texture_upscale
-    // (0 off, 1 on) and, on Android, the player's choice in the app, which wins; applied at once like the preset. A key
-    // left out is off (fx::TextureProcessing); another value is logged and left out too.
+    // (0 off, 1 on) and the player's choice in the app, which wins; applied at once like the preset. A key left out is
+    // off (fx::TextureProcessing); another value is logged and left out too. Desktop: graphics options.
     for (const char *name : {storm::app::setting::texture_normal_maps, storm::app::setting::texture_height_maps,
                               storm::app::setting::texture_upscale})
     {
-        int value = iniValue(name, -1);
-#ifdef __ANDROID__
-        value = storm::android::graphicsSetting(name, value);
-#endif
+        int value = storm::android::graphicsSetting(name, iniValue(name, -1));
         if (value < -1 || value > 1)
         {
             spdlog::error("graphics effects: {} {} is not 0 or 1; the preset's default is used", name, value);
@@ -615,11 +623,11 @@ void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniVa
             overridden += fmt::format(" {}={}", name, value);
         }
     }
+#endif
     spdlog::info("graphics effects: preset {}, options:{}", effectsPreset, overridden.empty() ? " none" : overridden);
     if (const char *overrides = std::getenv("STORM_FX_OPTIONS"); overrides && *overrides)
     {
         spdlog::warn("graphics effects: STORM_FX_OPTIONS overrides the settings: {}", overrides);
-        effectsPresetNamed = effectsPresetNamed || std::string_view(overrides).find("fx_preset") != std::string_view::npos;
         ApplyEffectsOverrides(overrides, effectsPreset, effectsOptions);
     }
     ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
@@ -642,6 +650,51 @@ void ConfigureGraphicsEffects(const std::function<int(const char *, int)> &iniVa
     storm::scene_sweep::setIncompleteFrameHook([] { return storm::render::LastIncompleteFrame(); });
 #endif
 }
+#ifndef __ANDROID__
+// The desktop's graphics options (graphics_options.hpp): one that applies live is drawn at once; what runs is what the
+// effects are to draw (EffectsHonour) and the presentation's vsync. One taken at the next start runs as kept then.
+void ConnectGraphicsOptions()
+{
+    using storm::render::GraphicsOption;
+    storm::render::SetGraphicsOptionsRenderer(
+        {.changed =
+             [](const GraphicsOption &option) {
+                 if (option.takes != storm::render::OptionTakes::Live)
+                     return;
+                 if (std::string_view(option.name) == "vsync")
+                     storm::render::SetVSync(storm::render::KeptGraphicsOption(option) != 0);
+                 else
+                     ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
+             },
+         .running = [](const GraphicsOption &option, int kept) {
+             if (option.takes != storm::render::OptionTakes::Live)
+                 return kept;
+             if (std::string_view(option.name) == "vsync")
+                 return int{storm::render::VSync()};
+             const auto runs = [&](int value) {
+                 return storm::render::EffectsHonour(storm::render::GraphicsOptionEffects(option, value, desktopHeight));
+             };
+             if (runs(kept))
+                 return kept;
+             if (option.kind == storm::render::OptionKind::Number)
+             {
+                 for (int value = option.min; value <= option.max; ++value)
+                     if (runs(value))
+                         return value;
+             }
+             else
+                 for (const int value : option.choices)
+                     if (runs(value))
+                         return value;
+             static std::set<std::string> said;
+             if (said.insert(option.name).second)
+                 spdlog::error("graphics options: {} draws none of its values (a developer fx_* key?); {} is shown",
+                               option.name, kept);
+             return kept;
+         }});
+}
+#endif
+
 // «Подробная диагностика» (storm/render/log.hpp DetailedDiagnostics): engine.ini diagnostics_detailed, on Android the
 // player's switch on the About screen, which wins. That screen is the launcher's activity: read again at each return to
 // the foreground.
@@ -1114,30 +1167,6 @@ void ReconfigureGraphicsEffects(int width, int height)
 #endif
 } // namespace
 
-namespace storm::render
-{
-void ApplyScriptGraphics(const ScriptGraphics &graphics)
-{
-#ifdef __ANDROID__
-    static bool said = false;
-    if (!std::exchange(said, true))
-        spdlog::info("graphics options of the game's scripts: the app's graphics settings decide on Android");
-#else
-    if (!std::exchange(scriptGraphicsSet, true) && !effectsPresetNamed)
-    {
-        effectsPreset = kScriptGraphicsPreset;
-        spdlog::info("graphics effects: the game sets its own graphics options, over preset {}", effectsPreset);
-    }
-    scriptEffectsOptions = ScriptGraphicsOptions(graphics);
-    ApplyEffects(effectsPreset, effectsAutoHeight, effectsOptions);
-#endif
-}
-
-int PresetAnisotropy()
-{
-    return storm::fx::Settings::FromPreset(static_cast<storm::fx::QualityPreset>(effectsPreset)).anisotropy;
-}
-} // namespace storm::render
 
 
 static bool texLog = false;
@@ -1209,16 +1238,30 @@ bool Renderer::Init()
         texLog = ini->GetInt(nullptr, "texture_log", 0) == 1;
         bUseLargeBackBuffer = ini->GetInt(nullptr, "UseLargeBackBuffer", 0) != 0;
 
+#ifdef __ANDROID__
         bWindow = ini->GetInt(nullptr, "full_screen", 1) == 0;
+#else
+        bWindow = storm::render::KeptGraphicsOption(*storm::render::FindGraphicsOption("full_screen")) == 0;
+#endif
 
         // The textures' top mips skipped: the texture quality's resolution (fx::TextureDegradation), at this start.
-        nTextureDegradation = storm::fx::TextureDegradation(static_cast<storm::fx::TextureQuality>(
-            TextureQualitySetting(ini->GetInt(nullptr, "texture_quality", static_cast<int>(storm::fx::kTextureQualityDefault)))));
+#ifdef __ANDROID__
+        const int textureQuality = TextureQualitySetting(
+            ini->GetInt(nullptr, "texture_quality", static_cast<int>(storm::fx::kTextureQualityDefault)));
+#else
+        const int textureQuality =
+            storm::render::KeptGraphicsOption(*storm::render::FindGraphicsOption("texture_quality"));
+#endif
+        nTextureDegradation =
+            storm::fx::TextureDegradation(static_cast<storm::fx::TextureQuality>(textureQuality));
         spdlog::info("textures: {} top mip level(s) skipped at this start (the texture quality's resolution)", nTextureDegradation);
         storm::render::ConfigureEffectsGame({.generates_texture_maps = storm::gameProfileFacts().generates_texture_maps});
         ConfigureGraphicsEffects([&ini](const char *name, int fallback) {
             return effectsIniValues[name] = ini->GetInt(nullptr, name, fallback);
         });
+#ifndef __ANDROID__
+        ConnectGraphicsOptions();
+#endif
         diagnosticsDetailedIni = ini->GetInt(nullptr, storm::app::setting::diagnostics_detailed, 0);
         ConfigureDiagnostics();
         // Developer key render_thread = 0: bgfx renders on the game thread (measurements against the render
@@ -1361,7 +1404,7 @@ bool Renderer::Init()
         // there is no player setting for it.
         vSyncEnabled = true;
 #else
-        vSyncEnabled = ini->GetInt(nullptr, "vsync", 0);
+        vSyncEnabled = storm::render::KeptGraphicsOption(*storm::render::FindGraphicsOption("vsync")) != 0;
 #endif
 
         msaa = ini->GetInt(nullptr, "msaa", D3DMULTISAMPLE_NONE);
