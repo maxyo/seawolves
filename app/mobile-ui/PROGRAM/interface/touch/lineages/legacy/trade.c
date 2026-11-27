@@ -28,26 +28,10 @@ aref TouchLegTrade_Row(aref ui, int k)
 	return TouchLib_Item(ui, "model.TABLE_LIST.rows", k);
 }
 
-// The amount window's field: QTY_EDIT, or QTY_EDITBOX in the windows that name it so.
-string TouchLegTrade_Edit(aref model)
+string TouchLegTrade_Key(aref ui, int k)
 {
-	if (CheckAttribute(model, "QTY_EDIT")) return "QTY_EDIT";
-	return "QTY_EDITBOX";
-}
-
-// k of the row the amount window is open on, -1 none.
-int TouchLegTrade_Open(aref model)
-{
-	if (!CheckAttribute(model, TouchLegTrade_Edit(model))) return -1;
-	if (!CheckAttribute(model, "QTY_OK_BUTTON") && !CheckAttribute(model, "QTY_CANCEL_BUTTON")) return -1;
-	aref rows;
-	makearef(rows, model.TABLE_LIST.rows);
-	for (int k = 0; k < GetAttributesNum(rows); k++)
-	{
-		aref row = GetAttributeN(rows, k);
-		if (row.value == "1") return k;
-	}
-	return -1;
+	aref row = TouchLegTrade_Row(ui, k);
+	return row.id;
 }
 
 // rule copy: store.c FillTable tells the trade type only by the colour of the goods name.
@@ -157,36 +141,12 @@ void TouchLegTrade_Rows(aref data, aref model, aref out)
 	}
 }
 
-// The game's category tabs TABBTN_<n> with their captions TABSTR_<n>, pressed on the caption where it takes it, in
-// our short words by position (the binding's data) where it has one.
-string TouchLegTrade_TabNode(aref model, int position)
+// Our short words of the game's category tabs by position (the binding's data).
+aref TouchLegTrade_Words(aref ui)
 {
-	if (CheckAttribute(model, "TABSTR_" + position + ".offers.press")) return "TABSTR_" + position;
-	return "TABBTN_" + position;
-}
-
-void TouchLegTrade_Tabs(aref ui, aref out)
-{
-	aref model;
-	makearef(model, ui.model);
-	aref tabs;
-	makearef(tabs, out.tabs);
-	for (int position = 1; position <= 8; position++)
-	{
-		string caption = "TABSTR_" + position;
-		string button = "TABBTN_" + position;
-		if (CheckAttribute(model, button) && TouchLegLib_Label(model, caption) != "")
-		{
-			aref at = TouchLib_Add(tabs, "t");
-			at.node = TouchLegTrade_TabNode(model, position);
-			at.label = model.(caption).label;
-			string word = "t" + position;
-			if (CheckAttribute(ui, "data.tabs." + word)) at.label = UiText(ui.data.tabs.(word));
-			at.selected = model.(button).value == "1";
-			at.can = UiOffers(at.node, "press");
-		}
-	}
-	if (GetAttributesNum(tabs) == 0) DeleteAttribute(out, "tabs");
+	aref words;
+	makearef(words, ui.data.tabs);
+	return words;
 }
 
 string TouchLegTrade_Buttons[2] = {"DELBODY_BUTTON", "SKULL_BUTTON"};
@@ -250,7 +210,7 @@ void TouchLegTrade_Purse(aref model, aref out)
 void TouchLegTrade_Deal(aref model, int open, aref out)
 {
 	aref row = TouchLib_Item(out, "rows", open);
-	object deal = {row = open, edit = UiOffers(TouchLegTrade_Edit(model), "edit"), confirm = false, reason = "",
+	object deal = {row = open, edit = UiOffers(TouchLegLib_Edit(model), "edit"), confirm = false, reason = "",
 	               title = TouchLegLib_Label(model, "QTY_CAPTION"),
 	               text = TouchLegTrade_WithoutPackLine(TouchLegLib_Label(model, "QTY_GOODS_INFO"), sti(row.pack))};
 	if (CheckAttribute(model, "QTY_OK_BUTTON"))
@@ -267,8 +227,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 {
 	aref data;
 	makearef(data, ui.data);
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	DeleteAttribute(out, "");
 	out.title = TouchLegLib_Label(model, "TITLE");
 	if (out.title == "") out.title = UiOneLine(TouchLegLib_Label(model, "STORECAPTION1"));
@@ -276,7 +235,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 	out.weighs = data.goods;
 	out.pieces = data.pieces;
 	TouchLegTrade_Rows(data, model, out);
-	int open = TouchLegTrade_Open(model);
+	int open = TouchLegLib_Window(model);
 	if (open >= 0) TouchLegTrade_Deal(model, open, out);
 	// a side switch closes an open deal with the game's cancel first
 	aref sides;
@@ -284,7 +243,7 @@ void TouchAdpTrade_State(aref ui, aref out)
 	TouchLegLib_Choices(model, data.owners, sides);
 	out.switch = open < 0;
 	if (open >= 0) out.switch = UiOffers("QTY_CANCEL_BUTTON", "press");
-	TouchLegTrade_Tabs(ui, out);
+	TouchLegLib_Tabs(model, TouchLegTrade_Words(ui), out);
 	out.carry = TouchLegLib_Label(model, "CAPACITY");
 	out.place = TouchLegLib_Label(model, "STORE_CAPACITY");
 	out.storage = TouchLegLib_Label(model, "STORAGE_INFO");
@@ -322,9 +281,8 @@ bool TouchLegTrade_Follow(aref ui, aref out)
 		if (side >= 0) return TouchLegTrade_Switch(ui, side); // a side chosen while it was on its way
 		row = TouchLib_Item(out, "rows", open);
 		if (step == "open" || row.key != asked || !sti(out.deal.edit) || !sti(out.deal.confirm)) return false;
-		aref model;
-		makearef(model, ui.model);
-		TouchLegLib_Confirm(TouchLegTrade_Edit(model), "QTY_OK_BUTTON", sti(row.other), asked);
+		aref model = TouchLegLib_Model(ui);
+		TouchLegLib_Confirm(model, sti(row.other), asked);
 		return true;
 	}
 	// "again": the row of the confirmed deal, still selected; "settle": the goods of the old side's deal, else the row
@@ -342,30 +300,20 @@ bool TouchLegTrade_Follow(aref ui, aref out)
 	return TouchLegTrade_Activate(ui, chosen) && answer != "late";
 }
 
-// A row as the player's tap on it: activated where it offers it (step "open"), else selected; true for a window.
+// A row opened as the player's tap opens it (step "open" for its window); true when a window comes.
 bool TouchLegTrade_Activate(aref ui, int k)
 {
-	aref row = TouchLegTrade_Row(ui, k);
-	string verb = "select";
-	if (CheckAttribute(row, "offers.activate")) verb = "activate";
-	object action = {node = "TABLE_LIST", row = row.index, verb = verb, value = row.id};
-	UiSendTo(&action);
-	if (verb == "select") return false;
-	TouchLegTrade_Step("open", row.id, "", -1);
+	if (!TouchLegLib_Open(TouchLegLib_Model(ui), k)) return false;
+	TouchLegTrade_Step("open", TouchLegTrade_Key(ui, k), "", -1);
 	return true;
 }
 
-// The open window closed with the game's cancel, guarded by its row; the row's name, "" for none open.
+// The open window closed with the game's cancel; the name of its goods, "" for none open.
 string TouchLegTrade_Cancel(aref ui)
 {
-	aref model;
-	makearef(model, ui.model);
-	int open = TouchLegTrade_Open(model);
+	int open = TouchLegLib_Cancel(TouchLegLib_Model(ui));
 	if (open < 0) return "";
-	aref row = TouchLegTrade_Row(ui, open);
-	object action = {node = "QTY_CANCEL_BUTTON", verb = "press", value = "", guard = row.id};
-	UiSendTo(&action);
-	return TouchLegLib_Cell(row, sti(ui.data.name));
+	return TouchLegLib_Cell(TouchLegTrade_Row(ui, open), sti(ui.data.name));
 }
 
 // A row tapped while the game switches sides (its rows are still the old side's) opens by its goods once it has.
@@ -388,25 +336,23 @@ void TouchAdpTrade_Close(aref ui)
 
 void TouchAdpTrade_Commit(aref ui, int amount, bool stay)
 {
-	aref model;
-	makearef(model, ui.model);
-	int open = TouchLegTrade_Open(model);
+	aref model = TouchLegLib_Model(ui);
+	int open = TouchLegLib_Window(model);
 	if (open < 0) UiError("trade: a deal is confirmed with no amount window open");
 	aref row = TouchLegTrade_Row(ui, open);
 	string key = row.id;
-	TouchLegLib_Confirm(TouchLegTrade_Edit(model), "QTY_OK_BUTTON", amount, key);
+	TouchLegLib_Confirm(model, amount, key);
 	if (stay) TouchLegTrade_Step("again", key, "", -1);
 }
 
 void TouchAdpTrade_Take(aref ui, int row)
 {
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	aref at = TouchLegTrade_Row(ui, row);
-	if (TouchLegTrade_Open(model) == row)
+	if (TouchLegLib_Window(model) == row)
 	{
 		int all = TouchLegLib_Amount(at, sti(ui.data.other), "the other amount column");
-		TouchLegLib_Confirm(TouchLegTrade_Edit(model), "QTY_OK_BUTTON", all, at.id);
+		TouchLegLib_Confirm(model, all, at.id);
 		return;
 	}
 	TouchLegTrade_Cancel(ui);
@@ -429,8 +375,7 @@ void TouchAdpTrade_Side(aref ui, int side)
 bool TouchLegTrade_Switch(aref ui, int side)
 {
 	string name = TouchLegTrade_Cancel(ui);
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	aref rows;
 	makearef(rows, model.TABLE_LIST.rows);
 	for (int k = 0; k < GetAttributesNum(rows); k++)
@@ -446,7 +391,7 @@ bool TouchLegTrade_Switch(aref ui, int side)
 void TouchAdpTrade_Category(aref ui, int tab)
 {
 	object state;
-	TouchLegTrade_Tabs(ui, &state);
+	TouchLegLib_Tabs(TouchLegLib_Model(ui), TouchLegTrade_Words(ui), &state);
 	aref at = TouchLib_Item(&state, "tabs", tab);
 	UiSend(at.node, "press", "");
 }
@@ -454,8 +399,7 @@ void TouchAdpTrade_Category(aref ui, int tab)
 void TouchAdpTrade_Press(aref ui, int button)
 {
 	object state;
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	TouchLegTrade_Places(model, &state);
 	aref at = TouchLib_Item(&state, "buttons", button);
 	UiSend(at.node, "press", "");
@@ -464,8 +408,7 @@ void TouchAdpTrade_Press(aref ui, int button)
 void TouchAdpTrade_TakeAll(aref ui)
 {
 	object state;
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	TouchLegTrade_Places(model, &state);
 	UiSend(state.takeAll.node, "press", "");
 }
@@ -476,9 +419,8 @@ void TouchAdpTrade_Leave(aref ui)
 	TouchLegTrade_Step("", "", "", -1);
 	string exit = "";
 	if (CheckAttribute(ui, "model.EXIT_BTN")) exit = "EXIT_BTN";
-	aref model;
-	makearef(model, ui.model);
-	if (TouchLegTrade_Open(model) >= 0) UiBack(exit);
+	aref model = TouchLegLib_Model(ui);
+	if (TouchLegLib_Window(model) >= 0) UiBack(exit);
 	UiBack(exit);
 }
 
@@ -503,8 +445,7 @@ float TouchAdpTrade_Weight(aref ui, int row, int amount)
 // the purse its total, and cuts it down past that; both grow with the amount, so the largest that passes is halved to.
 void TouchAdpTrade_Reach(aref ui, int row, aref out)
 {
-	aref model;
-	makearef(model, ui.model);
+	aref model = TouchLegLib_Model(ui);
 	aref at = TouchLegTrade_Row(ui, row);
 	int other = TouchLegLib_Amount(at, sti(ui.data.other), "the other amount column");
 	out.give = TouchLegLib_Amount(at, sti(ui.data.own), "the own amount column");
