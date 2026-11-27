@@ -100,7 +100,7 @@ void TouchAdpTradebook_Section(aref ui, string section)
 
 void TouchAdpTradebook_Leave(aref ui)
 {
-	string exit = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) exit = "EXIT_BTN";
-	UiBack(exit);
+	string leave = "";
+	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
+	UiBack(leave);
 }

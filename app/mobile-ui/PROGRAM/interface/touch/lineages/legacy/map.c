@@ -291,7 +291,7 @@ void TouchAdpMap_Choose(aref ui, int map)
 // A window without its exit button (MapBest's model has none) is left the game's own way, by its back.
 void TouchAdpMap_Leave(aref ui)
 {
-	string exit = ui.data.exit;
-	if (!CheckAttribute(ui, "model." + exit)) exit = "";
-	UiBack(exit);
+	string leave = ui.data.exit;
+	if (!CheckAttribute(ui, "model." + leave)) leave = "";
+	UiBack(leave);
 }

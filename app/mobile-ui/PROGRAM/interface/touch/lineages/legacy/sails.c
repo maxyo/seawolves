@@ -62,8 +62,8 @@ void TouchAdpSails_Work(aref ui)
 
 void TouchAdpSails_Leave(aref ui)
 {
-	string exit = "";
-	if (CheckAttribute(ui, "model.B_CANCEL")) exit = "B_CANCEL";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) exit = "EXIT_BTN";
-	UiBack(exit);
+	string leave = "";
+	if (CheckAttribute(ui, "model.B_CANCEL")) leave = "B_CANCEL";
+	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
+	UiBack(leave);
 }

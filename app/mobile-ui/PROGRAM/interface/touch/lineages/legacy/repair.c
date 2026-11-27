@@ -101,8 +101,8 @@ void TouchAdpRepair_Do(aref ui)
 
 void TouchAdpRepair_Leave(aref ui)
 {
-	string exit = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) exit = "EXIT_BTN";
-	if (CheckAttribute(ui, "model.REPAIR_CANCEL")) exit = "REPAIR_CANCEL";
-	UiBack(exit);
+	string leave = "";
+	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
+	if (CheckAttribute(ui, "model.REPAIR_CANCEL")) leave = "REPAIR_CANCEL";
+	UiBack(leave);
 }
