@@ -21,14 +21,16 @@ enum class FfFamily : uint8_t
 
 struct FfFamilyRow
 {
-    bool lit;  // fs_ff_lit.sc, else fs_ff_baked.sc
+    bool lit;  // fs_ff_lit.sc or fs_ff_pbr.sc, else fs_ff_baked.sc
+    bool pbr;  // fs_ff_pbr.sc: a game's own materials
     bool room; // an interior kind: specialised programs only
     FfBlocks blocks;
 };
 inline constexpr std::array<FfFamilyRow, @FF_FAMILY_COUNT@> kFfFamilyRows{{
 @FF_FAMILY_ROWS@}};
 
-// Indices along the axes: specular, relief (none, normal map, normal map with parallax), sun shadow.
+// Indices along the axes: specular, relief (none, normal map, normal map with parallax), sun shadow. The pbr entry's
+// programs all have the specular and none the parallax (shaders/ff_programs.cmake).
 inline constexpr size_t kFfSpecularVariants = @FF_SPECULAR_COUNT@;
 inline constexpr size_t kFfReliefVariants = @FF_RELIEF_COUNT@;
 inline constexpr size_t kFfShadowVariants = @FF_SHADOW_COUNT@;

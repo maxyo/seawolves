@@ -76,8 +76,8 @@ file(GLOB shader_sources CONFIGURE_DEPENDS shaders/*.sc shaders/ports/*.sc)
 list(FILTER shader_sources EXCLUDE REGEX "varying\\.def\\.sc$")
 # The lit and baked programs of the fixed-function emulator, the specialised ones, their C++ table (the generated
 # effects/ff_programs.hpp) and the setups' constants (generated shaders/ff_setups.sh) come from one table,
-# shaders/ff_programs.cmake. fs_ff_lit.sc / fs_ff_baked.sc are compiled only through it.
-list(FILTER shader_sources EXCLUDE REGEX "/fs_ff_(lit|baked)\\.sc$")
+# shaders/ff_programs.cmake. fs_ff_lit.sc / fs_ff_baked.sc / fs_ff_pbr.sc are compiled only through it.
+list(FILTER shader_sources EXCLUDE REGEX "/fs_ff_(lit|baked|pbr)\\.sc$")
 include(cmake/ff_program_table.cmake)
 storm_ff_program_table(ff_fx_variants ff_plain_twins "${CMAKE_CURRENT_BINARY_DIR}/generated/effects/ff_programs.hpp"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/shaders/ff_setups.sh")

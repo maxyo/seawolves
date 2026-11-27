@@ -84,6 +84,7 @@ Settings Settings::FromPreset(QualityPreset preset)
         s.lamp_filtered = 2;
         s.lamp_reach_light = s.lamp_shadow_light = 2.0f / 255.0f; // no visible change
         s.wet_surfaces = 1;
+        s.material_maps = true;
         return s;
     }
     s.render_height = kHighRenderHeight;
@@ -121,6 +122,7 @@ Settings Settings::FromPreset(QualityPreset preset)
     s.lamp_filtered = 3;
     s.lamp_reach_light = s.lamp_shadow_light = 2.0f / 255.0f;
     s.wet_surfaces = 2;
+    s.material_maps = true;
     return s;
 }
 

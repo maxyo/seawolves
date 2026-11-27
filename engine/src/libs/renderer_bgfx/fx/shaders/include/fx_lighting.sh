@@ -15,6 +15,8 @@
 //   FX_LIGHT_NORMALMAP    relief from a normal map derived from the game's height ("bump") texture of texture
 //                         stage 1 or the colour texture of stage 0 (fx/normal_map.hpp); no mesh tangents needed
 //   FX_LIGHT_PARALLAX     with FX_LIGHT_NORMALMAP: parallax occlusion mapping from the relief's height (stage 0 maps)
+//   FX_FF_PBR             the material programs (fs_ff_pbr.sc): GGX highlights (fxSpecLobe), the game's material map at
+//                         stage 7, its normal map at stage 14 with FX_LIGHT_NORMALMAP
 // Run-time switch of the same programs (a uniform, not a variant: no program to compile or link for it):
 //   u_fxLight[5].w = 1    lights are summed in linear light (fxLinear, kLightingLinear): overlapping lights no
 //                         longer burn out and the terminator is soft. Combine with fxLit() / fxAddSpecular().
@@ -134,6 +136,18 @@ float fxSpecLobe(vec3 N, vec3 V, vec3 L, vec2 spec)
     vec3 halfVector = L + V; // a light straight behind the surface (L = -V) has no half vector: no highlight, never NaN
     vec3 H = halfVector * inversesqrt(max(dot(halfVector, halfVector), 1e-12));
     float nh = max(dot(N, H), 0.0);
+#ifdef FX_FF_PBR
+    // The material programs (fs_ff_pbr.sc): spec = (roughness, strength). Cook-Torrance with GGX's distribution,
+    // alpha = roughness^2, and the Smith-Schlick visibility with k = (roughness + 1)^2 / 8 (Karis 2013, "Real Shading
+    // in Unreal Engine 4"); the caller applies the Fresnel. Times pi as the water film's lobe below.
+    float a = spec.x * spec.x;
+    float nl = max(dot(N, L), 0.0);
+    float nv = max(dot(N, V), 1e-4);
+    float r = a / (nh * nh * (a * a - 1.0) + 1.0);
+    float k = (spec.x + 1.0) * (spec.x + 1.0) * 0.125;
+    float vis = 0.25 / ((nl * (1.0 - k) + k) * (nv * (1.0 - k) + k));
+    return r * r * vis * nl * spec.y;
+#else
 #ifdef FX_FF_WET
     if (spec.x < 0.0)
     {
@@ -147,6 +161,7 @@ float fxSpecLobe(vec3 N, vec3 V, vec3 L, vec2 spec)
     }
 #endif
     return pow(nh, spec.x) * spec.y;
+#endif
 }
 
 // The sun's highlight (the baked variants use it too: their bake holds the sun's light, not its highlight).
@@ -212,10 +227,23 @@ vec3 fxRim(vec3 N, vec3 V)
 }
 #endif // FX_LIGHT_PER_PIXEL
 
-#if defined(FX_LIGHT_PARALLAX) || defined(FX_LIGHT_SPECULAR)
+#if defined(FX_LIGHT_PARALLAX) || defined(FX_LIGHT_SPECULAR) || defined(FX_FF_PBR)
 // Sampler stage 7 (fx::kMaterialStage): the material texture, EAC RG11 with mips: R the relief's height (1 = the top,
-// fx/height_map.hpp: the parallax and the cavity), G the gloss (fx/gloss_map.hpp: the highlights).
+// fx/height_map.hpp: the parallax and the cavity), G the gloss (fx/gloss_map.hpp: the highlights). In the material
+// programs the game's own map: R roughness, G metal, B occlusion.
 SAMPLER2D(s_fxMaterial, 7);
+#endif
+
+#ifdef FX_FF_PBR
+// The split sum's environment term for an F0, roughness and N.V without its table: the analytic fit of Karis,
+// "Physically Based Shading on Mobile" (2014).
+vec3 fxEnvSpecular(vec3 F0, float roughness, float nv)
+{
+    vec4 r = roughness * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+    float a004 = min(r.x * r.x, exp2(-9.28 * nv)) * r.x + r.y;
+    vec2 ab = vec2(-1.04, 1.04) * a004 + r.zw;
+    return F0 * ab.x + vec3_splat(ab.y);
+}
 #endif
 
 #ifdef FX_LIGHT_NORMALMAP

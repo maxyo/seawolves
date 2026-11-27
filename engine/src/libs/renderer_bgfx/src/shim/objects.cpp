@@ -215,6 +215,7 @@ texture::Layout layout_of(const TexStore &store)
     layout.height = store.height;
     layout.levels = store.levels;
     layout.faces = store.faces();
+    layout.texels = store.material_map ? texture::TexelSpace::Data : texture::TexelSpace::Colour;
     return layout;
 }
 

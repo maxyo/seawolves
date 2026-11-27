@@ -191,14 +191,15 @@ std::string describe(const fx::Settings &s)
     snprintf(text, sizeof(text),
              "tonemap=%d bloom=%d(1/%u,%u) shafts=%d smaa=%d scene_height=%u sharpen=%d(%.2f) dither=%d flare=%d "
              "scene_grading=%d grade=%d msaa=%u a2c=%d aniso=%u prepass=%d sea=%d%d%d turbidity=%d wakes=%d shadows=%d "
-             "lighting=0x%x parallax=%d(%.2f, shadow %d, cavity %d) characters=%d(%.2f) wet=%u flashes=%u",
+             "lighting=0x%x parallax=%d(%.2f, shadow %d, cavity %d) characters=%d(%.2f) wet=%u flashes=%u "
+             "materials=%d(maps %d)",
              s.tonemap, s.bloom, s.bloom_downscale, s.bloom_levels, s.sun_shafts, s.smaa, s.render_height, s.sharpen,
              static_cast<double>(s.sharpness), s.dither, s.lens_flare, s.scene_grading, static_cast<int>(s.grade),
              s.msaa, s.alpha_to_coverage, s.anisotropy, s.depth_prepass, s.sea_band_limit, s.sea_soft_edges,
              s.sea_specular, s.sea_turbidity, s.sea_wakes, static_cast<int>(s.shadows), s.lighting_flags,
              static_cast<int>(s.parallax), static_cast<double>(s.parallax_strength), s.parallax_shadow, s.relief_cavity,
              static_cast<int>(s.character_relief), static_cast<double>(s.character_relief_strength), s.wet_surfaces,
-             s.flash_lights);
+             s.flash_lights, s.material_programs, s.material_maps);
     return text;
 }
 } // namespace
@@ -303,6 +304,7 @@ void Host::apply()
         processing = {};
     }
     fx::ApplyTextureProcessing(requested_, processing);
+    requested_.material_programs = !game_.generates_texture_maps;
     bool profile = false;
     caps_profile_ = fx::CapsProfile::Device;
     for (const auto &option : options_)
@@ -913,6 +915,28 @@ void EffectsSceneComplete()
 void SetEffectsTechnique(const char *name)
 {
     effects::Host::instance().lighting().set_technique(name);
+}
+
+void SetEffectsSurfaceMaterial(const EffectsSurfaceMaterial *material)
+{
+    effects::Host::instance().lighting().set_surface(material);
+}
+
+void DeclareMaterialMap(storm::shim::BaseTexture *texture)
+{
+    shim::TexStore *store = shim::store_of(texture);
+    if (!store || store->material_map)
+        return;
+    if (bgfx::isValid(store->handle))
+        render::Log().error("effects: {} was drawn as colour before it was declared a material map: its mips stay "
+                            "colour's",
+                            store->name);
+    store->material_map = true;
+}
+
+void SetEffectsSceneLight(const EffectsSceneLight &light)
+{
+    effects::Host::instance().lighting().set_scene_light(light);
 }
 
 void SetEffectsSeaFrame(const EffectsSeaFrame &frame)

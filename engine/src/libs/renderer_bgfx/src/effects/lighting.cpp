@@ -231,7 +231,7 @@ FfChoice ChooseProgram(const DrawFacts &facts)
     for (size_t f = 0; f < kFfFamilyRows.size(); ++f)
     {
         const FfFamilyRow &row = kFfFamilyRows[f];
-        if (row.lit != facts.lit || row.room)
+        if (row.lit != facts.lit || row.pbr != facts.pbr || row.room)
             continue;
         if (!widest || width(row.blocks) > width(kFfFamilyRows[*widest].blocks))
             widest = f;
@@ -482,6 +482,17 @@ bool Lighting::prepare_programs(shim::Device &device, const fx::Settings &settin
                 return false;
         }
     }
+    // A game's own materials draw on every preset: their families' programs at the preset's axes.
+    if (settings.material_programs)
+        for (size_t f = 0; f < kFfFamilyRows.size(); ++f)
+        {
+            if (!kFfFamilyRows[f].pbr || (kFfFamilyRows[f].blocks.lamps && !v.possible.lamps && !v.possible.ao))
+                continue;
+            for (int n = 0; n <= (settings.material_maps ? 1 : 0); ++n)
+                for (const uint32_t vs : {vs_lit_, vs_lit_skin_})
+                    if (!device.prepare_program(vs, fs_[f][1][n][v.shadow], budget))
+                        return false;
+        }
     if (per_pixel && settings.lamp_shadows &&
         !(casters_.prepare_programs(device, Casters::Pass::Lamp, budget) &&
           LampShadows::prepare_programs(device, settings, budget)))
@@ -589,6 +600,11 @@ void Lighting::prepare(const shim::Device &device, const shim::LayoutInfo &layou
                shim::store_of(device.s.textures[0]),
                device.rt ? device.rt->store.get() : nullptr};
     classify_draw(p);
+    if (surface_ && layout.has_normal && cube_variant == 0)
+    {
+        prepare_material(p);
+        return;
+    }
     select_baked_lights(p);
     select_relief(p);
     select_gloss(p);
@@ -613,7 +629,7 @@ void Lighting::prepare(const shim::Device &device, const shim::LayoutInfo &layou
     const int relief = choose_relief_variant(p, two_sided);
     const bool baked_specular = apply_gloss(p);
     if (p.lit)
-        finish_lit(p, lights, relief);
+        finish_lit(p, lights, relief, budget_);
     else
         finish_baked(p, lights, relief, baked_specular);
 }
@@ -1126,8 +1142,8 @@ bool Lighting::apply_gloss(DrawPrep &p)
     return p.specular && ((gloss_ && glossy) || p.wet);
 }
 
-// A lit draw: its point lights and flashes, the sun's shadow and the program.
-void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief)
+// A lit draw: its point lights (up to `budget`) and flashes, the sun's shadow and the program.
+void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief, int budget)
 {
     const shim::Device &device = p.device;
     FfDraw &draw = p.draw;
@@ -1141,15 +1157,15 @@ void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief)
     const DrawSphere &sphere = p.sphere_source.get();
     const glm::vec3 center = sphere.valid ? sphere.center : glm::vec3{w.m[3][0], w.m[3][1], w.m[3][2]};
     fx::LightSelection flashes;
-    if (!flash_lights_.empty() && budget_ > 1)
+    if (!flash_lights_.empty() && budget > 1)
     {
-        flashes = fx::SelectLights(device_flash_lights_, center, sphere.valid ? sphere.radius : 0.0f, budget_ / 2, true,
-                                   true);
+        flashes =
+            fx::SelectLights(device_flash_lights_, center, sphere.valid ? sphere.radius : 0.0f, budget / 2, true, true);
         if (flashes.count > 0)
             ++frame_.flashed;
     }
     fx::LightSelection selection;
-    if (budget_ > 0 && point_count > 0)
+    if (budget > 0 && point_count > 0)
     {
         uint8_t picked = 0;
         // Lights left out stay in the vertex sum, so the choice is not faded; it depends only on where the
@@ -1162,7 +1178,7 @@ void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief)
         const int exact_budget =
             std::any_of(points, points + point_count, [](const auto &light) { return light.aggregate.get(); })
                 ? fx::kMaxPointLights
-                : budget_;
+                : budget;
         selection = select(std::span(points, point_count), center, sphere.valid ? sphere.radius : 0.0f,
                            exact_budget - flashes.count, false, &picked);
         for (size_t i = 0; i < point_count; ++i)
@@ -1189,12 +1205,53 @@ void Lighting::finish_lit(DrawPrep &p, const DrawLights &lights, int relief)
             shadows_.prepare(const_cast<shim::Device &>(device), draw.view, origin_, casters_, shadow_casters_);
     }
     choose_program(p, {.lit = true,
+                       .pbr = draw.pbr,
                        .needs = {.lamps = draw.lamps, .ao = draw.ao, .wet = p.wet},
                        .specular = specular,
                        .relief = static_cast<uint8_t>(relief),
                        .shadow = draw.shadow_variant});
     frame_.shadowed += draw.shadow ? 1 : 0;
     ++frame_.lit;
+}
+
+// A game's own material (render::EffectsSurfaceMaterial), on every preset: lit per pixel by the sun, the ambient, the
+// point lights (at least kMaterialPointLights: the material programs read no vertex sum to leave the others in) and
+// the lamps, in linear light, with its highlights; its normal map with Settings::material_maps.
+void Lighting::prepare_material(DrawPrep &p)
+{
+    constexpr int kMaterialPointLights = 4; // «Средняя»'s per-pixel lights
+    const render::EffectsSurfaceMaterial &surface = *surface_;
+    FfDraw &draw = p.draw;
+    p.lit = true;
+    p.per_pixel = true;
+    p.specular = true;
+    p.ao = ao_volume_ && p.target && p.target == p.picture;
+    if (!begin_variant(p))
+        return;
+    DrawLights lights;
+    gather_device_lights(p, lights);
+    compute_light_terms(p, lights);
+    // The material's own light: no wrap, rim, translucency or desaturation of the legacy materials; linear light; the
+    // game's normal map at full strength. The ambient flat where the preset has no hemisphere.
+    auto &u = draw.light.u_fxLight;
+    u[2][3] = u[3][3] = 0.0f;
+    if (!(flags_ & fx::kLightingHemisphere))
+        for (int i = 0; i < 3; ++i)
+            u[3][i] = u[4][i] = lights.input.ambient[i];
+    u[5] = {1.0f, 0.0f, 0.0f, 1.0f};
+    draw.ff = {};
+    if (!scene_light_set_ && render::Once(scene_light_reported_))
+        render::Log().warn("effects: a material draw before any scene light: sun, ambient, exposure and emission 1");
+    const bool normal = settings_.material_maps && surface.normal;
+    draw.pbr = true;
+    draw.pbr_maps = {normal ? surface.normal : nullptr, surface.rma, surface.emission};
+    const bool occlusion = surface.occlusion_uv1 && p.device.s.textures[1];
+    draw.pbr_uniform = {
+        surface.roughness,         surface.metallic,
+        surface.rma ? 1.0f : 0.0f, occlusion ? 1.0f : 0.0f,
+        scene_light_.sun,          scene_light_.ambient,
+        scene_light_.exposure,     surface.emission ? surface.emission_strength * scene_light_.emission : 0.0f};
+    finish_lit(p, lights, normal ? 1 : 0, std::max(budget_, kMaterialPointLights));
 }
 
 // A baked draw: its dynamic lights, the town wall's or the ground's sun shadows and the program.
@@ -1473,6 +1530,17 @@ void Lighting::submit(const FfDraw &draw)
     bgfx::setUniform(u_gloss_, draw.gloss.data());
     if (bgfx::isValid(draw.material))
         fx_.BindMaterial(draw.material, draw.material_flags);
+    if (draw.pbr)
+    {
+        if (!bgfx::isValid(u_pbr_))
+        {
+            u_pbr_ = bgfx::createUniform("u_fxPbr", bgfx::UniformType::Vec4, 2);
+            s_emission_ = bgfx::createUniform("s_fxEmission", bgfx::UniformType::Sampler);
+        }
+        bgfx::setUniform(u_pbr_, draw.pbr_uniform.data(), 2);
+        if (bgfx::isValid(draw.emission))
+            bgfx::setTexture(fx::kEmissionStage, s_emission_, draw.emission, draw.emission_flags);
+    }
     if (draw.parallax_variant)
         fx_.SetParallax(draw.parallax);
     if (draw.shadow)
@@ -1793,9 +1861,9 @@ void Lighting::shutdown()
         bgfx::destroy(visibility_open_);
     visibility_open_ = BGFX_INVALID_HANDLE;
     ao_open_ = BGFX_INVALID_HANDLE;
-    for (bgfx::UniformHandle *u :
-         {&u_coverage_, &u_ff_, &u_wet_, &u_gloss_, &u_skin_tone_, &u_aerial_up_, &s_ao_volume_, &u_ao_matrix_,
-          &u_ao_params_, &s_visibility_, &u_visibility_matrix_, &u_visibility_params_, &u_town_wall_})
+    for (bgfx::UniformHandle *u : {&u_coverage_, &u_ff_, &u_wet_, &u_gloss_, &u_skin_tone_, &u_aerial_up_,
+                                   &s_ao_volume_, &u_ao_matrix_, &u_ao_params_, &s_visibility_, &u_visibility_matrix_,
+                                   &u_visibility_params_, &u_town_wall_, &u_pbr_, &s_emission_})
     {
         if (bgfx::isValid(*u))
             bgfx::destroy(*u);

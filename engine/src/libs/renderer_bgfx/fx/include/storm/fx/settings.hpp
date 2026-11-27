@@ -35,6 +35,9 @@ inline constexpr uint8_t kNormalMapStage = 14;
 // gloss_map.hpp) in the lit and baked programs: unit 7 is the stage-2 cube of the plain fixed-function cube variants,
 // which those programs never are (cube-mapped draws keep the fixed-function path).
 inline constexpr uint8_t kMaterialStage = 7;
+// The emission of a game's own material (fs_ff_pbr.sc): the unit of stage 2, which a material's draw does not read
+// (its colour is stage 0's, its occlusion stage 1's), so it is no claim of kFxStages.
+inline constexpr uint8_t kEmissionStage = 2;
 // The point lights' and lamps' aggregate payload (fx_lighting.sh s_fxAggregate): the unit of the stage 1 cube map.
 inline constexpr uint8_t kAggregateStage = 6;
 // Every unit above, with the emulator's own stages 0..4 (and the renderer's bone palette at 13, shim/device.hpp),
@@ -230,6 +233,10 @@ struct Settings
     // A fixed-function draw whose stage setup has a specialised program (shaders/ff_programs.cmake) takes it; the
     // same picture as its general program, without the stage interpreter. Every preset.
     bool ff_specialised = true;
+    // A game's own materials (renderer_bgfx README, "Materials"): the game ships them (render::EffectsGame), so their
+    // programs are prepared with the preset's; and whether they draw their normal maps («Средняя», «Высокая»).
+    bool material_programs = false;
+    bool material_maps = false;
 
     static Settings FromPreset(QualityPreset preset);
 

@@ -3,7 +3,8 @@
 // with its opaque twin, and every program of the generated table is chosen for some draw. A specialised program is
 // chosen only for its setup and with the option on, of the draw's family or indoors of an interior kind within it. The
 // matcher (FindSetup) compares every code of every stage, the stage count and the point sprite; a plain draw takes a
-// specialised program of its entry, fs_ff or fs_ff_dyn, and of no other variant (ChoosePlainProgram). No GPU.
+// specialised program of its entry, fs_ff or fs_ff_dyn, and of no other variant (ChoosePlainProgram). A game's own
+// material takes a program of the pbr entry, which no other draw takes. No GPU.
 #include "device.hpp"
 #include "effects/lighting.hpp"
 
@@ -47,6 +48,29 @@ bool embedded_with_twin(const char *name)
 TEST_CASE("every draw's program is the narrowest embedded one, and every program is some draw's")
 {
     std::set<std::string> chosen;
+    // A game's own material: the pbr entry's narrowest family, with the highlights, the normal map or none, the sun
+    // shadow or none.
+    for (int bits = 0; bits < 4; ++bits)
+        for (uint8_t relief = 0; relief <= 1; ++relief)
+            for (const bool shadow : {false, true})
+            {
+                const FfBlocks needs{.lamps = (bits & 1) != 0, .ao = (bits & 2) != 0};
+                const effects::FfChoice choice = effects::ChooseProgram(
+                    {.lit = true, .pbr = true, .needs = needs, .specular = true, .relief = relief, .shadow = shadow});
+                const effects::FfProgramRow *row = row_of(choice.program);
+                INFO("material blocks " << bits << " relief " << int(relief) << " shadow " << shadow);
+                REQUIRE(row != nullptr);
+                INFO(row->name);
+                const effects::FfFamilyRow &family = effects::kFfFamilyRows[size_t(choice.program.family)];
+                CHECK(family.pbr);
+                CHECK(holds(family.blocks, needs));
+                for (const effects::FfFamilyRow &other : effects::kFfFamilyRows)
+                    if (other.pbr && holds(other.blocks, needs))
+                        CHECK_FALSE((holds(family.blocks, other.blocks) && !holds(other.blocks, family.blocks)));
+                CHECK_FALSE(choice.specialised);
+                CHECK(embedded_with_twin(row->name));
+                chosen.insert(row->name);
+            }
     std::vector<std::optional<uint8_t>> setups{std::nullopt};
     for (const effects::FfSetupRow &row : effects::kFfSetupRows)
         setups.push_back(row.id);
@@ -88,10 +112,12 @@ TEST_CASE("every draw's program is the narrowest embedded one, and every program
                                         const effects::FfFamilyRow &family =
                                             effects::kFfFamilyRows[size_t(program.family)];
                                         CHECK(family.lit == lit);
+                                        CHECK_FALSE(family.pbr);
                                         CHECK(holds(family.blocks, needs));
                                         CHECK_FALSE(family.room);
                                         for (const effects::FfFamilyRow &other : effects::kFfFamilyRows)
-                                            if (other.lit == lit && !other.room && holds(other.blocks, needs))
+                                            if (other.lit == lit && !other.pbr && !other.room &&
+                                                holds(other.blocks, needs))
                                                 CHECK_FALSE((holds(family.blocks, other.blocks) &&
                                                              !holds(other.blocks, family.blocks)));
                                         CHECK(program.specular == specular);

@@ -146,6 +146,7 @@ storm_renderer_check(wet_surfaces_check GPU)
 # The sample effects of the pinned efkbgfx sources (MIT) drawn through the shim.
 FetchContent_GetProperties(storm_efkbgfx)
 storm_renderer_check(effekseer_check GPU CATCH2 ENV "STORM_EFFEKSEER_SAMPLES=${storm_efkbgfx_SOURCE_DIR}/examples/resources")
+storm_renderer_check(materials_check GPU CATCH2)
 # It counts the GL backend's glUniform calls (patches/bgfx-gl-uniform-commit.patch).
 storm_renderer_check(uniform_commit_check GPU GLES_ONLY)
 # bgfx's Vulkan backend resolves in the render pass (patches/bgfx-vulkan-resolve-in-pass.patch).

@@ -6,19 +6,23 @@
 # nothing else, so the lamps' code is only in the programs of the draws the lamps light.
 set(ff_blocks LAMPS AO TOWN_WALL WET)
 
-# name | entry (lit: fs_ff_lit.sc, baked: fs_ff_baked.sc) | blocks. A draw takes the narrowest family of its entry
-# that holds every block it reads (src/effects/lighting.cpp ChooseProgram).
+# name | entry (lit: fs_ff_lit.sc, baked: fs_ff_baked.sc, pbr: fs_ff_pbr.sc) | blocks. A draw takes the narrowest
+# family of its entry that holds every block it reads (src/effects/lighting.cpp ChooseProgram).
 #   lit          lit draws without lamps or the AO volume
 #   lit_lamps    lit draws lit by the place's lamps or in the AO volume (with the room light)
 #   baked        baked colours without lamps or the AO volume (a town's walls relit by our sun)
 #   baked_lamps  baked colours relit by the lamps or in the AO volume
+#   pbr          a game's own materials (renderer_bgfx/README.md, "Materials") without lamps or the AO volume
+#   pbr_lamps    a game's own materials lit by the lamps or in the AO volume
 # Each family adds 12 programs to the «Высокая» switch (6 axis variants and their opaque twins), so the small blocks
 # (AO, town wall, rain) ride with a family instead of having their own.
 set(ff_families
     "lit|lit|WET"
     "lit_lamps|lit|LAMPS,AO,WET"
     "baked|baked|TOWN_WALL,WET"
-    "baked_lamps|baked|LAMPS,AO,TOWN_WALL,WET")
+    "baked_lamps|baked|LAMPS,AO,TOWN_WALL,WET"
+    "pbr|pbr|"
+    "pbr_lamps|pbr|LAMPS,AO")
 
 # Every family in every combination of the axes, each value "letters|defines". A program is named
 # fs_ff_<family>[_<specular letters><relief letters><shadow letters>]. Linear light and the soft sun filter are
@@ -27,6 +31,10 @@ set(ff_axis_specular "|" "s|FX_LIGHT_SPECULAR")
 set(ff_axis_relief "|" "n|FX_LIGHT_NORMALMAP" "np|FX_LIGHT_NORMALMAP,FX_LIGHT_PARALLAX")
 # h: the presets with sun shadows draw all their lit and baked draws with it.
 set(ff_axis_shadow "|" "h|FX_LIGHT_SHADOW")
+# An entry may compile some values of an axis only (ff_axis_<axis>_<entry>). A game's own materials always have their
+# highlights (a metal is black without them), and their normal maps are the game's, with no height for the parallax.
+set(ff_axis_specular_pbr "s|FX_LIGHT_SPECULAR")
+set(ff_axis_relief_pbr "|" "n|FX_LIGHT_NORMALMAP")
 
 # The plain entries (shaders/<name>.sc) whose opaque twins are compiled; the families' programs all have one.
 set(ff_plain_twins fs_ff fs_ff_dyn fs_ff_cube0 fs_ff_cube1 fs_ff_cube2)

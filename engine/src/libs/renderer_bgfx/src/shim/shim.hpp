@@ -138,6 +138,9 @@ struct TexStore
     uint64_t serial = 0;
     // A location lightmap (lighting\<time>\...\shadow.tga): the surfaces it lies on carry the sun's shadows already.
     bool lightmap = false;
+    // A material's normal or roughness / metal / occlusion map (render::DeclareMaterialMap): its texels are numbers,
+    // not colour (texture::TexelSpace::Data).
+    bool material_map = false;
     // Effects: the gloss map derived from this colour texture (src/effects/normal_maps.hpp), null for others.
     std::shared_ptr<effects::NormalMapEntry> gloss_map;
     // Effects: its neural ×2 (src/effects/upscale.hpp), drawn in its place near the camera; null without a ×2 target.

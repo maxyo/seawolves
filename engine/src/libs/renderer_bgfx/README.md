@@ -156,6 +156,7 @@ terms move to the fragment shader (`fx_lighting.sh`, `fx_coverage.sh`), then cal
   up to half of their point budget.
 - Lamps (`lamp_shadows.hpp`, below) relight lit and baked draws into the game picture; a lit draw's D3D point lights
   that are such lamps leave its sums. Lit draws of an interior take their ambient from the room light.
+- A game's own material takes its own programs (Materials, below).
 - The material comes from the technique the renderer executes: `Animation*` is a character, `ShipSail*` / `ShipFlag`
   a sail (two-sided, translucent), `DLightModel` stone; lit draws without a technique are hulls, masts and deck
   objects.
@@ -180,6 +181,37 @@ terms move to the fragment shader (`fx_lighting.sh`, `fx_coverage.sh`), then cal
   (`fx_aerial.sh`); draws with a ported vertex shader keep the fixed-function fog (reported once), and without weather
   (interiors) the game's fog stays.
 - Cube-mapped draws (`fs_ff_cube*`) have no lighting or coverage variant: they keep the legacy path, reported once.
+
+### Materials (`render::EffectsSurfaceMaterial`, `shaders/fs_ff_pbr.sc`)
+
+A game that ships its own texture maps (Caribbean Legend; core's game profile) draws every object of its models with a
+material: its entry of the material file beside the model (`<model>.json`, `scene_data::ModelSidecar`, read by the
+geometry), or the default one, matte and without metal, as the game's own engine draws an object without an entry. The
+geometry sets it before the object's draws (`GEOM_SERVICE::SetSurface`) and clears it after the model's; keys the
+material programs do not draw are named once a session (`materials: <key> is not drawn`), maps that cannot be loaded
+once each.
+
+- Programs: the families `pbr` and `pbr_lamps` of `shaders/ff_programs.cmake`, on every preset (their own entry, never
+  chosen for another draw). They take the lit programs' light: the sun with its shadow, the point lights per pixel (at
+  least four on «Низкая», where no vertex sum keeps the others), the place's lamps with theirs, the hemisphere (flat on
+  «Низкая») and the AO and visibility volumes. Lambert diffuse and Cook-Torrance highlights (GGX, Smith-Schlick,
+  Schlick's Fresnel at N.V; Karis 2013) fading out towards roughness 1 as the materials were authored; the ambient's
+  reflection is the hemisphere along the reflected ray through Karis's analytic split-sum fit (2014). With
+  `Settings::material_maps` («Средняя», «Высокая») the normal map leans the normal (`fxPerturbNormal`, a frame from the
+  screen derivatives: the models have no tangents); without it, colour, metal, occlusion and emission only.
+- Units: 0 the albedo (stage 0), 1 the occlusion on the second texture coordinates (stage 1: twice its texel, the
+  modulate-2x stage the models were made for), 2 the emission (`fx::kEmissionStage`: stage 2's unit, which a material's
+  draw does not read), 7 the rma map (R roughness, G metal, B occlusion of the ambient) and 14 the normal map: the units
+  of the generated material and relief maps, which a game that ships its own never has. The technique's stage
+  operations do not apply.
+- Colour and data: the albedo and the emission are colour (squared: the targets' gamma 2.0); normal and rma maps are
+  numbers (`render::DeclareMaterialMap`): their rebuilt mips are plain averages (`texture::TexelSpace::Data`, its own
+  cache key), whatever the file's header says; the GPU format is the transcode tier's as for every texture.
+- Light and exposure: the sun's and the ambient's colours of every lit draw, as linear light, times the scene light's
+  scales (`render::EffectsSceneLight`, from the scene-light driver; 1 before it), plus the emission times the hour's
+  factor; the sum times the exposure is compressed into the 8-bit target by the inverse of the composite's expansion
+  (`fx_tonemap.sh` `fxCompressHdr`): up to a luminance of 3 the post chain gives it back, and on «Низкая» (no post
+  chain) the compression is the tone curve.
 
 ### Lamps (`lamp_shadows.hpp`)
 

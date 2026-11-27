@@ -1758,6 +1758,28 @@ bool Device::bind_textures(const DrawCall &call, const LayoutInfo &layout, uint3
         bind_stage_texture(stage, *store, binds, fx_lighting, fx_draw);
     }
     bind_town_ratio(town, ps_port, fx_lighting);
+    // A game's own material: its maps are made like the stages' textures and sampled as stage 0's.
+    if (fx_draw.pbr)
+    {
+        const bool scene_draw = rt == back_color && !layout.rhw && s.proj.m[2][3] != 0.0f;
+        bgfx::TextureHandle *handles[3] = {&fx_draw.normal_map, &fx_draw.material, &fx_draw.emission};
+        uint32_t *flags[3] = {&fx_draw.normal_map_flags, &fx_draw.material_flags, &fx_draw.emission_flags};
+        for (size_t i = 0; i < fx_draw.pbr_maps.size(); ++i)
+        {
+            TexStore *store = store_of(fx_draw.pbr_maps[i]);
+            if (!store)
+                continue;
+            if (scene_draw)
+                effects::ObserveSceneTexture(shared_store_of(fx_draw.pbr_maps[i]));
+            if (!sync_sampled(*store, scene_draw))
+            {
+                bgfx::discard();
+                return false;
+            }
+            *handles[i] = bgfx::isValid(store->handle) ? store->handle : Context::instance().missing_texture();
+            *flags[i] = sampler_flags(0, *store);
+        }
+    }
     return true;
 }
 

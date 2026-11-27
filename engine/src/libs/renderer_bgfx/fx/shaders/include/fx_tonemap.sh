@@ -11,6 +11,14 @@ vec3 fxExpandLdr(vec3 c)
     return c * (1.0 / (1.0 - 0.6666667 * min(y, 1.0)));
 }
 
+// Its inverse, for light brighter than the picture holds (the material programs: their light times the scene's
+// exposure): a luminance up to 3.0 lands at 1.0 and the composite's expansion gives it back.
+vec3 fxCompressHdr(vec3 c)
+{
+    float y = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    return c * (1.0 / (1.0 + 0.6666667 * y));
+}
+
 // AgX tone curve on a grey value (linear in, linear out): the log2 encoding between -12.47 and +4.03 EV around
 // middle grey of Blender's AgX (Troy Sobotka) and its sigmoid, the polynomial fit of Benjamin Wrensch's "Minimal
 // AgX" (iolite-engine.com), as in three.js (MIT, Copyright (c) 2010-2023 three.js authors; see ../../THIRD_PARTY.md).

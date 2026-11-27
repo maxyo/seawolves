@@ -17,6 +17,7 @@
 #include "storm/fx/lighting.hpp"
 #include "storm/fx/settings.hpp"
 #include "storm/fx/sky_model.hpp"
+#include "storm/render/effects.hpp"
 
 #include <bgfx/bgfx.h>
 
@@ -85,6 +86,7 @@ class DrawSphereSource
 struct DrawFacts
 {
     bool lit = false; // a lit draw (D3DRS_LIGHTING), else baked colours
+    bool pbr = false; // a game's own material (render::EffectsSurfaceMaterial): the pbr entry's families
     FfBlocks needs;   // the blocks the draw reads
     bool specular = false;
     uint8_t relief = 0;           // 0 none, 1 normal map, 2 normal map with parallax
@@ -222,6 +224,13 @@ struct FfDraw
     bool room_light = false; // its ambient is the room light of the interior
     bool town_wall = false;  // a town's wall relit by our sun and sky (u_fxTownWall)
     std::array<std::array<float, 4>, 2> wet{}; // u_fxWet (ff_wet.sh); x of the first = 0: the draw stays dry
+    // A game's own material (fs_ff_pbr.sc): its maps (normal, rma, emission; null: none), made with the stages'
+    // textures (Device::bind_textures), which sets `normal_map`, `material` and `emission` from them; u_fxPbr.
+    bool pbr = false;
+    std::array<shim::BaseTexture *, 3> pbr_maps{};
+    bgfx::TextureHandle emission = BGFX_INVALID_HANDLE;
+    uint32_t emission_flags = 0;
+    std::array<float, 8> pbr_uniform{};
 };
 
 // The rain's wetness of this frame for the draws outdoors (effects::Host from the weather, fx::Wetness).
@@ -251,10 +260,20 @@ class Lighting
     // number created; each is a shader link on the GPU driver). True once all exist. A settings switch calls it
     // while the previous settings still draw (Host::advance_switch).
     bool prepare_programs(shim::Device &device, const fx::Settings &settings, int &budget);
-    // Nothing to decide per draw (preset «Низкая»): the shim skips prepare().
+    // Nothing to decide per draw (preset «Низкая» without a game's own material): the shim skips prepare().
     bool idle() const
     {
-        return !lighting_ && !coverage_ && !shadows_.enabled();
+        return !lighting_ && !coverage_ && !shadows_.enabled() && !surface_;
+    }
+    // The game's own material of the draws that follow (render::SetEffectsSurfaceMaterial; null: none).
+    void set_surface(const render::EffectsSurfaceMaterial *surface)
+    {
+        surface_ = surface;
+    }
+    void set_scene_light(const render::EffectsSceneLight &light)
+    {
+        scene_light_ = light;
+        scene_light_set_ = true;
     }
 
     // Fixed-function draw (no shader ports). `cube_variant` = the fs_ff_cube* variant the shim picked (0 = none);
@@ -500,11 +519,18 @@ class Lighting
     bool compute_light_terms(DrawPrep &p, const DrawLights &lights);
     int choose_relief_variant(DrawPrep &p, bool two_sided);
     bool apply_gloss(DrawPrep &p);
-    void finish_lit(DrawPrep &p, const DrawLights &lights, int relief);
+    void finish_lit(DrawPrep &p, const DrawLights &lights, int relief, int budget);
+    void prepare_material(DrawPrep &p);
     void finish_baked(DrawPrep &p, const DrawLights &lights, int relief, bool baked_specular);
     void choose_program(DrawPrep &p, DrawFacts facts);
     fx::Settings settings_{};
     uint32_t flags_ = 0;
+    const render::EffectsSurfaceMaterial *surface_ = nullptr;
+    render::EffectsSceneLight scene_light_{};
+    bool scene_light_set_ = false;
+    bool scene_light_reported_ = false;
+    bgfx::UniformHandle u_pbr_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle s_emission_ = BGFX_INVALID_HANDLE;
     bool lighting_ = false; // per-pixel sun or point lights
     bool gloss_ = false;    // gloss maps on (Settings::gloss with per-pixel specular)
     bgfx::UniformHandle u_gloss_ = BGFX_INVALID_HANDLE;
