@@ -4374,7 +4374,13 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
             uint32_t dwVarCode;
             do
             {
-                if (Token.GetType() == OPEN_BRACKET)
+                if (Token.GetType() == OPEN_BRACKET && !IsAccessVariable())
+                {
+                    // .(expression): the attribute named by its text, created when missing as the words are
+                    if (!CompileAccessExpression(Segment, kAccessCreate))
+                        return false;
+                }
+                else if (Token.GetType() == OPEN_BRACKET)
                 {
                     // access var
                     sttResult = Token.Get();
