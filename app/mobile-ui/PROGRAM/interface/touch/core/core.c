@@ -8,54 +8,48 @@
 
 native void UiShow(aref view);
 native void UiPredict(aref view);
-native void UiKeep();
 native void UiOn(string id, string verb);
-native void UiIgnore(string id, string verb);
-native int UiBound(string id, string verb);
 native void UiModal(string id, string cancel);
 native int UiPending(string id);
 native string UiText(string key);
 
-// Widget actions. A row is the node's widget of that index (-1: the node's own); `guard` is the row identity the
-// action must still find; UiSendAfter waits `seconds` and sends `lead` (empty: none) right before the value.
+// Widget actions: UiSendTo(&action) takes {node, verb, value, row (absent: the node's own widget), guard (the row
+// identity the action must still find), lead (sent right before the value)}.
 native void UiSend(string node, string verb, string value);
-native void UiSendRow(string node, int row, string verb, string value, string guard);
-native void UiSendAfter(string node, int row, string verb, string value, string guard, float seconds, string lead);
-native int UiWaiting(string node, int row, string verb);
+native void UiSendTo(aref action);
 native void UiBack(string node);
 native int UiOffers(string node, string verb);
 
-// The build and the game's answers: UiAnsweredSince is 0 while waiting, 1 applied, 2 refused.
+// Waiting for the game: after UiHold the view shown stays until the game has answered what was sent (at most
+// `seconds`); a build under it reads UiAnswer() ("", "waiting", "applied", "refused", "late") and says UiAwait() while
+// its game's answer takes more frames.
+native void UiHold(float seconds);
+native string UiAnswer();
 native void UiAwait();
 native void UiRebuild();
-native void UiRebuildAfter(float seconds);
 native int UiFirst();
-native int UiRevision();
-native float UiNow();
-native int UiRequestFloor();
-native int UiAnsweredSince(int floor);
 
 native void UiToast(string text);
 native void UiRead(string title, string text);
+// The screen cannot do what it is for: the build or tap fails with the text and the interface closes.
 native void UiError(string text);
 
-// The figures of the game's texts, read as every screen reads them; `what` names the text in the error line.
-native int UiAmount(string text, string what, int none);
+// The figures of the game's texts, read as every screen reads them; UiAmount and UiNumber fail naming `what` when the
+// text holds none.
+native int UiAmount(string text, string what);
 native int UiHasAmount(string text);
-native float UiNumber(string text, string what, float none);
+native float UiNumber(string text, string what);
 native string UiDecimal(string text);
 native string UiOneLine(string text);
 native string UiFill(string text, string argument);
 
-// The amount of a quantity control, the player's draft until he confirms it, kept by the engine under `id`.
-native void UiDraftFollow(string id, string key, int origin, int other);
-native void UiDraftClose(string id);
-native int UiDraftOrigin(string id);
-native int UiDraftOther(string id);
-native int UiDraftValue(string id, int low, int high);
-native void UiDraftBind(string id, string element, int low, int high, string reason, int grain);
-native void UiDraftButton(aref out, string id, int low, int high, string more, string less, string sub, int disabled,
-                          string reason, string commit);
+// The open deal of a quantity control, the player's draft until he presses its button: spec {key, element, origin,
+// other, low, high, moreReason, lessReason, more, less (string keys), disabled, reason, commit}; out {value, change,
+// button (absent while the amount is unchanged)}.
+native void UiDeal(aref spec, aref out);
+
+// The entries of `list` in the order of their whole number `field`, stable.
+native void UiOrder(aref list, string field, int descending);
 
 // The object of each capability's screen, filled by the engine before its UiBuild and handed to its events:
 // .{capability, screen (the screen file's stem), look (the screen entry's presentation), data (the binding's), model

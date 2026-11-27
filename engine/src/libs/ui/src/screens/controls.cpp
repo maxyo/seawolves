@@ -341,18 +341,19 @@ int AmountDraft::Value(int low, int high) const
 }
 
 void AmountDraft::Bind(Bindings &bindings, const std::string &id, int low, int high, const std::string &more_reason,
-                       int grain)
+                       int grain, const std::string &less_reason)
 {
-    const auto set = [this, &bindings, low, high = std::max(low, high), more_reason,
+    const auto set = [this, &bindings, low, high = std::max(low, high), more_reason, less_reason,
                       grain = std::max(1, grain)](const Event &event) {
         int wanted = 0;
         if (!EventNumber(bindings, event, wanted))
             return;
-        // Past the end the purse or the room allows: the reason, once per push (a drag reports many samples).
-        if (wanted > high && !more_reason.empty() && bindings.Now() - reason_at_ > 1.5)
+        // Past an end the purse or the room allows: the reason, once per push (a drag reports many samples).
+        const std::string &reason = wanted > high ? more_reason : wanted < low ? less_reason : std::string();
+        if (!reason.empty() && bindings.Now() - reason_at_ > 1.5)
         {
             reason_at_ = bindings.Now();
-            bindings.Toast(more_reason);
+            bindings.Toast(reason);
         }
         if (!sent_)
         {

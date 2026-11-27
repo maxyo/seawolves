@@ -44,6 +44,11 @@ struct DemoPort final : ScriptPort
                    {"items", "", {{"x", "", {Leaf("id", "a"), Leaf("ON", "0"), Leaf("n", "1.5")}}}}}};
     bool show_in_event = false;
     std::optional<ViewTree> predict; // what a tap on the tabs predicts
+    double hold = 0.0;               // "go" waits for the game this long
+    bool awaiting = false;           // the builds say the game's answer needs another frame
+    std::vector<std::string> answers;
+    std::optional<DealSpec> deal;
+    DealView dealt;
 
     void Build(const ScriptScreen &, const std::vector<const Widget *> &widgets, ScriptCall &call) override
     {
@@ -53,6 +58,11 @@ struct DemoPort final : ScriptPort
         call.On("tabs", "select");
         call.On("go", "");
         call.Modal("dlg", "dlg-close");
+        answers.push_back(call.Answer());
+        if (awaiting)
+            call.Await();
+        if (deal)
+            dealt = call.Deal(*deal);
         call.Show(view);
     }
     void Event(const ScriptScreen &screen, const std::string &id, const std::string &verb, const std::string &value,
@@ -64,9 +74,13 @@ struct DemoPort final : ScriptPort
         if (id == "tabs" && predict)
             call.Predict(*predict);
         if (id == "tabs")
-            call.Send("SLIDER", -1, "set", value, "");
+            call.Send("SLIDER", -1, "set", value, "", "");
         else if (id == "go" && call.Offers("OK", "press"))
-            call.Send("OK", -1, "press", "", "");
+        {
+            call.Send("OK", -1, "press", "", "", "");
+            if (hold > 0.0)
+                call.Hold(hold);
+        }
         else if (id == "dlg-close")
             call.Back("CANCEL");
     }
@@ -184,6 +198,99 @@ void Prediction()
     Expect(router.Predicted() == 2, "a tap the script does not predict is not predicted");
 }
 
+// The count the view shows, as the script builds it next.
+void Count(DemoPort &port, int count)
+{
+    port.view.children[1].value = std::to_string(count);
+}
+
+void Waiting()
+{
+    const auto spec = DemoSpec();
+    DemoPort port;
+    port.hold = 0.5;
+    FakeSurface surface;
+    Router router(surface);
+    router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
+    InterfaceModel model = Model("salary");
+    router.SetInterface(model);
+    Count(port, 4);
+    router.OnEvent({"go", "click", ""});
+    router.Tick();
+    Expect(surface.props["count"] == 4 && port.answers.back() == "waiting",
+           "before the game answers, the view is drawn as built");
+    port.awaiting = true;
+    Count(port, 5);
+    Answered(router, surface, model);
+    Expect(surface.props["count"] == 4 && port.answers.back() == "applied",
+           "an answer the game completes in a later frame is not drawn");
+    port.awaiting = false;
+    Count(port, 6);
+    ++model.revision;
+    router.SetInterface(model);
+    Expect(surface.props["count"] == 6 && surface.errors.empty(), "the complete answer is drawn");
+    router.SetInterface(model);
+    Expect(port.answers.back().empty(), "and the wait is over");
+
+    port.awaiting = true;
+    Count(port, 7);
+    router.OnEvent({"go", "click", ""});
+    for (; surface.answered < surface.actions.size(); ++surface.answered)
+        router.Answer(surface.actions[surface.answered].request, false, "not now");
+    Expect(surface.props["count"] == 7 && port.answers.back() == "refused" && surface.errors.empty(),
+           "a refusal is the answer: drawn at once");
+
+    Count(port, 8);
+    router.OnEvent({"go", "click", ""});
+    Answered(router, surface, model);
+    Count(port, 9);
+    surface.now += 0.6;
+    router.Tick();
+    Expect(surface.props["count"] == 9 && port.answers.back() == "late" && surface.errors.size() == 1 &&
+               surface.errors[0].find("did not answer") != std::string::npos,
+           "past the wait the view is drawn, and the missing answer said: " + Json(surface.errors).dump());
+}
+
+void Deals()
+{
+    const auto spec = DemoSpec();
+    DemoPort port;
+    port.deal = DealSpec{.key = "r1",
+                         .element = "goods",
+                         .origin = 5,
+                         .other = 10,
+                         .low = 2,
+                         .high = 12,
+                         .more_reason = "full",
+                         .less_reason = "poor",
+                         .more = "trade.buy",
+                         .less = "trade.sell",
+                         .reason = "",
+                         .commit = "deal-commit"};
+    FakeSurface surface;
+    Router router(surface);
+    router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
+    router.SetInterface(Model("salary"));
+    Expect(port.dealt.value == 5 && port.dealt.change == 0 && port.dealt.button.children.empty(),
+           "a deal opens at its origin, with no button");
+    router.OnEvent({"goods", "change", "20"});
+    Expect(port.dealt.value == 12 && surface.toasts.size() == 1 && surface.toasts[0] == "full",
+           "past the most it can take: the end, and why");
+    surface.now += 2.0;
+    router.OnEvent({"goods", "change", "0"});
+    Expect(port.dealt.value == 2 && port.dealt.change == -3 && surface.toasts.size() == 2 &&
+               surface.toasts[1] == "poor",
+           "past the most it can give: the end, and why");
+    router.OnEvent({"goods", "commit", "8"});
+    const auto label =
+        std::ranges::find_if(port.dealt.button.children, [](const ViewTree &f) { return f.name == "label"; });
+    Expect(port.dealt.change == 3 && label != port.dealt.button.children.end() && label->value == "<trade.buy> 3" &&
+               surface.commands.empty(),
+           "the draft names the deal, and nothing goes to the game");
+    router.OnEvent({"primary", "click", ""});
+    ExpectEqual(port.events.back(), "demo deal-commit  3", "its button raises the commit with the change");
+}
+
 void Failures()
 {
     const auto spec = DemoSpec();
@@ -247,6 +354,8 @@ int main()
 {
     Routing();
     Prediction();
+    Waiting();
+    Deals();
     Failures();
     if (failures)
         std::fprintf(stderr, "%d check(s) failed\n", failures);

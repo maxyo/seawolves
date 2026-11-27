@@ -76,6 +76,9 @@ class Run
         if (c.contains("answer"))
         {
             Advance(0.05);
+            for (; surface_.answered < surface_.actions.size(); ++surface_.answered)
+                if (const uint64_t request = surface_.actions[surface_.answered].request)
+                    router_.Answer(request, true, {});
             model_ = Load(models, c.at("answer"));
             router_.SetInterface(model_);
         }

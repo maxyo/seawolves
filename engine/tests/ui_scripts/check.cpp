@@ -182,33 +182,20 @@ struct Calls final : storm::ui::ScriptCall
         bound.push_back(id + " " + verb);
     }
     void Send(const std::string &node, int row, const std::string &verb, const std::string &value,
-              const std::string &guard) override
+              const std::string &guard, const std::string &lead) override
     {
-        calls.push_back("send " + node + (row < 0 ? "" : "#" + std::to_string(row)) + " " + verb + " " + value +
-                        (guard.empty() ? "" : " @" + guard));
+        for (const std::string *sent : {&lead, &value})
+            if (sent == &value || !lead.empty())
+                calls.push_back("send " + node + (row < 0 ? "" : "#" + std::to_string(row)) + " " + verb + " " + *sent +
+                                (guard.empty() ? "" : " @" + guard));
     }
-    void SendAfter(const std::string &node, int row, const std::string &verb, const std::string &value,
-                   const std::string &guard, double, const std::string &lead) override
+    void Hold(double) override
     {
-        if (!lead.empty())
-            Send(node, row, verb, lead, guard);
-        Send(node, row, verb, value, guard);
+        calls.push_back("hold");
     }
-    bool Waiting(const std::string &, int, const std::string &) const override
+    std::string Answer() const override
     {
-        return false;
-    }
-    void Ignore(const std::string &id, const std::string &verb) override
-    {
-        bound.push_back(id + " " + verb);
-    }
-    bool Bound(const std::string &id, const std::string &verb) const override
-    {
-        return std::ranges::find(bound, id + " " + verb) != bound.end();
-    }
-    void Keep() override
-    {
-        calls.push_back("keep");
+        return "";
     }
     void Await() override
     {
@@ -218,29 +205,9 @@ struct Calls final : storm::ui::ScriptCall
     {
         calls.push_back("rebuild");
     }
-    void RebuildAfter(double) override
-    {
-        calls.push_back("rebuild later");
-    }
     bool First() const override
     {
         return first;
-    }
-    uint64_t Revision() const override
-    {
-        return 1;
-    }
-    double Now() const override
-    {
-        return 0.0;
-    }
-    uint64_t RequestFloor() const override
-    {
-        return 0;
-    }
-    int AnsweredSince(uint64_t) const override
-    {
-        return 0;
     }
     void Toast(const std::string &text) override
     {
@@ -252,19 +219,23 @@ struct Calls final : storm::ui::ScriptCall
     }
     void Error(const std::string &text) override
     {
-        calls.push_back("error " + text);
+        throw std::runtime_error(text);
     }
-    int Amount(const std::string &text, const std::string &, int none) override
+    int Amount(const std::string &text, const std::string &what) const override
     {
-        return HasAmount(text) ? std::stoi(text) : none;
+        if (!HasAmount(text))
+            throw std::runtime_error("no number in " + what);
+        return std::stoi(text);
     }
     bool HasAmount(const std::string &text) const override
     {
         return !text.empty() && std::isdigit(static_cast<unsigned char>(text[0]));
     }
-    double Number(const std::string &text, const std::string &, double none) override
+    double Number(const std::string &text, const std::string &what) const override
     {
-        return HasAmount(text) ? std::stod(text) : none;
+        if (!HasAmount(text))
+            throw std::runtime_error("no number in " + what);
+        return std::stod(text);
     }
     std::string Decimal(const std::string &text) const override
     {
@@ -278,35 +249,7 @@ struct Calls final : storm::ui::ScriptCall
     {
         return text + " " + argument;
     }
-    void DraftFollow(const std::string &, const std::string &, int, int) override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-    }
-    void DraftClose(const std::string &) override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-    }
-    int DraftOrigin(const std::string &) const override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-        return 0;
-    }
-    int DraftOther(const std::string &) const override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-        return 0;
-    }
-    int DraftValue(const std::string &, int, int) const override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-        return 0;
-    }
-    void DraftBind(const std::string &, const std::string &, int, int, const std::string &, int) override
-    {
-        FAIL("no screen of these cases keeps an amount draft");
-    }
-    storm::ui::ViewTree DraftButton(const std::string &, int, int, const std::string &, const std::string &,
-                                    const std::string &, bool, const std::string &, const std::string &) override
+    storm::ui::DealView Deal(const storm::ui::DealSpec &) override
     {
         FAIL("no screen of these cases keeps an amount draft");
         return {};

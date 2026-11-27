@@ -515,6 +515,29 @@ def script_code(text):
     return re.sub(r"(?m)^\s*#.*$", "", "".join(code)), strings  # directives are not code
 
 
+def declared(code):
+    """Every name a declaration of `code` declares: each declarator of `string a = f(x), b;`, of a parameter list and of a
+    range-for."""
+    names = []
+    for match in re.finditer(r"\b" + SCRIPT_TYPE + r"\s+&?([A-Za-z_]\w*)", code):
+        names.append(match.group(1))
+        depth, i = 0, match.end()
+        while i < len(code) and code[i] not in ";{}":
+            char = code[i]
+            if char in "([":
+                depth += 1
+            elif char in ")]":
+                depth -= 1
+                if depth < 0:
+                    break
+            elif char == "," and depth == 0:
+                following = re.match(r"\s*(?:" + SCRIPT_TYPE + r"\s+)?&?([A-Za-z_]\w*)", code[i + 1:])
+                if following:
+                    names.append(following.group(1))
+            i += 1
+    return names
+
+
 def script_definitions(code):
     """Top-level names of a script: {name: arguments} of functions (natives, externs, bodies) and the set of globals."""
     functions, globals_, depth, line_start = {}, set(), 0, True
@@ -532,8 +555,9 @@ def script_definitions(code):
     for match in re.finditer(r"(?:native\s+|extern\s+)?" + SCRIPT_TYPE + r"\s+([A-Za-z_]\w*)\s*\(([^)]*)\)", top):
         arguments = [part for part in match.group(2).split(",") if part.strip()]
         functions[match.group(1)] = len(arguments)
-    for match in re.finditer(r"(?m)(?:^|(?<=;))\s*" + SCRIPT_TYPE + r"\s+([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*(?:=[^;]*)?;", top):
-        globals_.add(match.group(1))
+    for statement in re.findall(r"(?m)(?:^|(?<=;))\s*" + SCRIPT_TYPE +
+                                r"\s+[A-Za-z_]\w*\s*(?:\[[^\]]*\])?\s*(?:[=,][^;]*)?;", top):
+        globals_.update(declared(statement))
     return functions, globals_
 
 
@@ -564,8 +588,9 @@ def script_prefixes(parts):
     if layer == "lineages":
         own = {"legacy": "TouchLeg", "cl": "TouchCl"}.get(parts[1])
         if own is None or len(parts) != 3:
-            raise DesignError(f"lineage {'/'.join(parts)}: lineages are legacy/<family>.c or cl/<family>.c")
-        return (f"TouchAdp{camel(stem)}_", f"{own}{camel(stem)}_")
+            raise DesignError(f"lineage {'/'.join(parts)}: lineages are legacy/<family>.c or cl/<family>.c "
+                              "(lib.c: what the lineage's adapters share)")
+        return (f"TouchAdp{camel(stem)}_", f"{own}{camel(stem)}_", f"{own}{camel(stem)}")
     if layer == "hud":
         return (f"TouchHud{camel(stem)}_", f"TouchHud{camel(stem)}")
     return (f"Touch{camel(stem)}_", f"Touch{camel(stem)}")
@@ -607,7 +632,8 @@ def lint_script(file, parts, text, uses, natives, contracts):
                 continue
             problems.append(f"{file}: calls {name}; a shared layer calls natives, TouchLib_*, the contracts it uses "
                             "and the language's built-ins only")
-    locals_ = set(re.findall(r"\b" + SCRIPT_TYPE + r"\s+&?([A-Za-z_]\w*)", code))
+    locals_ = set(declared(code))
+    code = re.sub(r"=\s*\{[^{}]*\}", "= 0", code)  # an object literal's fields are its own
     for match in re.finditer(r"(?:^|[;{}])\s*([A-Za-z_]\w*)\s*(?:[.\[][^;=]*)?=(?!=)", code):
         root = match.group(1)
         if root not in locals_ and not root.startswith("Touch"):

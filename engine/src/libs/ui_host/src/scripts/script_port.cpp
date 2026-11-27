@@ -1,6 +1,7 @@
 #include "script_port.hpp"
 
 #include "core.h"
+#include "istring.hpp"
 #include "s_import_func.h"
 #include "script_libriary.h"
 #include "storm_ui/interface_model.h"
@@ -11,6 +12,10 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <charconv>
+#include <numeric>
+#include <set>
+#include <utility>
 
 #include <stdexcept>
 
@@ -40,23 +45,33 @@ struct Scope
     }
 };
 
+// An argument the VM did not give as its type: the native fails naming it (the compiler checks the count only).
+std::string bad_argument;
+
 std::string PopText(VS_STACK *stack)
 {
     auto *value = static_cast<VDATA *>(stack->Pop());
     const char *text = value ? value->GetString() : nullptr;
+    if (!text && bad_argument.empty())
+        bad_argument = "an argument is not a text";
     return text ? text : "";
-}
-
-int32_t PopInt(VS_STACK *stack)
-{
-    auto *value = static_cast<VDATA *>(stack->Pop());
-    return value ? value->GetInt() : 0;
 }
 
 float PopFloat(VS_STACK *stack)
 {
     auto *value = static_cast<VDATA *>(stack->Pop());
+    if (!value && bad_argument.empty())
+        bad_argument = "an argument is not a number";
     return value ? value->GetFloat() : 0.0f;
+}
+
+ATTRIBUTES *PopObject(VS_STACK *stack)
+{
+    auto *value = static_cast<VDATA *>(stack->Pop());
+    ATTRIBUTES *root = value ? value->GetAClass() : nullptr;
+    if (!root && bad_argument.empty())
+        bad_argument = "an argument is not an object";
+    return root;
 }
 
 storm::ui::ViewTree Tree(const ATTRIBUTES &attributes)
@@ -67,17 +82,67 @@ storm::ui::ViewTree Tree(const ATTRIBUTES &attributes)
     return tree;
 }
 
-// Runs `act` on the running screen call. Outside one, or when it throws, the native fails: an error line, no result,
-// and the build or event that ran the script fails with it.
+// The named fields of an object argument: a required one absent, a number that is none, or a field no one reads (a
+// misspelt name) fails the native. Names compare as the VM's do, without case.
+class Fields
+{
+  public:
+    explicit Fields(const ATTRIBUTES &at) : at_(at)
+    {
+    }
+    std::string Text(const char *name)
+    {
+        if (std::optional<std::string> value = Maybe(name))
+            return *value;
+        throw std::runtime_error(std::string("no field ") + name);
+    }
+    std::optional<std::string> Maybe(const char *name)
+    {
+        read_.insert(AsciiLower(name));
+        const ATTRIBUTES *field = at_.GetAttributeClass(name);
+        if (!field)
+            return std::nullopt;
+        return std::string(field->HasValue() ? field->GetValue() : "");
+    }
+    int Int(const char *name)
+    {
+        const std::string text = Text(name);
+        int value = 0;
+        const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+        if (error != std::errc() || end != text.data() + text.size() || text.empty())
+            throw std::runtime_error(std::string("field ") + name + " is '" + text + "', not a whole number");
+        return value;
+    }
+    bool Bool(const char *name)
+    {
+        return Int(name) != 0;
+    }
+    void Done() const
+    {
+        for (uint32_t n = 0; n < at_.GetAttributesNum(); n++)
+            if (const std::string name(at_.GetAttributeClass(n)->GetThisName()); !read_.contains(AsciiLower(name)))
+                throw std::runtime_error("no field " + name + " is known");
+    }
+
+  private:
+    const ATTRIBUTES &at_;
+    std::set<std::string> read_;
+};
+
+// Runs `act` on the running screen call. Outside one, with an argument of the wrong type, or when it throws, the
+// native fails: an error line, no result, and the build or event that ran the script fails with it.
 template <class Act> uint32_t Native(const char *native, Act &&act)
 {
     if (!running)
     {
         spdlog::error("{}: called outside a UI script screen's build or event", native);
+        bad_argument.clear();
         return IFUNCRESULT_FAILED;
     }
     try
     {
+        if (!bad_argument.empty())
+            throw std::runtime_error(std::exchange(bad_argument, {}));
         act(running->call);
         return IFUNCRESULT_OK;
     }
@@ -90,60 +155,6 @@ template <class Act> uint32_t Native(const char *native, Act &&act)
     }
 }
 
-uint32_t UiShow(VS_STACK *stack)
-{
-    auto *view = static_cast<VDATA *>(stack->Pop());
-    ATTRIBUTES *root = view ? view->GetAClass() : nullptr;
-    return Native("UiShow", [&](storm::ui::ScriptCall &call) {
-        if (!root)
-            throw std::runtime_error("the view is not an object");
-        call.Show(Tree(*root));
-    });
-}
-
-uint32_t UiPredict(VS_STACK *stack)
-{
-    auto *view = static_cast<VDATA *>(stack->Pop());
-    ATTRIBUTES *root = view ? view->GetAClass() : nullptr;
-    return Native("UiPredict", [&](storm::ui::ScriptCall &call) {
-        if (!root)
-            throw std::runtime_error("the view is not an object");
-        call.Predict(Tree(*root));
-    });
-}
-
-uint32_t UiOn(VS_STACK *stack)
-{
-    const std::string verb = PopText(stack), id = PopText(stack);
-    return Native("UiOn", [&](storm::ui::ScriptCall &call) { call.On(id, verb); });
-}
-
-uint32_t UiSend(VS_STACK *stack)
-{
-    const std::string value = PopText(stack), verb = PopText(stack), node = PopText(stack);
-    return Native("UiSend", [&](storm::ui::ScriptCall &call) { call.Send(node, -1, verb, value, ""); });
-}
-
-uint32_t UiSendRow(VS_STACK *stack)
-{
-    const std::string guard = PopText(stack), value = PopText(stack), verb = PopText(stack);
-    const int32_t row = PopInt(stack);
-    const std::string node = PopText(stack);
-    return Native("UiSendRow", [&](storm::ui::ScriptCall &call) { call.Send(node, row, verb, value, guard); });
-}
-
-uint32_t UiSendAfter(VS_STACK *stack)
-{
-    const std::string lead = PopText(stack);
-    const float seconds = PopFloat(stack);
-    const std::string guard = PopText(stack), value = PopText(stack), verb = PopText(stack);
-    const int32_t row = PopInt(stack);
-    const std::string node = PopText(stack);
-    return Native("UiSendAfter",
-                  [&](storm::ui::ScriptCall &call) { call.SendAfter(node, row, verb, value, guard, seconds, lead); });
-}
-
-// A native that returns an int (a bool as 0 / 1).
 template <class Get> uint32_t ReturnInt(VS_STACK *stack, const char *native, Get &&get)
 {
     return Native(native, [&](storm::ui::ScriptCall &call) {
@@ -168,29 +179,53 @@ template <class Get> uint32_t ReturnText(VS_STACK *stack, const char *native, Ge
     });
 }
 
-uint32_t UiWaiting(VS_STACK *stack)
+uint32_t UiShow(VS_STACK *stack)
 {
-    const std::string verb = PopText(stack);
-    const int32_t row = PopInt(stack);
-    const std::string node = PopText(stack);
-    return ReturnInt(stack, "UiWaiting", [&](storm::ui::ScriptCall &call) { return call.Waiting(node, row, verb); });
+    ATTRIBUTES *view = PopObject(stack);
+    return Native("UiShow", [&](storm::ui::ScriptCall &call) { call.Show(Tree(*view)); });
 }
 
-uint32_t UiIgnore(VS_STACK *stack)
+uint32_t UiPredict(VS_STACK *stack)
+{
+    ATTRIBUTES *view = PopObject(stack);
+    return Native("UiPredict", [&](storm::ui::ScriptCall &call) { call.Predict(Tree(*view)); });
+}
+
+uint32_t UiOn(VS_STACK *stack)
 {
     const std::string verb = PopText(stack), id = PopText(stack);
-    return Native("UiIgnore", [&](storm::ui::ScriptCall &call) { call.Ignore(id, verb); });
+    return Native("UiOn", [&](storm::ui::ScriptCall &call) { call.On(id, verb); });
 }
 
-uint32_t UiBound(VS_STACK *stack)
+uint32_t UiSend(VS_STACK *stack)
 {
-    const std::string verb = PopText(stack), id = PopText(stack);
-    return ReturnInt(stack, "UiBound", [&](storm::ui::ScriptCall &call) { return call.Bound(id, verb); });
+    const std::string value = PopText(stack), verb = PopText(stack), node = PopText(stack);
+    return Native("UiSend", [&](storm::ui::ScriptCall &call) { call.Send(node, -1, verb, value, "", ""); });
 }
 
-uint32_t UiKeep(VS_STACK *)
+// UiSendTo(&action): {node, verb, value, row (absent: the node's own widget), guard, lead (absent: none)}.
+uint32_t UiSendTo(VS_STACK *stack)
 {
-    return Native("UiKeep", [](storm::ui::ScriptCall &call) { call.Keep(); });
+    ATTRIBUTES *action = PopObject(stack);
+    return Native("UiSendTo", [&](storm::ui::ScriptCall &call) {
+        Fields fields(*action);
+        const std::string node = fields.Text("node"), verb = fields.Text("verb"), value = fields.Text("value");
+        const int row = fields.Maybe("row") ? fields.Int("row") : -1;
+        const std::string guard = fields.Maybe("guard").value_or(""), lead = fields.Maybe("lead").value_or("");
+        fields.Done();
+        call.Send(node, row, verb, value, guard, lead);
+    });
+}
+
+uint32_t UiHold(VS_STACK *stack)
+{
+    const float seconds = PopFloat(stack);
+    return Native("UiHold", [&](storm::ui::ScriptCall &call) { call.Hold(seconds); });
+}
+
+uint32_t UiAnswer(VS_STACK *stack)
+{
+    return ReturnText(stack, "UiAnswer", [](storm::ui::ScriptCall &call) { return call.Answer(); });
 }
 
 uint32_t UiAwait(VS_STACK *)
@@ -203,40 +238,9 @@ uint32_t UiRebuild(VS_STACK *)
     return Native("UiRebuild", [](storm::ui::ScriptCall &call) { call.Rebuild(); });
 }
 
-uint32_t UiRebuildAfter(VS_STACK *stack)
-{
-    const float seconds = PopFloat(stack);
-    return Native("UiRebuildAfter", [&](storm::ui::ScriptCall &call) { call.RebuildAfter(seconds); });
-}
-
 uint32_t UiFirst(VS_STACK *stack)
 {
     return ReturnInt(stack, "UiFirst", [](storm::ui::ScriptCall &call) { return call.First(); });
-}
-
-uint32_t UiRevision(VS_STACK *stack)
-{
-    return ReturnInt(stack, "UiRevision", [](storm::ui::ScriptCall &call) { return call.Revision(); });
-}
-
-uint32_t UiNow(VS_STACK *stack)
-{
-    return ReturnFloat(stack, "UiNow", [](storm::ui::ScriptCall &call) { return call.Now(); });
-}
-
-uint32_t UiRequestFloor(VS_STACK *stack)
-{
-    return ReturnInt(stack, "UiRequestFloor", [](storm::ui::ScriptCall &call) { return call.RequestFloor(); });
-}
-
-uint32_t UiAnsweredSince(VS_STACK *stack)
-{
-    const int32_t floor = PopInt(stack);
-    return ReturnInt(stack, "UiAnsweredSince", [&](storm::ui::ScriptCall &call) {
-        if (floor < 0)
-            throw std::runtime_error("a request floor is not negative");
-        return call.AnsweredSince(static_cast<uint64_t>(floor));
-    });
 }
 
 uint32_t UiToast(VS_STACK *stack)
@@ -259,9 +263,8 @@ uint32_t UiError(VS_STACK *stack)
 
 uint32_t UiAmount(VS_STACK *stack)
 {
-    const int32_t none = PopInt(stack);
     const std::string what = PopText(stack), text = PopText(stack);
-    return ReturnInt(stack, "UiAmount", [&](storm::ui::ScriptCall &call) { return call.Amount(text, what, none); });
+    return ReturnInt(stack, "UiAmount", [&](storm::ui::ScriptCall &call) { return call.Amount(text, what); });
 }
 
 uint32_t UiHasAmount(VS_STACK *stack)
@@ -272,9 +275,8 @@ uint32_t UiHasAmount(VS_STACK *stack)
 
 uint32_t UiNumber(VS_STACK *stack)
 {
-    const float none = PopFloat(stack);
     const std::string what = PopText(stack), text = PopText(stack);
-    return ReturnFloat(stack, "UiNumber", [&](storm::ui::ScriptCall &call) { return call.Number(text, what, none); });
+    return ReturnFloat(stack, "UiNumber", [&](storm::ui::ScriptCall &call) { return call.Number(text, what); });
 }
 
 uint32_t UiDecimal(VS_STACK *stack)
@@ -295,68 +297,60 @@ uint32_t UiFill(VS_STACK *stack)
     return ReturnText(stack, "UiFill", [&](storm::ui::ScriptCall &call) { return call.Fill(text, argument); });
 }
 
-uint32_t UiDraftFollow(VS_STACK *stack)
+// UiDeal(&spec, &out): spec {key, element, origin, other, low, high, moreReason, lessReason, more, less, disabled,
+// reason, commit} (storm_ui::DealSpec); out becomes {value, change, button.{label, sub, disabled, reason, busy}}, the
+// button absent while there is none.
+uint32_t UiDeal(VS_STACK *stack)
 {
-    const int32_t other = PopInt(stack), origin = PopInt(stack);
-    const std::string key = PopText(stack), id = PopText(stack);
-    return Native("UiDraftFollow", [&](storm::ui::ScriptCall &call) { call.DraftFollow(id, key, origin, other); });
+    ATTRIBUTES *out = PopObject(stack);
+    ATTRIBUTES *spec = PopObject(stack);
+    return Native("UiDeal", [&](storm::ui::ScriptCall &call) {
+        Fields fields(*spec);
+        storm::ui::DealSpec deal;
+        deal.key = fields.Text("key");
+        deal.element = fields.Text("element");
+        deal.origin = fields.Int("origin");
+        deal.other = fields.Int("other");
+        deal.low = fields.Int("low");
+        deal.high = fields.Int("high");
+        deal.more_reason = fields.Text("moreReason");
+        deal.less_reason = fields.Text("lessReason");
+        deal.more = fields.Text("more");
+        deal.less = fields.Text("less");
+        deal.disabled = fields.Bool("disabled");
+        deal.reason = fields.Text("reason");
+        deal.commit = fields.Text("commit");
+        fields.Done();
+        const storm::ui::DealView view = call.Deal(deal);
+        while (out->GetAttributesNum() != 0)
+            out->DeleteAttributeClassX(out->GetAttributeClass(0u));
+        out->SetAttribute("value", std::to_string(view.value));
+        out->SetAttribute("change", std::to_string(view.change));
+        if (!view.button.children.empty())
+        {
+            ATTRIBUTES &button = out->CreateAttribute("button");
+            for (const storm::ui::ViewTree &field : view.button.children)
+                button.SetAttribute(field.name, field.value);
+        }
+    });
 }
 
-uint32_t UiDraftClose(VS_STACK *stack)
+// UiOrder(&list, field, descending): the entries of `list` in the order of their whole number `field`, stable.
+uint32_t UiOrder(VS_STACK *stack)
 {
-    const std::string id = PopText(stack);
-    return Native("UiDraftClose", [&](storm::ui::ScriptCall &call) { call.DraftClose(id); });
-}
-
-uint32_t UiDraftOrigin(VS_STACK *stack)
-{
-    const std::string id = PopText(stack);
-    return ReturnInt(stack, "UiDraftOrigin", [&](storm::ui::ScriptCall &call) { return call.DraftOrigin(id); });
-}
-
-uint32_t UiDraftOther(VS_STACK *stack)
-{
-    const std::string id = PopText(stack);
-    return ReturnInt(stack, "UiDraftOther", [&](storm::ui::ScriptCall &call) { return call.DraftOther(id); });
-}
-
-uint32_t UiDraftValue(VS_STACK *stack)
-{
-    const int32_t high = PopInt(stack), low = PopInt(stack);
-    const std::string id = PopText(stack);
-    return ReturnInt(stack, "UiDraftValue",
-                     [&](storm::ui::ScriptCall &call) { return call.DraftValue(id, low, high); });
-}
-
-uint32_t UiDraftBind(VS_STACK *stack)
-{
-    const int32_t grain = PopInt(stack);
-    const std::string reason = PopText(stack);
-    const int32_t high = PopInt(stack), low = PopInt(stack);
-    const std::string element = PopText(stack), id = PopText(stack);
-    return Native("UiDraftBind",
-                  [&](storm::ui::ScriptCall &call) { call.DraftBind(id, element, low, high, reason, grain); });
-}
-
-// UiDraftButton(&out, id, low, high, more, less, sub, disabled, reason, commit): out is the button's fields, or
-// empty while there is none.
-uint32_t UiDraftButton(VS_STACK *stack)
-{
-    const std::string commit = PopText(stack), reason = PopText(stack);
-    const int32_t disabled = PopInt(stack);
-    const std::string sub = PopText(stack), less = PopText(stack), more = PopText(stack);
-    const int32_t high = PopInt(stack), low = PopInt(stack);
-    const std::string id = PopText(stack);
-    auto *out = static_cast<VDATA *>(stack->Pop());
-    ATTRIBUTES *root = out ? out->GetAClass() : nullptr;
-    return Native("UiDraftButton", [&](storm::ui::ScriptCall &call) {
-        if (!root)
-            throw std::runtime_error("the button's place is not an object");
-        while (root->GetAttributesNum() != 0)
-            root->DeleteAttributeClassX(root->GetAttributeClass(0u));
-        for (const storm::ui::ViewTree &field :
-             call.DraftButton(id, low, high, more, less, sub, disabled != 0, reason, commit).children)
-            root->SetAttribute(field.name, field.value);
+    const auto descending = static_cast<VDATA *>(stack->Pop());
+    const std::string field = PopText(stack);
+    ATTRIBUTES *list = PopObject(stack);
+    return Native("UiOrder", [&](storm::ui::ScriptCall &) {
+        std::vector<int> keys;
+        for (uint32_t n = 0; n < list->GetAttributesNum(); n++)
+            keys.push_back(Fields(*list->GetAttributeClass(n)).Int(field.c_str()));
+        std::vector<size_t> order(keys.size());
+        std::iota(order.begin(), order.end(), size_t{0});
+        const bool down = descending && descending->GetInt() != 0;
+        std::ranges::stable_sort(order,
+                                 [&](size_t a, size_t b) { return down ? keys[b] < keys[a] : keys[a] < keys[b]; });
+        list->ReorderAttributes(order);
     });
 }
 
@@ -375,28 +369,19 @@ uint32_t UiModal(VS_STACK *stack)
 uint32_t UiPending(VS_STACK *stack)
 {
     const std::string id = PopText(stack);
-    return Native("UiPending", [&](storm::ui::ScriptCall &call) {
-        const bool pending = call.Pending(id);
-        static_cast<VDATA *>(stack->Push())->Set(static_cast<int32_t>(pending));
-    });
+    return ReturnInt(stack, "UiPending", [&](storm::ui::ScriptCall &call) { return call.Pending(id); });
 }
 
 uint32_t UiOffers(VS_STACK *stack)
 {
     const std::string verb = PopText(stack), node = PopText(stack);
-    return Native("UiOffers", [&](storm::ui::ScriptCall &call) {
-        const bool offers = call.Offers(node, verb);
-        static_cast<VDATA *>(stack->Push())->Set(static_cast<int32_t>(offers));
-    });
+    return ReturnInt(stack, "UiOffers", [&](storm::ui::ScriptCall &call) { return call.Offers(node, verb); });
 }
 
 uint32_t UiText(VS_STACK *stack)
 {
     const std::string key = PopText(stack);
-    return Native("UiText", [&](storm::ui::ScriptCall &call) {
-        const std::string text = call.Text(key);
-        static_cast<VDATA *>(stack->Push())->Set(text);
-    });
+    return ReturnText(stack, "UiText", [&](storm::ui::ScriptCall &call) { return call.Text(key); });
 }
 
 // The child `name` of `at`, made when it has none.
@@ -577,42 +562,29 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiShow", "void", 1, UiShow},
             {"UiPredict", "void", 1, UiPredict},
             {"UiOn", "void", 2, UiOn},
-            {"UiSend", "void", 3, UiSend},
-            {"UiSendRow", "void", 5, UiSendRow},
-            {"UiSendAfter", "void", 7, UiSendAfter},
-            {"UiWaiting", "int", 3, UiWaiting},
-            {"UiBack", "void", 1, UiBack},
             {"UiModal", "void", 2, UiModal},
             {"UiPending", "int", 1, UiPending},
-            {"UiOffers", "int", 2, UiOffers},
             {"UiText", "string", 1, UiText},
-            {"UiIgnore", "void", 2, UiIgnore},
-            {"UiBound", "int", 2, UiBound},
-            {"UiKeep", "void", 0, UiKeep},
+            {"UiSend", "void", 3, UiSend},
+            {"UiSendTo", "void", 1, UiSendTo},
+            {"UiBack", "void", 1, UiBack},
+            {"UiOffers", "int", 2, UiOffers},
+            {"UiHold", "void", 1, UiHold},
+            {"UiAnswer", "string", 0, UiAnswer},
             {"UiAwait", "void", 0, UiAwait},
             {"UiRebuild", "void", 0, UiRebuild},
-            {"UiRebuildAfter", "void", 1, UiRebuildAfter},
             {"UiFirst", "int", 0, UiFirst},
-            {"UiRevision", "int", 0, UiRevision},
-            {"UiNow", "float", 0, UiNow},
-            {"UiRequestFloor", "int", 0, UiRequestFloor},
-            {"UiAnsweredSince", "int", 1, UiAnsweredSince},
             {"UiToast", "void", 1, UiToast},
             {"UiRead", "void", 2, UiRead},
             {"UiError", "void", 1, UiError},
-            {"UiAmount", "int", 3, UiAmount},
+            {"UiAmount", "int", 2, UiAmount},
             {"UiHasAmount", "int", 1, UiHasAmount},
-            {"UiNumber", "float", 3, UiNumber},
+            {"UiNumber", "float", 2, UiNumber},
             {"UiDecimal", "string", 1, UiDecimal},
             {"UiOneLine", "string", 1, UiOneLine},
             {"UiFill", "string", 2, UiFill},
-            {"UiDraftFollow", "void", 4, UiDraftFollow},
-            {"UiDraftClose", "void", 1, UiDraftClose},
-            {"UiDraftOrigin", "int", 1, UiDraftOrigin},
-            {"UiDraftOther", "int", 1, UiDraftOther},
-            {"UiDraftValue", "int", 3, UiDraftValue},
-            {"UiDraftBind", "void", 6, UiDraftBind},
-            {"UiDraftButton", "void", 10, UiDraftButton},
+            {"UiDeal", "void", 2, UiDeal},
+            {"UiOrder", "void", 3, UiOrder},
         };
         for (const auto &native : natives)
         {

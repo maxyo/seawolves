@@ -32,8 +32,10 @@ engine code that the host checks build on Linux (`tests/ui_scripts`):
   `UiScreens.<capability>` (`capability`, `screen`: the screen file's stem, `look`: the screen entry's presentation,
   `data`: the binding's, `model`: the admitted widgets of its last build); the event `UiBuild(ui)` builds the view and
   `UiTap(ui, id, verb, value)` answers an event the script bound, each with that object; the natives (declared in the scripts' `core/core.c`: the view, its bindings, widget actions on
-  nodes and rows, the build's timing and the game's answers, the reading of the game's figures, the engine's amount
-  drafts) act on the screen while its script runs (`storm_ui::ScriptCall`) and fail outside it. These events are raised only between scripts: one asked
+  nodes and rows, waiting for the game's answer (`UiHold`, `UiAnswer`, `UiAwait`), the reading of the game's figures,
+  the deal of a quantity control (`UiDeal`), an order of a list (`UiOrder`)) act on the screen while its script runs
+  (`storm_ui::ScriptCall`) and fail outside it, as does one given an argument of the wrong type or an object with an
+  unknown or missing field. These events are raised only between scripts: one asked
   for while a script runs is refused with an error, and a script screen's model published from inside a script waits
   for the next `Tick`. Their cost per call is in the `script work:` line ("interface scripts").
 

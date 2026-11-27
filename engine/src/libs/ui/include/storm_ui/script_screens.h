@@ -42,6 +42,27 @@ struct ScriptScreen
     ViewTree look, data;
 };
 
+// A deal of a quantity control (screens::AmountDraft), as a script asks for it in a build: our side holds `origin`
+// of row `key` and theirs `other`; the control may move our side within [low, high]; past an end the reason is said
+// (empty: none). `element`'s change and commit move the draft; the deal's button names it with the string keys
+// `more` / `less`, and its press raises the event `commit` with the change.
+struct DealSpec
+{
+    std::string key, element;
+    int origin = 0, other = 0, low = 0, high = 0;
+    std::string more_reason, less_reason;
+    std::string more, less;
+    bool disabled = false;
+    std::string reason, commit;
+};
+// The draft's amount on our side, its change from the origin and the button {label, sub, disabled, reason, busy}
+// (no children while there is none to press: the amount unchanged).
+struct DealView
+{
+    int value = 0, change = 0;
+    ViewTree button;
+};
+
 // What a script screen's code may do while it runs (the natives of the VM side).
 class ScriptCall
 {
@@ -54,15 +75,10 @@ class ScriptCall
     // sent, then compared with the view built after the answer (the router's "UI prediction corrected").
     virtual void Predict(const ViewTree &view) = 0;
     // A widget action on the admitted widget `node`, or on its row `row` (-1: the node's own widget); `guard`, when
-    // given, is the identity of the row the action must still find (Bindings::Send).
+    // not empty, is the identity of the row the action must still find (Bindings::Send); `lead`, when not empty,
+    // goes out right before the value.
     virtual void Send(const std::string &node, int row, const std::string &verb, const std::string &value,
-                      const std::string &guard) = 0;
-    // The same after `seconds`, replaced by a newer one for the widget and verb; `lead` (empty: none) goes out right
-    // before it in the same flush (Bindings::SendAfter).
-    virtual void SendAfter(const std::string &node, int row, const std::string &verb, const std::string &value,
-                           const std::string &guard, double seconds, const std::string &lead) = 0;
-    // True while a SendAfter of the widget and verb has not gone out.
-    virtual bool Waiting(const std::string &node, int row, const std::string &verb) const = 0;
+                      const std::string &guard, const std::string &lead) = 0;
     // The player's way out through `node`, or the engine's back when it is empty.
     virtual void Back(const std::string &node) = 0;
     // The view shows modal `id`; its scrim and the back key raise an event of element `cancel` (no verb), or are
@@ -71,57 +87,41 @@ class ScriptCall
     virtual bool Pending(const std::string &id) const = 0;
     virtual bool Offers(const std::string &node, const std::string &verb) const = 0;
     virtual std::string Text(const std::string &key) const = 0;
-    // Events of `id` and `verb` need no answer; Bound: this build took them (On, Ignore).
-    virtual void Ignore(const std::string &id, const std::string &verb) = 0;
-    virtual bool Bound(const std::string &id, const std::string &verb) const = 0;
 
-    // Inside a build: the screen shows what it showed before this model (a step of the game's answer that is not to
-    // be drawn); the handlers bound now act on this model.
-    virtual void Keep() = 0;
-    // The game's answer comes in a later game frame (Bindings::Await).
+    // In a build or an event: the screen waits for the game's answer to the widget actions this call sent (and to
+    // those sent while it waits). A build from an answer its game completes in later frames (it says Await) is not
+    // drawn: the view shown stays, and what it shows of what the answer closed takes no input. At most `seconds`;
+    // then the build is "late", and an error line unless the game had answered and the build awaits nothing more.
+    virtual void Hold(double seconds) = 0;
+    // Inside a build: what became of the hold it runs under: "" none, "waiting", "applied" (answered, the model after
+    // it in), "refused" (the engine refused an action of it), "late" (`seconds` passed). A build that is not
+    // "waiting" and does not Await ends the hold and is shown.
+    virtual std::string Answer() const = 0;
+    // Inside a build: the game's answer is not complete in this model; more of it comes in a later game frame.
     virtual void Await() = 0;
-    // Build again now, or after `seconds` without a new model.
+    // Build again now: local state of the script changed.
     virtual void Rebuild() = 0;
-    virtual void RebuildAfter(double seconds) = 0;
     // The first build of this opening of the interface: the script's own state starts afresh.
     virtual bool First() const = 0;
-    virtual uint64_t Revision() const = 0; // of the model built from
-    virtual double Now() const = 0;        // s
-    // The engine's answers to widget actions: RequestFloor, the number of the next one; AnsweredSince(floor): 0
-    // waiting, 1 every one from `floor` on applied with its model in, 2 one of them refused (Bindings::AnsweredSince).
-    virtual uint64_t RequestFloor() const = 0;
-    virtual int AnsweredSince(uint64_t floor) const = 0;
 
     virtual void Toast(const std::string &text) = 0;
     virtual void Read(const std::string &title, const std::string &text) = 0;
-    // Something the screen cannot do as designed: an error line.
+    // Something the screen cannot do as designed: the build or event fails with it, and the interface is closed.
     virtual void Error(const std::string &text) = 0;
 
     // The figures of the game's texts, read by the rules every screen reads them by (screens/amount.h): Amount and
-    // Number say once when the text holds none and give `none`; HasAmount: whether it holds a whole number.
-    virtual int Amount(const std::string &text, const std::string &what, int none) = 0;
+    // Number throw, naming `what`, when the text holds none; HasAmount: whether it holds a whole number.
+    virtual int Amount(const std::string &text, const std::string &what) const = 0;
     virtual bool HasAmount(const std::string &text) const = 0;
-    virtual double Number(const std::string &text, const std::string &what, double none) = 0;
+    virtual double Number(const std::string &text, const std::string &what) const = 0;
     // A game number with the decimal mark of the interface's language; a text on one line; "{1}" of `text` filled.
     virtual std::string Decimal(const std::string &text) const = 0;
     virtual std::string OneLine(const std::string &text) const = 0;
     virtual std::string Fill(const std::string &text, const std::string &argument) const = 0;
 
-    // The amount a quantity control sets, kept by the engine per `id` while the screen is open (screens::AmountDraft):
-    // the player's draft until he confirms it.
-    virtual void DraftFollow(const std::string &id, const std::string &key, int origin, int other) = 0;
-    virtual void DraftClose(const std::string &id) = 0;
-    virtual int DraftOrigin(const std::string &id) const = 0;
-    virtual int DraftOther(const std::string &id) const = 0;
-    virtual int DraftValue(const std::string &id, int low, int high) const = 0;
-    // `element` change and commit move the draft.
-    virtual void DraftBind(const std::string &id, const std::string &element, int low, int high,
-                           const std::string &more_reason, int grain) = 0;
-    // The deal's button {label, sub, disabled, reason, busy} (no children: none while the amount is unchanged),
-    // labelled by the string keys `more` / `less`; its press raises the event `commit` with the change as its value.
-    virtual ViewTree DraftButton(const std::string &id, int low, int high, const std::string &more,
-                                 const std::string &less, const std::string &sub, bool disabled,
-                                 const std::string &reason, const std::string &commit) = 0;
+    // Inside a build: the open deal of `spec.element`, kept by the engine while the screen is open: the player's
+    // draft until he presses its button. A build that asks for no deal of an element closes it.
+    virtual DealView Deal(const DealSpec &spec) = 0;
 
   protected:
     ~ScriptCall() = default;

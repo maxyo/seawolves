@@ -16,9 +16,11 @@
   "segments": [
     {"file": "interface/touch/core/core.c", "core": true},
     {"file": "interface/touch/lib/text.c", "core": true},
+    {"file": "interface/touch/lib/list.c", "core": true},
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/android_ui_bootstrap.c"},
+    {"file": "interface/touch/lineages/legacy/lib.c"},
     {
       "file": "interface/touch/lineages/legacy/rest.c",
       "provides": ["adapter:rest"],
@@ -43,8 +45,19 @@
           "interface": "itemsbox",
           "nodes": ["@goods-head", "@goods-box", ["CHARACTERS_SCROLL", "choice"], "@qty-window"],
           "data": {
-            "own": 0, "other": 4, "name": 2, "buy": -1, "sell": -1, "pack": -1, "packWeight": -1, "ownTotal": 1,
-            "otherTotal": 3, "goods": false, "pieces": false, "owners": "CHARACTERS_SCROLL"
+            "own": 0,
+            "other": 4,
+            "name": 2,
+            "buy": -1,
+            "sell": -1,
+            "pack": -1,
+            "packWeight": -1,
+            "ownTotal": 1,
+            "otherTotal": 3,
+            "goods": false,
+            "pieces": false,
+            "owners": "CHARACTERS_SCROLL",
+            "tabs": {"t1": "common.all", "t2": "trade.tab_mine", "t3": "trade.tab_here", "t4": "trade.tab_weapons"}
           }
         },
         {
@@ -81,23 +94,15 @@
       "screens": [{"capability": "rest", "component": "s-rest"}]
     },
     {
-      "file": "interface/touch/screens/trade/commerce.c",
+      "file": "interface/touch/screens/trade/trade.c",
       "uses": ["adapter:trade"],
       "screens": [
         {
           "capability": "trade_chest",
           "component": "s-trade",
           "look": {
-            "title": "trade.chest",
-            "small": true,
-            "quick": true,
-            "carryIcon": "weight",
-            "baseIcon": "chest",
-            "ownCaption": "",
-            "ownIcon": "",
-            "otherCaption": "",
-            "otherIcon": "",
-            "tabs": {"t1": "common.all", "t2": "trade.tab_mine", "t3": "trade.tab_here", "t4": "trade.tab_weapons"}
+            "title": "trade.chest", "small": true, "quick": true, "carryIcon": "weight", "baseIcon": "chest",
+            "ownCaption": "", "ownIcon": "", "otherCaption": "", "otherIcon": ""
           }
         },
         {

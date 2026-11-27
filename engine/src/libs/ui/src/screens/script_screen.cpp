@@ -2,9 +2,13 @@
 
 #include "controls.h"
 #include "script_props.h"
+#include "amount.h"
+#include "../numbers.h"
+#include "../text_utf8.h"
 #include "storm_ui/interface_model.h"
 
 #include <map>
+#include <set>
 #include <stdexcept>
 
 namespace storm::ui::screens
@@ -33,7 +37,6 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     Json Build(const Admission &admitted, Bindings &bindings) override
     {
         bindings_ = &bindings;
-        revision_ = admitted.model->revision;
         language_ = admitted.model->language;
         widgets_.clear();
         std::vector<const Widget *> known;
@@ -42,6 +45,12 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         for (const Widget &widget : widgets_)
             known.push_back(&widget);
         view_.reset();
+        answer_ = HoldState();
+        answered_ = hold_ && Answered();
+        awaited_ = false;
+        dealt_.clear();
+        bound_.clear();
+        floor_ = bindings.RequestFloor();
         building_ = true;
         struct Done
         {
@@ -53,13 +62,54 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         } done{building_};
         port_.Build(screen_, known, *this);
         first_ = false;
+        std::erase_if(drafts_, [this](const auto &draft) { return !dealt_.contains(draft.first); });
         if (!view_)
             throw std::runtime_error("script screen " + screen_.capability + " showed no view");
+        // Before the game answers the view is the old model's with the tap's own marks; an answer the game completes
+        // in later frames is not drawn until it is complete.
+        const bool waiting = hold_ && (answer_ == "waiting" || (answer_ == "applied" && awaited_));
+        if (waiting && awaited_ && !shown_.is_null())
+        {
+            // What the kept view shows of what this model has closed (an amount window) takes no input.
+            for (const std::string &bound : shown_bound_)
+                if (!bound_.contains(bound))
+                    bindings.Ignore(bound.substr(0, bound.find('\x1f')), bound.substr(bound.find('\x1f') + 1));
+            bindings.RebuildAfter(hold_until_ - bindings.Now());
+            return shown_;
+        }
+        if (waiting)
+            bindings.RebuildAfter(hold_until_ - bindings.Now());
+        else if (hold_ && answer_ == "late" && (awaited_ || !answered_))
+            bindings.Error("script screen " + screen_.capability + ": the game did not answer in " +
+                           std::to_string(hold_seconds_) + " s");
+        hold_ = waiting;
         shown_ = *view_;
+        shown_bound_ = bound_;
         return std::move(*view_);
     }
 
   private:
+    // What became of the hold, as the build that runs under it sees it.
+    std::string HoldState() const
+    {
+        if (!hold_)
+            return "";
+        if (Answers() == Bindings::Answers::Refused)
+            return "refused";
+        if (bindings_->Now() >= hold_until_)
+            return "late";
+        return Answered() ? "applied" : "waiting";
+    }
+    Bindings::Answers Answers() const
+    {
+        const bool sent = bindings_->RequestFloor() != hold_floor_;
+        return sent ? bindings_->AnsweredSince(hold_floor_) : Bindings::Answers::Applied;
+    }
+    bool Answered() const
+    {
+        return Answers() == Bindings::Answers::Applied;
+    }
+
     void Show(const ViewTree &view) override
     {
         if (!building_)
@@ -77,23 +127,21 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     }
     void On(const std::string &id, const std::string &verb) override
     {
-        bindings_->On(id, verb,
-                      [this](const Event &event) { port_.Event(screen_, event.id, event.verb, event.value, *this); });
+        bound_.insert(id + '\x1f' + verb);
+        bindings_->On(id, verb, [this](const Event &event) { Raise(event.id, event.verb, event.value); });
+    }
+    void Raise(const std::string &id, const std::string &verb, const std::string &value)
+    {
+        floor_ = bindings_->RequestFloor();
+        port_.Event(screen_, id, verb, value, *this);
     }
     void Send(const std::string &node, int row, const std::string &verb, const std::string &value,
-              const std::string &guard) override
+              const std::string &guard, const std::string &lead) override
     {
-        bindings_->Send(Find(node, row), verb, value, guard);
-    }
-    void SendAfter(const std::string &node, int row, const std::string &verb, const std::string &value,
-                   const std::string &guard, double seconds, const std::string &lead) override
-    {
-        bindings_->SendAfter(seconds, Find(node, row), verb, value, guard,
-                             lead.empty() ? std::nullopt : std::optional<std::string>(lead));
-    }
-    bool Waiting(const std::string &node, int row, const std::string &verb) const override
-    {
-        return bindings_->Waiting(Find(node, row), verb);
+        const Widget &widget = Find(node, row);
+        if (!lead.empty())
+            bindings_->Send(widget, verb, lead, guard);
+        bindings_->Send(widget, verb, value, guard);
     }
     void Back(const std::string &node) override
     {
@@ -106,7 +154,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
             bindings_->Modal(id, nullptr);
             return;
         }
-        bindings_->Modal(id, [this, cancel](const Event &) { port_.Event(screen_, cancel, "", "", *this); });
+        bindings_->Modal(id, [this, cancel](const Event &) { Raise(cancel, "", ""); });
     }
     bool Pending(const std::string &id) const override
     {
@@ -121,60 +169,38 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         return bindings_->Text(key);
     }
 
-    void Ignore(const std::string &id, const std::string &verb) override
+    void Hold(double seconds) override
     {
-        bindings_->Ignore(id, verb);
+        if (!(seconds > 0.0))
+            throw std::runtime_error("a hold lasts more than 0 s");
+        hold_ = true;
+        hold_floor_ = floor_;
+        hold_seconds_ = seconds;
+        hold_until_ = bindings_->Now() + seconds;
+        if (building_)
+            answer_ = HoldState();
+        bindings_->RebuildAfter(seconds);
     }
-    bool Bound(const std::string &id, const std::string &verb) const override
+    std::string Answer() const override
     {
-        return bindings_->Bound(id, verb);
-    }
-    void Keep() override
-    {
-        if (!building_ || shown_.is_null())
-            throw std::runtime_error("a view is kept only while the screen builds, after it has shown one");
-        view_ = shown_;
+        if (!building_)
+            throw std::runtime_error("the answer of a hold is read only while the screen builds");
+        return answer_;
     }
     void Await() override
     {
+        if (!building_)
+            throw std::runtime_error("an answer is awaited only while the screen builds");
+        awaited_ = true;
         bindings_->Await();
     }
     void Rebuild() override
     {
         bindings_->Rebuild();
     }
-    void RebuildAfter(double seconds) override
-    {
-        bindings_->RebuildAfter(seconds);
-    }
     bool First() const override
     {
         return first_;
-    }
-    uint64_t Revision() const override
-    {
-        return revision_;
-    }
-    double Now() const override
-    {
-        return bindings_->Now();
-    }
-    uint64_t RequestFloor() const override
-    {
-        return bindings_->RequestFloor();
-    }
-    int AnsweredSince(uint64_t floor) const override
-    {
-        switch (bindings_->AnsweredSince(floor))
-        {
-        case Bindings::Answers::Waiting:
-            return 0;
-        case Bindings::Answers::Applied:
-            return 1;
-        case Bindings::Answers::Refused:
-            return 2;
-        }
-        throw std::logic_error("an answer that is none of Bindings::Answers");
     }
     void Toast(const std::string &text) override
     {
@@ -186,19 +212,23 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     }
     void Error(const std::string &text) override
     {
-        bindings_->Error(text);
+        throw std::runtime_error(text);
     }
-    int Amount(const std::string &text, const std::string &what, int none) override
+    int Amount(const std::string &text, const std::string &what) const override
     {
-        return screens::Amount(*bindings_, text, what.c_str(), none);
+        if (const std::optional<int> value = ParseAmount(text))
+            return *value;
+        throw std::runtime_error("no number in " + what + " ('" + text + "')");
     }
     bool HasAmount(const std::string &text) const override
     {
         return ParseAmount(text).has_value();
     }
-    double Number(const std::string &text, const std::string &what, double none) override
+    double Number(const std::string &text, const std::string &what) const override
     {
-        return screens::Number(*bindings_, text, what.c_str(), none);
+        if (const std::optional<double> value = ParseNumber<double>(StripWhitespace(text)))
+            return *value;
+        throw std::runtime_error("no number in " + what + " ('" + text + "')");
     }
     std::string Decimal(const std::string &text) const override
     {
@@ -212,54 +242,32 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         return screens::Fill(text, {argument});
     }
-    void DraftFollow(const std::string &id, const std::string &key, int origin, int other) override
+    DealView Deal(const DealSpec &spec) override
     {
-        drafts_[id].Follow(key, origin, other, *bindings_);
-    }
-    void DraftClose(const std::string &id) override
-    {
-        drafts_[id].Close();
-    }
-    int DraftOrigin(const std::string &id) const override
-    {
-        return Draft(id).Origin();
-    }
-    int DraftOther(const std::string &id) const override
-    {
-        return Draft(id).Other();
-    }
-    int DraftValue(const std::string &id, int low, int high) const override
-    {
-        return Draft(id).Value(low, high);
-    }
-    void DraftBind(const std::string &id, const std::string &element, int low, int high, const std::string &more_reason,
-                   int grain) override
-    {
-        Draft(id).Bind(*bindings_, element, low, high, more_reason, grain);
-    }
-    ViewTree DraftButton(const std::string &id, int low, int high, const std::string &more, const std::string &less,
-                         const std::string &sub, bool disabled, const std::string &reason,
-                         const std::string &commit) override
-    {
-        const Json button = Draft(id).Buttons(
-            *bindings_, low, high, {more.c_str(), less.c_str()}, sub, disabled, reason,
-            [this, commit](int delta) { port_.Event(screen_, commit, "", std::to_string(delta), *this); });
-        ViewTree tree{"button", "", {}};
+        if (!building_)
+            throw std::runtime_error("a deal is asked for only while the screen builds");
+        if (!dealt_.insert(spec.element).second)
+            throw std::runtime_error("script screen " + screen_.capability + ": two deals of " + spec.element);
+        for (const char *verb : {"change", "commit"})
+            bound_.insert(spec.element + '\x1f' + verb);
+        bound_.insert(std::string("primary") + '\x1f');
+        AmountDraft &draft = drafts_[spec.element];
+        draft.Follow(spec.key, spec.origin, spec.other, *bindings_);
+        draft.Bind(*bindings_, spec.element, spec.low, spec.high, spec.more_reason, 1, spec.less_reason);
+        DealView view;
+        view.value = draft.Value(spec.low, spec.high);
+        view.change = view.value - draft.Origin();
+        view.button.name = "button";
+        const Json button = draft.Buttons(
+            *bindings_, spec.low, spec.high, {spec.more.c_str(), spec.less.c_str()}, "", spec.disabled, spec.reason,
+            [this, commit = spec.commit](int change) { Raise(commit, "", std::to_string(change)); });
         if (!button.is_null())
             for (const auto &[key, value] : button.items())
-                tree.children.push_back(
+                view.button.children.push_back(
                     {key, value.is_boolean() ? (value.get<bool>() ? "1" : "0") : value.get<std::string>(), {}});
-        return tree;
+        return view;
     }
 
-    // A draft the script follows; one it never followed is a fault of the script.
-    AmountDraft &Draft(const std::string &id) const
-    {
-        const auto draft = drafts_.find(id);
-        if (draft == drafts_.end())
-            throw std::runtime_error("script screen " + screen_.capability + ": no amount draft " + id);
-        return draft->second;
-    }
     // The node's own widget (row -1), or its row `row`.
     const Widget &Find(const std::string &node, int row) const
     {
@@ -277,12 +285,21 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     Bindings *bindings_ = nullptr;
     std::vector<Widget> widgets_; // the admitted widgets of the last build: the handlers act on them
     std::optional<Json> view_;
-    Json shown_; // the view of the last build
+    Json shown_; // the view of the last build shown
     bool building_ = false;
     bool first_ = true;
-    uint64_t revision_ = 0;
     std::string language_;
-    mutable std::map<std::string, AmountDraft> drafts_; // the quantity controls' drafts by the script's ids
+    uint64_t floor_ = 0; // the first widget action of the running build or event
+    // The hold: the view shown stays until the widget actions from hold_floor_ on are answered.
+    bool hold_ = false;
+    uint64_t hold_floor_ = 0;
+    double hold_seconds_ = 0.0, hold_until_ = 0.0;
+    std::string answer_;    // HoldState at the start of the running build
+    bool answered_ = false; // the game had answered before the running build
+    bool awaited_ = false;
+    std::map<std::string, AmountDraft> drafts_; // the deals by their element
+    std::set<std::string> dealt_;               // the elements the running build asked a deal of
+    std::set<std::string> bound_, shown_bound_; // "<id>\x1f<verb>" the running build and the shown one bound
 };
 } // namespace
 

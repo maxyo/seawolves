@@ -497,6 +497,7 @@ struct StoreRun
                 if (widget.node == "TABLE_LIST")
                     widget.value = widget.index == 1 ? "1" : "0";
             const Json before = sel_surface.props;
+            AnswerAll(sel, sel_surface, true);
             sel.SetInterface(chosen);
             Expect(sel_surface.props == before,
                    "the selection without its deal is held back: the screen stays as it was");
@@ -517,6 +518,7 @@ struct StoreRun
             for (Widget &widget : lone.widgets)
                 if (widget.node == "TABLE_LIST")
                     widget.value = widget.index == 2 ? "1" : "0";
+            AnswerAll(sel, sel_surface, true);
             sel.SetInterface(lone);
             Expect(sel_surface.props["list"]["rows"][2]["selected"] != true, "held while its window may still come");
             sel_surface.now += 0.6;
@@ -724,12 +726,14 @@ struct StoreRun
             InterfaceModel closed = Load(models, "store.json");
             closed.revision = open_deal.revision + 10;
             surface.commands.clear();
+            AnswerAll(router, surface, true);
             router.SetInterface(closed);
             router.Tick();
             ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
                         "a confirmed deal's row opens its deal again");
             InterfaceModel reopened = open_deal;
             reopened.revision = closed.revision + 1;
+            AnswerAll(router, surface, true);
             router.SetInterface(reopened);
             router.OnEvent({"goods", "change", "300"});
             router.OnEvent({"primary", "click", ""}); // confirmed, then left with ← before the game answered
@@ -737,6 +741,7 @@ struct StoreRun
             surface.commands.clear();
             closed.revision = reopened.revision + 1;
             router.OnEvent({"header-back", "click", ""});
+            AnswerAll(router, surface, true);
             router.SetInterface(closed);
             router.Tick();
             Expect(std::none_of(surface.commands.begin(), surface.commands.end(),
@@ -836,12 +841,14 @@ struct StoreRun
                        Json(ship_surface.commands).dump());
             // The selector moved; the game binds the ship in its next frame (refCharacter, the table, the first row).
             ship_surface.commands.clear();
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(2, 1, 21, false));
             Expect(ship_surface.commands.empty() && ship_surface.errors.empty(),
                    "nothing is asked for before the game has switched the ship");
             ship_router.SetInterface(deal_on(0, 1, 22, false));
             ExpectEqual(ship_surface.Last(), "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:1",
                         "the same goods' deal opens for the new ship");
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(2, 1, 23, true));
             Expect(!ship_surface.props["deal"].is_null() && ship_surface.props["list"]["rows"][2]["selected"] == true &&
                        ship_surface.props["subject"]["prev"] == true &&
@@ -852,6 +859,7 @@ struct StoreRun
             ship_surface.commands.clear();
             ship_router.OnEvent({"header", "subject-prev", ""});
             ExpectEqual(ship_surface.Last(), "widget:store\tSHIPS_SCROLL\t0\tselect@7:ship:0", "‹ switches back");
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(2, 0, 24, false));
             InterfaceModel without = deal_on(0, 0, 25, false);
             std::erase_if(without.widgets,
@@ -862,8 +870,10 @@ struct StoreRun
                         "goods the new ship's list lacks: the game's first row");
 
             // A switch the game answers with no new model (nothing it shows changed): opened after the wait.
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(0, 0, 26, true));
             ship_router.OnEvent({"header", "subject-next", ""});
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(0, 1, 27, false));
             ship_surface.commands.clear();
             ship_surface.now += 0.6;
@@ -873,11 +883,13 @@ struct StoreRun
 
             // An arrow tapped while a tapped row's window is on its way: the switch waits for that window, then closes
             // it.
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(0, 1, 28, true));
             ship_router.OnEvent({"goods", "row", "1"});
             ship_surface.commands.clear();
             ship_router.OnEvent({"header", "subject-prev", ""});
             Expect(ship_surface.commands.empty(), "the switch waits for the tapped row's window");
+            AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(1, 1, 29, true));
             Expect(ship_surface.commands.size() == 2 &&
                        ship_surface.commands[0] ==
@@ -893,6 +905,7 @@ struct StoreRun
             Router tap_router(tap_surface);
             Scripted(tap_router);
             tap_router.SetInterface(deal_on(0, 0, 40, false));
+            AnswerAll(tap_router, tap_surface, true);
             tap_router.SetInterface(deal_on(0, 0, 41, true));
             tap_router.OnEvent({"header", "subject-next", ""});
             tap_surface.commands.clear();
@@ -900,6 +913,7 @@ struct StoreRun
                 {"goods", "row", "1"}); // emulator: a tap right after ›, on the rows of the model before the switch
             Expect(tap_surface.commands.empty(),
                    "a row tapped before the switch is in the model is not sent: " + Json(tap_surface.commands).dump());
+            AnswerAll(tap_router, tap_surface, true);
             tap_router.SetInterface(deal_on(0, 1, 42, false));
             tap_router.OnEvent(
                 {"goods", "row", "3"}); // the selector moved, the rows are still the old ship's: the newer tap counts
@@ -1148,6 +1162,7 @@ struct CommerceRun
             quick.OnEvent({"goods", "quick", row_index});
             quick_surface.commands.clear();
             open.revision += 10;
+            AnswerAll(quick, quick_surface, true);
             quick.SetInterface(open);
             quick.Tick();
             Expect(quick_surface.commands.size() == 3 &&
@@ -1171,7 +1186,7 @@ struct CommerceRun
                         widget.value = widget.index == row ? "1" : "0";
                 return out;
             };
-            tap.SetInterface(chosen("itemsbox.json", 0, 1));
+            tap.SetInterface(chosen("itemsbox-deal.json", 0, 1));
             const Json before = tap_surface.props;
             tap.OnEvent({"goods", "row", "1"});
             AnswerAll(tap, tap_surface, true);
@@ -1230,12 +1245,14 @@ struct CommerceRun
                        chest_surface.commands[0] == "widget:itemsbox\tANDROID_TAKE_ALL\t-1\tpress",
                    "take all: one request for the game's take-all, no stack by stack: " +
                        Json(chest_surface.commands).dump());
+            AnswerAll(box, chest_surface, true);
             box.SetInterface(chest(2, empty, true));
             Expect(chest_surface.toasts.empty() && chest_surface.props["primary"].is_null(),
                    "all of it taken: no toast, an empty chest offers no take all");
             box.SetInterface(chest(3, {}, true));
             box.OnEvent({"primary", "click", ""});
             box.Tick();
+            AnswerAll(box, chest_surface, true);
             box.SetInterface(chest(4, {{"row:0", "0"}, {"row:1", "0"}, {"row:2", "0"}, {"row:3", "1"}}, true));
             Expect(chest_surface.toasts.size() == 1 && chest_surface.toasts[0] == "<trade.too_heavy>",
                    "a stack left after the game's take-all: the weight limit, said once: " +

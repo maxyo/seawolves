@@ -277,6 +277,7 @@ class Session
             if (!case_.answer.empty())
             {
                 Frames(0.05);
+                AnswerRequests();
                 model = Opening(case_.answer);
                 host_->SetInterface(model);
             }
