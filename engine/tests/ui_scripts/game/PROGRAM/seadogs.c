@@ -337,6 +337,13 @@ bool GetShipRemovable(ref chr)
 	return true;
 }
 
+// Whether the game offers the exchange with chr's ship (a script fix's function); a case sets TestShipChange.
+int TestShipChange = 1;
+bool IsShipChangeOffered(ref chr)
+{
+	return TestShipChange;
+}
+
 int GetBortCannonsQtyMax(ref chr, string side)
 {
 	return sti(chr.TestPorts.(side));

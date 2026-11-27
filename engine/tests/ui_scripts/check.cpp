@@ -555,6 +555,30 @@ TEST_CASE("a binding the game cannot give is off alone; bindings share named nod
     CHECK(log.Has("capabilities offered: test; missing: gone, bare"));
 }
 
+TEST_CASE("a segment's optional contracts are told to its bindings; it attaches without them")
+{
+    Log log;
+    Vm vm(R"({"segments": [
+                 {"file": "interface/touch/core/core.c", "core": true},
+                 {"file": "interface/test/provider_one.c", "requires": ["fn:Missing/0"], "provides": ["adapter:gone"]},
+                 {"file": "interface/test/inside.c", "provides": ["adapter:here"]},
+                 {"file": "interface/test/provider_two.c", "provides": ["adapter:test"],
+                  "optional": ["adapter:here", "adapter:gone"],
+                  "binds": [{"capability": "test", "interface": "tavernwait", "nodes": [["OK_BTN", "button", true]]}]},
+                 {"file": "interface/test/user.c", "uses": ["adapter:test"],
+                  "screens": [{"capability": "test", "component": "s-rest"}]}]})");
+    vm.Start();
+    CHECK(vm.Loaded("interface/test/provider_two.c"));
+    REQUIRE(vm.screens.size() == 1);
+    REQUIRE(vm.screens[0].data.children.size() == 1);
+    const storm::ui::ViewTree &optional = vm.screens[0].data.children[0];
+    CHECK(optional.name == "optional");
+    REQUIRE(optional.children.size() == 2);
+    CHECK((optional.children[0].name == "here" && optional.children[0].value == "1"));
+    CHECK((optional.children[1].name == "gone" && optional.children[1].value == "0"));
+    CHECK(log.Has("UI script interface/test/provider_two.c: adapter:gone is not provided"));
+}
+
 TEST_CASE("the segment list is checked when it is read")
 {
     using storm::ui_scripts::ParseSegments;

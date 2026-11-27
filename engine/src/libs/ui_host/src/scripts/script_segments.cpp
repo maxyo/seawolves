@@ -169,6 +169,7 @@ std::vector<Segment> ParseSegments(std::string_view text)
                 segment.needs.push_back(ParseRequirement(requirement.get<std::string>(), where));
             segment.provides = ParseContracts(entry, "provides", where);
             segment.uses = ParseContracts(entry, "uses", where);
+            segment.optional = ParseContracts(entry, "optional", where);
             for (const Json &binding : entry.value("binds", Json::array()))
                 segment.binds.push_back(ParseBinding(binding, sets, where));
             for (const Json &screen : entry.value("screens", Json::array()))
@@ -326,9 +327,22 @@ void Attacher::Attach(storm::script::Program &program)
         }
         for (const std::string &contract : segment.provides)
             providers.emplace(contract, segment.file);
-        for (const auto &binding : segment.binds)
+        storm::ui::ViewTree optional{"optional", "", {}};
+        for (const std::string &contract : segment.optional)
+        {
+            const bool provided = providers.contains(contract);
+            if (!provided)
+                spdlog::warn("UI script {}: {} is not provided; what it gives the screens is not offered", segment.file,
+                             contract);
+            optional.children.push_back({contract.substr(8), provided ? "1" : "0", {}});
+        }
+        for (auto binding : segment.binds)
             if (const std::string unmet = Unbound(surface, binding); unmet.empty())
-                bindings.emplace(binding.capability, binding);
+            {
+                if (!optional.children.empty())
+                    binding.data.children.push_back(optional);
+                bindings.emplace(binding.capability, std::move(binding));
+            }
             else
                 spdlog::error("UI script {}: binding {} is off: {}", segment.file, binding.capability, unmet);
         for (storm::ui::ScriptScreen screen : segment.screens)

@@ -32,7 +32,7 @@ void TouchAdpShip_State(aref ui, aref out)
 	// OnShipScrollChange fills the figures only for a captain with a ship.
 	if (TouchLib_Count(model, "TABLE_OTHER.rows") > 0)
 	{
-		TouchLegShip_Ship(model, chr, out);
+		TouchLegShip_Ship(ui, model, chr, out);
 		aref quality;
 		makearef(quality, out.quality);
 		TouchLegLib_Crew(model, "TABLE_CREW", "CREW_MORALE_TEXT", chr, quality);
@@ -46,7 +46,7 @@ void TouchAdpShip_State(aref ui, aref out)
 	TouchLegShip_Cannons(model, chr, out);
 }
 
-void TouchLegShip_Ship(aref model, ref chr, aref out)
+void TouchLegShip_Ship(aref ui, aref model, ref chr, aref out)
 {
 	ref hero = GetMainCharacter();
 	ref real = GetRealShip(sti(chr.Ship.Type));
@@ -60,10 +60,8 @@ void TouchLegShip_Ship(aref model, ref chr, aref out)
 		// CheckForRename gives the field focus only for a ship of the hero's own company.
 		ship.rename = GetShipRemovable(chr) && UiOffers("EDIT_BOX", "edit");
 	}
-	// rule copy: ship.c ShipChange's outer condition. The game keeps it only inside that handler, which opens no
-	// window when it fails, so the button cannot be offered from the game's word; every other refusal is the game's
-	// own question. To go with a script fix that lets the game say whether it offers the exchange.
-	if (!CheckAttribute(hero, "SystemInfo.ShowShip") && chr.id != hero.id && sti(hero.Ship.Type) != SHIP_NOTUSED)
+	// The game offers the exchange (its other refusals are its own question); a game that cannot say offers none.
+	if (sti(ui.data.optional.ship_change) && TouchAdpShipChange_Offered(chr))
 		ship.exchange = TouchLegShip_Current(model) >= 0;
 	aref at;
 	makearef(at, out.ship);

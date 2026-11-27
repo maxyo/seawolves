@@ -45,6 +45,9 @@ struct Segment
     // Contracts ("adapter:<family>"): of the segments providing one, the first attached in list order is chosen and
     // the later ones are not attached; a segment using one is attached only once it is provided.
     std::vector<std::string> provides, uses;
+    // Contracts a feature of the segment's screens needs and the screen does without: each binding's data gets
+    // optional.<family> "1" when one is provided, "0" (and a log line) when not; the segment attaches either way.
+    std::vector<std::string> optional;
     // An adapter's side of a screen: the interface, the nodes and the data of capability's screen, joined with the
     // screen entry (no component) of a segment attached after it. A binding whose interface or required nodes the
     // game lacks is off alone.

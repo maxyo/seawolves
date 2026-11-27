@@ -759,6 +759,10 @@ def check_scripts(capabilities, screens):
         for contract in segment.get("uses", []):
             if contract not in provided:
                 problems.append(f"{where}: uses {contract}, which no segment listed before it provides")
+        for contract in segment.get("optional", []):
+            family = contract.removeprefix("adapter:")
+            if f"{TOUCH}contracts/{family}.c" not in files[:files.index(file)]:
+                problems.append(f"{where}: optional {contract} before its contracts/{family}.c is listed")
         for binding in segment.get("binds", []):
             if not segment.get("provides"):
                 problems.append(f"{where}: binds {binding['capability']} but provides no contract")

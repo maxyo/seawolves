@@ -50,7 +50,9 @@ without case in the VM and share one namespace with the game's thousands, hence 
 
 Segments in layer order. A segment has `file`, `core` (core and lib only: a failure stops the start), `requires`
 (`fn:Name/n`, `var:`, `ev:`, `interface:`, `file:`, `node:interface#NODE`), `provides`/`uses` (`adapter:<family>`:
-of the providers the first that attaches is chosen), and:
+of the providers the first that attaches is chosen), `optional` (`adapter:<family>`: a contract one feature of the
+segment's screens needs and the screen does without; each of its bindings' `data.optional.<family>` is `"1"` when it
+is provided, else `"0"` with a warning at attach, and the segment attaches either way), and:
 - an adapter's `binds`: `{capability, interface, nodes, data}`; `nodes` are `[node, type, required]` or `"@set"` from
   the top-level `nodeSets`; `data` is what the adapter reads per capability (the trade windows' columns). A binding
   whose interface or required nodes the game lacks is off alone, the provider and its other bindings stay. A binding with
@@ -58,6 +60,13 @@ of the providers the first that attaches is chosen), and:
   picture): it is not looked up in the game's interface table.
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
+
+A value or decision the game gets only from a script fix (`../../../../script-patches`: a function the fix adds, which
+the game's own handler calls) is such a feature: a small provider `lineages/<lineage>/<family>.c` requires the
+function and wraps it in its contract, and the screen's adapter lists the contract as `optional` and asks it only when
+`ui.data.optional.<family>` is `"1"`. A game copy the fixes do not match keeps the screen without that feature (the
+ship screen without its exchange button). The adapter cannot name the function itself: a call of a function the game
+lacks does not compile, and the whole segment would be off.
 
 A required node is looked up in the interface's ini file: a node the engine adds to the model (`ANDROID_*`) is listed
 without `true`, and the adapter that needs it says so with `UiError` when it is absent.
