@@ -17,7 +17,7 @@ class DynamicInterfaceService : public Entity
     struct Group
     {
         ATTRIBUTES *root = nullptr;
-        int32_t hosts = 0;   // UI_GROUP_LAND | SEA | WM | LOG of the game's header
+        int32_t hosts = 0; // UI_GROUP_LAND | SEA | WM | LOG of the game's header
         bool every_frame = false;
         bool refresh = false; // asked for by UI_GROUP_REFRESH
     };
