@@ -1,11 +1,16 @@
 #include "pcs_controls.h"
 
+#include "control_bindings.hpp"
+
 #include "core.h"
 #include "string_compare.hpp"
 
 #include "v_file_service.h"
 
 #include <input.hpp>
+#include <spdlog/spdlog.h>
+
+#include <chrono>
 #ifdef __ANDROID__
 #include "android_control_state.hpp"
 #include <platform/android_combat_input.hpp>
@@ -43,6 +48,7 @@ PCS_CONTROLS::PCS_CONTROLS()
         m_bIsOffDebugKeys = pIni->GetInt("controls", "ondebugkeys", 0) == 0;
     }
 
+    bindings_ = std::make_unique<controls::ControlBindings>();
     input_ = Input::Create();
     inputHandlerID_ = input_->Subscribe([this](const InputEvent &evt) { HandleEvent(evt); });
 }
@@ -152,6 +158,7 @@ int32_t PCS_CONTROLS::CreateControl(const char *control_name)
     pUserControls[n].bSystemLocked = false;
     pUserControls[n].fTreshold = 0;
     pUserControls[n].control_type = UCT_Standart;
+    bindings_->Resize(nControlsNum);
 
     return n;
 }
@@ -203,12 +210,81 @@ int32_t PCS_CONTROLS::AddControlTreeNode(int32_t nParent, const char *pcBaseCont
 
 void PCS_CONTROLS::MapControl(int32_t control_code, int32_t system_control_code)
 {
-    if (control_code < 0 || control_code >= nControlsNum)
+    MapControl(control_code, system_control_code, controls::kAllGroups);
+}
+
+bool PCS_CONTROLS::ValidControl(int32_t code, const char *what) const
+{
+    if (code >= 0 && code < nControlsNum)
+        return true;
+    spdlog::error("{}: no control {}", what, code);
+    return false;
+}
+
+void PCS_CONTROLS::ApplyBindings()
+{
+    for (int32_t n = 0; n < nControlsNum; ++n)
+        pUserControls[n].system_code = bindings_->Key(n);
+    bindings_->Rebuild([this](int32_t key) { return IsKeyPressed(key); });
+}
+
+void PCS_CONTROLS::MapControl(int32_t control_code, int32_t system_control_code, int32_t group)
+{
+    if (!ValidControl(control_code, "MapControl"))
+        return;
+    bindings_->Map(control_code, system_control_code < 0 ? controls::kNoKey : system_control_code, group);
+    ApplyBindings();
+}
+
+void PCS_CONTROLS::SetControlGroup(int32_t group)
+{
+    if (bindings_->SetGroup(group))
+        ApplyBindings();
+}
+
+void PCS_CONTROLS::SetControlHold(int32_t control_code, int32_t group, bool hold)
+{
+    if (ValidControl(control_code, "SetControlHold") && bindings_->SetHold(control_code, group, hold))
+        ApplyBindings();
+}
+
+bool PCS_CONTROLS::SetHoldControls(int32_t primary, int32_t hold)
+{
+    if (!bindings_->Pair(primary, hold))
     {
-        pUserControls[control_code].system_code = UNASSIGNED_CONTROL;
+        spdlog::error("SetHoldControls: {} and {} are not two controls", primary, hold);
+        return false;
+    }
+    ApplyBindings();
+    return true;
+}
+
+void PCS_CONTROLS::SetHoldThreshold(int32_t milliseconds)
+{
+    if (milliseconds < 1)
+    {
+        spdlog::error("SetHoldThreshold: {} ms is not a time", milliseconds);
         return;
     }
-    pUserControls[control_code].system_code = system_control_code;
+    bindings_->SetThreshold(milliseconds);
+    ApplyBindings();
+}
+
+void PCS_CONTROLS::ResetHoldControls()
+{
+    ApplyBindings();
+}
+
+void PCS_CONTROLS::SetControlScheme(int32_t control_code, int32_t scheme)
+{
+    if (ValidControl(control_code, "SetControlScheme") && bindings_->SetScheme(control_code, scheme))
+        ApplyBindings();
+}
+
+void PCS_CONTROLS::SetCombatScheme(int32_t scheme)
+{
+    if (bindings_->SetCurrentScheme(scheme, [this](int32_t key) { return IsKeyPressed(key); }))
+        ApplyBindings();
 }
 
 bool PCS_CONTROLS::GetControlState(const char *control_name, CONTROL_STATE &_state_struct)
@@ -290,6 +366,17 @@ bool PCS_CONTROLS::GetPhysicalControlState(int32_t control_code, CONTROL_STATE &
         _state_struct.state = CST_INACTIVE;
         _state_struct.lValue = 0;
         _state_struct.fValue = 0.0f;
+        return true;
+    }
+
+    if (const auto pulse = bindings_->State(control_code); pulse != controls::Pulse::Ordinary)
+    {
+        const bool fired = pulse == controls::Pulse::Activated;
+        _state_struct.state = fired                                  ? CST_ACTIVATED
+                              : pulse == controls::Pulse::Inactivated ? CST_INACTIVATED
+                                                                      : CST_INACTIVE;
+        _state_struct.lValue = fired ? 1 : 0;
+        _state_struct.fValue = fired ? 1.0f : 0.0f;
         return true;
     }
 
@@ -440,6 +527,12 @@ void PCS_CONTROLS::Update(uint32_t DeltaTime)
     m_KeyBuffer.Reset();
 
     nFrameCounter++;
+    if (!m_bLockAll)
+    {
+        const auto now = std::chrono::steady_clock::now().time_since_epoch();
+        bindings_->Update(std::chrono::duration_cast<std::chrono::milliseconds>(now).count(),
+                          [this](int32_t key) { return IsKeyPressed(key); });
+    }
 #ifdef __ANDROID__
     storm::android::combatInput.advance();
     storm::android::heldControls.advance(storm::android::combatCancelEpoch.load(std::memory_order_acquire));

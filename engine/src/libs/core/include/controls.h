@@ -143,6 +143,20 @@ class CONTROLS
 
     virtual void MapControl(int32_t control_code, int32_t system_control_code){};
 
+    // Bindings per control group, hold controls, tap/hold pairs and combat schemes (pcs_controls README.md); the
+    // base keeps none of them.
+    virtual void MapControl(int32_t control_code, int32_t system_control_code, int32_t group){};
+    virtual void SetControlGroup(int32_t group){};
+    virtual void SetControlHold(int32_t control_code, int32_t group, bool hold){};
+    virtual bool SetHoldControls(int32_t primary, int32_t hold)
+    {
+        return false;
+    }
+    virtual void SetHoldThreshold(int32_t milliseconds){};
+    virtual void ResetHoldControls(){};
+    virtual void SetControlScheme(int32_t control_code, int32_t scheme){};
+    virtual void SetCombatScheme(int32_t scheme){};
+
     virtual void AppState(bool state){};
 
     virtual void SetControlEffect(FFB_EFFECT effect, int32_t time = 0){};

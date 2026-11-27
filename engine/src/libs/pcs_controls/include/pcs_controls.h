@@ -9,6 +9,10 @@
 
 namespace storm
 {
+namespace controls
+{
+class ControlBindings;
+}
 struct InputEvent;
 class Input;
 } // namespace storm
@@ -43,6 +47,10 @@ class PCS_CONTROLS : public CONTROLS
     ControlKeyBuffer m_KeyBuffer;
 
     ControlTree m_ControlTree;
+    std::unique_ptr<storm::controls::ControlBindings> bindings_;
+    // Every control's system_code from the bindings, then the hold resolution.
+    void ApplyBindings();
+    bool ValidControl(int32_t code, const char *what) const;
 
     std::shared_ptr<storm::Input> input_;
     int inputHandlerID_ = 0;
@@ -73,6 +81,14 @@ class PCS_CONTROLS : public CONTROLS
     int32_t AddControlTreeNode(int32_t nParent, const char *pcBaseControl, const char *pcOutControl, float fTimeOut) override;
 
     void MapControl(int32_t control_code, int32_t system_control_code) override;
+    void MapControl(int32_t control_code, int32_t system_control_code, int32_t group) override;
+    void SetControlGroup(int32_t group) override;
+    void SetControlHold(int32_t control_code, int32_t group, bool hold) override;
+    bool SetHoldControls(int32_t primary, int32_t hold) override;
+    void SetHoldThreshold(int32_t milliseconds) override;
+    void ResetHoldControls() override;
+    void SetControlScheme(int32_t control_code, int32_t scheme) override;
+    void SetCombatScheme(int32_t scheme) override;
     bool GetControlState(int32_t control_code, CONTROL_STATE &_state_struct) override;
     bool GetControlState(const char *control_name, CONTROL_STATE &_state_struct) override;
     bool SetControlState(const char *control_name, CONTROL_STATE &_state_struct) override;

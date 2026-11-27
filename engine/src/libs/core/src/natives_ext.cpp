@@ -7,6 +7,9 @@
 #include "core_impl.h"
 #include "natives_logic.hpp"
 #include "natives_texts.h"
+#include "speed_colors.hpp"
+#include "fs.h"
+#include "v_file_service.h"
 #include "string_compare.hpp"
 #include "watermark.hpp"
 
@@ -45,6 +48,8 @@ constexpr NativeDesc kNatives[] = {
 #undef STORM_NATIVE
 };
 static_assert(std::size(kNatives) == kNativeExtCount);
+
+SpeedColorTable g_speed_colors = BuildSpeedColors({});
 
 // Seed of hrand, set by SetGlobalSeed (CL sets it from a script variable once per game day and
 // again after loading a save).
@@ -589,6 +594,81 @@ DATA *callNativeExt(uint32_t index, NativeCall &call, DATA *&result)
         }
         return pushInt(call, result, ok ? 1 : 0);
     }
+    case FUNC_X_UPDATE_CONTROL_GROUP: {
+        Args args(call);
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->SetControlGroup(args.integer(0));
+        return nullptr;
+    }
+    case FUNC_X_SET_CONTROL_HOLD: {
+        Args args(call);
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->SetControlHold(args.integer(0), args.integer(1), args.integer(2) != 0);
+        return nullptr;
+    }
+    case FUNC_X_SET_HOLD_CONTROLS: {
+        bool paired = false;
+        {
+            Args args(call);
+            if (CONTROLS *controls = core_internal.Controls)
+                paired = controls->SetHoldControls(args.integer(0), args.integer(1));
+        }
+        return pushInt(call, result, paired ? 1 : 0);
+    }
+    case FUNC_X_SET_HOLD_THRESHOLD: {
+        Args args(call);
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->SetHoldThreshold(args.integer(0));
+        return nullptr;
+    }
+    case FUNC_X_RESET_HOLD_CONTROLS:
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->ResetHoldControls();
+        return nullptr;
+    case FUNC_X_SET_CONTROL_SCHEME: {
+        Args args(call);
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->SetControlScheme(args.integer(0), args.integer(1));
+        return nullptr;
+    }
+    case FUNC_X_SET_CLASSIC_COMBAT_CONTROLS: {
+        // The scripts' combat schemes: 1 the classic attacks, 2 the new ones.
+        Args args(call);
+        if (CONTROLS *controls = core_internal.Controls)
+            controls->SetCombatScheme(args.integer(0) != 0 ? 1 : 2);
+        return nullptr;
+    }
+    case FUNC_X_RUN_SCRIPT_TESTS:
+        // A developer facility of Caribbean Legend's engine, off unless engine.ini [script] RunTests says so, as in
+        // its release: the game ships no tests.
+        if (const auto ini = fio->OpenIniFile(fs::ENGINE_INI_FILE_NAME); ini && ini->GetInt("script", "RunTests", 0))
+            spdlog::warn("RunScriptTests: the game's script tests (engine.ini [script] RunTests) are not run here");
+        return nullptr;
+    case FUNC_X_REINIT_SPEED_COLORS: {
+        Args args(call);
+        DATA *v = args.value(0);
+        const bool attributes = v && (v->GetType() == VAR_OBJECT || v->GetType() == VAR_AREFERENCE);
+        ATTRIBUTES *colors = attributes ? v->GetAClass() : nullptr;
+        if (!colors)
+        {
+            call.compiler.SetError("ReInitSpeedColors: the argument must be an object or an attribute reference");
+            return nullptr;
+        }
+        std::vector<SpeedColorStop> stops;
+        for (size_t n = 1; n <= colors->GetAttributesNum(); ++n)
+        {
+            const ATTRIBUTES *stop = colors->GetAttributeClass("a" + std::to_string(n));
+            if (!stop)
+            {
+                spdlog::error("ReInitSpeedColors: no a{} in speed_colors", n);
+                break;
+            }
+            stops.push_back(
+                {stop->GetAttributeAsFloat("speed", 0.0f), stop->GetAttributeAsDword("color", 0xFFFFFFFFu)});
+        }
+        g_speed_colors = BuildSpeedColors(stops);
+        return nullptr;
+    }
     case FUNC_X_APPEND_ATTRIBUTES: {
         Args args(call);
         DATA *dst = args.value(0);
@@ -619,3 +699,8 @@ DATA *callNativeExt(uint32_t index, NativeCall &call, DATA *&result)
     return nullptr;
 }
 } // namespace storm::natives
+
+uint32_t storm::SpeedColor(float t)
+{
+    return natives::g_speed_colors[static_cast<size_t>(std::clamp(t, 0.0f, 1.0f) * (kSpeedColors - 1))];
+}

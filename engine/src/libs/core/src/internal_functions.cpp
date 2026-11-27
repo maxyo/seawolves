@@ -188,8 +188,8 @@ uint32_t COMPILER::GetIntFunctionsNum()
 namespace
 {
 // Built-ins that take a range of argument counts, so that one signature serves every game: fts(value[, digits])
-// (Caribbean Legend declares the one-argument form), MapControl(control, key[, extra]) (Caribbean Legend declares an
-// extra argument it never passes), findSubStr(&text, part, start) (Caribbean Legend declares no parameters).
+// (Caribbean Legend declares the one-argument form), MapControl(control, key[, group]) (Caribbean Legend binds keys per
+// control group), findSubStr(&text, part, start) (Caribbean Legend declares no parameters).
 struct ArgumentRange
 {
     uint32_t code;
@@ -652,18 +652,20 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
 
         break;
 
-    case FUNC_MAP_CONTROL:
-        // MapControl(control, key[, extra]): CL declares a third parameter and never passes it; its
-        // meaning is unknown, so a passed value is reported and not used
+    case FUNC_MAP_CONTROL: {
+        // MapControl(control, key[, group]): without a group the binding holds in every group.
         if (!IntFuncArgumentsInRange(func_code, arguments))
             return nullptr;
+        int32_t group = 0;
         if (arguments == 3)
         {
-            SStack.Pop();
-            static bool reported = false;
-            if (!reported)
-                spdlog::warn("MapControl: the third argument has no known meaning and is ignored");
-            reported = true;
+            pV = SStack.Pop();
+            if (!pV)
+            {
+                SetError(INVALID_FA);
+                break;
+            }
+            pV->Get(group);
         }
         pV2 = SStack.Pop();
         if (!pV2)
@@ -681,8 +683,14 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
         }
         pV->Get(TempLong2);
 
-        core_internal.Controls->MapControl(TempLong2, TempLong1);
+        if (core_internal.Controls == nullptr)
+            break;
+        if (arguments == 3)
+            core_internal.Controls->MapControl(TempLong2, TempLong1, group);
+        else
+            core_internal.Controls->MapControl(TempLong2, TempLong1);
         break;
+    }
 
     case FUNC_SET_CONTROL_TRESHOLD:
         pV2 = SStack.Pop();

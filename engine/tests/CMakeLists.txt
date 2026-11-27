@@ -80,6 +80,8 @@ include(host_checks.cmake)
 # Programs whose exit code is the check.
 storm_host_check(android_auto_preset INCLUDES ${src}/libs/renderer/src ${fmt_headers} DEFINES FMT_HEADER_ONLY
     OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(control_bindings INCLUDES ${src}/libs/pcs_controls/src OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(speed_colors INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(script_graphics INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include
     ${src}/libs/renderer_bgfx/fx/include ${src}/libs/window/include ${glm_headers} OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(android_bench INCLUDES ${src}/libs/renderer/src ${src}/libs/renderer_bgfx/include ${fmt_headers}
