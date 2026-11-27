@@ -25,6 +25,7 @@
 #include "string_compare.hpp"
 #include "istring.hpp"
 #include "geometry.h"
+#include "land_messages.hpp"
 #include "land_protocol.hpp"
 
 #include <spdlog/spdlog.h>
@@ -454,7 +455,10 @@ void Location::Realize(uint32_t delta_time)
         if (message[i].alpha <= 0.0f)
             continue;
         // Print(message[i].p, 10.0f, 0, message[i].alpha, message[i].c, 0.8f, "%.0f/%.0f", message[i].hit,
-        Print(message[i].p, 10.0f, 0, message[i].alpha, message[i].c, 0.8f, "%.0f", message[i].hit);
+        if (message[i].text.empty())
+            Print(message[i].p, 10.0f, 0, message[i].alpha, message[i].c, 0.8f, "%.0f", message[i].hit);
+        else
+            Print(message[i].p, 10.0f, 0, message[i].alpha, message[i].c, 0.8f, "%s", message[i].text.c_str());
     }
     // Drawing bars over characters
     if (bDrawBars)
@@ -504,8 +508,7 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
         const std::string &tech = message.String();
         level = message.Long();
 
-        // Dynamic lights are optional
-        const auto dynamicLightsOn = message.GetFormat().size() > 4 ? message.Long() : 0;
+        const auto dynamicLightsOn = storm::location::ReadOptionalLong(message, 4).value_or(0);
 
         lastLoadStaticModel = LoadStaticModel(name.c_str(), tech.c_str(), level, dynamicLightsOn == 1);
         return lastLoadStaticModel >= 0;
@@ -514,7 +517,7 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
         const std::string &name = message.String();
         const std::string &tech = message.String();
         level = message.Long();
-        const auto dynamicLightsOn = message.GetFormat().size() > 4 ? message.Long() : 0;
+        const auto dynamicLightsOn = storm::location::ReadOptionalLong(message, 4).value_or(0);
         return AddObjectContainer(name, tech.c_str(), level, dynamicLightsOn == 1);
     }
     case MSG_LOCATION_DELETE_OBJECT_CONTAINER:
@@ -660,7 +663,7 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
     case MSG_LOCATION_HIDEQUESTPOINTER: {
         const std::string &group = message.String();
         const std::string &name = message.String();
-        storm::location::ReportNotDrawn("MSG_LOCATION_SETQUESTPOINTER", "quest pointers at locators are not drawn");
+        storm::location::ReportWithoutEffect("MSG_LOCATION_SETQUESTPOINTER", "quest pointers at locators are not drawn");
         la = FindLocatorsGroup(group.c_str());
         return la && la->FindByName(name.c_str()) >= 0;
     }
@@ -1132,7 +1135,7 @@ bool Location::MessageEx(const char *name, MESSAGE &message)
              storm::iEquals(name, "SetDeadMarkMode") || storm::iEquals(name, "SetArchetypeMarkMode"))
     {
         message.Long();
-        storm::location::ReportNotDrawn(name, "the marks over characters are not drawn");
+        storm::location::ReportWithoutEffect(name, "the marks over characters are not drawn");
     }
     else
         storm::location::ReportUnknownCommand("location", name);
@@ -1469,12 +1472,24 @@ void Location::Print(const glm::vec3 &pos3D, float rad, int32_t line, float alph
 }
 
 // Add a damage message
+void Location::AddTextMessage(const glm::vec3 &pos3D, const std::string &text, uint32_t color)
+{
+    curMessage++;
+    if (curMessage >= sizeof(message) / sizeof(DmgMessage))
+        curMessage = 0;
+    message[curMessage].p = pos3D;
+    message[curMessage].alpha = 1.0f;
+    message[curMessage].text = text;
+    message[curMessage].c = color;
+}
+
 void Location::AddDamageMessage(const glm::vec3 &pos3D, float hit, float curhp, float maxhp)
 {
     curMessage++;
     if (curMessage >= sizeof(message) / sizeof(DmgMessage))
         curMessage = 0;
     message[curMessage].p = pos3D;
+    message[curMessage].text.clear();
     message[curMessage].alpha = 1.0f;
     message[curMessage].hit = hit;
     message[curMessage].hp = curhp;

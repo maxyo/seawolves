@@ -43,6 +43,7 @@ class Location : public Entity
         float alpha;
         float hit, hp;
         uint32_t c;
+        std::string text; // shown instead of the hit when not empty
     };
 
     struct EnemyBar
@@ -119,6 +120,8 @@ class Location : public Entity
 
     // Add a damage message
     void AddDamageMessage(const glm::vec3 &pos3D, float hit, float curhp, float maxhp);
+    // Add a text over a character (MSG_CHARACTER_VIEWSTRPOS), colour 0xRRGGBB
+    void AddTextMessage(const glm::vec3 &pos3D, const std::string &text, uint32_t color);
     // Draw bars above the enemy in this frame
     void DrawEnemyBars(const glm::vec3 &pos, float hp, float energy, float alpha);
 

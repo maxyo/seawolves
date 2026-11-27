@@ -10,6 +10,7 @@
 #include "character.h"
 #include "android_motion.hpp"
 #include "characters_groups.h"
+#include "land_messages.hpp"
 #include "land_protocol.hpp"
 #include "lights.h"
 
@@ -697,6 +698,9 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
     }
     if (deadName)
     {
+        if (storm::location::landFacts().positionOfDead &&
+            (messageID == MSG_CHARACTER_GETPOS || messageID == MSG_CHARACTER_GETAY))
+            return ProcessPositionMessage(messageID, message);
         if (liveValue >= 0)
         {
             if (messageID == MSG_CHARACTER_EXIT_FROM_LOCATION)
@@ -716,13 +720,8 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
         message.ScriptVariablePointer()->Set(mdl);
         return 1;
     case MSG_CHARACTER_GETPOS:
-        message.ScriptVariablePointer()->Set(curPos.x);
-        message.ScriptVariablePointer()->Set(curPos.y);
-        message.ScriptVariablePointer()->Set(curPos.z);
-        return 1;
     case MSG_CHARACTER_GETAY:
-        message.ScriptVariablePointer()->Set(ay);
-        return 1;
+        return ProcessPositionMessage(messageID, message);
     case MSG_CHARACTER_DIST2D:
         return zDistByCharacter(message, true);
     case MSG_CHARACTER_DIST3D:
@@ -799,6 +798,48 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
         location->AddDamageMessage(curPos + glm::vec3(0.0f, height, 0.0f), hit, chp, mhp);
     }
         return 1;
+    case MSG_CHARACTER_ISACTIONPLAYING: {
+        auto *a = Model() ? Model()->GetAnimation() : nullptr;
+        message.ScriptVariablePointer()->Set(
+            static_cast<int32_t>(a && a->Player(0).IsPlaying() && a->Player(0).GetPosition() < 1.0f));
+        return a != nullptr;
+    }
+    case MSG_CHARACTER_STOPACTION:
+        if (auto *a = Model() ? Model()->GetAnimation() : nullptr)
+            a->Player(0).Stop();
+        return 1;
+    case MSG_CHARACTER_SETACTIONLOOP: {
+        const bool loop = message.Long() != 0;
+        if (auto *a = Model() ? Model()->GetAnimation() : nullptr)
+            a->Player(0).SetAutoStop(!loop);
+        return 1;
+    }
+    case MSG_CHARACTER_ISRUN:
+        message.ScriptVariablePointer()->Set(static_cast<int32_t>(IsRun()));
+        message.ScriptVariablePointer()->Set(static_cast<int32_t>(isMove));
+        return 1;
+    case MSG_CHARACTER_GETCURANIMATION: {
+        auto *a = Model() ? Model()->GetAnimation() : nullptr;
+        const char *action = a ? a->Player(0).GetAction() : nullptr;
+        message.ScriptVariablePointer()->Set(std::string(action ? action : ""));
+        return 1;
+    }
+    case MSG_CHARACTER_STOPSTRAFE:
+        strafeMove = 0.0f;
+        return 1;
+    case MSG_CHARACTER_VIEWSTRPOS: {
+        const auto view = storm::location::ReadViewText(message);
+        GetLocation()->AddTextMessage(curPos + glm::vec3(0.0f, height, 0.0f) + view.offset, view.text, view.color);
+        return 1;
+    }
+    case MSG_CHARACTER_SMOOTHDMG:
+        message.Float();
+        message.Long();
+        storm::location::ReportWithoutEffect("MSG_CHARACTER_SMOOTHDMG", "the overhead bars of Caribbean Legend are not drawn");
+        return 1;
+    case MSG_CHARACTER_ACTIVEHEAL:
+        storm::location::ReportWithoutEffect("MSG_CHARACTER_ACTIVEHEAL", "the overhead bars of Caribbean Legend are not drawn");
+        return 1;
     case MSG_CHARACTER_HEADLOOK_DEFAULT:
         curHeadLookState = HeadLookState::dflt;
         return 1;
@@ -822,6 +863,19 @@ uint64_t Character::ProcessMessage(MESSAGE &message)
         return ChlProcessMessage(messageID, message);
     }
     return 0;
+}
+
+uint64_t Character::ProcessPositionMessage(int32_t messageID, MESSAGE &message)
+{
+    if (messageID == MSG_CHARACTER_GETAY)
+    {
+        message.ScriptVariablePointer()->Set(ay);
+        return 1;
+    }
+    message.ScriptVariablePointer()->Set(curPos.x);
+    message.ScriptVariablePointer()->Set(curPos.y);
+    message.ScriptVariablePointer()->Set(curPos.z);
+    return 1;
 }
 
 // Changing an attribute
@@ -1146,7 +1200,7 @@ bool Character::Teleport(float x, float y, float z, float ay)
 }
 
 // Move model to locator
-bool Character::Teleport(const char *group, const char *locator)
+bool Character::Teleport(const char *group, const char *locator, bool force)
 {
     auto *const location = GetLocation();
     if (!group || !group[0] || !locator || !locator[0])
@@ -1176,6 +1230,12 @@ bool Character::Teleport(const char *group, const char *locator)
 
     // see if we can put the character in this locator
     const glm::vec3 pos = storm::math::pos(mtx);
+    float bearingY;
+    if (!force && currentNode >= 0 && location->GetPtcData().FindNode(pos, bearingY) < 0)
+    {
+        core.Trace("Character Teleport Error: Locator is outside navigation patch: %s, %s", group, locator);
+        return false;
+    }
     if (location->supervisor.CheckPosition(pos.x, pos.y, pos.z, this))
         return Teleport(pos.x, pos.y, pos.z, static_cast<float>(vz));
 
@@ -2261,6 +2321,11 @@ void Character::Move(float dltTime)
 void Character::Update(float dltTime)
 {
     auto *const location = GetLocation();
+    if (forcedStopMove)
+    {
+        forcedStopMove = false;
+        StopMove();
+    }
 
     // Updating bars
     if (isPlayerEnemy && isFight && !IsDead())
@@ -3138,7 +3203,7 @@ bool Character::zTeleportL(MESSAGE &message)
 {
     const std::string &group = message.String();
     const std::string &name = message.String();
-    return Teleport(group.c_str(), name.c_str());
+    return Teleport(group.c_str(), name.c_str(), storm::location::ReadOptionalLong(message, 3).value_or(1) != 0);
 }
 
 bool Character::zAddDetector(MESSAGE &message)
@@ -3337,6 +3402,8 @@ uint32_t Character::zExMessage(MESSAGE &message)
         i = message.Long();
         const std::string &modelName = message.String();
         const std::string &locatorName = message.String();
+        // The flag keeps the item through a removal of all items, which this engine's blade never does.
+        storm::location::ReadOptionalLong(message, 5);
         if (!core.GetEntityPointer(blade))
         {
             if (!(blade = core.CreateEntity("blade")))
@@ -3397,6 +3464,17 @@ uint32_t Character::zExMessage(MESSAGE &message)
     if (storm::iEquals(msg, "IsDead"))
     {
         return deadName != nullptr;
+    }
+    if (storm::iEquals(msg, "ForcedStopMove"))
+    {
+        forcedStopMove = true;
+        return 1;
+    }
+    if (storm::iEquals(msg, "SetBarTexture") || storm::iEquals(msg, "SetArchetypeTexture"))
+    {
+        message.String();
+        storm::location::ReportWithoutEffect(msg, "the overhead bars of Caribbean Legend are not drawn");
+        return 1;
     }
     if (!deadName)
     {
@@ -3461,7 +3539,7 @@ uint32_t Character::zExMessage(MESSAGE &message)
         }
         if (storm::iEquals(msg, "SetSex"))
         {
-            isMale = message.Long() != 0;
+            isMale = storm::location::ReadIsMale(message);
             return 1;
         }
         if (storm::iEquals(msg, "SetFightWOWeapon"))
@@ -3509,9 +3587,81 @@ uint32_t Character::zExMessage(MESSAGE &message)
                 core.Send_Message(blade, "l", MSG_BLADE_GUNBELT);
             else
                 core.Send_Message(blade, "l", MSG_BLADE_GUNHAND);
+            return 0;
         }
+        if (const auto handled = zExMessageCaribbeanLegend(msg, message))
+            return *handled;
+        storm::location::ReportUnknownCommand("character", msg);
     }
     return 0;
+}
+
+std::optional<uint32_t> Character::zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message)
+{
+    if (storm::iEquals(msg, "SetMusketer"))
+    {
+        musketerByCommand = message.Long() != 0;
+        return 1;
+    }
+    // The aiming of firearms is not run by this engine: a character is never aiming.
+    if (storm::iEquals(msg, "IsAimingMode"))
+        return 0;
+    if (storm::iEquals(msg, "GetAimingStep"))
+    {
+        message.ScriptVariablePointer()->Set(std::string("none"));
+        return 1;
+    }
+    // Nor is sprint: a character never sprints.
+    if (storm::iEquals(msg, "IsSprint"))
+        return 0;
+    if (storm::iEquals(msg, "StopSprint"))
+        return 1;
+    if (storm::iEquals(msg, "SetOverload"))
+    {
+        overload = message.Long() > 0;
+        return 1;
+    }
+    if (storm::iEquals(msg, "SetBonusPush"))
+    {
+        message.Long();
+        storm::location::ReportWithoutEffect(msg, "a stronger push is not applied");
+        return 1;
+    }
+    if (storm::iEquals(msg, "MakeUnpushable"))
+    {
+        unpushable = message.Long() != 0;
+        return 1;
+    }
+    if (storm::iEquals(msg, "IgnoreCollision"))
+    {
+        ignoreCollision = message.Long() != 0;
+        return 1;
+    }
+    if (storm::iEquals(msg, "MarkDialogCharacter"))
+    {
+        if (message.Long() != 0)
+            message.EntityID();
+        storm::location::ReportWithoutEffect(msg, "the dialogue marker is not drawn");
+        return 1;
+    }
+    if (storm::iEquals(msg, "SetPlaybackDlt"))
+    {
+        playbackDlt = message.Float();
+        if (auto *a = Model() ? Model()->GetAnimation() : nullptr; a && a->Player(0).IsPlaying())
+            a->Player(0).SetSpeed(a->Player(0).GetDefSpeed() + playbackDlt);
+        return 1;
+    }
+    if (storm::iEquals(msg, "SetMass"))
+    {
+        mass = static_cast<float>(std::max(message.Long(), int32_t{1}));
+        return 1;
+    }
+    if (storm::iEquals(msg, "forceBlend"))
+    {
+        forceBlend = true;
+        return 1;
+    }
+    return std::nullopt;
 }
 
 bool Character::zPlaySound(MESSAGE &message)
@@ -3715,7 +3865,8 @@ void Character::UpdateActionsData()
     // Standing actions in combat mode
     for (i = 0; i < numFightActionIdles; i++)
         UpdateActionIdleData(actionFightIdle[i], a);
-    noBlendTime = 1.0f;
+    noBlendTime = forceBlend ? 0.0f : 1.0f;
+    forceBlend = false;
     UpdateAnimation();
 }
 
@@ -3896,6 +4047,8 @@ bool Character::SetAction(const char *actionName, float tblend, float movespeed,
         a->CopyPlayerState(0, 1);
     a->Player(0).SetAction(nullptr);
     const bool res = a->Player(0).SetAction(actionName) && a->Player(0).Play();
+    if (res && playbackDlt != 0.0f)
+        a->Player(0).SetSpeed(a->Player(0).GetDefSpeed() + playbackDlt);
     a->Timer(0).ResetTimer();
     a->Timer(1).ResetTimer();
     if (tblend)

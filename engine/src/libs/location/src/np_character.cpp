@@ -3,6 +3,7 @@
 //    NPCaracter
 
 #include "np_character.h"
+#include "land_protocol.hpp"
 #include "characters_groups.h"
 #include "math_inlines.h"
 #include "shared/messages.h"
@@ -219,7 +220,7 @@ void NPCharacter::Move(float dltTime)
 // Update character position
 void NPCharacter::Update(float dltTime)
 {
-    bMusketer = AttributesPointer->GetAttributeAsDword("isMusketer", 0) != 0;
+    bMusketer = musketerByCommand || AttributesPointer->GetAttributeAsDword("isMusketer", 0) != 0;
     fMusketerDistance = AttributesPointer->GetAttributeAsFloat("MusketerDistance", 20.0f);
     bMusketerNoMove = fMusketerDistance <= 0.0f;
 
@@ -379,6 +380,15 @@ void NPCharacter::SetEscapeTask(Character *c)
 }
 
 // Set a new task
+// Caribbean Legend puts a flag before the point of "Goto point" and "Runto point": check that the point is free.
+void NPCharacter::ReadBusyPositionCheck(MESSAGE &message)
+{
+    if (message.GetCurrentFormatType() != 'l')
+        return;
+    if (message.Long() != 0)
+        storm::location::ReportWithoutEffect("MSG_NPCHARACTER_SETTASK", "the check that the point is free is not made");
+}
+
 bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
 {
     if (bMusketerNoMove)
@@ -405,6 +415,7 @@ bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
     case npct_gotopoint:
         SetFightMode(false);
         SetRunMode(false);
+        ReadBusyPositionCheck(message);
         task.to.x = message.Float();
         task.to.y = message.Float();
         task.to.z = message.Float();
@@ -412,6 +423,7 @@ bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
     case npct_runtopoint:
         SetFightMode(false);
         SetRunMode(true);
+        ReadBusyPositionCheck(message);
         task.to.x = message.Float();
         task.to.y = message.Float();
         task.to.z = message.Float();

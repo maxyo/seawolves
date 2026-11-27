@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <chrono>
 
@@ -227,7 +228,8 @@ class Character : public Entity
     // Move the model to point x, y, z and direct along ay
     bool Teleport(float x, float y, float z, float ay);
     // Move model to locator
-    bool Teleport(const char *group, const char *locator);
+    // force: place there even off the walk patch
+    bool Teleport(const char *group, const char *locator, bool force = true);
 
     // Set loading positions
     void SetSavePosition();
@@ -399,6 +401,9 @@ class Character : public Entity
     bool zTurnByPoint(MESSAGE &message);
     bool zDistByCharacter(MESSAGE &message, bool is2D);
     uint32_t zExMessage(MESSAGE &message);
+    // Caribbean Legend's commands that a dead character refuses; nullopt: not one of them
+    std::optional<uint32_t> zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message);
+    uint64_t ProcessPositionMessage(int32_t messageID, MESSAGE &message);
     bool zPlaySound(MESSAGE &message);
     bool TestJump(glm::vec3 pos);
     bool BuildJump(glm::vec3 pos, float fAng);
@@ -494,6 +499,16 @@ class Character : public Entity
     int32_t recoilSound;  // The sound of recoil
 
     float noBlendTime;
+
+    // Set by the commands of Caribbean Legend's scripts; their defaults keep the behaviour of the other games
+    bool overload = false;          // SetOverload: no running
+    bool unpushable = false;        // MakeUnpushable: others do not push it
+    bool ignoreCollision = false;   // IgnoreCollision: characters pass through it
+    float mass = 1.0f;              // SetMass: its share of a push is the other's mass over both
+    bool forcedStopMove = false;    // ForcedStopMove: stops at the next update
+    bool forceBlend = false;        // forceBlend: the next change of actions blends
+    float playbackDlt = 0.0f;       // SetPlaybackDlt: added to the speed of the action playing
+    bool musketerByCommand = false; // SetMusketer
 
     bool isLookFromEyes;
 
@@ -728,7 +743,7 @@ inline float Character::GetAY() const
 // Get running mode
 inline bool Character::IsRun() const
 {
-    return isRun && !isRunDisable;
+    return isRun && !isRunDisable && !overload;
 }
 
 // Are we sailing

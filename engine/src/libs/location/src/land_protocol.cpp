@@ -26,9 +26,9 @@ void ReportUnknownCommand(std::string_view receiver, std::string_view name)
         spdlog::error("{}: unknown command '{}' ignored", receiver, name);
 }
 
-void ReportNotDrawn(std::string_view command, std::string_view what)
+void ReportWithoutEffect(std::string_view command, std::string_view what)
 {
-    if (FirstTime(fmt::format("not drawn {}", command)))
+    if (FirstTime(fmt::format("without effect {}", command)))
         spdlog::warn("{}: accepted; {} by this engine", command, what);
 }
 

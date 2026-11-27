@@ -77,6 +77,7 @@ class NPCharacter : public AICharacter
 
     // Set a new task
     bool SetNewTask(NPCTask tsk, MESSAGE &message);
+    static void ReadBusyPositionCheck(MESSAGE &message);
 
     bool InitFollowChartacter(entid_t eid);
     bool InitFightChartacter(entid_t eid);

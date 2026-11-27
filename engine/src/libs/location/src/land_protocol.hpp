@@ -21,11 +21,12 @@ struct LandFacts
 {
     FightModel fight;
     bool questSignsOnlyAtPeace; // a quest sign over a character shows only while it is alive, in peace and staying
+    bool positionOfDead;        // MSG_CHARACTER_GETPOS and GETAY answer for a dead character
 };
 
 inline constexpr std::array<LandFacts, 2> kLandFacts = {{
-    {FightModel::Legacy, false},
-    {FightModel::CaribbeanLegend, true},
+    {FightModel::Legacy, false, false},
+    {FightModel::CaribbeanLegend, true, true},
 }};
 static_assert(kLandFacts.size() == kGameProfiles.size());
 
@@ -41,7 +42,7 @@ inline const LandFacts &landFacts()
 
 // A command the engine does not know: an error, once per receiver and name.
 void ReportUnknownCommand(std::string_view receiver, std::string_view name);
-// A command accepted whose effect this engine does not show yet: a warning, once per command.
-void ReportNotDrawn(std::string_view command, std::string_view what);
+// A command accepted whose effect this engine does not have yet: a warning, once per command.
+void ReportWithoutEffect(std::string_view command, std::string_view what);
 
 } // namespace storm::location

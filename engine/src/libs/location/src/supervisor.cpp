@@ -3,6 +3,7 @@
 //    Supervisor
 
 #include "supervisor.h"
+#include "push_share.hpp"
 #include "character.h"
 #include "entity.h"
 #include "locator_array.h"
@@ -98,6 +99,8 @@ void Supervisor::Update(float dltTime)
                 continue;
             if (ci->curPos.y > cj->curPos.y + cj->height)
                 continue;
+            if (ci->ignoreCollision || cj->ignoreCollision)
+                continue;
             // Pushing the characters
             auto dx = curPos.x - cj->curPos.x;
             auto dz = curPos.z - cj->curPos.z;
@@ -130,57 +133,12 @@ void Supervisor::Update(float dltTime)
             {
                 moveJ = ((cj->impulse.x * dx + cj->impulse.z * dz) > 0.0f);
             }
-            if (ci->IsFight())
-            {
-                if (moveI == moveJ)
-                {
-                    ci->curPos.x += dx * 0.5f;
-                    ci->curPos.z += dz * 0.5f;
-                    cj->curPos.x -= dx * 0.5f;
-                    cj->curPos.z -= dz * 0.5f;
-                }
-                else
-                {
-                    if (moveI)
-                    {
-                        ci->curPos.x += dx * 0.999f;
-                        ci->curPos.z += dz * 0.999f;
-                        cj->curPos.x -= dx * 0.001f;
-                        cj->curPos.z -= dz * 0.001f;
-                    }
-                    else
-                    {
-                        ci->curPos.x += dx * 0.001f;
-                        ci->curPos.z += dz * 0.001f;
-                        cj->curPos.x -= dx * 0.999f;
-                        cj->curPos.z -= dz * 0.999f;
-                    }
-                }
-            }
-            else if (moveI == moveJ)
-            {
-                ci->curPos.x += dx * 0.5f;
-                ci->curPos.z += dz * 0.5f;
-                cj->curPos.x -= dx * 0.5f;
-                cj->curPos.z -= dz * 0.5f;
-            }
-            else
-            {
-                if (moveI)
-                {
-                    ci->curPos.x += dx * 0.9f;
-                    ci->curPos.z += dz * 0.9f;
-                    cj->curPos.x -= dx * 0.1f;
-                    cj->curPos.z -= dz * 0.1f;
-                }
-                else
-                {
-                    ci->curPos.x += dx * 0.1f;
-                    ci->curPos.z += dz * 0.1f;
-                    cj->curPos.x -= dx * 0.9f;
-                    cj->curPos.z -= dz * 0.9f;
-                }
-            }
+            const auto [shareI, shareJ] = storm::location::PushShares(
+                ci->IsFight(), {moveI, ci->mass, ci->unpushable}, {moveJ, cj->mass, cj->unpushable});
+            ci->curPos.x += dx * shareI;
+            ci->curPos.z += dz * shareI;
+            cj->curPos.x -= dx * shareJ;
+            cj->curPos.z -= dz * shareJ;
         }
         character[i].c->numColCharacter = chr - character[i].c->startColCharacter;
     }

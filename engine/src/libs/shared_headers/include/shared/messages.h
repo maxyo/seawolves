@@ -153,6 +153,9 @@
 #define MSG_CHARACTER_TURNPOP 30345     // "l" save the rotation of the character on the stack
 // Animation playback
 #define MSG_CHARACTER_ACTIONPLAY 30350 // "ls" play action. if "" - switch to idle animation mode
+#define MSG_CHARACTER_ISACTIONPLAYING 30351 // "le" &int: the action is still playing
+#define MSG_CHARACTER_STOPACTION 30352      // "l"
+#define MSG_CHARACTER_SETACTIONLOOP 30353   // "ll" loop the action
 // Set a saber to a character
 #define MSG_CHARACTER_SETBLADE 30360    // "lsfll" install saber
 #define MSG_CHARACTER_SETGUN 30361      // "ls" install saber
@@ -181,18 +184,27 @@
 // "lfff" output about the damage inflicted on the character f - inflicted, f - current hp, f - total hp
 #define MSG_CHARACTER_VIEWDAMAGE 30372
 #define MSG_CHARACTER_EX_MSG 30373
+#define MSG_CHARACTER_ISRUN 30374   // "lee" &isRun, &isMoving
+#define MSG_CHARACTER_SETMUS 30375  // "ls" musket model, "" removes it
+#define MSG_CHARACTER_MUSHAND 30376 // "ll" musket in the hands (1) or on the back (0)
 
 // Procedural head look
 #define MSG_CHARACTER_HEADLOOK_DEFAULT 30380    // "l" default (ani)
 #define MSG_CHARACTER_HEADLOOK_CAMERA 30381     // "l" follow the camera
 #define MSG_CHARACTER_HEADLOOK_CHARACTER 30382  // "li" follow another character
 #define MSG_CHARACTER_HEADLOOK_POINT 30383      // "lfff" follow a point
+#define MSG_CHARACTER_GETCURANIMATION 30384     // "le" &string: the current action
+#define MSG_CHARACTER_STOPSTRAFE 30385          // "l"
+#define MSG_CHARACTER_VIEWSTRPOS 30386          // "lfffsfff" offset x, z, y, text, r, g, b
+#define MSG_CHARACTER_SMOOTHDMG 30387           // "lfl" hp, critical: start the smooth HP bar change
+#define MSG_CHARACTER_ACTIVEHEAL 30388          // "l" restart the heal overlay of the HP bar
 
 // Setting tasks for the character
 #define MSG_NPCHARACTER_SETTASK 30400
 #define MSG_NPCHARACTER_PUSHTASK 30401
 #define MSG_NPCHARACTER_POPTASK 30402
 #define MSG_NPCHARACTER_GETTASK 30403
+#define MSG_NPCHARACTER_FIGHTPROBABILITIES_UPDATE 30404 // "l" ask the scripts for the fight parameters again
 
 // Camera
 #define MSG_CAMERA_SETTARGET 30500 // "li" set the model to follow
