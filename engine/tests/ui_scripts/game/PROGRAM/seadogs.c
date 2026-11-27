@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[10];
+object Interfaces[11];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -123,6 +123,26 @@ void TestCrew(ref at, int men, int sailors, int cannoners, int soldiers, int mor
 	at.Ship.Crew.Morale = morale;
 }
 
+// What the self repair adapter reads of the game: the goods by name and what the squadron's holds carry of
+// each (TestHold.g<good>).
+string TestGoodNames[2] = {"Planks", "Sailcloth"};
+object TestHold;
+
+int FindGood(string name)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		if (TestGoodNames[i] == name) return i;
+	}
+	return -1;
+}
+
+int GetSquadronGoods(ref chr, int good)
+{
+	string slot = "g" + good;
+	return sti(TestHold.(slot));
+}
+
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\TavernWait.ini";
@@ -135,6 +155,7 @@ void Main()
 	Interfaces[7].IniFile = "RESOURCE\INI\INTERFACES\itemstrade.ini";
 	Interfaces[8].IniFile = "RESOURCE\INI\INTERFACES\hirecrew.ini";
 	Interfaces[9].IniFile = "RESOURCE\INI\INTERFACES\SailsGerald.ini";
+	Interfaces[10].IniFile = "RESOURCE\INI\INTERFACES\repair.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -173,6 +194,15 @@ void Main()
 	GameInterface.SHIPS_SCROLL.pic2.companionIndex = 2;
 	NullCharacter.TavernBak.Hero.Quantity = 40;
 	NullCharacter.TavernBak.Tavern.Quantity = 25;
+	// the self repair of the recorded model (ui/tests/models/repair.json): 13 % of the hull ordered, 16 planks for it
+	Characters[1].repair.hull = 13;
+	Characters[1].repair.mast = 0;
+	Characters[1].repair.sail = 0;
+	Characters[1].repair.sailmax = 100;
+	Characters[1].repair.preq = 16;
+	Characters[1].repair.sreq = 0;
+	TestHold.g0 = 40;
+	TestHold.g1 = 0;
 	GameValue = 7;
 	GameName = "kept";
 }

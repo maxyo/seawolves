@@ -1,0 +1,573 @@
+{
+ "$comment": "The self repair's script on a recorded model of the repair window (engine/src/libs/ui/tests/models): the props its view gives the pack screen s-repair and the calls its build and events make. The fake host does not answer: every move counts from the model's figures.",
+ "cases": [
+  {
+   "name": "13 % of the hull ordered: the hull to 78 and back to 70, the masts, the repair, all ships, the next ship, leaving",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 11,
+    "screenRevision": 13,
+    "screen": "repair",
+    "widgets": [
+     {
+      "node": "EXIT_BTN",
+      "type": "button",
+      "label": "EXIT_BTN",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_WINDOW_CAPTION",
+      "type": "text",
+      "label": "  Решение по самостоятельному ремонту  ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "MAIN_CHARACTER_PICTURE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 18,
+        "imageRevision": 18,
+        "tintArgb": 4286611584
+       }
+      ]
+     },
+     {
+      "node": "MAIN_CHARACTER_BORDER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 19,
+        "imageRevision": 19,
+        "tintArgb": 4286611584
+       }
+      ]
+     },
+     {
+      "node": "NAME_STR",
+      "type": "text",
+      "label": "Капитан",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SHIPS_SCROLL",
+      "type": "choice",
+      "label": "Корабль 1",
+      "value": "1",
+      "index": 0,
+      "rowId": "1:0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "SHIPS_SCROLL",
+      "type": "choice",
+      "label": "Корабль 2",
+      "value": "0",
+      "index": 1,
+      "rowId": "ship:1",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "LOCATION_STR",
+      "type": "text",
+      "label": "Город",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "OTHER_PICTURE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 20,
+        "imageRevision": 20,
+        "tintArgb": 4286611584
+       }
+      ]
+     },
+     {
+      "node": "OTHER_BORDER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 19,
+        "imageRevision": 19,
+        "tintArgb": 4286611584
+       }
+      ]
+     },
+     {
+      "node": "LEFTSCROLLBUTTON",
+      "type": "button",
+      "label": "LEFTSCROLLBUTTON",
+      "index": -1
+     },
+     {
+      "node": "RIGHTSCROLLBUTTON",
+      "type": "button",
+      "label": "RIGHTSCROLLBUTTON",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_SHIP_NAME",
+      "type": "text",
+      "label": "Корабль 1",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_STATUS_HULL_STR",
+      "type": "text",
+      "label": " Состояние:  62%  Текущий предел  восстановления:  67% ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_QTY_HULL_STR",
+      "type": "text",
+      "label": " Доступно всего:  23/40 шт.  Необходимо для  полного ремонта:  50 шт. ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_HULL_CAPTION",
+      "type": "text",
+      "label": "Корпус судна",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_Hull_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 21,
+        "imageRevision": 21,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "REPAIR_STATE_ICONS",
+         "image": "Hull"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_HULL_P_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 24,
+        "imageRevision": 24,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Planks"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_LEFT_H",
+      "type": "button",
+      "label": "REPAIR_LEFT_H",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_RIGHT_H",
+      "type": "button",
+      "label": "REPAIR_RIGHT_H",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_QTY_H",
+      "type": "text",
+      "label": "75%",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_STATUS_MAST_STR",
+      "type": "text",
+      "label": " Состояние:  2/3 Текущий предел  восстановления:  3/3 ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_QTY_MAST_STR",
+      "type": "text",
+      "label": " Доступно всего:  40/40 шт.  Необходимо для  полного ремонта:  12 шт. ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_MAST_CAPTION",
+      "type": "text",
+      "label": "Мачты и рангоут",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_Mast_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 23,
+        "imageRevision": 23,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "REPAIR_STATE_ICONS",
+         "image": "Mast"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_MAST_P_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 24,
+        "imageRevision": 24,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Planks"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_LEFT_M",
+      "type": "button",
+      "label": "REPAIR_LEFT_M",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_RIGHT_M",
+      "type": "button",
+      "label": "REPAIR_RIGHT_M",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_QTY_M",
+      "type": "text",
+      "label": "2/3",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_STATUS_SAIL_STR",
+      "type": "text",
+      "label": " Состояние:  48%  Текущий предел  восстановления:  48% ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_QTY_SAIL_STR",
+      "type": "text",
+      "label": " Доступно всего:  0/0 шт.  Необходимо для  полного ремонта:  21 шт. ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_SAIL_CAPTION",
+      "type": "text",
+      "label": "Паруса и такелаж",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_Sail_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 22,
+        "imageRevision": 22,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "REPAIR_STATE_ICONS",
+         "image": "Sail"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_SAIL_S_PIC",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 25,
+        "imageRevision": 25,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "SailCloth"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REPAIR_LEFT_S",
+      "type": "button",
+      "label": "REPAIR_LEFT_S",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_RIGHT_S",
+      "type": "button",
+      "label": "REPAIR_RIGHT_S",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_QTY_S",
+      "type": "text",
+      "label": "48%",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TIME_STR",
+      "type": "text",
+      "label": " Длительность работ : 6 час. ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REPAIR_ALL_SQUADRON",
+      "type": "button",
+      "label": "Все корабли!",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_ALL_SHIP",
+      "type": "button",
+      "label": "Это судно",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_OK",
+      "type": "button",
+      "label": "Oк",
+      "index": -1
+     },
+     {
+      "node": "REPAIR_CANCEL",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "all-ships",
+      "label": "<repair.all_ships>",
+      "reason": "",
+      "variant": "quiet"
+     }
+    ],
+    "parts": [
+     {
+      "disabled": false,
+      "icon": "hull",
+      "id": "hull",
+      "label": "Корпус судна",
+      "need": "",
+      "now": "<repair.now> 62%",
+      "q": {
+       "all": true,
+       "allLabel": "<common.all>",
+       "disabled": false,
+       "floor": 62,
+       "max": 100,
+       "min": 0,
+       "steps": [
+        1,
+        10
+       ],
+       "summary": "-",
+       "unit": "%",
+       "value": 75
+      },
+      "short": false
+     },
+     {
+      "disabled": false,
+      "icon": "sail-furled",
+      "id": "masts",
+      "label": "Мачты и рангоут",
+      "need": "",
+      "now": "<repair.now> 2 <common.of> 3",
+      "q": {
+       "all": true,
+       "allLabel": "<common.all>",
+       "disabled": false,
+       "floor": 2,
+       "max": 3,
+       "min": 0,
+       "steps": [
+        1,
+        10
+       ],
+       "summary": "<common.of> 3",
+       "unit": "",
+       "value": 2
+      },
+      "short": false
+     },
+     {
+      "disabled": false,
+      "icon": "sail-full",
+      "id": "sails",
+      "label": "Паруса и такелаж",
+      "need": "<repair.no_sailcloth>",
+      "now": "<repair.now> 48%",
+      "q": {
+       "all": true,
+       "allLabel": "<common.all>",
+       "disabled": false,
+       "floor": 48,
+       "max": 100,
+       "min": 0,
+       "steps": [
+        1,
+        10
+       ],
+       "summary": "-",
+       "unit": "%",
+       "value": 48
+      },
+      "short": true
+     }
+    ],
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "label": "<repair.do>",
+     "reason": "",
+     "sub": "6 <save.hours> · <repair.planks> 16"
+    },
+    "stock": [
+     {
+      "icon": "planks",
+      "label": "<repair.planks>",
+      "value": "40"
+     },
+     {
+      "icon": "sailcloth",
+      "label": "<repair.sailcloth>",
+      "value": "0"
+     }
+    ],
+    "subject": {
+     "label": "Корабль 1",
+     "list": false,
+     "next": true,
+     "prev": false,
+     "sub": "1 <common.of> 2"
+    },
+    "title": "<repair.title>"
+   },
+   "events": [
+    [
+     "hull",
+     "commit",
+     "78"
+    ],
+    [
+     "hull",
+     "change",
+     "70"
+    ],
+    [
+     "masts",
+     "commit",
+     "3"
+    ],
+    [
+     "sails",
+     "commit",
+     "48"
+    ],
+    [
+     "primary",
+     "click",
+     ""
+    ],
+    [
+     "all-ships",
+     "click",
+     ""
+    ],
+    [
+     "header",
+     "subject-next",
+     ""
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send REPAIR_RIGHT_H press ",
+    "send REPAIR_RIGHT_H press ",
+    "send REPAIR_RIGHT_H press ",
+    "hold",
+    "send REPAIR_LEFT_H press ",
+    "send REPAIR_LEFT_H press ",
+    "send REPAIR_LEFT_H press ",
+    "send REPAIR_LEFT_H press ",
+    "send REPAIR_LEFT_H press ",
+    "hold",
+    "send REPAIR_RIGHT_M press ",
+    "hold",
+    "rebuild",
+    "send REPAIR_OK press ",
+    "hold",
+    "send REPAIR_ALL_SQUADRON press ",
+    "hold",
+    "send SHIPS_SCROLL#1 select ship:1",
+    "hold",
+    "back REPAIR_CANCEL"
+   ]
+  }
+ ]
+}

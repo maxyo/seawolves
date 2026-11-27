@@ -241,3 +241,13 @@ void TouchLegLib_Crew(aref model, string table, string moraleText, ref crew, are
 	out.morale = sti(crew.Ship.Crew.Morale);
 	out.moraleWord = TouchLib_AfterColon(UiOneLine(TouchLegLib_Label(model, moraleText)));
 }
+
+// The character whose ship the game's ships' scroll `node` shows now (FillScrollImageWithCompanionShips keeps the
+// companion of each picture beside it).
+ref TouchLegLib_ScrollCaptain(string node)
+{
+	string pic = "pic" + (sti(GameInterface.(node).current) + 1);
+	if (!CheckAttribute(&GameInterface, node + "." + pic + ".companionIndex"))
+		UiError("the game's scroll " + node + " has no captain for its " + pic);
+	return &Characters[sti(GameInterface.(node).(pic).companionIndex)];
+}

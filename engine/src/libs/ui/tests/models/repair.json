@@ -43,7 +43,6 @@
 {"node":"REPAIR_RIGHT_S","type":"button","label":"REPAIR_RIGHT_S","index":-1},
 {"node":"REPAIR_QTY_S","type":"text","label":"48%","value":"1","index":0},
 {"node":"TIME_STR","type":"text","label":" Длительность работ : 6 час. ","value":"1","index":0},
-{"node":"ANDROID_REPAIR","type":"fact","index":0,"enabled":false,"rowId":"r0","context":{"hull":"13","mast":"0","sail":"0","sailmax":"100","planks":"16","sailcloth":"0","planks_stock":"40","sailcloth_stock":"0"}},
 {"node":"REPAIR_ALL_SQUADRON","type":"button","label":"Все корабли!","index":-1},
 {"node":"REPAIR_ALL_SHIP","type":"button","label":"Это судно","index":-1},
 {"node":"REPAIR_OK","type":"button","label":"Oк","index":-1},

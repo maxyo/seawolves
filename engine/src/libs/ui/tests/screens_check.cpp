@@ -1517,46 +1517,65 @@ static void Repair(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
-    const InterfaceModel model = Load(models, "repair.json");
+    Scripted(router);
+    InterfaceModel model = Load(models, "repair.json");
     router.SetInterface(model);
     Expect(router.Using() == "repair" && surface.tag == "s-repair" && surface.errors.empty(),
-           "repair is drawn by the repair screen");
+           "repair is drawn by the repair screen: " + Json(surface.errors).dump());
     const Json &parts = surface.props["parts"];
-    Expect(
-        parts.size() == 3 && parts[0]["q"]["value"] == 75 && parts[0]["q"]["min"] == 0 && parts[0]["q"]["max"] == 100 &&
-            parts[0]["q"]["floor"] == 62 && !parts[0]["q"].contains("ceiling"),
-        "hull: 75 % on the 0…100 % scale from its state, 62 % (75 shown less the 13 set); the game stops the arrows");
+    Expect(parts.size() == 3 && parts[0]["q"]["value"] == 75 && parts[0]["q"]["min"] == 0 &&
+               parts[0]["q"]["max"] == 100 && parts[0]["q"]["floor"] == 62 && !parts[0]["q"].contains("ceiling"),
+           "hull: 75 % on the 0…100 % scale from its state, 62 % (75 shown less the 13 the game's order has set); the "
+           "game stops the arrows: " +
+               parts.dump());
     ExpectEqual(parts[0]["q"]["allLabel"], "<common.all>", "fill to the end is «Все», as everywhere");
     Expect(parts[2]["short"] == true && parts[2]["need"] == "<repair.no_sailcloth>", "sails without sailcloth say so");
     Expect(surface.props["stock"][0]["value"] == "40" && surface.props["stock"][1]["value"] == "0",
-           "planks and sailcloth in stock: the adapter's");
+           "planks and sailcloth in the squadron's holds, the game's");
     ExpectEqual(surface.props["primary"]["sub"], "6 <save.hours> · <repair.planks> 16",
                 "repair button: time and the planks the game says the order takes");
     std::string prefix = "widget:repair\t";
 
     surface.commands.clear();
     router.OnEvent({"hull", "commit", "78"});
+    router.Tick();
     Expect(surface.commands.size() == 3 && surface.commands[0] == prefix + "REPAIR_RIGHT_H\t-1\tpress",
-           "+3 % = three presses of the right arrow");
-    Expect(surface.props["parts"][0]["q"]["value"] == 78, "the amount set is shown until the game answers");
+           "+3 % = three presses of the right arrow: " + Json(surface.commands).dump());
+    // The game's arrows stopped at 77 (the planks ran out): the row shows where it stopped.
+    const auto answer = [&](const char *node, const char *label) {
+        model.revision += 1;
+        Find(model, node, "text")->label = label;
+        AnswerAll(router, surface, true);
+        router.SetInterface(model);
+    };
+    answer("REPAIR_QTY_H", "77%");
+    Expect(surface.props["parts"][0]["q"]["value"] == 77 && surface.errors.empty(),
+           "the game's order is shown: " + surface.props["parts"][0]["q"].dump());
     surface.commands.clear();
     router.OnEvent({"hull", "change", "70"});
-    Expect(surface.commands.empty(), "a drag waits until it settles");
-    surface.now += 0.5;
     router.Tick();
-    Expect(surface.commands.size() == 8 && surface.commands[0] == prefix + "REPAIR_LEFT_H\t-1\tpress",
-           "then 70 before the game answered: counted from the 78 the presses lead to, eight left");
+    Expect(surface.commands.size() == 7 && surface.commands[0] == prefix + "REPAIR_LEFT_H\t-1\tpress",
+           "70 from the game's 77: seven presses of the left arrow: " + Json(surface.commands).dump());
+    answer("REPAIR_QTY_H", "70%");
     surface.commands.clear();
     router.OnEvent({"masts", "commit", "3"});
+    router.Tick();
     Expect(surface.commands.size() == 1 && surface.commands[0] == prefix + "REPAIR_RIGHT_M\t-1\tpress",
            "masts move all at once: one press");
+    answer("REPAIR_QTY_M", "3/3");
 
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), prefix + "REPAIR_OK\t-1\tpress", "repair");
+    AnswerAll(router, surface, true);
+    router.SetInterface(model);
     router.OnEvent({"all-ships", "click", ""});
     ExpectEqual(surface.Last(), prefix + "REPAIR_ALL_SQUADRON\t-1\tpress", "all ships");
+    AnswerAll(router, surface, true);
+    router.SetInterface(model);
     router.OnEvent({"header", "subject-next", ""});
     ExpectEqual(surface.Last(), prefix + "SHIPS_SCROLL\t1\tselect@13:ship:1", "the next ship");
+    AnswerAll(router, surface, true);
+    router.SetInterface(model);
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), prefix + "REPAIR_CANCEL\t-1\tpress", "back cancels");
 }

@@ -8,5 +8,6 @@
   "trade_cannons": "Buy and sell a ship's guns",
   "trade_items": "Buy and sell items with a merchant",
   "crew_hire": "Hire sailors in a tavern, or dismiss them",
-  "sail_emblem": "Paint an emblem on the ship's sails at the shipyard, or take it off"
+  "sail_emblem": "Paint an emblem on the ship's sails at the shipyard, or take it off",
+  "self_repair": "Repair the squadron's ships with the planks and sailcloth in their holds"
 }

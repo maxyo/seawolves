@@ -3,15 +3,6 @@
 // their tables, the amount window QTY_* (its edit takes the amount: ChangeQTY_EDIT clamps it and puts it on both
 // crews at once, its OK confirms). Implements contracts/crew.c.
 
-// The character of the ship the scroll shows (hirecrew.c SetDescription).
-ref TouchLegCrew_Captain()
-{
-	string pic = "pic" + (sti(GameInterface.SHIPS_SCROLL.current) + 1);
-	if (!CheckAttribute(&GameInterface, "SHIPS_SCROLL." + pic + ".companionIndex"))
-		UiError("crew: the game's ship scroll has no captain for its " + pic);
-	return &Characters[sti(GameInterface.SHIPS_SCROLL.(pic).companionIndex)];
-}
-
 // The tavern's men are the colony's crew (hirecrew.c refTown: the colony of the location's fast reload).
 ref TouchLegCrew_Town()
 {
@@ -78,7 +69,7 @@ void TouchAdpCrew_State(aref ui, aref out)
 	}
 	aref crew;
 	makearef(crew, out.ship);
-	TouchLegLib_Crew(model, "TABLE_CREW", "CREW_MORALE_TEXT", TouchLegCrew_Captain(), crew);
+	TouchLegLib_Crew(model, "TABLE_CREW", "CREW_MORALE_TEXT", TouchLegLib_ScrollCaptain("SHIPS_SCROLL"), crew);
 	makearef(crew, out.tavern);
 	TouchLegLib_Crew(model, "TABLE_CREW2", "CREW_MORALE_TEXT2", TouchLegCrew_Town(), crew);
 }

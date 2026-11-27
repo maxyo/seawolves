@@ -26,8 +26,9 @@
     {"file": "interface/touch/contracts/nations.c"},
     {"file": "interface/touch/contracts/crew.c"},
     {"file": "interface/touch/contracts/sails.c"},
+    {"file": "interface/touch/contracts/repair.c"},
     {"file": "interface/android_ui_bootstrap.c"},
-    {"file": "interface/touch/lineages/legacy/lib.c"},
+    {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
       "file": "interface/touch/lineages/legacy/rest.c",
       "provides": ["adapter:rest"],
@@ -200,6 +201,31 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/repair.c",
+      "requires": [
+        "fn:GetMainCharacter/0", "fn:GetSquadronGoods/2", "fn:FindGood/1", "var:GameInterface", "var:Characters"
+      ],
+      "provides": ["adapter:repair"],
+      "binds": [
+        {
+          "capability": "self_repair",
+          "interface": "repair",
+          "nodes": [
+            ["REPAIR_QTY_H", "text", true], ["REPAIR_LEFT_H", "button", true], ["REPAIR_RIGHT_H", "button", true],
+            ["REPAIR_OK", "button", true], ["SHIPS_SCROLL", "choice", true], ["REPAIR_QTY_M", "text"],
+            ["REPAIR_QTY_S", "text"], ["REPAIR_LEFT_M", "button"], ["REPAIR_RIGHT_M", "button"],
+            ["REPAIR_LEFT_S", "button"], ["REPAIR_RIGHT_S", "button"], ["REPAIR_STATUS_*", "text"],
+            ["REPAIR_QTY_*", "text"], ["REPAIR_HULL_CAPTION", "text"], ["REPAIR_MAST_CAPTION", "text"],
+            ["REPAIR_SAIL_CAPTION", "text"], ["REPAIR_WINDOW_CAPTION", "text|heading"], ["REPAIR_SHIP_NAME", "text"],
+            ["REPAIR_ALL_SHIP", "button"], ["REPAIR_ALL_SQUADRON", "button"], ["REPAIR_CANCEL", "button"],
+            ["EXIT_BTN", "button"], ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"],
+            ["NAME_STR", "text"], ["LOCATION_STR", "text"], ["TIME_STR", "text"], ["REPAIR_*", "image"],
+            ["MAIN_CHARACTER_*", "image"], ["OTHER_*", "image"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -274,6 +300,11 @@
       "file": "interface/touch/screens/sails.c",
       "uses": ["adapter:sails"],
       "screens": [{"capability": "sail_emblem", "component": "s-sail-emblem"}]
+    },
+    {
+      "file": "interface/touch/screens/repair.c",
+      "uses": ["adapter:repair"],
+      "screens": [{"capability": "self_repair", "component": "s-repair"}]
     }
   ]
 }

@@ -412,13 +412,14 @@ QUOTED = re.compile(r"""["']([A-Za-z0-9_-]+)["']""")
 
 def check_unused_icons(icon_ids, engine_root, check_engine=True):
     """Every icon of icons.json is drawn by something outside the gallery: a quoted id or name (the id without
-    "i-") in a component, a screen, the HUD layout or the engine's UI code, or an id the code builds from one of
-    RUNTIME_ICON_PREFIXES. A gallery page alone does not keep an icon in the pack."""
+    "i-") in a component, a screen, the HUD layout, the touch interface's scripts or the engine's UI code, or an id the
+    code builds from one of RUNTIME_ICON_PREFIXES. A gallery page alone does not keep an icon in the pack."""
     if not check_engine:
         print("design build: unused icons are NOT checked (--no-engine-check)", file=sys.stderr)
         return
     design = [*HERE.glob("components/*/*"), *HERE.glob("screens/*/*"),
-              *(HERE / name for name in ("hud.rml", "overlay.rml", "screen.rml", "hud-layout.json", "base.rcss"))]
+              *(HERE / name for name in ("hud.rml", "overlay.rml", "screen.rml", "hud-layout.json", "base.rcss")),
+              *(HERE.parent / "PROGRAM/interface/touch").rglob("*.c")]
     engine = [p for part in ("ui/src", "xinterface/src") for p in (engine_root / "src/libs" / part).rglob("*")
               if p.suffix in (".cpp", ".h", ".hpp", ".inc", ".json")]
     texts = [path.read_text(encoding="utf-8", errors="replace") for path in sorted(design) + sorted(engine) if path.is_file()]
