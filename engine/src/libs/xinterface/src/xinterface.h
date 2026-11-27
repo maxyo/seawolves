@@ -447,7 +447,7 @@ class XINTERFACE : public XINTERFACE_BASE
 
     CINODE *m_pGlowCursorNode;
     CINODE *m_pTriggerNode; // the TRIGGER node of the interface, if it has one
-    std::string HoveredTriggerNode() const;
+    void HoverTriggerNode(); // tells the TRIGGER node which trigger node is under the mouse
     void UpdateMouseEffects();
     struct RichTooltip
     {

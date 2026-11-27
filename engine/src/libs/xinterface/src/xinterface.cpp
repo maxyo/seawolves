@@ -3392,14 +3392,20 @@ void XINTERFACE::UpdateMouseEffects()
 }
 
 // the first node under the mouse whose hover trigger is on
-std::string XINTERFACE::HoveredTriggerNode() const
+void XINTERFACE::HoverTriggerNode()
 {
     const float x = fXMousePos + m_lXMouse, y = fYMousePos + m_lYMouse;
     for (CINODE *node = m_pNodes ? m_pNodes->FindNode(x, y) : nullptr; node != nullptr;
          node = node->m_next ? node->m_next->FindNode(x, y) : nullptr)
         if (node->m_bUse && node->m_bUseTrigger && node->m_nodeName)
-            return node->m_nodeName;
-    return {};
+        {
+            const auto part = node->m_nNodeType == NODETYPE_TABLE
+                                  ? static_cast<CXI_TABLE *>(node)->TriggerPart(FXYPOINT(x, y))
+                                  : storm::xi::HoverTrigger::Part{};
+            static_cast<CXI_TRIGGER *>(m_pTriggerNode)->Hover(node->m_nodeName, part);
+            return;
+        }
+    static_cast<CXI_TRIGGER *>(m_pTriggerNode)->Hover({}, {});
 }
 
 void XINTERFACE::MouseMove()
@@ -3482,7 +3488,7 @@ void XINTERFACE::MouseMove()
             pNod = pNod->m_next->FindNode(fXMousePos + m_lXMouse, fYMousePos + m_lYMouse);
         }
         if (m_pTriggerNode)
-            static_cast<CXI_TRIGGER *>(m_pTriggerNode)->Hover(HoveredTriggerNode());
+            HoverTriggerNode();
         UpdateMouseEffects();
     }
     else

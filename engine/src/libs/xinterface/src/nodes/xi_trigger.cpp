@@ -17,7 +17,11 @@ CXI_TRIGGER::CXI_TRIGGER()
                 },
                 [](const std::string &node) { core.Event("Event_NodeStartTrigger", "s", node.c_str()); },
                 [](const std::string &node) { core.Event("Event_NodeEndTrigger", "s", node.c_str()); },
-                [] { core.Event("Event_NullTrigger"); }})
+                [] { core.Event("Event_NullTrigger"); },
+                [](const std::string &node, const storm::xi::HoverTrigger::Part &part) {
+                    core.Event("Event_ChangeTableTriggerFrame", "slllllll", node.c_str(), part.line, part.column,
+                               part.left, part.top, part.right, part.bottom);
+                }})
 {
     m_nNodeType = NODETYPE_TRIGGER;
 }

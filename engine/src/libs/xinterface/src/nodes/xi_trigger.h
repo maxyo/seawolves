@@ -34,9 +34,9 @@ class CXI_TRIGGER : public CINODE
     }
 
     // the trigger node under the mouse ("" for none)
-    void Hover(const std::string &node)
+    void Hover(const std::string &node, const storm::xi::HoverTrigger::Part &part)
     {
-        trigger_.Hover(node);
+        trigger_.Hover(node, part);
     }
 
   protected:

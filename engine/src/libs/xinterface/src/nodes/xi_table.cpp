@@ -836,6 +836,8 @@ void CXI_TABLE::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const c
         m_SelectImg.LoadAccordingToString(param);
     }
     m_bDoColsSelect = GetIniBool(ini1, name1, ini2, name2, "iscolselect", false);
+    m_bLineTrigger = GetIniBool(ini1, name1, ini2, name2, "UseLineTrigger", false);
+    m_bColTrigger = GetIniBool(ini1, name1, ini2, name2, "UseColTrigger", false);
     if (m_bDoColsSelect)
         m_nSelectColIndex = 0;
 
@@ -1221,6 +1223,28 @@ int32_t CXI_TABLE::GetLineByPoint(const FXYPOINT &pnt)
             return n;
     }
     return -1;
+}
+
+storm::xi::HoverTrigger::Part CXI_TABLE::TriggerPart(const FXYPOINT &pnt)
+{
+    storm::xi::HoverTrigger::Part part{-1, -1, m_rect.left, m_rect.top, m_rect.right, m_rect.bottom};
+    if (m_bLineTrigger)
+        if (const int32_t row = GetLineByPoint(pnt); row >= 0)
+        {
+            const int32_t header = m_pHeader ? 1 : 0;
+            const int32_t line = m_nTopIndex + row - header;
+            part.line = row >= header && line < m_nLineQuantity ? line : -1;
+            part.top = GetRowTop(row);
+            part.bottom = part.top + m_anRowsHeights[row];
+        }
+    if (m_bColTrigger)
+        if (const int32_t column = GetColByX(static_cast<int32_t>(pnt.x)); column >= 0)
+        {
+            part.column = column;
+            part.left = GetColLeft(column);
+            part.right = part.left + m_anColsWidth[column];
+        }
+    return part;
 }
 
 int32_t CXI_TABLE::GetColByX(int32_t x)

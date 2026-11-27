@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../hover_trigger.hpp"
 #include "../inode.h"
 #include "../xdefines.h"
 #include "xi_image.h"
@@ -118,6 +119,8 @@ class CXI_TABLE : public CINODE
                                  uint64_t revision, Actions &actions);
 
   public:
+    // the line (-1: the header or none) and column under the point, for UseLineTrigger and UseColTrigger
+    storm::xi::HoverTrigger::Part TriggerPart(const FXYPOINT &pnt);
     CXI_TABLE(CXI_TABLE &&) = delete;
     CXI_TABLE(const CXI_TABLE &) = delete;
     CXI_TABLE();
@@ -203,6 +206,7 @@ class CXI_TABLE : public CINODE
     CXI_IMAGE m_BackImg;
     CXI_IMAGE m_SelectImg;
     bool m_bDoColsSelect;
+    bool m_bLineTrigger = false, m_bColTrigger = false;
     int32_t m_nSelectColIndex;
 
     std::string m_sBorderIconGroupName;
