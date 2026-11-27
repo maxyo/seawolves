@@ -65,19 +65,31 @@ a single copy; passes that are off cost nothing. Everything runs in gamma-encode
 
 ### Sky (`sky.hpp`, `sky_model.hpp`)
 
-The scene environment (`src/libs/scene_environment`) is turned into a sky state: a 64 x 32 panorama of single
-scattering (Rayleigh and Mie) around the sun, its horizon and dome averages, rebuilt on a thread of its own when the
-sun, the light or the weather move. The panorama drives the scene grade, the hemisphere ambient and the aerial fog;
-the environment's sky radiance scales it, so a game's data can make it brighter, warmer or darker. It is also the
-visible sky of every game (`render::DrawSky`, from the weather's sky entity): one triangle at the far plane behind what the
-scene has drawn, the panorama by direction, the sun's and the moon's discs, stars on a hashed grid of cells by night,
-the clouds and a haze band at the horizon; in the scene before its geometry and in the sea's reflection.
+The visible sky of every game (`render::DrawSky`, from the weather's sky entity) is Caribbean Legend's sky computed
+term by term in one triangle at the far plane behind what the scene has drawn, in the scene before its geometry and in
+the sea's reflection (`fs_fx_sky.sc`; `sky_model.cpp` is its CPU side):
+
+- **Atmosphere.** Three shells over a planet of 6371 km: Rayleigh air 8228 m deep, Mie haze 1800 m, ozone from 30 km.
+  The path along the view and towards the light through each, Rayleigh and Mie scattering with their phase terms,
+  the transmission of the shorter path times the mean over the difference of the two; times the environment's day
+  radiance about the sun and the night's about the moon, blended by the daylight. A low sun reddens the horizon on
+  its side and darkens the far side towards the night's sky.
+- **Stars** on cells of 1/2500 of a direction, 4 % of them lit, brightness to the 60th power, four samples per
+  pixel, their mean where a pixel spans many cells; they fade in as the daylight goes.
+- **Discs.** The game's sun and moon sprites (`render::SetSkyDiscs`, from the sun glow's `SunTexture` and
+  `MoonTexture`) on quads facing the eye, of the environment's half sizes: the sun's in its own light, reddened near
+  the horizon and turned with the camera's yaw; the moon's white at night, with a faint halo of its light.
+- **Haze band** at the horizon, in the atmosphere's colour a little above it (or its own), and the **height fog**
+  between the eye and the sky's distance in it.
+- The sum times the exposure is compressed into the 8-bit picture as the material programs' light is
+  (`fxCompressHdr`); the post chain's tone curve follows. The sky state keeps the horizon's colour on the display's
+  scale (the aerial fog, fog that takes the sky's colour) and the dome's mean (the hemisphere ambient's hue).
 
 The clouds need no texture of the game's: a layer at 1500 m seen from below, a fractal sum of one tiling octave of
 gradient noise (`CloudNoise`, 128² R8 with mips, 21 KB) turned and doubled per octave, kept where it rises above a
 threshold the environment's cover lowers (the coverage remap of Schneider 2015). The rain clouds grow over the same
 noise from its high values down as their cover rises, grey and even when it is full. The wind's drift moves the layer.
-The sky's panorama above and at the horizon lights them (its colours carry the twilight's tint), and the direct light
+The atmosphere above and at the horizon lights them (its colours carry the twilight's tint), and the direct light
 (the sun, or the moon at night) where the layer thins towards it: a second lookup a step towards the light, a
 directional derivative (Quílez), with a silver lining round the light. `Settings::cloud_octaves`: «Низкая» 2 octaves
 and no lookup towards the light, «Средняя» 3, «Высокая» 4. A fog with a height

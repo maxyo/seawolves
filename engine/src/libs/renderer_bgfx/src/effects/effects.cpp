@@ -516,21 +516,29 @@ fx::WeatherInput Host::weather_input() const
 {
     fx::WeatherInput input;
     input.sun_dir = env_.sun_dir;
-    input.sun_color = sun_display_;
-    input.ambient_color = glm::sqrt(environment::DisplayLight(env_.ambient, env_.exposure));
-    input.fog_color = fog_display_;
-    input.fog_density = env_.fog_density;
-    input.fog_layer = env_.fog_layer;
-    input.overcast = env_.overcast;
-    input.wind = {env_.wind_dir.x, env_.wind_dir.y};
-    input.wind_speed = env_.wind_speed;
-    input.sky_radiance = env_.sky_day * env_.exposure;
-    input.night_sky = env_.sky_night * env_.exposure;
     input.moon_dir = env_.moon_dir;
-    input.haze_color = env_.haze_color;
+    input.daylight = env_.twilight;
+    input.exposure = env_.exposure;
+    input.sky_day = env_.sky_day;
+    input.sky_night = env_.sky_night;
+    input.sun_light = env_.sun_light;
+    input.moon_light = env_.moon_light;
+    input.sun_size = env_.sun_size;
+    input.moon_size = env_.moon_size;
     input.haze = env_.haze;
     input.haze_height = env_.haze_height;
+    input.haze_edge = env_.haze_edge;
+    input.haze_sample = std::tan(env_.haze_sample);
+    input.haze_color = env_.haze_color;
     input.haze_from_sky = env_.haze_from_sky;
+    input.fog_color = env_.fog_color;
+    input.fog_density = env_.fog_density;
+    input.fog_base = env_.fog_base;
+    input.fog_layer = env_.fog_layer;
+    input.fog_start = env_.fog_start;
+    input.fog_end = env_.fog_end;
+    input.fog_max = env_.fog_max;
+    input.fog_from_sky = env_.fog_from_sky;
     input.clouds = env_.clouds;
     input.rain_clouds = env_.rain_clouds;
     input.cloud_drift = env_.cloud_drift;
@@ -1324,6 +1332,11 @@ void SetSceneEnvironment(const environment::State &state)
 void DrawSky()
 {
     effects::Host::instance().draw_sky();
+}
+
+void SetSkyDiscs(uint16_t sun, uint16_t moon)
+{
+    effects::Host::instance().set_sky_discs(sun, moon);
 }
 
 glm::vec3 SkyHorizon()

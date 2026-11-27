@@ -15,34 +15,6 @@ glm::vec3 LegacyDirection(float elevation, float azimuth)
     return {std::cos(elevation) * std::cos(azimuth), std::sin(elevation), -std::cos(elevation) * std::sin(azimuth)};
 }
 
-std::optional<glm::vec3> LegacySunAt(const LegacyArc &sun, float hour)
-{
-    const float k = (hour - sun.beg_time) / (sun.end_time - sun.beg_time);
-    if (!(k >= 0.0f && k <= 1.0f))
-        return std::nullopt;
-    // The arc dips 0.2 rad below the horizon at its ends: the sun sets before its arc ends.
-    const float elevation = (sun.height + 0.2f) * std::sin(k * glm::pi<float>()) - 0.2f;
-    return LegacyDirection(elevation, sun.beg_angle + k * (sun.end_angle - sun.beg_angle));
-}
-
-std::optional<glm::vec3> LegacyMoonAt(const LegacyArc &moon, float hour)
-{
-    float k;
-    if (moon.beg_time < moon.end_time)
-        k = (hour - moon.beg_time) / (moon.end_time - moon.beg_time);
-    else
-    {
-        k = hour - moon.beg_time;
-        if (k < 0.0f)
-            k += 24.0f;
-        k /= 24.0f + moon.end_time - moon.beg_time;
-    }
-    if (!(k >= 0.0f && k <= 1.0f))
-        return std::nullopt;
-    const float elevation = moon.height * 2.0f * std::min(k, 1.0f - k);
-    return LegacyDirection(elevation, moon.beg_angle + k * (moon.end_angle - moon.beg_angle));
-}
-
 std::optional<LegacySky> LegacySkyFolder(std::string_view folder)
 {
     // «Каждому своё»'s weather\skies folders, by what their painted skies show (clear night, scattered cumulus, the
@@ -72,25 +44,28 @@ State EvaluateLegacy(const LegacyInputs &in)
 {
     State s;
     s.hour = in.hour;
-    const std::optional<glm::vec3> sun = LegacySunAt(in.sun, in.hour);
-    const std::optional<glm::vec3> moon = LegacyMoonAt(in.moon, in.hour);
+    // The weather's light is the sun, or the moon by night; the other body is below the horizon.
+    const glm::vec3 light = LegacyDirection(in.light_elevation, in.light_azimuth);
     const glm::vec3 down{0.0f, -1.0f, 0.0f};
-    s.sun_dir = sun.value_or(down);
-    s.moon_dir = moon.value_or(down);
+    s.sun_dir = in.moon ? down : light;
+    s.moon_dir = in.moon ? light : down;
+    s.sun_size = in.sun_size;
+    s.moon_size = in.moon_size;
     s.twilight = glm::smoothstep(-0.1f, 0.05f, s.sun_dir.y);
-    // The moon lights the scene while it is up, the sun otherwise; with the clock stopped the scripts place the light.
-    s.light_dir = in.fixed_light ? LegacyDirection(in.light_elevation, in.light_azimuth) : moon.value_or(s.sun_dir);
-    s.light_is_sun = sun && !moon;
+    s.light_dir = light;
+    s.light_is_sun = !in.moon && light.y > 0.0f;
     s.light_color = in.sun_color * in.sun_color;
+    (in.moon ? s.moon_light : s.sun_light) = s.light_color;
     s.ambient = in.ambient * in.ambient;
     s.fog_color = in.fog_color * in.fog_color;
     s.fog_density = in.fog ? in.fog_density : 0.0f;
-    if (in.fog && in.haze_height > 0.0f)
-    {
-        s.haze_color = s.fog_color;
-        s.haze = 1.0f;
-        s.haze_height = in.haze_height;
-    }
+    // The haze band of Caribbean Legend's atmosphere (its shape: 8.65 degrees high, fading over all of it, in the
+    // sky's colour 1.42 degrees up): the scripts' own band was a fog sphere that reached the zenith at night.
+    s.haze = 1.0f;
+    s.haze_height = std::sin(glm::radians(8.65f));
+    s.haze_sample = glm::radians(1.42f);
+    s.haze_from_sky = true;
+    s.haze_color = glm::vec3(1.0f);
     // A full rain at the day rains' drop count (3500..5000; a light evening rain 1500, storms 25000+).
     s.rain = std::min(in.rain_drops / 5000.0f, 1.0f);
     s.clouds = in.sky.clouds;

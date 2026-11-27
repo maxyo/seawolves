@@ -60,6 +60,7 @@ class SUNGLOW : public Entity
         float fRotateSpeed;
         uint32_t dwColor;
         std::string sGlowTexture, sTechniqueZ, sTechniqueNoZ;
+        std::string sSunTexture, sMoonTexture; // the drawn sky's discs (render::SetSkyDiscs)
     };
 
     struct flare_t
@@ -112,6 +113,7 @@ class SUNGLOW : public Entity
     int32_t iNumFlares;
     float fFadeout, fAlpha, fAlphaFlare, fAlphaOverflow, fMaxOverflowAlphaValue;
     int32_t iSunGlowTex, iFlareTex, iOverflowTex, iReflTexture;
+    int32_t iSunTex = -1, iMoonTex = -1;
     bool bVisible, bVisibleFlare;
     bool bHaveGlow, bHaveFlare, bHaveOverflow, bHaveReflection;
     bool bMoon;

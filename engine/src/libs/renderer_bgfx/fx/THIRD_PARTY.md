@@ -17,8 +17,8 @@ Everything else is original work under the engine's licence, including:
   own code.
 - Normal mapping without mesh tangents: the screen-space cotangent frame is a published technique
   (Christian Schüler, 2013); own code.
-- Sky state (the grade of the place and hour, the hemisphere ambient): single scattering with the usual Rayleigh /
-  Mie coefficients; own code.
-- All textures (grading look-up tables, the sky panorama the sky state averages) are generated
+- The drawn sky and the sky state: the atmosphere, discs, stars, haze and height fog of Caribbean Legend's sky
+  (its shell depths, coefficients, phase and sunset terms), re-expressed; own code.
+- All textures (grading look-up tables, the clouds' noise) are generated
   procedurally at run time. The only bundled tables are SMAA's area and search textures (above), compiled in
   from the fetched headers.

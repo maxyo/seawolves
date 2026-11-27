@@ -10,130 +10,95 @@ namespace storm::fx
 namespace
 {
 constexpr float kPi = 3.14159265358979f;
-constexpr float kPlanetRadius = 6360e3f;
-constexpr float kAtmosphereRadius = 6420e3f;
-constexpr float kRayleighHeight = 8000.0f;
-constexpr float kMieHeight = 1200.0f;
-constexpr glm::vec3 kRayleigh{5.8e-6f, 13.5e-6f, 33.1e-6f};
-constexpr float kMie = 21e-6f;
-constexpr float kMieG = 0.76f;
-constexpr float kSunIntensity = 22.0f;
-constexpr int kViewSteps = 12;
-constexpr int kLightSteps = 5;
+constexpr float kEarthRadius = 6371000.0f;
+constexpr float kRayleighDepth = 8228.0f, kMieDepth = 1800.0f, kOzoneHeight = 30000.0f;
+constexpr glm::vec3 kRayleigh{5.6e-6f, 1.25e-5f, 2.9e-5f};
+constexpr glm::vec3 kOzone{3.426f * 6e-7f, 8.298f * 6e-7f, 0.356f * 6e-7f};
+constexpr float kMie = 16e-6f;
+constexpr float kLn2 = 0.6931472f;
 
-// Distance from `origin` along `dir` to the sphere of radius `radius` centred on the planet.
-float ExitDistance(glm::vec3 origin, glm::vec3 dir, float radius)
+// The CPU side of fs_fx_sky.sc's fxShellPath, fxThickness and fxOpticalDepth.
+float ShellPath(float y, float depth)
 {
-    const float b = glm::dot(origin, dir);
-    const float c = glm::dot(origin, origin) - radius * radius;
-    return -b + std::sqrt(std::max(b * b - c, 0.0f));
+    const float yr = y * kEarthRadius;
+    const float k = depth * (2.0f * kEarthRadius + depth);
+    const float root = std::sqrt(yr * yr + k);
+    return yr > 0.0f ? k / (yr + root) : root - yr;
 }
 
-struct Atmosphere
+glm::vec3 Thickness(float y)
 {
-    float mie_scale; // turbidity
-};
-
-// Fraction of sunlight that reaches the ground from direction `sun`.
-void SunTransmittance(const Atmosphere &atm, glm::vec3 sun, glm::vec3 &out)
-{
-    const glm::vec3 origin{0.0f, kPlanetRadius + 30.0f, 0.0f};
-    // Below the horizon the path is clamped: twilight fades through the `night` factor instead.
-    // A sun straight down (the environment's sun at night) has no horizontal part: its clamped path is any horizontal
-    // one.
-    glm::vec3 dir{sun[0], std::max(sun[1], 0.0f), sun[2]};
-    if (glm::dot(dir, dir) < 1e-8f)
-        dir = {1.0f, 0.0f, 0.0f};
-    const glm::vec3 unit = glm::normalize(dir);
-    const float length = ExitDistance(origin, unit, kAtmosphereRadius);
-    float depth_r = 0.0f, depth_m = 0.0f, travelled = 0.0f;
-    constexpr int kSteps = 24;
-    for (int i = 0; i < kSteps; ++i)
-    {
-        const float t1 = static_cast<float>(i + 1) / static_cast<float>(kSteps);
-        const float end = length * t1 * t1 * t1;
-        const glm::vec3 p = origin + unit * (0.5f * (travelled + end));
-        const float height = glm::length(p) - kPlanetRadius;
-        depth_r += std::exp(-height / kRayleighHeight) * (end - travelled);
-        depth_m += std::exp(-height / kMieHeight) * (end - travelled);
-        travelled = end;
-    }
-    out = glm::exp(-(kRayleigh * depth_r + 1.1f * kMie * atm.mie_scale * depth_m));
+    const float yr = y * kEarthRadius;
+    const float low = kOzoneHeight * (2.0f * kEarthRadius + kOzoneHeight);
+    const float high = (kOzoneHeight + kRayleighDepth) * (2.0f * kEarthRadius + kOzoneHeight + kRayleighDepth);
+    const float ozone = (high - low) / (std::sqrt(yr * yr + high) + std::sqrt(yr * yr + low));
+    return {ShellPath(y, kRayleighDepth), ShellPath(y, kMieDepth), ozone};
 }
 
-// Radiance scattered towards the eye along `dir` (y up), sun at `sun`; `sun_extinction` is SunTransmittance().
-glm::vec3 Scatter(const Atmosphere &atm, glm::vec3 dir, glm::vec3 sun, glm::vec3 sun_extinction)
+glm::vec3 OpticalDepth(glm::vec3 t)
 {
-    const glm::vec3 origin{0.0f, kPlanetRadius + 30.0f, 0.0f};
-    const float length = ExitDistance(origin, dir, kAtmosphereRadius);
-    const float mu = glm::dot(dir, sun);
-    const float phase_r = 3.0f / (16.0f * kPi) * (1.0f + mu * mu);
-    const float g2 = kMieG * kMieG;
-    const float phase_m = 3.0f / (8.0f * kPi) * ((1.0f - g2) * (1.0f + mu * mu)) /
-                          ((2.0f + g2) * std::pow(1.0f + g2 - 2.0f * kMieG * mu, 1.5f));
-    const float mie = kMie * atm.mie_scale;
-    float depth_r = 0.0f, depth_m = 0.0f;
-    glm::vec3 sum_r{0.0f, 0.0f, 0.0f}, sum_m{0.0f, 0.0f, 0.0f};
-    float travelled = 0.0f;
-    for (int i = 0; i < kViewSteps; ++i)
-    {
-        // Cubic spacing: rays along the horizon are hundreds of kilometres long, yet most of what they
-        // gather comes from the first few kilometres of dense air.
-        const float t1 = static_cast<float>(i + 1) / static_cast<float>(kViewSteps);
-        const float end = length * t1 * t1 * t1;
-        const float step = end - travelled;
-        const glm::vec3 p = origin + dir * (travelled + 0.5f * step);
-        travelled = end;
-        const float height = glm::length(p) - kPlanetRadius;
-        const float hr = std::exp(-height / kRayleighHeight) * step;
-        const float hm = std::exp(-height / kMieHeight) * step;
-        depth_r += hr;
-        depth_m += hm;
-        const float light_step = ExitDistance(p, sun, kAtmosphereRadius) / static_cast<float>(kLightSteps);
-        float light_r = 0.0f, light_m = 0.0f;
-        for (int j = 0; j < kLightSteps; ++j)
-        {
-            const glm::vec3 q = p + sun * (light_step * (static_cast<float>(j) + 0.5f));
-            // Below the surface the planet blocks the sun; a very dense medium approximates that smoothly.
-            const float h = std::max(glm::length(q) - kPlanetRadius, -20000.0f);
-            light_r += std::exp(-h / kRayleighHeight) * light_step;
-            light_m += std::exp(-h / kMieHeight) * light_step;
-        }
-        // Air scattering sees less reddened sunlight than the direct path suggests: light scattered more than
-        // once (and ozone) keeps the twilight zenith blue.
-        const glm::vec3 attenuation_r =
-            glm::exp(-(kRayleigh * (depth_r + 0.4f * light_r) + 1.1f * mie * (depth_m + light_m)));
-        const glm::vec3 attenuation_m = glm::exp(-(kRayleigh * (depth_r + light_r) + 1.1f * mie * (depth_m + light_m)));
-        sum_r += attenuation_r * hr;
-        sum_m += attenuation_m * hm;
-    }
-    // The panorama is too coarse for the forward peak of the haze: keep a third of it here, the shader adds
-    // the sharp halo analytically (fxSunHalo).
-    const glm::vec3 single = (sum_r * kRayleigh * phase_r + sum_m * (mie * phase_m * 0.33f)) * kSunIntensity;
-    // Light scattered more than once also fills in what single scattering leaves dark: a pale veil that
-    // grows with the optical depth of the view ray (the bright horizon of a clear day).
-    const float sun_level = glm::dot(sun_extinction, kLumaRec709) * glm::smoothstep(-0.12f, 0.02f, sun[1]);
-    const glm::vec3 veil = glm::mix(glm::vec3{0.50f, 0.68f, 1.0f}, glm::vec3{1.0f}, 0.45f * sun_level);
-    const glm::vec3 opacity = 1.0f - glm::exp(-(kRayleigh * depth_r + 1.1f * mie * depth_m));
-    return single + opacity * veil * (0.22f * sun_level);
+    return (kRayleigh * t.x + glm::vec3(kMie * t.y) + kOzone * t.z) * (1.0f / kLn2);
 }
 
-glm::vec3 DirFromLut(float u, float v, glm::vec3 sun)
+float MeanTransmission(float d)
 {
-    const float sin_elev = v * v;
-    const float cos_elev = std::sqrt(std::max(1.0f - sin_elev * sin_elev, 0.0f));
-    const float cos_az = 1.0f - 2.0f * u;
-    const float sin_az = std::sqrt(std::max(1.0f - cos_az * cos_az, 0.0f));
-    float sx = sun[0], sz = sun[2];
-    const float len = std::hypot(sx, sz);
-    if (len < 1e-4f)
-        sx = 1.0f, sz = 0.0f;
-    else
-        sx /= len, sz /= len;
-    // Rotate the sun's horizontal direction by the azimuth difference.
-    return {cos_elev * (sx * cos_az - sz * sin_az), sin_elev, cos_elev * (sz * cos_az + sx * sin_az)};
+    return d < 0.01f ? 1.0f - d * 0.5f + d * d / 6.0f : (1.0f - std::exp(-d)) / d;
+}
+
+float Smooth(float a, float b, float x)
+{
+    return glm::smoothstep(a, b, x);
 }
 } // namespace
+
+glm::vec4 SkyAtmosphere(const WeatherInput &w, glm::vec3 dir, glm::vec3 light, bool solar)
+{
+    const glm::vec3 thickness = Thickness(dir.y);
+    const float mu = std::max(glm::dot(dir, light), 0.0f);
+    glm::vec3 scatter = thickness.x * (0.4f * mu * mu + 1.12f) * kRayleigh;
+    const float g = 0.8f - light.y * 0.15f - kMie * 1500.0f;
+    const float g2 = g * g;
+    const float a = 1.0f / std::sqrt(1.0f + g2 - 2.0f * g * mu);
+    scatter += glm::vec3(thickness.y * (0.4f + light.y * 0.1f + kMie * 7000.0f) * (1.0f - g2) * a * a * a * kMie);
+    const glm::vec3 to_light = OpticalDepth(Thickness(light.y));
+    const glm::vec3 to_eye = OpticalDepth(thickness);
+    const glm::vec3 d = glm::abs(to_light - to_eye) * kLn2;
+    const glm::vec3 mean{MeanTransmission(d.x), MeanTransmission(d.y), MeanTransmission(d.z)};
+    const glm::vec3 lit = scatter * glm::exp2(-glm::min(to_eye, to_light)) * mean * (0.6f + light.y * 0.3f);
+    const glm::vec3 night = glm::clamp(w.sky_night * lit, 0.0f, 100.5f);
+    if (!solar)
+        return {night, to_light.x};
+    glm::vec3 sky = glm::clamp(w.sky_day * lit, 0.0f, 100.5f);
+    const float up = std::max(dir.y, 0.0f);
+    const float low = 1.0f - Smooth(0.08f, 0.35f, light.y);
+    const float lowest = 1.0f - Smooth(0.025f, 0.10f, light.y);
+    const float red = 1.0f - Smooth(0.02f, 0.22f, light.y);
+    const float band = 1.0f - Smooth(0.0f, 0.45f, up);
+    const float wide = 1.0f - Smooth(0.0f, 0.72f, up);
+    const glm::vec2 dh{dir.x, dir.z}, lh{light.x, light.z};
+    const float side = Smooth(-0.60f, 0.70f, glm::dot(dh, lh) / std::max(glm::length(dh) * glm::length(lh), 0.0001f));
+    const glm::vec3 sunset = std::max(sky.r, std::max(sky.g, sky.b)) *
+                             glm::mix(glm::vec3(1.1f, 0.30f, 0.025f), glm::vec3(1.1f, 0.10f, 0.008f), red);
+    sky = glm::mix(sky, night, low * (1.0f - side) * glm::mix(0.35f, 0.70f, wide));
+    sky = glm::mix(sky, sunset, std::max(low * band * 0.85f, lowest * wide * 0.95f) * glm::mix(0.08f, 1.0f, side));
+    return {sky, to_light.x};
+}
+
+glm::vec3 SkyBackground(const WeatherInput &w, glm::vec3 dir)
+{
+    const glm::vec4 solar = w.daylight > 0.0f ? SkyAtmosphere(w, dir, w.sun_dir, true) : glm::vec4(0.0f);
+    const glm::vec4 lunar = w.daylight < 1.0f ? SkyAtmosphere(w, dir, w.moon_dir, false) : glm::vec4(0.0f);
+    return glm::vec3(glm::mix(lunar, solar, w.daylight));
+}
+
+float SkyHazeAmount(const WeatherInput &w, float dir_y)
+{
+    if (w.haze <= 0.0f)
+        return 0.0f;
+    const float t = glm::clamp(
+        (1.0f - std::fabs(dir_y) / std::max(w.haze_height, 1e-3f)) / std::max(w.haze_edge, 0.05f), 0.0f, 1.0f);
+    return w.haze * t * t * (3.0f - 2.0f * t);
+}
 
 SkyState ComputeSky(const WeatherInput &weather)
 {
@@ -141,100 +106,38 @@ SkyState ComputeSky(const WeatherInput &weather)
     sky.sun_dir = weather.sun_dir;
     sky.fog_density = weather.fog_density;
     sky.fog_layer = weather.fog_layer;
-    const float overcast = glm::clamp(weather.overcast, 0.0f, 1.0f);
-    const float sun_height = weather.sun_dir[1];
-    sky.night = 1.0f - glm::smoothstep(-0.14f, 0.05f, sun_height);
-
-    // Haze: the game's fog density drives turbidity and how far the horizon is pulled to the fog colour.
-    const float haze = glm::clamp(weather.fog_density / 0.008f, 0.0f, 1.0f);
-    const Atmosphere atm{0.6f + 3.0f * haze + 6.0f * overcast};
-    const glm::vec3 sun_tint = weather.sun_color * weather.sun_color; // gamma 2 to linear
-    const glm::vec3 fog = weather.fog_color * weather.fog_color;
-    const glm::vec3 night_zenith{0.007f, 0.013f, 0.036f};
-    const glm::vec3 night_horizon{0.020f, 0.034f, 0.066f};
-    constexpr float kExposure = 1.9f; // display exposure of the scattered radiance
-
-    // Overcast dome: grey that follows the daylight level and the game's fog colour.
-    glm::vec3 sun_transmittance;
-    SunTransmittance(atm, weather.sun_dir, sun_transmittance);
-    const float daylight = glm::smoothstep(-0.10f, 0.25f, sun_height);
-    const glm::vec3 fog_grey = glm::mix(fog, glm::vec3{glm::dot(fog, kLumaRec709)}, 0.5f);
-    const glm::vec3 dome = glm::mix(glm::vec3{0.30f, 0.33f, 0.37f} * (0.08f + 0.92f * daylight), fog_grey, 0.4f);
-
-    sky.lut.resize(static_cast<size_t>(kSkyLutWidth) * kSkyLutHeight * 4);
-    glm::vec3 horizon_sum{0.0f, 0.0f, 0.0f}, upper_sum{0.0f, 0.0f, 0.0f};
-    float upper_weight = 0.0f;
-    for (int y = 0; y < kSkyLutHeight; ++y)
-        for (int x = 0; x < kSkyLutWidth; ++x)
-        {
-            const float u = static_cast<float>(x) / static_cast<float>(kSkyLutWidth - 1);
-            const float v = static_cast<float>(y) / static_cast<float>(kSkyLutHeight - 1);
-            const glm::vec3 dir = DirFromLut(u, v, weather.sun_dir);
-            glm::vec3 c = Scatter(atm, dir, weather.sun_dir, sun_transmittance) * sun_tint * weather.sky_radiance;
-            c = 1.0f - glm::exp(-c * kExposure);
-            // The shoulder above washes colour out; give some of it back.
-            const float grey = glm::dot(c, kLumaRec709);
-            c = glm::max(grey + (c - grey) * 1.3f, 0.0f);
-            const float horizon_weight = std::pow(1.0f - dir[1], 6.0f);
-            c += glm::mix(night_zenith, night_horizon, horizon_weight) * weather.night_sky * sky.night;
-            // Pull the horizon band to the game's fog colour, the whole dome to grey when overcast.
-            c = glm::mix(c, fog, horizon_weight * (0.25f + 0.6f * haze) * (1.0f - 0.5f * sky.night));
-            c = glm::mix(c, glm::mix(dome, dome * 0.8f, dir[1]), overcast * 0.9f);
-            const size_t o = (static_cast<size_t>(y) * kSkyLutWidth + x) * 4;
-            for (int i = 0; i < 3; ++i)
-                sky.lut[o + i] = static_cast<uint8_t>(std::lround(std::sqrt(glm::clamp(c[i], 0.0f, 1.0f)) * 255.0f));
-            sky.lut[o + 3] = 255;
-            if (y == 0)
-                horizon_sum += c;
-            upper_sum += c * dir[1];
-            upper_weight += dir[1];
-        }
-    sky.horizon = horizon_sum * (1.0f / static_cast<float>(kSkyLutWidth));
-    const glm::vec3 dome_average = upper_sum * (1.0f / upper_weight);
-
-    sky.dome = dome_average;
-    // Light for surfaces. The game's sun colour stays in charge of brightness; the atmosphere only tints it.
-    const float transmittance_luma = std::max(glm::dot(sun_transmittance, kLumaRec709), 1e-4f);
-    const glm::vec3 sun_hue = glm::mix(glm::vec3{1.0f}, sun_transmittance * (1.0f / transmittance_luma), 0.6f);
-    sky.sun_light = sun_tint * sun_hue * (1.0f - 0.7f * overcast) * glm::smoothstep(-0.05f, 0.08f, sun_height);
-    return sky;
-}
-
-bool SkyNeedsRebuild(const WeatherInput &a, const WeatherInput &b)
-{
-    const auto far = [](glm::vec3 p, glm::vec3 q, float eps) {
-        return glm::any(glm::greaterThan(glm::abs(p - q), glm::vec3{eps}));
-    };
-    return far(a.sun_dir, b.sun_dir, 0.004f) || far(a.sun_color, b.sun_color, 0.01f) ||
-           far(a.ambient_color, b.ambient_color, 0.01f) || far(a.fog_color, b.fog_color, 0.01f) ||
-           std::fabs(a.fog_density - b.fog_density) > 1e-4f || std::fabs(a.overcast - b.overcast) > 0.01f ||
-           far(a.sky_radiance, b.sky_radiance, 0.01f) || far(a.night_sky, b.night_sky, 0.01f) ||
-           std::fabs(a.fog_layer - b.fog_layer) > 0.1f;
-}
-
-glm::vec3 SkyColor(const SkyState &sky, glm::vec3 dir)
-{
-    const float horizontal = std::hypot(dir[0], dir[2]);
-    const float sun_horizontal = std::hypot(sky.sun_dir[0], sky.sun_dir[2]);
-    float cos_az = 1.0f;
-    if (horizontal > 1e-5f && sun_horizontal > 1e-5f)
-        cos_az = (dir[0] * sky.sun_dir[0] + dir[2] * sky.sun_dir[2]) / (horizontal * sun_horizontal);
-    const float u = 0.5f - 0.5f * cos_az;
-    const float v = std::sqrt(glm::clamp(dir[1], 0.0f, 1.0f));
-    const float px = u * static_cast<float>(kSkyLutWidth - 1), py = v * static_cast<float>(kSkyLutHeight - 1);
-    const int x0 = std::min(static_cast<int>(px), kSkyLutWidth - 2),
-              y0 = std::min(static_cast<int>(py), kSkyLutHeight - 2);
-    const float fx = px - static_cast<float>(x0), fy = py - static_cast<float>(y0);
-    glm::vec3 out{0.0f, 0.0f, 0.0f};
-    for (int corner = 0; corner < 4; ++corner)
+    sky.night = 1.0f - glm::clamp(weather.daylight, 0.0f, 1.0f);
+    // The horizon: the atmosphere round it under its haze band, on the display's scale; the dome: the atmosphere's
+    // cosine-weighted mean over the upper half (linear), for the hue of the hemisphere ambient.
+    constexpr int kAzimuths = 16;
+    const float haze = SkyHazeAmount(weather, 0.0f);
+    glm::vec3 sum{0.0f}, dome{0.0f};
+    float dome_weight = 0.0f;
+    for (int i = 0; i < kAzimuths; ++i)
     {
-        const int dx = corner & 1, dy = corner >> 1;
-        const float w = (dx ? fx : 1.0f - fx) * (dy ? fy : 1.0f - fy);
-        const size_t o = (static_cast<size_t>(y0 + dy) * kSkyLutWidth + (x0 + dx)) * 4;
-        for (int i = 0; i < 3; ++i)
-            out[i] += w * static_cast<float>(sky.lut[o + i]) / 255.0f;
+        const float angle = 2.0f * kPi * (static_cast<float>(i) + 0.5f) / static_cast<float>(kAzimuths);
+        const glm::vec3 dir{std::cos(angle), 0.0f, std::sin(angle)};
+        glm::vec3 c = SkyBackground(weather, dir);
+        if (haze > 0.0f)
+        {
+            glm::vec3 colour = weather.haze_color;
+            if (weather.haze_from_sky)
+                colour *= SkyBackground(weather, glm::normalize(glm::vec3(dir.x, weather.haze_sample, dir.z)));
+            c = glm::mix(c, colour, haze);
+        }
+        sum += c;
+        if (i % 2 == 0)
+            for (const float y : {0.3f, 0.65f, 0.95f})
+            {
+                const float r = std::sqrt(1.0f - y * y);
+                dome += SkyBackground(weather, {dir.x * r, y, dir.z * r}) * y;
+                dome_weight += y;
+            }
     }
-    return out * out; // gamma 2 to linear
+    const glm::vec3 hdr = glm::max(sum / static_cast<float>(kAzimuths), 0.0f) * weather.exposure;
+    sky.horizon = hdr / (1.0f + 0.6666667f * glm::dot(hdr, kLumaRec709)); // fxCompressHdr (fx_tonemap.sh)
+    sky.dome = dome / dome_weight;
+    return sky;
 }
 
 std::vector<uint8_t> CloudNoise()

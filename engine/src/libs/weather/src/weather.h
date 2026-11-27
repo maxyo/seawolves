@@ -1,7 +1,6 @@
 #pragma once
 
 #include "environment_data.hpp"
-#include "math_inlines.h"
 #include "storm/environment/legacy.hpp"
 #include "rain.h"
 #include "sky.h"
@@ -25,11 +24,8 @@ class WEATHER : public WEATHER_BASE
     // timer data
     float fUpdateFrequence;
 
-    // The scripts' arcs of the sun and the moon, and the light they place while the clock stands.
-    storm::environment::LegacyArc sun_{3.0f / 4.0f * PId2, 0.0f, 5.0f, PI, 23.0f};
-    storm::environment::LegacyArc moon_{5.0f / 4.0f * PId2, PId2, 23.5f, -PId2, 4.5f};
-    float fixed_elevation_ = 0.0f, fixed_azimuth_ = 0.0f;
-    float fog_band_ = 0.0f; // the sine of the height of the scripts' fog band over the horizon
+    // Where the scripts' weather of the hour puts its light (radians).
+    float light_elevation_ = 0.0f, light_azimuth_ = 0.0f;
 
     // The environment evaluated from the game's data (GameEnvironment(); null: the scripts' attributes set it).
     struct Pipeline

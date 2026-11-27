@@ -21,7 +21,7 @@
 //   sea:<island>   sea around <island> ("sea:" is open sea)
 //   dusk:open      the open sea at sunset (19:00, the "19 Hour" weather: its sunset sky), heading towards the sun
 //   dawn:open      the open sea at sunrise (7:00, the "7 Hour" weather), heading into the low sun (in view)
-//   moon:open      the open sea at 23:45 of the 14th (the "0 Hours" weather), heading into the rising moon (in view)
+//   moon:open      the open sea at 0:30 of the 14th (the "0 Hours" weather), heading into the moon (in view)
 //   skynight:open  clear night at 0:30 on the 14th, camera up at the moon and stars
 //   skyday:open    clear noon, camera up at the sun
 //   ship:night     the open sea at 0:00 (the "0 Hours" weather), the ship camera close and looking down at the hero's
@@ -766,15 +766,9 @@ void SceneSweep_StartLocation(int hour)
 	if(!DoQuestReloadToLocation(ssId, group, locator, "")) SceneSweep_Fail("the game refused the reload to " + group + ":" + locator);
 }
 
-// The sea login angle ay with which the camera behind the ship looks towards the sun at `hour`, `offset` radians
-// to the side (so that the ship does not hide it). WEATHER moves the sun from azimuth 0 at 5:00 to PI at 23:00
-// (WEATHER::SunAt, the game keeps the defaults) and puts it at (cos az, -sin az) in x, z; the camera of a ship
-// logged in at ay looks along (sin(ay - PI), cos(ay - PI)) (measured: its yaw is ay - PI).
-float SceneSweep_SunHeading(float hour, float offset)
-{
-	return SceneSweep_HeadingAt((hour - 5.0) / 18.0 * PI, offset);
-}
-
+// The sea login angle ay with which the camera behind the ship looks towards a light at azimuth `az`, `offset`
+// radians to the side (so that the ship does not hide it). The weather puts its light at (cos az, -sin az) in x, z;
+// the camera of a ship logged in at ay looks along (sin(ay - PI), cos(ay - PI)) (measured: its yaw is ay - PI).
 float SceneSweep_HeadingAt(float az, float offset)
 {
 	float x = cos(az);
@@ -794,8 +788,8 @@ void SceneSweep_StartSea(bool withEnemy)
 			if(ssKind == "map" || ssKind == "storm") return;	// already where the step leads
 		}
 	}
-	// The game's sunset sky is the 19:00 weather, while WEATHER::SunAt still has the sun about 39 degrees up (above
-	// the view); at 7:00 the sun stands about 15 degrees above the sea, in view, with its glow and flare.
+	// Each hour's weather puts its light (Weather.Sun.HeightAngle, AzimuthAngle; the moon by night): the headings below
+	// aim at those of the weathers set here.
 	if(ssKind == "dusk")
 	{
 		SetCurrentTime(19, 0);
@@ -817,13 +811,12 @@ void SceneSweep_StartSea(bool withEnemy)
 		pchar.wind.angle = 0.0;
 		pchar.wind.speed = 14.0;
 	}
-	// The moon of the 14th (WhrSun.c: Moon03, nearly full; the 1st has the new moon, a black disc), a quarter of an
-	// hour after it rises (23:30): about 11 degrees up, in view.
+	// The moon of the 14th (WhrSun.c: Moon03, nearly full; the 1st has the new moon, a black disc), low over the sea.
 	if(ssKind == "moon")
 	{
 		Environment.date.day = 14;
 		worldMap.date.day = 14;
-		SetCurrentTime(23, 45);
+		SetCurrentTime(0, 30);
 		SetNextWeather("0 Hours");
 	}
 	if(ssKind == "skynight")
@@ -848,13 +841,12 @@ void SceneSweep_StartSea(bool withEnemy)
 	DeleteAttribute(&questToSeaLoginer, "");
 	QuestToSeaLogin_Prepare(0.0, 0.0, island);
 	// The open sea, the ship (and its camera) heading into the sun: sun glare, shafts, the sun road.
-	if(ssKind == "dusk") questToSeaLoginer.PlayerGroup.ay = SceneSweep_SunHeading(19.0, 0.3);	// the sunset sky ahead
-	if(ssKind == "dawn") questToSeaLoginer.PlayerGroup.ay = SceneSweep_SunHeading(7.0, 0.45);
-	// WEATHER moves the moon from azimuth PI/2 (23:30) to -PI/2 (4:30): at 23:45 it stands at 0.45 PI, where the sun
-	// stands at 13:06.
-	if(ssKind == "moon") questToSeaLoginer.PlayerGroup.ay = SceneSweep_SunHeading(13.1, 0.3);
-	if(ssKind == "skynight") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(0.3 * PI, 0.35);
-	if(ssKind == "skyday") questToSeaLoginer.PlayerGroup.ay = SceneSweep_SunHeading(12.0, 0.35);
+	// "19 Hour": 337 degrees; "7 Hour": 160; "0 Hours": the moon at 90, 17 degrees up; "12 Hour": 150.
+	if(ssKind == "dusk") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(337.0), 0.3);
+	if(ssKind == "dawn") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(160.0), 0.45);
+	if(ssKind == "moon") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(90.0), 0.3);
+	if(ssKind == "skynight") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(90.0), 0.35);
+	if(ssKind == "skyday") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(150.0), 0.35);
 	// Sea_ApplyMaxSpeedZ: the fastest heading is a little off the beam of the wind.
 	if(ssKind == "wake") questToSeaLoginer.PlayerGroup.ay = PI * 0.42;
 	if(island != "")

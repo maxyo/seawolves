@@ -19,6 +19,10 @@ struct State
     glm::vec3 sun_dir{0.0f, 1.0f, 0.0f};
     glm::vec3 moon_dir{0.0f, -1.0f, 0.0f};
     float twilight = 1.0f; // daylight in the sky: 1 day .. 0 night (stars)
+    // Each body's own light (its disc's tint), whether or not it casts; and the half size of its disc's sprite (the
+    // tangent of the angle from its centre to its edge; 0: no disc).
+    glm::vec3 sun_light{0.0f}, moon_light{0.0f};
+    float sun_size = 0.0f, moon_size = 0.0f;
 
     // The direct light: the sun, or the moon at night.
     glm::vec3 light_dir{0.0f, 1.0f, 0.0f};
@@ -30,22 +34,26 @@ struct State
     glm::vec3 ground{0.0f};  // light from the ground onto downward faces (0: none)
     float exposure = 1.0f;   // scene -> display
 
-    // The visible sky relative to the renderer's own sky model (1: its look): the day's radiance, the night's colour.
-    glm::vec3 sky_day{1.0f};
-    glm::vec3 sky_night{1.0f};
+    // The radiance the sky's air scatters by day and by night; the defaults are Caribbean Legend's engine's own,
+    // for a game whose data has none.
+    glm::vec3 sky_day{2.0f};
+    glm::vec3 sky_night{0.01f, 0.02f, 0.025f};
 
     // The haze band where sky meets sea.
     glm::vec3 haze_color{0.0f};
     float haze = 0.0f;          // its opacity at the horizon, 0 none
     float haze_height = 0.15f;  // the sine of the band's height above the horizon
-    bool haze_from_sky = false; // the band takes the sky's colour at the horizon times haze_color
+    float haze_edge = 1.0f;     // the share of that height its edge fades over
+    float haze_sample = 0.0f;   // radians: the elevation the sky's colour is taken at
+    bool haze_from_sky = false; // the band takes the sky's colour there times haze_color
 
     // Exponential fog, thinning with height: density per metre at fog_base, falling by 1/e per fog_layer metres above
-    // it (0: the same at every height). The fog begins fog_start metres from the eye and covers at most fog_max.
+    // it (0: the same at every height). The fog begins fog_start metres from the eye and covers at most fog_max; the
+    // sky stands fog_end metres away in it (0: the fog leaves the sky clear).
     glm::vec3 fog_color{0.0f};
     float fog_density = 0.0f;
     float fog_base = 0.0f, fog_layer = 0.0f;
-    float fog_start = 0.0f, fog_max = 1.0f;
+    float fog_start = 0.0f, fog_end = 0.0f, fog_max = 1.0f;
     bool fog_from_sky = false; // the fog takes the sky's colour at the horizon
 
     // Clouds: how much of the sky the fair-weather clouds and the rain clouds cover, 0..1; how far the wind has

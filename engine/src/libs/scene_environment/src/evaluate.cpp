@@ -17,10 +17,8 @@ using scene_data::TimeOfDayPeriod;
 // sunset and night.
 constexpr float kFillIrradiance = 0.05f;
 constexpr float kPresetFillIrradiance = 0.1f;
-// The data's sky radiance relative to the renderer's sky model: its day sky is about a radiance of 2.5 of the data's,
-// its night sky's colour about 0.02.
-constexpr float kDayRadianceScale = 0.4f;
-constexpr float kNightRadianceScale = 50.0f;
+// The half sizes of the sun's and the moon's sprites in Caribbean Legend's sky (its sky shader's own).
+constexpr float kSunSize = 0.12f, kMoonSize = 0.075f;
 
 glm::vec3 Vec(const Rgb &c)
 {
@@ -347,15 +345,17 @@ State Evaluate(const Inputs &in)
         s.ambient = glm::mix(hour_ambient, fill, w);
         s.ground = Vec(p.ground_color) * p.ground_intensity * glm::dot(fill, glm::vec3(0.2126f, 0.7152f, 0.0722f));
         s.exposure = p.base_exposure;
-        s.sky_day = Vec(p.sky_day_radiance) * kDayRadianceScale;
-        s.sky_night = Vec(p.sky_night_radiance) * kNightRadianceScale;
+        s.sky_day = Vec(p.sky_day_radiance);
+        s.sky_night = Vec(p.sky_night_radiance);
         // The sun's colour is the periods' between the end of dawn and the start of the night, never the night's;
         // the moon's is the night's.
         const TimeOfDayPeriod day = PeriodAt(tod, std::clamp(h, tod.transition_hours[1], tod.transition_hours[6]));
         const TimeOfDayPeriod &night = tod.periods[scene_data::kNight];
-        const glm::vec3 celestial = Vec(day.light_color) * day.light_intensity * c.sun_weight +
-                                    Vec(night.light_color) * night.light_intensity * (1.0f - c.sun_weight);
-        s.light_color = glm::mix(hour_sun, celestial, w);
+        s.sun_light = Vec(day.light_color) * day.light_intensity * c.sun_weight;
+        s.moon_light = Vec(night.light_color) * night.light_intensity * (1.0f - c.sun_weight);
+        s.light_color = glm::mix(hour_sun, s.sun_light + s.moon_light, w);
+        s.sun_size = kSunSize;
+        s.moon_size = kMoonSize;
     }
     else
     {
@@ -378,6 +378,7 @@ State Evaluate(const Inputs &in)
             s.fog_base = Mix(a.base_height, b.base_height, m.t);
             s.fog_layer = Mix(a.maximum_height - a.base_height, b.maximum_height - b.base_height, m.t);
             s.fog_start = Mix(a.start_distance, b.start_distance, m.t);
+            s.fog_end = Mix(a.max_distance, b.max_distance, m.t);
             s.fog_max = Mix(a.max_opacity, b.max_opacity, m.t);
             s.fog_from_sky = (m.t < 0.5f ? a.sky_color : b.sky_color) && fog_weight < 0.5f;
         }
@@ -395,6 +396,8 @@ State Evaluate(const Inputs &in)
                                       : glm::mix(Vec(a.radiance) * a.brightness, Vec(b.radiance) * b.brightness, m.t);
         s.haze = haze.intensity;
         s.haze_height = std::sin(glm::radians(haze.sky_width_degrees));
+        s.haze_edge = haze.edge_fade;
+        s.haze_sample = glm::radians(haze.sample_elevation_degrees);
     }
 
     // The scripts' weather: clouds, rain, the rain clouds' cover and the wetness after a rain.

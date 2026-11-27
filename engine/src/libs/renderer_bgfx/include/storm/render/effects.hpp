@@ -104,6 +104,9 @@ void SetSceneEnvironment(const environment::State &state);
 // Draws the sky of the frame's environment into the current target with the device's current camera, behind what is
 // already drawn: in the scene before its geometry and into the sea's reflection.
 void DrawSky();
+// The game's sun and moon sprites the drawn sky puts on its discs (bgfx::TextureHandle::idx, 0xffff: none, no disc),
+// kept alive by the caller until it replaces them.
+void SetSkyDiscs(uint16_t sun, uint16_t moon);
 // The drawn sky's colour at the horizon (linear, on the display's scale), for fog that takes the sky's colour.
 glm::vec3 SkyHorizon();
 

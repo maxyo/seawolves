@@ -1,5 +1,6 @@
 #include "loading_transaction.hpp"
 #include "sun_glow.h"
+#include "storm/render/d3d_interop.hpp"
 #include "storm/render/effects.hpp"
 
 #include "core.h"
@@ -80,6 +81,12 @@ void SUNGLOW::SetDevice()
 
 void SUNGLOW::Release()
 {
+    storm::render::SetSkyDiscs(0xffff, 0xffff);
+    if (iSunTex >= 0)
+        pRS->TextureRelease(iSunTex);
+    if (iMoonTex >= 0)
+        pRS->TextureRelease(iMoonTex);
+    iSunTex = iMoonTex = -1;
     if (iSunGlowTex >= 0)
         pRS->TextureRelease(iSunGlowTex);
     iSunGlowTex = -1;
@@ -104,6 +111,8 @@ void SUNGLOW::GenerateSunGlow()
     iOldTex[nTex++] = iSunGlowTex;
     iOldTex[nTex++] = iOverflowTex;
     iOldTex[nTex++] = iReflTexture;
+    iOldTex[nTex++] = iSunTex;
+    iOldTex[nTex++] = iMoonTex;
 
     if (Flares.sTexture.size())
         iFlareTex = pRS->TextureCreate(static_cast<const char *>(Flares.sTexture.c_str()));
@@ -113,6 +122,13 @@ void SUNGLOW::GenerateSunGlow()
         iOverflowTex = pRS->TextureCreate(static_cast<const char *>(Overflow.sTexture.c_str()));
     if (Reflection.sTexture.size())
         iReflTexture = pRS->TextureCreate(Reflection.sTexture.c_str());
+    // The sun's and the moon's sprites go onto the drawn sky's discs.
+    const auto disc = [this](const std::string &name, int32_t &id) -> uint16_t {
+        id = name.empty() ? -1 : pRS->TextureCreate(name.c_str());
+        return id >= 0 ? storm::render::BgfxTextureOf(pRS->GetTextureFromID(id), nullptr, nullptr) : 0xffff;
+    };
+    const uint16_t sun = disc(Glow.sSunTexture, iSunTex);
+    storm::render::SetSkyDiscs(sun, disc(Glow.sMoonTexture, iMoonTex));
 
     for (int32_t n = 0; n < nTex; n++)
         if (iOldTex[n] >= 0)
@@ -356,6 +372,16 @@ uint32_t SUNGLOW::AttributeChanged(ATTRIBUTES *pAttribute)
         if (*pAttribute == "GlowTexture")
         {
             Glow.sGlowTexture = to_string(pAttribute->GetThisAttr());
+            return 0;
+        }
+        if (*pAttribute == "SunTexture")
+        {
+            Glow.sSunTexture = to_string(pAttribute->GetThisAttr());
+            return 0;
+        }
+        if (*pAttribute == "MoonTexture")
+        {
+            Glow.sMoonTexture = to_string(pAttribute->GetThisAttr());
             return 0;
         }
         if (*pAttribute == "TechniqueZ")

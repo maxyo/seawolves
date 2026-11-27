@@ -281,83 +281,56 @@ void CheckToneCurve()
 
 void CheckSky()
 {
-    const auto sky_for = [](float sun_height, float overcast) {
-        WeatherInput weather;
-        const float c = std::sqrt(1.0f - sun_height * sun_height);
-        weather.sun_dir = {c, sun_height, 0.0f};
-        weather.sun_color = {0.86f, 0.82f, 0.78f};
-        weather.ambient_color = {0.37f, 0.37f, 0.35f};
-        weather.fog_color = {0.31f, 0.47f, 0.61f};
-        weather.overcast = overcast;
-        return ComputeSky(weather);
+    // Caribbean Legend's atmosphere at the engine's own radiances (expected values worked out from the formulas in
+    // double precision, apart from this code).
+    const auto unit = [](glm::vec3 v) { return glm::normalize(v); };
+    const auto near3 = [](glm::vec3 a, glm::vec3 b) {
+        return glm::all(glm::lessThanEqual(glm::abs(a - b), 0.01f * b + 1e-6f));
     };
-    const SkyState noon = sky_for(0.85f, 0.0f);
-    CHECK(noon.lut.size() == static_cast<size_t>(kSkyLutWidth) * kSkyLutHeight * 4);
-    const glm::vec3 zenith = SkyColor(noon, {0.0f, 1.0f, 0.0f});
-    const glm::vec3 horizon = SkyColor(noon, {-1.0f, 0.0f, 0.0f});
-    // Clear day: blue zenith, brighter and paler horizon.
-    CHECK(zenith[2] > zenith[0] * 1.8f && zenith[2] > zenith[1]);
-    CHECK(horizon[0] + horizon[1] + horizon[2] > zenith[0] + zenith[1] + zenith[2]);
-    CHECK(horizon[2] / std::max(horizon[0], 1e-4f) < zenith[2] / std::max(zenith[0], 1e-4f));
-    CHECK(noon.night < 0.01f);
+    WeatherInput w;
+    const glm::vec3 noon = unit({0.3f, 0.95f, 0.0f});
+    CHECK(near3(glm::vec3(SkyAtmosphere(w, {0.0f, 1.0f, 0.0f}, noon, true)), {0.30901f, 0.40954f, 0.64193f}));
+    CHECK(near3(glm::vec3(SkyAtmosphere(w, {-1.0f, 0.0f, 0.0f}, noon, true)), {0.94549f, 1.11869f, 1.27863f}));
+    // A sun at 3 degrees: the horizon below it red, the far side dim, the zenith a dark blue.
+    const glm::vec3 setting = unit({1.0f, 0.05f, 0.0f});
+    CHECK(near3(glm::vec3(SkyAtmosphere(w, unit({1.0f, 0.04f, 0.0f}), setting, true)), {3.49380f, 0.48202f, 0.05389f}));
+    CHECK(
+        near3(glm::vec3(SkyAtmosphere(w, unit({-1.0f, 0.04f, 0.0f}), setting, true)), {0.09664f, 0.05134f, 0.01466f}));
+    CHECK(near3(glm::vec3(SkyAtmosphere(w, {0.0f, 1.0f, 0.0f}, setting, true)), {0.02710f, 0.03714f, 0.04781f}));
+    // The night's sky about the moon, and the optical depth towards it.
+    const glm::vec4 night = SkyAtmosphere(w, {0.0f, 1.0f, 0.0f}, unit({0.0f, 0.5f, -1.0f}), false);
+    CHECK(near3(glm::vec3(night), {0.00041271f, 0.00148464f, 0.00353559f}));
+    CHECK(Near(night.w, 0.294555f, 0.003f));
+    // The daylight blends the sky about the sun into the one about the moon.
+    w.sun_dir = noon;
+    w.moon_dir = unit({0.0f, 0.5f, -1.0f});
+    w.daylight = 0.25f;
+    CHECK(near3(SkyBackground(w, {0.0f, 1.0f, 0.0f}), 0.25f * glm::vec3(0.30901f, 0.40954f, 0.64193f) +
+                                                          0.75f * glm::vec3(0.00041271f, 0.00148464f, 0.00353559f)));
+    // The haze band: Caribbean Legend's 8.65 degrees, half way up it a little more than half.
+    w.haze = 1.0f;
+    w.haze_height = std::sin(glm::radians(8.65f));
+    CHECK(Near(SkyHazeAmount(w, std::sin(glm::radians(4.0f))), 0.554187f, 1e-4f));
+    CHECK(SkyHazeAmount(w, 0.0f) == 1.0f && SkyHazeAmount(w, 0.2f) == 0.0f);
 
-    // Sunset: the horizon towards the sun is warm, the opposite side is not; sunlight reddens.
-    const SkyState sunset = sky_for(0.03f, 0.0f);
-    const glm::vec3 towards = SkyColor(sunset, {0.999f, 0.04f, 0.0f});
-    const glm::vec3 away = SkyColor(sunset, {-0.999f, 0.04f, 0.0f});
-    CHECK(towards[0] > towards[2] * 1.15f);
-    CHECK(towards[0] / std::max(towards[2], 1e-4f) > 1.3f * away[0] / std::max(away[2], 1e-4f));
-    CHECK(sunset.sun_light[0] > sunset.sun_light[2] * 1.2f);
-    CHECK(noon.sun_light[0] < noon.sun_light[2] * 1.5f);
-
-    // Night: dark but not black, no direct light.
-    const SkyState night = sky_for(-0.5f, 0.0f);
-    const glm::vec3 night_zenith = SkyColor(night, {0.0f, 1.0f, 0.0f});
-    CHECK(night.night > 0.99f);
-    CHECK(night_zenith[2] > 0.002f && night_zenith[2] < 0.06f);
-    CHECK(night.sun_light[0] < 1e-3f);
-
-    // Overcast: grey, darker dome, weaker sun.
-    const SkyState storm = sky_for(0.85f, 1.0f);
-    const glm::vec3 storm_zenith = SkyColor(storm, {0.0f, 1.0f, 0.0f});
-    CHECK(storm_zenith[2] / std::max(storm_zenith[0], 1e-4f) < 1.6f);
-    CHECK(storm.sun_light[1] < noon.sun_light[1] * 0.5f);
-
-    // `horizon` is the average of the horizon row.
-    CHECK(noon.horizon[1] > 0.5f * horizon[1] && noon.horizon[1] < 2.0f * horizon[1]);
-    // Below the horizon the panorama clamps to the horizon row.
-    const glm::vec3 below = SkyColor(noon, {-0.8f, -0.6f, 0.0f});
-    CHECK(Near(below[1], horizon[1], 1e-4f));
-
-    // A game's data scales the day's radiance and the night's colour.
-    WeatherInput dim;
-    dim.sun_dir = {std::sqrt(1.0f - 0.85f * 0.85f), 0.85f, 0.0f};
-    dim.sky_radiance = {0.5f, 0.5f, 0.5f};
-    const glm::vec3 dim_zenith = SkyColor(ComputeSky(dim), {0.0f, 1.0f, 0.0f});
-    WeatherInput bright = dim;
-    bright.sky_radiance = {2.0f, 2.0f, 2.0f};
-    CHECK(SkyColor(ComputeSky(bright), {0.0f, 1.0f, 0.0f})[2] > dim_zenith[2] * 1.5f);
-    WeatherInput dark = dim;
-    dark.sun_dir = {0.0f, -1.0f, 0.0f};
-    dark.night_sky = {0.0f, 0.0f, 0.0f};
-    CHECK(SkyColor(ComputeSky(dark), {0.0f, 1.0f, 0.0f})[2] < 0.25f * night_zenith[2]);
-
-    WeatherInput a, b;
-    CHECK(!SkyNeedsRebuild(a, b));
-    b.wind = {0.0f, 1.0f};
-    b.moon_dir = {0.0f, 1.0f, 0.0f};
-    b.haze = 1.0f;
-    CHECK(!SkyNeedsRebuild(a, b));
-    b.overcast = 0.5f;
-    CHECK(SkyNeedsRebuild(a, b));
-    WeatherInput c;
-    c.sky_radiance = {1.0f, 2.0f, 3.0f};
-    CHECK(SkyNeedsRebuild(a, c));
-    // The clouds move every frame without a new panorama.
-    WeatherInput cloudy;
-    cloudy.clouds = cloudy.rain_clouds = 1.0f;
-    cloudy.cloud_drift = {100.0f, 0.0f};
-    CHECK(!SkyNeedsRebuild(a, cloudy));
+    // The state: night by the daylight, the horizon on the display's scale, the dome bluer than the horizon by day.
+    WeatherInput day;
+    day.sun_dir = noon;
+    const SkyState sky = ComputeSky(day);
+    CHECK(sky.night == 0.0f && glm::all(glm::lessThan(sky.horizon, glm::vec3(1.0f))));
+    CHECK(sky.dome.b / sky.dome.r > sky.horizon.b / sky.horizon.r);
+    day.daylight = 0.0f;
+    CHECK(ComputeSky(day).night == 1.0f);
+    for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})
+    {
+        WeatherInput any = day;
+        any.daylight = 0.5f;
+        any.sun_dir = {0.0f, h, -std::sqrt(1.0f - h * h)};
+        any.moon_dir = {0.0f, 1.0f, 0.0f};
+        const SkyState state = ComputeSky(any);
+        for (int i = 0; i < 3; ++i)
+            CHECK(std::isfinite(state.dome[i]) && std::isfinite(state.horizon[i]));
+    }
 
     // The clouds' noise tiles: across each edge it steps no more than inside; every level is there, and it spans the
     // range the cover's thresholds cut (fs_fx_sky.sc fxCloudDensity).
@@ -1815,16 +1788,6 @@ void CheckCheapUpgrades()
     weather.sun_dir = {0.6f, 0.8f, 0.0f};
     weather.fog_density = 0.002f;
     const SkyState noon = ComputeSky(weather);
-    // The sky stays finite for every sun, also straight down (the environment's sun at night): its dome tints the
-    // hemisphere ambient and its horizon the aerial perspective.
-    for (float h : {-1.0f, -0.5f, 0.0f, 0.3f})
-    {
-        WeatherInput w = weather;
-        w.sun_dir = {0.0f, h, -std::sqrt(1.0f - h * h)};
-        const SkyState sky = ComputeSky(w);
-        for (int i = 0; i < 3; ++i)
-            CHECK(std::isfinite(sky.dome[i]) && std::isfinite(sky.horizon[i]));
-    }
 
     // Aerial perspective: the game's fog density, a haze layer that thins with the camera's height, world up
     // taken from the view matrix, haze colour = the horizon (gamma encoded).
@@ -1847,6 +1810,7 @@ void CheckCheapUpgrades()
     const auto sky_at = [](float sun_height) {
         WeatherInput w;
         w.sun_dir = {std::sqrt(1.0f - sun_height * sun_height), sun_height, 0.0f};
+        w.daylight = glm::clamp(sun_height * 5.0f + 0.5f, 0.0f, 1.0f); // any even ramp through dusk
         return ComputeSky(w);
     };
     const glm::vec3 grey{0.5f, 0.5f, 0.5f};

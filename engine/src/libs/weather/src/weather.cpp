@@ -90,15 +90,6 @@ void WEATHER::Execute(uint32_t Delta_Time)
     }
     else
     {
-        // The scripts colour a band of fog over the horizon on a sphere of this radius, fading out at their fog's
-        // height (WEATHER_CALC_FOG_COLOR: its alpha at a point). Asked here, never while a script runs: the event
-        // would re-enter the script machine.
-        constexpr float kFogBandRadius = 2000.0f, kProbe = 100.0f;
-        if (VDATA *band = core.Event(WEATHER_CALC_FOG_COLOR, "fff", kFogBandRadius, kProbe, 0.0f))
-        {
-            const float alpha = static_cast<float>(static_cast<uint32_t>(band->GetInt()) >> 24) / 255.0f;
-            fog_band_ = alpha < 1.0f ? std::min(kProbe / (1.0f - alpha) / kFogBandRadius, 1.0f) : 1.0f;
-        }
         PushLegacyEnvironment();
     }
 }
@@ -108,17 +99,26 @@ void WEATHER::PushLegacyEnvironment()
 {
     storm::environment::LegacyInputs in;
     in.hour = fFloats[whf_time_counter];
-    in.sun = sun_;
-    in.moon = moon_;
-    in.fixed_light = fFloats[whf_time_speed] == 0.f;
-    in.light_elevation = fixed_elevation_;
-    in.light_azimuth = fixed_azimuth_;
+    in.light_elevation = light_elevation_;
+    in.light_azimuth = light_azimuth_;
+    // The sun glow knows whether the hour's light is the moon, and the sizes of its sun and moon sprites at their
+    // distance.
+    if (const auto *glow = core.GetEntityPointerSafe(core.GetEntityId("sunglow")); glow && glow->AttributesPointer)
+    {
+        ATTRIBUTES *a = glow->AttributesPointer;
+        in.moon = a->GetAttributeAsDword("Moon", 0) != 0;
+        if (ATTRIBUTES *g = a->FindAClass(a, "Glow"))
+            if (const float dist = g->GetAttributeAsFloat("Dist", 0.0f); dist > 0.0f)
+            {
+                in.sun_size = g->GetAttributeAsFloat("SunSize", 0.0f) / dist;
+                in.moon_size = g->GetAttributeAsFloat("MoonSize", 0.0f) / dist;
+            }
+    }
     GetColor(whc_sun_color, &in.sun_color);
     GetColor(whc_sun_ambient, &in.ambient);
     GetColor(whc_fog_color, &in.fog_color);
     in.fog = iLongs[whi_fog_enable] != 0;
     in.fog_density = fFloats[whf_fog_density];
-    in.haze_height = fog_band_;
     if (const auto rain_id = core.GetEntityId("rain"))
         if (const auto *rain = static_cast<RAIN *>(core.GetEntityPointer(rain_id)))
             in.rain_drops = static_cast<float>(rain->NumDrops());
@@ -232,31 +232,6 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
     }
     if (*pParent == "sun")
     {
-        if (*pAttribute == "Height")
-        {
-            sun_.height = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "BegAngle")
-        {
-            sun_.beg_angle = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "BegTime")
-        {
-            sun_.beg_time = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "EndAngle")
-        {
-            sun_.end_angle = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "EndTime")
-        {
-            sun_.end_time = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
         if (*pAttribute == "Color")
         {
             dwColors[whc_sun_color] = pAttribute->GetAttributeAsDword();
@@ -267,45 +242,14 @@ uint32_t WEATHER::AttributeChanged(ATTRIBUTES *pAttribute)
             dwColors[whc_sun_ambient] = pAttribute->GetAttributeAsDword();
             return 0;
         }
-        if (fFloats[whf_time_speed] == 0.f)
+        if (*pAttribute == "HeightAngle")
         {
-            if (*pAttribute == "HeightAngle")
-            {
-                fixed_elevation_ = pAttribute->GetAttributeAsFloat();
-                return 0;
-            }
-            if (*pAttribute == "AzimuthAngle")
-            {
-                fixed_azimuth_ = pAttribute->GetAttributeAsFloat();
-                return 0;
-            }
-        }
-    }
-    if (*pParent == "moon")
-    {
-        if (*pAttribute == "Height")
-        {
-            moon_.height = pAttribute->GetAttributeAsFloat();
+            light_elevation_ = pAttribute->GetAttributeAsFloat();
             return 0;
         }
-        if (*pAttribute == "BegAngle")
+        if (*pAttribute == "AzimuthAngle")
         {
-            moon_.beg_angle = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "BegTime")
-        {
-            moon_.beg_time = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "EndAngle")
-        {
-            moon_.end_angle = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "EndTime")
-        {
-            moon_.end_time = pAttribute->GetAttributeAsFloat();
+            light_azimuth_ = pAttribute->GetAttributeAsFloat();
             return 0;
         }
     }

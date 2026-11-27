@@ -94,6 +94,10 @@ class Host
     // render::DrawSky on the device's current target and camera.
     void draw_sky();
     glm::vec3 sky_horizon();
+    void set_sky_discs(uint16_t sun, uint16_t moon)
+    {
+        sky_.SetDiscs(sun, moon);
+    }
     // A location was entered or left: its first weather frame starts at the rain's own wetness.
     void location_changed()
     {

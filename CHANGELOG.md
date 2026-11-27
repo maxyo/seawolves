@@ -8,10 +8,12 @@
   выстрел по нейтральному — выстрелом по врагу.
 - Блок больше не спасает от удара в спину: удар сзади (дальше 150° от взгляда защищающегося) пробивает блок.
 - Знак квеста над персонажем скрывается, пока тот дерётся, мёртв или уходит из локации.
-- Небо одно для всех игр: вместо нарисованных небесных текстур — рассчитанное небо со сменой времени суток, солнцем,
-  луной, звёздами и облаками, которые плывут по ветру. Облачность каждого часа взята из погоды игры; в дождь и шторм
-  небо затягивают серые тучи. Звёзды строятся заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна
-  — диски неба вместо спрайтов.
+- Небо одно для всех игр: вместо нарисованных небесных текстур — небо, рассчитанное так же, как в Caribbean Legend,
+  со сменой времени суток, тёплым закатом, дымкой у горизонта, солнцем, луной, звёздами и облаками, которые плывут по
+  ветру. Облачность каждого часа взята из погоды игры; в дождь и шторм небо затягивают серые тучи. Звёзды строятся
+  заново (каталог звёзд игры и планеты больше не рисуются), солнце и луна — диски неба с картинками самой игры (луна —
+  в фазе по дате).
+- В «Каждому своё» тени от солнца теперь падают по направлению света самого часа, как его задаёт погода игры.
 - Под дождевыми тучами солнце не отбрасывает теней и не даёт ореола.
 - Скрипты: тело цикла или условия без фигурных скобок — ровно один оператор, как в C; следующий оператор больше не
   попадает внутрь. В «Каждому своё» это меняет одно место: дата предыдущего платежа в окне долгов корабля
@@ -28,10 +30,12 @@
   at a neutral one as a shot at an enemy.
 - A block no longer stops a blow from behind: a strike from more than 150° off the defender's facing breaks it.
 - The quest sign over a character is hidden while that character fights, is dead or leaves the location.
-- One sky for every game: instead of the painted sky textures, a computed sky that follows the time of day, with the
-  sun, the moon, stars and clouds that drift with the wind. Each hour's cloud cover comes from the game's weather;
-  rain and storms close the sky with grey clouds. The stars are made anew (the game's star catalogue and planets are
-  no longer drawn), and the sun and the moon are discs of the sky instead of sprites.
+- One sky for every game: instead of the painted sky textures, a sky computed as Caribbean Legend computes it, that
+  follows the time of day, with a warm sunset, haze at the horizon, the sun, the moon, stars and clouds that drift
+  with the wind. Each hour's cloud cover comes from the game's weather; rain and storms close the sky with grey
+  clouds. The stars are made anew (the game's star catalogue and planets are no longer drawn), and the sun and the
+  moon are discs of the sky with the game's own pictures (the moon in its phase by the date).
+- In «Каждому своё» the sun's shadows now follow the hour's own light direction, as the game's weather sets it.
 - Under rain clouds the sun casts no shadows and has no glow.
 - Scripts: an unbraced loop or if body is exactly one statement, as in C; the next statement no longer falls into it.
   In «Каждому своё» this changes one place: the date of the previous payment in the ship's debts window is updated on
