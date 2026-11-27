@@ -5285,6 +5285,15 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                         pV->Convert(VAR_INTEGER);
                         return true;
                     }
+                    // a number converts to the declared number type, as in C: a float parameter
+                    // keeps the int an argument gave it
+                    const bool numbers = (frame.return_type == VAR_INTEGER || frame.return_type == VAR_FLOAT) &&
+                                         (pV->GetType() == VAR_INTEGER || pV->GetType() == VAR_FLOAT);
+                    if (numbers)
+                    {
+                        pV->Convert(frame.return_type);
+                        return true;
+                    }
 
                     SetError("%s function return %s value", Token.GetTypeName(frame.return_type),
                              Token.GetTypeName(pV->GetType()));
