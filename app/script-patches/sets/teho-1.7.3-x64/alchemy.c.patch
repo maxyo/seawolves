@@ -1,0 +1,116 @@
+--- a/PROGRAM/interface/alchemy.c
++++ b/PROGRAM/interface/alchemy.c
+@@ -493,111 +493,13 @@
+ 
+ int CheckAlchemy(string sItemID)
+ {
+-	ref 	rItem;
+-	aref 	rType;
+-	int 	Qty = 0;
+-	int 	iNum, itmReq, itmQty;
+-	string  sAttr, sItmId, sItmUse;
+-	bool	bOk = false;
+-	
+-	rItem = ItemsFromId(sItemId);
+-	makearef(rType, rItem.component);
+-	iNum = GetAttributesNum(rType);
+-	
+-	for(int i = 0; i < iNum; i++) // кол-во компонентов и прочего
+-	{	
+-		sAttr 		= GetAttributeName(GetAttributeN(rType, i));
+-		sItmId 		= rItem.component.(sAttr).id;
+-		itmReq      = sti(rItem.component.(sAttr).qty);
+-		sItmUse 	= rItem.component.(sAttr).use;	
+-		if(sItmUse == "component")
+-		{
+-			itmQty 		= makeint(GetCharacterFreeItem(alchemy, sItmId)/itmReq);
+-			if(itmQty > 0)
+-			{
+-				if(itmQty < Qty && Qty != 0) 	Qty = itmQty;
+-				else
+-				{	
+-					if(Qty == 0) 				Qty = itmQty;
+-				}
+-				bOk = true;	
+-			}
+-			else
+-			{	
+-				Qty = 0; bOk = false; break;	
+-			}	
+-		}		
+-		else
+-		{
+-			if(GetCharacterFreeItem(alchemy, sItmId) >= itmReq) bOk = true;
+-			else 
+-			{												
+-				bOk = false;
+-				break;
+-			}	
+-		}	
+-	}		
+-	
+-	if(!bOk) return 0;
+-	return Qty;
++	return AlchemyBatches(sItemID, false);
+ }
+ 
+ // Жмакнули по кнопке "взять все"
+ void onGetAllBtnClick()
+ {
+-	aref 	rType;
+-	int 	iNum, itmReq;
+-	string  sAttr, sItmId, sItmUse;
+-
+-	ref rItem 	= ItemsFromId(sCurItem);
+-	int Qty 	= CheckAlchemy(sCurItem);
+-	
+-	makearef(rType, rItem.component);
+-	iNum = GetAttributesNum(rType);
+-	
+-	for(int i = 0; i < iNum; i++) // кол-во компонентов и прочего
+-	{
+-		sAttr 		= GetAttributeName(GetAttributeN(rType, i));
+-		sItmId 		= rItem.component.(sAttr).id;
+-		itmReq      = sti(rItem.component.(sAttr).qty);		
+-		sItmUse 	= rItem.component.(sAttr).use;
+-		
+-		if(sItmUse == "component")
+-		{
+-			RemoveItems(alchemy, sItmId, Qty * itmReq);
+-		}
+-		if(sItmUse == "catalizator")
+-		{
+-			RemoveItems(alchemy, sItmId, 1);
+-		}		
+-	}
+-	AddItems(refCharacter, sCurItem, Qty * sti(rItem.multiobject.qty));
+-	WaitDate("", 0, 0, 0, 0, 15 + (5 * (Qty - 1)));
+-	Statistic_AddValue(refCharacter, "Alchemy", Qty);
+-	Achievment_SetStat(refCharacter, 7, Qty);
+-	
+-	// ugeen 2016
+-	if(rItem.id == "mangarosapower")
+-	{
+-		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MP"))
+-		{
+-			refCharacter.Mangarosa.Alchemy.MP = true;
+-		}	
+-	}
+-	if(rItem.id == "mangarosafast")
+-	{
+-		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MF"))
+-		{
+-			refCharacter.Mangarosa.Alchemy.MF = true;
+-		}	
+-	}
+-	if(rItem.id == "mangarosatotal")
+-	{
+-		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MT"))
+-		{
+-			refCharacter.Mangarosa.Alchemy.MT = true;
+-		}		
+-	}
++	AlchemyCraft(sCurItem, CheckAlchemy(sCurItem));
+ 	
+ 	AddToTable(ItemsFromId(sCurItem)); // Рефрешь таблицы
+ 	

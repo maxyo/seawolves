@@ -216,8 +216,14 @@
     {
       "path": "PROGRAM/interface/interface_utils.c",
       "base_sha256": "5efc55bcff8e780d0c16c474a97653060c405f174216ee805dba5427c74e086a",
-      "result_sha256": "5832c2ce1999e209a194d412223bff9c2bc0dd3a8d6df650d5d22caccdf0765c",
+      "result_sha256": "f0b55b81dcff20170783113470ed99ac41422bb9c35968aad07af3ec77f2f198",
       "patch": "interface_utils.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/alchemy.c",
+      "base_sha256": "bfced6e3444bfb78e4c14ae046d045ee904147a5547dc151bdab10241eac4e97",
+      "result_sha256": "27c8070252bf5e5b585d84d6ec518d26c0d77cfc3e9b3354fffcdb5cf6d23edf",
+      "patch": "alchemy.c.patch"
     }
   ],
   "fixes": [
@@ -554,6 +560,18 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: GetSummonSkillFromNameSimple picked inline which officer post lends the main character a skill (navigator: Sailing, cannoner: Cannons and Accuracy, and so on), so an interface that shows an officer's key skill had to keep a table of its own. The choice is now the function GetSkillOfficerPost, which GetSummonSkillFromNameSimple calls; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "alchemy-batches",
+      "title": "The game counts and makes alchemy batches for an interface that sets their number",
+      "targets": [
+        "PROGRAM/interface/interface_utils.c",
+        "PROGRAM/interface/alchemy.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: the alchemy window counted the batches of its pot, made them and waited 15 + 5 minutes a further batch inside its own handlers (CheckAlchemy, onGetAllBtnClick), so an interface that lets the player set how many batches to make had to copy those rules. They are now the functions AlchemyBatches (of the pot, or of the pot and the hero's items together), AlchemyMinutes and AlchemyCraft, which the window calls, and AlchemyMake, which lays the items of that many batches into the pot from the hero and makes them; the window behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     }
   ]

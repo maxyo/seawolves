@@ -1,6 +1,6 @@
 --- a/PROGRAM/interface/interface_utils.c
 +++ b/PROGRAM/interface/interface_utils.c
-@@ -794,4 +794,11 @@
+@@ -794,4 +794,166 @@
  		
  		SendMessage(&GameInterface, "lslll", MSG_INTERFACE_MSG_TO_NODE, _node, 8, -1, color);	
  	}
@@ -13,4 +13,159 @@
 +bool IsShipChangeOffered(ref chr)
 +{
 +	return !CheckAttribute(pchar, "SystemInfo.ShowShip") && chr.id != pchar.id && sti(pchar.ship.type) != SHIP_NOTUSED;
++}
++
++
++// Alchemy (interface alchemy.c): the pot is NullCharacter.alchemy, the items laid into it.
++// The batches of sItemID the pot's items make (the window's CheckAlchemy), with bWithHero the pot's and the main
++// character's together.
++int AlchemyBatches(string sItemID, bool bWithHero)
++{
++	ref 	rItem, rHero;
++	aref 	rType, rPot;
++	int 	Qty = 0;
++	int 	iNum, itmReq, itmQty, itmHave;
++	string  sAttr, sItmId, sItmUse;
++	bool	bOk = false;
++	
++	rHero = GetMainCharacter();
++	makearef(rPot, NullCharacter.alchemy);
++	rItem = ItemsFromId(sItemId);
++	makearef(rType, rItem.component);
++	iNum = GetAttributesNum(rType);
++	
++	for(int i = 0; i < iNum; i++) // кол-во компонентов и прочего
++	{	
++		sAttr 		= GetAttributeName(GetAttributeN(rType, i));
++		sItmId 		= rItem.component.(sAttr).id;
++		itmReq      = sti(rItem.component.(sAttr).qty);
++		sItmUse 	= rItem.component.(sAttr).use;	
++		itmHave		= GetCharacterFreeItem(rPot, sItmId);
++		if(bWithHero) itmHave = itmHave + GetCharacterFreeItem(rHero, sItmId);
++		if(sItmUse == "component")
++		{
++			itmQty 		= makeint(itmHave/itmReq);
++			if(itmQty > 0)
++			{
++				if(itmQty < Qty && Qty != 0) 	Qty = itmQty;
++				else
++				{	
++					if(Qty == 0) 				Qty = itmQty;
++				}
++				bOk = true;	
++			}
++			else
++			{	
++				Qty = 0; bOk = false; break;	
++			}	
++		}		
++		else
++		{
++			if(itmHave >= itmReq) bOk = true;
++			else 
++			{												
++				bOk = false;
++				break;
++			}	
++		}	
++	}		
++	
++	if(!bOk) return 0;
++	return Qty;
++}
++
++// The minutes Qty batches take to make.
++int AlchemyMinutes(int Qty)
++{
++	return 15 + (5 * (Qty - 1));
++}
++
++// Makes Qty batches of sItemID from the pot (the window's «Результат»).
++void AlchemyCraft(string sItemID, int Qty)
++{
++	aref 	rType, rPot;
++	int 	iNum, itmReq;
++	string  sAttr, sItmId, sItmUse;
++
++	ref refCharacter = GetMainCharacter();
++	makearef(rPot, NullCharacter.alchemy);
++	ref rItem 	= ItemsFromId(sItemID);
++	
++	makearef(rType, rItem.component);
++	iNum = GetAttributesNum(rType);
++	
++	for(int i = 0; i < iNum; i++) // кол-во компонентов и прочего
++	{
++		sAttr 		= GetAttributeName(GetAttributeN(rType, i));
++		sItmId 		= rItem.component.(sAttr).id;
++		itmReq      = sti(rItem.component.(sAttr).qty);		
++		sItmUse 	= rItem.component.(sAttr).use;
++		
++		if(sItmUse == "component")
++		{
++			RemoveItems(rPot, sItmId, Qty * itmReq);
++		}
++		if(sItmUse == "catalizator")
++		{
++			RemoveItems(rPot, sItmId, 1);
++		}		
++	}
++	AddItems(refCharacter, sItemID, Qty * sti(rItem.multiobject.qty));
++	WaitDate("", 0, 0, 0, 0, AlchemyMinutes(Qty));
++	Statistic_AddValue(refCharacter, "Alchemy", Qty);
++	Achievment_SetStat(refCharacter, 7, Qty);
++	
++	// ugeen 2016
++	if(rItem.id == "mangarosapower")
++	{
++		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MP"))
++		{
++			refCharacter.Mangarosa.Alchemy.MP = true;
++		}	
++	}
++	if(rItem.id == "mangarosafast")
++	{
++		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MF"))
++		{
++			refCharacter.Mangarosa.Alchemy.MF = true;
++		}	
++	}
++	if(rItem.id == "mangarosatotal")
++	{
++		if (!CheckAttribute(refCharacter, "Mangarosa.Alchemy.MT"))
++		{
++			refCharacter.Mangarosa.Alchemy.MT = true;
++		}		
++	}
++}
++
++// Makes Qty batches of sItemID: the pot is filled from the main character up to what they take, then made as
++// «Результат» makes them. False, and nothing moved, when the pot and the main character together do not make Qty.
++bool AlchemyMake(string sItemID, int Qty)
++{
++	aref 	rType, rPot;
++	int 	iNum, itmReq, itmHave;
++	string  sAttr, sItmId;
++
++	if(Qty < 1 || Qty > AlchemyBatches(sItemID, true)) return false;
++	ref rHero = GetMainCharacter();
++	makearef(rPot, NullCharacter.alchemy);
++	ref rItem = ItemsFromId(sItemID);
++	makearef(rType, rItem.component);
++	iNum = GetAttributesNum(rType);
++	for(int i = 0; i < iNum; i++)
++	{
++		sAttr 		= GetAttributeName(GetAttributeN(rType, i));
++		sItmId 		= rItem.component.(sAttr).id;
++		itmReq      = sti(rItem.component.(sAttr).qty);
++		if(rItem.component.(sAttr).use == "component") itmReq = Qty * itmReq;
++		itmHave		= GetCharacterFreeItem(rPot, sItmId);
++		if(itmHave < itmReq)
++		{
++			RemoveItems(rHero, sItmId, itmReq - itmHave);
++			AddItems(rPot, sItmId, itmReq - itmHave);
++		}
++	}
++	AlchemyCraft(sItemID, Qty);
++	return true;
 +}
