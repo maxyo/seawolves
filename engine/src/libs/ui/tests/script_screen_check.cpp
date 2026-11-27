@@ -87,7 +87,7 @@ InterfaceModel Model(const std::string &screen)
 }
 
 const ScriptScreen kDemo{
-    "demo", "tavernwait", "s-demo", {{"SLIDER", "slider", true}, {"OK", "button", true}, {"CANCEL", "button"}}};
+    "demo", "salary", "s-demo", {{"SLIDER", "slider", true}, {"OK", "button", true}, {"CANCEL", "button"}}};
 
 void Routing()
 {
@@ -96,7 +96,7 @@ void Routing()
     FakeSurface surface;
     Router router(surface);
     router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
-    router.SetInterface(Model("tavernwait"));
+    router.SetInterface(Model("salary"));
     ExpectEqual(surface.tag, "s-demo", "a script screen replaces the ported screen of its interface");
     Expect(port.nodes == std::vector<std::string>{"SLIDER", "OK", "CANCEL"}, "the script gets the admitted widgets");
     ExpectEqual(surface.props["items"].dump(), R"([{"id":"a","n":1.5,"on":false}])",
@@ -107,14 +107,14 @@ void Routing()
 
     router.OnEvent({"tabs", "select", "6"});
     ExpectEqual(port.events.back(), "demo tabs select 6", "a bound event goes to the script with its value");
-    ExpectEqual(surface.Last(), "widget:tavernwait\tSLIDER\t-1\tset@5:6", "the script's send is a widget action");
+    ExpectEqual(surface.Last(), "widget:salary\tSLIDER\t-1\tset@5:6", "the script's send is a widget action");
     router.OnEvent({"go", "click", ""});
-    ExpectEqual(surface.Last(), "widget:tavernwait\tOK\t-1\tpress", "an event bound with no verb takes every verb");
+    ExpectEqual(surface.Last(), "widget:salary\tOK\t-1\tpress", "an event bound with no verb takes every verb");
     Expect(!router.OnEvent({"unbound", "click", ""}), "an event the script did not bind is not handled");
     Expect(router.WantsBack(), "the modal the script declared takes the back key");
     router.Back();
     ExpectEqual(port.events.back(), "demo dlg-close  ", "the modal's cancel is the event the script named");
-    ExpectEqual(surface.Last(), "widget:tavernwait\tCANCEL\t-1\tpress", "and its Back presses the exit");
+    ExpectEqual(surface.Last(), "widget:salary\tCANCEL\t-1\tpress", "and its Back presses the exit");
 
     router.SetScriptScreens({});
     Expect(surface.tag != "s-demo", "removing the script screens rebuilds the open interface without them");
@@ -129,7 +129,7 @@ void Failures()
         FakeSurface surface;
         Router router(surface);
         router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
-        router.SetInterface(Model("tavernwait"));
+        router.SetInterface(Model("salary"));
         Expect(!surface.errors.empty() &&
                    surface.errors[0].find("view nope: is not a prop of s-demo") != std::string::npos,
                "a view the spec does not describe fails the screen, named");
@@ -141,7 +141,7 @@ void Failures()
         FakeSurface surface;
         Router router(surface);
         router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
-        router.SetInterface(Model("tavernwait"));
+        router.SetInterface(Model("salary"));
         router.OnEvent({"tabs", "select", "6"});
         Expect(!surface.errors.empty() &&
                    surface.errors.back().find("only while the screen builds") != std::string::npos,

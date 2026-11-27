@@ -48,7 +48,6 @@ std::unique_ptr<Screen> CreateSalaryScreen();
 std::unique_ptr<Screen> CreateFrameScreen();
 std::unique_ptr<Screen> CreateColonyNewsScreen();
 std::unique_ptr<Screen> CreateNationNewsScreen();
-std::unique_ptr<Screen> CreateRestScreen();
 std::unique_ptr<Screen> CreateTradeBookScreen();
 std::unique_ptr<Screen> CreateColonyCaptureScreen();
 std::unique_ptr<Screen> CreateFortCaptureScreen();
@@ -99,7 +98,6 @@ const ScreenEntry kPorted[] = {
     {"boal_frame", CreateFrameScreen},
     {"colonyinfo", CreateColonyNewsScreen},
     {"nationlegend", CreateNationNewsScreen},
-    {"tavernwait", CreateRestScreen},
     {"tradebook", CreateTradeBookScreen},
     {"colonycapture", CreateColonyCaptureScreen},
     {"fortcapture", CreateFortCaptureScreen},

@@ -143,14 +143,6 @@ std::string List(const std::string &segments)
     return R"({"segments": [{"file": "interface/touch/core.c", "core": true}, )" + segments + "]}";
 }
 
-// The rest screen's script, not in the pack's list yet.
-std::string RestList()
-{
-    return List(R"({"file": "interface/touch/legacy/rest.c", "requires": ["interface:tavernwait"], "screens": [
-        {"capability": "rest", "interface": "tavernwait", "component": "s-rest", "nodes": [["HOURS_SLIDE", "slider",
-         true], ["OK_BTN", "button", true], ["CANCEL_BTN", "button"], ["EXIT_BTN", "button"], ["INFO_TEXT", "text"]]}]})");
-}
-
 // What a screen's script does through the natives, recorded; its view as the props of the pack screen.
 struct Calls final : storm::ui::ScriptCall
 {
@@ -270,10 +262,14 @@ TEST_CASE("the pack's segments are attached after Main, each on its own")
     Vm vm;
     vm.Start();
     CHECK(vm.Loaded("interface/touch/core.c"));
-    // The game's adapters need the game's scripts, which this program does not have: left out, loudly.
+    CHECK(vm.Loaded("interface/touch/legacy/rest.c"));
+    REQUIRE(vm.screens.size() == 1);
+    CHECK(vm.screens[0].capability == "rest");
+    CHECK(vm.screens[0].interface == "tavernwait");
+    // The game's adapters need the game's scripts, which this program does not have: left out, loudly, the rest kept.
     CHECK_FALSE(vm.Loaded("interface/android_ui_bootstrap.c"));
     CHECK(log.Has("UI script interface/android_ui_bootstrap.c is off: does not compile"));
-    CHECK(vm.screens.empty());
+    CHECK(log.Has("capabilities offered: rest; missing: none"));
 }
 
 TEST_CASE("a segment that fails is left out with its screens; the core stops the start")
@@ -331,12 +327,12 @@ TEST_CASE("the segment list is checked when it is read")
                       Catch::Contains("a core segment cannot have requirements"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c"}]}]})"),
                       Catch::Contains("scripts.json segment a.c"));
-    CHECK(ParseSegments(PackList()).size() == 2);
+    CHECK(ParseSegments(PackList()).size() == 3);
 }
 
 TEST_CASE("the probe reads what the program offers")
 {
-    Vm vm(RestList());
+    Vm vm;
     vm.Start();
     const auto started = std::chrono::steady_clock::now();
     const auto surface = storm::ui_scripts::Probe(vm.compiler, [](const std::string &) { return false; });
@@ -355,7 +351,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     Log log;
     std::vector<char> raw;
     {
-        Vm vm(RestList());
+        Vm vm;
         vm.Start();
         REQUIRE(vm.compiler.BC_LoadSegment("interface/test/refer.c")); // a game segment, loaded after the attach
         std::string value;
@@ -374,7 +370,7 @@ TEST_CASE("the globals of attached segments never enter a save")
     CHECK(std::ranges::find(names, "UiModel") == names.end());
     CHECK(std::ranges::find(names, "RestView") == names.end());
 
-    Vm loaded(RestList());
+    Vm loaded;
     REQUIRE(loaded.compiler.LoadState(raw, state));
     CHECK(loaded.Integer("GameValue") == 7);
     CHECK(loaded.Loaded("interface/touch/legacy/rest.c")); // attached again after OnLoad
@@ -385,7 +381,7 @@ TEST_CASE("the globals of attached segments never enter a save")
 
 TEST_CASE("a program replaced releases the attached screens and attaches them again")
 {
-    Vm vm(RestList());
+    Vm vm;
     vm.Start();
     const auto raw = vm.compiler.SerializeState();
     storm::save::ParsedState state;
@@ -399,7 +395,7 @@ TEST_CASE("a program replaced releases the attached screens and attaches them ag
 
 TEST_CASE("the rest screen's script gives the pack screen the props and actions of the recorded models")
 {
-    Vm vm(RestList());
+    Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("rest");
@@ -427,7 +423,7 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
 TEST_CASE("script screen events are refused while a script runs; natives outside a screen fail")
 {
     Log log;
-    Vm vm(RestList());
+    Vm vm;
     vm.Start();
     REQUIRE(vm.compiler.BC_LoadSegment("interface/test/inside.c"));
     storm::ui_scripts::VmPort port(vm.attacher);
@@ -456,7 +452,7 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
 
 TEST_CASE("cost of a screen build and of a tap in script, in the script work digest")
 {
-    Vm vm(RestList());
+    Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
     const auto spec = PackScreen("rest");

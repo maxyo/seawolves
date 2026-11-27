@@ -1,6 +1,19 @@
 {
   "segments": [
     {"file": "interface/touch/core.c", "core": true},
-    {"file": "interface/android_ui_bootstrap.c"}
+    {"file": "interface/android_ui_bootstrap.c"},
+    {
+      "file": "interface/touch/legacy/rest.c",
+      "requires": ["interface:tavernwait"],
+      "screens": [
+        {
+          "capability": "rest",
+          "interface": "tavernwait",
+          "component": "s-rest",
+          "nodes": [["HOURS_SLIDE", "slider", true], ["OK_BTN", "button", true], ["CANCEL_BTN", "button"],
+                    ["EXIT_BTN", "button"], ["INFO_TEXT", "text"]]
+        }
+      ]
+    }
   ]
 }

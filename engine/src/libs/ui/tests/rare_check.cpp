@@ -1,4 +1,4 @@
-// Host checks of the rare screens (reading cards, maps, colony, rest, trade book): admission,
+// Host checks of the rare screens (reading cards, maps, colony, trade book): admission,
 // the props that matter and every action mapping. Synthetic models only (tests/models).
 #include "fakes.h"
 #include "../src/screens/screen.h"
@@ -301,40 +301,6 @@ static void Notices(const std::string &models)
     ExpectEqual(surface.Last(), "widget:nationlegend\tB_OK\t-1\tpress", "the cross presses OK");
 }
 
-static void Rest(const std::string &models)
-{
-    FakeSurface surface;
-    Router router(surface);
-    InterfaceModel model = Load(models, "rest.json");
-    router.SetInterface(model);
-    ExpectEqual(surface.tag, "s-rest", "rest is a ported screen");
-    Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty(), "every node of the rest window is known");
-    const Json &hours = surface.props["hours"];
-    Expect(hours.size() == 5 && hours[3]["selected"] == true && hours[3]["id"] == "12",
-           "half the slider is the 12-hour span");
-    Expect(surface.props["actions"][0]["label"] == "<rest.go>" && !surface.props["actions"][0].contains("sub"),
-           "a preset span needs no sub line");
-    const char *const spans[][2] = {{"1", "5"}, {"3", "13"}, {"6", "25"}, {"12", "50"}, {"24", "100"}};
-    for (const auto &[span, position] : spans)
-    {
-        router.OnEvent({"hours", "select", span});
-        ExpectEqual(surface.Last(), std::string("widget:tavernwait\tHOURS_SLIDE\t-1\tset@5:") + position,
-                    std::string(span) + " h is the smallest slider position the game reads as that many hours");
-    }
-    router.OnEvent({"go", "click", ""});
-    ExpectEqual(surface.Last(), "widget:tavernwait\tOK_BTN\t-1\tpress", "rest presses OK");
-    router.OnEvent({"rest-close", "click", ""});
-    ExpectEqual(surface.Last(), "widget:tavernwait\tCANCEL_BTN\t-1\tpress", "the cross is the game's Cancel");
-    model.widgets[0].value = "29"; // 6.96 h: the game says 6
-    model.revision = 5;
-    router.SetInterface(model);
-    Expect(surface.props["hours"][2]["selected"] == true, "the span follows the game's truncation");
-    model.widgets[0].value = "33"; // 7 h: no preset
-    model.revision = 6;
-    router.SetInterface(model);
-    ExpectEqual(surface.props["actions"][0]["sub"], "Полдня", "another span is named by the game's text");
-}
-
 static void TradeBook(const std::string &models)
 {
     FakeSurface surface;
@@ -550,7 +516,6 @@ int main(int argc, char **argv)
     FramePicture(models);
     FramePictureOnly(models);
     Maps(models);
-    Rest(models);
     Notices(models);
     TradeBook(models);
     TradeBookAsSent(models);

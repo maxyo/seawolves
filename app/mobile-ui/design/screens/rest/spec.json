@@ -1,6 +1,6 @@
 {
   "tag": "s-rest",
-  "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by rest.cpp; the shapes are what a script's view gives the json props.",
+  "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by the script interface/touch/legacy/rest.c through the shapes of its json props.",
   "props": {
     "title": {"type": "text", "default": ""},
     "hours": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool"}]},
