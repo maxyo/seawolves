@@ -503,7 +503,7 @@ void TouchTransfer_Answer(aref question, aref answer, int k, aref at)
 	{
 		if (key == "no")
 		{
-			action.label = UiText("transfer.keep");
+			action.label = UiText("transfer.stay");
 			action.variant = "primary";
 		}
 		if (key == "yes" && question.leave == "sink")
