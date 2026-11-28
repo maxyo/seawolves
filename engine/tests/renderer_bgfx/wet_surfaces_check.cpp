@@ -79,6 +79,8 @@ class Harness
         {
             environment::State weather = CheckEnvironment();
             weather.rain = rain;
+            // The weather's wetness: in a rainy hour the rain's strength (environment::State::wetness).
+            weather.wetness = rain;
             weather.overcast = rain;
             weather.fog_color = {0.2025f, 0.25f, 0.3025f}; // 0.45, 0.5, 0.55 gamma-encoded
             render::SetSceneEnvironment(weather);
@@ -391,7 +393,6 @@ int main()
             expect(std::fabs(interior - low) <= 2.0f, "Высокая without a weather frame (interior): dry");
 
             harness.rain = 1.0f;
-            harness.render(); // the first weather frame after the gap starts at the rain's level
             soaked[relative] = harness.render();
             const float wet = mean(soaked[relative]);
             std::printf("Высокая in a full rain: %.1f (%.0f %% of dry)\n", wet, 100.0f * wet / low);
@@ -490,7 +491,7 @@ int main()
                     {"wet_surfaces_check street", positions, colors, {}, indices, {}, false, {}, {}});
                 for (const bool wet : {false, true})
                 {
-                    // It rains in both; fx_wet_force holds the street dry or soaked (the rise takes 45 s otherwise).
+                    // It rains in both; fx_wet_force holds the street dry or soaked whatever the weather's wetness.
                     street.rain = 1.0f;
                     render::ConfigureEffects(2, {{"fx_light_normal_map", 0}, {"fx_wet_force", wet ? 100 : 0}});
                     for (int frame = 0;; ++frame)
