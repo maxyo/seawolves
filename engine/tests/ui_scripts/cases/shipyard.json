@@ -8363,6 +8363,13 @@
     "send CANNONS_CANCEL press ",
     "hold"
    ]
+  },
+  {
+   "name": "the window marks no row of SHIPS_SCROLL current: the build refuses it, the first row does not stand for it",
+   "capability": "shipyard",
+   "like": 0,
+   "unmark": "SHIPS_SCROLL",
+   "fails": "shipyard: our ships: the game marks none of 5 current"
   }
  ]
 }

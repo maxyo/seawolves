@@ -61,7 +61,7 @@ void TouchShipyard_Build()
 
 int TouchShipyard_Chosen(aref game)
 {
-	return TouchLib_Selected(game, "fleet");
+	return TouchLib_Current(game, "fleet", "shipyard: our ships");
 }
 
 // Our ships and one free place: the chosen one where it is free, else the first.

@@ -543,6 +543,16 @@
     "send B_REMOVE press ",
     "hold"
    ]
+  },
+  {
+   "name": "the window marks no row of SCROLL_GERALD current: the build refuses it, the first row does not stand for it",
+   "game": {
+    "price": 1250,
+    "TestHero.Money": 12480
+   },
+   "like": 0,
+   "unmark": "SCROLL_GERALD",
+   "fails": "sail emblem: the emblems: the game marks none of 7 current"
   }
  ]
 }

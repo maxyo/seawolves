@@ -1893,6 +1893,12 @@
     "send QTY_OK_BUTTON press  @goods:0:ship:0",
     "hold"
    ]
+  },
+  {
+   "name": "the window marks no row of SHIPS_SCROLL current: the build refuses it, the first row does not stand for it",
+   "like": 0,
+   "unmark": "SHIPS_SCROLL",
+   "fails": "trade: the sides: the game marks none of 2 current"
   }
  ]
 }

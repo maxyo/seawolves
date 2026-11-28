@@ -568,6 +568,12 @@
     "hold",
     "back REPAIR_CANCEL"
    ]
+  },
+  {
+   "name": "the window marks no row of SHIPS_SCROLL current: the build refuses it, the first row does not stand for it",
+   "like": 0,
+   "unmark": "SHIPS_SCROLL",
+   "fails": "repair: the ships: the game marks none of 2 current"
   }
  ]
 }

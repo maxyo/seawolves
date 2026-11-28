@@ -55,6 +55,16 @@ int TouchLib_Selected(aref at, string path)
 	return -1;
 }
 
+// k of the entry of the list `path` the game always marks one of (a scroll's current): -1 only for an empty list; a
+// list with none marked is the adapter's defect, named by `what`.
+int TouchLib_Current(aref at, string path, string what)
+{
+	int k = TouchLib_Selected(at, path);
+	int count = TouchLib_Count(at, path);
+	if (k < 0 && count > 0) UiError(what + ": the game marks none of " + count + " current");
+	return k;
+}
+
 // The number a tap carries for an entry of a list of `count`: anything else is the view's defect.
 int TouchLib_TapIndex(string value, int count, string what)
 {

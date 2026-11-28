@@ -107,9 +107,7 @@ void TouchRepair_Stock(aref stock, string icon, string label, string value)
 
 int TouchRepair_Current(aref game)
 {
-	int k = TouchLib_Selected(game, "ships");
-	if (k < 0) return 0;
-	return k;
+	return TouchLib_Current(game, "ships", "repair: the ships");
 }
 
 // «Починить» with the game's time of the order and the materials it takes; nothing ordered, nothing to do.

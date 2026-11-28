@@ -144,8 +144,8 @@ Look here before writing one; a helper earns its place with three sites (or two 
 keys), not flags that switch behaviours, and computes nothing the game computes.
 - `lib/text.c`: `TouchLib_Newline`, `Cut`, `StartsWith`, `EndsWith`, `Trim`, `AfterColon`, `Figure` (a caption's
   label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
-- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Order`, `TapIndex`, `Copy`: a sub-object when it is
-  there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
+- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Current`: of a list the game always marks one of,
+  `Order`, `TapIndex`, `Copy`: a sub-object when it is there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
   `Actions`, `Action`), `Words`, the header's arrows over one of a list (`Stepper`, `StepTap`), the hero header
   (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`, `SubjectOn`, `SubjectTap`), `ShipSkills`,
   `Command`.

@@ -7701,6 +7701,13 @@
    "game": {
     "TestShipChange": 0
    }
+  },
+  {
+   "name": "the window marks no row of SHIPS_SCROLL current: the build refuses it, the first row does not stand for it",
+   "capability": "ship",
+   "like": 0,
+   "unmark": "SHIPS_SCROLL",
+   "fails": "ship: the squadron: the game marks none of 2 current"
   }
  ]
 }

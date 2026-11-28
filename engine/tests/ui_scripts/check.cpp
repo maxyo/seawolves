@@ -750,7 +750,7 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
 
 // A script screen on its recorded models (cases/<file>.json; a case of a screen of several capabilities names its own,
 // else it is `capability`, and its modals are checked where it lists them): the props its view gives, the modals and
-// back key it binds and what its events send.
+// back key it binds and what its events send, or the error its build gives ("fails").
 void CheckCases(const char *folder, const std::string &file, const std::string &capability = "")
 {
     Vm vm;
@@ -761,7 +761,14 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
     {
         INFO(recorded.at("name").get<std::string>());
         storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        // "like": the model of that case of the file, with no row of the node "unmark" current.
+        const Json &source =
+            recorded.contains("like") ? fixture.at("cases").at(recorded.at("like").get<size_t>()) : recorded;
+        REQUIRE(storm::ui::ParseInterfaceModel(source.at("model").dump(), model));
+        if (recorded.contains("unmark"))
+            for (auto &widget : model.widgets)
+                if (widget.node == recorded.at("unmark").get<std::string>())
+                    widget.value = "0";
         // A screen of several pack screens names the case's own ("folder").
         const auto spec = PackScreen(recorded.value("folder", std::string(folder)).c_str());
         Calls calls(*spec);
@@ -778,6 +785,13 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
             calls.states[channel] = state;
         SetGame(recorded);
         const auto &screen = Screen(vm, recorded.value("capability", capability));
+        // "fails": the build refuses the model with this error (a state the game's window never has).
+        if (recorded.contains("fails"))
+        {
+            CHECK_THROWS_WITH(port.Build(screen, calls.Single(), calls),
+                              Catch::Contains(recorded.at("fails").get<std::string>()));
+            continue;
+        }
         port.Build(screen, calls.Single(), calls);
         CHECK(calls.props == recorded.at("props"));
         if (capability.empty() || recorded.contains("modals"))

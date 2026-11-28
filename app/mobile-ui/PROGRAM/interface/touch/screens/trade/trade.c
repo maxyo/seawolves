@@ -46,9 +46,8 @@ void TouchTrade_Build()
 	object deal;
 	TouchTrade_Deal(ui, game, &deal);
 	TouchTrade_List(game, look, &captions, &deal, view);
-	// Whose side: the ship or character selector; the first where the game marks none.
-	TouchTrade.current = TouchLib_Selected(game, "sides");
-	if (sti(TouchTrade.current) < 0) TouchTrade.current = 0;
+	// Whose side: the ship or character selector, none where the window has no selector.
+	TouchTrade.current = TouchLib_Current(game, "sides", "trade: the sides");
 	aref sides;
 	makearef(sides, game.sides);
 	TouchLib_Stepper(view, sides, sti(TouchTrade.current), sti(game.switch));
