@@ -63,7 +63,7 @@ void DeferredGeometry::ReadTextures()
     for (const std::string &name : storm::geometry::TextureNames(*model_->bytes()))
     {
         const std::string texture = GSR.TextureFile(name.c_str());
-        if (!asked.insert(texture).second)
+        if (texture.empty() || !asked.insert(texture).second)
             continue;
         if (std::vector<std::string> candidates = service_.Renderer()->TextureFileCandidates(texture.c_str());
             !candidates.empty())

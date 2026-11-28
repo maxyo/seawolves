@@ -99,8 +99,14 @@ bool GEOMETRY::LoadState(ENTITY_STATE *state)
 char lightPath[256];
 int vrtSize;
 
+// A place that names no light set (Caribbean Legend's, which ship no lightmaps) has no lightmaps to look for.
 void SetModelLightPath(const char *file_name, const char *lmPath)
 {
+    if (lmPath == nullptr || lmPath[0] == '\0')
+    {
+        lightPath[0] = '\0';
+        return;
+    }
     sprintf_s(lightPath, "%s\\%s", lmPath, file_name);
     auto *const bs = strrchr(lightPath, '\\');
     if (bs != nullptr)
@@ -310,13 +316,15 @@ void GEOM_SERVICE_R::free(void *ptr)
 std::string GEOM_SERVICE_R::TextureFile(const char *fname) const
 {
     if (storm::iEquals(fname, "shadow.tga"))
-        return std::string("lighting\\") + lightPath + "\\" + fname;
+        return lightPath[0] == '\0' ? std::string() : std::string("lighting\\") + lightPath + "\\" + fname;
     return std::string(texturePath) + fname;
 }
 
 GEOS::ID GEOM_SERVICE_R::CreateTexture(const char *fname, const char *requester)
 {
     const std::string tex = TextureFile(fname);
+    if (tex.empty())
+        return INVALID_TEXTURE_ID; // a lightmap of a place without a light set
     if (RenderService)
     {
         RenderService->ProgressView();

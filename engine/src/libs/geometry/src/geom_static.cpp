@@ -389,9 +389,9 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         const bool lightmap = storm::iEquals(name, "shadow.tga");
         if (tlookup[t] < 0 && base[t] && !lightmap)
             tlookup[t] = srv.MissingTexture(); // released with the others (~GEOM)
-        if (lightmap)
+        if (const std::string file = lightmap ? srv.TextureFile(name) : std::string(); !file.empty())
         {
-            lightmap_file_ = "resource\\textures\\" + srv.TextureFile(name) + ".tx";
+            lightmap_file_ = "resource\\textures\\" + file + ".tx";
             lightmap_id_ = tlookup[t]; // -1 when it cannot be created: the location says so
         }
     }

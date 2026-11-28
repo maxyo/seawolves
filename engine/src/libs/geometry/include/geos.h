@@ -374,7 +374,8 @@ class GEOM_SERVICE
 
     // `requester`: the model file that needs the texture, named when it cannot be created.
     virtual GEOS::ID CreateTexture(const char *fname, const char *requester) = 0;
-    // The file CreateTexture loads for `fname` (relative to resource\textures, without the .tx).
+    // The file CreateTexture loads for `fname` (relative to resource\textures, without the .tx); empty for the lightmap
+    // (shadow.tga) of a place that names no light set, which has none.
     virtual std::string TextureFile(const char *fname) const = 0;
     // The stand-in a model's base texture draws with when CreateTexture failed (storm/render/missing_texture.hpp),
     // with a reference for the caller (ReleaseTexture); -1 when there is none.
