@@ -12,8 +12,9 @@ if(NOT _storm_modules_started)
 endif()
 
 # storm_project_flags(<dir> [DEFINITIONS ...] [INCLUDES ...] [OPTIONS ...]) gives the flags to every target defined
-# in <dir> and its subdirectories inside it, not to the projects fetched into the build (their sources lie outside):
-# a project flag on third-party objects makes every change of it miss their compiler cache entries.
+# in <dir> and its subdirectories inside it that builds a source inside <dir>, not to the projects fetched into the
+# build (their sources lie outside): a project flag on third-party objects makes every change of it miss their
+# compiler cache entries.
 function(storm_project_flags dir)
   cmake_parse_arguments(PARSE_ARGV 1 arg "" "" "DEFINITIONS;INCLUDES;OPTIONS")
   set(dirs "${dir}")
@@ -29,7 +30,21 @@ function(storm_project_flags dir)
     get_property(targets DIRECTORY "${current}" PROPERTY BUILDSYSTEM_TARGETS)
     foreach(target IN LISTS targets)
       get_target_property(type ${target} TYPE)
-      if(type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+      if(NOT type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+        continue()
+      endif()
+      # A target defined here may build only fetched sources (Effekseer's runtime): it is theirs, not ours.
+      get_target_property(sources ${target} SOURCES)
+      set(ours FALSE)
+      foreach(source IN LISTS sources)
+        get_filename_component(source "${source}" ABSOLUTE BASE_DIR "${current}")
+        string(FIND "${source}" "${dir}/" at)
+        if(at EQUAL 0)
+          set(ours TRUE)
+          break()
+        endif()
+      endforeach()
+      if(ours)
         target_compile_definitions(${target} PRIVATE ${arg_DEFINITIONS})
         target_include_directories(${target} PRIVATE ${arg_INCLUDES})
         target_compile_options(${target} PRIVATE ${arg_OPTIONS})
