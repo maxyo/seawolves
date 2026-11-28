@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * The language of the app's own screens and texts: the installed game's ([COMMON] defaultLanguage of its
@@ -78,6 +79,12 @@ final class GameLanguage {
             return phone;
         }
         return game;
+    }
+
+    /** The language of the host's texts in game: the running game's as the engine reports it, the app's (`app`)
+     *  before it has (at start-up and while a load resets the game's state). */
+    static String inGame(String running, Supplier<String> app) {
+        return running == null || running.trim().isEmpty() ? app.get() : running;
     }
 
     /** The ISO 639 code of a game language name ("russian" → "ru"); another name is read as a language tag. */

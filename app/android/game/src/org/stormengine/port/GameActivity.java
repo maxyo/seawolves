@@ -842,7 +842,7 @@ public final class GameActivity extends SDLActivity {
 
     /**
      * Upcall (game thread): an engine error that ends the game, at start-up or in play. Its dialog titled by `title` (a
-     * key of the strings tables) in the game's language, or the device's before the game told it, with the reason as
+     * key of the strings tables) in the game's language (MenuText), with the reason as
      * the engine wrote it; the game thread waits until the player dismisses it, as with SDL's dialog.
      */
     public void showEngineError(String title, String reason) throws InterruptedException {

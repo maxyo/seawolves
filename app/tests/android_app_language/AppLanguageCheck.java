@@ -47,6 +47,13 @@ public final class AppLanguageCheck {
         assert "russian".equals(GameLanguage.choose(true, null, pack, "russian", problem));
         assert problem.toString().contains("names no [COMMON] defaultLanguage") : problem;
 
+        // In game: the running game's language; before the engine has reported it (start-up, a
+        // load), the app's,
+        // never the phone's.
+        assert "english".equals(GameLanguage.inGame("english", () -> "russian"));
+        assert "russian".equals(GameLanguage.inGame("", () -> "russian"));
+        assert "russian".equals(GameLanguage.inGame(null, () -> "russian"));
+
         // Names and codes both ways.
         assert GameLanguage.code("Russian").equals("ru")
                 && GameLanguage.code("italian").equals("it")
@@ -55,7 +62,7 @@ public final class AppLanguageCheck {
                 && GameLanguage.name("es").equals("spanish")
                 && GameLanguage.name("ja").equals("ja");
         System.out.println(
-                "PASS: app language: the installed game's (language.ini), the phone's without a game, stated when unsupported");
+                "PASS: app language: the installed game's (language.ini), the phone's without a game, stated when unsupported; in game the app's until the game tells its own");
     }
 
     private static void write(File file, String text) throws IOException {

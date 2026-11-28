@@ -16,7 +16,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /** Texts the Java host shows itself, from the UI pack's strings: in game in the running game's language, elsewhere
- *  in the app's language ({@link #appLanguage}: the installed game's, the phone's while none is installed). */
+ *  and before the game has told it in the app's language ({@link #appLanguage}: the installed game's, the phone's
+ *  while none is installed). */
 final class MenuText {
     private static final HashMap<String, JSONObject> tables = new HashMap<>();
     private final Context context;
@@ -24,11 +25,12 @@ final class MenuText {
 
     MenuText(Context context, String gameLanguage) {
         this.context = context;
-        Locale locale =
-                gameLanguage == null || gameLanguage.trim().isEmpty()
-                        ? contextLocale(context)
-                        : Locale.forLanguageTag(GameLanguage.code(gameLanguage));
-        language = locale.getLanguage();
+        language =
+                Locale.forLanguageTag(
+                                GameLanguage.code(
+                                        GameLanguage.inGame(
+                                                gameLanguage, () -> appLanguage(context))))
+                        .getLanguage();
     }
 
     private static Locale contextLocale(Context context) {
