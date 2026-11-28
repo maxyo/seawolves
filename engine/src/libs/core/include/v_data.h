@@ -43,6 +43,8 @@ class VDATA
     virtual bool IsArray() = 0;
     virtual bool IsReference() = 0;
     virtual bool IsAReference() = 0;
+    // An object variable (or element): what a script reference to a character names.
+    virtual bool IsObject() = 0;
     virtual DATA *GetVarPointer() = 0;
     virtual entid_t GetObjectIDPTR() = 0;
 

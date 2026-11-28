@@ -413,3 +413,17 @@ TEST_CASE("the hero takes a seat, is offered to stand up, and the seat is his un
     REQUIRE(objects.Request("interaction", offers, nullptr) == 1);
     CHECK(Text(offers, "items.item0.command") == "hasseats.sit");
 }
+
+TEST_CASE("only a character becomes the actor of a request: a value on the script stack is refused")
+{
+    storm::test::Codec codec;
+    ATTRIBUTES context(codec);
+    DATA character{VAR_OBJECT};
+    DATA text{VAR_STRING}; // what `session.actor` reads as once its reference is gone, a stack temporary
+    CHECK(!storm::location::SetDynamicObjectActor(context, &text));
+    CHECK(Text(context, "error") == "actor_unavailable");
+    CHECK(context.GetAttributeClass("actor") == nullptr);
+    CHECK(!storm::location::SetDynamicObjectActor(context, nullptr));
+    REQUIRE(storm::location::SetDynamicObjectActor(context, &character));
+    CHECK(context.GetAttributeClass("actor")->GetReference() == &character);
+}

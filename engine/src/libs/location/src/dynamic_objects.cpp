@@ -1,5 +1,7 @@
 #include "dynamic_objects.hpp"
 
+#include "v_data.h"
+
 #include "istring.hpp"
 #include "land_protocol.hpp"
 #include "string_compare.hpp"
@@ -224,6 +226,19 @@ void Decompose(const glm::mat4 &m, glm::vec3 &rotation, glm::vec3 &scale)
                                       std::atan2(nx.y, ny.y)));
 }
 } // namespace
+
+bool SetDynamicObjectActor(ATTRIBUTES &context, DATA *actor)
+{
+    // A reference outlives the call: only a variable may be its target, and only a character can be an actor.
+    if (actor == nullptr || !reinterpret_cast<VDATA *>(actor)->IsObject())
+    {
+        context.SetAttribute("error", std::string_view("actor_unavailable"));
+        context.SetAttribute("errorDetails", std::string_view());
+        return false;
+    }
+    context.VerifyAttributeClass("actor")->SetReference(actor);
+    return true;
+}
 
 std::string DynamicObjectId(std::string_view location, std::string_view container, std::string_view group,
                             std::string_view locator)

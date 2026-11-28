@@ -44,6 +44,10 @@ struct DynamicObjectActor
     glm::vec3 position{};
 };
 
+// DynamicObject_SetActorNative: context.actor becomes a script reference to `actor`, a character (an object variable);
+// anything else (missing, a value on the script stack) is refused with actor_unavailable in the context.
+bool SetDynamicObjectActor(ATTRIBUTES &context, DATA *actor);
+
 // What the registry needs from the location and the scripts.
 class DynamicObjectsHost
 {

@@ -344,20 +344,7 @@ uint32_t SetActorNative(VS_STACK *stack)
     DATA *actor = actorArgument->IsReference() && actorArgument->GetReference() == nullptr
                       ? nullptr
                       : actorArgument->GetVarPointer();
-    bool bound = false;
-    if (context != nullptr)
-    {
-        if (actor == nullptr || reinterpret_cast<VDATA *>(actor)->IsAReference())
-        {
-            context->SetAttribute("error", std::string_view("actor_unavailable"));
-            context->SetAttribute("errorDetails", std::string_view());
-        }
-        else
-        {
-            context->VerifyAttributeClass("actor")->SetReference(actor);
-            bound = true;
-        }
-    }
+    const bool bound = context != nullptr && storm::location::SetDynamicObjectActor(*context, actor);
     static_cast<VDATA *>(stack->Push())->Set(int32_t{bound});
     return IFUNCRESULT_OK;
 }

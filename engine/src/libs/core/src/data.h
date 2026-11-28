@@ -187,6 +187,10 @@ class DATA final : public VDATA
     {
         return Data_type == VAR_AREFERENCE;
     }
+    bool IsObject() override
+    {
+        return Data_type == VAR_OBJECT;
+    }
     // The variable itself, or the one a chain of references ends at (nullptr: an unset reference, reported).
     DATA *GetVarPointer() override
     {
