@@ -53,6 +53,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <functional>
 #include <map>
@@ -1967,6 +1968,8 @@ int32_t Renderer::TextureCreate(const char *fname)
             continue;
         const std::string &_fname = *variant;
         bTrace = i < 0;
+        if (i < 0)
+            FindTextureInTree(_fname);
 
         const uint32_t hf = MakeHashValue(_fname.c_str());
 
@@ -2045,6 +2048,36 @@ std::optional<std::string> Renderer::TextureFile(const std::string &name)
     return textureFiles_.emplace(name, std::move(*file)).first->second;
 }
 
+void Renderer::FindTextureInTree(const std::string &name)
+{
+    // A location's lightmaps are its own light set's (lighting\<set>\...): never another folder's.
+    if (textureFiles_.contains(name) ||
+        storm::iEquals(std::string_view(name).substr(0, 9), std::string_view("lighting\\")) || TextureFile(name))
+        return;
+    if (!textureTree_)
+    {
+        constexpr const char *kRoot = "resource\\textures";
+        const std::filesystem::path root = std::filesystem::u8path(fio->ConvertPathResource(kRoot));
+        std::vector<std::string> files;
+        for (const std::filesystem::path &path : fio->_GetFsPathsByMask(kRoot, "*", true, false, true, true))
+        {
+            std::string relative = std::filesystem::relative(path, root).generic_string();
+            std::ranges::replace(relative, '/', '\\');
+            files.push_back(std::string(kRoot) + "\\" + relative);
+        }
+        textureTree_.emplace(files);
+    }
+    storm::texture::TextureTree::Found found = textureTree_->Find(name);
+    if (found.file)
+    {
+        spdlog::info("texture {}: the game ships it as {}", name, *found.file);
+        textureFiles_.emplace(name, std::move(*found.file));
+    }
+    else if (!found.folders.empty() && textureTreeReported_.insert(name).second)
+        spdlog::error("texture {}: not where it is named, and {} folders hold that name: {}", name,
+                      found.folders.size(), fmt::join(found.folders, ", "));
+}
+
 int32_t Renderer::FindLoadedTexture(const std::string &name, uint32_t hash) const
 {
     for (int32_t t = 0; t < MAX_STEXTURES; t++)
@@ -2066,6 +2099,8 @@ std::vector<std::string> Renderer::TextureFileCandidates(const char *fname)
             continue;
         if (FindLoadedTexture(*name, MakeHashValue(name->c_str())) >= 0)
             break; // TextureCreate stops at this variant: it has it
+        if (i < 0)
+            FindTextureInTree(*name);
         if (const std::optional<std::string> file = TextureFile(*name))
             files.push_back(fio->ConvertPathResource(file->c_str()));
     }
@@ -2075,6 +2110,8 @@ std::vector<std::string> Renderer::TextureFileCandidates(const char *fname)
 std::optional<std::string> Renderer::TextureFilePath(const char *fname)
 {
     const std::optional<std::string> name = TextureVariantName(fname, -1);
+    if (name)
+        FindTextureInTree(*name);
     const std::optional<std::string> file = name ? TextureFile(*name) : std::nullopt;
     return file ? std::optional<std::string>(fio->ConvertPathResource(file->c_str())) : std::nullopt;
 }

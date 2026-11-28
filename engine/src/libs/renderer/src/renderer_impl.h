@@ -20,6 +20,7 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <set>
 #include <stack>
 #include <vector>
 #include <unordered_map>
@@ -616,6 +617,12 @@ private:
     // name's own file, or the one the game ships under another extension (logged); none when neither exists.
     std::optional<std::string> TextureFile(const std::string &name);
     std::unordered_map<std::string, std::string> textureFiles_;
+    // For a name as given, after every texture path variant failed: the file in the one folder of the game's
+    // textures that holds that name (texture::TextureTree), kept as its TextureFile (logged); several folders:
+    // reported once, none taken.
+    void FindTextureInTree(const std::string &name);
+    std::optional<storm::texture::TextureTree> textureTree_; // made at the first name not found where it is named
+    std::set<std::string> textureTreeReported_;
     // The slot of a loaded texture of that name (TextureVariantName), or -1.
     int32_t FindLoadedTexture(const std::string &name, uint32_t hash) const;
 };

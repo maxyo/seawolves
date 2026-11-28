@@ -99,6 +99,65 @@ std::optional<std::string> ResolveTextureFile(std::string_view name,
     }
 }
 
+namespace
+{
+std::string Lower(std::string_view text)
+{
+    std::string lower(text);
+    std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return lower;
+}
+// "Resource\\Textures\\Ships\\Rig1.tga.tx" -> "rig1": the file part without .tx and one image extension.
+std::string BaseName(std::string_view name)
+{
+    if (const size_t slash = name.find_last_of("\\/"); slash != std::string_view::npos)
+        name.remove_prefix(slash + 1);
+    std::string base = Lower(name);
+    const auto strip = [&base](std::string_view extension) {
+        const bool has = base.size() > extension.size() && base.ends_with(extension);
+        if (has)
+            base.resize(base.size() - extension.size());
+        return has;
+    };
+    strip(".tx");
+    for (const std::string_view image : {".png", ".tga", ".bmp", ".jpg", ".dds", ".txx"})
+        if (strip(image))
+            break;
+    return base;
+}
+} // namespace
+
+TextureTree::TextureTree(const std::vector<std::string> &files)
+{
+    for (const std::string &file : files)
+        by_base_[BaseName(file)].push_back(Lower(file));
+}
+
+TextureTree::Found TextureTree::Find(std::string_view name) const
+{
+    Found found;
+    const auto entry = by_base_.find(BaseName(name));
+    if (entry == by_base_.end())
+        return found;
+    for (const std::string &file : entry->second)
+    {
+        std::string folder = file.substr(0, file.find_last_of("\\/"));
+        if (std::ranges::find(found.folders, folder) == found.folders.end())
+            found.folders.push_back(std::move(folder));
+    }
+    if (found.folders.size() != 1)
+        return found;
+    const auto exists = [&](const std::string &path) {
+        return std::ranges::find(entry->second, Lower(path)) != entry->second.end();
+    };
+    std::string_view file = name;
+    if (const size_t slash = file.find_last_of("\\/"); slash != std::string_view::npos)
+        file.remove_prefix(slash + 1);
+    found.file = ResolveInFolder(found.folders.front() + "\\" + std::string(file), exists);
+    found.folders.clear();
+    return found;
+}
+
 std::span<const uint8_t> TextureFile::level(uint32_t face, uint32_t level) const
 {
     size_t offset = payload_offset + face * (dxt_payload_size(layout) / layout.faces);

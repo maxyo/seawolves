@@ -224,6 +224,19 @@ void test_names()
     CHECK(resolved("Props\\old\\box.tga") == "resource\\textures\\Props\\box.dds");
     CHECK(resolved("resource\\textures\\buildings\\wall.png") == "resource\\textures\\wall.dds");
     CHECK(resolved("buildings\\Crate.png") == "none");
+
+    // A name in no folder it names: the one folder of the game's textures that holds its base name.
+    const TextureTree tree({"resource\\textures\\buildings\\dirtK2.dds",
+                            "resource\\textures\\Ships\\Other\\Rig1.tga.tx",
+                            "resource\\textures\\Ships\\Other\\Rig1.dds", "resource\\textures\\Location\\bump_city.dds",
+                            "resource\\textures\\buildings\\bump_city.dds"});
+    const auto found = [&](const char *name) { return tree.Find(name).file.value_or("none"); };
+    CHECK(found("DIRTK2.TGA") == "resource\\textures\\buildings\\DIRTK2.dds");
+    CHECK(found("SN_Ships\\1ShipsTextures\\rig1.tga") == "resource\\textures\\ships\\other\\rig1.tga.tx");
+    CHECK(found("crate.tga") == "none");
+    // Two folders hold it: none is chosen, both are named.
+    const TextureTree::Found both = tree.Find("bump_city.tga");
+    CHECK((!both.file && both.folders.size() == 2));
 }
 
 int corpus()

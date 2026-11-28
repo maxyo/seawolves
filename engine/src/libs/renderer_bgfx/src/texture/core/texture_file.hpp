@@ -12,6 +12,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace storm::texture
@@ -34,6 +35,27 @@ std::string TextureFilePath(std::string_view name);
 // folder above, up to resource\textures ("buildings\x_AO.dds" shipped as x_AO.tga.tx). nullopt: none exists.
 std::optional<std::string> ResolveTextureFile(std::string_view name,
                                               const std::function<bool(const std::string &)> &exists);
+
+// Every texture file of a game by base name, for the names ResolveTextureFile does not find: Caribbean Legend's models
+// name textures without the folder the game keeps them in ("dirtK2.tga" shipped as buildings\dirtK2.dds, a ship's
+// "Rig1.tga" as Ships\Other\Rig1.tga.tx).
+class TextureTree
+{
+  public:
+    // `files`: every file under resource\textures, as TextureFilePath names them.
+    explicit TextureTree(const std::vector<std::string> &files);
+    struct Found
+    {
+        std::optional<std::string> file;
+        std::vector<std::string> folders; // the folders holding the name when more than one does (no file then)
+    };
+    // The file of `name` in the one folder that holds a file of its base name (without its folders and extensions),
+    // chosen there as ResolveTextureFile chooses; none when no folder or several do.
+    Found Find(std::string_view name) const;
+
+  private:
+    std::unordered_map<std::string, std::vector<std::string>> by_base_; // lower-case base name -> lower-case files
+};
 
 // A whole DDS or TXX file and where its levels are: faces one after another (DDS cube order +X, -X, +Y, -Y, +Z, -Z,
 // which is D3DCUBEMAP_FACES order), each face's levels from the full size down, tightly packed whole blocks.
