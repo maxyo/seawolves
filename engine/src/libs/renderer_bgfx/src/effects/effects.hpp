@@ -291,6 +291,7 @@ class Host
     bgfx::UniformHandle s_sea_sun_road_ = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle sea_no_sun_road_ = BGFX_INVALID_HANDLE;
     bool sea_no_sun_road_logged_ = false;
+    bool sea_no_moon_disc_logged_ = false;
     // The capture of this frame: the target it was taken of and the view the sea continues in after it.
     SeaDepthHeld sea_depth_held_;
     bool sea_depth_logged_ = false;

@@ -26,16 +26,19 @@ The waves are a statistical wave field in the manner of Tessendorf's "Simulating
 
 `SEA::Realize` hands the driver the frame's time step, the weather's keys and the layout the graphics preset asks
 (`storm::render::CurrentEffectsSea`: Низкая 2 cascades of 64², Средняя 3 of 64², Высокая 3 of 128², the option
-`fx_sea_cascade_size` 256 on desktops). Two fields take turns: the one drawn and read by `WaveXZ` this frame, and
-the one the worker thread makes meanwhile for the next frame (one helper per cascade), at the sea clock of this
-frame. So everything afloat reads the field the screen shows, a frame behind the clock, as the old sea's frames
-were. A weather change builds the new spectrum on the worker and eases into it over seconds: the draws are the same,
+`fx_sea_cascade_size` 256 on desktops). Two fields take turns: the one drawn and read by `WaveXZ`, and the one the
+worker thread makes meanwhile (one helper per cascade). The next frame's field is chosen after a frame's draw
+(`SEA::AdvanceField`), before the next frame's ships and cameras run, so everything afloat reads the field the screen
+shows. The game thread never waits for the worker: while it is still busy the next frame keeps the field it drew (its
+waves a frame older; the frame-work line's `sea_late` counts such frames) and the worker's field is taken one frame
+later. A weather change builds the new spectrum on the worker and eases into it over seconds: the draws are the same,
 only each wave's amplitude moves from the old spectrum's to the new one's. A new layout, and any change while a
 scene loads, is made at once. The wind: the waves travel downwind; the game's wind angle a blows towards
 (sin a, cos a) (its flags and rain), which is the field's direction pi/2 - a.
 
-The frame-work line of the renderer's log carries the worker's milliseconds per sea frame and the bytes uploaded
-(`sea_field_ms`, the game thread's wait for it `sea_wait_ms`, `sea_field_kb`).
+The frame-work line of the renderer's log carries the worker's milliseconds and the bytes uploaded per new field
+(`sea_field_ms`, `sea_field_kb`), the game thread's wait for the worker per sea frame (`sea_wait_ms`: only at a new
+layout or a weather set while loading) and the share of sea frames that drew the previous field again (`sea_late`).
 
 ## On the GPU
 

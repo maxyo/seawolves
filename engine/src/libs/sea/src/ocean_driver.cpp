@@ -69,19 +69,26 @@ void Driver::Run(std::optional<SeaState> build)
     });
 }
 
-void Driver::Frame(int cascades, int size, const Sea2Keys &keys, double dt, bool snap)
+bool Driver::Frame(int cascades, int size, const Sea2Keys &keys, double dt, bool snap)
 {
     if (!fields_[0] || cascades != cascades_ || size != size_ || (snap && !Same(keys, keys_)))
     {
         clock_ += dt;
+        const auto wait = std::chrono::steady_clock::now();
         Layout(cascades, size, keys);
         Run(std::nullopt);
-        worker_ms_ = wait_ms_ = 0.0;
-        return;
+        worker_ms_ = 0.0;
+        wait_ms_ = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - wait).count();
+        late_dt_ = 0.0;
+        return true;
     }
-    const auto wait = std::chrono::steady_clock::now();
-    worker_.Wait();
-    wait_ms_ = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - wait).count();
+    wait_ms_ = 0.0;
+    if (worker_.Busy())
+    {
+        clock_ += dt;
+        late_dt_ += dt;
+        return false;
+    }
     if (failure_)
         std::rethrow_exception(std::exchange(failure_, nullptr));
     worker_ms_ = job_ms_;
@@ -100,13 +107,15 @@ void Driver::Frame(int cascades, int size, const Sea2Keys &keys, double dt, bool
         keys_ = keys;
         build = MapSea2(keys);
     }
+    const double step = dt + std::exchange(late_dt_, 0.0);
     if (ease_ < 1.0)
     {
-        ease_ = std::min(1.0, ease_ + dt / kEaseSeconds);
+        ease_ = std::min(1.0, ease_ + step / kEaseSeconds);
         for (auto &field : fields_)
             field->Ease(static_cast<float>(ease_));
     }
     clock_ += dt;
     Run(std::move(build));
+    return true;
 }
 } // namespace storm::sea::ocean

@@ -22,11 +22,13 @@ class Driver
         worker_.Wait();
     }
 
-    // Once per sea frame, game thread. Waits for the field the worker made during the last frame and makes it the one
-    // read (Current), takes `cascades` x `size` and the weather's `keys` (a change eases in unless `snap`: then, and
-    // at a new layout, the field is made here at once), advances the sea's clock by `dt` seconds and starts the
-    // worker on the next field.
-    void Frame(int cascades, int size, const Sea2Keys &keys, double dt, bool snap);
+    // Once per sea frame, game thread; never waits for the worker. Advances the sea's clock by `dt` seconds. When the
+    // worker has finished its field, that field becomes the one drawn and read (Current), the weather's `keys` are
+    // taken (a change eases in unless `snap`: then, and at a new layout `cascades` x `size`, the field is made here at
+    // once) and the worker starts on the next field at the clock's time; returns true. While the worker is still
+    // busy the frame keeps the field it drew last and returns false: a late field shows its waves a frame older,
+    // and WaveXZ still reads exactly what is drawn.
+    [[nodiscard]] bool Frame(int cascades, int size, const Sea2Keys &keys, double dt, bool snap);
 
     // The field drawn and queried this frame (empty layout before the first Frame).
     const Field &Current() const
@@ -47,7 +49,7 @@ class Driver
     {
         return worker_ms_;
     }
-    // Milliseconds the game thread waited this frame for the worker to finish (0 when it was done in time).
+    // Milliseconds the game thread waited this frame for the worker: only at a new layout or a snapped weather.
     double WaitMs() const
     {
         return wait_ms_;
@@ -65,6 +67,7 @@ class Driver
     int cascades_ = 0, size_ = 0;
     Sea2Keys keys_{};
     double clock_ = 0.0, ease_ = 1.0;
+    double late_dt_ = 0.0; // the clock's advance over frames the worker was late for (the easing catches it up)
     // Written by the worker's job, read after Wait.
     std::optional<SeaState> built_state_;
     std::vector<CascadeSpectrum> built_;

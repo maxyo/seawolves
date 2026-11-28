@@ -269,7 +269,38 @@ TEST_CASE("a sea deleted while its worker makes the next field waits for the wor
     for (int i = 0; i < 8; i++)
     {
         Driver driver;
-        driver.Frame(3, 128, keys, 0.02, true);  // made at once, the worker starts on the next field
-        driver.Frame(3, 128, keys, 0.02, false); // waits, the worker starts again; the driver goes at once
+        CHECK(driver.Frame(3, 128, keys, 0.02, true)); // made at once, the worker starts on the next field
+        (void)driver.Frame(3, 128, keys, 0.02, false); // the driver goes while the worker may still run
     }
+}
+
+TEST_CASE("a frame never waits for the worker: until the next field is made the frame keeps the one it drew")
+{
+    const Sea2Keys keys{7.0f, 0.5f, 1.1f, 3.0f, 2.0f, 200.0f, 0.7f};
+    Driver driver;
+    REQUIRE(driver.Frame(3, 128, keys, 0.02, true));
+    const auto heights = [&] {
+        std::vector<float> h;
+        for (const Displacement &d : driver.Current().Samples(2))
+            h.push_back(d.h);
+        return h;
+    };
+    // The first field the worker makes is at the clock of the one made at once; the second is one frame later.
+    int late = 0;
+    for (int fresh = 0; fresh < 2;)
+    {
+        const std::vector<float> drawn = heights();
+        if (driver.Frame(3, 128, keys, 0.02, false))
+        {
+            fresh++;
+            if (fresh == 2)
+                CHECK(heights() != drawn);
+        }
+        else
+        {
+            late++;
+            REQUIRE(heights() == drawn);
+        }
+    }
+    CHECK(late > 0);
 }

@@ -33,6 +33,12 @@ void Worker::Wait()
     done_.wait(lock, [this] { return !busy_; });
 }
 
+bool Worker::Busy()
+{
+    std::lock_guard lock(mutex_);
+    return busy_;
+}
+
 void Worker::Loop()
 {
     std::unique_lock lock(mutex_);

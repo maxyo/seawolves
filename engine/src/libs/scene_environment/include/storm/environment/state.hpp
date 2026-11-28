@@ -4,6 +4,7 @@
 
 #include <storm_glm.h>
 
+#include <algorithm>
 #include <array>
 #include <optional>
 
@@ -95,6 +96,12 @@ struct State
     // upper, base, rain) and how far they have (radians, WEATHER adds it up).
     float clouds = 0.0f;
     float rain_clouds = 0.0f;
+    // The share of the sun's or moon's disc the sky shows: the rain clouds hide it, the fair-weather clouds drift past.
+    // The sky's sun sprite, the sea's glint and the light on the wakes all follow it.
+    float DiscShown() const
+    {
+        return 1.0f - std::clamp(rain_clouds, 0.0f, 1.0f);
+    }
     std::array<float, 3> cloud_spin{}, cloud_turn{};
     CloudLook cloud_look;
 

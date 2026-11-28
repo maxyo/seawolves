@@ -234,25 +234,31 @@ float SEA::WindDirection() const
     return std::numbers::pi_v<float> / 2.0f - angle->GetAttributeAsFloat();
 }
 
-// This frame's field: the worker's last one becomes the one drawn and read, the next one starts (ocean_driver.hpp).
-void SEA::UpdateField(float dt)
+// The next frame's field, after this frame's draw: the worker's newest one when it has finished, else the field drawn
+// now once more (the frame never waits for the worker; ocean_driver.hpp). The next frame's ships, cameras and draw
+// all read it.
+void SEA::AdvanceField(float dt)
 {
+    if (bStop)
+        return;
     // A turn of the wind smaller than this keeps the spectrum: each change eases the whole sea over seconds.
     constexpr float kWindTurn = 0.1f;
     const float wind = WindDirection();
     if (std::abs(std::remainder(wind - keys_.wind_direction, 2.0f * std::numbers::pi_v<float>)) > kWindTurn)
         keys_.wind_direction = wind;
     const storm::render::EffectsSea preset = storm::render::CurrentEffectsSea();
-    driver_.Frame(preset.cascades, preset.size, keys_, dt, storm::loading::active || !bStarted);
+    if (!driver_.Frame(preset.cascades, preset.size, keys_, dt, storm::loading::active || !bStarted))
+        return;
     const storm::sea::ocean::Field &field = driver_.Current();
     fMaxSeaHeight = 2.0f * std::max(std::abs(field.Lowest()), std::abs(field.Highest())) + 1.0f;
-    UploadField();
+    uploadPending_ = true;
 }
 
 // The field drawn this frame to its textures, as the worker packed them in half floats: the samples (the vertex
-// shader's) and each cascade's slope moments with their levels (the pixel shader's, filtered).
-void SEA::UploadField()
+// shader's) and each cascade's slope moments with their levels (the pixel shader's, filtered). Returns the bytes.
+uint64_t SEA::UploadField()
 {
+    uploadPending_ = false;
     const storm::sea::ocean::Field &field = driver_.Current();
     const auto cascades = static_cast<int>(field.Layout().size());
     const int n = field.Layout()[0].size;
@@ -300,7 +306,7 @@ void SEA::UploadField()
         }
         bytes += moments.size() * sizeof(uint64_t);
     }
-    storm::render::NoteSeaField(driver_.WorkerMs(), driver_.WaitMs(), bytes);
+    return bytes;
 }
 
 // The grid points of the block this block owns (PrepareIndicesForBlock: [iIFirst, iILast]; the points on an edge
@@ -577,7 +583,10 @@ void SEA::Realize(uint32_t dwDeltaTime)
         return;
 
     float fDeltaTime = static_cast<float>(dwDeltaTime) * 0.001f;
-    UpdateField(fDeltaTime);
+    if (!driver_.Ready())
+        AdvanceField(0.0f);
+    const bool fresh = uploadPending_;
+    storm::render::NoteSeaField(fresh ? driver_.WorkerMs() : 0.0, driver_.WaitMs(), fresh ? UploadField() : 0, fresh);
 
     uint64_t dwTotalRDTSC;
     RDTSC_B(dwTotalRDTSC);

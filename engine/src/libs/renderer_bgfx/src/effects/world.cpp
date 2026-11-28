@@ -253,13 +253,17 @@ void Host::prepare_sea(shim::Device &device)
     // The sea's pixel constant 5: the game's current water colour (Sea2.WaterColor), not a new global tint.
     const auto &water_color = device.s.ps_const[5];
     // clang-format off
-    // The glint's light: the sun's colour as the scene shows it, none behind a storm's clouds; the moon's comes from
-    // the game's sun road cube (the moon it draws there).
+    // The glint's light: the sun's colour as the scene shows it, as much of it as the sky shows of the sun's disc; the
+    // moon's comes from the game's sun road cube (the moon it draws there).
     const bool sun_lit = has_weather() && env_.light_is_sun;
-    const float clear_sky = sun_lit ? 1.0f - std::clamp(env_.overcast, 0.0f, 1.0f) : 0.0f;
+    const float clear_sky = sun_lit ? env_.DiscShown() : 0.0f;
+    // The light's disc: the half size of the sun's or moon's sprite (tangent of the angle to its edge).
+    const float disc = sun_lit ? env_.sun_size : env_.moon_size;
+    if (specular && !sun_lit && disc <= 0.0f && render::Once(sea_no_moon_disc_logged_))
+        render::Log().error("effects: the moon has no disc size (sunglow Glow.MoonSize): no moon glint on the sea");
     const float sea_fx[24] = {
         0.0f, soft_edges ? 1.0f : 0.0f, specular ? 1.0f : 0.0f, far_plane,
-        sun[0], sun[1], sun[2], 0.0f,
+        sun[0], sun[1], sun[2], disc * disc,
         strength, 0.0f, 0.0f,
         1.0f / std::max(settings_.sea_edge_depth, 0.01f),
         water_color[0], water_color[1], water_color[2], turbidity ? 1.0f / 12.0f : 0.0f,
@@ -378,11 +382,11 @@ void Host::set_sea_wakes_uniforms()
         wake[4] = tile_uv(origin[0]);
         wake[5] = tile_uv(origin[2]);
         wake[6] = static_cast<float>(1.0 / kFoamTile);
-        // The sun's colour by the sine of its height; none from the moon, under the horizon or behind a storm's
-        // clouds (as the lens flare takes the sun's visibility).
+        // The sun's colour by the sine of its height and the share of its disc the sky shows; none from the moon or
+        // under the horizon.
         if (has_weather() && env_.light_is_sun)
         {
-            const float lit = std::max(env_.light_dir[1], 0.0f) * (1.0f - std::clamp(env_.overcast, 0.0f, 1.0f));
+            const float lit = std::max(env_.light_dir[1], 0.0f) * env_.DiscShown();
             for (int i = 0; i < 3; ++i)
                 wake[8 + i] = sun_display_[i] * lit;
         }

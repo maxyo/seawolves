@@ -22,6 +22,8 @@ class Worker
     void Start(std::function<void()> job);
     // Returns once the started job has run (at once when none was).
     void Wait();
+    // Whether the started job is still running (the game thread draws the previous field meanwhile).
+    bool Busy();
     // Inside a job: fn(i) for i in [0, count), spread over the worker's helpers (one cascade each).
     template <typename Function> void Parallel(size_t count, Function &&fn)
     {

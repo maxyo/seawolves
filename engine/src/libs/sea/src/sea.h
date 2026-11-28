@@ -100,8 +100,11 @@ class SEA : public SEA_BASE, private SeaBlockTree
     int32_t fieldTexture_ = -1;
     std::array<int32_t, sea_gpu::kMaxCascades> slopeTextures_{-1, -1, -1};
     int textureCascades_ = 0, textureSize_ = 0;
-    void UpdateField(float dt);
-    void UploadField();
+    // The field a frame uses is chosen after the previous frame's draw (AdvanceField), so the ships and cameras of the
+    // frame's execute stage and its draw read the same field; it is uploaded at the frame's draw (UploadField).
+    bool uploadPending_ = false;
+    void AdvanceField(float dt);
+    uint64_t UploadField();
     float WindDirection() const;
 
     // Where the sea's vertices are displaced. Checking: on the CPU until the GPU surface self-check (sea_surface_check.hpp)
@@ -207,9 +210,11 @@ class SEA : public SEA_BASE, private SeaBlockTree
         {
         case Stage::loading_realize:
             Realize(0);
+            AdvanceField(0.0f);
             break;
         case Stage::realize:
             Realize(delta);
+            AdvanceField(static_cast<float>(delta) * 0.001f);
             break;
         case Stage::lost_render:
             LostRender();

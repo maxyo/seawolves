@@ -5,13 +5,14 @@ $input v_texcoord0, v_texcoord1, v_texcoord4, v_fog, v_foam
 //   slope per level (src/libs/sea, PackSlopeMoments); the normal follows the mean of what the pixel covers and the
 //   variance it hides widens the sun's highlight (Bruneton, Neyret and Holzschuch 2010), so detail too fine for a
 //   pixel becomes roughness instead of flicker;
-// - Schlick's Fresnel term with the game's Sea.Frenel; reflection of the scene's cube (s_cube3) along the mean normal,
-//   never below the horizon (the cube's lower face is never drawn above water; a ray reflected downwards meets the
-//   sea again, whose colour at the horizon the side faces hold);
+// - Schlick's Fresnel term with the game's Sea.Frenel, averaged over the hidden slopes; reflection of the scene's
+//   cube (s_cube3) along the mean normal, never below the horizon (the cube's lower face is never drawn above water;
+//   a ray reflected downwards meets the sea again, whose colour at the horizon the side faces hold);
 // - the body of the water in the game's colour (Sea2.WaterColor), its transparency by the view's slant
 //   (Sea2.Attenuation, Transparency) and by the depth behind it (the scene distance capture, s_seaDepth);
 // - the sun's or moon's glint: a GGX microfacet lobe (Walter et al. 2007) whose roughness is the hidden slope
-//   variance, in the sun's colour, or the moon's as the game draws it into its sun road cube (s_cube2);
+//   variance and the light's disc, in the sun's colour, or the moon's disc reflected as the game draws it into its
+//   sun road cube (s_cube2): the moon's road peaks at the disc's own colour;
 // - soft edges, the hulls' wakes (sea_wakes.sh) and the game's height foam (technique Sea2_Foam, folded in).
 #include "port_ps.sh"
 #include "sea_wakes.sh"
@@ -24,7 +25,8 @@ SAMPLERCUBE(s_cube2, 7);  // the game's sun road cube (stage 2): the moon's colo
 SAMPLERCUBE(s_cube3, 11); // the scene reflected (stage 3)
 SAMPLER2D(s_seaDepth, 14);
 // [0] y: soft edges, z: glint (each 0 or 1), w: far plane of the packed scene distance
-// [1] xyz: towards the sun or moon (world)   [2] x: glint strength, w: 1 / edge depth (metres)
+// [1] xyz: towards the sun or moon (world), w: the square of its disc's half size (tangent of the angle to the edge)
+// [2] x: the sun glint's strength, w: 1 / edge depth (metres)
 // [3] rgb: current game water colour, w: extinction per metre (0 disables turbidity).
 // [4] xyz: actual shim camera forward (row-vector view third column).
 // [5] rgb: the sun's light, w: 1 when the light is the sun (else the moon, in the colour of the sun road cube).
@@ -38,6 +40,9 @@ uniform vec4 u_seaFx[6];
 // glint of a calm sea from shrinking to a mirror's point.
 #define SEA_RIPPLE_VARIANCE 0.0008
 #define SEA_PI 3.14159265
+// The moon's light in lobes of the calmest sea (above): 1 dims its road to a faint trace on a calm night's sea, 8 gives
+// the road of the game's own sea (the sheet's night scene) without the broad saturated band of an unbounded lobe.
+#define SEA_MOON_LOBES 8.0
 // The fixed-function finish (fog, alpha test); the technique has no vertex specular to add.
 #define seaFinish(color) ffFinishWith(color, v_fog, v_texcoord0.xy, vec3_splat(0.0))
 
@@ -52,6 +57,13 @@ float seaSchlick(float f0, float cosine)
     float m = 1.0 - clamp(cosine, 0.0, 1.0);
     float m2 = m * m;
     return f0 + (1.0 - f0) * m2 * m2 * m;
+}
+
+// The mean of Schlick's (1 - cos)^5 over a pixel's slopes of deviation `sigma` along the view (Bruneton, Neyret and
+// Holzschuch 2010, their fit).
+float seaMeanFresnel(float cosine, float sigma)
+{
+    return pow(1.0 - clamp(cosine, 0.0, 1.0), 5.0 * exp(-2.69 * sigma)) / (1.0 + 22.7 * pow(sigma, 1.5));
 }
 
 // Smith's masking of the GGX distribution (alpha2 its roughness squared) for one direction.
@@ -78,7 +90,12 @@ void main()
     vec3 e = normalize(v_texcoord1.xyz);
     float nv = max(dot(n, e), 0.001);
     float f0 = u_psc[7].y;
-    float fresnel = seaSchlick(f0, nv);
+    // The hidden slopes tilt part of a pixel's water towards the eye: its mean Fresnel term at a grazing view is far
+    // below the mean normal's (Bruneton et al. 2010's fit), so rough far water reads as water, not as a mirror of the
+    // horizon. The variance that counts is the slopes' along the view.
+    vec2 across = e.xz / max(length(e.xz), 0.001);
+    float sigmaV = sqrt(slope.z * across.x * across.x + slope.w * across.y * across.y);
+    float fresnel = f0 + (1.0 - f0) * seaMeanFresnel(nv, sigmaV);
     vec3 r = reflect(-e, n);
     r.y = max(r.y, 0.0);
     vec3 sky = textureCube(s_cube3, r).rgb;
@@ -95,13 +112,29 @@ void main()
         {
             vec3 h = normalize(l + e);
             float nh = max(dot(n, h), 0.0);
-            float alpha2 = slope.z + slope.w;
+            float hv = max(dot(e, h), 0.01);
+            // The light's disc widens the lobe: a direction to its edge turns the half vector by half its angle, and
+            // the reflected solid angle is 4 (h.v) times the half vector's.
+            float disc2 = u_seaFx[1].w;
+            float alpha2 = slope.z + slope.w + disc2 / (4.0 * hv);
             float d = nh * nh * (alpha2 - 1.0) + 1.0;
             float ggx = alpha2 / (SEA_PI * d * d);
             float g = seaSmithG1(nl, alpha2) * seaSmithG1(nv, alpha2);
-            float glint = ggx * g * seaSchlick(f0, dot(e, h)) / (4.0 * nv);
-            vec3 light = u_seaFx[5].w > 0.5 ? u_seaFx[5].rgb : textureCube(s_cube2, l).rgb;
-            r0.rgb += glint * u_seaFx[2].x * light;
+            if (u_seaFx[5].w > 0.5)
+            {
+                // The sun: its light over the lobe, far brighter than the screen where the facets mirror its disc.
+                r0.rgb += ggx * g * seaSchlick(f0, hv) / (4.0 * nv) * u_seaFx[2].x * u_seaFx[5].rgb;
+            }
+            else
+            {
+                // The moon: its disc as the game draws it (the sun road cube at l), reflected. The screen clamps the
+                // disc far below its real brightness, so its light is taken as SEA_MOON_LOBES lobes of the calmest
+                // sea: where the facets mirror it the road shows the disc's own colour (never brighter), and where the
+                // slopes vary more the same light spreads wider and dimmer (the lobe keeps its integral).
+                float calm2 = 2.0 * SEA_RIPPLE_VARIANCE + disc2 / (4.0 * hv);
+                float road = ggx * g * SEA_PI * calm2 * SEA_MOON_LOBES;
+                r0.rgb += min(road, 1.0) * textureCube(s_cube2, l).rgb;
+            }
         }
     }
     float gap = -1.0;

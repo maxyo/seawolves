@@ -680,6 +680,5 @@ void SUNGLOW::DrawRect(uint32_t dwColor, const glm::vec3 &pos, float fSize, floa
 
 float SUNGLOW::GetSunFadeoutFactor() const
 {
-    // The rain clouds hide the sun; the fair-weather clouds drift past it.
-    return 1.0f - static_cast<const WEATHER *>(pWeather)->Environment().rain_clouds;
+    return static_cast<const WEATHER *>(pWeather)->Environment().DiscShown();
 }

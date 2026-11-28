@@ -9,9 +9,12 @@ void SceneSweep_DropOpeningWeather()
 	startGameWeather = false;
 }
 
-// The weather of a whole hour, for the time the scene has just set.
+// The weather of a whole hour, for the time the scene has just set. Without rain: the day's rain is drawn at random
+// (WhrWeather.c) and its clouds would change a scene's sky from one sweep to the next.
 void SceneSweep_Weather(int hour)
 {
+	bRains = false;
+	WeatherParams.Rain.ThisDay = false;
 	string name = "0 Hours";
 	if(hour != 0) name = its(hour) + " Hour";
 	SetNextWeather(name);

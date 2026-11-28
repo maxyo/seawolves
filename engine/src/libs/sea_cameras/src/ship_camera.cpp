@@ -209,6 +209,7 @@ void SHIP_CAMERA::ApplyView([[maybe_unused]] bool acceptZoom)
     const auto fWaveY = pSea->WaveXZ(vPos.x, vPos.z);
     if (vPos.y - fWaveY < fMinHeightOnSea)
         vPos.y = fWaveY + fMinHeightOnSea;
+    KeepShipInSight(vPos, vCenter);
     const auto oldPosY = vPos.y;
     // Ships collision
     ShipsCollision(vPos);
@@ -223,6 +224,23 @@ void SHIP_CAMERA::ApplyView([[maybe_unused]] bool acceptZoom)
     // Set new camera
     pRS->SetCamera(vPos, vCenter, glm::vec3(0.0f, 1.0f, 0.0f));
     pRS->SetPerspective(GetPerspective());
+}
+
+// A swell between the camera and the ship hides the ship and fills the view with the back of the crest: the camera
+// rises until its line to the ship clears the water by the camera's own margin above the sea at every sample.
+void SHIP_CAMERA::KeepShipInSight(glm::vec3 &vPos, const glm::vec3 &vCenter) const
+{
+    // Samples along the line, spaced well below the swell's wavelengths of tens of metres a ship's camera spans.
+    constexpr int kSamples = 8;
+    for (int i = 1; i < kSamples; i++)
+    {
+        const float t = static_cast<float>(i) / kSamples;
+        const glm::vec3 p = vPos + (vCenter - vPos) * t;
+        const float water = pSea->WaveXZ(p.x, p.z) + fMinHeightOnSea;
+        // The line's height at t is vPos.y + t (vCenter.y - vPos.y): above the water when vPos.y is at least this.
+        if (p.y < water)
+            vPos.y = std::max(vPos.y, (water - t * vCenter.y) / (1.0f - t));
+    }
 }
 
 void SHIP_CAMERA::SetCharacter(ATTRIBUTES *_pACharacter)

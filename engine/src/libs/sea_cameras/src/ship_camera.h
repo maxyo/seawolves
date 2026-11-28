@@ -40,6 +40,7 @@ class SHIP_CAMERA : public COMMON_CAMERA
 
     void Move(float fDeltaTime);
     void ApplyView(bool acceptZoom);
+    void KeepShipInSight(glm::vec3 &vPos, const glm::vec3 &vCenter) const;
 
     bool Init() override;
     void SetDevices();

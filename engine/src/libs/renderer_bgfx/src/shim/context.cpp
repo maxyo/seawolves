@@ -1347,17 +1347,21 @@ void log_frame_work()
         const auto per_frame = [&](double total) { return counters.frames ? total / counters.frames : 0.0; };
         const double prepare =
             counters.shim_ms - counters.shim_caster_ms - counters.shim_realize_ms - counters.shim_submit_ms;
-        // The sea's field per sea frame (its worker runs beside the game thread: not part of game_work_ms).
+        // The sea's field (its worker runs beside the game thread: not part of game_work_ms): the worker's time and the
+        // upload per new field, the wait per sea frame, the share of sea frames that drew the previous field again.
         const double sea_frames = static_cast<double>(std::max<uint64_t>(counters.sea_field_frames, 1));
+        const double sea_fields =
+            static_cast<double>(std::max<uint64_t>(counters.sea_field_frames - counters.sea_late_frames, 1));
         render::Log().info(
             "frame work: {:.1f} s, {} frames; {} render_submit_ms={:.2f} shim_ms={:.2f} draws={:.0f} {} "
             "shim_prepare_ms={:.2f} shim_caster_ms={:.2f} shim_realize_ms={:.2f} shim_submit_ms={:.2f} "
-            "sea_field_ms={:.2f} sea_wait_ms={:.2f} sea_field_kb={:.0f}",
+            "sea_field_ms={:.2f} sea_wait_ms={:.2f} sea_field_kb={:.0f} sea_late={:.0f}%",
             seconds, window.frames, frame_work::Describe(window, 6), per_frame(counters.submit_ms),
             per_frame(counters.shim_ms), per_frame(static_cast<double>(counters.draws)),
             frame_work::DescribeWorstEvent(window), per_frame(prepare), per_frame(counters.shim_caster_ms),
-            per_frame(counters.shim_realize_ms), per_frame(counters.shim_submit_ms), counters.sea_field_ms / sea_frames,
-            counters.sea_wait_ms / sea_frames, static_cast<double>(counters.sea_field_bytes) / sea_frames / 1024.0);
+            per_frame(counters.shim_realize_ms), per_frame(counters.shim_submit_ms), counters.sea_field_ms / sea_fields,
+            counters.sea_wait_ms / sea_frames, static_cast<double>(counters.sea_field_bytes) / sea_fields / 1024.0,
+            100.0 * static_cast<double>(counters.sea_late_frames) / sea_frames);
     }
     if (const std::string passes = Describe(gpu_passes().take(), seconds); !passes.empty())
         render::Log().info("{}", passes);

@@ -115,12 +115,13 @@ const PerfCounters &PerfTotals()
     return shim::totals;
 }
 
-void NoteSeaField(double worker_ms, double wait_ms, uint64_t upload_bytes)
+void NoteSeaField(double worker_ms, double wait_ms, uint64_t upload_bytes, bool fresh)
 {
     shim::totals.sea_field_ms += worker_ms;
     shim::totals.sea_wait_ms += wait_ms;
     shim::totals.sea_field_bytes += upload_bytes;
     ++shim::totals.sea_field_frames;
+    shim::totals.sea_late_frames += fresh ? 0 : 1;
 }
 
 uint64_t GpuMemoryBudget()
@@ -136,6 +137,7 @@ PerfCounters PerfCounters::Since(const PerfCounters &start) const
     d.sea_field_ms -= start.sea_field_ms;
     d.sea_wait_ms -= start.sea_wait_ms;
     d.sea_field_frames -= start.sea_field_frames;
+    d.sea_late_frames -= start.sea_late_frames;
     d.sea_field_bytes -= start.sea_field_bytes;
     d.skipped_draws -= start.skipped_draws;
     d.views -= start.views;

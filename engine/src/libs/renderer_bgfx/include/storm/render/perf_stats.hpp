@@ -66,11 +66,13 @@ struct PerfCounters
                           // thread's bgfx::frame() with render_thread=0
     double wait_ms = 0;   // game thread waiting for the render thread: in bgfx::frame() and for the present
                           // of the frame it paces on (shim/frame_overlap.hpp)
-    // The sea's wave field (src/libs/sea): its worker's time on the field a frame drew, the game thread's wait for
-    // the worker and the bytes of that field uploaded for the GPU (NoteSeaField).
+    // The sea's wave field (src/libs/sea): its worker's time on each new field, the game thread's wait for the worker
+    // (only at a new layout), the bytes of the new fields uploaded for the GPU, and the sea frames that drew the
+    // previous field again because the worker had not finished (NoteSeaField).
     double sea_field_ms = 0;
     double sea_wait_ms = 0;
     uint64_t sea_field_frames = 0;
+    uint64_t sea_late_frames = 0;
     uint64_t sea_field_bytes = 0;
     double gpu_ms = 0;       // GPU time of the frames bgfx measured with timer queries (0 when unsupported)
     uint64_t gpu_frames = 0; // frames that had a GPU time
@@ -98,7 +100,7 @@ struct PerfCounters
 const PerfCounters &PerfTotals();
 // Game thread, once per sea frame: the worker's milliseconds on the field drawn, the game thread's wait for it and
 // the bytes uploaded of it.
-void NoteSeaField(double worker_ms, double wait_ms, uint64_t upload_bytes);
+void NoteSeaField(double worker_ms, double wait_ms, uint64_t upload_bytes, bool fresh);
 // Game thread: the GPU memory the driver offers, in bytes; 0 when the backend cannot tell (bgfx Stats::gpuMemoryMax).
 uint64_t GpuMemoryBudget();
 
