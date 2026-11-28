@@ -24,7 +24,7 @@ float GEOM::Trace(VERTEX &start, VERTEX &finish)
     glm::dvec3 dirvec, tp, V, AV;
     BSP_NODE *second;
     BSP_NODE *node;
-    SAVAGE *stack;
+    uint32_t depth; // the entries on _stack
     unsigned char *pface;
     unsigned char t;
 
@@ -32,7 +32,7 @@ float GEOM::Trace(VERTEX &start, VERTEX &finish)
     dise = 1.0;
     dirvec = dst - src;
     node = sroot.data();
-    stack = _stack - 1;
+    depth = 0;
 
 rec_loop:;
 
@@ -77,7 +77,7 @@ rec_loop:;
     {
         if (node->left != 0)
         {
-            stack++;
+            SAVAGE *stack = &_stack[depth++];
             stack->node = node;
             stack->dise = dise;
             stack->dist = dist;
@@ -96,7 +96,7 @@ rec_loop:;
     }
     else if (node->right != 0)
     {
-        stack++;
+        SAVAGE *stack = &_stack[depth++];
         stack->node = node;
         stack->dise = dise;
         stack->dist = dist;
@@ -166,17 +166,17 @@ rec_return:;
     if (second == nullptr)
     {
     rec_avoid:;
-        if (stack < _stack)
+        if (depth == 0)
         {
             traceid = -1;
             return 2.0f;
         }
 
-        dise = stack->dise;
-        node = stack->node;
-        dist = stack->dist;
-        second = stack->second;
-        stack--;
+        const SAVAGE &top = _stack[--depth];
+        dise = top.dise;
+        node = top.node;
+        dist = top.dist;
+        second = top.second;
         goto rec_return;
     }
 

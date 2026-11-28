@@ -1453,6 +1453,8 @@ uint32_t CTechnique::ProcessBlock(char *pFile, uint32_t dwSize, char **pStr)
         {
             ProcessTechnique(pFile, dwSize, pStr);
 #ifdef USE_FX
+            if (!*pStr)
+                break; // the file ended in the technique: stepping the null pointer back is undefined
             // HACK: remove after drop sha files support
             // fx files don't have "block" => it has 1 less level. Entry into ProcessBlock occurred
             // by "technique" and the exit from it should use SKIP1 for keepeng "{"
@@ -1591,6 +1593,8 @@ bool CTechnique::DecodeFile(std::string sname)
             if (dwRes == BLOCK_ERROR)
                 return false;
             dwNumBlocks++;
+            if (!pStr)
+                break; // the file ended in the block: stepping the null pointer on is undefined
         }
         SKIP;
     }
