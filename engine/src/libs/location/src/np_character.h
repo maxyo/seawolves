@@ -8,6 +8,9 @@
 #include "entity.h"
 #include "core.h"
 #include "fight_rules.hpp"
+#include "npc_tactics.hpp"
+
+#include <string_view>
 
 class NPCharacter : public AICharacter
 {
@@ -106,6 +109,10 @@ class NPCharacter : public AICharacter
     void UpdateAreaTask();
     // Completing the task of fighting a character
     void UpdateFightCharacter(float dltTime);
+    // The officer order the scripts name in chr_ai.tmpl.tacticalOrder; false when no order drove this frame's task
+    bool UpdateOfficerOrder(float dltTime);
+    // Whether this character's fight is aimed at `chr`
+    bool FightsAt(const Character *chr) const;
 
     // The fight
     // Combat behavior
@@ -202,6 +209,12 @@ class NPCharacter : public AICharacter
     bool bMusketerNoMove; //~!~
 
     void SetEscapeTask(Character *c);
+
+    // Officer orders
+    storm::location::OrderState orderState;
+    storm::location::TargetMemory orderTarget;
+    float orderMoveRetry = 0.0f;
+    std::string_view orderLabel; // the last decision, for the debug view; empty without an order
 };
 
 // Get attacking character

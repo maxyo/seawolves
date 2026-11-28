@@ -173,30 +173,33 @@ void NPCharacter::Update(float dltTime)
     if (fMusketerFireTime <= 0.0f)
         fMusketerFireTime = 0.0f;
 
-    switch (task.task)
+    if (!UpdateOfficerOrder(dltTime))
     {
-    case npct_none:
-        break;
-    case npct_stay:
-        SetFightMode(false);
-        break;
-    case npct_gotopoint:
-        break;
-    case npct_followcharacter:
-        UpdateFollowCharacter(dltTime);
-        break;
-    case npct_fight:
-        UpdateFightCharacter(dltTime);
-        break;
-    case npct_escape:
-        UpdateEscapeCharacter(dltTime);
-        break;
-    case npct_runtoarea:
-    case npct_gotoarea:
-        UpdateAreaTask();
-        break;
-    case npct_dead:
-        break;
+        switch (task.task)
+        {
+        case npct_none:
+            break;
+        case npct_stay:
+            SetFightMode(false);
+            break;
+        case npct_gotopoint:
+            break;
+        case npct_followcharacter:
+            UpdateFollowCharacter(dltTime);
+            break;
+        case npct_fight:
+            UpdateFightCharacter(dltTime);
+            break;
+        case npct_escape:
+            UpdateEscapeCharacter(dltTime);
+            break;
+        case npct_runtoarea:
+        case npct_gotoarea:
+            UpdateAreaTask();
+            break;
+        case npct_dead:
+            break;
+        }
     }
     AICharacter::Update(dltTime);
     auto *const location = GetLocation();
@@ -234,6 +237,9 @@ void NPCharacter::Update(float dltTime)
             location->Print(curPos + glm::vec3(0.0f, height, 0.0f), rad, -2, 1.0f, 0xffffff, 0.5f, "isJump = %s",
                             isJump ? "true" : "false");
         int32_t line = 4;
+        if (!orderLabel.empty())
+            location->Print(curPos + glm::vec3(0.0f, height, 0.0f), rad, line++, 1.0f, 0xffffff, 0.5f, "order(%.*s)",
+                            static_cast<int>(orderLabel.size()), orderLabel.data());
         if (isDebugEx && command.cmd == aicmd_gotopoint)
             location->Print(curPos + glm::vec3(0.0f, height, 0.0f), rad, line++, 1.0f, 0xffffff, 0.5f,
                             "goto(%.2f, %.2f, %.2f)", command.pnt.x, command.pnt.y, command.pnt.z);
@@ -528,6 +534,139 @@ void NPCharacter::UpdateAreaTask()
         task.task = npct_none;
         FailureCommand(tsk);
     }
+}
+
+bool NPCharacter::FightsAt(const Character *chr) const
+{
+    if (!chr)
+        return false;
+    if (task.task == npct_fight && task.target == chr->GetId())
+        return true;
+    return fgtCurType >= fgt_attack_fast && fgtCurType <= fgt_attack_feintc && enemyAttack == chr->GetId();
+}
+
+// The template of an ordered officer sets task None and names the attribute holding the order (its value guard /
+// attack / hold; .target, .combat, .radius, .height, .x/.y/.z); from then the engine alone moves the officer. A fight
+// target is fought by the fight task as any other, so that frame is not the order's.
+bool NPCharacter::UpdateOfficerOrder(float dltTime)
+{
+    using namespace storm::location;
+    orderLabel = {};
+    ATTRIBUTES *order = nullptr;
+    if (AttributesPointer && !deadName && liveValue >= 0.0f)
+    {
+        ATTRIBUTES *name = AttributesPointer->FindAClass(AttributesPointer, "chr_ai.tmpl.tacticalOrder");
+        const char *value = name && name->HasValue() ? static_cast<const char *>(name->GetThisAttr()) : nullptr;
+        if (value && *value)
+            order = AttributesPointer->FindAClass(AttributesPointer, value);
+    }
+    if (!order)
+    {
+        orderState = {};
+        orderTarget = {};
+        return false;
+    }
+    auto *const location = GetLocation();
+    const TacticalTuning &tuning = location->GetNpcTuning().tactical;
+
+    // The guarded character; the player when the order names no one alive here.
+    const auto anchorIndex = static_cast<int32_t>(order->GetAttributeAsDword("target", static_cast<uint32_t>(-1)));
+    NPCharacter *anchor = nullptr;
+    for (const auto &ex : location->supervisor.character)
+    {
+        auto *c = static_cast<NPCharacter *>(ex.c);
+        if (c != this && !c->deadName && c->liveValue >= 0.0f && c->AttributesPointer &&
+            static_cast<int32_t>(c->AttributesPointer->GetAttributeAsDword("index", static_cast<uint32_t>(-1))) ==
+                anchorIndex)
+            anchor = c;
+    }
+    if (!anchor)
+        anchor = static_cast<NPCharacter *>(location->supervisor.player);
+
+    OrderSituation situation;
+    situation.order = ParseOfficerOrder(order->HasValue() ? static_cast<const char *>(order->GetThisAttr()) : "");
+    situation.combat = order->GetAttributeAsDword("combat", 0) != 0;
+    situation.self = curPos;
+    if (anchor)
+        situation.anchor = anchor->curPos;
+    situation.holdPoint = glm::vec3(order->GetAttributeAsFloat("x", 0.0f), order->GetAttributeAsFloat("y", 0.0f),
+                                    order->GetAttributeAsFloat("z", 0.0f));
+    situation.radius = order->GetAttributeAsFloat("radius", tuning.defaultZoneRadius);
+    situation.height = order->GetAttributeAsFloat("height", tuning.defaultZoneHeight);
+
+    // Enemies: living characters of a hostile group in fight mode.
+    NPCharacter *target = nullptr;
+    if (situation.combat)
+    {
+        auto *groups = static_cast<CharactersGroups *>(core.GetEntityPointer(charactersGroups));
+        const int32_t own = groups ? groups->FindGroupIndex(group) : -1;
+        std::vector<TargetCandidate> candidates;
+        std::vector<NPCharacter *> enemies;
+        for (const auto &ex : location->supervisor.character)
+        {
+            auto *c = static_cast<NPCharacter *>(ex.c);
+            if (own < 0 || c == this || c->deadName || c->liveValue < 0.0f || !c->IsFight())
+                continue;
+            const int32_t other = groups->FindGroupIndex(c->group);
+            bool sameGroup = false;
+            if (other < 0 || groups->FindRelation(own, other, &sameGroup).curState != CharactersGroups::rs_enemy ||
+                sameGroup)
+                continue;
+            candidates.push_back({static_cast<int64_t>(c->GetId()), c->curPos, c->FightsAt(this),
+                                  anchor && c->FightsAt(anchor), anchor && anchor->FightsAt(c)});
+            enemies.push_back(c);
+        }
+        const auto chosen = ChooseOrderTarget(candidates, curPos, ZoneOf(situation),
+                                              situation.order == OfficerOrder::guard, orderTarget, dltTime, tuning);
+        if (chosen)
+            target = enemies[*chosen];
+        situation.hasTarget = target != nullptr;
+    }
+    else
+        orderTarget = {};
+
+    const OrderDecision decision = DecideOrder(situation, orderState, tuning);
+    orderLabel = decision.label;
+    orderMoveRetry = std::max(0.0f, orderMoveRetry - dltTime);
+    SetFightMode(decision.fightMode);
+    switch (decision.action)
+    {
+    case OrderAction::fight:
+        if (task.task != npct_fight || task.target != target->GetId())
+        {
+            CmdStay();
+            task.task = lastSetTask = npct_fight;
+            InitFightChartacter(target->GetId());
+        }
+        return false;
+    case OrderAction::follow:
+        if (task.task != npct_followcharacter || task.target != anchor->GetId())
+        {
+            task.task = lastSetTask = npct_followcharacter;
+            InitFollowChartacter(anchor->GetId());
+        }
+        UpdateFollowCharacter(dltTime);
+        return true;
+    case OrderAction::moveToCentre: {
+        const glm::vec3 centre = ZoneOf(situation).centre;
+        task.task = lastSetTask = npct_runtopoint;
+        task.target = {};
+        task.to = centre;
+        task.stopRadius = tuning.returnStopDistance;
+        task.isCheckBusy = 1;
+        SetRunMode(true);
+        if (NeedOrderMove(command.cmd == aicmd_gotopoint, command.pnt, centre, orderMoveRetry, tuning) &&
+            !CmdGotoPoint(centre.x, centre.y, centre.z, tuning.returnStopDistance, -1, true))
+            orderMoveRetry = tuning.moveRetryTime;
+        return true;
+    }
+    case OrderAction::stay:
+        task.task = lastSetTask = npct_stay;
+        task.target = {};
+        CmdStay();
+        return true;
+    }
+    return true;
 }
 
 // Combat mission execution

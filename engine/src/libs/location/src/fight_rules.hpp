@@ -6,6 +6,7 @@
 
 #include "land_protocol.hpp"
 #include "message.h"
+#include "npc_tactics.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -33,6 +34,7 @@ struct NpcTuning
     float cancelParryReactionMin = 0.1f;     // NPC_DEFAULT_CANCEL_PARRY_REACTION_MIN, s
     float cancelParryReactionMax = 0.4f;     // NPC_DEFAULT_CANCEL_PARRY_REACTION_MAX, s
     float cancelParryRefresh = 2.0f;         // NPC_DEFAULT_CANCEL_PARRY_REFRESH, s
+    TacticalTuning tactical;
 };
 
 // Applies the values of the file to `tuning`; on an error returns it and leaves `tuning` as it was.

@@ -200,8 +200,11 @@ TEST_CASE("the attack and fire events in each game's layout")
 TEST_CASE("the tuning file sets the constants, or leaves all of them on an error")
 {
     NpcTuning tuning;
-    CHECK_FALSE(ApplyNpcTuning(R"({"version": 1, "values": {"NPC_CANCEL_BLOCK_DURATION": 0.5, "OTHER": 1}})", tuning));
+    CHECK_FALSE(ApplyNpcTuning(R"({"version": 1, "values": {"NPC_CANCEL_BLOCK_DURATION": 0.5, "OTHER": 1,
+                                                          "NPC_TACTICAL_ZONE_INNER_MARGIN": 0.75}})",
+                               tuning));
     CHECK(tuning.cancelBlockDuration == 0.5f);
+    CHECK(tuning.tactical.zoneInnerMargin == 0.75f);
     CHECK(tuning.attackCancelTargetDistance == 2.5f);
     CHECK(ApplyNpcTuning(R"({"version": 2, "values": {"NPC_CANCEL_BLOCK_DURATION": 0.9}})", tuning));
     CHECK(ApplyNpcTuning(R"({"version": 1, "values": {"NPC_ATTACK_CANCEL_TARGET_DISTANCE": 3,

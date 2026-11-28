@@ -19,25 +19,41 @@ std::optional<std::string> ApplyNpcTuning(std::string_view json, NpcTuning &tuni
     const auto values = root.find("values");
     if (values == root.end() || !values->is_object())
         return "no \"values\" object";
-    const std::map<std::string_view, float NpcTuning::*> names = {
-        {"NPC_ATTACK_CANCEL_TARGET_DISTANCE", &NpcTuning::attackCancelTargetDistance},
-        {"NPC_CANCEL_FAST_COUNTER_RESET_TIME", &NpcTuning::cancelFastCounterResetTime},
-        {"NPC_CANCEL_BLOCK_DURATION", &NpcTuning::cancelBlockDuration},
-        {"NPC_DEFAULT_CANCEL_DIST_REACTION_MIN", &NpcTuning::cancelDistReactionMin},
-        {"NPC_DEFAULT_CANCEL_DIST_REACTION_MAX", &NpcTuning::cancelDistReactionMax},
-        {"NPC_DEFAULT_CANCEL_PARRY_REACTION_MIN", &NpcTuning::cancelParryReactionMin},
-        {"NPC_DEFAULT_CANCEL_PARRY_REACTION_MAX", &NpcTuning::cancelParryReactionMax},
-        {"NPC_DEFAULT_CANCEL_PARRY_REFRESH", &NpcTuning::cancelParryRefresh},
+    using Field = float &(*)(NpcTuning &);
+#define STORM_NPC_TUNING(name, member)                                                                                 \
+    {                                                                                                                  \
+        name, [](NpcTuning &t) -> float & { return t.member; }                                                         \
+    }
+    const std::map<std::string_view, Field> names = {
+        STORM_NPC_TUNING("NPC_ATTACK_CANCEL_TARGET_DISTANCE", attackCancelTargetDistance),
+        STORM_NPC_TUNING("NPC_CANCEL_FAST_COUNTER_RESET_TIME", cancelFastCounterResetTime),
+        STORM_NPC_TUNING("NPC_CANCEL_BLOCK_DURATION", cancelBlockDuration),
+        STORM_NPC_TUNING("NPC_DEFAULT_CANCEL_DIST_REACTION_MIN", cancelDistReactionMin),
+        STORM_NPC_TUNING("NPC_DEFAULT_CANCEL_DIST_REACTION_MAX", cancelDistReactionMax),
+        STORM_NPC_TUNING("NPC_DEFAULT_CANCEL_PARRY_REACTION_MIN", cancelParryReactionMin),
+        STORM_NPC_TUNING("NPC_DEFAULT_CANCEL_PARRY_REACTION_MAX", cancelParryReactionMax),
+        STORM_NPC_TUNING("NPC_DEFAULT_CANCEL_PARRY_REFRESH", cancelParryRefresh),
+        STORM_NPC_TUNING("NPC_TACTICAL_DEFAULT_ZONE_RADIUS", tactical.defaultZoneRadius),
+        STORM_NPC_TUNING("NPC_TACTICAL_DEFAULT_ZONE_HEIGHT", tactical.defaultZoneHeight),
+        STORM_NPC_TUNING("NPC_TACTICAL_ZONE_OUTER_MARGIN", tactical.zoneOuterMargin),
+        STORM_NPC_TUNING("NPC_TACTICAL_ZONE_INNER_MARGIN", tactical.zoneInnerMargin),
+        STORM_NPC_TUNING("NPC_TACTICAL_CENTER_STOP_DISTANCE", tactical.centerStopDistance),
+        STORM_NPC_TUNING("NPC_TACTICAL_RETURN_STOP_DISTANCE", tactical.returnStopDistance),
+        STORM_NPC_TUNING("NPC_TACTICAL_MOVE_RETRY_TIME", tactical.moveRetryTime),
+        STORM_NPC_TUNING("NPC_TACTICAL_REPATH_DISTANCE_SQUARED", tactical.repathDistanceSquared),
+        STORM_NPC_TUNING("NPC_TACTICAL_ESCAPE_START_DISTANCE_SQUARED", tactical.escapeStartDistanceSquared),
+        STORM_NPC_TUNING("NPC_TACTICAL_TARGET_CHECK_INTERVAL", tactical.targetCheckInterval),
     };
+#undef STORM_NPC_TUNING
     NpcTuning read = tuning;
-    for (const auto &[name, member] : names)
+    for (const auto &[name, field] : names)
     {
         const auto value = values->find(name);
         if (value == values->end())
             continue; // the engine keeps its value, as for a name the file leaves out
         if (!value->is_number())
             return std::string(name) + " is not a number";
-        read.*member = value->get<float>();
+        field(read) = value->get<float>();
     }
     tuning = read;
     return std::nullopt;
