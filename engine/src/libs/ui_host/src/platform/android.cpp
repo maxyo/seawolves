@@ -8,7 +8,6 @@
 #include "storm_ui/asset_files.h"
 
 #include <SDL2/SDL_system.h>
-#include <android/asset_manager_jni.h>
 #include <jni.h>
 #include <spdlog/sinks/android_sink.h>
 
@@ -17,7 +16,6 @@ namespace storm::android::ui
 namespace
 {
 using storm::android::CallActivity;
-jobject assets = nullptr; // keeps the Java AssetManager of the pack alive
 
 // The local Java strings of one upcall's texts. ok() is false (logged) when one of them is not valid UTF-8 or the VM
 // failed (its exception pending): the upcall is then not made.
@@ -75,28 +73,10 @@ bool Ready()
     return SDL_AndroidGetJNIEnv() != nullptr;
 }
 
-// The activity's AssetManager, kept alive by a global reference, and the UI pack in it.
+// The UI pack in the activity's assets, through the AssetManager the layers read too.
 std::unique_ptr<storm::ui::FileSource> OpenPack()
 {
-    auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
-    auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
-    if (!env || !activity)
-        throw std::runtime_error("the UI pack cannot be opened: no activity");
-    const jclass type = env->GetObjectClass(activity);
-    const jmethodID get_assets = env->GetMethodID(type, "getAssets", "()Landroid/content/res/AssetManager;");
-    const jobject local = env->CallObjectMethod(activity, get_assets);
-    assets = env->NewGlobalRef(local);
-    env->DeleteLocalRef(local);
-    env->DeleteLocalRef(type);
-    env->DeleteLocalRef(activity);
-    return storm::ui::AssetFiles(AAssetManager_fromJava(env, assets), "ui");
-}
-
-void ClosePack()
-{
-    if (auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv()); env && assets)
-        env->DeleteGlobalRef(assets);
-    assets = nullptr;
+    return storm::ui::AssetFiles(storm::android::assets(), "ui");
 }
 
 void ShowTextEditor(const storm::ui::TextRequest &request)

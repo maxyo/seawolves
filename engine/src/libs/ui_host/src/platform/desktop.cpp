@@ -174,10 +174,6 @@ std::unique_ptr<storm::ui::FileSource> OpenPack()
     return storm::ui::DirectoryFiles(root.string());
 }
 
-void ClosePack()
-{
-}
-
 void ShowTextEditor(const storm::ui::TextRequest &request)
 {
     // No editor is drawn: the field shows its text once submitted. A request over an open one cancels the open one.

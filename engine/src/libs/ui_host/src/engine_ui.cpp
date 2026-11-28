@@ -162,7 +162,6 @@ void EngineUi::Shutdown()
     }
     backend_.reset();
     files_.reset();
-    ui_platform::ClosePack();
     failed_ = true; // no new host after this
 }
 

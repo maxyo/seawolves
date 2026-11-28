@@ -1,5 +1,7 @@
 #include "storm_ui/asset_files.h"
 
+#include "platform/apk_assets.hpp"
+
 namespace storm::ui
 {
 
@@ -17,15 +19,7 @@ class AssetSource final : public FileSource
     {
         if (path.find("..") != std::string::npos)
             return false;
-        const std::string full = directory_.empty() ? path : directory_ + "/" + path;
-        AAsset *asset = AAssetManager_open(assets_, full.c_str(), AASSET_MODE_BUFFER);
-        if (!asset)
-            return false;
-        const off64_t length = AAsset_getLength64(asset);
-        out.resize(static_cast<size_t>(length));
-        const int read = length > 0 ? AAsset_read(asset, out.data(), out.size()) : 0;
-        AAsset_close(asset);
-        return read == static_cast<int>(length);
+        return storm::apk::readAsset(assets_, directory_.empty() ? path : directory_ + "/" + path, out);
     }
 
   private:

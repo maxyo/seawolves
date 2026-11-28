@@ -59,7 +59,6 @@ namespace ui_platform
 bool Ready();
 // The UI pack, read in place (the APK's assets, a directory on the desktop); thrown when there is none.
 std::unique_ptr<storm::ui::FileSource> OpenPack();
-void ClosePack();
 void ShowTextEditor(const storm::ui::TextRequest &request);
 // The touch interface cannot start: the player is told `reason`.
 void UiFailed(const std::string &reason);
