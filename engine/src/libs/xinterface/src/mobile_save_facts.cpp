@@ -5,6 +5,7 @@
 #include "v_file_service.h"
 
 #include "mobile_save_facts.hpp"
+#include "save_autosave.hpp"
 #include "save_thumbnail.hpp"
 #include "utf8.h"
 
@@ -12,6 +13,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <ctime>
 #include <filesystem>
 #include <utility>
@@ -118,6 +120,30 @@ const SaveFactsCache::Entry &SaveFactsCache::get(const std::string &path)
 namespace
 {
 SaveFactsCache saveFacts;
+
+// When a record was written, as its list names the day against the phone's date now: "today", "yesterday", "year"
+// (earlier this year) or "" (another year).
+std::string CreatedWhen(const std::string &created)
+{
+    std::tm then{};
+    if (std::sscanf(created.c_str(), "%4d-%2d-%2d", &then.tm_year, &then.tm_mon, &then.tm_mday) != 3)
+        return "";
+    then.tm_year -= 1900;
+    then.tm_mon -= 1;
+    then.tm_hour = 12;
+    const std::time_t now = std::time(nullptr);
+    std::tm today{};
+    localtime_r(&now, &today);
+    today.tm_hour = 12;
+    today.tm_min = today.tm_sec = 0;
+    const int year = then.tm_year;
+    const double days = std::difftime(std::mktime(&today), std::mktime(&then)) / 86400.0;
+    if (days > -0.5 && days < 0.5)
+        return "today";
+    if (days >= 0.5 && days < 1.5)
+        return "yesterday";
+    return year == today.tm_year ? "year" : "";
+}
 } // namespace
 
 std::map<std::string, std::string> SaveRowContext(const SaveListSnapshot &state, size_t index)
@@ -148,6 +174,13 @@ std::map<std::string, std::string> SaveRowContext(const SaveListSnapshot &state,
                                      {"created", facts.created}})
         if (!value.empty())
             context[key] = value;
+    if (!facts.created.empty())
+        context["createdWhen"] = CreatedWhen(facts.created);
+    // The autosave rotation's records and the record a game writes itself before a boarding ("<profile> AutoSave",
+    // interface.c AutoSaveContinue): listed as their own group, never deleted or overwritten by the player.
+    const std::string &file = state.records[index].file;
+    if (storm::save::AutosaveRecordNumber(file) != 0 || file.ends_with(" AutoSave"))
+        context["autosave"] = "1";
     if (entry.thumbnail)
         context["preview"] = save::thumbnail::Source(path, state.revision, entry.written);
     if (facts.playMinutes >= 0)

@@ -343,11 +343,13 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
         "tag": "c-line", "behaviors": ["press"], "props": {"title": {"type": "text", "default": ""}},
         "template": "<div style=\"display: block; width: 100%; height: 100%;\">{{title}}</div>"})"));
     // The reading card is the application's script screen: its props as the pack's spec shapes them.
-    Json reading_actions;
+    Json reading_actions, saves_props;
     const Json app_components = Json::parse(ReadText(app_pack / "components.json"));
     for (const Json &component : app_components.at("components"))
         if (component.at("tag") == "s-reading")
             reading_actions = component["props"]["actions"];
+        else if (component.at("tag") == "s-saves")
+            saves_props = component["props"];
     const char *screen_style = "position: absolute; left: 0; top: 0; right: 0; bottom: 0; font-family: LatoLatin;";
     const char *dialog_style = "display: flex; position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 20; "
                                "justify-content: center; align-items: center;";
@@ -369,6 +371,9 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
                                         "absolute; left: 0; top: 0; width: 800dp; height: 60dp;\"/><t-if test=\"" +
                                         test + "\"><c-dialog id=\"" + dialog + "\" title=\"modal\" style=\"" +
                                         dialog_style + "\"/></t-if></div>"}};
+        // The saves list is the application's script screen too: every prop of the pack's spec.
+        if (std::string(tag) == "s-saves")
+            screen["props"] = saves_props;
         components["components"].push_back(screen);
     }
     std::ofstream(pack / "components.json") << components.dump();

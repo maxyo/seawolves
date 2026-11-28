@@ -172,9 +172,10 @@ static void Saves(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     // The second record carries an embedded thumbnail: the pack contract draws the detail column with it.
     router.SetInterface(Load(models, "saves-load.json"));
-    ExpectEqual(router.Using(), "save_load", "saves is a ported screen");
+    ExpectEqual(router.Using(), "save_load", "saves is a script screen");
     ExpectEqual(surface.tag, "s-saves", "saves mounted");
     Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty() && surface.props["extras"]["note"] == "",
            "every node of the saves screen is known");
@@ -288,10 +289,9 @@ static void Saves(const std::string &models)
     Without(empty, "ANDROID_SAVES");
     empty.opening = 50;
     router.SetInterface(empty);
-    surface.now += 1.0; // a rejected opening is reported once it has settled
-    router.Tick();
-    Expect(!router.Active() && router.Rejection() == "ANDROID_SAVES(list)" && surface.errors.size() == 1,
-           "without the engine's record list the saves screen is rejected loudly");
+    Expect(!router.Active() && surface.errors.size() == 1 &&
+               surface.errors[0].find("the engine lists no records") != std::string::npos,
+           "without the engine's record list the saves screen fails loudly");
 }
 
 // The settings screen on one router: the game page and its toggles, the controls and graphics pages, the cache, a
@@ -792,6 +792,7 @@ static void SavesRefused(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "saves-load.json"));
     router.OnEvent({"saves", "row", "2"});
     router.OnEvent({"primary", "click", ""});
@@ -845,6 +846,7 @@ static void Autosaves(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "saves-autosave.json"));
     const Json rows = surface.props["rows"];
     Expect(rows.size() == 4 && rows[0]["cells"][0]["text"] == "<save.autosave>" &&

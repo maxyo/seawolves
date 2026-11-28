@@ -1,0 +1,1833 @@
+{
+ "$comment": "The save list's script on recorded models: the props its view gives, the modal it binds and the calls its build and events make (the rows' activate and delete carry the row's identity, as the engine checks it).",
+ "cases": [
+  {
+   "name": "loading: the records, the game's choice in the detail; another chosen, loaded, deleted",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 9,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "3",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Порт Альфа",
+      "value": "0",
+      "index": 0,
+      "rowId": "1",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20",
+       "created": "2001-03-10 08:50",
+       "playMinutes": "300"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Бухта Бета",
+      "value": "1",
+      "index": 1,
+      "rowId": "2",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Бухта Бета",
+       "gameDate": "1654-10-02",
+       "gameTime": "11:20",
+       "created": "2001-03-11 08:51",
+       "playMinutes": "402",
+       "preview": "save-preview/9/123/706c61796572/6f6c64"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Остров Гамма",
+      "value": "0",
+      "index": 2,
+      "rowId": "3",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "location": "Остров Гамма",
+       "gameDate": "1654-10-03",
+       "gameTime": "12:20",
+       "created": "2001-03-12 08:52",
+       "playMinutes": "1500"
+      }
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Записи  ",
+      "index": -1
+     },
+     {
+      "node": "SAVE_SELECTER",
+      "type": "stepper",
+      "label": "Записи",
+      "index": -1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Порт Альфа",
+      "index": 0
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "10:20  01.10.1654",
+      "index": 1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:50:21 10.03.2001",
+      "index": 2
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Бухта Бета",
+      "index": 3
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "11:20  02.10.1654",
+      "index": 4
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:51:21 11.03.2001",
+      "index": 5
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Остров Гамма",
+      "index": 6
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "12:20  03.10.1654",
+      "index": 7
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:52:21 12.03.2001",
+      "index": 8
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 9
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 10
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 11
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 12
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 13
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 14
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 15
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 16
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 17
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 18
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 19
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 20
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 21
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 22
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 23
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 24
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 25
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 26
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 27
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 28
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 29
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Профиль: P",
+      "index": 0
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Время в игре: 6 hours 42 min.",
+      "index": 1
+     },
+     {
+      "node": "OFFICER1",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "Капитан",
+      "index": 0
+     },
+     {
+      "node": "BTN_PROFILE",
+      "type": "button",
+      "label": "Профиль",
+      "index": -1
+     },
+     {
+      "node": "BTN_SAVELOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "BTN_DELETE",
+      "type": "button",
+      "label": "Удалить",
+      "index": -1
+     },
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Выход",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "detail": {
+     "busy": false,
+     "delete": true,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.game_date>",
+       "v": "2 <common.month_10> 1654, 11:20"
+      },
+      {
+       "k": "<save.play_time>",
+       "v": "6 <save.hours> 42 <save.minutes>"
+      },
+      {
+       "k": "<save.created>",
+       "v": "11 <common.month_3> 2001"
+      }
+     ],
+     "preview": "save-preview/9/123/706c61796572/6f6c64",
+     "primary": "<save.load>",
+     "reason": "",
+     "sub": "Герой Альфа",
+     "title": "Бухта Бета"
+    },
+    "rows": [
+     {
+      "cells": [
+       "Герой Альфа · Порт Альфа",
+       {
+        "sub": "10 <common.month_3> 2001",
+        "text": "1 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Порт Альфа",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Герой Альфа · Бухта Бета",
+       {
+        "sub": "11 <common.month_3> 2001",
+        "text": "2 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Бухта Бета",
+      "selected": true
+     },
+     {
+      "cells": [
+       "Остров Гамма",
+       {
+        "sub": "12 <common.month_3> 2001",
+        "text": "3 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Остров Гамма",
+      "selected": false
+     }
+    ],
+    "title": "<save.title_load>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "saves",
+     "row",
+     "2"
+    ],
+    [
+     "primary",
+     "",
+     ""
+    ],
+    [
+     "delete",
+     "",
+     ""
+    ],
+    [
+     "header-back",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "rebuild",
+    "send ANDROID_SAVE_LIST#2 activate 3",
+    "hold",
+    "send ANDROID_SAVE_LIST#2 delete 3",
+    "hold",
+    "back BTN_EXIT"
+   ]
+  },
+  {
+   "name": "writing: the new record leads and is written; an existing one is written over",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 10,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "3",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Порт Альфа",
+      "value": "0",
+      "index": 0,
+      "rowId": "1",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20",
+       "created": "2001-03-10 08:50",
+       "playMinutes": "300"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Бухта Бета",
+      "value": "1",
+      "index": 1,
+      "rowId": "2",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Бухта Бета",
+       "gameDate": "1654-10-02",
+       "gameTime": "11:20",
+       "created": "2001-03-11 08:51",
+       "playMinutes": "402"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Остров Гамма",
+      "value": "0",
+      "index": 2,
+      "rowId": "3",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "location": "Остров Гамма",
+       "gameDate": "1654-10-03",
+       "gameTime": "12:20",
+       "created": "2001-03-12 08:52",
+       "playMinutes": "1500"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "value": "0",
+      "index": 3,
+      "rowId": "4",
+      "actions": [
+       "activate"
+      ],
+      "unavailableReason": "new",
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Дельта",
+       "playMinutes": "1520"
+      }
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Записи  ",
+      "index": -1
+     },
+     {
+      "node": "SAVE_SELECTER",
+      "type": "stepper",
+      "label": "Записи",
+      "index": -1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Порт Альфа",
+      "index": 0
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "10:20  01.10.1654",
+      "index": 1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:50:21 10.03.2001",
+      "index": 2
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Бухта Бета",
+      "index": 3
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "11:20  02.10.1654",
+      "index": 4
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:51:21 11.03.2001",
+      "index": 5
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Остров Гамма",
+      "index": 6
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "12:20  03.10.1654",
+      "index": 7
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:52:21 12.03.2001",
+      "index": 8
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 9
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 10
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 11
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 12
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 13
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 14
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 15
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 16
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 17
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 18
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 19
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 20
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 21
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 22
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 23
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 24
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 25
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 26
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 27
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 28
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 29
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Профиль: P",
+      "index": 0
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Время в игре: 6 hours 42 min.",
+      "index": 1
+     },
+     {
+      "node": "OFFICER1",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "Капитан",
+      "index": 0
+     },
+     {
+      "node": "BTN_PROFILE",
+      "type": "button",
+      "label": "Профиль",
+      "index": -1
+     },
+     {
+      "node": "BTN_SAVELOAD",
+      "type": "button",
+      "label": "Сохранить",
+      "index": -1
+     },
+     {
+      "node": "BTN_DELETE",
+      "type": "button",
+      "label": "Удалить",
+      "index": -1
+     },
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Выход",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "detail": {
+     "busy": false,
+     "delete": false,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.play_time>",
+       "v": "25 <save.hours> 20 <save.minutes>"
+      }
+     ],
+     "preview": "",
+     "primary": "<save.save>",
+     "reason": "",
+     "sub": "Герой Альфа",
+     "title": "Порт Дельта"
+    },
+    "rows": [
+     {
+      "cells": [
+       {
+        "icon": "plus",
+        "iconTone": "brass",
+        "sub": "Герой Альфа · Порт Дельта",
+        "text": "<save.new>"
+       },
+       "",
+       ""
+      ],
+      "disabled": false,
+      "key": "",
+      "selected": true
+     },
+     {
+      "cells": [
+       "Герой Альфа · Порт Альфа",
+       {
+        "sub": "10 <common.month_3> 2001",
+        "text": "1 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Порт Альфа",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Герой Альфа · Бухта Бета",
+       {
+        "sub": "11 <common.month_3> 2001",
+        "text": "2 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Бухта Бета",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Остров Гамма",
+       {
+        "sub": "12 <common.month_3> 2001",
+        "text": "3 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Остров Гамма",
+      "selected": false
+     }
+    ],
+    "title": "<save.title_save>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "primary",
+     "",
+     ""
+    ],
+    [
+     "saves",
+     "row",
+     "1"
+    ],
+    [
+     "primary",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send ANDROID_SAVE_LIST#3 activate 4",
+    "hold",
+    "rebuild",
+    "send ANDROID_SAVE_LIST#0 activate 1",
+    "hold"
+   ]
+  },
+  {
+   "name": "the autosaves: their own group, loaded, never deleted",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 9,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "4",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Порт Альфа",
+      "value": "0",
+      "index": 0,
+      "rowId": "1",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20",
+       "created": "2001-03-10 08:50",
+       "playMinutes": "300"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Автосохранение 2",
+      "value": "0",
+      "index": 1,
+      "rowId": "9",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "autosave": "1",
+       "hero": "Герой Альфа",
+       "location": "Остров Гамма",
+       "gameDate": "1654-10-04",
+       "gameTime": "09:05",
+       "created": "2001-03-13 08:53",
+       "playMinutes": "1510"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Бухта Бета",
+      "value": "1",
+      "index": 2,
+      "rowId": "2",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Бухта Бета",
+       "gameDate": "1654-10-02",
+       "gameTime": "11:20",
+       "created": "2001-03-11 08:51",
+       "playMinutes": "402"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Остров Гамма",
+      "value": "0",
+      "index": 3,
+      "rowId": "3",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "location": "Остров Гамма",
+       "gameDate": "1654-10-03",
+       "gameTime": "12:20",
+       "created": "2001-03-12 08:52",
+       "playMinutes": "1500"
+      }
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Записи  ",
+      "index": -1
+     },
+     {
+      "node": "SAVE_SELECTER",
+      "type": "stepper",
+      "label": "Записи",
+      "index": -1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Порт Альфа",
+      "index": 0
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "10:20  01.10.1654",
+      "index": 1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:50:21 10.03.2001",
+      "index": 2
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Бухта Бета",
+      "index": 3
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "11:20  02.10.1654",
+      "index": 4
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:51:21 11.03.2001",
+      "index": 5
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Остров Гамма",
+      "index": 6
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "12:20  03.10.1654",
+      "index": 7
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:52:21 12.03.2001",
+      "index": 8
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 9
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 10
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 11
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 12
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 13
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 14
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 15
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 16
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 17
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 18
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 19
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 20
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 21
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 22
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 23
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 24
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 25
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 26
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 27
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 28
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 29
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Профиль: P",
+      "index": 0
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Время в игре: 6 hours 42 min.",
+      "index": 1
+     },
+     {
+      "node": "OFFICER1",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "Капитан",
+      "index": 0
+     },
+     {
+      "node": "BTN_PROFILE",
+      "type": "button",
+      "label": "Профиль",
+      "index": -1
+     },
+     {
+      "node": "BTN_SAVELOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "BTN_DELETE",
+      "type": "button",
+      "label": "Удалить",
+      "index": -1
+     },
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Выход",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "detail": {
+     "busy": false,
+     "delete": true,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.game_date>",
+       "v": "2 <common.month_10> 1654, 11:20"
+      },
+      {
+       "k": "<save.play_time>",
+       "v": "6 <save.hours> 42 <save.minutes>"
+      },
+      {
+       "k": "<save.created>",
+       "v": "11 <common.month_3> 2001"
+      }
+     ],
+     "preview": "",
+     "primary": "<save.load>",
+     "reason": "",
+     "sub": "Герой Альфа",
+     "title": "Бухта Бета"
+    },
+    "rows": [
+     {
+      "cells": [
+       {
+        "sub": "Герой Альфа · Остров Гамма",
+        "text": "<save.autosave>"
+       },
+       {
+        "sub": "13 <common.month_3> 2001",
+        "text": "4 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       {
+        "icon": "energy",
+        "iconOnly": true,
+        "iconTone": "gold"
+       }
+      ],
+      "disabled": false,
+      "key": "Автосохранение 2",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Герой Альфа · Порт Альфа",
+       {
+        "sub": "10 <common.month_3> 2001",
+        "text": "1 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Порт Альфа",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Герой Альфа · Бухта Бета",
+       {
+        "sub": "11 <common.month_3> 2001",
+        "text": "2 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Бухта Бета",
+      "selected": true
+     },
+     {
+      "cells": [
+       "Остров Гамма",
+       {
+        "sub": "12 <common.month_3> 2001",
+        "text": "3 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Остров Гамма",
+      "selected": false
+     }
+    ],
+    "title": "<save.title_load>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "saves",
+     "row",
+     "0"
+    ],
+    [
+     "primary",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "rebuild",
+    "send ANDROID_SAVE_LIST#1 activate 9",
+    "hold"
+   ]
+  },
+  {
+   "name": "the game's question: its text, answered and declined",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 2,
+    "screenRevision": 9,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "3",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Порт Альфа",
+      "value": "0",
+      "index": 0,
+      "rowId": "1",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Порт Альфа",
+       "gameDate": "1654-10-01",
+       "gameTime": "10:20",
+       "created": "2001-03-10 08:50",
+       "playMinutes": "300"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Бухта Бета",
+      "value": "1",
+      "index": 1,
+      "rowId": "2",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "hero": "Герой Альфа",
+       "location": "Бухта Бета",
+       "gameDate": "1654-10-02",
+       "gameTime": "11:20",
+       "created": "2001-03-11 08:51",
+       "playMinutes": "402"
+      }
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "Остров Гамма",
+      "value": "0",
+      "index": 2,
+      "rowId": "3",
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "context": {
+       "location": "Остров Гамма",
+       "gameDate": "1654-10-03",
+       "gameTime": "12:20",
+       "created": "2001-03-12 08:52",
+       "playMinutes": "1500"
+      }
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Записи  ",
+      "index": -1
+     },
+     {
+      "node": "SAVE_SELECTER",
+      "type": "stepper",
+      "label": "Записи",
+      "index": -1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Порт Альфа",
+      "index": 0
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "10:20  01.10.1654",
+      "index": 1
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:50:21 10.03.2001",
+      "index": 2
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Бухта Бета",
+      "index": 3
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "11:20  02.10.1654",
+      "index": 4
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:51:21 11.03.2001",
+      "index": 5
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "Остров Гамма",
+      "index": 6
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "12:20  03.10.1654",
+      "index": 7
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "08:52:21 12.03.2001",
+      "index": 8
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 9
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 10
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 11
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 12
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 13
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 14
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 15
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 16
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 17
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 18
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 19
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 20
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 21
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 22
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 23
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 24
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 25
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 26
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": "пусто",
+      "index": 27
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 28
+     },
+     {
+      "node": "SAVENOTES",
+      "type": "text",
+      "label": " ",
+      "index": 29
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Профиль: P",
+      "index": 0
+     },
+     {
+      "node": "SAVEINFO",
+      "type": "text",
+      "label": "Время в игре: 6 hours 42 min.",
+      "index": 1
+     },
+     {
+      "node": "OFFICER1",
+      "type": "image",
+      "index": -1
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "Капитан",
+      "index": 0
+     },
+     {
+      "node": "BTN_PROFILE",
+      "type": "button",
+      "label": "Профиль",
+      "index": -1
+     },
+     {
+      "node": "BTN_SAVELOAD",
+      "type": "button",
+      "label": "Загрузить",
+      "index": -1
+     },
+     {
+      "node": "BTN_DELETE",
+      "type": "button",
+      "label": "Удалить",
+      "index": -1
+     },
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Выход",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_TEXT",
+      "type": "text",
+      "label": "Удалить эту запись?",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_YES",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_NO",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "confirm": {
+     "no": "Отмена",
+     "preset": "confirm",
+     "subject": "",
+     "text": "",
+     "title": "Удалить эту запись?",
+     "yes": "Ок"
+    },
+    "detail": {
+     "busy": false,
+     "delete": true,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.game_date>",
+       "v": "2 <common.month_10> 1654, 11:20"
+      },
+      {
+       "k": "<save.play_time>",
+       "v": "6 <save.hours> 42 <save.minutes>"
+      },
+      {
+       "k": "<save.created>",
+       "v": "11 <common.month_3> 2001"
+      }
+     ],
+     "preview": "",
+     "primary": "<save.load>",
+     "reason": "",
+     "sub": "Герой Альфа",
+     "title": "Бухта Бета"
+    },
+    "rows": [
+     {
+      "cells": [
+       "Герой Альфа · Порт Альфа",
+       {
+        "sub": "10 <common.month_3> 2001",
+        "text": "1 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Порт Альфа",
+      "selected": false
+     },
+     {
+      "cells": [
+       "Герой Альфа · Бухта Бета",
+       {
+        "sub": "11 <common.month_3> 2001",
+        "text": "2 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Бухта Бета",
+      "selected": true
+     },
+     {
+      "cells": [
+       "Остров Гамма",
+       {
+        "sub": "12 <common.month_3> 2001",
+        "text": "3 <common.month_10> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "key": "Остров Гамма",
+      "selected": false
+     }
+    ],
+    "title": "<save.title_load>"
+   },
+   "modals": [
+    "confirm confirm-cancel"
+   ],
+   "events": [
+    [
+     "confirm-confirm",
+     "",
+     ""
+    ],
+    [
+     "confirm-cancel",
+     "",
+     ""
+    ],
+    [
+     "header-back",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send CONFIRM_YES press ",
+    "hold",
+    "send CONFIRM_NO press ",
+    "send CONFIRM_NO press "
+   ]
+  }
+ ]
+}

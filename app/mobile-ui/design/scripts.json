@@ -65,6 +65,7 @@
     {"file": "interface/touch/contracts/new_game.c"},
     {"file": "interface/touch/contracts/flag_change.c"},
     {"file": "interface/touch/contracts/musket.c"},
+    {"file": "interface/touch/contracts/saves.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -764,6 +765,23 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/saves.c",
+      "provides": ["adapter:saves"],
+      "binds": [
+        {
+          "capability": "saves", "interface": "save_load",
+          "nodes": [
+            ["BTN_EXIT", "button", true], ["ANDROID_SAVES", "list"], ["ANDROID_SAVE_LIST", "save"],
+            ["TITLE", "heading|text"], ["BTN_SAVELOAD", "button"], ["BTN_DELETE", "button"], ["CONFIRM_TEXT", "text"],
+            ["CONFIRM_YES", "button"], ["CONFIRM_NO", "button"], ["CUSTOM_SAVE_NAME", "edit"], ["CUSTOM_SAVE_MSG", "text"],
+            ["CUSTOM_SAVE_BTN_OK", "button"], ["CUSTOM_SAVE_BTN_CANCEL", "button"], ["SAVE_SELECTER", "stepper"],
+            ["SAVENOTES", "text"], ["SAVEINFO", "text"], ["BTN_PROFILE", "button"], ["PROFILE_*", "*"],
+            ["OFFICER*", "image|text"], ["MAIN_BACK", "image"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -960,6 +978,11 @@
       "file": "interface/touch/screens/new_game.c",
       "uses": ["adapter:new_game"],
       "screens": [{"capability": "new_game", "component": "s-new-game"}]
+    },
+    {
+      "file": "interface/touch/screens/saves.c",
+      "uses": ["adapter:saves"],
+      "screens": [{"capability": "saves", "component": "s-saves"}]
     }
   ]
 }

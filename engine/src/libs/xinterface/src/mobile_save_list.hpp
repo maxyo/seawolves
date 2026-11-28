@@ -78,8 +78,9 @@ bool ChooseSaveProfile(const std::string &profile);
 // SFLB_DoSaveFileData appends "@hero@location" of the game in progress (mobile_save_facts). A record written
 // before that has no hero; its label (the name the game gave it: the location) stands for
 // the location. Published as the row's context: hero, location, gameDate (YYYY-MM-DD),
-// gameTime (HH:MM), created (local YYYY-MM-DD HH:MM of the file), playMinutes; unreadable = "1" for a record
-// without a readable description (the game cannot load it).
+// gameTime (HH:MM), created (local YYYY-MM-DD HH:MM of the file), createdWhen (today, yesterday, year: this year, ""
+// another), playMinutes; autosave = "1" for an autosave record; unreadable = "1" for a record without a readable
+// description (the game cannot load it).
 struct SaveFacts
 {
     std::string hero, location, gameDate, gameTime, created;
