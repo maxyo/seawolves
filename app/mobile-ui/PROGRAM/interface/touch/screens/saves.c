@@ -9,8 +9,7 @@
 
 object TouchSaves;
 object TouchSaves_Game;  // the adapter's state of the last build
-// What the screen keeps between builds: fromTitle; chosen (the record's key); shown.s<k> (the keys in the table's
-// order); asked, askedKey, askedName (what the player asked for last); watching (its answer is awaited); here (the
+// What the screen keeps between builds: fromTitle; chosen (the record's key); asked, askedKey, askedName (what the player asked for last); watching (its answer is awaited); here (the
 // open question answers it); answered, named (the question, the name editor answered for the player).
 object TouchSaves_State;
 // What the player sees as the record's name: the new record, an autosave, «<hero> · <location>» or the location.
@@ -23,6 +22,13 @@ string TouchSaves_Identity(aref record)
 	}
 	if (record.hero == "") return record.location;
 	return record.hero + " · " + record.location;
+}
+
+// A record's row id: its file, the new record's "new" (its key is "", which a row cannot be tapped by).
+string TouchSaves_RowId(string key)
+{
+	if (key == "") return "new";
+	return "file:" + key;
 }
 
 string TouchSaves_Name(aref record)
@@ -234,15 +240,13 @@ void TouchSaves_View(aref ui, aref game, aref state)
 	}
 	if (chosen < 0 && count > 0) chosen = 0;
 	state.chosen = "";
-	DeleteAttribute(state, "shown");
 	aref rows;
 	makearef(rows, TouchSaves.rows);
 	for (k = 0; k < count; k++)
 	{
 		record = GetAttributeN(&order, k);
-		state.shown.("s" + k) = record.key;
 		aref row = TouchLib_Add(rows, "r");
-		row.key = record.key;
+		row.id = TouchSaves_RowId(record.key);
 		row.selected = k == chosen;
 		row.disabled = !sti(record.enabled);
 		aref cells;
@@ -355,9 +359,10 @@ void TouchSaves_Tap()
 	makearef(state, TouchSaves_State);
 	if (id == "saves")
 	{
-		int k = UiAmount(value, "the record's row");
-		if (!CheckAttribute(state, "shown.s" + k)) return;
-		state.chosen = state.shown.("s" + k);
+		string key = "";
+		if (value != "new") key = TouchLib_Cut(value, 5, strlen(value));
+		if (TouchLib_Find(game, "records", "key", key) < 0) return; // the record tapped is gone
+		state.chosen = key;
 		UiRebuild();
 		return;
 	}

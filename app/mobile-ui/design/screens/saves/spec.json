@@ -4,7 +4,7 @@
   "props": {
     "title": {"type": "text", "default": ""},
     "columns": {"type": "json", "default": [], "shape": [{"label": "text", "w": "text", "align": "text"}]},
-    "rows": {"type": "json", "default": [], "shape": [{"key": "text", "cells": [{"$either": ["text", {"text": "text", "sub": "text", "icon": "text", "iconTone": "text", "tone": "text", "iconOnly": "bool"}]}], "selected": "bool", "disabled": "bool"}]},
+    "rows": {"type": "json", "default": [], "shape": [{"id": "text", "cells": [{"$either": ["text", {"text": "text", "sub": "text", "icon": "text", "iconTone": "text", "tone": "text", "iconOnly": "bool"}]}], "selected": "bool", "disabled": "bool"}]},
     "detail": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "preview": "text", "sub": "text", "facts": [{"k": "text", "v": "text"}], "primary": "text", "disabled": "bool", "reason": "text", "delete": "bool", "busy": "bool"}}},
     "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "subject": "text", "text": "text", "yes": "text", "no": "text"}}},
     "extras": {"type": "json", "default": {}}

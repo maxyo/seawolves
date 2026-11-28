@@ -27,7 +27,7 @@ void TouchSails_Build()
 	for (int k = 0; k < TouchLib_Count(game, "emblems"); k++)
 	{
 		aref emblem = TouchLib_Item(game, "emblems", k);
-		object item = {texture = emblem.texture, label = emblem.label, selected = emblem.selected,
+		object item = {id = emblem.key, texture = emblem.texture, label = emblem.label, selected = emblem.selected,
 		               applied = emblem.applied, disabled = !sti(emblem.can)};
 		aref at = TouchLib_Add(emblems, "e");
 		CopyAttributes(at, &item);
@@ -90,5 +90,6 @@ void TouchSails_Tap()
 	if (id == "emblem-prev") { TouchSails_Choose(ui, game, current - 1); return; }
 	if (id == "emblem-next") { TouchSails_Choose(ui, game, current + 1); return; }
 	if (id != "emblems") UiError("sail emblem: no tap of " + id);
-	TouchSails_Choose(ui, game, TouchLib_TapIndex(value, TouchLib_Count(game, "emblems"), "the emblem"));
+	// An emblem gone since the frame the player tapped is -1: the tap ends.
+	TouchSails_Choose(ui, game, TouchLib_Find(game, "emblems", "key", value));
 }

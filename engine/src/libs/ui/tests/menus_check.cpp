@@ -200,7 +200,7 @@ static void Saves(const std::string &models)
                detail["facts"][2]["v"] == "11 <common.month_3> 2001",
            "in-game date, play time, created");
 
-    router.OnEvent({"saves", "row", "2"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 2)});
     ExpectEqual(surface.props["detail"].value("preview", std::string()), "",
                 "selecting a record without an image clears the previous preview");
     ExpectEqual(surface.props["detail"]["title"], "Остров Гамма", "a row tap chooses the record locally");
@@ -254,7 +254,7 @@ static void Saves(const std::string &models)
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t3\tactivate@10:4",
                 "saving activates the new slot");
-    router.OnEvent({"saves", "row", "1"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 1)});
     ExpectEqual(surface.props["detail"]["primary"], "<save.overwrite>",
                 "an existing record when saving: «Перезаписать»");
 
@@ -804,7 +804,7 @@ static void SavesRefused(const std::string &models)
     Router router(surface);
     Scripted(router);
     router.SetInterface(Load(models, "saves-load.json"));
-    router.OnEvent({"saves", "row", "2"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 2)});
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t2\tactivate@9:3",
                 "«Загрузить» activates the record");
@@ -844,11 +844,11 @@ static void SavesRefused(const std::string &models)
         if (row.node == "ANDROID_SAVE_LIST" && row.label == "Остров Гамма")
             row.context["unreadable"] = "1";
     router.SetInterface(damaged);
-    router.OnEvent({"saves", "row", "2"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 2)});
     Expect(surface.props["detail"]["disabled"] == true && surface.props["detail"]["reason"] == "<save.unreadable>" &&
                surface.props["detail"]["delete"] == true,
            "a damaged record: «Загрузить» disabled with the reason, still deletable");
-    router.OnEvent({"saves", "row", "1"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 1)});
     Expect(surface.props["detail"]["disabled"] == false, "a readable record loads");
 }
 
@@ -862,7 +862,7 @@ static void Autosaves(const std::string &models)
     Expect(rows.size() == 4 && rows[0]["cells"][0]["text"] == "<save.autosave>" &&
                rows[0]["cells"][0]["sub"] == "Герой Альфа · Остров Гамма" && rows[0]["cells"][2]["icon"] == "energy",
            "autosaves form their own group at the top, named by the string table, marked by the bolt");
-    router.OnEvent({"saves", "row", "0"});
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 0)});
     Expect(surface.props["detail"]["delete"] == false && surface.props["detail"]["title"] == "Остров Гамма" &&
                surface.props["detail"]["sub"] == "<save.autosave> · Герой Альфа",
            "an autosave has no quick delete");

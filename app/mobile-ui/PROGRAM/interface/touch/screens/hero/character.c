@@ -8,7 +8,7 @@
 #event_handler("UiTap", "TouchCharacter_Tap");
 
 // The adapter's state of the last build (.game), the tab (skills, perks, officers), the perk described (.perk), the
-// skill row described (.help.{table, row}, absent none), the group asked for until the game shows it (.wanted, -1
+// skill row described (.help.{table, row (its id)}, absent none), the group asked for until the game shows it (.wanted, -1
 // none, 0 personal, 1 ship), the post tapped (.posted, -1), the people's list open (.open), a refused learn tapped
 // (.nudge: its build shows what is missing), the person the HUD asked for (.asked, -1).
 object TouchCharacter;
@@ -176,6 +176,7 @@ void TouchCharacter_Table(aref game, aref view, string table, bool points)
 		aref row = TouchLib_Item(from, "rows", k);
 		aref cells;
 		aref line = TouchLib_Add(rows, "r");
+		line.id = row.id;
 		makearef(cells, line.cells);
 		// The game names blade and gun skills by pairs ("Rapiers/Swords"): the first word fits the column.
 		string name = row.name;
@@ -550,7 +551,7 @@ void TouchCharacter_Officers(aref game, aref view)
 void TouchCharacter_Help(aref ui, aref game, aref view)
 {
 	string table = TouchCharacter.help.table;
-	int k = sti(TouchCharacter.help.row);
+	int k = TouchLib_Find(game, "tables." + table + ".rows", "id", TouchCharacter.help.row);
 	object help;
 	TouchAdpCharacter_Help(ui, table, k, &help);
 	aref row = TouchLib_Item(game, "tables." + table + ".rows", k);
@@ -837,11 +838,12 @@ void TouchCharacter_Tap()
 	if (id == "card") { UiRead(game.card.name, TouchCharacter_Facts(game)); return; }
 	if (id == "special" || id == "personal" || id == "ship")
 	{
-		int row = TouchLib_TapIndex(value, TouchLib_Count(game, "tables." + id + ".rows"), "the skill");
+		int row = TouchLib_Find(game, "tables." + id + ".rows", "id", value);
+		if (row < 0) return; // the skill tapped is no longer listed
 		if (verb == "row")
 		{
 			TouchCharacter.help.table = id;
-			TouchCharacter.help.row = row;
+			TouchCharacter.help.row = value;
 			UiRebuild();
 			return;
 		}

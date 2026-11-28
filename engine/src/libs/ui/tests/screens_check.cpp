@@ -141,14 +141,6 @@ static void Commands()
     ExpectEqual(to_string(plain), "", "an action of a plain document is no engine command");
 }
 
-// The id the screen gave the drawn row k of its list `list` ("list": list.rows; else the prop itself): a row's tap
-// carries it.
-static std::string Drawn(const FakeSurface &surface, const char *list, size_t k)
-{
-    const Json &rows = std::string(list) == "list" ? surface.props["list"]["rows"] : surface.props[list];
-    return rows.at(k).at("id").get<std::string>();
-}
-
 // Local feedback (Bindings::Predict): the result of a tap that needs no decision of the game is in the view the
 // tap's own event builds; the game's steps before its answer do not change it; the game's answer confirms it, or
 // corrects it with an error line; a refusal ends it.
@@ -549,7 +541,7 @@ struct StoreRun
 
     void RowTaps()
     {
-        router.OnEvent({"goods", "row", Drawn(surface, "list", 1)});
+        router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 1)});
         ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t1\tactivate@7:goods:1:ship:0",
                     "row tap opens the deal for that row");
         {
@@ -557,7 +549,7 @@ struct StoreRun
             Router sel(sel_surface);
             Scripted(sel);
             sel.SetInterface(Load(models, "store.json"));
-            sel.OnEvent({"goods", "row", Drawn(sel_surface, "list", 1)});
+            sel.OnEvent({"goods", "row", Drawn(sel_surface, "/list/rows", 1)});
             // The game selects the tapped row in one loop and opens its window in the next: the frame
             // between is not shown, the selection and its deal appear together.
             InterfaceModel chosen = Load(models, "store.json");
@@ -581,7 +573,7 @@ struct StoreRun
                    "the deal arrives: the row selected and its deal in the same frame: " +
                        sel_surface.props["list"]["rows"][1].dump());
             // A tap whose window never comes is shown selected after the hold (and said).
-            sel.OnEvent({"goods", "row", Drawn(sel_surface, "list", 2)});
+            sel.OnEvent({"goods", "row", Drawn(sel_surface, "/list/rows", 2)});
             InterfaceModel lone = Load(models, "store.json");
             lone.revision = 32;
             for (Widget &widget : lone.widgets)
@@ -607,7 +599,7 @@ struct StoreRun
             ref.SetInterface(Load(models, "store.json"));
             AnswerAll(ref, ref_surface, true);
             ref_surface.errors.clear();
-            ref.OnEvent({"goods", "row", Drawn(ref_surface, "list", 3)});
+            ref.OnEvent({"goods", "row", Drawn(ref_surface, "/list/rows", 3)});
             ExpectEqual(ref_surface.Last(), "widget:store\tTABLE_LIST\t3\tactivate@7:goods:3:ship:0",
                         "the tapped row's deal is asked for");
             AnswerAll(ref, ref_surface, false,
@@ -623,7 +615,7 @@ struct StoreRun
                    "refused: no hold error after kSelectHold: " +
                        (ref_surface.errors.empty() ? std::string() : ref_surface.errors.back()));
             Expect(ref_surface.actions.size() == sent, "refused: nothing is retried");
-            ref.OnEvent({"goods", "row", Drawn(ref_surface, "list", 2)});
+            ref.OnEvent({"goods", "row", Drawn(ref_surface, "/list/rows", 2)});
             ExpectEqual(ref_surface.Last(), "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:0",
                         "the next tap is not blocked by the refused one");
         }
@@ -745,7 +737,7 @@ struct StoreRun
     void Leaving()
     {
         surface.commands.clear();
-        router.OnEvent({"goods", "row", Drawn(surface, "list", 2)});
+        router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 2)});
         Expect(surface.commands.size() == 2 &&
                    surface.commands[0] == "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:goods:0:ship:0|press" &&
                    surface.commands[1] == "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:0",
@@ -855,7 +847,7 @@ struct StoreRun
             // it.
             AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(0, 1, 28, true));
-            ship_router.OnEvent({"goods", "row", Drawn(ship_surface, "list", 1)});
+            ship_router.OnEvent({"goods", "row", Drawn(ship_surface, "/list/rows", 1)});
             ship_surface.commands.clear();
             ship_router.OnEvent({"header", "subject-prev", ""});
             Expect(ship_surface.commands.empty(),
@@ -881,7 +873,7 @@ struct StoreRun
             tap_router.OnEvent({"header", "subject-next", ""});
             tap_surface.commands.clear();
             tap_router.OnEvent({"goods", "row",
-                                Drawn(tap_surface, "list",
+                                Drawn(tap_surface, "/list/rows",
                                       1)}); // emulator: a tap right after ›, on the rows of the model before the switch
             Expect(tap_surface.commands.empty(),
                    "a row tapped before the switch is in the model is not sent: " + Json(tap_surface.commands).dump());
@@ -893,7 +885,7 @@ struct StoreRun
             tap_router.SetInterface(moved);
             tap_router.OnEvent(
                 {"goods", "row",
-                 Drawn(tap_surface, "list",
+                 Drawn(tap_surface, "/list/rows",
                        3)}); // the selector moved, the rows are still the old ship's: the newer tap counts
             Expect(tap_surface.commands.empty(),
                    "a row tapped before the game bound the new ship is not sent: " + Json(tap_surface.commands).dump());
@@ -916,7 +908,7 @@ struct StoreRun
             tap_router.OnEvent({"header", "subject-prev", ""});
             AnswerAll(tap_router, tap_surface, false, "the owner list changed");
             tap_surface.commands.clear();
-            tap_router.OnEvent({"goods", "row", Drawn(tap_surface, "list", 4)});
+            tap_router.OnEvent({"goods", "row", Drawn(tap_surface, "/list/rows", 4)});
             ExpectEqual(tap_surface.Last(), "widget:store\tTABLE_LIST\t4\tactivate@7:goods:4:ship:1",
                         "after a refused switch a tap goes out at once");
         }
@@ -1125,7 +1117,7 @@ struct CommerceRun
             for (const Widget &widget : open.widgets)
                 if (widget.node == "TABLE_LIST" && widget.value == "1")
                     row_index = std::to_string(widget.index), there = std::atoi(widget.CellText(4).c_str());
-            quick.OnEvent({"goods", "quick", Drawn(quick_surface, "list", std::stoul(row_index))});
+            quick.OnEvent({"goods", "quick", Drawn(quick_surface, "/list/rows", std::stoul(row_index))});
             quick_surface.commands.clear();
             open.revision += 10;
             AnswerAll(quick, quick_surface, true);
@@ -1154,7 +1146,7 @@ struct CommerceRun
             };
             tap.SetInterface(chosen("itemsbox-deal.json", 0, 1));
             const Json before = tap_surface.props;
-            tap.OnEvent({"goods", "row", Drawn(tap_surface, "list", 1)});
+            tap.OnEvent({"goods", "row", Drawn(tap_surface, "/list/rows", 1)});
             AnswerAll(tap, tap_surface, true);
             tap.SetInterface(chosen("itemsbox.json", 1, 2));
             Expect(tap_surface.props == before && tap.Answering(),
@@ -1695,7 +1687,7 @@ struct TransferRun
         Router quick(quick_surface);
         Scripted(quick);
         quick.SetInterface(Load(models, "transfer-loot.json"));
-        quick.OnEvent({"goods", "quick", Drawn(quick_surface, "list", 0)});
+        quick.OnEvent({"goods", "quick", Drawn(quick_surface, "/list/rows", 0)});
         ExpectEqual(quick_surface.Last(), prefix + "TABLE_LIST\t0\tselect", "quick take: the row is selected first");
         AnswerAll(quick, quick_surface, true);
         quick_surface.commands.clear();
@@ -2094,9 +2086,9 @@ static void Nations(const std::string &models)
                 widget.images[0].image = flag;
         router.SetInterface(model);
     };
-    router.OnEvent({"flags", "pick", Drawn(surface, "flags", 1)});
+    router.OnEvent({"flags", "pick", Drawn(surface, "/flags", 1)});
     Expect(surface.commands.empty(), "picking the candidate again sends nothing");
-    router.OnEvent({"flags", "pick", Drawn(surface, "flags", 4)});
+    router.OnEvent({"flags", "pick", Drawn(surface, "/flags", 4)});
     ExpectEqual(surface.Last(), "widget:nationrelation\tRIGHTCHANGE_NATION\t-1\tpress", "a pick presses ›");
     answer("Spain");
     Expect(surface.commands.size() == 2, "the game's next candidate is not the flag asked for: › again");
@@ -2104,9 +2096,9 @@ static void Nations(const std::string &models)
     Expect(surface.commands.size() == 2 && surface.props["flags"][4]["disabled"] == true &&
                surface.props["flags"][1]["selected"] == true && surface.props["flags"][2]["disabled"] == false,
            "back where it started: the game does not offer that flag, off for this opening");
-    router.OnEvent({"flags", "pick", Drawn(surface, "flags", 4)});
+    router.OnEvent({"flags", "pick", Drawn(surface, "/flags", 4)});
     Expect(surface.commands.size() == 2, "and it is not asked again");
-    router.OnEvent({"flags", "pick", Drawn(surface, "flags", 2)});
+    router.OnEvent({"flags", "pick", Drawn(surface, "/flags", 2)});
     answer("Spain");
     Expect(surface.commands.size() == 3 && surface.props["flags"][2]["selected"] == true,
            "a flag the game reached is the candidate");
@@ -2168,7 +2160,7 @@ static void Hero(const std::string &models)
            "skills, the two perk groups, officers; the card; the sections");
     Expect(surface.props["extras"]["rows"].empty(), "every widget is known: no extras");
 
-    router.OnEvent({"personal", "inc", "0"});
+    router.OnEvent({"personal", "inc", Drawn(surface, "/personal/rows", 0)});
     ExpectEqual(surface.Last(), "widget:lscchar_all\tTABLE_SKILL_1\t0\tselect@4:Leadership",
                 "a point asked selects the skill row first");
     AnswerAll(router, surface, true);
@@ -2301,7 +2293,7 @@ static void Items(const std::string &models)
     ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:7:character:1:role:0",
                 "the action is the game's press on the row it answered for");
     AnswerAll(router, surface, true);
-    router.OnEvent({"items", "row", Drawn(surface, "rows", 1)});
+    router.OnEvent({"items", "row", Drawn(surface, "/rows", 1)});
     ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
                 "a row is chosen");
     router.Tick();
@@ -2319,7 +2311,7 @@ static void Items(const std::string &models)
                surface.props["detail"]["facts"][0]["dTone"] == "danger" &&
                surface.props["detail"]["facts"][2]["dTone"] == "ok",
            "choosing describes, never equips; its figures against the worn rapier");
-    router.OnEvent({"items", "row", Drawn(surface, "rows", 1)});
+    router.OnEvent({"items", "row", Drawn(surface, "/rows", 1)});
     Expect(surface.commands.size() == chosen, "choosing it again sends nothing");
 
     // A slot lists what fits it and chooses what it holds.
@@ -2335,7 +2327,7 @@ static void Items(const std::string &models)
             widget.label = "Take off", widget.row_id = "inventory:7:character:1:role:0";
     router.SetInterface(model);
     Expect(surface.props["rows"].size() == 2 && surface.props["slots"][0]["selected"] == true, "and lists the blades");
-    router.OnEvent({"item-tabs", "select", Drawn(surface, "tabs", 2)});
+    router.OnEvent({"item-tabs", "select", Drawn(surface, "/tabs", 2)});
     ExpectEqual(surface.Last(), "widget:items\tTABBTN_3\t-1\tpress", "a game category");
     router.Tick();
     Expect(surface.props["tabs"][2]["selected"] == true, "drawn chosen in the tap's frame");
@@ -2612,7 +2604,7 @@ struct ShipRun
                    view["list"]["rows"][1]["meta"] == "Pack 20 \xC2\xB7 Pack weight 1" &&
                    view["load"]["text"] == "189 <common.of> 700 <transfer.cwt>",
                "the goods with their packs, the deadweight: " + view["list"].dump().substr(0, 300));
-        router.OnEvent({"goods", "row", Drawn(surface, "list", 1)});
+        router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 1)});
         ExpectEqual(surface.Last(), prefix + "TABLE_LIST\t1\tactivate@7:ship:good:5:owner:31",
                     "a row opens the game's overboard window of its good");
         Add("QTY_CAPTION", "text", "Gunpowder");
@@ -2644,7 +2636,7 @@ struct ShipRun
         router.OnEvent({"goods-drop", "click", ""});
         ExpectEqual(surface.Last(), prefix + "QTY_OK_BUTTON\t-1\tpress", "overboard is the game's ok");
         Answer();
-        router.OnEvent({"goods", "row", Drawn(surface, "list", 0)});
+        router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 0)});
         ExpectEqual(surface.Last(), prefix + "QTY_CANCEL_BUTTON\t-1\tpress", "another good first closes the window");
         Remove("QTY_");
         Answer();
@@ -3771,7 +3763,7 @@ static void SailEmblem(const std::string &models)
     router.OnEvent({"primary", "click", ""});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tB_OK\t-1\tpress", "paint");
     AnswerAll(router, surface, true);
-    router.OnEvent({"emblems", "emblem", "5"});
+    router.OnEvent({"emblems", "emblem", Drawn(surface, "/emblems", 5)});
     ExpectEqual(surface.Last(), "widget:sailsgerald\tSCROLL_GERALD\t5\tselect@5:emblem_06.tga.tx",
                 "a tap chooses that emblem in the game");
     AnswerAll(router, surface, true);

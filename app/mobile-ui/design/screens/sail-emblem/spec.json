@@ -6,7 +6,7 @@
     "stats": {"type": "json", "default": [],
              "shape": [{"label": "text", "value": "text", "icon": "text", "tone": "text"}]},
     "emblems": {"type": "json", "default": [],
-               "shape": [{"texture": "text", "label": "text", "selected": "bool", "applied": "bool", "disabled": "bool"}]},
+               "shape": [{"id": "text", "texture": "text", "label": "text", "selected": "bool", "applied": "bool", "disabled": "bool"}]},
     "appliedLabel": {"type": "text", "default": ""},
     "prev": {"type": "bool", "default": false, "class": false},
     "next": {"type": "bool", "default": false, "class": false},

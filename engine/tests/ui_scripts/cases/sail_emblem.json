@@ -177,6 +177,7 @@
      {
       "applied": true,
       "disabled": false,
+      "id": "emblem_01.tga.tx",
       "label": "emblem_01",
       "selected": false,
       "texture": "ships/gerald/emblem_01"
@@ -184,6 +185,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_02.tga.tx",
       "label": "emblem_02",
       "selected": false,
       "texture": "ships/gerald/emblem_02"
@@ -191,6 +193,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_03.tga.tx",
       "label": "emblem_03",
       "selected": true,
       "texture": "ships/gerald/emblem_03"
@@ -198,6 +201,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_04.tga.tx",
       "label": "emblem_04",
       "selected": false,
       "texture": "ships/gerald/emblem_04"
@@ -205,6 +209,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_05.tga.tx",
       "label": "emblem_05",
       "selected": false,
       "texture": "ships/gerald/emblem_05"
@@ -212,6 +217,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_06.tga.tx",
       "label": "emblem_06",
       "selected": false,
       "texture": "ships/gerald/emblem_06"
@@ -219,6 +225,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_07.tga.tx",
       "label": "emblem_07",
       "selected": false,
       "texture": "ships/gerald/emblem_07"
@@ -251,7 +258,7 @@
     [
      "emblems",
      "emblem",
-     "5"
+     "emblem_06.tga.tx"
     ],
     [
      "emblem-prev",
@@ -457,6 +464,7 @@
      {
       "applied": true,
       "disabled": false,
+      "id": "emblem_01.tga.tx",
       "label": "emblem_01",
       "selected": true,
       "texture": "ships/gerald/emblem_01"
@@ -464,6 +472,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_02.tga.tx",
       "label": "emblem_02",
       "selected": false,
       "texture": "ships/gerald/emblem_02"
@@ -471,6 +480,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_03.tga.tx",
       "label": "emblem_03",
       "selected": false,
       "texture": "ships/gerald/emblem_03"
@@ -478,6 +488,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_04.tga.tx",
       "label": "emblem_04",
       "selected": false,
       "texture": "ships/gerald/emblem_04"
@@ -485,6 +496,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_05.tga.tx",
       "label": "emblem_05",
       "selected": false,
       "texture": "ships/gerald/emblem_05"
@@ -492,6 +504,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_06.tga.tx",
       "label": "emblem_06",
       "selected": false,
       "texture": "ships/gerald/emblem_06"
@@ -499,6 +512,7 @@
      {
       "applied": false,
       "disabled": false,
+      "id": "emblem_07.tga.tx",
       "label": "emblem_07",
       "selected": false,
       "texture": "ships/gerald/emblem_07"
@@ -536,7 +550,7 @@
     [
      "emblems",
      "emblem",
-     "0"
+     "emblem_01.tga.tx"
     ]
    ],
    "calls": [

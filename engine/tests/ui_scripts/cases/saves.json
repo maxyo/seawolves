@@ -376,7 +376,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Порт Альфа",
+      "id": "file:Порт Альфа",
       "selected": false
      },
      {
@@ -390,7 +390,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Бухта Бета",
+      "id": "file:Бухта Бета",
       "selected": true
      },
      {
@@ -404,7 +404,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Остров Гамма",
+      "id": "file:Остров Гамма",
       "selected": false
      }
     ],
@@ -415,7 +415,7 @@
     [
      "saves",
      "row",
-     "2"
+     "file:Остров Гамма"
     ],
     [
      "primary",
@@ -825,7 +825,7 @@
        ""
       ],
       "disabled": false,
-      "key": "",
+      "id": "new",
       "selected": true
      },
      {
@@ -839,7 +839,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Порт Альфа",
+      "id": "file:Порт Альфа",
       "selected": false
      },
      {
@@ -853,7 +853,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Бухта Бета",
+      "id": "file:Бухта Бета",
       "selected": false
      },
      {
@@ -867,7 +867,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Остров Гамма",
+      "id": "file:Остров Гамма",
       "selected": false
      }
     ],
@@ -883,7 +883,7 @@
     [
      "saves",
      "row",
-     "1"
+     "file:Порт Альфа"
     ],
     [
      "primary",
@@ -1301,7 +1301,7 @@
        }
       ],
       "disabled": false,
-      "key": "Автосохранение 2",
+      "id": "file:Автосохранение 2",
       "selected": false
      },
      {
@@ -1315,7 +1315,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Порт Альфа",
+      "id": "file:Порт Альфа",
       "selected": false
      },
      {
@@ -1329,7 +1329,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Бухта Бета",
+      "id": "file:Бухта Бета",
       "selected": true
      },
      {
@@ -1343,7 +1343,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Остров Гамма",
+      "id": "file:Остров Гамма",
       "selected": false
      }
     ],
@@ -1354,7 +1354,7 @@
     [
      "saves",
      "row",
-     "0"
+     "file:Автосохранение 2"
     ],
     [
      "primary",
@@ -1768,7 +1768,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Порт Альфа",
+      "id": "file:Порт Альфа",
       "selected": false
      },
      {
@@ -1782,7 +1782,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Бухта Бета",
+      "id": "file:Бухта Бета",
       "selected": true
      },
      {
@@ -1796,7 +1796,7 @@
        ""
       ],
       "disabled": false,
-      "key": "Остров Гамма",
+      "id": "file:Остров Гамма",
       "selected": false
      }
     ],

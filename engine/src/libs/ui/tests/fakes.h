@@ -179,6 +179,13 @@ struct QuietSurface final : storm::ui::screens::Surface
     double now = 0.0;
 };
 
+// The id the screen gave the drawn row k of its list `list` (a JSON pointer into the props, "/list/rows"): a row's
+// tap carries it.
+inline std::string Drawn(const FakeSurface &surface, const char *list, size_t k)
+{
+    return surface.props.at(storm::ui::Json::json_pointer(list)).at(k).at("id").get<std::string>();
+}
+
 // Field `name` of a note left for a screen (Router::Take), "" when it has none.
 inline std::string NoteField(const std::optional<storm::ui::ViewTree> &note, const std::string &name)
 {

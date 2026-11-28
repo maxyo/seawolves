@@ -809,7 +809,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -824,7 +825,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -855,7 +857,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -870,7 +873,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -897,7 +901,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -910,7 +915,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -1036,12 +1042,12 @@
     [
      "personal",
      "inc",
-     "0"
+     "Leadership"
     ],
     [
      "special",
      "row",
-     "1"
+     "Agility"
     ]
    ],
    "calls": [
@@ -2681,7 +2687,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -2696,7 +2703,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -2727,7 +2735,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -2742,7 +2751,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -2769,7 +2779,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -2782,7 +2793,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -3711,7 +3723,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -3726,7 +3739,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -3757,7 +3771,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -3772,7 +3787,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -3799,7 +3815,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -3812,7 +3829,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -5389,7 +5407,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -5404,7 +5423,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -5435,7 +5455,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -5450,7 +5471,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -5477,7 +5499,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -5490,7 +5513,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -9113,7 +9137,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -9133,7 +9158,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       },
       {
        "cells": [
@@ -9153,7 +9179,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingS"
       },
       {
        "cells": [
@@ -9173,7 +9200,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingH"
       },
       {
        "cells": [
@@ -9193,7 +9221,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Pistol"
       },
       {
        "cells": [
@@ -9213,7 +9242,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Fortune"
       },
       {
        "cells": [
@@ -9233,7 +9263,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sneak"
       }
      ]
     },
@@ -9273,7 +9304,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -9293,7 +9325,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Accuracy"
       },
       {
        "cells": [
@@ -9313,7 +9346,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Cannons"
       },
       {
        "cells": [
@@ -9333,7 +9367,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Grappling"
       },
       {
        "cells": [
@@ -9353,7 +9388,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Defence"
       },
       {
        "cells": [
@@ -9373,7 +9409,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Repair"
       },
       {
        "cells": [
@@ -9393,7 +9430,8 @@
          "text": "10",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -9423,7 +9461,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -9438,7 +9477,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Perception"
       },
       {
        "cells": [
@@ -9453,7 +9493,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Agility"
       },
       {
        "cells": [
@@ -9468,7 +9509,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Charisma"
       },
       {
        "cells": [
@@ -9483,7 +9525,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Intellect"
       },
       {
        "cells": [
@@ -9498,7 +9541,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Endurance"
       },
       {
        "cells": [
@@ -9513,7 +9557,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Luck"
       }
      ]
     },
@@ -10362,7 +10407,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -10377,7 +10423,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -10408,7 +10455,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -10423,7 +10471,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -10450,7 +10499,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -10463,7 +10513,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -10589,7 +10640,7 @@
     [
      "ship",
      "row",
-     "1"
+     "Commerce"
     ]
    ],
    "calls": [
@@ -10689,7 +10740,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -10704,7 +10756,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -10735,7 +10788,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -10750,7 +10804,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -10777,7 +10832,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -10790,7 +10846,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -11721,7 +11778,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -11736,7 +11794,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -11767,7 +11826,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -11782,7 +11842,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -11809,7 +11870,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -11822,7 +11884,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
@@ -11948,7 +12011,7 @@
     [
      "ship",
      "row",
-     "1"
+     "Commerce"
     ]
    ],
    "calls": [
@@ -12043,7 +12106,8 @@
          "text": "12",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Leadership"
       },
       {
        "cells": [
@@ -12058,7 +12122,8 @@
          "text": "3",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "FencingL"
       }
      ]
     },
@@ -12089,7 +12154,8 @@
          "text": "11",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Sailing"
       },
       {
        "cells": [
@@ -12104,7 +12170,8 @@
          "text": "5",
          "tone": "gold"
         }
-       ]
+       ],
+       "id": "Commerce"
       }
      ]
     },
@@ -12131,7 +12198,8 @@
          "bold": true,
          "text": "5"
         }
-       ]
+       ],
+       "id": "Strength"
       },
       {
        "cells": [
@@ -12144,7 +12212,8 @@
          "text": "8",
          "tone": "ok"
         }
-       ]
+       ],
+       "id": "Agility"
       }
      ]
     },
