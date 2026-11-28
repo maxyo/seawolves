@@ -846,6 +846,7 @@ DATA *COMPILER::PushEventValue(MESSAGE &message)
     }
     case 'e':
         value = SStack.Push();
+        value->SetType(VAR_REFERENCE);
         value->SetReference(static_cast<DATA *>(message.ScriptVariablePointer()));
         return value;
     default:
