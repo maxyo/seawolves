@@ -4557,6 +4557,13 @@ bool COMPILER::CompileBlock(SEGMENT_DESC &Segment, bool &bFunctionBlock, uint32_
     return true;
 }
 
+void COMPILER::ResizeArray(DATA &array, uint32_t elements)
+{
+    array.SetElementsNum(elements);
+    if (array.nGlobalVarTableIndex != 0xffffffff)
+        VarTab.SetElementsNum(array.nGlobalVarTableIndex, elements);
+}
+
 bool COMPILER::BC_Jump(SEGMENT_DESC &Segment, uint32_t offset)
 {
     if (offset >= Segment.CodeSize())
@@ -6424,7 +6431,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                 SetError("array size %d", lvalue);
                 return false;
             }
-            pV->SetElementsNum(static_cast<uint32_t>(lvalue));
+            ResizeArray(*pV, static_cast<uint32_t>(lvalue));
             break;
         case CALL_METHOD: {
             uint32_t args;

@@ -1121,16 +1121,7 @@ DATA *COMPILER::BC_CallIntFunction(uint32_t func_code, DATA *&pVResult, uint32_t
             SetError(INVALID_FA);
             break;
         }
-        pV->SetElementsNum(TempLong1);
-
-        if (pV->nGlobalVarTableIndex != 0xffffffff)
-        {
-            if (!VarTab.SetElementsNum(pV->nGlobalVarTableIndex, TempLong1))
-            {
-                core_internal.Trace("Unable to set elements num for %u", pV->nGlobalVarTableIndex);
-            }
-        }
-
+        ResizeArray(*pV, static_cast<uint32_t>(TempLong1));
         break;
 
     case FUNC_GET_ARRAY_SIZE:

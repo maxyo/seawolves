@@ -176,6 +176,8 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
                     uint32_t passed_args = kArgsAsDeclared);
     bool BindPassedArguments(const FuncInfo &fi, FuncFrame &frame, uint32_t passed_args);
     bool BC_CallFunction(uint32_t func_code, uint32_t &ip, DATA *&pVResult);
+    // `@a = n` and SetArraySize: the array and, for a global, its declared size in the variable table.
+    void ResizeArray(DATA &array, uint32_t elements);
     // Value of an integer #define of a loaded script segment; nullopt when there is none.
     std::optional<int32_t> FindIntegerDefine(const char *name);
     // The running statement's file and line (DebugSourceFileName, DebugSourceLine); false outside a script frame.
