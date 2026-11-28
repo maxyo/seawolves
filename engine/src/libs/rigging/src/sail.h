@@ -145,32 +145,33 @@ class SAIL : public SAIL_BASE
     // list of all sail groups
     int groupQuantity;
 
+    // Every member starts zeroed: a group made for a fallen mast fills only some of them.
     struct GROUPDATA
     {
-        bool bDeleted;
-        bool bYesShip;
-        entid_t shipEI;
-        entid_t modelEI;
-        int sailQuantity;
-        int *sailIdx;
+        bool bDeleted{};
+        bool bYesShip{};
+        entid_t shipEI{};
+        entid_t modelEI{};
+        int sailQuantity{};
+        int *sailIdx{};
         // restrictive box
-        glm::vec3 boxCenter, boxSize;
-        float boxRadius;
+        glm::vec3 boxCenter{}, boxSize{};
+        float boxRadius{};
         // Effect on ship speed
-        float shipSpeed;
-        float maxSpeed;
-        float speed_c, speed_m; // real and maximum speed given by sails
-        int maxHole, curHole;
-        int maxSP;
+        float shipSpeed{};
+        float maxSpeed{};
+        float speed_c{}, speed_m{}; // real and maximum speed given by sails
+        int maxHole{}, curHole{};
+        int maxSP{};
         // lowering \ raising sails
-        int curSailSet;
-        bool bFinalSailUp;
-        bool bFinalSailDo;
-        bool bFinalSailDoOld;
-        float fSpeedMul;
-        float fRollingSpeed;
+        int curSailSet{};
+        bool bFinalSailUp{};
+        bool bFinalSailDo{};
+        bool bFinalSailDoOld{};
+        float fSpeedMul{};
+        float fRollingSpeed{};
         // sail color
-        uint32_t dwSailsColor;
+        uint32_t dwSailsColor{};
     };
 
     GROUPDATA *gdata;
