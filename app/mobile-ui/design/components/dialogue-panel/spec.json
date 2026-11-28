@@ -8,7 +8,6 @@
     "next": {"type": "bool", "default": true, "class": false},
     "seed": {"type": "int", "default": 11},
     "replies": {"type": "json", "default": [], "shape": [{"icon": "text", "id": "text", "meta": "text", "metaTone": "text", "pressed": "bool", "title": "text"}]},
-    "gap": {"type": "int", "default": null},
     "key": {"type": "text", "default": "dialogue"}
   },
   "constants": {

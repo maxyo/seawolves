@@ -11,8 +11,7 @@
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
     "place": {"type": "enum", "options": ["end", "name", "below"], "default": "end"},
     "gap": {"type": "int", "default": 12},
-    "align": {"type": "enum", "options": ["center", "start"], "default": "center"},
-    "label": {"type": "text", "default": ""}
+    "align": {"type": "enum", "options": ["center", "start"], "default": "center"}
   },
   "constants": {
     "iconRatio": 0.57

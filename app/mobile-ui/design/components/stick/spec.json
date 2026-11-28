@@ -21,7 +21,6 @@
   },
   "behaviors": ["stick"],
   "constants": {
-    "size": {"move": 112, "helm": 200},
     "helmHeight": 64,
     "helmKnob": @{size.stickKnob},
     "helmInset": 8,
