@@ -8,7 +8,10 @@ c-header {
     border-bottom: 2dp @{color.headerRule}; color: @{color.text}; line-height: 1.36;
     /* the lapis picture carries its shade (textures-src/bake.json) and covers the plate */
     decorator: image(textures/lapis.jpg cover);
-    box-shadow: @{color.headerShadow} 0 1dp 0 0, @{color.black/.5} 0 3dp 6dp 0;
+    /* The drop shadow only below the full-width bar: RmlUi draws a shadow into a texture as large as the box plus
+       1.5 x blur + spread around it, clipped to the window, which cut the shadow's right end. A spread of -1.5 x blur
+       keeps it inside the screen's width; the larger offset keeps its lower edge where it was. */
+    box-shadow: @{color.headerShadow} 0 1dp 0 0, @{color.black/.5} 0 12dp 6dp -9dp;
 }
 c-header.has-back { padding: 0 12dp 0 2dp; } /* the ribbon's edge at the content's 12 dp (c-screen padSide) */
 c-header.close { padding: 0 2dp 0 16dp; }
