@@ -2874,6 +2874,676 @@
     "mapsTitle": "",
     "title": "  Карта "
    }
+  },
+  {
+   "calls": [
+    "send MAP release ",
+    "hold",
+    "await"
+   ],
+   "capability": "map_best",
+   "events": [
+    [
+     "map",
+     "point",
+     "1600,1508"
+    ],
+    [
+     "answer",
+     "waiting"
+    ]
+   ],
+   "modals": [
+    "back info-close"
+   ],
+   "model": {
+    "language": "russian",
+    "revision": 6,
+    "schemaVersion": 2,
+    "screen": "mapbest",
+    "screenRevision": 7,
+    "widgets": [
+     {
+      "index": -1,
+      "label": "Карта",
+      "node": "TITLE",
+      "order": 1,
+      "type": "heading"
+     },
+     {
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "image": "interfaces/maps/map_good",
+         "kind": "texture"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "MAIN_BACK",
+      "order": 2,
+      "type": "image"
+     },
+     {
+      "actions": [
+       "point",
+       "release"
+      ],
+      "context": {
+       "base": "2048,2048",
+       "view": "0,0,2048,2048"
+      },
+      "enabled": false,
+      "index": -1,
+      "node": "MAP",
+      "order": 3,
+      "type": "map"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1530",
+       "y": "1548"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "France",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 0,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "FortFrance",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1600",
+       "y": "1508"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "Pirate",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 1,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "LeFransua",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1520",
+       "y": "1308"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "France",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 2,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "BasTer",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1570",
+       "y": "1188"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "England",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 3,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "SentJons",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1700",
+       "y": "1658"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "England",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 4,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "Bridgetown",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1140",
+       "y": "908"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "Spain",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 5,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "SanJuan",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "16",
+       "width": "16",
+       "x": "1470",
+       "y": "1158"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "England",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 6,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "Charles",
+      "type": "map_marker"
+     },
+     {
+      "context": {
+       "height": "20",
+       "width": "20",
+       "x": "1380",
+       "y": "1450"
+      },
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "ICONS",
+         "image": "ship class icon",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": 7,
+      "node": "MAP",
+      "order": 3,
+      "rowId": "PShip",
+      "type": "map_marker"
+     },
+     {
+      "index": -1,
+      "label": "Сен-Пьер",
+      "node": "INFO_CAPTION",
+      "order": 100,
+      "type": "text"
+     },
+     {
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "NATIONS",
+         "image": "France",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "INFO_NATION_PICTURE",
+      "order": 101,
+      "type": "image"
+     },
+     {
+      "index": -1,
+      "label": "1–3 дня пути",
+      "node": "COLONY_TRAVEL_INFO",
+      "order": 102,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Сведения о колонии",
+      "node": "COLONY_INFO_LABEL",
+      "order": 104,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Экспорт",
+      "node": "EXPORT_CAPTION",
+      "order": 105,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Импорт",
+      "node": "IMPORT_CAPTION",
+      "order": 110,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Помощник: прибыль из Бас-Тера",
+      "node": "TRADEASSISTANT_CAPTION",
+      "order": 120,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Ром +6,4",
+      "node": "TRADEASSISTANT_TO",
+      "order": 121,
+      "type": "text"
+     },
+     {
+      "index": -1,
+      "label": "Сахар +5,7",
+      "node": "TRADEASSISTANT_FROM",
+      "order": 122,
+      "type": "text"
+     },
+     {
+      "index": 0,
+      "label": "Население",
+      "node": "COLONY_INFO_TEXT",
+      "order": 130,
+      "type": "text"
+     },
+     {
+      "index": 1,
+      "label": "Казна",
+      "node": "COLONY_INFO_TEXT",
+      "order": 131,
+      "type": "text"
+     },
+     {
+      "index": 2,
+      "label": "Форт",
+      "node": "COLONY_INFO_TEXT",
+      "order": 132,
+      "type": "text"
+     },
+     {
+      "index": 3,
+      "label": "Верфь",
+      "node": "COLONY_INFO_TEXT",
+      "order": 133,
+      "type": "text"
+     },
+     {
+      "index": 0,
+      "label": "4 860",
+      "node": "COLONY_INFO_TEXT2",
+      "order": 140,
+      "type": "text"
+     },
+     {
+      "index": 1,
+      "label": "86 300",
+      "node": "COLONY_INFO_TEXT2",
+      "order": 141,
+      "type": "text"
+     },
+     {
+      "index": 2,
+      "label": "есть",
+      "node": "COLONY_INFO_TEXT2",
+      "order": 142,
+      "type": "text"
+     },
+     {
+      "index": 3,
+      "label": "есть",
+      "node": "COLONY_INFO_TEXT2",
+      "order": 143,
+      "type": "text"
+     },
+     {
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "GOODS",
+         "image": "Sugar",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "EXPORT1_PICTURE",
+      "order": 106,
+      "type": "image"
+     },
+     {
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "GOODS",
+         "image": "Coffee",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "EXPORT2_PICTURE",
+      "order": 107,
+      "type": "image"
+     },
+     {
+      "index": 0,
+      "label": "Сахар",
+      "node": "EXPORT_INFO",
+      "order": 108,
+      "type": "text"
+     },
+     {
+      "index": 1,
+      "label": "Кофе",
+      "node": "EXPORT_INFO",
+      "order": 109,
+      "type": "text"
+     },
+     {
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "GOODS",
+         "image": "Rum",
+         "kind": "atlas"
+        },
+        "tintArgb": 4286611584
+       }
+      ],
+      "index": -1,
+      "node": "IMPORT1_PICTURE",
+      "order": 111,
+      "type": "image"
+     },
+     {
+      "index": 0,
+      "label": "Ром",
+      "node": "IMPORT_INFO",
+      "order": 112,
+      "type": "text"
+     }
+    ]
+   },
+   "name": "a point at another colony while the game's colony window holds the map lets that colony go first and waits for it",
+   "props": {
+    "info": {
+     "facts": [
+      {
+       "k": "Население",
+       "v": "4 860"
+      },
+      {
+       "k": "Казна",
+       "v": "86 300"
+      },
+      {
+       "k": "Форт",
+       "v": "есть"
+      },
+      {
+       "k": "Верфь",
+       "v": "есть"
+      }
+     ],
+     "factsTitle": "Сведения о колонии",
+     "nation": "nation-france",
+     "notes": [],
+     "page": "trade",
+     "sections": [
+      {
+       "goods": [
+        {
+         "label": "Сахар",
+         "texture": "atlas:GOODS/Sugar",
+         "uv": ""
+        },
+        {
+         "label": "Кофе",
+         "texture": "atlas:GOODS/Coffee",
+         "uv": ""
+        }
+       ],
+       "lines": [],
+       "page": "trade",
+       "title": "Экспорт"
+      },
+      {
+       "goods": [
+        {
+         "label": "Ром",
+         "texture": "atlas:GOODS/Rum",
+         "uv": ""
+        }
+       ],
+       "lines": [],
+       "page": "trade",
+       "title": "Импорт"
+      },
+      {
+       "goods": [],
+       "lines": [
+        {
+         "text": "Ром +6,4"
+        },
+        {
+         "text": "Сахар +5,7"
+        }
+       ],
+       "page": "assistant",
+       "title": "Помощник: прибыль из Бас-Тера"
+      }
+     ],
+     "sub": "1–3 дня пути",
+     "tabs": [
+      {
+       "id": "trade",
+       "label": "<colony.trade>",
+       "selected": true
+      },
+      {
+       "id": "assistant",
+       "label": "<colony.assistant>",
+       "selected": false
+      },
+      {
+       "id": "city",
+       "label": "<colony.city>",
+       "selected": false
+      }
+     ],
+     "title": "Сен-Пьер"
+    },
+    "map": {
+     "base": [
+      2048.0,
+      2048.0
+     ],
+     "markers": [
+      {
+       "h": 16.0,
+       "id": "FortFrance",
+       "texture": "atlas:NATIONS/France",
+       "uv": "",
+       "w": 16.0,
+       "x": 1530.0,
+       "y": 1548.0
+      },
+      {
+       "h": 16.0,
+       "id": "LeFransua",
+       "texture": "atlas:NATIONS/Pirate",
+       "uv": "",
+       "w": 16.0,
+       "x": 1600.0,
+       "y": 1508.0
+      },
+      {
+       "h": 16.0,
+       "id": "BasTer",
+       "texture": "atlas:NATIONS/France",
+       "uv": "",
+       "w": 16.0,
+       "x": 1520.0,
+       "y": 1308.0
+      },
+      {
+       "h": 16.0,
+       "id": "SentJons",
+       "texture": "atlas:NATIONS/England",
+       "uv": "",
+       "w": 16.0,
+       "x": 1570.0,
+       "y": 1188.0
+      },
+      {
+       "h": 16.0,
+       "id": "Bridgetown",
+       "texture": "atlas:NATIONS/England",
+       "uv": "",
+       "w": 16.0,
+       "x": 1700.0,
+       "y": 1658.0
+      },
+      {
+       "h": 16.0,
+       "id": "SanJuan",
+       "texture": "atlas:NATIONS/Spain",
+       "uv": "",
+       "w": 16.0,
+       "x": 1140.0,
+       "y": 908.0
+      },
+      {
+       "h": 16.0,
+       "id": "Charles",
+       "texture": "atlas:NATIONS/England",
+       "uv": "",
+       "w": 16.0,
+       "x": 1470.0,
+       "y": 1158.0
+      },
+      {
+       "h": 20.0,
+       "id": "PShip",
+       "texture": "atlas:ICONS/ship class icon",
+       "uv": "",
+       "w": 20.0,
+       "x": 1380.0,
+       "y": 1450.0
+      }
+     ],
+     "texture": "interfaces/maps/map_good",
+     "uv": "0,0,1,1",
+     "view": [
+      0.0,
+      0.0,
+      2048.0,
+      2048.0
+     ]
+    },
+    "mapColumns": [
+     {
+      "w": "1"
+     }
+    ],
+    "maps": [],
+    "mapsTitle": "",
+    "title": "Карта"
+   }
   }
  ]
 }

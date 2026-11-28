@@ -8,6 +8,8 @@
 // colonyFrom (x of the colony's goods), bands.b<k>.{caption, from, to} (their y bands), returnFrom (x of the trade
 // assistant's second column), prices.{p0, p1} (the nodes of the two columns' profits). Implements contracts/map.c.
 
+object TouchLegMap; // .point: the point waiting for the game to let its colony go
+
 // One section of the colony window: <prefix>_CAPTION heads the <prefix>… pictures, named by the <prefix>_INFO lines,
 // and its other texts; a section with neither is left out.
 void TouchLegMap_Section(aref model, string prefix, string page, aref sections)
@@ -350,11 +352,33 @@ void TouchAdpMap_State(aref ui, aref out)
 		CopyAttributes(at, &entry);
 	}
 	TouchLegMap_Colony(model, data, out);
+	TouchLegMap_Follow();
+}
+
+// A point the player gave while the game's colony window held the map (TouchLegMap.point): once the game let the
+// colony go, the build of that answer points there.
+void TouchLegMap_Follow()
+{
+	if (!CheckAttribute(&TouchLegMap, "point")) return;
+	string answer = UiAnswer();
+	if (answer == "waiting") { UiAwait(); return; }
+	string at = TouchLegMap.point;
+	DeleteAttribute(&TouchLegMap, "point");
+	if (answer != "applied") return;
+	if (!UiOffers("MAP", "point")) UiError("map: the game let its colony go but offers no point on the map");
+	UiSend("MAP", "point", at);
+	UiAwait();
 }
 
 void TouchAdpMap_Point(aref ui, string at)
 {
-	if (UiOffers("MAP", "point")) UiSend("MAP", "point", at);
+	if (UiOffers("MAP", "point")) { UiSend("MAP", "point", at); return; }
+	// The colony window the game opens for a point locks its map (MapBest SelectRColony / HideRColony): a point at
+	// another place on our map, which stays open beside the colony, lets that colony go first.
+	if (TouchLegLib_Label(TouchLegLib_Model(ui), "INFO_CAPTION") == "") return;
+	TouchLegMap.point = at;
+	UiSend("MAP", "release", "");
+	UiHold();
 }
 
 void TouchAdpMap_Release(aref ui)
