@@ -186,30 +186,16 @@ struct Texture
     }
 };
 
-// The icon atlas's coverage page is RG8 where the device samples it, else RGBA8 with the same two channels first (the
-// coverage shader reads only R and G): GLES 3.0 and Vulkan require RG8, so the second is a device outside both.
+bgfx::TextureFormat::Enum BgfxFormat(PackFormat format)
+{
+    return format == PackFormat::Rg8 ? bgfx::TextureFormat::RG8 : bgfx::TextureFormat::RGBA8;
+}
+
+// The size and format were checked against the device at Host::Start (RefusedTexture).
 bgfx::TextureHandle CreatePackTexture(const PackImage &image)
 {
-    const auto w = uint16_t(image.width), h = uint16_t(image.height);
-    if (!image.coverage)
-        return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RGBA8, BGFX_SAMPLER_NONE,
-                                     bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
-    if (bgfx::getCaps()->formats[bgfx::TextureFormat::RG8] & BGFX_CAPS_FORMAT_TEXTURE_2D)
-        return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RG8, BGFX_SAMPLER_NONE,
-                                     bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
-    static bool said = false;
-    if (!std::exchange(said, true))
-        Rml::Log::Message(Rml::Log::LT_WARNING,
-                          "UI: the device has no RG8 textures: the icon atlas takes RGBA8 (%d KB)",
-                          image.width * image.height * 4 / 1024);
-    const bgfx::Memory *memory = bgfx::alloc(uint32_t(image.width) * image.height * 4);
-    for (size_t i = 0, n = size_t(image.width) * image.height; i < n; ++i)
-    {
-        memory->data[i * 4] = image.pixels[i * 2];
-        memory->data[i * 4 + 1] = image.pixels[i * 2 + 1];
-        memory->data[i * 4 + 2] = memory->data[i * 4 + 3] = 0;
-    }
-    return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RGBA8, BGFX_SAMPLER_NONE, memory);
+    return bgfx::createTexture2D(uint16_t(image.width), uint16_t(image.height), false, 1, BgfxFormat(image.format),
+                                 BGFX_SAMPLER_NONE, bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
 }
 
 enum class FilterType
@@ -883,6 +869,17 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         if (!texture->Ensure())
             Rml::Log::Message(Rml::Log::LT_ERROR, "UI backend: a %dx%d texture made ahead got no GPU copy from bgfx",
                               texture->width, texture->height);
+    }
+
+    std::string RefusedTexture(int width, int height, PackFormat format) const override
+    {
+        const bgfx::Caps *caps = bgfx::getCaps();
+        if (uint32_t(std::max(width, height)) > caps->limits.maxTextureSize)
+            return "larger than the device's texture limit of " + std::to_string(caps->limits.maxTextureSize) + " px";
+        if (!(caps->formats[BgfxFormat(format)] & BGFX_CAPS_FORMAT_TEXTURE_2D))
+            return std::string("the device does not sample ") + (format == PackFormat::Rg8 ? "RG8" : "RGBA8") +
+                   " textures";
+        return {};
     }
 
     // ---- BgfxBackend ----------------------------------------------------------------
@@ -2554,7 +2551,7 @@ void Executor::Run(const Command &command, bool degraded)
                         b_->Skipped(Skip::TextureLost);
                     return;
                 }
-                if (texture.image && texture.image->coverage)
+                if (texture.image && texture.image->format == PackFormat::Rg8)
                     program = ProgramId::TextureCoverage;
                 break;
             case Texture::Kind::Target:

@@ -197,10 +197,12 @@ namespace
 // The pack's decoded pictures by path (one host per process).
 std::map<std::string, std::shared_ptr<const PackImage>> g_pack_images;
 
-// Decodes a picture of the pack into g_pack_images: `channels` 2 for the icon atlas's coverage page, else premultiplied
-// RGBA8.
-bool DecodePackImage(FileSource &files, const std::string &path, int channels, std::string *error)
+// Decodes a picture of the pack into g_pack_images (Rg8: the icon atlas's coverage pages, else premultiplied RGBA8),
+// refused when the device cannot sample it.
+bool DecodePackImage(FileSource &files, const RenderBackend &backend, const std::string &path, PackFormat format,
+                     std::string *error)
 {
+    const int channels = format == PackFormat::Rg8 ? 2 : 4;
     std::vector<uint8_t> bytes;
     if (!files.Read(path, bytes))
     {
@@ -219,10 +221,17 @@ bool DecodePackImage(FileSource &files, const std::string &path, int channels, s
         return false;
     }
     const size_t count = static_cast<size_t>(image->width) * static_cast<size_t>(image->height);
-    image->coverage = channels == 2;
+    image->format = format;
     image->pixels.assign(data, data + count * static_cast<size_t>(channels));
     stbi_image_free(data);
-    if (!image->coverage)
+    if (const std::string why = backend.RefusedTexture(image->width, image->height, format); !why.empty())
+    {
+        if (error)
+            *error = "UI pack: " + path + " (" + std::to_string(image->width) + "x" + std::to_string(image->height) +
+                     "): " + why;
+        return false;
+    }
+    if (format == PackFormat::Rgba8)
         for (size_t i = 0; i < count; ++i)
         {
             unsigned char *pixel = &image->pixels[i * 4];
@@ -345,13 +354,14 @@ bool HostImpl::Start(const Config &config, std::string *error)
         return false;
     // The pack's pictures and the icon atlas's pages, decoded now: a first draw only uploads them.
     for (const Json &image : pack.value("images", Json::array()))
-        if (!DecodePackImage(*config.files, image.get<std::string>(), 4, error))
+        if (!DecodePackImage(*config.files, *backend_, image.get<std::string>(), PackFormat::Rgba8, error))
             return false;
     const std::string icon_dir = icons_path.substr(0, icons_path.rfind('/') + 1);
     for (const Json &page : icons.value("pages", Json::array()))
     {
         const std::string file = icon_dir + page.at("file").get<std::string>();
-        if (!DecodePackImage(*config.files, file, page.at("channels").get<int>(), error))
+        const PackFormat format = page.at("channels").get<int>() == 2 ? PackFormat::Rg8 : PackFormat::Rgba8;
+        if (!DecodePackImage(*config.files, *backend_, file, format, error))
             return false;
     }
     settings_ = pack.value("settings", Json::object());

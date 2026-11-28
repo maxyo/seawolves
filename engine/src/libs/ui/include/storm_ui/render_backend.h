@@ -11,6 +11,12 @@
 namespace storm::ui
 {
 
+enum class PackFormat
+{
+    Rgba8,
+    Rg8
+};
+
 class RenderBackend
 {
   public:
@@ -49,6 +55,10 @@ class RenderBackend
     // and its pixels are given back, so that a texture made ahead holds no second, CPU copy until its first draw. A
     // backend that makes no GPU copies (the host checks) has nothing to do.
     virtual void Upload(Rml::TextureHandle texture) = 0;
+
+    // Why the device cannot sample a pack picture of this size and format (larger than its texture limit, a format it
+    // does not sample), empty when it can. Host::Start refuses a pack with such a picture, before anything is drawn.
+    virtual std::string RefusedTexture(int width, int height, PackFormat format) const = 0;
 };
 
 // RmlUi texture source of a renderer-supplied game picture (see AcquireGamePicture).
@@ -58,12 +68,12 @@ inline std::string GamePictureSource(const std::string &texture)
 }
 
 // A picture of the UI pack, decoded when the pack loads (pack.json "images" and the icon atlas's pages), never when
-// first drawn. Premultiplied RGBA8; the icon atlas's coverage page is two channels (RG8: how much of the vertex colour
-// shows, coverage), drawn by the backend's coverage shader as (colour.rgb * R, colour.a * G).
+// first drawn. Rgba8: premultiplied; Rg8: the icon atlas's coverage pages (how much of the vertex colour shows,
+// coverage), drawn by the backend's coverage shader as (colour.rgb * R, colour.a * G).
 struct PackImage
 {
     int width = 0, height = 0;
-    bool coverage = false;
+    PackFormat format = PackFormat::Rgba8;
     std::vector<unsigned char> pixels;
 };
 

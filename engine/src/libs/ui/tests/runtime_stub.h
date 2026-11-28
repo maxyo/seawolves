@@ -115,10 +115,18 @@ class NoBackend final : public storm::ui::RenderBackend
     {
         // No GPU copies in the checks.
     }
+    std::string RefusedTexture(int width, int height, storm::ui::PackFormat) const override
+    {
+        return std::max(width, height) > max_texture
+                   ? "larger than the device's texture limit of " + std::to_string(max_texture) + " px"
+                   : std::string();
+    }
     NoRenderer &Renderer()
     {
         return renderer_;
     }
+
+    int max_texture = 2048; // the device limit the checks fake
 
   private:
     NoRenderer renderer_;

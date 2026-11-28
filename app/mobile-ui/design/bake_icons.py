@@ -5,7 +5,7 @@
 
 The phone draws icons from the atlas, tinted; nothing is rasterised at run time. The tool is built by the UI's
 stand-alone host build (engine: cmake -S src/libs/ui -B build/ui-host; target storm_ui_icon_bake). Writes
-icon-atlas/{atlas.json, coverage.png, colour.png}; atlas.json records the digest build.py checks.
+icon-atlas/ (atlas.json and its pages, each at most 2048 px a side); atlas.json records the digest build.py checks.
 """
 import argparse
 import json

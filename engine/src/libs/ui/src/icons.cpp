@@ -1,8 +1,8 @@
 // <ui-icon name="ship">: one icon of the pack's atlas (app/mobile-ui/design/icon-atlas, baked from the SVG symbols by
-// tools/icon_bake.cpp), drawn as quads tinted by their vertex colour: one texture for every icon, colour, size and
-// fade, nothing rasterised on the device. One-colour symbols take the element's `color`; full-colour symbols
-// (nation-*, c-*) keep their own; `plain` draws a one-colour symbol in its own fills (black). The accent layer of a
-// symbol, when it has one, is drawn on top, untinted.
+// tools/icon_bake.cpp), drawn as quads tinted by their vertex colour: the atlas's few pages for every icon, colour,
+// size and fade, nothing rasterised on the device; a mesh per run of quads from one page. One-colour symbols take the
+// element's `color`; full-colour symbols (nation-*, c-*) keep their own; `plain` draws a one-colour symbol in its own
+// fills (black). The accent layer of a symbol, when it has one, is drawn on top, untinted.
 //
 // A one-colour glyph is fill * T + W (icon_bake.cpp): the glyph cell (T, coverage) tinted by the colour, then where
 // the symbol has white shading its light cell (W, 0) added untinted. The atlas holds each icon at a chain of sizes; an
@@ -28,7 +28,7 @@ namespace
 
 struct Point
 {
-    int x = 0, y = 0;
+    int x = 0, y = 0, page = 0;
 };
 
 struct Atlas
@@ -37,8 +37,12 @@ struct Atlas
     std::vector<int> shadow_levels;
     float shadow_sigma = 1.0f; // texels
     int shadow_margin = 0;     // texels around a shadow cell's glyph
-    std::string coverage_source, colour_source;
-    Rml::Vector2f coverage_size, colour_size;
+    struct Page
+    {
+        std::string source;
+        Rml::Vector2f size;
+    };
+    std::vector<Page> pages;
     struct Icon
     {
         std::vector<Point> glyph, light, accent, colour, shadow; // a cell per level
@@ -68,14 +72,22 @@ struct ShadowProperties
     Rml::PropertyId colour, x, y, sigma;
 } shadow_ids;
 
-// Appends the quad showing `cell` (side `texels` of a page of `page` size) at `origin`, `side` px.
-void Quad(Rml::Mesh &mesh, Point cell, int texels, Rml::Vector2f page, Rml::Vector2f origin, float side,
-          Rml::ColourbPremultiplied colour)
+// An icon's quads in drawing order, a mesh per run of quads from one page.
+struct Meshes
 {
-    const Rml::Vector2f from = {cell.x / page.x, cell.y / page.y};
-    const Rml::Vector2f to = {(cell.x + texels) / page.x, (cell.y + texels) / page.y};
-    Rml::MeshUtilities::GenerateQuad(mesh, origin, {side, side}, colour, from, to);
-}
+    std::vector<std::pair<int, Rml::Mesh>> runs;
+
+    // Appends the quad showing `cell` (side `texels`) at `origin`, `side` px.
+    void Quad(Point cell, int texels, Rml::Vector2f origin, float side, Rml::ColourbPremultiplied colour)
+    {
+        if (runs.empty() || runs.back().first != cell.page)
+            runs.emplace_back(cell.page, Rml::Mesh());
+        const Rml::Vector2f page = TheAtlas().pages[size_t(cell.page)].size;
+        const Rml::Vector2f from = {cell.x / page.x, cell.y / page.y};
+        const Rml::Vector2f to = {(cell.x + texels) / page.x, (cell.y + texels) / page.y};
+        Rml::MeshUtilities::GenerateQuad(runs.back().second, origin, {side, side}, colour, from, to);
+    }
+};
 
 // The debug builds' mark of an icon the atlas lacks: a red frame with a cross, untextured.
 void MissingIconMarker(Rml::Mesh &mesh, Rml::Vector2f origin, float side)
@@ -144,10 +156,8 @@ class IconElement final : public Rml::Element
             Build(*manager, size, drawn);
         const Rml::Vector2f offset = GetAbsoluteOffset(Rml::BoxArea::Content);
         const Rml::Vector2f at = {std::round(offset.x), std::round(offset.y)};
-        if (coverage_)
-            coverage_.Render(at, manager->LoadTexture(TheAtlas().coverage_source));
-        if (colour_)
-            colour_.Render(at, manager->LoadTexture(TheAtlas().colour_source));
+        for (auto &[page, geometry] : runs_)
+            geometry.Render(at, manager->LoadTexture(TheAtlas().pages[size_t(page)].source));
         if (marker_)
             marker_.Render(at);
     }
@@ -173,8 +183,8 @@ class IconElement final : public Rml::Element
     {
         built_ = drawn;
         const Atlas &atlas = TheAtlas();
-        Rml::Mesh coverage = coverage_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
-        Rml::Mesh colour = colour_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+        runs_.clear();
+        Meshes meshes;
         Rml::Mesh marker = marker_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
         const float px = static_cast<float>(drawn.pixels);
         const Rml::Vector2f origin = {std::round((size.x - px) * 0.5f), std::round((size.y - px) * 0.5f)};
@@ -211,30 +221,28 @@ class IconElement final : public Rml::Element
             const float finest = px * atlas.shadow_sigma / static_cast<float>(atlas.shadow_levels.front());
             const Rml::Vector2f shift = {drawn.shadow.x, drawn.shadow.y};
             if (wanted < 0.5f * finest && !full_colour)
-                Quad(coverage, icon.glyph[level], texels, atlas.coverage_size, origin + shift, px,
-                     tint(drawn.shadow.colour));
+                meshes.Quad(icon.glyph[level], texels, origin + shift, px, tint(drawn.shadow.colour));
             else
             {
                 const int glyph = atlas.shadow_levels[best], margin = atlas.shadow_margin;
                 const float scale = px / static_cast<float>(glyph);
-                Quad(coverage, icon.shadow[best], glyph + 2 * margin, atlas.coverage_size,
-                     origin + shift - Rml::Vector2f(margin * scale), (glyph + 2 * margin) * scale,
-                     tint(drawn.shadow.colour));
+                meshes.Quad(icon.shadow[best], glyph + 2 * margin, origin + shift - Rml::Vector2f(margin * scale),
+                            (glyph + 2 * margin) * scale, tint(drawn.shadow.colour));
             }
         }
         if (full_colour)
-            Quad(colour, icon.colour[level], texels, atlas.colour_size, origin, px, white);
+            meshes.Quad(icon.colour[level], texels, origin, px, white);
         else
         {
-            Quad(coverage, icon.glyph[level], texels, atlas.coverage_size, origin, px,
-                 tint(drawn.plain ? Rml::Colourb(0, 0, 0, 255) : drawn.colour));
+            meshes.Quad(icon.glyph[level], texels, origin, px,
+                        tint(drawn.plain ? Rml::Colourb(0, 0, 0, 255) : drawn.colour));
             if (!icon.light.empty())
-                Quad(coverage, icon.light[level], texels, atlas.coverage_size, origin, px, white);
+                meshes.Quad(icon.light[level], texels, origin, px, white);
             if (!icon.accent.empty() && !drawn.plain)
-                Quad(colour, icon.accent[level], texels, atlas.colour_size, origin, px, white);
+                meshes.Quad(icon.accent[level], texels, origin, px, white);
         }
-        Make(manager, coverage_, std::move(coverage));
-        Make(manager, colour_, std::move(colour));
+        for (auto &[page, mesh] : meshes.runs)
+            runs_.emplace_back(page, manager.MakeGeometry(std::move(mesh)));
     }
 
     static void Make(Rml::RenderManager &manager, Rml::Geometry &geometry, Rml::Mesh mesh)
@@ -243,7 +251,8 @@ class IconElement final : public Rml::Element
             geometry = manager.MakeGeometry(std::move(mesh));
     }
 
-    Rml::Geometry coverage_, colour_, marker_;
+    std::vector<std::pair<int, Rml::Geometry>> runs_;
+    Rml::Geometry marker_;
     Drawn built_;
 };
 
@@ -279,12 +288,8 @@ void LoadIconPack(const Json &table, const std::string &dir)
         atlas.shadow_margin = shadow.at("margin").get<int>();
     }
     for (const Json &page : table.value("pages", Json::array()))
-    {
-        const Rml::Vector2f size = {page.at("size")[0].get<float>(), page.at("size")[1].get<float>()};
-        const bool coverage = page.at("channels").get<int>() == 2;
-        (coverage ? atlas.coverage_source : atlas.colour_source) = dir + page.at("file").get<std::string>();
-        (coverage ? atlas.coverage_size : atlas.colour_size) = size;
-    }
+        atlas.pages.push_back({dir + page.at("file").get<std::string>(),
+                               {page.at("size")[0].get<float>(), page.at("size")[1].get<float>()}});
     const Json icons = table.value("icons", Json::object());
     for (const auto &item : icons.items())
     {
@@ -296,7 +301,7 @@ void LoadIconPack(const Json &table, const std::string &dir)
                                                                        {"shadow", &icon.shadow}};
         for (const auto &[part, cells] : parts)
             for (const Json &cell : item.value().value(part, Json::array()))
-                cells->push_back({cell[0].get<int>(), cell[1].get<int>()});
+                cells->push_back({cell[0].get<int>(), cell[1].get<int>(), cell[2].get<int>()});
     }
     TheAtlas() = std::move(atlas);
 }

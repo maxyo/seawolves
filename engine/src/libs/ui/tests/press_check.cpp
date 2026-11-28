@@ -1493,7 +1493,7 @@ struct PressRun
                    mode + (debug ? "the crossed icon is drawn" : "no crossed icon is drawn"));
 
             // Icons are quads of the pack's atlas, tinted: opening icons never seen before makes no texture, and
-            // every icon, whatever its colour, size, fade or shadow, draws from the atlas's two pages.
+            // every icon, whatever its colour, size, fade or shadow, draws from the atlas's pages.
             NoRenderer &renderer = backend.Renderer();
             const int generated = renderer.generated;
             renderer.loaded.clear();
@@ -1503,10 +1503,24 @@ struct PressRun
             Expect(renderer.generated == generated, mode + "icons make no texture");
             Expect(std::all_of(renderer.loaded.begin(), renderer.loaded.end(),
                                [](const std::string &source) { return source.find("icon-atlas/") == 0; }) &&
-                       renderer.drawn_textures.size() == 2,
+                       renderer.drawn_textures.size() ==
+                           Json::parse(Read(pack / "icon-atlas/atlas.json")).at("pages").size(),
                    mode + "every icon draws from the atlas's pages");
         }
         return true;
+    }
+
+    // A device that cannot sample a page of the pack (smaller texture limit): the runtime refuses to start and says
+    // which picture, its size and the device's limit, before anything is drawn.
+    void TooLargePage()
+    {
+        host.reset();
+        backend.max_texture = 256;
+        host = Host::Create(config, &error);
+        Expect(host == nullptr && error.find("icon-atlas/coverage-1.png (512x") != std::string::npos &&
+                   error.find("texture limit of 256 px") != std::string::npos,
+               "a page beyond the device's texture limit refuses the start, named: " + error);
+        backend.max_texture = 2048;
     }
 };
 
@@ -1549,6 +1563,7 @@ int main(int argc, char **argv)
     run.RoomyFit();
     if (!run.BuildModes())
         return 1;
+    run.TooLargePage();
     run.host.reset();
     fs::remove_all(run.pack);
     if (failures)

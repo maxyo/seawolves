@@ -192,6 +192,10 @@ class NoBackend final : public RenderBackend
     {
         // No GPU copies in the checks.
     }
+    std::string RefusedTexture(int, int, PackFormat) const override
+    {
+        return {}; // every check pack fits the guaranteed 2048 px
+    }
     int hold = 0; // the next frames a backend would hold back (their layer textures still being made)
 
   private:

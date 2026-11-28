@@ -290,7 +290,7 @@ static void Specs(const Json &scope)
                !storm::ui::IsGenericAttribute("colour"),
            "generic attributes");
     storm::ui::LoadIconPack(
-        Json::parse(R"({"levels":[24],"icons":{"i-ship":{"glyph":[[1,1]]},"c-rum":{"colour":[[1,1]]}}})"), "");
+        Json::parse(R"({"levels":[24],"icons":{"i-ship":{"glyph":[[1,1,0]]},"c-rum":{"colour":[[1,1,0]]}}})"), "");
     Expect(storm::ui::HasIcon("ship") && storm::ui::HasIcon("c-rum") && !storm::ui::HasIcon("anchor"), "icon lookup");
     float uv[4];
     Expect(storm::ui::AtlasCell(0, 4, uv) && uv[2] == 1.0f, "cell 0 is the whole texture");

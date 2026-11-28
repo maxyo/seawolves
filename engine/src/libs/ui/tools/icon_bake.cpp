@@ -5,13 +5,15 @@
 // symbols.json: {"digest", "defs", "symbols": {id: {svg, deps?, acc?}}} as the design build writes it. Every icon is
 // rasterised with lunasvg at a fixed chain of sizes (kLevels, px); the runtime (src/icons.cpp) draws the smallest
 // level at least as large as the icon and scales it down, so nothing is rasterised on the phone. Writes DIR/atlas.json
-// (the cells, the levels and the digest the design build checks) and two pages:
+// (the pages, the cells as [x, y, page], the levels and the digest the design build checks) and the pages:
 //
-//   coverage.png  grey + alpha (RG8 at run time), drawn by the coverage shader as (colour.rgb * R, colour.a * G):
-//                 one-colour glyphs: R = how much of the colour shows (the glyph's dark shading lowers it), G =
-//                 coverage; their white shading: R = the light it adds, G = 0 (a second quad, untinted); shadows: the
-//                 coverage blurred, R = G, tinted by the shadow colour.
-//   colour.png    RGBA (straight alpha in the file): full-colour icons (c-*, nation-*) and the accent layers.
+//   coverage-N.png  grey + alpha (RG8 at run time), drawn by the coverage shader as (colour.rgb * R, colour.a * G):
+//                   one-colour glyphs: R = how much of the colour shows (the glyph's dark shading lowers it), G =
+//                   coverage; their white shading: R = the light it adds, G = 0 (a second quad, untinted); shadows:
+//                   the coverage blurred, R = G, tinted by the shadow colour.
+//   colour-N.png    RGBA (straight alpha in the file): full-colour icons (c-*, nation-*) and the accent layers.
+//
+// No page is larger than kPageLimit in either dimension; an icon's cells of one kind share a page.
 //
 // A one-colour glyph is drawn as fill * T + W: lunasvg's source-over is linear in the fill colour, so two renders, in
 // white and in black, give both exactly (T = white - black, W = black).
@@ -46,9 +48,9 @@ constexpr int kLevels[] = {128, 64, 32, 16};
 constexpr int kShadowLevels[] = {24, 12};
 constexpr float kShadowSigma = 1.0f;
 constexpr int kShadowMargin = 4; // 3 sigma + 1
-// GLES 3.0 guarantees 2048; every GLES 3.0 GPU family (Adreno 300+, Mali-T600+, PowerVR Series6+, Xclipse) samples
-// 4096 or more, and the backend checks the device's limit.
-constexpr int kPageWidth = 4096;
+// The texture size GLES 3.0 guarantees (GL_MAX_TEXTURE_SIZE >= 2048), so every device samples every page; the runtime
+// still refuses a pack whose page exceeds the device's limit (RenderBackend::RefusedTexture).
+constexpr int kPageLimit = 2048;
 
 [[noreturn]] void Fail(const std::string &why)
 {
@@ -155,7 +157,7 @@ struct Cell
 {
     int side = 0, channels = 0;
     std::vector<uint8_t> pixels;
-    int x = 0, y = 0;
+    int x = 0, y = 0, page = 0;
 };
 
 struct Page
@@ -164,30 +166,56 @@ struct Page
     std::vector<Cell *> cells;
 };
 
-// Shelves, tallest first, on the narrowest power-of-two page that holds them about square.
-void Place(Page &page)
+// Shelves, tallest first, `width` wide; the height they take, rounded up to 4.
+int Shelve(const std::vector<Cell *> &cells, int width)
 {
-    size_t area = 0;
-    for (const Cell *cell : page.cells)
-        area += static_cast<size_t>(cell->side + 2) * (cell->side + 2);
-    page.width = 128;
-    while (page.width < kPageWidth && static_cast<size_t>(page.width) * page.width < area * 5 / 4)
-        page.width *= 2;
-    std::vector<Cell *> order = page.cells;
+    std::vector<Cell *> order = cells;
     std::stable_sort(order.begin(), order.end(), [](const Cell *a, const Cell *b) { return a->side > b->side; });
     int x = 0, y = 0, shelf = 0;
     for (Cell *cell : order)
     {
         const int extent = cell->side + 2;
-        if (x + extent > page.width)
+        if (x + extent > width)
             x = 0, y += shelf, shelf = 0;
         cell->x = x + 1, cell->y = y + 1;
         x += extent;
         shelf = std::max(shelf, extent);
     }
-    page.height = (y + shelf + 3) / 4 * 4;
-    if (page.height > kPageWidth)
-        Fail("the icons do not fit one " + std::to_string(kPageWidth) + " px page");
+    return (y + shelf + 3) / 4 * 4;
+}
+
+// The pages of one kind: the narrowest power-of-two width that holds the cells about square, at most kPageLimit, and
+// as many pages as that takes, an icon's cells (a group) on one page.
+std::vector<Page> Place(int channels, const std::vector<std::vector<Cell *>> &groups)
+{
+    size_t area = 0;
+    for (const auto &group : groups)
+        for (const Cell *cell : group)
+            area += static_cast<size_t>(cell->side + 2) * (cell->side + 2);
+    int width = 128;
+    while (width < kPageLimit && static_cast<size_t>(width) * width < area * 5 / 4)
+        width *= 2;
+    std::vector<Page> pages;
+    Page page{width, 0, channels, {}};
+    for (const auto &group : groups)
+    {
+        std::vector<Cell *> more = page.cells;
+        more.insert(more.end(), group.begin(), group.end());
+        if (Shelve(more, width) <= kPageLimit)
+        {
+            page.cells = std::move(more);
+            continue;
+        }
+        if (page.cells.empty())
+            Fail("an icon's cells do not fit one " + std::to_string(kPageLimit) + " px page");
+        pages.push_back(std::move(page));
+        page = Page{width, 0, channels, group};
+    }
+    if (!page.cells.empty())
+        pages.push_back(std::move(page));
+    for (Page &placed : pages) // the last placement of each page's cells is the one written
+        placed.height = Shelve(placed.cells, width);
+    return pages;
 }
 
 void Write(const Page &page, const std::string &path)
@@ -232,13 +260,19 @@ int main(int argc, char **argv)
     for (const auto &item : source.at("symbols").items())
         pack.symbols[item.key()] = item.value();
 
+    // The cells of each page kind, a group per icon.
+    struct Kind
+    {
+        const char *name;
+        int channels;
+        std::vector<std::vector<Cell *>> groups;
+    };
+    Kind coverage{"coverage", 2, {}}, colour{"colour", 4, {}};
     std::vector<std::unique_ptr<Cell>> cells;
-    Page coverage, colour;
-    coverage.channels = 2, colour.channels = 4;
-    const auto add = [&](Page &page, int side, std::vector<uint8_t> pixels) {
+    const auto add = [&](Kind &kind, int side, std::vector<uint8_t> pixels) {
         auto cell = std::make_unique<Cell>();
-        cell->side = side, cell->channels = page.channels, cell->pixels = std::move(pixels);
-        page.cells.push_back(cell.get());
+        cell->side = side, cell->channels = kind.channels, cell->pixels = std::move(pixels);
+        kind.groups.back().push_back(cell.get());
         cells.push_back(std::move(cell));
         return cells.back().get();
     };
@@ -251,6 +285,7 @@ int main(int argc, char **argv)
         const bool full_colour = id.rfind("c-", 0) == 0 || id.rfind("i-nation-", 0) == 0;
         const bool accent = !full_colour && symbol.value("acc", false);
         auto &parts = table[id];
+        coverage.groups.emplace_back(), colour.groups.emplace_back();
         bool lit = false;
         std::vector<std::vector<uint8_t>> light;
         for (const int px : kLevels)
@@ -301,17 +336,23 @@ int main(int argc, char **argv)
                   {"levels", kLevels},
                   {"shadow", {{"levels", kShadowLevels}, {"sigma", kShadowSigma}, {"margin", kShadowMargin}}},
                   {"icons", Json::object()}};
-    std::vector<std::pair<Page *, std::string>> pages = {{&coverage, "coverage.png"}, {&colour, "colour.png"}};
     Json listed = Json::array();
-    for (auto &[page, name] : pages)
+    for (Kind *kind : {&coverage, &colour})
     {
-        if (page->cells.empty())
-            continue;
-        Place(*page);
-        Write(*page, out + "/" + name);
-        listed.push_back({{"file", name}, {"size", {page->width, page->height}}, {"channels", page->channels}});
-        std::printf("%s: %dx%d, %d channels, %zu cells\n", name.c_str(), page->width, page->height, page->channels,
-                    page->cells.size());
+        kind->groups.erase(std::remove_if(kind->groups.begin(), kind->groups.end(),
+                                          [](const std::vector<Cell *> &group) { return group.empty(); }),
+                           kind->groups.end());
+        int number = 0;
+        for (Page &page : Place(kind->channels, kind->groups))
+        {
+            const std::string name = std::string(kind->name) + "-" + std::to_string(++number) + ".png";
+            for (Cell *cell : page.cells)
+                cell->page = static_cast<int>(listed.size());
+            Write(page, out + "/" + name);
+            listed.push_back({{"file", name}, {"size", {page.width, page.height}}, {"channels", page.channels}});
+            std::printf("%s: %dx%d, %d channels, %zu cells\n", name.c_str(), page.width, page.height, page.channels,
+                        page.cells.size());
+        }
     }
     atlas["pages"] = listed;
     for (const auto &[id, parts] : table)
@@ -319,7 +360,7 @@ int main(int argc, char **argv)
         Json entry = Json::object();
         for (const auto &[part, list] : parts)
             for (const Cell *cell : list)
-                entry[part].push_back({cell->x, cell->y});
+                entry[part].push_back({cell->x, cell->y, cell->page});
         atlas["icons"][id] = entry;
     }
     std::ofstream(out + "/atlas.json") << atlas.dump() << "\n";
