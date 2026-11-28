@@ -840,8 +840,9 @@ void SHIP::Execute(uint32_t DeltaTime)
     for (uint32_t i = 0; i < aFirePlaces.size(); i++)
         aFirePlaces[i].Execute(fDeltaTime);
 
-    // water sound: set position and volume
-    auto *pASounds = AttributesPointer->FindAClass(AttributesPointer, "Ship.Sounds");
+    // water sound: set position and volume. A ship restored from a sea save is created without attributes and the
+    // game makes no sounds for it (its character keeps the saved session's sound ids, which must not be driven).
+    auto *pASounds = AttributesPointer ? AttributesPointer->FindAClass(AttributesPointer, "Ship.Sounds") : nullptr;
 
     if (pASounds)
     {
