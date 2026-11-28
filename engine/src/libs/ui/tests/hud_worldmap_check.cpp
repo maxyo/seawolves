@@ -16,14 +16,6 @@ struct MapBench : Bench
     }
 };
 
-static bool Sent(const FakeMount &mount, const std::string &command)
-{
-    for (const std::string &sent : mount.commands)
-        if (sent == command)
-            return true;
-    return false;
-}
-
 static void CheckConsumer()
 {
     MapBench bench;
@@ -91,7 +83,7 @@ static void CheckScene()
 
     // nothing is activated before it is drawn
     bench.Press("context");
-    Expect(!Sent(mount, "worldmap:41\tactivate\tEnterToSea"), "a command that was not drawn cannot be tapped");
+    Expect(!Sent(mount.commands, "worldmap:41\tactivate\tEnterToSea"), "a command that was not drawn cannot be tapped");
     bench.Frame();
 
     // the compass shows the details beside it
@@ -109,17 +101,17 @@ static void CheckScene()
     bench.Press("helm", "change", "70");
     Expect(mount.Last() == "hold:9\tWMapShipTurnRight\t1\t53", "the helm, as hard as it is pulled: " + mount.Last());
     bench.Press("helm", "change", "30");
-    Expect(mount.Last() == "hold:9\tWMapShipTurnRight\t1\t10" && !Sent(mount, "hold:9\tWMapShipTurnRight\t0"),
+    Expect(mount.Last() == "hold:9\tWMapShipTurnRight\t1\t10" && !Sent(mount.commands, "hold:9\tWMapShipTurnRight\t0"),
            "eased back, the same turn softer: " + mount.Last());
     bench.Press("helm", "change", "-70");
-    Expect(Sent(mount, "hold:9\tWMapShipTurnRight\t0") && mount.Last() == "hold:9\tWMapShipTurnLeft\t1\t53",
+    Expect(Sent(mount.commands, "hold:9\tWMapShipTurnRight\t0") && mount.Last() == "hold:9\tWMapShipTurnLeft\t1\t53",
            "over to the other side: " + mount.Last());
     bench.Press("helm", "change", "0");
     Expect(mount.Last() == "hold:9\tWMapShipTurnLeft\t0", "amidships: " + mount.Last());
     bench.Press("sail", "hold", "up");
     Expect(mount.Last() == "hold:9\tWMapShipSailUp\t1", "lever up: " + mount.Last());
     bench.Press("sail", "hold", "down");
-    Expect(Sent(mount, "hold:9\tWMapShipSailUp\t0") && mount.Last() == "hold:9\tWMapShipSailDown\t1",
+    Expect(Sent(mount.commands, "hold:9\tWMapShipSailUp\t0") && mount.Last() == "hold:9\tWMapShipSailDown\t1",
            "lever down: " + mount.Last());
     bench.Press("sail", "hold", "");
     Expect(mount.Last() == "hold:9\tWMapShipSailDown\t0" && mount.slots.back().empty(),
@@ -136,7 +128,7 @@ static void CheckScene()
     bench.Press("sail", "hold", "");
     bench.Press("camera", "down");
     bench.Press("camera", "up");
-    Expect(Sent(mount, "hold:9\tWMapCameraSwitch\t1") && mount.Last() == "hold:9\tWMapCameraSwitch\t0",
+    Expect(Sent(mount.commands, "hold:9\tWMapCameraSwitch\t1") && mount.Last() == "hold:9\tWMapCameraSwitch\t0",
            "the camera button");
     bench.Press("pause");
     Expect(mount.Last() == "shortcut:mainmenu", "menu: " + mount.Last());
@@ -256,23 +248,24 @@ static void CheckLabelArea()
     bench.Feed("gameplay", "gameplay-worldmap");
     bench.Feed("worldMap", "world-map");
     bench.Frame();
-    Expect(Sent(bench.mount, "worldmap:41\tlabelarea\t960:540:702:15:240:219"),
+    Expect(Sent(bench.mount.commands, "worldmap:41\tlabelarea\t960:540:702:15:240:219"),
            "the drawn compass reserves its measured full date/disc/days box");
     const auto sent = bench.mount.commands.size();
     bench.Frame();
     Expect(bench.mount.commands.size() == sent, "unchanged compass geometry is not resent");
     bench.mount.boxes["compass "] = {1022, 15, 240, 219, 0, 0, 1280, 720, 1.5f};
     bench.Frame();
-    Expect(Sent(bench.mount, "worldmap:41\tlabelarea\t1280:720:1022:15:240:219"),
+    Expect(Sent(bench.mount.commands, "worldmap:41\tlabelarea\t1280:720:1022:15:240:219"),
            "resizing updates the reservation even without a telemetry revision change");
     bench.mount.boxes.clear();
     bench.Frame();
-    Expect(Sent(bench.mount, "worldmap:41\tlabelarea\tnone"), "an unmeasurable compass clears its old reservation");
+    Expect(Sent(bench.mount.commands, "worldmap:41\tlabelarea\tnone"),
+           "an unmeasurable compass clears its old reservation");
     bench.mount.boxes["compass "] = {702, 15, 240, 219, 0, 0, 960, 540, 1.5f};
     bench.Frame();
     bench.mount.commands.clear();
     bench.Feed("presentation", "presentation-menu");
-    Expect(Sent(bench.mount, "worldmap:41\tlabelarea\tnone"), "hiding the HUD clears its reservation too");
+    Expect(Sent(bench.mount.commands, "worldmap:41\tlabelarea\tnone"), "hiding the HUD clears its reservation too");
 }
 
 // What a state change costs the scene (printed, not judged: the host is not the phone): one whose structure changes
@@ -309,9 +302,5 @@ int main(int argc, char **argv)
     CheckTime();
     CheckLabelArea();
     PrintCost();
-    if (failures)
-        std::fprintf(stderr, "%d world-map HUD check(s) failed\n", failures);
-    else
-        std::printf("world-map HUD checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("world-map HUD");
 }

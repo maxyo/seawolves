@@ -6,7 +6,6 @@
 // candidate reached the screen's candidate-N bindings and no captain could be chosen. With the test pack
 // plus <s-shipyard> reduced to that sheet, drawn by the shipyard's script screen; no GL context, no game data.
 #include "fakes.h"
-#include "runtime_stub.h"
 #include "../tools/script_game.h"
 #include "../src/screens/screen.h"
 #include "storm_ui/ui.h"
@@ -19,25 +18,11 @@
 using namespace storm::ui;
 namespace fs = std::filesystem;
 
-static std::string List(const std::vector<std::string> &lines)
-{
-    std::string out;
-    for (const std::string &line : lines)
-        out += (out.empty() ? "" : " | ") + line;
-    return "[" + out + "]";
-}
-
 // The test pack plus a list row (press, as C-ListRow: the whole row, an action part when `action` names an
 // icon) and the shipyard screen drawing its sheet's candidates with `row` as each row's attributes.
 static fs::path MakePack(const fs::path &base, const fs::path &font, const fs::path &app_pack, const std::string &row)
 {
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-taps-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(base, pack, fs::copy_options::recursive);
-    fs::copy_file(font, pack / "font.ttf");
-    Json manifest = Json::parse(Read(pack / "pack.json"));
-    manifest["fonts"] = Json::array({"font.ttf"});
-    std::ofstream(pack / "pack.json") << manifest.dump();
+    const fs::path pack = CopyPack(base, "taps", font);
     Json components = Json::parse(Read(pack / "components.json"));
     components["components"].push_back(Json::parse(R"({
         "tag": "c-row", "behaviors": ["press"],
@@ -76,14 +61,9 @@ static Result Run(const fs::path &base, const fs::path &font, const fs::path &mo
     std::unique_ptr<FileSource> files = DirectoryFiles(pack.string());
     NoBackend backend;
     double clock = 0.0;
-    Config config;
+    Config config = CheckConfig(*files, backend, clock);
     config.check_taps = true; // the contract checks: a tap that maps to nothing
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&clock] { return clock; };
-    config.log_taps = true; // the tap map of device crawls (tools/ui_crawl)
+    config.log_taps = true;   // the tap map of device crawls (tools/ui_crawl)
     config.on_log = [&result](LogLevel level, const std::string &line) {
         if (level == LogLevel::Error && line.rfind("screen ", 0) == 0) // the reduced pack has no strings of its own
             result.errors.push_back(line);

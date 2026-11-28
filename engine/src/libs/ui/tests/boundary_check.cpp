@@ -17,22 +17,6 @@ using namespace storm::ui;
 using namespace storm::ui::screens;
 using namespace storm::ui::hud;
 
-static bool Has(const std::vector<std::string> &lines, const std::string &part)
-{
-    for (const std::string &line : lines)
-        if (line.find(part) != std::string::npos)
-            return true;
-    return false;
-}
-
-static size_t Count(const std::vector<std::string> &lines, const std::string &part)
-{
-    size_t count = 0;
-    for (const std::string &line : lines)
-        count += line.find(part) != std::string::npos;
-    return count;
-}
-
 // What the fake screens do, set by each case.
 static bool throw_in_build = false;
 static bool throw_in_handler = false;
@@ -168,7 +152,7 @@ static void CheckScreenBuild()
                    "screen throwing (interface throwing #1 revision 1) threw in Build: bad widget in Build");
     Expect(!bench.router.OnEvent({"ok", "click", ""}), "the failed screen leaves no event bindings");
     bench.router.SetInterface(Model(1, 2));
-    Expect(bench.router.Using() == "generic" && Count(bench.surface.errors, "threw") == 1,
+    Expect(bench.router.Using() == "generic" && CountHaving(bench.surface.errors, "threw") == 1,
            "the rest of the opening stays the generic layout's");
     // A new opening tries the screen again.
     throw_in_build = false;
@@ -303,7 +287,7 @@ static void CheckUnfit()
     bench.surface.now = 9.0;
     bench.router.SetInterface(Model(4, 2, "image"));
     Expect(bench.router.Using() == "generic" && bench.surface.alerts.size() == 1 &&
-               Count(bench.surface.errors, "the generic layout draws this opening") == 1,
+               CountHaving(bench.surface.errors, "the generic layout draws this opening") == 1,
            "a required node gone in a later revision gives the rest of the opening to the generic layout");
     bench.router.SetInterface(Model(5, 1));
     Expect(bench.router.Using() == "throwing", "and the next opening tries the screen again");

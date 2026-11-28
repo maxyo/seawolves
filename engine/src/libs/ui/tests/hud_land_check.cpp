@@ -1628,9 +1628,5 @@ int main(int argc, char **argv)
     CheckTouches(pack);
     CheckOneHostPerProcess(pack);
     PrintCost();
-    if (failures)
-        std::fprintf(stderr, "%d land HUD check(s) failed\n", failures);
-    else
-        std::printf("land HUD checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("land HUD");
 }

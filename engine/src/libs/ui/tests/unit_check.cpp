@@ -82,11 +82,8 @@ static void ModelCodec(const char *models)
     {
         if (entry.path().extension() != ".json")
             continue;
-        std::ifstream in(entry.path(), std::ios::binary);
-        std::stringstream text;
-        text << in.rdbuf();
         storm::ui::InterfaceModel model, again;
-        if (!storm::ui::ParseInterfaceModel(text.str(), model))
+        if (!storm::ui::ParseInterfaceModel(Read(entry.path()), model))
             continue; // not an interface model (a state fixture)
         ++count;
         const std::string written = storm::ui::InterfaceModelJson(model);

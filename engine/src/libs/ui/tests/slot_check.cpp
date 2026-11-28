@@ -6,7 +6,6 @@
 // No GL context, no game data, no text (no font needed).
 #include "fakes.h"
 #include "storm_ui/host_tools.h"
-#include "runtime_stub.h"
 #include "storm_ui/ui.h"
 
 #include <nlohmann/json.hpp>
@@ -27,9 +26,7 @@ namespace fs = std::filesystem;
 // c-slot-list: a parent that passes a button into the row only while `button` is set.
 static fs::path MakePack(const fs::path &base)
 {
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-slot-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(base, pack, fs::copy_options::recursive);
+    const fs::path pack = CopyPack(base, "slot");
     Json components = Json::parse(Read(pack / "components.json"));
     components["components"].push_back(Json::parse(R"({
         "tag": "c-slot-row", "props": {"title": {"type": "text", "default": ""}},
@@ -53,12 +50,7 @@ int main(int argc, char **argv)
     std::unique_ptr<FileSource> files = DirectoryFiles(pack.string());
     NoBackend backend;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&clock] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     std::string error;
     std::unique_ptr<Host> host = Host::Create(config, &error);
     Expect(host != nullptr, "the runtime starts: " + error);
@@ -111,9 +103,5 @@ int main(int argc, char **argv)
            "and it comes back: " + row());
     host.reset();
     fs::remove_all(pack);
-    if (failures)
-        std::fprintf(stderr, "%d slot check(s) failed\n", failures);
-    else
-        std::printf("slot checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("slot");
 }

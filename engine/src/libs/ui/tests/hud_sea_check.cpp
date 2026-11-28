@@ -21,22 +21,6 @@ struct SeaBench : Bench
     }
 };
 
-static bool Sent(const FakeMount &mount, const std::string &command)
-{
-    for (const std::string &sent : mount.commands)
-        if (sent == command)
-            return true;
-    return false;
-}
-
-static size_t Count(const FakeMount &mount, const std::string &command)
-{
-    size_t count = 0;
-    for (const std::string &sent : mount.commands)
-        count += sent == command ? 1 : 0;
-    return count;
-}
-
 static void Sail(Bench &bench)
 {
     bench.Feed("seaOrders", "sea-orders-idle");
@@ -199,10 +183,10 @@ struct SailingRun
     {
         // nothing can be activated before a frame is drawn
         bench.Press("context");
-        Expect(!Sent(mount, "seaquick:31\tMoor"), "a quick action that was not drawn yet cannot be tapped");
+        Expect(!Sent(mount.commands, "seaquick:31\tMoor"), "a quick action that was not drawn yet cannot be tapped");
         bench.Frame();
-        Expect(Count(mount, "hudowner:sea") == 1 && Count(mount, "hudowner:worldmap") == 1 &&
-                   Count(mount, "hudowner:land") == 1,
+        Expect(Count(mount.commands, "hudowner:sea") == 1 && Count(mount.commands, "hudowner:worldmap") == 1 &&
+                   Count(mount.commands, "hudowner:land") == 1,
                "the HUD declares once which engine HUDs it presents");
     }
 
@@ -238,14 +222,14 @@ struct SailingRun
         bench.Press("context");
         Expect(mount.Last() == "seaquick:31\tMoor", "the quick action activates exactly its action: " + mount.Last());
         bench.Press("context");
-        Expect(Count(mount, "seaquick:31\tMoor") == 1, "a second tap on the same offer does nothing");
+        Expect(Count(mount.commands, "seaquick:31\tMoor") == 1, "a second tap on the same offer does nothing");
 
         bench.Feed("seaQuickAction", "sea-quick-board");
         Expect(mount.shown.elements["context"]["icon"] == "grapple" &&
                    mount.shown.elements["context"]["variant"] == "combat",
                "another offer, another glyph");
         bench.Press("context");
-        Expect(!Sent(mount, "seaquick:32\tBoard"), "the new offer is not tapped before it is drawn");
+        Expect(!Sent(mount.commands, "seaquick:32\tBoard"), "the new offer is not tapped before it is drawn");
         bench.Frame(0.3);
         bench.Press("context");
         Expect(mount.Last() == "seaquick:32\tBoard", "board: " + mount.Last());
@@ -264,15 +248,15 @@ struct SailingRun
         Expect(mount.Last() == "hold:9\tShip_TurnRight\t1\t2" && mount.slots.back() == "hold-Ship_TurnRight-1",
                "just off the middle a slight turn: " + mount.Last());
         bench.Press("helm", "change", "60");
-        Expect(mount.Last() == "hold:9\tShip_TurnRight\t1\t40" && !Sent(mount, "hold:9\tShip_TurnRight\t0"),
+        Expect(mount.Last() == "hold:9\tShip_TurnRight\t1\t40" && !Sent(mount.commands, "hold:9\tShip_TurnRight\t0"),
                "pulled further, the same hold turns harder (the curve: 60 of the travel is 40): " + mount.Last());
         bench.Frame(3.0);
-        Expect(Count(mount, "hold:9\tShip_TurnRight\t1\t40") == 1,
+        Expect(Count(mount.commands, "hold:9\tShip_TurnRight\t1\t40") == 1,
                "a held helm is said once: the engine holds it until its release");
         bench.Press("helm", "change", "100");
         Expect(mount.Last() == "hold:9\tShip_TurnRight\t1\t100", "hard over: " + mount.Last());
         bench.Press("helm", "change", "-80");
-        Expect(Sent(mount, "hold:9\tShip_TurnRight\t0") && mount.Last() == "hold:9\tShip_TurnLeft\t1\t68",
+        Expect(Sent(mount.commands, "hold:9\tShip_TurnRight\t0") && mount.Last() == "hold:9\tShip_TurnLeft\t1\t68",
                "helm over to port: " + mount.Last());
         bench.Press("helm", "change", "0");
         Expect(mount.Last() == "hold:9\tShip_TurnLeft\t0", "helm amidships: " + mount.Last());
@@ -335,7 +319,7 @@ struct SailingRun
     void Minimap()
     {
         // the minimap: the engine's radar needs the place of the disc, then the word that it shows
-        Expect(!Sent(mount, "navigator:9\t3\t4\tprepare\t1\t800\t400\t704\t84\t50\t1000\t1"),
+        Expect(!Sent(mount.commands, "navigator:9\t3\t4\tprepare\t1\t800\t400\t704\t84\t50\t1000\t1"),
                "no aperture before the disc is on the screen");
         mount.boxes["minimap .mm-disc"] = {654, 34, 100, 100, 0, 0, 800, 400, 1};
         bench.Frame();
@@ -343,15 +327,15 @@ struct SailingRun
                    mount.slots.back() == "navigator-prepare",
                "the aperture of the drawn disc: " + mount.Last());
         bench.Frame(5.0);
-        Expect(Count(mount, "navigator:9\t3\t4\tprepare\t1\t800\t400\t704\t84\t50\t1000\t1") == 1 &&
-                   !Sent(mount, "navigator:9\t3\t4\tvisible\t1"),
+        Expect(Count(mount.commands, "navigator:9\t3\t4\tprepare\t1\t800\t400\t704\t84\t50\t1000\t1") == 1 &&
+                   !Sent(mount.commands, "navigator:9\t3\t4\tvisible\t1"),
                "the aperture is said once per owner and place, after the engine drew there");
         Json drawn = State("ship");
         drawn["sequence"] = 22;
         drawn["navigatorLayoutId"] = 1;
         bench.Set("ship", drawn);
         bench.Frame(0.3);
-        Expect(Sent(mount, "navigator:9\t3\t4\tvisible\t1"),
+        Expect(Sent(mount.commands, "navigator:9\t3\t4\tvisible\t1"),
                "the engine drew into the aperture: the readouts are called visible");
         bench.Press("minimap", "zoom");
         Expect(mount.Last() == "navigator:9\t3\t4\tin", "a tap on the minimap zooms: " + mount.Last());
@@ -431,7 +415,8 @@ struct SailingRun
         // what is not drawn any more gives the engine's indicators back
         mount.commands.clear();
         bench.Feed("presentation", "presentation-menu");
-        Expect(!mount.visible && Sent(mount, "navigator:9\t3\t4\tclear"), "under a menu the radar's disc is withdrawn");
+        Expect(!mount.visible && Sent(mount.commands, "navigator:9\t3\t4\tclear"),
+               "under a menu the radar's disc is withdrawn");
         mount.commands.clear();
         bench.Feed("presentation", "presentation-game");
         bench.Frame();
@@ -439,7 +424,7 @@ struct SailingRun
         bench.Press("helm", "change", "100");
         mount.commands.clear();
         bench.Feed("presentation", "presentation-background");
-        Expect(Sent(mount, "hold:9\tShip_TurnRight\t0"), "a game that lost the screen: the helm is let go");
+        Expect(Sent(mount.commands, "hold:9\tShip_TurnRight\t0"), "a game that lost the screen: the helm is let go");
         mount.commands.clear();
         bench.Press("fire");
         bench.Press("context");
@@ -483,7 +468,7 @@ struct SailingRun
         bench.Press("walk", "change", "0,-100");
         bench.hud.Released();
         Expect(mount.Last() == "deckwalk:11\t0\t0", "cancelled input stops the walk: " + mount.Last());
-        Expect(!Sent(mount, "hold:11\tDeckCamera_Forward\t1"), "the walk is no key any more");
+        Expect(!Sent(mount.commands, "hold:11\tDeckCamera_Forward\t1"), "the walk is no key any more");
         Json helmless = State("gameplay-sailing");
         helmless["revision"] = 12;
         helmless["capabilities"] = Json::array({"Ship_Fire"});
@@ -522,12 +507,13 @@ static void CheckMoorAndMap()
                shown["map"]["label"] == "Выйти на карту" && shown["context"]["icon"] == "moor",
            "moor with the map beside it: " + shown["map"].dump());
     bench.Press("map");
-    Expect(!Sent(mount, "seaquick:32\tMap"), "the map button of an offer not drawn yet cannot be tapped");
+    Expect(!Sent(mount.commands, "seaquick:32\tMap"), "the map button of an offer not drawn yet cannot be tapped");
     bench.Frame();
     bench.Press("map");
     Expect(mount.Last() == "seaquick:32\tMap", "the map button activates Map: " + mount.Last());
     bench.Press("context");
-    Expect(Count(mount, "seaquick:32\tMoor") == 0, "one tap per offer: the engine answers with a new revision");
+    Expect(Count(mount.commands, "seaquick:32\tMoor") == 0,
+           "one tap per offer: the engine answers with a new revision");
     Expect(mount.errors.empty(), "moor and map: no errors");
 }
 
@@ -685,7 +671,7 @@ struct BattleRun
                    mount.Has("fire") && mount.Has("sail"),
                "the raised spyglass keeps the steering and the guns, the rest gives the look room");
         bench.Frame(kRaiseWait);
-        Expect(shown["spyglass"]["variant"] == "active" && !Sent(mount, "gameplay:10\tTelescopeOut"),
+        Expect(shown["spyglass"]["variant"] == "active" && !Sent(mount.commands, "gameplay:10\tTelescopeOut"),
                "raised by the game: it stays up, nothing held");
         bench.Press("spyglass");
         Expect(mount.Last() == "gameplay:10\tTelescopeOut" && shown["spyglass"]["variant"] == "active",
@@ -719,8 +705,9 @@ struct BattleRun
         Expect(mount.Last() == "hold:10\tShip_TurnLeft\t1\t100", "helm in battle: " + mount.Last());
         bench.Feed("gameplay", "gameplay-sailing");
         bench.Frame(0.12);
-        Expect(mount.shown.layout == "sea" && !Sent(mount, "hold:10\tShip_TurnLeft\t0") &&
-                   Count(mount, "hold:10\tShip_TurnLeft\t1\t100") == 1 && !Sent(mount, "hold:9\tShip_TurnLeft\t1\t100"),
+        Expect(mount.shown.layout == "sea" && !Sent(mount.commands, "hold:10\tShip_TurnLeft\t0") &&
+                   Count(mount.commands, "hold:10\tShip_TurnLeft\t1\t100") == 1 &&
+                   !Sent(mount.commands, "hold:9\tShip_TurnLeft\t1\t100"),
                "the held helm carries on through a new gameplay revision");
     }
 };
@@ -798,7 +785,7 @@ static void CheckOrders()
     bench.Frame();
     bench.Press("helm", "change", "100");
     bench.Press("orders");
-    Expect(Sent(mount, "hold:10\tShip_TurnRight\t0") && mount.Last() == "orders:14\topen\t",
+    Expect(Sent(mount.commands, "hold:10\tShip_TurnRight\t0") && mount.Last() == "orders:14\topen\t",
            "opening the orders lets the helm go first");
 
     // the engine opens its menu and blocks gameplay: the panel stays on the last layout
@@ -823,7 +810,7 @@ static void CheckOrders()
                props["tiles"][3]["image"]["icon"] == "cabin" && props["rows"][0]["disabled"] == true &&
                props["rows"][0]["cooldown"] == 60,
            "orders have their icons, a cooling ability its share");
-    Expect(!Sent(mount, "orders:15\tshown\t1"), "a built panel is not acknowledged");
+    Expect(!Sent(mount.commands, "orders:15\tshown\t1"), "a built panel is not acknowledged");
     bench.Frame();
     Expect(mount.Last() == "orders:15\tshown\t1" && mount.slots.back() == "orders-ack",
            "the drawn panel is acknowledged: " + mount.Last());
@@ -845,7 +832,7 @@ static void CheckOrders()
     Expect(mount.Last() == "orders:15\tselectItem\ti1", "and back");
     bench.Feed("seaOrders", "sea-orders-root-selected");
     bench.Frame();
-    Expect(Sent(mount, "orders:16\tshown\t1") && mount.Last() == "orders:16\tactivateItem\ti1",
+    Expect(Sent(mount.commands, "orders:16\tshown\t1") && mount.Last() == "orders:16\tactivateItem\ti1",
            "… and activates once the engine selected it: " + mount.Last());
     bench.Press("item-i5");
     Expect(mount.Last() == "orders:16\tactivateItem\ti1", "a cooling ability cannot be chosen");
@@ -897,7 +884,7 @@ static void CheckOrders()
     bench.Feed("seaOrders", "sea-orders-unknown-kind");
     bench.Frame();
     Expect(mount.shown.sheet.empty() && !mount.shown.modal && mount.errors.size() == errors + 1 &&
-               !Sent(mount, "orders:20\tshown\t1") && !bench.hud.Back(),
+               !Sent(mount.commands, "orders:20\tshown\t1") && !bench.hud.Back(),
            "an undrawable menu: an error, no panel, no acknowledgement");
 
     // the game loses the screen with the panel open
@@ -908,7 +895,7 @@ static void CheckOrders()
     Expect(mount.Last() == "orders:21\tshown\t1", "drawn again");
     mount.commands.clear();
     bench.Feed("presentation", "presentation-background");
-    Expect(Sent(mount, "orders:21\tshown\t0") && mount.Last() == "orders:21\tclose\t",
+    Expect(Sent(mount.commands, "orders:21\tshown\t0") && mount.Last() == "orders:21\tclose\t",
            "not live: the coverage is withdrawn and the menu closed");
 
     // the menu closes: the sea HUD is back
@@ -1510,9 +1497,5 @@ int main(int argc, char **argv)
     CheckDeckTouches(pack);
     CheckCameraSwitch(pack);
     PrintCost();
-    if (failures)
-        std::fprintf(stderr, "%d sea HUD check(s) failed\n", failures);
-    else
-        std::printf("sea HUD checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("sea HUD");
 }

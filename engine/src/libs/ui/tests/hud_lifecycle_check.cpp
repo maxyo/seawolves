@@ -17,12 +17,7 @@ static void ChangeScene(const std::string &pack, bool combat)
     NoBackend backend;
     std::vector<std::string> errors, commands;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     config.on_log = [&](LogLevel level, const std::string &line) {
         if (level == LogLevel::Error)
             errors.push_back(line);
@@ -89,12 +84,7 @@ static void LeftHanded(const std::string &pack)
     NoBackend backend;
     std::vector<std::string> errors;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     config.on_log = [&](LogLevel level, const std::string &line) {
         if (level == LogLevel::Error)
             errors.push_back(line);
@@ -143,12 +133,7 @@ static void TapAsTheAppLeaves(const std::string &pack)
     NoBackend backend;
     std::vector<std::string> lines;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     config.trace_actions = true;
     config.log_taps = true; // the "UI action" lines are logged with it
     config.on_log = [&](LogLevel, const std::string &line) {
@@ -224,9 +209,7 @@ static void TapAsTheAppLeaves(const std::string &pack)
 static void Undrawable(const std::string &app_pack)
 {
     namespace fs = std::filesystem;
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-hud-undrawable-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(app_pack, pack, fs::copy_options::recursive);
+    const fs::path pack = CopyPack(app_pack, "hud-undrawable");
     Json components = Json::parse(std::ifstream(pack / "components.json"));
     for (Json &component : components["components"])
         if (component["tag"] == "c-hud-button")
@@ -236,12 +219,7 @@ static void Undrawable(const std::string &app_pack)
     NoBackend backend;
     std::vector<std::string> errors;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     config.on_log = [&](LogLevel level, const std::string &line) {
         if (level == LogLevel::Error && line.rfind("HUD ", 0) == 0)
             errors.push_back(line);
@@ -284,12 +262,7 @@ static void SceneProps(const std::string &pack)
     auto files = DirectoryFiles(pack);
     NoBackend backend;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     std::string error;
     auto host = Host::Create(config, &error);
     Expect(host != nullptr, "runtime starts: " + error);

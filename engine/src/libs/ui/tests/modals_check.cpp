@@ -12,7 +12,6 @@
 // Synthetic models only; no GL context, no game data.
 #include "fakes.h"
 #include "../tools/script_game.h"
-#include "runtime_stub.h"
 #include "../src/screens/screen.h"
 #include "storm_ui/ui.h"
 
@@ -31,42 +30,10 @@ namespace fs = std::filesystem;
 
 static std::string models;
 
-static std::string ReadText(const fs::path &path)
-{
-    std::ifstream file(path, std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-}
-
-static InterfaceModel Load(const std::string &name)
-{
-    InterfaceModel model;
-    std::string error;
-    Expect(ParseInterfaceModel(ReadText(fs::path(models) / name), model, &error), "parse " + name + ": " + error);
-    return model;
-}
-
-static Widget Make(const char *node, const char *type, const char *label = "", std::vector<std::string> actions = {})
-{
-    Widget widget;
-    widget.node = node;
-    widget.type = type;
-    widget.label = label;
-    widget.actions = std::move(actions);
-    return widget;
-}
-
 static std::string Topmost(const Router &router)
 {
     const auto modals = router.Modals();
     return modals.empty() ? std::string() : modals.back().first + (modals.back().second ? "" : " (must be answered)");
-}
-
-static std::string List(const std::vector<std::string> &lines)
-{
-    std::string out;
-    for (const std::string &line : lines)
-        out += (out.empty() ? "" : " | ") + line;
-    return "[" + out + "]";
 }
 
 // One modal: how to open it, its id, and the event of its own cancel (none: it must be answered).
@@ -80,7 +47,7 @@ struct Case
 
 static void Interface(Router &router, const char *file)
 {
-    router.SetInterface(Load(file));
+    router.SetInterface(Load(models, file));
 }
 
 static Json LauncherState(Json data)
@@ -101,13 +68,6 @@ static Json DownloadSets()
                              {"menu", {"details", "delete"}}}});
 }
 
-// The script screens of the application's scripts (tools/script_game.h) with its pack's components.
-static fs::path app_pack;
-static void Scripted(Router &router)
-{
-    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
-}
-
 static std::vector<Case> Cases()
 {
     const auto file = [](const char *name) { return [name](Router &router) { Interface(router, name); }; };
@@ -119,7 +79,7 @@ static std::vector<Case> Cases()
         {"forced world map encounter", file("reading-map.json"), "card", {}},
         {"world map encounter card",
          [](Router &router) {
-             InterfaceModel map = Load("reading-map.json");
+             InterfaceModel map = Load(models, "reading-map.json");
              for (Widget &widget : map.widgets)
                  widget.enabled = true;
              router.SetInterface(map);
@@ -273,7 +233,7 @@ static void EveryModel()
     int seen = 0;
     for (const auto &entry : fs::directory_iterator(models))
     {
-        const std::string text = ReadText(entry.path());
+        const std::string text = Read(entry.path());
         if (text.find("\"widgets\"") == std::string::npos)
             continue; // a state channel's model
         const std::string name = entry.path().filename().string();
@@ -281,8 +241,8 @@ static void EveryModel()
         Router tapped(tapped_surface), back(back_surface);
         Scripted(tapped);
         Scripted(back);
-        tapped.SetInterface(Load(name));
-        back.SetInterface(Load(name));
+        tapped.SetInterface(Load(models, name));
+        back.SetInterface(Load(models, name));
         const auto modals = tapped.Modals();
         if (modals.empty())
             continue;
@@ -312,7 +272,7 @@ static void Undeclared()
 {
     FakeSurface surface;
     Router router(surface);
-    router.SetInterface(Load("store.json"));
+    router.SetInterface(Load(models, "store.json"));
     Expect(router.Modals().empty() && !router.OnEvent({"confirm", "dismiss", ""}) && !surface.errors.empty(),
            "a tap beside a modal the screen does not show is reported");
 }
@@ -324,14 +284,8 @@ static void Undeclared()
 // under the scrim, where the finger lands.
 static fs::path MakePack(const fs::path &base, const fs::path &font)
 {
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-modals-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(base, pack, fs::copy_options::recursive);
-    fs::copy_file(font, pack / "font.ttf");
-    Json manifest = Json::parse(ReadText(pack / "pack.json"));
-    manifest["fonts"] = Json::array({"font.ttf"});
-    std::ofstream(pack / "pack.json") << manifest.dump();
-    Json components = Json::parse(ReadText(pack / "components.json"));
+    const fs::path pack = CopyPack(base, "modals", font);
+    Json components = Json::parse(Read(pack / "components.json"));
     components["components"].push_back(Json::parse(R"({
         "tag": "c-dialog", "behaviors": ["press"], "constants": {"pressRoot": false},
         "props": {"title": {"type": "text", "default": ""}},
@@ -341,7 +295,7 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
         "template": "<div style=\"display: block; width: 100%; height: 100%;\">{{title}}</div>"})"));
     // The reading card is the application's script screen: its props as the pack's spec shapes them.
     Json reading_actions, saves_props;
-    const Json app_components = Json::parse(ReadText(app_pack / "components.json"));
+    const Json app_components = Json::parse(Read(application_pack / "components.json"));
     for (const Json &component : app_components.at("components"))
         if (component.at("tag") == "s-reading")
             reading_actions = component["props"]["actions"];
@@ -384,12 +338,7 @@ static void Runtime(const fs::path &base, const fs::path &font)
     NoBackend backend;
     std::vector<std::string> actions;
     double clock = 0.0;
-    Config config;
-    config.files = files.get();
-    config.backend = &backend;
-    config.width = 800;
-    config.height = 400;
-    config.clock = [&clock] { return clock; };
+    Config config = CheckConfig(*files, backend, clock);
     config.on_action = [&actions](const Action &action) {
         if (action.screen != "sound")
             actions.push_back(action.node + " " + action.verb);
@@ -416,7 +365,7 @@ static void Runtime(const fs::path &base, const fs::path &font)
     const auto open = [&](const char *file) {
         actions.clear();
         host->ExpectInterface();
-        host->SetInterface(Load(file));
+        host->SetInterface(Load(models, file));
         frames(0.1);
         actions.clear();
     };
@@ -433,7 +382,7 @@ static void Runtime(const fs::path &base, const fs::path &font)
     const auto dialog = [] {
         return Rml::GetContext(0) && Rml::GetContext(0)->GetRootElement()->QuerySelector("#confirm") != nullptr;
     };
-    InterfaceModel answered = Load("saves-load.json");
+    InterfaceModel answered = Load(models, "saves-load.json");
     answered.revision = 3;
     host->SetInterface(answered);
     frames(0.1);
@@ -441,7 +390,7 @@ static void Runtime(const fs::path &base, const fs::path &font)
     open("saves-confirm.json");
     host->InterfaceLeft();
     frames(0.05);
-    InterfaceModel back = Load("saves-load.json");
+    InterfaceModel back = Load(models, "saves-load.json");
     back.opening += 1;
     host->ExpectInterface();
     host->SetInterface(back);
@@ -478,7 +427,7 @@ int main(int argc, char **argv)
         return 2;
     }
     models = argv[1];
-    app_pack = argv[4];
+    application_pack = argv[4];
     for (const Case &c : Cases())
         Walk(c);
     EveryModel();

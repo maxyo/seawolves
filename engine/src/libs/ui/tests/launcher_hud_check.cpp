@@ -1,7 +1,7 @@
 // A standalone application host uses the same pack as the engine, but has no gameplay
 // presenter. Preparing its first frame must not send HUD ownership to its listener.
 // The default engine host still declares every presenter exactly once.
-#include "runtime_stub.h"
+#include "fakes.h"
 #include "storm_ui/ui.h"
 
 #include <algorithm>

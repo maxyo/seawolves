@@ -1,34 +1,11 @@
 // What the HUD scene checks share: the synthetic states, a bench for a scene alone (Bench) and the whole
-// runtime with a renderer that draws nothing and the small synthetic pack of tests/pack (Runtime).
+// runtime with fakes.h's renderer that draws nothing and the small synthetic pack of tests/pack (Runtime).
 #pragma once
 
 #include "fakes.h"
-#include "storm_ui/render_backend.h"
-
-#include <RmlUi/Core/RenderInterface.h>
-
-#include <cstdio>
-#include <fstream>
-#include <iterator>
-#include <map>
-#include <set>
 
 using namespace storm::ui;
 using namespace storm::ui::hud;
-
-inline std::string states_directory;
-
-inline std::string Text(const std::string &name)
-{
-    std::ifstream file(states_directory + "/" + name + ".json", std::ios::binary);
-    Expect(static_cast<bool>(file), "state file " + name + ".json exists");
-    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-}
-
-inline Json State(const std::string &name)
-{
-    return Json::parse(Text(name), nullptr, false);
-}
 
 // The elements each layout scene may show (src/hud/layout-elements.json, the contract the pack
 // build checks the pack's hud-layout.json against): a scene showing anything else fails here,
@@ -121,100 +98,6 @@ struct Bench
 
 // --- the whole runtime ------------------------------------------------------------------
 
-class NoRenderer final : public Rml::RenderInterface
-{
-  public:
-    // Distinct handles, as a real renderer gives (the runtime identifies meshes by handle).
-    Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex>, Rml::Span<const int>) override
-    {
-        return ++next_;
-    }
-    void RenderGeometry(Rml::CompiledGeometryHandle, Rml::Vector2f, Rml::TextureHandle) override
-    {
-    }
-    void ReleaseGeometry(Rml::CompiledGeometryHandle) override
-    {
-    }
-    // The pack's images (the icon atlas): a texture of a pixel each.
-    Rml::TextureHandle LoadTexture(Rml::Vector2i &dimensions, const Rml::String &) override
-    {
-        dimensions = {1, 1};
-        return ++next_;
-    }
-    Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte>, Rml::Vector2i) override
-    {
-        return ++next_;
-    }
-    void ReleaseTexture(Rml::TextureHandle) override
-    {
-    }
-    Rml::TextureHandle SaveLayerAsTexture() override
-    {
-        return ++next_;
-    }
-    // The decorators and filters of the application's pack (gradients, blur): compiled, drawn as nothing.
-    Rml::CompiledShaderHandle CompileShader(const Rml::String &, const Rml::Dictionary &) override
-    {
-        return ++next_;
-    }
-    void RenderShader(Rml::CompiledShaderHandle, Rml::CompiledGeometryHandle, Rml::Vector2f,
-                      Rml::TextureHandle) override
-    {
-    }
-    void ReleaseShader(Rml::CompiledShaderHandle) override
-    {
-    }
-    Rml::CompiledFilterHandle CompileFilter(const Rml::String &, const Rml::Dictionary &) override
-    {
-        return ++next_;
-    }
-    void ReleaseFilter(Rml::CompiledFilterHandle) override
-    {
-    }
-    void EnableScissorRegion(bool) override
-    {
-    }
-    void SetScissorRegion(Rml::Rectanglei) override
-    {
-    }
-
-  private:
-    uintptr_t next_ = 0;
-};
-
-class NoBackend final : public RenderBackend
-{
-  public:
-    Rml::RenderInterface &Interface() override
-    {
-        return renderer_;
-    }
-    void SetViewport(int, int) override
-    {
-    }
-    void BeginFrame(bool) override
-    {
-    }
-    void EndFrame() override
-    {
-    }
-    PictureState AcquireGamePicture(const std::string &) override
-    {
-        return PictureState::Unavailable; // no game files in the checks
-    }
-    void Upload(Rml::TextureHandle) override
-    {
-        // No GPU copies in the checks.
-    }
-    std::string RefusedTexture(int, int, PackFormat) const override
-    {
-        return {}; // every check pack fits the guaranteed 2048 px
-    }
-
-  private:
-    NoRenderer renderer_;
-};
-
 struct Runtime
 {
     std::unique_ptr<FileSource> files;
@@ -226,12 +109,7 @@ struct Runtime
     explicit Runtime(const std::string &pack)
     {
         files = DirectoryFiles(pack);
-        Config config;
-        config.files = files.get();
-        config.backend = &backend;
-        config.width = 800; // density 1: pixels are dp
-        config.height = 400;
-        config.clock = [this] { return clock; };
+        Config config = CheckConfig(*files, backend, clock);
         config.verify_unchanged =
             true; // Frame reports a frame Prepare wrongly called unchanged (FrameStats::mispredicted)
         config.on_action = [this](const Action &action) { commands.push_back(to_string(action)); };
@@ -264,10 +142,7 @@ struct Runtime
     }
     bool Sent(const std::string &command) const
     {
-        for (const std::string &sent : commands)
-            if (sent == command)
-                return true;
-        return false;
+        return ::Sent(commands, command);
     }
     std::string Last() const
     {

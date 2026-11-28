@@ -20,16 +20,6 @@
 using namespace storm::ui;
 using namespace storm::ui::screens;
 
-// The engine answers every widget action sent since the last answers (Router::Answer, as Host::Answer).
-// The application's pack: the trade windows the application's scripts draw are checked on their script screens.
-static std::string app_pack;
-
-static Router &Scripted(Router &router)
-{
-    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
-    return router;
-}
-
 static void AnswerAll(Router &router, FakeSurface &surface, bool applied, const std::string &reason = {})
 {
     for (; surface.answered < surface.actions.size(); ++surface.answered)
@@ -43,16 +33,6 @@ static Widget *Find(InterfaceModel &model, const char *node, const char *type)
         if (widget.node == node && widget.type == type)
             return &widget;
     return nullptr;
-}
-
-static Widget Make(const char *node, const char *type, const char *label = "", std::vector<std::string> actions = {})
-{
-    Widget widget;
-    widget.node = node;
-    widget.type = type;
-    widget.label = label;
-    widget.actions = std::move(actions);
-    return widget;
 }
 
 static void Admission_()
@@ -1971,8 +1951,7 @@ static void Atlas()
 
 static Json LoadJson(const std::string &directory, const char *name)
 {
-    std::ifstream file(directory + "/" + name, std::ios::binary);
-    return Json::parse(file, nullptr, false);
+    return Json::parse(Read(directory + "/" + name), nullptr, false);
 }
 
 // The reply the dialogue's script sent last: a widget action of the dialogue's model (its opening the generation).
@@ -3994,7 +3973,7 @@ static void Refused()
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
-    app_pack = argc > 2 ? argv[2] : "";
+    application_pack = argc > 2 ? argv[2] : "";
     if (argc > 3 && std::string(argv[3]) == "items")
     {
         Items(models);
@@ -4030,9 +4009,5 @@ int main(int argc, char **argv)
     OpenOnSubject(models);
     Journal(models);
     Launcher();
-    if (failures)
-        std::fprintf(stderr, "%d check(s) failed\n", failures);
-    else
-        std::printf("screen routing checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("screen routing");
 }

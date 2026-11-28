@@ -175,9 +175,5 @@ int main(int argc, char **argv)
                         [](const std::string &sent) { return sent.rfind("presence:", 0) != 0; }),
            "a tap that lifted during the transition is dropped (the HUD only says it is shown again)");
 
-    if (failures)
-        std::fprintf(stderr, "%d routing check(s) failed\n", failures);
-    else
-        std::printf("routing checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("routing");
 }

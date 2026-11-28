@@ -13,7 +13,6 @@
 #include "../tools/script_game.h"
 #include "fakes.h"
 #include "storm_ui/host_tools.h"
-#include "runtime_stub.h"
 #include "storm_ui/ui.h"
 
 #include <algorithm>
@@ -307,12 +306,8 @@ static void WriteDialogueDocuments(const fs::path &pack)
 // long press = tooltip) and an overlay document with the tooltip layer.
 static fs::path MakePack(const fs::path &base, const fs::path &font)
 {
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-press-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(base, pack, fs::copy_options::recursive);
-    fs::copy_file(font, pack / "font.ttf");
+    const fs::path pack = CopyPack(base, "press", font);
     Json manifest = Json::parse(Read(pack / "pack.json"));
-    manifest["fonts"] = Json::array({"font.ttf"});
     manifest["overlay"] = "overlay.rml";
     Write(pack / "pack.json", manifest.dump());
     Json components = Json::parse(Read(pack / "components.json"));
@@ -1565,9 +1560,5 @@ int main(int argc, char **argv)
     run.TooLargePage();
     run.host.reset();
     fs::remove_all(run.pack);
-    if (failures)
-        std::fprintf(stderr, "%d press check(s) failed\n", failures);
-    else
-        std::printf("press checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("press");
 }

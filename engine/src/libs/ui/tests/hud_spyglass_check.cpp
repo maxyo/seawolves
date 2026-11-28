@@ -11,17 +11,6 @@
 using namespace storm::ui;
 using namespace storm::ui::hud;
 
-static std::string states_directory;
-
-static Json State(const std::string &name)
-{
-    std::ifstream file(states_directory + "/" + name + ".json", std::ios::binary);
-    const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-    const Json parsed = Json::parse(text, nullptr, false);
-    Expect(!parsed.is_discarded(), "state file " + name + ".json is JSON");
-    return parsed;
-}
-
 // A land scene stand-in: the overlay must lie over whatever a scene builds.
 class ProbeScene final : public Scene
 {
@@ -166,9 +155,5 @@ int main(int argc, char **argv)
     CheckConsumer();
     CheckProps();
     CheckOverlay();
-    if (failures)
-        std::fprintf(stderr, "%d spyglass check(s) failed\n", failures);
-    else
-        std::printf("spyglass checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("spyglass");
 }

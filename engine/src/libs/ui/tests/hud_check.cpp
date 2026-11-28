@@ -13,17 +13,6 @@
 using namespace storm::ui;
 using namespace storm::ui::hud;
 
-static std::string states_directory;
-
-static Json State(const std::string &name)
-{
-    std::ifstream file(states_directory + "/" + name + ".json", std::ios::binary);
-    const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-    const Json parsed = Json::parse(text, nullptr, false);
-    Expect(!parsed.is_discarded(), "state file " + name + ".json is JSON");
-    return parsed;
-}
-
 // What the scene under test was told, in order.
 static std::vector<std::string> calls;
 
@@ -715,9 +704,5 @@ int main(int argc, char **argv)
     CheckLayout();
     CheckTickRecovery();
     CheckScenes();
-    if (failures)
-        std::fprintf(stderr, "%d HUD check(s) failed\n", failures);
-    else
-        std::printf("HUD checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("HUD");
 }

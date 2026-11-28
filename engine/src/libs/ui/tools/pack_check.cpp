@@ -6,7 +6,7 @@
 //
 // What a case is, what the crawl taps and what fails a run: ../README.md, "Pack contract check".
 // Exit 0 when every case is clean, 1 otherwise, 2 for bad arguments.
-#include "../tests/runtime_stub.h"
+#include "../tests/fakes.h"
 #include "../src/components.h"
 #include "../src/elements.h"
 #include "../src/prewarm.h"

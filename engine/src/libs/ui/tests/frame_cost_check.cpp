@@ -3,7 +3,7 @@
 //   * FrameRenderer alone, with a recording backend: a filtered layer that did not change
 //     is drawn from its cached result (no backend layer, no filter pass); a change, a
 //     nested layer, a clip mask and an empty region behave as documented.
-//   * The whole runtime with the application's pack and its land HUD script (NoBackend of hud_bench.h): a
+//   * The whole runtime with the application's pack and its land HUD script (NoBackend of fakes.h): a
 //     steady HUD needs no frame (Prepare false) and a drawn steady frame rebuilds, lays out,
 //     compiles and uploads nothing; a state that changes nothing visible needs no frame; one
 //     that does is drawn. Every frame Prepare calls unchanged is verified (Runtime::Frame).
@@ -589,9 +589,5 @@ int main(int argc, char **argv)
     TapLatency(argv[3]);
     ScrollFling(argv[2]);
     ScrollStretch(argv[2]);
-    if (failures)
-        std::fprintf(stderr, "%d frame cost check(s) failed\n", failures);
-    else
-        std::printf("frame cost checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("frame cost");
 }

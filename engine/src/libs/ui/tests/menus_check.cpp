@@ -14,22 +14,6 @@
 using namespace storm::ui;
 using namespace storm::ui::screens;
 
-// The application's pack: the menus its scripts draw are checked on their script screens.
-static std::string app_pack;
-
-static Router &Scripted(Router &router)
-{
-    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
-    return router;
-}
-
-static void Without(InterfaceModel &model, const char *node)
-{
-    model.widgets.erase(
-        std::remove_if(model.widgets.begin(), model.widgets.end(), [node](const Widget &w) { return w.node == node; }),
-        model.widgets.end());
-}
-
 static void GameMenu(const std::string &models)
 {
     FakeSurface surface;
@@ -1024,7 +1008,7 @@ static void SaveFailure()
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
-    app_pack = argc > 2 ? argv[2] : "";
+    application_pack = argc > 2 ? argv[2] : "";
     GameMenu(models);
     GameOver(models);
     QuickSave(models);
@@ -1036,9 +1020,5 @@ int main(int argc, char **argv)
     Settings(models);
     Title(models);
     NewGame(models);
-    if (failures)
-        std::fprintf(stderr, "%d check(s) failed\n", failures);
-    else
-        std::printf("menu screen checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("menu screen");
 }

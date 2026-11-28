@@ -471,9 +471,5 @@ int main()
     AwaitedRebuild();
     Deals();
     Failures();
-    if (failures)
-        std::fprintf(stderr, "%d check(s) failed\n", failures);
-    else
-        std::printf("script screen checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("script screen");
 }

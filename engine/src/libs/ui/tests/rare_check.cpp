@@ -12,22 +12,6 @@
 using namespace storm::ui;
 using namespace storm::ui::screens;
 
-static void Without(InterfaceModel &model, const char *node)
-{
-    model.widgets.erase(
-        std::remove_if(model.widgets.begin(), model.widgets.end(), [node](const Widget &w) { return w.node == node; }),
-        model.widgets.end());
-}
-
-// The application's pack: the reading windows are drawn by its scripts (tools/script_game.h).
-static std::string app_pack;
-
-static Router &Scripted(Router &router)
-{
-    router.SetScriptScreens(ScriptGame::Get().Entries(app_pack));
-    return router;
-}
-
 static void Card(const std::string &models)
 {
     FakeSurface surface;
@@ -527,7 +511,7 @@ static void ColonyLoot(const std::string &models)
 int main(int argc, char **argv)
 {
     const std::string models = argc > 1 ? argv[1] : "tests/models";
-    app_pack = argc > 2 ? argv[2] : "";
+    application_pack = argc > 2 ? argv[2] : "";
     Card(models);
     Frame(models);
     FramePicture(models);
@@ -536,11 +520,7 @@ int main(int argc, char **argv)
     Notices(models);
     TradeBook(models);
     TradeBookAsSent(models);
-    EmptyChest(models, app_pack);
+    EmptyChest(models, application_pack);
     ColonyLoot(models);
-    if (failures)
-        std::fprintf(stderr, "%d check(s) failed\n", failures);
-    else
-        std::printf("rare screen checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("rare screen");
 }

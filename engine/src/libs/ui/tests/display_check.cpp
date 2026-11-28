@@ -2,7 +2,6 @@
 // draws nothing, the synthetic pack tests/pack plus one component): «Размер интерфейса» grows every dp of the
 // layout, the safe-area insets given in the display's dp shrink by it, and «Прозрачность кнопок» marks the HUD.
 #include "fakes.h"
-#include "runtime_stub.h"
 #include "storm_ui/ui.h"
 
 #include <nlohmann/json.hpp>
@@ -22,9 +21,7 @@ namespace fs = std::filesystem;
 
 static fs::path MakePack(const fs::path &base)
 {
-    const fs::path pack = fs::temp_directory_path() / ("storm-ui-display-" + std::to_string(::getpid()));
-    fs::remove_all(pack);
-    fs::copy(base, pack, fs::copy_options::recursive);
+    const fs::path pack = CopyPack(base, "display");
     Json components = Json::parse(Read(pack / "components.json"));
     components["components"].push_back(Json::parse(R"({
         "tag": "c-safe-probe", "props": {},
@@ -99,9 +96,5 @@ int main(int argc, char **argv)
     Expect(Host::Create(config, &error) == nullptr && error == "UI pack: the design tokens have no time alertMs",
            "a pack without a time the runtime reads does not start: " + error);
     fs::remove_all(pack);
-    if (failures)
-        std::fprintf(stderr, "%d display check(s) failed\n", failures);
-    else
-        std::printf("display checks passed\n");
-    return failures ? 1 : 0;
+    return Finish("display");
 }

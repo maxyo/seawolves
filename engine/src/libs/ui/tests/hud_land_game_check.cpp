@@ -58,10 +58,7 @@ static LandScene *scene = nullptr;
 // LandTarget_SLB) against what the location id says the place is.
 static void CheckPlaceIcons(const std::string &root)
 {
-    const auto read = [&](const std::string &relative) {
-        std::ifstream file(root + "/PROGRAM/battle_interface/" + relative, std::ios::binary);
-        return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-    };
+    const auto read = [&](const std::string &relative) { return Read(root + "/PROGRAM/battle_interface/" + relative); };
     const std::string table = read("fast_reload_table.c"), land = read("landinterface.c");
     Expect(!table.empty() && !land.empty(), "the game's fast_reload_table.c and landinterface.c are read");
     // the menu's texture 1 (the places) and the ship's port icon
@@ -148,8 +145,7 @@ static void CheckTalkRoles(const std::string &root)
     {
         if (!entry.is_regular_file() || entry.path().extension() != ".c")
             continue;
-        std::ifstream file(entry.path(), std::ios::binary);
-        const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        const std::string text = Read(entry.path());
         for (std::sregex_iterator it(text.begin(), text.end(), assign), end; it != end; ++it)
         {
             std::string stem = (*it)[1];
