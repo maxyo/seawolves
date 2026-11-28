@@ -27,21 +27,21 @@ public final class LayersCheck {
         }
         MobileResources layers =
                 new MobileResources(cache, path -> new FileInputStream(new File(apk, path)));
-        expect(!layers.installed(), "nothing installed yet");
+        expect(layers.missing() != null, "nothing installed yet");
         layers.install();
-        expect(layers.installed(), "installed");
+        expect(layers.missing() == null, "installed");
         File ui = new File(cache, "layers/mobile-ui/current/PROGRAM/mobile-ui.c");
         expect(ui.isFile(), "the engine's path of a UI file");
 
         // The system clears the cache while the game is in the background.
         Trees.delete(cache);
-        expect(!layers.installed(), "a cleared cache is seen");
+        expect(layers.missing() != null, "a cleared cache is seen");
         layers.install();
-        expect(layers.installed() && ui.isFile(), "back at the same path");
+        expect(layers.missing() == null && ui.isFile(), "back at the same path");
 
         // One layer gone is enough to install again.
         Trees.delete(new File(cache, "layers/script-patches"));
-        expect(!layers.installed(), "a missing layer is seen");
+        expect(layers.missing() != null, "a missing layer is seen");
         layers.install();
         expect(
                 new File(cache, "layers/script-patches/current/PROGRAM/script-patches.c").isFile(),
@@ -49,9 +49,12 @@ public final class LayersCheck {
         // The system removed some files of the cache when the storage ran low: the stamp is still
         // there.
         expect(ui.delete(), "a UI file removed");
-        expect(!layers.installed(), "a layer missing a file is seen");
+        String missing = layers.missing();
+        expect(
+                missing != null && missing.contains("PROGRAM/mobile-ui.c"),
+                "the missing file is named: " + missing);
         layers.install();
-        expect(layers.installed() && ui.isFile(), "the file is back");
+        expect(layers.missing() == null && ui.isFile(), "the file is back");
         System.out.println(
                 "PASS layers: a cleared cache is seen and the layers come back at the same paths");
     }

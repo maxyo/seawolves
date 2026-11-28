@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -34,6 +35,9 @@ struct Folders
     std::vector<std::string> settingsFiles; // lower-case names of files in the game's root kept in `settings`
     fs::path cache;                         // everything the engine derives and can make again
     Layers layers;
+    // Puts the layers back where the system may remove them while the game runs (Android: the app's cache); false when
+    // that failed. Empty where nothing removes them.
+    std::function<bool()> restoreLayers;
 };
 
 // A UTF-8 path from text (std::filesystem::u8path is deprecated; a plain string is not UTF-8 on every platform).

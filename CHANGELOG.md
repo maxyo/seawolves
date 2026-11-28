@@ -9,8 +9,9 @@
 - Сохранение, прерванное закрытием игры, не оставляет в папке сохранений скрытого недописанного файла: при следующем
   запуске он удаляется, а полностью записанная новая запись, которой не успели дать имя, появляется в списке.
 - Когда памяти мало и Android удаляет часть файлов кэша приложения, недостающие файлы интерфейса ставятся
-  заново при запуске игры и при возвращении в неё: раньше игра замечала только полностью удалённый кэш и могла
-  закончиться ложным сообщением, что скрипт интерфейса «не компилируется».
+  заново при запуске игры, при возвращении в неё и в тот момент, когда игре понадобился удалённый файл: раньше игра
+  замечала только полностью удалённый кэш и могла закончиться ложным сообщением, что скрипт интерфейса «не
+  компилируется», а удаление посреди игры завершало её при следующей загрузке.
 - Экран интерфейса, который не смог открыться или сломался посреди работы, больше не закрывает окно игры: до его
   закрытия окно показывается раскладкой по умолчанию с коротким сообщением, а при следующем открытии экран пробует
   снова. Окно, к которому экран не подходит в этой игре, сразу показывается раскладкой по умолчанию. Так же
@@ -238,8 +239,9 @@
 - A save cut off by the game being closed no longer leaves a hidden unfinished file in the saves folder: the next
   start removes it, and a fully written new record that had not yet taken its name appears in the list.
 - When storage runs low and Android removes some of the app's cache files, the missing interface files are
-  installed again when the game starts or comes back: only a wholly cleared cache used to be noticed, and the game
-  could end with a false message that an interface script "does not compile".
+  installed again when the game starts, when it comes back and when the game needs a file that was removed: only a
+  wholly cleared cache used to be noticed, the game could end with a false message that an interface script "does
+  not compile", and a removal during play ended the game at the next load.
 - A screen of the interface that cannot open or breaks while in use no longer closes the game's window: until it is
   closed the window is shown in the default layout with a short note, and the screen is tried again the next time.
   A window a screen does not fit in this game is shown in the default layout at once. So is a screen that would be

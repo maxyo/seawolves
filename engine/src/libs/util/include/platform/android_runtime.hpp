@@ -193,9 +193,16 @@ inline storage::Folders folders()
     const auto paths = storagePaths();
     const auto cache = cacheDirectory();
     const auto layer = [&](const char *name) { return cache / "layers" / name / "current"; };
+    const auto restore = [] {
+        return CallActivity(upcall::GameActivity::restoreLayers, [](JNIEnv *env, jobject activity, jmethodID method) {
+            env->CallVoidMethod(activity, method);
+            return true;
+        });
+    };
     return {paths.game, paths.user / "SaveData",
             paths.user, {"options"},
-            cache,      {layer("mobile-ui"), layer("engine-shaders"), layer("script-patches")}};
+            cache,      {layer("mobile-ui"), layer("engine-shaders"), layer("script-patches")},
+            restore};
 }
 
 inline void prepareGameDirectory()

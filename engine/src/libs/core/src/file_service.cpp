@@ -50,6 +50,28 @@ bool Writable(const std::filesystem::path &path, const char *what)
     spdlog::error("Refusing to {} '{}': it is not in the player's saves, settings or cache", what, path.string());
     return false;
 }
+
+// On a phone the layers live in the app's cache, which the system trims while the game runs when the storage runs low:
+// a layer file found missing has the app put the layers back (it logs what was missing), and the caller reads it once
+// more. True when the app restored them.
+bool RestoredLayerFile(const std::filesystem::path &path)
+{
+    const auto &folders = storm::storage::folders();
+    const auto &layers = folders.layers;
+    const auto under = [&](const std::filesystem::path &root) {
+        return !root.empty() && !storm::storage::suffixUnder(path, root).empty();
+    };
+    if (!folders.restoreLayers || !(under(layers.mobileUi) || under(layers.engineShaders) || under(layers.scriptPatches)))
+        return false;
+    if (!folders.restoreLayers())
+    {
+        spdlog::error("Layer file '{}' is missing and the app could not restore the layers", path.string());
+        return false;
+    }
+    spdlog::warn("Layer file '{}' was gone from the app's cache: the layers are restored and it is read again",
+                 path.string());
+    return true;
+}
 }
 
 extern VFILE_SERVICE *fio = &file_service;
@@ -80,6 +102,8 @@ std::fstream FILE_SERVICE::_CreateFile(const char *filename, std::ios::openmode 
         return {};
     errno = 0;
     std::fstream fileS(path, mode);
+    if (!fileS.is_open() && !(mode & std::ios::out) && RestoredLayerFile(path))
+        fileS.open(path, mode);
     const int error = errno;
     if (!fileS.is_open() && (mode & std::ios::out))
         spdlog::error("Cannot open writable file '{}' (resolved '{}'): errno={}",
@@ -156,7 +180,7 @@ bool FILE_SERVICE::_FileOrDirectoryExists(const char *p)
         return false;
     }
 
-    return result;
+    return result || RestoredLayerFile(path);
 }
 
 std::vector<std::string> FILE_SERVICE::_GetPathsOrFilenamesByMask(const char *sourcePath, const char *mask,

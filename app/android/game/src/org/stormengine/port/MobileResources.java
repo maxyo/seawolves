@@ -1,5 +1,7 @@
 package org.stormengine.port;
 
+import android.util.Log;
+
 import org.json.JSONObject;
 
 import java.io.*;
@@ -14,7 +16,8 @@ import java.util.Iterator;
 /**
  * Install only the APK's licensed layers (UI source, engine shaders, script fixes), never copy the user's game. They
  * live under the cache root (GameCache, {@code layers/<layer>/current}): the system's «Очистить кэш» may remove them,
- * also while the game runs, and the next install puts them back at the same paths (GameActivity.resumeNativeThread).
+ * also while the game runs, and the next install puts them back at the same paths (GameActivity.resumeNativeThread,
+ * GameActivity.restoreLayers).
  */
 final class MobileResources {
     static final String LAYERS = "layers";
@@ -46,28 +49,41 @@ final class MobileResources {
     }
 
     /**
-     * Every layer is in place, file by file: the system may also remove only some files of the cache when the storage
-     * runs low.
+     * What of the installed layers is missing (checked file by file: the system may also remove only some files of the
+     * cache when the storage runs low), or null when every layer is in place.
      */
-    boolean installed() throws Exception {
+    String missing() throws Exception {
         for (String layer : NAMES) {
             byte[] manifest =
                     Streams.read(assets.open(layer + "/manifest.json"), Integer.MAX_VALUE);
-            if (!complete(current(layer), manifest)) return false;
+            String missing = missing(current(layer), manifest);
+            if (missing != null) return layer + ": " + missing;
         }
-        return true;
+        return null;
     }
 
-    /** The installed copy is of this manifest (its version stamp) and has every file the manifest names. */
-    private static boolean complete(File current, byte[] manifest) throws Exception {
+    /**
+     * What the installed copy lacks of this manifest: its version stamp, or the files it names (the first and how many
+     * more); null when it is complete.
+     */
+    private static String missing(File current, byte[] manifest) throws Exception {
         File stamp = new File(current, ".version");
-        if (!stamp.isFile()
-                || !new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
-                        .equals(hash(manifest))) return false;
+        if (!stamp.isFile()) return "not installed";
+        if (!new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
+                .equals(hash(manifest))) return "another version installed";
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));
-        for (Iterator<String> keys = files.keys(); keys.hasNext(); )
-            if (!new File(current, keys.next()).isFile()) return false;
-        return true;
+        String first = null;
+        int count = 0;
+        for (Iterator<String> keys = files.keys(); keys.hasNext(); ) {
+            String name = keys.next();
+            if (new File(current, name).isFile()) continue;
+            if (first == null) first = name;
+            count++;
+        }
+        if (first == null) return null;
+        return count == 1
+                ? first + " is missing"
+                : first + " and " + (count - 1) + " more files are missing";
     }
 
     /**
@@ -114,7 +130,9 @@ final class MobileResources {
                 previous = new File(root, "previous");
         if (!current.exists() && previous.exists() && !previous.renameTo(current))
             throw new IOException("Cannot recover UI layer");
-        if (complete(current, manifest)) return;
+        String missing = missing(current, manifest);
+        if (missing == null) return;
+        Log.i("StormCache", "Layer " + layer + ": " + missing + "; copying it from the APK");
         Trees.delete(staging);
         if (!staging.mkdirs()) throw new IOException("Cannot stage UI layer");
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));

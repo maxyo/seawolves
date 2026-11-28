@@ -129,6 +129,14 @@ public final class GameActivity extends SDLActivity {
                 });
     }
 
+    /**
+     * Upcall (the engine's file service, when a layer file it reads is gone): the system trimmed the cache while the
+     * game runs; the layers come back at the same paths.
+     */
+    public void restoreLayers() throws Exception {
+        GameStorage.layers(this).install();
+    }
+
     /** The engine created its device on `backend` ("Vulkan", "OpenGL ES") for `reason` (engine thread, after every
      *  device creation): «О программе» shows it (GraphicsSettings.renderBackend). */
     public void renderBackendChosen(String backend, String reason) {
@@ -401,16 +409,11 @@ public final class GameActivity extends SDLActivity {
             return;
         }
         // The system's «Очистить кэш» may have removed the APK's layers while the game was in the
-        // background; the
-        // engine reads them at the same paths, so they are back before it runs another frame.
-        MobileResources layers = GameStorage.layers(this);
+        // background; the engine reads them at the same paths, so they are back before it runs
+        // another
+        // frame.
         try {
-            if (cacheRoot != null && !layers.installed()) {
-                Log.w(
-                        "StormCache",
-                        "The APK's layers were removed with the cache: installing them again");
-                layers.install();
-            }
+            if (cacheRoot != null) GameStorage.layers(this).install();
         } catch (Exception error) {
             throw new IllegalStateException("Cannot install the APK's layers again", error);
         }

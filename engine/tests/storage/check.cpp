@@ -48,7 +48,7 @@ static void storageChecks(const fs::path &root)
     fs::create_directories(game);
     fs::create_directories(user.parent_path());
     const auto saves = user / "SaveData";
-    Storage storage(Folders{game, saves, user, {"options"}, root / "cache", {}});
+    Storage storage(Folders{game, saves, user, {"options"}, root / "cache", {}, {}});
     REQUIRE(storage.resolve("SAVE") == saves);
     REQUIRE(storage.resolve(".\\sAvE\\Player One\\slot") == saves / "Player One/slot");
     REQUIRE(storage.resolve("save/p/../q/slot") == saves / "q/slot");
@@ -95,7 +95,7 @@ static void optionsChecks(const fs::path &root)
     const auto user = root / "options/private/storm";
     put(game / "OPTIONS", "game options");
     put(game / "SAVE/player/slot", "a save beside the game");
-    Storage storage(Folders{game, user / "SaveData", user, {"options"}, {}, {}});
+    Storage storage(Folders{game, user / "SaveData", user, {"options"}, {}, {}, {}});
     storage.seedSettings();
     REQUIRE(get(user / "options") == "game options");
     REQUIRE(!fs::exists(user / "SaveData")); // saves are never copied from the game
@@ -107,7 +107,7 @@ static void optionsChecks(const fs::path &root)
     const auto bare = root / "options/bare";
     fs::create_directories(bare);
     const auto bareUser = root / "options/private-bare/storm";
-    Storage without(Folders{bare, bareUser / "SaveData", bareUser, {"options"}, {}, {}});
+    Storage without(Folders{bare, bareUser / "SaveData", bareUser, {"options"}, {}, {}, {}});
     without.seedSettings();
     REQUIRE(!fs::exists(root / "options/private-bare/storm/options"));
 
@@ -115,7 +115,7 @@ static void optionsChecks(const fs::path &root)
     fs::create_directories(linked);
     fs::create_symlink(game / "SAVE/player/slot", linked / "options");
     const auto linkedUser = root / "options/private-linked/storm";
-    Storage symlinked(Folders{linked, linkedUser / "SaveData", linkedUser, {"options"}, {}, {}});
+    Storage symlinked(Folders{linked, linkedUser / "SaveData", linkedUser, {"options"}, {}, {}, {}});
     rejected([&] { symlinked.seedSettings(); });
     REQUIRE(!fs::exists(root / "options/private-linked/storm/options"));
 }
@@ -127,9 +127,13 @@ static void desktopChecks(const fs::path &root)
     put(game / "ENGINE.INI", "screen_x = 1\n");
     put(game / "options", "game options");
     fs::permissions(game / "ENGINE.INI", fs::perms::owner_read);
-    const Folders folders{
-        game, root / "desktop/data/saves", root / "desktop/config", {"options", "engine.ini"}, root / "desktop/cache",
-        {}};
+    const Folders folders{game,
+                          root / "desktop/data/saves",
+                          root / "desktop/config",
+                          {"options", "engine.ini"},
+                          root / "desktop/cache",
+                          {},
+                          {}};
     Storage storage(folders);
     REQUIRE(storage.resolve("SAVE/p/slot") == folders.saves / "p/slot");
     REQUIRE(storage.resolve("engine.ini") == folders.settings / "engine.ini");

@@ -322,8 +322,8 @@ void Attacher::Attach(storm::script::Program &program)
             case storm::script::Attached::Yes:
                 break;
             case storm::script::Attached::NoFile:
-                // On a phone the app's files live in its cache, which the system may empty while the game runs; the
-                // app puts them back when the game starts.
+                // On a phone the app's files live in its cache, which the system may trim while the game runs; the
+                // file service has already had the app restore them, so missing here means that failed.
                 reason = "is missing from the app's files";
                 gone = true;
                 break;

@@ -156,7 +156,8 @@ inline storage::Folders gameFolders(const BaseFolders &base, const fs::path &gam
                              base.config / kFolderName / key,
                              {"options", "engine.ini"},
                              base.cache / kFolderName / buildIdentity(game),
-                             {{}, layers / "engine-shaders", layers / "script-patches"}};
+                             {{}, layers / "engine-shaders", layers / "script-patches"},
+                             {}};
 #ifdef STORM_TOUCH_UI
     // The touch interface's scripts and, in its ui/, its pack: the development build's (engine/README.md, "Linux").
     folders.layers.mobileUi = layers / "mobile-ui";
