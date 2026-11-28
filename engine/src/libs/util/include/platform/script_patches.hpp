@@ -580,24 +580,24 @@ inline Report applyLayer(const layers::Layer *layer, std::unordered_map<std::str
     report.game = set.game;
     report.version = set.version;
 
-    // 1. Each target: check the base, apply, verify.
+    // 1. Each target: check the base, apply, verify. The bytes hashed are the bytes patched: one read per file.
     std::map<std::string, std::string> problems; // key -> reason (target cannot be patched)
     std::map<std::string, std::string> patched;  // key -> derived text
     for (const auto &target : set.targets)
     {
-        const auto &actual = playerHash(target.key);
         const auto original = paths.find(target.key);
         if (original == paths.end())
         {
             problems[target.key] = target.path + " is missing from the game";
             continue;
         }
-        if (actual.empty())
+        std::string base;
+        if (!detail::readFile(original->second, base))
         {
             problems[target.key] = target.path + " cannot be read";
             continue;
         }
-        if (actual != target.base)
+        if (const auto actual = sha256(base); actual != target.base)
         {
             problems[target.key] = target.path + " differs from the expected version (sha256 " + actual +
                                    ", expected " + target.base + ")";
@@ -606,12 +606,6 @@ inline Report applyLayer(const layers::Layer *layer, std::unordered_map<std::str
         const auto patch = layer->read(target.patch.generic_string());
         if (!patch)
             throw LayerError("cannot read patch " + layer->where(target.patch.generic_string()));
-        std::string base;
-        if (!detail::readFile(original->second, base) || sha256(base) != target.base)
-        {
-            problems[target.key] = target.path + " changed while it was being read";
-            continue;
-        }
         auto result = applyUnifiedDiff(base, *patch, target.path);
         if (sha256(result) != target.result)
             throw LayerError("patch for " + target.path + " gives sha256 " + sha256(result) + ", expected " +
