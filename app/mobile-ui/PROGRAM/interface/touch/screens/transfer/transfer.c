@@ -437,7 +437,7 @@ void TouchTransfer_Answer(aref question, aref answer, int k, aref at)
 	string key = answer.key;
 	string kind = question.kind;
 	object action = {id = "answer-" + k, label = answer.label, variant = "secondary", hold = false,
-	                 disabled = !sti(answer.can), reason = answer.reason};
+	                 disabled = !sti(answer.can), reason = answer.reason, busy = UiPending("answer-" + k)};
 	if (key == "kill")
 	{
 		action.variant = "danger";
@@ -559,7 +559,7 @@ void TouchTransfer_Captains(aref game, aref view)
 	if (CheckAttribute(from, "appoint"))
 	{
 		object accept = {id = "sheet-ok", label = from.appoint.label, variant = "primary",
-		                 disabled = !sti(from.appoint.can), reason = from.appoint.reason};
+		                 disabled = !sti(from.appoint.can), reason = from.appoint.reason, busy = UiPending("sheet-ok")};
 		aref action;
 		makearef(action, sheet.actions.a0);
 		CopyAttributes(action, &accept);

@@ -226,6 +226,7 @@
    },
    "props": {
     "apply": {
+     "busy": false,
      "disabled": true,
      "id": "flag-apply",
      "label": "Change flag",
@@ -766,6 +767,7 @@
    },
    "props": {
     "apply": {
+     "busy": false,
      "disabled": false,
      "id": "flag-apply",
      "label": "Change flag",
@@ -1069,6 +1071,7 @@
    },
    "after": {
     "apply": {
+     "busy": false,
      "disabled": false,
      "id": "flag-apply",
      "label": "Change flag",
@@ -1350,6 +1353,303 @@
     ],
     "title": "  Relations  "
    }
+  },
+  {
+   "name": "flag-apply waits for the game's answer: the button is busy, a second tap reaches nothing",
+   "game": {
+    "TestFlagRefused": 1,
+    "TestFlagAsked": 0
+   },
+   "like": 1,
+   "pending": [
+    "flag-apply"
+   ],
+   "props": {
+    "apply": {
+     "busy": true,
+     "disabled": false,
+     "id": "flag-apply",
+     "label": "Change flag",
+     "reason": "",
+     "variant": "primary"
+    },
+    "columns": [
+     {
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "flag": {
+     "label": "France"
+    },
+    "flagTitle": "<nations.flag>",
+    "flags": [
+     {
+      "disabled": false,
+      "icon": "nation-england",
+      "id": "0",
+      "label": "England",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-france",
+      "id": "1",
+      "label": "France",
+      "selected": true
+     },
+     {
+      "disabled": false,
+      "icon": "nation-spain",
+      "id": "2",
+      "label": "Spain",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-holland",
+      "id": "3",
+      "label": "Holland",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-pirates",
+      "id": "4",
+      "label": "Pirate",
+      "selected": false
+     }
+    ],
+    "flagsDisabled": false,
+    "headerSection": "nations",
+    "helpFlag": true,
+    "helpReputation": true,
+    "legend": [
+     {
+      "icon": "rel-ally",
+      "label": "<nations.ally>"
+     },
+     {
+      "icon": "rel-neutral",
+      "label": "<nations.neutral>"
+     },
+     {
+      "icon": "rel-war",
+      "label": "<nations.war>"
+     }
+    ],
+    "reputation": [
+     {
+      "bar": 52,
+      "icon": "nation-england",
+      "image": null,
+      "label": "England",
+      "tone": "",
+      "value": "Neutral"
+     },
+     {
+      "bar": 67,
+      "icon": "nation-france",
+      "image": null,
+      "label": "France",
+      "tone": "ok",
+      "value": "Neutral"
+     },
+     {
+      "bar": 30,
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain",
+      "tone": "danger",
+      "value": "Neutral"
+     },
+     {
+      "bar": 52,
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland",
+      "tone": "",
+      "value": "Neutral"
+     }
+    ],
+    "reputationTitle": "Reputation with the nations",
+    "rows": [
+     {
+      "cells": [
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "England — Enemy"
+       }
+      ],
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "icon": "rel-ally",
+        "image": null,
+        "label": "France — Friend"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "France — Enemy"
+       }
+      ],
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Spain — Enemy"
+       }
+      ],
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Holland — Enemy"
+       }
+      ],
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "self": true
+       }
+      ],
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "title": "  Relations  "
+   },
+   "events": [],
+   "calls": []
   }
  ]
 }

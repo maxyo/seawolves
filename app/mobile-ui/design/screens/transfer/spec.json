@@ -24,9 +24,9 @@
     "actions": {"type": "json", "default": [],
                "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]},
     "modal": {"type": "json", "default": null,
-             "shape": {"$null": {"step": "text", "title": "text", "text": "text", "image": "picture", "actions": [{"id": "text", "label": "text", "sub": "text", "variant": "text", "hold": "bool", "disabled": "bool", "reason": "text"}], "q": {"value": "int", "min": "int", "max": "int", "unit": "text", "steps": ["int"], "all": "bool", "disabled": "bool"}}}},
+             "shape": {"$null": {"step": "text", "title": "text", "text": "text", "image": "picture", "actions": [{"id": "text", "label": "text", "sub": "text", "variant": "text", "hold": "bool", "disabled": "bool", "reason": "text", "busy": "bool"}], "q": {"value": "int", "min": "int", "max": "int", "unit": "text", "steps": ["int"], "all": "bool", "disabled": "bool"}}}},
     "sheet": {"type": "json", "default": null,
-             "shape": {"$null": {"kind": "text", "title": "text", "closable": "bool", "width": "int", "candidates": [{"id": "text", "title": "text", "image": "picture", "selected": "bool", "disabled": "bool", "reason": "text"}], "empty": "text", "name": "text", "facts": [{"k": "text", "v": "text"}], "skills": [{"icon": "text", "k": "text", "v": "text", "tone": "text"}], "actions": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text"}]}}},
+             "shape": {"$null": {"kind": "text", "title": "text", "closable": "bool", "width": "int", "candidates": [{"id": "text", "title": "text", "image": "picture", "selected": "bool", "disabled": "bool", "reason": "text"}], "empty": "text", "name": "text", "facts": [{"k": "text", "v": "text"}], "skills": [{"icon": "text", "k": "text", "v": "text", "tone": "text"}], "actions": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]}}},
     "extras": {"type": "json", "default": {}}
   }
 }

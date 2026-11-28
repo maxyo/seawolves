@@ -21,7 +21,7 @@
               "shape": [{"id": "text", "icon": "text", "label": "text", "selected": "bool", "disabled": "bool"}]},
     "flagsDisabled": {"type": "bool", "default": false, "class": false},
     "apply": {"type": "json", "default": null,
-              "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text"}}},
+              "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "extras": {"type": "json", "default": {}}
   }
 }

@@ -275,7 +275,7 @@ void TouchShipyard_Button(aref actions, string id, string label, string sub, str
 	aref press;
 	makearef(press, window.(which));
 	object button = {id = id, label = label, sub = sub, variant = variant, disabled = !sti(press.can),
-	                 reason = press.reason};
+	                 reason = press.reason, busy = UiPending(id)};
 	aref at = TouchLib_Add(actions, "a");
 	CopyAttributes(at, &button);
 }

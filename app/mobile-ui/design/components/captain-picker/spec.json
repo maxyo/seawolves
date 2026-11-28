@@ -29,7 +29,7 @@
     "actions": {
       "type": "json",
       "default": [],
-      "doc": "[{id, label, variant, disabled, reason}]: the game's «Назначить», at the foot of the right column (not in the dialog's action row: on a 384 dp high phone that row would take the height the candidates and the skills need)"
+      "doc": "[{id, label, variant, disabled, reason, busy}]: the game's «Назначить», at the foot of the right column (not in the dialog's action row: on a 384 dp high phone that row would take the height the candidates and the skills need)"
     }
   },
   "constants": {

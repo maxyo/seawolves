@@ -112,7 +112,7 @@ void TouchNations_Flags(aref game, aref view)
 	}
 	if (!CheckAttribute(game, "apply")) return;
 	object apply = {id = "flag-apply", label = game.apply.label, variant = "primary", disabled = !sti(game.apply.can),
-	                reason = game.apply.reason};
+	                reason = game.apply.reason, busy = UiPending("flag-apply")};
 	aref at;
 	makearef(at, view.apply);
 	CopyAttributes(at, &apply);

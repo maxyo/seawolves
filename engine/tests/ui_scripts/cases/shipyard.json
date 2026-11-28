@@ -3093,6 +3093,7 @@
     "sheet": {
      "actions": [
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-cancel",
        "label": "Отмена",
@@ -3101,6 +3102,7 @@
        "variant": "quiet"
       },
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-ok",
        "label": "Oк",
@@ -4196,6 +4198,7 @@
     "sheet": {
      "actions": [
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-cancel",
        "label": "Отмена",
@@ -4204,6 +4207,7 @@
        "variant": "quiet"
       },
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-ok",
        "label": "Oк",
@@ -5261,6 +5265,7 @@
     "sheet": {
      "actions": [
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-all",
        "label": "<common.all>",
@@ -5269,6 +5274,7 @@
        "variant": "secondary"
       },
       {
+       "busy": false,
        "disabled": true,
        "id": "sheet-ok",
        "label": "<repair.do>",
@@ -7063,6 +7069,7 @@
     "sheet": {
      "actions": [
       {
+       "busy": false,
        "disabled": false,
        "id": "sheet-ok",
        "label": "Назначить",

@@ -198,6 +198,7 @@ struct Calls final : storm::ui::ScriptCall
     std::map<std::string, storm::ui::ViewTree> notes; // UiPass / UiTake, by screen
     std::map<std::string, Json> states;               // UiState, by channel
     std::string answer;                               // of the hold the build is for
+    std::vector<std::string> pending;                 // the presses waiting for the game (UiPending)
 
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
@@ -355,9 +356,9 @@ struct Calls final : storm::ui::ScriptCall
     {
         modals.push_back("back " + id);
     }
-    bool Pending(const std::string &) const override
+    bool Pending(const std::string &id) const override
     {
-        return false;
+        return std::ranges::find(pending, id) != pending.end();
     }
     bool Offers(const std::string &node, const std::string &verb) const override
     {
@@ -783,6 +784,8 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
         }
         for (const auto &[channel, state] : states.items())
             calls.states[channel] = state;
+        // "pending": the presses still waiting for the game's answer (a busy button takes no second tap).
+        calls.pending = recorded.value("pending", std::vector<std::string>{});
         SetGame(recorded);
         const auto &screen = Screen(vm, recorded.value("capability", capability));
         // "fails": the build refuses the model with this error (a state the game's window never has).

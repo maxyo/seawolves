@@ -15,7 +15,7 @@
 <div class="na-title"><c-label text="{{flagTitle}}"/><t-if test="helpFlag"><c-icon-button id="help-flag" icon="info" look="bare" label="{{flagTitle}}"/></t-if></div>
 <s-flags id="flags" flags="{{ json(flags) }}" disabled="{{ flagsDisabled ? 1 : 0 }}"/>
 </div>
-<t-if test="apply"><c-button id="{{apply.id}}" class="na-apply" label="{{apply.label}}" variant="primary" disabled="{{ apply.disabled ? 1 : 0 }}" reason="{{apply.reason}}"/></t-if>
+<t-if test="apply"><c-button id="{{apply.id}}" class="na-apply" label="{{apply.label}}" variant="primary" disabled="{{ apply.disabled ? 1 : 0 }}" reason="{{apply.reason}}" busy="{{ apply.busy ? 1 : 0 }}"/></t-if>
 </c-panel>
 </div>
 <s-extras id="extras" extras="{{ json(extras) }}"/>
