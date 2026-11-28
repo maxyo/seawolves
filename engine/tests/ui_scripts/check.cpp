@@ -1297,6 +1297,38 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     CHECK_THROWS_WITH(port.Build(*insideScreen, {}, calls), Catch::Contains("no script program runs"));
 }
 
+// A build that brings no new model (UiRebuild, a hold) writes nothing of the screen's object: a mark left on its
+// model survives it. A changed widget writes its node again, and only that node.
+TEST_CASE("a build without a new model rewrites nothing of the screen's model")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const auto spec = PackScreen("rest");
+    const auto &screen = Screen(vm, "rest");
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/rest.json"));
+    storm::ui::InterfaceModel model;
+    REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases")[0].at("model").dump(), model));
+    Calls calls(*spec);
+    calls.widgets = model.widgets;
+    port.Build(screen, calls.Single(), calls);
+    ATTRIBUTES *ui = static_cast<VDATA *>(core.GetScriptVariable("UiScreens"))->GetAClass()->GetAttributeClass("rest");
+    REQUIRE(ui);
+    const auto node = [&](const char *name) { return ui->GetAttributeClass("model")->GetAttributeClass(name); };
+    node("INFO_TEXT")->SetAttribute("mark", "1");
+    node("OK_BTN")->SetAttribute("mark", "1");
+    port.Build(screen, calls.Single(), calls);
+    CHECK(node("INFO_TEXT")->GetAttributeClass("mark"));
+    CHECK(node("OK_BTN")->GetAttributeClass("mark"));
+    const auto info = std::ranges::find(calls.widgets, std::string("INFO_TEXT"), &storm::ui::Widget::node);
+    REQUIRE(info != calls.widgets.end());
+    info->label += " changed";
+    port.Build(screen, calls.Single(), calls);
+    CHECK_FALSE(node("INFO_TEXT")->GetAttributeClass("mark"));
+    CHECK(std::string(node("INFO_TEXT")->GetAttribute("label")) == info->label);
+    CHECK(node("OK_BTN")->GetAttributeClass("mark"));
+}
+
 TEST_CASE("cost of a screen build and of a tap in script, in the script work digest")
 {
     Vm vm;

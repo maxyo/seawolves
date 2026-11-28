@@ -3,6 +3,7 @@
 #include "core.h"
 #include "platform/android_script_errors.hpp"
 #include "istring.hpp"
+#include "string_compare.hpp"
 #include "s_import_func.h"
 #include "script_libriary.h"
 #include "storm_ui/interface_model.h"
@@ -686,40 +687,40 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
         Child(row, "context").SetAttribute(key, value);
 }
 
-// The admitted widgets as <model>.<node>.{node (its name as the game writes it), type, label, value, min, max, step,
-// reason, offers.<verb>, context.<key>, headers.c<column>, images (a node's own), rows}: a node's first widget stands
-// for it, its widgets with an index are its rows (FillRow).
-void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &widgets)
+// A node's widgets as <model>.<node>.{node (its name as the game writes it), type, label, value, min, max, step,
+// reason, offers.<verb>, context.<key>, headers.c<column>, images (a node's own), rows}: its first widget stands for
+// it, its widgets with an index are its rows (FillRow).
+void FillNode(ATTRIBUTES &node, const std::vector<const storm::ui::Widget *> &widgets)
 {
-    for (const storm::ui::Widget *widget : widgets)
+    const storm::ui::Widget &widget = *widgets.front();
+    node.SetAttribute("node", widget.node); // an attribute's name keeps the case it was first seen with
+    node.SetAttribute("type", widget.type);
+    node.SetAttribute("label", widget.label);
+    node.SetAttribute("value", widget.value);
+    node.SetAttribute("reason", widget.unavailable_reason);
+    if (widget.type == "slider")
     {
-        ATTRIBUTES *node = model.GetAttributeClass(widget->node);
-        if (!node)
-        {
-            node = &model.CreateAttribute(widget->node);
-            node->SetAttribute("node", widget->node); // an attribute's name keeps the case it was first seen with
-            node->SetAttribute("type", widget->type);
-            node->SetAttribute("label", widget->label);
-            node->SetAttribute("value", widget->value);
-            node->SetAttribute("reason", widget->unavailable_reason);
-            if (widget->type == "slider")
-            {
-                node->SetAttribute("min", std::to_string(widget->min));
-                node->SetAttribute("max", std::to_string(widget->max));
-                node->SetAttribute("step", std::to_string(widget->step));
-            }
-            FillOffers(*node, *widget);
-            for (const auto &[key, value] : widget->context)
-                Child(*node, "context").SetAttribute(key, value);
-            for (size_t column = 0; column < widget->column_headers.size(); column++)
-                Child(*node, "headers").SetAttribute("c" + std::to_string(column), widget->column_headers[column]);
-            if (widget->index < 0)
-                for (size_t i = 0; i < widget->images.size(); i++)
-                    FillImage(Child(*node, "images").CreateAttribute("i" + std::to_string(i)), widget->images[i]);
-        }
-        if (widget->index >= 0)
-            FillRow(Child(*node, "rows"), *widget);
+        node.SetAttribute("min", std::to_string(widget.min));
+        node.SetAttribute("max", std::to_string(widget.max));
+        node.SetAttribute("step", std::to_string(widget.step));
     }
+    FillOffers(node, widget);
+    for (const auto &[key, value] : widget.context)
+        Child(node, "context").SetAttribute(key, value);
+    for (size_t column = 0; column < widget.column_headers.size(); column++)
+        Child(node, "headers").SetAttribute("c" + std::to_string(column), widget.column_headers[column]);
+    if (widget.index < 0)
+        for (size_t i = 0; i < widget.images.size(); i++)
+            FillImage(Child(node, "images").CreateAttribute("i" + std::to_string(i)), widget.images[i]);
+    for (const storm::ui::Widget *row : widgets)
+        if (row->index >= 0)
+            FillRow(Child(node, "rows"), *row);
+}
+
+void Clear(ATTRIBUTES &at)
+{
+    while (at.GetAttributesNum() != 0)
+        at.DeleteAttributeClassX(at.GetAttributeClass(0u));
 }
 
 void FillTree(ATTRIBUTES &at, const storm::ui::ViewTree &tree)
@@ -741,18 +742,69 @@ ATTRIBUTES &Ui(const storm::ui::ScriptScreen &screen)
     return Child(*root, screen.capability);
 }
 
-ATTRIBUTES &FillUi(const storm::ui::ScriptScreen &screen, const std::vector<const storm::ui::Widget *> &widgets)
+} // namespace
+
+// The object is written whole at the screen's first build in this program; later builds write again only the nodes
+// of `model` whose widgets differ from the last build's, in place (scripts walk the nodes and rows in the order they
+// were written). A build that is no new model (UiRebuild, a hold) writes nothing.
+ATTRIBUTES &VmPort::FillUi(const storm::ui::ScriptScreen &screen, const std::vector<const storm::ui::Widget *> &widgets)
 {
     ATTRIBUTES &ui = Ui(screen);
-    while (ui.GetAttributesNum() != 0)
-        ui.DeleteAttributeClassX(ui.GetAttributeClass(0u));
-    ui.SetAttribute("capability", screen.capability);
-    ui.SetAttribute("screen", screen.script);
-    FillTree(ui, screen.look);
-    FillTree(ui, screen.data);
-    FillModel(ui.CreateAttribute("model"), widgets);
+    Filled &filled = filled_[screen.capability];
+    ATTRIBUTES *model = ui.GetAttributeClass("model");
+    // The node's widgets of this build, the nodes in the order of their first widget (names without case, as the
+    // object's attributes are).
+    std::vector<std::vector<const storm::ui::Widget *>> nodes;
+    for (const storm::ui::Widget *widget : widgets)
+    {
+        auto found = std::ranges::find_if(
+            nodes, [&](const auto &node) { return storm::iEquals(node.front()->node, widget->node); });
+        if (found == nodes.end())
+            nodes.push_back({widget});
+        else
+            found->push_back(widget);
+    }
+    const auto same_nodes = [&] {
+        if (nodes.size() != filled.nodes.size())
+            return false;
+        for (size_t n = 0; n < nodes.size(); n++)
+            if (!storm::iEquals(nodes[n].front()->node, filled.nodes[n].front().node))
+                return false;
+        return true;
+    };
+    if (!model || !same_nodes())
+    {
+        // The first build, or nodes came, went or moved: the order scripts walk is written anew.
+        Clear(ui);
+        ui.SetAttribute("capability", screen.capability);
+        ui.SetAttribute("screen", screen.script);
+        FillTree(ui, screen.look);
+        FillTree(ui, screen.data);
+        model = &ui.CreateAttribute("model");
+        filled.nodes.assign(nodes.size(), {});
+    }
+    for (size_t n = 0; n < nodes.size(); n++)
+    {
+        std::vector<storm::ui::Widget> &last = filled.nodes[n];
+        if (std::ranges::equal(nodes[n], last,
+                               [](const storm::ui::Widget *a, const storm::ui::Widget &b) { return *a == b; }))
+            continue;
+        ATTRIBUTES *node = model->GetAttributeClass(nodes[n].front()->node);
+        if (node)
+            Clear(*node);
+        else
+            node = &model->CreateAttribute(nodes[n].front()->node);
+        FillNode(*node, nodes[n]);
+        last.clear();
+        for (const storm::ui::Widget *widget : nodes[n])
+            last.push_back(*widget);
+    }
     return ui;
 }
+
+namespace
+{
+
 // A native that failed, or a runtime error of the script (the interpreter logs it and goes on), fails the build or
 // tap: what the script did after it rests on a half-made state.
 void Failed(const storm::ui::ScriptScreen &screen, const Scope &scope, uint64_t errors, const std::string &event)

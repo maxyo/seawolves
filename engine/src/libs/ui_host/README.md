@@ -32,7 +32,8 @@ engine code that the host checks build on Linux (`tests/ui_scripts`):
   of its capability's attached binding. Attached segments' globals never enter a save (core `COMPILER::SerializeState`).
 - `script_port.*`: script screens (UI library `storm_ui/script_screens.h`). Each capability has its object
   `UiScreens.<capability>` (`capability`, `screen`: the screen file's stem, `look`: the screen entry's presentation,
-  `data`: the binding's, `model`: the admitted widgets of its last build); the event `UiBuild(ui)` builds the view and
+  `data`: the binding's, `model`: the admitted widgets of its last build, a node written again only when its widgets
+  changed, so a build without a new model writes nothing); the event `UiBuild(ui)` builds the view and
   `UiTap(ui, id, verb, value)` answers an event the script bound, each with that object; the natives (declared in the scripts' `core/core.c`: the view, its bindings, widget actions on
   nodes and rows, waiting for the game's answer (`UiHold`, `UiAnswer`, `UiAwait`), the reading of the game's figures,
   the deal of a quantity control (`UiDeal`), an order of a list (`UiOrder`), a whole number of the game's globals
