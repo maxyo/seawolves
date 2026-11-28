@@ -36,7 +36,7 @@ native int UiFirst();
 // object of named fields per kind; an unknown kind, a missing or unknown field or a value the engine does not know
 // fails the tap. Kinds: "host" {action: "app-about", "app-exit-to-main-menu", …}, "quick" {which: "save" | "load":
 // the game's quick key, pressed once the menu has resumed}, "title" {command: "New", "Load", "Options", "Credits",
-// "Exit", "Continue"}.
+// "Exit", "Continue"}; a HUD scene's (README "HUD scenes"): "control" {control}, "map" {id}, "shortcut" {name}.
 native void UiCommand(string kind, aref fields);
 // A note for a screen that opens later, kept by the engine across interfaces and loads, taken once: UiPass(screen,
 // &note) replaces the one waiting; UiTake(screen, &out) gives it (1) or nothing (0). "title" {intent} (what the title

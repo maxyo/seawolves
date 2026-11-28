@@ -1,7 +1,20 @@
-// Host checks for the world-map HUD: the consumer of channel "worldMap" and the scene alone
-// (what each synthetic state shows, which engine input each event sends, what waits
-// to be drawn), then the touches of the runtime with the small synthetic pack.
-#include "hud_bench.h"
+// Host checks for the world-map HUD: the consumer of channel "worldMap" and the scene's script (interface/touch/hud/
+// world_map.c) on the fixture game's program: what each synthetic state shows, which engine input each event sends,
+// what waits to be drawn.
+#include "hud_scripts.h"
+
+#include <chrono>
+
+static const ScriptPack *pack = nullptr;
+
+// A bench whose HUD draws the scripts' scenes with the application's pack.
+struct MapBench : Bench
+{
+    MapBench()
+    {
+        pack->Attach(*this);
+    }
+};
 
 static bool Sent(const FakeMount &mount, const std::string &command)
 {
@@ -13,7 +26,7 @@ static bool Sent(const FakeMount &mount, const std::string &command)
 
 static void CheckConsumer()
 {
-    Bench bench;
+    MapBench bench;
     const WorldMap &map = bench.hud.Current().world_map;
     bench.Feed("worldMap", "world-map");
     Expect(map.known && map.available && map.revision == 41 && map.activity == 2 && map.mask == 7 &&
@@ -43,7 +56,7 @@ static void CheckConsumer()
 
 static void CheckScene()
 {
-    Bench bench;
+    MapBench bench;
     FakeMount &mount = bench.mount;
     bench.Feed("gameplay", "gameplay-worldmap");
     bench.Feed("worldMap", "world-map");
@@ -71,8 +84,7 @@ static void CheckScene()
     Expect(shown["compass"]["course"] == 130 && shown["compass"]["windFrom"] == 140 && shown["compass"]["wind"] == 82 &&
                shown["compass"]["time"] == "12:31" && shown["compass"]["days"] == "18" &&
                shown["compass"]["sky"] == "sun" && shown["compass"]["skyAt"] == 12 &&
-               !shown["compass"].contains("moon") && !shown["compass"].contains("weather") &&
-               shown["sail"]["value"] == 70,
+               !shown["compass"].contains("weather") && shown["sail"]["value"] == 70,
            "compass and lever: " + shown["compass"].dump());
     Expect(shown["context"]["icon"] == "sea-exit" && shown["context"]["variant"] == "primary",
            "going to sea in the corner");
@@ -170,7 +182,7 @@ static void CheckScene()
 // night, the weather is the storm zone, and a missing value draws nothing and says so.
 static void CheckSky()
 {
-    Bench bench;
+    MapBench bench;
     FakeMount &mount = bench.mount;
     bench.Feed("gameplay", "gameplay-worldmap");
     Json compass;
@@ -210,7 +222,7 @@ static void CheckSky()
 // The time acceleration as at sea: the scale the engine runs at, a tap asks for the next step.
 static void CheckTime()
 {
-    Bench bench;
+    MapBench bench;
     FakeMount &mount = bench.mount;
     bench.Feed("gameplay", "gameplay-worldmap");
     bench.Feed("worldMap", "world-map");
@@ -239,7 +251,7 @@ static void CheckTime()
 
 static void CheckLabelArea()
 {
-    Bench bench;
+    MapBench bench;
     bench.mount.boxes["compass "] = {702, 15, 240, 219, 0, 0, 960, 540, 1.5f};
     bench.Feed("gameplay", "gameplay-worldmap");
     bench.Feed("worldMap", "world-map");
@@ -263,14 +275,40 @@ static void CheckLabelArea()
     Expect(Sent(bench.mount, "worldmap:41\tlabelarea\tnone"), "hiding the HUD clears its reservation too");
 }
 
+// What a state change costs the scene (printed, not judged: the host is not the phone): one whose structure changes
+// runs the script; one that moves only readings (the clock, every frame on the map) does not.
+static void PrintCost()
+{
+    MapBench bench;
+    bench.Feed("gameplay", "gameplay-worldmap");
+    const auto cost = [&](const char *field, auto value) {
+        Json state = State("world-map");
+        constexpr int kRounds = 200;
+        const auto start = std::chrono::steady_clock::now();
+        for (int i = 0; i < kRounds; ++i)
+        {
+            state[field] = value(i);
+            bench.Set("worldMap", state);
+        }
+        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
+    };
+    const double readings = cost("hour", [](int i) { return 6.0 + i * 0.05; });
+    const double builds = cost("date", [](int i) { return std::to_string(i) + " October"; });
+    std::printf("world-map scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
+                builds);
+}
+
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
+    const ScriptPack app(argc > 2 ? argv[2] : "app-pack");
+    pack = &app;
     CheckConsumer();
     CheckScene();
     CheckSky();
     CheckTime();
     CheckLabelArea();
+    PrintCost();
     if (failures)
         std::fprintf(stderr, "%d world-map HUD check(s) failed\n", failures);
     else

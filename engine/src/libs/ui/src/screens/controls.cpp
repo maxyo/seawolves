@@ -90,7 +90,7 @@ ButtonRole RoleOf(const Widget &button)
     return ButtonRole::Other;
 }
 
-std::string Fill(std::string text, std::initializer_list<std::string> args)
+std::string Fill(std::string text, std::span<const std::string> args)
 {
     int number = 1;
     for (const std::string &arg : args)

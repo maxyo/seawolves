@@ -12,7 +12,7 @@
     "expanded": {"type": "bool", "default": false},
     "plate": {"type": "bool", "default": false},
     "direction": {"type": "enum", "options": ["column", "row"], "default": "column"},
-    "ships": {"type": "json", "default": []},
+    "ships": {"type": "json", "default": [], "shape": [{"name": "text", "texture": "text", "uv": "text", "bars": [{"kind": "text", "value": "int"}], "tap": "bool"}]},
     "max": {"type": "int"},
     "maxHeight": {"type": "int", "default": 248},
     "maxWidth": {"type": "int", "default": 360},

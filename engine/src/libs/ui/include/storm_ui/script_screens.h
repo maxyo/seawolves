@@ -31,6 +31,9 @@ struct ViewTree
     std::vector<ViewTree> children;
 };
 
+// The interface of a HUD scene's entry in scripts.json: no game interface; the scene draws a gameplay mode's HUD.
+inline constexpr char kHudInterface[] = "hud";
+
 // A screen provided by a script segment: the capability it stands for, the game interface it draws, the pack screen
 // it fills and the nodes it reads; `script` is the stem of the screen's file (its events name it), `look` the
 // presentation its entry gives and `data` what the adapter's binding gives (both handed to the script).
@@ -90,7 +93,23 @@ struct SettingCommand
     std::string key;
     int value = 0;
 };
-using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand>;
+// A HUD scene's commands (storm_ui/hud_command.h) as its script names them: a control the gameplay binds, a world
+// map command, a game menu of the platform host. The runtime adds the revisions of the states the scene was built
+// from; a screen of an interface cannot send them.
+struct HudControlCommand
+{
+    std::string control;
+};
+struct HudMapCommand
+{
+    std::string id;
+};
+struct HudShortcutCommand
+{
+    std::string name;
+};
+using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand,
+                                   HudControlCommand, HudMapCommand, HudShortcutCommand>;
 
 struct DealView
 {

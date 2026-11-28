@@ -15,7 +15,6 @@ namespace storm::ui::hud
 
 std::unique_ptr<Scene> CreateLandScene(Hud &hud);
 std::unique_ptr<Scene> CreateSeaScene(Hud &hud);
-std::unique_ptr<Scene> CreateWorldMapScene(Hud &hud);
 
 namespace
 {
@@ -41,7 +40,7 @@ const char *const kWorldMapModes[] = {"worldmap"};
 const SceneEntry kScenes[] = {
     {"land", kLandModes, CreateLandScene, "land"},
     {"sea", kSeaModes, CreateSeaScene, "sea"},
-    {"world-map", kWorldMapModes, CreateWorldMapScene, "worldmap"},
+    {"world-map", kWorldMapModes, nullptr, "worldmap", "hud_world_map"},
 };
 
 } // namespace
@@ -304,6 +303,36 @@ void Hud::Disable(const std::string &component, const char *where, const std::st
 }
 
 Hud::~Hud() = default;
+
+std::unique_ptr<Scene> Hud::Create(const SceneEntry &entry)
+{
+    if (entry.create)
+        return entry.create(*this);
+    for (const ScriptScreen &scene : script_scenes_)
+        if (scene.capability == entry.script)
+            return CreateScriptScene(*this, scene, *script_port_);
+    Error("HUD scene " + std::string(entry.name) + ": no script of this game provides " + entry.script +
+          "; its modes show only the game-menu button");
+    return nullptr;
+}
+
+void Hud::SetScriptScenes(std::vector<ScriptScreen> scenes, ScriptPort *port)
+{
+    script_scenes_ = std::move(scenes);
+    script_port_ = port;
+    if (!entry_ || entry_->create)
+        return;
+    // The program the scene's script ran in is gone: the scene ends as on a mode change and is made again.
+    if (scene_)
+        Guarded(SceneName(), "Suspended", [&] {
+            scene_->Released(states_);
+            mount_.HideHud();
+            scene_->Suspended(states_);
+        });
+    scene_.reset();
+    entry_ = nullptr;
+    changed_ = true;
+}
 
 void Hud::Reject(const std::string &channel, const std::string &why)
 {
@@ -593,7 +622,7 @@ void Hud::Refresh()
         scene_.reset();
         entry_ = entry;
         if (entry_)
-            Guarded(entry_->name, "create", [&] { scene_ = entry_->create(*this); });
+            Guarded(entry_->name, "create", [&] { scene_ = Create(*entry_); });
     }
 
     const Presentation &shown = states_.presentation;
@@ -964,6 +993,12 @@ bool ParseLayout(const Json &file, Layout &out, std::string *error)
     if (error)
         *error = problem;
     return false;
+}
+
+const LayoutElement *FindLayoutElement(const Layout &layout, const std::string &scene, const std::string &id)
+{
+    const auto found = layout.find(scene);
+    return found == layout.end() ? nullptr : FindElement(found->second, id);
 }
 
 std::string CheckView(const Layout &layout, const View &view)

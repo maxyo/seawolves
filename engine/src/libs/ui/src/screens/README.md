@@ -169,17 +169,19 @@ elements by id (an element left out is not mounted), an optional sheet and eleme
 `"behavior": "hold"` (reports `down` / `up`) or `"swipe"` (`data` → `data-swipe-*`);
 `"toastsBelow": true` keeps toasts below a top status.
 
-Adding a scene:
+A scene is a script of the touch interface (`app/mobile-ui/PROGRAM/interface/touch/hud/`, its README "HUD
+scenes"); `kScenes` in `hud.cpp` names the gameplay modes each one draws and the capability of its script, and
+`script_scene.cpp` runs it. The land and sea scenes are still C++ (`land.cpp`, `sea.cpp`) until they move. What
+stays native, because it runs every frame or every touch move without a script: the readings laid into a view
+(`script_states.cpp`: one table of readings and their formats), the continuous controls (`HoldSet`: helm, held
+buttons, the sail lever), the geometry the engine is told (the world map's label area), and a tapped choice drawn
+until the game answers its command (the request ledger).
 
-1. Add the channel struct to `hud_state.h` (and `HudState`), its field in `States`, and its fixture reader to
-   `states.cpp`.
-2. Write `Scene` in `src/hud/<zone>.cpp`: `Build` sets `view.layout`, props and bindings; timed
-   work in `Tick`, coverage acknowledgements in `Drawn` (only a drawn frame may hide the
-   engine's own indicators), `Released` / `Suspended` for cancelled input and a lost screen,
-   `Holds` when the engine reports no mode while something of the scene is open.
-3. Add `{"<name>", modes, Create…}` to `kScenes` in `hud.cpp`.
-4. Pack: elements in `hud-layout.json`, sheets as `screens/hud-…` parts.
-5. Tests: synthetic states in `tests/states`, a scene check like `tests/hud_land_check.cpp`.
+A new channel for scenes: its struct in `hud_state.h` (and `HudState`), its field in `States`, its fixture reader in
+`states.cpp`, and its writer for scripts (without its readings) in `script_states.cpp`.
+
+Tests: synthetic states in `tests/states`, a scene check like `tests/hud_worldmap_check.cpp` (the script scene on the
+fixture game's program with the application's pack, `tests/hud_scripts.h`).
 
 ```sh
 build/ui-host/storm_ui_shot --pack <app>/build/ui-pack --size 915x412 --density 2 --out land.png \

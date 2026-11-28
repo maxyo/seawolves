@@ -102,7 +102,12 @@ screens::Router::ScriptScreens ScriptGame::Entries(const fs::path &pack)
 {
     const Json components = Json::parse(ReadText(pack / "components.json"));
     screens::Router::ScriptScreens entries;
+    size_t screens = 0;
     for (const ScriptScreen &screen : program_->screens)
+    {
+        if (screen.interface == kHudInterface)
+            continue; // a HUD scene, not a router's screen
+        ++screens;
         for (const Json &entry : components.at("components"))
             if (entry.at("tag") == screen.component)
             {
@@ -111,7 +116,8 @@ screens::Router::ScriptScreens ScriptGame::Entries(const fs::path &pack)
                     return screens::CreateScriptScreen(screen, *spec, program_->port);
                 });
             }
-    if (entries.size() != program_->screens.size())
+    }
+    if (entries.size() != screens)
         throw std::runtime_error("the pack " + pack.string() + " lacks a script screen's component");
     return entries;
 }

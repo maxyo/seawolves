@@ -180,6 +180,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     bool ShowHudOverlay(Rml::Element *layer, const hud::View &view);
     bool ShowHudSheet(Rml::Element *layer, const hud::View &view);
     bool Measure(const std::string &id, const std::string &selector, hud::Placement &out) const override;
+    const ComponentSpec *HudComponent(const std::string &layout, const std::string &element) const override;
     void HideHud() override;
 
     // --- screens::Surface ---------------------------------------------------------

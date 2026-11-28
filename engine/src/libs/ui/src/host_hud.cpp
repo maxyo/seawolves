@@ -313,4 +313,10 @@ void HostImpl::RemoveHudElement(Rml::Element *layer, Rml::Element *mounted)
     layer->RemoveChild(mounted);
 }
 
+const ComponentSpec *HostImpl::HudComponent(const std::string &layout, const std::string &element) const
+{
+    const hud::LayoutElement *found = hud::FindLayoutElement(layout_, layout, element);
+    return found ? registry_->Find(found->component) : nullptr;
+}
+
 } // namespace storm::ui

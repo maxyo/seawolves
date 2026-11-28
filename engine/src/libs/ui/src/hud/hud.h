@@ -7,6 +7,7 @@
 #include "../text_utf8.h"
 #include "storm_ui/hud_command.h"
 #include "storm_ui/hud_state.h"
+#include "storm_ui/script_screens.h"
 
 #include <cstdint>
 #include <algorithm>
@@ -19,6 +20,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace storm::ui
+{
+struct ComponentSpec;
+}
 
 namespace storm::ui::hud
 {
@@ -233,6 +239,9 @@ struct SceneEntry
     // The engine's name for this HUD in "hudowner:<name>", declared at startup and after
     // a long gap between UI ticks so the engine knows which presenters are available.
     const char *presents = nullptr;
+    // Or, without `create`, the capability of the scene's script (Hud::SetScriptScenes), "hud_world_map": a game whose
+    // scripts give none has only the game-menu button in these modes.
+    const char *script = nullptr;
 };
 // The HUD scenes by gameplay mode (hud.cpp).
 std::span<const SceneEntry> Scenes();
@@ -279,7 +288,27 @@ class Mount
     {
         return false;
     }
+    // The spec of the pack component that element `element` of layout scene `layout` is (a script scene's props are
+    // converted by it); nullptr when the pack has no such element.
+    virtual const ComponentSpec *HudComponent(const std::string &layout, const std::string &element) const = 0;
 };
+
+// Where a script scene puts a reading (script_states.cpp): `readings` names one or more ("worldMap.course"), `as`
+// their formats, one each ("degrees"); several go into `fill` ("{1} · {2}"). The runtime resolves it whenever the
+// state changes, without the script.
+struct ReadingRef
+{
+    std::string readings, as, fill;
+    // The engine gives every reading of it now.
+    bool Known(const States &states, Hud &hud) const;
+    // Its value as the view takes it; throws for an unknown reading or format, or one the engine does not give.
+    Json Resolve(const States &states, Hud &hud) const;
+};
+// The state of HUD channel `channel` as a scene script reads it (UiState), without its readings; throws for a channel
+// that is not given to scripts. What the engine should have given and did not is reported through `hud`.
+Json ScriptState(const std::string &channel, const States &states, Hud &hud);
+// A HUD scene written in script: its build, taps, the runtime's readings, controls and prediction (script_scene.cpp).
+std::unique_ptr<Scene> CreateScriptScene(Hud &hud, const ScriptScreen &screen, ScriptPort &port);
 
 using screens::SubjectRequest;
 
@@ -359,6 +388,18 @@ class Hud
     void AttachRouter(screens::Router *router)
     {
         router_ = router;
+    }
+    screens::Router *Router() const
+    {
+        return router_;
+    }
+    // The HUD scenes of the scripts attached to the game's program (interface "hud" of scripts.json) and the VM that
+    // runs them; a new program replaces them, and the scene of one gone ends as on a mode change.
+    void SetScriptScenes(std::vector<ScriptScreen> scenes, ScriptPort *port);
+    // The mount's component of a layout element (Mount::HudComponent).
+    const ComponentSpec *Component(const std::string &layout, const std::string &element) const
+    {
+        return mount_.HudComponent(layout, element);
     }
 
     // A scene sent what leads into a scene change (a fast-travel place chosen): the HUD stays
@@ -450,7 +491,12 @@ class Hud
     void Open(const std::string &target);
     void Present(bool visible, bool menu_only);
 
+    // The scene of `entry`: its C++ scene, or its script's; nullptr (said once) when the game's scripts give none.
+    std::unique_ptr<Scene> Create(const SceneEntry &entry);
+
     Mount &mount_;
+    std::vector<ScriptScreen> script_scenes_;
+    ScriptPort *script_port_ = nullptr;
     LandCommands::Activation transition_activation_;
     bool transition_accepted_ = false;
     double transition_until_ = -1.0; // ExpectTransition: hidden until then at most (-1 = none)
@@ -566,6 +612,8 @@ struct LayoutElement
 using Layout = std::unordered_map<std::string, std::vector<LayoutElement>>;
 // False with `error` set when the file is not a layout this runtime understands.
 bool ParseLayout(const Json &file, Layout &out, std::string *error);
+// The element `id` of layout scene `scene`, a child too; nullptr when there is none.
+const LayoutElement *FindLayoutElement(const Layout &layout, const std::string &scene, const std::string &id);
 // Empty when `view` can be drawn with `layout`; otherwise what is wrong.
 std::string CheckView(const Layout &layout, const View &view);
 

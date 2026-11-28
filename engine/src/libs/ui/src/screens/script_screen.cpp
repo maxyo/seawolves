@@ -275,6 +275,10 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         SetAppSetting(*bindings_, command.key, command.value);
     }
+    template <class HudCommand> void Run(const HudCommand &)
+    {
+        throw std::runtime_error("a HUD command is sent by a HUD scene, not by the screen " + screen_.capability);
+    }
     void Pass(const std::string &screen, const ViewTree &note) override
     {
         bindings_->Pass(screen, note);

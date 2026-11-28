@@ -777,7 +777,7 @@ def check_scripts(capabilities, screens):
     has its header and a provider before the user; adapters bind, screens name a capability and a pack screen."""
     listed = json.loads((HERE / "scripts.json").read_text(encoding="utf-8"))
     tags = {spec["tag"] for spec in screens}
-    problems, provided, bound, names = [], {}, {}, {}
+    problems, provided, bound, names, hud_scenes = [], {}, {}, {}, set()
     files = [segment["file"] for segment in listed["segments"]]
     on_disk = {str(path.relative_to(PROGRAM)) for path in (PROGRAM / TOUCH).rglob("*.c")}
     problems += [f"scripts.json: {file} is not listed (or is dead)" for file in sorted(on_disk - set(files))]
@@ -822,6 +822,14 @@ def check_scripts(capabilities, screens):
         for screen in segment.get("screens", []):
             if screen["capability"] not in capabilities:
                 problems.append(f"{where}: capability '{screen['capability']}' is not in capabilities.json")
+            if layer == "hud":
+                # A HUD scene draws a gameplay mode's layout scene (hud-layout.json), no game interface.
+                if not screen["capability"].startswith("hud_") or screen != {
+                        "capability": screen["capability"], "component": "hud", "interface": "hud", "nodes": []}:
+                    problems.append(f"{where}: a HUD scene is {{capability: hud_<scene>, component: hud, "
+                                    "interface: hud, nodes: []}")
+                hud_scenes.add(screen["capability"])
+                continue
             if screen["component"] not in tags:
                 problems.append(f"{where}: no pack screen <{screen['component']}>")
             if "interface" in screen and layer != "games":
@@ -837,6 +845,10 @@ def check_scripts(capabilities, screens):
                         not (layer == "contracts" or names[key].startswith(f"{TOUCH}contracts/")):
                     problems.append(f"{where}: '{name}' is defined in {names[key]} too")
                 names.setdefault(key, file)
+    # Every HUD scene the engine draws by gameplay mode has its script: without one those modes have only the
+    # game-menu button.
+    problems += [f"capabilities.json: the HUD scene {ident} has no script in scripts.json"
+                 for ident in sorted(capabilities) if ident.startswith("hud_") and ident not in hud_scenes]
     problems += object_arguments({file: (PROGRAM / file).read_text("utf-8") for file in files
                                   if file.startswith(TOUCH) and (PROGRAM / file).is_file()})
     if problems:

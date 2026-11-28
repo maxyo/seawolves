@@ -16,8 +16,14 @@ void HostImpl::Answer(uint64_t request, bool applied, const std::string &reason,
 void HostImpl::SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port)
 {
     screens::Router::ScriptScreens entries;
+    std::vector<ScriptScreen> hud_scenes;
     for (const ScriptScreen &screen : screens)
     {
+        if (screen.interface == kHudInterface)
+        {
+            hud_scenes.push_back(screen);
+            continue;
+        }
         const ComponentSpec *component = registry_->Find(screen.component);
         if (!component)
         {
@@ -30,6 +36,7 @@ void HostImpl::SetScriptScreens(const std::vector<ScriptScreen> &screens, Script
         });
     }
     router_->SetScriptScreens(std::move(entries));
+    hud_->SetScriptScenes(std::move(hud_scenes), port);
 }
 
 void HostImpl::SetInterface(const InterfaceModel &model)

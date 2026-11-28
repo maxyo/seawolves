@@ -639,7 +639,7 @@
   "hud.sea.ammo.bombs": "Bomben",
   "hud.map.course": "Kurs",
   "hud.map.wind": "Wind",
-  "hud.map.windFrom": "aus {dir}",
+  "hud.map.windFrom": "aus {1}",
   "hud.map.food": "Proviant",
   "hud.map.rum": "Rum",
   "hud.map.morale": "Moral",

@@ -227,6 +227,12 @@ struct FakeMount final : storm::ui::hud::Mount
     {
         visible = false;
     }
+    // The pack component of a layout element, for script scenes (hud_scripts.h); none without a pack.
+    std::function<const storm::ui::ComponentSpec *(const std::string &, const std::string &)> components;
+    const storm::ui::ComponentSpec *HudComponent(const std::string &layout, const std::string &element) const override
+    {
+        return components ? components(layout, element) : nullptr;
+    }
     void Send(const storm::ui::Action &action) override
     {
         commands.push_back(storm::ui::to_string(action));

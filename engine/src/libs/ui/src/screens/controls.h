@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <initializer_list>
+#include <span>
 
 namespace storm::ui::screens
 {
@@ -19,7 +20,11 @@ inline constexpr double kMiB = 1048576.0, kGiB = 1073741824.0;
 std::string OneLine(const std::string &text);
 bool Short(const std::string &text, size_t chars); // at most `chars` code points, one line
 // "{1}", "{2}" … of a string table entry replaced by the arguments.
-std::string Fill(std::string text, std::initializer_list<std::string> args);
+std::string Fill(std::string text, std::span<const std::string> args);
+inline std::string Fill(std::string text, std::initializer_list<std::string> args)
+{
+    return Fill(std::move(text), std::span<const std::string>(args.begin(), args.size()));
+}
 // One decimal with the decimal mark of the language ("2,3").
 std::string Decimal(const Bindings &bindings, double value);
 // A game number with a decimal point in the interface's language ("2.4" → "2,4" except in

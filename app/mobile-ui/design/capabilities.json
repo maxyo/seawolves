@@ -39,5 +39,6 @@
   "alchemy": "Make potions, ammunition and talismans of the recipes the hero knows, as many batches as set",
   "new_game": "A new game: its options, the hero and his occupation, and the start",
   "saves": "The save list: load, write or write over a record, delete one, the game's questions about it",
-  "settings": "The game's options and the application's settings, kept or dropped together"
+  "settings": "The game's options and the application's settings, kept or dropped together",
+  "hud_world_map": "The world map's HUD: the squadron, the compass, the helm, the sail lever and the map's commands"
 }

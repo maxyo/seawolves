@@ -639,7 +639,7 @@
   "hud.sea.ammo.bombs": "Bombas",
   "hud.map.course": "Rumbo",
   "hud.map.wind": "Viento",
-  "hud.map.windFrom": "del {dir}",
+  "hud.map.windFrom": "del {1}",
   "hud.map.food": "Víveres",
   "hud.map.rum": "Ron",
   "hud.map.morale": "Moral",

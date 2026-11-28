@@ -129,7 +129,8 @@ add_library(storm_ui STATIC
     src/hud/states.cpp
     src/hud/land.cpp
     src/hud/sea.cpp
-    src/hud/world_map.cpp
+    src/hud/script_scene.cpp
+    src/hud/script_states.cpp
     src/hud/spyglass.cpp
     src/template.cpp
     src/text_utf8.cpp
@@ -243,7 +244,6 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     storm_ui_check(hud_land_game hud_land_game_check.cpp)
     set_tests_properties(ui_hud_land_game PROPERTIES SKIP_RETURN_CODE 77)
     storm_ui_check(hud_sea hud_sea_check.cpp "${states}" "${pack}")
-    storm_ui_check(hud_worldmap hud_worldmap_check.cpp "${states}")
     storm_ui_check(frame_cost frame_cost_check.cpp "${states}" "${pack}")
     target_include_directories(storm_ui_frame_cost_unit PRIVATE src)
     storm_ui_check(text text_check.cpp)
@@ -254,6 +254,9 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         COMMAND "${Python3_EXECUTABLE}" "${STORM_MOBILE_UI}/design/build.py" --pack "${CMAKE_BINARY_DIR}/app-pack"
                 --engine-root "${CMAKE_CURRENT_SOURCE_DIR}/../../.." DEPENDS ${storm_ui_app_design})
     add_custom_target(storm_ui_app_pack DEPENDS "${CMAKE_BINARY_DIR}/app-pack/pack.json")
+    storm_ui_check(hud_worldmap hud_worldmap_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_hud_worldmap_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_hud_worldmap_unit storm_ui_app_pack)
     storm_ui_check(menus menus_check.cpp "${models}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_menus_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_menus_unit storm_ui_app_pack)

@@ -26,10 +26,11 @@ mechanically: a reviewer does.
 | `lineages/<lineage>/<family>.c` | a family's adapter for a lineage of games (`legacy`: the games of this engine) | game, lib, core |
 | `lineages/<lineage>/lib.c` | what that lineage's adapters share (table cells, the amount window, tabs) | game, lib, core |
 | `screens/<family>/<screen>.c`, `screens/<screen>.c` | the shared screens | contracts, lib, core |
+| `hud/<scene>.c` | the HUD scenes of the gameplay modes (below, "HUD scenes") | contracts, lib, core |
 
 `build.py --check` enforces the layers: a shared layer calls natives, `TouchLib_*`, the contracts it uses and a short
 list of built-ins; it reads no model (`.model`), names no game and writes into no object that is not its own. Not made
-yet: `hud/` and `games/<game>/` (a game's own screens), the `cl` lineage.
+yet: `games/<game>/` (a game's own screens), the `cl` lineage.
 
 ## Names
 
@@ -121,7 +122,9 @@ The natives (`core/core.c`):
   action of the application's contract: `app-about`, `app-exit-to-main-menu`, …), `"quick"` {which: `save` | `load`}
   (the engine presses the game's quick key once the menu has resumed), `"title"` {command: `New`, `Load`, `Options`,
   `Credits`, `Exit`, `Continue`}, `"settings"` {verb: `open` (a new draft of the application's settings) | `keep`
-  (the draft to the phone)}, `"setting"` {key, value} (one of the values the engine's table offers for it). An unknown kind, a missing or unknown field or a value the engine does not know
+  (the draft to the phone)}, `"setting"` {key, value} (one of the values the engine's table offers for it). A HUD scene's: `"control"` {control} (a
+  control the gameplay binds now, `gameplay.controls`), `"map"` {id} (a world map command; answered by the game),
+  `"shortcut"` {name} (a game menu: `mainmenu`, `shipscreen`, …). An unknown kind, a missing or unknown field or a value the engine does not know
   fails the tap. A new engine or host command is a new kind (the table in `ui_host/src/scripts/script_port.cpp` and
   its struct in `storm_ui/script_screens.h`), never a new native;
 - a note for a screen that opens later, which outlives the script program (a load resets it): `UiPass(screen,
@@ -141,6 +144,25 @@ Failures are loud. `UiError`, a native given an argument of the wrong type or an
 field, and a runtime error of the script (the interpreter logs it and goes on) fail the build or tap: the router closes
 the interface with an error line. There is no default for what the game should have given: an adapter that cannot
 read what its contract promises calls `UiError`.
+
+## HUD scenes
+
+A scene of `hud/` draws the HUD of gameplay modes (the engine's `hud/hud.cpp` names which); its entry in
+`scripts.json` is `{capability: "hud_<scene>", component: "hud", interface: "hud", nodes: []}`, and every `hud_`
+capability must have one. It reads the engine's HUD channels with `UiState` (`gameplay`, `worldMap`: their writers
+in `engine/src/libs/ui/src/hud/script_states.cpp`) and builds, with `UiShow`, `{layout, log, holds, elements.<id>,
+controls.<id>, covers.<id>}`: the layout scene of `design/hud-layout.json`, its elements' props by their components,
+`log` 1 for the event lines, `holds` 1 while it keeps the HUD through a blocked game. It builds only when a channel
+it read changes or it says `UiRebuild()`; it has no timer.
+- What moves every frame is a reading, never read by the script: a prop given as `{reading, as, fill}` (one reading
+  or several, space-separated, with one format each: `degrees`, `degreesText`, `point`, `percent`, `percentText`,
+  `clock`, `whole`, `word`; several go into `fill` as `{1}`, `{2}`) is filled by the runtime at every state change.
+  The channel says which readings it has now: `readings.<name>` = 1.
+- What the finger holds or drags is a control the runtime drives: `controls.<id>` = `{kind: "hold", control}`,
+  `{kind: "helm", left, right}`, `{kind: "lever", up, down}`.
+- `covers.<id>` = `"map-labels"`: the world map draws no label under that element.
+- A tap that sends a command the game answers (`"map"`) says `UiPredict(view)` with the mark it shows: drawn until
+  the game has answered; a second such tap meanwhile, or one on an element not drawn as built, sends nothing.
 
 ## Helpers
 
