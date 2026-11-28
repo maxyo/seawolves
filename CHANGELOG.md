@@ -200,6 +200,8 @@
   `call_time_limit` в engine.ini больше не читается.
 - Описание сохранения с повреждённым байтом больше не превращается в строку вопросительных знаков: заменяется только
   сам повреждённый байт (знаком «�»), остальной текст, в том числе кириллица, остаётся как был.
+- Последний шаг появления подсказки и других плавных переходов интерфейса теперь рисуется сразу: раньше он мог
+  остаться не показанным до следующего изменения на экране.
 
 **English**
 
@@ -405,6 +407,8 @@
   in the background or a long load do not touch it. The engine.ini setting `call_time_limit` is no longer read.
 - A save description with a damaged byte no longer turns into a row of question marks: only the damaged byte is
   replaced (with «�»), the rest of the text, Cyrillic included, stays as it was.
+- The last step of a hint's fade-in and of other interface transitions is now drawn at once: it could stay unshown
+  until something else on the screen changed.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

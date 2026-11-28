@@ -172,6 +172,12 @@ void tapBeforeFocusLoss()
     quick.update({});
     quick.update(moor);
     REQUIRE(!quick.consume());
+    const auto offered = quick.revision();
+    quick.update({});
+    const auto blockedRevision = quick.revision();
+    quick.update({19, true, true, false, "", "Moor"}); // a sea behind an interface: nothing to tap
+    quick.update({});
+    REQUIRE((offered != blockedRevision && quick.revision() == blockedRevision));
 
     SeaOrdersState orders;
     SeaOrdersFrame menu;

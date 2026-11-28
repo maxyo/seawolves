@@ -496,6 +496,12 @@ bool SDLInput::MouseKeyState(const MouseKey &key) const
     case MouseKey::Special2: return mouse_.Active(SDL_BUTTON_X2) && SnapshotCurrent();
     }
     return false;
+#elif defined(STORM_TOUCH_UI)
+    // The desktop touch build: the mouse is the touch interface's finger (ui_host platform/desktop.cpp filters its
+    // events away from the game). Polled here it would still reach the game's controls: a tap on a HUD button beside
+    // a person was also the game's ChrAction, which starts a dialogue.
+    static_cast<void>(key);
+    return false;
 #else
     uint32_t btn = SDL_GetMouseState(nullptr, nullptr);
     if (key == MouseKey::Left)

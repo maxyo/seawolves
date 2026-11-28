@@ -3,7 +3,7 @@
 //   * FrameRenderer alone, with a recording backend: a filtered layer that did not change
 //     is drawn from its cached result (no backend layer, no filter pass); a change, a
 //     nested layer, a clip mask and an empty region behave as documented.
-//   * The whole runtime with the application's pack and its world map HUD script (NoBackend of hud_bench.h): a
+//   * The whole runtime with the application's pack and its land HUD script (NoBackend of hud_bench.h): a
 //     steady HUD needs no frame (Prepare false) and a drawn steady frame rebuilds, lays out,
 //     compiles and uploads nothing; a state that changes nothing visible needs no frame; one
 //     that does is drawn. Every frame Prepare calls unchanged is verified (Runtime::Frame).
@@ -224,13 +224,11 @@ void FilterCache()
     Expect(backend.Count("push") == 1 && stats.cached_layers == 0, "a filter with other parameters is another filter");
 }
 
-// The world map's HUD of the application's pack, drawn by its script, after a second of frames: the pack's elements
-// have played their entrance.
-void WorldMap(Runtime &runtime)
+// The land HUD of the application's pack, drawn by its script, after a second of frames: the pack's elements have
+// played their entrance.
+void Land(Runtime &runtime)
 {
-    runtime.Feed("presentation", "presentation-game");
-    runtime.Feed("gameplay", "gameplay-worldmap");
-    runtime.Feed("worldMap", "world-map");
+    runtime.Explore();
     for (int i = 0; i < 60; ++i)
         runtime.Frame();
 }
@@ -239,7 +237,7 @@ void SteadyRuntime(const std::string &pack)
 {
     Runtime runtime(pack);
     AttachScripts(runtime);
-    WorldMap(runtime);
+    Land(runtime);
     double delay = 0.0;
     Expect(!runtime.host->Prepare(delay), "a steady HUD needs no frame");
     runtime.Frame();
@@ -247,11 +245,11 @@ void SteadyRuntime(const std::string &pack)
     Expect(steady.rebuilds == 0 && steady.laid_out == 0, "a steady frame rebuilds and lays out nothing");
     Expect(steady.geometry == 0 && steady.textures == 0, "a steady frame compiles and uploads nothing");
 
-    runtime.Feed("worldMap", "world-map"); // published again, same content
+    runtime.Feed("vitals", "vitals"); // published again, same content
     Expect(!runtime.host->Prepare(delay), "a state that changes nothing visible needs no frame");
     runtime.Frame();
 
-    runtime.Feed("worldMap", "world-map-encounter");
+    runtime.Feed("vitals", "vitals-status");
     Expect(runtime.host->Prepare(delay), "a state that changes the HUD asks for a frame");
     runtime.Frame();
     Expect(runtime.host->LastFrameStats().rebuilds > 0, "and that frame rebuilds what changed");
@@ -267,17 +265,17 @@ void TapLatency(const std::string &pack)
 {
     Runtime runtime(pack);
     AttachScripts(runtime);
-    WorldMap(runtime);
+    Land(runtime);
     double delay = 0.0;
     Expect(!runtime.host->Prepare(delay), "the HUD is steady before the tap");
 
-    runtime.host->Touch(TouchPhase::Down, 1, 532, 34); // the pause (menu) button
+    runtime.host->Touch(TouchPhase::Down, 1, 766, 34); // the pause (menu) button
     Expect(runtime.host->Prepare(delay), "a touch-down asks for a frame at once (the press)");
     runtime.Frame();
     Expect(!runtime.host->Prepare(delay), "the press is complete in that one frame: no second frame needed");
 
     const size_t before = runtime.commands.size();
-    runtime.host->Touch(TouchPhase::Up, 1, 532, 34);
+    runtime.host->Touch(TouchPhase::Up, 1, 766, 34);
     Expect(runtime.commands.size() > before && runtime.Sent("shortcut:mainmenu"),
            "the action leaves in the touch-up call, before any frame");
 

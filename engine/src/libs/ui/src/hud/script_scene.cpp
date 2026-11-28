@@ -930,8 +930,14 @@ class ScriptScene final : public Scene, private ScriptCall
             throw std::runtime_error("a map command while the engine offers none");
         // Exactly the command drawn, once: a tap on an element not drawn as it is now, or while one waits, sends
         // nothing.
-        if (!hud_.Interactive() || !Drawn() || Waiting(map_request_))
-            return;
+        const bool drawn = Drawn(); // throws outside a tap
+        const char *refused = !hud_.Interactive()     ? "the HUD is not interactive"
+                              : !drawn                ? "the element is not drawn as built"
+                              : Waiting(map_request_) ? "another map command waits for the game"
+                                                      : nullptr;
+        if (refused)
+            return hud_.Log("HUD scene " + screen_.capability + ": map tap on " + tapped_->id +
+                            " sent nothing: " + refused);
         holds_.Release(states_->gameplay);
         map_request_ = hud_.Request(MapCommand{map.revision, command.id});
         requests_.push_back(map_request_);

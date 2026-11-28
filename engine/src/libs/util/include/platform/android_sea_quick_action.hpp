@@ -51,10 +51,15 @@ class SeaQuickActionState
     {
         if (frame == frame_)
             return;
+        const bool offered = valid();
+        frame_ = std::move(frame);
+        // Nothing offered before or now: no tap to fence, no new state (behind the main menu the sea's frame
+        // and the blocked one alternate every frame).
+        if (!offered && !valid())
+            return;
         // Another action, target or owner: what was drawn and tapped belongs to the old one.
         ++revision_;
         pending_ = false;
-        frame_ = std::move(frame);
     }
     // A tap on the action the HUD showed for this revision (or on Map beside it): accepted once.
     bool offer(const storm::ui::hud::SeaQuickTap &tap)
@@ -77,10 +82,10 @@ class SeaQuickActionState
         ++revision_;
         return std::move(pendingAction_);
     }
-    // What hud() reads.
+    // What hud() reads: an offered frame changes only with a new revision.
     auto publicationKey() const
     {
-        return std::tie(revision_, frame_);
+        return std::tie(revision_);
     }
     storm::ui::hud::SeaQuick hud() const
     {

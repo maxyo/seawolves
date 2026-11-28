@@ -527,6 +527,8 @@ void Hud::Present(bool visible, bool menu_only)
         return;
     visible_ = visible;
     menu_only_ = menu_only;
+    // The scene sweep reads this line to tell whether a scene has its HUD.
+    mount_.Log(!visible ? "HUD hidden" : menu_only ? "HUD menu only" : "HUD shown: " + SceneName());
     Send(Presence{!visible ? app::presence::hidden : menu_only ? app::presence::menu : app::presence::shown});
 }
 

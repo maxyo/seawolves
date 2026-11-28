@@ -486,8 +486,46 @@ def black(r, g, b):
     return r <= 6 and g <= 6 and b <= 6
 
 
-def frame_reasons(image, previous_digest, kind):
-    """Detects frames that cannot be a rendered scene. Returns (reasons, digest)."""
+# A touch build reports its own HUD in ui.log ("HUD shown: <scene>", "HUD menu only", "HUD hidden") and the
+# interface over the game ("interface <name> opened" / "closed" / "left"): that, not the picture, says whether the HUD
+# is drawn.
+HUD_REPORT = re.compile(
+    r'HUD (shown: (\S+)|menu only|hidden)$|interface (\S+) (opened|closed|left)|(touch interface on the desktop)'
+)
+
+
+class HudReport:
+    """The touch HUD's last report, from the engine's ui.log lines; `touch` once the log has one."""
+
+    def __init__(self):
+        self.touch, self.scene, self.interface = False, None, None
+
+    def read(self, lines):
+        for name, line in lines:
+            match = HUD_REPORT.search(line) if name == 'ui.log' else None
+            if not match:
+                continue
+            if match[5]:  # the touch build starts: its HUD is hidden until it says otherwise
+                self.touch = True
+                continue
+            if match[3]:
+                self.interface = match[3] if match[4] == 'opened' else None
+                continue
+            self.touch = True
+            self.scene = match[2]  # None: menu only or hidden
+
+    def reasons(self, kind):
+        if kind in NO_HUD_KINDS or self.interface:  # an interface (a dialogue) covers the HUD
+            return []
+        want = 'sea' if kind in SEA_HUD_KINDS else None
+        if self.scene is None or (want and self.scene != want):
+            return [f'HUD not drawn (the HUD reports {self.scene or "no scene"})']
+        return []
+
+
+def frame_reasons(image, previous_digest, kind, hud=None):
+    """Detects frames that cannot be a rendered scene. Returns (reasons, digest). `hud`: a touch build's report,
+    which replaces the game HUD's pixel test."""
     small = image.convert('L').resize((160, 90))
     digest = hashlib.sha1(small.tobytes()).hexdigest()
     # The HUD is drawn even when the scene is not: judge the middle of the frame.
@@ -507,7 +545,9 @@ def frame_reasons(image, previous_digest, kind):
         and share(image, (0.0, 0.05, 1.0, 0.45), black) <= 0.2
     ):
         reasons.append('black lower part under a lit upper part (part of the scene not drawn)')
-    if kind not in NO_HUD_KINDS:
+    if hud is not None and hud.touch:
+        reasons += hud.reasons(kind)
+    elif kind not in NO_HUD_KINDS:
         missing = []
         if share(image, PORTRAIT_BOX, gold) < HUD_GOLD_MIN and (
             kind in SEA_HUD_KINDS or share(image, DIALOGUE_BOX, tan) < DIALOGUE_TAN_MIN
@@ -749,6 +789,13 @@ class Shard(threading.Thread):
         finished = False
         pending = []  # log lines not yet attributed to a scene
         previous_frame = None
+        hud = HudReport()
+
+        def take(final=False):
+            lines = tail.collect(final)
+            hud.read(lines)
+            return lines
+
         metrics = {}
         fatal_checked = 0
         render_checked = False
@@ -788,7 +835,7 @@ class Shard(threading.Thread):
                 elif kind == 'capture':
                     rest, _, renderer = rest.partition(' renderer: ')
                     values = dict(item.split('=') for item in rest.split())
-                    pending += tail.collect()
+                    pending += take()
                     if not render_checked:  # the boot's lines, before the first capture (menu:main)
                         self.check_renderer(pending)
                         render_checked = True
@@ -828,11 +875,11 @@ class Shard(threading.Thread):
                     kind = current.split(':', 1)[0]
                     if variant is None or variant == '0':
                         # Later variants show the same scene: only the first is checked against the previous scene.
-                        reasons, previous_frame = frame_reasons(image, previous_frame, kind)
+                        reasons, previous_frame = frame_reasons(image, previous_frame, kind, hud)
                         metrics.update(measured)
                         metrics.setdefault('capture_reasons', []).extend(reasons)
                     else:
-                        reasons, _ = frame_reasons(image, None, kind)
+                        reasons, _ = frame_reasons(image, None, kind, hud)
                         metrics.setdefault('capture_reasons', []).extend(
                             f'variant {variant}: {reason}' for reason in reasons
                         )
@@ -848,7 +895,7 @@ class Shard(threading.Thread):
                     booted = booted or rest == inventory.boot_scenes(self.arguments.save)[-1]
                 elif kind == 'fail':
                     scene, reason = rest.split(' ', 1)
-                    pending += tail.collect()
+                    pending += take()
                     close(scene, [reason])
                 elif kind == 'tables':
                     found = {key: int(value) for key, value in (item.split('=') for item in rest.split())}
@@ -861,7 +908,7 @@ class Shard(threading.Thread):
             if self.display_server.poll() is not None:
                 os.killpg(engine.pid, signal.SIGKILL)
                 engine.wait()
-                pending += tail.collect()
+                pending += take()
                 self.display_died(current)
             if exited:
                 break
@@ -879,12 +926,12 @@ class Shard(threading.Thread):
             if problem:
                 os.killpg(engine.pid, signal.SIGKILL)
                 engine.wait()
-                pending += tail.collect()
+                pending += take()
                 self.abnormal(current, problem, booted, close)
                 return
             time.sleep(0.02)
 
-        pending += tail.collect(final=True)
+        pending += take(final=True)
         code = engine.returncode
         how = f'killed by signal {signal.Signals(-code).name}' if code < 0 else f'exit code {code}'
         if finished and code == 0:

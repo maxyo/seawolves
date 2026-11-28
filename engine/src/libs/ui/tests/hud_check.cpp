@@ -392,6 +392,14 @@ static void CheckTickRecovery()
     hud.Tick();
     const std::vector<std::string> declarations = {"hudowner:land", "hudowner:sea", "hudowner:worldmap",
                                                    "hudowner:spyglass"};
+    // What the HUD logs besides its presence line (the scene sweep's).
+    const auto logged = [&] {
+        std::vector<std::string> result;
+        for (const auto &line : mount.logs)
+            if (!line.starts_with("HUD shown") && line != "HUD hidden" && line != "HUD menu only")
+                result.push_back(line);
+        return result;
+    };
     const auto owners = [&] {
         std::vector<std::string> result;
         for (const auto &command : mount.commands)
@@ -399,16 +407,16 @@ static void CheckTickRecovery()
                 result.push_back(command);
         return result;
     };
-    Expect(owners() == declarations && mount.errors.empty() && mount.logs.empty(),
+    Expect(owners() == declarations && mount.errors.empty() && logged().empty(),
            "first UI tick declares every presenter without a false gap");
     const int initial_shows = mount.shows;
     mount.now += 0.016;
     hud.Tick();
-    Expect(owners() == declarations && mount.shows == initial_shows && mount.errors.empty() && mount.logs.empty(),
+    Expect(owners() == declarations && mount.shows == initial_shows && mount.errors.empty() && logged().empty(),
            "steady UI ticks neither redeclare nor rebuild");
     mount.now += 10.0;
     hud.Tick();
-    Expect(owners() == declarations && mount.errors.empty() && mount.logs.empty(),
+    Expect(owners() == declarations && mount.errors.empty() && logged().empty(),
            "a gap of exactly 10 seconds does not recover");
     mount.now += 10.1;
     hud.Tick();
@@ -416,15 +424,15 @@ static void CheckTickRecovery()
     recovered.insert(recovered.end(), declarations.begin(), declarations.end());
     Expect(owners() == recovered && mount.shows == initial_shows + 1 && mount.visible,
            "a UI tick gap redeclares all presenters and mounts the current view again");
-    Expect(mount.errors.empty() && mount.logs.size() == 1 && mount.logs.back().find("UI tick gap") != std::string::npos,
+    Expect(mount.errors.empty() && logged().size() == 1 && logged().back().find("UI tick gap") != std::string::npos,
            "a normal idle or background resume is logged without a runtime error");
     mount.now += 0.016;
     hud.Tick();
-    Expect(owners() == recovered && mount.shows == initial_shows + 1 && mount.errors.empty() && mount.logs.size() == 1,
+    Expect(owners() == recovered && mount.shows == initial_shows + 1 && mount.errors.empty() && logged().size() == 1,
            "recovery is bounded to one declaration batch and rebuild per gap");
     mount.now += 3600.0; // the normal idle scheduling delay is also a resume, not a runtime failure
     hud.Tick();
-    Expect(mount.errors.empty() && mount.logs.size() == 2 && owners().size() == declarations.size() * 3 &&
+    Expect(mount.errors.empty() && logged().size() == 2 && owners().size() == declarations.size() * 3 &&
                mount.shows == initial_shows + 2,
            "a full idle scheduling delay refreshes presenters and logs again without an error");
 }

@@ -55,7 +55,7 @@ python3 tools/scene_sweep/run.py --game <game dir> --engine <build>/engine --out
 
 A scene fails on a crash, a timeout, script errors, missing textures or models, error-level log lines, a fader
 that never goes, or a picture that cannot be the scene (black, unlit lower half, HUD not drawn, identical to the
-previous scene). Output in `--out`: `report.json`, `summary.txt`, `shots/` and contact sheets in `contact/`.
+previous scene; on a touch build "HUD not drawn" is the HUD's own report in ui.log, not pixels). Output in `--out`: `report.json`, `summary.txt`, `shots/` and contact sheets in `contact/`.
 Keep reports out of the repository.
 
 **Known game data defects** that the engine reports correctly but cannot fix (we never ship or patch game data)

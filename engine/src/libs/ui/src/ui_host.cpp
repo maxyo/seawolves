@@ -702,6 +702,9 @@ bool HostImpl::Prepare(double &delay)
     const bool images = GameImagesChanged();
     const double routing = config_.game_hud ? std::min(router_->Tick(), hud_->Tick()) : router_->Tick();
 
+    // An animation or transition running before this update moves what is drawn in it, its last step too (after
+    // which the context asks for no further update).
+    const bool animated = context_->GetNextUpdateDelay() <= 0.0;
     UpdateContext();
     // Scroll edges move only with a layout, a touch or a scroll in motion: the walk over
     // every element is skipped on frames without any of them.
@@ -742,7 +745,8 @@ bool HostImpl::Prepare(double &delay)
     // rebuilds that changed elements (a render equal to the shown one changes nothing),
     // layout, ticking behaviours, animations and transitions, game
     // pictures that arrived, re-cut text.
-    if (images || clamps || !ticking_.empty() || delay <= 0.0 || counters_.touched > 0 || counters_.laid_out > 0)
+    if (images || clamps || !ticking_.empty() || animated || delay <= 0.0 || counters_.touched > 0 ||
+        counters_.laid_out > 0)
         changed_ = true;
     if (changed_)
         delay = 0.0;
