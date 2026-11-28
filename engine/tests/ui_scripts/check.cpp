@@ -875,6 +875,19 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
         TapAfterRowGone("trade_store", "trade", "trade_store", "TABLE_LIST", 0, true, "/list/rows", 2, "goods", "row");
     REQUIRE(!store.empty());
     CHECK(store.front() == "send TABLE_LIST#1 activate goods:2:ship:0");
+    // The other trade windows: the engine's rows are the good or item, renumbered as rows go.
+    for (const auto &[family, id] :
+         std::vector<std::pair<const char *, std::string>>{{"trade_cannons", "cannons:item:37"},
+                                                           {"trade_items", "itemstrade:item:3"},
+                                                           {"trade_loot", "colonycapture:item:5"},
+                                                           {"trade_contraband", "contraband:item:17"}})
+    {
+        INFO(family);
+        const auto row =
+            TapAfterRowGone(family, "trade", family, "TABLE_LIST", 0, true, "/list/rows", 2, "goods", "row");
+        REQUIRE(!row.empty());
+        CHECK(row.front() == "send TABLE_LIST#1 activate commerce:" + id + ":owner:1:role:0");
+    }
     const auto items = TapAfterRowGone("items", "items", "items", "TABLE_ITEMS", 0, false, "/rows", 2, "items", "row");
     REQUIRE(!items.empty());
     CHECK(items.front() == "send TABLE_ITEMS#2 select inventory:30:character:1:role:0");

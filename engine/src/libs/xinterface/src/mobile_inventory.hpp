@@ -48,8 +48,9 @@ inline std::string MobileTableRowId(std::string_view node, ATTRIBUTES *row, ATTR
 // separately by the existing @screenRevision action envelope.
 inline bool CommerceTable(std::string_view screen, std::string_view node)
 {
-    return node == "TABLE_LIST" && (screen == "store" || screen == "storage" || screen == "contraband" ||
-                                    screen == "cannons" || screen == "itemstrade" || screen == "itemsbox");
+    return node == "TABLE_LIST" &&
+           (screen == "store" || screen == "storage" || screen == "contraband" || screen == "cannons" ||
+            screen == "itemstrade" || screen == "itemsbox" || screen == "colonycapture");
 }
 
 // The ship screen's hold (ship.c FillGoodsTable): a row opens the drop-overboard window of its
@@ -66,10 +67,17 @@ inline bool CityTable(std::string_view screen, std::string_view node)
     return (screen == "tradebook" || screen == "questbook") && node == "TABLE_CITY";
 }
 
+// The exchange with another ship (transfer_main.c FillTable): a row is its good (`index`); the two ships are fixed
+// while the window is open.
+inline bool TransferTable(std::string_view screen, std::string_view node)
+{
+    return screen == "transfer_main" && node == "TABLE_LIST";
+}
+
 inline bool LeasedTableIdentityRequired(std::string_view screen, std::string_view node)
 {
     return CommerceTable(screen, node) || ShipHoldTable(screen, node) || CityTable(screen, node) ||
-           (screen == "shipyard" && (node == "TABLE_SHIPYARD" || node == "TABLE_OTHER"));
+           TransferTable(screen, node) || (screen == "shipyard" && (node == "TABLE_SHIPYARD" || node == "TABLE_OTHER"));
 }
 
 inline std::string InterfaceTableRowId(std::string_view screen, std::string_view node, ATTRIBUTES *row,
@@ -111,6 +119,11 @@ inline std::string InterfaceTableRowId(std::string_view screen, std::string_view
         if (!owner)
             return {};
         return "ship:good:" + std::to_string(*good) + ":owner:" + std::to_string(*owner);
+    }
+    if (TransferTable(screen, node))
+    {
+        const auto good = InventoryNumber(row ? row->GetAttribute("index") : nullptr);
+        return good ? "transfer:good:" + std::to_string(*good) : std::string();
     }
     if (!CommerceTable(screen, node))
         return MobileTableRowId(node, row,

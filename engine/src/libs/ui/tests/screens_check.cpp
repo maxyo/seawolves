@@ -1106,8 +1106,9 @@ struct CommerceRun
         Expect(surface.props["stats"].size() == 2 && surface.props["stats"][1]["value"] == "2328 / 10000",
                "hold and storage figures in the header");
         {
-            const std::string edit = "widget:storage\tQTY_EDIT\t-1\tguard@7:row:0|";
-            const std::string ok = "widget:storage\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press";
+            const std::string edit = "widget:storage\tQTY_EDIT\t-1\tguard@7:commerce:storage:item:14:owner:1:role:0|";
+            const std::string ok =
+                "widget:storage\tQTY_OK_BUTTON\t-1\tguard@7:commerce:storage:item:14:owner:1:role:0|press";
             OfferFlow("storage: take", router, surface, Load(models, "storage-deal.json"), 60, 90, 90,
                       "<trade.take> 30", edit, ok);
             router.SetInterface(Load(models, "storage.json")); // the game closed its window after the transfer
@@ -1271,8 +1272,10 @@ struct CommerceRun
                                 cell.text = there[widget.row_id];
                 return model;
             };
-            const std::map<std::string, std::string> empty{
-                {"row:0", "0"}, {"row:1", "0"}, {"row:2", "0"}, {"row:3", "0"}};
+            const std::map<std::string, std::string> empty{{"commerce:itemsbox:item:3:owner:1:role:0", "0"},
+                                                           {"commerce:itemsbox:item:5:owner:1:role:0", "0"},
+                                                           {"commerce:itemsbox:item:4:owner:1:role:0", "0"},
+                                                           {"commerce:itemsbox:item:1:owner:1:role:0", "0"}};
             FakeSurface chest_surface;
             Router box(chest_surface);
             Scripted(box);
@@ -1294,11 +1297,21 @@ struct CommerceRun
             box.OnEvent({"primary", "click", ""});
             box.Tick();
             AnswerAll(box, chest_surface, true);
-            box.SetInterface(chest(4, {{"row:0", "0"}, {"row:1", "0"}, {"row:2", "0"}, {"row:3", "1"}}, true));
+            box.SetInterface(chest(4,
+                                   {{"commerce:itemsbox:item:3:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:5:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:4:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:1:owner:1:role:0", "1"}},
+                                   true));
             Expect(chest_surface.toasts.size() == 1 && chest_surface.toasts[0] == "<trade.too_heavy>",
                    "a stack left after the game's take-all: the weight limit, said once: " +
                        Json(chest_surface.toasts).dump());
-            box.SetInterface(chest(5, {{"row:0", "0"}, {"row:1", "0"}, {"row:2", "0"}, {"row:3", "1"}}, true));
+            box.SetInterface(chest(5,
+                                   {{"commerce:itemsbox:item:3:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:5:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:4:owner:1:role:0", "0"},
+                                    {"commerce:itemsbox:item:1:owner:1:role:0", "1"}},
+                                   true));
             Expect(chest_surface.toasts.size() == 1, "… only for the answer to the press");
             box.SetInterface(chest(6, {}, false));
             Expect(chest_surface.props["primary"].is_null(), "without the engine's take-all no button");
@@ -1328,7 +1341,7 @@ struct CommerceRun
                 }
             coins.value = "1";
             coins.index = 4;
-            coins.row_id = "row:4";
+            coins.row_id = "commerce:itemsbox:item:10:owner:1:role:0";
             for (Cell &cell : coins.cells)
                 if (cell.column == 1 || cell.column == 3)
                     cell.text = "-";
@@ -1358,7 +1371,7 @@ struct CommerceRun
                 }
             potions.value = "1";
             potions.index = 5;
-            potions.row_id = "row:5";
+            potions.row_id = "commerce:itemsbox:item:11:owner:1:role:0";
             for (Cell &cell : potions.cells)
             {
                 if (cell.column == 0)
@@ -1381,8 +1394,8 @@ struct CommerceRun
         // A chest, a body, an officer's pockets: picking the amount must not move the items at once (regression).
         {
             OfferFlow("itemsbox", router, surface, Load(models, "itemsbox-deal.json"), 23, 25, 25, "<trade.take> 2",
-                      "widget:itemsbox\tQTY_EDIT\t-1\tguard@7:row:0|",
-                      "widget:itemsbox\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
+                      "widget:itemsbox\tQTY_EDIT\t-1\tguard@7:commerce:itemsbox:item:3:owner:1:role:0|",
+                      "widget:itemsbox\tQTY_OK_BUTTON\t-1\tguard@7:commerce:itemsbox:item:3:owner:1:role:0|press");
         }
     }
 
@@ -1472,8 +1485,8 @@ struct CommerceRun
                "items trade: the window's amount, both stacks reachable, the named balance as the game writes it: " +
                    surface.props.dump());
         OfferFlow("items trade", router, surface, doubloons, 3, 1, 1, "<trade.sell> 2",
-                  "widget:itemstrade\tQTY_EDIT\t-1\tguard@7:row:0|",
-                  "widget:itemstrade\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
+                  "widget:itemstrade\tQTY_EDIT\t-1\tguard@7:commerce:itemstrade:item:1:owner:1:role:0|",
+                  "widget:itemstrade\tQTY_OK_BUTTON\t-1\tguard@7:commerce:itemstrade:item:1:owner:1:role:0|press");
         GameAnswers(router, surface, doubloons, 8, "Деньги 750, вес 2.5");
         Expect(surface.props["primary"]["label"] == "<trade.buy> 5" && surface.props["primary"]["sub"] == "750 · 2,5",
                "five pieces: the game's money and weight, a piece's weight without a unit: " +
@@ -1490,8 +1503,8 @@ struct CommerceRun
         Expect(surface.props["deal"]["value"] == 6 && surface.props["deal"]["steps"] == Json::array({1, 10}),
                "cannons: the window's amount, steps of 1 and 10: " + surface.props["deal"].dump());
         OfferFlow("cannons", router, surface, model, 0, 4, 3, "<trade.buy> 3",
-                  "widget:cannons\tQTY_EDIT\t-1\tguard@7:row:1|",
-                  "widget:cannons\tQTY_OK_BUTTON\t-1\tguard@7:row:1|press");
+                  "widget:cannons\tQTY_EDIT\t-1\tguard@7:commerce:cannons:item:36:owner:1:role:0|",
+                  "widget:cannons\tQTY_OK_BUTTON\t-1\tguard@7:commerce:cannons:item:36:owner:1:role:0|press");
         {
             // cannons.c opens, and switches ships, with a row selected and its amount window closed.
             const auto closed = [this](uint64_t revision, int ship) {
@@ -1514,7 +1527,8 @@ struct CommerceRun
             open_router.SetInterface(unselected);
             Expect(open_surface.commands.empty(), "cannons: nothing is asked for while no row is selected");
             open_router.SetInterface(closed(2, 0));
-            ExpectEqual(open_surface.Last(), "widget:cannons\tTABLE_LIST\t1\tactivate@7:row:1",
+            ExpectEqual(open_surface.Last(),
+                        "widget:cannons\tTABLE_LIST\t1\tactivate@7:commerce:cannons:item:36:owner:1:role:0",
                         "cannons: the selected row's deal is asked for on opening");
             AnswerAll(open_router, open_surface, true);
             InterfaceModel opened = Load(models, "cannons-deal.json");
@@ -1540,8 +1554,8 @@ struct CommerceRun
                    surface.props["list"]["filters"].size() == 2,
                "contraband: only a sale, the pivot at the right end; no trade types: " + surface.props.dump());
         OfferFlow("contraband", router, surface, model, 50, 20, 20, "<trade.sell> 30",
-                  "widget:contraband\tQTY_EDIT\t-1\tguard@7:row:0|",
-                  "widget:contraband\tQTY_OK_BUTTON\t-1\tguard@7:row:0|press");
+                  "widget:contraband\tQTY_EDIT\t-1\tguard@7:commerce:contraband:item:13:owner:1:role:0|",
+                  "widget:contraband\tQTY_OK_BUTTON\t-1\tguard@7:commerce:contraband:item:13:owner:1:role:0|press");
     }
 };
 
@@ -1771,7 +1785,8 @@ struct TransferRun
         Scripted(quick);
         quick.SetInterface(Load(models, "transfer-loot.json"));
         quick.OnEvent({"goods", "quick", Drawn(quick_surface, "/list/rows", 0)});
-        ExpectEqual(quick_surface.Last(), prefix + "TABLE_LIST\t0\tselect", "quick take: the row is selected first");
+        ExpectEqual(quick_surface.Last(), prefix + "TABLE_LIST\t0\tselect@23:transfer:good:0",
+                    "quick take: the row is selected first");
         AnswerAll(quick, quick_surface, true);
         quick_surface.commands.clear();
         InterfaceModel row = Load(models, "transfer-loot-row.json");
@@ -1797,7 +1812,7 @@ struct TransferRun
         hidden.revision += 1;
         hidden_router.SetInterface(hidden);
         const auto selects = std::count(hidden_surface.commands.begin(), hidden_surface.commands.end(),
-                                        prefix + "TABLE_LIST\t0\tselect");
+                                        prefix + "TABLE_LIST\t0\tselect@23:transfer:good:0");
         Expect(selects == 1,
                "arrows hidden: the selected row is selected again once: " + Json(hidden_surface.commands).dump());
     }

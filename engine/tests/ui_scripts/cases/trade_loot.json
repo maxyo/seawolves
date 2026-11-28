@@ -22,7 +22,7 @@
       "label": "60\t6\tСахар\t60\t10\t1",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:colonycapture:item:14:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -75,7 +75,7 @@
       "label": "25\t3\tДоски\t400\t10\t1",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:colonycapture:item:6:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -128,7 +128,7 @@
       "label": "0\t0\tПарусина\t150\t10\t1",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:colonycapture:item:5:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -181,7 +181,7 @@
       "label": "0\t0\tКофе\t300\t10\t1",
       "value": "0",
       "index": 3,
-      "rowId": "row:3",
+      "rowId": "commerce:colonycapture:item:11:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -372,7 +372,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:colonycapture:item:14:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sugar"
@@ -391,7 +391,7 @@
         "400"
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:colonycapture:item:6:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -410,7 +410,7 @@
         "150"
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:colonycapture:item:5:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -429,7 +429,7 @@
         "300"
        ],
        "disabled": false,
-       "id": "row:3",
+       "id": "commerce:colonycapture:item:11:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -484,7 +484,7 @@
     [
      "goods",
      "row",
-     "row:1"
+     "commerce:colonycapture:item:6:owner:1:role:0"
     ],
     [
      "header-back",
@@ -495,7 +495,7 @@
    "calls": [
     "send ANDROID_LOOT take 3=150,4=240",
     "hold",
-    "send TABLE_LIST#1 activate row:1",
+    "send TABLE_LIST#1 activate commerce:colonycapture:item:6:owner:1:role:0",
     "hold",
     "back "
    ]
@@ -521,7 +521,7 @@
       "label": "60\t6\tСахар\t60\t10\t1",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:colonycapture:item:14:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -574,7 +574,7 @@
       "label": "25\t3\tДоски\t400\t10\t1",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:colonycapture:item:6:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -627,7 +627,7 @@
       "label": "0\t0\tПарусина\t150\t10\t1",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:colonycapture:item:5:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -680,7 +680,7 @@
       "label": "0\t0\tКофе\t300\t10\t1",
       "value": "0",
       "index": 3,
-      "rowId": "row:3",
+      "rowId": "commerce:colonycapture:item:11:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -947,7 +947,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:colonycapture:item:14:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sugar"
@@ -967,7 +967,7 @@
         "400"
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:colonycapture:item:6:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -986,7 +986,7 @@
         "150"
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:colonycapture:item:5:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -1005,7 +1005,7 @@
         "300"
        ],
        "disabled": false,
-       "id": "row:3",
+       "id": "commerce:colonycapture:item:11:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -1058,13 +1058,13 @@
     ]
    ],
    "calls": [
-    "deal row:0 0..120 answer 110",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit 50 @row:0",
+    "deal commerce:colonycapture:item:14:owner:1:role:0 0..120 answer 110",
+    "send QTY_EDIT edit 0 @commerce:colonycapture:item:14:owner:1:role:0",
+    "send QTY_EDIT edit 50 @commerce:colonycapture:item:14:owner:1:role:0",
     "hold",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit 50 @row:0",
-    "send QTY_OK_BUTTON press  @row:0",
+    "send QTY_EDIT edit 0 @commerce:colonycapture:item:14:owner:1:role:0",
+    "send QTY_EDIT edit 50 @commerce:colonycapture:item:14:owner:1:role:0",
+    "send QTY_OK_BUTTON press  @commerce:colonycapture:item:14:owner:1:role:0",
     "hold"
    ]
   }

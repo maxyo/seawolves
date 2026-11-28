@@ -22,7 +22,7 @@
       "label": "3\t1.5\t150\tЛечебное зелье\t75\t12\t0.5",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:itemstrade:item:1:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -79,7 +79,7 @@
       "label": "0\t0\t320\tЭликсир\t160\t4\t0.5",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:itemstrade:item:2:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -136,7 +136,7 @@
       "label": "20\t2\t16\tСвинцовые пули\t8\t60\t0.1",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:itemstrade:item:3:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -193,7 +193,7 @@
       "label": "1\t2\t1200\tСтроевой пистоль\t600\t1\t2.0",
       "value": "0",
       "index": 3,
-      "rowId": "row:3",
+      "rowId": "commerce:itemstrade:item:4:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -362,7 +362,7 @@
          "v": "0.5"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:itemstrade:item:1:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm1"
@@ -389,7 +389,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:itemstrade:item:2:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm2"
@@ -416,7 +416,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:itemstrade:item:3:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm3"
@@ -443,7 +443,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:3",
+       "id": "commerce:itemstrade:item:4:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm4"
@@ -483,7 +483,7 @@
     [
      "goods",
      "row",
-     "row:3"
+     "commerce:itemstrade:item:4:owner:1:role:0"
     ],
     [
      "header-back",
@@ -492,9 +492,9 @@
     ]
    ],
    "calls": [
-    "send TABLE_LIST#0 activate row:0",
+    "send TABLE_LIST#0 activate commerce:itemstrade:item:1:owner:1:role:0",
     "hold",
-    "send TABLE_LIST#3 activate row:3",
+    "send TABLE_LIST#3 activate commerce:itemstrade:item:4:owner:1:role:0",
     "hold",
     "back "
    ]
@@ -520,7 +520,7 @@
       "label": "3\t1.5\t150\tЛечебное зелье\t75\t12\t0.5",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:itemstrade:item:1:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -577,7 +577,7 @@
       "label": "0\t0\t320\tЭликсир\t160\t4\t0.5",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:itemstrade:item:2:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -634,7 +634,7 @@
       "label": "20\t2\t16\tСвинцовые пули\t8\t60\t0.1",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:itemstrade:item:3:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -691,7 +691,7 @@
       "label": "1\t2\t1200\tСтроевой пистоль\t600\t1\t2.0",
       "value": "0",
       "index": 3,
-      "rowId": "row:3",
+      "rowId": "commerce:itemstrade:item:4:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -941,7 +941,7 @@
          "v": "0.5"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:itemstrade:item:1:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm1"
@@ -969,7 +969,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:itemstrade:item:2:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm2"
@@ -996,7 +996,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:itemstrade:item:3:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm3"
@@ -1023,7 +1023,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:3",
+       "id": "commerce:itemstrade:item:4:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm4"
@@ -1072,13 +1072,13 @@
     ]
    ],
    "calls": [
-    "deal row:0 0..15 answer 8",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit -2 @row:0",
+    "deal commerce:itemstrade:item:1:owner:1:role:0 0..15 answer 8",
+    "send QTY_EDIT edit 0 @commerce:itemstrade:item:1:owner:1:role:0",
+    "send QTY_EDIT edit -2 @commerce:itemstrade:item:1:owner:1:role:0",
     "hold",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit 5 @row:0",
-    "send QTY_OK_BUTTON press  @row:0",
+    "send QTY_EDIT edit 0 @commerce:itemstrade:item:1:owner:1:role:0",
+    "send QTY_EDIT edit 5 @commerce:itemstrade:item:1:owner:1:role:0",
+    "send QTY_OK_BUTTON press  @commerce:itemstrade:item:1:owner:1:role:0",
     "hold"
    ]
   }

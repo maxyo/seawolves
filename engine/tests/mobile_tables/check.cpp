@@ -369,7 +369,8 @@ TEST_CASE("trade rows are acted on only with the identity of the good and its ow
     people->SetAttribute("current", "0");
     people->CreateAttribute("pic1", nullptr)->SetAttribute("character", "8");
     f.table.m_nLineQuantity = 1;
-    for (const std::string screen : {"store", "storage", "contraband", "cannons", "itemstrade", "itemsbox"})
+    for (const std::string screen :
+         {"store", "storage", "contraband", "cannons", "itemstrade", "itemsbox", "colonycapture"})
     {
         INFO(screen);
         f.screen = screen;
@@ -548,4 +549,15 @@ TEST_CASE("a ship's hold row is the good of the ship shown, never a bare index")
     CHECK(storm::mobile::InterfaceTableRowId("ship", "TABLE_LIST", holdGood, &f.root) == "ship:good:4:owner:31");
     holdShips->SetAttribute("current", "0");
     CHECK(storm::mobile::InterfaceTableRowId("ship", "TABLE_LIST", holdGood, &f.root).empty());
+}
+
+TEST_CASE("a ship exchange's cargo row is its good")
+{
+    Fixture f;
+    auto *good = f.root.CreateAttribute("TABLE_LIST", nullptr)->CreateAttribute("tr1", nullptr);
+    good->SetAttribute("index", "26");
+    CHECK(storm::mobile::LeasedTableIdentityRequired("transfer_main", "TABLE_LIST"));
+    CHECK(storm::mobile::InterfaceTableRowId("transfer_main", "TABLE_LIST", good, &f.root) == "transfer:good:26");
+    good->SetAttribute("index", "");
+    CHECK(storm::mobile::InterfaceTableRowId("transfer_main", "TABLE_LIST", good, &f.root).empty());
 }

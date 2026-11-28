@@ -22,7 +22,7 @@
       "label": "6\t12\t120\tПушки 3 фунта\t80\t0\t2\t350\tx1.0\t9",
       "value": "0",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:cannons:item:35:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -91,7 +91,7 @@
       "label": "0\t0\t290\tПушки 6 фунтов\t210\t18\t6\t450\tx1.5\t11",
       "value": "1",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:cannons:item:36:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -160,7 +160,7 @@
       "label": "0\t0\t780\tПушки 12 фунтов\t560\t8\t12\t550\tx2.0\t14",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:cannons:item:37:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -323,7 +323,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:0",
+       "id": "commerce:cannons:item:35:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_3"
@@ -368,7 +368,7 @@
          "v": "6 <transfer.cwt>"
         }
        ],
-       "id": "row:1",
+       "id": "commerce:cannons:item:36:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_6"
@@ -395,7 +395,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:cannons:item:37:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_12"
@@ -435,7 +435,7 @@
     [
      "goods",
      "row",
-     "row:2"
+     "commerce:cannons:item:37:owner:1:role:0"
     ],
     [
      "header-back",
@@ -444,9 +444,9 @@
     ]
    ],
    "calls": [
-    "send TABLE_LIST#1 activate row:1",
+    "send TABLE_LIST#1 activate commerce:cannons:item:36:owner:1:role:0",
     "hold",
-    "send TABLE_LIST#2 activate row:2",
+    "send TABLE_LIST#2 activate commerce:cannons:item:37:owner:1:role:0",
     "hold",
     "back "
    ]
@@ -472,7 +472,7 @@
       "label": "6\t12\t120\tПушки 3 фунта\t80\t0\t2\t350\tx1.0\t9",
       "value": "0",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:cannons:item:35:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -541,7 +541,7 @@
       "label": "0\t0\t290\tПушки 6 фунтов\t210\t18\t6\t450\tx1.5\t11",
       "value": "1",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:cannons:item:36:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -610,7 +610,7 @@
       "label": "0\t0\t780\tПушки 12 фунтов\t560\t8\t12\t550\tx2.0\t14",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:cannons:item:37:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -854,7 +854,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:0",
+       "id": "commerce:cannons:item:35:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_3"
@@ -899,7 +899,7 @@
          "v": "6 <transfer.cwt>"
         }
        ],
-       "id": "row:1",
+       "id": "commerce:cannons:item:36:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_6"
@@ -927,7 +927,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:cannons:item:37:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Cannon_12"
@@ -976,13 +976,13 @@
     ]
    ],
    "calls": [
-    "deal row:1 0..18 answer 6",
-    "send QTY_EDIT edit 0 @row:1",
-    "send QTY_EDIT edit 3 @row:1",
+    "deal commerce:cannons:item:36:owner:1:role:0 0..18 answer 6",
+    "send QTY_EDIT edit 0 @commerce:cannons:item:36:owner:1:role:0",
+    "send QTY_EDIT edit 3 @commerce:cannons:item:36:owner:1:role:0",
     "hold",
-    "send QTY_EDIT edit 0 @row:1",
-    "send QTY_EDIT edit 5 @row:1",
-    "send QTY_OK_BUTTON press  @row:1",
+    "send QTY_EDIT edit 0 @commerce:cannons:item:36:owner:1:role:0",
+    "send QTY_EDIT edit 5 @commerce:cannons:item:36:owner:1:role:0",
+    "send QTY_OK_BUTTON press  @commerce:cannons:item:36:owner:1:role:0",
     "hold"
    ]
   }

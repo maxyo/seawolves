@@ -22,7 +22,7 @@
       "label": "50\t5\t-\tТабак\t46\t0\t10\t1",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:contraband:item:13:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -83,7 +83,7 @@
       "label": "0\t0\t27\tКофе\t18\t120\t10\t1",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:contraband:item:11:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -144,7 +144,7 @@
       "label": "0\t0\t190\tЧёрное дерево\t140\t40\t10\t2",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:contraband:item:17:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -321,7 +321,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:contraband:item:13:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Tobacco"
@@ -348,7 +348,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:contraband:item:11:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -375,7 +375,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:contraband:item:17:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Ebony"
@@ -415,7 +415,7 @@
     [
      "goods",
      "row",
-     "row:1"
+     "commerce:contraband:item:11:owner:1:role:0"
     ],
     [
      "header-back",
@@ -424,9 +424,9 @@
     ]
    ],
    "calls": [
-    "send TABLE_LIST#0 activate row:0",
+    "send TABLE_LIST#0 activate commerce:contraband:item:13:owner:1:role:0",
     "hold",
-    "send TABLE_LIST#1 activate row:1",
+    "send TABLE_LIST#1 activate commerce:contraband:item:11:owner:1:role:0",
     "hold",
     "back "
    ]
@@ -452,7 +452,7 @@
       "label": "50\t5\t-\tТабак\t46\t0\t10\t1",
       "value": "1",
       "index": 0,
-      "rowId": "row:0",
+      "rowId": "commerce:contraband:item:13:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -513,7 +513,7 @@
       "label": "0\t0\t27\tКофе\t18\t120\t10\t1",
       "value": "0",
       "index": 1,
-      "rowId": "row:1",
+      "rowId": "commerce:contraband:item:11:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -574,7 +574,7 @@
       "label": "0\t0\t190\tЧёрное дерево\t140\t40\t10\t2",
       "value": "0",
       "index": 2,
-      "rowId": "row:2",
+      "rowId": "commerce:contraband:item:17:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -828,7 +828,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "row:0",
+       "id": "commerce:contraband:item:13:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Tobacco"
@@ -856,7 +856,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:1",
+       "id": "commerce:contraband:item:11:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -883,7 +883,7 @@
         }
        ],
        "disabled": false,
-       "id": "row:2",
+       "id": "commerce:contraband:item:17:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Ebony"
@@ -932,13 +932,13 @@
     ]
    ],
    "calls": [
-    "deal row:0 0..50 answer 0",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit -20 @row:0",
+    "deal commerce:contraband:item:13:owner:1:role:0 0..50 answer 0",
+    "send QTY_EDIT edit 0 @commerce:contraband:item:13:owner:1:role:0",
+    "send QTY_EDIT edit -20 @commerce:contraband:item:13:owner:1:role:0",
     "hold",
-    "send QTY_EDIT edit 0 @row:0",
-    "send QTY_EDIT edit -30 @row:0",
-    "send QTY_OK_BUTTON press  @row:0",
+    "send QTY_EDIT edit 0 @commerce:contraband:item:13:owner:1:role:0",
+    "send QTY_EDIT edit -30 @commerce:contraband:item:13:owner:1:role:0",
+    "send QTY_OK_BUTTON press  @commerce:contraband:item:13:owner:1:role:0",
     "hold"
    ]
   }
