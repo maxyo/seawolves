@@ -1119,6 +1119,23 @@ def check_hud_overlap(layout, notice_spec, rest_specs):
             def meet(p, q):
                 return p[0] < q[2] and q[0] < p[2] and p[1] < q[3] and q[1] < p[3]
 
+            # the event lines start 8 dp under a shown top status (script_scene.cpp StatusClear): where they would
+            # meet one, they are checked in that lower place too
+            def lines(e):
+                return e["component"] == "c-notice" and e.get("props", {}).get("place") == "hud"
+
+            statuses = [(e, r) for e, r in boxes if e.get("toastsBelow")]
+            for a, ra in boxes:
+                if not lines(a):
+                    continue
+                for s, rs in statuses:
+                    if not meet(ra, rs):
+                        continue
+                    pushed = (ra[0], rs[3] + 8, ra[2], rs[3] + 8 + ra[3] - ra[1])
+                    for b, rb in boxes:
+                        if b is not a and not b.get("toastsBelow") and meet(pushed, rb):
+                            found.append(f"{width}x{height} {name}: {a['id']} under {s['id']} overlaps {b['id']}")
+
             ids = [e["id"] for e, _ in boxes]
             for i, (a, ra) in enumerate(boxes):
                 floating = a.get("props", {}).get("floating")
@@ -1133,6 +1150,8 @@ def check_hud_overlap(layout, notice_spec, rest_specs):
                 for b, rb in boxes[i + 1:]:
                     if b["id"] in a.get("replaces", []) or a["id"] in b.get("replaces", []):
                         continue
+                    if (lines(a) and b.get("toastsBelow")) or (lines(b) and a.get("toastsBelow")):
+                        continue  # the lines move under the status (above)
                     if zone and a["id"] in b.get("offWith", []):
                         rb = floating_rest(b, rb, rest_specs)  # its zone is off while this one is shown
                     if zone or b["id"] in a.get("under", []):

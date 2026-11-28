@@ -780,6 +780,13 @@ static void CheckStatus()
            "deck fight: both sides' men as shares of the fight's start, with the men left");
     Expect(!mount.Has("location") && mount.shown.elements["boarding"].contains("title"),
            "the deck (the location line) is the bars' title");
+    bench.Feed("gameplay", "gameplay-explore");
+    bench.Feed("combat", "combat-explore");
+    Expect(mount.shown.layout == "land" && mount.Has("boarding") && mount.shown.elements["boarding"]["ours"] == 75 &&
+               !mount.Has("location"),
+           "the hero sheathes his weapon on the deck: the boarding goes on, its bars stay");
+    bench.Feed("gameplay", "gameplay-melee");
+    bench.Set("combat", combat);
     deck["opponent"] = Json{{"name", "Клод Дюран"}, {"health", 0.62}};
     bench.Set("vitals", deck);
     Expect(mount.Has("opponent") && !mount.Has("boarding"), "the cabin captain, not the deck bars");

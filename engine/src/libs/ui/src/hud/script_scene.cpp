@@ -510,13 +510,14 @@ class ScriptScene final : public Scene, private ScriptCall
         if (log_)
             if (Json lines = hud_.LogLines(); !lines.empty())
             {
+                const int top = std::max(band_.top, StatusClear(view));
                 Json &log = view.elements["log"] = Json{{"lines", std::move(lines)}};
                 if (band_.left > 0)
                     log["safeLeft"] = band_.left;
                 if (band_.right > 0)
                     log["safeRight"] = band_.right;
-                if (band_.top > 0)
-                    log["offset"] = band_.top;
+                if (top > 0)
+                    log["offset"] = top;
             }
         for (const auto &[id, kind] : covers_)
             if (kind == "navigator")
@@ -1064,13 +1065,24 @@ class ScriptScene final : public Scene, private ScriptCall
         hud_.Send(DeckWalk{hud_.Current().gameplay.revision, x, y}, "deckwalk");
     }
 
+    // The event lines start under a shown top status (the cabin captain, the boarding bars), as the toasts do: a status
+    // lives as long as its fight, whatever layout the hero's weapon picks. 0 when none is shown.
+    int StatusClear(const View &view) const
+    {
+        float clear = 0.0f;
+        for (const auto &[id, props] : view.elements.items())
+            if (const LayoutElement *element = hud_.Element(view.layout, id))
+                clear = std::max(clear, element->toast_clear);
+        return clear > 0.0f ? static_cast<int>(std::ceil(clear + kBandGap)) : 0;
+    }
+
     // The band of event lines (the declared band: the log runs right of `after`'s last column and beside the `row`
     // of buttons; where that leaves it under the pack's minimum it drops under the row, left of `under`). On a short
     // screen the fleet wraps into further columns towards the middle; measured in the design's orientation and
     // mirrored back for «Под левую руку».
     void FollowBand()
     {
-        static constexpr float kBandMin = 240.0f, kGap = 8.0f;
+        static constexpr float kBandMin = 240.0f;
         const View &shown = hud_.Shown();
         Band band;
         if (!band_view_.after.empty())
@@ -1103,12 +1115,12 @@ class ScriptScene final : public Scene, private ScriptCall
             const float column_right = columns ? x0(last) + last.width / last.density : 0.0f;
             if (row_left > 0.0f && map_left > 0.0f && layer_width > 0.0f)
             {
-                const float left = band.left > 0 ? static_cast<float>(band.left) : column_right + kGap;
-                if (row_left - kGap - left < kBandMin)
+                const float left = band.left > 0 ? static_cast<float>(band.left) : column_right + kBandGap;
+                if (row_left - kBandGap - left < kBandMin)
                 {
-                    band.left = static_cast<int>(std::ceil(column_right + kGap));
-                    band.right = static_cast<int>(std::ceil(layer_width - (map_left - kGap)));
-                    band.top = static_cast<int>(std::ceil(row_bottom + kGap));
+                    band.left = static_cast<int>(std::ceil(column_right + kBandGap));
+                    band.right = static_cast<int>(std::ceil(layer_width - (map_left - kBandGap)));
+                    band.top = static_cast<int>(std::ceil(row_bottom + kBandGap));
                 }
             }
             if (mirrored)
@@ -1422,6 +1434,8 @@ class ScriptScene final : public Scene, private ScriptCall
     mutable std::map<std::string, Json> read_; // the states the last build read: the structure it shows
     // The last build's view: the layout scene, its elements' props, where readings go, the controls and covers.
     std::string layout_;
+    // dp between the event lines and what they keep clear of (a row of buttons, a top status)
+    static constexpr float kBandGap = 8.0f;
     bool log_ = false, holds_view_ = false;
     Json elements_ = Json::object();
     std::vector<Slot> slots_;

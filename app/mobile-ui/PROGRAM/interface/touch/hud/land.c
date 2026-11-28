@@ -323,7 +323,7 @@ void TouchHudLand_Context(aref view, aref combat, bool ready)
 	DeleteAttribute(view, "lingers");
 }
 
-// The fight: the strike and its move wheel, block, the shot, the dash, the cabin's captain or the deck's two crews.
+// The fight: the strike and its move wheel, block, the shot, the dash.
 void TouchHudLand_Combat(aref view, aref combat, aref vitals, bool ready)
 {
 	aref wheel, moves, move;
@@ -399,8 +399,13 @@ void TouchHudLand_Combat(aref view, aref combat, aref vitals, bool ready)
 		}
 		UiOn("dash", "click");
 	}
-	if (!known) return;
-	// The enemy captain of a boarding cabin, or the boarding deck's two crews: in the place of the location line.
+}
+
+// The enemy captain of a boarding cabin, or the boarding deck's two crews, in the place of the location line: facts of
+// the boarding, shown while it runs whether the hero's weapon is drawn or not.
+void TouchHudLand_Boarding(aref view, aref vitals)
+{
+	if (!sti(vitals.known)) return;
 	if (vitals.opponent != "")
 	{
 		view.elements.opponent.title = UiText("hud.captain") + " " + vitals.opponent;
@@ -569,6 +574,7 @@ void TouchHudLand_Build()
 	TouchHudLand_Abilities(view, combat, vitals, ready, melee);
 	if (melee) TouchHudLand_Combat(view, combat, vitals, ready);
 	else TouchHudLand_Context(view, combat, ready);
+	TouchHudLand_Boarding(view, vitals);
 	UiShow(view);
 }
 

@@ -250,6 +250,8 @@
   предложение игры написано текстом, под ним — «Введите ответ»; раньше она выглядела как обычная реплика.
 - Выбор капитана корабля (верфь, обмен с кораблём, грабёж): навыки выбранного кандидата видны целиком при одном–
   четырёх кандидатах; раньше при двух кандидатах был виден один ряд навыков, остальные приходилось прокручивать.
+- Абордаж: полоски обеих команд остаются на экране, когда герой убирает оружие на палубе, как и полоска капитана в
+  каюте: бой продолжается; раньше они пропадали, пока герой снова не обнажит оружие.
 
 **English**
 
@@ -503,6 +505,8 @@
   proposal is its text with «Enter your answer» under it; it used to look like any other reply.
 - Choosing a ship's captain (shipyard, ship exchange, plunder): the chosen candidate's skills are all in view with
   one to four candidates; with two candidates only one row of skills showed and the rest had to be scrolled.
+- Boarding: the bars of both crews stay on the screen when the hero sheathes his weapon on the deck, and the cabin
+  captain's bar likewise: the fight goes on; they used to vanish until the weapon was drawn again.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
