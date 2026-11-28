@@ -1,0 +1,29 @@
+<rml>
+<head><style>
+body { width: 100%; height: 100%; background-color: #808080; }
+div { position: absolute; width: 40dp; height: 40dp; }
+ui-icon { display: block; color: #e0c080; }
+.shadowed { icon-shadow: #000000 0dp 1dp 1dp; }
+.hard { icon-shadow: #000000 0dp 1dp 0dp; }
+.half { opacity: 0.5; }
+.black { background-color: #000000; }
+.white { background-color: #ffffff; }
+</style></head>
+<body>
+<!-- Per icon a column: faded with a shadow, faded without, opaque over black, opaque over white. -->
+<div style="left: 10dp; top: 10dp;"><ui-icon name="back" size="40" class="half shadowed"/></div>
+<div style="left: 10dp; top: 60dp;"><ui-icon name="back" size="40" class="half"/></div>
+<div style="left: 10dp; top: 110dp;" class="black"><ui-icon name="back" size="40"/></div>
+<div style="left: 10dp; top: 160dp;" class="white"><ui-icon name="back" size="40"/></div>
+<div style="left: 60dp; top: 10dp;"><ui-icon name="back" size="40" class="half hard"/></div>
+<div style="left: 60dp; top: 60dp;"><ui-icon name="back" size="40" class="half"/></div>
+<div style="left: 110dp; top: 10dp;"><ui-icon name="potion" size="40" class="half shadowed"/></div>
+<div style="left: 110dp; top: 60dp;"><ui-icon name="potion" size="40" class="half"/></div>
+<div style="left: 110dp; top: 110dp;" class="black"><ui-icon name="potion" size="40"/></div>
+<div style="left: 110dp; top: 160dp;" class="white"><ui-icon name="potion" size="40"/></div>
+<div style="left: 160dp; top: 10dp;"><ui-icon name="c-ruby" size="40" class="half shadowed"/></div>
+<div style="left: 160dp; top: 60dp;"><ui-icon name="c-ruby" size="40" class="half"/></div>
+<div style="left: 160dp; top: 110dp;" class="black"><ui-icon name="c-ruby" size="40"/></div>
+<div style="left: 160dp; top: 160dp;" class="white"><ui-icon name="c-ruby" size="40"/></div>
+</body>
+</rml>

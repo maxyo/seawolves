@@ -42,11 +42,12 @@ struct Atlas
     {
         std::string source;
         Rml::Vector2f size;
+        int channels = 0;
     };
     std::vector<Page> pages;
     struct Icon
     {
-        std::vector<Point> glyph, light, accent, colour, shadow; // a cell per level
+        std::vector<Point> glyph, light, accent, colour, occluder, shadow; // a cell per level
     };
     std::map<std::string, Icon, std::less<>> icons;
     std::unordered_set<std::string> reported; // missing icons logged
@@ -73,20 +74,64 @@ struct ShadowProperties
     Rml::PropertyId colour, x, y, sigma;
 } shadow_ids;
 
-// An icon's quads in drawing order, a mesh per run of quads from one page.
+// An icon's quads in drawing order, a mesh per run of quads from one page; a faded shadow is a run of its own, drawn
+// by the backend's "ui-icon-shadow" shader.
 struct Meshes
 {
-    std::vector<std::pair<int, Rml::Mesh>> runs;
+    struct Run
+    {
+        int page = 0;
+        Rml::Mesh mesh;
+        Rml::Dictionary shader; // empty: drawn as the page's texture
+    };
+    std::vector<Run> runs;
 
     // Appends the quad showing `cell` (side `texels`) at `origin`, `side` px.
     void Quad(Point cell, int texels, Rml::Vector2f origin, float side, Rml::ColourbPremultiplied colour)
     {
-        if (runs.empty() || runs.back().first != cell.page)
-            runs.emplace_back(cell.page, Rml::Mesh());
+        if (runs.empty() || runs.back().page != cell.page || !runs.back().shader.empty())
+            runs.push_back({cell.page, {}, {}});
         const Rml::Vector2f page = TheAtlas().pages[size_t(cell.page)].size;
         const Rml::Vector2f from = {cell.x / page.x, cell.y / page.y};
         const Rml::Vector2f to = {(cell.x + texels) / page.x, (cell.y + texels) / page.y};
-        Rml::MeshUtilities::GenerateQuad(runs.back().second, origin, {side, side}, colour, from, to);
+        Rml::MeshUtilities::GenerateQuad(runs.back().mesh, origin, {side, side}, colour, from, to);
+    }
+
+    // The shadow quad of a faded icon. Drawn under the glyph, both faded by `fade`, the shadow would show through the
+    // glyph by fade * (1 - fade) of its coverage; the shader scales it by (1 - a) / (1 - fade * a), a the glyph's alpha
+    // (its coverage, from `occluder`, a cell on the shadow's page, times `alpha`, the glyph colour's alpha), so the two
+    // quads add up to the icon composited whole and then faded: no shadow where the glyph covers it.
+    void FadedShadow(Point cell, int texels, Rml::Vector2f origin, float side, Rml::ColourbPremultiplied colour,
+                     Point occluder, int occluder_texels, Rml::Vector2f occluder_origin, float occluder_side,
+                     float fade, float alpha)
+    {
+        runs.push_back({cell.page, {}, {}});
+        Quad(cell, texels, origin, side, colour);
+        const Atlas::Page &page = TheAtlas().pages[size_t(cell.page)];
+        // The occluder's texture coordinate as an affine function of the shadow's, per axis.
+        const Rml::Vector2f scale = Rml::Vector2f(side * occluder_texels / (texels * occluder_side));
+        const Rml::Vector2f offset =
+            (Rml::Vector2f(float(occluder.x), float(occluder.y)) +
+             (origin - occluder_origin - Rml::Vector2f(float(cell.x), float(cell.y)) * (side / float(texels))) *
+                 (float(occluder_texels) / occluder_side)) /
+            page.size;
+        // Outside its cell the occluder reads the cell's transparent border.
+        const Rml::Vector2f low =
+            (Rml::Vector2f(float(occluder.x), float(occluder.y)) - Rml::Vector2f(0.5f)) / page.size;
+        const Rml::Vector2f high =
+            (Rml::Vector2f(float(occluder.x + occluder_texels), float(occluder.y + occluder_texels)) +
+             Rml::Vector2f(0.5f)) /
+            page.size;
+        // Which channels hold the shadow's tint factor and coverage and the occluder's coverage: R8 (R), RG8 (R, G),
+        // RGBA8 premultiplied white (A).
+        const Rml::Vector4f r(1, 0, 0, 0), g(0, 1, 0, 0), a(0, 0, 0, 1);
+        const bool rgba = page.channels == 4;
+        Rml::Dictionary &shader = runs.back().shader;
+        shader["pick_tint"] = rgba ? a : r;
+        shader["pick_coverage"] = rgba ? a : page.channels == 2 ? g : r;
+        shader["map"] = Rml::Vector4f(scale.x, scale.y, offset.x, offset.y);
+        shader["bounds"] = Rml::Vector4f(low.x, low.y, high.x, high.y);
+        shader["fade"] = Rml::Vector4f(fade, alpha, 0, 0);
     }
 };
 
@@ -157,8 +202,8 @@ class IconElement final : public Rml::Element
             Build(*manager, size, drawn);
         const Rml::Vector2f offset = GetAbsoluteOffset(Rml::BoxArea::Content);
         const Rml::Vector2f at = {std::round(offset.x), std::round(offset.y)};
-        for (auto &[page, geometry] : runs_)
-            geometry.Render(at, manager->LoadTexture(TheAtlas().pages[size_t(page)].source));
+        for (const Run &run : runs_)
+            run.geometry.Render(at, manager->LoadTexture(TheAtlas().pages[size_t(run.page)].source), run.shader);
         if (marker_)
             marker_.Render(at);
     }
@@ -221,14 +266,26 @@ class IconElement final : public Rml::Element
                     best = i;
             const float finest = px * atlas.shadow_sigma / static_cast<float>(atlas.shadow_levels.front());
             const Rml::Vector2f shift = {drawn.shadow.x, drawn.shadow.y};
-            if (wanted < 0.5f * finest && !full_colour)
-                meshes.Quad(icon.glyph[level], texels, origin + shift, px, tint(drawn.shadow.colour));
+            const bool hard = wanted < 0.5f * finest && !full_colour;
+            const int glyph = atlas.shadow_levels[best], margin = atlas.shadow_margin;
+            const float scale = px / static_cast<float>(glyph);
+            const Point cell = hard ? icon.glyph[level] : icon.shadow[best];
+            const int cell_texels = hard ? texels : glyph + 2 * margin;
+            const Rml::Vector2f at = hard ? origin + shift : origin + shift - Rml::Vector2f(margin * scale);
+            const float side = hard ? px : (glyph + 2 * margin) * scale;
+            // At full opacity the glyph drawn over the shadow is already the whole icon.
+            if (drawn.opacity >= 1.0f)
+                meshes.Quad(cell, cell_texels, at, side, tint(drawn.shadow.colour));
             else
             {
-                const int glyph = atlas.shadow_levels[best], margin = atlas.shadow_margin;
-                const float scale = px / static_cast<float>(glyph);
-                meshes.Quad(icon.shadow[best], glyph + 2 * margin, origin + shift - Rml::Vector2f(margin * scale),
-                            (glyph + 2 * margin) * scale, tint(drawn.shadow.colour));
+                // What covers the shadow, on its page: an accent icon's occluder for a blurred shadow, else the glyph
+                // (a hard shadow is the glyph's own cell) or the full-colour cell.
+                const Point occluder = !hard && !icon.occluder.empty() ? icon.occluder[level]
+                                       : full_colour                   ? icon.colour[level]
+                                                                       : icon.glyph[level];
+                const float alpha = full_colour || drawn.plain ? 1.0f : drawn.colour.alpha / 255.0f;
+                meshes.FadedShadow(cell, cell_texels, at, side, tint(drawn.shadow.colour), occluder, texels, origin, px,
+                                   drawn.opacity, alpha);
             }
         }
         if (full_colour)
@@ -242,8 +299,10 @@ class IconElement final : public Rml::Element
             if (!icon.accent.empty() && !drawn.plain)
                 meshes.Quad(icon.accent[level], texels, origin, px, white);
         }
-        for (auto &[page, mesh] : meshes.runs)
-            runs_.emplace_back(page, manager.MakeGeometry(std::move(mesh)));
+        for (Meshes::Run &run : meshes.runs)
+            runs_.push_back(
+                {run.page, manager.MakeGeometry(std::move(run.mesh)),
+                 run.shader.empty() ? Rml::CompiledShader() : manager.CompileShader("ui-icon-shadow", run.shader)});
     }
 
     static void Make(Rml::RenderManager &manager, Rml::Geometry &geometry, Rml::Mesh mesh)
@@ -252,7 +311,13 @@ class IconElement final : public Rml::Element
             geometry = manager.MakeGeometry(std::move(mesh));
     }
 
-    std::vector<std::pair<int, Rml::Geometry>> runs_;
+    struct Run
+    {
+        int page = 0;
+        Rml::Geometry geometry;
+        Rml::CompiledShader shader;
+    };
+    std::vector<Run> runs_;
     Rml::Geometry marker_;
     Drawn built_;
 };
@@ -290,16 +355,15 @@ void LoadIconPack(const Json &table, const std::string &dir)
     }
     for (const Json &page : table.value("pages", Json::array()))
         atlas.pages.push_back({dir + page.at("file").get<std::string>(),
-                               {page.at("size")[0].get<float>(), page.at("size")[1].get<float>()}});
+                               {page.at("size")[0].get<float>(), page.at("size")[1].get<float>()},
+                               page.at("channels").get<int>()});
     const Json icons = table.value("icons", Json::object());
     for (const auto &item : icons.items())
     {
         Atlas::Icon &icon = atlas.icons[item.key()];
-        const std::pair<const char *, std::vector<Point> *> parts[] = {{"glyph", &icon.glyph},
-                                                                       {"light", &icon.light},
-                                                                       {"accent", &icon.accent},
-                                                                       {"colour", &icon.colour},
-                                                                       {"shadow", &icon.shadow}};
+        const std::pair<const char *, std::vector<Point> *> parts[] = {
+            {"glyph", &icon.glyph},   {"light", &icon.light},       {"accent", &icon.accent},
+            {"colour", &icon.colour}, {"occluder", &icon.occluder}, {"shadow", &icon.shadow}};
         for (const auto &[part, cells] : parts)
             for (const Json &cell : item.value().value(part, Json::array()))
                 cells->push_back({cell[0].get<int>(), cell[1].get<int>(), cell[2].get<int>()});

@@ -243,6 +243,8 @@ enum class GradientFunction
 
 struct Shader
 {
+    bool icon_shadow = false; // "ui-icon-shadow" (icons.cpp), else a gradient
+    float icon[5 * 4] = {};   // its u_ui_icon
     GradientFunction function = GradientFunction::Linear;
     Rml::Vector2f p;
     Rml::Vector2f v;
@@ -330,6 +332,7 @@ enum class ProgramId
     TextureStraight,
     TextureCoverage,
     TextureMask,
+    IconShadow,
     Gradient,
     QuadColor,
     Passthrough,
@@ -343,7 +346,7 @@ enum class ProgramId
 struct Uniforms
 {
     bgfx::UniformHandle transform, translate, clip, gradient, gradient_pv, stop_colors, stop_positions, factor,
-        color_matrix, blur_weights, texel_offset, region, shadow_color, tex, mask;
+        color_matrix, blur_weights, texel_offset, region, shadow_color, icon, tex, mask;
 };
 
 struct FrameBuffer
@@ -1141,12 +1144,14 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     }
     Rml::CompiledShaderHandle CompileShader(const Rml::String &name, const Rml::Dictionary &parameters) override;
     void RenderShader(Rml::CompiledShaderHandle shader, Rml::CompiledGeometryHandle geometry, Rml::Vector2f translation,
-                      Rml::TextureHandle) override
+                      Rml::TextureHandle texture) override
     {
         Command &command = Record(Op::Draw);
         command.shader = FromHandle<const Shader>(shader);
         command.geometry = FromHandle<storm::ui::Geometry>(geometry);
         command.translation = translation;
+        if (texture)
+            command.texture = FromHandle<Texture>(texture);
     }
     void ReleaseShader(Rml::CompiledShaderHandle shader) override
     {
@@ -1293,6 +1298,7 @@ bool BgfxBackendImpl::CreateGpu()
     STORM_UI_LINK(ProgramId::TextureStraight, vs, vs_ui, fs_ui_texture_straight);
     STORM_UI_LINK(ProgramId::TextureCoverage, vs, vs_ui, fs_ui_texture_coverage);
     STORM_UI_LINK(ProgramId::TextureMask, vs, vs_ui, fs_ui_texture_mask);
+    STORM_UI_LINK(ProgramId::IconShadow, vs, vs_ui, fs_ui_icon_shadow);
     STORM_UI_LINK(ProgramId::Gradient, vs, vs_ui, fs_ui_gradient);
     STORM_UI_LINK(ProgramId::QuadColor, vs_quad, vs_ui_quad, fs_ui_color);
     STORM_UI_LINK(ProgramId::Passthrough, vs_quad, vs_ui_quad, fs_ui_passthrough);
@@ -1320,6 +1326,7 @@ bool BgfxBackendImpl::CreateGpu()
     uniforms_.texel_offset = bgfx::createUniform("u_ui_texel_offset", T::Vec4);
     uniforms_.region = bgfx::createUniform("u_ui_region", T::Vec4);
     uniforms_.shadow_color = bgfx::createUniform("u_ui_shadow_color", T::Vec4);
+    uniforms_.icon = bgfx::createUniform("u_ui_icon", T::Vec4, 5);
     uniforms_.tex = bgfx::createUniform("s_ui_tex", T::Sampler);
     uniforms_.mask = bgfx::createUniform("s_ui_mask", T::Sampler);
 
@@ -1618,6 +1625,17 @@ Rml::CompiledFilterHandle BgfxBackendImpl::CompileFilter(const Rml::String &name
 Rml::CompiledShaderHandle BgfxBackendImpl::CompileShader(const Rml::String &name, const Rml::Dictionary &parameters)
 {
     Shader shader;
+    if (name == "ui-icon-shadow")
+    {
+        shader.icon_shadow = true;
+        const char *keys[] = {"pick_tint", "pick_coverage", "map", "bounds", "fade"};
+        for (size_t i = 0; i < std::size(keys); ++i)
+        {
+            const Rml::Vector4f value = Rml::Get(parameters, keys[i], Rml::Vector4f(0.f));
+            std::copy(&value.x, &value.x + 4, &shader.icon[i * 4]);
+        }
+        return ToHandle<const Shader>(std::make_shared<Shader>(std::move(shader)));
+    }
     const bool repeating = Rml::Get(parameters, "repeating", false);
     if (name == "linear-gradient")
     {
@@ -2557,9 +2575,7 @@ void Executor::Run(const Command &command, bool degraded)
         if (state.stencil_test)
             reads.Add({Stencil(), region});
         bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
-        if (command.shader)
-            program = ProgramId::Gradient;
-        else if (command.texture)
+        if (command.texture)
         {
             Texture &texture = *command.texture;
             program = ProgramId::Texture;
@@ -2601,6 +2617,8 @@ void Executor::Run(const Command &command, bool degraded)
                 break;
             }
         }
+        if (command.shader)
+            program = command.shader->icon_shadow ? ProgramId::IconShadow : ProgramId::Gradient;
         const int slot = Begin(layer, Full(), {{layer, region}}, reads);
         if (!live_)
             return;
@@ -2612,7 +2630,9 @@ void Executor::Run(const Command &command, bool degraded)
         }
         if (command.texture && command.texture->kind != Texture::Kind::Picture)
             handle = command.texture->handle;
-        if (command.shader)
+        if (command.shader && command.shader->icon_shadow)
+            bgfx::setUniform(b_->uniforms_.icon, command.shader->icon, 5);
+        else if (command.shader)
         {
             const Shader &shader = *command.shader;
             const float gradient[4] = {float(int(shader.function)), float(shader.stop_positions.size()), 0.f, 0.f};

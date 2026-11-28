@@ -293,6 +293,11 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         add_test(NAME ui_atlas_device_loss COMMAND storm_ui_shot --pack "${pack}" --doc atlas.rml --size 320x120
                  --density 2 --out "${CMAKE_CURRENT_BINARY_DIR}/atlas-device-loss.png"
                  --script "wait 0.1; pack-bytes 0; mark; device-reset; wait 0.1; same; pack-bytes 0")
+        # A faded icon's shadow does not show through its glyph: where the opaque glyph covers, a half-faded icon with a
+        # shadow (blurred, hard, an accent icon's, a full-colour one's) is the half-faded icon without one.
+        add_test(NAME ui_icon_fade_shadow COMMAND storm_ui_shot --pack "${pack}" --doc fade.rml --size 210x210 --density 2
+                 --out "${CMAKE_CURRENT_BINARY_DIR}/icon-fade-shadow.png"
+                 --script "wait 0.1; covered-same 10 10 10 60 10 110 10 160 40; covered-same 60 10 60 60 10 110 10 160 40; covered-same 110 10 110 60 110 110 110 160 40; covered-same 160 10 160 60 160 110 160 160 40")
         # An unchanged frame composites the layer the last drawn one left: the touch opening the view (the clear of the
         # tool's target) and one quad, nothing drawn into the layer; a change draws the layer again.
         add_test(NAME ui_steady_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1

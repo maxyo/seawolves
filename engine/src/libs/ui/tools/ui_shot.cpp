@@ -10,7 +10,9 @@
 //                    bounds <CSS selector> (settled visible border boxes in dp),
 //                    device-reset (bgfx: device loss and restore, as after a lost EGL context),
 //                    same (the screen shows the picture `mark` remembered), pack-bytes <max> (the decoded pack
-//                    pictures alive are at most max bytes),
+//                    pictures alive are at most max bytes), covered-same <x> <y> <bx> <by> <mx> <my> <nx> <ny> <side>
+//                    (the squares at x,y and bx,by agree within 1 wherever the squares at mx,my and nx,ny, the same
+//                    icon over two backgrounds, are equal: where an opaque glyph covers),
 //                    submitted <min> <max> (the UI's bgfx render items in the last frame are within)
 //
 // Draws through the UI's bgfx backend on bgfx's GLES 3.0 renderer (Mesa llvmpipe, headless),
@@ -137,6 +139,7 @@ class Capture
     // The picture as the last frame left it: nothing is settled and no frame is drawn first.
     virtual bool Seen(const std::string &path) = 0;
     virtual std::vector<unsigned char> Pixels() = 0;
+    virtual int Width() const = 0; // of Pixels(), px
     // Frames until the backend has no texture work left, then the picture.
     virtual std::vector<unsigned char> Settled(storm::ui::Host &host) = 0;
     virtual bool ResetDevice(float)
@@ -476,6 +479,10 @@ class BgfxCapture final : public Capture
                                           BGFX_TEXTURE_BLIT_DST | BGFX_TEXTURE_READ_BACK);
         return true;
     }
+    int Width() const override
+    {
+        return width_;
+    }
     storm::ui::RenderBackend *Backend() override
     {
         return backend_.get();
@@ -795,6 +802,8 @@ class Script
                 status_ = 7;
             }
         }
+        else if (verb == "covered-same") // covered-same <x> <y> <bx> <by> <mx> <my> <nx> <ny> <side>
+            CoveredSame(words);
         else if (verb == "pack-bytes") // pack-bytes <max>: decoded pack pictures alive (storm::ui::PackImageBytes)
         {
             size_t max = 0;
@@ -806,6 +815,34 @@ class Script
         else
             return false;
         return true;
+    }
+
+    void CoveredSame(std::stringstream &words)
+    {
+        float at[9] = {};
+        for (float &value : at)
+            words >> value;
+        const std::vector<unsigned char> pixels = capture_.Pixels();
+        const int width = capture_.Width(), height = static_cast<int>(pixels.size() / 4 / size_t(width)),
+                  side = static_cast<int>(at[8] * density_);
+        const auto pixel = [&](int square, int x, int y) {
+            const int px = static_cast<int>(at[square * 2] * density_) + x,
+                      py = height - 1 - (static_cast<int>(at[square * 2 + 1] * density_) + y); // GL rows bottom-up
+            return &pixels[(static_cast<size_t>(py) * width + px) * 4];
+        };
+        int compared = 0, worst = 0;
+        for (int y = 0; y < side; ++y)
+            for (int x = 0; x < side; ++x)
+            {
+                if (!std::equal(pixel(2, x, y), pixel(2, x, y) + 3, pixel(3, x, y)))
+                    continue;
+                ++compared;
+                for (int c = 0; c < 3; ++c)
+                    worst = std::max(worst, std::abs(int(pixel(0, x, y)[c]) - int(pixel(1, x, y)[c])));
+            }
+        std::printf("covered-same: %d covered pixels, worst channel difference %d\n", compared, worst);
+        if (compared == 0 || worst > 1)
+            status_ = 7;
     }
 
     // What the game or the platform hands the host: true when `verb` is one of these.

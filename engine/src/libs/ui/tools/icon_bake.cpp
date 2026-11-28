@@ -12,8 +12,11 @@
 //                   G = coverage.
 //   mask-N.png      grey (R8), drawn by the mask shader as colour * R: what needs one channel: glyphs without dark
 //                   shading (R = coverage); their white shading (R = the light it adds, a second quad, untinted and
-//                   of alpha 0); shadows (the coverage blurred, tinted by the shadow colour).
+//                   of alpha 0); accent icons' occluders (glyph and accent coverage).
 //   colour-N.png    RGBA (straight alpha in the file): full-colour icons (c-*, nation-*) and the accent layers.
+//
+// Shadows (the icon's coverage blurred, every channel, tinted by the shadow colour) lie on the page of what covers
+// them: the glyph's page, the colour page, or the mask page beside an accent icon's occluder.
 //
 // No page is larger than kPageLimit in either dimension; an icon's cells of one kind share a page.
 //
@@ -331,16 +334,30 @@ int main(int argc, char **argv)
         if (lit)
             for (size_t level = 0; level < light.size(); ++level)
                 parts["light"].push_back(add(mask, kLevels[level], std::move(light[level])));
+        // What casts the shadow: the whole icon, its accent included.
+        const std::vector<std::string> caster =
+            accent ? std::vector<std::string>{id, id + "-acc"} : std::vector<std::string>{id};
+        const std::string use =
+            full_colour ? Use(id, nullptr) : Use(id, "#ffffff") + (accent ? Use(id + "-acc", nullptr) : "");
+        // A faded icon's shadow is cut by what covers it (src/icons.cpp), read from its page: the glyph cell itself,
+        // the colour cell, or for an accent icon an occluder cell of glyph and accent together.
+        Kind &shadows = full_colour ? colour : shaded && !accent ? coverage : mask;
+        if (accent)
+            for (const int px : kLevels)
+            {
+                const std::vector<uint8_t> rgba = Render(pack, caster, use, px);
+                std::vector<uint8_t> alpha(static_cast<size_t>(px) * px);
+                for (size_t i = 0; i < alpha.size(); ++i)
+                    alpha[i] = rgba[i * 4 + 3];
+                parts["occluder"].push_back(add(mask, px, std::move(alpha)));
+            }
         for (const int px : kShadowLevels)
         {
-            // What casts the shadow: the whole icon, its accent included.
-            const std::string use =
-                full_colour ? Use(id, nullptr) : Use(id, "#ffffff") + (accent ? Use(id + "-acc", nullptr) : "");
-            const std::vector<uint8_t> alpha =
-                Blurred(Render(pack, accent ? std::vector<std::string>{id, id + "-acc"} : std::vector<std::string>{id},
-                               use, px),
-                        px, kShadowMargin, kShadowSigma);
-            parts["shadow"].push_back(add(mask, px + 2 * kShadowMargin, std::move(alpha)));
+            const std::vector<uint8_t> alpha = Blurred(Render(pack, caster, use, px), px, kShadowMargin, kShadowSigma);
+            std::vector<uint8_t> shadow(alpha.size() * static_cast<size_t>(shadows.channels)); // every channel S
+            for (size_t i = 0; i < shadow.size(); ++i)
+                shadow[i] = alpha[i / static_cast<size_t>(shadows.channels)];
+            parts["shadow"].push_back(add(shadows, px + 2 * kShadowMargin, std::move(shadow)));
         }
     }
 
