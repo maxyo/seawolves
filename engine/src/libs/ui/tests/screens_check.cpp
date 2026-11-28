@@ -526,7 +526,7 @@ struct StoreRun
         Expect(surface.props["extras"]["rows"].size() == 1 &&
                    surface.props["extras"]["rows"][0]["title"] == "Гильдейский счёт",
                "unknown button → «Прочее» row");
-        Expect(surface.logs.size() == 1 && surface.logs[0] == "screen store extras=B_GUILD,GUILD_NOTE",
+        Expect(surface.logs.size() == 1 && surface.logs[0].find("B_GUILD, GUILD_NOTE") != std::string::npos,
                "extras logged once");
         ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
                     "a shop opens the deal of the row the game selected");
@@ -1774,6 +1774,7 @@ static void Alchemy(const std::string &models)
     router.SetInterface(Load(models, "alchemy.json"));
     Expect(router.Using() == "alchemy" && surface.tag == "s-alchemy" && surface.errors.empty(),
            "alchemy is drawn by its script screen: " + Json(surface.errors).dump());
+    Expect(surface.props["extras"]["rows"].empty(), "the window's component table is the screen's, not «Прочее»");
     router.OnEvent({"recipes", "row", "potion1"});
     ExpectEqual(surface.Last(), prefix + "ANDROID_ALCHEMY_RECIPE\t1\tchoose@11:potion1",
                 "another recipe: the scroll's own tap, bound to the opening");

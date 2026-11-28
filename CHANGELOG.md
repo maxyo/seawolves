@@ -147,6 +147,7 @@
   больше не остаётся цвета прежнего значка.
 - Переход из окна корабля в другой раздел (журнал, предметы и другие) больше не закрывает окно с ошибкой: экран
   раздела, который игра уже закрыла, остаётся как есть до открытия следующего и больше не перестраивается.
+- В окне алхимии больше нет меню «Прочее» с сырыми строками таблицы компонентов и кнопками под именами узлов.
 
 **English**
 
@@ -300,6 +301,8 @@
   a slot no longer keeps the colour of the icon shown there before.
 - Going from the ship window to another section (the journal, items and others) no longer closes the window with an
   error: the screen of a section the game has already closed stays as it is until the next opens and is not rebuilt.
+- The alchemy window no longer has an «Other» menu with raw rows of the component table and buttons named by their
+  node ids.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

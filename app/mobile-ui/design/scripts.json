@@ -757,7 +757,8 @@
           "interface": "alchemy",
           "nodes": [
             ["GETALL_BUTTON", "button", true], ["ANDROID_ALCHEMY_RECIPE", "choice"], ["STORECAPTION1", "text|heading"],
-            ["EXIT_BTN", "button"]
+            ["EXIT_BTN", "button"], ["TABLE_LIST", "choice"], ["TABLE_ADD_ALL_BUTTON", "button"],
+            ["TABLE_REMOVE_ALL_BUTTON", "button"]
           ],
           "data": {"kinds": {"ammo": "alchemy.kind_ammo", "tool": "alchemy.kind_tool", "talisman": "alchemy.kind_talisman"}}
         }

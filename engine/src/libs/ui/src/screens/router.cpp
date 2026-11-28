@@ -1142,7 +1142,7 @@ Json Router::ExtrasView(const Admission &admitted, Json rows)
     {
         if (generic)
             break;
-        nodes += (nodes.empty() ? "" : ",") + widget->node;
+        nodes += (nodes.empty() ? "" : ", ") + widget->node;
         if (widget->type == "text" || widget->type == "heading")
         {
             note += (note.empty() ? "" : "\n") + widget->label;
@@ -1159,7 +1159,8 @@ Json Router::ExtrasView(const Admission &admitted, Json rows)
     }
     flush();
     if (!nodes.empty() && logged_.insert("extras:" + model_.screen + ":" + nodes).second)
-        surface_.Log("screen " + model_.screen + " extras=" + nodes);
+        surface_.Log("screen " + model_.screen + ": the game's " + nodes +
+                     " are not drawn by the screen: offered in its Other sheet");
 
     Json view = Json::object();
     view["rows"] = rows;
