@@ -81,8 +81,10 @@ ScriptPort &ScriptGame::Port()
 void ScriptGame::Set(const std::string &path, const std::string &value)
 {
     const size_t dot = path.find('.');
-    auto *global = static_cast<VDATA *>(core.GetScriptVariable(path.substr(0, dot).c_str()));
-    if (global && dot == std::string::npos)
+    const size_t bracket = path.find('[');
+    const bool element = bracket < dot;
+    auto *global = static_cast<VDATA *>(core.GetScriptVariable(path.substr(0, element ? bracket : dot).c_str()));
+    if (global && dot == std::string::npos && !element)
     {
         const char *text = nullptr;
         if (global->Get(text))
@@ -91,7 +93,9 @@ void ScriptGame::Set(const std::string &path, const std::string &value)
             global->Set(static_cast<int32_t>(std::stoi(value)));
         return;
     }
-    ATTRIBUTES *root = global && dot != std::string::npos ? global->GetAClass() : nullptr;
+    ATTRIBUTES *root = !global || dot == std::string::npos ? nullptr
+                       : element ? global->GetAClass(static_cast<uint32_t>(std::stoul(path.substr(bracket + 1))))
+                                 : global->GetAClass();
     ATTRIBUTES *at = root ? root->FindAClass(root, path.c_str() + dot + 1) : nullptr;
     if (!at)
         throw std::runtime_error("the fixture game has no " + path);

@@ -364,7 +364,7 @@ string FlagChangeRefusal()
 	return "";
 }
 
-// The alchemy of the recorded models (ui/tests/models/alchemy*.json): the recipes cartridge (Items[33]), potion1,
+// The alchemy of the models (ui/tests/models/alchemy.json, real-alchemy.json): the recipes cartridge (Items[33]), potion1,
 // grenade (34) and potion3 (35), the cartridge of a bullet (36) and a measure of gunpowder (37) a batch; the hero's
 // free items TestHero.items.<id>, the pot NullCharacter.alchemy.Items.<id>. What the game counts is the cases' own
 // (TestAlchemyBatches); making batches takes them off it.
@@ -574,7 +574,7 @@ void Main()
 	NullCharacter.Cards.c9.count = 6;
 	NullCharacter.Cards.c10.pic = "clubs_9";
 	NullCharacter.Cards.c10.count = 9;
-	// the sail emblem of the recorded models (ui/tests/models/sailsgerald*.json)
+	// the sail emblem of the models (ui/tests/models/real-sailsgerald.json, sailsgerald-applied.json)
 	price = 1250;
 	TestHero.Money = 12480;
 	TestHero.Ship.Type = 1;
@@ -867,7 +867,7 @@ void TestCharacters()
 	TestHero.Fellows.Passengers.treasurer = 13;
 }
 
-// The exchange interface of the recorded models (ui/tests/models/transfer*.json, transfer_main.c): its question
+// The exchange interface of the models (ui/tests/models/transfer*.json, real-transfer-*.json, transfer_main.c): its question
 // window's mode, whether it trades with a companion, the defectors taken (iCrewQty) and still willing (the other
 // captain's Ship.Crew.Hire), the game's checks of a death and of a ship's least crew (RealShips[].MinCrew: the hero's
 // 9, the other ship's 21). The other captain is xi_refCharacter, dead (no chr_ai.hp) unless a case gives him one.
