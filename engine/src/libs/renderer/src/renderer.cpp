@@ -2316,6 +2316,8 @@ bool Renderer::SetRenderTarget(int32_t texid, uint32_t level, uint32_t cubeFace,
 
 bool Renderer::TextureIncReference(int32_t texid)
 {
+    if (texid == -1) // no texture, as TextureRelease takes it (a script's picture set to a failed TextureCreate)
+        return true;
     ++Textures[texid].ref;
     return true;
 }
