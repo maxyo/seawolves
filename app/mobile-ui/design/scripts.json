@@ -61,6 +61,7 @@
     {"file": "interface/touch/contracts/transfer.c"},
     {"file": "interface/touch/contracts/ship.c"},
     {"file": "interface/touch/contracts/menu.c"},
+    {"file": "interface/touch/contracts/title.c"},
     {"file": "interface/touch/contracts/ship_change.c"},
     {"file": "interface/touch/contracts/character.c"},
     {"file": "interface/touch/contracts/alchemy.c"},
@@ -721,10 +722,30 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/title.c",
+      "provides": ["adapter:title"],
+      "binds": [{"capability": "menu_title", "interface": "mainmenu", "nodes": [["ANDROID_CONTINUE", "text"]]}]
+    },
+    {
+      "file": "interface/touch/lineages/cl/title.c",
+      "set": "caribbean_legend",
+      "replaces": "interface/touch/lineages/legacy/title.c",
+      "provides": ["adapter:title"],
+      "binds": [
+        {
+          "capability": "menu_title", "interface": "mainmenu",
+          "nodes": [
+            ["NEW_GAME", "button", true], ["RESUME_GAME", "button"], ["LOAD_GAME", "button"], ["OPTIONS", "button"],
+            ["CREDITS", "button"], ["QUIT", "button"], ["CONFIRM_EXIT_TEXT", "text"], ["CONFIRM_EXIT_YES", "button"],
+            ["CONFIRM_EXIT_NO", "button"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/lineages/legacy/menu.c",
       "provides": ["adapter:menu"],
       "binds": [
-        {"capability": "menu_title", "interface": "mainmenu", "nodes": [["TITLE", "heading|text"], ["ANDROID_CONTINUE", "text"]]},
         {
           "capability": "menu_game", "interface": "game_menu",
           "nodes": [
@@ -1040,10 +1061,14 @@
       "screens": [{"capability": "ship", "component": "s-ship"}]
     },
     {
+      "file": "interface/touch/screens/title.c",
+      "uses": ["adapter:title"],
+      "screens": [{"capability": "menu_title", "component": "s-title", "look": {}}]
+    },
+    {
       "file": "interface/touch/screens/menu.c",
       "uses": ["adapter:menu"],
       "screens": [
-        {"capability": "menu_title", "component": "s-title", "look": {"mode": "title"}},
         {"capability": "menu_game", "component": "s-game-menu", "look": {"mode": "pause"}},
         {"capability": "menu_quick_save", "component": "s-quick-save", "look": {"mode": "saving"}},
         {"capability": "menu_game_over", "component": "s-game-over", "look": {"mode": "over"}}

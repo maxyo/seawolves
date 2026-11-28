@@ -1,10 +1,11 @@
 {
   "tag": "s-title",
-  "doc": "Title screen over the game's menu scene (interface `mainmenu`), filled by the script interface/touch/screens/menu.c.",
+  "doc": "Title screen over the game's menu scene (interface `mainmenu`), filled by the script interface/touch/screens/title.c.",
   "props": {
     "primary": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "busy": "bool"}]},
     "exit": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "busy": "bool"}}},
+    "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}},
     "about": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text"}}},
     "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }

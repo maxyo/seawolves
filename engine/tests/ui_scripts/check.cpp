@@ -1154,6 +1154,7 @@ TEST_CASE("the reading screen's script gives the pack screen the props and actio
 TEST_CASE("the menus' script gives the pack screens the props and actions of the recorded models")
 {
     CheckCases("title", "menu");
+    CheckCases("title", "title_cl");
 }
 
 TEST_CASE("the map screen's script gives the pack screen the props and actions of the recorded models")

@@ -6,4 +6,5 @@
 </nav>
 <t-if test="about"><div class="tt-about" style="left: {{ 8 + safe.left }}dp; bottom: {{ 2 + safe.bottom }}dp;"><c-button id="{{about.id}}" variant="ghost" size="sm" label="{{about.label}}"/></div></t-if>
 <t-if test="len(extras.actions) > 0"><div class="tt-more"><c-icon-button id="extras-more" icon="more" label="{{ tr('common.other') }}"/></div></t-if>
+<t-if test="confirm"><c-dialog id="confirm" key="confirm" preset="{{confirm.preset}}" title="{{confirm.title}}" text="{{confirm.text}}" confirm="{{confirm.yes}}" cancel="{{confirm.no}}" width="460"/></t-if>
 <s-extras id="extras" extras="{{ json(extras) }}"/>

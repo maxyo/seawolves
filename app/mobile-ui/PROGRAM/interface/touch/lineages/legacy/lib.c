@@ -36,6 +36,55 @@ void TouchLegLib_Button(aref model, string node, aref out)
 	out.reason = model.(node).reason;
 }
 
+// The game's open question of a menu window, as its nodes {yes, no, text, names (its "no" has the answer's caption)}:
+// CONFIRM_WINDOW_MB_YES/NO with CONFIRM_WINDOW_STRINGS, CONFIRM_EXIT_YES/NO with CONFIRM_EXIT_TEXT (whose "no"
+// caption is not the answer's), CONFIRM_YES/NO with CONFIRM_TEXT. False while none is open.
+bool TouchLegLib_Question(aref model, aref out)
+{
+	if (TouchLegLib_QuestionOf(model, out, "CONFIRM_WINDOW_MB_YES", "CONFIRM_WINDOW_MB_NO", "CONFIRM_WINDOW_STRINGS", true)) return true;
+	if (TouchLegLib_QuestionOf(model, out, "CONFIRM_EXIT_YES", "CONFIRM_EXIT_NO", "CONFIRM_EXIT_TEXT", false)) return true;
+	return TouchLegLib_QuestionOf(model, out, "CONFIRM_YES", "CONFIRM_NO", "CONFIRM_TEXT", true);
+}
+
+bool TouchLegLib_QuestionOf(aref model, aref out, string yes, string no, string text, bool names)
+{
+	if (!CheckAttribute(model, yes)) return false;
+	out.yes = yes;
+	out.no = no;
+	out.text = text;
+	out.names = names;
+	return true;
+}
+
+// The open question as out.{question (its lines), no (the game's caption of its "no", "" none), canNo}.
+void TouchLegLib_Asked(aref model, aref out)
+{
+	object set;
+	if (!TouchLegLib_Question(model, &set)) UiError("no question of the game is open");
+	object lines;
+	TouchLegLib_Lines(model, set.text, &lines, "l");
+	string text = "";
+	for (int k = 0; k < GetAttributesNum(&lines); k++)
+	{
+		aref line = GetAttributeN(&lines, k);
+		if (k > 0) text += TouchLib_Newline();
+		text += line.text;
+	}
+	out.question = text;
+	out.canNo = CheckAttribute(model, set.no);
+	out.no = "";
+	if (sti(set.names)) out.no = TouchLegLib_Label(model, set.no);
+}
+
+// The node of the open question's answer.
+string TouchLegLib_Reply(aref model, bool yes)
+{
+	object set;
+	if (!TouchLegLib_Question(model, &set)) UiError("no question of the game is open");
+	if (yes) return set.yes;
+	return set.no;
+}
+
 // The caption of an optional node, "" without it (or without a node named).
 string TouchLegLib_Label(aref model, string node)
 {

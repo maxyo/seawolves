@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The menus: the title's column over the game's menu scene, the pause menu over the paused game, the plate of a
-// quick save being written and the death screen. The look's mode ("title", "pause", "saving", "over") says which.
-// The title's commands and the quick save and load are the engine's (UiCommand); what the death screen chose the
-// title opens once (a note, UiPass and UiTake).
+// The menus: the pause menu over the paused game, the plate of a quick save being written and the death screen. The
+// look's mode ("pause", "saving", "over") says which. The quick save and load are the engine's (UiCommand); what the
+// death screen chose the title opens once (a note, UiPass: screens/title.c).
 
 #event_handler("UiBuild", "TouchMenu_Build");
 #event_handler("UiTap", "TouchMenu_Tap");
@@ -17,51 +16,6 @@ aref TouchMenu_Button(aref list, string id, string label)
 	at.busy = UiPending(id);
 	UiOn(id, "");
 	return at;
-}
-
-// A command of the title; the save list it opens loads a record without a question (no game is in progress).
-void TouchMenu_TitleCommand(string command)
-{
-	if (command == "Load")
-	{
-		object from = {from = "title"};
-		UiPass("saves", &from);
-	}
-	TouchLib_Command("title", "command", command);
-}
-
-void TouchMenu_Title(aref ui)
-{
-	object game;
-	TouchAdpMenu_Title(ui, &game);
-	bool any = game.last != "";
-	aref primary;
-	makearef(primary, TouchMenu.primary);
-	object go = {id = "continue", label = UiText("menu.continue"), sub = game.last, disabled = !any, reason = "",
-	             busy = UiPending("continue")};
-	if (!any) go.reason = UiText("menu.no_saves");
-	CopyAttributes(primary, &go);
-	UiOn("continue", "");
-	aref buttons;
-	makearef(buttons, TouchMenu.buttons);
-	TouchMenu_Button(buttons, "new", UiText("menu.new_game"));
-	TouchMenu_Button(buttons, "load", UiText("menu.load"));
-	TouchMenu_Button(buttons, "options", UiText("menu.settings"));
-	TouchMenu_Button(buttons, "credits", UiText("menu.credits"));
-	object leave = {id = "exit", label = UiText("menu.exit"), busy = UiPending("exit")};
-	aref at;
-	makearef(at, TouchMenu.exit);
-	CopyAttributes(at, &leave);
-	UiOn("exit", "");
-	object about = {id = "about", label = UiText("menu.about")};
-	makearef(at, TouchMenu.about);
-	CopyAttributes(at, &about);
-	UiOn("about", "");
-	// Chosen on the death screen, or asked by the host: done once the title is up.
-	object asked;
-	if (!UiTake("title", &asked)) return;
-	if (asked.intent == "Continue" && !any) UiToast(UiText("menu.no_saves"));
-	else { if (asked.intent != "") TouchMenu_TitleCommand(asked.intent); }
 }
 
 // «Шарль де Мор · Сен-Пьер, улицы · 1 окт. 1654»
@@ -181,7 +135,6 @@ void TouchMenu_Build()
 	aref ui = GetEventData();
 	if (ui.screen != "menu") return;
 	DeleteAttribute(&TouchMenu, "");
-	if (ui.look.mode == "title") TouchMenu_Title(ui);
 	if (ui.look.mode == "pause") TouchMenu_Pause(ui);
 	if (ui.look.mode == "saving") TouchMenu_Saving(ui);
 	if (ui.look.mode == "over") TouchMenu_Over(ui);
@@ -233,12 +186,5 @@ void TouchMenu_Tap()
 		TouchAdpMenu_End(ui);
 		return;
 	}
-	if (id == "about") { TouchLib_Command("host", "action", "app-about"); return; }
-	if (id == "continue") { TouchMenu_TitleCommand("Continue"); return; }
-	if (id == "new") { TouchMenu_TitleCommand("New"); return; }
-	if (id == "load") { TouchMenu_TitleCommand("Load"); return; }
-	if (id == "options") { TouchMenu_TitleCommand("Options"); return; }
-	if (id == "credits") { TouchMenu_TitleCommand("Credits"); return; }
-	if (id == "exit") { TouchMenu_TitleCommand("Exit"); return; }
 	UiError("menu: no tap of " + id);
 }

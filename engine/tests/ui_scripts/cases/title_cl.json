@@ -1,0 +1,381 @@
+{
+ "$comment": "The title of a game whose main menu is a window of its own buttons (fixture game-cl: node ids only; every text a placeholder): each command presses the game's button, a button the game greys out sends nothing, its exit question is answered with its own buttons.",
+ "fixture": "game-cl",
+ "cases": [
+  {
+   "name": "every command presses the game's own button",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": [
+     {
+      "node": "RESUME_GAME",
+      "type": "button",
+      "label": "Кнопка Один",
+      "index": -1
+     },
+     {
+      "node": "NEW_GAME",
+      "type": "button",
+      "label": "Кнопка Два",
+      "index": -1
+     },
+     {
+      "node": "LOAD_GAME",
+      "type": "button",
+      "label": "Кнопка Три",
+      "index": -1
+     },
+     {
+      "node": "OPTIONS",
+      "type": "button",
+      "label": "Кнопка Четыре",
+      "index": -1
+     },
+     {
+      "node": "CREDITS",
+      "type": "button",
+      "label": "Кнопка Пять",
+      "index": -1
+     },
+     {
+      "node": "QUIT",
+      "type": "button",
+      "label": "Кнопка Шесть",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "continue",
+     "click",
+     ""
+    ],
+    [
+     "new",
+     "click",
+     ""
+    ],
+    [
+     "load",
+     "click",
+     ""
+    ],
+    [
+     "options",
+     "click",
+     ""
+    ],
+    [
+     "credits",
+     "click",
+     ""
+    ],
+    [
+     "exit",
+     "click",
+     ""
+    ],
+    [
+     "about",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "",
+     "sub": ""
+    }
+   },
+   "modals": [],
+   "calls": [
+    "send RESUME_GAME press ",
+    "send NEW_GAME press ",
+    "pass saves from=title",
+    "send LOAD_GAME press ",
+    "send OPTIONS press ",
+    "send CREDITS press ",
+    "send QUIT press ",
+    "host app-about"
+   ]
+  },
+  {
+   "name": "a command the game greys out is off and sends nothing",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": [
+     {
+      "node": "RESUME_GAME",
+      "type": "button",
+      "label": "Кнопка Один",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "NEW_GAME",
+      "type": "button",
+      "label": "Кнопка Два",
+      "index": -1
+     },
+     {
+      "node": "LOAD_GAME",
+      "type": "button",
+      "label": "Кнопка Три",
+      "index": -1
+     },
+     {
+      "node": "OPTIONS",
+      "type": "button",
+      "label": "Кнопка Четыре",
+      "index": -1
+     },
+     {
+      "node": "CREDITS",
+      "type": "button",
+      "label": "Кнопка Пять",
+      "index": -1
+     },
+     {
+      "node": "QUIT",
+      "type": "button",
+      "label": "Кнопка Шесть",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "continue",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": true,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "",
+     "sub": ""
+    }
+   },
+   "modals": [],
+   "calls": []
+  },
+  {
+   "name": "the game's exit question is answered with its own buttons",
+   "capability": "menu_title",
+   "folder": "title",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 2,
+    "screen": "mainmenu",
+    "widgets": [
+     {
+      "node": "RESUME_GAME",
+      "type": "button",
+      "label": "Кнопка Один",
+      "index": -1
+     },
+     {
+      "node": "NEW_GAME",
+      "type": "button",
+      "label": "Кнопка Два",
+      "index": -1
+     },
+     {
+      "node": "LOAD_GAME",
+      "type": "button",
+      "label": "Кнопка Три",
+      "index": -1
+     },
+     {
+      "node": "OPTIONS",
+      "type": "button",
+      "label": "Кнопка Четыре",
+      "index": -1
+     },
+     {
+      "node": "CREDITS",
+      "type": "button",
+      "label": "Кнопка Пять",
+      "index": -1
+     },
+     {
+      "node": "QUIT",
+      "type": "button",
+      "label": "Кнопка Шесть",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_TEXT",
+      "type": "text",
+      "label": "Строка вопроса",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_YES",
+      "type": "button",
+      "label": "Ответ Да",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_EXIT_NO",
+      "type": "button",
+      "label": "Ответ Нет",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "confirm-confirm",
+     "click",
+     ""
+    ],
+    [
+     "confirm-cancel",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "about": {
+     "id": "about",
+     "label": "<menu.about>"
+    },
+    "buttons": [
+     {
+      "busy": false,
+      "id": "new",
+      "label": "<menu.new_game>"
+     },
+     {
+      "busy": false,
+      "id": "load",
+      "label": "<menu.load>"
+     },
+     {
+      "busy": false,
+      "id": "options",
+      "label": "<menu.settings>"
+     },
+     {
+      "busy": false,
+      "id": "credits",
+      "label": "<menu.credits>"
+     }
+    ],
+    "exit": {
+     "busy": false,
+     "id": "exit",
+     "label": "<menu.exit>"
+    },
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "id": "continue",
+     "label": "<menu.continue>",
+     "reason": "",
+     "sub": ""
+    },
+    "confirm": {
+     "preset": "danger",
+     "title": "Строка вопроса",
+     "text": "",
+     "yes": "<menu.exit>",
+     "no": "<common.cancel>"
+    }
+   },
+   "modals": [
+    "confirm confirm-cancel"
+   ],
+   "calls": [
+    "send CONFIRM_EXIT_YES press ",
+    "send CONFIRM_EXIT_NO press "
+   ]
+  }
+ ]
+}
