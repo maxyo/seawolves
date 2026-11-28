@@ -1,5 +1,5 @@
-// An endless script loop stops with an error and the script stack (call time limit) instead of
-// hanging the engine; the VM works again for the next call.
+// An endless script loop stops with an error and the script stack (the call's instruction limit) instead of
+// hanging the engine. No script runs after it, so each endless case is the only failing function of its file.
 int Spin(int n)
 {
 	while (true)
@@ -13,19 +13,4 @@ int fail_endless_loop()
 {
 	Spin(0);
 	return 1;
-}
-
-int fail_endless_for()
-{
-	int sum = 0;
-	for (int i = 0; i < 10; i++)
-	{
-		i = 0;
-	}
-	return 1;
-}
-
-int test_after_stop()
-{
-	return 1 + 1 == 2;
 }

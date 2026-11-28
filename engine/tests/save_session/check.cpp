@@ -1,6 +1,7 @@
 // A save is one write of the whole record (CoreImpl::SaveState, SetSaveData): what the slot holds when the save
 // stops at each step. A load checks the whole file before the running game is erased (CoreImpl::ReadStateFile):
-// which records it refuses, and that the game runs on after a refusal.
+// which records it refuses, and that the game runs on after a refusal. A script call cut at its limit ends the
+// session, and no save is made after it.
 #include "compiler.h"
 #include "core_impl.h"
 #include "game_profile.hpp"
@@ -59,6 +60,15 @@ int Bump()
 {
 	gCounter = gCounter + 1;
 	return gCounter;
+}
+
+int Spin()
+{
+	while (true)
+	{
+		gCounter = gCounter + 1;
+	}
+	return 0;
 }
 )";
 
@@ -440,4 +450,27 @@ TEST_CASE("a save the running program cannot take is refused with the game still
     CHECK(game.Text("gLoadFailedRecord") == kSlot);
     CHECK(!game.Text("gLoadFailedReason").empty());
     CHECK(game.Run("Bump") == 9); // the program and its state are as they were
+}
+
+TEST_CASE("a script call over its limit stops the scripts and every save after it")
+{
+    Game game;
+    REQUIRE(Save(Description(12)));
+    const Bytes previous = File(SlotFile());
+    game.compiler.SetScriptCallLimit(1 << 20);
+    REQUIRE(game.Run("Bump") == 8);
+    REQUIRE(game.compiler.ScriptsStopped().empty());
+    REQUIRE_NOTHROW(core_internal.EndStoppedSession());
+
+    std::string value;
+    CHECK(!game.compiler.RunScriptFunction("Spin", value));
+    // The session ends with the reason: the frame loop shows what its frame throws.
+    CHECK(!game.compiler.ScriptsStopped().empty());
+    CHECK_THROWS_WITH(core_internal.EndStoppedSession(), Catch::Matchers::Contains("did not finish"));
+    // The half-run program neither runs on nor is saved.
+    CHECK(!game.compiler.RunScriptFunction("Bump", value));
+    CHECK(!Save(Description(13)));
+    core_internal.ProcessSaveLoad();
+    CHECK((File(SlotFile()) == previous));
+    CHECK(ListedByNextSession() == std::vector<std::string>{"Port Royal"});
 }

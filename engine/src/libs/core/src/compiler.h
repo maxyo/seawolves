@@ -395,10 +395,16 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     // missing_natives_are_errors: false for a game check (no engine library is linked), true for
     // script tests (as in the game)
     void ConfigureCompileCheck(std::vector<std::string> *sink, bool missing_natives_are_errors);
-    // engine.ini [script] call_time_limit (seconds); script_check tests use a short one
-    void SetScriptCallTimeLimit(uint32_t milliseconds)
+    // The script tests' endless loops stop after fewer instructions than kScriptCallLimit.
+    void SetScriptCallLimit(uint64_t instructions)
     {
-        scriptCallTimeLimitMs_ = milliseconds;
+        scriptCallLimit_ = instructions;
+    }
+    // Why no script runs any more ("" while they run): a call ran over its limit and was cut midway, so the
+    // program's state is half-made. Nothing runs or is saved after it; the core ends the session.
+    const std::string &ScriptsStopped() const
+    {
+        return scriptsStopped_;
     }
     // script tests: store and load the script cache in this folder (also checks its integrity)
     void UseScriptCache(std::filesystem::path folder);
@@ -523,13 +529,16 @@ private:
     // see ConfigureCompileCheck
     std::vector<std::string> *diagnosticsSink_ = nullptr;
     bool compileCheck_ = false;
-    // endless loop guard (BC_Execute): time of the outermost call from the engine
+    // Endless loop guard (BC_Execute): the instructions one call from the engine into the scripts may execute, its
+    // nested calls included. Counted in the VM's own work, so the same call stops at the same place on every
+    // device and a slow disk, a debugger or a process paused in the background never trips it. About 110 times the
+    // largest call measured: 19 million instructions, the start of a new game.
+    static constexpr uint64_t kScriptCallLimit = uint64_t{1} << 31;
+    uint64_t scriptCallLimit_ = kScriptCallLimit;
     uint32_t scriptCallDepth_ = 0;
-    uint32_t scriptStatements_ = 0; // counts to the next clock reading
-    std::chrono::steady_clock::time_point scriptCallStart_{};
-    uint32_t scriptCallTimeLimitMs_ = 60000;
-    bool scriptCallAborted_ = false;
-    bool ScriptCallInTime();
+    uint64_t scriptCallInstructions_ = 0;
+    std::string scriptsStopped_;
+    void StopScripts();
     std::filesystem::path cacheFolder_; // UseScriptCache; empty: the stash folder
     bool lastSegmentFromCache_ = false;
     [[nodiscard]] std::filesystem::path CacheFolder() const;

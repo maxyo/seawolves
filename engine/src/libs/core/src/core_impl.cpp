@@ -196,6 +196,7 @@ bool CoreImpl::Run()
 
     if (Exit_flag)
         return false; // exit
+    EndStoppedSession();
     storm::ScriptStateMayChange(); // the frame's scripts, entities and loading
 
     Timer.Run(); // calc delta time
@@ -244,6 +245,7 @@ bool CoreImpl::Run()
         Compiler->ProcessFrame(Timer.GetDeltaTime());
         Compiler->ProcessEvent("frame");
     }
+    EndStoppedSession();
 
     {
         STORM_PROFILE_ZONE("save/load state");
@@ -662,6 +664,7 @@ void CoreImpl::ProcessExecute()
             STORM_PROFILE_ENTITY(*ptr);
             const storm::platform::frame_work::EntityScope entity(typeid(*ptr), false);
             ptr->ProcessStage(Entity::Stage::execute, deltatime);
+            EndStoppedSession();
         }
     }
 
@@ -684,10 +687,19 @@ void CoreImpl::ProcessRealize()
             STORM_PROFILE_ENTITY(*ptr);
             const storm::platform::frame_work::EntityScope entity(typeid(*ptr), true);
             ptr->ProcessStage(Entity::Stage::realize, deltatime);
+            EndStoppedSession();
         }
     }
 
     ProcessRunEnd(SECTION_REALIZE);
+}
+
+// Scripts stopped for good (COMPILER::ScriptsStopped) leave a game whose logic ran halfway: the session ends, and
+// the frame loop's fatal error report shows the reason.
+void CoreImpl::EndStoppedSession()
+{
+    if (const std::string &reason = Compiler->ScriptsStopped(); !reason.empty())
+        throw std::runtime_error(reason);
 }
 
 void CoreImpl::FailSave(const std::string &record, std::string reason, bool space)
@@ -729,7 +741,8 @@ bool CoreImpl::SaveState(const char *file_name)
     auto save = std::unique_ptr<PendingSave>(new PendingSave{name, path, {}, {}});
     if (!Compiler->SaveState(save->image))
     {
-        FailSave(name, "the script state could not be serialized");
+        FailSave(name, Compiler->ScriptsStopped().empty() ? "the script state could not be serialized"
+                                                          : "a game script was stopped midway: its state is not saved");
         return false;
     }
     pending_save_ = std::move(save);

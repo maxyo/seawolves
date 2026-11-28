@@ -115,6 +115,7 @@ class CoreImpl final : public CorePrivate
     // The frame's step of saves and loads: the load the scripts asked for, then the saves and loads that failed are
     // told to the scripts and the player.
     void ProcessSaveLoad();
+    void EndStoppedSession();
     bool SaveState(const char *file_name) override;
     // force core to load state file at the start of next game loop, return false if no state file
     bool InitiateStateLoading(const char *file_name) override;

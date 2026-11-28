@@ -464,8 +464,6 @@ void COMPILER::LoadPreprocess()
         else
             bWriteCodeFile = true;
 
-        // seconds one call from the engine into the scripts may run before it is stopped (0: no limit)
-        scriptCallTimeLimitMs_ = static_cast<uint32_t>(engine_ini->GetInt("script", "call_time_limit", 60)) * 1000;
         // On by default: game scripts do not change while the game runs (see
         // tools/android/README.md, "Compiled script cache").
         script_cache_mode_ = engine_ini->GetInt("script", "cache_mode", kCacheEnabledNoRuntimeCheck);
@@ -4780,6 +4778,8 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
 
     pVReturnResult = nullptr;
     pVResult = nullptr;
+    if (!scriptsStopped_.empty())
+        return false;
 
     if (pDbgExpSource == nullptr)
     {
@@ -4891,18 +4891,14 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
     bLeftOperandType = 0xffffffff;
     pLeftOperandAClass = nullptr;
 
-    // a call from the engine (outermost BC_Execute) gets a time limit: an endless script loop stops
-    // with an error and the script stack instead of hanging the engine
+    // A call from the engine (the outermost BC_Execute) may execute kScriptCallLimit instructions.
     struct CallDepth
     {
         COMPILER &compiler;
         explicit CallDepth(COMPILER &c) : compiler(c)
         {
             if (compiler.scriptCallDepth_++ == 0)
-            {
-                compiler.scriptCallStart_ = std::chrono::steady_clock::now();
-                compiler.scriptCallAborted_ = false;
-            }
+                compiler.scriptCallInstructions_ = 0;
         }
         ~CallDepth()
         {
@@ -4912,10 +4908,11 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
 
     do
     {
-        // the clock is read every 2^20 statements; after a stop every frame of the call returns
-        if (scriptCallAborted_ || ((++scriptStatements_ & 0xFFFFF) == 0 && scriptCallTimeLimitMs_ != 0 &&
-                                   !ScriptCallInTime()))
+        if (++scriptCallInstructions_ > scriptCallLimit_)
+        {
+            StopScripts();
             return false;
+        }
         // A sixth of the tokens only mark the source line and the end of a statement.
         do
         {
@@ -7128,6 +7125,11 @@ bool COMPILER::SaveState(std::vector<char> &image)
     const uint32_t function_code = FuncTab.FindFunc("OnSave");
     if (function_code != INVALID_FUNC_CODE)
         BC_Execute(function_code, pResult);
+    if (!scriptsStopped_.empty())
+    {
+        spdlog::error("The script state is not saved: a script call was cut midway and left it half-made");
+        return false;
+    }
 
     // Serialize into memory only: the caller writes the whole record once (CoreImpl::SetSaveData).
     const auto state = SerializeState();
@@ -7409,17 +7411,17 @@ DATA *COMPILER::CallArgument(const char *func_name, uint32_t index)
     return nullptr;
 }
 
-bool COMPILER::ScriptCallInTime()
+// An endless loop cannot be told from the work it was doing, and the state it leaves is half-made: the call's
+// frames return (AbortExecution) and no script runs again.
+void COMPILER::StopScripts()
 {
-    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-                                                                              scriptCallStart_).count();
-    if (elapsed <= scriptCallTimeLimitMs_)
-        return true;
-    SetError("script call stopped after %lld ms (limit %u ms, engine.ini [script] call_time_limit): an endless loop?",
-             static_cast<long long>(elapsed), scriptCallTimeLimitMs_);
+    SetError("script call stopped after %llu instructions: an endless loop? No script runs after this",
+             static_cast<unsigned long long>(scriptCallLimit_));
     CollectCallStack();
-    scriptCallAborted_ = true;
-    return false;
+    scriptsStopped_ = fmt::format("A game script did not finish and was stopped ({}). The game ends here and nothing "
+                                  "more is saved, so that your saves keep the game as it was before.",
+                                  callStack_.empty() ? "a script event" : std::get<2>(callStack_.back()));
+    AbortExecution();
 }
 
 void COMPILER::CollectCallStack() const

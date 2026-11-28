@@ -164,6 +164,11 @@
 - Загрузка проверяет сохранение целиком до того, как стирает текущую игру: сохранение, сделанное другой программой
   скриптов (другой каталог скриптов или файл скрипта, которого у этой игры нет — чужая игра, изменённый файл),
   отклоняется с сообщением, а игра продолжается. Раньше такое сохранение оставляло движок без скриптов и без меню.
+- Скрипт игры, который не завершается (бесконечный цикл), теперь останавливает игру с сообщением, и после этого
+  ничего не сохраняется. Раньше такой вызов обрывался посередине через 60 секунд, игра шла дальше с наполовину
+  выполненной логикой, и это состояние попадало в автосохранение. Предел считается в выполненных инструкциях
+  скрипта, а не в секундах: медленный диск, пауза в фоне и долгая загрузка его не задевают. Настройка
+  `call_time_limit` в engine.ini больше не читается.
 
 **English**
 
@@ -335,6 +340,10 @@
 - A load checks the whole save before it erases the running game: a save made by another script program (another
   script folder, or a script file this game does not have — another game, an edited file) is refused with a message
   and the game goes on. Such a save used to leave the engine with no scripts and no menu.
+- A game script that does not finish (an endless loop) now stops the game with a message, and nothing is saved
+  after it. Such a call used to be cut midway after 60 seconds, the game went on with half-run logic, and that state
+  reached the autosave. The limit is counted in executed script instructions, not in seconds: a slow disk, a pause
+  in the background or a long load do not touch it. The engine.ini setting `call_time_limit` is no longer read.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

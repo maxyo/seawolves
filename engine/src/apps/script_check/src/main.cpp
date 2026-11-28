@@ -13,7 +13,8 @@
 //
 // test: compiles each script as the main segment and runs every function whose name starts with
 // "test_"; it must return 1 (int) without a runtime error. A "fail_" function must stop with a
-// runtime error within 5 s (the script call time limit is 1 s here). A script whose first line is
+// runtime error within 5 s (a script call may execute 2^24 instructions here; a call stopped at that limit stops
+// the program's scripts for good, so it is its file's only "fail_"). A script whose first line is
 // "// expect-error: <text>" must instead fail to compile with an error containing <text>. A line
 // "// profile: Caribbean Legend" compiles the script with that game profile (default: legacy). --settings: the
 // game's settings folder (its engine.ini, written by natives that keep the player's choices); default none.
@@ -455,7 +456,7 @@ int test(int argc, char **argv)
         COMPILER compiler;
         core_internal.Compiler = &compiler;
         compiler.ConfigureCompileCheck(&diagnostics, true);
-        compiler.SetScriptCallTimeLimit(1000); // fail_* cases loop forever
+        compiler.SetScriptCallLimit(1 << 24); // fail_* cases loop forever
         if (!cache.empty() && expected.empty())
             compiler.UseScriptCache(cache);
         compiler.SetProgramDirectory(".");
