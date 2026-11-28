@@ -106,7 +106,8 @@ Debuggable Android builds log frame costs every 5 s (logcat tag `StormUiFrames`)
 ## Rules for pack and screen authors
 
 - Errors are loud: a template that does not compile (an unknown `<c-…>` tag or function, an attribute a
-  component does not have, a raw `{{{ }}}` insertion) names the template and line and stops the host's start;
+  component does not have, a raw `{{{ }}}` insertion, a path its props' shapes do not have: a misspelt field, a field
+  of a text, a name that is no prop) names the template and line and stops the host's start;
   a prop value of another type or outside its options, an expression that fails (a template path that names
   nothing among them: mark optional data with `opt(r.reason)` or `or(r.id, r_i)`, `src/template.h`) are logged once
   per component and text and mark the element `ui-error` (striped under a `ui-debug` root, `Config::show_errors`);

@@ -1281,8 +1281,20 @@ bool ComponentRegistry::Load(const Json &pack, std::string *error)
             specs_[tag] = std::move(spec);
         }
         // Every template at once, at load: a broken one stops the start instead of failing when a screen reaches it.
+        // All of them are named, not only the first.
+        std::string broken;
         for (const auto &[tag, spec] : specs_)
-            compiled_.emplace(tag, CompileComponent(*spec, [this](const std::string &nested) { return Find(nested); }));
+            try
+            {
+                compiled_.emplace(tag,
+                                  CompileComponent(*spec, [this](const std::string &nested) { return Find(nested); }));
+            }
+            catch (const std::runtime_error &failure)
+            {
+                broken += (broken.empty() ? "" : "\n") + std::string(failure.what());
+            }
+        if (!broken.empty())
+            throw std::runtime_error(broken);
     }
     catch (const std::exception &failure)
     {

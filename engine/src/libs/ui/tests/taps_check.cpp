@@ -167,12 +167,12 @@ int main(int argc, char **argv)
     }
     Expect(begins >= 1 && rows == 3, "the tap map lists the three candidate rows, reachable: " + List(bound.taps));
 
-    // A row its template cannot draw (a path the view does not have): the screen's opening is failed once, as a throw
-    // in its build, not drawn half bound.
-    const Result unbound = Run(base, font, models, app_pack, "id=\"{{o.id}}\" action=\"{{o.nope}}\"", false);
+    // A row its template cannot draw (a field its shape has and this view leaves out, read without opt()): the
+    // screen's opening is failed once, as a throw in its build, not drawn half bound.
+    const Result unbound = Run(base, font, models, app_pack, "id=\"{{o.id}}\" action=\"{{sheet.text}}\"", false);
     Expect(unbound.errors.size() == 1 &&
                unbound.errors[0].find("threw in its view: Component <s-shipyard>") != std::string::npos &&
-               unbound.errors[0].find("'o.nope' is not defined") != std::string::npos,
+               unbound.errors[0].find("'sheet.text' is not defined") != std::string::npos,
            "a screen its components cannot draw fails its opening, once: " + List(unbound.errors));
 
     if (failures)

@@ -1,4 +1,4 @@
-// Component templates, compiled once when the pack loads (CompileTemplate) into a tree of element nodes with
+// Component templates, compiled once when the pack loads (CompileComponent) into a tree of element nodes with
 // expressions attached; components.cpp binds that tree to live elements and runs only the expressions whose
 // inputs changed. The syntax is described in app/mobile-ui/design/README.md.
 //
@@ -10,6 +10,7 @@
 
 #include <bitset>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -76,6 +77,16 @@ struct Scope
     const std::vector<LoopFrame> &loops;
 };
 
+// What a template knows at load of the values its names and loops hold: a spec shape (component_spec.h) per name
+// index and per enclosing loop, null where nothing is known (the host's facts). `names` covers every name there is;
+// `made` keeps the shapes the walk derives (a picture's fields).
+struct Shapes
+{
+    const std::vector<const Json *> &names;
+    const std::vector<const Json *> &loops;
+    std::deque<Json> &made;
+};
+
 struct ExpressionNode;
 class Expression
 {
@@ -89,6 +100,9 @@ class Expression
     static Expression Compile(std::string_view text, TemplateNames &names, const std::vector<std::string> &loops,
                               bool values = false);
     Json Evaluate(const Scope &scope) const;
+    // The shape of the value, null when not known; throws std::runtime_error at a path step its shape does not
+    // have (a misspelt field, a field of a text) or a name that is not a prop.
+    const Json *Shape(const Shapes &shapes) const;
     const Reads &Read() const
     {
         return reads_;
@@ -154,10 +168,6 @@ struct CompiledTemplate
     Reads reads;
 };
 
-// `component`: the spec of a <c-…>/<s-…> tag, null for any other tag. Throws std::runtime_error with the line.
-CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
-                                 const std::function<const ComponentSpec *(const std::string &tag)> &component);
-
 // The host's facts every template reads besides the props (TemplateNames: right after the props).
 enum class SpecName
 {
@@ -177,7 +187,8 @@ struct CompiledComponent
     CompiledTemplate compiled;
     std::vector<std::pair<std::string, Expression>> classes;
 };
-// `component` finds the spec of a nested tag. Throws std::runtime_error naming the component and the line.
+// `component` finds the spec of a nested tag. Every path is checked against the props' shapes. Throws
+// std::runtime_error naming the component and the line.
 CompiledComponent CompileComponent(const ComponentSpec &spec,
                                    const std::function<const ComponentSpec *(const std::string &tag)> &component);
 

@@ -300,9 +300,9 @@ struct ExpressionNode
     Op op = Op::Literal;
     Function function = Function::Or;
     int slot = 0;          // Name: the name's index; Loop*: the loop's depth
-    bool optional = false; // a path inside opt() or or(): it may name nothing in strict mode
+    bool optional = false; // a path inside opt() or or(): it may name nothing
     Json literal;          // Literal; Member: the key; Object: the keys
-    std::string path;      // a path step: the path's text up to it (strict mode's error)
+    std::string path;      // a path step: the path's text up to it (its errors)
     std::vector<std::unique_ptr<ExpressionNode>> args;
 };
 
@@ -469,7 +469,7 @@ class Parser
         return Postfix();
     }
 
-    // The path's text from `start` up to here, for strict mode's error.
+    // The path's text from `start` up to here, for its errors.
     std::string PathText(size_t start) const
     {
         std::string_view path = text_.substr(start, pos_ - start);
@@ -657,7 +657,7 @@ class Parser
             Fail(("unknown function " + name).c_str());
         Node node = Make(Op::Call);
         node->function = found->second;
-        // opt(path) and or(…): explicitly optional, their paths may name nothing (strict mode)
+        // opt(path) and or(…): explicitly optional, their paths may name nothing
         const bool optional = node->function == Function::Or || node->function == Function::Opt;
         optional_ += optional;
         if (!Eat(")"))
@@ -1051,6 +1051,141 @@ Json Expression::Evaluate(const Scope &scope) const
     return Evaluator(scope, text_).Run(*root_).Take();
 }
 
+namespace
+{
+// The walk of an expression over the spec shapes (component_spec.h; a shape's values as screens/script_props.cpp
+// converts them): where a path step leaves its shape, the template is wrong for every value it can be given.
+class ShapeWalk
+{
+  public:
+    ShapeWalk(const Shapes &shapes, const std::string &text) : shapes_(shapes), text_(text)
+    {
+    }
+
+    const Json *Run(const ExpressionNode &node)
+    {
+        switch (node.op)
+        {
+        case Op::Literal:
+        case Op::LoopIndex:
+        case Op::LoopLast:
+            return nullptr;
+        case Op::Name:
+            if (static_cast<size_t>(node.slot) >= shapes_.names.size())
+                Fail("'" + node.path + "' is not a prop");
+            return shapes_.names[static_cast<size_t>(node.slot)];
+        case Op::LoopItem:
+            return shapes_.loops.at(static_cast<size_t>(node.slot));
+        case Op::Member:
+            return Field(Run(*node.args[0]), node.literal.get_ref<const std::string &>(), node.path);
+        case Op::Index: {
+            const Json *base = Structure(Run(*node.args[0]));
+            Run(*node.args[1]);
+            if (base && base->is_array())
+                return Structure(&base->at(0));
+            if (base && base->is_object() && node.args[1]->op == Op::Literal && node.args[1]->literal.is_string())
+                return Field(base, node.args[1]->literal.get_ref<const std::string &>(), node.path);
+            return nullptr;
+        }
+        case Op::Call:
+            return Call(node);
+        case Op::Choose: {
+            Run(*node.args[0]);
+            const Json *yes = Run(*node.args[1]), *no = Run(*node.args[2]);
+            return !yes ? no : !no || *yes == *no ? yes : nullptr;
+        }
+        default:
+            for (const auto &arg : node.args)
+                Run(*arg);
+            return nullptr;
+        }
+    }
+
+    // What a shape holds where a template looks into it: {$null: s} as s, a table cell's {$either: [text, s]} as
+    // s, the converted fields of a picture or a texture, "numbers" as a list. Null stays null.
+    const Json *Structure(const Json *shape)
+    {
+        if (!shape || !shape->is_object() || shape->size() != 1)
+        {
+            if (shape && *shape == "numbers")
+                return &Keep(Json::array({"number"}));
+            if (shape && *shape == "picture")
+                return &Keep(Json{{"kind", "text"}, {"texture", "text"}, {"icon", "text"}, {"enamel", "text"}});
+            if (shape && *shape == "texture")
+                return &Keep(Json{{"texture", "text"}, {"uv", "text"}});
+            return shape;
+        }
+        if (shape->contains("$null"))
+            return Structure(&shape->at("$null"));
+        if (shape->contains("$either"))
+            return Structure(&shape->at("$either").at(1));
+        if (shape->contains("$texture"))
+        {
+            Json fields = shape->at("$texture");
+            fields["texture"] = "text";
+            fields["uv"] = "text";
+            return &Keep(std::move(fields));
+        }
+        return shape;
+    }
+
+  private:
+    [[noreturn]] void Fail(const std::string &what) const
+    {
+        throw std::runtime_error("template expression: " + what + " in '" + text_ + "'");
+    }
+
+    const Json &Keep(Json shape)
+    {
+        return shapes_.made.emplace_back(std::move(shape));
+    }
+
+    const Json *Field(const Json *shape, const std::string &key, const std::string &path)
+    {
+        const Json *base = Structure(shape);
+        if (!base)
+            return nullptr;
+        if (base->is_object())
+        {
+            const auto found = base->find(key);
+            if (found == base->end())
+                Fail("'" + path + "': its shape has no field '" + key + "'");
+            return &*found;
+        }
+        Fail("'" + path + "': its shape is " + (base->is_array() ? std::string("a list") : base->dump()) +
+             ", not fields");
+    }
+
+    const Json *Call(const ExpressionNode &node)
+    {
+        std::vector<const Json *> args;
+        for (const auto &arg : node.args)
+            args.push_back(Run(*arg));
+        switch (node.function)
+        {
+        case Function::Opt:
+        case Function::Or:
+        case Function::Json:
+            return args.empty() ? nullptr : args[0];
+        case Function::Has:
+            if (args.size() == 2 && node.args[1]->op == Op::Literal && node.args[1]->literal.is_string())
+                Field(args[0], node.args[1]->literal.get_ref<const std::string &>(), node.args[0]->path);
+            return nullptr;
+        default:
+            return nullptr;
+        }
+    }
+
+    const Shapes &shapes_;
+    const std::string &text_;
+};
+} // namespace
+
+const Json *Expression::Shape(const Shapes &shapes) const
+{
+    return ShapeWalk(shapes, text_).Run(*root_);
+}
+
 std::string TemplateText::Evaluate(const Scope &scope, bool shown) const
 {
     std::string out = literals[0];
@@ -1090,10 +1225,24 @@ bool IsCodeDrawn(const std::string &tag)
 class TemplateParser
 {
   public:
-    TemplateParser(std::string_view source, TemplateNames &names,
+    TemplateParser(std::string_view source, const ComponentSpec &spec, TemplateNames &names,
                    const std::function<const ComponentSpec *(const std::string &)> &component)
         : s_(source), names_(names), component_(component)
     {
+        static const Json text = "text", flag = "bool", whole = "int", number = "number";
+        for (const PropSpec &prop : spec.props)
+            name_shapes_.push_back(prop.type == PropSpec::Type::Json   ? (prop.shape.is_null() ? nullptr : &prop.shape)
+                                   : prop.type == PropSpec::Type::Bool ? &flag
+                                   : prop.type == PropSpec::Type::Int  ? &whole
+                                   : prop.type == PropSpec::Type::Number ? &number
+                                                                         : &text);
+        name_shapes_.resize(name_shapes_.size() + static_cast<size_t>(SpecName::Count)); // the host's facts
+    }
+
+    // Checks the expression's paths against the shapes; its shape.
+    const Json *Check(const Expression &expression)
+    {
+        return expression.Shape(Shapes{name_shapes_, loop_shapes_, made_});
     }
 
     CompiledTemplate Run()
@@ -1174,6 +1323,7 @@ class TemplateParser
             {
                 text.holes.push_back(
                     Expression::Compile(s_.substr(open + 2, close - open - 2), names_, loops_, values));
+                Check(text.holes.back());
             }
             catch (const std::runtime_error &error)
             {
@@ -1353,7 +1503,9 @@ class TemplateParser
     {
         try
         {
-            return Expression::Compile(text, names_, loops_);
+            Expression expression = Expression::Compile(text, names_, loops_);
+            Check(expression);
+            return expression;
         }
         catch (const std::runtime_error &error)
         {
@@ -1381,6 +1533,10 @@ class TemplateParser
         node.each = ControlExpression(ControlAttribute(attributes, "each", start, true), start);
         node.reads = node.each.Read();
         loops_.push_back(ControlAttribute(attributes, "as", start, true));
+        const Json *each = ShapeWalk(Shapes{name_shapes_, loop_shapes_, made_}, {}).Structure(Check(node.each));
+        if (each && !each->is_array())
+            Fail(start, "<t-for> each: its shape is " + each->dump() + ", not a list");
+        loop_shapes_.push_back(each ? &each->at(0) : nullptr);
         if (const std::string key = ControlAttribute(attributes, "key", start, false); !key.empty())
         {
             node.key = ControlExpression(key, start);
@@ -1388,6 +1544,7 @@ class TemplateParser
         }
         Nodes(node.children, tag, nullptr);
         loops_.pop_back();
+        loop_shapes_.pop_back();
         for (const TemplateNode &child : node.children)
             node.reads |= child.reads;
     }
@@ -1445,16 +1602,12 @@ class TemplateParser
     TemplateNames &names_;
     const std::function<const ComponentSpec *(const std::string &)> &component_;
     std::vector<std::string> loops_;
+    std::vector<const Json *> name_shapes_, loop_shapes_;
+    std::deque<Json> made_;
     size_t pos_ = 0;
 };
 
 } // namespace
-
-CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
-                                 const std::function<const ComponentSpec *(const std::string &tag)> &component)
-{
-    return TemplateParser(source, names, component).Run();
-}
 
 CompiledComponent CompileComponent(const ComponentSpec &spec,
                                    const std::function<const ComponentSpec *(const std::string &tag)> &component)
@@ -1467,9 +1620,13 @@ CompiledComponent CompileComponent(const ComponentSpec &spec,
         out.names.Add(name);
     try
     {
-        out.compiled = CompileTemplate(spec.body, out.names, component);
+        TemplateParser parser(spec.body, spec, out.names, component);
+        out.compiled = parser.Run();
         for (const auto &[name, rule] : spec.class_rules)
+        {
             out.classes.emplace_back(name, Expression::Compile(rule, out.names, {}));
+            parser.Check(out.classes.back().second);
+        }
     }
     catch (const std::runtime_error &error)
     {

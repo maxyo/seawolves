@@ -284,6 +284,29 @@ static void Specs(const Json &scope)
         threw = true;
     }
     Expect(threw, "unknown prop type refused");
+    // A template path is checked against its prop's shape at load, through a loop and a nested component's prop.
+    const auto shaped = [](const std::string &body) {
+        const auto spec = storm::ui::ParseComponentSpec(
+            Json{{"tag", "c-s"}, {"template", body}, {"props", Json::parse(R"({"title":{"type":"text"},
+                "list":{"type":"json","shape":{"$null":{"label":"text","rows":[{"name":"text"}]}}}})")}});
+        try
+        {
+            storm::ui::CompileComponent(*spec,
+                                        [&](const std::string &tag) { return tag == "c-s" ? spec.get() : nullptr; });
+            return std::string();
+        }
+        catch (const std::exception &error)
+        {
+            return std::string(error.what());
+        }
+    };
+    Expect(shaped("<t-for each=\"list.rows\" as=\"r\"><c-s title=\"{{ r.name }}\"/></t-for>{{ list.label }}").empty(),
+           "paths the shape has compile");
+    Expect(!shaped("<t-for each=\"list.rows\" as=\"r\"><c-s title=\"{{ r.nam }}\"/></t-for>").empty(),
+           "a misspelt field of a loop's row fails at load");
+    Expect(!shaped("{{ opt(list.labl) }}").empty(), "a misspelt field fails at load also where it may be absent");
+    Expect(!shaped("{{ title.text }}").empty(), "a field of a text prop fails at load");
+    Expect(!shaped("{{ titel }}").empty(), "a name that is no prop fails at load");
     Expect(storm::ui::IsGenericAttribute("id") && storm::ui::IsGenericAttribute("data-action") &&
                !storm::ui::IsGenericAttribute("colour"),
            "generic attributes");
