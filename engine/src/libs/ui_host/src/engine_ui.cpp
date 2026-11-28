@@ -182,7 +182,9 @@ void EngineUi::OnAction(const storm::ui::Action &action)
         in_action_ = true;
         TraceInput("action", action.screen + " " + action.node + " " + action.verb + " request " +
                                  std::to_string(action.request));
-        if (action.screen != screen_)
+        if (action.screen == "dialogue") // the game's dialogue, not an interface: libs/dialog takes the reply
+            storm::android::dialogueActions.push_back(action);
+        else if (action.screen != screen_)
             Answer(action.request, false, "the interface " + action.screen + " is not open");
         else
             storm::android::uiWidgetActions.push_back(action);

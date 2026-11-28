@@ -1,12 +1,12 @@
 {
   "tag": "s-dialogue",
-  "doc": "Dialogue over the game (state channel `dialogue`, dialogue.cpp): speaker, the speech a page at a time, replies in two columns with its final page, the menu button, and the answer editor of a reply the player types: text (parchment, keyboard through the IME bridge) or an amount (the blue number panel with C-Quantity).",
+  "doc": "Dialogue over the game (the engine's model of the game's dialogue), filled by the script interface/touch/screens/dialogue.c: speaker, the speech a page at a time, replies in two columns with its final page, the menu button; a reply the player types opens the phone's text editor.",
   "props": {
     "speaker": {"type": "text", "default": ""},
     "text": {"type": "text", "default": ""},
     "page": {"type": "int", "default": 0},
-    "replies": {"type": "json", "default": []},
-    "edit": {"type": "json", "default": null},
+    "replies": {"type": "json", "default": [],
+                "shape": [{"id": "text", "title": "text", "pressed": "bool", "meta": "text", "metaTone": "text"}]},
     "extras": {"type": "json", "default": {}}
   }
 }

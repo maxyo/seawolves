@@ -339,18 +339,27 @@ class Session
     // text editor is cancelled.
     void AnswerAll()
     {
-        bool applied = false;
+        bool applied = false, replied = false;
         for (; answered_ < observed_.actions.size(); ++answered_)
-            if (observed_.actions[answered_].request && observed_.actions[answered_].screen == model.screen)
+            if (const Action &action = observed_.actions[answered_]; action.request && action.screen == model.screen)
             {
-                host_->Answer(observed_.actions[answered_].request, true, {});
+                host_->Answer(action.request, true, {});
                 applied = true;
+            }
+            else if (action.request && action.screen == "dialogue")
+            {
+                host_->Answer(action.request, true, {});
+                replied = true;
             }
         if (applied)
         {
             ++model.revision;
             host_->SetInterface(model);
         }
+        // The dialogue's model is the engine's, of its state: the game's answer to a reply is the same node again.
+        for (const auto &[channel, file] : case_.states)
+            if (replied && channel == "dialogue")
+                host_->SetState(channel, StateText(file));
         for (; cancelled_ < observed_.texts.size(); ++cancelled_)
             host_->SubmitText(observed_.texts[cancelled_].token, {}, false);
         Frames(0.1);
@@ -871,7 +880,11 @@ class Crawler
                 record["widget"] = true;
                 const Widget *widget = session_->model.Find(action.node);
                 record["type"] = widget ? widget->type : std::string();
-                if (const std::string wrong = CheckAction(session_->model, action); !wrong.empty())
+                // A reply is checked against the dialogue's model by the router's checks (ui_screens): the session
+                // holds the game interface's model only.
+                if (const std::string wrong =
+                        action.screen == "dialogue" ? std::string() : CheckAction(session_->model, action);
+                    !wrong.empty())
                     Finding(next, "screen " + action.screen + ": " + tap.key + " " + wrong);
             }
             else if (!command.empty() &&

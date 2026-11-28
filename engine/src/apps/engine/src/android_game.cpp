@@ -152,8 +152,8 @@ void AndroidGame::AfterEvents(uint64_t inputEpoch)
     if (!android::inputCurrent(inputEpoch, android::inputEpoch.now()))
     {
         Block("paused");
-        android::refuseUiWidgetActions("the input went off before it was applied");
-        android::dialogueActions.clear();
+        android::refuseActions(android::uiWidgetActions, "the input went off before it was applied");
+        android::refuseActions(android::dialogueActions, "the input went off before it was applied");
     }
     else if (!lifecycle_.canRun() || !android::mobileScreen.empty() || android::loadingState != 0)
         Block(NotReady());

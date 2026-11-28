@@ -117,10 +117,10 @@ inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall
 }
 #endif
 inline uint64_t mobileScreenRevision = 1;
-inline std::deque<std::string> dialogueActions;
-// The touch UI's widget actions for the open interface, as the UI made them (XINTERFACE::DoControl applies them).
-// Every one is answered (ui::answer); request 0 = nobody waits for the answer.
-inline std::deque<storm::ui::Action> uiWidgetActions;
+// The touch UI's widget actions for the open interface, as the UI made them (XINTERFACE::DoControl applies them), and
+// for the dialogue (a reply, a typed answer: libs/dialog takeDialogueChoice). Every one is answered (ui::answer);
+// request 0 = nobody waits for the answer.
+inline std::deque<storm::ui::Action> uiWidgetActions, dialogueActions;
 inline std::string contextAction, requestedContextAction;
 inline int cinematicState = -1;
 // The game's death picture is up (xinterface info_handler.cpp): the death screen's choice may
@@ -481,12 +481,12 @@ inline void publishCinematic(bool active)
 #endif
 }
 
-// The interface's widget actions still queued are not applied: each is answered as refused.
-inline void refuseUiWidgetActions(const char *reason)
+// Widget actions still queued that are not applied: each is answered as refused.
+inline void refuseActions(std::deque<storm::ui::Action> &queued, const char *reason)
 {
-    for (const auto &action : uiWidgetActions)
+    for (const auto &action : queued)
         ui::answer(action.request, false, reason);
-    uiWidgetActions.clear();
+    queued.clear();
 }
 inline void showMobileScreen(const std::string &name, double release_ms = 0.0, double load_ms = 0.0)
 {
@@ -504,7 +504,8 @@ inline void showMobileScreen(const std::string &name, double release_ms = 0.0, d
         spdlog::info("Start at the main menu: interface {} opened", screen);
     }
     ++mobileScreenRevision;
-    refuseUiWidgetActions("the interface changed before it was applied"); // queued for the interface that went away
+    refuseActions(uiWidgetActions,
+                  "the interface changed before it was applied"); // queued for the interface that went away
     ui::screen(screen, mobileScreenRevision, release_ms, load_ms);
 #ifdef __ANDROID__
     if (!CallActivity(upcall::GameActivity::showMobileScreen, [&](JNIEnv *env, jobject activity, jmethodID method) {

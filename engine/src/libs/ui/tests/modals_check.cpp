@@ -140,14 +140,6 @@ static std::vector<Case> Cases()
          },
          "modal",
          {"answer-1", "click", ""}},
-        {"dialogue amount editor (quantity)",
-         [](Router &router) {
-             std::ifstream state(fs::path(models) / "dialogue-edit.json", std::ios::binary);
-             router.SetState("dialogue", Json::parse(state, nullptr, false));
-             router.OnEvent({"reply-0", "click", ""});
-         },
-         "edit",
-         {"edit-cancel", "click", ""}},
         {"hero subject list",
          [](Router &router) {
              Interface(router, "hero.json");

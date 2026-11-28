@@ -983,20 +983,6 @@ void DIALOG::UpdateDlgViewport()
 }
 
 #ifdef STORM_TOUCH_UI
-std::optional<int64_t> storm::android::dialogueHeroMoney()
-{
-    auto *index = static_cast<VDATA *>(core.GetScriptVariable("nMainCharacterIndex"));
-    auto *characters = static_cast<VDATA *>(core.GetScriptVariable("Characters"));
-    if (!index || !characters || index->GetInt() < 0) return std::nullopt;
-    auto *hero = characters->GetAClass(index->GetInt());
-    const char *money = hero ? hero->GetAttribute("Money") : nullptr;
-    if (!money || !*money) return std::nullopt;
-    char *end = nullptr;
-    const long long value = std::strtoll(money, &end, 10);
-    if (end == money || value < 0) return std::nullopt;
-    return value;
-}
-
 const char *storm::android::gameLanguage()
 {
     auto *strings = static_cast<VSTRSERVICE *>(core.GetService("STRSERVICE"));

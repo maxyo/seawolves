@@ -26,7 +26,7 @@
     "archive_status: the codes the archive reader returns (NativeArchives), by name: the C enum of",
     "  android/archive/storm_archive.h (STORM_ARCHIVE_<name>) and the application's ArchiveStatus are generated from it."
   ],
-  "engine_commands": ["back", "dialogue:", "main:", "quick:", "uisound:press", "game_over:END"],
+  "engine_commands": ["back", "main:", "quick:", "uisound:press", "game_over:END"],
   "hud_host_input": {
     "shortcut": ["mainmenu", "character", "characterscreen", "shipscreen", "journalscreen", "itemsscreen"],
     "presence": ["hidden", "menu", "shown"]

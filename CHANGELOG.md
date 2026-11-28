@@ -11,6 +11,9 @@
 - Выбор в боевом интерфейсе (приказ в море, строка действий на суше, команда на карте, положение парусов)
   остаётся нажатым, пока игра не ответила: раньше он гас через полторы секунды, даже если игра ещё выполняла
   команду, и висел до полутора секунд после её отказа.
+- Ответ в диалоге остаётся нажатым, пока игра его не приняла или не отказала: раньше отметка гасла через полторы
+  секунды. Ответ, который игрок вводит сам (имя, ставка), открывает обычный ввод текста с предложением игры;
+  сумма больше не ограничивается деньгами героя — её проверяет сама игра.
 - Выстрел с палубы по вражескому кораблю больше не считается нападением на корабль с неизвестными отношениями, а
   выстрел по нейтральному — выстрелом по врагу.
 - Блок больше не спасает от удара в спину: удар сзади (дальше 150° от взгляда защищающегося) пробивает блок.
@@ -161,6 +164,9 @@
 - A choice in the HUD (a sea order, a row of land actions, a world map command, the sails' position) stays
   pressed until the game answers: it used to go out after a second and a half even while the game was still
   carrying the command out, and to stay for up to a second and a half after a refusal.
+- A dialogue reply stays pressed until the game takes or refuses it: the mark used to go out after a second and a
+  half. A reply the player types (a name, a bet) opens the text editor with the game's proposal; an amount is no
+  longer capped at the hero's money: the game checks it itself.
 - A shot aimed from the deck at an enemy ship no longer counts as an attack on a ship of unknown relation, nor a shot
   at a neutral one as a shot at an enemy.
 - A block no longer stops a blow from behind: a strike from more than 150° off the defender's facing breaks it.

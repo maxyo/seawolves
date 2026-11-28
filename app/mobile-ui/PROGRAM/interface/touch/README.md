@@ -58,7 +58,8 @@ is provided, else `"0"` with a warning at attach, and the segment attaches eithe
   the top-level `nodeSets`; `data` is what the adapter reads per capability (the trade windows' columns). A binding
   whose interface or required nodes the game lacks is off alone, the provider and its other bindings stay. A binding with
   `"engine": true` is of an interface whose model the engine makes itself (`game_over`, of the game's death
-  picture): it is not looked up in the game's interface table.
+  picture; `dialogue`, of the game's dialogue: a reply is a widget action of that model, answered like any other):
+  it is not looked up in the game's interface table.
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
 

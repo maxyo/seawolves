@@ -7,7 +7,6 @@
 namespace storm::ui::screens
 {
 
-std::unique_ptr<Screen> CreateDialogueScreen();
 std::unique_ptr<StateConsumer> CreateDialogueConsumer();
 std::unique_ptr<StateConsumer> CreateAppSettingsConsumer();
 std::unique_ptr<StateConsumer> CreateRenderCapsConsumer();
@@ -26,7 +25,6 @@ namespace
 
 const ScreenEntry kPorted[] = {
     {"goodstransfer", CreateGoodsOrderScreen},
-    {"dialogue", CreateDialogueScreen},
     // The application's own screens, routed from the platform host's "launcher" channel; the
     // "app:" prefix keeps them apart from game interfaces (ids are ini stems, e.g. "about").
     {"app:launcher", CreateLauncherScreen},

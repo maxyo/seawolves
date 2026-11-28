@@ -69,6 +69,7 @@
     {"file": "interface/touch/contracts/saves.c"},
     {"file": "interface/touch/contracts/goods_sections.c"},
     {"file": "interface/touch/contracts/settings.c"},
+    {"file": "interface/touch/contracts/dialogue.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -828,6 +829,18 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/dialogue.c",
+      "provides": ["adapter:dialogue"],
+      "binds": [
+        {
+          "capability": "dialogue", "interface": "dialogue", "engine": true,
+          "nodes": [
+            ["SPEAKER", "heading"], ["TEXT", "text"], ["REPLY", "choice"], ["INPUT", "edit"], ["EDIT_ERROR", "text"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -1034,6 +1047,11 @@
       "file": "interface/touch/screens/settings.c",
       "uses": ["adapter:settings"],
       "screens": [{"capability": "settings", "component": "s-settings"}]
+    },
+    {
+      "file": "interface/touch/screens/dialogue.c",
+      "uses": ["adapter:dialogue"],
+      "screens": [{"capability": "dialogue", "component": "s-dialogue"}]
     },
     {
       "file": "interface/touch/hud/world_map.c",

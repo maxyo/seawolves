@@ -20,11 +20,8 @@ std::string EngineCommand(const Action &action)
         return "uisound:" + action.verb;
     if (action.command) // HUD input
         return hud::to_string(*action.command);
-    if (action.screen == "dialogue") // reply: "<generation>:<index>"; edit: the typed reply text; no back
-        return action.verb == "back"   ? std::string()
-               : action.verb == "edit" ? "dialogue:" + std::to_string(action.opening) + ":" +
-                                             std::to_string(action.index) + ":" + action.value
-                                       : "dialogue:" + action.value;
+    if (action.screen == "dialogue") // only a reply ends the game's dialogue: its back goes nowhere
+        return {};
     if (action.screen == "mainmenu") // the title screen's commands: "main:New", "main:Load", …
         return action.verb == "back" ? "back" : "main:" + action.node;
     if (action.screen == "game_over" && !action.node.empty()) // the death screen's choice ends the death picture
@@ -39,7 +36,7 @@ std::string EngineCommand(const Action &action)
 bool AnsweredAction(const Action &action)
 {
     return !action.screen.empty() && !action.node.empty() && action.screen != "sound" && action.screen != "hud" &&
-           action.screen != "dialogue" && action.screen != "mainmenu" && action.screen != "game_over" &&
+           action.screen != "mainmenu" && action.screen != "game_over" &&
            action.screen.rfind("app:", 0) != 0; // the launcher's screens: the application's own host
 }
 
@@ -68,10 +65,9 @@ namespace storm::ui::screens
 namespace
 {
 
-constexpr double kPendingSeconds =
-    1.5;                               // a press that sent no widget action (back, a dialogue reply) stops looking busy
-constexpr double kAnswerSeconds = 5.0; // a widget action the engine has not answered by then is an error
-constexpr double kFlushSeconds = 0.12; // drags reach the engine at most this often
+constexpr double kPendingSeconds = 1.5; // a press that sent no widget action (back) stops looking busy
+constexpr double kAnswerSeconds = 5.0;  // a widget action the engine has not answered by then is an error
+constexpr double kFlushSeconds = 0.12;  // drags reach the engine at most this often
 // The game publishes an interface while its script is still filling it (the store's first
 // revision has no goods yet). For this long after an opening a rejected model is not drawn
 // and not reported; a newer revision that passes admission shows the ported screen.

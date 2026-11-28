@@ -68,7 +68,7 @@ void alert(std::string string_key);
 void attachScripts();
 void tick(uint64_t input_epoch);
 // A command of the UI: the HUD's (storm_ui/hud_command.h), or the text one of a game interface's screen
-// ("main:Load", "dialogue:…", "back").
+// ("main:Load", "back").
 using Command = std::variant<storm::ui::hud::Command, std::string>;
 // The commands the UI produced since the last call, oldest first; a latest-value slot (a stick position)
 // appears once, with its newest command.

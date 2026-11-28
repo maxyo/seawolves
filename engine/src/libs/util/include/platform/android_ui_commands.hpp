@@ -13,7 +13,6 @@ enum class UiCommand
     PressSound,  // a press started on a game interface: the scripts' click
     Title,       // the title screen's choice
     Quick,       // the pause menu's quick save or load, after the menu closed
-    Dialogue,    // a dialogue's choice or text
     GameOverEnd, // the death screen's choice: end the death picture
 };
 
@@ -24,12 +23,11 @@ struct UiCommandName
     bool prefix;
 };
 
-inline constexpr std::array<UiCommandName, 6> kUiCommands{{
+inline constexpr std::array<UiCommandName, 5> kUiCommands{{
     {UiCommand::Back, "back", false},
     {UiCommand::PressSound, "uisound:press", false},
     {UiCommand::Title, "main:", true},
     {UiCommand::Quick, "quick:", true},
-    {UiCommand::Dialogue, "dialogue:", true},
     {UiCommand::GameOverEnd, "game_over:END", false},
 }};
 

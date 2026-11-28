@@ -27,7 +27,7 @@ Dialogue Speech(uint64_t generation, const char *text)
     dialogue.generation = generation;
     dialogue.speaker = "Ростовщик";
     dialogue.text = text;
-    dialogue.choices = {{0, "Сколько?", true, 9}, {1, "Прощай."}};
+    dialogue.choices = {{0, "Сколько?", true}, {1, "Прощай."}};
     return dialogue;
 }
 } // namespace

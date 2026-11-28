@@ -186,10 +186,6 @@ void DispatchUiCommand(const std::string &text, storm::android::QuickGame &quick
         if (!quickGame.offer(parsed->argument, SDL_GetTicks()))
             spdlog::error("pause menu: unknown quick command {}", text);
         break;
-    case UiCommand::Dialogue:
-        if (storm::android::dialogueActions.size() < 8)
-            storm::android::dialogueActions.emplace_back(parsed->argument);
-        break;
     case UiCommand::GameOverEnd:
         // The game's own end of the death picture (interface.c StartPictureAsVideo -> PictureAsVideoBreak) goes on
         // to its title screen, as after the picture's time.

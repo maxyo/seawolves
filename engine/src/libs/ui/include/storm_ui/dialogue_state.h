@@ -13,13 +13,12 @@ namespace storm::ui
 struct Dialogue
 {
     // A reply the player can choose; `index` is its link in the dialogue node. An editable one is answered with typed
-    // text of at most `max_code_points`.
+    // text (the engine checks it: android_dialogue_input.hpp).
     struct Choice
     {
         int index = 0;
         std::string text;
         bool editable = false;
-        int max_code_points = 256;
         bool operator==(const Choice &) const = default;
     };
     // The engine refused a typed answer to the reply `index`: its code (too_long, invalid_text, unavailable).
@@ -33,7 +32,6 @@ struct Dialogue
     uint64_t generation = 0;
     std::string language, speaker, text; // the game's texts as its scripts hold them
     std::vector<Choice> choices;
-    std::optional<long long> money; // the hero's money, the most a typed amount offers; none when unknown
     std::optional<Refusal> refusal;
     bool operator==(const Dialogue &) const = default;
 };

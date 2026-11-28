@@ -1,0 +1,529 @@
+{
+ "$comment": "The dialogue's script on the engine's models of the game's dialogue (screens/dialogue.cpp makes them of the Dialogue struct): the props its view gives s-dialogue, the modals it binds and what its events send.",
+ "cases": [
+  {
+   "name": "a tavern keeper's greeting: a reply chosen goes to the engine by its link and waits for its answer; «next» turns the page",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 4,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "Жак Бернар, хозяин таверны",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "Чем могу служить, капитан? Ром свежий, новости — тоже.",
+      "index": -1
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Что слышно в городе?",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Мне нужна команда.",
+      "index": 1,
+      "rowId": "1",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Прощай.",
+      "index": 2,
+      "rowId": "2",
+      "actions": [
+       "reply"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "Что слышно в городе?"
+     },
+     {
+      "id": "reply-1",
+      "pressed": false,
+      "title": "Мне нужна команда."
+     },
+     {
+      "id": "reply-2",
+      "pressed": false,
+      "title": "Прощай."
+     }
+    ],
+    "speaker": "Жак Бернар, хозяин таверны",
+    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+   },
+   "modals": [],
+   "events": [
+    [
+     "reply-1",
+     "click",
+     ""
+    ],
+    [
+     "dialogue-next",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send REPLY#1 reply ",
+    "hold",
+    "rebuild"
+   ],
+   "after": {
+    "page": 1,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "Что слышно в городе?"
+     },
+     {
+      "id": "reply-1",
+      "pressed": false,
+      "title": "Мне нужна команда."
+     },
+     {
+      "id": "reply-2",
+      "pressed": false,
+      "title": "Прощай."
+     }
+    ],
+    "speaker": "Жак Бернар, хозяин таверны",
+    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+   }
+  },
+  {
+   "name": "a reply still waiting for the engine looks pressed",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 4,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "Жак Бернар, хозяин таверны",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "Чем могу служить, капитан? Ром свежий, новости — тоже.",
+      "index": -1
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Что слышно в городе?",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Мне нужна команда.",
+      "index": 1,
+      "rowId": "1",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Прощай.",
+      "index": 2,
+      "rowId": "2",
+      "actions": [
+       "reply"
+      ]
+     }
+    ]
+   },
+   "pending": [
+    "reply-1"
+   ],
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "Что слышно в городе?"
+     },
+     {
+      "id": "reply-1",
+      "pressed": true,
+      "title": "Мне нужна команда."
+     },
+     {
+      "id": "reply-2",
+      "pressed": false,
+      "title": "Прощай."
+     }
+    ],
+    "speaker": "Жак Бернар, хозяин таверны",
+    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+   },
+   "modals": [],
+   "events": [],
+   "calls": []
+  },
+  {
+   "name": "a ship's name: the typed reply opens the phone's editor over the game's proposal",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 9,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "Хозяин верфи",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "Как назовёте корабль?",
+      "index": -1
+     },
+     {
+      "node": "INPUT",
+      "type": "edit",
+      "label": "",
+      "index": 0,
+      "value": "Аделина",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Аделина",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Пожалуй, позже.",
+      "index": 1,
+      "rowId": "1",
+      "actions": [
+       "reply"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "Аделина"
+     },
+     {
+      "id": "reply-1",
+      "pressed": false,
+      "title": "Пожалуй, позже."
+     }
+    ],
+    "speaker": "Хозяин верфи",
+    "text": "Как назовёте корабль?"
+   },
+   "modals": [],
+   "events": [
+    [
+     "reply-0",
+     "click",
+     ""
+    ],
+    [
+     "reply-1",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "edit-text INPUT <dialogue.input>",
+    "send REPLY#1 reply ",
+    "hold"
+   ]
+  },
+  {
+   "name": "the engine refused the typed name: the reply says why",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 9,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "Хозяин верфи",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "Как назовёте корабль?",
+      "index": -1
+     },
+     {
+      "node": "INPUT",
+      "type": "edit",
+      "label": "",
+      "index": 0,
+      "value": "Аделина",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Аделина",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Пожалуй, позже.",
+      "index": 1,
+      "rowId": "1",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "EDIT_ERROR",
+      "type": "text",
+      "label": "too_long",
+      "index": 0,
+      "context": {
+       "revision": "2"
+      }
+     }
+    ]
+   },
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "Аделина",
+      "meta": "<dialogue.too_long>",
+      "metaTone": "danger"
+     },
+     {
+      "id": "reply-1",
+      "pressed": false,
+      "title": "Пожалуй, позже."
+     }
+    ],
+    "speaker": "Хозяин верфи",
+    "text": "Как назовёте корабль?"
+   },
+   "modals": [],
+   "events": [],
+   "calls": []
+  },
+  {
+   "name": "a bet: the typed reply opens the phone's editor, nothing of ours caps the amount",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 11,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "Завсегдатай таверны",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "Ну, говори, сколько ставишь? (введите сумму ставки).",
+      "index": -1
+     },
+     {
+      "node": "INPUT",
+      "type": "edit",
+      "label": "",
+      "index": 0,
+      "value": "100",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "100",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "edit"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "Нет, в другой раз.",
+      "index": 2,
+      "rowId": "2",
+      "actions": [
+       "reply"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "100"
+     },
+     {
+      "id": "reply-2",
+      "pressed": false,
+      "title": "Нет, в другой раз."
+     }
+    ],
+    "speaker": "Завсегдатай таверны",
+    "text": "Ну, говори, сколько ставишь? (введите сумму ставки)."
+   },
+   "modals": [],
+   "events": [
+    [
+     "reply-0",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "edit-text INPUT <dialogue.input>"
+   ]
+  },
+  {
+   "name": "an empty reply says what it does",
+   "capability": "dialogue",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "opening": 5,
+    "screen": "dialogue",
+    "widgets": [
+     {
+      "node": "SPEAKER",
+      "type": "heading",
+      "label": "A",
+      "index": -1
+     },
+     {
+      "node": "TEXT",
+      "type": "text",
+      "label": "one\ntwo",
+      "index": -1
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": " ",
+      "index": 0,
+      "rowId": "0",
+      "actions": [
+       "reply"
+      ]
+     },
+     {
+      "node": "REPLY",
+      "type": "choice",
+      "label": "x",
+      "index": 2,
+      "rowId": "2",
+      "actions": [
+       "reply"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "page": 0,
+    "replies": [
+     {
+      "id": "reply-0",
+      "pressed": false,
+      "title": "<dialogue.continue>"
+     },
+     {
+      "id": "reply-2",
+      "pressed": false,
+      "title": "x"
+     }
+    ],
+    "speaker": "A",
+    "text": "one\ntwo"
+   },
+   "modals": [],
+   "events": [],
+   "calls": []
+  }
+ ]
+}

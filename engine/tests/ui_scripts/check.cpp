@@ -1175,3 +1175,8 @@ TEST_CASE("cost of the probe on a game", "[game]")
     compiler.Release();
     core_internal.Compiler = nullptr;
 }
+
+TEST_CASE("the dialogue's script gives the pack screen the props and actions of the engine's dialogue models")
+{
+    CheckCases("dialogue", "dialogue");
+}

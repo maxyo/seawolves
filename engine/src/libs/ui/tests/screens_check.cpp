@@ -1873,28 +1873,56 @@ static Json LoadJson(const std::string &directory, const char *name)
     return Json::parse(file, nullptr, false);
 }
 
-namespace storm::ui::screens
+// The reply the dialogue's script sent last: a widget action of the dialogue's model (its opening the generation).
+static bool Replied(const FakeSurface &surface, uint64_t generation, const char *node, int index, const char *verb,
+                    const std::string &value = "")
 {
-std::string DialogueAnswerError(const std::string &text, int max_code_points);
+    if (surface.actions.empty())
+        return false;
+    const Action &sent = surface.actions.back();
+    return sent.screen == "dialogue" && sent.node == node && sent.opening == generation && sent.index == index &&
+           sent.verb == verb && sent.value == value && sent.request != 0;
 }
 
 static void DialogueChannel(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetState("dialogue", LoadJson(models, "dialogue.json"));
     ExpectEqual(surface.tag, "s-dialogue", "dialogue channel mounts the dialogue");
+    ExpectEqual(router.Using(), "dialogue", "the dialogue's script screen draws it");
     ExpectEqual(surface.language, "russian", "the dialogue speaks the language the engine sends with it");
-    Expect(surface.props["replies"].size() == 3 && !surface.props["replies"][0].contains("hold"),
-           "replies listed; their long-press text is the panel's matter, not the screen's");
-    Expect(surface.props["page"] == 0 && surface.props["edit"].is_null(),
-           "the speech starts on its first page, no editor");
+    Expect(surface.props["replies"].size() == 3 && surface.props["replies"][1]["id"] == "reply-1" &&
+               !surface.props["replies"][0].contains("hold"),
+           "replies listed by their link; their long-press text is the panel's matter, not the screen's");
+    Expect(surface.props["page"] == 0 && surface.props["edit"].is_null(), "the speech starts on its first page");
     router.OnEvent({"reply-1", "click", ""});
-    ExpectEqual(surface.Last(), "dialogue:4:1", "reply goes back with its generation");
+    Expect(Replied(surface, 4, "REPLY", 1, "reply"),
+           "the reply goes back by its link with its generation: " + surface.Last());
+    router.Tick(); // the held view is built in the frame after the tap
     Expect(surface.props["replies"][1]["pressed"] == true, "the reply sent looks busy until the engine answers");
+    // The mark is the request's: no time ends it, the engine's answer and the next node do.
+    surface.now = 4.0;
+    router.Tick();
+    Expect(surface.props["replies"][1]["pressed"] == true && surface.errors.empty(),
+           "an unanswered reply stays marked past the old 1.5 s");
+    AnswerAll(router, surface, false, "a reply to a dialogue node no longer shown");
+    Expect(surface.props["replies"][1]["pressed"] == false, "a refused reply is free again at once");
+    router.OnEvent({"reply-2", "click", ""});
+    AnswerAll(router, surface, true);
+    router.Tick();
+    Expect(surface.props["replies"][2]["pressed"] == true, "an applied reply stays marked until its node arrives");
+    Json next = LoadJson(models, "dialogue.json");
+    next["generation"] = 5;
+    router.SetState("dialogue", next);
+    Expect(surface.props["replies"][2]["pressed"] == false && surface.errors.empty(),
+           "the next node is a new opening: nothing pressed");
     router.OnEvent({"dialogue-next", "click", ""});
     Expect(surface.props["page"] == 1, "«next» turns the page (the pager clamps at the last one)");
     Expect(!router.WantsBack(), "without an editor the back key stays the host's");
+    router.Back();
+    Expect(surface.Last().empty(), "the dialogue's back goes nowhere: only a reply ends it");
     router.SetState("dialogue", Json{{"active", false}});
     Expect(surface.tag.empty(), "inactive dialogue unmounts");
     router.SetState("weather", Json::object());
@@ -1905,7 +1933,7 @@ static void DialogueChannel(const std::string &models)
     // Texts with the game's escaped line breaks, and an empty reply.
     router.SetState("dialogue",
                     Json{{"active", true},
-                         {"generation", 5},
+                         {"generation", 6},
                          {"speaker", "A"},
                          {"text", "one\\ntwo\\r"},
                          {"choices", Json::array({Json{{"index", 0}, {"text", " "}}, Json{{"index", 2}, {"text", "x"}},
@@ -1920,7 +1948,7 @@ static void DialogueChannel(const std::string &models)
     const Json shown = surface.props;
     storm::ui::Dialogue typed;
     typed.active = true;
-    typed.generation = 5;
+    typed.generation = 6;
     typed.speaker = "A";
     typed.text = "one\\ntwo\\r";
     typed.choices = {{0, " "}, {2, "x"}};
@@ -1938,6 +1966,7 @@ static void DialogueOverClosingInterface(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "itemsbox.json"));
     ExpectEqual(router.Model().screen, "itemsbox", "the chest is open");
     router.SetState("dialogue", LoadJson(models, "dialogue.json"));
@@ -1949,7 +1978,7 @@ static void DialogueOverClosingInterface(const std::string &models)
                surface.logs.back().find("interface itemsbox closed under the dialogue screen") != std::string::npos,
            "and says so in the log");
     router.OnEvent({"reply-0", "click", ""});
-    ExpectEqual(surface.Last(), "dialogue:4:0", "its reply still answers the dialogue");
+    Expect(Replied(surface, 4, "REPLY", 0, "reply"), "its reply still answers the dialogue");
 
     // A game interface the dialogue's script opens over it: when it closes, the dialogue the
     // engine still holds comes back (the engine sends a node once).
@@ -1971,108 +2000,57 @@ static void DialogueText(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetState("dialogue", LoadJson(models, "dialogue-edit.json"));
     router.OnEvent({"reply-0", "click", ""});
-    Expect(surface.commands.empty(), "a reply the player types opens the editor instead of answering");
-    Expect(surface.props["edit"]["kind"] == "text" && surface.props["edit"]["value"] == "Аделина" &&
-               surface.props["edit"]["error"] == "",
-           "the text editor proposes the reply's text");
-    Expect(router.WantsBack(), "the back key closes the editor");
-    router.OnEvent({"edit-field", "focus", ""});
-    Expect(surface.text.text == "Аделина" && !surface.text.numeric && !surface.text.token.empty(),
-           "the field opens the keyboard with the draft");
+    Expect(surface.actions.empty() && surface.props["edit"].is_null(),
+           "a reply the player types opens the phone's editor instead of answering");
+    Expect(surface.text.text == "Аделина" && !surface.text.numeric && !surface.text.token.empty() &&
+               surface.text.title == "<dialogue.input>",
+           "the editor proposes the reply's text");
     router.SubmitText(surface.text.token, "Мария", true);
-    ExpectEqual(surface.Last(), "dialogue:9:0:Мария", "the keyboard's «Done» sends the typed answer");
-    Expect(surface.props["edit"]["actions"][1]["disabled"] == true, "«Done» waits for the engine's answer");
-    router.OnEvent({"edit-done", "click", ""});
-    Expect(surface.commands.size() == 1, "nothing goes twice while the engine decides");
+    Expect(Replied(surface, 9, "INPUT", 0, "edit", "Мария"), "the keyboard's «Done» sends the typed answer");
 
+    // The engine refuses it (its limits are checked where the answer enters the engine): the state says why.
     Json refused = LoadJson(models, "dialogue-edit.json");
     refused["editIndex"] = 0;
     refused["editError"] = "too_long";
     router.SetState("dialogue", refused);
-    Expect(surface.props["edit"]["error"] == "<dialogue.too_long>" && surface.props["edit"]["value"] == "Мария" &&
-               surface.props["edit"]["actions"][1]["disabled"] == false,
-           "an answer the engine refuses keeps the draft and says why");
-    router.OnEvent({"edit-done", "click", ""});
-    ExpectEqual(surface.Last(), "dialogue:9:0:Мария", "the same answer can be sent again");
-    router.SetState("dialogue", refused);
-    Expect(surface.props["edit"]["error"] == "<dialogue.too_long>", "a repeated refusal is shown again");
-
-    router.OnEvent({"edit-field", "click", ""});
-    const size_t sent = surface.commands.size();
-    router.SubmitText(surface.text.token,
-                      std::string("a\x01"
-                                  "b"),
-                      true);
-    Expect(surface.commands.size() == sent && surface.props["edit"]["error"] == "<dialogue.invalid>",
-           "a control character is refused before sending");
-    router.OnEvent({"edit-field", "click", ""});
-    router.SubmitText(surface.text.token, "ignored", false);
-    Expect(surface.props["edit"]["value"] == "a\x01"
-                                             "b",
-           "a cancelled keyboard keeps the draft");
-    router.OnEvent({"edit-cancel", "click", ""});
-    Expect(surface.props["edit"].is_null() && !router.WantsBack(), "«Cancel» closes the editor");
+    AnswerAll(router, surface, false, "typed answer refused: too_long");
+    Expect(surface.props["replies"][0]["meta"] == "<dialogue.too_long>" &&
+               surface.props["replies"][0]["metaTone"] == "danger",
+           "an answer the engine refuses says why on its reply");
     router.OnEvent({"reply-0", "click", ""});
-    router.Back();
-    Expect(surface.props["edit"].is_null(), "the back key closes the editor");
+    router.SubmitText(surface.text.token, "Мария", true);
+    Expect(Replied(surface, 9, "INPUT", 0, "edit", "Мария") && surface.actions.size() == 2,
+           "the answer can be sent again");
+    router.SetState("dialogue", refused);
+    Expect(surface.props["replies"][0]["meta"] == "<dialogue.too_long>", "a repeated refusal is shown again");
+    router.OnEvent({"reply-0", "click", ""});
+    router.SubmitText(surface.text.token, "ignored", false);
+    Expect(surface.actions.size() == 2, "a cancelled keyboard sends nothing");
 
     Json unknown = LoadJson(models, "dialogue-edit.json");
     unknown["editIndex"] = 0;
     unknown["editError"] = "strange";
     const size_t errors = surface.errors.size();
     router.SetState("dialogue", unknown);
-    Expect(surface.errors.size() == errors + 1, "an unknown refusal code is reported");
-
-    Json next = LoadJson(models, "dialogue-edit.json");
-    router.OnEvent({"reply-0", "click", ""});
-    next["generation"] = 10;
-    router.SetState("dialogue", next);
-    Expect(surface.props["edit"].is_null(), "a new utterance closes the editor");
-
-    ExpectEqual(DialogueAnswerError("  Привет: \"да\" \xF0\x9F\x98\x80  ", 256), "",
-                "multilingual input with an emoji passes");
-    ExpectEqual(DialogueAnswerError("", 256), "", "an empty answer passes");
-    std::string emoji;
-    for (int i = 0; i < 256; ++i)
-        emoji += "\xF0\x9F\x98\x80";
-    ExpectEqual(DialogueAnswerError(emoji, 256), "", "256 code points pass (code points, not bytes or UTF-16 units)");
-    ExpectEqual(DialogueAnswerError(emoji + "a", 256), "too_long", "the code point limit");
-    ExpectEqual(DialogueAnswerError("abcd", 3), "too_long", "the reply's own limit");
-    ExpectEqual(DialogueAnswerError("\xE2\x80\xA8", 256), "invalid_text", "a line separator is refused");
-    ExpectEqual(DialogueAnswerError("\xC2\x85", 256), "invalid_text", "a C1 control is refused");
-    ExpectEqual(DialogueAnswerError("a\xED\xA0\x80"
-                                    "b",
-                                    256),
-                "invalid_text", "a lone surrogate is refused");
-    ExpectEqual(DialogueAnswerError(" \xC2\xA0", 256), "", "spaces pass");
+    Expect(surface.errors.size() == errors + 1 && surface.props["replies"][0]["meta"] == "<dialogue.unavailable>",
+           "an unknown refusal code is reported");
 }
 
+// A bet: the game proposes a number and takes whatever the player types; nothing of ours caps it (the hero's money
+// is not the limit of every amount a dialogue asks: a loan is not).
 static void DialogueNumber(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetState("dialogue", LoadJson(models, "dialogue-bet.json"));
     router.OnEvent({"reply-0", "click", ""});
-    const Json edit = surface.props["edit"];
-    Expect(edit["kind"] == "number" && edit["value"] == 100 && edit["max"] == 12500 && edit["money"] == 12500,
-           "a whole-number proposal opens the number panel up to the hero's money");
-    router.OnEvent({"edit-amount", "change", "3000"});
-    Expect(surface.props["edit"]["value"] == 3000 && surface.props["edit"]["actions"][1]["sub"] == "3000",
-           "the amount follows the control");
-    router.OnEvent({"edit-amount", "commit", "99999"});
-    Expect(surface.props["edit"]["value"] == 12500, "no more than the hero has");
-    router.OnEvent({"edit-done", "click", ""});
-    ExpectEqual(surface.Last(), "dialogue:11:0:12500", "the amount goes back as the typed answer");
-
-    Json poor = LoadJson(models, "dialogue-bet.json");
-    poor.erase("money");
-    poor["generation"] = 12;
-    router.SetState("dialogue", poor);
-    router.OnEvent({"reply-0", "click", ""});
-    Expect(surface.props["edit"]["max"] == 100 && surface.props["edit"]["money"] == -1,
-           "without the hero's money the proposal is the limit");
+    Expect(surface.actions.empty() && surface.text.text == "100", "the bet opens the editor with the game's proposal");
+    router.SubmitText(surface.text.token, "99999", true);
+    Expect(Replied(surface, 11, "INPUT", 0, "edit", "99999"), "the amount typed goes back as the answer");
 }
 
 // The nations screen's script over the fixture game's nations (engine/tests/ui_scripts/game): England, France,
