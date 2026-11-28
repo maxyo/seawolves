@@ -1096,6 +1096,38 @@ TEST_CASE("the character screen's script gives the pack screen the props and act
     CheckCases("hero", "character");
 }
 
+// The game takes the list's current slot into its own (nCurScrollNum) a frame after a selection, and opens the post it
+// holds: a post the list shows selected while the game holds another is selected again, never opened on the other.
+TEST_CASE("a post is opened only once the game holds it")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/character.json"));
+    storm::ui::InterfaceModel model;
+    REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases").at(0).at("model").dump(), model));
+    for (auto &widget : model.widgets)
+        if (widget.node == "CHARACTERS_SCROLL")
+            widget.value = widget.index == 2 ? "1" : "0"; // the free boatswain's post
+    const auto spec = PackScreen("hero");
+    const auto &screen = Screen(vm, "character");
+    const auto tap = [&](int held) {
+        SetGame(Json{{"game", {{"nCurScrollNum", held}}}});
+        Calls calls(*spec);
+        calls.widgets = model.widgets;
+        port.Build(screen, calls.Single(), calls);
+        port.Event(screen, "post-2", "", "", calls);
+        return calls.calls;
+    };
+    // The game still holds the fighter's slot: opening now would show his dismissal.
+    const auto early = tap(7);
+    REQUIRE(!early.empty());
+    CHECK(early.front() == "send CHARACTERS_SCROLL#2 select 1:2");
+    const auto held = tap(2);
+    REQUIRE(!held.empty());
+    CHECK(held.front() == "send CHARACTERS_SCROLL#2 activate 1:2");
+}
+
 TEST_CASE("the trade book's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("tradebook", "tradebook");

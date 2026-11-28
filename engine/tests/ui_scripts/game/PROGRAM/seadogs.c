@@ -601,6 +601,8 @@ void OnLoad()
 #define MAX_LOYALITY 35
 object ChrPerksList;
 object TestPassengers;
+// The window's current slot of its list (character_all.c), which it opens and dismisses: a case's `game` gives it.
+int nCurScrollNum = -1;
 
 int GetMainCharacterIndex()
 {

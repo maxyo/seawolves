@@ -417,6 +417,13 @@ void TouchLegCharacter_Posts(aref ui, aref out)
 	}
 }
 
+// Whether the game holds `slot` as its current one of the list (character_all.c nCurScrollNum): it takes a selection
+// in its next frame, and opens and dismisses that one.
+bool TouchLegCharacter_GameOn(int slot)
+{
+	return UiGameInt("nCurScrollNum") == slot;
+}
+
 // The selected post of the list (its slot), -1 none.
 int TouchLegCharacter_PostShown(aref model)
 {
@@ -630,6 +637,13 @@ bool TouchLegCharacter_Follow(aref ui, aref out)
 		if (window == "remove" || window == "assign") { TouchLegCharacter_Step("", "", ""); return false; }
 		if (window != "") return TouchLegCharacter_CloseWindow(model);
 		if (TouchLegCharacter_PostShown(model) != sti(what) || TouchLegCharacter.step.stage == "open") return false;
+		// The game opens the post it holds, which it takes from the list in its next frame (ProcessFrame), a change
+		// no model shows: built again until it has.
+		if (!TouchLegCharacter_GameOn(sti(what)))
+		{
+			UiRebuild();
+			return true;
+		}
 		TouchLegCharacter.step.stage = "open";
 		TouchLegCharacter_Send(model, "CHARACTERS_SCROLL", "r" + what, "activate");
 		return true;
@@ -854,7 +868,7 @@ void TouchAdpCharacter_Post(aref ui, int slot)
 	aref model = TouchLegLib_Model(ui);
 	string key = "r" + slot;
 	if (!CheckAttribute(model, "CHARACTERS_SCROLL.rows." + key)) UiError("character: the character list has no slot " + slot);
-	if (TouchLegCharacter_PostShown(model) == slot)
+	if (TouchLegCharacter_PostShown(model) == slot && TouchLegCharacter_GameOn(slot))
 	{
 		TouchLegCharacter_Step("post", slot, "open");
 		TouchLegCharacter_Send(model, "CHARACTERS_SCROLL", key, "activate");
