@@ -379,6 +379,7 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
     for (int32_t m = 0; m < rhead.nmaterials; m++)
         if (rmat[m].texture_type[0] == TEXTURE_BASE && rmat[m].texture[0] >= 0 && rmat[m].texture[0] < rhead.ntextures)
             base[rmat[m].texture[0]] = true;
+    std::vector<bool> stand_in(rhead.ntextures, false); // base textures that draw the missing-texture stand-in
     for (int32_t t = 0; t < rhead.ntextures; t++)
     {
         tlookup[t] = -1;
@@ -388,7 +389,10 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         tlookup[t] = srv.CreateTexture(name, fname);
         const bool lightmap = storm::iEquals(name, "shadow.tga");
         if (tlookup[t] < 0 && base[t] && !lightmap)
+        {
             tlookup[t] = srv.MissingTexture(); // released with the others (~GEOM)
+            stand_in[t] = true;
+        }
         if (const std::string file = lightmap ? srv.TextureFile(name) : std::string(); !file.empty())
         {
             lightmap_file_ = "resource\\textures\\" + file + ".tx";
@@ -417,6 +421,24 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
             }
             else
                 material[m].texture[tl] = -1;
+        }
+    }
+    // A coarser level of a LOD chain whose own base texture the game does not ship draws with its finest level's
+    // material: the same surface. Caribbean Legend's Jrock_01..04 levels 1-4 name the albedo the rock was authored
+    // with ("tixecdmfa_4K_Albedo.jpg"), their level 0 the shipped Location\\Jrock_04.dds.
+    for (int32_t o = 0; o < rhead.nobjects; o++)
+    {
+        const int32_t chain = mesh_lods_.chain[o];
+        if (chain < 0 || mesh_lods_.level[o] == 0)
+            continue;
+        const RDF_MATERIAL &own = rmat[object[o].material];
+        const int32_t finest = object[mesh_lods_.measured[size_t(chain)]].material;
+        if (own.texture_type[0] == TEXTURE_BASE && own.texture[0] >= 0 && own.texture[0] < rhead.ntextures &&
+            stand_in[own.texture[0]] && finest != object[o].material)
+        {
+            spdlog::warn("textures: {} level {} of {} draws with level 0's material: its texture {} is missing",
+                         object[o].name, mesh_lods_.level[o], fname, &globname[tname[own.texture[0]]]);
+            object[o].material = finest;
         }
     }
     srv.free(rmat);

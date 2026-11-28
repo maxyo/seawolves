@@ -253,8 +253,11 @@ class Service final : public GEOM_SERVICE
     void ReleaseTexture(GEOS::ID) override
     {
     }
-    void SetMaterial(const GEOS::MATERIAL &) override
+    std::vector<float> materials; // the diffuse of each material set while record_draws
+    void SetMaterial(const GEOS::MATERIAL &material) override
     {
+        if (record_draws)
+            materials.push_back(material.diffuse);
     }
     bool ModelMaterials() const override
     {
@@ -948,13 +951,14 @@ TEST_CASE("models of an installed game", "[.corpus]")
 namespace
 {
 // A model of four objects over one triangle: "Crate" (4 triangles), "Crate_LOD1" (3), "Crate_lod3" (2) and
-// "Other_lod1" (1, no object "Other"). Texture slots: a name no material uses, the bare name the material uses and the
-// same texture with its folder, which no material uses.
+// "Other_lod1" (1, no object "Other"). Texture slots: a name no material uses, the bare name material 0 uses, the same
+// texture with its folder, which no material uses, and a texture the game lacks that material 1 (diffuse 2) of
+// "Crate_lod3" uses.
 void writeChainModel(const std::filesystem::path &path)
 {
     std::ofstream out(path, std::ios::binary);
-    const std::vector<std::string> strings{"stale.tga",  "crate.tga",  "Props\\crate.dds", "Crate",
-                                           "Crate_LOD1", "Crate_lod3", "Other_lod1"};
+    const std::vector<std::string> strings{"stale.tga", "crate.tga",  "Props\\crate.dds", "authored.jpg",
+                                           "Crate",     "Crate_LOD1", "Crate_lod3",       "Other_lod1"};
     std::string names(1, '\0');
     std::vector<int32_t> offsets;
     for (const std::string &name : strings)
@@ -967,8 +971,9 @@ void writeChainModel(const std::filesystem::path &path)
     h.version = RDF_VERSION;
     h.flags = FLAGS_VISIBLE_PRESENT;
     h.name_size = int32_t(names.size());
-    h.ntextures = 3;
-    h.nmaterials = h.nvrtbuffs = 1;
+    h.ntextures = 4;
+    h.nmaterials = 2;
+    h.nvrtbuffs = 1;
     h.nobjects = 4;
     h.ntriangles = 10;
     h.radius = 1;
@@ -976,16 +981,21 @@ void writeChainModel(const std::filesystem::path &path)
     out.write(names.data(), std::streamsize(names.size()));
     for (int t = 0; t < h.ntextures; ++t)
         fixture::append(out, offsets[size_t(t)]);
-    RDF_MATERIAL material{};
-    material.texture_type[0] = TEXTURE_BASE;
-    material.texture[0] = 1;
-    material.texture[1] = material.texture[2] = material.texture[3] = -1;
-    fixture::append(out, material);
+    for (int m = 0; m < 2; ++m)
+    {
+        RDF_MATERIAL material{};
+        material.diffuse = float(m + 1);
+        material.texture_type[0] = TEXTURE_BASE;
+        material.texture[0] = m == 0 ? 1 : 3;
+        material.texture[1] = material.texture[2] = material.texture[3] = -1;
+        fixture::append(out, material);
+    }
     int32_t first = 0;
     for (int o = 0; o < 4; ++o)
     {
         RDF_OBJECT object{};
-        object.name = offsets[size_t(3 + o)];
+        object.name = offsets[size_t(4 + o)];
+        object.material = o == 2 ? 1 : 0;
         object.flags = VISIBLE;
         object.radius = 1;
         object.ntriangles = triangles[o];
@@ -1016,6 +1026,7 @@ std::vector<int32_t> drawnFrom(const GEOM &geom, fixture::Service &srv, float di
     view.screen_scale = 1.f;
     view.ortho = false;
     srv.drawn.clear();
+    srv.materials.clear();
     geom.Draw(nullptr, 0, nullptr);
     view.valid = false;
     std::vector<int32_t> drawn = srv.drawn;
@@ -1034,11 +1045,11 @@ TEST_CASE("model textures")
     srv.file = file;
     {
         GEOM geom("resource\\models\\object\\crate.gm", nullptr, srv, LOAD_VISIBLE);
-        CHECK(srv.textures == std::vector<std::string>{"Props\\crate.dds"});
+        CHECK(srv.textures == std::vector<std::string>{"Props\\crate.dds", "authored.jpg"});
     }
     std::ifstream in(file, std::ios::binary);
     const std::vector<char> bytes{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-    CHECK(storm::geometry::TextureNames(bytes) == std::vector<std::string>{"Props\\crate.dds"});
+    CHECK(storm::geometry::TextureNames(bytes) == std::vector<std::string>{"Props\\crate.dds", "authored.jpg"});
     std::filesystem::remove(file);
 }
 
@@ -1064,6 +1075,8 @@ TEST_CASE("mesh LOD chains")
         // Level 2 is missing: the finer level 1 stands in; level 3 below the last threshold.
         CHECK(drawnFrom(geom, srv, 1.f / 0.04f) == Drawn{1, 3});
         CHECK(drawnFrom(geom, srv, 1.f / 0.01f) == Drawn{1, 2});
+        // Level 3's own texture is missing (the fixture creates none): it draws with level 0's material.
+        CHECK(std::ranges::none_of(srv.materials, [](float diffuse) { return diffuse != 1.f; }));
         // Hysteresis: back above a threshold by less than a tenth keeps the level, past it changes it.
         CHECK(drawnFrom(geom, srv, 1.f / 0.031f) == Drawn{1, 2});
         CHECK(drawnFrom(geom, srv, 1.f / 0.034f) == Drawn{1, 3});
