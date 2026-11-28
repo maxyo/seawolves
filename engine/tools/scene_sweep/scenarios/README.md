@@ -55,5 +55,6 @@ quest's lock the way the game does (Mishelle.c) for saves made before that.
 | `contraband` | Saint-Pierre streets, a brig with goods; the run then opens the smugglers' trade (not saved) | contraband trade |
 | `storage` | Saint-Pierre streets, a brig with goods; the run then opens the store's warehouse (not saved) | warehouse |
 | `self_repair` | a Martinique shore as if landed from the sea, a damaged brig, planks and sailcloth, the self-repair perk | land menu, self repair |
+| `tradebook` | Saint-Pierre streets, the prices of three colonies' stores remembered as their store keepers leave them; the run then opens the trade book (not saved) | trade book with visited stores |
 
 A new scenario: copy one, keep its `// Scenario <name>: <state>` line (`list` prints it) and define the three hooks.

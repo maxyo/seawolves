@@ -406,6 +406,23 @@ void TestAlchemy()
 	Items[33].component.t2.id = "gunpowder";
 	Items[33].component.t2.use = "component";
 	Items[33].component.t2.qty = 1;
+	// The recipes of the recorded window with several (real-alchemy-recipes.json): a doubloon made of a chest, the
+	// chest and the compass.
+	TestItem(20, "gold_dublon", "", "0.1", "itmdescr_gold_dublon");
+	Items[20].multiobject.qty = 1;
+	Items[20].component.t1.id = "Chest";
+	Items[20].component.t1.use = "component";
+	Items[20].component.t1.qty = 1;
+	TestItem(21, "Chest", "", "2", "itmdescr_Chest");
+	Items[21].multiobject.qty = 1;
+	TestItem(22, "bussol", "", "1", "itmdescr_bussol");
+	Items[22].multiobject.qty = 1;
+	for (int pic = 20; pic <= 22; pic++)
+	{
+		Items[pic].name = "itmname_" + Items[pic].id;
+		Items[pic].picTexture = "ITEMS_18";
+		Items[pic].picIndex = pic - 17;
+	}
 	Items[36].name = "itmname_bullet";
 	Items[36].picTexture = "ITEMS_18";
 	Items[36].picIndex = 1;
@@ -816,6 +833,21 @@ void TestCharacters()
 	TestPerk("Trustworthy", "self", "AdvancedCommerce", "IronWill");
 	TestPerk("BasicCommerce", "ship", "", "");
 	TestPerk("AdvancedCommerce", "ship", "BasicCommerce", "");
+	// The other personal perks of the game's recorded sheets (real-character*.json, real-lscchar-all*.json).
+	TestPerk("HPPlus", "self", "AdvancedDefense", "");
+	TestPerk("EnergyPlus", "self", "Tireless", "");
+	TestPerk("Sliding", "self", "AdvancedDefense", "");
+	TestPerk("HardHitter", "self", "SwordplayProfessional", "");
+	TestPerk("BladeDancer", "self", "SwordplayProfessional", "");
+	TestPerk("Gunman", "self", "", "");
+	TestPerk("GunProfessional", "self", "Gunman", "");
+	TestPerk("Grus", "self", "", "");
+	TestPerk("ByWorker", "self", "", "");
+	TestPerk("ByWorker2", "self", "ByWorker", "");
+	TestPerk("ShipEscape", "self", "IronWill", "");
+	TestPerk("SharedExperience", "self", "", "");
+	TestPerk("Medic", "self", "AdvancedDefense", "");
+	TestPerk("Alchemy", "self", "", "");
 	Characters[1].rank = 4;
 	Characters[1].reputation.authority = 63;
 	Characters[1].perks.FreePoints_self = 1;
