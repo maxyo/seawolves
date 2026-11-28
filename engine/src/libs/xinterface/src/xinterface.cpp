@@ -603,10 +603,10 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
             self(self,node->m_list);
         }
     };
-    if(storm::android::mobileScreen!="mainmenu")collect(collect,m_pNodes);
+    collect(collect, m_pNodes);
     if(storm::android::mobileScreen=="lscchar_all"||storm::android::mobileScreen=="character")MobileCollectHero(widgets);
     mobileLeft_=false;
-    if(storm::android::mobileScreen!="mainmenu")MobileCollectFacts(widgets);
+    MobileCollectFacts(widgets);
     if(storm::android::mobileScreen=="boal_dice"||storm::android::mobileScreen=="boal_cards")MobileCollectTableGame(widgets);
     if(storm::android::mobileScreen=="goodstransfer")MobileCollectGoodsTransfer(widgets);
     if(storm::android::mobileScreen=="alchemy")MobileCollectAlchemy(widgets);
