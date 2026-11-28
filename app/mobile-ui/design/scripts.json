@@ -753,7 +753,8 @@
             ["MB_LOAD", "button"], ["MB_OPTIONS", "button"], ["MB_EXITMENU", "button"], ["MB_EXITGAME", "button"],
             ["MB_QUIT", "button"], ["MB_UPDATES", "button"], ["CONFIRM_EXIT_TEXT", "text"], ["CONFIRM_EXIT_YES", "button"],
             ["CONFIRM_EXIT_NO", "button"], ["CONFIRM_WINDOW_STRINGS", "text"], ["CONFIRM_WINDOW_MB_YES", "button"],
-            ["CONFIRM_WINDOW_MB_NO", "button"], ["CONFIRM_*", "image|text"], ["LOGO", "image"], ["VERSION_TEXT", "text"],
+            ["CONFIRM_WINDOW_MB_NO", "button"], ["CONFIRM_TEXT", "text"], ["CONFIRM_YES", "button"],
+            ["CONFIRM_NO", "button"], ["CONFIRM_*", "image|text"], ["LOGO", "image"], ["VERSION_TEXT", "text"],
             ["DLC_TEXT", "text"], ["COPYRIGHTS_TEXT", "text"]
           ]
         },
