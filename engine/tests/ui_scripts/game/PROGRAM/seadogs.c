@@ -314,7 +314,8 @@ void TestItems()
 	// The guns' window's rows: the goods of the 3 lb and the 6 lb guns in the hold.
 	GameInterface.CANNONS_TABLE.tr1.index = 10;
 	GameInterface.CANNONS_TABLE.tr2.index = 11;
-	// The maps' window's rows tr2..tr6 (the recorded models number them from 1): the maps' items.
+	// The maps' window's rows tr1..tr6: the maps' items (map-view.json lists tr2..tr6, real-mapview.json all six).
+	GameInterface.TABLE_MAPS.tr1.index = 59;
 	GameInterface.TABLE_MAPS.tr2.index = 60;
 	GameInterface.TABLE_MAPS.tr3.index = 61;
 	GameInterface.TABLE_MAPS.tr4.index = 62;
@@ -562,6 +563,17 @@ void Main()
 	NullCharacter.Cards.c4.count = 3;
 	NullCharacter.Cards.c5.pic = "spades_7";
 	NullCharacter.Cards.c5.count = 7;
+	// and the cards of the game recorded from the desktop game (ui/tests/models/real-boal-cards*.json)
+	NullCharacter.Cards.c6.pic = "hearts_Q";
+	NullCharacter.Cards.c6.count = 3;
+	NullCharacter.Cards.c7.pic = "spades_Q";
+	NullCharacter.Cards.c7.count = 3;
+	NullCharacter.Cards.c8.pic = "diamonds_K";
+	NullCharacter.Cards.c8.count = 4;
+	NullCharacter.Cards.c9.pic = "clubs_6";
+	NullCharacter.Cards.c9.count = 6;
+	NullCharacter.Cards.c10.pic = "clubs_9";
+	NullCharacter.Cards.c10.count = 9;
 	// the sail emblem of the recorded models (ui/tests/models/sailsgerald*.json)
 	price = 1250;
 	TestHero.Money = 12480;
