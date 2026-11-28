@@ -1424,9 +1424,11 @@ double Router::Tick()
     }
     if (!screen_)
         return kIdle;
-    if (later_ || (rebuild_at_ > 0.0 && now >= rebuild_at_))
+    // A build asked for by the build before (UiRebuild while it awaits a change of the game no model shows) runs here,
+    // a frame later, not at the awaited bound.
+    if (later_ || rebuild_ || (rebuild_at_ > 0.0 && now >= rebuild_at_))
         Build();
-    double next = rebuild_at_ > 0.0 ? rebuild_at_ - now : kIdle;
+    double next = rebuild_ ? 0.0 : rebuild_at_ > 0.0 ? rebuild_at_ - now : kIdle;
     // In the order they were asked for: an edit goes out before the press that confirms it.
     for (size_t i = 0; i < waiting_.size();)
     {

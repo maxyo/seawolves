@@ -46,6 +46,7 @@ struct DemoPort final : ScriptPort
     std::optional<ViewTree> predict; // what a tap on the tabs predicts
     bool hold = false;               // "go" waits for the game's answer
     bool awaiting = false;           // the builds say the game's answer needs another frame
+    bool rebuild = false;            // the builds ask to be built again (a change of the game no model shows)
     std::vector<std::string> answers;
     std::optional<DealSpec> deal;
     DealView dealt;
@@ -61,6 +62,8 @@ struct DemoPort final : ScriptPort
         answers.push_back(call.Answer());
         if (awaiting)
             call.Await();
+        if (rebuild)
+            call.Rebuild();
         if (deal)
             dealt = call.Deal(*deal);
         call.Show(view);
@@ -327,6 +330,30 @@ void Waiting()
            "an awaited rest that does not come is drawn after the bound, and said: " + Json(surface.errors).dump());
 }
 
+// A build that awaits a change of the game no model shows (a script variable it sets in its next frame) asks to be
+// built again: that build runs at the next tick, not at the awaited bound.
+void AwaitedRebuild()
+{
+    const auto spec = DemoSpec();
+    DemoPort port;
+    port.hold = true;
+    FakeSurface surface;
+    Router router(surface);
+    router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
+    InterfaceModel model = Model("salary");
+    router.SetInterface(model);
+    router.OnEvent({"go", "click", ""});
+    port.awaiting = port.rebuild = true;
+    Count(port, 5);
+    Answered(router, surface, model);
+    Expect(surface.props["count"] == 3, "the awaiting build is not drawn");
+    port.awaiting = port.rebuild = false;
+    surface.now += 0.016;
+    router.Tick();
+    Expect(surface.props["count"] == 5 && surface.errors.empty(),
+           "the build asked for in it runs at the next tick: " + Json(surface.errors).dump());
+}
+
 void Deals()
 {
     const auto spec = DemoSpec();
@@ -434,6 +461,7 @@ int main()
     Prediction();
     PredictionByIdentity();
     Waiting();
+    AwaitedRebuild();
     Deals();
     Failures();
     if (failures)
