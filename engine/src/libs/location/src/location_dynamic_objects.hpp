@@ -21,6 +21,7 @@ class Location::DynamicObjectsLink final : public storm::location::DynamicObject
                                               const storm::location::DynamicObjectActor &actor,
                                               ATTRIBUTES &result) override;
     std::optional<bool> Check(const char *function, ATTRIBUTES &owner, ATTRIBUTES &context) override;
+    std::optional<bool> UpdateSeatSession(DATA *actor, float time) override;
 
     Location &location;
     storm::location::DynamicObjects registry;

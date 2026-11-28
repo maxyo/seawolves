@@ -413,6 +413,11 @@ void DynamicObjects::RemoveModels(const std::vector<entid_t> &models)
     std::erase_if(instances_, [&](const std::unique_ptr<Instance> &instance) {
         if (std::ranges::find(models, instance->entity) == models.end())
             return false;
+        for (const auto &[seat, actor] : instance->occupants)
+        {
+            seated_.erase(actor);
+            std::erase(transitions_, actor);
+        }
         records_.DeleteAttributeClassX(instance->record);
         return true;
     });
@@ -570,19 +575,9 @@ bool DynamicObjects::SeatWithin(Instance &instance, const glm::vec3 &at, float r
     return false;
 }
 
-bool DynamicObjects::SeatCandidate(Instance &instance, const std::string &seat, const glm::mat4 &world,
-                                   const DynamicObjectActor &actor, bool stand, ATTRIBUTES &data, ATTRIBUTES &chosen)
+bool DynamicObjects::Approach(Instance &instance, const json &config, const glm::mat4 &world,
+                              const DynamicObjectActor &actor, ATTRIBUTES &data, ATTRIBUTES &context)
 {
-    // Nobody sits yet: a seat is free, and no one stands up from one.
-    if (stand)
-        return false;
-    ATTRIBUTES context = data.Copy();
-    SetText(context, "seatId", seat);
-    glm::vec3 rotation, scale;
-    Decompose(world, rotation, scale);
-    SetVector(context, "position", glm::vec3(world[3]));
-    SetVector(context, "rotation", rotation);
-    const json &config = *SeatConfig(instance);
     const float floor = instance.floor.value_or(instance.position.y);
     auto approach = InFrontOfSeat(world, config.value("approachDistance", 0.8f), floor);
     if (!approach)
@@ -601,6 +596,26 @@ bool DynamicObjects::SeatCandidate(Instance &instance, const std::string &seat, 
     if (!start)
         return false;
     SetVector(Child(context, "sitStart"), "position", *start);
+    return true;
+}
+
+bool DynamicObjects::SeatCandidate(Instance &instance, const std::string &seat, const glm::mat4 &world,
+                                   const DynamicObjectActor &actor, bool stand, ATTRIBUTES &data, ATTRIBUTES &chosen)
+{
+    // Sitting down takes a free seat and an actor who sits nowhere; standing up, the actor's own seat.
+    const auto occupant = instance.occupants.find(seat);
+    if (stand ? occupant == instance.occupants.end() || occupant->second != actor.variable
+              : occupant != instance.occupants.end() || seated_.contains(actor.variable))
+        return false;
+    ATTRIBUTES context = data.Copy();
+    SetText(context, "seatId", seat);
+    glm::vec3 rotation, scale;
+    Decompose(world, rotation, scale);
+    SetVector(context, "position", glm::vec3(world[3]));
+    SetVector(context, "rotation", rotation);
+    const json &config = *SeatConfig(instance);
+    if (!stand && !Approach(instance, config, world, actor, data, context))
+        return false;
     if (const json::json_pointer name("/seats/" + seat + "/name"); config.contains(name))
         SetText(context, "seatName", config.at(name).get<std::string>());
     const auto accepted = host_.Check(stand ? "DynamicObject_HasSeatsCanStand" : "DynamicObject_HasSeatsCanSit",
@@ -768,6 +783,15 @@ int32_t DynamicObjects::Nearest(ATTRIBUTES &data)
         Fail(data, "actor_unavailable");
         return 0;
     }
+    if (const auto seated = seated_.find(actor->variable); seated != seated_.end())
+    {
+        // A seated actor is offered what his seat offers (standing up), wherever the nearest object is.
+        ATTRIBUTES offers(codec_);
+        if (!Interactions(*seated->second.instance, *actor, offers) || Number(&offers, "count", 0.0f) <= 0.0f)
+            return 0;
+        data = std::move(offers);
+        return 1;
+    }
     std::optional<ATTRIBUTES> best;
     float bestDistance = 0.0f;
     for (const auto &instance : instances_)
@@ -794,6 +818,159 @@ int32_t DynamicObjects::Nearest(ATTRIBUTES &data)
         data.CreateAttribute(child->GetThisName()) = child->Copy();
     }
     return 1;
+}
+
+void DynamicObjects::Release(DATA *actor)
+{
+    const auto seated = seated_.find(actor);
+    if (seated == seated_.end())
+        return;
+    seated->second.instance->occupants.erase(seated->second.seat);
+    seated_.erase(seated);
+    std::erase(transitions_, actor);
+}
+
+bool DynamicObjects::SitOrStand(Instance &owner, ATTRIBUTES &data, bool stand)
+{
+    if (!ChooseSeat(owner, data, stand))
+        return false;
+    DATA *actor = data.GetAttributeClass("actor")->GetReference();
+    if (!stand)
+    {
+        const std::string seat = Text(&data, "seatId");
+        owner.occupants[seat] = actor;
+        seated_[actor] = {&owner, seat};
+    }
+    const auto done =
+        host_.Check(stand ? "DynamicObject_HasSeatsStand" : "DynamicObject_HasSeatsSit", *owner.record, data);
+    if (!done.value_or(false))
+    {
+        // Standing up keeps the seat: the scripts release it at the end of their transition (seat_release).
+        if (!stand)
+            Release(actor);
+        if (Text(&data, "error").empty())
+            Fail(data, done ? "handler_rejected" : "handler_missing");
+        return false;
+    }
+    if (std::ranges::find(transitions_, actor) == transitions_.end())
+        transitions_.push_back(actor);
+    return true;
+}
+
+int32_t DynamicObjects::Command(Instance &owner, ATTRIBUTES &data)
+{
+    const std::string command = Text(&data, "command");
+    const auto dot = command.find('.');
+    bool accepted = false;
+    if (dot == std::string::npos)
+        Fail(data, "invalid_command", command);
+    else if (command == "hasseats.sit" || command == "hasseats.stand")
+        accepted = SitOrStand(owner, data, command == "hasseats.stand");
+    else
+    {
+        ReportNotImplemented(fmt::format("dynamic object command '{}'", command), kWithoutDynamicObjects);
+        Fail(data, "unknown_command", command);
+    }
+    SetText(data, "status", accepted ? "completed" : "rejected");
+    SetText(data, "reason", accepted ? std::string() : Text(&data, "error"));
+    SetText(data, "operation", accepted ? "1" : "0");
+    return accepted ? 1 : 0;
+}
+
+int32_t DynamicObjects::Execute(Instance &owner, ATTRIBUTES &data)
+{
+    ATTRIBUTES *selection = data.GetAttributeClass("selection");
+    if (selection == nullptr)
+    {
+        Fail(data, "selection_missing");
+        return 0;
+    }
+    const std::string actionName = Text(selection, "action");
+    if (Text(selection, "ownerId") != owner.id || actionName.empty())
+    {
+        Fail(data, "stale_selection");
+        return 0;
+    }
+    ATTRIBUTES *action =
+        owner.record->FindAClass(owner.record, ("components.interaction.actions." + actionName).c_str());
+    if (action == nullptr)
+    {
+        Fail(data, "action_not_found", actionName);
+        return 0;
+    }
+    const std::string command = Text(action, "command");
+    const std::string behavior = command.empty() ? "interaction" : command.substr(0, command.find('.'));
+    if (Text(selection, "command") != command || Text(selection, "behavior") != behavior)
+    {
+        Fail(data, "stale_selection");
+        return 0;
+    }
+    const ATTRIBUTES *actorAttribute = data.GetAttributeClass("actor");
+    DATA *actor = actorAttribute ? actorAttribute->GetReference() : nullptr;
+    if (actor == nullptr)
+    {
+        Fail(data, "actor_unavailable");
+        return 0;
+    }
+    if (data.GetAttributeClass("actorPosition") == nullptr)
+    {
+        Fail(data, "actor_position_unavailable");
+        return 0;
+    }
+    const DynamicObjectActor who{actor,
+                                 {Number(&data, "actorPosition.x", 0.0f), Number(&data, "actorPosition.y", 0.0f),
+                                  Number(&data, "actorPosition.z", 0.0f)}};
+    if (!OfferCheck(owner, *action, who, data))
+        return 0;
+
+    ATTRIBUTES context(codec_);
+    if (const ATTRIBUTES *args = data.GetAttributeClass("args"))
+        context = args->Copy();
+    SetText(context, "action", actionName);
+    SetText(context, "behavior", behavior);
+    context.CreateAttribute("actor").SetReference(actor);
+    if (command == "hasseats.sit" || command == "hasseats.stand")
+    {
+        const std::string seat = Text(selection, "seatId");
+        if (seat.empty())
+        {
+            Fail(data, "slot_not_found");
+            return 0;
+        }
+        SetText(context, "seatId", seat);
+    }
+    else if (command.starts_with("hasitems."))
+    {
+        ReportNotImplemented(fmt::format("dynamic object action '{}'", command), kWithoutDynamicObjects);
+        Fail(data, "behavior_unavailable", "hasitems");
+        return 0;
+    }
+    SetText(*owner.record, "busy", "1");
+    const auto ran = host_.Check("DynamicObject_RunInteraction", *owner.record, context);
+    SetText(*owner.record, "busy", "0");
+    if (!ran)
+    {
+        Fail(data, "handler_missing", "DynamicObject_RunInteraction");
+        return 0;
+    }
+    if (!*ran)
+    {
+        const std::string error = Text(&context, "error");
+        Fail(data, error.empty() ? "handler_rejected" : error, Text(&context, "errorDetails"));
+        return 0;
+    }
+    ClearError(data);
+    return 1;
+}
+
+void DynamicObjects::Tick()
+{
+    // A session the scripts no longer advance (seated, or ended) leaves the list; the scripts release its seat.
+    for (size_t n = 0; n < transitions_.size();)
+        if (host_.UpdateSeatSession(transitions_[n], host_.Time()).value_or(false))
+            ++n;
+        else
+            transitions_.erase(transitions_.begin() + static_cast<ptrdiff_t>(n));
 }
 
 int32_t DynamicObjects::Request(std::string_view action, ATTRIBUTES &data, ATTRIBUTES *record)
@@ -856,6 +1033,34 @@ int32_t DynamicObjects::Request(std::string_view action, ATTRIBUTES &data, ATTRI
     }
     if (action == "interaction")
         return Nearest(data);
+    if (action == "abort_seat_sessions")
+    {
+        for (const auto &instance : instances_)
+            instance->occupants.clear();
+        seated_.clear();
+        transitions_.clear();
+        return 1;
+    }
+    if (action == "execute_interaction" || action == "command" || action == "seat_query" || action == "seat_release")
+    {
+        Instance *instance = Find(record, data);
+        if (instance == nullptr || !host_.ModelAlive(instance->entity))
+        {
+            Fail(data, "object_not_found", Text(&data, "id"));
+            return 0;
+        }
+        if (action == "execute_interaction")
+            return Execute(*instance, data);
+        if (action == "command")
+            return Command(*instance, data);
+        const ATTRIBUTES *actorAttribute = data.GetAttributeClass("actor");
+        DATA *actor = actorAttribute ? actorAttribute->GetReference() : nullptr;
+        const auto occupant = instance->occupants.find(Text(&data, "seatId"));
+        const bool held = actor != nullptr && occupant != instance->occupants.end() && occupant->second == actor;
+        if (action == "seat_release" && held)
+            Release(actor);
+        return action == "seat_release" || held ? 1 : 0;
+    }
     if (action.starts_with("seats_"))
     {
         Instance *instance = Find(record, data);
@@ -897,7 +1102,7 @@ int32_t DynamicObjects::Request(std::string_view action, ATTRIBUTES &data, ATTRI
                     continue;
                 ATTRIBUTES &item = data.CreateAttribute(fmt::format("item{}", n++));
                 SetText(item, "seatId", seat);
-                SetText(item, "occupied", "0"); // nobody sits yet
+                SetText(item, "occupied", instance->occupants.contains(seat) ? "1" : "0");
                 SetVector(item, "position", glm::vec3(world[3]));
                 SetVector(item, "approach", *approach);
             }

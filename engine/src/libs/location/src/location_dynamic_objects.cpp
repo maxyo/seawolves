@@ -171,6 +171,12 @@ std::optional<bool> Location::DynamicObjectsLink::Check(const char *function, AT
     return Answer(core.CallFunction(function, "aa", &owner, &context));
 }
 
+std::optional<bool> Location::DynamicObjectsLink::UpdateSeatSession(DATA *actor, float seconds)
+{
+    return Answer(
+        core.CallFunction("DynamicObject_HasSeats_UpdateActor", "ef", reinterpret_cast<VDATA *>(actor), seconds));
+}
+
 void Location::AddDynamicObject(const std::string &container, const storm::location::ObjectInstance &placement,
                                 entid_t model)
 {
@@ -231,6 +237,7 @@ void Location::UpdateDynamicObjects(float seconds)
     if (!dynamicObjects || !dynamicObjects->scripted)
         return;
     dynamicObjects->time += seconds;
+    dynamicObjects->registry.Tick();
     dynamicObjects->sinceUpdate += seconds;
     if (dynamicObjects->sinceUpdate < kUpdatePeriod)
         return;

@@ -68,11 +68,26 @@ struct Host final : storm::location::DynamicObjectsHost
     {
         return 12.5f;
     }
+    std::vector<std::string> calls; // the script functions the registry ran, in order
+    bool handlerAccepts = true;
     std::optional<bool> Check(const char *function, ATTRIBUTES &, ATTRIBUTES &context) override
     {
-        REQUIRE(std::string_view(function) == "DynamicObject_HasSeatsCanSit");
-        checkedSeats.push_back(context.GetAttribute("seatId"));
-        return canSit;
+        calls.emplace_back(function);
+        if (std::string_view(function) == "DynamicObject_HasSeatsCanSit")
+        {
+            checkedSeats.push_back(context.GetAttribute("seatId"));
+            return canSit;
+        }
+        if (std::string_view(function) == "DynamicObject_HasSeatsCanStand")
+            return true;
+        return handlerAccepts;
+    }
+    int transitionFrames = 0; // frames the scripts still advance a session
+    std::optional<bool> UpdateSeatSession(DATA *actor, float) override
+    {
+        REQUIRE(actor == &hero);
+        calls.emplace_back("UpdateActor");
+        return transitionFrames-- > 0;
     }
     std::optional<bool> CanOfferInteractionAt(ATTRIBUTES &owner, const std::string &, const DynamicObjectActor &actor,
                                               ATTRIBUTES &) override
@@ -102,6 +117,14 @@ std::string Text(ATTRIBUTES &attributes, const char *path)
 }
 
 constexpr const char *kContainer = "locations\\test\\hall_object";
+
+void SetVectorOf(ATTRIBUTES &data, const glm::vec3 &at)
+{
+    ATTRIBUTES &position = *data.CreateSubAClass(&data, "actorPosition");
+    position.SetAttributeUseFloat("x", at.x);
+    position.SetAttributeUseFloat("y", at.y);
+    position.SetAttributeUseFloat("z", at.z);
+}
 } // namespace
 
 TEST_CASE("a placement's id is its UUID locator, else the same derived UUID in every session")
@@ -305,4 +328,88 @@ TEST_CASE("a bench offers its nearest free seat the hero can walk to")
     CHECK(Text(context, "sit") == "Bench_Sit");
     CHECK(Text(context, "animations.0") == "Sit_Bench_Idle01");
     CHECK(context.GetAttributeClass("actor")->GetReference() == &host.hero);
+}
+
+TEST_CASE("the hero takes a seat, is offered to stand up, and the seat is his until the scripts release it")
+{
+    storm::test::Codec codec;
+    Host host;
+    const auto library = Library();
+    DynamicObjects objects(codec, "Test_Hall", library, host);
+    glm::mat4 local(1.0f);
+    local[3] = glm::vec4(-0.5f, 0.5f, 0.0f, 1.0f);
+    host.locators[entid_t{1}] = {{"seats", "a", local}};
+    objects.AddPlacement(kContainer, At("bench", "Bench_01", "l1", {}), entid_t{1});
+    objects.AddPlacement(kContainer, At("desk", "Desk_01", "l1", {5.0f, 0.0f, 5.5f}), entid_t{2});
+    ATTRIBUTES *bench =
+        objects.Record(storm::location::DynamicObjectId("Test_Hall", kContainer, "Bench_01", "l1"), nullptr);
+    host.heroAt = {-0.5f, 0.0f, 1.0f};
+    const auto context = [&](const char *seat) {
+        ATTRIBUTES data(codec);
+        data.CreateAttribute("actor").SetReference(&host.hero);
+        data.SetAttribute("seatId", std::string_view(seat));
+        return data;
+    };
+
+    // The offer goes to the scripts' interaction, which the engine runs with the chosen seat.
+    ATTRIBUTES offers(codec);
+    REQUIRE(objects.Request("interaction", offers, nullptr) == 1);
+    ATTRIBUTES execute(codec);
+    execute.CreateAttribute("selection") = offers.GetAttributeClass("items")->GetAttributeClass("item0")->Copy();
+    execute.CreateAttribute("actor").SetReference(&host.hero);
+    SetVectorOf(execute, host.heroAt);
+    host.calls.clear();
+    REQUIRE(objects.Request("execute_interaction", execute, bench) == 1);
+    CHECK(host.calls.back() == "DynamicObject_RunInteraction");
+    CHECK(Text(*bench, "busy") == "0");
+    execute.GetAttributeClass("selection")->SetAttribute("command", std::string_view("hasseats.stand"));
+    CHECK(objects.Request("execute_interaction", execute, bench) == 0);
+    CHECK(Text(execute, "error") == "stale_selection");
+
+    // The scripts' handler refuses: the seat stays free.
+    host.handlerAccepts = false;
+    ATTRIBUTES refused = context("a");
+    refused.SetAttribute("command", std::string_view("hasseats.sit"));
+    CHECK(objects.Request("command", refused, bench) == 0);
+    CHECK(Text(refused, "status") == "rejected");
+    CHECK(Text(refused, "error") == "handler_rejected");
+    ATTRIBUTES query = context("a");
+    CHECK(objects.Request("seat_query", query, bench) == 0);
+    host.handlerAccepts = true;
+
+    ATTRIBUTES sit = context("a");
+    sit.SetAttribute("command", std::string_view("hasseats.sit"));
+    REQUIRE(objects.Request("command", sit, bench) == 1);
+    CHECK(Text(sit, "status") == "completed");
+    CHECK(objects.Request("seat_query", query, bench) == 1);
+    ATTRIBUTES seats(codec);
+    REQUIRE(objects.Request("seats_describe", seats, bench) == 1);
+    CHECK(Text(seats, "item0.occupied") == "1");
+    ATTRIBUTES again = context("a");
+    CHECK(objects.Request("seats_can_sit", again, bench) == 0); // taken, and he sits already
+
+    // Seated, he is offered to stand up, even beside a nearer desk.
+    host.heroAt = {5.0f, 0.0f, 5.0f};
+    REQUIRE(objects.Request("interaction", offers, nullptr) == 1);
+    CHECK(Text(offers, "count") == "1");
+    CHECK(Text(offers, "items.item0.command") == "hasseats.stand");
+
+    // The scripts advance the session while it is in a transition, then no more.
+    host.transitionFrames = 1;
+    host.calls.clear();
+    objects.Tick();
+    objects.Tick();
+    objects.Tick();
+    CHECK(host.calls == std::vector<std::string>{"UpdateActor", "UpdateActor"});
+
+    ATTRIBUTES stand = context("a");
+    stand.SetAttribute("command", std::string_view("hasseats.stand"));
+    REQUIRE(objects.Request("command", stand, bench) == 1);
+    CHECK(objects.Request("seat_query", query, bench) == 1); // standing up keeps the seat until it is released
+    ATTRIBUTES release = context("a");
+    CHECK(objects.Request("seat_release", release, bench) == 1);
+    CHECK(objects.Request("seat_query", query, bench) == 0);
+    host.heroAt = {-0.5f, 0.0f, 1.0f};
+    REQUIRE(objects.Request("interaction", offers, nullptr) == 1);
+    CHECK(Text(offers, "items.item0.command") == "hasseats.sit");
 }

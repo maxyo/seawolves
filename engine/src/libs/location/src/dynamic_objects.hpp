@@ -67,6 +67,8 @@ class DynamicObjectsHost
                                                       const DynamicObjectActor &actor, ATTRIBUTES &result) = 0;
     // A script check of an owner and a context (DynamicObject_HasSeatsCanSit ...); nullopt: the scripts have none.
     virtual std::optional<bool> Check(const char *function, ATTRIBUTES &owner, ATTRIBUTES &context) = 0;
+    // DynamicObject_HasSeats_UpdateActor(actor, time): whether the actor's seat session is still in a transition.
+    virtual std::optional<bool> UpdateSeatSession(DATA *actor, float time) = 0;
 };
 
 class DynamicObjects
@@ -87,6 +89,9 @@ class DynamicObjects
     // "lsseaa" entity: the model of the instance (by record when given, else by id).
     std::optional<entid_t> Entity(std::string_view id, ATTRIBUTES *instance, ATTRIBUTES *data);
 
+    // Every frame: the seat sessions in a transition (sitting down, standing up) advance.
+    void Tick();
+
     [[nodiscard]] size_t Count() const
     {
         return instances_.size();
@@ -102,6 +107,12 @@ class DynamicObjects
         std::unordered_map<std::string, glm::mat4> locators; // by name, in the model's space
         std::optional<float> floor;                          // see DynamicObjectsHost::ModelFloor
         ATTRIBUTES *record = nullptr;
+        std::unordered_map<std::string, DATA *> occupants; // by seat id
+    };
+    struct Seat
+    {
+        Instance *instance = nullptr;
+        std::string seat;
     };
 
     const nlohmann::json *Prefab(const std::string &model);
@@ -111,9 +122,15 @@ class DynamicObjects
     bool Interactions(Instance &owner, const DynamicObjectActor &actor, ATTRIBUTES &data);
     bool OfferCheck(Instance &owner, ATTRIBUTES &action, const DynamicObjectActor &actor, ATTRIBUTES &result);
     int32_t Nearest(ATTRIBUTES &data);
+    int32_t Execute(Instance &owner, ATTRIBUTES &data);
+    int32_t Command(Instance &owner, ATTRIBUTES &data);
+    bool SitOrStand(Instance &owner, ATTRIBUTES &data, bool stand);
+    void Release(DATA *actor);
     const nlohmann::json *SeatConfig(const Instance &instance);
     bool SeatWithin(Instance &instance, const glm::vec3 &at, float radius);
     bool ChooseSeat(Instance &instance, ATTRIBUTES &data, bool stand);
+    bool Approach(Instance &instance, const nlohmann::json &config, const glm::mat4 &world,
+                  const DynamicObjectActor &actor, ATTRIBUTES &data, ATTRIBUTES &context);
     bool SeatCandidate(Instance &instance, const std::string &seat, const glm::mat4 &world,
                        const DynamicObjectActor &actor, bool stand, ATTRIBUTES &data, ATTRIBUTES &chosen);
 
@@ -123,6 +140,10 @@ class DynamicObjects
     DynamicObjectsHost &host_;
     ATTRIBUTES records_; // the records of the placed instances: the engine's, not a script variable's
     std::vector<std::unique_ptr<Instance>> instances_;
+    // Who sits where (runtime only: the scripts keep their sessions in DynamicObject_SeatSessions), and the sessions
+    // whose transition the scripts advance every frame.
+    std::unordered_map<DATA *, Seat> seated_;
+    std::vector<DATA *> transitions_;
     std::unordered_map<std::string, std::unique_ptr<nlohmann::json>> prefabs_; // by folded model; null: none
 };
 
