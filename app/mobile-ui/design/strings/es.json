@@ -740,6 +740,8 @@
   "host.settings_not_saved": "Los ajustes gráficos no se guardaron",
   "host.cache_clear_not_marked": "No se pudo marcar la caché para vaciarla",
   "host.interface_error": "Error de la interfaz",
+  "host.game_stopped": "Juego detenido",
+  "host.game_stopped_reason": "El juego se detuvo por un error y se cerrará. Motivo: {1}",
   "plural.form": "one",
   "generic.empty": "Esta ventana del juego no tiene nada que tocar con el dedo; ciérrela con la flecha de la cabecera."
 }

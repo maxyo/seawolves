@@ -115,6 +115,24 @@ inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall
     }
     return nullptr;
 }
+
+// The engine's fatal error in the app's dialog, in the player's language (GameActivity.showFatalError); returns once
+// the player dismissed it. False (logged) when the activity could not show it.
+inline bool showFatalError(const std::string &reason)
+{
+    const bool shown =
+        CallActivity(upcall::GameActivity::showFatalError, [&](JNIEnv *env, jobject activity, jmethodID method) {
+            const jstring text = javaText(env, reason, "showFatalError");
+            if (!text)
+                return false;
+            env->CallVoidMethod(activity, method, text);
+            env->DeleteLocalRef(text);
+            return true;
+        });
+    if (!shown)
+        spdlog::error("GameActivity.showFatalError failed: the error is shown in SDL's dialog");
+    return shown;
+}
 #endif
 inline uint64_t mobileScreenRevision = 1;
 // The touch UI's widget actions for the open interface, as the UI made them (XINTERFACE::DoControl applies them), and

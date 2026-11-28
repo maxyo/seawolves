@@ -128,6 +128,14 @@ void ReportFatalError(const char *what)
     if (auto logger = spdlog::default_logger())
         logger->flush();
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Engine stopped: %s", what);
+    // The game thread waits on the dialog until the player dismisses it: no stall.
+    storm::platform::stall_watch::FatalDialog();
+#ifdef __ANDROID__
+    // The app's dialog speaks the player's language; SDL's below is the desktop's, and Android's only when the app's
+    // could not be shown (logged).
+    if (storm::android::showFatalError(what))
+        return;
+#endif
     // SDL's Android bridge shows a Java dialog and waits for dismissal
     // before SDL_main returns and the game Activity is finished.
     // SDL's Android default TextView colors can be dark on a dark

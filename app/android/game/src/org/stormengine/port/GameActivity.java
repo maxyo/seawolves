@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 
 /** Native engine with a thumb-oriented Android interface. */
 public final class GameActivity extends SDLActivity {
@@ -837,6 +838,31 @@ public final class GameActivity extends SDLActivity {
     private void settingsFailed(String key, String reason) {
         Log.e("StormSettings", reason);
         ui.toast(new MenuText(this, gameplayState.language).get("host." + key), "danger");
+    }
+
+    /**
+     * Upcall (game thread): the engine stopped on an error. Its dialog in the game's language, the reason as the engine
+     * wrote it; the game thread waits until the player dismisses it, as with SDL's dialog, and then ends the session.
+     */
+    public void showFatalError(String reason) throws InterruptedException {
+        CountDownLatch dismissed = new CountDownLatch(1);
+        runOnUiThread(
+                () -> {
+                    if (destroying || isFinishing() || isDestroyed()) { // no window to show it in
+                        Log.e("StormEngine", "Game stopped while the activity closes: " + reason);
+                        dismissed.countDown();
+                        return;
+                    }
+                    MenuText words = new MenuText(this, gameplayState.language);
+                    new AlertDialog.Builder(this)
+                            .setTitle(words.get("host.game_stopped"))
+                            .setMessage(words.format("host.game_stopped_reason", reason))
+                            .setCancelable(false)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .setOnDismissListener(d -> dismissed.countDown())
+                            .show();
+                });
+        dismissed.await();
     }
 
     /** The portable UI cannot draw: there is no other renderer for its screens, so the player is told. */

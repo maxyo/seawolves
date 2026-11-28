@@ -163,6 +163,13 @@ TEST_CASE("stall_watchdog")
         CHECK(Count(taken, "the game thread (tid ") == 1);
         CHECK(Count(taken, "went to the background") == 1);
         CHECK(Count(taken, "moves again") == 0);
+
+        // 5. The game thread waiting on the fatal error dialog is no stall (it stays there until the process ends).
+        sw::FatalDialog();
+        StallBlockingGameFunction(0.6);
+        taken = Take();
+        INFO(Lines(taken));
+        CHECK(Count(taken, "the game thread (tid ") == 0);
     };
     // Catch's assertions are made on one thread at a time: this one waits.
     std::thread game(body);

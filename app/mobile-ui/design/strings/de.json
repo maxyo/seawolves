@@ -740,6 +740,8 @@
   "host.settings_not_saved": "Grafikeinstellungen wurden nicht gespeichert",
   "host.cache_clear_not_marked": "Der Cache konnte nicht zum Leeren vorgemerkt werden",
   "host.interface_error": "Fehler der Oberfläche",
+  "host.game_stopped": "Spiel angehalten",
+  "host.game_stopped_reason": "Das Spiel wurde wegen eines Fehlers angehalten und wird geschlossen. Grund: {1}",
   "plural.form": "one",
   "generic.empty": "Dieses Spielfenster hat nichts, was ein Finger erreichen kann; schließen Sie es mit dem Pfeil in der Kopfzeile."
 }

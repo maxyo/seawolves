@@ -740,6 +740,8 @@
   "host.settings_not_saved": "Le impostazioni grafiche non sono state salvate",
   "host.cache_clear_not_marked": "Impossibile segnare la cache da svuotare",
   "host.interface_error": "Errore dell'interfaccia",
+  "host.game_stopped": "Gioco interrotto",
+  "host.game_stopped_reason": "Il gioco si è interrotto per un errore e si chiuderà. Motivo: {1}",
   "plural.form": "one",
   "generic.empty": "Questa finestra del gioco non ha nulla da toccare con il dito; chiudila con la freccia nell’intestazione."
 }

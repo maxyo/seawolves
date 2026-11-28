@@ -258,12 +258,14 @@ void StallWatchdog::Check()
     const sw::Game &game = sw::game();
     const sw::Render &render = sw::render();
     const bool background = sw::background.load(std::memory_order_relaxed);
+    const bool fatal_dialog = sw::fatal_dialog.load(std::memory_order_relaxed);
     const int64_t progress = game.progress.load(std::memory_order_relaxed);
 
     // The game thread: no frame finished since `reference` (a return to the foreground starts the count again).
     const bool game_watched = game.tid.load(std::memory_order_acquire) != 0;
     const int64_t reference = std::max(progress, sw::resumed.load(std::memory_order_relaxed));
-    const bool game_stalled = game_watched && !background && now - reference >= Nanoseconds(config_.stall_seconds);
+    const bool game_stalled =
+        game_watched && !background && !fatal_dialog && now - reference >= Nanoseconds(config_.stall_seconds);
 
     // The render thread: busy with a handed frame it has not finished.
     const uint32_t handed = render.handed.load(std::memory_order_relaxed);
@@ -288,6 +290,12 @@ void StallWatchdog::Check()
         sink_(level_,
               fmt::format("stall watchdog: the app went to the background {:.1f} s into the game thread's stall",
                           Seconds(now - game_.since)));
+        game_.active = false;
+    }
+    else if (game_.active && fatal_dialog)
+    {
+        sink_(level_, fmt::format("stall watchdog: the game thread stopped on a fatal error {:.1f} s into its stall",
+                                  Seconds(now - game_.since)));
         game_.active = false;
     }
     if (render_.active && static_cast<int32_t>(done - render_.frame) >= 0)

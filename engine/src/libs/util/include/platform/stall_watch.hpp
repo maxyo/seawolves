@@ -10,7 +10,8 @@
 //   * The render thread (shim context.cpp) registers at its first finished frame; the game thread marks each frame
 //     it hands over (Handed), the render thread each frame it finished (Done) and its present (PresentScope:
 //     Swappy / vkQueuePresentKHR / eglSwapBuffers). Busy = a handed frame not done yet.
-//   * The app's lifecycle (Background): the game thread is paused by SDL in the background, which is no stall.
+//   * The app's lifecycle (Background): the game thread is paused by SDL in the background, which is no stall; nor is
+//     its wait on the fatal error dialog (FatalDialog).
 #pragma once
 
 #include <array>
@@ -109,7 +110,8 @@ inline Render &render()
     return value;
 }
 inline std::atomic<bool> background{false};
-inline std::atomic<int64_t> resumed{0}; // ns of the last return to the foreground
+inline std::atomic<int64_t> resumed{0};       // ns of the last return to the foreground
+inline std::atomic<bool> fatal_dialog{false}; // the game thread has stopped on a fatal error and shows its dialog
 
 // The thread publishing its phases: the registered game thread only.
 inline thread_local bool tPublishing = false;
@@ -243,6 +245,12 @@ inline void Background(bool in_background)
     if (!in_background)
         resumed.store(Now(), std::memory_order_relaxed);
     background.store(in_background, std::memory_order_relaxed);
+}
+
+// The game thread stops on a fatal error and waits until the player dismisses its dialog: no stall from then on.
+inline void FatalDialog()
+{
+    fatal_dialog.store(true, std::memory_order_relaxed);
 }
 
 } // namespace storm::platform::stall_watch

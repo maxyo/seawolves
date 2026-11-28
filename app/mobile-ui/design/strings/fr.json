@@ -740,6 +740,8 @@
   "host.settings_not_saved": "Les réglages graphiques n'ont pas été enregistrés",
   "host.cache_clear_not_marked": "Impossible de marquer le cache pour le vider",
   "host.interface_error": "Erreur de l'interface",
+  "host.game_stopped": "Jeu arrêté",
+  "host.game_stopped_reason": "Le jeu s'est arrêté sur une erreur et va se fermer. Raison : {1}",
   "plural.form": "one",
   "generic.empty": "Cette fenêtre du jeu n’a rien à toucher du doigt ; fermez-la avec la flèche de l’en-tête."
 }
