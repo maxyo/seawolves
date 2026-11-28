@@ -17,7 +17,7 @@
 //   money (deals have prices), weighs (deals have a weight), pieces (single pieces, else packs of goods), types (rows
 //     may have a trade type)
 //   sides.s<k>.{key, label, selected, can}: whose side (ships, characters); switch: a side can be chosen now
-//   tabs.t<k>.{label, selected, can} (absent: the screen's own filters): the game's categories
+//   tabs.t<k>.{id, label, selected, can} (absent: the screen's own filters): the game's categories
 //   figures.f<k>.{kind ("carry": what we carry, during a deal the game's figure after it; "place": the place's load;
 //     "purse": our money), label ("" none), value (as written), currency (purse: the string key of what is paid, ""
 //     money)}; storage, info: the game's texts of the place's note and its description

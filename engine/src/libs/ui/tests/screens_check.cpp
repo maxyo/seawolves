@@ -1049,7 +1049,7 @@ struct CommerceRun
         ExpectEqual(surface.props["primary"]["label"], "Взять всё", "itemsbox: take all is the primary");
         Expect(surface.props["actions"].size() == 1 && surface.props["actions"][0]["label"] == "Убрать тело",
                "itemsbox: remove body beside it");
-        router.OnEvent({"goods", "filter", "2"});
+        router.OnEvent({"goods", "filter", Drawn(surface, "/list/filters", 2)});
         ExpectEqual(surface.Last(), "widget:itemsbox\tTABBTN_3\t-1\tpress", "a tab presses the game's tab button");
         {
             // The chest's four tabs carry our short captions; a fifth (a mod's) keeps the game's.
@@ -1164,7 +1164,7 @@ struct CommerceRun
                     widget.actions.clear();
             tap.SetInterface(locked);
             tap_surface.commands.clear();
-            tap.OnEvent({"goods", "filter", "1"});
+            tap.OnEvent({"goods", "filter", Drawn(tap_surface, "/list/filters", 1)});
             Expect(tap_surface.props["list"]["filters"][1]["disabled"] == true && tap_surface.commands.empty(),
                    "chest: a tab the game does not offer is shown disabled and not pressed: " +
                        Json(tap_surface.commands).dump());

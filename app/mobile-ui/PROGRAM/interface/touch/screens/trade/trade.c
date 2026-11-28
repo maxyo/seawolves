@@ -288,6 +288,7 @@ void TouchTrade_Filters(aref game, aref look, aref captions, aref list)
 	{
 		aref tab = TouchLib_Item(game, "tabs", k);
 		aref at = TouchLib_Filter(list, tab.label, sti(tab.selected));
+		at.id = tab.id;
 		at.disabled = !sti(tab.can);
 	}
 	if (CheckAttribute(game, "tabs")) return;
@@ -506,7 +507,8 @@ void TouchTrade_Filter(aref ui, aref game, string value)
 		UiRebuild();
 		return;
 	}
-	int tab = TouchLib_TapIndex(value, TouchLib_Count(game, "tabs"), "the goods tab");
+	int tab = TouchLib_Find(game, "tabs", "id", value);
+	if (tab < 0) return; // the category tapped is no longer offered
 	aref at = TouchLib_Item(game, "tabs", tab);
 	if (sti(at.can)) TouchAdpTrade_Category(ui, tab);
 }
