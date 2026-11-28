@@ -289,6 +289,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     DATA *PushEventValue(MESSAGE &message);
 
     bool SaveState(std::vector<char> &image);
+    std::string SaveFileInfo();
 #ifdef STORM_SCENE_SWEEP
     void WriteStateDump(const char *label); // scene_sweep.cpp
 #endif
@@ -320,7 +321,6 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
 
 
 
-    bool SetSaveData(const char *file_name, void *save_data, int32_t data_size);
     void *GetSaveData(const char *file_name, int32_t &data_size);
 
 

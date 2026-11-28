@@ -248,9 +248,7 @@ bool CoreImpl::Run()
     {
         STORM_PROFILE_ZONE("save/load state");
         const storm::platform::frame_work::Scope phase(storm::platform::frame_work::Phase::Load);
-        ProcessStateLoading();
-        ReportFailedLoad();
-        ReportFailedSave();
+        ProcessSaveLoad();
     }
     // A scene the scripts opened this frame without the loading screen, so without the ReloadProgressEnd that runs
     // the stock loading transaction (a quest's sea login: SeaLogin alone; the sea's Tele reload): prepared here by the
@@ -692,14 +690,30 @@ void CoreImpl::ProcessRealize()
     ProcessRunEnd(SECTION_REALIZE);
 }
 
+void CoreImpl::FailSave(const std::string &record, std::string reason, bool space)
+{
+    storm::save::trash().rollback(); // nothing replaced the slot the scripts deleted on the way to this save
+    save_failure_ = SaveFailure{record, std::move(reason), space};
+}
+
+// The state of a save whose description never came: no record is written, since the game refuses to load one
+// without a description.
+void CoreImpl::FailUndescribedSave()
+{
+    if (!pending_save_)
+        return;
+    const auto save = std::move(pending_save_);
+    spdlog::error("Save '{}' is not written: the scripts gave it no description", save->record);
+    FailSave(save->record, "the scripts gave the save no description");
+}
+
 bool CoreImpl::SaveState(const char *file_name)
 {
     if (!file_name)
     {
         throw std::logic_error("Bad file name of save");
     }
-    // Lets the Android host's bounded exit wait out this save; see host_hooks.hpp.
-    const storm::platform::SaveInProgress saving;
+    FailUndescribedSave();
 
     // Resolve the path first: file_name usually points into a script stack value,
     // and serializing runs the script OnSave handler, which reuses that storage.
@@ -708,37 +722,57 @@ bool CoreImpl::SaveState(const char *file_name)
     if (!storm::storage::writable(storm::storage::folders(), path))
     {
         spdlog::error("Refusing to save '{}' (resolved '{}'): it is not in the player's saves", name, path.string());
-        storm::save::trash().rollback();
-        save_failure_ = SaveFailure{name, "the save is not in the player's saves folder"};
+        FailSave(name, "the save is not in the player's saves folder");
         return false;
     }
 
-    // The state is serialized in memory and swapped in atomically
-    // (temporary file -> fsync -> verify -> rename); see save_file.hpp.
-    storm::save::Bytes image;
-    if (!Compiler->SaveState(image))
+    auto save = std::unique_ptr<PendingSave>(new PendingSave{name, path, {}, {}});
+    if (!Compiler->SaveState(save->image))
     {
-        storm::save::trash().rollback(); // nothing was written: undo the slot delete that preceded this save
-        save_failure_ = SaveFailure{name, "the script state could not be serialized"};
+        FailSave(name, "the script state could not be serialized");
         return false;
     }
+    pending_save_ = std::move(save);
+    return true;
+}
+
+// Writes the record SaveState began: its state with this description and thumbnail, swapped in atomically
+// (save_file.hpp). Until it returns true the slot holds the previous save, or the trash does (save_trash.hpp).
+bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_size)
+{
+    const auto path = std::filesystem::u8path(fio->ConvertPathResource(file_name ? file_name : ""));
+    if (!pending_save_ || path != pending_save_->path)
+    {
+        spdlog::error("Save description for '{}' without its state: nothing is written", file_name ? file_name : "");
+        return false;
+    }
+    const auto save = std::move(pending_save_);
 
     std::string error;
+    if (data_ptr == nullptr || data_size <= 0 ||
+        !storm::save::appendExtData(save->image, Compiler->SaveFileInfo().c_str(), data_ptr,
+                                    static_cast<uint32_t>(data_size), error))
+    {
+        spdlog::error("Cannot save '{}': its description cannot be stored: {}", save->record,
+                      error.empty() ? "it is empty" : error);
+        FailSave(save->record, "the description of the save could not be stored");
+        return false;
+    }
+
     if (std::error_code ec; !path.parent_path().empty())
     {
         std::filesystem::create_directories(path.parent_path(), ec);
     }
-    if (!storm::save::writeAtomic(path, image, storm::save::checkImage, error))
+    if (!storm::save::writeAtomic(path, save->image, storm::save::checkImage, error))
     {
-        spdlog::error("Cannot save '{}' (resolved '{}'): {}; the previous save, if any, is unchanged", name,
+        spdlog::error("Cannot save '{}' (resolved '{}'): {}; the previous save, if any, is unchanged", save->record,
                       path.string(), error);
-        storm::save::trash().rollback();
         std::error_code ec;
         const auto space = std::filesystem::space(path.parent_path().empty() ? std::filesystem::path(".") : path.parent_path(), ec);
         const bool full = error.find(std::generic_category().message(ENOSPC)) != std::string::npos ||
                           error.find(std::generic_category().message(EDQUOT)) != std::string::npos ||
-                          (!ec && space.available < image.size());
-        save_failure_ = SaveFailure{name, error, full};
+                          (!ec && space.available < save->image.size());
+        FailSave(save->record, error, full);
         return false;
     }
 
@@ -788,6 +822,14 @@ bool CoreImpl::InitiateStateLoading(const char *file_name)
     State_file_name = static_cast<char *>(new char[len]);
     strcpy_s(State_file_name, len, file_name);
     return true;
+}
+
+void CoreImpl::ProcessSaveLoad()
+{
+    ProcessStateLoading();
+    ReportFailedLoad();
+    FailUndescribedSave();
+    ReportFailedSave();
 }
 
 void CoreImpl::ProcessStateLoading()
@@ -1090,11 +1132,6 @@ void CoreImpl::DumpEntitiesInfo()
 void *CoreImpl::GetSaveData(const char *file_name, int32_t &data_size)
 {
     return Compiler->GetSaveData(file_name, data_size);
-}
-
-bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_size)
-{
-    return Compiler->SetSaveData(file_name, data_ptr, data_size);
 }
 
 uint32_t CoreImpl::SetScriptFunction(IFUNCINFO *pFuncInfo)

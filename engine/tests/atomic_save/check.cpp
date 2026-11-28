@@ -262,6 +262,29 @@ static void atomicChecks(const fs::path &dir)
         noLeftovers(target);
     }
 
+    // The rename is refused (the folder stops taking changes once the new file is written): the
+    // failure is reported and the previous save keeps the name.
+    if (geteuid() == 0)
+        std::cout << "SKIP: root renames in a read-only folder, the refused rename is not checked\n";
+    else
+    {
+        put(target, imageA);
+        const auto folder = target.parent_path();
+        const auto freeze = [&](const char *step) {
+            if (std::string(step) == "backup-made")
+                fs::permissions(folder, fs::perms::owner_read | fs::perms::owner_exec);
+            return false;
+        };
+        error.clear();
+        const bool replaced = writeAtomic(target, imageB, validState, error, freeze);
+        fs::permissions(folder, fs::perms::owner_all);
+        REQUIRE((!replaced && !error.empty()));
+        REQUIRE((loadWithRecovery(target, image, raw, error) == Source::Primary && raw == stateA));
+        REQUIRE(writeAtomic(target, imageB, validState, error));
+        REQUIRE(get(target) == imageB);
+        noLeftovers(target);
+    }
+
     // Torn primary (e.g. written by an older build that died mid-write) with a
     // backup next to it: the backup is promoted.
     put(target, Bytes(imageB.begin(), imageB.begin() + imageB.size() / 2));

@@ -10,6 +10,10 @@
 #include "timer.h"
 #include "vma.hpp"
 
+#include "platform/host_hooks.hpp"
+
+#include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -49,8 +53,10 @@ class CoreImpl final : public CorePrivate
     void ProcessRealize();
     void ProcessStateLoading();
     void ReportFailedLoad();
-    // A save that could not be written (SaveState) is told one frame later: after a background
-    // autosave that is the first frame back in the foreground.
+    void FailSave(const std::string &record, std::string reason, bool space = false);
+    void FailUndescribedSave();
+    // A save that could not be written is told one frame later: after a background autosave that is the first
+    // frame back in the foreground.
     void ReportFailedSave();
     void ProcessRunStart(uint32_t section_code);
     void ProcessRunEnd(uint32_t section_code);
@@ -104,6 +110,9 @@ class CoreImpl final : public CorePrivate
 
     uint64_t Send_Message(entid_t Destination, const char *Format, ...) override;
 
+    // The frame's step of saves and loads: the load the scripts asked for, then the saves and loads that failed are
+    // told to the scripts and the player.
+    void ProcessSaveLoad();
     bool SaveState(const char *file_name) override;
     // force core to load state file at the start of next game loop, return false if no state file
     bool InitiateStateLoading(const char *file_name) override;
@@ -199,6 +208,17 @@ private:
         bool space = false; // the storage is full
     };
     std::optional<SaveFailure> save_failure_;
+
+    // A save is one write of the whole record. The scripts give it in two calls of one script function: the state
+    // (SaveState), then the description and the thumbnail (SetSaveData). The state waits here for them.
+    struct PendingSave
+    {
+        std::string record;
+        std::filesystem::path path;
+        std::vector<char> image;
+        storm::platform::SaveInProgress hold; // the Android host's bounded exit waits out the save (host_hooks.hpp)
+    };
+    std::unique_ptr<PendingSave> pending_save_;
 
     float fTimeScale;
 };

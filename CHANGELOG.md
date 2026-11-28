@@ -157,6 +157,10 @@
 - В окне алхимии больше нет меню «Прочее» с сырыми строками таблицы компонентов и кнопками под именами узлов.
 - В торговле орудиями, контрабандой, предметами и в сундуках больше нет меню «Прочее» с кнопками «+ max», «+», «−»,
   «− max»: количество задаётся ползунком экрана.
+- Сохранение записывается в файл целиком, одной записью: состояние игры вместе с описанием и картинкой. Раньше это
+  были две записи подряд, и если игру закрывали или место кончалось между ними, прежнее сохранение уже было удалено,
+  а новое не загружалось. Теперь в слоте всегда либо прежнее сохранение, либо новое целиком; о неудаче на любом шаге
+  игра сообщает. Caribbean Legend теперь узнаёт от движка, что сохранение записано.
 
 **English**
 
@@ -321,6 +325,10 @@
   node ids.
 - Trading cannons, contraband and items and the chests no longer have an «Other» menu with the «+ max», «+», «−»,
   «− max» buttons: the screen's slider sets the amount.
+- A save is written to its file whole, in one write: the game state with the description and the picture. It used to
+  be two writes in a row, and when the game was closed or the storage ran out between them, the previous save was
+  already deleted and the new one did not load. A slot now always holds either the previous save or the whole new
+  one; a failure at any step is reported. Caribbean Legend is now told by the engine that a save was written.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

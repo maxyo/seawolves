@@ -82,6 +82,7 @@ class Core
 
     virtual uint64_t Send_Message(entid_t Destination, const char *Format, ...) = 0;
 
+    // Serializes the script state of a save; SetSaveData, called next by the same script function, writes the record.
     virtual bool SaveState(const char *file_name) = 0;
     // force core to load state file at the start of next game loop, return false if no state file
     virtual bool InitiateStateLoading(const char *file_name) = 0;
@@ -109,6 +110,7 @@ class Core
 
     virtual void *GetSaveData(const char *file_name, int32_t &data_size) = 0;
 
+    // Writes the save SaveState began, with this description and thumbnail; false: no record was written.
     virtual bool SetSaveData(const char *file_name, void *data_ptr, int32_t data_size) = 0;
 
     virtual uint32_t SetScriptFunction(IFUNCINFO *pFuncInfo) = 0;

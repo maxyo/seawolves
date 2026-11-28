@@ -1303,9 +1303,8 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
     case MSG_INTERFACE_DO_SAVE_DATA: {
         const std::string &param1 = message.String();
         const std::string &param2 = message.String();
-        SFLB_DoSaveFileData(param1.c_str(), param2.c_str());
+        return SFLB_DoSaveFileData(param1.c_str(), param2.c_str()); // whether the save is written
     }
-    break;
     case MSG_INTERFACE_GET_SAVE_DATA: {
         // seadogs.c LoadGame drops a load without a word when this is empty (save_description.hpp).
         const std::string &record = message.String();
@@ -3738,9 +3737,9 @@ bool XINTERFACE::SFLB_DoSaveFileData(const char *saveName, const char *gameSaveD
             core.Trace("Can`t lock screenshot texture");
     }
 
-    core.SetSaveData(saveName, pdat, sizeof(SAVE_DATA_HANDLE) + slen + ssize);
+    const bool saved = core.SetSaveData(saveName, pdat, sizeof(SAVE_DATA_HANDLE) + slen + ssize);
     free(pdat);
-    return true;
+    return saved;
 }
 
 void XINTERFACE::ReleaseSaveFindList()

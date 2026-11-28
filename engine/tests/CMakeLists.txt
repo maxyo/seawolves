@@ -498,6 +498,7 @@ add_subdirectory(far_lod)
 add_subdirectory(glm_math)
 add_subdirectory(portability)
 add_subdirectory(script_language)
+add_subdirectory(save_session)
 add_subdirectory(ui_scripts)
 add_subdirectory(script_natives)
 # The renderer's checks need bgfx's build (X11 and OpenGL development files, the pinned shaderc): a build that runs

@@ -7115,6 +7115,13 @@ std::vector<char> COMPILER::SerializeState()
     return out.take();
 }
 
+// The game's name for its saves, kept in the file's header.
+std::string COMPILER::SaveFileInfo()
+{
+    auto *info = static_cast<VDATA *>(core_internal.GetScriptVariable("savefile_info"));
+    return info && info->GetString() ? info->GetString() : "save";
+}
+
 bool COMPILER::SaveState(std::vector<char> &image)
 {
     DATA *pResult;
@@ -7122,18 +7129,12 @@ bool COMPILER::SaveState(std::vector<char> &image)
     if (function_code != INVALID_FUNC_CODE)
         BC_Execute(function_code, pResult);
 
-    // Serialize into memory only: the caller replaces the file atomically, so a
-    // failure or crash at any point leaves the previous save intact.
-    std::string save_info = "save";
-    auto *pVDat = static_cast<VDATA *>(core_internal.GetScriptVariable("savefile_info"));
-    if (pVDat && pVDat->GetString())
-        save_info = pVDat->GetString();
-
+    // Serialize into memory only: the caller writes the whole record once (CoreImpl::SetSaveData).
     const auto state = SerializeState();
 
     std::string error;
     const bool built =
-        storm::save::buildState(save_info.c_str(), state.data(), static_cast<uint32_t>(state.size()), image, error);
+        storm::save::buildState(SaveFileInfo().c_str(), state.data(), static_cast<uint32_t>(state.size()), image, error);
     if (!built)
     {
         spdlog::error("Cannot build save image: {}", error);
@@ -7206,39 +7207,6 @@ void COMPILER::ForgetDeletedAttributes(S_EVENTMSG *pEM)
         SetError("PostEvent(\"%s\"): its argument %zu names a deleted attribute (deleted before the event's time): "
                  "the handler gets an empty aref", pEM->pEventName, position + 1);
     });
-}
-
-bool COMPILER::SetSaveData(const char *file_name, void *save_data, int32_t data_size)
-{
-    if (file_name == nullptr || save_data == nullptr || data_size <= 0)
-    {
-        return false;
-    }
-
-    // Read-modify-write through a temporary file: the save written by
-    // SaveState stays loadable if this step fails or the process dies.
-    const auto path = std::filesystem::u8path(fio->ConvertPathResource(file_name));
-    std::string error;
-    storm::save::Bytes image;
-    if (!storm::save::readFile(path, image, error))
-    {
-        spdlog::error("Cannot attach save data to '{}': {}", path.string(), error);
-        return false;
-    }
-
-    std::string save_info = "save";
-    auto *pVDat = static_cast<VDATA *>(core_internal.GetScriptVariable("savefile_info"));
-    if (pVDat && pVDat->GetString())
-        save_info = pVDat->GetString();
-
-    if (!storm::save::appendExtData(image, save_info.c_str(), save_data, static_cast<uint32_t>(data_size), error) ||
-        !storm::save::writeAtomic(path, image, storm::save::checkImage, error))
-    {
-        spdlog::error("Cannot attach save data to '{}': {}", path.string(), error);
-        return false;
-    }
-
-    return true;
 }
 
 void *COMPILER::GetSaveData(const char *file_name, int32_t &data_size)
