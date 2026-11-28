@@ -8,6 +8,7 @@
 <c-object-header title="{{detail.title}}" sub="{{detail.sub}}" title-size="17" sub-size="13" gap="0"/>
 <c-kv items="{{ json(detail.facts) }}"/>
 <div class="sv-grow"></div>
+<t-if test="detail.disabled && detail.reason"><div class="sv-reason">{{detail.reason}}</div></t-if>
 <div class="sv-actions"><t-if test="detail.delete"><c-icon-button id="delete" icon="trash" label="{{ tr('save.delete_label') }}" look="bare" danger="1" disabled="{{ detail.busy ? 1 : 0 }}"/></t-if>
 <c-button id="primary" variant="primary" label="{{detail.primary}}" disabled="{{ detail.disabled ? 1 : 0 }}" reason="{{detail.reason}}" busy="{{ detail.busy ? 1 : 0 }}" style="flex: 1 1 0"/></div>
 </c-panel></div></t-if>

@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Повреждённая запись в списке загрузки объясняет, почему её нельзя загрузить: причина написана над неактивной
+  кнопкой «Загрузить».
 - Экран сохранений после неудачного сохранения (например, когда память телефона заполнена) возвращается к списку
   с сообщением о причине, прежняя запись цела и выбирается: раньше на нём оставался вопрос «Перезаписать?», кнопки
   которого не отвечали, и выйти можно было только кнопкой «Назад». Закрытый игрой вопрос (в том числе после «Отмены»)
@@ -199,6 +201,8 @@
 
 **English**
 
+- A damaged record in the load list says why it cannot be loaded: the reason is written above the disabled
+  «Load» button.
 - After a save fails (for instance, the phone's storage is full) the save screen comes back to the list with the
   reason shown, and the previous record is intact and selectable: the "Overwrite?" question used to stay on it with
   buttons that did nothing, and only the Back key got out. A question the game closed (also after «Cancel») no longer

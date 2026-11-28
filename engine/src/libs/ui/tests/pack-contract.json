@@ -3,6 +3,7 @@
   "cases": [
     {"name": "settings", "states": ["appSettings=models/app-settings.json"], "interface": "models/settings.json"},
     {"name": "store", "interface": "models/store.json", "answer": "models/store-deal.json"},
+    {"name": "saves-unreadable", "interface": "models/saves-unreadable.json", "shows": {".sv-reason": "Запись повреждена"}},
     {"name": "hero-card-captain-914", "interface": "models/hero.json",
      "align": [["top", "#special", "#personal", "#ship"]], "seen": ["#card .hc-sub", "#card .hc-roles", "#card .hc-line"]},
     {"name": "hero-card-three-posts-914", "interface": "models/hero-people-de.json", "size": "914x411",

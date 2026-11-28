@@ -9,4 +9,6 @@ s-saves .sv-grow { flex: 1 1 0; }
    keeps one line so a long name cannot squeeze the picture away. */
 s-saves .sv-preview { position: relative; flex: 1000 1 0; min-height: 48dp; max-height: 128dp; }
 s-saves .sv-side c-object-header .oh-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Why the chosen record cannot be loaded, said above the button it disables. */
+s-saves .sv-reason { flex: 0 0 auto; font-size: @{type.caption}dp; font-style: italic; color: @{color.textReason}; }
 s-saves .sv-actions { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; gap: @{space.lg}dp; }
