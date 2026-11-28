@@ -9,9 +9,9 @@
 {"node":"EXIT_BTN","type":"button","index":-1,"order":2,"actions":["press"]},
 {"node":"MAP","type":"map","index":-1,"order":3,"images":[{"handle":1,"imageRevision":1,"tintArgb":4286611584,"source":{"kind":"texture","image":"interfaces/maps/martinica"}}],"actions":["point","release"],"context":{"base":"2048,2048","view":"0,0,2048,2048"}},
 {"node":"STR_1","type":"text","label":"Выберите карту","index":-1,"order":4},
-{"node":"TABLE_MAPS","type":"choice","label":"Отличная карта","value":"0","index":1,"order":10,"rowId":"1","actions":["select"],"cells":[{"text":"Отличная карта"}]},
-{"node":"TABLE_MAPS","type":"choice","label":"Карта Мартиники","value":"1","index":2,"order":11,"rowId":"2","actions":["select"],"cells":[{"text":"Карта Мартиники"}]},
-{"node":"TABLE_MAPS","type":"choice","label":"Карта Гваделупы","value":"0","index":3,"order":12,"rowId":"3","actions":["select"],"cells":[{"text":"Карта Гваделупы"}]},
-{"node":"TABLE_MAPS","type":"choice","label":"Карта Барбадоса","value":"0","index":4,"order":13,"rowId":"4","actions":["select"],"cells":[{"text":"Карта Барбадоса"}]},
-{"node":"TABLE_MAPS","type":"choice","label":"Карта Антигуа","value":"0","index":5,"order":14,"rowId":"5","actions":["select"],"cells":[{"text":"Карта Антигуа"}]}
+{"node":"TABLE_MAPS","type":"choice","label":"Отличная карта","value":"0","index":1,"order":10,"rowId":"mapview:item:60","actions":["select"],"cells":[{"text":"Отличная карта"}]},
+{"node":"TABLE_MAPS","type":"choice","label":"Карта Мартиники","value":"1","index":2,"order":11,"rowId":"mapview:item:61","actions":["select"],"cells":[{"text":"Карта Мартиники"}]},
+{"node":"TABLE_MAPS","type":"choice","label":"Карта Гваделупы","value":"0","index":3,"order":12,"rowId":"mapview:item:62","actions":["select"],"cells":[{"text":"Карта Гваделупы"}]},
+{"node":"TABLE_MAPS","type":"choice","label":"Карта Барбадоса","value":"0","index":4,"order":13,"rowId":"mapview:item:63","actions":["select"],"cells":[{"text":"Карта Барбадоса"}]},
+{"node":"TABLE_MAPS","type":"choice","label":"Карта Антигуа","value":"0","index":5,"order":14,"rowId":"mapview:item:64","actions":["select"],"cells":[{"text":"Карта Антигуа"}]}
 ]}

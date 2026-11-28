@@ -74,10 +74,17 @@ inline bool TransferTable(std::string_view screen, std::string_view node)
     return screen == "transfer_main" && node == "TABLE_LIST";
 }
 
+// The atlas (mapview.c FillMapsTable): a row is its map item (`index`).
+inline bool MapsTable(std::string_view screen, std::string_view node)
+{
+    return screen == "mapview" && node == "TABLE_MAPS";
+}
+
 inline bool LeasedTableIdentityRequired(std::string_view screen, std::string_view node)
 {
     return CommerceTable(screen, node) || ShipHoldTable(screen, node) || CityTable(screen, node) ||
-           TransferTable(screen, node) || (screen == "shipyard" && (node == "TABLE_SHIPYARD" || node == "TABLE_OTHER"));
+           TransferTable(screen, node) || MapsTable(screen, node) ||
+           (screen == "shipyard" && (node == "TABLE_SHIPYARD" || node == "TABLE_OTHER"));
 }
 
 inline std::string InterfaceTableRowId(std::string_view screen, std::string_view node, ATTRIBUTES *row,
@@ -124,6 +131,11 @@ inline std::string InterfaceTableRowId(std::string_view screen, std::string_view
     {
         const auto good = InventoryNumber(row ? row->GetAttribute("index") : nullptr);
         return good ? "transfer:good:" + std::to_string(*good) : std::string();
+    }
+    if (MapsTable(screen, node))
+    {
+        const auto item = InventoryNumber(row ? row->GetAttribute("index") : nullptr);
+        return item ? "mapview:item:" + std::to_string(*item) : std::string();
     }
     if (!CommerceTable(screen, node))
         return MobileTableRowId(node, row,

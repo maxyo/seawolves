@@ -561,3 +561,12 @@ TEST_CASE("a ship exchange's cargo row is its good")
     good->SetAttribute("index", "");
     CHECK(storm::mobile::InterfaceTableRowId("transfer_main", "TABLE_LIST", good, &f.root).empty());
 }
+
+TEST_CASE("an atlas row is its map item, never a bare position")
+{
+    Fixture f;
+    auto *map = f.root.CreateAttribute("TABLE_MAPS", nullptr)->CreateAttribute("tr3", nullptr);
+    map->SetAttribute("index", "512");
+    CHECK(storm::mobile::LeasedTableIdentityRequired("mapview", "TABLE_MAPS"));
+    CHECK(storm::mobile::InterfaceTableRowId("mapview", "TABLE_MAPS", map, &f.root) == "mapview:item:512");
+}

@@ -1014,7 +1014,7 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
     CHECK(quest == std::vector<std::string>{"send QUEST_TITLE#0 open q_debt", "hold"});
     // The maps carried: the first one gone, the one tapped is still the one shown.
     const auto map = TapAfterRowGone("map", "map", "map_atlas", "TABLE_MAPS", 1, false, "/maps", 2, "maps", "row");
-    CHECK(map == std::vector<std::string>{"send TABLE_MAPS#3 select 3"});
+    CHECK(map == std::vector<std::string>{"send TABLE_MAPS#3 select mapview:item:62"});
 }
 
 TEST_CASE("a deal held at the shipyard answers the game's question about it with the game's ok, another is shown")

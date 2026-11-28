@@ -3,7 +3,7 @@
  "cases": [
   {
    "calls": [
-    "send TABLE_MAPS#3 select 3",
+    "send TABLE_MAPS#3 select mapview:item:62",
     "send MAP point 1024.0,900.5",
     "back EXIT_BTN"
    ],
@@ -94,7 +94,7 @@
       "label": "Отличная карта",
       "node": "TABLE_MAPS",
       "order": 10,
-      "rowId": "1",
+      "rowId": "mapview:item:60",
       "type": "choice",
       "value": "0"
      },
@@ -111,7 +111,7 @@
       "label": "Карта Мартиники",
       "node": "TABLE_MAPS",
       "order": 11,
-      "rowId": "2",
+      "rowId": "mapview:item:61",
       "type": "choice",
       "value": "1"
      },
@@ -128,7 +128,7 @@
       "label": "Карта Гваделупы",
       "node": "TABLE_MAPS",
       "order": 12,
-      "rowId": "3",
+      "rowId": "mapview:item:62",
       "type": "choice",
       "value": "0"
      },
@@ -145,7 +145,7 @@
       "label": "Карта Барбадоса",
       "node": "TABLE_MAPS",
       "order": 13,
-      "rowId": "4",
+      "rowId": "mapview:item:63",
       "type": "choice",
       "value": "0"
      },
@@ -162,7 +162,7 @@
       "label": "Карта Антигуа",
       "node": "TABLE_MAPS",
       "order": 14,
-      "rowId": "5",
+      "rowId": "mapview:item:64",
       "type": "choice",
       "value": "0"
      }
