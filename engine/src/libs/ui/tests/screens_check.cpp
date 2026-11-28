@@ -2233,7 +2233,7 @@ static void Hero(const std::string &models)
     ExpectEqual(surface.props["dialog"]["kind"], "assign", "the game's chooser drawn as our sheet");
     {
         // The chooser's rows reused for another post before the game selected the tapped one: nothing is accepted.
-        router.OnEvent({"candidate-1", "", ""});
+        router.OnEvent({"candidate-" + Drawn(surface, "/dialog/rows", 1), "", ""});
         AnswerAll(router, surface, true);
         InterfaceModel other = assign;
         other.revision = assign.revision + 1;
@@ -2246,7 +2246,7 @@ static void Hero(const std::string &models)
         assign.revision = other.revision + 1;
         router.SetInterface(assign);
     }
-    router.OnEvent({"candidate-1", "", ""});
+    router.OnEvent({"candidate-" + Drawn(surface, "/dialog/rows", 1), "", ""});
     Expect(surface.Last().rfind("widget:lscchar_all\tPASSENGERSLIST\t1\tselect", 0) == 0,
            "a candidate tapped is selected: " + surface.Last());
     AnswerAll(router, surface, true);

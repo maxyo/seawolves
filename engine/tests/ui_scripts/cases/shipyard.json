@@ -7081,7 +7081,7 @@
      "candidates": [
       {
        "disabled": false,
-       "id": "candidate-0",
+       "id": "candidate-30",
        "image": {
         "kind": "item",
         "texture": "atlas:SHIPS_Lugger/ship"
@@ -7092,7 +7092,7 @@
       },
       {
        "disabled": false,
-       "id": "candidate-1",
+       "id": "candidate-31",
        "image": {
         "kind": "item",
         "texture": "atlas:SHIPS_Lugger/ship"
@@ -7103,7 +7103,7 @@
       },
       {
        "disabled": false,
-       "id": "candidate-2",
+       "id": "candidate-32",
        "image": {
         "kind": "item",
         "texture": "atlas:SHIPS_Lugger/ship"
@@ -7201,7 +7201,7 @@
    ],
    "events": [
     [
-     "candidate-1",
+     "candidate-31",
      "click",
      ""
     ],

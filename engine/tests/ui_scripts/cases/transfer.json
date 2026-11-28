@@ -1256,7 +1256,7 @@
     "modal": null,
     "primary": {"busy": false, "disabled": true, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "94 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "danger", "v": "0 / 45"}], "image": {"kind": "item", "texture": "interfaces/ships/lugger"}, "sub": "Люггер · <yard.class> 5", "title": "Almirante"},
-    "sheet": {"actions": [{"busy": false, "disabled": false, "id": "sheet-ok", "label": "Назначить", "reason": "", "variant": "primary"}], "candidates": [{"disabled": false, "id": "candidate-0", "image": {"kind": "item", "texture": "atlas:FACE128_23/face"}, "reason": "", "selected": true, "title": "Флоран Габриель"}, {"disabled": false, "id": "candidate-1", "image": {"kind": "item", "texture": "atlas:FACE128_18/face"}, "reason": "", "selected": false, "title": "Модест Дюваль"}, {"disabled": false, "id": "candidate-2", "image": {"kind": "item", "texture": "atlas:FACE128_25/face"}, "reason": "", "selected": false, "title": "Бальтазар Мюска"}], "closable": true, "empty": "", "facts": [{"k": "Ранг", "v": "7"}, {"k": "Жизнь", "v": "93 / 93"}, {"k": "Репутация", "v": "Обычный моряк"}, {"k": "Лояльность", "v": "Мятежная"}, {"k": "Вес", "v": "2.8 / 160"}], "kind": "captain", "name": "Флоран Габриель", "skills": [{"icon": "wheel", "k": "<skill.sailing>", "tone": "", "v": "14"}, {"icon": "accuracy", "k": "<skill.accuracy>", "tone": "", "v": "19"}, {"icon": "cannon", "k": "<skill.cannons>", "tone": "", "v": "19"}, {"icon": "grapple", "k": "<skill.grappling>", "tone": "", "v": "17"}, {"icon": "shield", "k": "<skill.defence>", "tone": "", "v": "30"}, {"icon": "repair", "k": "<skill.repair>", "tone": "", "v": "17"}, {"icon": "commerce", "k": "<skill.commerce>", "tone": "", "v": "13"}], "title": "Назначение капитана корабля", "width": 640},
+    "sheet": {"actions": [{"busy": false, "disabled": false, "id": "sheet-ok", "label": "Назначить", "reason": "", "variant": "primary"}], "candidates": [{"disabled": false, "id": "candidate-30", "image": {"kind": "item", "texture": "atlas:FACE128_23/face"}, "reason": "", "selected": true, "title": "Флоран Габриель"}, {"disabled": false, "id": "candidate-31", "image": {"kind": "item", "texture": "atlas:FACE128_18/face"}, "reason": "", "selected": false, "title": "Модест Дюваль"}, {"disabled": false, "id": "candidate-32", "image": {"kind": "item", "texture": "atlas:FACE128_25/face"}, "reason": "", "selected": false, "title": "Бальтазар Мюска"}], "closable": true, "empty": "", "facts": [{"k": "Ранг", "v": "7"}, {"k": "Жизнь", "v": "93 / 93"}, {"k": "Репутация", "v": "Обычный моряк"}, {"k": "Лояльность", "v": "Мятежная"}, {"k": "Вес", "v": "2.8 / 160"}], "kind": "captain", "name": "Флоран Габриель", "skills": [{"icon": "wheel", "k": "<skill.sailing>", "tone": "", "v": "14"}, {"icon": "accuracy", "k": "<skill.accuracy>", "tone": "", "v": "19"}, {"icon": "cannon", "k": "<skill.cannons>", "tone": "", "v": "19"}, {"icon": "grapple", "k": "<skill.grappling>", "tone": "", "v": "17"}, {"icon": "shield", "k": "<skill.defence>", "tone": "", "v": "30"}, {"icon": "repair", "k": "<skill.repair>", "tone": "", "v": "17"}, {"icon": "commerce", "k": "<skill.commerce>", "tone": "", "v": "13"}], "title": "Назначение капитана корабля", "width": 640},
     "ships": null,
     "stats": [{"label": "Аделина", "value": "501 <transfer.free>"}, {"label": "Almirante", "tone": "danger", "value": "<transfer.no_captain>"}],
     "tabs": [{"id": "cargo", "label": "<transfer.cargo>", "selected": true}, {"disabled": true, "id": "crew", "label": "<transfer.crew>", "reason": "", "selected": false}, {"id": "ships", "label": "<transfer.ships>", "selected": false}],
@@ -1267,12 +1267,12 @@
    ],
    "events": [
     [
-     "candidate-2",
+     "candidate-32",
      "click",
      ""
     ],
     [
-     "candidate-0",
+     "candidate-30",
      "click",
      ""
     ],

@@ -5357,7 +5357,7 @@
      "rows": [
       {
        "busy": false,
-       "id": "0",
+       "id": "30",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_15"
@@ -5368,7 +5368,7 @@
       },
       {
        "busy": false,
-       "id": "1",
+       "id": "31",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_19"
@@ -5585,7 +5585,7 @@
    ],
    "events": [
     [
-     "candidate-1",
+     "candidate-31",
      "",
      ""
     ]

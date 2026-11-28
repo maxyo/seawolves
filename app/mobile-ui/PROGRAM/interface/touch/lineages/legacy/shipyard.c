@@ -266,7 +266,7 @@ void TouchLegShipyard_Captain(aref model, aref window)
 	for (int k = 0; k < TouchLib_Count(model, "PASSENGERSLIST.rows"); k++)
 	{
 		aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", k);
-		object person = {key = row.id, label = row.label, selected = row.value == "1",
+		object person = {key = "" + TouchLegLib_ListCharacter("PASSENGERSLIST", row), label = row.label, selected = row.value == "1",
 		                 can = CheckAttribute(row, "offers.select"), reason = row.reason};
 		aref at = TouchLib_Add(candidates, "c");
 		CopyAttributes(at, &person);

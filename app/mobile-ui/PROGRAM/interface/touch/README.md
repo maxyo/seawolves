@@ -180,7 +180,7 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   the game offers it), captions (`Label`, `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`,
   `Image`), rows (`Choices`, `Choose`, `Act`: a verb to row k, `RowOf`: by id, `Selected`), the amount window
   (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
-  list (`People`, `PickPerson`), `ShipSkills`.
+  list (`People`, `PickPerson`; `ListCharacter`: the character a row of a portrait list shows), `ShipSkills`.
 
 ## The steps of a move
 

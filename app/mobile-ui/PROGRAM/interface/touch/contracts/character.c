@@ -24,7 +24,7 @@
 //   posts.p<k>.{slot, post, icon (ours of the post), role, label ("" free), image, character (-1 free)}
 //   passengers.p<k>.{label, rank, image}
 //   window ("" none, "remove", "assign", "message") and with it remove.{slot, label, role, skill, skillValue,
-//     loyalty, salary, can}, assign.{role, rows.r<k>.{label, rank, salary, skill, skillValue, image, busy}},
+//     loyalty, salary, can}, assign.{role, rows.r<k>.{key, label, rank, salary, skill, skillValue, image, busy}},
 //     message.{title, text}
 extern void TouchAdpCharacter_State(aref ui, aref out);
 // The game's description of skill row k of `table` (special, personal, ship) with what its value is made of:

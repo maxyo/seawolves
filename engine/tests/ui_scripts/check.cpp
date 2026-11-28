@@ -880,6 +880,10 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
     const auto guns = TapAfterRowGone("ship", "ship", "ship", "CANNONS_TABLE", 0, false, "/sheet/calibres/rows", 1,
                                       "cannons-stock", "row", 5);
     CHECK(guns == std::vector<std::string>{"send CANNONS_TABLE#1 select ", "hold"});
+    // The shipyard's captains: the first passenger gone, the third tapped is still the one chosen.
+    const auto captain = TapAfterRowGone("shipyard", "shipyard", "shipyard", "PASSENGERSLIST", 0, false,
+                                         "/sheet/candidates", 2, "{}", "click", 5);
+    CHECK(captain == std::vector<std::string>{"send PASSENGERSLIST#2 select ", "hold"});
 }
 
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")

@@ -380,6 +380,16 @@ string TouchLegLib_FlagOf(aref image)
 	return TouchLegLib_Flag(image.image);
 }
 
+// The character a row of the game's portrait list `node` (CHARACTERS_SCROLL, PASSENGERSLIST) shows: its pic<n>
+// .character, the game's identity of the person; a row without one is the game's list out of step with the window.
+int TouchLegLib_ListCharacter(string node, aref row)
+{
+	string pic = "pic" + (sti(row.index) + 1);
+	if (!CheckAttribute(&GameInterface, node + "." + pic + ".character"))
+		UiError("the list " + node + " has no person of its slot " + row.index);
+	return sti(GameInterface.(node).(pic).character);
+}
+
 // The people of the hero screens' character list CHARACTERS_SCROLL (FillCharactersScroll): the captain, the officers
 // on their posts, companions, passengers and prisoners, each once in the list's order with the captions of the slots
 // they fill (an officer may hold several posts), as out.people.p<k>.{key (the character's index), character, label,
@@ -394,9 +404,7 @@ int TouchLegLib_People(aref model, aref out)
 		aref row = TouchLib_Item(model, "CHARACTERS_SCROLL.rows", n);
 		int slot = sti(row.index);
 		string pic = "pic" + (slot + 1);
-		if (!CheckAttribute(&GameInterface, "CHARACTERS_SCROLL." + pic + ".character"))
-			UiError("the character list has no person of its slot " + slot);
-		int character = sti(GameInterface.CHARACTERS_SCROLL.(pic).character);
+		int character = TouchLegLib_ListCharacter("CHARACTERS_SCROLL", row);
 		// The list writes "0" for a free post; the captain's slot is the first.
 		if (slot > 0 && character == 0) continue;
 		string caption = "";

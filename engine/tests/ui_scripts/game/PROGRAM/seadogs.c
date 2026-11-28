@@ -840,6 +840,7 @@ void TestCharacters()
 	GameInterface.CHARACTERS_SCROLL.current = 2;
 	GameInterface.PASSENGERSLIST.pic1.character = 30;
 	GameInterface.PASSENGERSLIST.pic2.character = 31;
+	GameInterface.PASSENGERSLIST.pic3.character = 32;
 	TestPassengers.p0 = 2;
 	TestHero.Fellows.Passengers.treasurer = 13;
 }

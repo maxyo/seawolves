@@ -514,7 +514,7 @@ void TouchTransfer_Captains(aref game, aref view)
 	{
 		aref person = TouchLib_Item(from, "people", k);
 		aref at = TouchLib_Add(candidates, "c");
-		at.id = "candidate-" + k;
+		at.id = "candidate-" + person.key;
 		at.title = person.label;
 		at.image = "";
 		if (CheckAttribute(person, "image"))
@@ -605,8 +605,8 @@ void TouchTransfer_Tap()
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
-		int person = TouchLib_TapIndex(TouchLib_Cut(id, 10, strlen(id)), TouchLib_Count(game, "captains.people"),
-		                               "the candidate");
+		int person = TouchLib_Find(game, "captains.people", "key", TouchLib_Cut(id, 10, strlen(id)));
+		if (person < 0) return; // the captain tapped is no longer listed
 		aref chosen = TouchLib_Item(game, "captains.people", person);
 		if (sti(chosen.selected)) return;
 		TouchAdpTransfer_Pick(ui, person);

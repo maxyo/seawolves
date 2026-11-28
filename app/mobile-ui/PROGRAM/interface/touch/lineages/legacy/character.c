@@ -471,18 +471,17 @@ void TouchLegCharacter_Windows(aref ui, aref out)
 		for (int k = 0; k < TouchLib_Count(model, "PASSENGERSLIST.rows"); k++)
 		{
 			aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", k);
-			pic = "pic" + (sti(row.index) + 1);
-			if (!CheckAttribute(&GameInterface, "PASSENGERSLIST." + pic + ".character"))
-				UiError("character: the post chooser has no person of its row " + row.index);
-			chr = GetCharacter(sti(GameInterface.PASSENGERSLIST.(pic).character));
+			int character = TouchLegLib_ListCharacter("PASSENGERSLIST", row);
+			chr = GetCharacter(character);
 			skill = TouchLegCharacter_PostSkill(ui, chr, post);
 			aref entry = TouchLib_Add(rows, "r");
+			entry.key = "" + character;
 			entry.label = GetFullName(chr);
 			entry.rank = chr.rank;
 			entry.salary = GetMoneyForOfficerFull(chr);
 			entry.skill = XI_ConvertString(skill);
 			entry.skillValue = GetSkillValue(chr, "Skill", skill);
-			entry.busy = TouchLegCharacter.step.kind == "assign" && sti(TouchLegCharacter.step.what) == k;
+			entry.busy = TouchLegCharacter.step.kind == "assign" && sti(TouchLegCharacter.step.character) == character;
 			TouchLegCharacter_Face(chr, entry);
 		}
 	}
@@ -653,8 +652,7 @@ bool TouchLegCharacter_Follow(aref ui, aref out)
 			return false;
 		}
 		aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", sti(what));
-		string pic = "pic" + (sti(row.index) + 1);
-		if (sti(GameInterface.PASSENGERSLIST.(pic).character) != sti(TouchLegCharacter.step.character))
+		if (TouchLegLib_ListCharacter("PASSENGERSLIST", row) != sti(TouchLegCharacter.step.character))
 		{
 			TouchLegCharacter_Step("", "", "");
 			return false;
@@ -878,9 +876,8 @@ void TouchAdpCharacter_Assign(aref ui, int candidate)
 {
 	aref model = TouchLegLib_Model(ui);
 	aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", candidate);
-	string pic = "pic" + (sti(row.index) + 1);
 	TouchLegCharacter_Step("assign", candidate, "");
-	TouchLegCharacter.step.character = sti(GameInterface.PASSENGERSLIST.(pic).character);
+	TouchLegCharacter.step.character = TouchLegLib_ListCharacter("PASSENGERSLIST", row);
 	TouchLegCharacter.step.post = TouchLegCharacter_PostShown(model);
 	if (row.value == "1")
 	{

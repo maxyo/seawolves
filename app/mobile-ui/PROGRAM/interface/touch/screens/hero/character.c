@@ -8,8 +8,8 @@
 #event_handler("UiTap", "TouchCharacter_Tap");
 
 // The adapter's state of the last build (.game), the tab (skills, perks, officers), the perk described (.perk), the
-// skill row described (.help.{table, row (its id)}, absent none), the group asked for until the game shows it (.wanted, -1
-// none, 0 personal, 1 ship), the post tapped (.posted, -1), the people's list open (.open), a refused learn tapped
+// skill row described (.help.{table, row (its id)}, absent none), the group asked for until the game shows it
+// (.wanted, -1 none, 0 personal, 1 ship), the post tapped (.posted, -1), the people's list open (.open), a refused learn tapped
 // (.nudge: its build shows what is missing), the person the HUD asked for (.asked, -1).
 object TouchCharacter;
 object TouchCharacter_View;
@@ -636,7 +636,7 @@ void TouchCharacter_Dialog(aref ui, aref game, aref view)
 		{
 			aref candidate = TouchLib_Item(game, "assign.rows", k);
 			at = TouchLib_Add(list, "r");
-			at.id = k;
+			at.id = candidate.key;
 			at.name = candidate.label;
 			at.meta = UiText("hero.rank_short") + " " + candidate.rank;
 			if (sti(candidate.salary) > 0)
@@ -644,7 +644,7 @@ void TouchCharacter_Dialog(aref ui, aref game, aref view)
 			at.value = candidate.skill + " " + candidate.skillValue;
 			TouchLib_Copy(at, "image", candidate, "image");
 			at.busy = candidate.busy;
-			UiOn("candidate-" + k, "");
+			UiOn("candidate-" + candidate.key, "");
 		}
 	}
 	if (game.window == "message")
@@ -885,7 +885,8 @@ void TouchCharacter_Tap()
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
-		int candidate = TouchLib_TapIndex(TouchLib_Cut(id, 10, strlen(id)), TouchLib_Count(game, "assign.rows"), "the candidate");
+		int candidate = TouchLib_Find(game, "assign.rows", "key", TouchLib_Cut(id, 10, strlen(id)));
+		if (candidate < 0) return; // the person tapped is no longer offered for the post
 		TouchAdpCharacter_Assign(ui, candidate);
 		UiHold();
 		return;

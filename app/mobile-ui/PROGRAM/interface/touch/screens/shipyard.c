@@ -328,7 +328,7 @@ void TouchShipyard_Captain(aref window, aref sheet, aref actions)
 	for (int k = 0; k < TouchLib_Count(window, "candidates"); k++)
 	{
 		aref person = TouchLib_Item(window, "candidates", k);
-		string id = "candidate-" + k;
+		string id = "candidate-" + person.key;
 		object row = {id = id, title = person.label, image = "", selected = person.selected,
 		              disabled = !sti(person.can), reason = person.reason};
 		aref at = TouchLib_Add(candidates, "c");
@@ -395,10 +395,10 @@ void TouchShipyard_Tap()
 		return;
 	}
 	if (id == "primary") { TouchAdpShipyard_Deal(ui, "buy"); UiHold(); return; }
-	if (id == "hull" || id == "sails")
+	// A part of the repair window by its key: the window's parts are the adapter's, in its order.
+	int part = TouchLib_Find(game, "window.parts", "key", id);
+	if (part >= 0)
 	{
-		int part = 0;
-		if (id == "sails") part = 1;
 		aref at = TouchLib_Item(game, "window.parts", part);
 		int amount = UiAmount(value, "the part's amount");
 		if (amount == sti(at.amount)) { UiRebuild(); return; }
@@ -430,9 +430,8 @@ void TouchShipyard_Tap()
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
-		// The game's list of captains gives them no identity (the passengers' rows): by place.
-		k = TouchLib_TapIndex(TouchLib_Cut(id, 10, strlen(id)), TouchLib_Count(game, "window.candidates"),
-		                      "the captain");
+		k = TouchLib_Find(game, "window.candidates", "key", TouchLib_Cut(id, 10, strlen(id)));
+		if (k < 0) return; // the captain tapped is no longer listed
 		aref person = TouchLib_Item(game, "window.candidates", k);
 		if (sti(person.selected)) return;
 		TouchAdpShipyard_Candidate(ui, k);

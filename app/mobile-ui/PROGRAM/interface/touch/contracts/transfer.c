@@ -19,8 +19,8 @@
 //     title, text, image (a picture, absent none), answers.a<k>.{key ("none", "ok", "kill", "prison", "free", "cancel",
 //     "yes", "no"), label, can, reason}, men (hire: taken so far), most (hire: everyone willing), crew (hire: ours,
 //     the men taken counted)}
-//   captains (absent: none).{title, people.p<k>.{label, image, selected, can, reason}, name ("" nobody chosen), facts
-//     .f<k>.{label, value}, skills (TouchLegLib_ShipSkills' s<k>), appoint (absent none).{label, can, reason}}
+//   captains (absent: none).{title, people.p<k>.{key, label, image, selected, can, reason}, name ("" nobody chosen),
+//     facts.f<k>.{label, value}, skills (TouchLegLib_ShipSkills' s<k>), appoint (absent none).{label, can, reason}}
 extern void TouchAdpTransfer_State(aref ui, aref out);
 // The moves; each takes as many of the game's frames as it needs while the screen waits (UiHold).
 extern void TouchAdpTransfer_Select(aref ui, int row);           // a cargo row chosen
