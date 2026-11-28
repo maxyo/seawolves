@@ -159,6 +159,8 @@ std::map<std::string, std::string> SaveRowContext(const SaveListSnapshot &state,
         return context;
     }
     const std::string path = "SAVE\\" + state.records[index].profile + "\\" + state.records[index].file;
+    // The list holds every profile's records, and two profiles can name a record alike: the row's identity is both.
+    context["profile"] = state.records[index].profile;
     const auto &entry = saveFacts.get(path);
     const SaveFacts &facts = entry.facts;
     for (const auto &[key, value] : {std::pair<const char *, const std::string &>{"hero", facts.hero},

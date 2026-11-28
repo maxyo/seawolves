@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The save list of this lineage (save_load): the engine lists every record as ANDROID_SAVE_LIST rows under
-// ANDROID_SAVES (label: the file name; the new record's reason "new"; the row's context: what the record says about
-// itself, mobile_save_list.hpp SaveFacts) with the verbs activate and delete, each sent with the row's identity. The
+// The save list of this lineage (save_load): the engine lists every record of every profile as ANDROID_SAVE_LIST rows
+// under ANDROID_SAVES (label: the file name; the new record's reason "new"; the row's context: its profile and what the
+// record says about itself, mobile_save_list.hpp SaveFacts) with the verbs activate and delete, each sent with the row's identity. The
 // game's questions are CONFIRM_TEXT / CONFIRM_YES / CONFIRM_NO, its name editor CUSTOM_SAVE_*. Implements
 // contracts/saves.c.
 
@@ -9,6 +9,13 @@ string TouchLegSaves_Fact(aref row, string key)
 {
 	if (!CheckAttribute(row, "context." + key)) return "";
 	return row.context.(key);
+}
+
+// A record's identity: its profile and file (two profiles can name a record alike); "" for the new record.
+string TouchLegSaves_Key(aref row)
+{
+	if (row.reason == "new") return "";
+	return TouchLegSaves_Fact(row, "profile") + "/" + row.label;
 }
 
 void TouchAdpSaves_State(aref ui, aref out)
@@ -26,7 +33,8 @@ void TouchAdpSaves_State(aref ui, aref out)
 		aref at = TouchLib_Add(records, "r");
 		at.fresh = row.reason == "new";
 		if (sti(at.fresh)) out.saving = true;
-		at.key = row.label;
+		at.key = TouchLegSaves_Key(row);
+		at.file = row.label;
 		at.autosave = TouchLegSaves_Fact(row, "autosave") == "1";
 		at.unreadable = TouchLegSaves_Fact(row, "unreadable") == "1";
 		at.hero = TouchLegSaves_Fact(row, "hero");
@@ -71,7 +79,7 @@ void TouchLegSaves_Send(aref ui, string key, string verb)
 	for (int k = 0; k < TouchLib_Count(model, "ANDROID_SAVE_LIST.rows"); k++)
 	{
 		aref row = TouchLib_Item(model, "ANDROID_SAVE_LIST.rows", k);
-		if (row.label != key) continue;
+		if (TouchLegSaves_Key(row) != key) continue;
 		object action = {node = "ANDROID_SAVE_LIST", verb = verb, value = row.id, row = row.index};
 		UiSendTo(&action);
 		return;

@@ -278,6 +278,25 @@ static void Saves(const std::string &models)
     router.SetInterface(naming);
     Expect(surface.commands.size() == 1, "once per revision");
 
+    // Two profiles name a record alike (every new game starts its own profile): each row loads and deletes its own.
+    InterfaceModel twins = Load(models, "saves-load.json");
+    twins.opening = 48;
+    for (Widget &row : twins.widgets)
+        if (row.node == "ANDROID_SAVE_LIST" && row.label == "Остров Гамма")
+        {
+            row.label = "Порт Альфа";
+            row.context["profile"] = "other";
+        }
+    router.SetInterface(twins);
+    router.OnEvent({"saves", "row", Drawn(surface, "/rows", 2)});
+    ExpectEqual(surface.props["detail"]["title"], "Остров Гамма", "the second record of the name is chosen");
+    router.OnEvent({"primary", "click", ""});
+    ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t2\tactivate@48:3",
+                "«Загрузить» activates the chosen profile's record");
+    router.OnEvent({"delete", "click", ""});
+    ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t2\tdelete@48:3",
+                "the trash glyph deletes the chosen profile's record");
+
     InterfaceModel empty = Load(models, "saves-load.json");
     Without(empty, "ANDROID_SAVE_LIST");
     empty.opening = 49;

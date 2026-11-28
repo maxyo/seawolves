@@ -4,7 +4,8 @@
 //
 // State(ui, out), once a build:
 //   saving: the list writes a record (it offers a new one) (1), or loads one (0)
-//   records.r<k> in the engine's order {key (the record's file name; "" the new record), fresh (the new record),
+//   records.r<k> in the engine's order {key (the record's identity, its profile and file; "" the new record), file (its
+//     file name), fresh (the new record),
 //     autosave, unreadable (no description: the game cannot load it), hero, location, gameDate (YYYY-MM-DD),
 //     gameTime (HH:MM), created (YYYY-MM-DD HH:MM), createdWhen (today, yesterday, year: this year, "" another),
 //     minutes (play time, -1 unknown), preview (the record's picture, "" none), selected (the game's), can (it can be

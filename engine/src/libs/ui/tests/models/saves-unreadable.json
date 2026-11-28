@@ -28,6 +28,7 @@
     "delete"
    ],
    "context": {
+    "profile": "player",
     "hero": "Герой Альфа",
     "location": "Порт Альфа",
     "gameDate": "1654-10-01",
@@ -48,6 +49,7 @@
     "delete"
    ],
    "context": {
+    "profile": "player",
     "created": "2001-03-11 08:51",
     "unreadable": "1"
    }
@@ -64,6 +66,7 @@
     "delete"
    ],
    "context": {
+    "profile": "player",
     "location": "Остров Гамма",
     "gameDate": "1654-10-03",
     "gameTime": "12:20",

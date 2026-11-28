@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Список загрузки, где у двух игр (профилей) есть записи с одинаковым именем, загружает и удаляет именно
+  выбранную запись: раньше «Загрузить» и корзина у второй такой записи действовали на первую.
 - Повреждённая запись в списке загрузки объясняет, почему её нельзя загрузить: причина написана над неактивной
   кнопкой «Загрузить».
 - Экран сохранений после неудачного сохранения (например, когда память телефона заполнена) возвращается к списку
@@ -201,6 +203,8 @@
 
 **English**
 
+- In a load list where two games (profiles) have records of the same name, «Load» and the trash act on the record
+  chosen: on the second such record they used to act on the first.
 - A damaged record in the load list says why it cannot be loaded: the reason is written above the disabled
   «Load» button.
 - After a save fails (for instance, the phone's storage is full) the save screen comes back to the list with the

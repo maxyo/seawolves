@@ -18,7 +18,7 @@ string TouchSaves_Identity(aref record)
 	if (record.location == "")
 	{
 		if (sti(record.fresh)) return "";
-		return record.key;
+		return record.file;
 	}
 	if (record.hero == "") return record.location;
 	return record.hero + " · " + record.location;

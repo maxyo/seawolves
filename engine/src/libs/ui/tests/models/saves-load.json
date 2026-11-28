@@ -7,9 +7,9 @@
 "widgets":[
 {"node":"MAIN_BACK","type":"image","index":-1},
 {"node":"ANDROID_SAVES","type":"list","value":"3","index":-1},
-{"node":"ANDROID_SAVE_LIST","type":"save","label":"Порт Альфа","value":"0","index":0,"rowId":"1","actions":["activate","delete"],"context":{"hero":"Герой Альфа","location":"Порт Альфа","gameDate":"1654-10-01","gameTime":"10:20","created":"2001-03-10 08:50","playMinutes":"300"}},
-{"node":"ANDROID_SAVE_LIST","type":"save","label":"Бухта Бета","value":"1","index":1,"rowId":"2","actions":["activate","delete"],"context":{"hero":"Герой Альфа","location":"Бухта Бета","gameDate":"1654-10-02","gameTime":"11:20","created":"2001-03-11 08:51","playMinutes":"402","preview":"save-preview/9/123/706c61796572/6f6c64"}},
-{"node":"ANDROID_SAVE_LIST","type":"save","label":"Остров Гамма","value":"0","index":2,"rowId":"3","actions":["activate","delete"],"context":{"location":"Остров Гамма","gameDate":"1654-10-03","gameTime":"12:20","created":"2001-03-12 08:52","playMinutes":"1500"}},
+{"node":"ANDROID_SAVE_LIST","type":"save","label":"Порт Альфа","value":"0","index":0,"rowId":"1","actions":["activate","delete"],"context":{"profile":"player","hero":"Герой Альфа","location":"Порт Альфа","gameDate":"1654-10-01","gameTime":"10:20","created":"2001-03-10 08:50","playMinutes":"300"}},
+{"node":"ANDROID_SAVE_LIST","type":"save","label":"Бухта Бета","value":"1","index":1,"rowId":"2","actions":["activate","delete"],"context":{"profile":"player","hero":"Герой Альфа","location":"Бухта Бета","gameDate":"1654-10-02","gameTime":"11:20","created":"2001-03-11 08:51","playMinutes":"402","preview":"save-preview/9/123/706c61796572/6f6c64"}},
+{"node":"ANDROID_SAVE_LIST","type":"save","label":"Остров Гамма","value":"0","index":2,"rowId":"3","actions":["activate","delete"],"context":{"profile":"player","location":"Остров Гамма","gameDate":"1654-10-03","gameTime":"12:20","created":"2001-03-12 08:52","playMinutes":"1500"}},
 {"node":"TITLE","type":"heading","label":"  Записи  ","index":-1},
 {"node":"SAVE_SELECTER","type":"stepper","label":"Записи","index":-1},
 {"node":"SAVENOTES","type":"text","label":"Порт Альфа","index":0},
