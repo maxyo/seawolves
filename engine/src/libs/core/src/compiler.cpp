@@ -7235,6 +7235,13 @@ bool COMPILER::SaveState(std::vector<char> &image)
 
     // Serialize into memory only: the caller writes the whole record once (CoreImpl::SetSaveData).
     const auto state = SerializeState();
+    // A state its own load could not read never replaces a save.
+    storm::save::ParsedState parsed;
+    if (std::string problem; !storm::save::parseState(state.data(), state.size(), parsed, problem))
+    {
+        spdlog::error("The script state is not saved: it would not load ({})", problem);
+        return false;
+    }
 
     std::string error;
     const bool built =

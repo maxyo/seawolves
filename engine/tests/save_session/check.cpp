@@ -103,6 +103,19 @@ int CheckArrays()
 	return found;
 }
 
+fref gHandler;
+
+int SetHandler()
+{
+	gHandler = &Bump;
+	return 1;
+}
+
+int CallHandler()
+{
+	return gHandler();
+}
+
 int Spin()
 {
 	while (true)
@@ -464,6 +477,15 @@ TEST_CASE("arrays made by new come back from a save as the references left them"
     // through another new array
     CHECK(game.Run("CheckArrays") == 31);
     CHECK(game.diagnostics.empty());
+}
+
+TEST_CASE("a function reference comes back from a save")
+{
+    Game game;
+    REQUIRE(game.Run("SetHandler") == 1);
+    REQUIRE(Save(Description(13)));
+    REQUIRE(Load());
+    CHECK(game.Run("CallHandler") == 8);
 }
 
 TEST_CASE("a save the running program cannot take is refused with the game still running")

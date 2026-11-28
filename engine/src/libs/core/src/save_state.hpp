@@ -29,6 +29,7 @@
 //   attribute         vdword children, vdword name code, string value, `children` attributes
 //   ref               vdword variable (0xffffffff = empty), vdword element (0xffffffff = none)
 //   aref              vdword variable (0xffffffff = empty), vdword element, string path
+//   fref              string function name (null = a null function reference)
 // The `new` arrays the references reach follow the globals as variables of their own (save_references.hpp); a
 // reference to one names its place, kNewArrayPlace + n.
 
@@ -72,6 +73,8 @@ inline const char *typeName(uint32_t type)
         return "ref";
     case VAR_AREFERENCE:
         return "aref";
+    case VAR_FREF:
+        return "fref";
     case VAR_PTR:
         return "pointer";
     default:
@@ -90,6 +93,7 @@ inline bool knownType(uint32_t type)
     case VAR_OBJECT:
     case VAR_REFERENCE:
     case VAR_AREFERENCE:
+    case VAR_FREF:
     case VAR_PTR:
         return true;
     default:
@@ -210,6 +214,9 @@ struct NoSink
     void AReference(uint32_t, uint32_t, const std::optional<std::string> &)
     {
     }
+    void Fref(const std::optional<std::string> &)
+    {
+    }
 };
 
 namespace detail
@@ -295,6 +302,13 @@ template <typename Sink> bool readValue(StateReader &in, uint32_t type, Sink &si
         if (!in.Raw(legacyEntity))
             return detail::fail(error, "truncated object", in);
         return detail::readAttribute(in, sink.Object(), nullptr, 0, error);
+    }
+    case VAR_FREF: {
+        std::optional<std::string> function;
+        if (!in.String(function))
+            return detail::fail(error, "truncated fref", in);
+        sink.Fref(function);
+        return true;
     }
     case VAR_REFERENCE: {
         uint32_t variable, element = kNoIndex;
@@ -507,6 +521,10 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
         void String(const std::optional<std::string> &value)
         {
             target->Set(value ? value->c_str() : nullptr);
+        }
+        void Fref(const std::optional<std::string> &function)
+        {
+            target->SetFref(function.value_or(""));
         }
         ATTRIBUTES *Object()
         {
@@ -740,6 +758,9 @@ class StateWriter
             vdword(place->element);
             break;
         }
+        case VAR_FREF:
+            string(pV->sValue.empty() ? nullptr : pV->sValue.c_str());
+            break;
         case VAR_AREFERENCE: {
             if (pV->AReferenceDangling())
             {
@@ -774,6 +795,8 @@ class StateWriter
             break;
         }
         default:
+            compiler_.SetError("Save: '%s' is of a type a save cannot hold (%u)", name_,
+                               static_cast<uint32_t>(pV->GetType()));
             break;
         }
     }
