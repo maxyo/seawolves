@@ -30,7 +30,6 @@ SUNGLOW::SUNGLOW()
 
     bMoon = false;
 
-    bSimpleSea = false;
 
     bHaveFlare = false;
     bHaveGlow = false;
@@ -523,13 +522,8 @@ void SUNGLOW::DrawReflection() const
     r_spr.fSize = Reflection.fSize;
     r_spr.vPos = vSun;
 
-    const auto fSunHeightAngle = pWeather->GetFloat(whf_sun_height_angle);
-    const auto fCoeffX = Bring2Range(1.0f, 0.6f, 0.0f, 1.0f, fSunHeightAngle);
-    const auto fCoeffY = Bring2Range(2.0f, 1.0f, 0.0f, 1.0f, fSunHeightAngle);
-
     pRS->TextureSet(0, iReflTexture);
-    pRS->DrawRects(&r_spr, 1, Reflection.sTechnique.c_str(), 0, 0, (bSimpleSea) ? fCoeffX : 1.0f,
-                   (bSimpleSea) ? fCoeffY : 1.0f);
+    pRS->DrawRects(&r_spr, 1, Reflection.sTechnique.c_str(), 0, 0);
 }
 
 uint64_t SUNGLOW::ProcessMessage(MESSAGE &message)
@@ -539,7 +533,6 @@ uint64_t SUNGLOW::ProcessMessage(MESSAGE &message)
     switch (iCode)
     {
     case MSG_SEA_SUNROAD_DRAW:
-        bSimpleSea = message.Long() != 0;
         DrawReflection();
         break;
     }

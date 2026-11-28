@@ -1,6 +1,8 @@
 $input a_position, a_normal, a_texcoord0
 $output v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v_texcoord4, v_fog, v_foam
-// Port of the technique shader sea_sea2_vertex_shader (vs_1_1) of src/techniques/weather/sea.fx, one D3D9 instruction per line.
+// Port of the technique shader sea_sea2_vertex_shader (vs_1_1) of src/techniques/weather/sea.fx, one D3D9 instruction per
+// line, on the wave field's surface (sea_surface.sh). The pixel shader takes its normal from the field's slopes per pixel:
+// the original's tangent frame for its bump texture (oT1..oT3 xyz) is not computed.
 #include "port_registers.sh"
 #define PORT_VSC_COUNT PORT_VSC_SEA
 #include "port_vs.sh"
@@ -8,9 +10,11 @@ $output v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, 
 
 void main()
 {
-    // dcl_position0 v0, dcl_normal0 v1, dcl_texcoord0 v2: the sea's surface (sea_surface.sh)
-    vec4 v0, v1, v2;
-    seaVertex(a_position, a_normal, a_texcoord0, v0, v1, v2);
+    // dcl_position0 v0, dcl_normal0 v1: the sea's surface (sea_surface.sh); the point of the still water it is
+    // displaced from (metres from the mesh's origin): the flat grid's, or the CPU's in the texture coordinates
+    vec4 v0, v1;
+    seaVertex(a_position, a_normal, v0, v1);
+    vec2 still = u_vsc[8].w != 0.0 ? a_position.xz : a_texcoord0.xy;
     vec4 r0 = vec4_splat(0.0);
     vec4 r1 = vec4_splat(0.0);
     vec4 r2 = vec4_splat(0.0);
@@ -85,37 +89,15 @@ void main()
     r3.x = dot(r1.xyz, r4.xyz);            // dp3 r3.x, r1, r4
     r3.x = r3.x + r3.x;                    // add r3.x, r3.xxxx, r3.xxxx
     r2.xyz = r3.xxx * r4.xyz + -r1.xyz;    // mad r2.xyz, r3.xxxx, r4, -r1
-    r10 = r4.yzxw * u_vsc[33].zxyw;        // mul r10, r4.yzxw, c33.zxyw
-    r10 = -u_vsc[33].yzxw * r4.zxyw + r10; // mad r10, -c33.yzxw, r4.zxyw, r10
-    r11 = r4.yzxw * r10.zxyw;              // mul r11, r4.yzxw, r10.zxyw
-    r11 = -r10.yzxw * r4.zxyw + r11;       // mad r11, -r10.yzxw, r4.zxyw, r11
-    r10.w = dot(r10.xyz, r10.xyz);         // dp3 r10.w, r10, r10
-    r10.w = portRsq(r10.w);                // rsq r10.w, r10.wwww
-    r10 = r10 * r10.wwww;                  // mul r10, r10, r10.wwww
-    r11.w = dot(r11.xyz, r11.xyz);         // dp3 r11.w, r11, r11
-    r11.w = portRsq(r11.w);                // rsq r11.w, r11.wwww
-    r11 = r11 * r11.wwww;                  // mul r11, r11, r11.wwww
-    r9 = r10.zxyw * r11.yzxw;              // mul r9, r10.zxyw, r11.yzxw
-    r9 = r10.yzxw * r11.zxyw + -r9;        // mad r9, r10.yzxw, r11.zxyw, -r9
-    oT1.x = dot(r10.xyz, u_vsc[36].xyz);   // dp3 oT1.x, r10, c36
-    oT1.y = dot(r11.xyz, u_vsc[36].xyz);   // dp3 oT1.y, r11, c36
-    oT1.z = dot(r9.xyz, u_vsc[36].xyz);    // dp3 oT1.z, r9, c36
-    oT2.x = dot(r10.xyz, u_vsc[37].xyz);   // dp3 oT2.x, r10, c37
-    oT2.y = dot(r11.xyz, u_vsc[37].xyz);   // dp3 oT2.y, r11, c37
-    oT2.z = dot(r9.xyz, u_vsc[37].xyz);    // dp3 oT2.z, r9, c37
-    oT3.x = dot(r10.xyz, u_vsc[38].xyz);   // dp3 oT3.x, r10, c38
-    oT3.y = dot(r11.xyz, u_vsc[38].xyz);   // dp3 oT3.y, r11, c38
-    oT3.z = dot(r9.xyz, u_vsc[38].xyz);    // dp3 oT3.z, r9, c38
     oT1.w = -r1.x;                         // mov oT1.w, -r1.xxxx
     oT2.w = -r1.y;                         // mov oT2.w, -r1.yyyy
     oT3.w = -r1.z;                         // mov oT3.w, -r1.zzzz
-    oT0.z = u_vsc[2].x;                    // mov oT0.z, c2.xxxx
-    oT0.xy = v2.xy;                        // mov oT0.xy, v2
+    oT0.xy = still; // the field's slopes are read there (fs_port_sea2.sc)
 
     oT4 = vec4(0.0, 0.0, v0.xz); // the sea's own position, for the wakes of the pixel shader (sea_wakes.sh)
-    // The game's foam layer (technique Sea2_Foam, folded into this draw: fs_port_sea2.sc), as
-    // sea_sea2foam_vertex_shader computed its oT3:
-    v_foam.xy = v2.xy * u_vsc[3].zz;                                        // mul oT3.xy, v2, c3.zzzz
+    // The game's foam layer (technique Sea2_Foam, folded into this draw: fs_port_sea2.sc), its alpha as
+    // sea_sea2foam_vertex_shader computed oT3.z (its texture coordinates: the pixel shader's, from `still`):
+    v_foam.xy = vec2_splat(0.0);
     v_foam.z = max((v0.y + -u_vsc[3].x) * u_vsc[3].y, u_vsc[0].x);          // add, mul, max oT3.z
     v_foam.w = 0.0;
 

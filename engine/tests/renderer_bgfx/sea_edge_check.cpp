@@ -7,7 +7,7 @@
 // water pixels next to it (a coarser capture; a multisampled edge pixel) and faded them out: bright fringes along
 // every rope, sail and hull over the sea on the phone.
 //
-// The same sea displaced on the GPU (sea_surface.sh: a flat grid lifted to the same height by the height field at
+// The same sea displaced on the GPU (sea_surface.sh: a flat grid lifted to the same height by the wave field at
 // D3DVERTEXTEXTURESAMPLER0) must draw the CPU's picture with the soft edges on: their scene depth capture is a draw
 // of its own right before the first sea draw, and a vertex texture bound before it went with it (a flat sea on
 // Vulkan, where nothing stays bound between draws).
@@ -99,19 +99,18 @@ class Scene
         const std::vector<DWORD> vs = shader_ref("sea_sea2_vertex_shader"), ps = shader_ref("sea_sea2_pixel_shader");
         check(d_.CreateVertexShader(vs.data(), &vs_), "CreateVertexShader(sea2)");
         check(d_.CreatePixelShader(ps.data(), &ps_), "CreatePixelShader(sea2)");
-        // The bump volume: the flat normal (0, 1, 0) after _bx2 everywhere.
-        check(d_.CreateVolumeTexture(4, 4, 4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &bump_, nullptr),
+        // The field's slopes (stage 0, a slice per cascade): none, a flat normal everywhere.
+        check(d_.CreateVolumeTexture(4, 4, 3, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &bump_, nullptr),
               "CreateVolumeTexture");
         D3DLOCKED_BOX box;
         check(bump_->LockBox(0, &box, nullptr, 0), "LockBox");
-        for (int z = 0; z < 4; ++z)
+        for (int z = 0; z < 3; ++z)
             for (int y = 0; y < 4; ++y)
-                for (int x = 0; x < 4; ++x)
-                    *reinterpret_cast<uint32_t *>(static_cast<uint8_t *>(box.pBits) + z * box.SlicePitch +
-                                                  y * box.RowPitch + x * 4) = 0x8080FF80;
+                std::memset(static_cast<uint8_t *>(box.pBits) + z * box.SlicePitch + y * box.RowPitch, 0, 4 * 8);
         bump_->UnlockBox(0);
-        // The height field (sea_surface_gpu.hpp: 1024 x 1024 RGBA32F): every texel at half height, a flat normal.
-        constexpr uint32_t kField = 1024;
+        // The wave field (sea_surface_gpu.hpp: one cascade of 4 x 4 samples, RGBA32F dx, h, dz): every sample 3 m
+        // below the still level, no displacement across.
+        constexpr uint32_t kField = 4;
         check(d_.CreateTexture(kField, kField, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &field_, nullptr),
               "CreateTexture(field)");
         D3DLOCKED_RECT field;
@@ -120,7 +119,8 @@ class Scene
             for (uint32_t x = 0; x < kField; ++x)
             {
                 float *texel = reinterpret_cast<float *>(static_cast<uint8_t *>(field.pBits) + y * field.Pitch) + x * 4;
-                texel[0] = 0.5f, texel[1] = texel[2] = texel[3] = 0.0f;
+                texel[0] = texel[2] = texel[3] = 0.0f;
+                texel[1] = -3.0f;
             }
         field_->UnlockRect(0);
         // The reflected scene: one sky colour.
@@ -207,11 +207,11 @@ class Scene
         set(23, 0.0f, 0.0f, 0.0f, 1.0f); // camera
         if (gpu_surface)
         {
-            // One wave of amplitude -6 m over the half-height field: 3 m below the camera; a flat normal, no shift.
-            set(4, 1.0f, 0.0f, 0.0f, -6.0f);
-            set(5, 1.0f, 0.0f, 0.0f, 0.0f);
-            set(6, 0.0f, 0.0f, 0.0f, 1.0f / 800.0f);
-            set(7, 0.0f, 0.0f, 0.5f, 0.0f);
+            // One cascade 3 m below the still level at 0: 3 m below the camera; the other two absent.
+            set(4, 1.0f, 0.0f, 0.0f, 0.0f);
+            set(5, 0.0f, 0.0f, 0.0f, -1.0f);
+            set(6, 0.0f, 0.0f, 0.0f, -1.0f);
+            set(7, 0.0f, 0.0f, 0.0f, 0.0f);
             set(8, 0.0f, 0.0f, 1.0e12f, 1.0f);
         }
         // World-view-projection as the vertex shader reads it (m4x4 with c24..c27: the columns of the D3D matrix).

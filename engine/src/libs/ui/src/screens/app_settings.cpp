@@ -283,7 +283,6 @@ class Table
         add(Debug(app::debug::fx_grade, "Цветокоррекция", {"пресет", "выкл", "Карибы", "Пасмурно"}));
         add(Debug(app::debug::fx_dither, "Дизеринг", onOff));
         add(Debug(app::debug::fx_shadows, "Тени солнца", {"пресет", "выкл", "низк", "мягк"}));
-        add(Debug(app::debug::fx_sea_band_limit, "Море: мягкая даль", onOff));
         add(Debug(app::debug::fx_sea_soft_edges, "Море: мягкие края", onOff));
         add(Debug(app::debug::fx_sea_specular, "Море: блик солнца", onOff));
         add(Debug(app::debug::fx_light_per_pixel, "Освещение попиксельно", onOff));

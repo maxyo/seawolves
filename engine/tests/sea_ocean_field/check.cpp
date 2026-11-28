@@ -64,6 +64,44 @@ TEST_CASE("a single wave travels along k at the deep-water speed and leans towar
     field.Height(4.0f, 1.0f, 1, &normal);
     CHECK(normal.x / normal.y == Approx(2.0f * k).epsilon(0.03));
     CHECK(normal.z == Approx(0.0f).margin(1e-4));
+    // The pixel shader's slopes: the height's derivative along x there, -2 k sin(k x), by central differences.
+    const Slope &slope = field.Slopes(0)[static_cast<size_t>(1) * n + 4];
+    CHECK(slope.hx == Approx(-2.0f * k).epsilon(0.03));
+    CHECK(slope.hz == Approx(0.0f).margin(1e-4));
+}
+
+TEST_CASE("a weather change eases from the old sea to the new one")
+{
+    const SeaState calm = Weather(4.0f, 0.6f, 1.0f, 2.0f, 1.0f), rough = Weather(30.0f, 0.15f, 2.0f, 1.5f, 2.0f);
+    Field easing(CascadeLayout(2, 64)), old_sea(CascadeLayout(2, 64)), new_sea(CascadeLayout(2, 64));
+    easing.SetState(calm);
+    old_sea.SetState(calm);
+    new_sea.SetState(rough);
+    easing.EaseTo(BuildSpectrum(rough, easing.Layout()), rough.choppiness, rough.mean_level);
+    const auto same = [](const Field &a, const Field &b) {
+        return std::memcmp(a.Samples(0).data(), b.Samples(0).data(), a.Samples(0).size() * sizeof(Displacement)) == 0;
+    };
+    // At the start the sea is the old one, halfway every height lies between, at the end it is the new one.
+    easing.Update(12.0);
+    old_sea.Update(12.0);
+    new_sea.Update(12.0);
+    CHECK(same(easing, old_sea));
+    CHECK(easing.MeanLevel() == old_sea.MeanLevel());
+    easing.Ease(0.5f);
+    easing.Update(12.0);
+    // Choppiness eases too, so the halfway field is not the plain mean of the two; the still level is.
+    CHECK(easing.MeanLevel() == Approx(0.5f * (calm.mean_level + rough.mean_level)));
+    double between = 0.0;
+    for (size_t i = 0; i < easing.Samples(0).size(); i++)
+    {
+        const float a = old_sea.Samples(0)[i].h, b = new_sea.Samples(0)[i].h, h = easing.Samples(0)[i].h;
+        between += std::abs(h - 0.5f * (a + b)) <= 0.05f * (std::abs(a) + std::abs(b)) + 1e-3f ? 1.0 : 0.0;
+    }
+    CHECK(between / static_cast<double>(easing.Samples(0).size()) > 0.99);
+    easing.Ease(1.0f);
+    CHECK(!easing.Easing());
+    easing.Update(12.0);
+    CHECK(same(easing, new_sea));
 }
 
 TEST_CASE("each wave system has the game's height and every wave lives in one cascade")

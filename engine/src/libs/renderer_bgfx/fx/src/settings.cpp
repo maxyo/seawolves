@@ -57,7 +57,7 @@ Settings Settings::FromPreset(QualityPreset preset)
         s.far_lod_pixels = 1.5f;
         s.bloom_downscale = 4;
         s.bloom_levels = 3;
-        s.sea_band_limit = true;
+        s.sea_cascades = 3;
         s.sea_wakes = true;
         s.anisotropy = 4;
         s.sea_specular = true; // the sun's glint over the game's sun road: one uniform branch of the sea shader
@@ -98,7 +98,8 @@ Settings Settings::FromPreset(QualityPreset preset)
     s.anisotropy = 8;
     s.lens_flare = true; // the one sun glare: SUNGLOW leaves its glow, overflow and flare sprites out
     s.sun_shafts = true;
-    s.sea_band_limit = true;
+    s.sea_cascades = 3;
+    s.sea_cascade_size = 128;
     s.sea_soft_edges = true;
     s.sea_wakes = true;
     s.sea_specular = true;

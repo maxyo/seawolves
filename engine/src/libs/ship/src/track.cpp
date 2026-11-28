@@ -404,15 +404,10 @@ bool ShipTracks::ShipTrack::InView(const PLANE *planes)
     pRS->GetCamera(vCamPos, vCamAng, fFov);
     const auto fWaveUP = storm::ship::TrackElevation(vCamPos, pShip->GetPos(), fUP1, fUP2);
     // The heights PrepareVertices gives: the lift (0.4..1.4 of it across the first ribbon) plus the sea's height,
-    // 0..1 of each wave's amplitude.
+    // within the field's bounds this frame.
     const float lift[3] = {0.4f * fWaveUP, fWaveUP, 1.4f * fWaveUP};
-    glm::vec3 lo(FLT_MAX, *std::min_element(lift, lift + 3), FLT_MAX);
-    glm::vec3 hi(-FLT_MAX, *std::max_element(lift, lift + 3), -FLT_MAX);
-    for (const float amplitude : field.amplitude)
-    {
-        lo.y += std::min(amplitude, 0.0f);
-        hi.y += std::max(amplitude, 0.0f);
-    }
+    glm::vec3 lo(FLT_MAX, *std::min_element(lift, lift + 3) + field.lowest, FLT_MAX);
+    glm::vec3 hi(-FLT_MAX, *std::max_element(lift, lift + 3) + field.highest, -FLT_MAX);
     const auto strips = [&](const std::vector<Track> &track, float wobble) {
         if (track.size() < 2)
             return;

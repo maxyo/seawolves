@@ -106,10 +106,6 @@ class CoastFoam : public Entity
     std::vector<FoamCull> aFoamCull;
     // This frame's strands: per strand (0, 1) and foam: move, alpha, texture offset, 1 when drawn
     std::vector<glm::vec4> aStrandParams[2];
-    // The sea's height frames on the GPU (foam_gpu::pack_frames), uploaded once per sea
-    int32_t iHeightTexture = -1;
-    entid_t heightSea{};
-    const uint8_t *const *pHeightFrames = nullptr;
     bool bHeightsLogged = false;
     PLANE *pFrustumPlanes;
 
@@ -134,6 +130,6 @@ class CoastFoam : public Entity
     void BuildBuffers();
     void ReleaseBuffers();
     // The sea's height field this frame, its frames on the GPU; false (logged) when the sea has none
-    bool UpdateHeights(entid_t seaId, const SEA_BASE &Sea, SeaHeightField &field);
+    bool UpdateHeights(const SEA_BASE &Sea, SeaHeightField &field);
     void DrawStrands(const SeaHeightField &field, const glm::mat4 &mWVP);
 };

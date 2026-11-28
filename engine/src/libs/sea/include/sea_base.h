@@ -3,17 +3,17 @@
 #include "cannon_trace.h"
 #include "storm/render/effects.hpp"
 
-// The base height field SEA_BASE::WaveXZ samples (its heights; no wakes): two waves of the same animated
-// frames, each sampled bilinearly with wrap at (x + move.x) * scale, (z + move.z) * scale.
+// The wave field SEA_BASE::WaveXZ reads this frame (its heights; no wakes), for the GPU's other readers (the coast
+// foam's strands): its texture and what sea_surface.sh needs to read it (sea_surface_gpu.hpp).
 struct SeaHeightField
 {
-    const uint8_t *const *frames = nullptr; // frameCount frames of size x size bytes (255 = 1)
-    int32_t frameCount = 0, size = 0;
-    float frame[2]{};      // each wave's frame, 0..frameCount (blended with the next, which wraps)
-    float scale[2]{};      // frame texels per metre
-    float amplitude[2]{};  // metres for 1
-    glm::vec3 move[2]{};   // added to x and z before the scale
-    glm::vec3 camera{};    // beyond `reach` metres of it (in x, z) the sea is flat: WaveXZ returns 0
+    int32_t texture = -1; // renderer texture id: the cascades' samples, RGBA32F, cascade c in rows c * size..
+    int32_t size = 0;     // samples a side of each cascade
+    int32_t cascades = 0;
+    float patch[3]{};                    // metres each cascade repeats over
+    float mean_level = 0.0f;             // the still water's height
+    float lowest = 0.0f, highest = 0.0f; // bounds of the surface's height this frame
+    glm::vec3 camera{};                  // beyond `reach` metres of it (in x, z) the sea is flat at mean_level
     float reach = 0.0f;
 };
 

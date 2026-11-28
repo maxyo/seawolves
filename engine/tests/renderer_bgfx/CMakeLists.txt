@@ -116,8 +116,16 @@ storm_renderer_check(skin_weights_check INCLUDES ${model} ${src}/libs/renderer/i
 # They draw, on OpenGL ES and on Vulkan.
 storm_renderer_check(skinning_check GPU INCLUDES ${model})
 storm_renderer_check(grass_vertex_check GPU)
-storm_renderer_check(coast_foam_vertex_check GPU)
-storm_renderer_check(sea_surface_vertex_check GPU)
+# The sea's surface against the wave field itself (src/libs/sea/src/ocean_*, with the engine's FFmpeg): not in the ASan
+# tree, which is configured from this folder alone.
+if(NOT STORM_CHECK_ASAN)
+    foreach(check coast_foam_vertex_check sea_surface_vertex_check)
+        storm_renderer_check(${check} GPU INCLUDES ${src}/libs/sea/src ${src}/libs/sea/include ${src}/libs/island/src)
+        target_sources(${check} PRIVATE ${src}/libs/sea/src/ocean_fft.cpp ${src}/libs/sea/src/ocean_spectrum.cpp
+                                        ${src}/libs/sea/src/ocean_field.cpp)
+        target_link_libraries(${check} PRIVATE storm_ffmpeg)
+    endforeach()
+endif()
 storm_renderer_check(point_sprite_check GPU)
 storm_renderer_check(alpha_test_check GPU)
 storm_renderer_check(ff_stage_check GPU)

@@ -26,8 +26,6 @@ CoastFoam::~CoastFoam()
 {
     clear();
     ReleaseBuffers();
-    if (iHeightTexture >= 0)
-        rs->TextureRelease(iHeightTexture);
 }
 
 void CoastFoam::ReleaseBuffers()
@@ -132,41 +130,15 @@ void CoastFoam::BuildBuffers()
     dwBufferVertices = vertices;
 }
 
-bool CoastFoam::UpdateHeights(entid_t seaId, const SEA_BASE &Sea, SeaHeightField &field)
+bool CoastFoam::UpdateHeights(const SEA_BASE &Sea, SeaHeightField &field)
 {
-    if (!Sea.HeightField(field) || field.frameCount != foam_gpu::kFrames || field.size != foam_gpu::kSize)
-    {
-        if (!bHeightsLogged)
-            core.Trace("ERROR: CoastFoam: the sea has no height field of %d frames of %d x %d (%d of %d); no "
-                       "coast foam is drawn",
-                       foam_gpu::kFrames, foam_gpu::kSize, foam_gpu::kSize, field.frameCount, field.size);
-        bHeightsLogged = true;
-        return false;
-    }
-    // The frames are the sea's for its life: uploaded once per sea (a new sea can come with the same foam entity)
-    if (iHeightTexture >= 0 && heightSea == seaId && pHeightFrames == field.frames)
+    if (Sea.HeightField(field) && field.cascades <= sea_gpu::kMaxCascades)
         return true;
-    if (iHeightTexture < 0)
-        iHeightTexture = rs->VolumeTextureCreate(foam_gpu::kSize, foam_gpu::kSize, foam_gpu::kSlices, 1, 0,
-                                                 D3DFMT_A8R8G8B8, D3DPOOL_MANAGED);
-    D3DLOCKED_BOX box{};
-    if (iHeightTexture < 0 || !rs->TextureLockBox(iHeightTexture, 0, box, 0))
-    {
-        if (!bHeightsLogged)
-            core.Trace("ERROR: CoastFoam: no volume texture for the sea's heights; no coast foam is drawn");
-        bHeightsLogged = true;
-        return false;
-    }
-    const std::vector<uint32_t> texels = foam_gpu::pack_frames(field.frames);
-    for (int32_t s = 0; s < foam_gpu::kSlices; s++)
-        for (int32_t y = 0; y < foam_gpu::kSize; y++)
-            memcpy(static_cast<uint8_t *>(box.pBits) + s * box.SlicePitch + y * box.RowPitch,
-                   texels.data() + (static_cast<size_t>(s) * foam_gpu::kSize + y) * foam_gpu::kSize,
-                   foam_gpu::kSize * sizeof(uint32_t));
-    rs->TextureUnlockBox(iHeightTexture, 0);
-    heightSea = seaId;
-    pHeightFrames = field.frames;
-    return true;
+    if (!bHeightsLogged)
+        core.Trace("ERROR: CoastFoam: the sea has no wave field of at most %d cascades (%d); no coast foam is drawn",
+                   sea_gpu::kMaxCascades, field.cascades);
+    bHeightsLogged = true;
+    return false;
 }
 
 void CoastFoam::DrawStrands(const SeaHeightField &field, const glm::mat4 &mWVP)
@@ -177,17 +149,14 @@ void CoastFoam::DrawStrands(const SeaHeightField &field, const glm::mat4 &mWVP)
     for (int32_t i = 0; i < 4; i++)
         for (int32_t j = 0; j < 4; j++)
             c[i][j] = mWVP[i][j];
-    foam_gpu::wave_register(field.scale[0], field.move[0].x, field.move[0].z, field.amplitude[0], c[4]);
-    foam_gpu::wave_register(field.scale[1], field.move[1].x, field.move[1].z, field.amplitude[1], c[5]);
-    c[6][0] = field.frame[0];
-    c[6][1] = field.frame[1];
-    c[6][2] = fFoamDeltaY;
+    foam_gpu::cascade_registers(field.size, field.cascades, field.patch, &c[4]);
     c[7][0] = field.camera.x;
     c[7][1] = field.camera.z;
     c[7][2] = field.reach * field.reach;
+    c[7][3] = field.mean_level + fFoamDeltaY;
     rs->SetVertexDeclaration(vertexDecl_);
     rs->SetStreamSource(0, iVBuffer, sizeof(foam_gpu::Vertex));
-    rs->TextureSet(1, iHeightTexture);
+    rs->TextureSet(D3DVERTEXTEXTURESAMPLER0, field.texture);
     // Per strand: the runs of foams drawn this frame (a few foams not drawn between them ride along, their strands
     // collapse in the shader), at most kFoamsPerDraw foams and one texture a draw
     constexpr size_t kMaxGap = 8;
@@ -213,10 +182,11 @@ void CoastFoam::DrawStrands(const SeaHeightField &field, const glm::mat4 &mWVP)
                     break;
                 last = g;
             }
-            c[6][3] = static_cast<float>(start);
+            c[8][0] = static_cast<float>(start);
             for (size_t g = start; g <= last; g++)
-                memcpy(c[8 + g - start], &params[g], sizeof(c[0]));
-            rs->SetVertexShaderConstantF(0, &c[0][0], static_cast<uint32_t>(8 + last - start + 1));
+                memcpy(c[foam_gpu::kFirstStrand + g - start], &params[g], sizeof(c[0]));
+            rs->SetVertexShaderConstantF(0, &c[0][0],
+                                         static_cast<uint32_t>(foam_gpu::kFirstStrand + last - start + 1));
             rs->TextureSet(0, texture);
             const uint32_t firstIndex = aFoams[start]->dwFirstIndex;
             const uint32_t indices = aFoams[last]->dwFirstIndex + aFoams[last]->dwIndices - firstIndex;
@@ -224,7 +194,7 @@ void CoastFoam::DrawStrands(const SeaHeightField &field, const glm::mat4 &mWVP)
                            "CoastFoam");
             f = last + 1;
         }
-    rs->TextureSet(1, -1);
+    rs->TextureSet(D3DVERTEXTEXTURESAMPLER0, -1); // a skinned draw's bone palette goes there
     rs->SetStreamSource(0, -1, 0);
 }
 
@@ -301,7 +271,7 @@ void CoastFoam::Realize(uint32_t Delta_Time)
     mWVP = mProjection * mWV;
 
     SeaHeightField field;
-    const bool bHeights = UpdateHeights(seaId, Sea, field);
+    const bool bHeights = UpdateHeights(Sea, field);
     if (bBuffersDirty)
         BuildBuffers();
 

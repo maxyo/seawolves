@@ -1,90 +1,79 @@
-// The sea's surface in its vertex ports (vs_port_sea2, vs_port_sea3) and in
-// the sea's self-check (vs_sea_check.sc): the position, normal and bump texture coordinates the CPU computed for every
-// vertex of every frame, from the flat grid the sea uploads when its blocks change (src/libs/sea/src/sea.cpp) and its
-// height field (src/libs/sea/include/sea_surface_gpu.hpp: the layout of the texels and registers). Every step is
-// SEA::WaveXZ's: two waves, each two frames blended texel by texel and sampled bilinearly with wrap.
-// c8.w = 0: the CPU displaced the vertices itself (SEA's fallback when the self-check fails); they are used as given.
+// The sea's surface in its vertex port (vs_port_sea2), the coast foam's (vs_port_coastfoam) and the sea's self-check
+// (vs_sea_check.sc): the wave field's displacement of a point of the still water and the displaced surface's normal,
+// from the samples the CPU made (src/libs/sea/src/ocean_field.cpp, Field::Point: the same bilinear sample and
+// derivatives) and the registers of src/libs/sea/include/sea_surface_gpu.hpp.
+// c8.w = 0: the CPU displaced the sea's vertices itself (until the self-check passed); they are used as given.
 #ifndef SEA_SURFACE_SH
 #define SEA_SURFACE_SH
 
-// The height field: a 1024 x 1024 RGBA32F atlas of the 64 frames (8 x 8 tiles of 128 x 128), read texel by texel at
-// the vertex texture unit, as the skinned draws read their bone palettes (ff_skin.sh). D3DVERTEXTEXTURESAMPLER0.
+// The field: the cascades' samples stacked in one RGBA32F texture (dx, h, dz per texel), read texel by texel at the
+// vertex texture unit, as the skinned draws read their bone palettes (ff_skin.sh). D3DVERTEXTEXTURESAMPLER0.
 SAMPLER2D(s_vtex, 13);
 
-// Texel xy of `frame`: x the height (0..1), yz the normal's x and z.
-vec3 seaFieldTexel(ivec2 xy, int frame)
+// The cascade of register `cascade` (sea_gpu::cascade_register) at the still point `local`: adds its displacement and
+// that displacement's derivatives per metre along x and z.
+void seaCascade(vec2 local, vec4 cascade, inout vec3 offset, inout vec3 alongX, inout vec3 alongZ)
 {
-    int row = frame / 8;
-    ivec2 tile = ivec2(frame - row * 8, row) * 128;
-    return texelFetch(s_vtex, tile + xy, 0).xyz;
-}
-
-// Texel xy blended between two frames, as storm::sea::FrameBlend blends them for WaveXZ.
-vec3 seaBlendedTexel(ivec2 xy, int frame1, int frame2, float blend)
-{
-    vec3 a = seaFieldTexel(xy, frame1);
-    vec3 b = seaFieldTexel(xy, frame2);
-    return a + (b - a) * blend;
-}
-
-// One wave at the mesh position `local`: x its height in metres, yz the bilinear normal (SEA::WaveXZ nX, nZ).
-vec3 seaWave(vec2 local, vec4 wave, float frame)
-{
-    vec2 t = local * wave.x + wave.yz;
+    if (cascade.w < 0.0)
+        return;
+    float size = float(textureSize(s_vtex, 0).x);
+    vec2 t = local * cascade.x + cascade.yz;
     vec2 i = floor(t);
     vec2 f = t - i;
-    ivec2 i0 = ivec2(mod(i, 128.0));
-    ivec2 i1 = ivec2(mod(i + 1.0, 128.0));
-    float first = floor(frame);
-    int frame1 = int(mod(first, 64.0));
-    int frame2 = int(mod(first + 1.0, 64.0));
-    float blend = frame - first;
-    vec3 a1 = seaBlendedTexel(i0, frame1, frame2, blend);
-    vec3 a2 = seaBlendedTexel(ivec2(i1.x, i0.y), frame1, frame2, blend);
-    vec3 a3 = seaBlendedTexel(ivec2(i0.x, i1.y), frame1, frame2, blend);
-    vec3 a4 = seaBlendedTexel(i1, frame1, frame2, blend);
-    vec3 s = a1 + f.x * (a2 - a1) + f.y * (a3 - a1) + f.x * f.y * (a4 + a1 - a2 - a3);
-    return vec3(s.x * wave.w, s.yz);
+    vec2 w0 = mod(i, size);
+    vec2 w1 = mod(i + 1.0, size);
+    ivec2 i0 = ivec2(w0.x, w0.y + cascade.w);
+    ivec2 i1 = ivec2(w1.x, w1.y + cascade.w);
+    vec3 a1 = texelFetch(s_vtex, i0, 0).xyz;
+    vec3 a2 = texelFetch(s_vtex, ivec2(i1.x, i0.y), 0).xyz;
+    vec3 a3 = texelFetch(s_vtex, ivec2(i0.x, i1.y), 0).xyz;
+    vec3 a4 = texelFetch(s_vtex, i1, 0).xyz;
+    offset += mix(mix(a1, a2, f.x), mix(a3, a4, f.x), f.y);
+    alongX += mix(a2 - a1, a4 - a3, f.y) * cascade.x;
+    alongZ += mix(a3 - a1, a4 - a2, f.x) * cascade.x;
 }
 
-// The surface at the mesh position `local` (metres from the mesh's origin, x and z): `pos` as the sea's vertex
-// position (world minus the sea's vertex offset), `normal` and `uv` the bump texture coordinates.
-void seaSurface(vec2 local, out vec4 pos, out vec3 normal, out vec2 uv)
+// The displacement of the still point `local` by the three cascades at registers first .. first + 2, and the
+// displaced surface's unit normal (storm::sea::ocean::SurfacePoint::Normal).
+vec3 seaField(vec2 local, int first, out vec3 normal)
+{
+    vec3 offset = vec3_splat(0.0);
+    vec3 alongX = vec3_splat(0.0);
+    vec3 alongZ = vec3_splat(0.0);
+    seaCascade(local, u_vsc[first], offset, alongX, alongZ);
+    seaCascade(local, u_vsc[first + 1], offset, alongX, alongZ);
+    seaCascade(local, u_vsc[first + 2], offset, alongX, alongZ);
+    normal = normalize(cross(vec3(alongZ.x, alongZ.y, 1.0 + alongZ.z), vec3(1.0 + alongX.x, alongX.y, alongX.z)));
+    return offset;
+}
+
+// The sea's surface at the still point `local` (metres from the mesh's origin, x and z): `pos` as the sea's vertex
+// position (world minus the sea's vertex offset) and its `normal`.
+void seaSurface(vec2 local, out vec4 pos, out vec3 normal)
 {
     vec2 toCamera = local - u_vsc[8].xy;
-    float height = 0.0;
+    vec3 offset = vec3_splat(0.0);
     normal = vec3(0.0, 1.0, 0.0);
     if (dot(toCamera, toCamera) <= u_vsc[8].z)
-    {
-        vec3 w1 = seaWave(local, u_vsc[4], u_vsc[6].x);
-        vec3 w2 = seaWave(local, u_vsc[5], u_vsc[6].y);
-        height = w1.x + w2.x;
-        float y = sqrt(1.0 - dot(w1.yz, w1.yz)) + sqrt(1.0 - dot(w2.yz, w2.yz));
-        vec2 xz = (u_vsc[4].x * u_vsc[4].w) * w1.yz + (u_vsc[5].x * u_vsc[5].w) * w2.yz;
-        normal = normalize(vec3(xz.x, y, xz.y));
-    }
-    uv = (local - normal.xz * 5.3) * u_vsc[6].w + u_vsc[7].zw;
-    vec2 xz = local - normal.xz * u_vsc[6].z + u_vsc[7].xy;
-    pos = vec4(xz.x, height, xz.y, 1.0);
+        offset = seaField(local, 4, normal);
+    vec2 xz = local + offset.xz + u_vsc[7].xy;
+    pos = vec4(xz.x, u_vsc[7].z + offset.y, xz.y, 1.0);
 }
 
-// The port's vertex registers v0 (position), v1 (normal) and v2 (texture coordinates) from its stage inputs (which only
-// main() can name, storm_common.sh): displaced here from the flat grid, or as the CPU wrote them (c8.w = 0).
-void seaVertex(vec4 position, vec3 inNormal, vec4 texcoord, out vec4 v0, out vec4 v1, out vec4 v2)
+// The port's vertex registers v0 (position) and v1 (normal) from its stage inputs (which only main() can name,
+// storm_common.sh): displaced here from the flat grid, or as the CPU wrote them (c8.w = 0).
+void seaVertex(vec4 position, vec3 inNormal, out vec4 v0, out vec4 v1)
 {
     if (u_vsc[8].w != 0.0)
     {
         vec3 normal;
-        vec2 uv;
-        seaSurface(position.xz, v0, normal, uv);
+        seaSurface(position.xz, v0, normal);
         v1 = vec4(normal, 1.0);
-        v2 = vec4(uv, 0.0, 1.0);
     }
     else
     {
         v0 = position;
         v1 = vec4(inNormal, 1.0);
-        v2 = texcoord;
     }
 }
 

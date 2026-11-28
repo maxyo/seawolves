@@ -91,7 +91,10 @@ const Option kOptions[] = {
      [](fx::Settings &s, int v) { s.depth_prepass = on(v); }},
     {"fx_anisotropy", "1, 4, 8",
      [](fx::Settings &s, int v) { s.anisotropy = static_cast<uint8_t>(std::clamp(v, 1, 16)); }},
-    {"fx_sea_band_limit", "0 off, 1 on", [](fx::Settings &s, int v) { s.sea_band_limit = on(v); }},
+    {"fx_sea_cascade_size", "64, 128 or 256 samples a side of each of the sea's wave cascades",
+     [](fx::Settings &s, int v) {
+         s.sea_cascade_size = static_cast<uint16_t>(v <= 64 ? 64 : v <= 128 ? 128 : 256);
+     }},
     {"fx_sea_soft_edges", "0 off, 1 on", [](fx::Settings &s, int v) { s.sea_soft_edges = on(v); }},
     {"fx_sea_specular", "0 off, 1 on", [](fx::Settings &s, int v) { s.sea_specular = on(v); }},
     {"fx_sea_wakes", "0 off, 1 on: the wakes of hulls", [](fx::Settings &s, int v) { s.sea_wakes = on(v); }},
@@ -196,18 +199,19 @@ std::string caster_counts(const ShadowCasters::FrameCount &count)
 std::string describe(const fx::Settings &s)
 {
     char text[512];
-    snprintf(text, sizeof(text),
-             "tonemap=%d bloom=%d(1/%u,%u) shafts=%d smaa=%d scene_height=%u sharpen=%d(%.2f) dither=%d flare=%d "
-             "scene_grading=%d grade=%d msaa=%u a2c=%d aniso=%u prepass=%d sea=%d%d%d turbidity=%d wakes=%d shadows=%d "
-             "lighting=0x%x parallax=%d(%.2f, shadow %d, cavity %d) characters=%d(%.2f) wet=%u flashes=%u "
-             "materials=%d(maps %d)",
-             s.tonemap, s.bloom, s.bloom_downscale, s.bloom_levels, s.sun_shafts, s.smaa, s.render_height, s.sharpen,
-             static_cast<double>(s.sharpness), s.dither, s.lens_flare, s.scene_grading, static_cast<int>(s.grade),
-             s.msaa, s.alpha_to_coverage, s.anisotropy, s.depth_prepass, s.sea_band_limit, s.sea_soft_edges,
-             s.sea_specular, s.sea_turbidity, s.sea_wakes, static_cast<int>(s.shadows), s.lighting_flags,
-             static_cast<int>(s.parallax), static_cast<double>(s.parallax_strength), s.parallax_shadow, s.relief_cavity,
-             static_cast<int>(s.character_relief), static_cast<double>(s.character_relief_strength), s.wet_surfaces,
-             s.flash_lights, s.material_programs, s.material_maps);
+    snprintf(
+        text, sizeof(text),
+        "tonemap=%d bloom=%d(1/%u,%u) shafts=%d smaa=%d scene_height=%u sharpen=%d(%.2f) dither=%d flare=%d "
+        "scene_grading=%d grade=%d msaa=%u a2c=%d aniso=%u prepass=%d sea=%ux%u,%d%d turbidity=%d wakes=%d shadows=%d "
+        "lighting=0x%x parallax=%d(%.2f, shadow %d, cavity %d) characters=%d(%.2f) wet=%u flashes=%u "
+        "materials=%d(maps %d)",
+        s.tonemap, s.bloom, s.bloom_downscale, s.bloom_levels, s.sun_shafts, s.smaa, s.render_height, s.sharpen,
+        static_cast<double>(s.sharpness), s.dither, s.lens_flare, s.scene_grading, static_cast<int>(s.grade), s.msaa,
+        s.alpha_to_coverage, s.anisotropy, s.depth_prepass, s.sea_cascades, s.sea_cascade_size, s.sea_soft_edges,
+        s.sea_specular, s.sea_turbidity, s.sea_wakes, static_cast<int>(s.shadows), s.lighting_flags,
+        static_cast<int>(s.parallax), static_cast<double>(s.parallax_strength), s.parallax_shadow, s.relief_cavity,
+        static_cast<int>(s.character_relief), static_cast<double>(s.character_relief_strength), s.wet_surfaces,
+        s.flash_lights, s.material_programs, s.material_maps);
     return text;
 }
 } // namespace

@@ -1,14 +1,15 @@
 $input v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v_texcoord4, v_fog, v_foam
-// Port of the technique shader sea_sea2_pixel_shader (ps_1_1) of src/techniques/weather/sea.fx.
-// Stage 0: animated bump volume texture, stage 1: the game's foam texture (weather\\sea\\pena\\pena.tga; here read only
-// by the hulls' wakes), stage 3: environment cube map.
+// Port of the technique shader sea_sea2_pixel_shader (ps_1_1) of src/techniques/weather/sea.fx, on the wave field.
+// Stage 0: the field's slopes (a volume, one slice per cascade: SEA, src/libs/sea), stage 1: the game's foam texture
+// (weather\\sea\\pena\\pena.tga), stage 3: environment cube map.
 //
-// On top of the original (effects/sea.hpp sets u_seaFx; all off reproduces the D3D9 shader except the first point):
+// Instead of the original's animated bump texture in the vertex normal's frame, the normal is the field's, per pixel:
+// the slopes of every cascade summed, each fading out as one pixel covers more of its samples (the detail a pixel
+// cannot resolve would alias at the horizon).
+// On top of the original (effects/sea.hpp sets u_seaFx):
 // - the reflected ray never points below the horizon: the cube's -Y face is never rendered above water, and the
 //   original sampled its black there (dark specks near the horizon); a ray reflected downwards meets the sea again,
 //   whose colour at the horizon the side faces hold;
-// - band limit: the bump detail fades towards the flat surface as one pixel covers more texels of the bump
-//   texture (far and grazing water), so the reflection does not shimmer at the horizon;
 // - soft edges: the water fades out where it is shallower than the edge depth in front of the scene behind it
 //   (s_seaDepth, the scene's view distance per pixel packed into RGB8 by fs_fx_sea_depth). Where that distance is
 //   nearer than the water itself, the pixel belongs to an object in front of the sea (its edge: a rope, a sail, a
@@ -20,16 +21,47 @@ $input v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v
 #include "port_ps.sh"
 #include "sea_wakes.sh"
 #include "sea_optics.sh"
-SAMPLER3D(s_vol0, 8);
+SAMPLER3D(s_vol0, 8); // the field's slopes per cascade: hx, hz, dxx, dzz (storm::sea::ocean::Slope)
 SAMPLER2D(s_tex1, 1);
 SAMPLERCUBE(s_cube2, 7); // the game's sun road cube (sea.cpp, stage 2): the glint's colour
 SAMPLERCUBE(s_cube3, 11);
 SAMPLER2D(s_seaDepth, 14);
-// [0] x: band limit, y: soft edges, z: specular (each 0 or 1), w: far plane of the packed scene distance
+// [0] y: soft edges, z: specular (each 0 or 1), w: far plane of the packed scene distance
 // [1] xyz: towards the sun (world), w: specular power   [2] x: specular strength, w: 1 / edge depth (metres)
 // [3] rgb: current game water colour, w: extinction per metre (0 disables turbidity).
 // [4] xyz: actual shim camera forward (row-vector view third column).
 uniform vec4 u_seaFx[5];
+// u_psc (SEA): [0] x the game's foam layer drawn; [1..3] cascade 0..2: xy the slope coordinate of the mesh's origin,
+// z the slope coordinates per metre (1 / patch), w the cascade's slice coordinate (< 0: no such cascade);
+// [4] x samples per cascade side, y the foam texture's coordinates per metre, zw its coordinate of the mesh's origin.
+
+// The slopes of the cascades at the still point `still` (metres from the mesh's origin): `filtered` fades each cascade
+// with the samples one pixel covers, `sharp` does not.
+void seaSlopes(vec2 still, out vec4 filtered, out vec4 sharp)
+{
+    filtered = vec4_splat(0.0);
+    sharp = vec4_splat(0.0);
+    for (int c = 1; c <= 3; c++)
+    {
+        vec4 cascade = u_psc[c];
+        if (cascade.w < 0.0)
+            continue;
+        vec2 uv = still * cascade.z + cascade.xy;
+        vec4 slope = texture3D(s_vol0, vec3(uv, cascade.w));
+        vec2 footprint = fwidth(uv) * u_psc[4].x;
+        float keep = 1.0 - clamp(log2(max(max(footprint.x, footprint.y), 1.0)) / 3.0, 0.0, 1.0);
+        filtered += slope * keep;
+        sharp += slope;
+    }
+}
+
+// The displaced surface's normal from summed slopes (storm::sea::ocean::SurfacePoint::Normal without the cross terms).
+vec3 seaNormal(vec4 slope)
+{
+    float x = max(1.0 + slope.z, 0.1);
+    float z = max(1.0 + slope.w, 0.1);
+    return normalize(vec3(-slope.x * z, x * z, -slope.y * x));
+}
 
 void main()
 {
@@ -37,19 +69,12 @@ void main()
     vec4 v1 = v_color1;
     vec4 r0 = vec4_splat(0.0);
 
-    vec4 t0 = texture3D(s_vol0, v_texcoord0.xyz);                           // tex t0
-    vec3 n = PS_BX2(t0.rgb);                                                //   t0_bx2
-    // Texels of the bump texture's top level under one pixel: 1 close up, many at the horizon.
-    vec2 footprint = fwidth(v_texcoord0.xy) * 128.0;
-    float detail = 1.0 - u_seaFx[0].x * clamp(log2(max(max(footprint.x, footprint.y), 1.0)) * 0.3, 0.0, 0.85);
+    vec4 filtered, sharp;
+    seaSlopes(v_texcoord0.xy, filtered, sharp);
     vec2 wake = seaWake(v_texcoord4.zw); // x foam, y calm
-    detail *= 1.0 - 0.6 * wake.y;
-    n = mix(vec3(0.0, 1.0, 0.0), n, detail);
-    float m1 = dot(v_texcoord1.xyz, n);                                     // texm3x3pad t1, t0_bx2
-    float m2 = dot(v_texcoord2.xyz, n);                                     // texm3x3pad t2, t0_bx2
-    float m3 = dot(v_texcoord3.xyz, n);                                     // texm3x3vspec t3, t0_bx2
-    vec3 eye = vec3(v_texcoord1.w, v_texcoord2.w, v_texcoord3.w);           //   eye vector from the w components
-    vec3 n0 = normalize(vec3(m1, m2, m3));
+    // The wake's churned water damps the small waves: the field's detail fades.
+    vec3 n0 = normalize(mix(vec3(0.0, 1.0, 0.0), seaNormal(filtered), 1.0 - 0.6 * wake.y));
+    vec3 eye = vec3(v_texcoord1.w, v_texcoord2.w, v_texcoord3.w); // the eye vector from the w components
     vec3 R = portReflect(n0, eye);
     vec3 e = normalize(eye);
     R.y = max(R.y, 0.0);
@@ -122,12 +147,11 @@ void main()
     {
         // Sea2_Foam (sea_sea2foam_pixel_shader): the foam texture (stage 1 here) at the vertex shader's uv, the
         // layer's alpha from the height (v_foam), fogged as this draw (both techniques leave the fog to the state).
-        vec4 lace = ffFinish(clamp(vec4(texture2D(s_tex1, v_foam.xy).rgb, v_foam.z), 0.0, 1.0));
+        vec2 foam_uv = v_texcoord0.xy * u_psc[4].y + u_psc[4].zw;
+        vec4 lace = ffFinish(clamp(vec4(texture2D(s_tex1, foam_uv).rgb, v_foam.z), 0.0, 1.0));
         gl_FragColor.rgb += lace.rgb * lace.a;
     }
     // Sea2_SunRoad (sea_sea2sunroad_pixel_shader, no fog): the sun road cube (stage 2 here) in the ray reflected
-    // about the unfiltered bump normal (no band limit).
-    vec3 bump = PS_BX2(t0.rgb);
-    vec3 road = normalize(vec3(dot(v_texcoord1.xyz, bump), dot(v_texcoord2.xyz, bump), dot(v_texcoord3.xyz, bump)));
-    gl_FragColor.rgb += clamp(textureCube(s_cube2, portReflect(road, eye)).rgb, 0.0, 1.0);
+    // about the unfiltered normal.
+    gl_FragColor.rgb += clamp(textureCube(s_cube2, portReflect(seaNormal(sharp), eye)).rgb, 0.0, 1.0);
 }

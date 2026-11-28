@@ -48,6 +48,12 @@ FormatInfo format_info(D3DFORMAT format)
     return {static_cast<uint8_t>(block.bitsPerPixel / 8), 0, false};
 }
 
+// The float formats, made and filled as the game's texels are, without the image paths of the 8-bit ones.
+bool raw_float(D3DFORMAT format)
+{
+    return format == D3DFMT_A32B32G32R32F || format == D3DFMT_A16B16G16R16F;
+}
+
 uint32_t level_pitch(D3DFORMAT format, uint32_t width)
 {
     const FormatInfo info = format_info(format);
@@ -162,8 +168,9 @@ void TexStore::create_gpu()
                                                                         : bgfx::TextureFormat::BC3;
         gpu_compressed = true;
     }
-    else if (format == D3DFMT_A32B32G32R32F && !render_target)
-        gpu_format = bgfx::TextureFormat::RGBA32F; // uploaded as it is (same channel order)
+    else if (raw_float(format) && !render_target)
+        // uploaded as they are (same channel order)
+        gpu_format = format == D3DFMT_A32B32G32R32F ? bgfx::TextureFormat::RGBA32F : bgfx::TextureFormat::RGBA16F;
     else
     {
         gpu_format = bgfx::TextureFormat::RGBA8;
@@ -642,7 +649,7 @@ void TexStore::destroy_sampled()
 
 bool TexStore::realize_pending() const
 {
-    if (system_memory || render_target || depth_stencil || format == D3DFMT_A32B32G32R32F)
+    if (system_memory || render_target || depth_stencil || raw_float(format))
         return false;
     if (transcoded) // re-locked contents are made again at once: a postponed one would draw stale
         return !any_dirty && fallback_bytes && transcode_job &&
@@ -654,8 +661,8 @@ void TexStore::sync()
 {
     if (system_memory)
         return;
-    // Float textures (bone palettes) skip the DDS/transcode path: created empty, levels uploaded raw.
-    const bool sampled = !render_target && !depth_stencil && format != D3DFMT_A32B32G32R32F;
+    // Float textures (bone palettes, the sea's field) skip the DDS/transcode path: created empty, levels uploaded raw.
+    const bool sampled = !render_target && !depth_stencil && !raw_float(format);
     if (transcoded)
     {
         if (!any_dirty)

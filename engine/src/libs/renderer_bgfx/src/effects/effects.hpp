@@ -173,6 +173,7 @@ class Host
 
     // World passes (world.cpp): drawn into the shim's current game view, in submission order.
     render::EffectsWorld world() const;
+    render::EffectsSea sea() const;
     // Before each draw with the game's Sea2 pixel shader (shaders/ports/fs_port_sea2.sc): sets its u_seaFx and,
     // for the soft edges, captures the scene distance behind the sea once per frame and target and binds it.
     // And the hulls' wakes (sea_wakes.sh): draws them once per frame (a view of their own) and binds their target.

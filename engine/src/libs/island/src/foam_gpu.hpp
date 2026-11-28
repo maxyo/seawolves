@@ -2,19 +2,17 @@
 // tests/renderer_bgfx/coast_foam_vertex_check draws it as CoastFoam does.
 #pragma once
 
-#include <cmath>
+#include "sea_surface_gpu.hpp"
+
 #include <cstdint>
-#include <vector>
 
 namespace foam_gpu
 {
 
-constexpr int32_t kFoamsPerDraw = 64; // c8.. of vs_port_coastfoam.sc (PORT_VSC_COUNT 72)
-constexpr int32_t kRegisters = 8 + kFoamsPerDraw;
-constexpr int32_t kRows = 8;    // rows of a strand
-constexpr int32_t kFrames = 64; // the sea's height frames (SEA FRAMES)
-constexpr int32_t kSize = 128;  // their side (SEA XWIDTH)
-constexpr int32_t kSlices = kFrames / 4;
+constexpr int32_t kFirstStrand = 9;
+constexpr int32_t kFoamsPerDraw = 64; // c9.. of vs_port_coastfoam.sc (PORT_VSC_COUNT 73)
+constexpr int32_t kRegisters = kFirstStrand + kFoamsPerDraw;
+constexpr int32_t kRows = 8; // rows of a strand
 
 #pragma pack(push, 1)
 struct Vertex
@@ -39,31 +37,14 @@ inline uint8_t edge_quarters(int32_t x, int32_t iLen)
     return static_cast<uint8_t>(quarters < 0 ? 0 : quarters > 4 ? 4 : quarters);
 }
 
-// c4 / c5: SEA::WaveXZ samples frame texel (x + move.x) * scale (wrapping at kSize); the texture's texel i has its
-// centre at (i + 0.5) / kSize. The offset is reduced to 0..1 in double: move grows with the time at sea.
-inline void wave_register(float scale, float moveX, float moveZ, float amplitude, float out[4])
+// c4..c6: the sea's cascades (sea_gpu::cascade_register) for world positions: the origin at x = z = 0.
+inline void cascade_registers(int32_t size, int32_t cascades, const float *patch, float out[3][4])
 {
-    const auto offset = [&](float move) {
-        const double uv = (static_cast<double>(move) * scale + 0.5) / kSize;
-        return static_cast<float>(uv - std::floor(uv));
-    };
-    out[0] = scale / kSize;
-    out[1] = offset(moveX);
-    out[2] = offset(moveZ);
-    out[3] = amplitude;
-}
-
-// The height frames (kFrames of kSize * kSize bytes) as an A8R8G8B8 volume of kSlices slices: frame 4 s + c in slice
-// s, channel c (r, g, b, a as the shader samples them).
-inline std::vector<uint32_t> pack_frames(const uint8_t *const *frames)
-{
-    std::vector<uint32_t> texels(static_cast<size_t>(kSize) * kSize * kSlices);
-    for (int32_t s = 0; s < kSlices; s++)
-        for (int32_t i = 0; i < kSize * kSize; i++)
-            texels[static_cast<size_t>(s) * kSize * kSize + i] =
-                static_cast<uint32_t>(frames[4 * s + 3][i]) << 24 | static_cast<uint32_t>(frames[4 * s][i]) << 16 |
-                static_cast<uint32_t>(frames[4 * s + 1][i]) << 8 | frames[4 * s + 2][i];
-    return texels;
+    for (int32_t c = 0; c < sea_gpu::kMaxCascades; c++)
+        if (c < cascades)
+            sea_gpu::cascade_register(0.0, 0.0, size, patch[c], c, out[c]);
+        else
+            sea_gpu::absent_cascade(out[c]);
 }
 
 } // namespace foam_gpu

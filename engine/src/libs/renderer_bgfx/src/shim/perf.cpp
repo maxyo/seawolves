@@ -115,6 +115,14 @@ const PerfCounters &PerfTotals()
     return shim::totals;
 }
 
+void NoteSeaField(double worker_ms, double wait_ms, uint64_t upload_bytes)
+{
+    shim::totals.sea_field_ms += worker_ms;
+    shim::totals.sea_wait_ms += wait_ms;
+    shim::totals.sea_field_bytes += upload_bytes;
+    ++shim::totals.sea_field_frames;
+}
+
 uint64_t GpuMemoryBudget()
 {
     return static_cast<uint64_t>(std::max<int64_t>(0, bgfx::getStats()->gpuMemoryMax));
@@ -125,6 +133,10 @@ PerfCounters PerfCounters::Since(const PerfCounters &start) const
     PerfCounters d = *this;
     d.frames -= start.frames;
     d.draws -= start.draws;
+    d.sea_field_ms -= start.sea_field_ms;
+    d.sea_wait_ms -= start.sea_wait_ms;
+    d.sea_field_frames -= start.sea_field_frames;
+    d.sea_field_bytes -= start.sea_field_bytes;
     d.skipped_draws -= start.skipped_draws;
     d.views -= start.views;
     d.program_changes -= start.program_changes;

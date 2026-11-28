@@ -56,6 +56,11 @@ std::array<float, 16> BackendProjection(const shim::Device &device, const D3DMAT
     return out;
 }
 
+render::EffectsSea Host::sea() const
+{
+    return {settings_.sea_cascades, settings_.sea_cascade_size};
+}
+
 render::EffectsWorld Host::world() const
 {
     render::EffectsWorld world;
@@ -249,7 +254,7 @@ void Host::prepare_sea(shim::Device &device)
     const auto &water_color = device.s.vs_const[29];
     // clang-format off
     const float sea_fx[20] = {
-        settings_.sea_band_limit ? 1.0f : 0.0f, soft_edges ? 1.0f : 0.0f, specular ? 1.0f : 0.0f, far_plane,
+        0.0f, soft_edges ? 1.0f : 0.0f, specular ? 1.0f : 0.0f, far_plane,
         sun[0], sun[1], sun[2], settings_.sea_specular_power,
         strength, 0.0f, 0.0f,
         1.0f / std::max(settings_.sea_edge_depth, 0.01f),
@@ -521,5 +526,10 @@ namespace storm::render
 EffectsWorld CurrentEffectsWorld()
 {
     return effects::Host::instance().world();
+}
+
+EffectsSea CurrentEffectsSea()
+{
+    return effects::Host::instance().sea();
 }
 } // namespace storm::render

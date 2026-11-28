@@ -169,8 +169,11 @@ struct Settings
     bool depth_prepass = false;     // opaque scene draws lay their depth first: each pixel is shaded once
 
     // ---- world passes ----
+    // The sea's wave field (src/libs/sea, ocean_field.hpp): `sea_cascades` cascades of sea_cascade_size squared
+    // samples, made on the CPU every frame. The one table of sizes: FromPreset (fx_sea_cascade_size: 256 on desktops).
+    uint8_t sea_cascades = 2;
+    uint16_t sea_cascade_size = 64;
     // The game's sea (the ported Sea2 technique, fs_port_sea2.sc); its reflected ray is always clamped to the horizon.
-    bool sea_band_limit = false; // the bump detail fades with the pixel footprint: no shimmer at the horizon
     bool sea_soft_edges = false; // the sea fades out where shallow in front of the scene (needs the scene depth)
     bool sea_turbidity = false;  // depth-dependent transmission and water-colour scattering
     bool sea_specular = false;   // the sun's glint from the bumped normal along the game's sun road

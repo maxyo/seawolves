@@ -431,6 +431,15 @@ struct EffectsWorld
 };
 EffectsWorld CurrentEffectsWorld();
 
+// The sea's wave field as the settings to draw ask (fx::Settings::sea_cascades, sea_cascade_size): SEA follows a
+// change at its next frame.
+struct EffectsSea
+{
+    int cascades = 2;
+    int size = 64;
+};
+EffectsSea CurrentEffectsSea();
+
 // `view` of the world passes is the world -> view matrix as the engine sees it (VRenderer::GetTransform(D3DTS_VIEW)):
 // the device itself holds a camera-relative view, because Renderer moves the camera translation into the world matrix.
 using EffectsMatrix = std::array<float, 16>;

@@ -140,9 +140,8 @@ constexpr GraphicsOption kOptions[] = {
      "0 off, 1 FSR 1 sharpening after the upscale (render scale below 100)",
      [](int v, uint32_t, Out &out) { One(out, "fx_sharpen", v); }},
     {"sea_detail", OptionKind::Choice, 0, 2, kThree, 2, OptionTakes::Live, false,
-     "0 the game's sea, 1 no shimmer at the horizon and the sun's glint, 2 also soft shores",
+     "0 the sea without the sun's glint, 1 the sun's glint, 2 also soft shores",
      [](int v, uint32_t, Out &out) {
-         One(out, "fx_sea_band_limit", v >= 1);
          One(out, "fx_sea_specular", v >= 1);
          One(out, "fx_sea_soft_edges", v >= 2);
      }},

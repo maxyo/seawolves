@@ -145,7 +145,7 @@ prints the current one.
 | `colour_temperature` | 0..200: 100 the grade's warmth, 0 the coolest, 200 the warmest | 100 | at once |
 | `colour_saturation` | 0..200 % of the grade's saturation | 100 | at once |
 | `sharpen` | 0 off, 1 FSR 1 sharpening after the upscale (render scale below 100) | 1 | at once |
-| `sea_detail` | 0 the game's sea, 1 no shimmer at the horizon and the sun's glint, 2 also soft shores | 2 | at once |
+| `sea_detail` | 0 the sea without the sun's glint, 1 the sun's glint, 2 also soft shores | 2 | at once |
 | `sea_wakes` | 0 off, 1 foam astern and at the bow | 1 | at once |
 | `far_lod` | 0 every model whole, 1..4 pixels a far model's simplified level may differ by | 1 | at once |
 | `wet_surfaces` | 0 off, 1 wet in the rain, 2 also puddles | 2 | at once |

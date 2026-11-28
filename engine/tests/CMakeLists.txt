@@ -396,8 +396,6 @@ storm_host_check(sea_ocean_field
             ${src}/libs/sea/src/ocean_field.cpp
     INCLUDES ${glm_headers} ${src}/libs/sea/src OPTIONS -O1 -g ${asan_strict} -fno-omit-frame-pointer ${warnings}
     LIBS storm_ffmpeg CATCH2)
-storm_host_check(sea_wave_sampling INCLUDES ${glm_headers} ${src}/libs/sea/include OPTIONS -O1 -g ${asan} -fno-omit-frame-pointer
-    CATCH2)
 storm_host_check(ship_script_protocol SOURCES ${src}/libs/core/src/message.cpp check.cpp
     INCLUDES ${glm_headers} ${src}/libs/core/include ${util_include}
              ${src}/libs/shared_headers/include ${src}/libs/ship/src ${STORM_TEST_SOURCES}/fmt/include

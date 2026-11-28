@@ -109,7 +109,6 @@ class SUNGLOW : public Entity
 
     std::vector<RS_RECT> aRSR;
 
-    bool bSimpleSea;
     int32_t iNumFlares;
     float fFadeout, fAlpha, fAlphaFlare, fAlphaOverflow, fMaxOverflowAlphaValue;
     int32_t iSunGlowTex, iFlareTex, iOverflowTex, iReflTexture;

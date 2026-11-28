@@ -9,27 +9,20 @@
 #include <thread>
 
 #include "core.h"
-#include "sse.h"
 #include "math_inlines.h"
 #include "sea_script_protocol.hpp"
 #include "shared/sea_ai/script_defines.h"
-#include "tga.h"
+#include "storm/render/perf_stats.hpp"
 #include "v_file_service.h"
 
 #include <fmt/format.h>
+#include <numbers>
 #include <spdlog/spdlog.h>
 
 CREATE_CLASS(SEA)
 
-
-
-#define FRAMES 64
-#define XWIDTH 128
-#define YWIDTH 128
-
 #define GC_CONSTANT 0 // Global constants = {0.0, 1.0, 0.5, 0.0000152590218967 = (0.5 / 32767.5)}
 #define GC_CONSTANT2 1 // Global constants 2 = {2.0, -1.0, 0.00036621652552071 = (12 / 32767.5), fog}
-#define GC_ANIMATION 2 // Animation frames(0.0-1.0) for 4 stages = {stage0, stage1, stage2, stage3}
 #define GC_SHADOW_CONST1 3
 #define GC_SHADOW_CONST2 7
 #define GC_LIGHT4 11 //
@@ -52,7 +45,6 @@ SEA::SEA()
     aTrashRects.reserve(512);
     aSeaLights.reserve(512);
     aLightsRects.reserve(512);
-    aNormals.reserve(FRAMES);
 
     dwMaxDim = 65536 * 2;
     dwMinDim = 128;
@@ -61,18 +53,6 @@ SEA::SEA()
     fMaxSeaDistance = 1600.0f;
     fGridStep = 0.06f;
     fLodScale = 0.4f;
-
-    fAmp1 = 1.0f;
-    fFrame1 = 0.0f;
-    fAnimSpeed1 = 1.0f;
-    vMove1 = glm::vec3(0.0f);
-    fScale1 = 0.4f;
-
-    fAmp2 = 1.0f;
-    fFrame2 = 10.0f;
-    fAnimSpeed2 = 1.0f;
-    vMove2 = glm::vec3(0.0f);
-    fScale2 = 2.0f;
 
     fFoamV = 3.0f;
     fFoamK = 0.0f;
@@ -91,9 +71,6 @@ SEA::SEA()
     bUnderSeaStarted = false;
     bUnderSeaEnable = false;
     bStarted = false;
-    bSimpleSea = false;
-
-    fPosShift = 2.0f;
 
     fFogSeaDensity = 0.0f;
     fFogStartDistance = 0.0f;
@@ -119,8 +96,9 @@ SEA::~SEA()
         spdlog::warn("sea: in {} frames the farthest blocks did not fit the vertex buffer, at most {} blocks at once",
                      dwFramesCut, dwMostBlocksCut);
     ReleaseTargets();
-    rs->TextureRelease(volumeTexture);
-    rs->TextureRelease(iFieldTexture);
+    rs->TextureRelease(fieldTexture_);
+    rs->TextureRelease(slopeTexture_);
+    rs->TextureRelease(checkTexture_);
 
     rs->TextureRelease(iSeaTrashTexture);
     rs->TextureRelease(iSeaLightTexture);
@@ -140,11 +118,6 @@ SEA::~SEA()
     pIndices = nullptr;
     delete[] pVSea;
     pVSea = nullptr;
-
-    for (int32_t i = 0; i < aBumps.size(); i++)
-        delete[] aBumps[i];
-    for (int32_t i = 0; i < aNormals.size(); i++)
-        delete[] aNormals[i];
 }
 
 void SEA::SFLB_CreateBuffers()
@@ -183,231 +156,14 @@ bool SEA::Init()
 
     SFLB_CreateBuffers();
 
-    // The animated bump normals: one volume texture, slices = frames, 4 mip levels.
-    volumeTexture = rs->VolumeTextureCreate(XWIDTH, YWIDTH, FRAMES, 4, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED);
-    if (volumeTexture < 0)
-        throw std::runtime_error("SEA: cannot create the bump volume texture");
-
     CreateTargets();
 
     iSeaTrashTexture = rs->TextureCreate("seatrash.tga");
     iSeaLightTexture = rs->TextureCreate("sealight.tga");
 
-    uint8_t bMin = 0xFF;
-    uint8_t bMax = 0;
-
-    std::vector<uint8_t *> aTmpBumps;
-
-    uint32_t i;
-
-    for (i = 0; i < FRAMES; i++)
-    {
-        char str[256];
-        char *pFBuffer = nullptr;
-        uint32_t dwSize;
-        sprintf_s(str, "resource\\sea\\sea%.4d.tga", i);
-        fio->LoadFile(str, &pFBuffer, &dwSize);
-        if (!pFBuffer)
-        {
-            core.Trace("Sea: Can't load %s", str);
-            return false;
-        }
-
-        auto *pFB = pFBuffer + sizeof(TGA_H);
-
-        auto *pBuffer = new uint8_t[XWIDTH * YWIDTH];
-        aTmpBumps.push_back(pBuffer);
-
-        for (uint32_t y = 0; y < YWIDTH; y++)
-            for (uint32_t x = 0; x < XWIDTH; x++)
-            {
-                const uint8_t bB = (*pFB);
-                if (bB < bMin)
-                    bMin = bB;
-                if (bB > bMax)
-                    bMax = bB;
-                pBuffer[x + y * XWIDTH] = bB & 0xFF;
-                pFB += sizeof(uint32_t);
-            }
-
-        delete[] pFBuffer;
-        pFBuffer = nullptr;
-    }
-
-    for (i = 0; i < FRAMES; i++)
-    {
-        auto *pBuffer = new uint8_t[XWIDTH * YWIDTH];
-        aBumps.push_back(pBuffer);
-
-        for (uint32_t y = 0; y < YWIDTH; y++)
-            for (uint32_t x = 0; x < XWIDTH; x++)
-            {
-                const auto dwAddress = x + y * YWIDTH;
-                float b1, b2, b3, b4, b5; // -2 -1 0 1 2
-
-                b1 = 0.08f * static_cast<float>(aTmpBumps[(i - 2) & (FRAMES - 1)][dwAddress]);
-                b2 = 0.17f * static_cast<float>(aTmpBumps[(i - 1) & (FRAMES - 1)][dwAddress]);
-                b3 = 0.50f * static_cast<float>(aTmpBumps[(i - 0) & (FRAMES - 1)][dwAddress]);
-                b4 = 0.17f * static_cast<float>(aTmpBumps[(i + 1) & (FRAMES - 1)][dwAddress]);
-                b5 = 0.08f * static_cast<float>(aTmpBumps[(i + 2) & (FRAMES - 1)][dwAddress]);
-
-                pBuffer[dwAddress] = aTmpBumps[(i - 0) & (FRAMES - 1)][dwAddress];
-            }
-    }
-
-    for (const auto *bump : aTmpBumps)
-        delete[] bump;
-
-    BuildVolumeTexture();
-    BuildFieldTexture();
-    UpdateWaves();
-
     EditMode_Update();
 
     return true;
-}
-
-void SEA::BuildVolumeTexture()
-{
-    std::vector<glm::vec3 *> aVectors;
-    uint32_t i, j;
-
-    // The per-texel normals are the heights' alone (bSimpleSea changes only the texture): made once, and their buffers
-    // stay where they are for the sea's life (the waves' frame blends point into them).
-    const bool bNormals = aNormals.empty();
-
-    D3DLOCKED_BOX box[4];
-
-    for (i = 0; i < 4; i++)
-        if (!rs->TextureLockBox(volumeTexture, i, box[i], 0))
-            throw std::runtime_error("SEA: cannot fill the bump volume texture");
-
-    // build normals
-
-    aVectors.reserve(FRAMES);
-    for (i = 0; i < FRAMES; i++)
-    {
-        if (bNormals)
-            aNormals.push_back(new uint32_t[XWIDTH * YWIDTH]);
-
-        auto *pVectors = new glm::vec3[XWIDTH * YWIDTH];
-        aVectors.push_back(pVectors);
-
-        for (uint32_t y = 0; y < YWIDTH; y++)
-            for (uint32_t x = 0; x < XWIDTH; x++)
-            {
-#define GET_MASSIVE(dx, dy)                                                                                            \
-    (float(pMassive[((x + dx) & (XWIDTH - 1)) + ((y + dy) & (XWIDTH - 1)) * XWIDTH] & 0xFF) / 255.0f)
-                uint8_t *pMassive = aBumps[i];
-
-                float fCenter = GET_MASSIVE(0, 0);
-
-                float fLeft = GET_MASSIVE(-1, 0) - fCenter;
-                float fRight = GET_MASSIVE(1, 0) - fCenter;
-                float fTop = GET_MASSIVE(0, -1) - fCenter;
-                float fBottom = GET_MASSIVE(0, 1) - fCenter;
-
-                glm::vec3 vRes, vRes1, d0, d1, d2, d3;
-
-                uint32_t dwNums = 0;
-                if (fLeft < 0.0f)
-                    dwNums++;
-                if (fRight < 0.0f)
-                    dwNums++;
-                if (fTop < 0.0f)
-                    dwNums++;
-                if (fBottom < 0.0f)
-                    dwNums++;
-
-                float d = 1.0f;
-                d0 = glm::vec3(-1.f, d * fLeft, 0.f);
-                d1 = glm::vec3(0.f, d * fTop, -1.f);
-                d2 = glm::vec3(1.f, d * fRight, 0.f);
-                d3 = glm::vec3(0.f, d * fBottom, 1.f);
-
-
-                glm::vec3 v1 = glm::cross(d1, d0);
-                glm::vec3 v2 = glm::cross(d3, d2);
-                glm::vec3 v3 = glm::cross(d0, d3);
-                glm::vec3 v4 = glm::cross(d2, d1);
-
-                vRes = vRes1 = storm::math::normalizeOrZero(glm::cross(d1, d0) + glm::cross(d3, d2) + glm::cross(d0, d3) + glm::cross(d2, d1));
-                if (bSimpleSea)
-                {
-                    vRes1 = storm::math::normalizeOrZero(vRes * glm::vec3(100.0f, 1.0f, 100.0f));
-                }
-                uint32_t dwRes = MAKELONG(static_cast<short>(vRes.x * 32767.5f), static_cast<short>(vRes.z * 32767.5f));
-
-                aNormals[i][x + y * XWIDTH] = dwRes;
-                aVectors[i][x + y * XWIDTH] = vRes1;
-
-                int32_t red = fftol((vRes1.x * 0.5f + 0.5f) * 255.0f);   // FIX-ME no ftol
-                int32_t green = fftol((vRes1.y * 0.5f + 0.5f) * 255.0f); // FIX-ME no ftol
-                int32_t blue = fftol((vRes1.z * 0.5f + 0.5f) * 255.0f);  // FIX-ME no ftol
-
-                if (bSimpleSea)
-                    *(uint32_t *)&(
-                        static_cast<char *>(box[0].pBits)[i * box[0].SlicePitch + y * box[0].RowPitch + x * 4]) =
-                        ARGB(0x80, blue, blue, red);
-                else
-                    *(uint32_t *)&(
-                        static_cast<char *>(box[0].pBits)[i * box[0].SlicePitch + y * box[0].RowPitch + x * 4]) =
-                        ARGB(0x80, blue, green, red);
-            }
-    }
-
-    for (j = 1; j < 4; j++)
-    {
-        auto *pVectors = new glm::vec3[(XWIDTH >> j) * (YWIDTH >> j)];
-
-        for (i = 0; i < (FRAMES >> j); i++)
-        {
-            // calculate current pVectors
-            for (uint32_t y = 0; y < (YWIDTH >> j); y++)
-                for (uint32_t x = 0; x < (XWIDTH >> j); x++)
-                {
-                    int32_t iNumVectors = 0;
-                    glm::vec3 vVec(0.0f);
-                    uint32_t dwW = 1 << j;
-                    for (uint32_t k = i * dwW; k < (i + 1) * dwW; k++)
-                    {
-                        for (uint32_t yy = y * dwW; yy < (y + 1) * dwW; yy++)
-                            for (uint32_t xx = x * dwW; xx < (x + 1) * dwW; xx++)
-                            {
-                                iNumVectors++;
-                                vVec += aVectors[k][xx + yy * XWIDTH];
-                            }
-                    }
-                    pVectors[x + y * (XWIDTH >> j)] = vVec / static_cast<float>(iNumVectors);
-                }
-
-            for (uint32_t y = 0; y < (YWIDTH >> j); y++)
-                    for (uint32_t x = 0; x < (XWIDTH >> j); x++)
-                    {
-                        int32_t red = fftol((pVectors[x + y * (XWIDTH >> j)].x * 0.5f + 0.5f) * 255.0f); // FIX-ME no ftol
-                        int32_t green = fftol((pVectors[x + y * (XWIDTH >> j)].y * 0.5f + 0.5f) * 255.0f);
-                        // FIX-ME no ftol
-                        int32_t blue = fftol((pVectors[x + y * (XWIDTH >> j)].z * 0.5f + 0.5f) * 255.0f); // FIX-ME no ftol
-
-                        if (bSimpleSea)
-                            *(uint32_t *)&(static_cast<char *>(
-                                box[j].pBits)[i * box[j].SlicePitch + y * box[j].RowPitch + x * 4]) =
-                                ARGB(0x80, blue, blue, red);
-                        else
-                            *(uint32_t *)&(static_cast<char *>(
-                                box[j].pBits)[i * box[j].SlicePitch + y * box[j].RowPitch + x * 4]) =
-                                ARGB(0x80, blue, green, red);
-                    }
-        }
-        delete[] pVectors;
-    }
-
-    for (i = 0; i < 4; i++)
-        rs->TextureUnlockBox(volumeTexture, i);
-
-    for (const auto &vector : aVectors)
-        delete[] vector;
-    aVectors.clear();
 }
 
 bool SEA::EditMode_Update()
@@ -421,107 +177,20 @@ bool SEA::EditMode_Update()
     const float fAttenuation = 0.9f;
     v4SeaParameters = glm::vec4(fAttenuation, fReflection, fTransparency, 0.0f);
 
-    fAmp1 = _fAmp1 = 8.0f;
-    fAnimSpeed1 = 6.0f;
-    fScale1 = 0.5f;
-    vMoveSpeed1 = glm::vec3(5.0f, 0.0f, 0.0f);
-
-    fAmp2 = _fAmp2 = 1.0f;
-    fAnimSpeed2 = 3.0f;
-    fScale2 = 2.0f;
-    vMoveSpeed2 = glm::vec3(0.0f, 0.0f, 2.0f);
+    keys_.amp1 = 8.0f;
+    keys_.scale1 = 0.5f;
+    keys_.amp2 = 1.0f;
+    keys_.scale2 = 2.0f;
+    keys_.pos_shift = 1.2f;
+    keys_.max_sea_height = 200.0f;
 
     fBumpScale = 0.1f;
-    fBumpSpeed = 1.0f;
     fGridStep = 0.07f;
     fLodScale = 0.5f;
-
-    fPosShift = 1.2f;
 
     Realize(0);
 
     return true;
-}
-
-// INTEL COMMENT:
-// This version of the function takes in 4 at a time, to take advantage of SSE.
-// In particular I have converted the normalise and square roots over to SSE.
-void SEA::SSE_WaveXZ(SeaVertex **pArray)
-{
-    glm::vec3 vNormal[4];
-    float nY1[4];
-    float nY2[4];
-    bool bDistancePass = false;
-
-    for (int i = 0; i < 4; i++)
-    {
-        float fDistance = Sqr(pArray[i]->vPos.x - vCamPos.x) + Sqr(pArray[i]->vPos.z - vCamPos.z);
-        if (fDistance > fMaxSeaDistance * fMaxSeaDistance)
-        {
-            vNormal[i].x = 0.0f;
-            nY1[i] = 1.0f;
-            nY2[i] = 1.0f;
-            vNormal[i].y = 1.0f;
-            vNormal[i].z = 0.0f;
-            pArray[i]->vPos.y = 0.0f;
-            continue;
-        }
-
-        bDistancePass = true;
-
-        glm::vec2 n1, n2;
-        pArray[i]->vPos.y = storm::sea::SampleWave(waves_[0], pArray[i]->vPos.x, pArray[i]->vPos.z, &n1);
-        pArray[i]->vPos.y += storm::sea::SampleWave(waves_[1], pArray[i]->vPos.x, pArray[i]->vPos.z, &n2);
-
-        nY1[i] = 1.0f - (Sqr(n1.x) + Sqr(n1.y));
-        nY2[i] = 1.0f - (Sqr(n2.x) + Sqr(n2.y));
-
-        vNormal[i].x = waves_[0].scale * waves_[0].amp * n1.x + waves_[1].scale * waves_[1].amp * n2.x;
-        vNormal[i].z = waves_[0].scale * waves_[0].amp * n1.y + waves_[1].scale * waves_[1].amp * n2.y;
-    }
-
-    if (bDistancePass)
-    {
-        // INTEL COMMENT:
-        // xmm variables.
-        SeaFloat4 m128X, m128Y, m128Z;
-        SeaFloat4 m128NX, m128NY, m128NZ;
-        SeaFloat4 m128Y1, m128Y2;
-        SeaFloat4 m128SY1, m128SY2;
-
-        // INTEL COMMENT:
-        // Gather the Y's.
-        SSE_GatherFourFloats(&nY1[0], &nY1[1], &nY1[2], &nY1[3], &m128Y1);
-        SSE_GatherFourFloats(&nY2[0], &nY2[1], &nY2[2], &nY2[3], &m128Y2);
-        m128SY1 = SeaSqrt(m128Y1);
-        m128SY2 = SeaSqrt(m128Y2);
-        m128Y = SeaAdd(m128SY1, m128SY2);
-
-        // INTEL COMMENT:
-        // Gather the X's and Z's.
-        SSE_GatherFourFloats(&vNormal[0].x, &vNormal[1].x, &vNormal[2].x, &vNormal[3].x, &m128X);
-        SSE_GatherFourFloats(&vNormal[0].z, &vNormal[1].z, &vNormal[2].z, &vNormal[3].z, &m128Z);
-
-        // INTEL COMMENT:
-        // Normalise.
-        SSE_Normalise(m128X, m128Y, m128Z, &m128NX, &m128NY, &m128NZ);
-
-        // INTEL COMMENT:
-        // Scatter back out.
-        SSE_ScatterFourFloats(&pArray[0]->vNormal.x, &pArray[1]->vNormal.x, &pArray[2]->vNormal.x,
-                              &pArray[3]->vNormal.x, m128NX);
-        SSE_ScatterFourFloats(&pArray[0]->vNormal.y, &pArray[1]->vNormal.y, &pArray[2]->vNormal.y,
-                              &pArray[3]->vNormal.y, m128NY);
-        SSE_ScatterFourFloats(&pArray[0]->vNormal.z, &pArray[1]->vNormal.z, &pArray[2]->vNormal.z,
-                              &pArray[3]->vNormal.z, m128NZ);
-    }
-    else
-    {
-        pArray[0]->vNormal = vNormal[0];
-        pArray[1]->vNormal = vNormal[1];
-        pArray[2]->vNormal = vNormal[2];
-        pArray[3]->vNormal = vNormal[3];
-    }
 }
 
 void SEA::AddWaveSource(const storm::render::EffectsWaveSource &source)
@@ -529,141 +198,107 @@ void SEA::AddWaveSource(const storm::render::EffectsWaveSource &source)
     waveSources_.push_back(source);
 }
 
-// The field WaveXZ below samples, for the coast foam's vertex shader (vs_port_coastfoam.sc): keep the two together.
+// The field WaveXZ below reads, for the coast foam's vertex shader (vs_port_coastfoam.sc): keep the two together.
 bool SEA::HeightField(SeaHeightField &field) const
 {
-    if (aBumps.size() != FRAMES)
+    if (!driver_.Ready() || fieldTexture_ < 0)
         return false;
-    field.frames = aBumps.data();
-    field.frameCount = FRAMES;
-    field.size = XWIDTH;
-    field.frame[0] = fFrame1;
-    field.frame[1] = fFrame2;
-    field.scale[0] = fScale1;
-    field.scale[1] = fScale2;
-    field.amplitude[0] = fAmp1;
-    field.amplitude[1] = fAmp2;
-    field.move[0] = vMove1;
-    field.move[1] = vMove2;
+    const storm::sea::ocean::Field &current = driver_.Current();
+    field.texture = fieldTexture_;
+    field.size = textureSize_;
+    field.cascades = textureCascades_;
+    for (int c = 0; c < textureCascades_; c++)
+        field.patch[c] = current.Layout()[c].patch;
+    field.mean_level = current.MeanLevel();
+    field.lowest = current.Lowest();
+    field.highest = current.Highest();
     field.camera = vCamPos;
     field.reach = fMaxSeaDistance;
     return true;
 }
 
-// The frame `fFrame` blended with the next one (frames wrap), texel by texel as storm::sea::SampleWave reads them.
-storm::sea::FrameBlend SEA::WaveBlend(float fFrame) const
-{
-    const int32_t iFrame1 = fftol(fFrame) % static_cast<int32_t>(aBumps.size());
-    const int32_t iFrame2 = (iFrame1 + 1) % static_cast<int32_t>(aBumps.size());
-    return {aBumps[iFrame1], aBumps[iFrame2], aNormals[iFrame1], aNormals[iFrame2], fFrame - iFrame1};
-}
-
 float SEA::WaveXZ(float x, float z, glm::vec3 *pNormal)
 {
-    const float fDistance = Sqr(x - vCamPos.x) + Sqr(z - vCamPos.z);
-    if (fDistance > fMaxSeaDistance * fMaxSeaDistance)
-    {
-        if (pNormal)
-            *pNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+    if (pNormal)
+        *pNormal = glm::vec3(0.0f, 1.0f, 0.0f);
+    if (!driver_.Ready())
         return 0.0f;
-    }
-    return storm::sea::SurfaceXZ(waves_, x, z, pNormal);
+    const storm::sea::ocean::Field &field = driver_.Current();
+    if (Sqr(x - vCamPos.x) + Sqr(z - vCamPos.z) > fMaxSeaDistance * fMaxSeaDistance)
+        return field.MeanLevel();
+    return field.Height(x, z, field.Layout().size(), pNormal);
 }
 
-void SEA::SSE_WaveXZBlock(SeaBlock &pB)
+// The direction the waves travel (storm::sea::ocean::WaveSystem: (cos, sin) in world x, z): downwind. The game's wind
+// of angle a blows towards (sin a, cos a): its flags stream and its rain drifts that way (rigging flag.cpp,
+// weather rain.cpp); so the waves' angle is pi / 2 - a.
+float SEA::WindDirection() const
 {
-    SeaVertex *vTmp[4];
-    SeaVertex vFake;
-
-    vFake.vPos.x = vCamPos.x + 1e+5f;
-    vFake.vPos.z = vCamPos.z + 1e+5f;
-
-    float cx, cz, fStep = fGridStep * static_cast<float>(1 << pB.iLOD);
-    float fSize = fGridStep * pB.iSize;
-    int32_t x, y, size0 = pB.iSize >> pB.iLOD;
-
-    float x1 = static_cast<float>(pB.iTX * pB.iSize) * fGridStep;
-    float y1 = static_cast<float>(pB.iTY * pB.iSize) * fGridStep;
-    float x2 = x1 + static_cast<float>(size0) * fStep;
-    float y2 = y1 + static_cast<float>(size0) * fStep;
-
-    pB.iX1 = fftoi(x1 / fGridStep);
-    pB.iX2 = fftoi(x2 / fGridStep);
-    pB.iY1 = fftoi(y1 / fGridStep);
-    pB.iY2 = fftoi(y2 / fGridStep);
-
-    x1 += vSeaCenterPos.x;
-    x2 += vSeaCenterPos.x;
-    y1 += vSeaCenterPos.z;
-    y2 += vSeaCenterPos.z;
-
-    int32_t iCurrentV = 0;
-
-    int32_t iIStart1 = pB.iIStart;
-    const int32_t iIFirst = pB.iIFirst;
-    const int32_t iILast = pB.iILast;
-
-    // calculate
-    for (cz = y1, y = 0; y <= size0; y++, cz += fStep)
-    {
-        for (cx = x1, x = 0; x <= size0; x++, cx += fStep)
-        {
-            const uint32_t dwVIndex = pIndices[iIStart1];
-
-            if (static_cast<int32_t>(dwVIndex) < iIFirst || static_cast<int32_t>(dwVIndex) > iILast)
-            {
-                iIStart1++;
-                continue;
-            }
-
-            vTmp[iCurrentV] = &pVSea[dwVIndex];
-            vTmp[iCurrentV]->vPos.x = cx;
-            vTmp[iCurrentV]->vPos.z = cz;
-
-            iCurrentV++;
-
-            if (iCurrentV == 4)
-            {
-                SSE_WaveXZ(&vTmp[0]);
-                iCurrentV = 0;
-
-                for (int32_t i = 0; i < 4; i++)
-                {
-                    vTmp[i]->tu = (vTmp[i]->vPos.x - vTmp[i]->vNormal.x * 5.3f) * fBumpScale;
-                    vTmp[i]->tv = (vTmp[i]->vPos.z - vTmp[i]->vNormal.z * 5.3f) * fBumpScale;
-                    vTmp[i]->vPos.x -= vTmp[i]->vNormal.x * fPosShift * 3.0f + vWorldOffset.x;
-                    vTmp[i]->vPos.z -= vTmp[i]->vNormal.z * fPosShift * 3.0f + vWorldOffset.z;
-                }
-            }
-
-
-            iIStart1++;
-        }
-    }
-
-    if (iCurrentV != 0)
-    {
-        for (int32_t i = iCurrentV; i < 4; i++)
-            vTmp[i] = &vFake;
-
-        SSE_WaveXZ(&vTmp[0]);
-        for (int32_t i = 0; i < iCurrentV; i++)
-        {
-            vTmp[i]->tu = (vTmp[i]->vPos.x - vTmp[i]->vNormal.x * 5.3f) * fBumpScale;
-            vTmp[i]->tv = (vTmp[i]->vPos.z - vTmp[i]->vNormal.z * 5.3f) * fBumpScale;
-
-            vTmp[i]->vPos.x -= vTmp[i]->vNormal.x * fPosShift * 3.0f + vWorldOffset.x;
-            vTmp[i]->vPos.z -= vTmp[i]->vNormal.z * fPosShift * 3.0f + vWorldOffset.z;
-        }
-    }
-
+    const entid_t weather = core.GetEntityId("weather");
+    Entity *entity = weather ? core.GetEntityPointer(weather) : nullptr;
+    ATTRIBUTES *root = entity ? entity->AttributesPointer : nullptr;
+    ATTRIBUTES *angle = root ? root->FindAClass(root, "Wind.Angle") : nullptr;
+    if (!angle)
+        return keys_.wind_direction;
+    return std::numbers::pi_v<float> / 2.0f - angle->GetAttributeAsFloat();
 }
 
-// This frame's waves (fFrame*, fScale*, fAmp*, vMove*) for WaveXZ and the CPU surface.
-void SEA::UpdateWaves()
+// This frame's field: the worker's last one becomes the one drawn and read, the next one starts (ocean_driver.hpp).
+void SEA::UpdateField(float dt)
 {
-    waves_[0] = {WaveBlend(fFrame1), fScale1, fAmp1, vMove1};
-    waves_[1] = {WaveBlend(fFrame2), fScale2, fAmp2, vMove2};
+    // A turn of the wind smaller than this keeps the spectrum: each change eases the whole sea over seconds.
+    constexpr float kWindTurn = 0.1f;
+    const float wind = WindDirection();
+    if (std::abs(std::remainder(wind - keys_.wind_direction, 2.0f * std::numbers::pi_v<float>)) > kWindTurn)
+        keys_.wind_direction = wind;
+    const storm::render::EffectsSea preset = storm::render::CurrentEffectsSea();
+    driver_.Frame(preset.cascades, preset.size, keys_, dt, storm::loading::active || !bStarted);
+    const storm::sea::ocean::Field &field = driver_.Current();
+    fMaxSeaHeight = 2.0f * std::max(std::abs(field.Lowest()), std::abs(field.Highest())) + 1.0f;
+    UploadField();
+}
+
+// The field drawn this frame to its textures: the samples as they are (RGBA32F, the vertex shader's) and the slopes
+// as the worker packed them in half floats (the pixel shader's, filtered).
+void SEA::UploadField()
+{
+    const storm::sea::ocean::Field &field = driver_.Current();
+    const auto cascades = static_cast<int>(field.Layout().size());
+    const int n = field.Layout()[0].size;
+    if (n != textureSize_ || cascades != textureCascades_)
+    {
+        TEXTURE_RELEASE(rs, fieldTexture_);
+        TEXTURE_RELEASE(rs, slopeTexture_);
+        fieldTexture_ = rs->TextureCreate(n, n * cascades, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED);
+        slopeTexture_ = rs->VolumeTextureCreate(n, n, cascades, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED);
+        if (fieldTexture_ < 0 || slopeTexture_ < 0)
+            throw std::runtime_error("SEA: cannot create the wave field's textures");
+        textureSize_ = n;
+        textureCascades_ = cascades;
+    }
+    const size_t row = static_cast<size_t>(n);
+    D3DLOCKED_RECT locked{};
+    if (!rs->TextureLock(fieldTexture_, 0, locked, D3DLOCK_DISCARD))
+        throw std::runtime_error("SEA: cannot fill the wave field's texture");
+    for (int c = 0; c < cascades; c++)
+        for (int y = 0; y < n; y++)
+            memcpy(static_cast<uint8_t *>(locked.pBits) + static_cast<size_t>(c * n + y) * locked.Pitch,
+                   field.Samples(c).data() + y * row, row * sizeof(storm::sea::ocean::Displacement));
+    rs->TextureUnlock(fieldTexture_, 0);
+    D3DLOCKED_BOX box{};
+    if (!rs->TextureLockBox(slopeTexture_, 0, box, D3DLOCK_DISCARD))
+        throw std::runtime_error("SEA: cannot fill the wave field's slopes");
+    for (int c = 0; c < cascades; c++)
+    {
+        const uint64_t *halves = driver_.SlopeHalves(c).data();
+        for (int y = 0; y < n; y++)
+            memcpy(static_cast<uint8_t *>(box.pBits) + static_cast<size_t>(c) * box.SlicePitch +
+                       static_cast<size_t>(y) * box.RowPitch,
+                   halves + y * row, row * sizeof(uint64_t));
+    }
+    rs->TextureUnlockBox(slopeTexture_, 0);
+    storm::render::NoteSeaField(driver_.WorkerMs(), driver_.WaitMs(),
+                                static_cast<uint64_t>(n) * n * cascades * (sizeof(storm::sea::ocean::Displacement) + 8));
 }
 
 // The grid points of the block this block owns (PrepareIndicesForBlock: [iIFirst, iILast]; the points on an edge
@@ -734,7 +369,7 @@ bool SEA::BuildMesh()
 }
 
 // CPU surface (until the GPU surface self-check passed, or for good when it failed): every vertex of this frame's
-// blocks displaced here (SSE_WaveXZBlock) and the buffers written again.
+// blocks displaced here as the vertex shader would (DisplaceBlock) and the buffers written again.
 void SEA::BuildCpuMesh()
 {
     bMeshBuilt = false; // the GPU surface builds its grid again
@@ -745,20 +380,15 @@ void SEA::BuildCpuMesh()
 
     auto *pVSea2 = static_cast<SeaVertex *>(rs->LockVertexBuffer(iVSeaBuffer, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK));
     pTriangles = static_cast<uint16_t *>(rs->LockIndexBuffer(iISeaBuffer, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK));
+    if (!pVSea2 || !pTriangles)
+        throw std::runtime_error("SEA: cannot lock the sea's vertex or index buffer");
 
     for (uint32_t i = 0; i < aBlocks.size(); i++)
         PrepareIndicesForBlock(i);
 
     // Blocks write disjoint vertex ranges ([iIFirst, iILast], assigned above by PrepareIndicesForBlock) and only read
-    // per-frame constants and the waves' frames, so they can be evaluated concurrently. The vertex buffer upload
-    // below stays on this thread.
-#ifdef __ANDROID__
-    // libc++ in the NDK has no parallel algorithms; use the engine's fork-join helper.
-    waveWorkers_.run(aBlocks.size(), [this](size_t index) { SSE_WaveXZBlock(aBlocks[index]); });
-#else
-    std::for_each(std::execution::par_unseq, std::begin(aBlocks), std::end(aBlocks),
-                  [this](auto &i) { SSE_WaveXZBlock(i); });
-#endif
+    // the field, so they are displaced concurrently. The vertex buffer upload below stays on this thread.
+    meshWorkers_.run(aBlocks.size(), [this](size_t index) { DisplaceBlock(aBlocks[index]); });
 
     if (iVStart && iTStart)
         memcpy(pVSea2, pVSea, iVStart * sizeof(SeaVertex));
@@ -767,20 +397,32 @@ void SEA::BuildCpuMesh()
     rs->UnLockIndexBuffer(iISeaBuffer);
 }
 
-// The height field of the vertex shader (sea_gpu::pack_field): the frames of aBumps and aNormals, once per sea.
-void SEA::BuildFieldTexture()
+// The block's points of the still water moved by the field (sea_surface.sh's seaSurface on the CPU): the drawn
+// position and normal, the still point in (tu, tv) for the pixel shader's slopes.
+void SEA::DisplaceBlock(const SeaBlock &block)
 {
-    iFieldTexture = rs->TextureCreate(sea_gpu::kAtlasSize, sea_gpu::kAtlasSize, 1, 0, D3DFMT_A32B32G32R32F,
-                                      D3DPOOL_MANAGED);
-    D3DLOCKED_RECT locked{};
-    if (iFieldTexture < 0 || !rs->TextureLock(iFieldTexture, 0, locked, 0))
-        throw std::runtime_error("SEA: cannot create the sea's height field texture");
-    const std::vector<float> texels = sea_gpu::pack_field(aBumps.data(), aNormals.data());
-    constexpr size_t kRowBytes = sea_gpu::kAtlasSize * 4 * sizeof(float);
-    for (int32_t y = 0; y < sea_gpu::kAtlasSize; y++)
-        memcpy(static_cast<uint8_t *>(locked.pBits) + static_cast<size_t>(y) * locked.Pitch,
-               texels.data() + static_cast<size_t>(y) * sea_gpu::kAtlasSize * 4, kRowBytes);
-    rs->TextureUnlock(iFieldTexture, 0);
+    WriteBlockVertices(block, pVSea);
+    const storm::sea::ocean::Field &field = driver_.Current();
+    const size_t cascades = field.Layout().size();
+    const glm::dvec2 origin = MeshOrigin();
+    const auto toVertex = glm::vec2(static_cast<float>(origin.x - vWorldOffset.x),
+                                    static_cast<float>(origin.y - vWorldOffset.z));
+    const glm::vec2 camera(static_cast<float>(vCamPos.x - origin.x), static_cast<float>(vCamPos.z - origin.y));
+    const float reach = fMaxSeaDistance * fMaxSeaDistance, level = field.MeanLevel();
+    for (int32_t v = block.iIFirst; v <= block.iILast; v++)
+    {
+        SeaVertex &vertex = pVSea[v];
+        const glm::vec2 local(vertex.vPos.x, vertex.vPos.z);
+        storm::sea::ocean::SurfacePoint point;
+        if (glm::dot(local - camera, local - camera) <= reach)
+            point = field.Point(static_cast<float>(origin.x + local.x), static_cast<float>(origin.y + local.y),
+                                cascades);
+        vertex.vPos = glm::vec3(local.x + point.offset.x + toVertex.x, level + point.offset.y,
+                                local.y + point.offset.z + toVertex.y);
+        vertex.vNormal = point.Normal();
+        vertex.tu = local.x;
+        vertex.tv = local.y;
+    }
 }
 
 void SEA::SurfaceCheckFailed(const std::string &why)
@@ -791,38 +433,57 @@ void SEA::SurfaceCheckFailed(const std::string &why)
                   storm::render::SeaSurfaceCheckDevice(), why);
 }
 
-// The GPU surface self-check (sea_surface_check.hpp): the vertex shader's surface for points of this sea's field,
-// read back and compared with SurfaceXZ (WaveXZ's formula), before the sea's vertices are displaced on the GPU.
+// The GPU surface self-check (sea_surface_check.hpp): the vertex shader's surface for points of a field of this sea's
+// layout, read back and compared with Field::Point (WaveXZ's samples and formula), before the sea's vertices are
+// displaced on the GPU.
 void SEA::UpdateSurfaceCheck()
 {
-    if (surface_ != Surface::Checking)
+    if (surface_ != Surface::Checking || !driver_.Ready())
         return;
-    // The check's own surface over this sea's field, whatever the weather: two waves of fixed amplitudes (a field read
-    // as zeros or garbage cannot match), the second across the frames' wrap (63 -> 0); a far origin, moves.
+    // The check's own field, whatever the weather: a rough choppy sea of the layout in use (a texture read as zeros
+    // or garbage cannot match), its own texture; a far origin.
     constexpr double kOriginX = 1234.5, kOriginZ = -678.25;
-    const storm::sea::Wave waves[2] = {{WaveBlend(13.37f), 0.35f, 6.0f, glm::vec3(37.5f, 0.0f, -12.25f)},
-                                       {WaveBlend(63.6f), 1.3f, 1.5f, glm::vec3(-8.0f, 0.0f, 21.75f)}};
     constexpr uint32_t kPoints = storm::render::kSeaSurfaceCheckMaxPoints;
     float points[kPoints][2];
     for (uint32_t i = 0; i < kPoints; i++)
     {
-        // A spiral out to 90 m: every texel phase, both waves
+        // A spiral out to 90 m: every sample phase of every cascade
         const float angle = static_cast<float>(i) * 2.39996f, radius = 1.37f * static_cast<float>(i) + 0.21f;
         points[i][0] = radius * std::cos(angle);
         points[i][1] = radius * std::sin(angle);
     }
     if (surfaceCheck_ == 0)
     {
+        const std::vector<storm::sea::ocean::Cascade> &layout = driver_.Current().Layout();
+        const int n = layout[0].size, cascades = static_cast<int>(layout.size());
+        checkField_ = std::make_unique<storm::sea::ocean::Field>(layout);
+        checkField_->SetState(storm::sea::ocean::MapSea2({6.0f, 0.5f, 1.5f, 2.0f, 2.0f, 200.0f, 0.7f}));
+        checkField_->Update(17.25);
+        TEXTURE_RELEASE(rs, checkTexture_);
+        checkTexture_ = rs->TextureCreate(n, n * cascades, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED);
+        D3DLOCKED_RECT locked{};
+        if (checkTexture_ < 0 || !rs->TextureLock(checkTexture_, 0, locked, 0))
+        {
+            SurfaceCheckFailed("no texture for its field");
+            return;
+        }
+        for (int c = 0; c < cascades; c++)
+            for (int y = 0; y < n; y++)
+                memcpy(static_cast<uint8_t *>(locked.pBits) + static_cast<size_t>(c * n + y) * locked.Pitch,
+                       checkField_->Samples(c).data() + static_cast<size_t>(y) * n,
+                       n * sizeof(storm::sea::ocean::Displacement));
+        rs->TextureUnlock(checkTexture_, 0);
         float registers[sea_gpu::kRegisters][4]{};
-        for (int w = 0; w < 2; w++)
-            sea_gpu::wave_register(kOriginX, kOriginZ, waves[w].move.x, waves[w].move.z, waves[w].scale, waves[w].amp,
-                                   registers[w]);
-        registers[2][0] = 13.37f;
-        registers[2][1] = 63.6f;
+        for (int c = 0; c < sea_gpu::kMaxCascades; c++)
+            if (c < cascades)
+                sea_gpu::cascade_register(kOriginX, kOriginZ, n, layout[c].patch, c, registers[c]);
+            else
+                sea_gpu::absent_cascade(registers[c]);
+        registers[3][2] = checkField_->MeanLevel();
         registers[4][2] = 1.0e8f; // every point within reach (camera at the origin)
         std::string why;
         bool retry = false;
-        surfaceCheck_ = storm::render::StartSeaSurfaceCheck(rs->GetTextureFromID(iFieldTexture), &registers[0][0],
+        surfaceCheck_ = storm::render::StartSeaSurfaceCheck(rs->GetTextureFromID(checkTexture_), &registers[0][0],
                                                             &points[0][0], kPoints, why, retry);
         surfaceCheckFrames_ = 0;
         if (!surfaceCheck_ && !retry)
@@ -845,44 +506,50 @@ void SEA::UpdateSurfaceCheck()
         break;
     }
     surfaceCheck_ = 0;
-    // Within float rounding of the two (world positions on the CPU, wrapped texel coordinates on the GPU) and a half
-    // float target's precision: a millimetre in a surface metres high, normals to 1/500.
-    float worstHeight = 0.0f, worstNormal = 0.0f;
+    // Within float rounding of the two (world positions on the CPU, wrapped sample coordinates on the GPU) and a half
+    // float target's precision: a centimetre in a surface metres high, normals to 1/500.
+    float worstHeight = 0.0f, worstNormal = 0.0f, worstShift = 0.0f;
     uint32_t wrong = 0;
     std::string example;
+    const size_t cascades = checkField_->Layout().size();
     for (uint32_t i = 0; i < kPoints; i++)
     {
-        glm::vec3 normal;
         const auto x = static_cast<float>(kOriginX + points[i][0]), z = static_cast<float>(kOriginZ + points[i][1]);
-        const float height = storm::sea::SurfaceXZ(waves, x, z, &normal);
+        const storm::sea::ocean::SurfacePoint point = checkField_->Point(x, z, cascades);
+        const glm::vec3 normal = point.Normal();
+        const float height = point.offset.y + checkField_->MeanLevel();
         const storm::render::SeaSurfaceSample &gpu = samples[i];
         const float dh = std::fabs(gpu.height - height);
-        const float dn = std::max({std::fabs(gpu.nx - normal.x), std::fabs(gpu.ny - normal.y), std::fabs(gpu.nz - normal.z)});
-        const bool bad = !(dh <= 0.004f + 0.002f * std::fabs(height)) || !(dn <= 0.002f);
+        const float dx = std::fabs(gpu.dx - point.offset.x);
+        const float dn = std::max(std::fabs(gpu.nx - normal.x), std::fabs(gpu.nz - normal.z));
+        const bool bad = !(dh <= 0.004f + 0.002f * std::fabs(height)) || !(dx <= 0.004f + 0.002f * std::fabs(point.offset.x)) ||
+                         !(dn <= 0.002f);
         worstHeight = std::max(worstHeight, std::isfinite(dh) ? dh : INFINITY);
+        worstShift = std::max(worstShift, std::isfinite(dx) ? dx : INFINITY);
         worstNormal = std::max(worstNormal, std::isfinite(dn) ? dn : INFINITY);
         if (bad && wrong++ == 0)
-            example = fmt::format("point {} ({:.2f}, {:.2f}): GPU height {:.4f} normal ({:.4f}, {:.4f}, {:.4f}), CPU "
-                                  "height {:.4f} normal ({:.4f}, {:.4f}, {:.4f})",
-                                  i, points[i][0], points[i][1], gpu.height, gpu.nx, gpu.ny, gpu.nz, height, normal.x,
-                                  normal.y, normal.z);
+            example = fmt::format("point {} ({:.2f}, {:.2f}): GPU height {:.4f} shift {:.4f} normal ({:.4f}, {:.4f}), CPU "
+                                  "height {:.4f} shift {:.4f} normal ({:.4f}, {:.4f})",
+                                  i, points[i][0], points[i][1], gpu.height, gpu.dx, gpu.nx, gpu.nz, height,
+                                  point.offset.x, normal.x, normal.z);
     }
+    checkField_.reset();
+    TEXTURE_RELEASE(rs, checkTexture_);
     if (wrong)
     {
         SurfaceCheckFailed(fmt::format("{} of {} points differ from the CPU's surface (largest difference: height {:.4f} "
-                                       "m, normal {:.4f}); first {}",
-                                       wrong, kPoints, worstHeight, worstNormal, example));
+                                       "m, shift {:.4f} m, normal {:.4f}); first {}",
+                                       wrong, kPoints, worstHeight, worstShift, worstNormal, example));
         return;
     }
     surface_ = Surface::Gpu;
     spdlog::info("sea: the GPU surface self-check passed on {}: {} points match the CPU's surface (largest difference: "
-                 "height {:.5f} m, normal {:.5f}); the sea's vertices are displaced on the GPU",
-                 storm::render::SeaSurfaceCheckDevice(), kPoints, worstHeight, worstNormal);
+                 "height {:.5f} m, shift {:.5f} m, normal {:.5f}); the sea's vertices are displaced on the GPU",
+                 storm::render::SeaSurfaceCheckDevice(), kPoints, worstHeight, worstShift, worstNormal);
 }
 
 void SEA::Realize(uint32_t dwDeltaTime)
 {
-    static float fTmp = 0.0f;
 
     if (!storm::loading::active && core.Controls->GetDebugAsyncKeyState(VK_SHIFT) < 0 && core.Controls->GetDebugAsyncKeyState('S') < 0)
     {
@@ -909,17 +576,7 @@ void SEA::Realize(uint32_t dwDeltaTime)
         return;
 
     float fDeltaTime = static_cast<float>(dwDeltaTime) * 0.001f;
-
-    vMove1 += fDeltaTime * vMoveSpeed1;
-    vMove2 += fDeltaTime * vMoveSpeed2;
-
-    fFrame1 += fDeltaTime * fAnimSpeed1;
-    fFrame2 += fDeltaTime * fAnimSpeed2;
-    while (fFrame1 >= FRAMES)
-        fFrame1 -= FRAMES;
-    while (fFrame2 >= FRAMES)
-        fFrame2 -= FRAMES;
-    UpdateWaves();
+    UpdateField(fDeltaTime);
 
     uint64_t dwTotalRDTSC;
     RDTSC_B(dwTotalRDTSC);
@@ -978,16 +635,8 @@ void SEA::Realize(uint32_t dwDeltaTime)
         cube.sea_in_view = cubeSeaInView_;
         cubeFaces_ = cubeSchedule_.Due(cube);
     }
-    if (bSimpleSea)
-    {
-        EnvMap_Render2();
-        SunRoad_Render2();
-    }
-    else
-    {
-        EnvMap_Render();
-        SunRoad_Render();
-    }
+    EnvMap_Render();
+    SunRoad_Render();
 
     pFrustumPlanes = rs->GetPlanes();
 
@@ -1042,16 +691,11 @@ void SEA::Realize(uint32_t dwDeltaTime)
 
         mWorldViewProj = glm::transpose(mWorldViewProj);
 
-        fTmp += fDeltaTime * fBumpSpeed;
-        while (fTmp >= 1.0f)
-            fTmp -= 1.0f;
-
         rs->SetVertexDeclaration(vertexDecl_);
 
         const auto vec1 = glm::vec4(0.0f, 1.0f, 0.5f, -0.04f);
         const auto vec2 = glm::vec4(2.0f, -1.0f, 0.00036621652552071f, (bFogEnable) ? fFogSeaDensity : 0.0f);
         const auto vec3 = glm::vec4(fFoamV, fFoamK, fFoamUV, 6.0f);
-        const auto vec4 = glm::vec4(fTmp, fTmp, fTmp, fTmp);
         const auto vec5 = glm::vec4(vCamPos.x - vWorldOffset.x, vCamPos.y, vCamPos.z - vWorldOffset.z, 1.0f);
         const auto vec6 = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
         const auto vec7 = glm::vec4(fFrenel, 1.0f, 0.5f, 1.0f);
@@ -1061,28 +705,26 @@ void SEA::Realize(uint32_t dwDeltaTime)
         rs->SetVertexShaderConstantF(GC_CONSTANT, (const float *)&vec1, 1);
         rs->SetVertexShaderConstantF(GC_CONSTANT2, (const float *)&vec2, 1);
         rs->SetVertexShaderConstantF(GC_SHADOW_CONST1, (const float *)&vec3, 1);
-        rs->SetVertexShaderConstantF(GC_ANIMATION, (const float *)&vec4, 1);
+        const glm::dvec2 origin = MeshOrigin();
+        const storm::sea::ocean::Field &field = driver_.Current();
         {
-            // c8.w: whether it does (the CPU surface wrote the vertices displaced). The field is bound either way (the
-            // ports declare it).
-            const glm::dvec2 origin = MeshOrigin();
+            // The surface's registers (sea_surface_gpu.hpp); c8.w: whether the shader displaces the grid (the CPU
+            // surface wrote the vertices displaced). The field is bound either way (the port declares it).
             float surface[sea_gpu::kRegisters][4]{};
-            sea_gpu::wave_register(origin.x, origin.y, vMove1.x, vMove1.z, fScale1, fAmp1, surface[0]);
-            sea_gpu::wave_register(origin.x, origin.y, vMove2.x, vMove2.z, fScale2, fAmp2, surface[1]);
-            surface[2][0] = fFrame1;
-            surface[2][1] = fFrame2;
-            surface[2][2] = fPosShift * 3.0f;
-            surface[2][3] = fBumpScale;
+            for (int c = 0; c < sea_gpu::kMaxCascades; c++)
+                if (c < textureCascades_)
+                    sea_gpu::cascade_register(origin.x, origin.y, textureSize_, field.Layout()[c].patch, c, surface[c]);
+                else
+                    sea_gpu::absent_cascade(surface[c]);
             surface[3][0] = static_cast<float>(origin.x - vWorldOffset.x);
             surface[3][1] = static_cast<float>(origin.y - vWorldOffset.z);
-            surface[3][2] = static_cast<float>(origin.x * fBumpScale);
-            surface[3][3] = static_cast<float>(origin.y * fBumpScale);
+            surface[3][2] = field.MeanLevel();
             surface[4][0] = static_cast<float>(vCamPos.x - origin.x);
             surface[4][1] = static_cast<float>(vCamPos.z - origin.y);
             surface[4][2] = fMaxSeaDistance * fMaxSeaDistance;
             surface[4][3] = bGpuSurface ? sea_gpu::kSurfaceGpu : sea_gpu::kSurfaceCpu;
             rs->SetVertexShaderConstantF(sea_gpu::kFirstRegister, &surface[0][0], sea_gpu::kRegisters);
-            rs->TextureSet(D3DVERTEXTEXTURESAMPLER0, iFieldTexture);
+            rs->TextureSet(D3DVERTEXTEXTURESAMPLER0, fieldTexture_);
         }
         rs->SetVertexShaderConstantF(GC_CAMERA_POS, (const float *)&vec5, 1);
         rs->SetVertexShaderConstantF(GC_MTX_WVP, (const float *)&mWorldViewProj, 4);
@@ -1097,34 +739,32 @@ void SEA::Realize(uint32_t dwDeltaTime)
         rs->SetVertexShaderConstantF(GC_FREE + 7, (const float *)&vec8, 1);
         rs->SetVertexShaderConstantF(GC_FREE + 30, (const float *)&vec9, 1);
 
-        if (bSimpleSea)
         {
-            rs->SetVertexShaderConstantF(GC_FREE + 8, (const float *)&mTexProjection, 4); // Matrix!!
+            // The field's slopes for the pixel shader (fs_port_sea2.sc: u_psc[1..4]), each cascade's coordinates
+            // of the mesh's origin wrapped in double like the vertex shader's.
+            float slopes[4][4]{};
+            for (int c = 0; c < sea_gpu::kMaxCascades; c++)
+            {
+                if (c >= textureCascades_)
+                {
+                    slopes[c][3] = -1.0f;
+                    continue;
+                }
+                const double patch = field.Layout()[c].patch;
+                slopes[c][0] = static_cast<float>(origin.x / patch - std::floor(origin.x / patch));
+                slopes[c][1] = static_cast<float>(origin.y / patch - std::floor(origin.y / patch));
+                slopes[c][2] = static_cast<float>(1.0 / patch);
+                slopes[c][3] = (static_cast<float>(c) + 0.5f) / static_cast<float>(textureCascades_);
+            }
+            // The foam texture's tiling (the original's bump coordinates times Sea.FoamUV), wrapped likewise.
+            const double tiling = static_cast<double>(fBumpScale) * fFoamUV;
+            slopes[3][0] = static_cast<float>(textureSize_);
+            slopes[3][1] = static_cast<float>(tiling);
+            slopes[3][2] = static_cast<float>(origin.x * tiling - std::floor(origin.x * tiling));
+            slopes[3][3] = static_cast<float>(origin.y * tiling - std::floor(origin.y * tiling));
+            rs->SetPixelShaderConstantF(1, &slopes[0][0], 4);
 
-            rs->TextureSet(0, volumeTexture);
-            rs->TextureSet(1, reflection);
-            rs->TextureSet(2, volumeTexture);
-            rs->TextureSet(3, reflectionSunroad);
-
-            rs->SetTextureStageState(1, D3DTSS_BUMPENVMAT00, F2DW(0.08f));
-            rs->SetTextureStageState(1, D3DTSS_BUMPENVMAT10, F2DW(0.0f));
-            rs->SetTextureStageState(1, D3DTSS_BUMPENVMAT01, F2DW(0.0f));
-            rs->SetTextureStageState(1, D3DTSS_BUMPENVMAT11, F2DW(0.08f));
-
-            rs->SetTextureStageState(3, D3DTSS_BUMPENVMAT00, F2DW(0.05f));
-            rs->SetTextureStageState(3, D3DTSS_BUMPENVMAT10, F2DW(0.0f));
-            rs->SetTextureStageState(3, D3DTSS_BUMPENVMAT01, F2DW(0.0f));
-            rs->SetTextureStageState(3, D3DTSS_BUMPENVMAT11, F2DW(0.05f));
-
-            rs->DrawIndexedPrimitiveNoVShader(D3DPT_TRIANGLELIST, iVSeaBuffer, sizeof(SeaVertex), iISeaBuffer, 0,
-                                              iVStart, 0, iTStart, "Sea3");
-        }
-        else
-        {
-            const auto vec1 = storm::math::eulerMatrix(0.0f, 0.0f, PId2);
-            rs->SetVertexShaderConstantF(GC_FREE + 8, (const float *)&vec1, 4); // Matrix!!
-
-            rs->TextureSet(0, volumeTexture);
+            rs->TextureSet(0, slopeTexture_);
             // The foam texture for the hulls' wakes (the renderer's Sea2 pixel shader reads it only on their foam;
             // the original shader leaves stage 1 unread).
             rs->TextureSet(1, iFoamTexture);
@@ -1139,6 +779,7 @@ void SEA::Realize(uint32_t dwDeltaTime)
             rs->SetPixelShaderConstantF(0, (const float *)&layers, 1);
             rs->DrawIndexedPrimitiveNoVShader(D3DPT_TRIANGLELIST, iVSeaBuffer, sizeof(SeaVertex), iISeaBuffer, 0,
                                               iVStart, 0, iTStart, "Sea2");
+            rs->TextureSet(0, -1);
             rs->TextureSet(1, -1);
             rs->TextureSet(2, -1);
         }
@@ -1349,6 +990,8 @@ uint32_t SEA::AttributeChanged(ATTRIBUTES *pAttribute)
         Realize(0);
     }
 
+    // Sea.Sea2: the waves' keys feed the wave field's spectrum (ocean_spectrum.hpp MapSea2); what animated the old
+    // height frames (AnimSpeed*, MoveSpeed*, BumpSpeed) and SimpleSea have no meaning for it and are not read.
     if (*pParent == "Sea2")
     {
         if (*pAttribute == "WaterColor")
@@ -1364,60 +1007,35 @@ uint32_t SEA::AttributeChanged(ATTRIBUTES *pAttribute)
 
         if (*pAttribute == "Amp1")
         {
-            _fAmp1 = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "AnimSpeed1")
-        {
-            fAnimSpeed1 = pAttribute->GetAttributeAsFloat();
+            keys_.amp1 = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "Scale1")
         {
-            fScale1 = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "MoveSpeed1")
-        {
-            sscanf(pAttribute->GetThisAttr(), "%f, %f, %f", &vMoveSpeed1.x, &vMoveSpeed1.y, &vMoveSpeed1.z);
+            keys_.scale1 = pAttribute->GetAttributeAsFloat();
             return 0;
         }
 
         if (*pAttribute == "Amp2")
         {
-            _fAmp2 = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "AnimSpeed2")
-        {
-            fAnimSpeed2 = pAttribute->GetAttributeAsFloat();
+            keys_.amp2 = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "Scale2")
         {
-            fScale2 = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "MoveSpeed2")
-        {
-            sscanf(pAttribute->GetThisAttr(), "%f, %f, %f", &vMoveSpeed2.x, &vMoveSpeed2.y, &vMoveSpeed2.z);
+            keys_.scale2 = pAttribute->GetAttributeAsFloat();
             return 0;
         }
 
         if (*pAttribute == "PosShift")
         {
-            fPosShift = pAttribute->GetAttributeAsFloat();
+            keys_.pos_shift = pAttribute->GetAttributeAsFloat();
             return 0;
         }
 
         if (*pAttribute == "BumpScale")
         {
             fBumpScale = pAttribute->GetAttributeAsFloat();
-            return 0;
-        }
-        if (*pAttribute == "BumpSpeed")
-        {
-            fBumpSpeed = pAttribute->GetAttributeAsFloat();
             return 0;
         }
         if (*pAttribute == "LodScale")
@@ -1479,12 +1097,6 @@ uint32_t SEA::AttributeChanged(ATTRIBUTES *pAttribute)
             return 0;
         }
 
-        if (*pAttribute == "SimpleSea")
-        {
-            bSimpleSea = pAttribute->GetAttributeAsDword() != 0;
-            BuildVolumeTexture();
-            return 0;
-        }
         return 0;
     }
 
@@ -1525,12 +1137,7 @@ uint32_t SEA::AttributeChanged(ATTRIBUTES *pAttribute)
 
     if (*pAttribute == "MaxSeaHeight")
     {
-        fMaxSeaHeight = AttributesPointer->GetAttributeAsFloat("MaxSeaHeight", 50.0f);
-
-        const float fScale = (fMaxSeaHeight >= _fAmp1 + _fAmp2) ? 1.0f : fMaxSeaHeight / (_fAmp1 + _fAmp2);
-
-        fAmp1 = _fAmp1 * fScale;
-        fAmp2 = _fAmp2 * fScale;
+        keys_.max_sea_height = AttributesPointer->GetAttributeAsFloat("MaxSeaHeight", 50.0f);
     }
 
     if (*pAttribute == "MaxDim")        { dwMaxDim = pAttribute->GetAttributeAsDword(); return 0; }
@@ -1550,21 +1157,14 @@ void SEA::CreateTargets()
     sunRoadMap = rs->CubeTextureCreate(128, 1, D3DUSAGE_RENDERTARGET, D3DFMT_R5G6B5, D3DPOOL_DEFAULT);
     zStencil = rs->DepthSurfaceCreate(128, 128, D3DFMT_D24S8);
 
-    reflection = rs->TextureCreate(128, 128, 1, D3DUSAGE_RENDERTARGET, D3DFMT_R5G6B5, D3DPOOL_DEFAULT);
-    reflectionSunroad = rs->TextureCreate(128, 128, 1, D3DUSAGE_RENDERTARGET, D3DFMT_R5G6B5, D3DPOOL_DEFAULT);
-    reflectionDepth = rs->DepthSurfaceCreate(128, 128, D3DFMT_D24S8);
 }
 
 void SEA::ReleaseTargets()
 {
-    TEXTURE_RELEASE(rs, reflection);
-    TEXTURE_RELEASE(rs, reflectionSunroad);
     TEXTURE_RELEASE(rs, envMap);
     TEXTURE_RELEASE(rs, sunRoadMap);
     rs->DepthSurfaceRelease(zStencil);
     zStencil = {};
-    rs->DepthSurfaceRelease(reflectionDepth);
-    reflectionDepth = {};
 }
 
 void SEA::LostRender()

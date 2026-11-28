@@ -4,7 +4,7 @@ foreach(variant sse scalar)
     if(variant STREQUAL scalar)
         set(defines STORM_FORCE_SCALAR_MATH=1)
     endif()
-    storm_host_check(portability.${variant} SOURCES math.cpp INCLUDES ${glm_headers} ${src}/libs/sea/src
+    storm_host_check(portability.${variant} SOURCES math.cpp INCLUDES ${glm_headers}
         DEFINES ${defines} OPTIONS -O2 -frounding-math -ffp-contract=off -fsanitize=undefined,float-cast-overflow
         -fno-sanitize-recover=all STD 17 CATCH2)
 endforeach()

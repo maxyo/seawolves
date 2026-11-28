@@ -87,7 +87,9 @@ D3dFormat d3d_format(uint32_t d3d)
         return {bimg::TextureFormat::BGRA4, false};
     case 32: // A8B8G8R8: R first (the video frames)
         return {bimg::TextureFormat::RGBA8, false};
-    case 116: // A32B32G32R32F (the bone palettes)
+    case 113: // A16B16G16R16F (the sea's slopes)
+        return {bimg::TextureFormat::RGBA16F, false};
+    case 116: // A32B32G32R32F (the bone palettes, the sea's wave field)
         return {bimg::TextureFormat::RGBA32F, false};
     case 0x31545844: // 'DXT1'
         return {bimg::TextureFormat::BC1, false};

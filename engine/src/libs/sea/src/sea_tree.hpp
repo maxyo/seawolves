@@ -31,7 +31,7 @@ struct SeaBlockTree
     };
 
     uint32_t dwMaxDim, dwMinDim;
-    float fMaxSeaHeight;
+    float fMaxSeaHeight; // the blocks' boxes span y -fMaxSeaHeight / 2 .. fMaxSeaHeight / 2 (the sea's heights)
     float fGridStep;
     float fLodScale;
 

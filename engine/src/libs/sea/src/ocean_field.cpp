@@ -19,11 +19,15 @@ constexpr float kFoldDeterminant = 0.1f;
 Field::Field(std::vector<Cascade> layout) : layout_(std::move(layout))
 {
     samples_.resize(layout_.size());
+    slopes_.resize(layout_.size());
     work_.resize(layout_.size());
+    cascade_low_.assign(layout_.size(), 0.0f);
+    cascade_high_.assign(layout_.size(), 0.0f);
     for (size_t c = 0; c < layout_.size(); c++)
     {
         const size_t count = static_cast<size_t>(layout_[c].size) * layout_[c].size;
         samples_[c].assign(count, {});
+        slopes_[c].assign(count, {});
         work_[c][0].assign(count, {});
         work_[c][1].assign(count, {});
     }
@@ -34,6 +38,7 @@ void Field::SetSpectra(std::vector<CascadeSpectrum> spectra, float choppiness, f
     if (spectra.size() != layout_.size())
         throw std::invalid_argument("sea: spectra for another layout");
     spectra_ = std::move(spectra);
+    target_.clear();
     choppiness_ = choppiness;
     mean_level_ = mean_level;
 }
@@ -43,6 +48,40 @@ void Field::SetState(const SeaState &state)
     SetSpectra(BuildSpectrum(state, layout_), state.choppiness, state.mean_level);
 }
 
+void Field::EaseTo(std::vector<CascadeSpectrum> target, float choppiness, float mean_level)
+{
+    if (target.size() != layout_.size())
+        throw std::invalid_argument("sea: spectra for another layout");
+    if (!target_.empty())
+    {
+        // A change during a change: the surface as it stands now is where the new one starts.
+        for (size_t c = 0; c < spectra_.size(); c++)
+            for (size_t i = 0; i < spectra_[c].amplitude.size(); i++)
+                spectra_[c].amplitude[i] += (target_[c].amplitude[i] - spectra_[c].amplitude[i]) * weight_;
+        choppiness_ = Mixed(choppiness_, target_choppiness_);
+        mean_level_ = Mixed(mean_level_, target_mean_level_);
+    }
+    target_ = std::move(target);
+    target_choppiness_ = choppiness;
+    target_mean_level_ = mean_level;
+    weight_ = 0.0f;
+}
+
+void Field::Ease(float weight)
+{
+    if (target_.empty())
+        return;
+    if (weight < 1.0f)
+    {
+        weight_ = std::max(weight, 0.0f);
+        return;
+    }
+    spectra_ = std::move(target_);
+    target_.clear();
+    choppiness_ = target_choppiness_;
+    mean_level_ = target_mean_level_;
+}
+
 void Field::UpdateCascade(size_t cascade, double time, InverseFft2d &transform)
 {
     const Cascade &layout = layout_[cascade];
@@ -50,6 +89,12 @@ void Field::UpdateCascade(size_t cascade, double time, InverseFft2d &transform)
     if (transform.Size() != n)
         throw std::invalid_argument("sea: a transform of another size");
     const CascadeSpectrum &spectrum = spectra_[cascade];
+    const std::vector<std::complex<float>> *target = target_.empty() ? nullptr : &target_[cascade].amplitude;
+    const float choppiness = Mixed(choppiness_, target_choppiness_);
+    const auto amplitude = [&](size_t i) {
+        return target ? spectrum.amplitude[i] + ((*target)[i] - spectrum.amplitude[i]) * weight_
+                      : spectrum.amplitude[i];
+    };
     auto &[hx, z] = work_[cascade];
     const std::complex<float> i1(0.0f, 1.0f);
     for (int y = 0; y < n; y++)
@@ -66,18 +111,40 @@ void Field::UpdateCascade(size_t cascade, double time, InverseFft2d &transform)
             // A wave along k as e^(i (k.x - w t)); its opposite sample holds the conjugate so the field is real.
             const double phase = std::fmod(static_cast<double>(spectrum.omega[i]) * time, 2.0 * std::numbers::pi);
             const std::complex<float> turn(static_cast<float>(std::cos(phase)), static_cast<float>(-std::sin(phase)));
-            const std::complex<float> h = spectrum.amplitude[i] * turn + std::conj(spectrum.amplitude[opposite] * turn);
+            const std::complex<float> h = amplitude(i) * turn + std::conj(amplitude(opposite) * turn);
             // Horizontal displacement towards the crests (Tessendorf's choppy waves): i k / |k| h.
             const float length = std::hypot(static_cast<float>(kx), static_cast<float>(ky));
-            const std::complex<float> d = i1 * choppiness_ * h / length;
+            const std::complex<float> d = i1 * choppiness * h / length;
             hx[i] = h + i1 * (d * static_cast<float>(kx));
             z[i] = d * static_cast<float>(ky);
         }
     transform.Run(hx.data());
     transform.Run(z.data());
     std::vector<Displacement> &out = samples_[cascade];
+    float low = 0.0f, high = 0.0f;
     for (size_t i = 0; i < out.size(); i++)
+    {
         out[i] = {hx[i].imag(), hx[i].real(), z[i].real(), 0.0f};
+        low = std::min(low, out[i].h);
+        high = std::max(high, out[i].h);
+    }
+    cascade_low_[cascade] = low;
+    cascade_high_[cascade] = high;
+    const float half_step = 0.5f * static_cast<float>(n) / layout.patch; // central differences, per metre
+    std::vector<Slope> &slopes = slopes_[cascade];
+    for (int y = 0; y < n; y++)
+    {
+        const Displacement *row = &out[static_cast<size_t>(y) * n];
+        const Displacement *up = &out[static_cast<size_t>((y + 1) & (n - 1)) * n];
+        const Displacement *down = &out[static_cast<size_t>((y - 1) & (n - 1)) * n];
+        for (int x = 0; x < n; x++)
+        {
+            const Displacement &right = row[(x + 1) & (n - 1)], &left = row[(x - 1) & (n - 1)];
+            slopes[static_cast<size_t>(y) * n + x] = {(right.h - left.h) * half_step, (up[x].h - down[x].h) * half_step,
+                                                      (right.dx - left.dx) * half_step,
+                                                      (up[x].dz - down[x].dz) * half_step};
+        }
+    }
 }
 
 void Field::Update(double time)
@@ -94,10 +161,34 @@ void Field::Update(double time)
     }
 }
 
-glm::vec3 Field::Sample(size_t cascade, float x, float z) const
+float Field::Lowest() const
+{
+    float sum = MeanLevel();
+    for (const float low : cascade_low_)
+        sum += low;
+    return sum;
+}
+
+float Field::Highest() const
+{
+    float sum = MeanLevel();
+    for (const float high : cascade_high_)
+        sum += high;
+    return sum;
+}
+
+glm::vec3 SurfacePoint::Normal() const
+{
+    const glm::vec3 x(1.0f + along_x.x, along_x.y, along_x.z), z(along_z.x, along_z.y, 1.0f + along_z.z);
+    return glm::normalize(glm::cross(z, x));
+}
+
+// The bilinear sample and its derivatives exactly as sea_surface.sh computes them on the GPU.
+void Field::Sample(size_t cascade, float x, float z, SurfacePoint &sum) const
 {
     const Cascade &layout = layout_[cascade];
     const int n = layout.size;
+    const float per_metre = static_cast<float>(n) / layout.patch;
     // Doubles: a world position of kilometres in samples of a short cascade keeps its fraction.
     const double u = static_cast<double>(x) / layout.patch * n, v = static_cast<double>(z) / layout.patch * n;
     const double fu = std::floor(u), fv = std::floor(v);
@@ -107,59 +198,46 @@ glm::vec3 Field::Sample(size_t cascade, float x, float z) const
         const Displacement &d = samples_[cascade][static_cast<size_t>((sz & (n - 1)) * n + (sx & (n - 1)))];
         return glm::vec3(d.dx, d.h, d.dz);
     };
-    const glm::vec3 a = glm::mix(at(ix, iz), at(ix + 1, iz), tx);
-    const glm::vec3 b = glm::mix(at(ix, iz + 1), at(ix + 1, iz + 1), tx);
-    return glm::mix(a, b, tz);
+    const glm::vec3 a1 = at(ix, iz), a2 = at(ix + 1, iz), a3 = at(ix, iz + 1), a4 = at(ix + 1, iz + 1);
+    sum.offset += glm::mix(glm::mix(a1, a2, tx), glm::mix(a3, a4, tx), tz);
+    sum.along_x += glm::mix(a2 - a1, a4 - a3, tz) * per_metre;
+    sum.along_z += glm::mix(a3 - a1, a4 - a2, tx) * per_metre;
+}
+
+SurfacePoint Field::Point(float x, float z, size_t cascades) const
+{
+    SurfacePoint point;
+    for (size_t c = 0; c < cascades; c++)
+        Sample(c, x, z, point);
+    return point;
 }
 
 glm::vec3 Field::Offset(float x, float z, size_t cascades) const
 {
-    glm::vec3 sum(0.0f);
-    for (size_t c = 0; c < cascades; c++)
-        sum += Sample(c, x, z);
-    return sum;
+    return Point(x, z, cascades).offset;
 }
 
 glm::vec2 Field::StillPoint(float x, float z, size_t cascades) const
 {
-    const float step = SmallestSpacing(cascades) * 0.25f;
     glm::vec2 p(x, z);
     for (int i = 0; i < kInversionSteps; i++)
     {
-        const glm::vec3 o = Offset(p.x, p.y, cascades);
-        const glm::vec2 miss = p + glm::vec2(o.x, o.z) - glm::vec2(x, z);
-        const glm::vec3 ox = (Offset(p.x + step, p.y, cascades) - o) / step;
-        const glm::vec3 oz = (Offset(p.x, p.y + step, cascades) - o) / step;
+        const SurfacePoint s = Point(p.x, p.y, cascades);
+        const glm::vec2 miss = p + glm::vec2(s.offset.x, s.offset.z) - glm::vec2(x, z);
         // d(p + D)/dp, columns along x and z.
-        const glm::mat2 jacobian(1.0f + ox.x, ox.z, oz.x, 1.0f + oz.z);
+        const glm::mat2 jacobian(1.0f + s.along_x.x, s.along_x.z, s.along_z.x, 1.0f + s.along_z.z);
         const float determinant = glm::determinant(jacobian);
         p -= determinant > kFoldDeterminant ? glm::inverse(jacobian) * miss : miss;
     }
     return p;
 }
 
-float Field::SmallestSpacing(size_t cascades) const
-{
-    float spacing = layout_[0].patch / layout_[0].size;
-    for (size_t c = 1; c < cascades; c++)
-        spacing = std::min(spacing, layout_[c].patch / layout_[c].size);
-    return spacing;
-}
-
 float Field::Height(float x, float z, size_t cascades, glm::vec3 *normal) const
 {
     const glm::vec2 p = StillPoint(x, z, cascades);
+    const SurfacePoint s = Point(p.x, p.y, cascades);
     if (normal)
-    {
-        const float step = SmallestSpacing(cascades);
-        const auto point = [&](float px, float pz) {
-            const glm::vec3 offset = Offset(px, pz, cascades);
-            return glm::vec3(px + offset.x, offset.y, pz + offset.z);
-        };
-        const glm::vec3 along_x = point(p.x + step, p.y) - point(p.x - step, p.y);
-        const glm::vec3 along_z = point(p.x, p.y + step) - point(p.x, p.y - step);
-        *normal = glm::normalize(glm::cross(along_z, along_x));
-    }
-    return Offset(p.x, p.y, cascades).y + mean_level_;
+        *normal = s.Normal();
+    return s.offset.y + MeanLevel();
 }
 } // namespace storm::sea::ocean

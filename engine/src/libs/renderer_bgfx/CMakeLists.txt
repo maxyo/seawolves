@@ -96,7 +96,7 @@ foreach(variant ${ff_fx_variants})
 endforeach()
 # The ps_1_x ports' twins too (shaders/ports, draw.cpp picks them the same way), but not the slope-biased caustic port:
 # its depth write turns early depth off anyway.
-foreach(base fs_port_coastfoam fs_port_particles fs_port_postprocess fs_port_sea2 fs_port_sea3)
+foreach(base fs_port_coastfoam fs_port_particles fs_port_postprocess fs_port_sea2)
     list(APPEND ff_opaque_variants "${base}_opaque|${CMAKE_CURRENT_SOURCE_DIR}/shaders/ports/${base}.sc|FF_OPAQUE")
 endforeach()
 list(APPEND ff_fx_variants ${ff_opaque_variants})

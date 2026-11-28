@@ -114,7 +114,7 @@ void CheckSettings()
 {
     const Settings original = Settings::FromPreset(QualityPreset::Low);
     CHECK(original.PostIsIdentity());
-    CHECK(!original.sea_band_limit && !original.sea_soft_edges && !original.sea_specular);
+    CHECK(!original.sea_soft_edges && !original.sea_specular);
     CHECK(original.lighting_flags == kLightingNone);
     const Settings medium = Settings::FromPreset(QualityPreset::Medium);
     const Settings high = Settings::FromPreset(QualityPreset::High);
@@ -137,8 +137,11 @@ void CheckSettings()
     CHECK(medium.msaa > 1 && medium.msaa < high.msaa && !medium.smaa && !high.smaa && original.msaa == 1);
     CHECK(original.anisotropy == 1 && medium.anisotropy > 1 && medium.anisotropy <= high.anisotropy);
     CHECK(medium.dither && !original.dither);
-    // The game's own sea everywhere: the band limit and the sun's glint from «Средняя», soft edges at «Высокая».
-    CHECK(medium.sea_band_limit && !medium.sea_soft_edges && high.sea_band_limit && high.sea_soft_edges);
+    // The sun's glint from «Средняя», soft edges at «Высокая»; the wave field 2 x 64², 3 x 64², 3 x 128².
+    CHECK(!medium.sea_soft_edges && high.sea_soft_edges);
+    CHECK(original.sea_cascades == 2 && original.sea_cascade_size == 64);
+    CHECK(medium.sea_cascades == 3 && medium.sea_cascade_size == 64);
+    CHECK(high.sea_cascades == 3 && high.sea_cascade_size == 128);
     CHECK(medium.sea_specular && high.sea_specular);
     // The sky / ground ambient from «Средняя»; linear light in no preset (the game's lights and bakes add in gamma).
     CHECK((medium.lighting_flags & kLightingHemisphere) && (high.lighting_flags & kLightingHemisphere));
@@ -511,7 +514,8 @@ void CheckSupport()
     CHECK(!ValidateSettings(high, no_depth).empty());
     std::vector<std::string> changes;
     Settings constrained = ConstrainSettings(high, no_depth, changes);
-    CHECK(!constrained.sea_soft_edges && constrained.sea_band_limit && constrained.render_height == 0);
+    CHECK(!constrained.sea_soft_edges && constrained.sea_cascades == high.sea_cascades &&
+          constrained.render_height == 0);
     CHECK(high.sea_turbidity && !constrained.sea_turbidity);
     CHECK(!changes.empty());
     CHECK(constrained.shadows == high.shadows && constrained.bloom &&

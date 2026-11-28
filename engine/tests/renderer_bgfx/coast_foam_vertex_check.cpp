@@ -1,10 +1,13 @@
 // Raster check of the coast foam's vertex shader (shaders/ports/vs_port_coastfoam.sc): the sea's height under a
-// strand from the packed height frames (foam_gpu.hpp) must be the height SEA::WaveXZ computes on the CPU. A strand
-// lies across the target; the projection moves it up by the height, so the band's rows give the height back.
+// strand, from a real wave field uploaded as SEA uploads it (src/libs/sea/src/ocean_field.hpp), must be the height of
+// the field on the CPU (Field::Point). A strand lies across the target; the projection moves it up by the height, so
+// the band's rows give the height back. The field leans no waves (no horizontal displacement): the band's rows would
+// move with it.
 #include "device.hpp"
 #include "ports.hpp"
 #include "check_backend.hpp"
-#include "../../src/libs/island/src/foam_gpu.hpp"
+#include "foam_gpu.hpp"
+#include "ocean_field.hpp"
 #include <SDL2/SDL.h>
 #include <array>
 #include <cmath>
@@ -27,24 +30,6 @@ void check(HRESULT value)
     }
 }
 
-// The frame texels: frame f is f * 3 everywhere, except frame 7, whose texel x is 2 * x (a ramp along x).
-uint8_t texel(int frame, int x)
-{
-    return static_cast<uint8_t>(frame == 7 ? 2 * x : frame * 3);
-}
-
-// SEA::WaveXZ of one wave on these frames (the CPU reference).
-float wave_xz(float x, float frame, float scale, float move, float amplitude)
-{
-    const float x1 = (x + move) * scale;
-    const int ix = static_cast<int>(std::floor(x1));
-    const float fx = x1 - ix;
-    const int f1 = static_cast<int>(frame) % 64, f2 = (f1 + 1) % 64;
-    const float d = frame - std::floor(frame);
-    const auto at = [&](int f, int i) { return static_cast<float>(texel(f, i & 127)) / 255.0f; };
-    const auto blended = [&](int i) { return at(f1, i) + (at(f2, i) - at(f1, i)) * d; };
-    return amplitude * (blended(ix) + fx * (blended(ix + 1) - blended(ix)));
-}
 } // namespace
 
 int main()
@@ -74,26 +59,31 @@ int main()
             return 1;
         }
 
-        // The height frames as CoastFoam uploads them
-        std::vector<std::vector<uint8_t>> frames(foam_gpu::kFrames, std::vector<uint8_t>(128 * 128));
-        std::vector<const uint8_t *> pointers;
-        for (int f = 0; f < foam_gpu::kFrames; ++f)
+        // A heavy swell without lean, as SEA uploads it: cascade c in rows c * n..
+        sea::ocean::Field wave(sea::ocean::CascadeLayout(3, 64));
+        wave.SetState(sea::ocean::MapSea2({100.0f, 0.08f, 3.0f, 1.0f, 0.0f, 200.0f, 0.3f}));
+        // A moment when a crest or trough lies under the strand: a height the band's rows show well.
+        double moment = 0.0;
+        float deepest = 0.0f;
+        for (double t = 0.0; t < 60.0; t += 0.5)
         {
-            for (int i = 0; i < 128 * 128; ++i)
-                frames[f][i] = texel(f, i % 128);
-            pointers.push_back(frames[f].data());
+            wave.Update(t);
+            const float h = std::fabs(wave.Point(0.0f, 0.5f, 3).offset.y);
+            if (h > deepest)
+                deepest = h, moment = t;
         }
-        const std::vector<uint32_t> packed = foam_gpu::pack_frames(pointers.data());
-        shim::VolumeTexture *heights = nullptr;
-        check(d->CreateVolumeTexture(128, 128, foam_gpu::kSlices, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &heights,
-                                     nullptr));
-        D3DLOCKED_BOX box{};
-        check(heights->LockBox(0, &box, nullptr, 0));
-        for (int s = 0; s < foam_gpu::kSlices; ++s)
-            for (int y = 0; y < 128; ++y)
-                std::memcpy(static_cast<uint8_t *>(box.pBits) + s * box.SlicePitch + y * box.RowPitch,
-                            packed.data() + (s * 128 + y) * 128, 128 * 4);
-        check(heights->UnlockBox(0));
+        wave.Update(moment);
+        const int n = wave.Layout()[0].size;
+        shim::Texture2D *field = nullptr;
+        check(d->CreateTexture(n, 3 * n, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &field, nullptr));
+        D3DLOCKED_RECT fieldRect{};
+        check(field->LockRect(0, &fieldRect, nullptr, 0));
+        for (int c = 0; c < 3; ++c)
+            for (int y = 0; y < n; ++y)
+                std::memcpy(static_cast<uint8_t *>(fieldRect.pBits) + (c * n + y) * fieldRect.Pitch,
+                            wave.Samples(c).data() + static_cast<size_t>(y) * n, n * 16);
+        check(field->UnlockRect(0));
+        const float patches[3] = {wave.Layout()[0].patch, wave.Layout()[1].patch, wave.Layout()[2].patch};
         shim::Texture2D *white = nullptr;
         check(d->CreateTexture(1, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &white, nullptr));
         D3DLOCKED_RECT rect{};
@@ -134,15 +124,14 @@ int main()
         struct Case
         {
             const char *name;
-            float frame1, frame2, amp1, amp2, move1, cameraX;
+            int cascades;
+            float cameraX;
         };
-        // move1 places x = 0 at texel 10.25 of frame 7's ramp; the camera far away flattens the sea (WaveXZ's reach).
+        // The camera far away flattens the sea (WaveXZ's reach).
         const Case cases[] = {
-            {"flat (beyond the sea's reach)", 5.5f, 0.0f, 100.0f, 0.0f, 0.0f, 1.0e4f},
-            {"frames 5 and 6 blended", 5.5f, 0.0f, 100.0f, 0.0f, 0.0f, 0.0f},
-            {"frames 63 and 0 (wrap)", 63.5f, 0.0f, 100.0f, 0.0f, 0.0f, 0.0f},
-            {"two waves", 2.25f, 9.0f, 60.0f, 40.0f, 0.0f, 0.0f},
-            {"ramp texel 10.25", 7.0f, 0.0f, 100.0f, 0.0f, 10.25f, 0.0f},
+            {"flat (beyond the sea's reach)", 3, 1.0e4f},
+            {"three cascades", 3, 0.0f},
+            {"two cascades", 2, 0.0f},
         };
         float flatRow = 0.0f;
         for (const Case &test : cases)
@@ -153,12 +142,14 @@ int main()
             c[1] = {0, 0.01f, 0, 0};
             c[2] = {0, 0.5f, 0, 0};
             c[3] = {0, -0.25f, 0.5f, 1};
-            const float scale = 1.0f;
-            foam_gpu::wave_register(scale, test.move1, 0.0f, test.amp1, c[4].data());
-            foam_gpu::wave_register(scale, 0.0f, 0.0f, test.amp2, c[5].data());
-            c[6] = {test.frame1, test.frame2, 0.0f, 0.0f};
-            c[7] = {test.cameraX, 0.0f, 1000.0f * 1000.0f, 0.0f};
-            c[8] = {1.0f, 1.0f, 0.0f, 1.0f};
+            float cascades[3][4];
+            foam_gpu::cascade_registers(n, test.cascades, patches, cascades);
+            for (int k = 0; k < 3; ++k)
+                std::memcpy(c[4 + k].data(), cascades[k], sizeof(cascades[k]));
+            c[7] = {test.cameraX, 0.0f, 1000.0f * 1000.0f,
+                    0.0f}; // the still level at 0: the band's rows are the height
+            c[8] = {0.0f, 0.0f, 0.0f, 0.0f};
+            c[foam_gpu::kFirstStrand] = {1.0f, 1.0f, 0.0f, 1.0f};
             check(d->SetVertexShaderConstantF(0, c[0].data(), foam_gpu::kRegisters));
             check(d->BeginScene());
             check(d->SetRenderTarget(0, target));
@@ -171,8 +162,8 @@ int main()
             d->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
             d->SetRenderState(D3DRS_FOGENABLE, FALSE);
             d->SetTexture(0, white);
-            d->SetTexture(1, heights);
-            for (DWORD stage : {0u, 1u})
+            d->SetTexture(D3DVERTEXTEXTURESAMPLER0, field);
+            for (DWORD stage : {0u})
             {
                 d->SetSamplerState(stage, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
                 d->SetSamplerState(stage, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
@@ -206,10 +197,9 @@ int main()
             const float centre = 0.5f * (first + last);
             if (test.cameraX > 1000.0f)
                 flatRow = centre;
-            const float expected = test.cameraX > 1000.0f ? 0.0f
-                                                          : wave_xz(0.0f, test.frame1, scale, test.move1, test.amp1) +
-                                                                wave_xz(0.0f, test.frame2, scale, 0.0f, test.amp2);
-            const float measured = std::fabs(centre - flatRow) / kPixelsPerMetre;
+            // The strand's middle (x = 0, z = 0.5): the field over 1 m of a strand changes by less than the tolerance.
+            const float expected = test.cameraX > 1000.0f ? 0.0f : wave.Point(0.0f, 0.5f, test.cascades).offset.y;
+            const float measured = (flatRow - centre) / kPixelsPerMetre; // up the target: fewer rows
             const bool pass = first >= 0 && last - first >= 50 && std::fabs(measured - expected) <= 1.5f;
             std::printf("%s coast foam height, %s: band rows %d..%d, %.2f m (expected %.2f m)\n",
                         pass ? "PASS" : "FAIL", test.name, first, last, measured, expected);
@@ -221,13 +211,13 @@ int main()
         d->SetIndices(nullptr);
         d->SetVertexDeclaration(nullptr);
         d->SetTexture(0, nullptr);
-        d->SetTexture(1, nullptr);
+        d->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
         vs->Release();
         ps->Release();
         decl->Release();
         vb->Release();
         ib->Release();
-        heights->Release();
+        field->Release();
         white->Release();
         target->Release();
         readback->Release();

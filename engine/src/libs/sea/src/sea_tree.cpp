@@ -133,8 +133,8 @@ uint32_t SeaBlockTree::TreeDim() const
 void SeaBlockTree::PlaceTree()
 {
     const float fStep = fGridStep * static_cast<float>(TreeDim() / 4);
-    vSeaCenterPos = glm::vec3(fStep * (std::floor(vCamPos.x / fStep) - 2.0f), fMaxSeaHeight * 0.5f,
-                              fStep * (std::floor(vCamPos.z / fStep) - 2.0f));
+    vSeaCenterPos =
+        glm::vec3(fStep * (std::floor(vCamPos.x / fStep) - 2.0f), 0.0f, fStep * (std::floor(vCamPos.z / fStep) - 2.0f));
 }
 
 void SeaBlockTree::BuildTree(int32_t iTX, int32_t iTY, int32_t iLev)

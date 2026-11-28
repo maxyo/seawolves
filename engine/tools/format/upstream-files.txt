@@ -437,7 +437,6 @@ src/libs/sea_operator/src/sea_operator.h
 src/libs/sea/src/env_map.cpp
 src/libs/sea/src/sea.cpp
 src/libs/sea/src/sea.h
-src/libs/sea/src/sse.h
 src/libs/shared_headers/include/shared/battle_interface/log_msg.h
 src/libs/shared_headers/include/shared/battle_interface/msg_control.h
 src/libs/shared_headers/include/shared/bimanager/messages.h

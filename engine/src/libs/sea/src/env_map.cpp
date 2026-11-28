@@ -44,154 +44,6 @@ void SEA::EnvMap_GetSideMatrix(D3DCUBEMAP_FACES Face, glm::mat4 &mView)
     storm::math::viewMatrix(mView, glm::vec3(0.0f), vLookTo, vUp);
 }
 
-bool SEA::SunRoad_Render2()
-{
-    namespace far_lod = storm::render::far_lod;
-    struct PassScope // the far LODs choose for this target (storm/render/far_lod.hpp)
-    {
-        PassScope() { far_lod::pass = far_lod::Reflection; }
-        ~PassScope() { far_lod::pass = far_lod::Main; }
-    } pass_scope;
-    glm::mat4 mOldView = rs->GetView();
-    glm::mat4 mOldProjection = rs->GetProjection();
-
-    rs->EndScene();
-    rs->PushRenderTarget();
-
-
-    auto PlaneHeight = 0.5f;
-
-    const glm::vec3 point(0, PlaneHeight, 0), normal(0, 1, 0);
-    const auto mPlane = storm::math::planeFromPointNormal(normal, point);
-
-    glm::mat4 Invertor;
-    Invertor = storm::math::mirrorMatrix(mPlane.x, mPlane.y, mPlane.z, mPlane.w);
-
-    glm::mat4 mView = rs->GetView();
-    glm::mat4 mViewNew = mView;
-
-    mViewNew = mViewNew * Invertor;
-
-    rs->SetView(mViewNew);
-
-    uint32_t Colors[6] = {0xd934c8, 0x2FFF1F, 0x0000FF, 0xFF00, 0xb28e11, 0x0};
-    {
-
-        rs->BeginScene();
-        bool bCool = rs->SetRenderTarget(reflectionSunroad, 0, 0, zStencil);
-        bCool = D3D_OK != rs->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, 0x0, 1.0f, 0);
-
-
-
-
-        // Render scene here.
-
-        if (!core.IsLayerFrozen(SEA_REFLECTION2))
-        {
-            auto &&entities = core.GetEntityIds(SEA_SUNROAD);
-            for (auto ent_id : entities)
-            {
-                const auto hash = core.GetClassCode(ent_id);
-                if (hash != dwShipCode && hash != dwSailCode && hash != dwIslandCode)
-                {
-                    core.Send_Message(ent_id, "ll", MSG_SEA_SUNROAD_DRAW, static_cast<int32_t>(bSimpleSea));
-                }
-            }
-        }
-
-        rs->EndScene();
-    }
-
-    rs->PopRenderTarget();
-    rs->SetView(mOldView);
-    rs->SetProjection(mOldProjection);
-
-    rs->BeginScene();
-    mOldView = rs->GetView();
-
-    return true;
-}
-
-bool SEA::EnvMap_Render2()
-{
-    namespace far_lod = storm::render::far_lod;
-    struct PassScope // the far LODs choose for this target (storm/render/far_lod.hpp)
-    {
-        PassScope() { far_lod::pass = far_lod::Reflection; }
-        ~PassScope() { far_lod::pass = far_lod::Main; }
-    } pass_scope;
-    glm::mat4 mOldView = rs->GetView();
-    glm::mat4 mOldProjection = rs->GetProjection();
-    rs->EndScene();
-    rs->PushRenderTarget();
-
-
-    auto PlaneHeight = 0.5f;
-
-    const glm::vec3 point(0, PlaneHeight, 0), normal(0, 1, 0);
-    const auto mPlane = storm::math::planeFromPointNormal(normal, point);
-
-    glm::mat4 Invertor;
-    Invertor = storm::math::mirrorMatrix(mPlane.x, mPlane.y, mPlane.z, mPlane.w);
-
-    glm::mat4 mView = rs->GetView();
-    glm::mat4 mViewNew = mView;
-
-    mViewNew = mViewNew * Invertor;
-
-    rs->SetView(mViewNew);
-
-
-    uint32_t Colors[6] = {0xd934c8, 0x2FFF1F, 0x0000FF, 0xFF00, 0xb28e11, 0x0};
-    {
-
-        rs->BeginScene();
-        bool bCool = rs->SetRenderTarget(reflection, 0, 0, reflectionDepth);
-        bCool = D3D_OK != rs->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, 0x0, 1.0f, 0);
-
-
-
-
-        // Render scene here.
-        {
-            auto &&entities = core.GetEntityIds(SEA_REFLECTION);
-            for (auto ent_id : entities)
-            {
-                core.Send_Message(ent_id, "ll", MSG_SEA_REFLECTION_DRAW, static_cast<int32_t>(bSimpleSea));
-            }
-        }
-        {
-            auto &&entities = core.GetEntityIds(SEA_REFLECTION2);
-            for (auto ent_id : entities)
-            {
-                core.Send_Message(ent_id, "ll", MSG_SEA_REFLECTION_DRAW, static_cast<int32_t>(bSimpleSea));
-            }
-        }
-
-        rs->EndScene();
-    }
-
-    rs->PopRenderTarget();
-    rs->SetView(mOldView);
-    rs->SetProjection(mOldProjection);
-
-    rs->BeginScene();
-
-    glm::mat4 mTex;
-    mTex = storm::math::scaling(glm::vec3(0.5f, -0.5f, 0.5f));
-    storm::math::pos(mTex) = glm::vec3(0.5f, 0.5f, 0.5f);
-
-    glm::mat4 mProj = rs->GetProjection();
-    mProj = mTex * mProj;
-
-    glm::mat4 mCurWorld = rs->GetWorld();
-    glm::mat4 mCurView = rs->GetView();
-
-    mTexProjection = mProj * (mCurView * mCurWorld);
-
-    return true;
-}
-
 bool SEA::SunRoad_Render()
 {
     namespace far_lod = storm::render::far_lod;
@@ -236,7 +88,7 @@ bool SEA::SunRoad_Render()
                 const auto hash = core.GetClassCode(ent_id);
                 if (hash != dwShipCode && hash != dwSailCode && hash != dwIslandCode)
                 {
-                    core.Send_Message(ent_id, "ll", MSG_SEA_SUNROAD_DRAW, static_cast<int32_t>(bSimpleSea));
+                    core.Send_Message(ent_id, "l", MSG_SEA_SUNROAD_DRAW);
                 }
             }
         }
@@ -293,14 +145,14 @@ bool SEA::EnvMap_Render()
             auto &&entities = core.GetEntityIds(SEA_REFLECTION);
             for (auto ent_id : entities)
             {
-                core.Send_Message(ent_id, "ll", MSG_SEA_REFLECTION_DRAW, static_cast<int32_t>(bSimpleSea));
+                core.Send_Message(ent_id, "l", MSG_SEA_REFLECTION_DRAW);
             }
         }
         {
             auto &&entities = core.GetEntityIds(SEA_REFLECTION2);
             for (auto ent_id : entities)
             {
-                core.Send_Message(ent_id, "ll", MSG_SEA_REFLECTION_DRAW, static_cast<int32_t>(bSimpleSea));
+                core.Send_Message(ent_id, "l", MSG_SEA_REFLECTION_DRAW);
             }
         }
 

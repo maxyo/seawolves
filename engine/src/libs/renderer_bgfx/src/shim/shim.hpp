@@ -61,6 +61,7 @@ struct FormatInfo
     bool depth = false;
 };
 FormatInfo format_info(D3DFORMAT format);
+bool raw_float(D3DFORMAT format);
 uint32_t level_pitch(D3DFORMAT format, uint32_t width);
 uint32_t level_size(D3DFORMAT format, uint32_t width, uint32_t height);
 

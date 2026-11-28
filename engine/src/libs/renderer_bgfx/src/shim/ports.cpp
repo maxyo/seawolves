@@ -17,10 +17,8 @@ const ShaderPort ports[] = {
     {"caustic_pixel_shader", false, "fs_port_caustic", 3, 0, true},
     {"sea_sea2_vertex_shader", true, "vs_port_sea2", 0, PORT_VSC_SEA, false, true, true},
     {"sea_sea2_pixel_shader", false, "fs_port_sea2", 4, 0, false, true},
-    {"sea_sea3_vertex_shader", true, "vs_port_sea3", 0, PORT_VSC_SEA, false, false, true},
-    {"sea_sea3_pixel_shader", false, "fs_port_sea3", 4, 0},
     {"worldmap_shader", true, "vs_port_worldmap", 0, PORT_VSC_WORLDMAP},
-    {"coastfoam_foam_vertex_shader", true, "vs_port_coastfoam", 0, PORT_VSC_COASTFOAM},
+    {"coastfoam_foam_vertex_shader", true, "vs_port_coastfoam", 0, PORT_VSC_COASTFOAM, false, false, true},
     {"coastfoam_foam_pixel_shader", false, "fs_port_coastfoam", 2, 0},
 };
 } // namespace

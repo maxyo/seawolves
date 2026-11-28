@@ -6,12 +6,10 @@
 #include "renderer.h"
 #include "vma.hpp"
 #include "cube_schedule.hpp"
-#include "sea_tree.hpp"
-#include "sea_wave.hpp"
-#include "wave_focus.hpp"
-#ifdef __ANDROID__
+#include "ocean_driver.hpp"
 #include "parallel_for.hpp"
-#endif
+#include "sea_tree.hpp"
+#include "wave_focus.hpp"
 
 
 class SEA : public SEA_BASE, private SeaBlockTree
@@ -23,8 +21,9 @@ class SEA : public SEA_BASE, private SeaBlockTree
 
     storm::render::VertexDeclarationId vertexDecl_;
 
-    // A vertex of the sea's mesh. GPU surface: a point of the flat grid (vPos, metres from MeshOrigin; the rest 0),
-    // displaced by the vertex shader (sea_surface_gpu.hpp). CPU surface: displaced here, every frame.
+    // A vertex of the sea's mesh. GPU surface: a point of the still water (vPos, metres from MeshOrigin; the rest 0),
+    // displaced by the vertex shader (sea_surface_gpu.hpp). CPU surface: displaced here, every frame, the point of
+    // the still water in (tu, tv).
     struct SeaVertex
     {
         glm::vec3 vPos;
@@ -53,8 +52,7 @@ class SEA : public SEA_BASE, private SeaBlockTree
     static SEA *pSea;
 
     float fMaxSeaDistance;
-    float fBumpScale, fBumpSpeed;
-    glm::vec3 vMoveSpeed1, vMoveSpeed2;
+    float fBumpScale; // the foam texture's tiling (with Sea.FoamUV)
 
     glm::vec3 vWorldOffset;
 
@@ -65,18 +63,12 @@ class SEA : public SEA_BASE, private SeaBlockTree
 
     int32_t iVSeaBuffer, iISeaBuffer;
 
-    // Renderer texture ids: the bump normal frames, the environment / sun road cubes and the reflections.
-    int32_t volumeTexture = -1;
+    // Renderer texture ids: the environment / sun road cubes.
     int32_t envMap = -1, sunRoadMap = -1;
     storm::render::DepthSurfaceId zStencil;
 
-    int32_t reflection = -1, reflectionSunroad = -1;
-    storm::render::DepthSurfaceId reflectionDepth;
-
     void CreateTargets();
     void ReleaseTargets();
-
-    bool bSimpleSea;
 
     SeaVertex *pVSea;
 
@@ -92,19 +84,26 @@ class SEA : public SEA_BASE, private SeaBlockTree
     float fLastLightTime;
     std::vector<RS_RECT> aLightsRects;
 
-    std::vector<uint32_t *> aNormals;
-    std::vector<uint8_t *> aBumps;
     // The flat grid in the buffers (GPU surface): the blocks it was built from (iTX, iTY, iSize, iLOD each), its tree's
     // place and step. Rebuilt only when one of them changes (BuildMesh); the CPU surface rewrites the buffers.
     std::vector<int32_t> aMeshBlocks;
     glm::vec3 vMeshTree{};
     float fMeshGridStep = 0.0f;
     bool bMeshBuilt = false;
-    // The height field the vertex shader reads (sea_gpu::pack_field), D3DVERTEXTEXTURESAMPLER0
-    int32_t iFieldTexture = -1;
+    // The wave field (ocean_driver.hpp: made on the worker) and what the GPU reads of it this frame: the samples for
+    // the vertex shader (sea_surface_gpu.hpp, D3DVERTEXTEXTURESAMPLER0) and the slopes for the pixel shader (a volume,
+    // a slice per cascade, stage 0), made for `textureCascades_` x `textureSize_`.
+    storm::sea::ocean::Driver driver_;
+    storm::sea::ocean::Sea2Keys keys_{};
+    int32_t fieldTexture_ = -1, slopeTexture_ = -1;
+    int textureCascades_ = 0, textureSize_ = 0;
+    std::vector<uint16_t> slopeHalves_;
+    void UpdateField(float dt);
+    void UploadField();
+    float WindDirection() const;
 
     // Where the sea's vertices are displaced. Checking: on the CPU until the GPU surface self-check (sea_surface_check.hpp)
-    // has compared the shader's surface with SurfaceXZ on this device; Gpu after it passed; Cpu when it failed or
+    // has compared the shader's surface with Field::Point on this device; Gpu after it passed; Cpu when it failed or
     // could not run (logged as an error: the fallback costs game-thread time).
     enum class Surface
     {
@@ -120,24 +119,13 @@ class SEA : public SEA_BASE, private SeaBlockTree
     static constexpr uint32_t kSurfaceCheckLosses = 3;
     void UpdateSurfaceCheck();
     void SurfaceCheckFailed(const std::string &why);
-#ifdef __ANDROID__
-    storm::ParallelFor waveWorkers_; // per-block wave evaluation, see Realize()
-#endif
+    // The check's own field (a fixed sea of the layout in use, uploaded once per check) and its texture.
+    std::unique_ptr<storm::sea::ocean::Field> checkField_;
+    int32_t checkTexture_ = -1;
+    storm::ParallelFor meshWorkers_; // the CPU surface's blocks (BuildCpuMesh)
 
     glm::vec4 v4SeaColor, v4SkyColor, v4SeaParameters;
 
-
-    storm::sea::FrameBlend WaveBlend(float fFrame) const;
-    storm::sea::Wave waves_[2]; // this frame's (UpdateWaves): WaveXZ, the CPU surface
-    void UpdateWaves();
-
-    glm::vec3 vMove1, vMove2;
-    float fFrame1, fFrame2;
-    float fScale1, fScale2;
-    float fAmp1, fAmp2;
-    float _fAmp1, _fAmp2;
-    float fAnimSpeed1, fAnimSpeed2;
-    float fPosShift;
     float fFrenel;
 
     bool bStop;
@@ -156,26 +144,18 @@ class SEA : public SEA_BASE, private SeaBlockTree
     float fFoamV, fFoamK, fFoamUV, fFoamTextureDisturb;
     int32_t iFoamTexture;
 
-    glm::mat4 mTexProjection;
-
-    void SSE_WaveXZ(SeaVertex **pArray);
     bool HeightField(SeaHeightField &field) const override;
     float WaveXZ(float x, float z, glm::vec3 *pNormal = nullptr) override;
     void AddWaveSource(const storm::render::EffectsWaveSource &source) override;
 
     void SetBlock(uint32_t dwBlockIndex);
 
-    void SSE_WaveXZBlock(SeaBlock &pB);
+    void DisplaceBlock(const SeaBlock &block);
     void WriteBlockVertices(const SeaBlock &block, SeaVertex *pVertices) const;
     bool BuildMesh();
     void BuildCpuMesh();
     glm::dvec2 MeshOrigin() const;
-    void BuildFieldTexture();
 
-
-
-    bool SunRoad_Render2();
-    bool EnvMap_Render2();
     bool SunRoad_Render();
     bool EnvMap_Render();
 
@@ -195,7 +175,6 @@ class SEA : public SEA_BASE, private SeaBlockTree
     ~SEA() override;
 
     bool Init() override;
-    void BuildVolumeTexture();
     void Realize(uint32_t dwDeltaTime);
 
     float Trace(const glm::vec3 &vSrc, const glm::vec3 &vDst) override;
