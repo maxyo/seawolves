@@ -820,7 +820,32 @@ void ComponentElement::ReplaceProps(const Json &props)
             SetProp(prop, Json());
 }
 
-void ComponentElement::SetProp(const PropSpec &prop, Json value)
+void ComponentElement::GiveProps(const Json &props)
+{
+    if (!props.is_object())
+    {
+        ReportError("props must be a JSON object");
+        return;
+    }
+    std::vector<bool> given(spec_.props.size());
+    for (const auto &item : props.items())
+    {
+        const int index = compiled_.names.Find(item.key());
+        if (index < 0 || static_cast<size_t>(index) >= spec_.props.size())
+        {
+            ReportError("unknown prop '" + item.key() + "'");
+            continue;
+        }
+        given[static_cast<size_t>(index)] = true;
+        SetProp(spec_.props[static_cast<size_t>(index)], item.value());
+    }
+    for (size_t i = 0; i < given_.size(); ++i)
+        if (given_[i] && !given[i])
+            SetProp(spec_.props[i], Json());
+    given_ = std::move(given);
+}
+
+void ComponentElement::SetProp(const PropSpec &prop, const Json &value)
 {
     const auto found = props_.find(prop.name);
     const Json &before = found != props_.end() && !found->is_null() ? *found : prop.fallback;
@@ -828,7 +853,7 @@ void ComponentElement::SetProp(const PropSpec &prop, Json value)
         return;
     changed_.names.set(static_cast<size_t>(&prop - spec_.props.data()));
     dirty_ = true;
-    props_[prop.name] = std::move(value);
+    props_[prop.name] = value;
 }
 
 void ComponentElement::ReportError(const std::string &what)

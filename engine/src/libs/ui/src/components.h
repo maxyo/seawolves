@@ -149,8 +149,11 @@ class ComponentElement final : public ShadowedElement
     void SetProps(const Json &props);
     // The given props are the whole state: every prop they leave out goes back to its default (a screen's view).
     void ReplaceProps(const Json &props);
+    // The props its owner gives (a HUD element's, by its scene): one given before and left out now goes back to its
+    // default; those only the element's behaviours set stay. Compared with what the element holds, no copy kept.
+    void GiveProps(const Json &props);
     // One prop (null: its default), as a parent template passes it.
-    void SetProp(const PropSpec &prop, Json value);
+    void SetProp(const PropSpec &prop, const Json &value);
     // Live state classes ("pressed", "active", "done") owned by behaviours.
     void SetLive(const std::string &name, bool on);
     void Emit(const std::string &verb, const std::string &value = {});
@@ -232,6 +235,7 @@ class ComponentElement final : public ShadowedElement
     Rml::ObserverPtr<Rml::Element> slot_; // the template's slot, while it shows one
     Rml::ElementPtr held_;                // the content while the template shows no slot
     bool error_ = false;                  // ReportError happened
+    std::vector<bool> given_;             // the props the owner gave last (GiveProps)
 };
 
 class ComponentRegistry

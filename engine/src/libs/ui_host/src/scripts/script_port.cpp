@@ -69,6 +69,20 @@ ATTRIBUTES *PopObject(VS_STACK *stack)
     return root;
 }
 
+// The VM's object read where it lies: the view a script shows is converted while the native runs, with no copy.
+const storm::ui::ViewNode::Reader kAttributes{
+    [](const void *node) { return std::string_view(static_cast<const ATTRIBUTES *>(node)->GetThisName()); },
+    [](const void *node) {
+        const auto *at = static_cast<const ATTRIBUTES *>(node);
+        return at->HasValue() ? std::string_view(at->GetValue()) : std::string_view();
+    },
+    [](const void *node) { return static_cast<const ATTRIBUTES *>(node)->GetAttributesNum(); },
+    [](const void *node, size_t index) -> const void * {
+        return static_cast<const ATTRIBUTES *>(node)->GetAttributeClass(static_cast<uint32_t>(index));
+    },
+};
+
+// A note kept beyond the script that passes it.
 storm::ui::ViewTree Tree(const ATTRIBUTES &attributes)
 {
     storm::ui::ViewTree tree{attributes.GetThisName(), attributes.HasValue() ? attributes.GetValue() : "", {}};
@@ -179,13 +193,14 @@ template <class Get> uint32_t ReturnText(VS_STACK *stack, const char *native, Ge
 uint32_t UiShow(VS_STACK *stack)
 {
     ATTRIBUTES *view = PopObject(stack);
-    return Native("UiShow", [&](storm::ui::ScriptCall &call) { call.Show(Tree(*view)); });
+    return Native("UiShow", [&](storm::ui::ScriptCall &call) { call.Show(storm::ui::ViewNode(kAttributes, view)); });
 }
 
 uint32_t UiPredict(VS_STACK *stack)
 {
     ATTRIBUTES *view = PopObject(stack);
-    return Native("UiPredict", [&](storm::ui::ScriptCall &call) { call.Predict(Tree(*view)); });
+    return Native("UiPredict",
+                  [&](storm::ui::ScriptCall &call) { call.Predict(storm::ui::ViewNode(kAttributes, view)); });
 }
 
 uint32_t UiOn(VS_STACK *stack)

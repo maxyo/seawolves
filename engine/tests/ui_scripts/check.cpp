@@ -207,11 +207,11 @@ struct Calls final : storm::ui::ScriptCall
     explicit Calls(const storm::ui::ComponentSpec &component) : spec(component)
     {
     }
-    void Show(const storm::ui::ViewTree &view) override
+    void Show(const storm::ui::ViewNode &view) override
     {
         props = storm::ui::screens::ScriptProps(view, spec);
     }
-    void Predict(const storm::ui::ViewTree &view) override
+    void Predict(const storm::ui::ViewNode &view) override
     {
         predicted = storm::ui::screens::ScriptProps(view, spec);
     }

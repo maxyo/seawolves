@@ -629,7 +629,6 @@ void HostImpl::SetDisplayOptions(float ui_scale, float hud_button_opacity, bool 
         // lays it out itself), so every element is created again. A held control is released first.
         if (hud_document_ && hud_document_->IsVisible())
             HideHud();
-        hud_props_.clear();
         if (hud_)
             hud_->Rebuild();
     }

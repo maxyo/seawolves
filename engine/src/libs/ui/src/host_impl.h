@@ -315,8 +315,13 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     float screen_toast_clear_ = 0.0f; // the shown screen's header bottom (layout dp), 0 = none
     std::string hud_path_;
     Rml::ElementDocument *hud_document_ = nullptr;
-    std::unordered_map<std::string, Json> hud_props_;       // props last given to each mounted element
-    std::unordered_map<std::string, std::string> hud_made_; // what each mounted element was created as
+    // What each mounted element was created as: its layout element and the children made in it.
+    struct HudMade
+    {
+        const hud::LayoutElement *element = nullptr;
+        std::vector<const hud::LayoutElement *> children;
+    };
+    std::unordered_map<std::string, HudMade> hud_made_;
     mutable std::mutex touch_mutex_;
     TouchMap touch_map_;
     std::vector<Rml::Rectanglef> hud_regions_; // the HUD's touch regions as last collected (PublishTouchMap)

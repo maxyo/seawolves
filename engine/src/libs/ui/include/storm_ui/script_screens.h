@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -23,12 +24,54 @@ struct ScriptNode
     bool required = false;
 };
 
-// The view a script built, as the VM holds it: a tree of named text values. Children keep the script's order.
+// A tree of named text values kept in memory (a note between screens, a state channel, an entry's look and data):
+// what the VM is given or gives to be kept. Children keep the script's order.
 struct ViewTree
 {
     std::string name;
     std::string value;
     std::vector<ViewTree> children;
+};
+
+// A node of a tree of named text values read where it lies: the script's view in the VM's object (its attributes; text
+// is the VM's own type of a value) or a ViewTree. A handle, copied freely; valid while the tree is.
+class ViewNode
+{
+  public:
+    // How one kind of tree is read; `node` is that tree's own node.
+    struct Reader
+    {
+        std::string_view (*name)(const void *node);
+        std::string_view (*value)(const void *node);
+        size_t (*size)(const void *node);
+        const void *(*child)(const void *node, size_t index);
+    };
+    ViewNode(const Reader &reader, const void *node) : reader_(&reader), node_(node)
+    {
+    }
+    ViewNode(const ViewTree &tree); // not explicit: a tree in memory is read as one wherever a view is
+    std::string_view Name() const
+    {
+        return reader_->name(node_);
+    }
+    std::string_view Value() const
+    {
+        return reader_->value(node_);
+    }
+    size_t Size() const
+    {
+        return reader_->size(node_);
+    }
+    ViewNode operator[](size_t index) const
+    {
+        return {*reader_, reader_->child(node_, index)};
+    }
+    // The child named `name` (without case, as the VM names), or none.
+    std::optional<ViewNode> Field(std::string_view name) const;
+
+  private:
+    const Reader *reader_;
+    const void *node_;
 };
 
 // The interface of a HUD scene's entry in scripts.json: no game interface; the scene draws a gameplay mode's HUD.
@@ -154,14 +197,15 @@ struct DealView
 class ScriptCall
 {
   public:
-    // The view of this build: converted once to the pack screen's props by their spec; a mismatch throws.
-    virtual void Show(const ViewTree &view) = 0;
+    // The view of this build, read where the script keeps it and converted once to the pack screen's props by their
+    // spec; a mismatch throws.
+    virtual void Show(const ViewNode &view) = 0;
     // Events of element `id` (and `verb`; empty takes every verb) go to the script.
     virtual void On(const std::string &id, const std::string &verb) = 0;
     // Inside an event: the view the tap leads to. What it changes, by field and by row id, is drawn from this frame
     // over every build until the game has answered what the event sent, then compared with the view built after the
     // answer (the router's "UI prediction corrected"); a row no longer built is not marked.
-    virtual void Predict(const ViewTree &view) = 0;
+    virtual void Predict(const ViewNode &view) = 0;
     // A widget action on the admitted widget `node`, or on its row `row` (-1: the node's own widget); `guard`, when
     // not empty, is the identity of the row the action must still find (Bindings::Send); `lead`, when not empty,
     // goes out right before the value.

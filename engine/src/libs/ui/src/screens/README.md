@@ -8,8 +8,9 @@ the application's `mobile-ui/design/screens/<name>/`) and component events back 
 Every game interface is drawn by a *script screen* (`script_screen.h`): the touch interface's scripts
 (`app/mobile-ui/PROGRAM/interface/touch`, its README) attach one per capability (`Host::SetScriptScreens`); the router
 admits its nodes, its script builds the view through the engine's VM side (`storm_ui/script_screens.h`, engine
-`src/libs/ui_host/README.md`) and binds the events it answers; `script_props.h` converts the view to the pack screen's
-props by their types and, for a `json` prop, by its `shape` in the spec. An interface no capability names gets the
+`src/libs/ui_host/README.md`) and binds the events it answers; `script_props.h` reads the view where the VM holds it
+(`ViewNode`, no copy) and converts it once to the pack screen's props by their types and, for a `json` prop, by its
+`shape` in the spec; the elements compare those with what they hold and change only what differs. An interface no capability names gets the
 generic layout, a script screen too (`universal/generic.c`, interface `*`); without it attached such an interface is
 closed with an error line. The application's own screens (`app:launcher`, `app:downloads`, `app:about`, routed from
 the platform host's "launcher" channel) are C++ (`launcher.cpp`): they run before any game script exists.

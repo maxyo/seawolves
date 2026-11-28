@@ -47,60 +47,63 @@ std::runtime_error Mismatch(const std::string &path, const std::string &what)
     return std::runtime_error("view " + path + ": " + what);
 }
 
-Json Scalar(const ViewTree &node, const std::string &type, const std::string &path)
+Json Scalar(const ViewNode &node, const std::string &type, const std::string &path)
 {
-    if (!node.children.empty())
+    if (node.Size() != 0)
         throw Mismatch(path, "has children, the spec says " + type);
+    const std::string_view value = node.Value();
     if (type == "text")
-        return node.value;
+        return value;
     if (type == "bool")
     {
-        if (node.value != "0" && node.value != "1")
-            throw Mismatch(path, "'" + node.value + "' is not a bool (0 or 1)");
-        return node.value == "1";
+        if (value != "0" && value != "1")
+            throw Mismatch(path, "'" + std::string(value) + "' is not a bool (0 or 1)");
+        return value == "1";
     }
     if (type == "int")
-        if (const std::optional<int> value = ParseNumber<int>(node.value))
-            return *value;
+        if (const std::optional<int> number = ParseNumber<int>(value))
+            return *number;
     if (type == "number")
-        if (const std::optional<double> value = ParseNumber<double>(node.value))
-            return *value;
+        if (const std::optional<double> number = ParseNumber<double>(value))
+            return *number;
     if (type == "numbers")
     {
         // "2048,2048": a list of numbers in one text, as the engine's context of a widget gives them.
         Json list = Json::array();
-        for (size_t at = 0; at <= node.value.size() && !node.value.empty();)
+        for (size_t at = 0; at <= value.size() && !value.empty();)
         {
-            const size_t end = std::min(node.value.find(',', at), node.value.size());
-            const std::optional<double> value = ParseNumber<double>(node.value.substr(at, end - at));
-            if (!value)
-                throw Mismatch(path, "'" + node.value + "' is not a list of numbers");
-            list.push_back(*value);
+            const size_t end = std::min(value.find(',', at), value.size());
+            const std::optional<double> number = ParseNumber<double>(value.substr(at, end - at));
+            if (!number)
+                throw Mismatch(path, "'" + std::string(value) + "' is not a list of numbers");
+            list.push_back(*number);
             at = end + 1;
         }
         return list;
     }
     if (type == "int" || type == "number")
-        throw Mismatch(path, "'" + node.value + "' is not a number");
+        throw Mismatch(path, "'" + std::string(value) + "' is not a number");
     throw Mismatch(path, "the spec's shape names an unknown type '" + type + "'");
 }
 
-ImageRef Image(const ViewTree &node, const std::string &path);
+ImageRef Image(const ViewNode &node, const std::string &path);
 
 // A picture that is our enamel token {kind "token", icon, enamel} instead of a game image (a perk with an icon of
 // ours); null for any other kind.
-Json Token(const ViewTree &node, const std::string &path)
+Json Token(const ViewNode &node, const std::string &path)
 {
-    const auto kind = std::find_if(node.children.begin(), node.children.end(),
-                                   [](const ViewTree &child) { return SameNode(child.name, "kind"); });
-    if (kind == node.children.end() || kind->value != "token")
+    const std::optional<ViewNode> kind = node.Field("kind");
+    if (!kind || kind->Value() != "token")
         return Json();
     Json token{{"kind", "token"}, {"icon", ""}, {"enamel", ""}};
-    for (const ViewTree &child : node.children)
-        if (SameNode(child.name, "icon") || SameNode(child.name, "enamel"))
-            token[SameNode(child.name, "icon") ? "icon" : "enamel"] = child.value;
-        else if (!SameNode(child.name, "kind"))
-            throw Mismatch(path + "/" + child.name, "is not kind, icon or enamel of a token");
+    for (size_t i = 0; i < node.Size(); ++i)
+    {
+        const ViewNode child = node[i];
+        if (SameNode(child.Name(), "icon") || SameNode(child.Name(), "enamel"))
+            token[SameNode(child.Name(), "icon") ? "icon" : "enamel"] = child.Value();
+        else if (!SameNode(child.Name(), "kind"))
+            throw Mismatch(path + "/" + std::string(child.Name()), "is not kind, icon or enamel of a token");
+    }
     return token;
 }
 
@@ -108,6 +111,60 @@ Json Token(const ViewTree &node, const std::string &path)
 const Json *Meta(const Json &shape, const char *key)
 {
     return shape.is_object() && shape.size() == 1 && shape.contains(key) ? &shape.at(key) : nullptr;
+}
+
+// The scalar type a reading takes where `shape` is, or "" where the shape is a structure.
+std::string ScalarOf(const Json &shape)
+{
+    if (const Json *inner = Meta(shape, "$null"))
+        return ScalarOf(*inner);
+    if (const Json *either = Meta(shape, "$either"))
+        return either->is_array() && !either->empty() ? ScalarOf(either->at(0)) : "";
+    if (shape == "text" || shape == "bool" || shape == "int" || shape == "number")
+        return shape.get<std::string>();
+    return "";
+}
+
+Json Convert(const ViewNode &node, const Json &shape, const std::string &path, const Readings &readings);
+
+// A node where the shape is `shape`: converted, or a HUD reading's value (none: left out).
+std::optional<Json> Place(const ViewNode &node, const Json &shape, const std::string &path, const Readings &readings)
+{
+    if (!readings || !node.Field("reading"))
+        return Convert(node, shape, path, readings);
+    const std::string type = ScalarOf(shape);
+    if (type.empty())
+        throw Mismatch(path, "a reading is one value; the spec's shape is a structure here");
+    std::optional<Json> value = readings(node, path, type);
+    if (!value)
+        return std::nullopt;
+    return ReadingAs(*value, type, path);
+}
+
+// The fields of `node` but `skip` by `shape`'s field list.
+Json Object(const ViewNode &node, const Json &shape, const std::string &path, const Readings &readings,
+            std::string_view skip = {})
+{
+    Json object = Json::object();
+    for (size_t i = 0; i < node.Size(); ++i)
+    {
+        const ViewNode child = node[i];
+        if (!skip.empty() && SameNode(child.Name(), skip))
+            continue;
+        const Json *field_shape = nullptr;
+        std::string field;
+        for (const auto &item : shape.items())
+            if (SameNode(item.key(), child.Name()))
+            {
+                field = item.key();
+                field_shape = &item.value();
+            }
+        if (!field_shape)
+            throw Mismatch(path + "/" + std::string(child.Name()), "is not a field of the spec's shape");
+        if (std::optional<Json> value = Place(child, *field_shape, path + "/" + field, readings))
+            object[field] = std::move(*value);
+    }
+    return object;
 }
 
 // `shape`: a type name, an object of fields, a one-element array: a list of items of that shape; {"$null": shape}:
@@ -118,13 +175,13 @@ const Json *Meta(const Json &shape, const char *key)
 // it (TextureOf: {texture, uv}, or null);
 // {"$texture": fields}: fields beside an `image` drawn as a texture: those fields with its texture and uv;
 // "numbers": "1,2,3" as a list of numbers.
-Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
+Json Convert(const ViewNode &node, const Json &shape, const std::string &path, const Readings &readings)
 {
     if (shape == "picture" || shape == "texture")
     {
-        if (!node.value.empty())
+        if (!node.Value().empty())
             throw Mismatch(path, "a picture has no value, only kind, group, image and uv");
-        if (node.children.empty())
+        if (node.Size() == 0)
             return Json();
         if (shape == "picture")
             if (Json token = Token(node, path); !token.is_null())
@@ -134,118 +191,128 @@ Json Convert(const ViewTree &node, const Json &shape, const std::string &path)
     }
     if (const Json *fields = Meta(shape, "$texture"))
     {
-        // Fields beside an `image` drawn as a texture: those fields with its texture and uv.
-        ViewTree rest;
-        const ViewTree *image = nullptr;
-        for (const ViewTree &child : node.children)
-            if (SameNode(child.name, "image"))
-                image = &child;
-            else
-                rest.children.push_back(child);
+        const std::optional<ViewNode> image = node.Field("image");
         if (!image)
             throw Mismatch(path, "has no image");
         const ImageRef ref = Image(*image, path + "/image");
         const Json texture = TextureOf(&ref);
         if (texture.is_null())
             throw Mismatch(path + "/image", "'" + ref.kind + "' '" + ref.image + "' is not drawn as a texture");
-        Json object = Convert(rest, *fields, path);
+        if (!fields->is_object())
+            throw Mismatch(path, "the spec's $texture is not a field list");
+        Json object = Object(node, *fields, path, readings, "image");
         object["texture"] = texture["texture"];
         object["uv"] = texture["uv"];
         return object;
     }
     if (const Json *inner = Meta(shape, "$null"))
-        return node.children.empty() && node.value.empty() ? Json() : Convert(node, *inner, path);
+        return node.Size() == 0 && node.Value().empty() ? Json() : Convert(node, *inner, path, readings);
     if (const Json *either = Meta(shape, "$either"))
     {
         if (!either->is_array() || either->size() != 2 || !either->at(0).is_string())
             throw Mismatch(path, "the spec's $either is not [a type, a structure]");
-        return Convert(node, node.children.empty() ? either->at(0) : either->at(1), path);
+        return Convert(node, node.Size() == 0 ? either->at(0) : either->at(1), path, readings);
     }
     if (shape.is_string())
         return Scalar(node, shape.get<std::string>(), path);
     if (shape.is_array() && shape.size() == 1)
     {
         Json list = Json::array();
-        for (size_t i = 0; i < node.children.size(); ++i)
-            list.push_back(Convert(node.children[i], shape[0], path + "/" + std::to_string(i)));
+        for (size_t i = 0; i < node.Size(); ++i)
+            if (std::optional<Json> item = Place(node[i], shape[0], path + "/" + std::to_string(i), readings))
+                list.push_back(std::move(*item));
         return list;
     }
     if (!shape.is_object())
         throw Mismatch(path, "the spec's shape is neither a type, a field list nor a one-item list");
-    Json object = Json::object();
-    for (const ViewTree &child : node.children)
-    {
-        const Json *field_shape = nullptr;
-        std::string field;
-        for (const auto &item : shape.items())
-            if (SameNode(item.key(), child.name))
-            {
-                field = item.key();
-                field_shape = &item.value();
-            }
-        if (!field_shape)
-            throw Mismatch(path + "/" + child.name, "is not a field of the spec's shape");
-        object[field] = Convert(child, *field_shape, path + "/" + field);
-    }
-    return object;
+    return Object(node, shape, path, readings);
 }
 
-ImageRef Image(const ViewTree &node, const std::string &path)
+ImageRef Image(const ViewNode &node, const std::string &path)
 {
     ImageRef image;
-    for (const ViewTree &child : node.children)
+    for (size_t i = 0; i < node.Size(); ++i)
     {
-        std::string *field = SameNode(child.name, "kind")    ? &image.kind
-                             : SameNode(child.name, "group") ? &image.group
-                             : SameNode(child.name, "image") ? &image.image
-                                                             : nullptr;
-        if (!child.children.empty() || (!field && !SameNode(child.name, "uv")))
-            throw Mismatch(path + "/" + child.name, "is not kind, group, image or uv of a picture");
+        const ViewNode child = node[i];
+        std::string *field = SameNode(child.Name(), "kind")    ? &image.kind
+                             : SameNode(child.Name(), "group") ? &image.group
+                             : SameNode(child.Name(), "image") ? &image.image
+                                                               : nullptr;
+        if (child.Size() != 0 || (!field && !SameNode(child.Name(), "uv")))
+            throw Mismatch(path + "/" + std::string(child.Name()), "is not kind, group, image or uv of a picture");
+        const std::string value(child.Value());
         if (field)
-            *field = child.value;
-        else if (std::sscanf(child.value.c_str(), "%f,%f,%f,%f", &image.uv[0], &image.uv[1], &image.uv[2],
-                             &image.uv[3]) != 4)
-            throw Mismatch(path + "/uv", "'" + child.value + "' is not left,top,right,bottom");
+            *field = value;
+        else if (std::sscanf(value.c_str(), "%f,%f,%f,%f", &image.uv[0], &image.uv[1], &image.uv[2], &image.uv[3]) != 4)
+            throw Mismatch(path + "/uv", "'" + value + "' is not left,top,right,bottom");
     }
     return image;
 }
 
+const ViewNode::Reader kViewTree{
+    [](const void *node) { return std::string_view(static_cast<const ViewTree *>(node)->name); },
+    [](const void *node) { return std::string_view(static_cast<const ViewTree *>(node)->value); },
+    [](const void *node) { return static_cast<const ViewTree *>(node)->children.size(); },
+    [](const void *node, size_t index) -> const void * {
+        return &static_cast<const ViewTree *>(node)->children[index];
+    },
+};
+
 } // namespace
 
-Json ScriptProps(const ViewTree &view, const ComponentSpec &spec)
+Json ScriptProps(const ViewNode &view, const ComponentSpec &spec, const Readings &readings)
 {
     Json props = Json::object();
-    for (const ViewTree &child : view.children)
+    for (size_t i = 0; i < view.Size(); ++i)
     {
-        const auto prop = std::find_if(spec.props.begin(), spec.props.end(),
-                                       [&](const PropSpec &candidate) { return SameNode(candidate.name, child.name); });
+        const ViewNode child = view[i];
+        const auto prop = std::find_if(spec.props.begin(), spec.props.end(), [&](const PropSpec &candidate) {
+            return SameNode(candidate.name, child.Name());
+        });
         if (prop == spec.props.end())
-            throw Mismatch(child.name, "is not a prop of " + spec.tag);
-        Json value;
+            throw Mismatch(std::string(child.Name()), "is not a prop of " + spec.tag);
+        Json shape;
         switch (prop->type)
         {
         case PropSpec::Type::Text:
         case PropSpec::Type::Enum:
-            value = Scalar(child, "text", prop->name);
+            shape = "text";
             break;
         case PropSpec::Type::Bool:
-            value = Scalar(child, "bool", prop->name);
+            shape = "bool";
             break;
         case PropSpec::Type::Int:
-            value = Scalar(child, "int", prop->name);
+            shape = "int";
             break;
         case PropSpec::Type::Number:
-            value = Scalar(child, "number", prop->name);
+            shape = "number";
             break;
         case PropSpec::Type::Json:
             if (prop->shape.is_null())
                 throw Mismatch(prop->name, "the spec of " + spec.tag + " gives this json prop no shape");
-            value = Convert(child, prop->shape, prop->name);
             break;
         }
-        props[prop->name] = std::move(value);
+        if (std::optional<Json> value = Place(child, shape.is_null() ? prop->shape : shape, prop->name, readings))
+            props[prop->name] = std::move(*value);
     }
     return props;
+}
+
+Json ReadingAs(const Json &value, const std::string &type, const std::string &at)
+{
+    if (type == "text" && value.is_string())
+        return value;
+    if (type == "text" && value.is_number_integer())
+        return std::to_string(value.get<int64_t>());
+    if ((type == "int" && value.is_number_integer()) || (type == "number" && value.is_number()))
+        return value;
+    if (type == "int" && value.is_string())
+        if (const std::optional<int> number = ParseNumber<int>(value.get_ref<const std::string &>()))
+            return *number;
+    if (type == "number" && value.is_string())
+        if (const std::optional<double> number = ParseNumber<double>(value.get_ref<const std::string &>()))
+            return *number;
+    throw Mismatch(at, "the reading gives " + value.dump() + ", not a " + type);
 }
 
 ViewTree StateTree(const std::string &name, const Json &json)
@@ -267,3 +334,18 @@ ViewTree StateTree(const std::string &name, const Json &json)
 }
 
 } // namespace storm::ui::screens
+
+namespace storm::ui
+{
+ViewNode::ViewNode(const ViewTree &tree) : ViewNode(screens::kViewTree, &tree)
+{
+}
+
+std::optional<ViewNode> ViewNode::Field(std::string_view name) const
+{
+    for (size_t i = 0; i < Size(); ++i)
+        if (const ViewNode child = (*this)[i]; SameNode(child.Name(), name))
+            return child;
+    return std::nullopt;
+}
+} // namespace storm::ui

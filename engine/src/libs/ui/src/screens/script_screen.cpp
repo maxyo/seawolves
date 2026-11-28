@@ -138,14 +138,14 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         return sent ? bindings_->AnsweredSince(hold_floor_) : Bindings::Answers::Applied;
     }
 
-    void Show(const ViewTree &view) override
+    void Show(const ViewNode &view) override
     {
         if (!building_)
             throw std::runtime_error("a view is shown only while the screen builds");
         view_ = ScriptProps(view, component_);
     }
     // The router keeps what the view the tap leads to changes, by field and row id, until the game has answered.
-    void Predict(const ViewTree &view) override
+    void Predict(const ViewNode &view) override
     {
         if (building_)
             throw std::runtime_error("a prediction is made only in an event");

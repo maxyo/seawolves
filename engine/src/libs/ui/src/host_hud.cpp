@@ -2,6 +2,8 @@
 // sheet, and the measures the scenes ask for.
 #include "host_impl.h"
 
+#include <algorithm>
+
 namespace storm::ui
 {
 
@@ -71,22 +73,30 @@ Rml::Element *HostImpl::HudLayer()
 bool HostImpl::MountHudElements(Rml::Element *layer, const hud::View &view)
 {
     const std::vector<hud::LayoutElement> &elements = layout_.at(view.layout);
-    std::unordered_map<std::string, std::string> wanted; // id → what it must have been created as
+    std::unordered_map<std::string, HudMade> wanted; // id → what it must have been created as
     for (const hud::LayoutElement &element : elements)
         if (view.elements.contains(element.id))
         {
-            std::string made = element.component + "\n" + element.behavior + "\n" + element.data.dump();
+            HudMade &made = wanted[element.id];
+            made.element = &element;
             for (const hud::LayoutElement &child : element.children)
                 if (view.elements.contains(child.id))
-                    made += "\n" + child.id + " " + child.component;
-            wanted[element.id] = std::move(made);
+                    made.children.push_back(&child);
         }
+    // The same element of another layout scene (explore and combat) stays mounted when it is made the same way.
+    const auto same = [](const HudMade &a, const HudMade &b) {
+        const auto made = [](const hud::LayoutElement &x, const hud::LayoutElement &y) {
+            return x.id == y.id && x.component == y.component && x.behavior == y.behavior && x.data == y.data;
+        };
+        return a.element && b.element && made(*a.element, *b.element) &&
+               std::ranges::equal(a.children, b.children, [&](auto *x, auto *y) { return made(*x, *y); });
+    };
     for (int i = layer->GetNumChildren(); i-- > 0;)
     {
         Rml::Element *mounted = layer->GetChild(i);
         const auto keep = wanted.find(mounted->GetId());
         if (mounted->GetId() == "sheet" || mounted->GetId() == "overlay" ||
-            (keep != wanted.end() && hud_made_[mounted->GetId()] == keep->second))
+            (keep != wanted.end() && same(hud_made_[mounted->GetId()], keep->second)))
             continue;
         RemoveHudElement(layer, mounted);
     }
@@ -184,19 +194,7 @@ bool HostImpl::ShowHudSheet(Rml::Element *layer, const hud::View &view)
             sheet = layer->AppendChild(std::move(created));
         }
         if (auto *component = dynamic_cast<ComponentElement *>(sheet))
-        {
-            Json &shown = hud_props_["sheet"]; // forgotten with the sheet (RemoveHudElement)
-            if (shown != view.sheet_props)
-            {
-                Json change = view.sheet_props;
-                if (shown.is_object()) // a prop the scene no longer gives goes back to its default, as an element's
-                    for (const auto &item : shown.items())
-                        if (!change.contains(item.key()))
-                            change[item.key()] = nullptr;
-                component->SetProps(change);
-                shown = view.sheet_props;
-            }
-        }
+            component->GiveProps(view.sheet_props);
         else
         {
             Error("UI pack has no HUD sheet " + view.sheet);
@@ -276,17 +274,7 @@ bool HostImpl::SetHudProps(const hud::LayoutElement &element, const hud::View &v
     if (left_handed_)
         props.update(element.props_mirrored);
     props.update(view.elements[element.id]);
-    Json &shown = hud_props_[element.id];
-    if (shown != props)
-    {
-        Json change = props;
-        if (shown.is_object()) // a prop the scene no longer gives goes back to its default
-            for (const auto &item : shown.items())
-                if (!props.contains(item.key()))
-                    change[item.key()] = nullptr;
-        component->SetProps(change);
-        shown = std::move(props);
-    }
+    component->GiveProps(props);
     return true;
 }
 
@@ -305,15 +293,6 @@ void HostImpl::RemoveHudElement(Rml::Element *layer, Rml::Element *mounted)
             }
     for (const auto &pointer : held)
         Touch(TouchPhase::Cancel, pointer.first, pointer.second.x, pointer.second.y);
-    std::vector<Rml::Element *> inside = {mounted};
-    while (!inside.empty())
-    {
-        Rml::Element *element = inside.back();
-        inside.pop_back();
-        hud_props_.erase(element->GetId());
-        for (int i = 0; i < element->GetNumChildren(); ++i)
-            inside.push_back(element->GetChild(i));
-    }
     hud_made_.erase(mounted->GetId());
     layer->RemoveChild(mounted);
 }

@@ -21,31 +21,24 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
 
 namespace storm::ui::hud
 {
 namespace
 {
-const ViewTree *Child(const ViewTree &tree, const char *name)
+std::string Value(const ViewNode &tree, const char *name)
 {
-    for (const ViewTree &child : tree.children)
-        if (SameNode(child.name, name))
-            return &child;
-    return nullptr;
-}
-
-std::string Value(const ViewTree &tree, const char *name)
-{
-    const ViewTree *child = Child(tree, name);
+    const std::optional<ViewNode> child = tree.Field(name);
     if (!child)
-        throw std::runtime_error("view " + tree.name + ": no " + name);
-    return child->value;
+        throw std::runtime_error("view " + std::string(tree.Name()) + ": no " + name);
+    return std::string(child->Value());
 }
 
-bool Flag(const ViewTree &tree, const char *name)
+bool Flag(const ViewNode &tree, const char *name)
 {
-    const ViewTree *child = Child(tree, name);
-    return child && child->value == "1";
+    const std::optional<ViewNode> child = tree.Field(name);
+    return child && child->Value() == "1";
 }
 
 // The changes `predicted` makes to `shown`: fields of objects, rows of lists by their `id`, other values whole.
@@ -238,7 +231,7 @@ class ScriptScene final : public Scene, private ScriptCall
 
     void Drawn(const States &states) override
     {
-        drawn_ = elements_;
+        redrawn_.clear();
         Cover(&states);
         CoverNavigator(states, hud_.Interactive());
         CoverOrders(states, hud_.Interactive() && hud_.Shown().modal);
@@ -309,10 +302,12 @@ class ScriptScene final : public Scene, private ScriptCall
     }
 
   private:
+    // A reading of the view: where in which element's props, the type its prop takes, what it reads.
     struct Slot
     {
         std::string element;
         Json::json_pointer at;
+        std::string path, type;
         ReadingRef reading;
     };
     struct Control
@@ -349,7 +344,7 @@ class ScriptScene final : public Scene, private ScriptCall
         read_.clear();
         bound_.clear();
         back_.clear();
-        view_.reset();
+        shown_ = false;
         building_ = true;
         struct Done
         {
@@ -362,17 +357,17 @@ class ScriptScene final : public Scene, private ScriptCall
         port_.Build(screen_, {}, *this);
         first_ = false;
         rebuild_ = false;
-        if (!view_)
+        if (!shown_)
             throw std::runtime_error("HUD scene " + screen_.capability + " showed no view");
-        Parse(*view_);
     }
 
-    void Parse(const ViewTree &view)
+    // The view is read while the script shows it: the VM's object it lies in may end with the script.
+    void Parse(const ViewNode &view)
     {
         layout_ = Value(view, "layout");
         log_ = Flag(view, "log");
         holds_view_ = Flag(view, "holds");
-        elements_ = Json::object();
+        const Json built = std::exchange(elements_, Json::object());
         slots_.clear();
         for (auto &[id, control] : controls_)
             gone_.insert_or_assign(id, std::move(control));
@@ -383,43 +378,51 @@ class ScriptScene final : public Scene, private ScriptCall
         fights_ = false;
         deck_.clear();
         band_view_ = {};
-        if (const ViewTree *band = Child(view, "band"))
+        if (const std::optional<ViewNode> band = view.Field("band"))
             band_view_ = {Value(*band, "after"), Split(Value(*band, "row")), Value(*band, "under")};
-        if (const ViewTree *elements = Child(view, "elements"))
-            for (const ViewTree &element : elements->children)
-                elements_[element.name] = Props(element);
-        if (const ViewTree *controls = Child(view, "controls"))
-            for (const ViewTree &control : controls->children)
-                ParseControl(control);
+        if (const std::optional<ViewNode> elements = view.Field("elements"))
+            for (size_t i = 0; i < elements->Size(); ++i)
+            {
+                const ViewNode element = (*elements)[i];
+                elements_[std::string(element.Name())] = Props(element);
+            }
+        if (const std::optional<ViewNode> controls = view.Field("controls"))
+            for (size_t i = 0; i < controls->Size(); ++i)
+                ParseControl((*controls)[i]);
         for (const auto &[id, control] : controls_)
             gone_.erase(id);
         std::set<std::string> lingering;
-        if (const ViewTree *lingers = Child(view, "lingers"))
-            for (const ViewTree &linger : lingers->children)
-                lingering.insert(linger.name);
+        if (const std::optional<ViewNode> lingers = view.Field("lingers"))
+            for (size_t i = 0; i < lingers->Size(); ++i)
+                lingering.insert(std::string((*lingers)[i].Name()));
         // An element no longer said to linger goes at once.
         std::erase_if(lingers_, [&](const auto &linger) { return !lingering.count(linger.first); });
         for (const std::string &id : lingering)
             lingers_[id];
-        if (const ViewTree *sheet = Child(view, "sheet"))
+        if (const std::optional<ViewNode> sheet = view.Field("sheet"))
         {
-            const ComponentSpec *spec = hud_.Part(sheet->value);
+            const std::string part(sheet->Value());
+            const ComponentSpec *spec = hud_.Part(part);
             if (!spec)
-                throw std::runtime_error("the pack has no part " + sheet->value + " for the sheet");
-            sheet_part_ = sheet->value;
+                throw std::runtime_error("the pack has no part " + part + " for the sheet");
+            sheet_part_ = part;
             sheet_ = screens::ScriptProps(*sheet, *spec);
         }
-        if (const ViewTree *covers = Child(view, "covers"))
-            for (const ViewTree &cover : covers->children)
+        if (const std::optional<ViewNode> covers = view.Field("covers"))
+            for (size_t i = 0; i < covers->Size(); ++i)
             {
-                if (cover.value != "map-labels" && cover.value != "navigator")
-                    throw std::runtime_error("cover " + cover.name + ": no kind '" + cover.value + "'");
-                covers_[cover.name] = cover.value;
+                const ViewNode cover = (*covers)[i];
+                const std::string name(cover.Name()), kind(cover.Value());
+                if (kind != "map-labels" && kind != "navigator")
+                    throw std::runtime_error("cover " + name + ": no kind '" + kind + "'");
+                covers_[name] = kind;
             }
+        Changed(built);
     }
 
-    void ParseControl(const ViewTree &control)
+    void ParseControl(const ViewNode &control)
     {
+        const std::string name(control.Name());
         const std::string kind = Value(control, "kind");
         Control parsed{kind, {}, {}, {}};
         if (kind == "hold")
@@ -432,87 +435,54 @@ class ScriptScene final : public Scene, private ScriptCall
         {
             parsed.a = Value(control, "moves");
             parsed.b = Value(control, "dims");
-            if (const ViewTree *captions = Child(control, "captions"))
-                for (const ViewTree &caption : captions->children)
-                    parsed.captions[caption.name] = caption.value;
+            if (const std::optional<ViewNode> captions = control.Field("captions"))
+                for (size_t i = 0; i < captions->Size(); ++i)
+                    parsed.captions[std::string((*captions)[i].Name())] = (*captions)[i].Value();
             fights_ = true;
         }
         else if (kind == "stick")
             fights_ = true; // the land's: cancelled input also cancels the combat holds
         else if (kind == "deck")
-            deck_ = control.name;
+            deck_ = name;
         else if (kind == "fan")
-            fans_.try_emplace(control.name, hud_, control.name);
+            fans_.try_emplace(name, hud_, name);
         else
-            throw std::runtime_error("control " + control.name + ": no kind '" + kind + "'");
-        controls_[control.name] = std::move(parsed);
+            throw std::runtime_error("control " + name + ": no kind '" + kind + "'");
+        controls_[name] = std::move(parsed);
         // A held control is drawn where it is declared; the stick, the wheel and the fan are the script's elements.
-        if ((kind == "hold" || kind == "helm" || kind == "lever") && !elements_.contains(control.name))
-            elements_[control.name] = Json::object();
+        if ((kind == "hold" || kind == "helm" || kind == "lever") && !elements_.contains(name))
+            elements_[name] = Json::object();
     }
 
-    // An element's props by its component; each reading is taken out into a slot and its value of now put in.
-    Json Props(const ViewTree &element)
+    // The elements this build changed from the one before: not on the screen as built until the next frame is drawn.
+    void Changed(const Json &before)
     {
-        const ComponentSpec *spec = hud_.Component(layout_, element.name);
+        for (const auto &[id, props] : elements_.items())
+            if (const auto was = before.find(id); was == before.end() || *was != props)
+                redrawn_.insert(id);
+        for (const auto &[id, props] : before.items())
+            if (!elements_.contains(id))
+                redrawn_.insert(id);
+    }
+
+    // An element's props by its component; each reading becomes a slot, its value of now put in where it lies.
+    Json Props(const ViewNode &element)
+    {
+        const std::string name(element.Name());
+        const ComponentSpec *spec = hud_.Component(layout_, name);
         if (!spec)
-            throw std::runtime_error("the layout scene " + layout_ + " has no element " + element.name);
-        ViewTree props = element;
-        std::vector<std::pair<std::vector<size_t>, ReadingRef>> found;
-        std::vector<size_t> path;
-        TakeReadings(props, path, found);
-        Json shaped = screens::ScriptProps(props, *spec);
-        for (const auto &[at, reading] : found)
-            slots_.push_back({element.name, Pointer(props, shaped, at), reading});
-        return shaped;
-    }
-
-    void TakeReadings(ViewTree &node, std::vector<size_t> &path,
-                      std::vector<std::pair<std::vector<size_t>, ReadingRef>> &found)
-    {
-        if (Child(node, "reading"))
-        {
-            const ViewTree *fill = Child(node, "fill");
-            ReadingRef reading{Value(node, "reading"), Value(node, "as"), fill ? fill->value : ""};
-            if (!reading.Known(*states_, hud_))
-                throw std::runtime_error("the reading " + reading.readings + " is placed while the engine gives none");
-            const Json value = reading.Resolve(*states_, hud_);
-            node.children.clear();
-            node.value = value.is_string() ? value.get<std::string>() : value.dump();
-            found.emplace_back(path, std::move(reading));
-            return;
-        }
-        for (size_t i = 0; i < node.children.size(); ++i)
-        {
-            path.push_back(i);
-            TakeReadings(node.children[i], path, found);
-            path.pop_back();
-        }
-    }
-
-    // Where the node at `at` (child indices from the element) is in the props shaped from it.
-    static Json::json_pointer Pointer(const ViewTree &element, const Json &shaped, const std::vector<size_t> &at)
-    {
-        Json::json_pointer pointer;
-        const ViewTree *node = &element;
-        const Json *json = &shaped;
-        for (const size_t index : at)
-        {
-            node = &node->children[index];
-            if (json->is_array())
-            {
-                pointer /= index;
-                json = &json->at(index);
-                continue;
-            }
-            std::string key = node->name;
-            for (const auto &item : json->items())
-                if (SameNode(item.key(), node->name))
-                    key = item.key();
-            pointer /= key;
-            json = &json->at(key);
-        }
-        return pointer;
+            throw std::runtime_error("the layout scene " + layout_ + " has no element " + name);
+        return screens::ScriptProps(
+            element, *spec, [&](const ViewNode &node, const std::string &at, const std::string &type) {
+                const std::optional<ViewNode> fill = node.Field("fill");
+                ReadingRef reading{Value(node, "reading"), Value(node, "as"), fill ? std::string(fill->Value()) : ""};
+                if (!reading.Known(*states_, hud_))
+                    throw std::runtime_error("the reading " + reading.readings +
+                                             " is placed while the engine gives none");
+                Json value = reading.Resolve(*states_, hud_);
+                slots_.push_back({name, Json::json_pointer("/" + at), name + "/" + at, type, std::move(reading)});
+                return std::optional<Json>(std::move(value));
+            });
     }
 
     // --- every state change ----------------------------------------------------------------
@@ -524,12 +494,8 @@ class ScriptScene final : public Scene, private ScriptCall
         view.elements = elements_;
         for (const Slot &slot : slots_)
         {
-            Json &target = view.elements[slot.element][slot.at];
-            const Json value = slot.reading.Resolve(states, hud_);
-            if (target.is_number() && value.is_string())
-                target = Json::parse(value.get<std::string>());
-            else
-                target = target.is_string() && !value.is_string() ? Json(value.dump()) : value;
+            view.elements[slot.element][slot.at] =
+                screens::ReadingAs(slot.reading.Resolve(states, hud_), slot.type, slot.path);
         }
         if (overlay_ && Ended(*overlay_))
             overlay_.reset();
@@ -916,8 +882,13 @@ class ScriptScene final : public Scene, private ScriptCall
         // to end it; a mark of the scene's own state is its next build's.
         if (predicted_ && (!requests_.empty() || chose_))
         {
-            Json patch = Patch(Json{{"elements", elements_}, {"sheet", sheet_}}, *predicted_);
-            if (!patch.is_null())
+            Json patch = Json::object();
+            for (const auto &[part, built] :
+                 {std::pair<const char *, const Json *>{"elements", &elements_}, {"sheet", &sheet_}})
+                if (predicted_->contains(part))
+                    if (Json change = Patch(*built, predicted_->at(part)); !change.is_null())
+                        patch[part] = std::move(change);
+            if (!patch.empty())
                 overlay_ = Overlay{std::move(patch), requests_, chose_};
         }
         hud_.Rebuild();
@@ -1151,42 +1122,40 @@ class ScriptScene final : public Scene, private ScriptCall
 
     // --- ScriptCall --------------------------------------------------------------------------
 
-    void Show(const ViewTree &view) override
+    void Show(const ViewNode &view) override
     {
         if (!building_)
             throw std::runtime_error("a HUD scene shows its view only while it builds");
-        view_ = view;
+        Parse(view);
+        shown_ = true;
     }
     void On(const std::string &id, const std::string &verb) override
     {
         bound_.insert(id + '\n' + verb);
     }
-    void Predict(const ViewTree &view) override
+    // A predicted view's readings say nothing the build's do not: the prediction marks taps.
+    void Predict(const ViewNode &view) override
     {
         if (building_)
             throw std::runtime_error("a prediction is made only in a tap");
+        const screens::Readings left_out = [](const ViewNode &, const std::string &, const std::string &) {
+            return std::optional<Json>();
+        };
         Json elements = Json::object();
-        if (const ViewTree *tree = Child(view, "elements"))
-            for (const ViewTree &element : tree->children)
+        if (const std::optional<ViewNode> tree = view.Field("elements"))
+            for (size_t i = 0; i < tree->Size(); ++i)
             {
-                const ComponentSpec *spec = hud_.Component(layout_, element.name);
+                const ViewNode element = (*tree)[i];
+                const std::string name(element.Name());
+                const ComponentSpec *spec = hud_.Component(layout_, name);
                 if (!spec)
-                    throw std::runtime_error("the layout scene " + layout_ + " has no element " + element.name);
-                ViewTree props = element;
-                Strip(props);
-                elements[element.name] = screens::ScriptProps(props, *spec);
+                    throw std::runtime_error("the layout scene " + layout_ + " has no element " + name);
+                elements[name] = screens::ScriptProps(element, *spec, left_out);
             }
         Json predicted = {{"elements", std::move(elements)}};
-        if (const ViewTree *sheet = Child(view, "sheet"); sheet && !sheet_part_.empty())
+        if (const std::optional<ViewNode> sheet = view.Field("sheet"); sheet && !sheet_part_.empty())
             predicted["sheet"] = screens::ScriptProps(*sheet, *hud_.Part(sheet_part_));
         predicted_ = std::move(predicted);
-    }
-    // A predicted view's readings say nothing the build's do not: the prediction marks taps.
-    static void Strip(ViewTree &node)
-    {
-        std::erase_if(node.children, [](const ViewTree &child) { return Child(child, "reading") != nullptr; });
-        for (ViewTree &child : node.children)
-            Strip(child);
     }
     void BackTo(const std::string &id) override
     {
@@ -1318,8 +1287,7 @@ class ScriptScene final : public Scene, private ScriptCall
     {
         if (!tapped_)
             throw std::runtime_error("a command the game answers is sent from a tap");
-        const auto shown = drawn_.find(tapped_->id), built = elements_.find(tapped_->id);
-        return shown != drawn_.end() && built != elements_.end() && *shown == *built;
+        return elements_.contains(tapped_->id) && !redrawn_.contains(tapped_->id);
     }
     bool Waiting(uint64_t request) const
     {
@@ -1447,9 +1415,9 @@ class ScriptScene final : public Scene, private ScriptCall
     bool choice_activated_ = false, chose_ = false;
     const States *states_ = nullptr;
     bool first_ = true, rebuild_ = false, building_ = false;
-    Json drawn_ = Json::object();   // the elements as the last frame drew them: what a tap may act on
+    std::set<std::string> redrawn_; // elements built otherwise since the last frame drew them: no tap acts on them
     const Event *tapped_ = nullptr; // the tap the script runs for
-    std::optional<ViewTree> view_;
+    bool shown_ = false;            // the running build showed its view
     mutable std::map<std::string, Json> read_; // the states the last build read: the structure it shows
     // The last build's view: the layout scene, its elements' props, where readings go, the controls and covers.
     std::string layout_;

@@ -2,6 +2,9 @@
 // and its bindings still exist. The application's pack and the touch interface's scripts over the fixture game,
 // synthetic states, no graphics context or game files.
 #include "hud_scripts.h"
+#include "../src/components.h"
+
+#include <RmlUi/Core.h>
 
 #include <fstream>
 
@@ -273,6 +276,61 @@ static void Undrawable(const std::string &app_pack)
     fs::remove_all(pack);
 }
 
+// A HUD element shows what its scene gives, compared with what the element holds: a prop changed on the element
+// meanwhile (as its own behaviour changes one) is the scene's again at the next state change, though the scene gave the
+// same value as before.
+static void SceneProps(const std::string &pack)
+{
+    auto files = DirectoryFiles(pack);
+    NoBackend backend;
+    double clock = 0.0;
+    Config config;
+    config.files = files.get();
+    config.backend = &backend;
+    config.width = 800;
+    config.height = 400;
+    config.clock = [&] { return clock; };
+    std::string error;
+    auto host = Host::Create(config, &error);
+    Expect(host != nullptr, "runtime starts: " + error);
+    if (!host)
+        return;
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
+    const auto feed = [&](const char *channel, const char *file) { Expect(host->SetState(channel, Text(file)), file); };
+    const auto frame = [&] {
+        for (int i = 0; i < 4; ++i)
+        {
+            clock += 1.0 / 60.0;
+            host->Frame();
+        }
+    };
+    feed("presentation", "presentation-game");
+    feed("gameplay", "gameplay-explore");
+    feed("combat", "combat-explore");
+    feed("vitals", "vitals");
+    feed("worldInfo", "world-info");
+    feed("contextAction", "context-door");
+    feed("landCommands", "land-commands-idle");
+    frame();
+    ComponentElement *context = nullptr;
+    for (int i = 0; Rml::Context *rml = Rml::GetContext(0); ++i)
+    {
+        if (i >= rml->GetNumDocuments())
+            break;
+        if (!context)
+            context = dynamic_cast<ComponentElement *>(rml->GetDocument(i)->GetElementById("context"));
+    }
+    Expect(context != nullptr, "the land HUD shows the context button");
+    if (!context)
+        return;
+    const Json given = context->Prop("icon");
+    Expect(given != "talk", "the scene gives the door its own icon");
+    context->SetProps(Json{{"icon", "talk"}});
+    feed("vitals", "vitals-status");
+    frame();
+    ExpectEqual(context->Prop("icon").dump(), given.dump(), "the context button shows the scene's icon again");
+}
+
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
@@ -282,6 +340,7 @@ int main(int argc, char **argv)
     ChangeScene(pack, false);
     ChangeScene(pack, true);
     Undrawable(pack);
+    SceneProps(pack);
     if (!failures)
         std::printf("HUD lifecycle checks passed\n");
     return failures ? 1 : 0;
