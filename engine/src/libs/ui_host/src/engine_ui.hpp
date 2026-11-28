@@ -16,6 +16,7 @@
 #include "storm_ui/interface_model.h"
 #include "storm_ui/ui.h"
 
+#include <algorithm>
 #include <storm/render/frame_owner.hpp>
 
 #include <SDL2/SDL.h>
@@ -92,9 +93,18 @@ class EngineUi
         if (trace_states_)
             TraceStates().debug("{} {}", channel, json);
         std::string name(channel);
+        states_[name] = json; // replayed when a new host starts
+        // A consumer may build a script screen (channel gameOver opens the death screen): a state published from
+        // inside the game's script waits for the next Tick, between scripts, as a script screen's model does.
+        if (const auto *program = scripts_.Running(); program && program->Executing())
+        {
+            if (std::find(held_states_.begin(), held_states_.end(), name) == held_states_.end())
+                held_states_.push_back(std::move(name));
+            return;
+        }
+        held_states_.erase(std::remove(held_states_.begin(), held_states_.end(), name), held_states_.end());
         if (host_)
             host_->SetState(name, json);
-        states_[name] = std::move(json); // replayed when a new host starts
     }
 
     // A HUD channel's state: only a change reaches the host; the newest of each channel is replayed to a new one.
@@ -414,6 +424,7 @@ class EngineUi
     storm::ui_scripts::VmPort port_{scripts_};
     std::vector<storm::ui::ScriptScreen> script_screens_; // of the running program (replayed to a new host)
     std::optional<storm::ui::InterfaceModel> deferred_;   // a script screen's model published inside a script
+    std::vector<std::string> held_states_;                // channels whose state was published inside a script
     std::unique_ptr<storm::ui::BgfxBackend> backend_;
     std::unique_ptr<storm::ui::Host> host_;
     std::mutex host_mutex_; // the host's lifetime against the platform thread's queries

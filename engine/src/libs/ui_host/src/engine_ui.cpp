@@ -49,6 +49,10 @@ double MonotonicMs()
 void EngineUi::Tick(uint64_t input_epoch)
 {
     ++loop_;
+    // A host that starts below gets these in the replay of states_.
+    for (const std::string &channel : std::exchange(held_states_, {}))
+        if (host_)
+            host_->SetState(channel, states_.at(channel));
     if (!host_ && !failed_)
         Start();
     if (deferred_)
