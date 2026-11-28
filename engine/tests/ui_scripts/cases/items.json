@@ -584,7 +584,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -595,7 +595,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -1207,7 +1207,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -1218,7 +1218,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -1817,7 +1817,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -1828,7 +1828,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -1839,7 +1839,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -2422,7 +2422,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -2433,7 +2433,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -2964,7 +2964,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -2975,7 +2975,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -3531,7 +3531,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -3542,7 +3542,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -4666,7 +4666,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -4677,7 +4677,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -4828,7 +4828,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -4839,7 +4839,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",

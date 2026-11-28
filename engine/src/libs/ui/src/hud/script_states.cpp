@@ -4,6 +4,7 @@
 // `readings.<name>` = 1 for each one the engine knows now.
 #include "hud.h"
 #include "../format.h"
+#include "picture_lists.hpp"
 
 #include <charconv>
 #include <cmath>
@@ -96,7 +97,7 @@ Json CombatState(const States &states)
 Json Portrait(const std::string &face, const Picture &picture, const std::string &name, int character, Hud &hud)
 {
     if (!face.empty())
-        return {{"texture", "INTERFACES/PORTRAITS/128/face_" + face}, {"uv", "0,0,1,1"}};
+        return {{"texture", storm::PortraitPicture(face)}, {"uv", "0,0,1,1"}};
     hud.Log("land HUD: " + name + " (character " + std::to_string(character) + ") has no FaceId: " +
             (picture.texture.empty() ? "the game's two.tga fallback is missing, the placeholder stays"
                                      : "the game's own figure " + picture.texture));

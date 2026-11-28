@@ -776,7 +776,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -933,7 +933,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -944,7 +944,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -955,7 +955,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -966,7 +966,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -977,7 +977,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -988,7 +988,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -999,7 +999,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",
@@ -1724,7 +1724,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -1769,7 +1769,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -1780,7 +1780,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -2656,7 +2656,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -2813,7 +2813,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -2824,7 +2824,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -2835,7 +2835,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -2846,7 +2846,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -2857,7 +2857,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -2868,7 +2868,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -2879,7 +2879,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",
@@ -3661,7 +3661,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -3850,7 +3850,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -3861,7 +3861,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -5350,7 +5350,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -5365,7 +5365,7 @@
        "id": "30",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_15"
+        "texture": "atlas:FACE128_15/face"
        },
        "meta": "<hero.rank_short> 6 · 1 200 <hero.per_month>",
        "name": "Mary Read",
@@ -5376,7 +5376,7 @@
        "id": "31",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_19"
+        "texture": "atlas:FACE128_19/face"
        },
        "meta": "<hero.rank_short> 5 · 1 000 <hero.per_month>",
        "name": "Calico Jack",
@@ -5535,7 +5535,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -5546,7 +5546,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -7185,7 +7185,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_21"
+      "texture": "atlas:FACE128_21/face"
      },
      "roles": "",
      "sub": "Ранг 9",
@@ -9101,7 +9101,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "atlas:FACE128_1/face"
      },
      "roles": "",
      "sub": "Ранг 1",
@@ -10381,7 +10381,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -10538,7 +10538,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -10549,7 +10549,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -10560,7 +10560,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -10571,7 +10571,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -10582,7 +10582,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -10593,7 +10593,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -10604,7 +10604,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",
@@ -10683,7 +10683,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -10872,7 +10872,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -10883,7 +10883,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -10894,7 +10894,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -10905,7 +10905,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -10916,7 +10916,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -10927,7 +10927,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -10938,7 +10938,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",
@@ -11754,7 +11754,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -11911,7 +11911,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -11922,7 +11922,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -11933,7 +11933,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -11944,7 +11944,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -11955,7 +11955,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -11966,7 +11966,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -11977,7 +11977,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",
@@ -12056,7 +12056,7 @@
      ],
      "portrait": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_7"
+      "texture": "atlas:FACE128_7/face"
      },
      "roles": "Captain",
      "sub": "Rank 4",
@@ -12240,7 +12240,7 @@
        "id": "1",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_7"
+        "texture": "atlas:FACE128_7/face"
        },
        "label": "Anne Bonny",
        "meta": "Captain",
@@ -12251,7 +12251,7 @@
        "id": "9",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_12"
+        "texture": "atlas:FACE128_12/face"
        },
        "label": "Jack Rackham",
        "meta": "Navigator",
@@ -12262,7 +12262,7 @@
        "id": "14",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_30"
+        "texture": "atlas:FACE128_30/face"
        },
        "label": "Maximiliane von Hohenzollern-Sigmaringen",
        "meta": "Cannoner · Treasurer · Carpenter",
@@ -12273,7 +12273,7 @@
        "id": "12",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_14"
+        "texture": "atlas:FACE128_14/face"
        },
        "label": "Israel Hands",
        "meta": "Fighter",
@@ -12284,7 +12284,7 @@
        "id": "20",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_41"
+        "texture": "atlas:FACE128_41/face"
        },
        "label": "Edward Teach",
        "meta": "Companion",
@@ -12295,7 +12295,7 @@
        "id": "2",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_3"
+        "texture": "atlas:FACE128_3/face"
        },
        "label": "Bartholomew de la Fontaine-Beaumarchais",
        "meta": "Passenger",
@@ -12306,7 +12306,7 @@
        "id": "22",
        "image": {
         "kind": "portrait",
-        "texture": "INTERFACES/PORTRAITS/128/face_25"
+        "texture": "atlas:FACE128_25/face"
        },
        "label": "Charles Vane",
        "meta": "Prisoner",

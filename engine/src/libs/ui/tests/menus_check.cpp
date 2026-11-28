@@ -759,8 +759,7 @@ static void NewGame(const std::string &models)
            "six option toggles, the port's own first");
     Expect(surface.props["hero"]["name"] == "Герой Альфа" && surface.props["hero"]["nation"] == "<menu.nation_france>",
            "hero and nation");
-    ExpectEqual(surface.props["hero"]["image"]["texture"], "INTERFACES/PORTRAITS/128/face_1",
-                "the hero's game portrait by face");
+    ExpectEqual(surface.props["hero"]["image"]["texture"], "atlas:FACE128_1/face", "the hero's game portrait by face");
     ExpectEqual(surface.props["toggles"][1]["label"], "<menu.hardcore>",
                 "the untranslated «HardcoreGame» key gets our name");
     Expect(surface.props["setup"]["text"] == "<menu.hero_type_1>" &&

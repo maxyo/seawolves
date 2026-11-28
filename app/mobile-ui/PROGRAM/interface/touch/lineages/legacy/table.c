@@ -180,7 +180,7 @@ void TouchAdpTable_State(aref ui, aref out)
 	ref opponent = &Characters[UiGameInt("npchar.index")];
 	out.opponent = GetFullName(opponent);
 	out.portrait = "";
-	if (CheckAttribute(opponent, "FaceId")) out.portrait = "INTERFACES/PORTRAITS/128/face_" + opponent.FaceId;
+	if (CheckAttribute(opponent, "FaceId")) out.portrait = "atlas:FACE128_" + opponent.FaceId + "/face";
 	out.line = TouchLegLib_Label(model, "INFO_TEXT");
 	out.stake = UiGameInt("iRate");
 	out.money = UiGameInt("iMoneyP");

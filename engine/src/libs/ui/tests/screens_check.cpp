@@ -3617,7 +3617,7 @@ static void Games(const std::string &models)
     Expect(surface.props["stats"][0]["value"] == "200" && surface.props["stats"][1]["value"] == "7 600",
            "stake and our money");
     Expect(surface.props["table"]["opponent"] == "Jacques Dubois" &&
-               surface.props["table"]["portrait"] == "INTERFACES/PORTRAITS/128/face_377" &&
+               surface.props["table"]["portrait"] == "atlas:FACE128_377/face" &&
                surface.props["table"]["bank"] == "2 400" && surface.props["table"]["coins"] == "silver",
            "the game's opponent by its own name, portrait, bank and the coins the script lays");
     const Json ours = surface.props["bottom"]["pieces"];

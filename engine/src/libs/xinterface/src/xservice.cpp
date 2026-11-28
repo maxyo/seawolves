@@ -1,6 +1,7 @@
 #include "xservice.h"
 
 #include "renderer.h"
+#include "picture_lists.hpp"
 #include "string_compare.hpp"
 #include "v_file_service.h"
 #include "platform/platform.hpp"
@@ -12,8 +13,6 @@
 
 #define ERROR_MUL 1.0f
 
-static const char *LISTS_INIFILE = "resource\\ini\\interfaces\\pictures.ini";
-static const char *LISTS_FOLDER = "resource\\ini\\interfaces\\pictures";
 
 XSERVICE::XSERVICE()
     : m_fWScale(0), m_fHScale(0), m_fWAdd(0), m_fHAdd(0)
@@ -212,27 +211,22 @@ void XSERVICE::GetTextureCutForSize(const char *pcImageListName, const FXYPOINT 
     outUV.bottom = fH;
 }
 
-// The picture lists: pictures.ini, or every ini of the folder interfaces\pictures where a game splits them.
+// The game's picture lists (picture_lists.hpp), opened.
 std::vector<std::unique_ptr<INIFILE>> XSERVICE::OpenPictureLists()
 {
-    std::vector<std::unique_ptr<INIFILE>> inis;
     std::vector<std::string> names;
-    if (fio->_FileOrDirectoryExists(LISTS_FOLDER))
-        names = fio->_GetPathsOrFilenamesByMask(LISTS_FOLDER, "*.ini", false);
-    std::ranges::sort(names);
-    for (const auto &name : names)
+    if (fio->_FileOrDirectoryExists(storm::kPictureListFolder))
+        names = fio->_GetPathsOrFilenamesByMask(storm::kPictureListFolder, "*.ini", false);
+    const auto paths = storm::PictureListPaths(std::move(names), fio->_FileOrDirectoryExists(storm::kPictureListFile));
+    if (paths.empty())
+        throw std::runtime_error(std::string("no picture lists: neither ") + storm::kPictureListFile + " nor " +
+                                 storm::kPictureListFolder);
+    std::vector<std::unique_ptr<INIFILE>> inis;
+    for (const auto &path : paths)
     {
-        const std::string path = std::string(LISTS_FOLDER) + "\\" + name;
         auto ini = fio->OpenIniFile(path.c_str());
         if (!ini)
             throw std::runtime_error("picture list " + path + " cannot be read");
-        inis.push_back(std::move(ini));
-    }
-    if (inis.empty())
-    {
-        auto ini = fio->OpenIniFile(LISTS_INIFILE);
-        if (!ini)
-            throw std::runtime_error(std::string("no picture lists: neither ") + LISTS_INIFILE + " nor " + LISTS_FOLDER);
         inis.push_back(std::move(ini));
     }
     return inis;

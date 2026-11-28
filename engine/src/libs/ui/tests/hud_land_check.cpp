@@ -707,9 +707,8 @@ static void CheckStatus()
     bench.Press("abilities");
     Expect(!mount.Has("dash"), "explore: no dash");
     const Json party = mount.shown.elements["party"]["officers"];
-    Expect(party.size() == 3 && party[0]["name"] == "Шарль де Мор" &&
-               party[0]["texture"] == "INTERFACES/PORTRAITS/128/face_201" && party[0]["uv"] == "0,0,1,1" &&
-               party[1]["texture"] == "INTERFACES/PORTRAITS/128/face_205" &&
+    Expect(party.size() == 3 && party[0]["name"] == "Шарль де Мор" && party[0]["texture"] == "atlas:FACE128_201/face" &&
+               party[0]["uv"] == "0,0,1,1" && party[1]["texture"] == "atlas:FACE128_205/face" &&
                party[1]["bars"] == Json::parse(R"([{"kind":"health","value":84},{"kind":"energy","value":70}])") &&
                party[2]["texture"] == "battle_interface/two" && party[2]["uv"] == "0,0,0.5,1" &&
                party[2]["name"] == "Офицер Бета" && party[0]["tap"] == true && party[2]["tap"] == true,

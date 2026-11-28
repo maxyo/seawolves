@@ -2,6 +2,7 @@
 #include "bi_utils.h"
 #include "../image/image.h"
 #include "../image/img_render.h"
+#include "picture_lists.hpp"
 #include "../sea/ships_list.h"
 #include "controls.h"
 #include "core.h"
@@ -836,7 +837,7 @@ void ISPYGLASS::ChangeTargetData(const char *pcShipName, const char *pcShipType,
     else
         storm::android::logChannelDefect("spyglass", "objISpyGlass.captainline is missing: no captain shown");
     if (nFace >= 0)
-        target.portrait = "INTERFACES/PORTRAITS/128/face_" + std::to_string(nFace);
+        target.portrait = storm::PortraitPicture(std::to_string(nFace));
     const int32_t skills[] = {nFencing, nCannon, nAccuracy, nNavigation, nBoarding};
     for (int i = 0; i < 5; ++i)
         target.skills[i] = skills[i];

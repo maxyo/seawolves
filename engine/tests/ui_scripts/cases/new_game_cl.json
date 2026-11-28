@@ -702,7 +702,7 @@
      "bio": false,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_201"
+      "texture": "atlas:FACE128_201/face"
      },
      "name": "xxxxx xx xxx",
      "nation": "<menu.nation_france>"
@@ -1669,7 +1669,7 @@
      "bio": false,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_201"
+      "texture": "atlas:FACE128_201/face"
      },
      "name": "xxxxx xx xxx",
      "nation": "<menu.nation_france>"

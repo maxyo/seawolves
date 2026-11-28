@@ -1,7 +1,7 @@
-// The game's picture atlases: RESOURCE/INI/interfaces/pictures.ini of the player's game
-// names every interface picture as a rectangle of a texture ("GOODS" / "Balls" →
+// The game's picture atlases: the picture lists of the player's game (picture_lists.hpp)
+// name every interface picture as a rectangle of a texture ("GOODS" / "Balls" →
 // goods.tga, 128,256,256,384). Interface models refer to pictures that way, so the UI
-// reads the same file at run time; nothing of it is bundled.
+// reads the same files at run time; nothing of them is bundled.
 #pragma once
 
 #include <string>
@@ -20,7 +20,7 @@ struct AtlasPicture
 class PictureAtlas
 {
   public:
-    // Parses the text of pictures.ini; returns the number of pictures read.
+    // Adds the pictures of one picture list (the text of an ini of picture_lists.hpp); returns the number read.
     size_t Load(std::string_view ini);
     // Group and picture names are case-insensitive, as in the engine.
     const AtlasPicture *Find(std::string_view group, std::string_view picture) const;

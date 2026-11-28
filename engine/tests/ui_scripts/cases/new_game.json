@@ -265,7 +265,7 @@
      "bio": true,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "atlas:FACE128_1/face"
      },
      "name": "Герой Альфа",
      "nation": "<menu.nation_france>"
@@ -688,7 +688,7 @@
      "bio": true,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "atlas:FACE128_1/face"
      },
      "name": "Герой Альфа",
      "nation": "<menu.nation_france>"
@@ -1083,7 +1083,7 @@
      "bio": true,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "atlas:FACE128_1/face"
      },
      "name": "Герой Альфа",
      "nation": "<menu.nation_france>"

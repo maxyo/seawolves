@@ -1,6 +1,7 @@
 #include "script_props.h"
 
 #include "../numbers.h"
+#include "picture_lists.hpp"
 #include "storm_ui/interface_model.h"
 
 #include <algorithm>
@@ -12,13 +13,13 @@ namespace storm::ui::screens
 namespace
 {
 // The unified row image {kind:"item", texture:"atlas:GROUP/Picture"} for a picture the
-// engine names by its pictures.ini group, {kind:"portrait", texture:"INTERFACES/PORTRAITS/
-// 128/face_N"} for a game portrait, {kind:"item", texture:"<name under RESOURCE/Textures>"} for any
+// engine names by its pictures.ini group, {kind:"portrait", texture:
+// storm::PortraitPicture(N)} for a game portrait, {kind:"item", texture:"<name under RESOURCE/Textures>"} for any
 // other game texture; null when the widget carries no such reference.
 Json PictureOf(const ImageRef *image)
 {
     if (image && image->kind == "portrait" && !image->image.empty())
-        return Json{{"kind", "portrait"}, {"texture", "INTERFACES/PORTRAITS/128/face_" + image->image}};
+        return Json{{"kind", "portrait"}, {"texture", storm::PortraitPicture(image->image)}};
     if (image && image->kind == "texture" && !image->image.empty())
         return Json{{"kind", "item"}, {"texture", image->image}};
     if (!image || image->kind != "atlas" || image->group.empty() || image->image.empty())

@@ -7,13 +7,15 @@
 // placeholder. A backend without a picture source (a capture without game files) keeps the
 // neutral placeholder; one line is logged.
 // texture="atlas:GOODS/Balls" names a picture the way interface models do: a group and a
-// picture of the game's own RESOURCE/INI/interfaces/pictures.ini, read at run time from
+// picture of the game's own picture lists (picture_lists.hpp), read at run time from
 // the game root (picture_atlas.h). It resolves to a texture and a rectangle; `cell` is
 // then ignored. uv="left,top,right,bottom" (0…1) shows that rectangle of a texture file
 // instead of a cell (pictures the engine names by file: maps, interlude pictures).
 // fit="contain|cover" keeps the picture's proportions (see OnRender).
 #include "elements.h"
 #include "picture_atlas.h"
+#include "picture_lists.hpp"
+#include "string_compare.hpp"
 #include "shadow_element.h"
 
 #include <RmlUi/Core/StringUtilities.h>
@@ -87,7 +89,7 @@ bool ResolvePath(const std::filesystem::path &root, const std::string &relative,
 }
 
 // Main thread only: the pictures the renderer was asked for, by texture name. One lives from a host's start to its
-// end (StartGameImages, ShutdownGameImages): the next host reads its own game's pictures.ini, nothing is kept.
+// end (StartGameImages, ShutdownGameImages): the next host reads its own game's picture lists, nothing is kept.
 class Store
 {
   public:
@@ -106,24 +108,24 @@ class Store
         return *Instance();
     }
 
-    // Resolves "GROUP/Picture" through the game's pictures.ini. False with a reason when
-    // the file or the picture is not there.
+    // Resolves "GROUP/Picture" through the game's picture lists. False with a reason when
+    // the lists or the picture are not there.
     bool Atlas(const std::string &reference, AtlasPicture &out, std::string &reason)
     {
         if (!atlas_)
         {
             atlas_ = std::make_unique<PictureAtlas>();
-            std::filesystem::path path;
-            if (!root_.empty() &&
-                ResolvePath(std::filesystem::path(root_), "RESOURCE/INI/interfaces/pictures.ini", path))
+            const std::vector<std::filesystem::path> lists = PictureLists();
+            for (const std::filesystem::path &path : lists)
             {
                 std::ifstream file(path, std::ios::binary);
                 const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                 atlas_->Load(text);
             }
-            else
-                atlas_missing_ = root_.empty() ? "no game root to read pictures.ini from"
-                                               : "no RESOURCE/INI/interfaces/pictures.ini under " + root_;
+            if (lists.empty())
+                atlas_missing_ = root_.empty() ? "no game root to read the picture lists from"
+                                               : std::string("no picture lists (") + storm::kPictureListFile + " or " +
+                                                     storm::kPictureListFolder + ") under " + root_;
         }
         const size_t slash = reference.find('/');
         const AtlasPicture *found = slash == std::string::npos
@@ -131,11 +133,35 @@ class Store
                                         : atlas_->Find(reference.substr(0, slash), reference.substr(slash + 1));
         if (!found)
         {
-            reason = !atlas_missing_.empty() ? atlas_missing_ : "pictures.ini has no picture " + reference;
+            reason = !atlas_missing_.empty() ? atlas_missing_ : "the picture lists have no picture " + reference;
             return false;
         }
         out = *found;
         return true;
+    }
+
+    // The game's picture lists under its root (picture_lists.hpp), as files.
+    std::vector<std::filesystem::path> PictureLists() const
+    {
+        std::vector<std::filesystem::path> files;
+        if (root_.empty())
+            return files;
+        const std::filesystem::path root(root_);
+        std::vector<std::string> names;
+        std::filesystem::path folder, file;
+        std::error_code error;
+        if (ResolvePath(root, storm::kPictureListFolder, folder) && std::filesystem::is_directory(folder, error))
+            for (const auto &entry : std::filesystem::directory_iterator(folder, error))
+                if (entry.is_regular_file(error) && storm::iEquals(entry.path().extension().string(), ".ini"))
+                    names.push_back(entry.path().filename().string());
+        for (const std::string &path :
+             storm::PictureListPaths(std::move(names), ResolvePath(root, storm::kPictureListFile, file)))
+        {
+            std::filesystem::path resolved;
+            if (ResolvePath(root, path, resolved))
+                files.push_back(resolved);
+        }
+        return files;
     }
 
     bool HasRoot() const

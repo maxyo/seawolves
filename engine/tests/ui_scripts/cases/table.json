@@ -565,7 +565,7 @@
      "coins": "silver",
      "line": "Решай, какие кости бросить ещё раз.",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.dice>",
     "top": {
@@ -1215,7 +1215,7 @@
      "coins": "silver",
      "line": "Фул бьёт две пары. Ещё партию?",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.dice>",
     "top": {
@@ -1847,7 +1847,7 @@
      "coins": "silver",
      "line": "Денег на ставку больше нет, игра окончена.",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.dice>",
     "top": {
@@ -2335,7 +2335,7 @@
      "coins": "gold",
      "line": "Твой ход, бери карту.",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.cards>",
     "top": {
@@ -2723,7 +2723,7 @@
      "coins": "gold",
      "line": "Теперь моя очередь брать.",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.cards>",
     "top": {
@@ -3106,7 +3106,7 @@
      "coins": "gold",
      "line": "У меня двадцать, у тебя девятнадцать. Повторим?",
      "opponent": "Jacques Dubois",
-     "portrait": "INTERFACES/PORTRAITS/128/face_377"
+     "portrait": "atlas:FACE128_377/face"
     },
     "title": "<games.cards>",
     "top": {

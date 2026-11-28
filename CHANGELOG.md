@@ -265,6 +265,9 @@
   предпросмотра графики игры, «Готово» сохраняет её кнопкой предпросмотра.
 - Caribbean Legend: обучение и сообщения игры — страница текста во весь экран с прокруткой, её «Ок» внизу и стрелкой
   назад; абзацы игры видны пустыми строками, а не значками «~», переносы строк игры сохранены.
+- Caribbean Legend: портреты и картинки игры на сенсорных экранах (герой новой игры, отряд на HUD, подзорная труба,
+  игры за столом) берутся из её списков картинок — папки списков, как у самой игры, а не одного файла, которого в ней
+  нет.
 
 **English**
 
@@ -534,6 +537,9 @@
   game's picture preview; «Done» keeps it with the preview's own button.
 - Caribbean Legend: the game's lessons and messages — a full-screen page of text that scrolls, its «OK» in the bar and
   on the back arrow; the game's paragraphs show as empty lines instead of «~» marks, its line breaks are kept.
+- Caribbean Legend: the game's portraits and pictures on the touch screens (the new game's hero, the party on the HUD,
+  the spyglass, the table games) come from its picture lists — the folder of lists, as the game reads them, not one
+  file it does not have.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

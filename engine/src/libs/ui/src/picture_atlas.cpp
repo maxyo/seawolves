@@ -46,7 +46,7 @@ std::string TextureOf(std::string name)
 
 size_t PictureAtlas::Load(std::string_view ini)
 {
-    pictures_.clear();
+    const size_t before = pictures_.size();
     std::string group, texture;
     float width = 0.0f, height = 0.0f;
     size_t at = 0;
@@ -108,7 +108,7 @@ size_t PictureAtlas::Load(std::string_view ini)
                 pictures_.emplace(group + "/" + Upper(fields[0]), std::move(picture));
         }
     }
-    return pictures_.size();
+    return pictures_.size() - before;
 }
 
 const AtlasPicture *PictureAtlas::Find(std::string_view group, std::string_view picture) const
