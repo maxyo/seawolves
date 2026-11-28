@@ -69,13 +69,7 @@ void TouchAdpTradebook_State(aref ui, aref out)
 		row = TouchLib_Item(model, "TABLE_GOODS.rows", k);
 		aref at = TouchLib_Add(goods, "g");
 		at.label = TouchLegLib_Cell(row, 0);
-		if (CheckAttribute(row, "cells.c0.images.i0"))
-		{
-			aref image, from;
-			makearef(image, at.image);
-			makearef(from, row.cells.c0.images.i0);
-			CopyAttributes(image, from);
-		}
+		TouchLib_Copy(at, "image", row, "cells.c0.images.i0");
 		at.tag = "";
 		if (CheckAttribute(row, "cells.c1.images.i0"))
 		{

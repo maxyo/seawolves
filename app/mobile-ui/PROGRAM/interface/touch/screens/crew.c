@@ -136,11 +136,9 @@ void TouchCrew_Column(aref list, string label, string icon)
 
 void TouchCrew_Quality(aref game, string side, aref view)
 {
+	TouchLib_Copy(view, side, game, side);
 	aref at;
 	makearef(at, view.(side));
-	aref from;
-	makearef(from, game.(side));
-	CopyAttributes(at, from);
 	at.moraleLabel = UiText("ship.morale");
 	if (!CheckAttribute(at, "groups")) at.groups = "";
 }
@@ -150,11 +148,9 @@ void TouchCrew_Primary(aref game, aref deal, aref view)
 {
 	view.primary = "";
 	if (!CheckAttribute(deal, "button")) return;
+	TouchLib_Copy(view, "primary", deal, "button");
 	aref primary;
 	makearef(primary, view.primary);
-	aref made;
-	makearef(made, deal.button);
-	CopyAttributes(primary, made);
 	primary.sub = "";
 	if (sti(game.cost) > 0) primary.sub = TouchLib_Thousands(sti(game.cost));
 }

@@ -59,12 +59,10 @@ void TouchAdpAlchemy_State(aref ui, aref out)
 	aref shownRow = TouchLib_Item(out, "recipes", shownAt);
 	object chosen = {key = shown, label = shownRow.label, yield = sti(item.multiobject.qty),
 	                 text = TouchLegLib_StockText(GetConvertStr(item.describe, "ItemsDescribe.txt"))};
-	aref to, picture, from;
+	aref to;
 	makearef(to, out.recipe);
 	CopyAttributes(to, &chosen);
-	makearef(picture, out.recipe.image);
-	makearef(from, shownRow.image);
-	CopyAttributes(picture, from);
+	TouchLib_Copy(out, "recipe.image", shownRow, "image");
 	// The components as AddToTable lists them: what the hero carries and what lies in the pot.
 	ref hero = GetMainCharacter();
 	aref pot, components, parts;

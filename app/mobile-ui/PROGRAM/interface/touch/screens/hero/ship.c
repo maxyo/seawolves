@@ -71,13 +71,7 @@ void TouchShip_Card(aref game, aref view)
 	card.captain = UiText("ship.captain") + " " + ship.captain;
 	if (sti(ship.companion)) card.captain = card.captain + " · " + UiText("ship.companion");
 	card.rename = ship.rename;
-	if (CheckAttribute(ship, "image"))
-	{
-		aref image, from;
-		makearef(image, card.image);
-		makearef(from, ship.image);
-		CopyAttributes(image, from);
-	}
+	TouchLib_Copy(card, "image", ship, "image");
 	string part;
 	for (int p = 0; p < 2; p++)
 	{
@@ -160,19 +154,13 @@ void TouchShip_Crew(aref game, aref view)
 		crew.limits = UiText("common.of") + " " + full + " · " + UiText("ship.min_short") + " " + game.crew.least;
 		crew.value = TouchShip_Percent(sti(game.crew.count), full);
 		crew.mark = TouchShip_Percent(sti(game.crew.least), full);
-		aref groups, from;
-		makearef(groups, crew.groups);
-		makearef(from, game.quality.groups);
-		CopyAttributes(groups, from);
+		TouchLib_Copy(crew, "groups", game, "quality.groups");
 		crew.moraleLabel = UiText("ship.morale");
 		crew.morale = game.quality.morale;
 		crew.moraleWord = game.quality.moraleWord;
 	}
 	else view.empty = UiText("ship.no_ship");
-	aref facts, gameFacts;
-	makearef(facts, view.facts);
-	makearef(gameFacts, game.facts);
-	CopyAttributes(facts, gameFacts);
+	TouchLib_Copy(view, "facts", game, "facts");
 	aref actions, from2;
 	makearef(actions, view.crewActions);
 	if (CheckAttribute(game, "shares"))
@@ -205,13 +193,7 @@ void TouchShip_Open(aref game, aref rows)
 	row.id = "open";
 	row.name = held.label;
 	row.meta = held.meta;
-	if (CheckAttribute(held, "image"))
-	{
-		aref image, from;
-		makearef(image, row.image);
-		makearef(from, held.image);
-		CopyAttributes(image, from);
-	}
+	TouchLib_Copy(row, "image", held, "image");
 	row.cells.c0 = total;
 	row.cells.c1 = held.weight;
 	row.selected = true;
@@ -247,13 +229,7 @@ void TouchShip_Cargo(aref game, aref view)
 				aref to;
 				makearef(to, TouchShip.held);
 				CopyAttributes(to, &held);
-				if (CheckAttribute(good, "image"))
-				{
-					aref image, from;
-					makearef(image, TouchShip.held.image);
-					makearef(from, good.image);
-					CopyAttributes(image, from);
-				}
+				TouchLib_Copy(&TouchShip, "held.image", good, "image");
 				aref capacity = TouchShip_Figure(game, "capacity");
 				if (CheckAttribute(capacity, "now")) TouchShip.held.capacity = capacity.now;
 			}
@@ -288,13 +264,7 @@ void TouchShip_Cargo(aref game, aref view)
 		row.id = GetAttributesNum(rows) - 1;
 		row.name = good.label;
 		row.meta = TouchShip_Pack(game, good);
-		if (CheckAttribute(good, "image"))
-		{
-			aref picture, source;
-			makearef(picture, row.image);
-			makearef(source, good.image);
-			CopyAttributes(picture, source);
-		}
+		TouchLib_Copy(row, "image", good, "image");
 		row.cells.c0 = good.count;
 		row.cells.c1 = good.weight;
 		row.disabled = !open && !sti(good.can);
@@ -439,13 +409,7 @@ void TouchShip_Sheet(aref game, aref view)
 		aref row = TouchLib_Add(rows, "r");
 		row.cells.c0.text = calibre.label;
 		row.cells.c0.sub = calibre.sub;
-		if (CheckAttribute(calibre, "image"))
-		{
-			aref image, from;
-			makearef(image, row.cells.c0.image);
-			makearef(from, calibre.image);
-			CopyAttributes(image, from);
-		}
+		TouchLib_Copy(row, "cells.c0.image", calibre, "image");
 		row.cells.c1 = calibre.count;
 		row.selected = calibre.selected;
 	}

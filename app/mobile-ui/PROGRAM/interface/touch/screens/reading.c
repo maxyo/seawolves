@@ -128,13 +128,7 @@ void TouchReading_Build()
 	if (ui.look.mode == "frame")
 	{
 		TouchReading.text = TouchReading_Joined(&game, TouchLib_Newline());
-		if (CheckAttribute(&game, "picture"))
-		{
-			aref picture, shown;
-			makearef(picture, game.picture);
-			makearef(shown, TouchReading.picture);
-			CopyAttributes(shown, picture);
-		}
+		TouchLib_Copy(&TouchReading, "picture", &game, "picture");
 		// The interlude ends by itself; a tap ends it early the game's way.
 		UiOn("frame", "");
 	}

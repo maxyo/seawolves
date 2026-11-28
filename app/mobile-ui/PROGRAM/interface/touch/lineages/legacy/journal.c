@@ -194,13 +194,7 @@ void TouchLegJournal_Table(aref ui, aref model, aref spec, aref tables)
 		{
 			cell = "c" + c;
 			at.cells.(cell).text = TouchLib_Trim(TouchLegLib_Cell(row, c));
-			if (CheckAttribute(row, "cells." + cell + ".images.i0"))
-			{
-				aref image, from;
-				makearef(image, at.cells.(cell).image);
-				makearef(from, row.cells.(cell).images.i0);
-				CopyAttributes(image, from);
-			}
+			TouchLib_Copy(at, "cells." + cell + ".image", row, "cells." + cell + ".images.i0");
 		}
 	}
 }

@@ -215,11 +215,7 @@ void TouchTrade_Row(aref game, aref look, aref captions, aref deal, aref row, ar
 	int k = sti(row.k);
 	at.id = k;
 	at.name = row.name;
-	aref image;
-	makearef(image, at.image);
-	aref from;
-	makearef(from, row.image);
-	CopyAttributes(image, from);
+	TouchLib_Copy(at, "image", row, "image");
 	at.meta = "";
 	at.metaTone = "";
 	if (CheckAttribute(row, "type"))

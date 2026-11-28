@@ -52,6 +52,16 @@ int TouchLib_TapIndex(string value, int count, string what)
 	return k;
 }
 
+// `from`'s `fromPath` copied whole to `to`'s `toPath`; nothing is written without it (a picture the entry has none of).
+void TouchLib_Copy(aref to, string toPath, aref from, string fromPath)
+{
+	if (!CheckAttribute(from, fromPath)) return;
+	aref target, source;
+	makearef(target, to.(toPath));
+	makearef(source, from.(fromPath));
+	CopyAttributes(target, source);
+}
+
 // A column of a list head, sortable: `sort` is the screen's {by (the column, -1 none), descending}.
 void TouchLib_Column(aref list, string label, string icon, string iconTone, aref order)
 {

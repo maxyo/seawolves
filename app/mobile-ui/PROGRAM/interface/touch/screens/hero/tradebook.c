@@ -71,13 +71,7 @@ void TouchTradebook_Prices(aref game, aref view)
 		aref goods = TouchLib_Item(game, "goods", n);
 		aref row = TouchLib_Add(prices, "r");
 		row.cells.c0.text = goods.label;
-		if (CheckAttribute(goods, "image"))
-		{
-			aref image, from;
-			makearef(image, row.cells.c0.image);
-			makearef(from, goods.image);
-			CopyAttributes(image, from);
-		}
+		TouchLib_Copy(row, "cells.c0.image", goods, "image");
 		if (goods.tag != "") row.cells.c0.tag = goods.tag;
 		row.cells.c1 = goods.sell;
 		row.cells.c2 = goods.buy;

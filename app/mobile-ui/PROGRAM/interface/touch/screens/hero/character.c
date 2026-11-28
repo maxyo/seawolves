@@ -87,10 +87,7 @@ void TouchCharacter_Card(aref game, aref view)
 		aref person = TouchLib_Item(game, "people", sti(game.shown));
 		card.roles = person.meta;
 	}
-	aref picture, portrait;
-	makearef(portrait, card.portrait);
-	makearef(picture, from.portrait);
-	CopyAttributes(portrait, picture);
+	TouchLib_Copy(card, "portrait", from, "portrait");
 	aref bar, figure;
 	makearef(bar, card.health);
 	makearef(figure, from.health);
@@ -526,10 +523,7 @@ void TouchCharacter_Officers(aref game, aref view)
 			at.id = post.slot;
 			at.name = post.label;
 			at.meta = post.role;
-			aref image, from;
-			makearef(image, at.image);
-			makearef(from, post.image);
-			CopyAttributes(image, from);
+			TouchLib_Copy(at, "image", post, "image");
 			at.selected = selected;
 		}
 		else
@@ -550,9 +544,7 @@ void TouchCharacter_Officers(aref game, aref view)
 		at = TouchLib_Add(passengers, "p");
 		at.name = passenger.label;
 		at.meta = UiText("hero.rank_short") + " " + passenger.rank;
-		makearef(image, at.image);
-		makearef(from, passenger.image);
-		CopyAttributes(image, from);
+		TouchLib_Copy(at, "image", passenger, "image");
 	}
 	view.passengersCount = "";
 	if (count > 0) view.passengersCount = count;
@@ -652,10 +644,7 @@ void TouchCharacter_Dialog(aref ui, aref game, aref view)
 			if (sti(candidate.salary) > 0)
 				at.meta = at.meta + " · " + TouchLib_Thousands(sti(candidate.salary)) + " " + UiText("hero.per_month");
 			at.value = candidate.skill + " " + candidate.skillValue;
-			aref image, from;
-			makearef(image, at.image);
-			makearef(from, candidate.image);
-			CopyAttributes(image, from);
+			TouchLib_Copy(at, "image", candidate, "image");
 			at.busy = candidate.busy;
 			UiOn("candidate-" + k, "");
 		}

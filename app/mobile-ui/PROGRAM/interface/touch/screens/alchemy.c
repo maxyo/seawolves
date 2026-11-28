@@ -35,10 +35,7 @@ void TouchAlchemy_Recipes(aref game, aref view)
 		aref at = TouchLib_Add(rows, "r");
 		at.id = recipe.key;
 		at.name = recipe.label;
-		aref image, from;
-		makearef(image, at.image);
-		makearef(from, recipe.image);
-		CopyAttributes(image, from);
+		TouchLib_Copy(at, "image", recipe, "image");
 		at.meta = "";
 		if (recipe.kind != "") at.meta = UiText(recipe.kind);
 		at.selected = sti(recipe.selected);
@@ -64,10 +61,7 @@ void TouchAlchemy_Parts(aref game, aref view)
 		aref at = TouchLib_Add(rows, "p");
 		at.id = part.key;
 		at.name = part.label;
-		aref image, from;
-		makearef(image, at.image);
-		makearef(from, part.image);
-		CopyAttributes(image, from);
+		TouchLib_Copy(at, "image", part, "image");
 		at.meta = "";
 		if (sti(part.catalyst)) at.meta = UiText("alchemy.catalyst");
 		if (sti(part.have) > 0) at.cells.c0 = part.have;
@@ -112,10 +106,7 @@ void TouchAlchemy_Build()
 		view.recipe.title = game.recipe.label;
 		view.recipe.sub = "× " + game.recipe.yield + " " + UiText("alchemy.yield") + " · " +
 		                  TouchAdpAlchemy_Minutes(ui, minutes) + " " + UiText("alchemy.minutes");
-		aref image, from;
-		makearef(image, view.recipe.image);
-		makearef(from, game.recipe.image);
-		CopyAttributes(image, from);
+		TouchLib_Copy(view, "recipe.image", game, "recipe.image");
 		view.recipe.info = game.recipe.text != "";
 	}
 	TouchAlchemy_Parts(game, view);
