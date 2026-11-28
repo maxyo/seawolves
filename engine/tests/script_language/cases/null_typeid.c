@@ -80,3 +80,36 @@ int fail_index_an_unbound_local_reference()
 	int value = local[at];
 	return 0;
 }
+
+ref unboundRows[2];
+
+// expect-runtime-error: assignment through a reference bound to nothing
+int fail_assign_to_an_unbound_element_of_a_global_ref_array()
+{
+	unboundRows[0] = 5;
+	return 0;
+}
+
+// expect-runtime-error: assignment through a reference bound to nothing
+int fail_assign_to_an_unbound_element_of_a_local_ref_array()
+{
+	ref rows[2];
+	rows[1] = "text";
+	return 0;
+}
+
+// expect-runtime-error: assignment through a reference bound to nothing
+int fail_assign_to_an_unbound_element_of_a_new_ref_array()
+{
+	ref rows = new ref[2];
+	rows[0] = 1.5;
+	return 0;
+}
+
+// expect-runtime-error: call through a reference bound to nothing
+int fail_call_through_an_unbound_reference()
+{
+	ref name;
+	call name();
+	return 0;
+}

@@ -79,6 +79,24 @@ inline const char *typeName(uint32_t type)
     }
 }
 
+// The value types a state holds.
+inline bool knownType(uint32_t type)
+{
+    switch (type)
+    {
+    case VAR_INTEGER:
+    case VAR_FLOAT:
+    case VAR_STRING:
+    case VAR_OBJECT:
+    case VAR_REFERENCE:
+    case VAR_AREFERENCE:
+    case VAR_PTR:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // A bounds-checked cursor over the state bytes. A read past the end fails and leaves the value.
 class StateReader
 {
@@ -320,6 +338,9 @@ inline bool parseVariables(StateReader &in, std::vector<SavedVariable> &variable
         const auto where = [&] { return "variable #" + std::to_string(n) + " '" + variable.name + "': "; };
         if (!in.Raw(variable.type) || !in.Raw(variable.elements))
             return detail::fail(error, where() + "truncated header", in);
+        // Checked here also for an array of no elements, whose type no value reads.
+        if (!knownType(variable.type))
+            return detail::fail(error, where() + "unknown value type " + std::to_string(variable.type), in);
         if (variable.elements > in.Remaining())
             return detail::fail(error, where() + std::to_string(variable.elements) + " elements", in);
         variable.values = in.Position();
@@ -423,14 +444,6 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
             if (variable.elements != value->GetArraySize())
             {
                 value->SetElementsNum(variable.elements);
-                if (value->GetArraySize() != variable.elements)
-                {
-                    // An array of refs cannot be resized (DATA::SetElementsNum follows the reference).
-                    report("Load: array '" + variable.name + "' of " + std::to_string(value->GetArraySize()) +
-                           " elements cannot take its saved " + std::to_string(variable.elements) +
-                           "; its saved value is left");
-                    continue;
-                }
                 table.SetElementsNum(code, variable.elements);
             }
         }

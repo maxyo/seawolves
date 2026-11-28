@@ -5332,6 +5332,11 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                 }
             }
             pVV = pVV->GetVarPointer();
+            if (!pVV)
+            {
+                SetError("call through a reference bound to nothing");
+                return false;
+            }
             if (pVV->GetType() != VAR_STRING && pVV->GetType() != VAR_FREF)
             {
                 SetError("string call argument isnt string var");
@@ -5978,6 +5983,11 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             DATA *pVTTSrc;
             DATA *pVTTDst;
             pVTTDst = pVDst->GetVarPointer();
+            if (!pVTTDst)
+            {
+                SetError("assignment through a reference bound to nothing");
+                return false;
+            }
             if (pVSrc->GetType() == VAR_REFERENCE && pVSrc->IsNull())
             {
                 // nullptr, a reference to nothing: an aref or fref holds it as empty, no other variable can

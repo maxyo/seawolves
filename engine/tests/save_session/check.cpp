@@ -62,6 +62,47 @@ int Bump()
 	return gCounter;
 }
 
+ref gRows[];
+ref gRowsAlias[];
+ref gCell;
+ref gChain;
+
+int MakeArrays()
+{
+	@gRows = 2;
+	@gRowsAlias = 2;
+	for (int i = 0; i < 2; i++)
+	{
+		gRows[i] = new string[3];
+		gRows[i][2] = "row" + i;
+		gRowsAlias[i] = gRows[i];
+	}
+	ref row = gRows[1];
+	ref cell = row[2];
+	gCell = cell;
+	ref outer = new ref[1];
+	ref inner = new int[2];
+	inner[1] = 77;
+	outer[0] = inner;
+	gChain = outer;
+	return 1;
+}
+
+int CheckArrays()
+{
+	int found = 0;
+	if (@gRows == 2 && gRows[1][2] == "row1") found = found + 1;
+	gRows[0][2] = "changed";
+	if (gRowsAlias[0][2] == "changed") found = found + 2;
+	if (gCell == "row1") found = found + 4;
+	gRows[1][2] = "again";
+	if (gCell == "again") found = found + 8;
+	ref outer = gChain;
+	ref inner = outer[0];
+	if (inner[1] == 77) found = found + 16;
+	return found;
+}
+
 int Spin()
 {
 	while (true)
@@ -401,6 +442,28 @@ TEST_CASE("a save of this program loads")
     REQUIRE(Load());
     REQUIRE(game.Run("Bump") == 8);
     REQUIRE(game.compiler.BC_SegmentIsLoaded("main.c"));
+}
+
+TEST_CASE("arrays made by new come back from a save as the references left them")
+{
+    Game game;
+    REQUIRE(game.Run("MakeArrays") == 1);
+    REQUIRE(game.Run("CheckArrays") == 31); // the program itself, before any save
+    REQUIRE(game.Run("MakeArrays") == 1);
+    REQUIRE(Save(Description(12)));
+    // The arrays the saved references reach, each once: the two rows, the outer and the inner array; not the first
+    // call's, which no reference reaches any more.
+    Bytes raw;
+    std::string error;
+    REQUIRE(storm::save::readState(File(SlotFile()), raw, error));
+    storm::save::ParsedState state;
+    REQUIRE(storm::save::parseState(raw.data(), raw.size(), state, error));
+    CHECK(std::ranges::count_if(state.variables, [](const auto &v) { return v.name.starts_with('#'); }) == 4);
+    REQUIRE(Load());
+    // all of it: the rows, one array behind both of their references, a reference to an element, an array reached only
+    // through another new array
+    CHECK(game.Run("CheckArrays") == 31);
+    CHECK(game.diagnostics.empty());
 }
 
 TEST_CASE("a save the running program cannot take is refused with the game still running")

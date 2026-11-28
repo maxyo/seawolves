@@ -478,6 +478,62 @@ void newArraysAndRunTimeSizes()
     require(emptied.IsArray() && emptied.GetArraySize() == 0, "an emptied array did not stay empty");
 }
 
+// A state from elsewhere: an array of no elements still has a known type; a "#new" entry out of order and a reference
+// to a new array the state does not have are reported and left, the rest loads.
+void untrustedNewArrays()
+{
+    {
+        COMPILER game;
+        storm::save::StateWriter out(game);
+        storm::save::writeHead(out, "PROGRAM\\", game.SCodec, "seadogs.c", 1);
+        out.string("#new 0");
+        const uint32_t header[2] = {99, 0};
+        out.data(header, sizeof(header));
+        const std::vector<char> image = out.take();
+        storm::save::ParsedState state;
+        std::string error;
+        require(!storm::save::parseState(image.data(), image.size(), state, error) &&
+                    error.find("unknown value type 99") != std::string::npos,
+                "an empty array of an unknown type parsed: " + error);
+    }
+    std::vector<char> image;
+    {
+        COMPILER game;
+        DATA &rows = game.add("rRows", VAR_REFERENCE, 2);
+        game.add("iAfter", VAR_INTEGER).Set(static_cast<int32_t>(5));
+        for (uint32_t n = 0; n < 2; ++n)
+        {
+            DATA &row = game.newArrays.emplace_back();
+            row.SetVCompiler(&game);
+            row.SetType(VAR_INTEGER);
+            row.SetArraySize(1);
+            rows.GetArrayElement(n)->SetReference(&row);
+        }
+        image = game.save();
+    }
+    const auto replace = [](std::vector<char> bytes, const std::string &from, const std::string &to) {
+        const auto at = std::search(bytes.begin(), bytes.end(), from.begin(), from.end());
+        require(at != bytes.end(), "fixture: '" + from + "' is not in the state");
+        std::copy(to.begin(), to.end(), at);
+        return bytes;
+    };
+    const auto load = [](const std::vector<char> &bytes, const char *problem) {
+        COMPILER loaded;
+        DATA &rows = loaded.add("rRows", VAR_REFERENCE, 2);
+        DATA &after = loaded.add("iAfter", VAR_INTEGER);
+        loaded.load(bytes);
+        require(reported(loaded, problem), std::string("not reported: ") + problem);
+        require(integer(after) == 5, "a variable after the damaged entry was lost");
+        return rows.GetArrayElement(1)->GetReference() != nullptr;
+    };
+    require(!load(replace(image, "#new 1", "#new 7"), "is no saved new array"),
+            "a reference to a new array saved out of order was bound");
+    const char place1[] = {char(0xff), 1, 0, 0, 0x40};
+    const char place9[] = {char(0xff), 9, 0, 0, 0x40};
+    require(!load(replace(image, std::string(place1, 5), std::string(place9, 5)), "names variable #"),
+            "a reference to a new array the state does not have was bound");
+}
+
 // The layout the original engine's saves have: a compact number is one byte below 0xfe, 0xfe and a 16-bit number below
 // 0xffff, else 0xff and a 32-bit one; a variable is its type and element count, at least 1 (an unset reference too).
 void compactLayout()
@@ -512,6 +568,7 @@ int main()
     rootAttributeReference();
     damagedStates();
     newArraysAndRunTimeSizes();
+    untrustedNewArrays();
     std::cout << "PASS: a state is parsed whole before it is applied; drifted scalars and elements, resized arrays, "
                  "references into them and variables the program cannot take load without desynchronising the rest\n";
 }
