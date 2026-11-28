@@ -9,6 +9,10 @@
 
 class CXI_TABLE;
 struct MobileWidget;
+namespace storm::ui
+{
+struct Action;
+}
 class XI_TableLineDescribe;
 
 class XI_TableCellDescribe
