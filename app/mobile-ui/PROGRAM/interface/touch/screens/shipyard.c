@@ -12,9 +12,6 @@
 object TouchShipyard;
 object TouchShipyard_View;
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchShipyard_Wait = 0.5;
-
 void TouchShipyard_Build()
 {
 	aref ui = GetEventData();
@@ -385,19 +382,19 @@ void TouchShipyard_Tap()
 	{
 		if (open) TouchAdpShipyard_Close(ui);
 		else TouchAdpShipyard_Leave(ui);
-		if (open) UiHold(TouchShipyard_Wait);
+		if (open) UiHold();
 		return;
 	}
-	if (id == "sheet-ok") { TouchAdpShipyard_Ok(ui); UiHold(TouchShipyard_Wait); return; }
-	if (id == "sheet-cancel" || id == "sheet-close") { TouchAdpShipyard_Close(ui); UiHold(TouchShipyard_Wait); return; }
-	if (id == "sheet-all") { TouchAdpShipyard_RepairAll(ui); UiHold(TouchShipyard_Wait); return; }
+	if (id == "sheet-ok") { TouchAdpShipyard_Ok(ui); UiHold(); return; }
+	if (id == "sheet-cancel" || id == "sheet-close") { TouchAdpShipyard_Close(ui); UiHold(); return; }
+	if (id == "sheet-all") { TouchAdpShipyard_RepairAll(ui); UiHold(); return; }
 	if (id == "repair" || id == "guns" || id == "sell")
 	{
 		TouchAdpShipyard_Deal(ui, id);
-		UiHold(TouchShipyard_Wait);
+		UiHold();
 		return;
 	}
-	if (id == "primary") { TouchAdpShipyard_Deal(ui, "buy"); UiHold(TouchShipyard_Wait); return; }
+	if (id == "primary") { TouchAdpShipyard_Deal(ui, "buy"); UiHold(); return; }
 	if (id == "hull" || id == "sails")
 	{
 		int part = 0;
@@ -406,7 +403,7 @@ void TouchShipyard_Tap()
 		int amount = UiAmount(value, "the part's amount");
 		if (amount == sti(at.amount)) { UiRebuild(); return; }
 		TouchAdpShipyard_Repair(ui, part, amount);
-		UiHold(TouchShipyard_Wait);
+		UiHold();
 		return;
 	}
 	int k;
@@ -416,7 +413,7 @@ void TouchShipyard_Tap()
 		aref ship = TouchLib_Item(game, "fleet", k);
 		if (sti(ship.selected)) return;
 		TouchAdpShipyard_Fleet(ui, k);
-		UiHold(TouchShipyard_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "offer-"))
@@ -425,7 +422,7 @@ void TouchShipyard_Tap()
 		aref offer = TouchLib_Item(game, "offers", k);
 		if (sti(offer.selected)) return;
 		TouchAdpShipyard_Offer(ui, k);
-		UiHold(TouchShipyard_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
@@ -435,7 +432,7 @@ void TouchShipyard_Tap()
 		aref person = TouchLib_Item(game, "window.candidates", k);
 		if (sti(person.selected)) return;
 		TouchAdpShipyard_Candidate(ui, k);
-		UiHold(TouchShipyard_Wait);
+		UiHold();
 		return;
 	}
 	UiError("shipyard: no tap of " + id);

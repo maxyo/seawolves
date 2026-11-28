@@ -13,9 +13,6 @@
 object TouchTransfer;
 object TouchTransfer_View;
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchTransfer_Wait = 0.5;
-
 void TouchTransfer_Build()
 {
 	aref ui = GetEventData();
@@ -588,11 +585,11 @@ void TouchTransfer_Tap()
 	makearef(game, TouchTransfer.game);
 	if (id == "header-back") { TouchTransfer_Back(ui, game); return; }
 	if (id == "header") { TouchTransfer_TabTap(ui, game, value); return; }
-	if (id == "primary") { TouchAdpTransfer_TakeAll(ui); UiHold(TouchTransfer_Wait); return; }
+	if (id == "primary") { TouchAdpTransfer_TakeAll(ui); UiHold(); return; }
 	if (TouchLib_Action(id) >= 0)
 	{
 		TouchAdpTransfer_Press(ui, TouchLib_Action(id));
-		UiHold(TouchTransfer_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "answer-"))
@@ -603,7 +600,7 @@ void TouchTransfer_Tap()
 		// A held answer is the end of a long press, through which the game may not run: the window it answers
 		// closes with the game's answer, nothing of it is kept.
 		aref action = TouchLib_Item(&TouchTransfer_View, "modal.actions", answer);
-		if (!sti(action.hold)) UiHold(TouchTransfer_Wait);
+		if (!sti(action.hold)) UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
@@ -613,17 +610,17 @@ void TouchTransfer_Tap()
 		aref chosen = TouchLib_Item(game, "captains.people", person);
 		if (sti(chosen.selected)) return;
 		TouchAdpTransfer_Pick(ui, person);
-		UiHold(TouchTransfer_Wait);
+		UiHold();
 		return;
 	}
-	if (id == "sheet-ok") { TouchAdpTransfer_Appoint(ui); UiHold(TouchTransfer_Wait); return; }
-	if (id == "sheet-close") { TouchAdpTransfer_Dismiss(ui); UiHold(TouchTransfer_Wait); return; }
-	if (id == "hire") { TouchAdpTransfer_Hire(ui, UiAmount(value, "the defectors")); UiHold(TouchTransfer_Wait); return; }
+	if (id == "sheet-ok") { TouchAdpTransfer_Appoint(ui); UiHold(); return; }
+	if (id == "sheet-close") { TouchAdpTransfer_Dismiss(ui); UiHold(); return; }
+	if (id == "hire") { TouchAdpTransfer_Hire(ui, UiAmount(value, "the defectors")); UiHold(); return; }
 	if (id == "crew")
 	{
 		if (verb == "row") return;
 		TouchAdpTransfer_Men(ui, UiAmount(value, "our crew"));
-		UiHold(TouchTransfer_Wait);
+		UiHold();
 		return;
 	}
 	if (id != "goods") UiError("transfer: no tap of " + id);
@@ -632,7 +629,7 @@ void TouchTransfer_Tap()
 	{
 		if (open < 0) UiError("transfer: an amount is set with no cargo row selected");
 		TouchAdpTransfer_Move(ui, open, UiAmount(value, "the cargo amount"));
-		UiHold(TouchTransfer_Wait);
+		UiHold();
 		return;
 	}
 	int k = TouchLib_TapIndex(value, TouchLib_Count(game, "cargo.rows"), "the cargo row");
@@ -644,7 +641,7 @@ void TouchTransfer_Tap()
 		if ((k == open && !arrowless) || !sti(row.can)) return;
 		TouchAdpTransfer_Select(ui, k);
 	}
-	UiHold(TouchTransfer_Wait);
+	UiHold();
 }
 
 // Back answers the game's question by its way out, puts away the captains or the crew, else leaves.
@@ -657,11 +654,11 @@ void TouchTransfer_Back(aref ui, aref game)
 		int out = TouchTransfer_WayOut(question);
 		if (out < 0) return;
 		TouchAdpTransfer_Answer(ui, out);
-		UiHold(TouchTransfer_Wait);
+		UiHold();
 		return;
 	}
-	if (CheckAttribute(game, "captains")) { TouchAdpTransfer_Dismiss(ui); UiHold(TouchTransfer_Wait); return; }
-	if (CheckAttribute(game, "crew")) { TouchAdpTransfer_Crew(ui, false); UiHold(TouchTransfer_Wait); return; }
+	if (CheckAttribute(game, "captains")) { TouchAdpTransfer_Dismiss(ui); UiHold(); return; }
+	if (CheckAttribute(game, "crew")) { TouchAdpTransfer_Crew(ui, false); UiHold(); return; }
 	TouchAdpTransfer_Leave(ui);
 }
 
@@ -676,7 +673,7 @@ void TouchTransfer_TabTap(aref ui, aref game, string value)
 	string id = tab.id;
 	bool crew = CheckAttribute(game, "crew");
 	TouchTransfer.ships = id == "ships";
-	if (id == "crew" && !crew && sti(game.crewTab.can)) { TouchAdpTransfer_Crew(ui, true); UiHold(TouchTransfer_Wait); return; }
-	if (id != "crew" && crew) { TouchAdpTransfer_Crew(ui, false); UiHold(TouchTransfer_Wait); return; }
+	if (id == "crew" && !crew && sti(game.crewTab.can)) { TouchAdpTransfer_Crew(ui, true); UiHold(); return; }
+	if (id != "crew" && crew) { TouchAdpTransfer_Crew(ui, false); UiHold(); return; }
 	UiRebuild();
 }

@@ -13,9 +13,6 @@ object TouchSaves_Game;  // the adapter's state of the last build
 // order); asked, askedKey, askedName (what the player asked for last); watching (its answer is awaited); here (the
 // open question answers it); answered, named (the question, the name editor answered for the player).
 object TouchSaves_State;
-// s: how long a press waits for the game's answer; past it the view shows what the game has.
-float TouchSaves_Wait = 0.5;
-
 // What the player sees as the record's name: the new record, an autosave, «<hero> · <location>» or the location.
 string TouchSaves_Identity(aref record)
 {
@@ -344,7 +341,7 @@ void TouchSaves_Ask(aref ui, aref game, aref state, string kind)
 	state.watching = true;
 	if (kind == "delete") TouchAdpSaves_Delete(ui, record.key);
 	else TouchAdpSaves_Activate(ui, record.key);
-	UiHold(TouchSaves_Wait);
+	UiHold();
 }
 
 void TouchSaves_Tap()
@@ -379,7 +376,7 @@ void TouchSaves_Tap()
 		// The answer to the question about what the player asked for is watched as that request is.
 		if (sti(state.here)) state.watching = true;
 		TouchAdpSaves_Answer(ui, true);
-		UiHold(TouchSaves_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "confirm-cancel") { if (game.question.no != "") TouchAdpSaves_Answer(ui, false); return; }

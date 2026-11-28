@@ -59,14 +59,6 @@ std::string PopText(VS_STACK *stack)
     return text ? text : "";
 }
 
-float PopFloat(VS_STACK *stack)
-{
-    auto *value = static_cast<VDATA *>(stack->Pop());
-    if (!value && bad_argument.empty())
-        bad_argument = "an argument is not a number";
-    return value ? value->GetFloat() : 0.0f;
-}
-
 ATTRIBUTES *PopObject(VS_STACK *stack)
 {
     auto *value = static_cast<VDATA *>(stack->Pop());
@@ -219,10 +211,9 @@ uint32_t UiSendTo(VS_STACK *stack)
     });
 }
 
-uint32_t UiHold(VS_STACK *stack)
+uint32_t UiHold(VS_STACK *)
 {
-    const float seconds = PopFloat(stack);
-    return Native("UiHold", [&](storm::ui::ScriptCall &call) { call.Hold(seconds); });
+    return Native("UiHold", [](storm::ui::ScriptCall &call) { call.Hold(); });
 }
 
 uint32_t UiAnswer(VS_STACK *stack)
@@ -805,7 +796,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiSendTo", "void", 1, UiSendTo},
             {"UiBack", "void", 1, UiBack},
             {"UiOffers", "int", 2, UiOffers},
-            {"UiHold", "void", 1, UiHold},
+            {"UiHold", "void", 0, UiHold},
             {"UiAnswer", "string", 0, UiAnswer},
             {"UiAwait", "void", 0, UiAwait},
             {"UiRebuild", "void", 0, UiRebuild},

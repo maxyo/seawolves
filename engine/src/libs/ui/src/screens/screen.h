@@ -127,13 +127,14 @@ class Bindings
     // An event of `id` sends this verb of the widget to the engine.
     void Forward(const std::string &id, const Widget &widget, const std::string &verb);
     // Local feedback: `predict` changes the view to what the event `id` `verb` leads to without a decision of the
-    // game, from the frame of the tap until the game has answered the widget action its handler sent; a different
-    // answer is shown and logged. See src/screens/README.md, "Answering a tap at once".
+    // game. Its difference from the view built is kept as fields addressed by name and by row id, laid over every
+    // view built until the game has answered what the handler sent; a different answer is shown and logged. See
+    // src/screens/README.md, "Answering a tap at once".
     using Prediction = std::function<void(const Event &, Json &view)>;
     void Predict(const std::string &id, const std::string &verb, Prediction predict);
-    // Inside a handler: the prediction of the event it handles, when only the handler knows what the tap leads to
-    // (a script screen's tap). It replaces one declared with Predict.
-    void PredictThis(Prediction predict);
+    // Inside a handler: the view the event it handles leads to, when only the handler knows it (a script screen's
+    // tap). It replaces one declared with Predict.
+    void PredictThis(Json view);
     // For predictions: sets `key` of every object in the view whose "id" is `id`; false when there is none.
     static bool Patch(Json &view, const std::string &id, const char *key, const Json &value);
     // The view shows the modal `id` (a c-dialog, or a sheet with a scrim of its own): declared in
@@ -237,7 +238,7 @@ class Bindings
     Router &router_;
     std::unordered_map<std::string, Handler> handlers_;
     std::unordered_map<std::string, Prediction> predictions_; // by "<id>\x1f<verb>", of the view on the screen
-    Prediction handled_;                                      // PredictThis of the running handler
+    std::optional<Json> handled_;                             // PredictThis of the running handler
 };
 
 class Screen
@@ -333,6 +334,27 @@ class Surface
     // the element shows it (C-Dialog shakes); the router has logged it.
     virtual void Refuse(const std::string &id) = 0;
     virtual double Now() const = 0;
+};
+
+// One field a prediction sets: the steps to it are field names and, in a list, the row whose "id" is `name` (a
+// row's identity, never its place); only a list whose items carry no id (the screen's own sections, columns) is
+// stepped by place. No value: the field is removed.
+struct PredictedField
+{
+    struct Step
+    {
+        enum Kind
+        {
+            Field,
+            Row,
+            Place,
+        };
+        std::string name;
+        Kind kind = Field;
+    };
+    std::vector<Step> path;
+    std::optional<Json> value;
+    bool seen = true; // its row was in the last view built
 };
 
 class Router
@@ -473,17 +495,19 @@ class Router
     void BuildView();
     void Emit(Action action);
     bool MarkOpen(const std::string &id, const std::string &value) const;
-    // A predicted event whose answer from the game is still to come (Bindings::Predict).
+    // A predicted event whose requests are still to be answered: its fields are laid over every view built until
+    // the ledger says they are shown or refused.
     struct Predicting
     {
-        Event event;
-        Bindings::Prediction predict;
-        uint64_t floor = 0; // the first widget action its handler sent
+        std::string what; // the event, for the log
+        std::vector<PredictedField> fields;
+        uint64_t floor = 0; // the first request its handler sent
         double since = 0.0;
     };
-    // The game has answered every widget action sent from `floor` on, and the model after the answers is here.
-    bool AnsweredFrom(uint64_t floor) const;
-    // Applies the open predictions to `view`; those the game has answered are compared with it and end.
+    // The fields of `predicted` that differ from the view built last (built_), by name and row id.
+    std::vector<PredictedField> PredictedFields(const Json &predicted) const;
+    // Lays the open predictions over `view`; those whose requests were refused end, those shown are compared with it
+    // and end.
     void Predict(Json &view);
     Json ExtrasView(const Admission &admitted, Json rows);
     Action Make(const Widget &widget, const std::string &verb, const std::string &value,
@@ -502,6 +526,7 @@ class Router
     std::vector<std::unique_ptr<StateConsumer>> consumers_;
     std::vector<PendingMark> pending_;
     std::vector<Predicting> predicting_;
+    Json built_; // the view of the last build, before the predictions laid over it
     uint64_t predicted_count_ = 0;
     std::vector<Waiting> waiting_;
     RequestLedger requests_;

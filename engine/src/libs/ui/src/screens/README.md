@@ -104,13 +104,16 @@ result. Three rules keep that free of flicker:
 
 - **Predict what needs no decision of the game.** `bindings.Predict(id, verb, [](const Event &, Json &view) {…})`
   next to the `On` of the same event: the function changes the view to what the tap leads to (the tapped row
-  selected, the switch moved; `Bindings::Patch`). The router draws it in the frame of the
-  tap and keeps it over every view built until the game has answered what the handler sent (and the screen no
-  longer `Await`s), then compares it with the game's view: a difference is the error line "UI prediction
-  corrected: …" and the game's state is shown. Capture values only (the function outlives the model it was
-  declared for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is
-  not predicted. A handler that alone knows the result says `bindings.PredictThis(…)`: a script screen's `UiPredict`
-  gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (the generic layout, Other) and the game's switches of the settings script.
+  selected, the switch moved; `Bindings::Patch`). The router keeps what that changes as fields addressed by name and
+  by a list row's `id` (a row's identity; only lists whose items carry no id, the screen's own sections, are stepped
+  by place) and lays them over every view built until the ledger says the requests the handler sent are shown (and
+  the screen no longer `Await`s) or refused. Shown, they are compared with the game's view: a difference is the
+  error line "UI prediction corrected: …"; refused, they end at once; a row absent from a build is not marked, and
+  one log line says so when the request ends. Capture values only (the function outlives the model it was declared
+  for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is not
+  predicted. A handler that alone knows the result says `bindings.PredictThis(view)`: a script screen's `UiPredict`
+  gives the view the tap leads to. Predicted today: the toggles and segments of `ControlRows` (the generic
+  layout, Other).
 - **Do not draw a step.** A model the screen knows to be a step of the game's answer (the store's row selected
   before its amount window, a confirmed deal closed before it reopens) is not drawn: the build returns the view
   it had and says `bindings.Await()` (a script screen: `UiAwait()`). A rule about models, never about time; a

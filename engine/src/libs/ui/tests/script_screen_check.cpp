@@ -44,7 +44,7 @@ struct DemoPort final : ScriptPort
                    {"items", "", {{"x", "", {Leaf("id", "a"), Leaf("ON", "0"), Leaf("n", "1.5")}}}}}};
     bool show_in_event = false;
     std::optional<ViewTree> predict; // what a tap on the tabs predicts
-    double hold = 0.0;               // "go" waits for the game this long
+    bool hold = false;               // "go" waits for the game's answer
     bool awaiting = false;           // the builds say the game's answer needs another frame
     std::vector<std::string> answers;
     std::optional<DealSpec> deal;
@@ -78,8 +78,8 @@ struct DemoPort final : ScriptPort
         else if (id == "go" && call.Offers("OK", "press"))
         {
             call.Send("OK", -1, "press", "", "", "");
-            if (hold > 0.0)
-                call.Hold(hold);
+            if (hold)
+                call.Hold();
         }
         else if (id == "dlg-close")
             call.Back("CANCEL");
@@ -191,13 +191,82 @@ void Prediction()
     Answered(router, surface, model);
     Expect(surface.props["count"] == 6 && surface.errors.size() == 1 &&
                surface.errors[0].find("UI prediction corrected: screen ") == 0 &&
-               surface.errors[0].find("/count: predicted 7, the game has 6") != std::string::npos,
+               surface.errors[0].find("; count: predicted 7, the game has 6") != std::string::npos,
            "a different answer is shown and logged: " + (surface.errors.empty() ? std::string() : surface.errors[0]));
 
     surface.errors.clear();
     port.predict.reset();
     router.OnEvent({"tabs", "select", "8"});
     Expect(router.Predicted() == 2, "a tap the script does not predict is not predicted");
+}
+
+ViewTree Row(const std::string &id, bool on)
+{
+    return {"r" + id, "", {Leaf("id", id), Leaf("on", on ? "1" : "0"), Leaf("n", "1")}};
+}
+
+// The view's items as "<id><on>" in their order: "a0b1".
+std::string Marks(const Json &items)
+{
+    std::string marks;
+    for (const Json &item : items)
+        marks += item["id"].get<std::string>() + (item["on"].get<bool>() ? "1" : "0");
+    return marks;
+}
+
+// A prediction marks a row by its id, whatever the builds before the answer do to the list, and ends with the
+// request it anticipates: shown (compared) or refused (at once), never by time.
+void PredictionByIdentity()
+{
+    const auto spec = DemoSpec();
+    DemoPort port;
+    FakeSurface surface;
+    Router router(surface);
+    router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
+    InterfaceModel model = Model("salary");
+    port.view.children[3].children = {Row("a", false), Row("b", false), Row("c", false)};
+    router.SetInterface(model);
+    port.predict = port.view;
+    port.predict->children[3].children[1] = Row("b", true);
+    router.OnEvent({"tabs", "select", "b"});
+    ExpectEqual(Marks(surface.props["items"]), "a0b1c0", "the tapped row is marked in the tap's build");
+    // the game's step before its answer: the row above is gone, the tapped one has moved up
+    port.view.children[3].children = {Row("b", false), Row("c", false)};
+    ++model.revision;
+    router.SetInterface(model);
+    surface.now += 60.0;
+    router.Tick();
+    ExpectEqual(Marks(surface.props["items"]), "b1c0", "the mark stays on the row tapped, not on its old place");
+    port.view.children[3].children = {Row("b", true), Row("c", false)};
+    Answered(router, surface, model);
+    Expect(surface.errors.empty() && Marks(surface.props["items"]) == "b1c0", "the answer that shows it ends it");
+    port.view.children[3].children = {Row("b", false), Row("c", false)};
+    ++model.revision;
+    router.SetInterface(model);
+    ExpectEqual(Marks(surface.props["items"]), "b0c0", "and nothing of it is laid over the builds after");
+
+    // the row tapped disappears before the answer
+    port.predict = port.view;
+    port.predict->children[3].children[1] = Row("c", true);
+    router.OnEvent({"tabs", "select", "c"});
+    port.view.children[3].children = {Row("b", false)};
+    ++model.revision;
+    router.SetInterface(model);
+    ExpectEqual(Marks(surface.props["items"]), "b0", "a row gone is not marked, and nothing else is");
+    const size_t logged = surface.logs.size();
+    Answered(router, surface, model);
+    Expect(surface.errors.empty() && surface.logs.size() == logged + 1 &&
+               surface.logs.back().find("items[c].on was predicted, but its row is gone") != std::string::npos,
+           "the end of its request says once that the row is gone");
+
+    // refused: the game's state at once
+    port.predict = port.view;
+    port.predict->children[3].children[0] = Row("b", true);
+    router.OnEvent({"tabs", "select", "b"});
+    ExpectEqual(Marks(surface.props["items"]), "b1", "marked");
+    for (; surface.answered < surface.actions.size(); ++surface.answered)
+        router.Answer(surface.actions[surface.answered].request, false, "not now");
+    Expect(Marks(surface.props["items"]) == "b0" && surface.errors.empty(), "a refusal ends it at once, quietly");
 }
 
 // The count the view shows, as the script builds it next.
@@ -210,7 +279,7 @@ void Waiting()
 {
     const auto spec = DemoSpec();
     DemoPort port;
-    port.hold = 0.5;
+    port.hold = true;
     FakeSurface surface;
     Router router(surface);
     router.SetScriptScreens({{kDemo.interface, [&] { return CreateScriptScreen(kDemo, *spec, port); }}});
@@ -242,15 +311,20 @@ void Waiting()
     Expect(surface.props["count"] == 7 && port.answers.back() == "refused" && surface.errors.empty(),
            "a refusal is the answer: drawn at once");
 
+    port.awaiting = false;
     Count(port, 8);
     router.OnEvent({"go", "click", ""});
+    surface.now += 4.0; // the router's own bound on an engine that never answers is kAnswerSeconds
+    router.Tick();
+    Expect(port.answers.back() == "waiting" && surface.errors.empty(), "the hold has no time of its own");
+    port.awaiting = true;
     Answered(router, surface, model);
     Count(port, 9);
-    surface.now += 0.6;
+    surface.now += 3.1;
     router.Tick();
     Expect(surface.props["count"] == 9 && port.answers.back() == "late" && surface.errors.size() == 1 &&
-               surface.errors[0].find("did not answer") != std::string::npos,
-           "past the wait the view is drawn, and the missing answer said: " + Json(surface.errors).dump());
+               surface.errors[0].find("did not complete its answer") != std::string::npos,
+           "an awaited rest that does not come is drawn after the bound, and said: " + Json(surface.errors).dump());
 }
 
 void Deals()
@@ -358,6 +432,7 @@ int main()
 {
     Routing();
     Prediction();
+    PredictionByIdentity();
     Waiting();
     Deals();
     Failures();

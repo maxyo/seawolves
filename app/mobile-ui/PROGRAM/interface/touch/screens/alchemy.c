@@ -11,9 +11,6 @@
 object TouchAlchemy;
 object TouchAlchemy_View;
 
-// s: how long a choice of recipe waits for the game's answer.
-float TouchAlchemy_Wait = 0.5;
-
 int TouchAlchemy_Batches(aref game)
 {
 	int most = sti(game.batches);
@@ -166,7 +163,7 @@ void TouchAlchemy_Tap()
 		if (recipe.key != value) continue;
 		if (sti(recipe.selected) || !sti(recipe.can)) return;
 		TouchAdpAlchemy_Choose(ui, k);
-		UiHold(TouchAlchemy_Wait);
+		UiHold();
 		return;
 	}
 	UiError("alchemy: no recipe " + value);

@@ -9,8 +9,6 @@ object TouchNations;      // the adapter's state of the last build (.game)
 object TouchNations_View;
 object TouchNations_Header; // the section tapped while the game opens it (TouchLib_Section)
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchNations_Wait = 0.5;
 // The legend's relations, each with its icon rel-<kind> and its string key nations.<kind>.
 string TouchNations_Kinds[3] = {"ally", "neutral", "war"};
 
@@ -159,7 +157,7 @@ void TouchNations_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchNations_Header, &TouchNations_View, "nations", value)) return;
 		TouchAdpNations_Section(ui, value);
-		UiHold(TouchNations_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header-back") { TouchAdpNations_Leave(ui); return; }
@@ -179,9 +177,9 @@ void TouchNations_Tap()
 		if (!CheckAttribute(game, "apply")) return;
 		if (!sti(game.apply.can)) return;
 		TouchAdpNations_Raise(ui);
-		UiHold(TouchNations_Wait);
+		UiHold();
 		return;
 	}
 	TouchAdpNations_Pick(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "nations"), "the flag"));
-	UiHold(TouchNations_Wait);
+	UiHold();
 }

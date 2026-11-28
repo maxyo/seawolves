@@ -10,9 +10,6 @@
 object TouchCrew;
 object TouchCrew_View;
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchCrew_Wait = 0.5;
-
 void TouchCrew_Build()
 {
 	aref ui = GetEventData();
@@ -144,10 +141,10 @@ void TouchCrew_Tap()
 	aref game;
 	makearef(game, TouchCrew.game);
 	if (id == "header-back") { TouchAdpCrew_Leave(ui); return; }
-	if (id == "crew-offer") { TouchAdpCrew_Offer(ui, sti(value)); UiHold(TouchCrew_Wait); return; }
-	if (id == "crew-commit") { TouchAdpCrew_Commit(ui, sti(value)); UiHold(TouchCrew_Wait); return; }
+	if (id == "crew-offer") { TouchAdpCrew_Offer(ui, sti(value)); UiHold(); return; }
+	if (id == "crew-commit") { TouchAdpCrew_Commit(ui, sti(value)); UiHold(); return; }
 	if (id == "crew") return;
 	if (id != "header") UiError("crew: no tap of " + id);
 	TouchAdpCrew_Ship(ui, TouchLib_StepTap(verb, TouchCrew_Current(game), TouchLib_Count(game, "ships"), "the ship"));
-	UiHold(TouchCrew_Wait);
+	UiHold();
 }

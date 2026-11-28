@@ -12,9 +12,6 @@ object TouchItems;
 object TouchItems_View;
 object TouchItems_Header; // the section tapped while the game opens it (TouchLib_Section)
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchItems_Wait = 0.5;
-
 // A figure as the game's numbers are written: `digits` after the point.
 string TouchItems_Number(float value, int digits)
 {
@@ -260,7 +257,7 @@ void TouchItems_Tap()
 	if (id == "map-close" || (id == "header-back" && CheckAttribute(game, "map")))
 	{
 		TouchAdpItems_CloseMap(ui);
-		UiHold(TouchItems_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header-back") { TouchAdpItems_Leave(ui); return; }
@@ -268,7 +265,7 @@ void TouchItems_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchItems_Header, &TouchItems_View, "items", value)) return;
 		TouchAdpItems_Section(ui, value);
-		UiHold(TouchItems_Wait);
+		UiHold();
 		return;
 	}
 	int person = TouchLib_SubjectTap(&TouchItems, id, verb, sti(game.shown), TouchLib_Count(game, "people"));
@@ -281,7 +278,7 @@ void TouchItems_Tap()
 		TouchLib_Subject(subject, people, person, false);
 		UiPredict(&TouchItems_View);
 		TouchAdpItems_Person(ui, person);
-		UiHold(TouchItems_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header" || TouchLib_StartsWith(id, "header-subject")) return;
@@ -296,7 +293,7 @@ void TouchItems_Tap()
 		if (row >= 0)
 		{
 			aref at = TouchLib_Item(game, "rows", row);
-			if (!sti(at.selected)) { TouchAdpItems_Select(ui, row); UiHold(TouchItems_Wait); return; }
+			if (!sti(at.selected)) { TouchAdpItems_Select(ui, row); UiHold(); return; }
 		}
 		UiRebuild();
 		return;
@@ -316,7 +313,7 @@ void TouchItems_Tap()
 		}
 		UiPredict(&TouchItems_View);
 		TouchAdpItems_Tab(ui, tab);
-		UiHold(TouchItems_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "items")
@@ -334,7 +331,7 @@ void TouchItems_Tap()
 		}
 		UiPredict(&TouchItems_View);
 		TouchAdpItems_Select(ui, k);
-		UiHold(TouchItems_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "item-equip")
@@ -342,6 +339,6 @@ void TouchItems_Tap()
 		if (!CheckAttribute(game, "detail.action")) return;
 		if (!sti(game.detail.action.can)) return;
 		TouchAdpItems_Act(ui);
-		UiHold(TouchItems_Wait);
+		UiHold();
 	}
 }

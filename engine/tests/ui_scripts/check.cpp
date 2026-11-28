@@ -223,7 +223,7 @@ struct Calls final : storm::ui::ScriptCall
                 calls.push_back("send " + node + (row < 0 ? "" : "#" + std::to_string(row)) + " " + verb + " " + *sent +
                                 (guard.empty() ? "" : " @" + guard));
     }
-    void Hold(double) override
+    void Hold() override
     {
         calls.push_back("hold");
     }

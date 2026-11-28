@@ -7,8 +7,6 @@
 
 object TouchRest;
 object TouchRest_Game; // the adapter's state of the last build
-// s: how long a choice waits for the game's answer; past it the view shows what the game has.
-float TouchRest_Wait = 0.5;
 int TouchRest_Spans[5] = {1, 3, 6, 12, 24};
 string TouchRest_Labels[5] = {"rest.h1", "rest.h3", "rest.h6", "rest.h12", "rest.day"};
 
@@ -64,5 +62,5 @@ void TouchRest_Tap()
 	// it.
 	TouchRest_View(&TouchRest_Game, sti(value));
 	UiPredict(&TouchRest);
-	if (TouchAdpRest_Choose(ui, sti(value))) UiHold(TouchRest_Wait);
+	if (TouchAdpRest_Choose(ui, sti(value))) UiHold();
 }

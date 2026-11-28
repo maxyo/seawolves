@@ -143,7 +143,7 @@ static void Commands()
 
 // Local feedback (Bindings::Predict): the result of a tap that needs no decision of the game is in the view the
 // tap's own event builds; the game's steps before its answer do not change it; the game's answer confirms it, or
-// corrects it with an error line.
+// corrects it with an error line; a refusal ends it.
 static void Predictions(const std::string &models)
 {
     FakeSurface surface;
@@ -182,7 +182,7 @@ static void Predictions(const std::string &models)
     Expect(toggle()["on"] == false, "the game decided otherwise: its state is shown");
     Expect(surface.errors.size() == 1 &&
                surface.errors[0].find("UI prediction corrected: screen generic " + id + " change 1") == 0 &&
-               surface.errors[0].find("/on: predicted true, the game has false") != std::string::npos,
+               surface.errors[0].find("[" + id + "].on: predicted true, the game has false") != std::string::npos,
            "and the correction is an error line that says what differed: " +
                (surface.errors.empty() ? std::string("none") : surface.errors[0]));
     surface.errors.clear();
@@ -190,9 +190,8 @@ static void Predictions(const std::string &models)
     router.OnEvent({id, "change", "1"});
     Expect(toggle()["on"] == true, "predicted again");
     AnswerAll(router, surface, false, "locked");
-    Expect(toggle()["on"] == false && surface.errors.size() == 1 &&
-               surface.errors[0].find("UI prediction corrected") == 0,
-           "a refusal corrects the prediction at once, loudly");
+    Expect(toggle()["on"] == false && surface.errors.empty(),
+           "a refusal ends the prediction at once (the refusal is the log's line)");
     surface.errors.clear();
 
     // An event whose handler asks the game nothing predicts nothing (the screen's own state is its result).
@@ -205,7 +204,7 @@ static void Predictions(const std::string &models)
 
 // A hero section tapped in the header is selected in the tap's frame. Its press ends the interface and the next
 // opens in a later game frame, with no model of this one in between: the prediction stays until the new screen
-// replaces it, whatever comes meanwhile; a refused press corrects it loudly.
+// replaces it, whatever comes meanwhile; a refused press ends it at once.
 static void SectionPrediction(const std::string &models)
 {
     FakeSurface surface;
@@ -242,11 +241,8 @@ static void SectionPrediction(const std::string &models)
     router.Tick();
     Expect(surface.props["headerSection"] == "items", "predicted again");
     AnswerAll(router, surface, false, "locked");
-    Expect(surface.props["headerSection"] == "tradebook" && surface.errors.size() == 1 &&
-               surface.errors[0].find("UI prediction corrected: screen tradebook header section items") == 0 &&
-               surface.errors[0].find("/headerSection: predicted \"items\", the game has \"tradebook\"") !=
-                   std::string::npos,
-           "a refused press shows the game's section again and logs the correction: " +
+    Expect(surface.props["headerSection"] == "tradebook" && surface.errors.empty(),
+           "a refused press shows the game's section again at once: " +
                (surface.errors.empty() ? std::string("none") : surface.errors[0]));
     Expect(!router.Answering(), "and nothing is awaited any more");
     surface.errors.clear();
@@ -526,9 +522,12 @@ struct StoreRun
                "extras logged once");
         ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
                     "a shop opens the deal of the row the game selected");
-        surface.now += 0.6;
+        AnswerAll(router, surface, true);
+        router.SetInterface(Load(models, "store.json"));
+        surface.now += 3.1;
         router.Tick();
-        Expect(surface.errors.size() == 1, "no window for it within the hold: said");
+        Expect(surface.errors.size() == 1,
+               "no window for it within the bound of an awaited answer: said: " + Json(surface.errors).dump());
         surface.errors.clear();
         InterfaceModel one_line = Load(models, "store.json");
         for (Widget &widget : one_line.widgets)
@@ -583,7 +582,7 @@ struct StoreRun
             AnswerAll(sel, sel_surface, true);
             sel.SetInterface(lone);
             Expect(sel_surface.props["list"]["rows"][2]["selected"] != true, "held while its window may still come");
-            sel_surface.now += 0.6;
+            sel_surface.now += 3.1;
             sel.Tick();
             Expect(sel_surface.props["list"]["rows"][2]["selected"] == true && !sel_surface.errors.empty(),
                    "no window within the hold: shown selected, and said: " +
@@ -839,7 +838,7 @@ struct StoreRun
             AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(0, 1, 27, false));
             ship_surface.commands.clear();
-            ship_surface.now += 0.6;
+            ship_surface.now += 3.1;
             ship_router.Tick();
             ExpectEqual(ship_surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:1",
                         "no newer model within the wait: opened on these rows");

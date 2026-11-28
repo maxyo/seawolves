@@ -11,9 +11,6 @@
 // titles.<tab>.e<k>.{id, label}.
 object TouchLegJournal;
 
-// s: how long a step waits for the game's answer; past it the walk fails (measured on the C++ screen this replaces).
-float TouchLegJournal_Wait = 3.0;
-
 string TouchLegJournal_Active(aref ui, aref model)
 {
 	aref pages;
@@ -78,7 +75,7 @@ void TouchLegJournal_Records(string text, aref out)
 // Sends a step of the walk and waits for its answer; the first build of an opening is still drawn.
 void TouchLegJournal_Waits()
 {
-	UiHold(TouchLegJournal_Wait);
+	UiHold();
 	if (!UiFirst()) UiAwait();
 }
 

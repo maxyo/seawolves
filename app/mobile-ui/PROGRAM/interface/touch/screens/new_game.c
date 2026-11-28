@@ -8,9 +8,6 @@
 
 object TouchNewGame;
 object TouchNewGame_Game; // the adapter's state of the last build
-// s: how long the profile's answer waits for the game; past it the view shows what the game has.
-float TouchNewGame_Wait = 0.5;
-
 aref TouchNewGame_Stepper(aref at, aref step, string id, string label)
 {
 	at.kind = "stepper";
@@ -125,7 +122,7 @@ void TouchNewGame_Build()
 	if (sti(game.profile) && UiAnswer() != "waiting")
 	{
 		TouchAdpNewGame_Profile(ui);
-		UiHold(TouchNewGame_Wait);
+		UiHold();
 	}
 	TouchNewGame_View(game);
 	UiShow(&TouchNewGame);

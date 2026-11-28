@@ -16,9 +16,6 @@ object TouchShip;
 object TouchShip_View;
 object TouchShip_Header; // the section tapped while the game opens it (TouchLib_Section)
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchShip_Wait = 0.5;
-
 int TouchShip_Percent(int now, int most)
 {
 	if (most <= 0) return 0;
@@ -521,7 +518,7 @@ void TouchShip_Build()
 			if (!sti(wanted.selected))
 			{
 				TouchAdpShip_Ship(ui, position);
-				UiHold(TouchShip_Wait);
+				UiHold();
 			}
 		}
 	}
@@ -536,7 +533,7 @@ void TouchShip_Build()
 			if (good.key == key && sti(good.can))
 			{
 				TouchAdpShip_Good(ui, g);
-				UiHold(TouchShip_Wait);
+				UiHold();
 			}
 		}
 	}
@@ -582,12 +579,12 @@ void TouchShip_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchShip_Header, &TouchShip_View, "ship", value)) return;
 		TouchAdpShip_Section(ui, value);
-		UiHold(TouchShip_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header-back" || id == "window-close" || id == "dialog-close" || id == "sheet-close")
 	{
-		if (window) { TouchAdpShip_Close(ui); UiHold(TouchShip_Wait); return; }
+		if (window) { TouchAdpShip_Close(ui); UiHold(); return; }
 		if (id == "header-back") TouchAdpShip_Leave(ui);
 		return;
 	}
@@ -595,16 +592,16 @@ void TouchShip_Tap()
 	{
 		if (value == TouchShip.tab) return;
 		TouchShip.tab = value;
-		if (window) { TouchAdpShip_Close(ui); UiHold(TouchShip_Wait); return; }
+		if (window) { TouchAdpShip_Close(ui); UiHold(); return; }
 		UiRebuild();
 		return;
 	}
 	int ship = TouchLib_SubjectTap(&TouchShip, id, verb, TouchShip_Shown(game), TouchLib_Count(game, "ships"));
 	if (ship >= 0)
 	{
-		if (window) { TouchAdpShip_Close(ui); UiHold(TouchShip_Wait); return; }
+		if (window) { TouchAdpShip_Close(ui); UiHold(); return; }
 		TouchAdpShip_Ship(ui, ship);
-		UiHold(TouchShip_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header" || TouchLib_StartsWith(id, "header-subject")) return;
@@ -613,7 +610,7 @@ void TouchShip_Tap()
 	{
 		if (value != "0" || !sti(game.guns.can)) return;
 		TouchAdpShip_Guns(ui);
-		UiHold(TouchShip_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "goods" && verb == "row")
@@ -625,13 +622,13 @@ void TouchShip_Tap()
 			// The window holds the list: another good opens once the game closed it.
 			if (entry.key != "") TouchShip.reopen = entry.key;
 			TouchAdpShip_Close(ui);
-			UiHold(TouchShip_Wait);
+			UiHold();
 			return;
 		}
 		for (int g = 0; g < TouchLib_Count(game, "goods"); g++)
 		{
 			aref good = TouchLib_Item(game, "goods", g);
-			if (good.key == entry.key && sti(good.can)) { TouchAdpShip_Good(ui, g); UiHold(TouchShip_Wait); }
+			if (good.key == entry.key && sti(good.can)) { TouchAdpShip_Good(ui, g); UiHold(); }
 		}
 		return;
 	}
@@ -644,7 +641,7 @@ void TouchShip_Tap()
 		if (keep > total) keep = total;
 		if (total - keep == sti(game.drop.dropping)) { UiRebuild(); return; }
 		TouchAdpShip_Drop(ui, total - keep);
-		UiHold(TouchShip_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "guns-"))
@@ -658,7 +655,7 @@ void TouchShip_Tap()
 				int guns = UiAmount(value, "the guns of a side");
 				if (guns == sti(side.now)) { UiRebuild(); return; }
 				TouchAdpShip_Side(ui, s, guns);
-				UiHold(TouchShip_Wait);
+				UiHold();
 				return;
 			}
 		}
@@ -670,7 +667,7 @@ void TouchShip_Tap()
 		aref calibre = TouchLib_Item(game, "cannons.calibres", c);
 		if (sti(calibre.selected) || !sti(calibre.can)) return;
 		TouchAdpShip_Calibre(ui, c);
-		UiHold(TouchShip_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "ship-exchange") TouchAdpShip_Exchange(ui);
@@ -683,5 +680,5 @@ void TouchShip_Tap()
 	else if (id == "cannons-remove") TouchAdpShip_RemoveGuns(ui);
 	else if (id == "cannons-ok") TouchAdpShip_GunsOk(ui);
 	else UiError("ship: no tap of " + id);
-	UiHold(TouchShip_Wait);
+	UiHold();
 }

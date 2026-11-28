@@ -11,8 +11,6 @@ object TouchJournal_View;
 object TouchJournal_Header; // the section tapped while the game opens it (TouchLib_Section)
 object TouchJournal_Own;    // .stats: the statistics tab shown
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchJournal_Wait = 0.5;
 string TouchJournal_Parts[4] = {"quests", "docs", "assets", "stats"};
 string TouchJournal_Groups[3] = {"battles", "by_nation", "other"};
 
@@ -201,10 +199,10 @@ void TouchJournal_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchJournal_Header, &TouchJournal_View, "journal", value)) return;
 		TouchAdpJournal_Section(ui, value);
-		UiHold(TouchJournal_Wait);
+		UiHold();
 		return;
 	}
-	if (id == "header-back") { TouchAdpJournal_Leave(ui); UiHold(TouchJournal_Wait); return; }
+	if (id == "header-back") { TouchAdpJournal_Leave(ui); UiHold(); return; }
 	if (TouchLib_StartsWith(id, "section-"))
 	{
 		string part = TouchLib_Cut(id, 8, strlen(id));
@@ -212,7 +210,7 @@ void TouchJournal_Tap()
 		string first = TouchJournal_First(game, part);
 		if (first == "") UiError("journal: the game has no page of " + part);
 		TouchAdpJournal_Page(ui, first);
-		UiHold(TouchJournal_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "journal-tabs")
@@ -224,13 +222,13 @@ void TouchJournal_Tap()
 			return;
 		}
 		TouchAdpJournal_Page(ui, value);
-		UiHold(TouchJournal_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "entries")
 	{
 		TouchAdpJournal_Open(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "entries"), "the entry"));
-		UiHold(TouchJournal_Wait);
+		UiHold();
 		return;
 	}
 	// A table's row: table-<node>.
@@ -241,7 +239,7 @@ void TouchJournal_Tap()
 		if (at.id == table)
 		{
 			TouchAdpJournal_Choose(ui, table, TouchLib_TapIndex(value, TouchLib_Count(at, "rows"), "the row"));
-			UiHold(TouchJournal_Wait);
+			UiHold();
 			return;
 		}
 	}

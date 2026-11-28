@@ -7,6 +7,8 @@
 #include "interface/touch/capabilities.h"
 
 native void UiShow(aref view);
+// In a tap: the view it leads to. What differs from the last build (fields, and rows of a list by their id) is drawn
+// over every build until the game has answered what the tap sent.
 native void UiPredict(aref view);
 native void UiOn(string id, string verb);
 native void UiModal(string id, string cancel);
@@ -22,10 +24,10 @@ native void UiSendTo(aref action);
 native void UiBack(string node);
 native int UiOffers(string node, string verb);
 
-// Waiting for the game: after UiHold the view shown stays until the game has answered what was sent (at most
-// `seconds`); a build under it reads UiAnswer() ("", "waiting", "applied", "refused", "late") and says UiAwait() while
-// its game's answer takes more frames.
-native void UiHold(float seconds);
+// Waiting for the game: after UiHold the view shown stays until the game has answered what was sent (no time
+// bounds it); a build under it reads UiAnswer() ("", "waiting", "applied", "refused", "late": the rest of an awaited
+// answer did not come) and says UiAwait() while its game's answer takes more frames.
+native void UiHold();
 native string UiAnswer();
 native void UiAwait();
 native void UiRebuild();

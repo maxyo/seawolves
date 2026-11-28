@@ -92,14 +92,15 @@ events are `UiBuild(ui)` and `UiTap(ui, id, verb, value)`, raised to every scree
 every contract call.
 
 The natives (`core/core.c`):
-- the view: `UiShow`, `UiPredict` (in a tap: the view the tap leads to), `UiOn`, `UiModal`, `UiBackTo` (in a build:
+- the view: `UiShow`, `UiPredict` (in a tap: the view the tap leads to; what differs from the last build, by field and
+  by a list row's `id`, is drawn over every build until the game answers the tap), `UiOn`, `UiModal`, `UiBackTo` (in a build:
   the back key raises that tap), `UiPending`, `UiText`;
 - the game: `UiSend(node, verb, value)`, `UiSendTo({node, verb, value, row, guard, lead})`, `UiBack`, `UiOffers`;
-- waiting for the game: after a move, `UiHold(seconds)`; the event is then built once, with the model of the game's
+- waiting for the game: after a move, `UiHold()`; the event is then built once, with the model of the game's
   answer (in the tap's frame). A build from an answer the game completes in a later frame says `UiAwait()` and is not
   drawn (what the kept view shows of a closed window takes no input). `UiAnswer()` in a build tells what became of the
-  hold: `""`, `"waiting"`, `"applied"`, `"refused"` (drawn at once), `"late"` (past `seconds`: an error line unless the
-  game had answered and nothing more is awaited). A hold still waiting keeps its first action when another move holds.
+  hold: `""`, `"waiting"` (until the game answers: no time bounds it), `"applied"`, `"refused"` (drawn at once),
+  `"late"` (the builds after the answer awaited its rest for 3 s: an error line if this one still awaits). A hold still waiting keeps its first action when another move holds.
 - the amount control: `UiDeal({key, element, origin, other, low, high, answer, cutReason, more, less, disabled,
   reason, commit, offer}, &out)` in a build. The game decides the amount: each move of the control raises
   `UiTap(ui, offer, "", change asked)`, whose handler offers it to the game's window (and holds); the control then

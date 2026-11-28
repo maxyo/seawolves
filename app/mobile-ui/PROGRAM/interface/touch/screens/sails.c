@@ -9,9 +9,6 @@
 object TouchSails;
 object TouchSails_View;
 
-// s: how long a move waits for the game's answer.
-float TouchSails_Wait = 0.5;
-
 void TouchSails_Build()
 {
 	aref ui = GetEventData();
@@ -77,7 +74,7 @@ void TouchSails_Choose(aref ui, aref game, int k)
 	aref emblem = TouchLib_Item(game, "emblems", k);
 	if (!sti(emblem.can) || sti(emblem.selected)) return;
 	TouchAdpSails_Choose(ui, k);
-	UiHold(TouchSails_Wait);
+	UiHold();
 }
 
 void TouchSails_Tap()
@@ -88,7 +85,7 @@ void TouchSails_Tap()
 	aref game;
 	makearef(game, TouchSails.game);
 	if (id == "header-back") { TouchAdpSails_Leave(ui); return; }
-	if (id == "primary") { TouchAdpSails_Work(ui); UiHold(TouchSails_Wait); return; }
+	if (id == "primary") { TouchAdpSails_Work(ui); UiHold(); return; }
 	int current = TouchSails_Current(game);
 	if (id == "emblem-prev") { TouchSails_Choose(ui, game, current - 1); return; }
 	if (id == "emblem-next") { TouchSails_Choose(ui, game, current + 1); return; }

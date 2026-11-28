@@ -106,8 +106,9 @@ class ScriptCall
     virtual void Show(const ViewTree &view) = 0;
     // Events of element `id` (and `verb`; empty takes every verb) go to the script.
     virtual void On(const std::string &id, const std::string &verb) = 0;
-    // Inside an event: the view the tap leads to, drawn from this frame until the game has answered what the event
-    // sent, then compared with the view built after the answer (the router's "UI prediction corrected").
+    // Inside an event: the view the tap leads to. What it changes, by field and by row id, is drawn from this frame
+    // over every build until the game has answered what the event sent, then compared with the view built after the
+    // answer (the router's "UI prediction corrected"); a row no longer built is not marked.
     virtual void Predict(const ViewTree &view) = 0;
     // A widget action on the admitted widget `node`, or on its row `row` (-1: the node's own widget); `guard`, when
     // not empty, is the identity of the row the action must still find (Bindings::Send); `lead`, when not empty,
@@ -128,12 +129,12 @@ class ScriptCall
 
     // In a build or an event: the screen waits for the game's answer to the widget actions this call sent (and to
     // those sent while it waits). A build from an answer its game completes in later frames (it says Await) is not
-    // drawn: the view shown stays, and what it shows of what the answer closed takes no input. At most `seconds`;
-    // then the build is "late", and an error line unless the game had answered and the build awaits nothing more.
-    virtual void Hold(double seconds) = 0;
+    // drawn: the view shown stays, and what it shows of what the answer closed takes no input. The answers end it
+    // (the request ledger), with no time; only the builds that await after the answer are bounded (script_screen.cpp).
+    virtual void Hold() = 0;
     // Inside a build: what became of the hold it runs under: "" none, "waiting", "applied" (answered, the model after
-    // it in), "refused" (the engine refused an action of it), "late" (`seconds` passed). A build that is not
-    // "waiting" and does not Await ends the hold and is shown.
+    // it in), "refused" (the engine refused an action of it), "late" (the awaited rest did not come). A build that is
+    // not "waiting" and does not Await ends the hold and is shown.
     virtual std::string Answer() const = 0;
     // Inside a build: the game's answer is not complete in this model; more of it comes in a later game frame.
     virtual void Await() = 0;

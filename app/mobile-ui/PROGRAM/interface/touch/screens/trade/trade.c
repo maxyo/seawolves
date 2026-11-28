@@ -11,9 +11,6 @@
 object TouchTrade;
 object TouchTrade_View;
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchTrade_Wait = 0.5;
-
 // The sort keys of the list's columns.
 string TouchTrade_Keys[4] = {"own", "other", "buy", "sell"};
 
@@ -73,7 +70,7 @@ void TouchTrade_Opening(aref ui, aref game)
 				if (sti(row.can) && !CheckAttribute(game, "deal"))
 				{
 					TouchAdpTrade_Deal(ui, k);
-					UiHold(TouchTrade_Wait);
+					UiHold();
 				}
 			}
 		}
@@ -455,20 +452,20 @@ void TouchTrade_Tap()
 	if (CheckAttribute(game, "deal")) open = sti(game.deal.row);
 	if (id == "header-back") { TouchAdpTrade_Leave(ui); return; }
 	if (id == "info") { UiRead("", TouchTrade.info); return; }
-	if (id == "deal-offer") { TouchAdpTrade_Offer(ui, sti(value)); UiHold(TouchTrade_Wait); return; }
-	if (id == "deal-commit") { TouchAdpTrade_Commit(ui, sti(value), sti(game.money)); UiHold(TouchTrade_Wait); return; }
+	if (id == "deal-offer") { TouchAdpTrade_Offer(ui, sti(value)); UiHold(); return; }
+	if (id == "deal-commit") { TouchAdpTrade_Commit(ui, sti(value), sti(game.money)); UiHold(); return; }
 	if (id == "header")
 	{
 		int sides = TouchLib_Count(game, "sides");
 		TouchAdpTrade_Side(ui, TouchLib_StepTap(verb, sti(TouchTrade.current), sides, "the side"));
-		UiHold(TouchTrade_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "primary" && CheckAttribute(game, "best"))
 	{
 		if (!sti(game.best.can)) return;
 		TouchAdpTrade_TakeBest(ui);
-		UiHold(TouchTrade_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "primary")
@@ -476,7 +473,7 @@ void TouchTrade_Tap()
 		if (!CheckAttribute(game, "takeAll")) UiError("trade: a primary tapped without best or take-all");
 		TouchTrade.takeAll = game.takeAll.label == "";
 		TouchAdpTrade_TakeAll(ui);
-		UiHold(TouchTrade_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_Action(id) >= 0) { TouchAdpTrade_Press(ui, TouchLib_Action(id)); return; }
@@ -496,7 +493,7 @@ void TouchTrade_Tap()
 	if (verb == "quick") TouchAdpTrade_Take(ui, k);
 	if (verb == "row" && (k == open || !sti(row.can))) { TouchAdpTrade_Close(ui); return; }
 	if (verb == "row") TouchAdpTrade_Deal(ui, k);
-	UiHold(TouchTrade_Wait);
+	UiHold();
 }
 
 void TouchTrade_Filter(aref ui, aref game, string value)

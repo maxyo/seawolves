@@ -9,9 +9,6 @@ object TouchTradebook;      // the adapter's state of the last build (.game)
 object TouchTradebook_View;
 object TouchTradebook_Header; // the section tapped while the game opens it (TouchLib_Section)
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchTradebook_Wait = 0.5;
-
 void TouchTradebook_Places(aref game, aref view)
 {
 	view.townColumns.c0.w = "1";
@@ -108,12 +105,12 @@ void TouchTradebook_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchTradebook_Header, &TouchTradebook_View, "tradebook", value)) return;
 		TouchAdpTradebook_Section(ui, value);
-		UiHold(TouchTradebook_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header-back") { TouchAdpTradebook_Leave(ui); return; }
 	aref game;
 	makearef(game, TouchTradebook.game);
 	TouchAdpTradebook_Choose(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "places"), "the town"));
-	UiHold(TouchTradebook_Wait);
+	UiHold();
 }

@@ -246,11 +246,11 @@ void Bindings::Predict(const std::string &id, const std::string &verb, Predictio
     predictions_[id + '\x1f' + verb] = std::move(predict);
 }
 
-void Bindings::PredictThis(Prediction predict)
+void Bindings::PredictThis(Json view)
 {
     if (!router_.current_)
         throw std::logic_error("PredictThis outside a handler");
-    handled_ = std::move(predict);
+    handled_ = std::move(view);
 }
 
 bool Bindings::Patch(Json &view, const std::string &id, const char *key, const Json &value)
@@ -917,75 +917,191 @@ void Router::BuildView()
     Json rows = view.contains("more") ? view["more"] : Json::array();
     view.erase("more");
     view["extras"] = ExtrasView(admitted, std::move(rows));
+    built_ = view;
     Predict(view);
     surface_.Show(screen_->Component(), view);
 }
 
-bool Router::AnsweredFrom(uint64_t floor) const
-{
-    if (awaiting_ || !waiting_.empty())
-        return false;
-    const RequestLedger::Status answers = requests_.From(floor);
-    return answers != RequestLedger::Status::Waiting && answers != RequestLedger::Status::Applied;
-}
-
 namespace
 {
-// Where two views first differ, as a path ("rows/3/selected"), for the correction's log line.
-std::string FirstDifference(const Json &predicted, const Json &game, const std::string &path)
+using Step = PredictedField::Step;
+
+// A list whose rows all carry a distinct "id": its rows are matched by it.
+bool Keyed(const Json &list)
 {
-    if (predicted.type() == game.type() && predicted.is_object())
+    std::set<std::string> ids;
+    for (const Json &row : list)
+        if (!row.is_object() || !row.contains("id") || !row["id"].is_primitive() ||
+            !ids.insert(row["id"].dump()).second)
+            return false;
+    return !list.empty();
+}
+
+const Json *RowOf(const Json &list, const std::string &id)
+{
+    for (const Json &row : list)
+        if (row["id"].is_string() ? row["id"].get_ref<const std::string &>() == id : row["id"].dump() == id)
+            return &row;
+    return nullptr;
+}
+
+std::string RowId(const Json &row)
+{
+    return row["id"].is_string() ? row["id"].get<std::string>() : row["id"].dump();
+}
+
+std::string PathText(const std::vector<Step> &path)
+{
+    std::string text;
+    for (const Step &step : path)
+        text += step.kind == Step::Row     ? "[" + step.name + "]"
+                : step.kind == Step::Place ? "[#" + step.name + "]"
+                                           : (text.empty() ? "" : ".") + step.name;
+    return text;
+}
+
+// The differences of `predicted` from `built` as fields: objects by field, keyed lists by row id, lists of the same
+// length whose items have no ids by place. A prediction marks rows; it neither adds nor removes them.
+void Differences(const Json &built, const Json &predicted, std::vector<Step> &path, std::vector<PredictedField> &out)
+{
+    if (built.is_object() && predicted.is_object())
     {
         for (const auto &[key, value] : predicted.items())
-            if (!game.contains(key))
-                return path + "/" + key + ": predicted " + value.dump() + ", the game has none";
-            else if (value != game[key])
-                return FirstDifference(value, game[key], path + "/" + key);
-        for (const auto &[key, value] : game.items())
+        {
+            path.push_back({key});
+            if (!built.contains(key))
+                out.push_back({path, value});
+            else if (built[key] != value)
+                Differences(built[key], value, path, out);
+            path.pop_back();
+        }
+        for (const auto &[key, value] : built.items())
             if (!predicted.contains(key))
-                return path + "/" + key + ": predicted none, the game has " + value.dump();
+            {
+                path.push_back({key});
+                out.push_back({path, std::nullopt});
+                path.pop_back();
+            }
+        return;
     }
-    if (predicted.type() == game.type() && predicted.is_array() && predicted.size() == game.size())
+    if (built.is_array() && predicted.is_array() && Keyed(built) && Keyed(predicted))
+    {
+        if (built.size() != predicted.size())
+            throw std::runtime_error(PathText(path) + ": a prediction adds or removes rows");
+        for (const Json &row : predicted)
+        {
+            const Json *was = RowOf(built, RowId(row));
+            if (!was)
+                throw std::runtime_error(PathText(path) + ": a prediction adds the row " + RowId(row));
+            path.push_back({RowId(row), Step::Row});
+            Differences(*was, row, path, out);
+            path.pop_back();
+        }
+        return;
+    }
+    if (built.is_array() && predicted.is_array() && built.size() == predicted.size() && !Keyed(built) &&
+        !Keyed(predicted))
+    {
         for (size_t i = 0; i < predicted.size(); ++i)
-            if (predicted[i] != game[i])
-                return FirstDifference(predicted[i], game[i], path + "/" + std::to_string(i));
-    std::string was = predicted.dump(), is = game.dump();
-    if (was.size() > 120)
-        was = was.substr(0, 120) + "…";
-    if (is.size() > 120)
-        is = is.substr(0, 120) + "…";
-    return path + ": predicted " + was + ", the game has " + is;
+            if (built[i] != predicted[i])
+            {
+                path.push_back({std::to_string(i), Step::Place});
+                Differences(built[i], predicted[i], path, out);
+                path.pop_back();
+            }
+        return;
+    }
+    out.push_back({path, predicted});
+}
+
+// What `step` names in `at`, or null where it is absent (a row gone).
+Json *Child(Json &at, const Step &step)
+{
+    switch (step.kind)
+    {
+    case Step::Row:
+        return at.is_array() && Keyed(at) ? const_cast<Json *>(RowOf(at, step.name)) : nullptr;
+    case Step::Place:
+        return at.is_array() && !Keyed(at) && std::stoul(step.name) < at.size() ? &at[std::stoul(step.name)] : nullptr;
+    default:
+        return at.is_object() && at.contains(step.name) ? &at[step.name] : nullptr;
+    }
+}
+
+// The object or list that holds the field `path` names, or null where a step to it is absent.
+Json *Parent(Json &view, const std::vector<Step> &path)
+{
+    Json *at = &view;
+    for (size_t i = 0; at && i + 1 < path.size(); ++i)
+        at = Child(*at, path[i]);
+    return at && (path.back().kind != Step::Field || at->is_object()) ? at : nullptr;
+}
+
+std::string Brief(const Json &value)
+{
+    std::string text = value.dump();
+    return text.size() > 120 ? text.substr(0, 120) + "…" : text;
 }
 } // namespace
+
+std::vector<PredictedField> Router::PredictedFields(const Json &predicted) const
+{
+    std::vector<PredictedField> fields;
+    std::vector<Step> path;
+    Differences(built_, predicted, path, fields);
+    return fields;
+}
 
 void Router::Predict(Json &view)
 {
     for (auto it = predicting_.begin(); it != predicting_.end();)
     {
-        Json predicted = view;
-        try
+        const RequestLedger::Status answers = requests_.From(it->floor);
+        // A refusal ends it at once: the game's state is shown (Answer logged why).
+        if (answers == RequestLedger::Status::Refused || answers == RequestLedger::Status::None)
         {
-            it->predict(it->event, predicted);
-        }
-        catch (const std::exception &error)
-        {
-            surface_.Error("screen " + using_ + ": the prediction of " + it->event.id + " " + it->event.verb +
-                           " threw (" + error.what() + "); the game's state is shown");
             it = predicting_.erase(it);
             continue;
         }
-        if (!AnsweredFrom(it->floor))
+        const bool ends = !awaiting_ && waiting_.empty() && answers == RequestLedger::Status::Shown;
+        for (PredictedField &field : it->fields)
         {
-            view = std::move(predicted); // the game is still answering: its steps do not change what was predicted
+            Json *parent = Parent(view, field.path);
+            field.seen = parent != nullptr;
+            if (!parent)
+                continue; // its row is not in this view: nothing else is marked
+            const Step &last = field.path.back();
+            Json *now = Child(*parent, last);
+            if (!ends)
+            {
+                if (field.value && now)
+                    *now = *field.value;
+                else if (field.value && last.kind == Step::Field)
+                    (*parent)[last.name] = *field.value;
+                else if (!field.value)
+                    parent->erase(last.name);
+                field.seen = now || last.kind == Step::Field;
+                continue;
+            }
+            // The game has answered: its state is shown, and it must be what was drawn at the tap.
+            field.seen = now || last.kind == Step::Field;
+            if (field.seen && (field.value ? !now || *now != *field.value : now != nullptr))
+                surface_.Error("UI prediction corrected: screen " + using_ + " " + it->what +
+                               ": the game answered otherwise after " +
+                               std::to_string(int((surface_.Now() - it->since) * 1000.0)) + " ms; " +
+                               PathText(field.path) + ": predicted " +
+                               (field.value ? Brief(*field.value) : std::string("none")) + ", the game has " +
+                               (now ? Brief(*now) : std::string("none")));
+        }
+        if (!ends)
+        {
             ++it;
             continue;
         }
-        // The game has answered: its state is shown, and it must be what was drawn at the tap.
-        if (predicted != view)
-            surface_.Error("UI prediction corrected: screen " + using_ + " " + it->event.id + " " + it->event.verb +
-                           " " + it->event.value + ": the game answered otherwise after " +
-                           std::to_string(int((surface_.Now() - it->since) * 1000.0)) + " ms; " +
-                           FirstDifference(predicted, view, ""));
+        for (const PredictedField &field : it->fields)
+            if (!field.seen)
+                surface_.Log("screen " + using_ + " " + it->what + ": " + PathText(field.path) +
+                             " was predicted, but its row is gone");
         it = predicting_.erase(it);
     }
 }
@@ -1088,20 +1204,31 @@ bool Router::OnEvent(const Event &event)
         return false;
     }
     const Bindings::Handler handler = found->second; // a rebuild replaces the table
-    Bindings::Prediction predict;
+    Bindings::Prediction declared;
     if (const auto predicted = bindings_.predictions_.find(event.id + '\x1f' + event.verb);
         predicted != bindings_.predictions_.end())
-        predict = predicted->second;
+        declared = predicted->second;
     const uint64_t floor = requests_.Next();
     current_ = &event;
     sent_in_event_ = false;
     build_later_ = false;
-    bindings_.handled_ = nullptr;
+    bindings_.handled_.reset();
     if (!Guarded("the handler of " + event.id + " " + event.verb, [&] { handler(event); }))
         return true; // Failed closed the interface
     current_ = nullptr;
-    if (bindings_.handled_)
-        predict = std::exchange(bindings_.handled_, nullptr);
+    std::optional<Json> predicted = std::exchange(bindings_.handled_, std::nullopt);
+    if (predicted && !predicted->contains("extras") && built_.contains("extras"))
+        (*predicted)["extras"] = built_["extras"]; // the router's part of the view, which a screen's view lacks
+    if (!predicted && declared && screen_)
+    {
+        predicted = built_;
+        if (const auto thrown = Caught([&] { declared(event, *predicted); }))
+        {
+            surface_.Error("screen " + using_ + ": the prediction of " + event.id + " " + event.verb + " threw (" +
+                           *thrown + "); the game's state is shown");
+            predicted.reset();
+        }
+    }
     if (sent_in_event_)
     {
         // An action row of the «Прочее» sheet closes it, as a menu does.
@@ -1114,11 +1241,18 @@ bool Router::OnEvent(const Event &event)
     }
     // What the tap leads to is drawn now (the build below); the game's answer to what the handler sent ends it. A
     // handler that asked the game nothing predicted nothing: the screen's own state is the result already.
-    if (predict && screen_ && (requests_.Next() > floor || !waiting_.empty()))
+    if (predicted && screen_ && (requests_.Next() > floor || !waiting_.empty()))
     {
-        predicting_.push_back({event, std::move(predict), floor, surface_.Now()});
-        ++predicted_count_;
-        rebuild_ = true;
+        const std::string what = event.id + " " + event.verb + " " + event.value;
+        std::vector<PredictedField> fields;
+        if (const auto wrong = Caught([&] { fields = PredictedFields(*predicted); }))
+            surface_.Error("screen " + using_ + ": the prediction of " + what + " is not drawn: " + *wrong);
+        else
+        {
+            predicting_.push_back({what, std::move(fields), floor, surface_.Now()});
+            ++predicted_count_;
+            rebuild_ = true;
+        }
     }
     if (rebuild_ && screen_)
     {

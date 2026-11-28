@@ -10,6 +10,7 @@
 #include "app_ui_names.hpp"
 
 #include <map>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -19,6 +20,11 @@ namespace storm::ui::screens
 {
 namespace
 {
+// An answer the game completes in later frames need not change what the interface model carries (the rest window's
+// hours are a global its slider handler sets a frame after the move): the build that awaits it runs again this long
+// after the answer, and past it the build is "late". The journal's walk measured the game's slowest step at 3 s.
+constexpr double kAwaitedSeconds = 3.0;
+
 class ScriptScreenImpl final : public Screen, private ScriptCall
 {
   public:
@@ -58,7 +64,6 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
             known.push_back(&widget);
         view_.reset();
         answer_ = HoldState();
-        answered_ = hold_ && Answered();
         awaited_ = false;
         dealt_.clear();
         bound_.clear();
@@ -81,21 +86,26 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         // Before the game answers the view is the old model's with the tap's own marks; an answer the game completes
         // in later frames is not drawn until it is complete.
         const bool waiting = hold_ && (answer_ == "waiting" || (answer_ == "applied" && awaited_));
+        if (waiting && answer_ == "applied")
+        {
+            if (!awaited_since_)
+                awaited_since_ = bindings.Now();
+            bindings.RebuildAfter(*awaited_since_ + kAwaitedSeconds - bindings.Now());
+        }
         if (waiting && awaited_ && !shown_.is_null())
         {
             // What the kept view shows of what this model has closed (an amount window) takes no input.
             for (const std::string &bound : shown_bound_)
                 if (!bound_.contains(bound))
                     bindings.Ignore(bound.substr(0, bound.find('\x1f')), bound.substr(bound.find('\x1f') + 1));
-            bindings.RebuildAfter(hold_until_ - bindings.Now());
             return shown_;
         }
-        if (waiting)
-            bindings.RebuildAfter(hold_until_ - bindings.Now());
-        else if (hold_ && answer_ == "late" && (awaited_ || !answered_))
-            bindings.Error("script screen " + screen_.capability + ": the game did not answer in " +
-                           std::to_string(hold_seconds_) + " s");
+        if (hold_ && answer_ == "late" && awaited_)
+            bindings.Error("script screen " + screen_.capability + ": the game did not complete its answer in " +
+                           std::to_string(int(kAwaitedSeconds)) + " s");
         hold_ = waiting;
+        if (!hold_)
+            awaited_since_.reset();
         shown_ = *view_;
         shown_bound_ = bound_;
         return std::move(*view_);
@@ -107,20 +117,20 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         if (!hold_)
             return "";
-        if (Answers() == Bindings::Answers::Refused)
+        switch (Answers())
+        {
+        case Bindings::Answers::Refused:
             return "refused";
-        if (bindings_->Now() >= hold_until_)
-            return "late";
-        return Answered() ? "applied" : "waiting";
+        case Bindings::Answers::Waiting:
+            return "waiting";
+        default:
+            return awaited_since_ && bindings_->Now() >= *awaited_since_ + kAwaitedSeconds ? "late" : "applied";
+        }
     }
     Bindings::Answers Answers() const
     {
         const bool sent = bindings_->RequestFloor() != hold_floor_;
         return sent ? bindings_->AnsweredSince(hold_floor_) : Bindings::Answers::Applied;
-    }
-    bool Answered() const
-    {
-        return Answers() == Bindings::Answers::Applied;
     }
 
     void Show(const ViewTree &view) override
@@ -129,14 +139,12 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
             throw std::runtime_error("a view is shown only while the screen builds");
         view_ = ScriptProps(view, component_);
     }
-    // The prediction is the change from the view of the last build, laid over every view built until the game has
-    // answered: the busy marks and anything else those builds change stay theirs.
+    // The router keeps what the view the tap leads to changes, by field and row id, until the game has answered.
     void Predict(const ViewTree &view) override
     {
         if (building_)
             throw std::runtime_error("a prediction is made only in an event");
-        bindings_->PredictThis([change = Json::diff(shown_, ScriptProps(view, component_))](
-                                   const Event &, Json &built) { built = built.patch(change); });
+        bindings_->PredictThis(ScriptProps(view, component_));
     }
     void On(const std::string &id, const std::string &verb) override
     {
@@ -192,20 +200,16 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         return bindings_->Text(key);
     }
 
-    void Hold(double seconds) override
+    void Hold() override
     {
-        if (!(seconds > 0.0))
-            throw std::runtime_error("a hold lasts more than 0 s");
         // A hold that is still waiting keeps its first action: a move made meanwhile that sent nothing answers none.
         hold_floor_ = hold_ ? std::min(hold_floor_, floor_) : floor_;
         hold_ = true;
-        hold_seconds_ = seconds;
-        hold_until_ = bindings_->Now() + seconds;
+        awaited_since_.reset();
         if (building_)
             answer_ = HoldState();
         else
             bindings_->BuildLater();
-        bindings_->RebuildAfter(seconds);
     }
     std::string Answer() const override
     {
@@ -404,12 +408,12 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     bool first_ = true;
     std::string language_;
     uint64_t floor_ = 0; // the first widget action of the running build or event
-    // The hold: the view shown stays until the widget actions from hold_floor_ on are answered.
+    // The hold: the view shown stays until the widget actions from hold_floor_ on are answered (the ledger), and
+    // while the builds after the answer await the rest of it, at most kAwaitedSeconds from the first of them.
     bool hold_ = false;
     uint64_t hold_floor_ = 0;
-    double hold_seconds_ = 0.0, hold_until_ = 0.0;
-    std::string answer_;    // HoldState at the start of the running build
-    bool answered_ = false; // the game had answered before the running build
+    std::optional<double> awaited_since_;
+    std::string answer_; // HoldState at the start of the running build
     bool awaited_ = false;
     struct DealState
     {

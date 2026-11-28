@@ -11,9 +11,6 @@
 object TouchRepair;
 object TouchRepair_View;
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchRepair_Wait = 0.5;
-
 void TouchRepair_Build()
 {
 	aref ui = GetEventData();
@@ -141,13 +138,13 @@ void TouchRepair_Tap()
 	aref game;
 	makearef(game, TouchRepair.game);
 	if (id == "header-back") { TouchAdpRepair_Leave(ui); return; }
-	if (id == "primary") { TouchAdpRepair_Do(ui); UiHold(TouchRepair_Wait); return; }
-	if (id == "all-ships") { TouchAdpRepair_All(ui); UiHold(TouchRepair_Wait); return; }
+	if (id == "primary") { TouchAdpRepair_Do(ui); UiHold(); return; }
+	if (id == "all-ships") { TouchAdpRepair_All(ui); UiHold(); return; }
 	if (id == "header")
 	{
 		TouchAdpRepair_Ship(ui, TouchLib_StepTap(verb, TouchRepair_Current(game), TouchLib_Count(game, "ships"),
 		                                         "the ship"));
-		UiHold(TouchRepair_Wait);
+		UiHold();
 		return;
 	}
 	int part = TouchRepair_Index(game, id);
@@ -156,5 +153,5 @@ void TouchRepair_Tap()
 	aref at = TouchLib_Item(game, "parts", part);
 	if (amount == sti(at.amount)) { UiRebuild(); return; }
 	TouchAdpRepair_Set(ui, part, amount);
-	UiHold(TouchRepair_Wait);
+	UiHold();
 }

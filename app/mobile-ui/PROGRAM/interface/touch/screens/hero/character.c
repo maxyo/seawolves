@@ -15,9 +15,6 @@ object TouchCharacter;
 object TouchCharacter_View;
 object TouchCharacter_Header; // the section tapped while the game opens it (TouchLib_Section)
 
-// s: how long a move waits for the game's answer; past it the view shows what the game has.
-float TouchCharacter_Wait = 0.5;
-
 string TouchCharacter_FillThree(string text, string first, string second, string third)
 {
 	int at = findSubStr(text, "{3}", 0);
@@ -759,7 +756,7 @@ void TouchCharacter_Select(aref ui, aref game, string id)
 	if (game.window != "" && game.window != "message")
 	{
 		TouchAdpCharacter_Close(ui);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	if (perks && ship != sti(game.groupShip))
@@ -767,7 +764,7 @@ void TouchCharacter_Select(aref ui, aref game, string id)
 		TouchCharacter.perk = "";
 		TouchCharacter.wanted = ship;
 		TouchAdpCharacter_Group(ui, ship);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	UiRebuild();
@@ -785,7 +782,7 @@ void TouchCharacter_Jump(aref ui, aref game, string id)
 	{
 		TouchCharacter.wanted = ship;
 		TouchAdpCharacter_Group(ui, ship);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	UiRebuild();
@@ -802,7 +799,7 @@ void TouchCharacter_Tap()
 	{
 		if (!TouchLib_SectionTap(&TouchCharacter_Header, &TouchCharacter_View, "hero", value)) return;
 		TouchAdpCharacter_Section(ui, value);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "header-tabs") { TouchCharacter_Select(ui, game, value); return; }
@@ -816,7 +813,7 @@ void TouchCharacter_Tap()
 	if (id == "header-back")
 	{
 		if (CheckAttribute(&TouchCharacter, "help.table")) { DeleteAttribute(&TouchCharacter, "help"); UiRebuild(); return; }
-		if (game.window != "") { TouchAdpCharacter_Close(ui); UiHold(TouchCharacter_Wait); return; }
+		if (game.window != "") { TouchAdpCharacter_Close(ui); UiHold(); return; }
 		TouchAdpCharacter_Leave(ui);
 		return;
 	}
@@ -832,7 +829,7 @@ void TouchCharacter_Tap()
 			TouchLib_Subject(subject, people, person, false);
 			UiPredict(&TouchCharacter_View);
 			TouchAdpCharacter_Person(ui, person);
-			UiHold(TouchCharacter_Wait);
+			UiHold();
 			return;
 		}
 		if (id == "header" || TouchLib_StartsWith(id, "header-subject")) return;
@@ -849,7 +846,7 @@ void TouchCharacter_Tap()
 			return;
 		}
 		TouchAdpCharacter_Skill(ui, id, row, verb == "inc");
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	if (id == "skill-help-close" || (id == "dialog-close" && CheckAttribute(&TouchCharacter, "help.table")))
@@ -873,7 +870,7 @@ void TouchCharacter_Tap()
 	{
 		if (sti(game.learning) || game.refused == TouchCharacter.perk) return;
 		TouchAdpCharacter_Learn(ui, TouchCharacter.perk);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "post-"))
@@ -881,24 +878,24 @@ void TouchCharacter_Tap()
 		int slot = UiAmount(TouchLib_Cut(id, 5, strlen(id)), "the post");
 		TouchCharacter.posted = slot;
 		TouchAdpCharacter_Post(ui, slot);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
 		int candidate = TouchLib_TapIndex(TouchLib_Cut(id, 10, strlen(id)), TouchLib_Count(game, "assign.rows"), "the candidate");
 		TouchAdpCharacter_Assign(ui, candidate);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
-	if (id == "officer-remove") { TouchAdpCharacter_Dismiss(ui); UiHold(TouchCharacter_Wait); return; }
+	if (id == "officer-remove") { TouchAdpCharacter_Dismiss(ui); UiHold(); return; }
 	if (id == "officer-skills")
 	{
 		TouchCharacter.tab = "skills";
 		TouchAdpCharacter_Close(ui);
-		UiHold(TouchCharacter_Wait);
+		UiHold();
 		return;
 	}
-	if (id == "dialog-close" || id == "msg-ok") { TouchAdpCharacter_Close(ui); UiHold(TouchCharacter_Wait); return; }
-	if (id == "game-accept" || id == "game-cancel") { TouchAdpCharacter_Act(ui, id); UiHold(TouchCharacter_Wait); return; }
+	if (id == "dialog-close" || id == "msg-ok") { TouchAdpCharacter_Close(ui); UiHold(); return; }
+	if (id == "game-accept" || id == "game-cancel") { TouchAdpCharacter_Act(ui, id); UiHold(); return; }
 }
