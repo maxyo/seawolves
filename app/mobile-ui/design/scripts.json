@@ -1,4 +1,5 @@
 {
+  "sets": {"base": {}, "legacy": {"base": "base"}, "caribbean_legend": {"base": "base"}},
   "nodeSets": {
     "goods-head": [
       ["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["STORECAPTION1", "text"],
@@ -74,7 +75,7 @@
     {"file": "interface/touch/contracts/dialogue.c"},
     {"file": "interface/touch/contracts/goods_order.c"},
     {"file": "interface/android_ui_bootstrap.c"},
-    {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
+    {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters", "fn:GetCharacter/1", "fn:GetFullName/1"]},
     {
       "file": "interface/touch/lineages/legacy/rest.c",
       "provides": ["adapter:rest"],

@@ -23,7 +23,7 @@ mechanically: a reviewer does.
 | `core/` | the natives, the capability ids (`capabilities.h`, generated from `design/capabilities.json`) | — |
 | `lib/` | game-free helpers: text and figures, list entries, list heads, facts, buttons | core |
 | `contracts/<family>.c` | the adapter contract: `extern` declarations with the shape of every argument | — |
-| `lineages/<lineage>/<family>.c` | a family's adapter for a lineage of games (`legacy`: the games of this engine) | game, lib, core |
+| `lineages/<lineage>/<family>.c` | a family's adapter: `legacy` the common set, `cl` Caribbean Legend's set (scripts.json `sets`) | game, lib, core |
 | `lineages/<lineage>/lib.c` | what that lineage's adapters share (table cells, the amount window, tabs) | game, lib, core |
 | `screens/<family>/<screen>.c`, `screens/<screen>.c` | the shared screens | contracts, lib, core |
 | `hud/<scene>.c` | the HUD scenes of the gameplay modes (below, "HUD scenes") | contracts, lib, core |
@@ -32,7 +32,7 @@ mechanically: a reviewer does.
 `build.py --check` enforces the layers: a shared layer (all but `lineages/` and `games/`) calls natives, `TouchLib_*`, the contracts it uses and a short
 list of built-ins; it reads no model (`.model`; `universal/` does, and names no node of a game's own), names no game
 and writes into no object that is not its own. Not made
-yet: `games/<game>/` (a game's own screens), the `cl` lineage.
+yet: `games/<game>/` (a game's own screens).
 
 ## Names
 
@@ -51,9 +51,17 @@ without case in the VM and share one namespace with the game's thousands, hence 
 
 ## The list: `design/scripts.json`
 
-Segments in layer order. A segment has `file`, `core` (core and lib only: a failure stops the start), `requires`
-(`fn:Name/n`, `var:`, `ev:`, `interface:`, `file:`, `node:interface#NODE`), `provides`/`uses` (`adapter:<family>`:
-of the providers the first that attaches is chosen), `optional` (`adapter:<family>`: a contract one feature of the
+Segments in layer order, and the adapter sets. `sets` names each set's `base`: the common set (`base`, the adapters of
+`lineages/legacy`) has none; a game's set (`caribbean_legend`) names its base and holds only its differences. The set
+is the running game's profile key (`storm::GameProfileFacts::key`, core/game_profile.hpp; scripts read it as `ui.game`,
+for logs only): chosen once, at the first program; a game without a set of its own gets the common set, said once in
+the log. A segment has `file`, `core` (core and lib only: a failure stops the start), `set` (absent: the common set's)
+and `replaces` (the segment of its set's base it stands for: a whole adapter, or a small part a base adapter keeps
+apart for that — the VM refuses a function defined in two segments, so a set overrides segments, not functions),
+`requires` (`fn:Name/n`, `var:`, `ev:`, `interface:`, `file:`, `node:interface#NODE`: what the segment reads of the
+game; a segment that lacks it is off, loudly, and its windows are drawn by the generic layout — requirements choose
+nothing), `provides`/`uses` (`adapter:<family>`: one provider per contract in a resolved set, else the list is
+refused), `optional` (`adapter:<family>`: a contract one feature of the
 segment's screens needs and the screen does without; each of its bindings' `data.optional.<family>` is `"1"` when it
 is provided, else `"0"` with a warning at attach, and the segment attaches either way), and:
 - an adapter's `binds`: `{capability, interface, nodes, data}`; `nodes` are `[node, type, required]` or `"@set"` from

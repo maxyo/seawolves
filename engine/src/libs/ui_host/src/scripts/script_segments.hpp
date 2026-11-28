@@ -54,10 +54,26 @@ struct Segment
     std::vector<storm::ui::ScriptScreen> binds;
     // A screen with no interface takes it and its nodes from the attached binding of its capability.
     std::vector<storm::ui::ScriptScreen> screens;
+    // The adapter set the segment is of ("" the common one, `base`), and the segment of the set's base it stands
+    // for ("" none: it adds to the base).
+    std::string set, replaces;
 };
 
-// The pack's segment list, checked once; a defect throws naming the entry.
-std::vector<Segment> ParseSegments(std::string_view json);
+// The pack's segment list and its adapter sets: a set names its base ("" for the common set, which has none).
+struct SegmentList
+{
+    std::vector<Segment> segments;
+    std::unordered_map<std::string, std::string> sets;
+};
+
+// The pack's segment list, checked once (every set resolved, each contract with one provider in it); a defect throws
+// naming the entry.
+SegmentList ParseSegments(std::string_view json);
+
+// The segments of the running game's adapter set (`game`: its profile key, storm::GameProfileFacts::key), in list
+// order: the common segments and those of the set and its bases, without the base segments a set segment replaces.
+// A game without a set of its own gets the common set (logged).
+std::vector<Segment> ResolveSet(const SegmentList &list, std::string_view game);
 
 // What the running program offers, read once per program: its functions (with their declared arguments), globals and
 // event handlers, the interfaces of its Interfaces[] table (ids: the ini file names in lower case), and the files of

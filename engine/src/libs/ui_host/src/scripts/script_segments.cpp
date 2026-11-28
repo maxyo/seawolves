@@ -1,6 +1,7 @@
 #include "script_segments.hpp"
 
 #include "core.h"
+#include "game_profile.hpp"
 #include "istring.hpp"
 #include "v_data.h"
 #include "v_file_service.h"
@@ -149,10 +150,75 @@ std::vector<std::string> ParseContracts(const Json &entry, const char *key, cons
 }
 } // namespace
 
-std::vector<Segment> ParseSegments(std::string_view text)
+namespace
 {
+// The sets from `set` to the common one, `set` first.
+std::vector<std::string> Chain(const SegmentList &list, std::string set)
+{
+    std::vector<std::string> chain;
+    for (; !set.empty(); set = list.sets.at(set))
+        chain.push_back(set);
+    return chain;
+}
+
+// The common set: the one with no base ("" when the list declares no sets).
+std::string Common(const SegmentList &list)
+{
+    for (const auto &[name, base] : list.sets)
+        if (base.empty())
+            return name;
+    return {};
+}
+
+std::vector<Segment> Resolved(const SegmentList &list, const std::string &set)
+{
+    const std::vector<std::string> chain = Chain(list, set);
+    const auto in_chain = [&](const Segment &segment) {
+        return segment.set.empty() || std::ranges::find(chain, segment.set) != chain.end();
+    };
+    std::unordered_set<std::string> replaced;
+    for (const Segment &segment : list.segments)
+        if (in_chain(segment) && !segment.replaces.empty())
+            replaced.insert(segment.replaces);
     std::vector<Segment> segments;
+    std::unordered_map<std::string, std::string> providers;
+    for (const Segment &segment : list.segments)
+    {
+        if (!in_chain(segment) || replaced.contains(segment.file))
+            continue;
+        // A contract has one adapter in a set: requirements check a window, they choose nothing.
+        for (const std::string &contract : segment.provides)
+            if (const auto [first, added] = providers.emplace(contract, segment.file); !added)
+                throw std::runtime_error("scripts.json set " + (set.empty() ? std::string("(common)") : set) + ": " +
+                                         contract + " is provided by both " + first->second + " and " + segment.file);
+        segments.push_back(segment);
+    }
+    return segments;
+}
+} // namespace
+
+SegmentList ParseSegments(std::string_view text)
+{
+    SegmentList parsed;
+    std::vector<Segment> &segments = parsed.segments;
     const Json list = Json::parse(text);
+    const Json declared = list.value("sets", Json::object());
+    for (const auto &[name, set] : declared.items())
+        parsed.sets[name] = set.value("base", std::string());
+    std::string common;
+    for (const auto &[name, base] : parsed.sets)
+    {
+        if (base.empty() && !common.empty())
+            throw std::runtime_error("scripts.json sets " + common + " and " + name + " both have no base");
+        if (base.empty())
+            common = name;
+        else if (!parsed.sets.contains(base))
+            throw std::runtime_error("scripts.json set " + name + ": its base " + base + " is not a set");
+        std::string at = name;
+        for (size_t steps = 0; !at.empty(); at = parsed.sets.at(at))
+            if (++steps > parsed.sets.size())
+                throw std::runtime_error("scripts.json set " + name + ": its bases run in a circle");
+    }
     NodeSets sets;
     const Json named = list.value("nodeSets", Json::object());
     for (const auto &[name, nodes] : named.items())
@@ -174,15 +240,53 @@ std::vector<Segment> ParseSegments(std::string_view text)
                 segment.binds.push_back(ParseBinding(binding, sets, where));
             for (const Json &screen : entry.value("screens", Json::array()))
                 segment.screens.push_back(ParseScreen(screen, sets, segment.file, where));
+            segment.set = entry.value("set", std::string());
+            segment.replaces = entry.value("replaces", std::string());
         }
         catch (const Json::exception &error)
         {
             throw std::runtime_error(where + ": " + error.what());
         }
-        if (segment.core && (!segment.needs.empty() || !segment.uses.empty() || !segment.provides.empty()))
-            throw std::runtime_error(where + ": a core segment cannot have requirements or contracts");
+        if (segment.core &&
+            (!segment.needs.empty() || !segment.uses.empty() || !segment.provides.empty() || !segment.set.empty()))
+            throw std::runtime_error(where + ": a core segment cannot have requirements, contracts or a set");
+        if (!segment.set.empty() && (!parsed.sets.contains(segment.set) || segment.set == common))
+            throw std::runtime_error(where + ": set " + segment.set +
+                                     " is not a game's set (the common one's "
+                                     "segments name none)");
+        if (!segment.replaces.empty())
+        {
+            const std::vector<std::string> bases =
+                Chain(parsed, parsed.sets.at(segment.set.empty() ? common : segment.set));
+            const auto replaced = std::ranges::find_if(segments, [&](const Segment &s) {
+                return s.file == segment.replaces && (s.set.empty() || std::ranges::find(bases, s.set) != bases.end());
+            });
+            if (segment.set.empty() || replaced == segments.end())
+                throw std::runtime_error(where + ": replaces " + segment.replaces +
+                                         ", which is no segment of its set's bases listed before it");
+        }
         segments.push_back(std::move(segment));
     }
+    Resolved(parsed, common);
+    for (const auto &[name, base] : parsed.sets)
+        Resolved(parsed, name);
+    return parsed;
+}
+
+std::vector<Segment> ResolveSet(const SegmentList &list, std::string_view game)
+{
+    std::string set(game);
+    if (!list.sets.contains(set))
+    {
+        set = Common(list);
+        spdlog::warn("UI scripts: no adapter set for {}: the common set is used", game);
+    }
+    std::vector<Segment> segments = Resolved(list, set);
+    const auto replaced = std::ranges::count_if(list.segments, [&](const Segment &s) {
+        return !s.replaces.empty() && std::ranges::find(segments, s.file, &Segment::file) != segments.end();
+    });
+    spdlog::info("UI scripts: adapter set {} ({} segments of its own replace the common ones)",
+                 set.empty() ? "(common)" : set, replaced);
     return segments;
 }
 
@@ -274,7 +378,8 @@ void Attacher::Attach(storm::script::Program &program)
 {
     if (!listed_)
     {
-        segments_ = ParseSegments(hooks_.read_list());
+        // The running game decides the set once, at the first program (gameProfile: detected at start).
+        segments_ = ResolveSet(ParseSegments(hooks_.read_list()), storm::gameProfileFacts().key);
         listed_ = true;
     }
     program_ = &program;
@@ -286,7 +391,7 @@ void Attacher::Attach(storm::script::Program &program)
 
     std::vector<storm::ui::ScriptScreen> screens;
     std::string offered, missing;
-    std::unordered_map<std::string, std::string> providers;            // contract -> the segment chosen for it
+    std::unordered_map<std::string, std::string> providers;            // contract -> its attached segment
     std::unordered_map<std::string, storm::ui::ScriptScreen> bindings; // capability -> its adapter's binding
     const auto off = [&](const Segment &segment, const std::string &reason) {
         std::string names;
@@ -300,14 +405,6 @@ void Attacher::Attach(storm::script::Program &program)
     };
     for (const Segment &segment : segments_)
     {
-        // Every provider of a contract defines the same functions: only the first that attaches is chosen.
-        const auto chosen =
-            std::ranges::find_if(segment.provides, [&](const auto &c) { return providers.contains(c); });
-        if (chosen != segment.provides.end())
-        {
-            spdlog::info("UI scripts: {} by {}; {} not needed", *chosen, providers.at(*chosen), segment.file);
-            continue;
-        }
         std::string reason;
         for (const Requirement &requirement : segment.needs)
             if (const std::string unmet = Unmet(surface, requirement); !unmet.empty())

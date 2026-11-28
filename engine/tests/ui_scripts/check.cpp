@@ -51,22 +51,27 @@ std::string ReadText(const fs::path &path)
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
-// The game: tests/ui_scripts/game with the application's mobile-ui layer over it. The working directory is the game's,
-// as in the engine.
-void MakeGame()
+// The game: a fixture folder of tests/ui_scripts (`game`, or `game-cl`: the windows of a later game of the family, as
+// node ids only) with the application's mobile-ui layer over it. The working directory is the game's, as in the engine.
+void MakeGame(const std::string &folder)
 {
-    static bool made = false;
-    if (made)
+    static std::string made;
+    if (made == folder)
         return;
-    made = true;
-    for (auto *c : __STORM_CLASSES_REGISTRY) // as CoreImpl::Init: libraries are found by the hash of their name
-        c->SetHash(MakeHashValue(c->GetName()));
+    if (made.empty())
+        for (auto *c : __STORM_CLASSES_REGISTRY) // as CoreImpl::Init: libraries are found by the hash of their name
+            c->SetHash(MakeHashValue(c->GetName()));
+    made = folder;
     // The fixture game, read only (saves are made in memory), with the interface's layer over it as on a phone.
-    const fs::path root = Environment("STORM_UI_TESTS") + "/game";
+    const fs::path root = Environment("STORM_UI_TESTS") + "/" + folder;
     fs::current_path(root);
     storm::storage::select(
         {.game = root, .layers = {.mobileUi = storm::layers::directory("mobile-ui", Environment("STORM_UI_LAYER"))}});
     fio->ScanResourcePaths();
+    // The fixture's profile, detected from its files as the engine does at start (it chooses the adapter set).
+    storm::setGameProfile(
+        storm::detectGameProfile([](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); },
+                                 [](const std::string &reason) { FAIL("fixture game profile: " << reason); }));
 }
 
 std::string PackList()
@@ -100,14 +105,15 @@ struct Log
 // A program with the pack's segments attached by the production attacher.
 struct Vm
 {
-    const bool made = (MakeGame(), true); // the game's folders before the compiler exists
+    const bool made; // the game's folders before the compiler exists
     std::vector<storm::ui::ScriptScreen> screens;
     int released = 0;
     storm::ui_scripts::Attacher attacher;
     COMPILER compiler;
 
-    explicit Vm(std::string list = PackList())
-        : attacher({[list] { return list; },
+    explicit Vm(std::string list = PackList(), const std::string &game = "game")
+        : made((MakeGame(game), true)),
+          attacher({[list] { return list; },
                     [](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); },
                     [this](const std::vector<storm::ui::ScriptScreen> &attached) { screens = attached; },
                     [this] {
@@ -604,33 +610,76 @@ TEST_CASE("the touch scripts attach with a script cache that refuses writes or h
     fs::remove_all(cache);
 }
 
-TEST_CASE("of the providers of a contract the first that attaches is chosen; its users need one")
+// Two adapter sets over the common one; the fixture game is of the legacy profile.
+std::string Sets(const std::string &legacy, const std::string &provider)
+{
+    return R"({"sets": {"base": {}, )" + legacy + R"("other": {"base": "base"}}, "segments": [
+                  {"file": "interface/touch/core/core.c", "core": true},
+                  {"file": "interface/test/provider_one.c", "provides": ["adapter:test"],
+                   "binds": [{"capability": "test", "interface": "tavernwait", "nodes": [["OK_BTN", "button", true]]}]},
+                  )" +
+           provider + R"(,
+                  {"file": "interface/test/user.c", "uses": ["adapter:test"],
+                   "screens": [{"capability": "test", "component": "s-rest"}]}]})";
+}
+
+TEST_CASE("the running game's adapter set decides the adapters once; its segment replaces the common one")
+{
+    const auto provider = [](const std::string &set) {
+        return R"({"file": "interface/test/provider_two.c", "set": ")" + set + R"(",
+            "replaces": "interface/test/provider_one.c", "provides": ["adapter:test"],
+            "binds": [{"capability": "test", "interface": "tavernwait", "nodes": [["OK_BTN", "button", true]]}]})";
+    };
+    std::string value;
+    {
+        // Another game's set: the common adapter.
+        Log log;
+        Vm vm(Sets(R"("legacy": {"base": "base"}, )", provider("other")));
+        vm.Start();
+        CHECK(vm.Loaded("interface/test/provider_one.c"));
+        CHECK_FALSE(vm.Loaded("interface/test/provider_two.c"));
+        REQUIRE(vm.compiler.RunScriptFunction("TestUser", value));
+        CHECK(value == "1");
+        CHECK(log.Has("UI scripts: adapter set legacy (0 segments of its own replace the common ones)"));
+    }
+    {
+        // The running game's set: its segment instead of the one it replaces, with its binding.
+        Log log;
+        Vm vm(Sets(R"("legacy": {"base": "base"}, )", provider("legacy")));
+        vm.Start();
+        CHECK_FALSE(vm.Loaded("interface/test/provider_one.c"));
+        CHECK(vm.Loaded("interface/test/provider_two.c"));
+        REQUIRE(vm.compiler.RunScriptFunction("TestUser", value));
+        CHECK(value == "2");
+        REQUIRE(vm.screens.size() == 1);
+        CHECK(vm.screens[0].interface == "tavernwait");
+        CHECK(log.Has("UI scripts: adapter set legacy (1 segments of its own replace the common ones)"));
+    }
+    {
+        // A game without a set of its own: the common set, said.
+        Log log;
+        Vm vm(Sets("", provider("other")));
+        vm.Start();
+        CHECK(vm.Loaded("interface/test/provider_one.c"));
+        CHECK(log.Has("UI scripts: no adapter set for legacy: the common set is used"));
+    }
+}
+
+TEST_CASE("requirements check a window and choose nothing: a segment that fails them is off with its screens")
 {
     Log log;
     Vm vm(List(R"({"file": "interface/test/provider_one.c", "requires": ["fn:Missing/0"], "provides": ["adapter:test"]},
-                  {"file": "interface/test/provider_two.c", "provides": ["adapter:test"],
-                   "binds": [{"capability": "test", "interface": "tavernwait", "nodes": [["OK_BTN", "button", true]]}]},
-                  {"file": "interface/test/inside.c", "provides": ["adapter:test"]},
                   {"file": "interface/test/user.c", "uses": ["adapter:test"],
                    "screens": [{"capability": "test", "component": "s-rest"}]},
-                  {"file": "interface/test/plain.c", "uses": ["adapter:other"]},
                   {"file": "interface/test/refer.c", "screens": [{"capability": "unbound", "component": "s-rest"}]})"));
     vm.Start();
-    CHECK(vm.Loaded("interface/test/provider_two.c"));
     CHECK_FALSE(vm.Loaded("interface/test/provider_one.c"));
-    CHECK_FALSE(vm.Loaded("interface/test/inside.c")); // would compile, but the contract is provided
-    CHECK(log.Has("UI scripts: adapter:test by interface/test/provider_two.c; interface/test/inside.c not needed"));
-    std::string value;
-    REQUIRE(vm.compiler.RunScriptFunction("TestUser", value));
-    CHECK(value == "2");
-    REQUIRE(vm.screens.size() == 1);
-    CHECK(vm.screens[0].capability == "test");
-    CHECK(vm.screens[0].interface == "tavernwait");
-    CHECK(vm.screens[0].nodes.size() == 1);
-    CHECK_FALSE(vm.Loaded("interface/test/plain.c"));
-    CHECK(log.Has("UI script interface/test/plain.c is off: adapter:other: no attached script provides it"));
+    CHECK_FALSE(vm.Loaded("interface/test/user.c"));
+    CHECK(
+        log.Has("UI script interface/test/provider_one.c is off: fn:Missing/0: Missing is not a function of the game"));
+    CHECK(log.Has("UI script interface/test/user.c is off: adapter:test: no attached script provides it"));
     CHECK(log.Has("UI script interface/test/refer.c: screen unbound has no binding from an attached adapter"));
-    CHECK(log.Has("capabilities offered: test; missing: unbound"));
+    CHECK(log.Has("capabilities offered: none; missing: test, unbound"));
 }
 
 TEST_CASE("a binding the game cannot give is off alone; bindings share named node sets")
@@ -696,9 +745,23 @@ TEST_CASE("the segment list is checked when it is read")
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "core": true, "requires": ["var:A"]}]})"),
                       Catch::Contains("a core segment cannot have requirements"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "core": true, "provides": ["adapter:a"]}]})"),
-                      Catch::Contains("a core segment cannot have requirements or contracts"));
+                      Catch::Contains("a core segment cannot have requirements, contracts or a set"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "uses": ["rest"]}]})"),
                       Catch::Contains("uses 'rest' is not adapter:<family>"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "provides": ["adapter:a"]},
+                                                     {"file": "b.c", "provides": ["adapter:a"]}]})"),
+                      Catch::Contains("adapter:a is provided by both a.c and b.c"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"sets": {"base": {}, "g": {"base": "base"}}, "segments": [
+                                         {"file": "a.c", "provides": ["adapter:a"]},
+                                         {"file": "b.c", "set": "g", "provides": ["adapter:a"]}]})"),
+                      Catch::Contains("set g: adapter:a is provided by both a.c and b.c"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"sets": {"base": {}}, "segments": [{"file": "a.c", "set": "g"}]})"),
+                      Catch::Contains("set g is not a game's set"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"sets": {"base": {}, "g": {"base": "base"}}, "segments": [
+                                         {"file": "b.c", "set": "g", "replaces": "a.c"}, {"file": "a.c"}]})"),
+                      Catch::Contains("replaces a.c, which is no segment of its set's bases listed before it"));
+    CHECK_THROWS_WITH(ParseSegments(R"({"sets": {"g": {"base": "h"}, "h": {"base": "g"}}, "segments": []})"),
+                      Catch::Contains("its bases run in a circle"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c",
                       "component": "s-c", "interface": "i"}]}]})"),
                       Catch::Contains("interface and nodes come together"));
@@ -707,7 +770,7 @@ TEST_CASE("the segment list is checked when it is read")
                       Catch::Contains("no node set @none"));
     CHECK_THROWS_WITH(ParseSegments(R"({"segments": [{"file": "a.c", "screens": [{"capability": "c"}]}]})"),
                       Catch::Contains("scripts.json segment a.c"));
-    CHECK(ParseSegments(PackList()).size() == Json::parse(PackList()).at("segments").size());
+    CHECK(ParseSegments(PackList()).segments.size() == Json::parse(PackList()).at("segments").size());
 }
 
 TEST_CASE("the probe reads what the program offers")
@@ -843,10 +906,11 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
 // back key it binds and what its events send, or the error its build gives ("fails").
 void CheckCases(const char *folder, const std::string &file, const std::string &capability = "")
 {
-    Vm vm;
+    // "fixture": the fixture game the file's models are of (default `game`).
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
+    Vm vm(PackList(), fixture.value("fixture", std::string("game")));
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
     for (const Json &recorded : fixture.at("cases"))
     {
         INFO(recorded.at("name").get<std::string>());
@@ -942,10 +1006,11 @@ std::vector<std::string> TapAfterRowGone(const char *file, const char *folder, c
                                          int gone, bool renumber, const char *list, size_t drawn, std::string id,
                                          const char *verb, size_t at = 0)
 {
-    Vm vm;
+    // "fixture": the fixture game the file's models are of (default `game`).
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
+    Vm vm(PackList(), fixture.value("fixture", std::string("game")));
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
     const Json &recorded = fixture.at("cases").at(at);
     storm::ui::InterfaceModel model;
     REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));

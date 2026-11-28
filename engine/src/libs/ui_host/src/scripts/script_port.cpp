@@ -1,6 +1,7 @@
 #include "script_port.hpp"
 
 #include "core.h"
+#include "game_profile.hpp"
 #include "platform/android_script_errors.hpp"
 #include "istring.hpp"
 #include "string_compare.hpp"
@@ -778,6 +779,8 @@ ATTRIBUTES &VmPort::FillUi(const storm::ui::ScriptScreen &screen, const std::vec
         Clear(ui);
         ui.SetAttribute("capability", screen.capability);
         ui.SetAttribute("screen", screen.script);
+        // The running game's profile, which chose the adapter set (script_segments.cpp); for logs, never a branch.
+        ui.SetAttribute("game", std::string(storm::gameProfileFacts().key));
         FillTree(ui, screen.look);
         FillTree(ui, screen.data);
         model = &ui.CreateAttribute("model");

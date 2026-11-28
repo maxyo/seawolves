@@ -62,6 +62,8 @@ struct CollidingId
 struct GameProfileFacts
 {
     std::string_view name;
+    // The profile's identity as the application's files name it (the touch interface's adapter set: scripts.json).
+    std::string_view key;
     int32_t script_version; // the scripts' iScriptVersion the engine accepts, also GetEngineVersion()
     std::span<const BuiltinReturnType> builtin_returns;
     std::span<const CollidingId> colliding_ids; // every value whose meaning differs between the games
@@ -94,9 +96,9 @@ inline constexpr BuiltinReturnType kCaribbeanLegendReturns[] = {
 } // namespace profile_rows
 
 inline constexpr std::array<GameProfileFacts, 2> kGameProfiles = {{
-    {"legacy (To Each His Own)", 54128, {}, profile_rows::kLegacyIds, true, true},
-    {"Caribbean Legend", 2230981, profile_rows::kCaribbeanLegendReturns, profile_rows::kCaribbeanLegendIds, false,
-     false},
+    {"legacy (To Each His Own)", "legacy", 54128, {}, profile_rows::kLegacyIds, true, true},
+    {"Caribbean Legend", "caribbean_legend", 2230981, profile_rows::kCaribbeanLegendReturns,
+     profile_rows::kCaribbeanLegendIds, false, false},
 }};
 
 constexpr const GameProfileFacts &gameProfileFacts(GameProfile profile)
