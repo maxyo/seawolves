@@ -72,12 +72,7 @@ void TouchNewGame_View(aref game)
 	TouchNewGame.hero.nation = "";
 	if (game.hero.nation != "")
 		TouchNewGame.hero.nation = UiText("menu.nation_" + TouchLib_Cut(game.hero.nation, 7, strlen(game.hero.nation)));
-	if (CheckAttribute(game, "hero.portrait"))
-	{
-		makearef(at, TouchNewGame.hero.image);
-		makearef(step, game.hero.portrait);
-		CopyAttributes(at, step);
-	}
+	TouchLib_Copy(&TouchNewGame, "hero.image", game, "hero.portrait");
 	TouchNewGame.hero.bio = game.hero.bio != "";
 	UiOn("bio", "");
 	if (CheckAttribute(game, "setup"))

@@ -75,12 +75,7 @@ void TouchAdpNewGame_State(aref ui, aref out)
 		if (label == "HardcoreGame") label = UiText("menu.hardcore");
 		TouchLegNewGame_Toggle(toggles, node, label, at);
 	}
-	object face;
-	if (TouchLegLib_NodeImage(model, "FACEPICT", &face))
-	{
-		makearef(at, out.hero.portrait);
-		CopyAttributes(at, &face);
-	}
+	TouchLib_Copy(out, "hero.portrait", model, "FACEPICT.images.i0");
 	object flag;
 	out.hero.nation = "";
 	if (TouchLegLib_NodeImage(model, "NATIONS_PICTURE", &flag)) out.hero.nation = TouchLegLib_FlagOf(&flag);
