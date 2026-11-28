@@ -1,7 +1,7 @@
 {
   "tag": "c-icon-button",
   "props": {
-    "icon": {"type": "text", "default": "back"},
+    "icon": {"type": "text", "default": ""},
     "label": {"type": "text", "default": ""},
     "look": {"type": "enum", "options": ["bare", "engraved", "ribbon"], "default": "bare"},
     "disabled": {"type": "bool", "default": false},

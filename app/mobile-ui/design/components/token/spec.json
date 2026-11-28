@@ -1,7 +1,7 @@
 {
   "tag": "c-token",
   "props": {
-    "icon": {"type": "text", "default": "ship"},
+    "icon": {"type": "text", "default": ""},
     "enamel": {"type": "enum", "options": ["teal", "red", "iron", "parchment"], "default": "teal", "class": false},
     "size": {"type": "int", "default": @{size.tokenSm}},
     "disabled": {"type": "bool", "default": false},

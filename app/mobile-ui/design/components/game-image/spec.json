@@ -7,7 +7,7 @@
     "uv": {"type": "text", "default": ""},
     "size": {"type": "int", "default": 0},
     "label": {"type": "text", "default": ""},
-    "icon": {"type": "text", "default": "chest"},
+    "icon": {"type": "text", "default": ""},
     "round": {"type": "bool", "default": false},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
     "selected": {"type": "bool", "default": false},
