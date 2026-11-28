@@ -272,4 +272,17 @@ int32_t RichTextWidth(const std::vector<RichItem> &items,
     }
     return widest;
 }
+
+std::string RichPlainText(const std::vector<RichItem> &items)
+{
+    std::string plain;
+    for (const auto &item : items)
+    {
+        if (const auto *text = std::get_if<RichText>(&item))
+            plain += text->text;
+        else if (std::holds_alternative<RichLineBreak>(item))
+            plain += '\n';
+    }
+    return plain;
+}
 } // namespace storm::xi

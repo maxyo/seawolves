@@ -46,6 +46,11 @@ class CXI_BUTTON : public CINODE
 
   protected:
     char *m_sGroupName;
+#ifdef STORM_TOUCH_UI
+    // -1 / 1: the picture is the interface's left / right arrow (a text-less ‹ › of later games), else 0
+    int m_arrow = 0;
+    void SetArrow(const char *picture);
+#endif
     int32_t m_idTex; // texture identity
     CVideoTexture *m_pTex;
 

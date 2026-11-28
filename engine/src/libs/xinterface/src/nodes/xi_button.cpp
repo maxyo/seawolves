@@ -10,6 +10,11 @@ void CXI_BUTTON::MobileCollect(std::vector<MobileWidget> &widgets) const
     MobileButtonCollect(*this, storm::android::mobileScreen, widgets);
 }
 
+void CXI_BUTTON::SetArrow(const char *picture)
+{
+    m_arrow = storm::iEquals(picture, "left_arrow") ? -1 : storm::iEquals(picture, "right_arrow") ? 1 : 0;
+}
+
 bool CXI_BUTTON::MobileApply(const storm::ui::Action &action)
 {
     if (action.index != -1 || action.verb != "press" || !m_bUse || !m_bClickable || m_bLockedNode || m_bLockStatus)
@@ -209,7 +214,12 @@ void CXI_BUTTON::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const 
         memcpy(m_sGroupName, param, len);
 
         if (ReadIniString(ini1, name1, ini2, name2, "picture", param, sizeof(param), ""))
+        {
             pPictureService->GetTexturePos(m_sGroupName, param, m_tRect);
+#ifdef STORM_TOUCH_UI
+            SetArrow(param);
+#endif
+        }
     }
     else
     {
@@ -348,6 +358,9 @@ uint32_t CXI_BUTTON::MessageProc(int32_t msgcode, MESSAGE &message)
 
         const std::string &param2 = message.String();
         pPictureService->GetTexturePos(m_sGroupName, param2.c_str(), m_tRect);
+#ifdef STORM_TOUCH_UI
+        SetArrow(param2.c_str());
+#endif
     }
     break;
     }

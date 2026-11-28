@@ -1,6 +1,6 @@
 // What the touch UI gets of a button node (MobileButtonCollect, mobile_button.hpp): the items screen's map close
 // button only while its script command is live, the stock navigation buttons by their string resource, and the
-// commerce screens' quantity arrows.
+// commerce screens' quantity arrows, a button drawn as the arrow picture.
 #include "mobile_button.hpp"
 
 #include <cassert>
@@ -23,6 +23,7 @@ struct Button
 {
     const char *m_nodeName = "MAP_EXIT_BTN";
     int m_idString = -1;
+    int m_arrow = 0;
     const Strings *pStringService = nullptr;
     bool m_bUse = true, m_bClickable = true, m_bLockedNode = false, m_bLockStatus = false;
     bool click = true, activate = false;
@@ -108,5 +109,14 @@ int main()
     screen = "alchemy"; // an icon screen: the node's name, the UI words it
     widgets = collect();
     assert(widgets.size() == 1 && widgets[0].label == "QTY_UNKNOWN_BUTTON");
-    std::cout << "PASS map close hidden/disabled/screen/command boundaries, legacy navigation, quantity arrows\n";
+    screen = "selectcharacter"; // drawn as the interface's arrows: ‹ › steps on any screen, whatever the name
+    button.m_nodeName = "BUTTON_L_TRAIT";
+    assert(collect().empty());
+    button.m_arrow = -1;
+    widgets = collect();
+    assert(widgets.size() == 1 && widgets[0].label == "‹" && widgets[0].enabled);
+    button.m_arrow = 1;
+    assert(collect()[0].label == "›");
+    std::cout << "PASS map close hidden/disabled/screen/command boundaries, legacy navigation, quantity arrows, arrow "
+                 "pictures\n";
 }

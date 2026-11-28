@@ -260,3 +260,13 @@ uint32_t CXI_TEXT::MessageProc(int32_t msgcode, MESSAGE &message)
     }
     return 0;
 }
+
+#ifdef STORM_TOUCH_UI
+
+void CXI_TEXT::MobileCollect(std::vector<MobileWidget> &widgets) const
+{
+    if (auto text = storm::xi::RichPlainText(items_); !text.empty())
+        widgets.push_back({m_nodeName, "text", std::move(text), "", -1, m_rect.top * 8192 + m_rect.left});
+}
+
+#endif

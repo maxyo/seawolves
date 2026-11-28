@@ -15,6 +15,9 @@ class CXI_TEXT : public CINODE
   public:
     CXI_TEXT();
     ~CXI_TEXT() override;
+#ifdef STORM_TOUCH_UI
+    void MobileCollect(std::vector<MobileWidget> &widgets) const override;
+#endif
 
     void Draw(bool bSelected, uint32_t Delta_Time) override;
     bool Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2, VRenderer *rs, XYRECT &hostRect,

@@ -81,4 +81,8 @@ std::vector<RichLine> LayoutRichText(const std::vector<RichItem> &items, float m
 // The widest line, in pixels: `width(text, style)` measures one run (the caller knows the fonts).
 int32_t RichTextWidth(const std::vector<RichItem> &items,
                       const std::function<int32_t(std::string_view, const RichStyle &)> &width);
+
+// The text as the touch interface's model carries it: the runs without their styles, a break as a line feed; icons
+// are not carried yet (the pack has no game pictures inside a text).
+std::string RichPlainText(const std::vector<RichItem> &items);
 } // namespace storm::xi

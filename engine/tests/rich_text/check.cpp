@@ -118,3 +118,10 @@ TEST_CASE("rich_text.layout")
     CHECK(back[0].height == 12.0f);
     CHECK(back[0].width == 2.0f);
 }
+
+TEST_CASE("rich_text.plain")
+{
+    CHECK(RichPlainText(Parse("[color=255,1,2,3]Head[/color]\\n[scale=0.8]a [font=B]b[/font][/scale]"
+                              "[icon:group=G,pic=P,width=8,height=8] c\nd[x]")) == "Head\na b c\nd");
+    CHECK(RichPlainText(Parse("")).empty());
+}

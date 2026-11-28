@@ -7,7 +7,8 @@
 #include <vector>
 
 // What the touch UI gets of a button node (CXI_BUTTON) on the screen `screen`: a button with its text, or, for the
-// icon buttons of the screens ported to the portable UI, with a label the UI words itself.
+// icon buttons of the screens ported to the portable UI, with a label the UI words itself; a button drawn as the
+// interface's arrow picture is a ‹ › step whatever its name.
 template <class Button>
 void MobileButtonCollect(const Button &b, std::string_view screen, std::vector<MobileWidget> &widgets)
 {
@@ -26,9 +27,9 @@ void MobileButtonCollect(const Button &b, std::string_view screen, std::vector<M
         return;
     }
     const char *label = nullptr;
-    if (name.compare(0, 11, "LEFTCHANGE_") == 0)
+    if (name.compare(0, 11, "LEFTCHANGE_") == 0 || b.m_arrow < 0)
         label = "‹";
-    else if (name.compare(0, 12, "RIGHTCHANGE_") == 0)
+    else if (name.compare(0, 12, "RIGHTCHANGE_") == 0 || b.m_arrow > 0)
         label = "›";
     else if (b.m_idString != -1)
         label = b.pStringService->GetString(b.m_idString);
