@@ -180,6 +180,7 @@ void TouchLegJournal_Table(aref ui, aref model, aref spec, aref tables)
 	{
 		aref row = TouchLib_Item(model, node + ".rows", k);
 		aref at = TouchLib_Add(rows, "r");
+		at.key = row.id;
 		at.selected = sti(spec.choose) && row.value == "1";
 		for (c = 0; c < columns; c++)
 		{
@@ -249,6 +250,7 @@ void TouchAdpJournal_State(aref ui, aref out)
 		{
 			aref title = TouchLib_Item(&TouchLegJournal, "titles." + active, k);
 			aref entry = TouchLib_Add(entries, "e");
+			entry.key = title.id;
 			entry.label = title.label;
 			entry.open = text && title.id == TouchLegJournal.open;
 			if (sti(entry.open)) out.text.title = title.label;

@@ -2706,7 +2706,7 @@ static void Journal(const std::string &)
            "quests: active and completed, the titles, nothing open");
     Expect(view["extras"]["rows"].empty(), "every widget is known: no extras");
 
-    router.OnEvent({"entries", "row", "1"});
+    router.OnEvent({"entries", "row", Drawn(surface, "/list", 1)});
     ExpectEqual(surface.Last(), "widget:questbook\tQUEST_TITLE\t1\topen@8:debts", "a title opens its text");
     InterfaceModel text = model;
     text.revision += 1;
@@ -2723,7 +2723,7 @@ static void Journal(const std::string &)
                view["entry"]["entries"][0]["text"] == "Arrived.\nMet the brother.",
            "the titles stay while the text is open; the text split into dated entries");
     const size_t sent = surface.commands.size();
-    router.OnEvent({"entries", "row", "0"});
+    router.OnEvent({"entries", "row", Drawn(surface, "/list", 0)});
     ExpectEqual(surface.Last(), "back", "another entry: back to the titles first");
     AnswerAll(router, surface, true);
     model.revision = text.revision + 1;

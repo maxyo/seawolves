@@ -20,6 +20,7 @@ void TouchTradebook_Places(aref game, aref view)
 	{
 		aref place = TouchLib_Item(game, "places", k);
 		aref row = TouchLib_Add(towns, "r");
+		row.id = place.key;
 		row.cells.c0.text = place.label;
 		row.cells.c0.sub = place.sub;
 		if (place.flag != "")
@@ -111,6 +112,8 @@ void TouchTradebook_Tap()
 	if (id == "header-back") { TouchAdpTradebook_Leave(ui); return; }
 	aref game;
 	makearef(game, TouchTradebook.game);
-	TouchAdpTradebook_Choose(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "places"), "the town"));
+	int place = TouchLib_Find(game, "places", "key", value);
+	if (place < 0) return; // the town tapped is no longer listed
+	TouchAdpTradebook_Choose(ui, place);
 	UiHold();
 }

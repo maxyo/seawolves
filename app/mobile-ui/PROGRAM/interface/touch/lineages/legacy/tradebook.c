@@ -21,6 +21,7 @@ void TouchAdpTradebook_State(aref ui, aref out)
 	{
 		row = TouchLib_Item(model, "TABLE_CITY.rows", k);
 		aref place = TouchLib_Add(places, "p");
+		place.key = row.id;
 		place.label = TouchLegLib_Cell(row, 1);
 		place.sub = TouchLegLib_Cell(row, 2);
 		place.flag = "";

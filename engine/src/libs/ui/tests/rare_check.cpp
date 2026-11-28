@@ -343,7 +343,7 @@ static void TradeBook(const std::string &models)
                prices[0]["cells"][0]["image"]["texture"] == "atlas:GOODS/Food" && prices[0]["cells"][3] == "1835",
            "goods: picture, trade type tag, sell, buy, stock");
     Expect(surface.props["headerSection"] == "tradebook", "hero sections in the header");
-    router.OnEvent({"towns", "row", "0"});
+    router.OnEvent({"towns", "row", Drawn(surface, "/towns", 0)});
     ExpectEqual(surface.Last(), "widget:tradebook\tTABLE_CITY\t0\tselect@8:city:0", "a town row selects it");
     router.OnEvent({"header", "section", "ship"});
     ExpectEqual(surface.Last(), "widget:tradebook\tI_SHIP\t-1\tpress", "a section icon presses its button");

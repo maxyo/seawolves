@@ -4,8 +4,8 @@
 //
 // State(ui, out), once a build:
 //   title ("" none); sections (the hero sections open from here)
-//   places.p<k>.{label, sub (where it lies, "" none), flag (our flag icon, "" none), date (of its prices, "" the game
-//     has none), hour ("" none), shown (its prices are the list), can}
+//   places.p<k>.{key, label, sub (where it lies, "" none), flag (our flag icon, "" none), date (of its prices, ""
+//     the game has none), hour ("" none), shown (its prices are the list), can}
 //   columns.{sell, buy, stock}: the game's headings of the price list
 //   goods.g<k>.{label, image (absent: none).{kind, group, image, uv}, tag ("export", "import", "contraband",
 //     "demand"; "" another), sell, buy, stock (as the game writes them)}

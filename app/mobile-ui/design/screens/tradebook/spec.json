@@ -15,6 +15,7 @@
       "default": [],
       "shape": [
         {
+          "id": "text",
           "cells": [
             {
               "$either": [

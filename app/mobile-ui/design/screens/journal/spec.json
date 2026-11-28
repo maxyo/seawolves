@@ -46,6 +46,7 @@
       "default": [],
       "shape": [
         {
+          "id": "text",
           "cells": [
             {
               "text": "text"
@@ -91,6 +92,7 @@
           ],
           "rows": [
             {
+              "id": "text",
               "selected": "bool",
               "cells": [
                 {

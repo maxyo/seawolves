@@ -6,10 +6,11 @@
 // State(ui, out), once a build:
 //   title, date ("" none); sections (the hero sections open from here); part: the part of the page shown
 //   pages.p<k>.{id, part ("quests", "docs", "assets", "stats"), label, selected, count (absent: not known)}
-//   entries (the page lists entries).e<k>.{label, open}; text (absent: none open).{title, records.r<k>.{date ("" none),
-//     text}}
+//   entries (the page lists entries).e<k>.{key (the game's quest), label, open}; text (absent: none open).{title,
+//     records.r<k>.{date ("" none), text}}
 //   tables.t<k>.{id, group ("" the page's own; "battles", "by_nation", "other"), choose (a row of it can be chosen),
-//     columns.c<n>.{label}, rows.r<k>.{selected, cells.c<n>.{text, image (absent: none).{kind, group, image, uv}}}}
+//     columns.c<n>.{label}, rows.r<k>.{key (the game's row; "" a table not chosen from), selected, cells.c<n>.{text,
+//     image (absent: none).{kind, group, image, uv}}}}
 // Opening an entry may take the game several frames (its text closed, another page looked at): the adapter awaits
 // them, and the screen's view of before stays meanwhile.
 extern void TouchAdpJournal_State(aref ui, aref out);

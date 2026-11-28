@@ -83,6 +83,7 @@ void TouchJournal_Entries(aref game, aref view)
 	{
 		aref entry = TouchLib_Item(game, "entries", k);
 		aref row = TouchLib_Add(list, "r");
+		row.id = entry.key;
 		row.cells.c0.text = entry.label;
 		row.selected = entry.open;
 	}
@@ -135,6 +136,8 @@ void TouchJournal_Tables(aref game, aref view)
 				aref from = TouchLib_Item(table, "rows", r);
 				aref row = TouchLib_Add(rows, "r");
 				CopyAttributes(row, from);
+				row.id = from.key;
+				DeleteAttribute(row, "key");
 			}
 			// The sheet scrolls, not each table: a table is as tall as its rows (head + a 44 dp row each).
 			at.height = 56 + 44 * count;
@@ -227,7 +230,9 @@ void TouchJournal_Tap()
 	}
 	if (id == "entries")
 	{
-		TouchAdpJournal_Open(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "entries"), "the entry"));
+		int entry = TouchLib_Find(game, "entries", "key", value);
+		if (entry < 0) return; // the entry tapped is no longer listed
+		TouchAdpJournal_Open(ui, entry);
 		UiHold();
 		return;
 	}
@@ -238,7 +243,9 @@ void TouchJournal_Tap()
 		aref at = TouchLib_Item(game, "tables", k);
 		if (at.id == table)
 		{
-			TouchAdpJournal_Choose(ui, table, TouchLib_TapIndex(value, TouchLib_Count(at, "rows"), "the row"));
+			int row = TouchLib_Find(at, "rows", "key", value);
+			if (row < 0) return; // the row tapped is no longer listed
+			TouchAdpJournal_Choose(ui, table, row);
 			UiHold();
 			return;
 		}

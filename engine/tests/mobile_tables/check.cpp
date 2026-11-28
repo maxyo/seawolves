@@ -482,6 +482,8 @@ TEST_CASE("a reference table's row is its UserData identity, and a selection foc
     f.screen = "tradebook";
     const std::string cityId = "tradebook:city:FortFrance";
     CHECK(storm::mobile::InterfaceTableRowId("tradebook", "TABLE_CITY", city, &f.root) == cityId);
+    // The journal's page of the trade book lists the same towns.
+    CHECK(storm::mobile::InterfaceTableRowId("questbook", "TABLE_CITY", city, &f.root) == cityId);
     auto cityRows = f.collect();
     REQUIRE(cityRows.size() == 1);
     CHECK(cityRows[0].rowId == cityId);

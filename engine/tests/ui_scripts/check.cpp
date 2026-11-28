@@ -884,6 +884,10 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
     const auto captain = TapAfterRowGone("shipyard", "shipyard", "shipyard", "PASSENGERSLIST", 0, false,
                                          "/sheet/candidates", 2, "{}", "click", 5);
     CHECK(captain == std::vector<std::string>{"send PASSENGERSLIST#2 select ", "hold"});
+    // The journal's quests: the first one gone from the page, the one tapped is still the one opened.
+    const auto quest =
+        TapAfterRowGone("journal", "journal", "journal", "QUEST_TITLE", 0, true, "/list", 1, "entries", "row");
+    CHECK(quest == std::vector<std::string>{"send QUEST_TITLE#0 open q_debt", "hold"});
 }
 
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")

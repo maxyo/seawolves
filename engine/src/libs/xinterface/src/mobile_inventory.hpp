@@ -59,10 +59,16 @@ inline bool ShipHoldTable(std::string_view screen, std::string_view node)
     return screen == "ship" && node == "TABLE_LIST";
 }
 
+// The towns of the trade book, its own window's and the journal's page of it (questbook.c, tradebook.c): a row is its
+// town (UserData.CityID).
+inline bool CityTable(std::string_view screen, std::string_view node)
+{
+    return (screen == "tradebook" || screen == "questbook") && node == "TABLE_CITY";
+}
+
 inline bool LeasedTableIdentityRequired(std::string_view screen, std::string_view node)
 {
-    return CommerceTable(screen, node) || ShipHoldTable(screen, node) ||
-           (screen == "tradebook" && node == "TABLE_CITY") ||
+    return CommerceTable(screen, node) || ShipHoldTable(screen, node) || CityTable(screen, node) ||
            (screen == "shipyard" && (node == "TABLE_SHIPYARD" || node == "TABLE_OTHER"));
 }
 
@@ -79,7 +85,7 @@ inline std::string InterfaceTableRowId(std::string_view screen, std::string_view
                 return {};
         return "shipyard:offer:" + std::string(id);
     }
-    if (screen == "tradebook" && node == "TABLE_CITY")
+    if (CityTable(screen, node))
     {
         auto *data = row ? row->GetAttributeClass("UserData") : nullptr;
         const char *city = data ? data->GetAttribute("CityID") : nullptr;

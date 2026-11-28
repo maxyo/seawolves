@@ -17,7 +17,7 @@
     [
      "entries",
      "row",
-     "1"
+     "q_debt"
     ],
     [
      "journal-tabs",
@@ -381,6 +381,7 @@
         "text": "Брат в беде"
        }
       ],
+      "id": "q_brother",
       "selected": false
      },
      {
@@ -389,6 +390,7 @@
         "text": "Старый долг"
        }
       ],
+      "id": "q_debt",
       "selected": false
      },
      {
@@ -397,6 +399,7 @@
         "text": "Доставка груза в Порт-Ройал"
        }
       ],
+      "id": "q_cargo",
       "selected": false
      },
      {
@@ -405,6 +408,7 @@
         "text": "Части карты сокровищ"
        }
       ],
+      "id": "q_map",
       "selected": false
      }
     ],
@@ -2298,6 +2302,7 @@
           "text": "0"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2315,6 +2320,7 @@
           "text": "1"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2332,6 +2338,7 @@
           "text": "0"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2349,6 +2356,7 @@
           "text": "1"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2366,6 +2374,7 @@
           "text": "0"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2383,6 +2392,7 @@
           "text": "1"
          }
         ],
+        "id": "",
         "selected": false
        }
       ]
@@ -2421,6 +2431,7 @@
           "text": "0"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2435,6 +2446,7 @@
           "text": "1"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2449,6 +2461,7 @@
           "text": "2"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2463,6 +2476,7 @@
           "text": "3"
          }
         ],
+        "id": "",
         "selected": false
        },
        {
@@ -2477,6 +2491,7 @@
           "text": "4"
          }
         ],
+        "id": "",
         "selected": false
        }
       ]
@@ -2965,6 +2980,7 @@
           "text": "Срочный"
          }
         ],
+        "id": "",
         "selected": false
        }
       ]
@@ -2975,7 +2991,7 @@
   },
   {
    "calls": [
-    "send TABLE_CITY#1 select ",
+    "send TABLE_CITY#1 select tradebook:city:PortRoyal",
     "hold"
    ],
    "capability": "journal",
@@ -2983,7 +2999,7 @@
     [
      "table-TABLE_CITY",
      "row",
-     "1"
+     "tradebook:city:PortRoyal"
     ]
    ],
    "modals": [],
@@ -3077,6 +3093,7 @@
       "index": 0,
       "label": "\tГавана\tКуба\t1200 / 30000\t1500",
       "node": "TABLE_CITY",
+      "rowId": "tradebook:city:Havana",
       "type": "choice",
       "value": "1"
      },
@@ -3140,6 +3157,7 @@
       "index": 1,
       "label": "\tПорт-Ройал\tЯмайка\t0 / 30000\t0",
       "node": "TABLE_CITY",
+      "rowId": "tradebook:city:PortRoyal",
       "type": "choice",
       "value": "0"
      },
@@ -3675,6 +3693,7 @@
           "text": "1500"
          }
         ],
+        "id": "tradebook:city:Havana",
         "selected": true
        },
        {
@@ -3699,6 +3718,7 @@
           "text": "0"
          }
         ],
+        "id": "tradebook:city:PortRoyal",
         "selected": false
        }
       ]
@@ -3749,6 +3769,7 @@
           "text": "80"
          }
         ],
+        "id": "Food",
         "selected": false
        },
        {
@@ -3770,6 +3791,7 @@
           "text": "15"
          }
         ],
+        "id": "Rum",
         "selected": false
        },
        {
@@ -3791,6 +3813,7 @@
           "text": "100"
          }
         ],
+        "id": "Balls",
         "selected": false
        }
       ]
@@ -4286,6 +4309,7 @@
           "text": "700"
          }
         ],
+        "id": "",
         "selected": false
        }
       ]
@@ -4622,6 +4646,7 @@
         "text": "Первое плавание"
        }
       ],
+      "id": "q_first",
       "selected": false
      },
      {
@@ -4630,6 +4655,7 @@
         "text": "Драка в таверне"
        }
       ],
+      "id": "q_tavern",
       "selected": false
      }
     ],
@@ -5369,6 +5395,7 @@
         "text": "Брат в беде"
        }
       ],
+      "id": "q_brother",
       "selected": false
      },
      {
@@ -5377,6 +5404,7 @@
         "text": "Старый долг"
        }
       ],
+      "id": "q_debt",
       "selected": false
      },
      {
@@ -5385,6 +5413,7 @@
         "text": "Доставка груза в Порт-Ройал"
        }
       ],
+      "id": "q_cargo",
       "selected": false
      },
      {
@@ -5393,6 +5422,7 @@
         "text": "Части карты сокровищ"
        }
       ],
+      "id": "q_map",
       "selected": false
      }
     ],

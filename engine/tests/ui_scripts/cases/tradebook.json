@@ -14,7 +14,7 @@
     [
      "towns",
      "row",
-     "0"
+     "city:0"
     ],
     [
      "header",
@@ -521,6 +521,7 @@
        }
       ],
       "disabled": false,
+      "id": "city:0",
       "selected": false
      },
      {
@@ -538,6 +539,7 @@
        }
       ],
       "disabled": false,
+      "id": "city:1",
       "selected": true
      },
      {
@@ -555,6 +557,7 @@
        }
       ],
       "disabled": false,
+      "id": "city:2",
       "selected": false
      }
     ]
@@ -571,7 +574,7 @@
     [
      "towns",
      "row",
-     "0"
+     "tradebook:city:town1"
     ],
     [
      "header-back",
@@ -1003,6 +1006,7 @@
        }
       ],
       "disabled": false,
+      "id": "tradebook:city:town1",
       "selected": true
      }
     ]
