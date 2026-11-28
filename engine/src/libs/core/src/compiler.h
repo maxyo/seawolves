@@ -340,6 +340,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     int32_t TypeKeywordId();
     bool CompileTypeTest(SEGMENT_DESC &Segment);
     bool IsAttributeTypeTest();
+    S_TOKEN_TYPE ChainEnd(SEGMENT_DESC &Segment);
     bool CompileTypeid(SEGMENT_DESC &Segment);
     bool CompileAttributeDefault(SEGMENT_DESC &Segment);
     bool CompileAttributeRoot(SEGMENT_DESC &Segment);

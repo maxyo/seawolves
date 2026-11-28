@@ -1602,7 +1602,7 @@ bool COMPILER::CompileChainTail(SEGMENT_DESC &Segment)
             CompileToken(Segment, ADVANCE_AP);
             CompileToken(Segment, ACCESS_WORD_CODE, 1, &dwAWCode, sizeof(uint32_t));
         }
-        sttResult = Token.Get();
+        sttResult = ChainEnd(Segment);
         if (sttResult == DOT)
             Token.Get(); // get next token (after dot)
     } while (sttResult == DOT);
@@ -1810,3 +1810,36 @@ bool COMPILER::IsAttributeTypeTest()
     return test;
 }
 
+// the token after an attribute chain's word. A chain may end a line that the expression continues ("a.b\n && c"):
+// then the line feeds are compiled; otherwise the line feed stays the current token, as statements expect.
+S_TOKEN_TYPE COMPILER::ChainEnd(SEGMENT_DESC &Segment)
+{
+    char *const before = Token.GetProgramControl();
+    if (Token.Get() != DEBUG_LINEFEED)
+        return Token.GetType();
+    S_TOKEN_TYPE next;
+    do
+        next = Token.Get();
+    while (next == DEBUG_LINEFEED || next == COMMENT);
+    Token.SetProgramControl(before);
+    switch (next)
+    {
+    case OP_BOOL_AND:
+    case OP_BOOL_OR:
+    case OP_BOOL_EQUAL:
+    case OP_NOT_EQUAL:
+    case OP_GREATER:
+    case OP_GREATER_OR_EQUAL:
+    case OP_LESSER:
+    case OP_LESSER_OR_EQUAL:
+    case OP_PLUS:
+    case OP_MINUS:
+    case OP_MULTIPLY:
+    case OP_DIVIDE:
+    case OP_MODUL:
+    case OP_QUESTION:
+        return CompileAuxiliaryTokens(Segment);
+    default:
+        return Token.Get();
+    }
+}
