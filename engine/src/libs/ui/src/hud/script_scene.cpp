@@ -1013,6 +1013,7 @@ class ScriptScene final : public Scene, private ScriptCall
         if (zoom_in_ ? !ship->zoom_in : !ship->zoom_out)
             return; // the engine has one scale only
         hud_.Send(NavigatorCommand(*ship, zoom_in_ ? Navigator::Verb::In : Navigator::Verb::Out));
+        hud_.AnsweredByGame(); // the engine draws the radar into the disc: no UI element changes
     }
 
     // The sheet over the scene shows exactly this revision of the sea orders: only now may the engine stop drawing

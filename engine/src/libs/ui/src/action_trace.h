@@ -76,6 +76,11 @@ class ActionTracer
     {
         return active_;
     }
+    // The action is answered in the game's own picture (hud::Mount::AnsweredByGame): no UI frame shows its answer.
+    void AnsweredByGame()
+    {
+        by_game_ = by_game_ || active_;
+    }
     // The action is not one to judge (a HUD control held and moved: the game's live states are what changes on
     // the screen then, not an answer to a tap).
     void Drop()
@@ -112,6 +117,7 @@ class ActionTracer
   private:
     bool active_ = false;
     bool predicted_ = false;
+    bool by_game_ = false;
     // An action interrupted (a new touch) after its screen predicted its result and before a frame showed it: the next
     // action starts from the same content, and the frame that shows the prediction is that action's feedback too.
     bool prediction_unshown_ = false;

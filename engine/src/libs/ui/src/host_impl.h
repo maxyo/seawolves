@@ -163,6 +163,10 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     void SetDialogue(const Dialogue &dialogue) override;
     void SubmitText(const std::string &token, const std::string &text, bool accepted) override;
     bool Mirrored() const override;
+    void AnsweredByGame() override
+    {
+        tracer_.AnsweredByGame();
+    }
     bool ScreenMounted() const override;
     bool InterfaceActive() const override;
     bool SetVideo(const Json &state);

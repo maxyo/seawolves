@@ -150,6 +150,9 @@ struct ActionTrace
     // frame. `late`: the first change came in a later frame (feedback_frame > 1).
     bool predicted = false;
     bool late = false;
+    // The answer is drawn in the game's own picture (the sea radar's scale): the UI's frames do not show it, and the
+    // first change they show is not its feedback.
+    bool by_game = false;
     bool interrupted = false; // another action began before it settled (its last frame is taken as the settled one)
     // The game stopped being live (the app left the screen) before the action settled: what it led to was not drawn,
     // and its last frame before that is taken as the settled one.

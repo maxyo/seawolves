@@ -195,6 +195,7 @@ std::optional<ActionTrace> ActionTracer::Begin(std::string what, FrameContent st
     // the screen now shows it already.
     predicted_ = prediction_unshown_ && start.hash == unshown_from_;
     prediction_unshown_ = false;
+    by_game_ = false;
     what_ = std::move(what);
     event_.clear();
     width_ = width;
@@ -246,6 +247,7 @@ std::optional<ActionTrace> ActionTracer::Finish(bool interrupted)
     ActionTrace trace = Analyse(event_.empty() ? what_ : event_, frames_, width_, height_, predicted_);
     trace.interrupted = interrupted;
     trace.late = predicted_ && trace.feedback_frame > 1;
+    trace.by_game = by_game_;
     frames_.clear();
     return trace;
 }
@@ -369,7 +371,9 @@ std::string DescribeTrace(const ActionTrace &trace)
     std::string line = head;
     // The latency of the action: when the screen first answered, and whether a predicted result was in the tap's frame.
     char answer[160] = "";
-    if (trace.feedback_frame)
+    if (trace.by_game)
+        std::snprintf(answer, sizeof answer, "; answered in the game's picture");
+    else if (trace.feedback_frame)
         std::snprintf(answer, sizeof answer, "; first change in frame %d, +%.0f ms", trace.feedback_frame,
                       trace.feedback_ms);
     line += answer;

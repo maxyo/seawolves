@@ -243,6 +243,11 @@ class Mount
     {
         return false;
     }
+    // The tap being handled is answered in the game's own picture (the sea radar's scale), not in the UI's frames:
+    // the host's flicker check says so instead of timing the UI's next change as its answer. Hosts without it: nothing.
+    virtual void AnsweredByGame()
+    {
+    }
     // The spec of the pack component `tag` (a script scene's props are converted by it); nullptr when the pack has
     // none.
     virtual const ComponentSpec *PackComponent(const std::string &tag) const = 0;
@@ -303,6 +308,11 @@ class Hud
     // A command for the engine (storm_ui/hud_command.h). A `slot` marks a latest-value input (a stick position, a
     // geometry): only the newest one of a slot matters.
     void Send(Command command, const std::string &slot = {});
+    // The tap being handled is answered in the game's picture (Mount::AnsweredByGame).
+    void AnsweredByGame()
+    {
+        mount_.AnsweredByGame();
+    }
     // A command the engine answers (a menu step, a map command, the sails: their `request`), numbered in the
     // router's request ledger and sent. The scene holds what the tap shows while Answered() is Waiting or Applied.
     template <class T> uint64_t Request(T command);
