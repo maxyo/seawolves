@@ -231,7 +231,8 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   `Image`), the open question of a window (`Question`, `Asked`, `Reply`: its node sets, a one-answer notice included), rows (`Choices`, `Choose`, `Act`: a verb to row k, `RowOf`: by id, `Selected`), the amount window
   (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
   list (`People`, `PickPerson`; `ListCharacter`: the character a row of a portrait list shows), `ShipSkills`,
-  `Facts` (a two-column table's rows), `Officers` (the game's captain choice, for `TouchLib_Captains`).
+  `Facts` (a two-column table's rows), `Officers` (the game's captain choice, for `TouchLib_Captains`), a settings
+  option of the window (`Option`, `OptionToggle`, `OptionSlide`; a slider's `SliderPercent`, `SliderPosition`).
 - `lineages/cl/lib.c` (Caribbean Legend's set, beside the common readers): `TouchClLib_Pages` (a window's pages
   `TABBTN_<n>` with their captions and the one shown).
 

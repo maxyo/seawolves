@@ -742,5 +742,6 @@
   "host.script_fixes_damaged": "Correcciones de scripts dañadas",
   "host.game_data_required": "Se necesitan los archivos del juego",
   "plural.form": "one",
-  "generic.empty": "Esta ventana del juego no tiene nada que tocar con el dedo; ciérrela con la flecha de la cabecera."
+  "generic.empty": "Esta ventana del juego no tiene nada que tocar con el dedo; ciérrela con la flecha de la cabecera.",
+  "settings.show": "Abrir los ajustes del juego"
 }

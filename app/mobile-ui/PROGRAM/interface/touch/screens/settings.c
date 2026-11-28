@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Settings: pages on a rail («Игра», «Управление», «Звук и графика», and «Отладка» where the application has it), each
-// in columns of rows. The game's own options (the adapter) apply as they change and are kept or dropped with «done» or
+// in columns of rows; a group of the game's options its window shows on another of its pages is one row that turns
+// there. The game's own options (the adapter) apply as they change and are kept or dropped with «done» or
 // the way back. The application's (the engine's table "appOptions": what each one is, its values and why it cannot
 // be set) are a draft of this opening the engine keeps, handed to the phone with «done».
 
@@ -39,15 +40,38 @@ aref TouchSettings_Row(aref column, string kind, string id, string key, string l
 	return row;
 }
 
-// The game's group `group` of the adapter's state as rows.
+// The game's group `group` of the adapter's state as rows; a group its window shows on another page, one row that
+// turns to it.
 void TouchSettings_GameRows(aref column, aref game, string group)
 {
+	aref row;
+	if (CheckAttribute(game, "hidden." + group))
+	{
+		row = TouchSettings_Row(column, "action", "show-" + group, group, "");
+		row.title = UiText("settings.show");
+		row.selected = false;
+		row.busy = false;
+		DeleteAttribute(row, "key"); // a part of the generic layout draws it, whose rows have no key
+		UiOn(row.id, "");
+		return;
+	}
 	for (int k = 0; k < TouchLib_Count(game, "groups." + group); k++)
 	{
 		aref option = TouchLib_Item(game, "groups." + group, k);
-		aref row = TouchSettings_Row(column, option.kind, option.key, option.key, option.label);
+		row = TouchSettings_Row(column, option.kind, option.key, option.key, option.label);
 		row.disabled = !sti(option.can);
 		row.reason = option.reason;
+		if (option.kind == "step")
+		{
+			row.kind = "stepper";
+			DeleteAttribute(row, "key");
+			row.text = option.text;
+			row.left = option.left;
+			row.right = option.right;
+			UiOn(option.key + "-left", "");
+			UiOn(option.key + "-right", "");
+			continue;
+		}
 		if (option.kind == "toggle") row.on = option.on;
 		if (option.kind == "slider") row.value = option.value;
 		if (option.kind == "segment")
@@ -118,6 +142,7 @@ void TouchSettings_Columns(aref game, aref columns)
 		TouchSettings_GameRows(TouchSettings_Column(columns, UiText("settings.volume")), game, "sound");
 		column = TouchSettings_Column(columns, UiText("settings.graphics"));
 		TouchSettings_AppRows(column, "graphics");
+		TouchSettings_GameRows(column, game, "graphics");
 		TouchSettings_Cache(column);
 		int textures = TouchSettings_Group("textures");
 		if (textures < 0) return;
@@ -237,7 +262,15 @@ void TouchSettings_Tap()
 		int pages = 3;
 		if (TouchSettings_Group("debug") >= 0) pages = 4;
 		TouchSettings_Page = TouchLib_TapIndex(value, pages, "the page");
-		UiRebuild();
+		// A game that shows its options by pages turns to the first group of ours.
+		object game;
+		TouchAdpSettings_State(ui, &game);
+		string first = "";
+		if (TouchSettings_Page == 0) first = "sea";
+		if (TouchSettings_Page == 1) first = "camera";
+		if (TouchSettings_Page == 2) first = "sound";
+		if (first != "" && CheckAttribute(&game, "hidden." + first)) TouchAdpSettings_Show(ui, first);
+		else UiRebuild();
 		return;
 	}
 	if (id == "header-back") { TouchAdpSettings_Leave(ui); return; }
@@ -253,23 +286,32 @@ void TouchSettings_Tap()
 		return;
 	}
 	if (TouchLib_StartsWith(id, "app-")) { TouchSettings_Set(TouchLib_Cut(id, 4, strlen(id)), value); return; }
+	if (TouchLib_StartsWith(id, "show-")) { TouchAdpSettings_Show(ui, TouchLib_Cut(id, 5, strlen(id))); return; }
 	// The game's options: a slider goes out where it is let go, not while it is dragged.
 	object state;
 	TouchAdpSettings_State(ui, &state);
 	string kind = "";
+	string key = id;
+	bool right = TouchLib_EndsWith(id, "-right");
+	if (right || TouchLib_EndsWith(id, "-left"))
+	{
+		key = TouchLib_Cut(id, 0, strlen(id) - 5);
+		if (right) key = TouchLib_Cut(id, 0, strlen(id) - 6);
+	}
 	aref groups;
 	makearef(groups, state.groups);
 	for (int g = 0; g < GetAttributesNum(groups); g++)
 	{
 		string group = GetAttributeName(GetAttributeN(groups, g));
-		int k = TouchLib_Find(groups, group, "key", id);
+		int k = TouchLib_Find(groups, group, "key", key);
 		if (k >= 0)
 		{
 			aref option = TouchLib_Item(groups, group, k);
 			kind = option.kind;
 		}
 	}
-	if (kind == "toggle")
+	if (kind == "step") TouchAdpSettings_Step(ui, key, right);
+	else if (kind == "toggle")
 	{
 		string on = "0";
 		if (value == "1") on = "1";

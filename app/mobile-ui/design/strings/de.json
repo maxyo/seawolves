@@ -742,5 +742,6 @@
   "host.script_fixes_damaged": "Skriptkorrekturen beschädigt",
   "host.game_data_required": "Spieldateien erforderlich",
   "plural.form": "one",
-  "generic.empty": "Dieses Spielfenster hat nichts, was ein Finger erreichen kann; schließen Sie es mit dem Pfeil in der Kopfzeile."
+  "generic.empty": "Dieses Spielfenster hat nichts, was ein Finger erreichen kann; schließen Sie es mit dem Pfeil in der Kopfzeile.",
+  "settings.show": "Spieleinstellungen öffnen"
 }

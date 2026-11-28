@@ -16,6 +16,7 @@ void Main()
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\mainmenu.ini";
 	Interfaces[1].IniFile = "RESOURCE\INI\INTERFACES\selectCharacter.ini";
 	Interfaces[2].IniFile = "RESOURCE\INI\INTERFACES\save_load.ini";
+	Interfaces[3].IniFile = "RESOURCE\INI\INTERFACES\option_screen.ini";
 }
 
 ref GetCharacter(int index)

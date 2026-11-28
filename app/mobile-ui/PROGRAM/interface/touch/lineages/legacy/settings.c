@@ -22,32 +22,6 @@ string TouchLegSettings_Label[TOUCH_LEG_SETTINGS_ROWS] = {
 #define TOUCH_LEG_SETTINGS_V "VMOUSE_SENSITIVITY_SLIDE"
 #define TOUCH_LEG_SETTINGS_H "HMOUSE_SENSITIVITY_SLIDE"
 
-// A slider's position as 0..100 of its range.
-int TouchLegSettings_Percent(aref slider)
-{
-	int low = sti(slider.min);
-	int span = sti(slider.max) - low;
-	if (span < 1) span = 1;
-	int percent = makeint(100.0 * (UiAmount(slider.value, "the slider's position") - low) / span + 0.5);
-	if (percent < 0) return 0;
-	if (percent > 100) return 100;
-	return percent;
-}
-
-// The slider's position at `percent` of its range, on its steps.
-string TouchLegSettings_Position(aref slider, int percent)
-{
-	int low = sti(slider.min);
-	int high = sti(slider.max);
-	int step = sti(slider.step);
-	if (step < 1) step = 1;
-	float wanted = (high - low) * percent / 100.0;
-	int position = low + makeint(wanted / step + 0.5) * step;
-	if (position > high) position = high;
-	if (position < low) position = low;
-	return "" + position;
-}
-
 void TouchLegSettings_Row(aref model, aref out, int n)
 {
 	string node = TouchLegSettings_Node[n];
@@ -65,39 +39,8 @@ void TouchLegSettings_Row(aref model, aref out, int n)
 	aref at = TouchLib_Add(groups, "r");
 	at.key = node;
 	at.label = label;
-	if (model.(slider).type == "slider")
-	{
-		aref widget;
-		makearef(widget, model.(slider));
-		at.kind = "slider";
-		at.value = TouchLegSettings_Percent(widget);
-		at.can = UiOffers(slider, "set");
-		if (node == "sensitivity") at.can = sti(at.can) && UiOffers(TOUCH_LEG_SETTINGS_H, "set");
-		at.reason = widget.reason;
-		return;
-	}
-	int count = TouchLib_Count(model, node + ".rows");
-	if (count == 0) UiError("settings: the switch " + node + " has no rows");
-	aref first = TouchLib_Item(model, node + ".rows", 0);
-	at.reason = first.reason;
-	if (count == 1)
-	{
-		at.kind = "toggle";
-		if (label == "") at.label = first.label;
-		at.on = first.value == "1";
-		at.can = CheckAttribute(first, "offers.toggle");
-		return;
-	}
-	at.kind = "segment";
-	at.selected = 0;
-	at.can = false;
-	for (int k = 0; k < count; k++)
-	{
-		aref option = TouchLib_Item(model, node + ".rows", k);
-		at.options.("o" + k) = option.label;
-		if (option.value == "1") at.selected = k;
-		if (CheckAttribute(option, "offers.toggle")) at.can = true;
-	}
+	TouchLegLib_Option(model, slider, at);
+	if (node == "sensitivity") at.can = sti(at.can) && UiOffers(TOUCH_LEG_SETTINGS_H, "set");
 }
 
 void TouchAdpSettings_State(aref ui, aref out)
@@ -110,35 +53,35 @@ void TouchAdpSettings_State(aref ui, aref out)
 
 void TouchAdpSettings_Toggle(aref ui, string key, bool on)
 {
-	if (!CheckAttribute(ui, "model." + key + ".rows.r0.offers.toggle")) return;
-	object action = {node = key, verb = "toggle", value = "0", row = 0};
-	if (on) action.value = "1";
-	UiSendTo(&action);
+	TouchLegLib_OptionToggle(ui, key, 0, on);
 }
 
 void TouchAdpSettings_Choose(aref ui, string key, int k)
 {
-	if (!CheckAttribute(ui, "model." + key + ".rows.r" + k + ".offers.toggle")) return;
-	object action = {node = key, verb = "toggle", value = "1", row = k};
-	UiSendTo(&action);
+	TouchLegLib_OptionToggle(ui, key, k, true);
+}
+
+// This lineage's options are switches and sliders, all in one window.
+void TouchAdpSettings_Step(aref ui, string key, bool right)
+{
+	UiError("settings: the game offers no stepper " + key);
+}
+
+void TouchAdpSettings_Show(aref ui, string group)
+{
 }
 
 void TouchAdpSettings_Slide(aref ui, string key, int percent)
 {
 	aref model = TouchLegLib_Model(ui);
-	aref slider;
-	if (key == "sensitivity")
+	if (key != "sensitivity")
 	{
-		// Both mouse sensitivities to the same position.
-		makearef(slider, model.(TOUCH_LEG_SETTINGS_V));
-		UiSend(TOUCH_LEG_SETTINGS_V, "set", TouchLegSettings_Position(slider, percent));
-		makearef(slider, model.(TOUCH_LEG_SETTINGS_H));
-		UiSend(TOUCH_LEG_SETTINGS_H, "set", TouchLegSettings_Position(slider, percent));
+		TouchLegLib_OptionSlide(model, key, percent);
 		return;
 	}
-	if (!CheckAttribute(model, key)) UiError("settings: no slider " + key);
-	makearef(slider, model.(key));
-	UiSend(key, "set", TouchLegSettings_Position(slider, percent));
+	// Both mouse sensitivities to the same position.
+	TouchLegLib_OptionSlide(model, TOUCH_LEG_SETTINGS_V, percent);
+	TouchLegLib_OptionSlide(model, TOUCH_LEG_SETTINGS_H, percent);
 }
 
 void TouchAdpSettings_Keep(aref ui)

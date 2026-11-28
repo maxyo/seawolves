@@ -1,0 +1,3264 @@
+{
+ "$comment": "The settings of a game whose options window shows one page at a time with ‹ › choices (fixture game-cl; models recorded on its window, every text a placeholder): a group on another page is one row that turns the window there, a page of ours turns it to its first group, the picture preview's foliage slider.",
+ "fixture": "game-cl",
+ "cases": [
+  {
+   "name": "the window's interface page: the marks with their switches and ‹ › choices, the sea's options on another page of the window; a choice stepped on, the sea's page turned to",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PAPER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "11",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxxxxxx xxxxxxxxxxx xxx",
+      "index": 1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "50%",
+      "index": 2
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "200%",
+      "index": 3
+     },
+     {
+      "node": "LEFTCHANGE_HELPTIME",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_HELPTIME",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxx xxxx",
+      "index": 4
+     },
+     {
+      "node": "DESCRIP_TEXT_HELPTIME",
+      "type": "text",
+      "label": "xxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_CONTROLS_TIPS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CONTROLS_TIPS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxx",
+      "index": 5
+     },
+     {
+      "node": "DESCRIP_TEXT_CONTROLS_TIPS",
+      "type": "text",
+      "label": "xxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_INTERFACE",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_MOREINFO",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_MOREINFO",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxxx x xxxxxxxxxx",
+      "index": 6
+     },
+     {
+      "node": "DESCRIP_TEXT_MOREINFO",
+      "type": "text",
+      "label": "xxxxxx xxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_GRAPHICS",
+      "type": "button",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_CAMERA",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CAMERA",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": 7
+     },
+     {
+      "node": "DESCRIP_TEXT_CAMERA",
+      "type": "text",
+      "label": "xxxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_CONTROLS",
+      "type": "button",
+      "label": "xxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "TUTORIAL_CHECKBOX",
+      "type": "check",
+      "label": "xxxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_AUDIO",
+      "type": "button",
+      "label": "xxxx",
+      "index": -1
+     },
+     {
+      "node": "QUESTMARK_CHECKBOX",
+      "type": "check",
+      "label": "xxxxx xxx xxxxxxxxxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_ACCESSIBILITY",
+      "type": "button",
+      "label": "xxxxxxxxxxx xxxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_SHIPMARKS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SHIPMARKS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxxx xxx xxxxxxxxx x xxxxxxxxxxx",
+      "index": 8
+     },
+     {
+      "node": "DESCRIP_TEXT_SHIPMARKS",
+      "type": "text",
+      "label": "xxxxxx xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_OTHER",
+      "type": "button",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_ENEMYTYPE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_ENEMYTYPE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxx xxxxxxxxxx",
+      "index": 9
+     },
+     {
+      "node": "DESCRIP_TEXT_ENEMYTYPE",
+      "type": "text",
+      "label": "xxxxxx xxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_TARGET",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_TARGET",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxx",
+      "index": 10
+     },
+     {
+      "node": "DESCRIP_TEXT_TARGET",
+      "type": "text",
+      "label": "xxxxxx xxx xxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_SETTINGS_DEFAULT",
+      "type": "button",
+      "label": "xx xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "CHAR_STRING_CHECKBOX",
+      "type": "check",
+      "label": "xxxxxxxxxxx xxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_COMPASS_POS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_COMPASS_POS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxxx xxxxxxx",
+      "index": 11
+     },
+     {
+      "node": "DESCRIP_TEXT_COMPASS_POS",
+      "type": "text",
+      "label": "xxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_MAP_LABELS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_MAP_LABELS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxx xx xxxxxxxxxx xxxxx",
+      "index": 12
+     },
+     {
+      "node": "DESCRIP_TEXT_MAP_LABELS",
+      "type": "text",
+      "label": "xxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "xxxxx",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "busy": false,
+          "disabled": false,
+          "id": "show-sea",
+          "kind": "action",
+          "label": "",
+          "reason": "",
+          "selected": 0,
+          "title": "<settings.show>"
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "QUESTMARK_CHECKBOX",
+          "key": "QUESTMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxx xxx xxxxxxxxxx xxxxxxxxxxx",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "CHAR_STRING_CHECKBOX",
+          "key": "CHAR_STRING_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxxxxxxxx xxx xxxxxxxxxxx",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "SHIPMARKS",
+          "kind": "stepper",
+          "label": "xxxxxxx xxxxxxxx xxx xxxxxxxxx x xxxxxxxxxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxx xxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "TARGET",
+          "kind": "stepper",
+          "label": "xxxxxxxxx xxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxx xxx xxx"
+         },
+         {
+          "disabled": false,
+          "id": "MAP_LABELS",
+          "kind": "stepper",
+          "label": "xxxxxxxxx xxxxx xx xxxxxxxxxx xxxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxx xxxxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "TUTORIAL_CHECKBOX",
+          "key": "TUTORIAL_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxxxxxxx xxxxxxxx",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "TARGET-right",
+     "click",
+     ""
+    ],
+    [
+     "show-sea",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "send RIGHTCHANGE_TARGET press ",
+    "send BTN_ACCESSIBILITY press "
+   ]
+  },
+  {
+   "name": "the window's page of the sea: the naval combat stepped on, the promotional content switched on",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PAPER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxxxxxxx xxxxxxxxxxx",
+      "index": 2
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_VISUAL_SCHEME",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_VISUAL_SCHEME",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxxxx xxxxx xxxxxxxxx xxxx",
+      "index": 3
+     },
+     {
+      "node": "DESCRIP_TEXT_VISUAL_SCHEME",
+      "type": "text",
+      "label": "xxxxxxxx 1",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_BEST_COURSE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_BEST_COURSE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxx xxxx",
+      "index": 4
+     },
+     {
+      "node": "DESCRIP_TEXT_BEST_COURSE",
+      "type": "text",
+      "label": "xx xxxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_DIALOG_SCALE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_DIALOG_SCALE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxx xxxxxxxx",
+      "index": 5
+     },
+     {
+      "node": "DESCRIP_TEXT_DIALOG_SCALE",
+      "type": "text",
+      "label": "xxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_INTERFACE",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_WORLDMAP_ICONS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_WORLDMAP_ICONS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxx xxxxxx",
+      "index": 6
+     },
+     {
+      "node": "DESCRIP_TEXT_WORLDMAP_ICONS",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_GRAPHICS",
+      "type": "button",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_TRADE_NUMBERS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_TRADE_NUMBERS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxx xx xxxxxxxx xxxxxx",
+      "index": 7
+     },
+     {
+      "node": "DESCRIP_TEXT_TRADE_NUMBERS",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_CONTROLS",
+      "type": "button",
+      "label": "xxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BTN_AUDIO",
+      "type": "button",
+      "label": "xxxx",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "BTN_ACCESSIBILITY",
+      "type": "button",
+      "label": "xxxxxxxxxxx xxxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_NAVAL_COMBAT",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_NAVAL_COMBAT",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_ACCESSIBILITY",
+      "type": "text",
+      "label": "xxxxxxx xxx",
+      "index": 1
+     },
+     {
+      "node": "DESCRIP_TEXT_NAVAL_COMBAT",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_OTHER",
+      "type": "button",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "PROMO_CONTENT_CHECKBOX",
+      "type": "check",
+      "label": "xxxxx xxxxxxx",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "BTN_SETTINGS_DEFAULT",
+      "type": "button",
+      "label": "xx xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "xxxxx",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "id": "NAVAL_COMBAT",
+          "kind": "stepper",
+          "label": "xxxxxxx xxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "BEST_COURSE",
+          "kind": "stepper",
+          "label": "xxxxxx xxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xx xxxxxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "WORLDMAP_ICONS",
+          "kind": "stepper",
+          "label": "xxxxxxxxx xxxxxxxxx xxxxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "PROMO_CONTENT_CHECKBOX",
+          "key": "PROMO_CONTENT_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxx xxxxxxx",
+          "on": false,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "busy": false,
+          "disabled": false,
+          "id": "show-marks",
+          "kind": "action",
+          "label": "",
+          "reason": "",
+          "selected": 0,
+          "title": "<settings.show>"
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "NAVAL_COMBAT-right",
+     "click",
+     ""
+    ],
+    [
+     "PROMO_CONTENT_CHECKBOX",
+     "change",
+     "1"
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "send RIGHTCHANGE_NAVAL_COMBAT press ",
+    "send PROMO_CONTENT_CHECKBOX#0 toggle 1"
+   ]
+  },
+  {
+   "name": "the controls page turns the window to its controls page",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PAPER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "11",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxxxxxx xxxxxxxxxxx xxx",
+      "index": 1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "50%",
+      "index": 2
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "200%",
+      "index": 3
+     },
+     {
+      "node": "LEFTCHANGE_HELPTIME",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_HELPTIME",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxx xxxx",
+      "index": 4
+     },
+     {
+      "node": "DESCRIP_TEXT_HELPTIME",
+      "type": "text",
+      "label": "xxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_CONTROLS_TIPS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CONTROLS_TIPS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxx",
+      "index": 5
+     },
+     {
+      "node": "DESCRIP_TEXT_CONTROLS_TIPS",
+      "type": "text",
+      "label": "xxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_INTERFACE",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_MOREINFO",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_MOREINFO",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxxx x xxxxxxxxxx",
+      "index": 6
+     },
+     {
+      "node": "DESCRIP_TEXT_MOREINFO",
+      "type": "text",
+      "label": "xxxxxx xxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_GRAPHICS",
+      "type": "button",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_CAMERA",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CAMERA",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": 7
+     },
+     {
+      "node": "DESCRIP_TEXT_CAMERA",
+      "type": "text",
+      "label": "xxxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_CONTROLS",
+      "type": "button",
+      "label": "xxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "TUTORIAL_CHECKBOX",
+      "type": "check",
+      "label": "xxxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_AUDIO",
+      "type": "button",
+      "label": "xxxx",
+      "index": -1
+     },
+     {
+      "node": "QUESTMARK_CHECKBOX",
+      "type": "check",
+      "label": "xxxxx xxx xxxxxxxxxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_ACCESSIBILITY",
+      "type": "button",
+      "label": "xxxxxxxxxxx xxxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_SHIPMARKS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SHIPMARKS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxxx xxx xxxxxxxxx x xxxxxxxxxxx",
+      "index": 8
+     },
+     {
+      "node": "DESCRIP_TEXT_SHIPMARKS",
+      "type": "text",
+      "label": "xxxxxx xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_OTHER",
+      "type": "button",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_ENEMYTYPE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_ENEMYTYPE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxx xxxxxxxxxx",
+      "index": 9
+     },
+     {
+      "node": "DESCRIP_TEXT_ENEMYTYPE",
+      "type": "text",
+      "label": "xxxxxx xxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_TARGET",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_TARGET",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxx",
+      "index": 10
+     },
+     {
+      "node": "DESCRIP_TEXT_TARGET",
+      "type": "text",
+      "label": "xxxxxx xxx xxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_SETTINGS_DEFAULT",
+      "type": "button",
+      "label": "xx xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "CHAR_STRING_CHECKBOX",
+      "type": "check",
+      "label": "xxxxxxxxxxx xxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_COMPASS_POS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_COMPASS_POS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxxxxx xxxxxxx",
+      "index": 11
+     },
+     {
+      "node": "DESCRIP_TEXT_COMPASS_POS",
+      "type": "text",
+      "label": "xxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_MAP_LABELS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_MAP_LABELS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_INTERFACE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxx xx xxxxxxxxxx xxxxx",
+      "index": 12
+     },
+     {
+      "node": "DESCRIP_TEXT_MAP_LABELS",
+      "type": "text",
+      "label": "xxx xxxxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "xxxxx",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "busy": false,
+          "disabled": false,
+          "id": "show-sea",
+          "kind": "action",
+          "label": "",
+          "reason": "",
+          "selected": 0,
+          "title": "<settings.show>"
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "QUESTMARK_CHECKBOX",
+          "key": "QUESTMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxx xxx xxxxxxxxxx xxxxxxxxxxx",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "CHAR_STRING_CHECKBOX",
+          "key": "CHAR_STRING_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxxxxxxxx xxx xxxxxxxxxxx",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "SHIPMARKS",
+          "kind": "stepper",
+          "label": "xxxxxxx xxxxxxxx xxx xxxxxxxxx x xxxxxxxxxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxx xxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "TARGET",
+          "kind": "stepper",
+          "label": "xxxxxxxxx xxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxxxxx xxx xxx"
+         },
+         {
+          "disabled": false,
+          "id": "MAP_LABELS",
+          "kind": "stepper",
+          "label": "xxxxxxxxx xxxxx xx xxxxxxxxxx xxxxx",
+          "left": true,
+          "reason": "",
+          "right": true,
+          "text": "xxx xxxxxxxxxxx"
+         },
+         {
+          "disabled": false,
+          "id": "TUTORIAL_CHECKBOX",
+          "key": "TUTORIAL_CHECKBOX",
+          "kind": "toggle",
+          "label": "xxxxxxxxxx xxxxxxxx",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "tabs",
+     "select",
+     "1"
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "send BTN_CONTROLS press "
+   ]
+  },
+  {
+   "name": "the picture preview: the island foliage let go at a half, kept by the preview's own button",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "GRAPHICS_PANEL",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SHADOWS_PANEL",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLES_STR_SCREEN",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "TITLES_STR_SHADOWS",
+      "type": "text",
+      "label": "xxxxxxxxxxxx xxxxxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_ANISOTROPIC",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_ANISOTROPIC",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "WARMTH_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+     },
+     {
+      "node": "DESCRIP_TEXT_ANISOTROPIC",
+      "type": "text",
+      "label": "16x",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_SCREEN",
+      "type": "text",
+      "label": "xxxxxxxxxxxx",
+      "index": 1
+     },
+     {
+      "node": "TITLES_STR_SHADOWS",
+      "type": "text",
+      "label": "xxxx",
+      "index": 1
+     },
+     {
+      "node": "SATURATION_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+     },
+     {
+      "node": "LEFTCHANGE_SHADOWS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SHADOWS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_SHADOWS",
+      "type": "text",
+      "label": "xxxxx.",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_SCREEN",
+      "type": "text",
+      "label": "xxxxx",
+      "index": 2
+     },
+     {
+      "node": "GAMMA_SLIDE",
+      "type": "slider",
+      "value": "56",
+      "index": -1,
+      "enabled": false,
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "TITLES_STR_SHADOWS",
+      "type": "text",
+      "label": "xxxxxxxxxxxx xxxx",
+      "index": 2
+     },
+     {
+      "node": "LEFTCHANGE_DYNAMIC_SHADOW",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_DYNAMIC_SHADOW",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_DYNAMIC_SHADOW",
+      "type": "text",
+      "label": "xxxxx.",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_SCREEN",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "BRIGHT_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "enabled": false,
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "CHARACTER_SHADOW_CHECKBOX",
+      "type": "check",
+      "label": "xxxx xx xxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "TITLES_STR_SCREEN",
+      "type": "text",
+      "label": "xxxxxxxxxxxxx",
+      "index": 4
+     },
+     {
+      "node": "CONTRAST_SLIDE",
+      "type": "slider",
+      "value": "75",
+      "index": -1,
+      "enabled": false,
+      "min": 0,
+      "max": 150,
+      "step": 1,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "TITLES_STR_EFFECTS",
+      "type": "text",
+      "label": "xxxx",
+      "index": 0
+     },
+     {
+      "node": "LEFTCHANGE_SSAO",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SSAO",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_QUALITY",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxx xxxxx",
+      "index": 0
+     },
+     {
+      "node": "DESCRIP_TEXT_SSAO",
+      "type": "text",
+      "label": "xxxxx.",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "GRASS_DRAW_DISTANCE_SLIDE",
+      "type": "slider",
+      "value": "6",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 10,
+      "step": 1
+     },
+     {
+      "node": "TITLES_STR_EFFECTS",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": 1
+     },
+     {
+      "node": "LEFTCHANGE_AO_MODE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_AO_MODE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_QUALITY",
+      "type": "text",
+      "label": "xxxxxxxxxx xxxxx",
+      "index": 1
+     },
+     {
+      "node": "DESCRIP_TEXT_AO_MODE",
+      "type": "text",
+      "label": "xxxxxx xxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_HERB",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_HERB",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_HERB",
+      "type": "text",
+      "label": "xxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "ISLAND_FOLIAGE_DENSITY_TITLE",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxxxxxxxxxx xxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR_QUALITY",
+      "type": "text",
+      "label": "xxxxxxxxxxx xxxx",
+      "index": 2
+     },
+     {
+      "node": "ISLAND_FOLIAGE_DENSITY_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+     },
+     {
+      "node": "ISLAND_FOLIAGE_DENSITY_VALUE",
+      "type": "text",
+      "label": "100%",
+      "index": -1
+     },
+     {
+      "node": "LEFTCHANGE_SEA_QUALITY",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_SEA_QUALITY",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_SEA_QUALITY",
+      "type": "text",
+      "label": "xxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_QUALITY",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "LEFTCHANGE_REFLECTIONS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_REFLECTIONS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_REFLECTIONS",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "VSYNC_CHECKBOX",
+      "type": "check",
+      "label": "xxxxxxxxxxxx xxxxxxxxxxxxx",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "TITLES_STR_EFFECTS",
+      "type": "text",
+      "label": "xxxxxxxxxxx",
+      "index": 2
+     },
+     {
+      "node": "LEFTCHANGE_ANTIALIASING",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_ANTIALIASING",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_ANTIALIASING",
+      "type": "text",
+      "label": "xxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_EFFECTS",
+      "type": "text",
+      "label": "xxxxxxxx xxxxxxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "LEFTCHANGE_AA_VALUE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_AA_VALUE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "DESCRIP_TEXT_AA_VALUE",
+      "type": "text",
+      "label": "xxxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TITLES_STR_EFFECTS",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxx",
+      "index": 4
+     },
+     {
+      "node": "BTN_GRAPHICS_APPLY",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BTN_GRAPHICS_COMPARE",
+      "type": "button",
+      "label": "xxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BTN_GRAPHICS_CANCEL",
+      "type": "button",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BTN_GRAPHICS_DEFAULT",
+      "type": "button",
+      "label": "xx xxxxxxxxx",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "tabs",
+     "select",
+     "2"
+    ],
+    [
+     "build"
+    ],
+    [
+     "ISLAND_FOLIAGE_DENSITY_SLIDE",
+     "commit",
+     "50"
+    ],
+    [
+     "done",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "rebuild",
+    "send ISLAND_FOLIAGE_DENSITY_SLIDE set 50",
+    "settings keep",
+    "send BTN_GRAPHICS_APPLY press "
+   ]
+  }
+ ]
+}

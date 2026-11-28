@@ -742,5 +742,6 @@
   "host.script_fixes_damaged": "Correzioni degli script danneggiate",
   "host.game_data_required": "Servono i file del gioco",
   "plural.form": "one",
-  "generic.empty": "Questa finestra del gioco non ha nulla da toccare con il dito; chiudila con la freccia nell’intestazione."
+  "generic.empty": "Questa finestra del gioco non ha nulla da toccare con il dito; chiudila con la freccia nell’intestazione.",
+  "settings.show": "Apri le impostazioni del gioco"
 }

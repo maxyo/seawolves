@@ -879,6 +879,29 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/cl/settings.c",
+      "set": "caribbean_legend",
+      "replaces": "interface/touch/lineages/legacy/settings.c",
+      "provides": ["adapter:settings"],
+      "binds": [
+        {
+          "capability": "settings", "interface": "option_screen",
+          "nodes": [
+            ["BTN_OK", "button"], ["BTN_CANCEL", "button"], ["BTN_INTERFACE", "button"],
+            ["BTN_CONTROLS", "button"], ["BTN_AUDIO", "button"], ["BTN_ACCESSIBILITY", "button"],
+            ["LEFTCHANGE_*", "button"], ["RIGHTCHANGE_*", "button"], ["DESCRIP_TEXT_*", "text"], ["TITLES_STR_*", "text"],
+            ["PROMO_CONTENT_CHECKBOX", "check"], ["QUESTMARK_CHECKBOX", "check"], ["CHAR_STRING_CHECKBOX", "check"],
+            ["TUTORIAL_CHECKBOX", "check"], ["INVERT_MOUSE_CHECKBOX", "check"], ["LOC_MOUSE_SENSITIVITY_SLIDE", "slider"],
+            ["SEA_MOUSE_SENSITIVITY_SLIDE", "slider"], ["MUSIC_SLIDE", "slider"], ["SOUND_SLIDE", "slider"],
+            ["DIALOG_SLIDE", "slider"], ["BTN_GRAPHICS", "button"], ["BTN_IMAGE_SETTINGS", "button"],
+            ["BTN_GRAPHICS_APPLY", "button"], ["BTN_GRAPHICS_CANCEL", "button"], ["ISLAND_FOLIAGE_DENSITY_SLIDE", "slider"],
+            ["ISLAND_FOLIAGE_DENSITY_TITLE", "text"], ["TABBTN_*", "image|button"], ["TABSTR_*", "text"],
+            ["BASIC_GRAPHICS_TITLES", "text"], ["ISLAND_FOLIAGE_DENSITY_VALUE", "text"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/lineages/legacy/dialogue.c",
       "provides": ["adapter:dialogue"],
       "binds": [

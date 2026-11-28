@@ -259,6 +259,10 @@
 - Caribbean Legend: экран сохранений на сенсорном экране — список записей всех профилей с картинкой, датой и временем
   в игре и временем игры из описания самой записи; новая запись, запись поверх, загрузка и удаление идут через окно
   игры. Окно игры, переключённое с загрузки на сохранение, меняет свой заголовок, а не останавливает игру с ошибкой.
+- Caribbean Legend: настройки на сенсорном экране — переключатели, ползунки и выбор стрелками ‹ › самой игры (морской
+  бой, лучший курс, метки, промо-контент, чувствительность камеры, громкость); страница окна игры, на которой они лежат,
+  открывается вкладкой экрана или строкой «Открыть настройки игры». Плотность растительности островов — ползунок
+  предпросмотра графики игры, «Готово» сохраняет её кнопкой предпросмотра.
 
 **English**
 
@@ -522,6 +526,10 @@
   date and time and the play time from the record's own description; a new record, writing over one, loading and
   deleting go through the game's window. The game's window switched from loading to saving renames itself instead of
   stopping the game with an error.
+- Caribbean Legend: the settings on the touch screen — the game's own switches, sliders and ‹ › choices (naval combat,
+  best course, marks, promotional content, camera sensitivity, volume); the page of the game's window that holds them
+  opens with the screen's tab or the row «Open the game's settings». The island foliage density is the slider of the
+  game's picture preview; «Done» keeps it with the preview's own button.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

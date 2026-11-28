@@ -596,3 +596,86 @@ void TouchLegLib_Officers(aref model, aref out)
 	makearef(appoint, out.appoint);
 	TouchLegLib_Button(model, "ACCEPT_ADD_OFFICER", appoint);
 }
+
+// A slider's position as 0..100 of its range.
+int TouchLegLib_SliderPercent(aref slider)
+{
+	int low = sti(slider.min);
+	int span = sti(slider.max) - low;
+	if (span < 1) span = 1;
+	int percent = makeint(100.0 * (UiAmount(slider.value, "the slider's position") - low) / span + 0.5);
+	if (percent < 0) return 0;
+	if (percent > 100) return 100;
+	return percent;
+}
+
+// The slider's position at `percent` of its range, on its steps.
+string TouchLegLib_SliderPosition(aref slider, int percent)
+{
+	int low = sti(slider.min);
+	int high = sti(slider.max);
+	int step = sti(slider.step);
+	if (step < 1) step = 1;
+	float wanted = (high - low) * percent / 100.0;
+	int position = low + makeint(wanted / step + 0.5) * step;
+	if (position > high) position = high;
+	if (position < low) position = low;
+	return "" + position;
+}
+
+// An option of the window as the settings contract has it (contracts/settings.c): the slider or switch `node` into
+// `at` {kind (slider | toggle | segment: a switch of several rows), value, on, options, selected, can, reason}; the
+// game's caption as at.label when it has none yet.
+void TouchLegLib_Option(aref model, string node, aref at)
+{
+	if (model.(node).type == "slider")
+	{
+		aref widget;
+		makearef(widget, model.(node));
+		at.kind = "slider";
+		at.value = TouchLegLib_SliderPercent(widget);
+		at.can = UiOffers(node, "set");
+		at.reason = widget.reason;
+		return;
+	}
+	int count = TouchLib_Count(model, node + ".rows");
+	if (count == 0) UiError("settings: the switch " + node + " has no rows");
+	aref first = TouchLib_Item(model, node + ".rows", 0);
+	at.reason = first.reason;
+	if (count == 1)
+	{
+		at.kind = "toggle";
+		if (at.label == "") at.label = first.label;
+		at.on = first.value == "1";
+		at.can = CheckAttribute(first, "offers.toggle");
+		return;
+	}
+	at.kind = "segment";
+	at.selected = 0;
+	at.can = false;
+	for (int k = 0; k < count; k++)
+	{
+		aref option = TouchLib_Item(model, node + ".rows", k);
+		at.options.("o" + k) = option.label;
+		if (option.value == "1") at.selected = k;
+		if (CheckAttribute(option, "offers.toggle")) at.can = true;
+	}
+}
+
+// The switch `node` turned on or off (its one row), or its row k chosen; nothing when the game offers no toggle.
+void TouchLegLib_OptionToggle(aref ui, string node, int k, bool on)
+{
+	if (!CheckAttribute(ui, "model." + node + ".rows.r" + k + ".offers.toggle")) return;
+	object action = {node = node, verb = "toggle", value = "0", row = k};
+	if (on) action.value = "1";
+	UiSendTo(&action);
+}
+
+// The slider `node` let go at `percent` of its range.
+void TouchLegLib_OptionSlide(aref model, string node, int percent)
+{
+	if (!CheckAttribute(model, node)) UiError("settings: no slider " + node);
+	aref slider;
+	makearef(slider, model.(node));
+	UiSend(node, "set", TouchLegLib_SliderPosition(slider, percent));
+}

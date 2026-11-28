@@ -4,14 +4,18 @@
 // stores them. `ui` is the screen's object its events hand over.
 //
 // State(ui, out), once a build:
-//   groups.<group>.r<k> {key (the option's identity), kind (toggle | segment | slider), label, on (toggle), value
-//     (slider: 0..100 of its range), options.o<k> (segment: the names of its choices), selected (segment: k), can,
-//     reason}; group: sea (sailing and the map), marks (the marks and hints over the scene), camera, sound; a group
-//     the game has none of is absent
+//   groups.<group>.r<k> {key (the option's identity), kind (toggle | segment | slider | step), label, on (toggle),
+//     value (slider: 0..100 of its range), options.o<k> (segment: the names of its choices), selected (segment: k),
+//     text, left, right (step: the choice shown, whether the game steps it back or on), can, reason}; group: sea
+//     (sailing and the map), marks (the marks and hints over the scene), camera, sound, graphics (the game's own
+//     picture options); a group the game has none of is absent
+//   hidden.<group> 1: a group of the game's options its window shows on another of its pages (Show turns to it)
 //   done {can, reason}
 extern void TouchAdpSettings_State(aref ui, aref out);
 extern void TouchAdpSettings_Toggle(aref ui, string key, bool on);
 extern void TouchAdpSettings_Choose(aref ui, string key, int k);
 extern void TouchAdpSettings_Slide(aref ui, string key, int percent); // the position let go, 0..100 of the range
+extern void TouchAdpSettings_Step(aref ui, string key, bool right);
+extern void TouchAdpSettings_Show(aref ui, string group); // the game's page that holds a hidden group
 extern void TouchAdpSettings_Keep(aref ui);
 extern void TouchAdpSettings_Leave(aref ui);

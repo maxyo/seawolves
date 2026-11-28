@@ -1253,6 +1253,7 @@ TEST_CASE("a load asked for from the title answers the game's question and keeps
 TEST_CASE("the settings' script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("settings", "settings");
+    CheckCases("settings", "settings_cl");
 }
 
 TEST_CASE("the items screen's script gives the pack screen the props and actions of the recorded models")

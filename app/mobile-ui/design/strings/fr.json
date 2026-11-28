@@ -742,5 +742,6 @@
   "host.script_fixes_damaged": "Correctifs de scripts endommagés",
   "host.game_data_required": "Fichiers du jeu requis",
   "plural.form": "one",
-  "generic.empty": "Cette fenêtre du jeu n’a rien à toucher du doigt ; fermez-la avec la flèche de l’en-tête."
+  "generic.empty": "Cette fenêtre du jeu n’a rien à toucher du doigt ; fermez-la avec la flèche de l’en-tête.",
+  "settings.show": "Ouvrir les réglages du jeu"
 }

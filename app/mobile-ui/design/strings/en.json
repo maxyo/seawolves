@@ -742,5 +742,6 @@
   "host.script_fixes_damaged": "Script fixes damaged",
   "host.game_data_required": "Game files required",
   "plural.form": "one",
-  "generic.empty": "This game window has nothing a finger can reach; close it with the arrow in the header."
+  "generic.empty": "This game window has nothing a finger can reach; close it with the arrow in the header.",
+  "settings.show": "Open the game's settings"
 }
