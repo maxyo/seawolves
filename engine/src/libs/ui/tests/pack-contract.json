@@ -24,7 +24,7 @@
     {"name": "dialogue-edit", "states": ["dialogue=models/dialogue-edit.json"], "covers": ["dialogue"]},
     {"name": "dialogue-long", "states": ["dialogue=models/dialogue-long.json"], "covers": ["dialogue"]},
     {"name": "dialogue-reply-cut", "states": ["dialogue=models/dialogue-reply-cut.json"], "covers": ["dialogue"],
-     "size": "1231x554", "holds": {"#reply-1": "Говорят, у тебя бывают люди, которые ищут работу посерьёзнее, чем драить палубу за гроши. Я как раз набираю команду для одного дела у берегов Мэйна, и мне нужны те, кто не боится ни испанцев, ни шторма, ни виселицы. Познакомишь?"}},
+     "size": "1231x554", "holds": {"#reply-1": "xxxxxxx, x xxxx xxxxxx xxxx, xxxxxxx xxxx xxxxxx xxxxxxxxxxx, xxx xxxxxx xxxxxx xx xxxxx. x xxx xxx xxxxxxx xxxxxxx xxx xxxxxx xxxx x xxxxxxx xxxxx, x xxx xxxxx xx, xxx xx xxxxxx xx xxxxxxxx, xx xxxxxx, xx xxxxxxxx. xxxxxxxxxxx?"}},
     {"name": "hud-land", "states": ["presentation=states/presentation-game.json", "gameplay=states/gameplay-explore.json",
       "combat=states/combat-explore-talk.json", "vitals=states/vitals-status.json", "worldInfo=states/world-info.json",
       "contextAction=states/context-door.json", "landCommands=states/land-commands-idle.json"], "covers": ["hud_land"]},

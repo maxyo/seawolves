@@ -1451,6 +1451,56 @@ bool ReadCases(const Json &manifest, const fs::path &fixtures, std::vector<Case>
     return true;
 }
 
+// A model recorded from a game (models/real-*.json) carries no game writing: a text longer than a short label keeps
+// only its shape (letters as x, digits, spaces and punctuation kept). A string over 60 characters with a space and a
+// letter other than x is a game text pasted in.
+int CheckRecordedText(const fs::path &fixtures)
+{
+    int problems = 0;
+    std::vector<fs::path> models;
+    for (const fs::directory_entry &file : fs::directory_iterator(fixtures / "models"))
+        if (file.path().extension() == ".json" && file.path().filename().string().rfind("real-", 0) == 0)
+            models.push_back(file.path());
+    std::sort(models.begin(), models.end());
+    for (const fs::path &model : models)
+    {
+        const Json parsed = Json::parse(Read(model), nullptr, false);
+        std::vector<const Json *> pending{&parsed};
+        while (!pending.empty())
+        {
+            const Json &value = *pending.back();
+            pending.pop_back();
+            if (value.is_structured())
+            {
+                for (const Json &child : value)
+                    pending.push_back(&child);
+                continue;
+            }
+            if (!value.is_string())
+                continue;
+            const std::string &text = value.get_ref<const std::string &>();
+            int length = 0;
+            bool spaced = false, written = false;
+            for (Rml::StringIteratorU8 it(text); it; ++it)
+            {
+                const auto c = static_cast<char32_t>(*it);
+                ++length;
+                spaced = spaced || c == U' ' || c == U'\n' || c == U'\t';
+                const bool latin = (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || (c >= 0xC0 && c <= 0x24F);
+                const bool cyrillic = c >= 0x400 && c <= 0x4FF;
+                written = written || ((latin || cyrillic) && c != U'x');
+            }
+            if (length > 60 && spaced && written)
+            {
+                std::printf("FAIL %s: a game text of %d characters: blank its letters as x\n", model.filename().c_str(),
+                            length);
+                ++problems;
+            }
+        }
+    }
+    return problems;
+}
+
 // Every recorded model no case names is a case of its own; one that is no model is a problem.
 int AddModelCases(const fs::path &fixtures, const std::set<fs::path> &used, std::vector<Case> &cases)
 {
@@ -1770,6 +1820,7 @@ int main(int argc, char **argv)
     {
         problems += CheckLauncherStrings(pack);
         problems += CheckGallery(pack);
+        problems += CheckRecordedText(fixtures);
     }
     std::vector<Flow> flows;
     if (!ReadFlows(manifest, fixtures, flows))

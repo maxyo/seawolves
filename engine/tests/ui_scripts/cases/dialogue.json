@@ -20,7 +20,7 @@
      {
       "node": "TEXT",
       "type": "text",
-      "label": "Чем могу служить, капитан? Ром свежий, новости — тоже.",
+      "label": "xxx xxxx xxxxxxx, xxxxxxx? xxx xxxxxx, xxxxxxx — xxxx.",
       "index": -1
      },
      {
@@ -75,7 +75,7 @@
      }
     ],
     "speaker": "Жак Бернар, хозяин таверны",
-    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+    "text": "xxx xxxx xxxxxxx, xxxxxxx? xxx xxxxxx, xxxxxxx — xxxx."
    },
    "modals": [],
    "events": [
@@ -115,7 +115,7 @@
      }
     ],
     "speaker": "Жак Бернар, хозяин таверны",
-    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+    "text": "xxx xxxx xxxxxxx, xxxxxxx? xxx xxxxxx, xxxxxxx — xxxx."
    }
   },
   {
@@ -137,7 +137,7 @@
      {
       "node": "TEXT",
       "type": "text",
-      "label": "Чем могу служить, капитан? Ром свежий, новости — тоже.",
+      "label": "xxx xxxx xxxxxxx, xxxxxxx? xxx xxxxxx, xxxxxxx — xxxx.",
       "index": -1
      },
      {
@@ -195,7 +195,7 @@
      }
     ],
     "speaker": "Жак Бернар, хозяин таверны",
-    "text": "Чем могу служить, капитан? Ром свежий, новости — тоже."
+    "text": "xxx xxxx xxxxxxx, xxxxxxx? xxx xxxxxx, xxxxxxx — xxxx."
    },
    "modals": [],
    "events": [],
@@ -400,7 +400,7 @@
      {
       "node": "TEXT",
       "type": "text",
-      "label": "Ну, говори, сколько ставишь? (введите сумму ставки).",
+      "label": "xx, xxxxxx, xxxxxxx xxxxxxx? (xxxxxxx xxxxx xxxxxx).",
       "index": -1
      },
      {
@@ -453,7 +453,7 @@
      }
     ],
     "speaker": "Завсегдатай таверны",
-    "text": "Ну, говори, сколько ставишь? (введите сумму ставки)."
+    "text": "xx, xxxxxx, xxxxxxx xxxxxxx? (xxxxxxx xxxxx xxxxxx)."
    },
    "modals": [],
    "events": [

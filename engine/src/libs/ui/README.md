@@ -45,7 +45,9 @@ in `tests/ui_pack_contract`. It also checks the pack's prewarm list (pack.json `
 every state draws, which `Host::Prewarm` makes ahead of a screen's first opening, `src/prewarm.h`) against what the
 states drew; `--prewarm FILE` writes the list for the application's `mobile-ui/design/prewarm.json`.
 
-Every `models/*.json` interface model is a case. A recorded model shows the game's usual state, where every field a
+A model recorded from a game is named `real-*.json` and carries none of the game's writing: a text longer than a short
+label keeps its shape only (letters as `x`; digits, spaces and punctuation kept), and the check fails on one over 60
+characters that still has letters. Every `models/*.json` interface model is a case. A recorded model shows the game's usual state, where every field a
 script screen sets only sometimes is there: a template that reads such a field without `opt()` passes on it and fails
 in the game. Each such state therefore has a model of its own, the recorded one with what the game leaves out removed
 (`ship-own`: the hero's ship, no exchange; `ship-none`: a captain without a ship; `items-no-action`: an item the game

@@ -1083,7 +1083,7 @@ struct CommerceRun
         router.SetInterface(Load(models, "real-storage.json"));
         Expect(surface.props["stats"].size() == 2 && surface.props["stats"][0]["value"] == "288 / 1700" &&
                    surface.props["stats"][1]["label"] == "Склад" &&
-                   surface.props["stats"][1]["value"] == "40 / 50000 ц.",
+                   surface.props["stats"][1]["value"] == "40 / 50000 x.",
                "storage: hold and storage load in the header");
 
         // Storage: a free transfer is confirmed like a money deal (AmountDraft): «Взять / Отдать N», «Отмена».
