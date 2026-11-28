@@ -255,14 +255,12 @@ void referenceChains()
 {
     Game game;
     require(!storm::save::ReferenceIndex(game.compiler.VarTab).Variable(&game.empty), "an empty ref resolved");
+    // A reference cannot refer back to itself, directly or through others (DATA::SetReference): it is left unset.
     game.current.SetReference(&game.current);
-    auto self = storm::save::ReferenceIndex(game.compiler.VarTab).Variable(&game.current);
-    require(self && self->variable == game.compiler.VarTab.FindVar("current") &&
-                self->element == storm::save::kNoElement,
-            "a ref to itself does not name itself");
+    require(game.current.GetReference() == nullptr, "a ref to itself was set");
     game.current.SetReference(&game.chain);
     game.chain.SetReference(&game.current);
-    require(!storm::save::ReferenceIndex(game.compiler.VarTab).Variable(&game.current), "a reference cycle resolved");
+    require(game.chain.GetReference() == nullptr, "a reference cycle was set");
     game.chain.SetReference(&game.empty);
     require(!storm::save::ReferenceIndex(game.compiler.VarTab).Variable(&game.current),
             "a chain into an empty ref resolved");

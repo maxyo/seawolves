@@ -201,6 +201,14 @@ void DATA::SetReference(DATA *pRef)
         Error("Isnt reference object");
         return;
     }
+    // No chain of references comes back to where it started: every reader follows a chain to its end.
+    for (DATA *next = pRef; next != nullptr; next = next->Data_type == VAR_REFERENCE && !next->bArray ? next->pReference : nullptr)
+        if (next == this)
+        {
+            Error("a reference that refers back to itself is left unset");
+            pReference = nullptr;
+            return;
+        }
     pReference = pRef;
 }
 
@@ -2274,10 +2282,6 @@ void DATA::SetVCompiler(VIRTUAL_COMPILER *pVC)
 
 DATA *DATA::GetReferencedVar()
 {
-    if (pReference == this) {
-        Error("ref points to itself");
-        return this;
-    }
     if (pReference)
     {
         return pReference->GetVarPointer();

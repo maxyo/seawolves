@@ -534,6 +534,29 @@ void untrustedNewArrays()
             "a reference to a new array the state does not have was bound");
 }
 
+// A state whose two references name each other: the second is left unset and reported, so that no chain of references
+// loops (every reader follows a chain to its end).
+void referencesNamingEachOther()
+{
+    COMPILER game;
+    storm::save::StateWriter out(game);
+    storm::save::writeHead(out, "PROGRAM\\", game.SCodec, "seadogs.c", 2);
+    for (const uint32_t other : {1u, 0u})
+    {
+        out.string(other == 1 ? "rFirst" : "rSecond");
+        const uint32_t header[2] = {VAR_REFERENCE, 1};
+        out.data(header, sizeof(header));
+        out.vdword(other);
+        out.vdword(storm::save::kNoElement);
+    }
+    COMPILER loaded;
+    DATA &first = loaded.add("rFirst", VAR_REFERENCE);
+    DATA &second = loaded.add("rSecond", VAR_REFERENCE);
+    loaded.load(out.take());
+    require(reported(loaded, "refers back to itself"), "a loop of references was not reported");
+    require(first.GetReference() == &second && second.IsNull(), "the loop was not cut at its second reference");
+}
+
 // The layout the original engine's saves have: a compact number is one byte below 0xfe, 0xfe and a 16-bit number below
 // 0xffff, else 0xff and a 32-bit one; a variable is its type and element count, at least 1 (an unset reference too).
 void compactLayout()
@@ -569,6 +592,7 @@ int main()
     damagedStates();
     newArraysAndRunTimeSizes();
     untrustedNewArrays();
+    referencesNamingEachOther();
     std::cout << "PASS: a state is parsed whole before it is applied; drifted scalars and elements, resized arrays, "
                  "references into them and variables the program cannot take load without desynchronising the rest\n";
 }

@@ -112,26 +112,21 @@ class ReferenceIndex
 
     // The variable the reference chain starting at the `ref` variable `reference` ends in;
     // nothing when the chain is empty or leaves the global variables (a ghost reference).
-    // `reference` itself must be alive; nothing else is assumed about the chain.
+    // `reference` itself must be alive; a chain never loops (DATA::SetReference).
     std::optional<VariablePlace> Variable(DATA *reference) const
     {
-        DATA *current = reference;
-        // A chain longer than the number of variables is a cycle.
-        for (size_t step = 0; step <= variables_.size(); ++step)
+        for (DATA *current = reference;;)
         {
             DATA *next = current->GetReference();
             if (next == nullptr)
                 return {};
             const auto found = variables_.find(next);
-            if (next == current) // a reference to itself names itself
-                return found == variables_.end() ? std::nullopt : std::optional(found->second);
             if (found == variables_.end())
                 return {};
             if (next->GetType() != VAR_REFERENCE || next->IsArray())
                 return found->second;
             current = next;
         }
-        return {};
     }
 
     // Where the target of an `aref` is; nullptr when no global object variable owns it.
