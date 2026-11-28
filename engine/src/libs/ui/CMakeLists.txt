@@ -288,6 +288,11 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         add_test(NAME ui_whole_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1
                  --views 12 --out "${CMAKE_CURRENT_BINARY_DIR}/whole-frame.png"
                  --script "wait 0.2; mark; props panels {\"sizes\":[40,50,60,70,80,90]}; whole; wait 0.0166; whole; wait 0.0166; whole; wait 0.3; arrived")
+        # The icon atlas's pages hold no CPU copy once uploaded; after a device loss they are decoded from the pack
+        # again and the icons draw as before.
+        add_test(NAME ui_atlas_device_loss COMMAND storm_ui_shot --pack "${pack}" --doc atlas.rml --size 320x120
+                 --density 2 --out "${CMAKE_CURRENT_BINARY_DIR}/atlas-device-loss.png"
+                 --script "wait 0.1; pack-bytes 0; mark; device-reset; wait 0.1; same; pack-bytes 0")
         # An unchanged frame composites the layer the last drawn one left: the touch opening the view (the clear of the
         # tool's target) and one quad, nothing drawn into the layer; a change draws the layer again.
         add_test(NAME ui_steady_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1

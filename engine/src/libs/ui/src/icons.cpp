@@ -4,9 +4,10 @@
 // element's `color`; full-colour symbols (nation-*, c-*) keep their own; `plain` draws a one-colour symbol in its own
 // fills (black). The accent layer of a symbol, when it has one, is drawn on top, untinted.
 //
-// A one-colour glyph is fill * T + W (icon_bake.cpp): the glyph cell (T, coverage) tinted by the colour, then where
-// the symbol has white shading its light cell (W, 0) added untinted. The atlas holds each icon at a chain of sizes; an
-// icon draws the smallest at least as large as itself, scaled down (above the largest it is scaled up).
+// A one-colour glyph is fill * T + W (icon_bake.cpp): the glyph cell (T, coverage; coverage alone on a mask page when
+// T = coverage) tinted by the colour, then where the symbol has white shading its light cell (W) added untinted. The
+// atlas holds each icon at a chain of sizes; an icon draws the smallest at least as large as itself, scaled down (above
+// the largest it is scaled up).
 //
 // `icon-shadow: <colour> <x> <y> <sigma>`: a drop shadow under the glyph (as `filter: drop-shadow(...)` without its
 // offscreen layer): the atlas's blurred coverage whose blur at this size is nearest to sigma, offset and tinted; a
@@ -236,8 +237,8 @@ class IconElement final : public Rml::Element
         {
             meshes.Quad(icon.glyph[level], texels, origin, px,
                         tint(drawn.plain ? Rml::Colourb(0, 0, 0, 255) : drawn.colour));
-            if (!icon.light.empty())
-                meshes.Quad(icon.light[level], texels, origin, px, white);
+            if (!icon.light.empty()) // added: alpha 0
+                meshes.Quad(icon.light[level], texels, origin, px, {white.red, white.green, white.blue, 0});
             if (!icon.accent.empty() && !drawn.plain)
                 meshes.Quad(icon.accent[level], texels, origin, px, white);
         }

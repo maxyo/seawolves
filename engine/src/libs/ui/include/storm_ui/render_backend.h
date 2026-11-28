@@ -14,7 +14,8 @@ namespace storm::ui
 enum class PackFormat
 {
     Rgba8,
-    Rg8
+    Rg8,
+    R8
 };
 
 class RenderBackend
@@ -67,9 +68,9 @@ inline std::string GamePictureSource(const std::string &texture)
     return "storm-game-picture:" + texture;
 }
 
-// A picture of the UI pack, decoded when the pack loads (pack.json "images" and the icon atlas's pages), never when
-// first drawn. Rgba8: premultiplied; Rg8: the icon atlas's coverage pages (how much of the vertex colour shows,
-// coverage), drawn by the backend's coverage shader as (colour.rgb * R, colour.a * G).
+// A picture of the UI pack (pack.json "images" and the icon atlas's pages). Rgba8: premultiplied; Rg8: the icon
+// atlas's coverage pages (how much of the vertex colour shows, coverage), drawn by the backend's coverage shader as
+// (colour.rgb * R, colour.a * G); R8: its mask pages, drawn as colour * R.
 struct PackImage
 {
     int width = 0, height = 0;
@@ -77,8 +78,14 @@ struct PackImage
     std::vector<unsigned char> pixels;
 };
 
-// For backend authors: the picture an RmlUi texture source of the pack names ("textures/oak.jpg"), null when the
-// pack's list lacks it (logged). Game pictures do not come this way; see game_image.cpp.
-std::shared_ptr<const PackImage> FindPackImage(const std::string &source);
+// For backend authors: the pixels of the pack picture an RmlUi texture source names ("textures/oak.jpg"), null when
+// the pack's list lacks it or it no longer decodes (logged). Every picture is decoded when the pack loads and that
+// decode is handed to the first call; a later call (the textures made again after a device loss) decodes it from the
+// pack again. The caller drops the pixels once they are on the GPU: the pack keeps no copy. Game pictures do not come
+// this way; see game_image.cpp.
+std::shared_ptr<const PackImage> TakePackImage(const std::string &source);
+
+// The bytes of decoded pack pictures alive now (waiting for their first upload or not yet dropped by a backend).
+size_t PackImageBytes();
 
 } // namespace storm::ui

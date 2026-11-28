@@ -1,0 +1,6 @@
+<rml>
+<head><style>body { width: 100%; height: 100%; background-color: #a08060; } ui-icon { display: inline-block; }</style></head>
+<body>
+<ui-icon name="close" size="24" style="color: #ff0000;"/><ui-icon name="close" size="31" style="color: #00ff00; opacity: 0.4;"/><ui-icon name="back" size="17" style="color: #0000ff; opacity: 0.7; icon-shadow: #000000 0dp 1dp 1dp;"/><ui-icon name="potion" size="40" style="icon-shadow: #000000 0dp 1dp 0dp;"/><ui-icon name="c-ruby" size="20" style="icon-shadow: #000000 0dp 1dp 2dp;"/>
+</body>
+</rml>

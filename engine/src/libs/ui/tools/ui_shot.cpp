@@ -9,6 +9,8 @@
 //                    props <element id> <json>, scroll <element id>, prewarm (Host::Prewarm until done),
 //                    bounds <CSS selector> (settled visible border boxes in dp),
 //                    device-reset (bgfx: device loss and restore, as after a lost EGL context),
+//                    same (the screen shows the picture `mark` remembered), pack-bytes <max> (the decoded pack
+//                    pictures alive are at most max bytes),
 //                    submitted <min> <max> (the UI's bgfx render items in the last frame are within)
 //
 // Draws through the UI's bgfx backend on bgfx's GLES 3.0 renderer (Mesa llvmpipe, headless),
@@ -137,7 +139,7 @@ class Capture
     virtual std::vector<unsigned char> Pixels() = 0;
     // Frames until the backend has no texture work left, then the picture.
     virtual std::vector<unsigned char> Settled(storm::ui::Host &host) = 0;
-    virtual bool ResetDevice()
+    virtual bool ResetDevice(float)
     {
         return false;
     }
@@ -430,7 +432,7 @@ class BgfxCapture final : public Capture
         backend_->SetViewport(width, height);
         return true;
     }
-    bool ResetDevice() override
+    bool ResetDevice(float density) override
     {
         backend_->OnDeviceLost();
         pictures_->Forget();
@@ -439,7 +441,12 @@ class BgfxCapture final : public Capture
         if (!StartDevice())
             return false;
         backend_->SetTarget(target_.idx);
+        // As the engine's frame owner does after a restore: the surface is announced again.
         backend_->OnDeviceRestored();
+        storm::render::SurfaceMetrics metrics;
+        metrics.width_px = uint32_t(width_), metrics.height_px = uint32_t(height_), metrics.density = density;
+        metrics.valid = true;
+        backend_->OnSurfaceChanged(metrics);
         return true;
     }
     bool StartDevice()
@@ -780,6 +787,22 @@ class Script
                 status_ = 7;
             }
         }
+        else if (verb == "same") // same: the picture on the screen is the marked one
+        {
+            if (capture_.Pixels() != marked_)
+            {
+                std::printf("same: the picture on the screen is not the marked one\n");
+                status_ = 7;
+            }
+        }
+        else if (verb == "pack-bytes") // pack-bytes <max>: decoded pack pictures alive (storm::ui::PackImageBytes)
+        {
+            size_t max = 0;
+            words >> max;
+            std::printf("pack-bytes: %zu bytes of decoded pack pictures\n", storm::ui::PackImageBytes());
+            if (storm::ui::PackImageBytes() > max)
+                status_ = 7;
+        }
         else
             return false;
         return true;
@@ -887,7 +910,7 @@ class Script
         }
         else if (verb == "device-reset")
         {
-            if (!capture_.ResetDevice())
+            if (!capture_.ResetDevice(density_))
             {
                 std::fprintf(stderr, "device-reset: not supported by this backend\n");
                 status_ = 2;

@@ -16,6 +16,7 @@
 #endif
 
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -194,43 +195,48 @@ std::optional<std::string> PackFiles::Normalise(const std::string &path)
 namespace
 {
 
-// The pack's decoded pictures by path (one host per process).
-std::map<std::string, std::shared_ptr<const PackImage>> g_pack_images;
-
-// Decodes a picture of the pack into g_pack_images (Rg8: the icon atlas's coverage pages, else premultiplied RGBA8),
-// refused when the device cannot sample it.
-bool DecodePackImage(FileSource &files, const RenderBackend &backend, const std::string &path, PackFormat format,
-                     std::string *error)
+// The pack's pictures by path (one host per process): their format and, from the pack's load until the first draw
+// takes it, their decoded pixels.
+struct PackPicture
 {
-    const int channels = format == PackFormat::Rg8 ? 2 : 4;
+    PackFormat format = PackFormat::Rgba8;
+    std::shared_ptr<const PackImage> decoded;
+};
+struct PackPictures
+{
+    FileSource *files = nullptr;
+    std::map<std::string, PackPicture> pictures;
+} g_pack;
+std::atomic<size_t> g_pack_bytes{0};
+
+// A picture of the pack decoded (Rgba8 premultiplied), counted in g_pack_bytes while it lives; null with the reason.
+std::shared_ptr<const PackImage> DecodePackImage(FileSource &files, const std::string &path, PackFormat format,
+                                                 std::string &error)
+{
+    const int channels = format == PackFormat::R8 ? 1 : format == PackFormat::Rg8 ? 2 : 4;
     std::vector<uint8_t> bytes;
     if (!files.Read(path, bytes))
     {
-        if (error)
-            *error = "UI pack lacks " + path;
-        return false;
+        error = "UI pack lacks " + path;
+        return nullptr;
     }
-    auto image = std::make_shared<PackImage>();
-    int stored = 0;
-    stbi_uc *data = stbi_load_from_memory(bytes.data(), static_cast<int>(bytes.size()), &image->width, &image->height,
-                                          &stored, channels);
+    int width = 0, height = 0, stored = 0;
+    stbi_uc *data =
+        stbi_load_from_memory(bytes.data(), static_cast<int>(bytes.size()), &width, &height, &stored, channels);
     if (!data)
     {
-        if (error)
-            *error = "UI pack: " + path + " does not decode (" + stbi_failure_reason() + ")";
-        return false;
+        error = "UI pack: " + path + " does not decode (" + stbi_failure_reason() + ")";
+        return nullptr;
     }
-    const size_t count = static_cast<size_t>(image->width) * static_cast<size_t>(image->height);
-    image->format = format;
+    const size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
+    std::shared_ptr<PackImage> image(new PackImage, [](PackImage *gone) {
+        g_pack_bytes -= gone->pixels.size();
+        delete gone;
+    });
+    image->width = width, image->height = height, image->format = format;
     image->pixels.assign(data, data + count * static_cast<size_t>(channels));
     stbi_image_free(data);
-    if (const std::string why = backend.RefusedTexture(image->width, image->height, format); !why.empty())
-    {
-        if (error)
-            *error = "UI pack: " + path + " (" + std::to_string(image->width) + "x" + std::to_string(image->height) +
-                     "): " + why;
-        return false;
-    }
+    g_pack_bytes += image->pixels.size();
     if (format == PackFormat::Rgba8)
         for (size_t i = 0; i < count; ++i)
         {
@@ -238,7 +244,26 @@ bool DecodePackImage(FileSource &files, const RenderBackend &backend, const std:
             for (int c = 0; c < 3; ++c)
                 pixel[c] = static_cast<unsigned char>((pixel[c] * pixel[3] + 127) / 255);
         }
-    g_pack_images[path] = std::move(image);
+    return image;
+}
+
+// Decodes a picture of the pack into g_pack (its first draw takes it), refused when the device cannot sample it.
+bool LoadPackImage(FileSource &files, const RenderBackend &backend, const std::string &path, PackFormat format,
+                   std::string *error)
+{
+    std::string why;
+    std::shared_ptr<const PackImage> image = DecodePackImage(files, path, format, why);
+    if (image)
+        why = backend.RefusedTexture(image->width, image->height, format);
+    if (!why.empty())
+    {
+        if (error)
+            *error = image ? "UI pack: " + path + " (" + std::to_string(image->width) + "x" +
+                                 std::to_string(image->height) + "): " + why
+                           : why;
+        return false;
+    }
+    g_pack.pictures[path] = {format, std::move(image)};
     return true;
 }
 
@@ -304,7 +329,7 @@ HostImpl::~HostImpl()
     ShutdownGameImages();
     SetGameImageRenderer(nullptr);
     ReleaseDrawTextures();
-    g_pack_images.clear();
+    g_pack = {};
     if (initialised_)
         Rml::Shutdown();
     registry_.reset();
@@ -353,15 +378,17 @@ bool HostImpl::Start(const Config &config, std::string *error)
         !ReadJson(*config.files, icons_path, icons, error))
         return false;
     // The pack's pictures and the icon atlas's pages, decoded now: a first draw only uploads them.
+    g_pack = {config.files, {}};
     for (const Json &image : pack.value("images", Json::array()))
-        if (!DecodePackImage(*config.files, *backend_, image.get<std::string>(), PackFormat::Rgba8, error))
+        if (!LoadPackImage(*config.files, *backend_, image.get<std::string>(), PackFormat::Rgba8, error))
             return false;
     const std::string icon_dir = icons_path.substr(0, icons_path.rfind('/') + 1);
     for (const Json &page : icons.value("pages", Json::array()))
     {
         const std::string file = icon_dir + page.at("file").get<std::string>();
-        const PackFormat format = page.at("channels").get<int>() == 2 ? PackFormat::Rg8 : PackFormat::Rgba8;
-        if (!DecodePackImage(*config.files, *backend_, file, format, error))
+        const int channels = page.at("channels").get<int>();
+        const PackFormat format = channels == 1 ? PackFormat::R8 : channels == 2 ? PackFormat::Rg8 : PackFormat::Rgba8;
+        if (!LoadPackImage(*config.files, *backend_, file, format, error))
             return false;
     }
     settings_ = pack.value("settings", Json::object());
@@ -1036,14 +1063,33 @@ std::string HostImpl::Shown() const
     return opening_ == Opening::None ? shown : shown + " +opening";
 }
 
-std::shared_ptr<const PackImage> FindPackImage(const std::string &source)
+std::shared_ptr<const PackImage> TakePackImage(const std::string &source)
 {
     const std::optional<std::string> path = PackFiles::Normalise(source);
-    const auto found = path ? g_pack_images.find(*path) : g_pack_images.end();
-    if (found != g_pack_images.end())
-        return found->second;
-    Rml::Log::Message(Rml::Log::LT_ERROR, "UI pack picture %s is not in pack.json images", source.c_str());
-    return nullptr;
+    const auto found = path ? g_pack.pictures.find(*path) : g_pack.pictures.end();
+    if (found == g_pack.pictures.end())
+    {
+        Rml::Log::Message(Rml::Log::LT_ERROR, "UI pack picture %s is not in pack.json images", source.c_str());
+        return nullptr;
+    }
+    if (found->second.decoded)
+        return std::move(found->second.decoded);
+    const auto start = std::chrono::steady_clock::now();
+    std::string error;
+    std::shared_ptr<const PackImage> image = DecodePackImage(*g_pack.files, *path, found->second.format, error);
+    if (!image)
+    {
+        Rml::Log::Message(Rml::Log::LT_ERROR, "%s", error.c_str());
+        return nullptr;
+    }
+    Rml::Log::Message(Rml::Log::LT_INFO, "UI pack: %s decoded again (%.1f ms)", path->c_str(),
+                      std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+    return image;
+}
+
+size_t PackImageBytes()
+{
+    return g_pack_bytes;
 }
 
 std::unique_ptr<FileSource> DirectoryFiles(std::string root)

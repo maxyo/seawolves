@@ -1517,7 +1517,8 @@ struct PressRun
         host.reset();
         backend.max_texture = 256;
         host = Host::Create(config, &error);
-        Expect(host == nullptr && error.find("icon-atlas/coverage-1.png (512x") != std::string::npos &&
+        Expect(host == nullptr && error.find("UI pack: icon-atlas/") != std::string::npos &&
+                   error.find(".png (512x") != std::string::npos &&
                    error.find("texture limit of 256 px") != std::string::npos,
                "a page beyond the device's texture limit refuses the start, named: " + error);
         backend.max_texture = 2048;

@@ -8,9 +8,11 @@
 // (the pages, the cells as [x, y, page], the levels and the digest the design build checks) and the pages:
 //
 //   coverage-N.png  grey + alpha (RG8 at run time), drawn by the coverage shader as (colour.rgb * R, colour.a * G):
-//                   one-colour glyphs: R = how much of the colour shows (the glyph's dark shading lowers it), G =
-//                   coverage; their white shading: R = the light it adds, G = 0 (a second quad, untinted); shadows:
-//                   the coverage blurred, R = G, tinted by the shadow colour.
+//                   one-colour glyphs with dark shading: R = how much of the colour shows (the shading lowers it),
+//                   G = coverage.
+//   mask-N.png      grey (R8), drawn by the mask shader as colour * R: what needs one channel: glyphs without dark
+//                   shading (R = coverage); their white shading (R = the light it adds, a second quad, untinted and
+//                   of alpha 0); shadows (the coverage blurred, tinted by the shadow colour).
 //   colour-N.png    RGBA (straight alpha in the file): full-colour icons (c-*, nation-*) and the accent layers.
 //
 // No page is larger than kPageLimit in either dimension; an icon's cells of one kind share a page.
@@ -151,8 +153,8 @@ std::vector<uint8_t> Blurred(const std::vector<uint8_t> &rgba, int px, int margi
     return out;
 }
 
-// A raster to place: `side` square, `channels` 2 (coverage page) or 4 (colour page, premultiplied), with a 1 px
-// transparent border around it in the page so that filtering at its edge reads nothing of a neighbour.
+// A raster to place: `side` square, `channels` 1 (mask page), 2 (coverage page) or 4 (colour page, premultiplied), with
+// a 1 px transparent border around it in the page so that filtering at its edge reads nothing of a neighbour.
 struct Cell
 {
     int side = 0, channels = 0;
@@ -267,7 +269,7 @@ int main(int argc, char **argv)
         int channels;
         std::vector<std::vector<Cell *>> groups;
     };
-    Kind coverage{"coverage", 2, {}}, colour{"colour", 4, {}};
+    Kind mask{"mask", 1, {}}, coverage{"coverage", 2, {}}, colour{"colour", 4, {}};
     std::vector<std::unique_ptr<Cell>> cells;
     const auto add = [&](Kind &kind, int side, std::vector<uint8_t> pixels) {
         auto cell = std::make_unique<Cell>();
@@ -285,9 +287,9 @@ int main(int argc, char **argv)
         const bool full_colour = id.rfind("c-", 0) == 0 || id.rfind("i-nation-", 0) == 0;
         const bool accent = !full_colour && symbol.value("acc", false);
         auto &parts = table[id];
-        coverage.groups.emplace_back(), colour.groups.emplace_back();
-        bool lit = false;
-        std::vector<std::vector<uint8_t>> light;
+        mask.groups.emplace_back(), coverage.groups.emplace_back(), colour.groups.emplace_back();
+        bool lit = false, shaded = false;
+        std::vector<std::vector<uint8_t>> glyphs, light;
         for (const int px : kLevels)
         {
             if (full_colour)
@@ -297,7 +299,7 @@ int main(int argc, char **argv)
             }
             const std::vector<uint8_t> white = Render(pack, {id}, Use(id, "#ffffff"), px);
             const std::vector<uint8_t> black = Render(pack, {id}, Use(id, "#000000"), px);
-            std::vector<uint8_t> glyph(static_cast<size_t>(px) * px * 2), shine(glyph.size(), 0);
+            std::vector<uint8_t> glyph(static_cast<size_t>(px) * px * 2), shine(static_cast<size_t>(px) * px);
             for (size_t i = 0; i < static_cast<size_t>(px) * px; ++i)
             {
                 const uint8_t *w = &white[i * 4], *b = &black[i * 4];
@@ -305,17 +307,30 @@ int main(int argc, char **argv)
                     Fail("'" + id + "' is a one-colour icon with a coloured layer: name it c-* or give it an accent");
                 glyph[i * 2] = uint8_t(std::max(0, w[0] - b[0]));
                 glyph[i * 2 + 1] = w[3];
-                shine[i * 2] = b[0];
+                shine[i] = b[0];
                 lit = lit || b[0] > 0;
+                shaded = shaded || glyph[i * 2] != glyph[i * 2 + 1];
             }
-            parts["glyph"].push_back(add(coverage, px, std::move(glyph)));
+            glyphs.push_back(std::move(glyph));
             light.push_back(std::move(shine));
             if (accent)
                 parts["accent"].push_back(add(colour, px, Render(pack, {id + "-acc"}, Use(id + "-acc", nullptr), px)));
         }
+        for (size_t level = 0; level < glyphs.size(); ++level)
+        {
+            if (shaded)
+            {
+                parts["glyph"].push_back(add(coverage, kLevels[level], std::move(glyphs[level])));
+                continue;
+            }
+            std::vector<uint8_t> alpha(glyphs[level].size() / 2); // T = G: coverage alone
+            for (size_t i = 0; i < alpha.size(); ++i)
+                alpha[i] = glyphs[level][i * 2 + 1];
+            parts["glyph"].push_back(add(mask, kLevels[level], std::move(alpha)));
+        }
         if (lit)
             for (size_t level = 0; level < light.size(); ++level)
-                parts["light"].push_back(add(coverage, kLevels[level], std::move(light[level])));
+                parts["light"].push_back(add(mask, kLevels[level], std::move(light[level])));
         for (const int px : kShadowLevels)
         {
             // What casts the shadow: the whole icon, its accent included.
@@ -325,10 +340,7 @@ int main(int argc, char **argv)
                 Blurred(Render(pack, accent ? std::vector<std::string>{id, id + "-acc"} : std::vector<std::string>{id},
                                use, px),
                         px, kShadowMargin, kShadowSigma);
-            std::vector<uint8_t> shadow(alpha.size() * 2);
-            for (size_t i = 0; i < alpha.size(); ++i)
-                shadow[i * 2] = shadow[i * 2 + 1] = alpha[i];
-            parts["shadow"].push_back(add(coverage, px + 2 * kShadowMargin, std::move(shadow)));
+            parts["shadow"].push_back(add(mask, px + 2 * kShadowMargin, std::move(alpha)));
         }
     }
 
@@ -337,7 +349,7 @@ int main(int argc, char **argv)
                   {"shadow", {{"levels", kShadowLevels}, {"sigma", kShadowSigma}, {"margin", kShadowMargin}}},
                   {"icons", Json::object()}};
     Json listed = Json::array();
-    for (Kind *kind : {&coverage, &colour})
+    for (Kind *kind : {&mask, &coverage, &colour})
     {
         kind->groups.erase(std::remove_if(kind->groups.begin(), kind->groups.end(),
                                           [](const std::vector<Cell *> &group) { return group.empty(); }),

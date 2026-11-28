@@ -142,7 +142,9 @@ struct Texture
     int width = 0;
     int height = 0;
     std::vector<Rml::byte> pixels;          // Pixels: until uploaded
-    std::shared_ptr<const PackImage> image; // Pixels of the pack: kept, a lost device uploads it again
+    std::shared_ptr<const PackImage> image; // Pixels of the pack: until uploaded (a lost device's RmlUi reload decodes
+                                            // them again: TakePackImage)
+    PackFormat format = PackFormat::Rgba8;  // Pixels
     std::string picture;                    // Picture: path for FrameOwner
     bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
     uint32_t epoch = 0;
@@ -162,7 +164,10 @@ struct Texture
         if (Current())
             return true;
         if (kind == Kind::Pixels && image)
+        {
             handle = CreatePackTexture(*image);
+            image.reset();
+        }
         else if (kind == Kind::Pixels)
         {
             if (pixels.empty())
@@ -188,7 +193,16 @@ struct Texture
 
 bgfx::TextureFormat::Enum BgfxFormat(PackFormat format)
 {
-    return format == PackFormat::Rg8 ? bgfx::TextureFormat::RG8 : bgfx::TextureFormat::RGBA8;
+    switch (format)
+    {
+    case PackFormat::R8:
+        return bgfx::TextureFormat::R8;
+    case PackFormat::Rg8:
+        return bgfx::TextureFormat::RG8;
+    case PackFormat::Rgba8:
+        break;
+    }
+    return bgfx::TextureFormat::RGBA8;
 }
 
 // The size and format were checked against the device at Host::Start (RefusedTexture).
@@ -315,6 +329,7 @@ enum class ProgramId
     Texture,
     TextureStraight,
     TextureCoverage,
+    TextureMask,
     Gradient,
     QuadColor,
     Passthrough,
@@ -877,7 +892,10 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         if (uint32_t(std::max(width, height)) > caps->limits.maxTextureSize)
             return "larger than the device's texture limit of " + std::to_string(caps->limits.maxTextureSize) + " px";
         if (!(caps->formats[BgfxFormat(format)] & BGFX_CAPS_FORMAT_TEXTURE_2D))
-            return std::string("the device does not sample ") + (format == PackFormat::Rg8 ? "RG8" : "RGBA8") +
+            return std::string("the device does not sample ") +
+                   (format == PackFormat::R8    ? "R8"
+                    : format == PackFormat::Rg8 ? "RG8"
+                                                : "RGBA8") +
                    " textures";
         return {};
     }
@@ -952,9 +970,10 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         held_frames_ = 0;
         kept_ = false;
         ReleaseShownPictures();
-        // RmlUi re-creates textures and geometry on demand through this interface.
-        Rml::ReleaseTextures(this);
-        Rml::ReleaseCompiledGeometry(this);
+        // RmlUi re-creates textures and geometry on demand. Every render manager: RmlUi draws through the host's
+        // FrameRenderer, which wraps this interface, so none is keyed by `this`.
+        Rml::ReleaseTextures();
+        Rml::ReleaseCompiledGeometry();
     }
     void OnDeviceRestored() override
     {
@@ -997,13 +1016,14 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         const std::string scheme = GamePictureSource("");
         if (source.compare(0, scheme.size(), scheme) == 0)
             return LoadPicture(dimensions, source.substr(scheme.size()));
-        std::shared_ptr<const PackImage> image = FindPackImage(source);
+        std::shared_ptr<const PackImage> image = TakePackImage(source);
         if (!image)
             return 0;
         dimensions = {image->width, image->height};
         auto texture = std::make_shared<Texture>();
         texture->width = image->width;
         texture->height = image->height;
+        texture->format = image->format;
         texture->image = std::move(image);
         return ToHandle(std::move(texture));
     }
@@ -1272,6 +1292,7 @@ bool BgfxBackendImpl::CreateGpu()
     STORM_UI_LINK(ProgramId::Texture, vs, vs_ui, fs_ui_texture);
     STORM_UI_LINK(ProgramId::TextureStraight, vs, vs_ui, fs_ui_texture_straight);
     STORM_UI_LINK(ProgramId::TextureCoverage, vs, vs_ui, fs_ui_texture_coverage);
+    STORM_UI_LINK(ProgramId::TextureMask, vs, vs_ui, fs_ui_texture_mask);
     STORM_UI_LINK(ProgramId::Gradient, vs, vs_ui, fs_ui_gradient);
     STORM_UI_LINK(ProgramId::QuadColor, vs_quad, vs_ui_quad, fs_ui_color);
     STORM_UI_LINK(ProgramId::Passthrough, vs_quad, vs_ui_quad, fs_ui_passthrough);
@@ -2551,8 +2572,10 @@ void Executor::Run(const Command &command, bool degraded)
                         b_->Skipped(Skip::TextureLost);
                     return;
                 }
-                if (texture.image && texture.image->format == PackFormat::Rg8)
+                if (texture.format == PackFormat::Rg8)
                     program = ProgramId::TextureCoverage;
+                else if (texture.format == PackFormat::R8)
+                    program = ProgramId::TextureMask;
                 break;
             case Texture::Kind::Target:
                 if (!filled_.count(&texture) && !(texture.filled && texture.Current()))
