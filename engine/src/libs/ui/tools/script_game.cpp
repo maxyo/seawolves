@@ -82,10 +82,13 @@ void ScriptGame::Set(const std::string &path, const std::string &value)
 {
     const size_t dot = path.find('.');
     auto *global = static_cast<VDATA *>(core.GetScriptVariable(path.substr(0, dot).c_str()));
-    const char *text = nullptr;
-    if (global && dot == std::string::npos && global->Get(text))
+    if (global && dot == std::string::npos)
     {
-        global->Set(value);
+        const char *text = nullptr;
+        if (global->Get(text))
+            global->Set(value);
+        else
+            global->Set(static_cast<int32_t>(std::stoi(value)));
         return;
     }
     ATTRIBUTES *root = global && dot != std::string::npos ? global->GetAClass() : nullptr;

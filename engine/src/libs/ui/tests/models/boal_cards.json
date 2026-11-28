@@ -23,7 +23,6 @@
 {"node":"PCard18","type":"image","label":"blank","index":-1,"order":295242,"enabled":false,"images":[{"source":{"kind":"atlas","group":"CARDS","image":"blank"}}]},
 {"node":"PCard19","type":"image","label":"blank","index":-1,"order":295302,"enabled":false,"images":[{"source":{"kind":"atlas","group":"CARDS","image":"blank"}}]},
 {"node":"Money","type":"text","label":"9450","index":-1,"order":0,"enabled":false},
-{"node":"MoneyInChest","type":"text","label":"2500","index":-1,"order":0,"enabled":false},
-{"node":"ANDROID_TABLE_GAME","type":"table_game","index":-1,"order":0,"enabled":false,"context":{"rate":"500","opponent":"11","moneyHero":"9450","bank":"2500","open":"0","stage":"3","turn":"1","first":"1","cardMove":"0"}}
+{"node":"MoneyInChest","type":"text","label":"2500","index":-1,"order":0,"enabled":false}
 ]
 }

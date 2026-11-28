@@ -24,8 +24,8 @@ class ScriptGame
 
     const std::vector<ScriptScreen> &Screens() const;
     ScriptPort &Port();
-    // A check's game state: a string global of the fixture game, or the attribute at `path` ("Global.attribute.…") of
-    // a global object.
+    // A check's game state: a string or whole-number global of the fixture game, or the attribute at `path`
+    // ("Global.attribute.…") of a global object.
     void Set(const std::string &path, const std::string &value);
     // The script screens for a router without a host, with the components of the pack at `pack`.
     screens::Router::ScriptScreens Entries(const std::filesystem::path &pack);

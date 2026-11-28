@@ -1,5 +1,5 @@
 {
- "$comment": "The table games' script screen on recorded models of boal_dice and boal_cards (engine/src/libs/ui/tests/models/boal_*.json): the props its view gives s-table-game and what its events send. The fixture game gives the opponent's name and what its cards count.",
+ "$comment": "The table games' script screen on recorded models of boal_dice and boal_cards (engine/src/libs/ui/tests/models/boal_*.json): the props its view gives s-table-game and what its events send. The fixture game gives the opponent (npchar), his name and what its cards count; \"game\": the window's globals in that state.",
  "cases": [
   {
    "calls": [
@@ -31,6 +31,28 @@
      ""
     ]
    ],
+   "game": {
+    "DiceState.Comp.Result.Type": "6",
+    "DiceState.Hero.Result.Type": "5",
+    "DiceState.Hero.d1": "3",
+    "DiceState.Hero.d1.Mix": "0",
+    "DiceState.Hero.d2": "3",
+    "DiceState.Hero.d2.Mix": "0",
+    "DiceState.Hero.d3": "3",
+    "DiceState.Hero.d3.Mix": "0",
+    "DiceState.Hero.d4": "6",
+    "DiceState.Hero.d4.Mix": "1",
+    "DiceState.Hero.d5": "1",
+    "DiceState.Hero.d5.Mix": "1",
+    "bLockClick": 0,
+    "bStartGame": 2,
+    "dir_i": 1,
+    "dir_i_start": 1,
+    "iChest": 2400,
+    "iMoneyP": 7600,
+    "iRate": 200,
+    "openExit": 0
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -387,36 +409,6 @@
       "node": "Beta_TXT",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "2400",
-       "compType": "6",
-       "first": "1",
-       "heroDie1": "3",
-       "heroDie2": "3",
-       "heroDie3": "3",
-       "heroDie4": "6",
-       "heroDie5": "1",
-       "heroMix1": "0",
-       "heroMix2": "0",
-       "heroMix3": "0",
-       "heroMix4": "1",
-       "heroMix5": "1",
-       "heroType": "5",
-       "locked": "0",
-       "moneyHero": "7600",
-       "open": "0",
-       "opponent": "11",
-       "rate": "200",
-       "stage": "2",
-       "turn": "1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },
@@ -725,6 +717,28 @@
      ""
     ]
    ],
+   "game": {
+    "DiceState.Comp.Result.Type": "6",
+    "DiceState.Hero.Result.Type": "4",
+    "DiceState.Hero.d1": "3",
+    "DiceState.Hero.d1.Mix": "0",
+    "DiceState.Hero.d2": "3",
+    "DiceState.Hero.d2.Mix": "0",
+    "DiceState.Hero.d3": "3",
+    "DiceState.Hero.d3.Mix": "0",
+    "DiceState.Hero.d4": "6",
+    "DiceState.Hero.d4.Mix": "0",
+    "DiceState.Hero.d5": "6",
+    "DiceState.Hero.d5.Mix": "0",
+    "bLockClick": 0,
+    "bStartGame": 4,
+    "dir_i": -1,
+    "dir_i_start": 1,
+    "iChest": 0,
+    "iMoneyP": 10000,
+    "iRate": 200,
+    "openExit": 1
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -1030,36 +1044,6 @@
       "node": "Beta_TXT",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "0",
-       "compType": "6",
-       "first": "1",
-       "heroDie1": "3",
-       "heroDie2": "3",
-       "heroDie3": "3",
-       "heroDie4": "6",
-       "heroDie5": "6",
-       "heroMix1": "0",
-       "heroMix2": "0",
-       "heroMix3": "0",
-       "heroMix4": "0",
-       "heroMix5": "0",
-       "heroType": "4",
-       "locked": "0",
-       "moneyHero": "10000",
-       "open": "1",
-       "opponent": "11",
-       "rate": "200",
-       "stage": "4",
-       "turn": "-1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },
@@ -1365,6 +1349,28 @@
      ""
     ]
    ],
+   "game": {
+    "DiceState.Comp.Result.Type": "6",
+    "DiceState.Hero.Result.Type": "4",
+    "DiceState.Hero.d1": "3",
+    "DiceState.Hero.d1.Mix": "0",
+    "DiceState.Hero.d2": "3",
+    "DiceState.Hero.d2.Mix": "0",
+    "DiceState.Hero.d3": "3",
+    "DiceState.Hero.d3.Mix": "0",
+    "DiceState.Hero.d4": "6",
+    "DiceState.Hero.d4.Mix": "0",
+    "DiceState.Hero.d5": "6",
+    "DiceState.Hero.d5.Mix": "0",
+    "bLockClick": 1,
+    "bStartGame": 4,
+    "dir_i": -1,
+    "dir_i_start": 1,
+    "iChest": 0,
+    "iMoneyP": 12400,
+    "iRate": 200,
+    "openExit": 1
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -1670,36 +1676,6 @@
       "node": "Beta_TXT",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "0",
-       "compType": "6",
-       "first": "1",
-       "heroDie1": "3",
-       "heroDie2": "3",
-       "heroDie3": "3",
-       "heroDie4": "6",
-       "heroDie5": "6",
-       "heroMix1": "0",
-       "heroMix2": "0",
-       "heroMix3": "0",
-       "heroMix4": "0",
-       "heroMix5": "0",
-       "heroType": "4",
-       "locked": "1",
-       "moneyHero": "12400",
-       "open": "1",
-       "opponent": "11",
-       "rate": "200",
-       "stage": "4",
-       "turn": "-1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },
@@ -2011,6 +1987,16 @@
      ""
     ]
    ],
+   "game": {
+    "bStartGame": 3,
+    "cardMove": 0,
+    "dir_i": 1,
+    "dir_i_start": 1,
+    "iChest": 2500,
+    "iMoneyP": 9450,
+    "iRate": 500,
+    "openExit": 0
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -2271,24 +2257,6 @@
       "node": "MoneyInChest",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "2500",
-       "cardMove": "0",
-       "first": "1",
-       "moneyHero": "9450",
-       "open": "0",
-       "opponent": "11",
-       "rate": "500",
-       "stage": "3",
-       "turn": "1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },
@@ -2390,6 +2358,16 @@
    "calls": [],
    "capability": "table_cards",
    "events": [],
+   "game": {
+    "bStartGame": 4,
+    "cardMove": 1,
+    "dir_i": -1,
+    "dir_i_start": 1,
+    "iChest": 3000,
+    "iMoneyP": 8950,
+    "iRate": 500,
+    "openExit": 0
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -2667,24 +2645,6 @@
       "node": "MoneyInChest",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "3000",
-       "cardMove": "1",
-       "first": "1",
-       "moneyHero": "8950",
-       "open": "0",
-       "opponent": "11",
-       "rate": "500",
-       "stage": "4",
-       "turn": "-1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },
@@ -2798,6 +2758,16 @@
      ""
     ]
    ],
+   "game": {
+    "bStartGame": 2,
+    "cardMove": 0,
+    "dir_i": -1,
+    "dir_i_start": 1,
+    "iChest": 3000,
+    "iMoneyP": 8950,
+    "iRate": 500,
+    "openExit": 1
+   },
    "modals": [],
    "model": {
     "language": "russian",
@@ -3058,24 +3028,6 @@
       "node": "MoneyInChest",
       "order": 0,
       "type": "text"
-     },
-     {
-      "context": {
-       "bank": "3000",
-       "cardMove": "0",
-       "first": "1",
-       "moneyHero": "8950",
-       "open": "1",
-       "opponent": "11",
-       "rate": "500",
-       "stage": "2",
-       "turn": "-1"
-      },
-      "enabled": false,
-      "index": -1,
-      "node": "ANDROID_TABLE_GAME",
-      "order": 0,
-      "type": "table_game"
      }
     ]
    },

@@ -3486,6 +3486,13 @@ static void Launcher()
     run.GameIds();
 }
 
+// The table window's globals in a recorded model's state (the fields that change from the model before it).
+static void TableState(std::initializer_list<std::pair<const char *, const char *>> globals)
+{
+    for (const auto &[name, value] : globals)
+        ScriptGame::Get().Set(name, value);
+}
+
 static void Games(const std::string &models)
 {
     FakeSurface surface;
@@ -3493,6 +3500,26 @@ static void Games(const std::string &models)
     Scripted(router);
     // Dice, our reroll: two dice marked (already paid), the cup throws them.
     InterfaceModel reroll = Load(models, "boal_dice-reroll.json");
+    TableState({{"iRate", "200"},
+                {"DiceState.Hero.Result.Type", "5"},
+                {"DiceState.Comp.Result.Type", "6"},
+                {"iMoneyP", "7600"},
+                {"iChest", "2400"},
+                {"openExit", "0"},
+                {"bStartGame", "2"},
+                {"dir_i", "1"},
+                {"dir_i_start", "1"},
+                {"bLockClick", "0"},
+                {"DiceState.Hero.d1", "3"},
+                {"DiceState.Hero.d2", "3"},
+                {"DiceState.Hero.d3", "3"},
+                {"DiceState.Hero.d4", "6"},
+                {"DiceState.Hero.d5", "1"},
+                {"DiceState.Hero.d1.Mix", "0"},
+                {"DiceState.Hero.d2.Mix", "0"},
+                {"DiceState.Hero.d3.Mix", "0"},
+                {"DiceState.Hero.d4.Mix", "1"},
+                {"DiceState.Hero.d5.Mix", "1"}});
     router.SetInterface(reroll);
     Expect(router.Using() == "boal_dice" && surface.tag == "s-table-game" && router.Rejection().empty() &&
                surface.errors.empty(),
@@ -3530,10 +3557,7 @@ static void Games(const std::string &models)
 
     // Nothing marked in our reroll: keep the dice (B_ICON_1).
     InterfaceModel keep = reroll;
-    for (Widget &widget : keep.widgets)
-        if (widget.node == "ANDROID_TABLE_GAME")
-            for (const char *mix : {"heroMix4", "heroMix5"})
-                widget.context[mix] = "0";
+    TableState({{"DiceState.Hero.d4.Mix", "0"}, {"DiceState.Hero.d5.Mix", "0"}});
     keep.revision = 2;
     router.SetInterface(keep);
     Expect(surface.props["buttons"][0]["id"] == "pass" && surface.props["buttons"][0]["label"] == "<games.keep>",
@@ -3543,6 +3567,19 @@ static void Games(const std::string &models)
 
     // The round ends with our win: the game paid the bank and says so in its line; another round or leave.
     InterfaceModel result = Load(models, "boal_dice-result.json");
+    TableState({{"iRate", "200"},
+                {"DiceState.Hero.Result.Type", "4"},
+                {"DiceState.Comp.Result.Type", "6"},
+                {"iMoneyP", "10000"},
+                {"iChest", "0"},
+                {"openExit", "1"},
+                {"bStartGame", "4"},
+                {"dir_i", "-1"},
+                {"dir_i_start", "1"},
+                {"bLockClick", "0"},
+                {"DiceState.Hero.d5", "6"},
+                {"DiceState.Hero.d4.Mix", "0"},
+                {"DiceState.Hero.d5.Mix", "0"}});
     result.revision = 4;
     router.SetInterface(result);
     Expect(surface.props["locked"] == false && surface.props["table"]["bank"] == "" &&
@@ -3562,22 +3599,24 @@ static void Games(const std::string &models)
     ExpectEqual(surface.Last(), "widget:boal_dice\tEXIT_BTN\t-1\tpress", "back leaves between rounds");
 
     // The opponent has no money left: only leaving.
+    TableState({{"iMoneyP", "12400"}, {"bLockClick", "1"}});
     router.SetInterface(Load(models, "boal_dice-end.json"));
     Expect(surface.props["buttons"][0]["id"] == "again" && surface.props["buttons"][0]["disabled"] == true &&
                surface.props["buttons"][1]["id"] == "leave" && surface.props["buttons"][1]["variant"] == "primary",
            "the opponent quits: leaving is the primary");
 
-    // A fact the script lacks is an error, never a guess.
-    InterfaceModel broken = Load(models, "boal_dice-reroll.json");
-    broken.widgets.back().unavailable_reason = "table-game:missing=heroDice";
-    surface.errors.clear();
-    router.SetInterface(broken);
-    Expect(surface.errors.size() == 1, "a missing script fact is reported");
-
     // Cards, our turn.
     FakeSurface cards;
     Router table(cards);
     Scripted(table);
+    TableState({{"iRate", "500"},
+                {"iMoneyP", "9450"},
+                {"iChest", "2500"},
+                {"openExit", "0"},
+                {"bStartGame", "3"},
+                {"dir_i", "1"},
+                {"dir_i_start", "1"},
+                {"cardMove", "0"}});
     table.SetInterface(Load(models, "boal_cards.json"));
     Expect(table.Using() == "boal_cards" && cards.tag == "s-table-game" && cards.errors.empty() &&
                cards.props["kind"] == "cards",
@@ -3613,6 +3652,7 @@ static void Games(const std::string &models)
 
     // The opponent's turn: nothing to press.
     InterfaceModel opponent = Load(models, "boal_cards-opponent.json");
+    TableState({{"iMoneyP", "8950"}, {"iChest", "3000"}, {"bStartGame", "4"}, {"dir_i", "-1"}, {"cardMove", "1"}});
     opponent.revision = 2;
     table.SetInterface(opponent);
     Expect(cards.props["buttons"][0]["disabled"] == true && cards.props["buttons"][1]["disabled"] == true &&
@@ -3621,6 +3661,7 @@ static void Games(const std::string &models)
 
     // Opened: he has 20; the game's line says who won.
     InterfaceModel opened = Load(models, "boal_cards-result.json");
+    TableState({{"openExit", "1"}, {"bStartGame", "2"}, {"cardMove", "0"}});
     opened.revision = 3;
     table.SetInterface(opened);
     Expect(cards.props["top"]["label"] == "20 <games.point_many>" &&

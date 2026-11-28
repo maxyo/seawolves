@@ -571,6 +571,7 @@ void Main()
 	iShipQty = 220;
 	TestCharacters();
 	TestTransfer();
+	TestTable();
 	GameValue = 7;
 	GameName = "kept";
 }
@@ -863,4 +864,26 @@ void TestTransfer()
 	RealShips[0].MinCrew = 21;
 	RealShips[1].MinCrew = 9;
 	Characters[3].Ship.Crew.Hire = 8;
+}
+
+// The table games' windows of the recorded models (ui/tests/models/boal_*.json, boal_dice.c and boal_cards.c): the
+// stake, our money, the bank, the stage and turns, the opponent (npchar: Jacques Dubois) and the dice as the game
+// starts a game with them ("" for a die not thrown); the checks set each recorded state.
+int iRate, iMoneyP, iChest, bStartGame, dir_i, dir_i_start;
+bool openExit, bLockClick, cardMove;
+ref npchar;
+object DiceState;
+
+void TestTable()
+{
+	makeref(npchar, Characters[11]);
+	for (int n = 1; n <= 5; n++)
+	{
+		string die = "d" + n;
+		DiceState.Hero.(die) = "";
+		DiceState.Hero.(die).Mix = false;
+		DiceState.Comp.(die) = "";
+	}
+	DiceState.Hero.Result.Type = "";
+	DiceState.Comp.Result.Type = "";
 }

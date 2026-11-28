@@ -32,7 +32,6 @@
 {"node":"CompDice5","type":"image","label":"dice_6_1","index":-1,"order":344444,"enabled":false,"images":[{"source":{"kind":"atlas","group":"DICE","image":"dice_6_1"}}]},
 {"node":"Money","type":"text","label":"7 600","index":-1,"order":0,"enabled":false},
 {"node":"MoneyInChest","type":"text","label":"2 000","index":-1,"order":0,"enabled":false},
-{"node":"Beta_TXT","type":"text","index":-1,"order":0,"enabled":false},
-{"node":"ANDROID_TABLE_GAME","type":"table_game","index":-1,"order":0,"enabled":false,"context":{"rate":"200","opponent":"11","heroType":"5","compType":"6","moneyHero":"7600","bank":"2400","open":"0","stage":"2","turn":"1","first":"1","locked":"0","heroDie1":"3","heroDie2":"3","heroDie3":"3","heroDie4":"6","heroDie5":"1","heroMix1":"0","heroMix2":"0","heroMix3":"0","heroMix4":"1","heroMix5":"1"}}
+{"node":"Beta_TXT","type":"text","index":-1,"order":0,"enabled":false}
 ]
 }

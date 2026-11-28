@@ -1,13 +1,10 @@
 #pragma once
 // The tavern mini-games (boal_dice, boal_cards) draw their dice, cards, coins and money lines
 // with script images (CreateImage) and script strings (CreateString), not with nodes. This
-// exports them, plus the script state the UI needs to know whose turn it is, as widgets:
+// exports them as widgets (the round's state the touch interface reads from the scripts itself):
 //   image  <image name>  label = picture, images[0] = the atlas cell (only images with a picture)
 //   text   <string name> label = the text (GameInterface.strings; the beta-test lines are left out)
-//   table_game ANDROID_TABLE_GAME  context = the script facts below; enabled = false,
-//          unavailableReason names the facts the script did not have (never guessed).
 #include "mobile_widget.hpp"
-#include <optional>
 
 namespace storm::mobile
 {
@@ -23,8 +20,6 @@ struct TableGameSource
 {
     std::vector<TableGameImage> images;
     std::vector<std::pair<std::string, std::string>> strings;
-    // Context key -> value; nullopt = the script did not provide it (a missing fact).
-    std::vector<std::pair<std::string, std::optional<std::string>>> facts;
 };
 
 inline void CollectTableGame(const TableGameSource &source, std::vector<MobileWidget> &widgets)
@@ -43,18 +38,6 @@ inline void CollectTableGame(const TableGameSource &source, std::vector<MobileWi
             continue;
         widgets.push_back({name, "text", text, "", -1, 0, false});
     }
-    MobileWidget marker{"ANDROID_TABLE_GAME", "table_game", "", "", -1, 0, false};
-    std::string missing;
-    for (const auto &[key, value] : source.facts)
-    {
-        if (value)
-            marker.context[key] = *value;
-        else
-            missing += (missing.empty() ? "" : ",") + key;
-    }
-    if (!missing.empty())
-        marker.unavailableReason = "table-game:missing=" + missing;
-    widgets.push_back(std::move(marker));
 }
 
 } // namespace storm::mobile
