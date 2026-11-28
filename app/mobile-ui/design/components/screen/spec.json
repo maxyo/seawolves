@@ -1,7 +1,7 @@
 {
   "tag": "c-screen",
   "props": {
-    "title": {"type": "text", "default": "", "defaultKey": "common.screen"},
+    "title": {"type": "text", "default": ""},
     "subtitle": {"type": "text", "default": ""},
     "showSubtitle": {"type": "bool", "default": false, "class": false},
     "back": {"type": "bool", "default": true, "class": false},
