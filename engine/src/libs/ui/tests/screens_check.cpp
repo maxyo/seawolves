@@ -1000,7 +1000,7 @@ struct CommerceRun
     void Models()
     {
         for (const char *name : {"storage.json", "storage-deal.json", "itemsbox.json", "itemsbox-deal.json",
-                                 "itemstrade-deal.json", "cannons-deal.json", "contraband-deal.json"})
+                                 "itemstrade-deal.json", "cannons-deal.json", "contraband-deal.json", "cannons-buy.json"})
         {
             const InterfaceModel model = Load(models, name);
             router.SetInterface(model);

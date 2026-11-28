@@ -13,7 +13,8 @@
       ["I_NATIONS", "button"], ["I_ITEMS", "button"], ["STR_BUTTONS", "text"]
     ],
     "qty-window": [
-      ["QTY_EDIT", "edit"], ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"],
+      ["QTY_EDIT", "edit"], ["QTY_OK_BUTTON", "button"], ["QTY_CANCEL_BUTTON", "button"], ["QTY_ADD_BUTTON", "button"],
+      ["QTY_REMOVE_BUTTON", "button"], ["QTY_ADD_ALL_BUTTON", "button"], ["QTY_REMOVE_ALL_BUTTON", "button"],
       ["QTY_*", "text|heading|image"]
     ],
     "reading-card": [
@@ -128,9 +129,8 @@
           "interface": "store",
           "nodes": [
             "@goods-head", ["SHIPS_SCROLL", "choice"], ["LEFTSCROLLBUTTON", "button"], ["RIGHTSCROLLBUTTON", "button"],
-            ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"], ["FOOD_SHIP", "text"], ["QTY_ADD_BUTTON", "button"],
-            ["QTY_REMOVE_BUTTON", "button"], ["QTY_ADD_ALL_BUTTON", "button"], ["QTY_REMOVE_ALL_BUTTON", "button"],
-            ["MAIN_CHARACTER_PICTURE", "image"], ["OTHER_PICTURE", "image"], "@qty-window"
+            ["OUR_GOLD", "text"], ["STORE_CAPACITY", "text"], ["FOOD_SHIP", "text"], ["MAIN_CHARACTER_PICTURE", "image"],
+            ["OTHER_PICTURE", "image"], "@qty-window"
           ],
           "data": {
             "own": 0, "other": 5, "name": 3, "buy": 2, "sell": 4, "pack": 6, "packWeight": 7, "items": false,

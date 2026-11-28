@@ -148,6 +148,8 @@
 - Переход из окна корабля в другой раздел (журнал, предметы и другие) больше не закрывает окно с ошибкой: экран
   раздела, который игра уже закрыла, остаётся как есть до открытия следующего и больше не перестраивается.
 - В окне алхимии больше нет меню «Прочее» с сырыми строками таблицы компонентов и кнопками под именами узлов.
+- В торговле орудиями, контрабандой, предметами и в сундуках больше нет меню «Прочее» с кнопками «+ max», «+», «−»,
+  «− max»: количество задаётся ползунком экрана.
 
 **English**
 
@@ -303,6 +305,8 @@
   error: the screen of a section the game has already closed stays as it is until the next opens and is not rebuilt.
 - The alchemy window no longer has an «Other» menu with raw rows of the component table and buttons named by their
   node ids.
+- Trading cannons, contraband and items and the chests no longer have an «Other» menu with the «+ max», «+», «−»,
+  «− max» buttons: the screen's slider sets the amount.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
