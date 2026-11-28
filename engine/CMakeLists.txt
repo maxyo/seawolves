@@ -12,9 +12,8 @@ include(StormSetup)
 option(STORM_ENABLE_SAFE_MODE "Enable additional runtime checks" OFF)
 
 ### Set up output paths
+# One directory in every configuration: the engine finds its layers beside itself (src/apps/engine/CMakeLists.txt).
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
 
 if(ANDROID)
     include(android)
