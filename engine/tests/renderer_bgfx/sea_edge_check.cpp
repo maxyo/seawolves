@@ -152,6 +152,7 @@ class Scene
     // submits a frame of its own).
     Picture render(bool gpu_surface = false, bool read_back = true)
     {
+        const render::PerfCounters start = render::PerfTotals();
         check(d_.BeginScene(), "BeginScene");
         check(d_.SetRenderTarget(0, back_), "SetRenderTarget");
         // Magenta under the sea: what a faded water pixel would show.
@@ -240,6 +241,7 @@ class Scene
         d_.SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
         render::EffectsSceneComplete();
         check(d_.EndScene(), "EndScene");
+        scene_work_ = render::PerfTotals().Since(start);
         if (!read_back)
         {
             check(d_.Present(), "Present");
@@ -257,8 +259,16 @@ class Scene
         return pixels;
     }
 
+    // The draws and views of the last frame's scene, without its read-back and Present: a Present also takes the
+    // periodic copy of the shown frame (Device::copy_frame) when it is due by wall time, in whichever frame that is.
+    const render::PerfCounters &scene_work() const
+    {
+        return scene_work_;
+    }
+
   private:
     Device &d_;
+    render::PerfCounters scene_work_;
     shim::Surface *readback_ = nullptr, *back_ = nullptr;
     shim::VertexShader *vs_ = nullptr;
     shim::PixelShader *ps_ = nullptr;
@@ -353,10 +363,9 @@ bool sea_pass_traffic(Scene &scene)
 bool covered_frames(Scene &scene, const Picture &reference)
 {
     bool ok = true;
-    // The views of a frame without a cover: the game's, the backdrop's and the capture's.
-    render::PerfCounters start = render::PerfTotals();
+    // The views of a scene without a cover: the game's, the backdrop's and the capture's.
     scene.render(true);
-    const uint64_t views = render::PerfTotals().Since(start).views;
+    const uint64_t views = scene.scene_work().views;
     effects::BeginSceneResources("location/sea_edge_check", 1);
     // A frame under the presented cover that needs something new: the next one is drawn hidden.
     const auto covered = [&] {
@@ -385,13 +394,11 @@ bool covered_frames(Scene &scene, const Picture &reference)
     uint64_t after_views = 0;
     for (int i = 0; i < kMaxSwitchFrames && after.empty(); ++i)
     {
-        start = render::PerfTotals();
         Picture picture = scene.render(true);
-        const render::PerfCounters frame = render::PerfTotals().Since(start);
-        if (frame.draws > 0)
-            after = std::move(picture), after_views = frame.views;
+        if (scene.scene_work().draws > 0)
+            after = std::move(picture), after_views = scene.scene_work().views;
     }
-    std::printf("     views of a frame: %llu without a cover, %llu in the first frame after it\n",
+    std::printf("     views of a scene: %llu without a cover, %llu in the first frame after it\n",
                 static_cast<unsigned long long>(views), static_cast<unsigned long long>(after_views));
     ok &= expect(!after.empty() && after_views == views, "the first frame after the cover draws the sea's passes");
     uint32_t worst = 0;
