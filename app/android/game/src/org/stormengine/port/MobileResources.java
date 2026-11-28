@@ -11,7 +11,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Install only the APK's licensed layers (UI source, engine shaders, script fixes), never copy the user's game. They
@@ -49,41 +53,64 @@ final class MobileResources {
     }
 
     /**
-     * What of the installed layers is missing (checked file by file: the system may also remove only some files of the
-     * cache when the storage runs low), or null when every layer is in place.
+     * How the installed layers differ from the APK's (checked file by file: the system may also remove only some files
+     * of the cache when the storage runs low), or null when every layer is the APK's.
      */
-    String missing() throws Exception {
+    String differs() throws Exception {
         for (String layer : NAMES) {
             byte[] manifest =
                     Streams.read(assets.open(layer + "/manifest.json"), Integer.MAX_VALUE);
-            String missing = missing(current(layer), manifest);
-            if (missing != null) return layer + ": " + missing;
+            String differs = differs(current(layer), manifest);
+            if (differs != null) return layer + ": " + differs;
         }
         return null;
     }
 
     /**
-     * What the installed copy lacks of this manifest: its version stamp, or the files it names (the first and how many
-     * more); null when it is complete.
+     * How the installed copy differs from this manifest: its version stamp, or the files it names that are missing and
+     * the entries it does not name (the first and how many more); null when it has exactly the manifest's files. The
+     * engine refuses a layer with a stray entry as damaged. Contents are not hashed: only the system's removal touches
+     * the cache, and hashing every file cost 13-31 ms against 3 ms for this (desktop JVM), at every start and resume.
      */
-    private static String missing(File current, byte[] manifest) throws Exception {
+    private static String differs(File current, byte[] manifest) throws Exception {
         File stamp = new File(current, ".version");
         if (!stamp.isFile()) return "not installed";
         if (!new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
                 .equals(hash(manifest))) return "another version installed";
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));
-        String first = null;
-        int count = 0;
+        List<String> found = new ArrayList<>();
+        Set<String> directories = new HashSet<>();
         for (Iterator<String> keys = files.keys(); keys.hasNext(); ) {
             String name = keys.next();
-            if (new File(current, name).isFile()) continue;
-            if (first == null) first = name;
-            count++;
+            for (int slash = name.indexOf('/'); slash > 0; slash = name.indexOf('/', slash + 1))
+                directories.add(name.substring(0, slash));
+            if (!new File(current, name).isFile()) found.add(name + " is missing");
         }
-        if (first == null) return null;
-        return count == 1
-                ? first + " is missing"
-                : first + " and " + (count - 1) + " more files are missing";
+        strays(current, "", files, directories, found);
+        if (found.isEmpty()) return null;
+        return found.size() == 1
+                ? found.get(0)
+                : found.get(0) + " and " + (found.size() - 1) + " more differences";
+    }
+
+    /** The entries under `directory` (`prefix`: its path in the layer) that the manifest does not name. */
+    private static void strays(
+            File directory,
+            String prefix,
+            JSONObject files,
+            Set<String> directories,
+            List<String> found)
+            throws IOException {
+        File[] children = directory.listFiles();
+        if (children == null) throw new IOException("Cannot list " + directory);
+        for (File child : children) {
+            String name = prefix + child.getName();
+            boolean link = Files.isSymbolicLink(child.toPath());
+            if (!link && child.isDirectory() && directories.contains(name))
+                strays(child, name + "/", files, directories, found);
+            else if (link || !(child.isFile() && (files.has(name) || name.equals(".version"))))
+                found.add(name + " is not the layer's");
+        }
     }
 
     /**
@@ -101,10 +128,10 @@ final class MobileResources {
     }
 
     /**
-     * Copies the layer's files (the names of its manifest.json) out of the APK when the installed copy's version (the
-     * manifest's hash) differs. The APK's signature covers every asset. Synchronized and under a file lock: the
-     * launcher's discovery, the import and «Играть» may install a layer at the same time, and the game's process
-     * installs at its start and resume while the launcher's may.
+     * Copies the layer's files (the names of its manifest.json) out of the APK when the installed copy differs from
+     * the manifest (its version, a missing file, an entry it does not name). The APK's signature covers every asset.
+     * Synchronized and under a file lock: the launcher's discovery, the import and «Играть» may install a layer at the
+     * same time, and the game's process installs at its start and resume while the launcher's may.
      */
     private void installLayer(String layer) throws Exception {
         File root = new File(layers, layer);
@@ -130,9 +157,9 @@ final class MobileResources {
                 previous = new File(root, "previous");
         if (!current.exists() && previous.exists() && !previous.renameTo(current))
             throw new IOException("Cannot recover UI layer");
-        String missing = missing(current, manifest);
-        if (missing == null) return;
-        Log.i("StormCache", "Layer " + layer + ": " + missing + "; copying it from the APK");
+        String differs = differs(current, manifest);
+        if (differs == null) return;
+        Log.i("StormCache", "Layer " + layer + ": " + differs + "; copying it from the APK");
         Trees.delete(staging);
         if (!staging.mkdirs()) throw new IOException("Cannot stage UI layer");
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));
