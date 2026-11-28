@@ -234,8 +234,10 @@ class Service final : public GEOM_SERVICE
     {
         std::free(p);
     }
-    GEOS::ID CreateTexture(const char *, const char *) override
+    std::vector<std::string> textures; // every name CreateTexture was asked for
+    GEOS::ID CreateTexture(const char *name, const char *) override
     {
+        textures.emplace_back(name);
         return -1;
     }
     std::string TextureFile(const char *) const override
@@ -564,7 +566,7 @@ template <class T> void append(std::ofstream &out, const T &value)
 {
     out.write(reinterpret_cast<const char *>(&value), sizeof(value));
 }
-// `texture`: one texture name in the file (none when empty).
+// `texture`: one texture name in the file, its material's (none when empty).
 void writeModel(const std::filesystem::path &path, const GeomFarLod::Source &s, int32_t version = RDF_VERSION,
                 const std::string &texture = {})
 {
@@ -585,6 +587,8 @@ void writeModel(const std::filesystem::path &path, const GeomFarLod::Source &s, 
         append(out, int32_t(1)); // its name's offset
     }
     RDF_MATERIAL material{};
+    if (!texture.empty())
+        material.texture_type[0] = TEXTURE_BASE; // the material draws it
     append(out, material);
     RDF_OBJECT object{};
     object.flags = VISIBLE;
@@ -927,4 +931,82 @@ TEST_CASE("models of an installed game", "[.corpus]")
         std::printf("  not read  %6d  version %s\n", count, version.c_str());
     std::printf("%s: %d models of a read version damaged\n", root, damaged);
     REQUIRE(damaged == 0);
+}
+
+namespace
+{
+// A model of four objects over one triangle: "Crate" (4 triangles), "Crate_LOD1" (3), "Crate_lod3" (2) and
+// "Other_lod1" (1, no object "Other"). Texture slots: a name no material uses, the bare name the material uses and the
+// same texture with its folder, which no material uses.
+void writeChainModel(const std::filesystem::path &path)
+{
+    std::ofstream out(path, std::ios::binary);
+    const std::vector<std::string> strings{"stale.tga",  "crate.tga",  "Props\\crate.dds", "Crate",
+                                           "Crate_LOD1", "Crate_lod3", "Other_lod1"};
+    std::string names(1, '\0');
+    std::vector<int32_t> offsets;
+    for (const std::string &name : strings)
+    {
+        offsets.push_back(int32_t(names.size()));
+        names += name + '\0';
+    }
+    const int32_t triangles[] = {4, 3, 2, 1};
+    RDF_HEAD h{};
+    h.version = RDF_VERSION;
+    h.flags = FLAGS_VISIBLE_PRESENT;
+    h.name_size = int32_t(names.size());
+    h.ntextures = 3;
+    h.nmaterials = h.nvrtbuffs = 1;
+    h.nobjects = 4;
+    h.ntriangles = 10;
+    h.radius = 1;
+    fixture::append(out, h);
+    out.write(names.data(), std::streamsize(names.size()));
+    for (int t = 0; t < h.ntextures; ++t)
+        fixture::append(out, offsets[size_t(t)]);
+    RDF_MATERIAL material{};
+    material.texture_type[0] = TEXTURE_BASE;
+    material.texture[0] = 1;
+    material.texture[1] = material.texture[2] = material.texture[3] = -1;
+    fixture::append(out, material);
+    int32_t first = 0;
+    for (int o = 0; o < 4; ++o)
+    {
+        RDF_OBJECT object{};
+        object.name = offsets[size_t(3 + o)];
+        object.flags = VISIBLE;
+        object.radius = 1;
+        object.ntriangles = triangles[o];
+        object.striangle = first;
+        object.nvertices = 3;
+        fixture::append(out, object);
+        first += triangles[o];
+    }
+    for (int t = 0; t < h.ntriangles; ++t)
+        for (const uint16_t index : {uint16_t(0), uint16_t(1), uint16_t(2)})
+            fixture::append(out, index);
+    RDF_VERTEXBUFF buffer{};
+    buffer.size = int32_t(3 * sizeof(RDF_VERTEX0));
+    fixture::append(out, buffer);
+    for (int v = 0; v < 3; ++v)
+        fixture::append(out, RDF_VERTEX0{});
+}
+} // namespace
+
+// A model loads the textures its materials use; a bare name loads the model's slot of that texture with a folder. The
+// background read-ahead reads the same names.
+TEST_CASE("model textures")
+{
+    const auto file = std::filesystem::temp_directory_path() / "model-texture-fixture.gm";
+    writeChainModel(file);
+    fixture::Service srv;
+    srv.file = file;
+    {
+        GEOM geom("resource\\models\\object\\crate.gm", nullptr, srv, LOAD_VISIBLE);
+        CHECK(srv.textures == std::vector<std::string>{"Props\\crate.dds"});
+    }
+    std::ifstream in(file, std::ios::binary);
+    const std::vector<char> bytes{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+    CHECK(storm::geometry::TextureNames(bytes) == std::vector<std::string>{"Props\\crate.dds"});
+    std::filesystem::remove(file);
 }

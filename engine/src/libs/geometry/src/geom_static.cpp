@@ -355,15 +355,16 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         }
     }
 
-    // Some stock models carry texture slots no material uses, with an empty name (citiz_50.gm: slots 3 and 5).
-    // Loading one would request the bare texture folder ("characters\\"), which fails and is no material's
-    // texture; only the slots the materials reference are loaded.
     std::vector<bool> referenced(rhead.ntextures, false);
     for (int32_t m = 0; m < rhead.nmaterials; m++)
         for (int32_t tl = 0; tl < 4; tl++)
             if (rmat[m].texture_type[tl] != TEXTURE_NONE && rmat[m].texture[tl] >= 0 &&
                 rmat[m].texture[tl] < rhead.ntextures)
                 referenced[rmat[m].texture[tl]] = true;
+    std::vector<std::string_view> slot_names;
+    for (int32_t t = 0; t < rhead.ntextures; t++)
+        slot_names.emplace_back(&globname[tname[t]]);
+    const std::vector<int32_t> load = storm::geometry::TextureSlotsToLoad(slot_names, referenced);
     // A base texture on the first stage (the surface's colour, GEOM_SERVICE_R::SetMaterial) that cannot be created
     // draws the missing-texture stand-in instead of the unbound-texture fallback's black hole. The other stages keep
     // -1: a detail or light map stage that samples nothing adds nothing or darkens as before, and the lightmap
@@ -374,17 +375,17 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
             base[rmat[m].texture[0]] = true;
     for (int32_t t = 0; t < rhead.ntextures; t++)
     {
-        if (!referenced[t] && globname[tname[t]] == '\0')
-        {
-            tlookup[t] = -1;
+        tlookup[t] = -1;
+        if (load[t] < 0)
             continue;
-        }
-        tlookup[t] = srv.CreateTexture(&globname[tname[t]], fname);
-        if (tlookup[t] < 0 && base[t] && globname[tname[t]] != '\0' && !storm::iEquals(&globname[tname[t]], "shadow.tga"))
+        const char *name = &globname[tname[load[t]]];
+        tlookup[t] = srv.CreateTexture(name, fname);
+        const bool lightmap = storm::iEquals(name, "shadow.tga");
+        if (tlookup[t] < 0 && base[t] && !lightmap)
             tlookup[t] = srv.MissingTexture(); // released with the others (~GEOM)
-        if (storm::iEquals(&globname[tname[t]], "shadow.tga"))
+        if (lightmap)
         {
-            lightmap_file_ = "resource\\textures\\" + srv.TextureFile(&globname[tname[t]]) + ".tx";
+            lightmap_file_ = "resource\\textures\\" + srv.TextureFile(name) + ".tx";
             lightmap_id_ = tlookup[t]; // -1 when it cannot be created: the location says so
         }
     }
