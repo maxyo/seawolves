@@ -50,6 +50,7 @@ ObjectLibrary ParseObjectLibrary(std::string_view json)
             continue;
         }
         library.models.emplace(key, model.get<std::string>());
+        library.entries.emplace_back(group, model.get<std::string>());
     }
     return library;
 }

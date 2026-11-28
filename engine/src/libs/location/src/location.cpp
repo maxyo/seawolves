@@ -4,6 +4,7 @@
 //    Location
 
 #include "location.h"
+#include "location_dynamic_objects.hpp"
 
 #include <chrono>
 #include <string>
@@ -396,6 +397,7 @@ void Location::Execute(uint32_t delta_time)
             grs->characters[i].useCounter = 0;
         }
     }
+    UpdateDynamicObjects(dltTime);
     // Location update
     locationTimeUpdate += dltTime;
     if (locationTimeUpdate > 1.0f)
@@ -730,8 +732,7 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
         bDrawBars = message.Long() != 0;
         return 1;
     case MSG_LOCATION_DYNAMIC_OBJECT:
-        storm::location::ReportNotImplemented("MSG_LOCATION_DYNAMIC_OBJECT", storm::location::kWithoutDynamicObjects);
-        return 0;
+        return DynamicObjectMessage(message);
     default:
         storm::location::ReportUnknownCommand("location message", std::to_string(code));
     }
@@ -946,6 +947,7 @@ bool Location::AddObjectContainer(const std::string &name, const char *tech, int
         }
         model[im]->mtx = instance.transform;
         placed.push_back(model.ID(im));
+        AddDynamicObject(storm::AsciiLower(containerPath), instance, model.ID(im));
     }
     model.modelspath = locationModels;
     core.Send_Message(lighter, "ss", "ModelsPath", model.modelspath.c_str());
@@ -958,6 +960,8 @@ void Location::DeleteObjectContainer(const std::string &name)
     const auto found = objectContainers.find(storm::AsciiLower(model.modelspath + name));
     if (found == objectContainers.end())
         return;
+    if (dynamicObjects)
+        RemoveDynamicObjects(found->second);
     for (const auto id : found->second)
         for (int32_t i = 0; i < model.Models(); i++)
             if (model.ID(i) == id)

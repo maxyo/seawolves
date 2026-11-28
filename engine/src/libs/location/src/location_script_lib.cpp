@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "character.h"
+#include "dynamic_objects.hpp"
 #include "entity.h"
 #include "fader.h"
 #include "land_protocol.hpp"
@@ -321,6 +322,16 @@ template <uint32_t Arguments> uint32_t DynamicObjectNative(VS_STACK *stack, cons
     return IFUNCRESULT_OK;
 }
 
+// DynamicObject_ConfigureComponentsNative(ref instance, int baseType): always true, as the scripts expect.
+uint32_t ConfigureComponentsNative(VS_STACK *stack)
+{
+    const int32_t baseType = static_cast<VDATA *>(stack->Pop())->GetInt();
+    if (ATTRIBUTES *instance = static_cast<VDATA *>(stack->Pop())->GetAClass())
+        storm::location::ConfigureDynamicObjectComponents(*instance, baseType);
+    static_cast<VDATA *>(stack->Push())->Set(int32_t{1});
+    return IFUNCRESULT_OK;
+}
+
 // DynamicObject_SetActorNative(ref context, ref actor): context.actor becomes a script reference to the actor, which
 // `ref actor = context.actor` reads back as the character and the save keeps (ATTRIBUTES::SetReference).
 uint32_t SetActorNative(VS_STACK *stack)
@@ -358,7 +369,7 @@ bool ScriptLocationLibrary::Init()
     native.pReturnValueName = "int";
     native.nArguments = 2;
     native.pFuncName = "DynamicObject_ConfigureComponentsNative";
-    native.pFuncAddress = [](VS_STACK *s) { return DynamicObjectNative<2>(s, "DynamicObject_ConfigureComponentsNative"); };
+    native.pFuncAddress = ConfigureComponentsNative;
     core.SetScriptFunction(&native);
     native.nArguments = 3;
     native.pFuncName = "DynamicObject_BehaviorCommandNative";

@@ -7,6 +7,7 @@
 #include "storm_glm.h"
 #include "vma.hpp"
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -141,6 +142,12 @@ class Location : public Entity
     void LoadNpcTuning();
     bool AddObjectContainer(const std::string &name, const char *tech, int32_t level, bool useDynamicLights);
     void DeleteObjectContainer(const std::string &name);
+    // Caribbean Legend's dynamic objects (location_dynamic_objects.cpp, dynamic_objects.hpp)
+    void AddDynamicObject(const std::string &container, const storm::location::ObjectInstance &placement,
+                          entid_t model);
+    uint64_t DynamicObjectMessage(MESSAGE &message);
+    void UpdateDynamicObjects(float seconds);
+    void RemoveDynamicObjects(const std::vector<entid_t> &models);
     bool LoadCharacterPatch(const char *ptcName);
     void LoadCaustic() const;
     bool LoadJumpPatch(const char *modelName);
@@ -187,6 +194,8 @@ class Location : public Entity
     std::optional<storm::location::ObjectLibrary> objectLibrary;
     // Folded models path + container name -> the props it placed
     std::unordered_map<std::string, std::vector<entid_t>> objectContainers;
+    class DynamicObjectsLink;
+    std::unique_ptr<DynamicObjectsLink> dynamicObjects; // at the first object container
 
     // Grass
     entid_t grass;

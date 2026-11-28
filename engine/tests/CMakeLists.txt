@@ -254,6 +254,12 @@ storm_host_check(location_land.check DIRECTORY location_land SOURCES objects.cpp
              ${src}/libs/core/include ${src}/libs/shared_headers/include ${src}/libs/renderer_bgfx/include
     DEFINES FMT_HEADER_ONLY OPTIONS -g ${asan_strict} CATCH2)
 storm_check_test(location_land.corpus COMMAND location_land.check "[corpus]" LABELS game)
+# Caribbean Legend's dynamic objects registry (location/src/dynamic_objects.cpp) over invented prefabs.
+storm_host_check(dynamic_objects SOURCES check.cpp ${core_fake_sources} ${src}/libs/location/src/dynamic_objects.cpp
+    ${src}/libs/location/src/object_library.cpp ${src}/libs/location/src/land_protocol.cpp
+    INCLUDES ${core_fake_includes} ${src}/libs/location/src ${util_include} ${glm_headers} ${fmt_headers}
+             ${storm_json_SOURCE_DIR}/include ${src}/libs/shared_headers/include
+    DEFINES ${core_fake_defines} FMT_HEADER_ONLY OPTIONS -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
 # The effect table and the PLAY messages of libs/effects; "[corpus]" reads the game in $STORM_GAME_DIR.
 storm_host_check(effects.table DIRECTORY effects SOURCES check.cpp ${src}/libs/effects/src/effect_table.cpp
     ${src}/libs/core/src/message.cpp

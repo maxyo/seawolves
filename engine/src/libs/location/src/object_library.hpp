@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace storm::location
@@ -16,9 +17,10 @@ namespace storm::location
 
 struct ObjectLibrary
 {
-    std::unordered_map<std::string, std::string> models; // folded group name -> model name
-    std::vector<std::string> errors;                     // one line per entry left out; empty when all were read
-    bool valid = false;                                  // false: the file is not a JSON object
+    std::unordered_map<std::string, std::string> models;      // folded group name -> model name
+    std::vector<std::string> errors;                          // one line per entry left out; empty when all were read
+    bool valid = false;                                       // false: the file is not a JSON object
+    std::vector<std::pair<std::string, std::string>> entries; // group name as written -> model name
 };
 
 // Group names compare in any case: the containers were authored on a case-insensitive system.
