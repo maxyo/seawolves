@@ -67,4 +67,27 @@ if(NOT ANDROID)
         VERBATIM)
     add_custom_target(storm_engine_layers DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/layers.stamp")
     add_dependencies(engine storm_engine_layers)
+
+    if(STORM_TOUCH_UI)
+        # The touch interface's layer as the APK carries it: the interface scripts, and in ui/ the pack generated
+        # from the application's design sources (the development build only: README.md, "Linux").
+        set(STORM_MOBILE_UI "${STORM_SCRIPT_PATCHES}/../mobile-ui" CACHE PATH "The application's mobile-ui folder")
+        set(layer_writer "${STORM_MOBILE_UI}/../tools/android/mobile_ui_assets.py")
+        if(NOT EXISTS "${STORM_MOBILE_UI}/design/build.py" OR NOT EXISTS "${layer_writer}")
+            message(FATAL_ERROR "STORM_MOBILE_UI=${STORM_MOBILE_UI}: no design/build.py or no ${layer_writer}")
+        endif()
+        file(GLOB_RECURSE mobile_ui_sources CONFIGURE_DEPENDS "${STORM_MOBILE_UI}/PROGRAM/*" "${STORM_MOBILE_UI}/design/*")
+        list(FILTER mobile_ui_sources EXCLUDE REGEX "/__pycache__/")
+        add_custom_command(
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/mobile-ui.stamp"
+            COMMAND "${Python3_EXECUTABLE}" "${layer_writer}" layer "${STORM_MOBILE_UI}" "${layers}/mobile-ui"
+            COMMAND "${Python3_EXECUTABLE}" "${STORM_MOBILE_UI}/design/build.py" --pack "${layers}/mobile-ui/ui"
+                    --engine-root "${CMAKE_SOURCE_DIR}"
+            COMMAND "${CMAKE_COMMAND}" -E touch "${CMAKE_CURRENT_BINARY_DIR}/mobile-ui.stamp"
+            DEPENDS ${mobile_ui_sources} "${layer_writer}"
+            COMMENT "Installing the touch interface's layer in ${layers}/mobile-ui"
+            VERBATIM)
+        add_custom_target(storm_mobile_ui_layer DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/mobile-ui.stamp")
+        add_dependencies(engine storm_mobile_ui_layer)
+    endif()
 endif()

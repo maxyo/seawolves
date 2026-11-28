@@ -67,6 +67,15 @@ build installs the layers the engine lays over the game beside the executable (b
 names the application's `script-patches` folder (default: the repository's `app/script-patches`). Run it with
 `<build>/engine --game <game folder>`.
 
+**Touch interface on the desktop — development only.** `-DSTORM_TOUCH_UI=ON` (in its own build directory) builds
+the touch interface in, as on Android: the game's interfaces go to the script screens, the touch HUD is drawn, the
+left mouse button is one finger, the wheel a short drag, Escape is Back. The build also installs `layers/mobile-ui`
+(the interface scripts from `app/mobile-ui/PROGRAM`, and in `ui/` the pack `app/mobile-ui/design/build.py` makes).
+Not on the desktop: the system text editor (a text field keeps its text, logged), the application's own actions
+(settings, About, exit to the menu; logged), haptics. Players' desktop builds never have it: they keep the game's own
+interface. The touch traces switched on by `adb shell setprop log.tag.<name> DEBUG` on Android are the environment
+variables `<name>=DEBUG` here (`platform/debug_switch.hpp`).
+
 ## Where files live
 
 The game folder is the player's and is only read. The engine writes into the player's own folders, chosen once at
@@ -79,7 +88,7 @@ start-up (`src/libs/util/include/platform/storage.hpp`); the file service refuse
 | the game's settings files, first copied from the game | `options` in `<files>/storm` | `options` and `engine.ini` in `$XDG_CONFIG_HOME/seawolves/<game>` |
 | caches | the app's cache root | `$XDG_CACHE_HOME/seawolves/<build>` |
 | logs | `<files>/storm/Logs` | `$XDG_STATE_HOME/seawolves/logs` |
-| layers over the game | installed by the app from the APK into its cache: `mobile-ui`, `engine-shaders`, `script-patches` | installed by the build beside the executable in `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (the application's desktop set) |
+| layers over the game | installed by the app from the APK into its cache: `mobile-ui`, `engine-shaders`, `script-patches` | installed by the build beside the executable in `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (the application's desktop set); `mobile-ui` in a touch interface build |
 
 `<files>` is the app's internal storage. `<game>` keys the game whatever its version: a hash of the title its
 scripts show (`VERSION_NUMBER1` in `PROGRAM/_LSC_on_off.h`), so an update or a script mod keeps the saves and two
