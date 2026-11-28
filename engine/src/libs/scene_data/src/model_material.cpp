@@ -110,12 +110,17 @@ ModelSidecar ParseModelSidecar(std::string_view json, Report &report)
 
 std::optional<std::string> MaterialTextureName(std::string_view path)
 {
-    constexpr std::string_view kTextures = "resource\\textures\\";
+    constexpr std::string_view kResource = "resource\\", kTextures = "resource\\textures\\";
     std::string name(path);
     std::replace(name.begin(), name.end(), '/', '\\');
-    if (name.size() <= kTextures.size() ||
-        !std::equal(kTextures.begin(), kTextures.end(), name.begin(),
-                    [](char a, char b) { return a == std::tolower(static_cast<unsigned char>(b)); }))
+    const auto starts = [&](std::string_view prefix) {
+        return name.size() >= prefix.size() &&
+               std::equal(prefix.begin(), prefix.end(), name.begin(),
+                          [](char a, char b) { return a == std::tolower(static_cast<unsigned char>(b)); });
+    };
+    if (!starts(kResource))
+        return name.empty() ? std::nullopt : std::optional(name); // written relative to resource\textures
+    if (!starts(kTextures) || name.size() == kTextures.size())
         return std::nullopt;
     return name.substr(kTextures.size());
 }

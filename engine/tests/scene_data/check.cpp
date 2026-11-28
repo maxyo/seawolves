@@ -82,6 +82,9 @@ TEST_CASE("model material textures and the keys the renderer does not draw")
     CHECK(MaterialTextureName("resource/textures/base_nom.tga.tx") == "base_nom.tga.tx");
     CHECK_FALSE(MaterialTextureName("Resource\\Models\\Box.gm"));
     CHECK_FALSE(MaterialTextureName("Resource\\Textures\\"));
+    CHECK(MaterialTextureName("Props\\MarketFrame2_nom.dds") == "Props\\MarketFrame2_nom.dds");
+    CHECK(MaterialTextureName("buildings/Residence3_1_rma.dds") == "buildings\\Residence3_1_rma.dds");
+    CHECK_FALSE(MaterialTextureName(""));
     ModelMaterial material;
     material.rma_texture = "Resource\\Textures\\a_RMA.dds";
     material.alpha = true;
