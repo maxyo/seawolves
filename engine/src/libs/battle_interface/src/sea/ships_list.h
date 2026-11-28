@@ -3,6 +3,10 @@
 #include "bi_defines.h"
 #include "vai_objbase.h"
 
+// The ships of one sea scene, kept by the battle interface that owns it (Bind) from its messages. Its ship and
+// descriptor pointers are valid only while that interface lives: the scripts delete it in the same frame as the
+// sea's ships or before them (DeleteSeaEnvironment, Cabin_Start, the boarding), and then the list answers empty, so
+// a reader after the scene (the touch HUD after the frame's entity lifecycle) never reaches a freed ship.
 class SHIP_DESCRIBE_LIST
 {
   public:
@@ -33,14 +37,17 @@ class SHIP_DESCRIBE_LIST
     void Add(int32_t mainChrIndex, int32_t chIdx, ATTRIBUTES *pChAttr, ATTRIBUTES *pShipAttr, bool bMyShip,
              bool bTransferableShip, int32_t relation, uint32_t dwShipColor);
 
+    // Empties the list for the battle interface `owner`.
+    void Bind(entid_t owner);
+
     SHIP_DESCR *GetMainCharacterShip() const
     {
-        return mainCharacter;
+        return Live() ? mainCharacter : nullptr;
     }
 
     ATTRIBUTES *GetMainCharacterShipAttr() const
     {
-        return pMainShipAttr;
+        return Live() ? pMainShipAttr : nullptr;
     }
 
     void Release(int32_t charIdx);
@@ -50,12 +57,15 @@ class SHIP_DESCRIBE_LIST
 
     SHIP_DESCR *GetShipRoot() const
     {
-        return root;
+        return Live() ? root : nullptr;
     }
 
     void Refresh();
 
   protected:
+    bool Live() const;
+
+    entid_t owner = invalid_entity;
     SHIP_DESCR *root;
     SHIP_DESCR *mainCharacter;
     ATTRIBUTES *pMainShipAttr;

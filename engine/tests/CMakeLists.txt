@@ -133,6 +133,10 @@ storm_host_check(android_render_resolution INCLUDES ${src}/libs/renderer/src OPT
 storm_host_check(android_runtime INCLUDES ${util_include} ${STORM_TEST_SDL_INCLUDE})
 storm_host_check(android_sea_navigator INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_sea_orders INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
+storm_host_check(android_sea_orders.lifecycle SOURCES lifecycle.cpp ${core_fake_sources}
+    ${src}/libs/battle_interface/src/sea/ships_list.cpp
+    INCLUDES ${core_fake_android_includes} ${src}/libs/battle_interface/src/sea DEFINES ${core_fake_android_defines}
+    OPTIONS -O1 -g -fno-omit-frame-pointer -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(android_sea_quick_action INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_ship_telemetry INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_shortcuts INCLUDES ${util_include} OPTIONS ${asan} CATCH2)

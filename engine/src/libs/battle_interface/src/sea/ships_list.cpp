@@ -125,6 +125,17 @@ SHIP_DESCRIBE_LIST::~SHIP_DESCRIBE_LIST()
     ReleaseAll();
 }
 
+void SHIP_DESCRIBE_LIST::Bind(entid_t battleInterface)
+{
+    ReleaseAll();
+    owner = battleInterface;
+}
+
+bool SHIP_DESCRIBE_LIST::Live() const
+{
+    return core.IsEntityValid(owner);
+}
+
 void SHIP_DESCRIBE_LIST::ShipSink(int32_t charIdx)
 {
     auto *const sd = FindShip(charIdx);
@@ -243,7 +254,7 @@ void SHIP_DESCRIBE_LIST::ReleaseAll()
 
 SHIP_DESCRIBE_LIST::SHIP_DESCR *SHIP_DESCRIBE_LIST::FindShip(int32_t idxCharacter) const
 {
-    for (auto *ptmp = root; ptmp != nullptr; ptmp = ptmp->next)
+    for (auto *ptmp = GetShipRoot(); ptmp != nullptr; ptmp = ptmp->next)
         if (ptmp->characterIndex == idxCharacter)
             return ptmp;
     return nullptr;
