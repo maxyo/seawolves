@@ -100,7 +100,8 @@ void TouchCharacter_Card(aref game, aref view)
 	{
 		string tone = "ok";
 		if (sti(from.healthBad)) tone = "danger";
-		TouchCharacter_Line(lines, from.healthCaption, from.healthWord, tone);
+		aref health = TouchCharacter_Line(lines, from.healthCaption, from.healthWord, tone);
+		health.casing = "lower"; // the game's word is in capitals (GetHealthName); the pack lowers it in the line
 	}
 	if (from.standing.value != "")
 	{

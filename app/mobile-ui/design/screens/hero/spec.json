@@ -73,7 +73,8 @@
             "k": "text",
             "v": "text",
             "tone": "text",
-            "after": "text"
+            "after": "text",
+            "casing": "text"
           }
         ],
         "actions": [

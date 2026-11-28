@@ -1,0 +1,164 @@
+diff --git a/Source/Core/ElementText.cpp b/Source/Core/ElementText.cpp
+index 6025701..8e1776d 100644
+--- a/Source/Core/ElementText.cpp
++++ b/Source/Core/ElementText.cpp
+@@ -579,8 +579,26 @@ void ElementText::GenerateDecoration(Mesh& mesh, const FontFaceHandle font_face_
+ 	}
+ }
+ 
++static bool BuildTokenAsWritten(String& token, const char*& token_begin, const char* string_end, bool first_token,
++	bool collapse_white_space, bool break_at_endline, bool decode_escape_characters);
++
++// The token as BuildTokenAsWritten reads it, its case transformed whole: a character of a non-ASCII letter spans
++// several bytes, which the byte loop cannot map.
+ static bool BuildToken(String& token, const char*& token_begin, const char* string_end, bool first_token, bool collapse_white_space,
+ 	bool break_at_endline, Style::TextTransform text_transformation, bool decode_escape_characters)
++{
++	const size_t start = token.size();
++	const bool result =
++		BuildTokenAsWritten(token, token_begin, string_end, first_token, collapse_white_space, break_at_endline, decode_escape_characters);
++	if (text_transformation == Style::TextTransform::Uppercase)
++		token.replace(start, String::npos, StringUtilities::ToUpper(token.substr(start)));
++	else if (text_transformation == Style::TextTransform::Lowercase)
++		token.replace(start, String::npos, StringUtilities::ToLower(token.substr(start)));
++	return result;
++}
++
++static bool BuildTokenAsWritten(String& token, const char*& token_begin, const char* string_end, bool first_token,
++	bool collapse_white_space, bool break_at_endline, bool decode_escape_characters)
+ {
+ 	RMLUI_ASSERT(token_begin != string_end);
+ 
+@@ -689,17 +707,6 @@ static bool BuildToken(String& token, const char*& token_begin, const char* stri
+ 		}
+ 		else
+ 		{
+-			if (text_transformation == Style::TextTransform::Uppercase)
+-			{
+-				if (character >= 'a' && character <= 'z')
+-					character += ('A' - 'a');
+-			}
+-			else if (text_transformation == Style::TextTransform::Lowercase)
+-			{
+-				if (character >= 'A' && character <= 'Z')
+-					character -= ('A' - 'a');
+-			}
+-
+ 			token += character;
+ 		}
+ 
+diff --git a/Source/Core/StringUtilities.cpp b/Source/Core/StringUtilities.cpp
+index c515677..f7b23a4 100644
+--- a/Source/Core/StringUtilities.cpp
++++ b/Source/Core/StringUtilities.cpp
+@@ -84,6 +84,89 @@ String CreateString(const char* format, ...)
+ 	return result;
+ }
+ 
++// Unicode simple case mapping of ASCII, the Latin-1 Supplement, Latin Extended-A and the Cyrillic letters
++// U+0400-U+045F (the letters of the interface's languages); other characters are kept. Upstream maps ASCII only, so
++// `text-transform` left Cyrillic and accented text as written.
++static Character LowerCharacter(Character character)
++{
++	const char32_t c = char32_t(character);
++	if (c >= 'A' && c <= 'Z')
++		return Character(c + 0x20);
++	if (c >= 0xC0 && c <= 0xDE && c != 0xD7) // without the multiplication sign
++		return Character(c + 0x20);
++	if (c == 0x130) // dotted capital I
++		return Character('i');
++	if (c == 0x178) // capital Y with diaeresis
++		return Character(0xFF);
++	if ((c >= 0x100 && c <= 0x137) || (c >= 0x14A && c <= 0x177)) // pairs with the capital even
++		return Character(c | 1);
++	if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E)) // pairs with the capital odd
++		return Character(c + (c & 1));
++	if (c >= 0x400 && c <= 0x40F)
++		return Character(c + 0x50);
++	if (c >= 0x410 && c <= 0x42F)
++		return Character(c + 0x20);
++	return character;
++}
++
++static Character UpperCharacter(Character character)
++{
++	const char32_t c = char32_t(character);
++	if (c >= 'a' && c <= 'z')
++		return Character(c - 0x20);
++	if (c >= 0xE0 && c <= 0xFE && c != 0xF7) // without the division sign
++		return Character(c - 0x20);
++	if (c == 0xFF)
++		return Character(0x178);
++	if (c == 0x131) // dotless i
++		return Character('I');
++	if (c == 0x17F) // long s
++		return Character('S');
++	if ((c >= 0x100 && c <= 0x137) || (c >= 0x14A && c <= 0x177))
++		return Character(c & ~char32_t(1));
++	if ((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E))
++		return Character(c - ((c & 1) ^ 1));
++	if (c >= 0x430 && c <= 0x44F)
++		return Character(c - 0x20);
++	if (c >= 0x450 && c <= 0x45F)
++		return Character(c - 0x50);
++	return character;
++}
++
++// Every mapped character is below U+0800 (one or two bytes); longer sequences and malformed bytes are kept as they are.
++static String MapCase(const String& string, Character (*map)(Character))
++{
++	String out;
++	out.reserve(string.size());
++	size_t i = 0;
++	while (i < string.size())
++	{
++		const unsigned char lead = (unsigned char)string[i];
++		if (lead < 0x80)
++		{
++			out += char(map(Character(lead)));
++			++i;
++			continue;
++		}
++		if ((lead & 0xE0) == 0xC0 && i + 1 < string.size() && ((unsigned char)string[i + 1] & 0xC0) == 0x80)
++		{
++			const char32_t code = char32_t(map(Character(((lead & 0x1Fu) << 6) | ((unsigned char)string[i + 1] & 0x3Fu))));
++			if (code < 0x80)
++				out += char(code);
++			else
++			{
++				out += char(0xC0 | (code >> 6));
++				out += char(0x80 | (code & 0x3F));
++			}
++			i += 2;
++			continue;
++		}
++		out += string[i];
++		++i;
++	}
++	return out;
++}
++
+ static inline char CharToLower(char c)
+ {
+ 	if (c >= 'A' && c <= 'Z')
+@@ -93,18 +176,12 @@ static inline char CharToLower(char c)
+ 
+ String StringUtilities::ToLower(String string)
+ {
+-	std::transform(string.begin(), string.end(), string.begin(), &CharToLower);
+-	return string;
++	return MapCase(string, &LowerCharacter);
+ }
+ 
+ String StringUtilities::ToUpper(String string)
+ {
+-	std::transform(string.begin(), string.end(), string.begin(), [](char c) {
+-		if (c >= 'a' && c <= 'z')
+-			c -= char('a' - 'A');
+-		return c;
+-	});
+-	return string;
++	return MapCase(string, &UpperCharacter);
+ }
+ 
+ RMLUICORE_API String StringUtilities::EncodeRml(const String& string)

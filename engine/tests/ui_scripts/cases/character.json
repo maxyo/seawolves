@@ -764,6 +764,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -1711,6 +1712,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -2642,6 +2644,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -3646,6 +3649,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -5334,6 +5338,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -7162,6 +7167,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Здоровье",
        "tone": "ok",
        "v": "ХОРОШЕЕ"
@@ -9077,6 +9083,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Здоровье",
        "tone": "ok",
        "v": "ОТЛИЧНОЕ"
@@ -10362,6 +10369,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -10663,6 +10671,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -11733,6 +11742,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"
@@ -12034,6 +12044,7 @@
      },
      "lines": [
       {
+       "casing": "lower",
        "k": "Health",
        "tone": "ok",
        "v": "EXCELLENT"

@@ -26,3 +26,5 @@ c-hero-card > .hc-slot { flex: 0 0 auto; display: flex; flex-direction: column; 
 c-hero-card.roomy { width: @{spec.widthRoomy}dp; }
 c-hero-card.roomy > .hc-main { flex-direction: row; align-items: flex-start; }
 c-hero-card.roomy > .hc-main > .hc-id, c-hero-card.roomy > .hc-main > .hc-body { flex: 1 1 0; min-width: 0; }
+/* A word the game writes in capitals inside a line («ОТЛИЧНОЕ» health): lower case, as a word in a line reads. */
+c-hero-card > .hc-main > .hc-body > .hc-lines > .hc-line > .hc-v.case-lower { text-transform: lowercase; }
