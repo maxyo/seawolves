@@ -629,26 +629,31 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 // this process): collected again only when something it is made of may have changed
 // (MobileModelInputs), published only when the collection differs from the last one. The save
 // screen's model is complete only once the script has filled its save list (ReadSaveList: an
-// empty list is readable, a list not yet filled is not); before that nothing is sent, so the UI
-// never gets a save screen without its saves.
+// empty list is readable, a list not yet filled is not); before that, for at most 2 s, nothing is
+// sent, so the UI does not get a save screen without the saves the game is still listing.
 void XINTERFACE::MobileModelFrame()
 {
     if (storm::android::mobileScreen == "save_load")
         MobileKeepSaveProfile();
     const auto saves = storm::mobile::ReadSaveList();
+    // The wait is bounded: a game whose save window keeps another list (Caribbean Legend has no bThisSave) would
+    // otherwise get no model at all, and its open window nobody would draw. Past it the model goes without the list.
+    static uint64_t waitingRevision = 0;
+    static uint32_t waitingSince = 0;
+    bool waiting = false;
     if (!saves && storm::android::mobileScreen == "save_load")
     {
-        static uint64_t waitingRevision = 0;
-        static uint32_t waitingSince = 0;
         if (waitingRevision != storm::android::mobileScreenRevision)
             waitingRevision = storm::android::mobileScreenRevision, waitingSince = SDL_GetTicks();
-        else if (waitingSince && SDL_GetTicks() - waitingSince >= 2000)
+        if (waitingSince && SDL_GetTicks() - waitingSince >= 2000)
         {
-            core.Trace("ERROR save_load: the script's save list is still unreadable after 2 s; the screen has no model");
+            core.Trace("ERROR save_load: the script's save list is still unreadable after 2 s; the window's model goes "
+                       "without it");
             waitingSince = 0; // said once per opening
         }
+        waiting = waitingSince != 0;
     }
-    else if (MobileModelDue(saves) || mobileModelCheck_)
+    if (!waiting && (MobileModelDue(saves) || mobileModelCheck_))
     {
         STORM_PROFILE_ZONE("UI model: collect");
         ++mobileModelStats_.collections;
