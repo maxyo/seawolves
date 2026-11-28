@@ -708,10 +708,8 @@ void XINTERFACE::MobileModelFrame()
         }
         if (storm::android::mobileScreen == "selectcharacter" && storm::android::TutorialSkipSupported())
         {
-            MobileWidget option{"ANDROID_TUTORIAL_SKIP", "check", "Пропустить вступительное обучение",
-                storm::android::tutorialSkip.selected() ? "1" : "0", 0, 0, true};
-            option.rowId = std::to_string(storm::android::mobileScreenRevision);
-            widgets.push_back(std::move(option));
+            widgets.push_back(MobileWidget{"ANDROID_TUTORIAL_SKIP", "check", "Пропустить вступительное обучение",
+                storm::android::tutorialSkip.selected() ? "1" : "0", 0, 0, true});
         }
         if (storm::android::mobileScreen == "itemstrade")
         {
@@ -1096,7 +1094,7 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
         const auto loaded = std::chrono::steady_clock::now();
         storm::android::showMobileScreen(param, std::chrono::duration<double, std::milli>(released - started).count(),
                                          std::chrono::duration<double, std::milli>(loaded - released).count());
-        storm::android::tutorialSkip.reset(storm::android::mobileScreenRevision);
+        storm::android::tutorialSkip.set(false); // a choice of another screen does not carry over
         storm::ScriptStateForget(); // the new interface's adapters say what they read
         inventoryEquipCapability.invalidate();
         storm::mobile::ResetImages();
@@ -2711,8 +2709,9 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
     {
         if (action.index != 0 || !storm::android::TutorialSkipSupported())
             return refused("no tutorial skip here");
-        storm::android::tutorialSkip.apply(storm::android::mobileScreenRevision, action.value);
-            return applied;
+        if (!storm::android::tutorialSkip.apply(action.value))
+            return refused("the tutorial switch takes 1 or 0");
+        return applied;
     }
 
     if (action.screen == "mainmenu" && action.node == "ANDROID_CONTINUE")

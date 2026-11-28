@@ -1,5 +1,5 @@
-// The new game's "skip the tutorial" choice (android_newgame.hpp): taken for the screen revision it was offered on,
-// and handed to the game's new-game start as InterfaceStates.SkipTutorial.
+// The new game's "skip the tutorial" choice (android_newgame.hpp): the toggle's value, handed to the game's new-game
+// start as InterfaceStates.SkipTutorial.
 #include "android_newgame.hpp"
 #include "core_fake.hpp"
 
@@ -19,7 +19,7 @@ struct NewGame
     {
         fake.scripts.integer("startHeroType", 1);
         interface.SetAttribute("AndroidTutorialSkipSupported", "1");
-        tutorialSkip.reset(7);
+        tutorialSkip.set(false);
     }
     bool handed() const
     {
@@ -28,27 +28,17 @@ struct NewGame
 };
 } // namespace
 
-TEST_CASE("the choice is taken for the revision it was offered on")
+TEST_CASE("the toggle's value is the choice")
 {
     NewGame game;
     CHECK_FALSE(tutorialSkip.selected());
-    CHECK_FALSE(tutorialSkip.apply(6, "1@7"));
-    CHECK_FALSE(tutorialSkip.apply(7, "1@6"));
-    CHECK_FALSE(tutorialSkip.apply(7, "1@7x"));
+    CHECK_FALSE(tutorialSkip.apply("1@7"));
+    CHECK_FALSE(tutorialSkip.apply(""));
     CHECK_FALSE(game.handed());
-    CHECK(tutorialSkip.apply(7, "1@7"));
+    CHECK(tutorialSkip.apply("1"));
     CHECK((tutorialSkip.selected() && game.handed()));
-    CHECK(tutorialSkip.apply(7, "0@7"));
+    CHECK(tutorialSkip.apply("0"));
     CHECK_FALSE(game.handed());
-}
-
-TEST_CASE("another screen takes the choice back")
-{
-    NewGame game;
-    tutorialSkip.apply(7, "1@7");
-    tutorialSkip.reset(8);
-    CHECK_FALSE(game.handed());
-    CHECK_FALSE(tutorialSkip.apply(8, "1@7"));
 }
 
 TEST_CASE("offered for the hero with the tutorial when the scripts support it")

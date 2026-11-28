@@ -746,7 +746,7 @@ static void NewGame(const std::string &models)
     router.OnEvent({"battle", "change", "1"});
     ExpectEqual(surface.Last(), prefix + "CHECK_ARCADESAIL\t1\t1", "sea battle type chosen");
     router.OnEvent({"tutorial", "change", "1"});
-    ExpectEqual(surface.Last(), prefix + "ANDROID_TUTORIAL_SKIP\t0\t1@4", "tutorial skip carries its row identity");
+    ExpectEqual(surface.Last(), prefix + "ANDROID_TUTORIAL_SKIP\t0\t1", "tutorial skip");
     router.OnEvent({surface.props["toggles"][1]["id"], "change", "1"});
     ExpectEqual(surface.Last(), prefix + "CHECK_HARDCORE\t0\t1", "option toggle");
     router.OnEvent({"bio", "click", ""});

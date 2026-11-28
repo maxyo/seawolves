@@ -12,17 +12,11 @@ inline ATTRIBUTES *InterfaceStates()
     return v ? v->GetAClass() : nullptr;
 }
 
-// The new-game screen's "skip the tutorial" choice, taken for the screen revision it was offered on. The choice is
-// InterfaceStates.SkipTutorial, which the game's new-game start reads and removes (script fix
-// new-game-without-tutorial).
+// The new-game screen's "skip the tutorial" choice: InterfaceStates.SkipTutorial, which the game's new-game start
+// reads and removes (script fix new-game-without-tutorial). A tap made for an earlier opening never gets here: the
+// action's opening is checked where it is applied (mobile_action_frame.hpp).
 struct NewGameChoice
 {
-    uint64_t revision = 0;
-    void reset(uint64_t next)
-    {
-        revision = next;
-        set(false);
-    }
     bool selected() const
     {
         auto *states = InterfaceStates();
@@ -38,16 +32,12 @@ struct NewGameChoice
         else if (auto *choice = states->GetAttributeClass("SkipTutorial"))
             states->DeleteAttributeClassX(choice);
     }
-    bool apply(uint64_t current, const std::string &value) const
+    // The toggle's value, "1" or "0"; false for anything else.
+    bool apply(const std::string &value) const
     {
-        if (current != revision)
+        if (value != "1" && value != "0")
             return false;
-        if (value == "1@" + std::to_string(revision))
-            set(true);
-        else if (value == "0@" + std::to_string(revision))
-            set(false);
-        else
-            return false;
+        set(value == "1");
         return true;
     }
 };

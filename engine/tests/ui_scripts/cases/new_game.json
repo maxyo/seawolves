@@ -22,8 +22,7 @@
       "type": "check",
       "label": "Без обучения",
       "value": "0",
-      "index": 0,
-      "rowId": "4"
+      "index": 0
      },
      {
       "node": "TITLE",
@@ -406,7 +405,7 @@
     "send RIGHTCHANGE_COMPLEX press ",
     "send LEFTCHANGE_SETUP press ",
     "send CHECK_ARCADESAIL#1 toggle 1",
-    "send ANDROID_TUTORIAL_SKIP#0 toggle 1@4",
+    "send ANDROID_TUTORIAL_SKIP#0 toggle 1",
     "send CHECK_HARDCORE#0 toggle 1",
     "read Справка: Короткая биография героя.",
     "send OK_BUTTON press ",
@@ -434,8 +433,7 @@
       "type": "check",
       "label": "Без обучения",
       "value": "0",
-      "index": 0,
-      "rowId": "4"
+      "index": 0
      },
      {
       "node": "TITLE",
@@ -830,8 +828,7 @@
       "type": "check",
       "label": "Без обучения",
       "value": "0",
-      "index": 0,
-      "rowId": "4"
+      "index": 0
      },
      {
       "node": "TITLE",

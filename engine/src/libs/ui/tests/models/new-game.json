@@ -6,7 +6,7 @@
 "screen":"selectcharacter",
 "widgets":[
 {"node":"MAIN_BACK","type":"image","index":-1,"enabled":false},
-{"node":"ANDROID_TUTORIAL_SKIP","type":"check","label":"Без обучения","value":"0","index":0,"rowId":"4"},
+{"node":"ANDROID_TUTORIAL_SKIP","type":"check","label":"Без обучения","value":"0","index":0},
 {"node":"TITLE","type":"heading","label":"  Настройки  ","index":-1},
 {"node":"INFO_FRAME_CAPTION","type":"text","label":"  Справка  ","value":"1","index":0},
 {"node":"HERO_NAME","type":"text","label":"Герой Альфа","value":"1","index":0},

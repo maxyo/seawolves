@@ -2,7 +2,7 @@
 // The new game of this lineage (selectcharacter): COMPLEX_TYPE and SETUP_FRAME_CAPTION between their ‹ › buttons,
 // the CHECK_ARCADESAIL pair, the CHECK_* switches, the hero's HERO_NAME, FACEPICT, NATIONS_PICTURE and INFO_TEXT,
 // OK_BUTTON / CANCEL_BUTTON, and the game's windows CONFIRM_WINDOW_* / NOTE_WINDOW_*. The engine adds
-// ANDROID_TUTORIAL_SKIP (its toggle carries its row id) and ANDROID_HERO_TYPE (the occupation's key). Implements
+// ANDROID_TUTORIAL_SKIP and ANDROID_HERO_TYPE (the occupation's key). Implements
 // contracts/new_game.c.
 
 string TouchLegNewGame_Toggles[5] = {"CHECK_HARDCORE", "CHECK_PISTOL", "CHECK_PARTITION", "CHECK_SEABATTLESAVE",
@@ -139,8 +139,6 @@ void TouchAdpNewGame_Toggle(aref ui, string key, bool on)
 	if (!CheckAttribute(ui, "model." + node + ".rows.r0.offers.toggle")) return;
 	object action = {node = node, verb = "toggle", value = "0", row = 0};
 	if (on) action.value = "1";
-	// The engine binds the port's own switch to the row identity it published.
-	if (key == "tutorial") action.value = action.value + "@" + ui.model.ANDROID_TUTORIAL_SKIP.rows.r0.id;
 	UiSendTo(&action);
 }
 
