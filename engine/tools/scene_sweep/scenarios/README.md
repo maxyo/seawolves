@@ -50,5 +50,10 @@ quest's lock the way the game does (Mishelle.c) for saves made before that.
 | `sea_exchange` | the calm open sea, no enemy, corvette with officers and a loaded companion brig | sea HUD orders (sail to the companion), ship screen, ship exchange: cargo, crew, captain chooser |
 | `sea_board` | the open sea, corvette with a full crew and two fighters, a pirate brig with a full crew whose captain may give up; the run then boards it (not saved) | deck fight, the next deck, the cabin, plunder, prize captain and crew |
 | `treasurer` | Saint-Pierre streets, a lugger with a treasurer, standing orders of balls and powder, a brig companion; the run then opens the purchase list (not saved) | purchase list |
+| `sea_surrender` | the open sea, corvette, a pirate brig with cargo; the run then boards it with the game's surrender switch on (not saved) | plunder: the surrender message, the captain's and the crew's fate, sink or keep the ship |
+| `loot` | Saint-Pierre streets, a brig with 30 crew; the run then opens the plunder of the town's store (not saved) | colony capture loot |
+| `contraband` | Saint-Pierre streets, a brig with goods; the run then opens the smugglers' trade (not saved) | contraband trade |
+| `storage` | Saint-Pierre streets, a brig with goods; the run then opens the store's warehouse (not saved) | warehouse |
+| `self_repair` | a Martinique shore as if landed from the sea, a damaged brig, planks and sailcloth, the self-repair perk | land menu, self repair |
 
 A new scenario: copy one, keep its `// Scenario <name>: <state>` line (`list` prints it) and define the three hooks.
