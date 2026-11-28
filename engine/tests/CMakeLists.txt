@@ -515,6 +515,7 @@ storm_check_test(audio_import.corpus COMMAND audio_import.check "[corpus]" LABEL
 
 # Checks with a CMake file of their own.
 add_subdirectory(far_lod)
+add_subdirectory(foliage)
 add_subdirectory(glm_math)
 add_subdirectory(portability)
 add_subdirectory(script_language)
