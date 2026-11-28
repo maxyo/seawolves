@@ -2,7 +2,7 @@
   "tag": "c-table",
   "props": {
     "columns": {"type": "json", "default": [], "shape": [{"align": "text", "label": "text", "w": "text"}]},
-    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"arrows": "bool", "bar": "int", "barKind": "text", "bold": "bool", "icon": "text", "iconSize": "int", "lines": "int", "noLeft": "bool", "text": "text", "tone": "text", "image": {"$of": "c-row-image.image"}, "iconOnly": "bool", "iconTone": "text", "sub": "text", "tag": {"$either": ["text", {"text": "text", "tone": "text"}]}, "badge": "text", "delta": {"from": "number", "to": "number", "tone": "text"}, "flag": "text", "imageSize": "int", "noRight": "bool", "tokenSize": "int"}]}], "id": "text", "selected": "bool", "disabled": "bool", "fit": "bool", "reason": "text", "showReason": "bool"}]},
+    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"arrows": "bool", "bar": "int", "barKind": "text", "bold": "bool", "icon": "text", "iconSize": "int", "lines": "int", "noLeft": "bool", "text": "text", "tone": "text", "image": {"$of": "c-row-image.image"}, "iconOnly": "bool", "iconTone": "text", "sub": "text", "tag": "text"}]}], "id": "text", "selected": "bool", "disabled": "bool", "reason": "text"}]},
     "rowHeight": {"type": "int", "default": 0},
     "head": {"type": "bool", "default": false, "class": false},
     "caps": {"type": "bool", "default": false},
@@ -28,7 +28,7 @@
     "headMin": 32,
     "pathMin": 36,
     "font": {"cell": @{type.body}, "sub": @{type.caption}, "head": @{type.caption}, "tag": @{type.caption}},
-    "icon": {"cell": 22, "only": 24, "arrow": 24, "badge": 12, "empty": 36},
+    "icon": {"cell": 22, "only": 24, "arrow": 24, "empty": 36},
     "image": 32,
     "tokenMax": @{size.tokenSm},
     "fade": {"plain": 28, "more": 40},

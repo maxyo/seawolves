@@ -4,12 +4,12 @@
     "label": {"type": "text", "default": ""},
     "labelIcon": {"type": "text", "default": "chest"},
     "cols": {"type": "json", "default": [], "shape": [{"icon": "text", "label": "text", "w": "int", "iconTone": "text", "sort": "text", "sortable": "bool"}]},
-    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"text": "text", "tone": "text", "bold": "bool", "sub": "text"}]}], "id": "text", "image": {"$of": "c-row-image.image"}, "meta": "text", "name": "text", "disabled": "bool", "reason": "text", "selected": "bool", "q": {"allLabel": "text", "disabled": "bool", "label": "text", "lessLabel": "text", "max": "int", "min": "int", "moreLabel": "text", "origin": "int", "steps": {"$of": "c-quantity.steps"}, "summary": "text", "value": "int", "zones": "bool", "all": "bool", "reason": "text", "unit": "text", "marks": {"$of": "c-quantity.marks"}, "stack": "bool", "surface": "text"}, "facts": [{"icon": "text", "iconTone": "text", "k": "text", "tone": "text", "v": "text"}], "metaTone": "text", "quick": "bool", "sub": "text", "text": "text"}]},
+    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"text": "text", "tone": "text", "bold": "bool", "sub": "text"}]}], "id": "text", "image": {"$of": "c-row-image.image"}, "meta": "text", "name": "text", "disabled": "bool", "reason": "text", "selected": "bool", "q": {"allLabel": "text", "disabled": "bool", "label": "text", "lessLabel": "text", "max": "int", "min": "int", "moreLabel": "text", "origin": "int", "steps": {"$of": "c-quantity.steps"}, "summary": "text", "value": "int", "zones": "bool", "all": "bool", "reason": "text", "unit": "text", "marks": {"$of": "c-quantity.marks"}}, "facts": [{"icon": "text", "iconTone": "text", "k": "text", "tone": "text", "v": "text"}], "metaTone": "text", "quick": "bool", "sub": "text", "text": "text"}]},
     "deal": {"type": "json", "default": null, "shape": {"$null": {"all": "bool", "allLabel": "text", "disabled": "bool", "label": "text", "lessLabel": "text", "max": "int", "min": "int", "moreLabel": "text", "moreReason": "text", "origin": "int", "reason": "text", "stack": "bool", "steps": ["int"], "summary": "text", "surface": "text", "value": "int", "zones": "bool"}}},
     "dense": {"type": "bool", "default": false},
     "dock": {"type": "bool", "default": false},
     "rowTap": {"type": "bool", "default": true, "doc": "false: the rows only show something (a recipe's components): no tap, no press feedback"},
-    "filters": {"type": "json", "default": [], "shape": [{"disabled": "bool", "id": "text", "label": "text", "selected": "bool", "reason": "text"}]},
+    "filters": {"type": "json", "default": [], "shape": [{"disabled": "bool", "id": "text", "label": "text", "selected": "bool"}]},
     "quick": {"type": "text", "default": ""}
   },
   "classes": {

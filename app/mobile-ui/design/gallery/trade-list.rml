@@ -27,7 +27,7 @@
 <div class="g-note">dense + dock: список не двигается, открытая строка — в доке справа (объект, текст, количество столбиком); чипы-фильтры в шапке, сортировка по заголовку, быстрое «взять всё» в конце строки; содержимое компонента — внизу дока</div>
 <div class="g-row">
   <div class="g-wood" style="width: 100%; height: 300dp; padding: 0"><c-trade-list id="tl-dock" dense="1" dock="1" quick="hand" label="Товар"
-    filters='[{"label":"Все","selected":true},{"label":"Мои"},{"label":"Здесь"},{"label":"Недоступно","disabled":true,"reason":"пусто"}]'
+    filters='[{"label":"Все","selected":true},{"label":"Мои"},{"label":"Здесь"},{"label":"Недоступно","disabled":true}]'
     cols='[{"label":"У вас","icon":"capacity","sortable":true},{"label":"Здесь","icon":"store","sortable":true,"sort":"desc"}]'
     rows='[{"name":"Лечебное зелье","image":{"kind":"item","texture":"INTERFACES/items19","cell":1,"icon":"potion"},"meta":"снадобье","sub":"снадобье · вес 0,2","text":"Восстанавливает 40 единиц жизни.","facts":[{"icon":"price-buy","iconTone":"green","v":"150","tone":"gold"},{"icon":"price-sell","iconTone":"danger","v":"75","tone":"gold"},{"icon":"weight","v":"0.2"}],"cells":["3","2"],"quick":true,"selected":true,"q":{"value":3,"max":5,"zones":true,"origin":3,"lessLabel":"Отдать","moreLabel":"Взять","label":"У вас","steps":[1,10],"summary":"-"}},
            {"name":"Ядра","image":{"kind":"token","icon":"ammo","enamel":"parchment"},"meta":"экспорт","metaTone":"ok","cells":["200","1840"],"quick":true},

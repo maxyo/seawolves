@@ -12,7 +12,7 @@
 <div class="g-note">разделы + stats с предпросмотром (метка / значок)</div>
 <div class="h-cell"><c-header id="h-ship" key="h-ship" title="Магазин" sections="ship" stats='[{"label":"Трюм","value":"189","preview":"289","previewTone":"neutral"},{"icon":"money","value":"1 500","preview":"1 000","tone":"gold","previewTone":"danger"}]'/></div>
 <div class="g-note">субъект + вкладки (бейдж, счётчик, недоступная) + stat</div>
-<div class="h-cell"><c-header id="h-skills" key="h-skills" title="Умения" subject='{"label":"Шарль де Мор","sub":"1 из 4","prev":false}' tabs='[{"label":"Личные","selected":true,"badge":3},{"label":"Корабельные","count":12},{"label":"Особые","disabled":true,"reason":"Откроются на 5 ранге"}]' stats='[{"label":"Очки","value":"3","tone":"gold"}]'/></div>
+<div class="h-cell"><c-header id="h-skills" key="h-skills" title="Умения" subject='{"label":"Шарль де Мор","sub":"1 из 4","prev":false}' tabs='[{"label":"Личные","selected":true,"badge":3},{"label":"Корабельные"},{"label":"Особые","disabled":true,"reason":"Откроются на 5 ранге"}]' stats='[{"label":"Очки","value":"3","tone":"gold"}]'/></div>
 <div class="g-note">лист поверх HUD: крестик вместо «назад», заголовок без скрипта, stat со значком</div>
 <div class="h-cell"><c-header id="h-orders" key="h-orders" title="Приказы" close="1" script="0" stats='[{"icon":"crew","value":"64 / 120"}]'/></div>
 <div class="g-note">подзаголовок (showSubtitle) + действия + тона stats ok / danger, предпросмотр ok</div>

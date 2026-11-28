@@ -10,7 +10,7 @@
     "script": {"type": "bool", "default": true, "class": false},
     "sections": {"type": "enum", "options": ["", "hero", "ship", "journal", "tradebook", "nations", "items"], "default": "", "class": false},
     "subject": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "list": "bool", "next": "bool", "open": "bool", "prev": "bool", "rows": [{"icon": "text", "id": "text", "image": "picture", "label": "text", "meta": "text", "selected": "bool"}], "sub": "text", "title": "text"}}},
-    "tabs": {"type": "json", "default": [], "shape": [{"badge": "text", "disabled": "bool", "id": "text", "label": "text", "reason": "text", "selected": "bool", "count": "int"}]},
+    "tabs": {"type": "json", "default": [], "shape": [{"badge": "text", "disabled": "bool", "id": "text", "label": "text", "reason": "text", "selected": "bool"}]},
     "stats": {"type": "json", "default": [], "shape": [{"icon": "text", "label": "text", "preview": "text", "previewTone": "text", "tone": "text", "value": "text"}]},
     "actions": {"type": "json", "default": [], "shape": [{"id": "text", "icon": "text", "label": "text"}]},
     "key": {"type": "text", "default": "header"}

@@ -14,7 +14,7 @@
 <div class="g-row">
   <div class="d-cell"><c-scene><c-dialog title="Удалить" subject="Мартиника — море" consequence="Запись нельзя восстановить." preset="danger" confirm="Удалить" width="290"/></c-scene></div>
   <div class="d-cell"><c-scene kind="sea"><c-dialog id="d-pay" key="d-pay" tone="parchment" title="День зарплаты" consequence="Команде причитается 1 240 песо." actions='[{"label":"Не платить","variant":"quiet"},{"label":"Заплатить","variant":"primary","sub":"−1 240"}]' width="290"/></c-scene></div>
-  <div class="d-cell"><c-scene kind="sea"><c-dialog id="d-sheet" key="d-sheet" variant="sheet" step="2/3" title="Цель: «Аделина»" consequence="Брандер сгорит вместе с командой." actions='[{"label":"Назад","variant":"quiet"},{"label":"Поджечь","variant":"danger","hold":true,"holdProgress":60}]' width="280"/></c-scene></div>
+  <div class="d-cell"><c-scene kind="sea"><c-dialog id="d-sheet" key="d-sheet" variant="sheet" step="2/3" title="Цель: «Аделина»" consequence="Брандер сгорит вместе с командой." actions='[{"label":"Назад","variant":"quiet"},{"label":"Поджечь","variant":"danger","hold":true}]' width="280"/></c-scene></div>
   <div class="d-cell"><c-scene kind="title"><c-dialog id="d-top" key="d-top" tone="parchment" variant="top" title="Исторические события" closable="1" consequence="Крестик на пергаменте — чернилами." width="400" scrim="0"/></c-scene></div>
 </div>
 <div class="g-title">preset confirm · значок + подзаголовок + text · sequence + дочернее поле · недоступное действие с причиной</div>
@@ -22,7 +22,7 @@
   <div class="d-cell"><c-scene kind="tavern"><c-dialog id="d-confirm" key="d-confirm" title="Выйти в море?" preset="confirm" confirm="Выйти" width="300"/></c-scene></div>
   <div class="d-cell"><c-scene kind="deck"><c-dialog icon="nation-france" title="Губернатор" subtitle="Сен-Пьер" text="Рад видеть вас, капитан.
 Есть поручение для надёжного человека." closable="1" actions='[{"label":"Выслушать","variant":"primary"}]' width="380"/></c-scene></div>
-  <div class="d-cell"><c-scene kind="night"><c-dialog id="d-seq" key="d-seq" variant="sequence" step="1/3" title="Имя корабля" width="400" actions='[{"label":"Отмена","variant":"quiet"},{"label":"Далее","variant":"primary","icon":"chevron-right"}]'><c-field label="Имя" value="Аделина" focused="1" counter="7 / 24"/></c-dialog></c-scene></div>
+  <div class="d-cell"><c-scene kind="night"><c-dialog id="d-seq" key="d-seq" variant="sequence" step="1/3" title="Имя корабля" width="400" actions='[{"label":"Отмена","variant":"quiet"},{"label":"Далее","variant":"primary"}]'><c-field label="Имя" value="Аделина" focused="1" counter="7 / 24"/></c-dialog></c-scene></div>
   <div class="d-cell"><c-scene kind="battle"><c-dialog id="d-dis" key="d-dis" title="Нанять команду" consequence="Матросы просят плату вперёд." width="400" actions='[{"label":"Отмена","variant":"quiet"},{"label":"Нанять","variant":"primary","sub":"−1 250","disabled":true,"reason":"Не хватает денег"}]'/></c-scene></div>
 </div>
 <div class="g-title">пергамент: aged (seed 17 / 5) · edge · дерево edge · framed · значок на пергаменте + шаги</div>

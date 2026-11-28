@@ -62,7 +62,6 @@ c-setting.stretch .set-segment { flex: 1 1 0; }
 c-setting .set-cell.selected { background-color: @{color.brassGlow/.28}; color: @{color.textSelected}; shadow: @{color.brass} 0 -2dp 0 0 inset; }
 c-setting .set-cell.pressed { background-color: @{color.brassGlow/.16}; color: @{color.text}; }
 /* one option unavailable (its own reason on a tap): dimmed like a disabled row */
-c-setting .set-cell.off { color: @{color.glyphDisabled}; }
 
 /* control "button": the row's own action (its label names what, `display` the verb), a quiet brass-lined button */
 c-setting .set-button { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; box-sizing: border-box;

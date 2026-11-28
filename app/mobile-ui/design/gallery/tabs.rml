@@ -6,31 +6,29 @@
 <body class="gallery">
 <div class="g-page">
 <div class="g-title">C-Tabs</div>
-<div class="g-note">bar: счётчик, красная метка, недоступная вкладка (причина — тостом), разделитель</div>
+<div class="g-note">bar: красная метка, недоступная вкладка (причина — тостом)</div>
 <div class="g-row g-wood">
-  <div style="width: 420dp"><c-tabs id="tabs-bar" items='[{"label":"Умения","selected":true},{"label":"Способности","badge":3},{"label":"Спутники","count":4}]'/></div>
-  <div style="width: 420dp"><c-tabs id="tabs-bar2" items='[{"label":"Личные","icon":"hero","selected":true},{"label":"Корабельные","icon":"ship"},{"divider":true},{"label":"Архив","disabled":true,"reason":"Архив пуст"}]'/></div>
+  <div style="width: 420dp"><c-tabs id="tabs-bar" items='[{"label":"Умения","selected":true},{"label":"Способности","badge":3},{"label":"Спутники"}]'/></div>
+  <div style="width: 420dp"><c-tabs id="tabs-bar2" items='[{"label":"Личные","selected":true},{"label":"Корабельные"},{"label":"Архив","disabled":true,"reason":"Архив пуст"}]'/></div>
 </div>
 <div class="g-note">segment (обычный и stretch), одна вкладка — ничего не рисуется (справа пусто)</div>
 <div class="g-row g-wood" style="align-items: center">
   <c-tabs id="tabs-seg" look="segment" items='[{"label":"Личные","selected":true},{"label":"Корабельные"}]'/>
-  <div style="width: 320dp"><c-tabs id="tabs-seg2" look="segment" stretch="1" items='[{"label":"Все"},{"label":"Оружие","selected":true,"count":12},{"label":"Зелья","badge":2}]'/></div>
+  <div style="width: 320dp"><c-tabs id="tabs-seg2" look="segment" stretch="1" items='[{"label":"Все"},{"label":"Оружие","selected":true},{"label":"Зелья","badge":2}]'/></div>
   <c-tabs look="segment" items='[{"label":"Единственная","selected":true}]'/>
 </div>
-<div class="g-note">rail (обычный и compact), icons</div>
+<div class="g-note">rail (обычный и compact)</div>
 <div class="g-row g-wood">
-  <div style="width: 220dp"><c-tabs id="tabs-rail" look="rail" items='[{"label":"Квесты","icon":"quest","selected":true,"count":4},{"label":"Склады","icon":"store"},{"divider":true},{"label":"Касса","icon":"money","badge":1}]'/></div>
-  <div style="width: 160dp"><c-tabs id="tabs-railc" look="rail" compact="1" items='[{"label":"Квесты","icon":"quest","selected":true},{"label":"Склады","icon":"store"},{"label":"Касса","icon":"money","badge":1}]'/></div>
-  <c-tabs id="tabs-icons" look="icons" items='[{"label":"Квесты","icon":"quest","selected":true},{"label":"Склады","icon":"store"},{"label":"Касса","icon":"money","badge":2},{"divider":true},{"label":"Тюрьма","icon":"prison","disabled":true,"reason":"Ещё не открыто"}]'/>
+  <div style="width: 220dp"><c-tabs id="tabs-rail" look="rail" items='[{"label":"Квесты","selected":true},{"label":"Склады"},{"label":"Касса","badge":1}]'/></div>
+  <div style="width: 160dp"><c-tabs id="tabs-railc" look="rail" compact="1" items='[{"label":"Квесты","selected":true},{"label":"Склады"},{"label":"Касса","badge":1}]'/></div>
 </div>
 <div class="g-note">На пергаменте</div>
 <div class="g-row g-paper">
-  <div style="width: 400dp"><c-tabs id="ptabs-bar" surface="parchment" items='[{"label":"Журнал","selected":true},{"label":"Письма","badge":2},{"label":"Архив","count":14}]'/></div>
+  <div style="width: 400dp"><c-tabs id="ptabs-bar" surface="parchment" items='[{"label":"Журнал","selected":true},{"label":"Письма","badge":2},{"label":"Архив"}]'/></div>
   <div style="width: 400dp"><c-tabs id="ptabs-seg" surface="parchment" look="segment" stretch="1" items='[{"label":"Личные","selected":true},{"label":"Корабельные"}]'/></div>
 </div>
 <div class="g-row g-paper">
-  <div style="width: 220dp"><c-tabs id="ptabs-rail" surface="parchment" look="rail" items='[{"label":"Задания","selected":true,"count":4},{"label":"Документы"},{"label":"Имущество","disabled":true}]'/></div>
-  <c-tabs id="ptabs-icons" surface="parchment" look="icons" items='[{"label":"Квесты","icon":"quest","selected":true},{"label":"Склады","icon":"store"},{"label":"Касса","icon":"money","badge":2}]'/>
+  <div style="width: 220dp"><c-tabs id="ptabs-rail" surface="parchment" look="rail" items='[{"label":"Задания","selected":true},{"label":"Документы"},{"label":"Имущество","disabled":true}]'/></div>
   <c-tabs id="ptabs-seg2" surface="parchment" look="segment" items='[{"label":"Купить"},{"label":"Продать","selected":true}]'/>
 </div>
 </div>

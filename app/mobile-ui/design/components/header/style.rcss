@@ -46,7 +46,6 @@ c-header > .tabs > .tab { display: flex; flex-direction: row; align-items: cente
 c-header > .tabs > .tab.selected { border-bottom: 2dp @{color.brass}; color: @{color.textSelected}; decorator: linear-gradient(@{color.brass/0}, @{color.brass/.2}); }
 c-header > .tabs > .tab.pressed { background-color: @{color.brass/.14}; }
 c-header > .tabs > .tab.disabled { opacity: 0.5; background-color: transparent; }
-c-header > .tabs > .tab > .count { margin-left: 6dp; font-size: @{spec.font.label}dp; color: @{color.textMuted}; }
 c-header > .tabs > .tab > .badge { margin-left: 6dp; min-width: 18dp; height: 18dp; padding: 0 5dp; box-sizing: border-box; border-radius: 9dp; background-color: @{color.wax}; color: @{color.onWax}; font-size: @{spec.font.label}dp; line-height: 18dp; text-align: center; font-effect: none; }
 
 /* whose screen this is: a block whose width does not depend on the name, so that ‹ and › stay where they are while
@@ -73,7 +72,6 @@ c-header > .subject > .pressed { background-color: @{color.brass/.14}; }
     c-header > .subject > .who { padding: 0 4dp; }
 }
 c-header > .subject > .arrow.off.pressed { background-color: transparent; }
-
 
 /* stats: at most two */
 c-header > .stat { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex: 0 0 auto; line-height: 1.12; font-size: @{spec.font.stat}dp; font-effect: shadow(0dp 1dp @{color.black/.8}); }

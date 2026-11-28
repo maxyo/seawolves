@@ -1,11 +1,11 @@
 {
   "tag": "c-tabs",
   "props": {
-    "look": {"type": "enum", "options": ["bar", "segment", "rail", "icons"], "default": "bar"},
+    "look": {"type": "enum", "options": ["bar", "segment", "rail"], "default": "bar"},
     "compact": {"type": "bool", "default": false},
     "stretch": {"type": "bool", "default": false},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
-    "items": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool", "badge": "text", "disabled": "bool", "reason": "text", "count": "int", "divider": "bool", "icon": "text"}]}
+    "items": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool", "badge": "text", "disabled": "bool", "reason": "text"}]}
   },
   "classes": {
     "single": "len(items) < 2"
@@ -13,10 +13,8 @@
   "behaviors": ["press"],
   "constants": {
     "pressRoot": false,
-    "height": {"bar": @{size.tabBar}, "segment": @{size.touchMin}, "rail": @{size.touch}, "icons": @{size.touch}},
-    "iconsWidth": @{size.tabIcons},
+    "height": {"bar": @{size.tabBar}, "segment": @{size.touchMin}, "rail": @{size.touch}},
     "compactWidth": 128,
-    "icon": {"text": 20, "icons": 24},
     "font": {"label": @{type.body}, "count": @{type.caption}},
     "badge": 18
   }

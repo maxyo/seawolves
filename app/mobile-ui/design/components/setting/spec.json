@@ -7,7 +7,7 @@
     "value": {"type": "int", "default": 70},
     "display": {"type": "text", "default": ""},
     "on": {"type": "bool", "default": true},
-    "options": {"type": "json", "default": [], "shape": [{"$either": ["text", {"key": "text", "label": "text", "disabled": "bool", "reason": "text"}]}]},
+    "options": {"type": "json", "default": [], "shape": ["text"]},
     "selected": {"type": "int", "default": 0},
     "disabled": {"type": "bool", "default": false},
     "reason": {"type": "text", "default": ""},
