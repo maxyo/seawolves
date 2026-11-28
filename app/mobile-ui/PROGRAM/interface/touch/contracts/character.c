@@ -7,7 +7,7 @@
 //
 // State(ui, out), once a build:
 //   title; full (the hero's window: people, officers, sections); sections (the window has the hero sections)
-//   people.p<k>.{label, meta (the captions of their slots), image (picture, "" none)}; shown (k the game shows, -1
+//   people.p<k>.{key, label, meta (the captions of their slots), image (picture, "" none)}; shown (k the game shows, -1
 //     none listed); waiting (the game is still to show the person picked: this build is a step)
 //   card.{name, rank (caption), rankValue, portrait (texture, "" none), health.{now, max}, energy.{now, max},
 //     healthWord ("" none), healthCaption, healthBad, standing.{caption, value ("" none), authority (bool)},

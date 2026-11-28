@@ -454,6 +454,7 @@ void TouchShip_Subject(aref game, aref view, int shown, bool open)
 	{
 		aref ship = GetAttributeN(ships, k);
 		aref person = TouchLib_Add(&people, "p");
+		person.key = ship.key;
 		person.label = ship.label;
 		person.meta = "";
 		person.image = "";
@@ -586,7 +587,9 @@ void TouchShip_Tap()
 		UiRebuild();
 		return;
 	}
-	int ship = TouchLib_SubjectTap(&TouchShip, id, verb, TouchShip_Shown(game), TouchLib_Count(game, "ships"));
+	aref ships;
+	makearef(ships, game.ships);
+	int ship = TouchLib_SubjectTap(&TouchShip, id, verb, TouchShip_Shown(game), ships);
 	if (ship >= 0)
 	{
 		if (window) { TouchAdpShip_Close(ui); UiHold(); return; }

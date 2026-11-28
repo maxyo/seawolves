@@ -819,11 +819,11 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
 
 // A row is tapped by its identity: a tap that arrives after the game's list changed (a row above it gone, the rest
 // moved up) acts on the row the player tapped, not on whatever is now at its old place. The first case of `file` is
-// built, the first row of the game's table `node` dropped (`renumber`: the rest take its places, as the engine's
-// tables do; else they keep their indices) and built again; then `tap` (its value or, for "<prefix>{}", its element
-// id: the id the first build drew for row `drawn` of the props list at `list`) runs: the calls it made.
+// built, row `gone` of the game's table `node` dropped (`renumber`: the rows after it move up, as the engine's tables
+// do; else they keep their indices) and built again; then `tap` (its value or, for "<prefix>{}", its element
+// id: what the first build drew for row `drawn` of the props list at `list` sends) runs: the calls it made.
 std::vector<std::string> TapAfterRowGone(const char *file, const char *folder, const char *capability, const char *node,
-                                         bool renumber, const char *list, size_t drawn, std::string id,
+                                         int gone, bool renumber, const char *list, size_t drawn, std::string id,
                                          const char *verb)
 {
     Vm vm;
@@ -839,11 +839,13 @@ std::vector<std::string> TapAfterRowGone(const char *file, const char *folder, c
     Calls calls(*spec);
     calls.widgets = model.widgets;
     port.Build(screen, calls.Single(), calls);
-    const std::string tapped = calls.props.at(Json::json_pointer(list)).at(drawn).at("id").get<std::string>();
-    std::erase_if(calls.widgets, [node](const storm::ui::Widget &w) { return w.node == node && w.index == 0; });
+    // What the templates send for the row: its id, its place without one.
+    const Json &row = calls.props.at(Json::json_pointer(list)).at(drawn);
+    const std::string tapped = row.contains("id") ? row.at("id").get<std::string>() : std::to_string(drawn);
+    std::erase_if(calls.widgets, [&](const storm::ui::Widget &w) { return w.node == node && w.index == gone; });
     if (renumber)
         for (auto &widget : calls.widgets)
-            if (widget.node == node)
+            if (widget.node == node && widget.index > gone)
                 --widget.index;
     calls.first = false;
     port.Build(screen, calls.Single(), calls);
@@ -858,12 +860,16 @@ std::vector<std::string> TapAfterRowGone(const char *file, const char *folder, c
 TEST_CASE("a row tapped before the list changes acts on the row tapped")
 {
     const auto store =
-        TapAfterRowGone("trade_store", "trade", "trade_store", "TABLE_LIST", true, "/list/rows", 2, "goods", "row");
+        TapAfterRowGone("trade_store", "trade", "trade_store", "TABLE_LIST", 0, true, "/list/rows", 2, "goods", "row");
     REQUIRE(!store.empty());
     CHECK(store.front() == "send TABLE_LIST#1 activate goods:2:ship:0");
-    const auto items = TapAfterRowGone("items", "items", "items", "TABLE_ITEMS", false, "/rows", 2, "items", "row");
+    const auto items = TapAfterRowGone("items", "items", "items", "TABLE_ITEMS", 0, false, "/rows", 2, "items", "row");
     REQUIRE(!items.empty());
     CHECK(items.front() == "send TABLE_ITEMS#2 select inventory:30:character:1:role:0");
+    // The navigator's slot gone from the hero's people: the cannoner tapped is still the one picked.
+    const auto person = TapAfterRowGone("character", "hero", "character", "CHARACTERS_SCROLL", 1, false,
+                                        "/subject/rows", 2, "header-subject-{}", "click");
+    CHECK(person == std::vector<std::string>{"rebuild", "send CHARACTERS_SCROLL#3 select 1:3", "hold"});
 }
 
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")

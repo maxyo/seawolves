@@ -819,12 +819,12 @@ void TouchCharacter_Tap()
 	}
 	if (sti(game.full))
 	{
-		int person = TouchLib_SubjectTap(&TouchCharacter, id, verb, sti(game.shown), TouchLib_Count(game, "people"));
+		aref people, subject;
+		makearef(people, game.people);
+		int person = TouchLib_SubjectTap(&TouchCharacter, id, verb, sti(game.shown), people);
 		if (person >= 0)
 		{
 			// The person picked is named from this frame; the game shows them a frame later.
-			aref people, subject;
-			makearef(people, game.people);
 			makearef(subject, TouchCharacter_View.subject);
 			TouchLib_Subject(subject, people, person, false);
 			UiPredict(&TouchCharacter_View);

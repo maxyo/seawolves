@@ -382,8 +382,8 @@ string TouchLegLib_FlagOf(aref image)
 
 // The people of the hero screens' character list CHARACTERS_SCROLL (FillCharactersScroll): the captain, the officers
 // on their posts, companions, passengers and prisoners, each once in the list's order with the captions of the slots
-// they fill (an officer may hold several posts), as out.people.p<k>.{character, label, meta, image, row (the index of
-// their first slot)}. Returns k of the person whose slot the list has selected, -1 none.
+// they fill (an officer may hold several posts), as out.people.p<k>.{key (the character's index), character, label,
+// meta, image, row (the index of their first slot)}. Returns k of the person whose slot the list has selected, -1 none.
 int TouchLegLib_People(aref model, aref out)
 {
 	aref people;
@@ -415,6 +415,7 @@ int TouchLegLib_People(aref model, aref out)
 		{
 			ref chr = GetCharacter(character);
 			person = TouchLib_Add(people, "p");
+			person.key = "" + character;
 			person.character = character;
 			person.label = GetFullName(chr);
 			person.meta = caption;

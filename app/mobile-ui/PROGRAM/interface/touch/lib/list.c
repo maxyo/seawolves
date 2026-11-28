@@ -276,9 +276,10 @@ int TouchLib_StepTap(string verb, int shown, int count, string what)
 	return TouchLib_TapIndex("" + k, count, what);
 }
 
-// The header's switch over the people a screen shows one of: `people` entries {label, meta, image ("" none: a picture
-// {kind, group, image})}, k `shown`, its list open or not. Its events (TouchLib_SubjectOn in a build): header
-// subject-prev, subject-next, subject-list, header-subject-<k>, the list's ✕ header-subjects-close and its dismissal.
+// The header's switch over the people a screen shows one of: `people` entries {key (the game's identity of the
+// person), label, meta, image ("" none: a picture {kind, group, image})}, k `shown`, its list open or not. Its events
+// (TouchLib_SubjectOn in a build): header subject-prev, subject-next, subject-list, header-subject-<key>, the list's ✕
+// header-subjects-close and its dismissal.
 void TouchLib_Subject(aref view, aref people, int shown, bool open)
 {
 	int count = GetAttributesNum(people);
@@ -301,6 +302,7 @@ void TouchLib_Subject(aref view, aref people, int shown, bool open)
 	{
 		person = GetAttributeN(people, k);
 		aref at = TouchLib_Add(rows, "r");
+		at.id = person.key;
 		at.label = person.label;
 		at.meta = person.meta;
 		at.icon = "hero";
@@ -323,14 +325,20 @@ void TouchLib_SubjectOn(aref people, bool open)
 	UiOn("header", "subject-list");
 	int count = GetAttributesNum(people);
 	if (!open || count < 2) return;
-	for (int k = 0; k < count; k++) UiOn("header-subject-" + k, "");
+	for (int k = 0; k < count; k++)
+	{
+		aref person = GetAttributeN(people, k);
+		UiOn("header-subject-" + person.key, "");
+	}
 	UiOn("header-subjects-close", "");
 	UiModal("header-subjects", "header-subjects-close");
 }
 
-// A tap on the switch: k of the person it picks, -1 none; `state.open` follows the list opened and closed.
-int TouchLib_SubjectTap(aref state, string id, string verb, int shown, int count)
+// A tap on the switch over `people` (entries with a key): k of the person it picks, -1 none (a person no longer listed
+// too); `state.open` follows the list opened and closed.
+int TouchLib_SubjectTap(aref state, string id, string verb, int shown, aref people)
 {
+	int count = GetAttributesNum(people);
 	if (id == "header" && verb == "subject-prev" && shown > 0) return shown - 1;
 	if (id == "header" && verb == "subject-next" && shown + 1 < count) return shown + 1;
 	if (id == "header" && verb == "subject-list") { state.open = true; UiRebuild(); return -1; }
@@ -338,9 +346,17 @@ int TouchLib_SubjectTap(aref state, string id, string verb, int shown, int count
 	if (!TouchLib_StartsWith(id, "header-subject-")) return -1;
 	state.open = false;
 	UiRebuild();
-	int k = TouchLib_TapIndex(TouchLib_Cut(id, 15, strlen(id)), count, "the person");
-	if (k == shown) return -1;
-	return k;
+	string key = TouchLib_Cut(id, 15, strlen(id));
+	for (int k = 0; k < count; k++)
+	{
+		aref person = GetAttributeN(people, k);
+		if (person.key == key)
+		{
+			if (k == shown) return -1;
+			return k;
+		}
+	}
+	return -1;
 }
 
 // A captain's ship skills {key (the game's skill: "Sailing"), value, tone} as a sheet lists them: {icon, k, v, tone}.

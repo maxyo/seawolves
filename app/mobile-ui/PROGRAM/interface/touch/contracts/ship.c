@@ -7,7 +7,7 @@
 //
 // State(ui, out), once a build:
 //   title; sections (the hero sections open from here)
-//   ships.s<k>.{label, selected, can}: the squadron's ships, the one shown selected
+//   ships.s<k>.{key, label, selected, can}: the squadron's ships, the one shown selected
 //   ship (absent: its captain has none).{name, type, rank (its class, "" none), captain, companion (not the hero's
 //     own ship), image (absent: none), rename (the game takes a new name), exchange (the game offers the exchange
 //     with the hero's ship)}

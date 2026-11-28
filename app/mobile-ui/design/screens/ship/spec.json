@@ -8,7 +8,7 @@
     "tab": {"type": "text", "default": "overview"},
     "subject": {"type": "json", "default": null,
                "shape": {"$null": {"label": "text", "sub": "text", "prev": "bool", "next": "bool", "list": "bool", "open": "bool", "title": "text",
-                                   "rows": [{"label": "text", "meta": "text", "image": "picture", "icon": "text", "selected": "bool"}]}}},
+                                   "rows": [{"id": "text", "label": "text", "meta": "text", "image": "picture", "icon": "text", "selected": "bool"}]}}},
     "card": {"type": "json", "default": {},
             "shape": {"title": "text", "sub": "text", "captain": "text", "rename": "bool", "image": "picture",
                       "hull": {"value": "int", "text": "text"}, "sails": {"value": "int", "text": "text"},

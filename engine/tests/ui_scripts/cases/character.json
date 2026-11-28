@@ -923,6 +923,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -933,6 +934,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -943,6 +945,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -953,6 +956,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -963,6 +967,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -973,6 +978,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -983,6 +989,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
@@ -1751,6 +1758,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -1761,6 +1769,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -2786,6 +2795,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -2796,6 +2806,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -2806,6 +2817,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -2816,6 +2828,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -2826,6 +2839,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -2836,6 +2850,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -2846,6 +2861,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
@@ -3809,6 +3825,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -3819,6 +3836,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -5485,6 +5503,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -5495,6 +5514,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -10456,6 +10476,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -10466,6 +10487,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -10476,6 +10498,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -10486,6 +10509,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -10496,6 +10520,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -10506,6 +10531,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -10516,6 +10542,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
@@ -10776,6 +10803,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -10786,6 +10814,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -10796,6 +10825,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -10806,6 +10836,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -10816,6 +10847,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -10826,6 +10858,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -10836,6 +10869,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
@@ -11801,6 +11835,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -11811,6 +11846,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -11821,6 +11857,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -11831,6 +11868,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -11841,6 +11879,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -11851,6 +11890,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -11861,6 +11901,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
@@ -12116,6 +12157,7 @@
      "rows": [
       {
        "icon": "hero",
+       "id": "1",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_7"
@@ -12126,6 +12168,7 @@
       },
       {
        "icon": "hero",
+       "id": "9",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_12"
@@ -12136,6 +12179,7 @@
       },
       {
        "icon": "hero",
+       "id": "14",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_30"
@@ -12146,6 +12190,7 @@
       },
       {
        "icon": "hero",
+       "id": "12",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_14"
@@ -12156,6 +12201,7 @@
       },
       {
        "icon": "hero",
+       "id": "20",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_41"
@@ -12166,6 +12212,7 @@
       },
       {
        "icon": "hero",
+       "id": "2",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_3"
@@ -12176,6 +12223,7 @@
       },
       {
        "icon": "hero",
+       "id": "22",
        "image": {
         "kind": "portrait",
         "texture": "INTERFACES/PORTRAITS/128/face_25"
