@@ -207,12 +207,13 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   `Order`, `TapIndex`, `Copy`: a sub-object when it is there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
   `Actions`, `Action`), `Words`, the header's arrows over one of a list (`Stepper`, `StepTap`), the hero header
   (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`, `SubjectOn`, `SubjectTap`), `ShipSkills`,
-  `Command`.
+  `Command`, `Captains` (the captain choice sheet).
 - `lineages/legacy/lib.c`: `TouchLegLib_Model`, `Exit` (the window's exit button of candidates), `Button` (a button as
   the game offers it), captions (`Label`, `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`,
   `Image`), rows (`Choices`, `Choose`, `Act`: a verb to row k, `RowOf`: by id, `Selected`), the amount window
   (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
-  list (`People`, `PickPerson`; `ListCharacter`: the character a row of a portrait list shows), `ShipSkills`.
+  list (`People`, `PickPerson`; `ListCharacter`: the character a row of a portrait list shows), `ShipSkills`,
+  `Facts` (a two-column table's rows), `Officers` (the game's captain choice, for `TouchLib_Captains`).
 
 ## The steps of a move
 

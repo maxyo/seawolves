@@ -231,7 +231,7 @@ void TouchLegShipyard_Window(aref model, aref out)
 		makearef(all, window.all);
 		TouchLegLib_Button(model, "REPAIR_ALL", all);
 	}
-	if (kind == "captain") TouchLegShipyard_Captain(model, window);
+	if (kind == "captain") TouchLegLib_Officers(model, window); // a captain for a ship bought for a free place
 	if (kind == "guns")
 	{
 		window.title = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_CAPTION"));
@@ -259,43 +259,6 @@ void TouchLegShipyard_Part(aref model, string key, string node, string figure, a
 	}
 	aref at = TouchLib_Add(parts, "p");
 	CopyAttributes(at, &part);
-}
-
-// The captain of a ship bought for a free place: the passengers (FillPassengerScroll) and the chosen one's card.
-void TouchLegShipyard_Captain(aref model, aref window)
-{
-	window.title = TouchLib_Trim(TouchLegLib_Label(model, "OFFICERS_WINDOW_CAPTION"));
-	window.name = "";
-	aref candidates;
-	makearef(candidates, window.candidates);
-	for (int k = 0; k < TouchLib_Count(model, "PASSENGERSLIST.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", k);
-		object person = {key = "" + TouchLegLib_ListCharacter("PASSENGERSLIST", row), label = row.label, selected = row.value == "1",
-		                 can = CheckAttribute(row, "offers.select"), reason = row.reason};
-		aref at = TouchLib_Add(candidates, "c");
-		CopyAttributes(at, &person);
-		aref image;
-		makearef(image, at.image);
-		TouchLegLib_Image(row, image);
-	}
-	if (GetAttributesNum(candidates) == 0) return;
-	window.name = TouchLib_Trim(TouchLegLib_Label(model, "OFFICER_NAME"));
-	aref facts;
-	makearef(facts, window.facts);
-	for (k = 0; k < TouchLib_Count(model, "TABLE_SMALLOTHER.rows"); k++)
-	{
-		aref fact = TouchLib_Item(model, "TABLE_SMALLOTHER.rows", k);
-		if (TouchLegLib_Cell(fact, 1) != "")
-		{
-			aref to = TouchLib_Add(facts, "f");
-			to.label = TouchLegLib_Cell(fact, 1);
-			to.value = TouchLegLib_Cell(fact, 2);
-		}
-	}
-	aref skills;
-	makearef(skills, window.skills);
-	TouchLegLib_ShipSkills(model, "TABLE_SMALLSKILL", skills);
 }
 
 void TouchAdpShipyard_Fleet(aref ui, int ship)

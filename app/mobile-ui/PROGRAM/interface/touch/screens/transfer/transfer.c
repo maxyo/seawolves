@@ -252,13 +252,7 @@ void TouchTransfer_Prize(aref game, aref view)
 	prize.title = game.theirs.name;
 	prize.sub = TouchTransfer_Kind(game.theirs.type, game.theirs.rank);
 	prize.image = "";
-	if (CheckAttribute(game, "theirs.image"))
-	{
-		aref image, from;
-		makearef(image, prize.image);
-		makearef(from, game.theirs.image);
-		CopyAttributes(image, from);
-	}
+	TouchLib_Copy(prize, "image", game, "theirs.image");
 	aref facts;
 	makearef(facts, prize.facts);
 	aref at;
@@ -380,7 +374,7 @@ int TouchTransfer_Pending(aref game, bool crew)
 	string key = TouchTransfer.draft.key;
 	int now = -1;
 	if (crew && key == "crew") now = sti(game.crew.ours);
-	int open = TouchTransfer_Open(game);
+	int open = TouchLib_Selected(game, "cargo.rows");
 	if (!crew && open >= 0)
 	{
 		aref row = TouchLib_Item(game, "cargo.rows", open);
@@ -469,13 +463,7 @@ void TouchTransfer_Question(aref game, aref view)
 		modal.step = "1/2";
 	}
 	if (kind == "crew" && sti(TouchTransfer.hired)) modal.step = "2/2";
-	if (CheckAttribute(question, "image"))
-	{
-		aref image, from;
-		makearef(image, modal.image);
-		makearef(from, question.image);
-		CopyAttributes(image, from);
-	}
+	TouchLib_Copy(modal, "image", question, "image");
 	aref actions;
 	makearef(actions, modal.actions);
 	for (int k = 0; k < TouchLib_Count(question, "answers"); k++)
@@ -565,75 +553,9 @@ void TouchTransfer_Captains(aref game, aref view)
 	sheet.kind = "captain";
 	sheet.title = from.title;
 	sheet.closable = true;
-	sheet.width = 640; // c-captain-picker: the candidates beside the facts
-	sheet.name = from.name;
-	sheet.empty = "";
-	aref candidates;
-	makearef(candidates, sheet.candidates);
-	for (int k = 0; k < TouchLib_Count(from, "people"); k++)
-	{
-		aref person = TouchLib_Item(from, "people", k);
-		aref at = TouchLib_Add(candidates, "c");
-		at.id = "candidate-" + person.key;
-		at.title = person.label;
-		at.image = "";
-		if (CheckAttribute(person, "image"))
-		{
-			aref image, picture;
-			makearef(image, at.image);
-			makearef(picture, person.image);
-			CopyAttributes(image, picture);
-		}
-		at.selected = person.selected;
-		at.disabled = !sti(person.can);
-		at.reason = person.reason;
-		UiOn(at.id, "");
-	}
-	if (GetAttributesNum(candidates) == 0)
-	{
-		sheet.candidates = "";
-		sheet.empty = UiText("yard.no_captains");
-	}
-	sheet.facts = "";
-	aref facts;
-	makearef(facts, sheet.facts);
-	for (k = 0; k < TouchLib_Count(from, "facts"); k++)
-	{
-		aref fact = TouchLib_Item(from, "facts", k);
-		aref f = TouchLib_Add(facts, "f");
-		f.k = fact.label;
-		f.v = fact.value;
-	}
-	sheet.skills = "";
-	aref skills, own;
-	makearef(skills, sheet.skills);
-	if (CheckAttribute(from, "skills"))
-	{
-		makearef(own, from.skills);
-		TouchLib_ShipSkills(own, skills);
-	}
-	sheet.actions = "";
-	if (CheckAttribute(from, "appoint"))
-	{
-		object accept = {id = "sheet-ok", label = from.appoint.label, variant = "primary",
-		                 disabled = !sti(from.appoint.can), reason = from.appoint.reason, busy = UiPending("sheet-ok")};
-		aref action;
-		makearef(action, sheet.actions.a0);
-		CopyAttributes(action, &accept);
-		UiOn("sheet-ok", "");
-	}
+	TouchLib_Captains(from, sheet);
 	UiOn("sheet-close", "");
 	UiModal("sheet", "sheet-close");
-}
-
-int TouchTransfer_Open(aref game)
-{
-	for (int k = 0; k < TouchLib_Count(game, "cargo.rows"); k++)
-	{
-		aref row = TouchLib_Item(game, "cargo.rows", k);
-		if (sti(row.selected)) return k;
-	}
-	return -1;
 }
 
 void TouchTransfer_Tap()
@@ -665,9 +587,9 @@ void TouchTransfer_Tap()
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
-		int person = TouchLib_Find(game, "captains.people", "key", TouchLib_Cut(id, 10, strlen(id)));
+		int person = TouchLib_Find(game, "captains.candidates", "key", TouchLib_Cut(id, 10, strlen(id)));
 		if (person < 0) return; // the captain tapped is no longer listed
-		aref chosen = TouchLib_Item(game, "captains.people", person);
+		aref chosen = TouchLib_Item(game, "captains.candidates", person);
 		if (sti(chosen.selected)) return;
 		TouchAdpTransfer_Pick(ui, person);
 		UiHold();
@@ -683,7 +605,7 @@ void TouchTransfer_Tap()
 		return;
 	}
 	if (id != "goods") UiError("transfer: no tap of " + id);
-	int open = TouchTransfer_Open(game);
+	int open = TouchLib_Selected(game, "cargo.rows");
 	if (verb == "change" || verb == "commit")
 	{
 		if (open < 0) UiError("transfer: an amount is set with no cargo row selected");
@@ -735,7 +657,7 @@ void TouchTransfer_Send(aref ui, aref game)
 	int amount = sti(TouchTransfer.draft.amount);
 	TouchTransfer.draft.key = "";
 	if (crew) { TouchAdpTransfer_Men(ui, amount); return; }
-	TouchAdpTransfer_Move(ui, TouchTransfer_Open(game), amount);
+	TouchAdpTransfer_Move(ui, TouchLib_Selected(game, "cargo.rows"), amount);
 }
 
 // Back answers the game's question by its way out, puts away the captains or the crew, else leaves.

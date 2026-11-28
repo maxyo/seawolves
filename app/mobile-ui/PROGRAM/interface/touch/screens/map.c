@@ -79,13 +79,10 @@ void TouchMap_Build()
 	DeleteAttribute(&TouchMap, "");
 	TouchMap.title = game.title;
 	if (game.title == "") TouchMap.title = UiText("map.title");
-	aref map, at, source;
+	TouchLib_Copy(&TouchMap, "map", &game, "map");
+	aref map;
 	makearef(map, TouchMap.map);
-	makearef(source, game.map);
-	CopyAttributes(map, source);
-	makearef(at, map.markers);
-	makearef(source, game.markers);
-	CopyAttributes(at, source);
+	TouchLib_Copy(map, "markers", &game, "markers");
 	TouchMap.mapsTitle = game.mapsTitle;
 	TouchMap.mapColumns.c0.w = "1";
 	aref rows;

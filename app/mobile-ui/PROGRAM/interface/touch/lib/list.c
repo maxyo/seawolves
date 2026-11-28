@@ -386,3 +386,55 @@ void TouchLib_Command(string kind, string field, string value)
 	fields.(field) = value;
 	UiCommand(kind, &fields);
 }
+
+// The captain choice as a sheet (c-captain-picker: the candidates beside the chosen one's card) from `from` =
+// {name ("" nobody chosen), candidates.c<k>.{key, label, image (absent none), selected, can, reason},
+// facts.f<k>.{label, value}, skills (TouchLib_ShipSkills' input), appoint (absent none).{label, can, reason}}; taps
+// candidate-<key> and sheet-ok (the appoint). The sheet's kind, title and way out are the caller's.
+void TouchLib_Captains(aref from, aref sheet)
+{
+	sheet.width = 640;
+	sheet.name = from.name;
+	sheet.empty = "";
+	aref candidates;
+	makearef(candidates, sheet.candidates);
+	for (int k = 0; k < TouchLib_Count(from, "candidates"); k++)
+	{
+		aref person = TouchLib_Item(from, "candidates", k);
+		object row = {id = "candidate-" + person.key, title = person.label, image = "", selected = person.selected,
+		              disabled = !sti(person.can), reason = person.reason};
+		aref at = TouchLib_Add(candidates, "c");
+		CopyAttributes(at, &row);
+		TouchLib_Copy(at, "image", person, "image");
+		UiOn(row.id, "");
+	}
+	if (GetAttributesNum(candidates) == 0)
+	{
+		sheet.candidates = "";
+		sheet.empty = UiText("yard.no_captains");
+	}
+	sheet.facts = "";
+	aref facts;
+	makearef(facts, sheet.facts);
+	for (k = 0; k < TouchLib_Count(from, "facts"); k++)
+	{
+		aref fact = TouchLib_Item(from, "facts", k);
+		aref f = TouchLib_Add(facts, "f");
+		f.k = fact.label;
+		f.v = fact.value;
+	}
+	sheet.skills = "";
+	aref skills, own;
+	makearef(skills, sheet.skills);
+	if (CheckAttribute(from, "skills"))
+	{
+		makearef(own, from.skills);
+		TouchLib_ShipSkills(own, skills);
+	}
+	sheet.actions = "";
+	aref actions, appoint;
+	makearef(actions, sheet.actions);
+	if (!CheckAttribute(from, "appoint")) return;
+	makearef(appoint, from.appoint);
+	TouchLib_Button(actions, "sheet-ok", appoint.label, "primary", appoint);
+}

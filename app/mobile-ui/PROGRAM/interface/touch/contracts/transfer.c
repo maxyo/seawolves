@@ -19,8 +19,7 @@
 //     title, text, image (a picture, absent none), answers.a<k>.{key ("none", "ok", "kill", "prison", "free", "cancel",
 //     "yes", "no"), label, can, reason}, men (hire: taken so far), most (hire: everyone willing), crew (hire: ours,
 //     the men taken counted)}
-//   captains (absent: none).{title, people.p<k>.{key, label, image, selected, can, reason}, name ("" nobody chosen),
-//     facts.f<k>.{label, value}, skills (TouchLegLib_ShipSkills' s<k>), appoint (absent none).{label, can, reason}}
+//   captains (absent: none).{title, and the captain choice as TouchLib_Captains takes it}
 extern void TouchAdpTransfer_State(aref ui, aref out);
 // The moves; each takes as many of the game's frames as it needs while the screen waits (UiHold).
 extern void TouchAdpTransfer_Select(aref ui, int row);           // a cargo row chosen
@@ -32,7 +31,7 @@ extern void TouchAdpTransfer_Crew(aref ui, bool open);           // the crew sho
 extern void TouchAdpTransfer_Men(aref ui, int men);              // our crew towards `men`
 extern void TouchAdpTransfer_Answer(aref ui, int answer);        // question answers a<k>
 extern void TouchAdpTransfer_Hire(aref ui, int men);             // the defectors taken towards `men`
-extern void TouchAdpTransfer_Pick(aref ui, int person);          // captains people p<k>
+extern void TouchAdpTransfer_Pick(aref ui, int person);          // captains candidates c<k>
 extern void TouchAdpTransfer_Appoint(aref ui);
 extern void TouchAdpTransfer_Dismiss(aref ui);                   // the captains put away, nobody appointed
 extern void TouchAdpTransfer_Leave(aref ui);

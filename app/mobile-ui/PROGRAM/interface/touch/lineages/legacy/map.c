@@ -32,10 +32,7 @@ void TouchLegMap_Section(aref model, string prefix, string page, aref sections)
 			if (CheckAttribute(node, "images.i0"))
 			{
 				at = TouchLib_Add(goods, "g");
-				aref image, source;
-				makearef(image, at.image);
-				makearef(source, node.images.i0);
-				CopyAttributes(image, source);
+				TouchLib_Copy(at, "image", node, "images.i0");
 				at.label = "";
 				if (GetAttributesNum(goods) <= GetAttributesNum(&names))
 				{
@@ -331,10 +328,7 @@ void TouchAdpMap_State(aref ui, aref out)
 			object place = {id = row.id, x = row.context.x, y = row.context.y, w = row.context.width,
 			                h = row.context.height};
 			CopyAttributes(marker, &place);
-			makearef(image, marker.image);
-			aref source;
-			makearef(source, row.images.i0);
-			CopyAttributes(image, source);
+			TouchLib_Copy(marker, "image", row, "images.i0");
 		}
 	}
 	out.mapsTitle = TouchLegLib_Label(model, "STR_1");
@@ -373,7 +367,5 @@ void TouchAdpMap_Choose(aref ui, int map)
 // A window without its exit button (MapBest's model has none) is left the game's own way, by its back.
 void TouchAdpMap_Leave(aref ui)
 {
-	string leave = ui.data.exit;
-	if (!CheckAttribute(ui, "model." + leave)) leave = "";
-	UiBack(leave);
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), ui.data.exit));
 }

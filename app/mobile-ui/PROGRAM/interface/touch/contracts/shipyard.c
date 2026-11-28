@@ -19,8 +19,7 @@
 //       "buy" or "sell", "" another question);
 //     "repair" (parts.p<k>.{key, label, amount (as the order leaves it)}, price (the order's), all.{label, can,
 //       reason} the game's whole repair);
-//     "captain" (candidates.c<k>.{key, label, image, selected, can, reason}, name, facts.f<k>.{label, value},
-//       skills.s<k>.{key, value, tone});
+//     "captain" (the captain choice as TouchLib_Captains takes it: name, candidates, facts, skills, appoint);
 //     "guns" (plan (an image), bow, stern, port, starboard: the guns of each side)
 extern void TouchAdpShipyard_State(aref ui, aref out);
 extern void TouchAdpShipyard_Fleet(aref ui, int ship);             // fleet f<k>

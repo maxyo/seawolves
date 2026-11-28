@@ -495,3 +495,53 @@ void TouchLegLib_ShipSkills(aref model, string table, aref out)
 		CopyAttributes(to, &figure);
 	}
 }
+
+// The {label, value} rows f<k> of a two-column table of the game (its first column a picture); a row without a label
+// is left out.
+void TouchLegLib_Facts(aref model, string table, aref out)
+{
+	for (int k = 0; k < TouchLib_Count(model, table + ".rows"); k++)
+	{
+		aref row = TouchLib_Item(model, table + ".rows", k);
+		string label = TouchLegLib_Cell(row, 1);
+		if (label == "") continue;
+		aref at = TouchLib_Add(out, "f");
+		at.label = label;
+		at.value = TouchLegLib_Cell(row, 2);
+	}
+}
+
+// The game's captain choice (OFFICERS_WINDOW of the shipyard and the ship exchange) as TouchLib_Captains takes it:
+// the passengers of PASSENGERSLIST, the chosen one's name, his facts and ship skills as SetOfficersSkills shows them
+// (cleared while nobody is chosen), the game's «Назначить» (absent without ACCEPT_ADD_OFFICER).
+void TouchLegLib_Officers(aref model, aref out)
+{
+	out.title = TouchLib_Trim(UiOneLine(TouchLegLib_Label(model, "OFFICERS_WINDOW_CAPTION")));
+	out.name = TouchLib_Trim(UiOneLine(TouchLegLib_Label(model, "OFFICER_NAME")));
+	aref candidates;
+	makearef(candidates, out.candidates);
+	for (int k = 0; k < TouchLib_Count(model, "PASSENGERSLIST.rows"); k++)
+	{
+		aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", k);
+		object person = {key = "" + TouchLegLib_ListCharacter("PASSENGERSLIST", row), label = row.label,
+		                 selected = row.value == "1", can = CheckAttribute(row, "offers.select"), reason = row.reason};
+		aref at = TouchLib_Add(candidates, "c");
+		CopyAttributes(at, &person);
+		aref image;
+		makearef(image, at.image);
+		if (!TouchLegLib_Image(row, image)) DeleteAttribute(at, "image");
+	}
+	if (out.name != "")
+	{
+		aref facts;
+		makearef(facts, out.facts);
+		TouchLegLib_Facts(model, "TABLE_SMALLOTHER", facts);
+		aref skills;
+		makearef(skills, out.skills);
+		TouchLegLib_ShipSkills(model, "TABLE_SMALLSKILL", skills);
+	}
+	if (!CheckAttribute(model, "ACCEPT_ADD_OFFICER")) return;
+	aref appoint;
+	makearef(appoint, out.appoint);
+	TouchLegLib_Button(model, "ACCEPT_ADD_OFFICER", appoint);
+}

@@ -265,7 +265,7 @@ void TouchShipyard_Sheet(aref game, aref view)
 		TouchShipyard_Button(actions, "sheet-ok", window.ok.label, "", "primary", window, "ok");
 	}
 	if (window.kind == "repair") TouchShipyard_Repair(window, sheet, actions);
-	if (window.kind == "captain") TouchShipyard_Captain(window, sheet, actions);
+	if (window.kind == "captain") TouchLib_Captains(window, sheet);
 	if (window.kind == "guns")
 	{
 		sheet.kind = "cannons";
@@ -340,58 +340,6 @@ void TouchShipyard_Repair(aref window, aref sheet, aref actions)
 	                     window, "ok");
 	if (!ordered) actions.a1.disabled = true;
 	UiOn("sheet-all", "");
-}
-
-void TouchShipyard_Captain(aref window, aref sheet, aref actions)
-{
-	sheet.width = 640; // c-captain-picker: the candidates beside the card
-	sheet.name = window.name;
-	sheet.empty = "";
-	aref candidates;
-	makearef(candidates, sheet.candidates);
-	for (int k = 0; k < TouchLib_Count(window, "candidates"); k++)
-	{
-		aref person = TouchLib_Item(window, "candidates", k);
-		string id = "candidate-" + person.key;
-		object row = {id = id, title = person.label, image = "", selected = person.selected,
-		              disabled = !sti(person.can), reason = person.reason};
-		aref at = TouchLib_Add(candidates, "c");
-		CopyAttributes(at, &row);
-		aref image;
-		makearef(image, person.image);
-		if (GetAttributesNum(image) > 0)
-		{
-			aref to;
-			makearef(to, at.image);
-			CopyAttributes(to, image);
-		}
-		UiOn(id, "");
-	}
-	if (GetAttributesNum(candidates) == 0)
-	{
-		sheet.candidates = "";
-		sheet.empty = UiText("yard.no_captains");
-	}
-	sheet.facts = "";
-	aref facts;
-	makearef(facts, sheet.facts);
-	for (k = 0; k < TouchLib_Count(window, "facts"); k++)
-	{
-		aref fact = TouchLib_Item(window, "facts", k);
-		aref f = TouchLib_Add(facts, "f");
-		f.k = fact.label;
-		f.v = fact.value;
-	}
-	sheet.skills = "";
-	aref skills, own;
-	makearef(skills, sheet.skills);
-	if (CheckAttribute(window, "skills"))
-	{
-		makearef(own, window.skills);
-		TouchLib_ShipSkills(own, skills);
-	}
-	if (CheckAttribute(window, "ok.label") && window.ok.label != "")
-		TouchShipyard_Button(actions, "sheet-ok", window.ok.label, "", "primary", window, "ok");
 }
 
 void TouchShipyard_Tap()

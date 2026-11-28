@@ -127,10 +127,9 @@ void TouchLegTransfer_Buttons(aref model, aref out)
 	for (int i, string node: TouchLegTransfer_Nodes)
 		if (CheckAttribute(model, node))
 		{
-			object button = {node = node, label = model.(node).label, can = UiOffers(node, "press"),
-			                 reason = model.(node).reason};
 			aref at = TouchLib_Add(buttons, "b");
-			CopyAttributes(at, &button);
+			at.node = node;
+			TouchLegLib_Button(model, node, at);
 		}
 }
 
@@ -147,23 +146,9 @@ void TouchLegTransfer_Crew(aref model, ref captain, aref out)
 	CopyAttributes(at, &crew);
 	aref side;
 	makearef(side, at.ourFacts);
-	TouchLegTransfer_Facts(model, "TABLE_CREW", side);
+	TouchLegLib_Facts(model, "TABLE_CREW", side);
 	makearef(side, at.theirFacts);
-	TouchLegTransfer_Facts(model, "TABLE_CREW2", side);
-}
-
-// The {label, value} rows of a two-column table of the game (its first column a picture).
-void TouchLegTransfer_Facts(aref model, string table, aref out)
-{
-	for (int k = 0; k < TouchLib_Count(model, table + ".rows"); k++)
-	{
-		aref row = TouchLib_Item(model, table + ".rows", k);
-		string label = TouchLegLib_Cell(row, 1);
-		if (label == "") continue;
-		aref at = TouchLib_Add(out, "f");
-		at.label = label;
-		at.value = TouchLegLib_Cell(row, 2);
-	}
+	TouchLegLib_Facts(model, "TABLE_CREW2", side);
 }
 
 // The game's window asking now, by its nodes: the defectors, the prisoners, the surrendered captain, the question
@@ -261,59 +246,20 @@ void TouchLegTransfer_Question(aref model, aref out)
 void TouchLegTransfer_Answer(aref model, aref answers, string key, string node)
 {
 	if (!CheckAttribute(model, node)) return;
-	object answer = {key = key, node = node, label = model.(node).label, can = UiOffers(node, "press"),
-	                 reason = model.(node).reason};
 	aref at = TouchLib_Add(answers, "a");
-	CopyAttributes(at, &answer);
+	at.key = key;
+	at.node = node;
+	TouchLegLib_Button(model, node, at);
 }
 
-// The captain choice (OFFICERS_WINDOW): the passengers who can take the ship, the chosen one's name, his facts and
-// ship skills as SetOfficersSkills shows them (cleared while the chosen slot holds nobody), the game's «Назначить».
+// The captain choice (OFFICERS_WINDOW), its way out the game's cancel or exit.
 void TouchLegTransfer_Captains(aref model, aref out)
 {
-	aref sheet;
-	makearef(sheet, out.captains);
-	sheet.title = UiOneLine(TouchLegLib_Label(model, "OFFICERS_WINDOW_CAPTION"));
-	sheet.name = UiOneLine(TouchLegLib_Label(model, "OFFICER_NAME"));
 	if (!CheckAttribute(model, "CANCEL_ADD_OFFICER") && !CheckAttribute(model, "OFFICER_EXIT_BTN"))
 		UiError("transfer: the captain window has neither CANCEL_ADD_OFFICER nor OFFICER_EXIT_BTN");
-	aref people;
-	makearef(people, sheet.people);
-	for (int k = 0; k < TouchLib_Count(model, "PASSENGERSLIST.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "PASSENGERSLIST.rows", k);
-		object person = {key = "" + TouchLegLib_ListCharacter("PASSENGERSLIST", row), label = row.label,
-		                 selected = row.value == "1", can = CheckAttribute(row, "offers.select"), reason = row.reason};
-		aref at = TouchLib_Add(people, "p");
-		CopyAttributes(at, &person);
-		aref image;
-		makearef(image, at.image);
-		if (!TouchLegLib_Image(row, image)) DeleteAttribute(at, "image");
-	}
-	if (sheet.name != "")
-	{
-		aref facts;
-		makearef(facts, sheet.facts);
-		TouchLegTransfer_Facts(model, "TABLE_SMALLOTHER", facts);
-		aref skills;
-		makearef(skills, sheet.skills);
-		TouchLegLib_ShipSkills(model, "TABLE_SMALLSKILL", skills);
-	}
-	if (!CheckAttribute(model, "ACCEPT_ADD_OFFICER")) return;
-	sheet.appoint.label = model.ACCEPT_ADD_OFFICER.label;
-	sheet.appoint.can = UiOffers("ACCEPT_ADD_OFFICER", "press");
-	sheet.appoint.reason = model.ACCEPT_ADD_OFFICER.reason;
-}
-
-// k of the selected cargo row, -1 none.
-int TouchLegTransfer_Selected(aref cargo)
-{
-	for (int k = 0; k < TouchLib_Count(cargo, "rows"); k++)
-	{
-		aref row = TouchLib_Item(cargo, "rows", k);
-		if (sti(row.selected)) return k;
-	}
-	return -1;
+	aref sheet;
+	makearef(sheet, out.captains);
+	TouchLegLib_Officers(model, sheet);
 }
 
 // The quick take once its row is selected; the selected row selected again, once, while the game hides both of its
@@ -325,7 +271,7 @@ bool TouchLegTransfer_Follow(aref ui, aref out)
 	if (answer == "" || answer == "refused") TouchLegTransfer.quick = -1;
 	aref cargo;
 	makearef(cargo, out.cargo);
-	int open = TouchLegTransfer_Selected(cargo);
+	int open = TouchLib_Selected(cargo, "rows");
 	if (open < 0 || CheckAttribute(out, "crew") || CheckAttribute(out, "question") || CheckAttribute(out, "captains"))
 	{
 		TouchLegTransfer.again = -1;
@@ -459,15 +405,11 @@ void TouchAdpTransfer_Appoint(aref ui)
 
 void TouchAdpTransfer_Dismiss(aref ui)
 {
-	string node = "OFFICER_EXIT_BTN";
-	if (CheckAttribute(ui, "model.CANCEL_ADD_OFFICER")) node = "CANCEL_ADD_OFFICER";
-	UiSend(node, "press", "");
+	UiSend(TouchLegLib_Exit(TouchLegLib_Model(ui), "CANCEL_ADD_OFFICER OFFICER_EXIT_BTN"), "press", "");
 }
 
 // The game's exit asks about the ship we leave where it has to.
 void TouchAdpTransfer_Leave(aref ui)
 {
-	string leave = "";
-	if (CheckAttribute(ui, "model.EXIT_BTN")) leave = "EXIT_BTN";
-	UiBack(leave);
+	UiBack(TouchLegLib_Exit(TouchLegLib_Model(ui), "EXIT_BTN"));
 }
