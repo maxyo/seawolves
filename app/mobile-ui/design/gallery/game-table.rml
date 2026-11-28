@@ -12,8 +12,8 @@
   <div style="width: 420dp; height: 220dp"><c-game-table opponent="Луиза" portrait="INTERFACES/PORTRAITS/128/face_220" line="Ещё карту?" bank="+1 500" bank-tone="win" coins="gold" bank-x="60%" bank-y="60%"/></div>
 </div>
 <div class="g-row">
-  <div style="width: 440dp; height: 200dp"><c-game-table opponent="Старый моряк" bank="−800" bank-tone="loss" coins="none"><div style="position: absolute; left: 180dp; top: 120dp; width: 60dp; height: 60dp; background-color: @{color.barCreamTop}; border-radius: 8dp;"></div></c-game-table></div>
-  <div style="width: 420dp; height: 200dp"><c-game-table opponent="Жак Дюбуа"/></div>
+  <div style="width: 440dp; height: 200dp"><c-game-table portrait="INTERFACES/PORTRAITS/128/face_377" opponent="Старый моряк" bank="−800" bank-tone="loss" coins="none"><div style="position: absolute; left: 180dp; top: 120dp; width: 60dp; height: 60dp; background-color: @{color.barCreamTop}; border-radius: 8dp;"></div></c-game-table></div>
+  <div style="width: 420dp; height: 200dp"><c-game-table portrait="INTERFACES/PORTRAITS/128/face_377" opponent="Жак Дюбуа"/></div>
 </div>
 </div>
 </body>

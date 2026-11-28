@@ -4,7 +4,7 @@
     "title": {"type": "text", "default": ""},
     "sub": {"type": "text", "default": ""},
     "roles": {"type": "text", "default": ""},
-    "portrait": {"type": "text", "default": "INTERFACES/PORTRAITS/128/face_201"},
+    "portrait": {"type": "text", "default": ""},
     "health": {"type": "json", "default": null},
     "energy": {"type": "json", "default": null},
     "free": {"type": "text", "default": ""},

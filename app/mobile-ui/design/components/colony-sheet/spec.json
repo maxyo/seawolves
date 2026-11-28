@@ -2,7 +2,7 @@
   "tag": "c-colony-sheet",
   "props": {
     "title": {"type": "text", "default": ""},
-    "nation": {"type": "text", "default": "nation-france"},
+    "nation": {"type": "text", "default": ""},
     "sub": {"type": "text", "default": ""},
     "closeLabel": {"type": "text", "default": "", "defaultKey": "colony.close"},
     "tabs": {"type": "json", "default": []},

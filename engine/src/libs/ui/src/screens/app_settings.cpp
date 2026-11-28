@@ -118,6 +118,8 @@ class Table
             if (Known(key) && draft_[key].get<int>() == values[i])
                 selected = static_cast<int>(i);
         const bool changed = Known(key) && stored_.is_object() && stored_.contains(key) && draft_[key] != stored_[key];
+        // A host that reports no values to choose from (a display's rates) offers no choice: the row says so.
+        const bool offered = Known(key) && !values.empty();
         return Json{{"key", key},
                     {"kind", "segment"},
                     {"label", label},
@@ -127,8 +129,8 @@ class Table
                     {"on", false},
                     {"stack", true},
                     {"restart", restart && changed},
-                    {"disabled", !Known(key)},
-                    {"reason", Known(key) ? std::string() : bindings_.Text("settings.app_unavailable")},
+                    {"disabled", !offered},
+                    {"reason", offered ? std::string() : bindings_.Text("settings.app_unavailable")},
                     {"hint", ""}};
     }
 

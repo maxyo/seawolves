@@ -2,7 +2,7 @@
   "tag": "c-game-table",
   "props": {
     "opponent": {"type": "text", "default": ""},
-    "portrait": {"type": "text", "default": "INTERFACES/PORTRAITS/128/face_377"},
+    "portrait": {"type": "text", "default": ""},
     "line": {"type": "text", "default": ""},
     "bankLabel": {"type": "text", "default": "", "defaultKey": "gametable.bank"},
     "bank": {"type": "text", "default": ""},
