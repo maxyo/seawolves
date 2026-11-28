@@ -255,7 +255,7 @@ void SEAFOAM::InterpolateLeftParticle(tShipFoamInfo &_shipFoamInfo, int z, uint3
         testY = curY;
     }
 
-    if (curY < TRACE_STEPS_Y)
+    if (curY > 0 && curY < TRACE_STEPS_Y) // no point above the first one to interpolate from
     {
         // successful search
         interpK = (seaY - lastTestPoint.y) / (testPoint.y - lastTestPoint.y);
