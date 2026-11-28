@@ -3853,7 +3853,6 @@ static void GoodsOrder(const std::string &models)
     FakeSurface surface2;
     Router window(surface2);
     Scripted(window);
-    ScriptGame::Get().Set("iCurGoodIndex", "33");
     window.SetInterface(Load(models, "goodstransfer-window.json"));
     const Json powder = surface2.props["list"]["rows"][3];
     Expect(window.Using() == "goodstransfer" && powder["selected"] == true && powder["q"]["disabled"] == true &&

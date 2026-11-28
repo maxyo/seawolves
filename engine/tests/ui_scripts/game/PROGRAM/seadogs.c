@@ -951,7 +951,8 @@ int GetCompanionQuantity(ref chr)
 }
 
 // The recorded models' ships (ui/tests/models/goodstransfer*.json): the flagship Characters[3] and a brig; their
-// holds; the good the window opens, Goods[33].
+// holds; the good whose amount window goodstransfer-window.json has open, Goods[33] (iCurGoodIndex, as the game sets
+// it when it opens that window).
 void TestGoodsOrder()
 {
 	TestHero.TestCompanions.c0 = 3;
@@ -967,4 +968,5 @@ void TestGoodsOrder()
 	TestHero.TransferGoods.Marsh.Powder = 400;
 	GameInterface.Strings.CurCompanion = "Люггер 'Ласточка'";
 	Goods[33].name = "Powder";
+	iCurGoodIndex = 33;
 }

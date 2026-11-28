@@ -485,9 +485,6 @@
   },
   {
    "name": "game-window",
-   "game": {
-    "iCurGoodIndex": 33
-   },
    "model": {
     "schemaVersion": 2,
     "language": "russian",
