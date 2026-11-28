@@ -47,6 +47,8 @@ quest's lock the way the game does (Mishelle.c) for saves made before that.
 | `maps` | Saint-Pierre streets, the best map, the atlas with six island maps, both halves of a treasure map | best map, atlas, map reading |
 | `questbook` | Saint-Pierre streets, fourteen real quests in the journal, five completed; the run then closes one more with a record (not saved) | journal, completed quests, a «Logbook Update» line leading to the completed tab |
 | `overload` | Saint-Pierre streets, the hero over his carrying limit (whisky casks), totem_06 in the bag, not worn | walk-only gait, items screen (wearing the totem lifts the rule) |
+| `sea_exchange` | the calm open sea, no enemy, corvette with officers and a loaded companion brig | sea HUD orders (sail to the companion), ship screen, ship exchange: cargo, crew, captain chooser |
+| `sea_board` | the open sea, corvette with a full crew and two fighters, a pirate brig with a full crew whose captain may give up; the run then boards it (not saved) | deck fight, the next deck, the cabin, plunder, prize captain and crew |
 | `treasurer` | Saint-Pierre streets, a lugger with a treasurer, standing orders of balls and powder, a brig companion; the run then opens the purchase list (not saved) | purchase list |
 
 A new scenario: copy one, keep its `// Scenario <name>: <state>` line (`list` prints it) and define the three hooks.
