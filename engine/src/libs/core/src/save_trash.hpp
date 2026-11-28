@@ -21,6 +21,12 @@
 // 4. A "<name>.storm-deleted" that this session did not create is the trace of
 //    a session that died before rule 2. When its folder is next listed, it is
 //    restored under its name, or removed if a save with that name exists again.
+// 5. A "<name>.storm-tmp" or "<name>.storm-bak" is the trace of a session that
+//    died inside an atomic write (save_file.hpp writeAtomic). At the first
+//    listing of its folder in a session, after rule 4: beside a complete save of
+//    its name it is removed; without a save of its name, a complete file takes
+//    the name and anything else is removed; beside a damaged save it stays for
+//    the load's own recovery (loadWithRecovery).
 //
 // Consequence: a save deleted by the player comes back only if the process is
 // killed within kReplacingFrames frames of the delete, and a slot overwritten
@@ -31,6 +37,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <set>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -138,6 +145,80 @@ class Trash
         return restored;
     }
 
+    // What rule 5 did with one leftover of an unfinished write.
+    struct Leftover
+    {
+        enum class Done
+        {
+            Removed,
+            Named, // a complete save: it took its name
+            Kept,  // `why` says why it stays
+        };
+        fs::path path;
+        Done done;
+        std::string why;
+    };
+
+    // Rule 5: call before listing `directory`, after recover(). The engine's own writes run on the game thread, as the
+    // listings do; the app's save restore (another process) writes "<name>.storm-tmp" too, and a restore that runs
+    // while the game lists that folder for the first time loses its write and says so.
+    std::vector<Leftover> sweep(const fs::path &directory)
+    {
+        using Done = Leftover::Done;
+        std::vector<Leftover> done;
+        std::error_code ec;
+        if (!swept_.insert(fs::absolute(directory, ec).lexically_normal()).second)
+            return done;
+        std::vector<fs::path> found;
+        for (auto it = fs::directory_iterator(directory, ec); !ec && it != fs::directory_iterator(); it.increment(ec))
+        {
+            std::error_code type;
+            const auto name = it->path().filename().string();
+            if (it->is_regular_file(type) && !type && (hasSuffix(name, kTempSuffix) || hasSuffix(name, kBackupSuffix)))
+                found.push_back(it->path());
+        }
+        const auto remove = [&](const fs::path &leftover) {
+            std::error_code error;
+            if (fs::remove(leftover, error) && !error)
+                done.push_back({leftover, Done::Removed, {}});
+            else
+                done.push_back({leftover, Done::Kept, "cannot remove it: " + error.message()});
+        };
+        for (const auto &leftover : found)
+        {
+            const auto suffix = hasSuffix(leftover.filename().string(), kTempSuffix) ? kTempSuffix : kBackupSuffix;
+            auto text = leftover.string();
+            text.resize(text.size() - std::strlen(suffix));
+            const fs::path target(text);
+            std::string error;
+            std::error_code exists;
+            if (fs::exists(target, exists))
+            {
+                if (checkFile(target, error))
+                    remove(leftover);
+                else
+                    done.push_back({leftover, Done::Kept, "the save of its name is damaged (" + error + ")"});
+                continue;
+            }
+            if (!checkFile(leftover, error))
+            {
+                remove(leftover);
+                continue;
+            }
+            std::error_code renamed;
+            fs::rename(leftover, target, renamed);
+            if (renamed)
+            {
+                done.push_back(
+                    {leftover, Done::Kept, "a complete save that cannot take its name: " + renamed.message()});
+                continue;
+            }
+            detail::syncDirectory(directory);
+            done.push_back({leftover, Done::Named, {}});
+        }
+        return done;
+    }
+
     size_t pendingCount() const
     {
         return pending_.size();
@@ -186,6 +267,7 @@ class Trash
 
     std::vector<Entry> pending_;
     uint64_t frame_ = 0;
+    std::set<fs::path> swept_; // the folders rule 5 has run in this session
 };
 
 // The engine's single instance (game thread only).

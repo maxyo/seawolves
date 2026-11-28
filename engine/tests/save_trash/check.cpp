@@ -158,5 +158,41 @@ TEST_CASE("save_trash")
         REQUIRE((trash.discard(dir / name, &undeferred) && !undeferred.empty()));
         REQUIRE((all(dir).empty() && trash.pendingCount() == 0));
     }
-    std::cout << "save trash: overwrite/crash/plain delete/failed write PASS\n";
+    { // Rule 5: what a session that died inside an atomic write left, at the next session's first listing.
+        Bytes image;
+        std::string error;
+        const std::string raw(4096, 's');
+        REQUIRE(buildState("ver", raw.data(), static_cast<uint32_t>(raw.size()), image, error));
+        const auto save = [&](const fs::path &path) { put(path, std::string(image.begin(), image.end())); };
+        save(dir / "Kept");
+        save(dir / "Kept.storm-tmp");                // the write's file beside the save of its name
+        put(dir / "Kept.storm-bak", "old");          // the previous version beside it
+        save(dir / "New.storm-tmp");                 // a new record, complete, killed before its rename
+        put(dir / "Torn.storm-tmp", "half written"); // a new record cut short
+        put(dir / "Broken", "damaged");              // a damaged save: its backup is the load's to use
+        save(dir / "Broken.storm-bak");
+        Trash next;
+        const auto done = next.sweep(dir);
+        using Done = Trash::Leftover::Done;
+        const auto did = [&](const char *name) {
+            for (const auto &leftover : done)
+                if (leftover.path.filename() == name)
+                    return leftover.done;
+            FAIL("nothing done with " << name);
+            return Done::Kept;
+        };
+        CHECK(done.size() == 5);
+        CHECK(did("Kept.storm-tmp") == Done::Removed);
+        CHECK(did("Kept.storm-bak") == Done::Removed);
+        CHECK(did("New.storm-tmp") == Done::Named);
+        CHECK(did("Torn.storm-tmp") == Done::Removed);
+        CHECK(did("Broken.storm-bak") == Done::Kept);
+        CHECK(all(dir) == (Names{"Broken", "Broken.storm-bak", "Kept", "New"}));
+        CHECK(checkFile(dir / "New", error));
+        save(dir / "Late.storm-tmp");
+        CHECK(next.sweep(dir).empty()); // once per folder and session: a write of this session is never touched
+        for (const auto &name : all(dir))
+            fs::remove(dir / name);
+    }
+    std::cout << "save trash: overwrite/crash/plain delete/failed write/unfinished writes PASS\n";
 }

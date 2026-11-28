@@ -250,6 +250,15 @@ std::vector<std::filesystem::path> FILE_SERVICE::_GetFsPathsByMask(const char *s
         // Bring back saves whose deletion was interrupted by a process death.
         if (const int restored = storm::save::trash().recover(srcPath); restored > 0)
             spdlog::warn("Restored {} save(s) in '{}' whose overwrite did not complete", restored, srcPath.string());
+        using Done = storm::save::Trash::Leftover::Done;
+        for (const auto &[leftover, done, why] : storm::save::trash().sweep(srcPath))
+            if (done == Done::Removed)
+                spdlog::warn("Removed '{}', left by a save write that did not finish", leftover.string());
+            else if (done == Done::Named)
+                spdlog::warn("'{}', left by a save write that did not finish, is a complete save: it takes its name",
+                             leftover.string());
+            else
+                spdlog::error("'{}', left by a save write that did not finish, stays: {}", leftover.string(), why);
     }
     if (recursive)
     {

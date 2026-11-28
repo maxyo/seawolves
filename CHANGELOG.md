@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Сохранение, прерванное закрытием игры, не оставляет в папке сохранений скрытого недописанного файла: при следующем
+  запуске он удаляется, а полностью записанная новая запись, которой не успели дать имя, появляется в списке.
 - Когда памяти мало и Android удаляет часть файлов кэша приложения, недостающие файлы интерфейса ставятся
   заново при запуске игры и при возвращении в неё: раньше игра замечала только полностью удалённый кэш и могла
   закончиться ложным сообщением, что скрипт интерфейса «не компилируется».
@@ -210,6 +212,8 @@
 
 **English**
 
+- A save cut off by the game being closed no longer leaves a hidden unfinished file in the saves folder: the next
+  start removes it, and a fully written new record that had not yet taken its name appears in the list.
 - When storage runs low and Android removes some of the app's cache files, the missing interface files are
   installed again when the game starts or comes back: only a wholly cleared cache used to be noticed, and the game
   could end with a false message that an interface script "does not compile".
