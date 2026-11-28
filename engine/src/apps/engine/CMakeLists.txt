@@ -40,9 +40,9 @@ if(NOT ANDROID)
     include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/nlohmann_json.cmake")
     target_link_libraries(engine PRIVATE nlohmann_json::nlohmann_json)
 
-    # The layers laid over the game, installed beside the engine as Android installs them from the APK
-    # (README.md, "Where files live"): the engine's techniques, and the application's script fixes for desktop,
-    # written by the application's own packager.
+    # The layers laid over the game, installed beside the engine as the APK carries them (README.md, "Where files
+    # live"): the engine's techniques and the application's script fixes for desktop, written by the application's own
+    # packagers.
     set(STORM_SCRIPT_PATCHES "${CMAKE_SOURCE_DIR}/../app/script-patches" CACHE PATH
         "The application's script-patches folder (sets/<set>/set.json), beside its tools/android/script_patch_assets.py")
     set(packager "${STORM_SCRIPT_PATCHES}/../tools/android/script_patch_assets.py")
@@ -56,13 +56,12 @@ if(NOT ANDROID)
     set(layers "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/layers")
     add_custom_command(
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/layers.stamp"
-        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${layers}/engine-shaders"
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_SOURCE_DIR}/src/techniques"
-                "${layers}/engine-shaders/RESOURCE/techniques"
+        COMMAND "${Python3_EXECUTABLE}" "${STORM_SCRIPT_PATCHES}/../tools/android/mobile_ui_assets.py" shaders
+                "${CMAKE_SOURCE_DIR}" "${layers}/engine-shaders"
         COMMAND "${Python3_EXECUTABLE}" "${packager}" layer --platform desktop --source "${STORM_SCRIPT_PATCHES}"
                 --out "${layers}/script-patches"
         COMMAND "${CMAKE_COMMAND}" -E touch "${CMAKE_CURRENT_BINARY_DIR}/layers.stamp"
-        DEPENDS ${techniques} ${patch_sets} "${packager}"
+        DEPENDS ${techniques} ${patch_sets} "${packager}" "${STORM_SCRIPT_PATCHES}/../tools/android/mobile_ui_assets.py"
         COMMENT "Installing the engine's layers in ${layers}"
         VERBATIM)
     add_custom_target(storm_engine_layers DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/layers.stamp")

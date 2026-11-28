@@ -39,6 +39,8 @@ target_include_directories(storm_archive PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "$
 # The engine's header-only script patch layer (platform/script_patches.hpp): copies are identified
 # with the engine's own rule.
 target_include_directories(storm_archive PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../src/libs/util/include")
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/nlohmann_json.cmake") # the layer's manifest (platform/layer_files.hpp)
+target_link_libraries(storm_archive PRIVATE nlohmann_json::nlohmann_json)
 # The engine's save container (save_file.hpp): the app checks a save the player restores by the engine's own reader.
 target_include_directories(storm_archive PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../src/libs/core/src")
 target_link_libraries(storm_archive PRIVATE storm_inno storm_boost

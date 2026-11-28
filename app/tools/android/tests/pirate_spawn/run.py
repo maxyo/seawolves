@@ -17,6 +17,7 @@ import re
 import resource
 import shutil
 import subprocess
+import sys
 import tempfile
 
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
@@ -181,7 +182,9 @@ with tempfile.TemporaryDirectory(prefix='pirate-spawn-', dir=os.environ.get('TMP
         shutil.copyfile(args.game / entry['path'], target)
     tool = work / 'applier'
     cxx = os.environ.get('CXX', 'c++')
-    subprocess.run([cxx, '-std=c++20', '-O0', '-I', str(args.engine / 'src/libs/util/include'),
+    sys.path.insert(0, str(args.engine / 'tools'))
+    import pins
+    subprocess.run([cxx, '-std=c++20', '-O0', '-I', str(args.engine / 'src/libs/util/include'), '-I', str(pins.json_headers()),
                     str(args.engine / 'tools/script_patches/script_patch_tool.cpp'), '-o', str(tool)], check=True)
     subprocess.run([str(tool), 'apply', str(work / 'layer'), str(work / 'game'), str(work / 'derived')], check=True)
     target = next(t for t in data['targets'] if t['path']=='PROGRAM/Encounters/encounters_map.c')

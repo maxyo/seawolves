@@ -133,9 +133,9 @@ class Files final : public VFILE_SERVICE
     {
         unmodelled("ConvertPathResource");
     }
-    const std::string *MemoryFile(const char *) override
+    std::optional<std::string> ReadVirtualFile(const char *) override
     {
-        unmodelled("MemoryFile");
+        unmodelled("ReadVirtualFile");
     }
     uint64_t GetPathFingerprint(const std::filesystem::path &) override
     {

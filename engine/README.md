@@ -88,7 +88,7 @@ start-up (`src/libs/util/include/platform/storage.hpp`); the file service refuse
 | the game's settings files, first copied from the game | `options` in `<files>/storm` | `options` and `engine.ini` in `$XDG_CONFIG_HOME/seawolves/<game>` |
 | caches | the app's cache root | `$XDG_CACHE_HOME/seawolves/<build>` |
 | logs | `<files>/storm/Logs` | `$XDG_STATE_HOME/seawolves/logs` |
-| layers over the game | installed by the app from the APK into its cache: `mobile-ui`, `engine-shaders`, `script-patches` | installed by the build beside the executable in `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (the application's desktop set); `mobile-ui` in a touch interface build |
+| layers over the game | read in place from the APK's assets: `mobile-ui`, `engine-shaders`, `script-patches` | installed by the build beside the executable in `layers/`: `engine-shaders` (`src/techniques`), `script-patches` (the application's desktop set); `mobile-ui` in a touch interface build |
 
 `<files>` is the app's internal storage. `<game>` keys the game whatever its version: a hash of the title its
 scripts show (`VERSION_NUMBER1` in `PROGRAM/_LSC_on_off.h`), so an update or a script mod keeps the saves and two
@@ -97,6 +97,8 @@ one exact build, a hash of its whole PROGRAM folder, so caches are never shared 
 title get `<build>` for their saves too, with a warning in the log (`platform/desktop_folders.hpp`). A game moved
 elsewhere keeps both. The XDG variables default to `~/.config`, `~/.local/share`, `~/.cache` and `~/.local/state`.
 `engine --game <folder> --folders` prints the folders and exits.
+A layer's `manifest.json` (written by its packager) lists its files: the engine indexes a layer from it and reads a
+file of it only when the file is opened (`platform/layer_files.hpp`), so nothing of a layer lives in the cache.
 
 On Linux `settings.json` may also say what the game's store checks would: `"player_name": "<name>"` (the name some
 games give a character after the player) and `"owned_apps": [<app id>, ...]` (the add-ons and games the player owns,

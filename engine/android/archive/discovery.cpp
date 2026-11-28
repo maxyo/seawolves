@@ -341,11 +341,15 @@ std::vector<storm::script_patches::Set> load_patch_layer(const char *layer)
         throw Failure(STORM_ARCHIVE_IO, std::string("No script patch layer at ") + layer);
     try
     {
-        return storm::script_patches::loadLayer(layer);
+        return storm::script_patches::loadLayer(*storm::layers::directory("script-patches", layer));
     }
     catch (const storm::script_patches::LayerError &e)
     {
         throw Failure(STORM_ARCHIVE_INVALID, std::string("Damaged script patch layer: ") + e.what());
+    }
+    catch (const std::runtime_error &e) // the layer's manifest
+    {
+        throw Failure(STORM_ARCHIVE_IO, e.what());
     }
 }
 // [{"id","game","version","identify":[resource keys]}], in the layer's order.

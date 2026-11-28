@@ -90,6 +90,7 @@ class FILE_SERVICE : public VFILE_SERVICE
     bool ResourcePathsFirstScan = true; // Since some code may call this statically, we use a flag to know if this is the first time
     std::unordered_map<std::string, std::string> ResourcePaths;
     std::unordered_map<std::string, std::string> PatchedScripts; // ResourcePaths value -> text (script_patches.hpp)
+    storm::layers::Files LayerFiles;                             // ResourcePaths value -> file of a layer
     std::optional<storm::storage::Storage> PlayerFiles;           // made from the folders chosen at the first use
 
   public:
@@ -126,7 +127,7 @@ class FILE_SERVICE : public VFILE_SERVICE
     // Resource paths
     void ScanResourcePaths() override;
     std::string ConvertPathResource(const char *path) override;
-    const std::string *MemoryFile(const char *filename) override;
+    std::optional<std::string> ReadVirtualFile(const char *filename) override;
 
     uint64_t GetPathFingerprint(const std::filesystem::path &path) override;
 };

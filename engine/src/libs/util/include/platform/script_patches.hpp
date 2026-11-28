@@ -4,6 +4,7 @@
 // sha256 before and after, applied in memory at start-up. Layer format and behaviour: tools/script_patches/README.md.
 
 #include "hex.hpp"
+#include "platform/layer_files.hpp"
 #include "platform/resource_overlay.hpp"
 
 #include <algorithm>
@@ -133,7 +134,7 @@ struct Target
     std::string key;    // AsciiLower(path)
     std::string base;   // sha256 of the player's original
     std::string result; // sha256 after the patch
-    fs::path patch;     // absolute path of the patch file
+    fs::path patch;     // the patch file's name in the layer
 };
 
 struct Fix
@@ -469,30 +470,32 @@ inline std::string memoryPath(std::string_view target)
 
 // ---------------------------------------------------------- application ----
 
-inline std::vector<Set> loadLayer(const fs::path &layer)
+// The sets of the layer, each sets/<id>/index.txt and the patches it names, in the order of their ids.
+inline std::vector<Set> loadLayer(const layers::Layer &layer)
 {
-    std::vector<Set> sets;
-    const auto root = layer / "sets";
-    std::error_code ec;
-    if (!fs::is_directory(root, ec))
-        return sets; // a layer without patch sets (nothing to patch for any game yet)
-    std::vector<fs::path> directories;
-    for (const auto &entry : fs::directory_iterator(root))
+    std::set<std::string> ids;
+    for (const auto &file : layer.files())
     {
-        if (entry.is_symlink() || !entry.is_directory())
-            throw LayerError(entry.path().string() + ": unexpected entry in sets/");
-        directories.push_back(entry.path());
+        if (!file.starts_with("sets/"))
+            continue;
+        const auto slash = file.find('/', 5);
+        if (slash == std::string::npos || slash == 5)
+            throw LayerError(layer.where(file) + ": unexpected entry in sets/");
+        ids.insert(file.substr(5, slash - 5));
     }
-    std::sort(directories.begin(), directories.end());
-    for (const auto &directory : directories)
+    std::vector<Set> sets;
+    for (const auto &id : ids)
     {
-        std::string text;
-        if (!detail::readFile(directory / "index.txt", text))
-            throw LayerError(directory.string() + ": cannot read index.txt");
-        auto set = parseIndex(text, directory);
+        const fs::path directory = fs::path("sets") / id;
+        const auto index = (directory / "index.txt").generic_string();
+        const auto text = layer.read(index);
+        if (!text)
+            throw LayerError(layer.where(index) + ": cannot read index.txt");
+        auto set = parseIndex(*text, directory);
         for (const auto &target : set.targets)
-            if (fs::is_symlink(target.patch, ec) || !fs::is_regular_file(target.patch, ec))
-                throw LayerError("patch " + target.patch.string() + " of " + target.path + " is missing");
+            if (!layer.has(target.patch.generic_string()))
+                throw LayerError("patch " + layer.where(target.patch.generic_string()) + " of " + target.path +
+                                 " is missing");
         sets.push_back(std::move(set));
     }
     return sets;
@@ -533,22 +536,21 @@ template <class HashOf> const Set *identify(const std::vector<Set> &sets, HashOf
 // `paths` the resource index (key -> file), `overlaid` the keys of it the UI overlay replaces.
 // Selects the set that identifies the player's game, patches what it can into `derived` and
 // redirects `paths` there (memoryPath). Returns what happened; throws LayerError when the layer
-// is broken, a target the UI overlay replaces included. A missing layer directory means
-// "no patches" (tests; the desktop start-up refuses an installation without it).
-inline Report applyLayer(const fs::path &layer, std::unordered_map<std::string, std::string> &paths, Derived &derived,
-                         const std::set<std::string> &overlaid = {})
+// is broken, a target the UI overlay replaces included. No layer means "no patches" (tests, tools; the start-ups
+// always have one).
+inline Report applyLayer(const layers::Layer *layer, std::unordered_map<std::string, std::string> &paths,
+                         Derived &derived, const std::set<std::string> &overlaid = {})
 {
     const auto started = std::chrono::steady_clock::now();
     Report report;
     derived.clear();
-    std::error_code ec;
-    if (!fs::is_directory(layer, ec))
+    if (!layer)
     {
-        report.info.push_back("no script patch layer at " + layer.string());
+        report.info.push_back("no script patch layer");
         return report;
     }
     report.layerPresent = true;
-    const auto sets = loadLayer(layer);
+    const auto sets = loadLayer(*layer);
 
     std::map<std::string, std::string> hashes; // key -> sha256 of the player's file ("" if missing)
     const auto playerHash = [&](const std::string &key) -> const std::string & {
@@ -601,16 +603,16 @@ inline Report applyLayer(const fs::path &layer, std::unordered_map<std::string, 
                                    ", expected " + target.base + ")";
             continue;
         }
-        std::string patch;
-        if (!detail::readFile(target.patch, patch))
-            throw LayerError("cannot read patch " + target.patch.string());
+        const auto patch = layer->read(target.patch.generic_string());
+        if (!patch)
+            throw LayerError("cannot read patch " + layer->where(target.patch.generic_string()));
         std::string base;
         if (!detail::readFile(original->second, base) || sha256(base) != target.base)
         {
             problems[target.key] = target.path + " changed while it was being read";
             continue;
         }
-        auto result = applyUnifiedDiff(base, patch, target.path);
+        auto result = applyUnifiedDiff(base, *patch, target.path);
         if (sha256(result) != target.result)
             throw LayerError("patch for " + target.path + " gives sha256 " + sha256(result) + ", expected " +
                              target.result);

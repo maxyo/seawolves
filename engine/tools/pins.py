@@ -61,6 +61,22 @@ def fetch(name, directory):
     return archive
 
 
+def json_headers(work=None):
+    """The include directory of the pinned nlohmann/json, unpacked once into <work>/tools (work as for ndk()): for a
+    tool compiled outside CMake that includes the engine's headers."""
+    import tarfile
+    work = Path(work or os.environ.get('STORM_CI_WORK') or ENGINE / 'build/android-ci')
+    root = work / 'tools' / f'nlohmann-json-{pin("nlohmann-json")["version"]}'
+    if not (root / 'json/include/nlohmann/json.hpp').is_file():
+        archive = fetch('nlohmann-json', work / 'downloads')
+        partial = root.with_name(root.name + f'.partial-{os.getpid()}')
+        with tarfile.open(archive) as bundle:
+            bundle.extractall(partial, filter='data')
+        shutil.rmtree(root, ignore_errors=True)
+        partial.replace(root)
+    return root / 'json/include'
+
+
 def ndk(work=None):
     """The pinned NDK in a build workspace: <work>/tools/ndk/android-ndk-<version>, where
     tools/android/ci_dependencies.sh unpacks it. Without work: $STORM_ANDROID_NDK, else the workspace $STORM_CI_WORK

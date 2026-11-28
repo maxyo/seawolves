@@ -99,15 +99,18 @@ def collect_shaders(engine: Path):
 
 def main():
     """mobile_ui_assets.py layer <mobile-ui dir> <out dir>: write the mobile-ui layer as the APK ships it (the engine's
-    host checks run the interface scripts from it)."""
+    host checks run the interface scripts from it).
+    mobile_ui_assets.py shaders <engine dir> <out dir>: write the engine-shaders layer as the APK ships it (the desktop
+    engine build installs it)."""
     import shutil
     import sys
-    if len(sys.argv) != 4 or sys.argv[1] != 'layer':
+    writers = {'layer': collect, 'shaders': collect_shaders}
+    if len(sys.argv) != 4 or sys.argv[1] not in writers:
         sys.exit(main.__doc__)
     out = Path(sys.argv[3])
     if out.exists():
         shutil.rmtree(out)
-    for name, data in collect(Path(sys.argv[2]).resolve()).items():
+    for name, data in writers[sys.argv[1]](Path(sys.argv[2]).resolve()).items():
         (out / name).parent.mkdir(parents=True, exist_ok=True)
         (out / name).write_bytes(data)
 

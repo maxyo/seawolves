@@ -142,41 +142,31 @@ TEST_CASE("desktop_folders.game")
     const auto root = fs::temp_directory_path() / "desktop-game";
     fs::remove_all(root);
     const auto folders = base({{"HOME", (root / "home").string()}});
-    const auto engine = root / "engine";
-    fs::create_directories(engine / "layers/engine-shaders");
-    fs::create_directories(engine / "layers/script-patches");
     game(root / "games/one");
     game(root / "games/update");
     put(root / "games/update/PROGRAM/seadogs.c", "void Main() { Updated(); }\n");
     game(root / "games/two", "Another Game");
 
-    const auto one = gameFolders(folders, root / "games/one", engine);
+    const auto one = gameFolders(folders, root / "games/one");
     const auto key = gameKey(root / "games/one").key, id = buildIdentity(root / "games/one");
     REQUIRE(one.game == root / "games/one");
     REQUIRE(one.saves == folders.data / "seawolves" / key / "saves");
     REQUIRE(one.settings == folders.config / "seawolves" / key);
     REQUIRE(one.cache == folders.cache / "seawolves" / id);
     REQUIRE(one.settingsFiles == std::vector<std::string>{"options", "engine.ini"});
-    REQUIRE(one.layers.mobileUi.empty());
-    REQUIRE(one.layers.engineShaders == engine / "layers/engine-shaders");
-    REQUIRE(one.layers.scriptPatches == engine / "layers/script-patches");
     // An update keeps the saves and the settings and gets caches of its own; another game shares nothing.
-    const auto update = gameFolders(folders, root / "games/update", engine);
+    const auto update = gameFolders(folders, root / "games/update");
     REQUIRE((update.saves == one.saves && update.settings == one.settings && update.cache != one.cache));
-    const auto two = gameFolders(folders, root / "games/two", engine);
+    const auto two = gameFolders(folders, root / "games/two");
     REQUIRE((two.saves != one.saves && two.settings != one.settings && two.cache != one.cache));
 
     // The player's folders inside the game folder, or the game inside one of them: refused.
     const auto inside = base({{"HOME", (root / "games/one").string()}});
-    REQUIRE(failure([&] { gameFolders(inside, root / "games/one", engine); }).find("overlap") != std::string::npos);
+    REQUIRE(failure([&] { gameFolders(inside, root / "games/one"); }).find("overlap") != std::string::npos);
     const auto cached = folders.cache / "seawolves" / id / "game"; // inside its own cache folder
     game(cached);
-    REQUIRE(failure([&] { gameFolders(folders, cached, engine); }).find("overlap") != std::string::npos);
-    REQUIRE(failure([&] { gameFolders(folders, "games/one", engine); }).find("absolute") != std::string::npos);
-
-    fs::remove_all(engine / "layers/script-patches");
-    REQUIRE(failure([&] { gameFolders(folders, root / "games/one", engine); }).find("script-patches") !=
-            std::string::npos);
+    REQUIRE(failure([&] { gameFolders(folders, cached); }).find("overlap") != std::string::npos);
+    REQUIRE(failure([&] { gameFolders(folders, "games/one"); }).find("absolute") != std::string::npos);
 }
 
 TEST_CASE("desktop_folders.settings")

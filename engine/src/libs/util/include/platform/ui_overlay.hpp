@@ -15,33 +15,32 @@ struct OverlayReport
     std::vector<std::string> skipped; // log lines: the replacements not used, and why
 };
 
-// Lays the UI overlay `layer` over the resource index `paths`. A file of the layer the game has too replaces the
-// game's own: like a patch's target it is written for one version of that file and used only over it. The layer's
-// SOURCE.json names each replacement ("adapted", its path in the layer) with the sha256 of the game's file it was
-// written for ("game_sha256"); over any other file, or unnamed, the game's own file stays. Files the game does not
-// have are added as they are. Throws LayerError when SOURCE.json cannot be read as that list.
-inline OverlayReport applyUiOverlay(const fs::path &layer, std::unordered_map<std::string, std::string> &paths)
+// Lays the UI overlay `layer` over the resource index `paths`, its files in `files`. A file of the layer the game has
+// too replaces the game's own: like a patch's target it is written for one version of that file and used only over it.
+// The layer's SOURCE.json names each replacement ("adapted", its path in the layer) with the sha256 of the game's file
+// it was written for ("game_sha256"); over any other file, or unnamed, the game's own file stays. Files the game does
+// not have are added as they are. Throws LayerError when SOURCE.json cannot be read as that list.
+inline OverlayReport applyUiOverlay(const std::shared_ptr<const layers::Layer> &layer,
+                                    std::unordered_map<std::string, std::string> &paths, layers::Files &files)
 {
     OverlayReport report;
     // No layer (the desktop build without the touch interface): no SOURCE.json of the working directory either.
-    if (layer.empty())
+    if (!layer)
         return report;
-    std::unordered_map<std::string, std::string> files;
-    overlay::indexUiOverlay(layer, files);
     std::map<std::string, std::string> written; // key -> sha256 of the game's file it replaces
-    if (std::string text; detail::readFile(layer / "SOURCE.json", text))
+    if (const auto text = layer->read("SOURCE.json"))
         try
         {
-            for (const auto &file : nlohmann::json::parse(text).value("files", nlohmann::json::array()))
+            for (const auto &file : nlohmann::json::parse(*text).value("files", nlohmann::json::array()))
                 if (file.contains("game_sha256"))
                     written[AsciiLower(file.at("adapted").get<std::string>())] =
                         file.at("game_sha256").get<std::string>();
         }
         catch (const nlohmann::json::exception &error)
         {
-            throw LayerError("UI layer " + (layer / "SOURCE.json").string() + ": " + error.what());
+            throw LayerError("UI layer " + layer->where("SOURCE.json") + ": " + error.what());
         }
-    for (auto &[key, path] : std::map(files.begin(), files.end()))
+    for (const auto &[key, file] : overlay::layerKeys(*layer, overlay::isUiOverlayPath))
     {
         if (const auto game = paths.find(key); game != paths.end())
         {
@@ -60,7 +59,7 @@ inline OverlayReport applyUiOverlay(const fs::path &layer, std::unordered_map<st
             }
         }
         report.overlaid.insert(key);
-        paths[key] = path;
+        overlay::lay(layer, key, file, paths, files);
     }
     return report;
 }

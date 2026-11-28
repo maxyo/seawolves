@@ -1,6 +1,6 @@
 // Host checks for platform/script_patches.hpp: apply, base mismatch, all-or-nothing
 // fixes, set selection, damaged layers, cache invalidation and memory-only results.
-#include "platform/path_fingerprint.hpp"
+#include "platform/layer_files.hpp"
 #include "platform/resource_overlay.hpp"
 #include "platform/script_patches.hpp"
 #include "platform/ui_overlay.hpp"
@@ -30,6 +30,18 @@ std::string read(const fs::path &path)
     std::string data;
     REQUIRE(detail::readFile(path, data));
     return data;
+}
+
+// The layer in `directory` as the packager writes it: its manifest names every file.
+std::shared_ptr<const storm::layers::Layer> packaged(const fs::path &directory,
+                                                     const std::string &name = "script-patches")
+{
+    nlohmann::json manifest = nlohmann::json::object();
+    for (const auto &entry : fs::recursive_directory_iterator(directory))
+        if (entry.is_regular_file() && entry.path().filename() != "manifest.json")
+            manifest[entry.path().lexically_relative(directory).generic_string()] = sha256(read(entry.path()));
+    std::ofstream(directory / "manifest.json", std::ios::binary | std::ios::trunc) << manifest.dump();
+    return storm::layers::directory(name, directory);
 }
 
 bool throwsLayerError(const std::function<void()> &call, std::string_view expected)
@@ -105,6 +117,7 @@ struct Fixture
                   "fix\ttime-scale\tPROGRAM/dialog.c,PROGRAM/quests/q.c\tGPL-3.0\thttps://example.org/src\tTime scale\n"
                   "fix\tsea\tPROGRAM/sea_ai/s.c\tGPL-3.0\thttps://example.org/src\tSea\n" +
                   extra);
+        packaged(layer);
     }
 
     // As the file service's resource index: lowercase relative key -> real path.
@@ -119,7 +132,7 @@ struct Fixture
 
     Report apply()
     {
-        return applyLayer(layer, paths, derived);
+        return applyLayer(fs::exists(layer) ? packaged(layer).get() : nullptr, paths, derived);
     }
     // As FILE_SERVICE: a patched script from memory, any other file from disk.
     std::string resolved(const std::string &key)
@@ -325,7 +338,7 @@ void checkSetSelection(const fs::path &root)
 
     // The selection rule itself, as the launcher's archive reader calls it without a resource index.
     Fixture k(root / "identify");
-    const auto sets = loadLayer(k.layer);
+    const auto sets = loadLayer(*packaged(k.layer));
     REQUIRE(identifyKeys(sets) == std::vector<std::string>{"program/version.h"});
     std::vector<std::string> asked;
     const auto byHash = [&](const std::string &hash) {
@@ -339,7 +352,7 @@ void checkSetSelection(const fs::path &root)
     REQUIRE(asked == std::vector<std::string>{"program/version.h"});
     REQUIRE(identify(sets, byHash("")) == nullptr); // the copy lacks the file
     REQUIRE(identify(sets, byHash(sha256("other"))) == nullptr);
-    const auto both = loadLayer(g.layer);
+    const auto both = loadLayer(*packaged(g.layer));
     REQUIRE(identifyKeys(both) == std::vector<std::string>{"program/version.h"}); // each key once
     REQUIRE(throwsLayerError([&] { identify(both, byHash(sha256(kIdentity))); }, "both identify this game"));
 
@@ -373,7 +386,7 @@ void checkCacheInvalidation(const fs::path &root)
 {
     Fixture f(root / "cache");
     f.apply();
-    const auto layerPrint = storm::fingerprint::tree(f.layer);
+    const auto layerPrint = packaged(f.layer)->fingerprint();
 
     // A new patch version for the same base: the new text.
     const std::string fixed2 = "float S = 4.0;\n";
@@ -386,9 +399,7 @@ void checkCacheInvalidation(const fs::path &root)
     f.apply();
     REQUIRE(f.resolved("program/sea_ai/s.c") == fixed2);
     // The compiled script cache key covers the patch layer (GetPathFingerprint).
-    REQUIRE(storm::fingerprint::tree(f.layer) != layerPrint);
-    const auto layers = storm::overlay::programLayers({{}, "/engine/layers/engine-shaders", f.layer});
-    REQUIRE(layers == std::vector<fs::path>{f.layer});
+    REQUIRE(packaged(f.layer)->fingerprint() != layerPrint);
 }
 // program/interface/ is a patch target and the UI overlay's directory: a target the
 // overlay replaces is a damaged layer, never patched and overlaid at once.
@@ -398,7 +409,7 @@ void checkOverlaidTarget(const fs::path &root)
     const auto report = f.apply();
     REQUIRE(report.unapplied.empty());
     Fixture g(root / "overlaid2");
-    REQUIRE(throwsLayerError([&] { applyLayer(g.layer, g.paths, g.derived, {"program/sea_ai/s.c"}); },
+    REQUIRE(throwsLayerError([&] { applyLayer(packaged(g.layer).get(), g.paths, g.derived, {"program/sea_ai/s.c"}); },
                              "replaced by the UI overlay"));
 }
 // A file of the UI overlay that the game has too replaces the game's only over the version it was written for (the
@@ -417,13 +428,18 @@ void checkUiOverlay(const fs::path &root)
         write(game / "save_load.c", "the game's saves");
         Paths paths{{"program/interface/mainmenu.c", (game / "mainmenu.c").string()},
                     {"program/interface/save_load.c", (game / "save_load.c").string()}};
-        const auto report = applyUiOverlay(layer, paths);
-        REQUIRE(paths.at("program/interface/touch/added.c") == (layer / "PROGRAM/interface/touch/added.c").string());
+        storm::layers::Files files;
+        const auto report = applyUiOverlay(packaged(layer, "mobile-ui"), paths, files);
+        const auto &added = files.at(paths.at("program/interface/touch/added.c"));
+        REQUIRE(added.layer->read(added.name) == "// ours only");
         REQUIRE(paths.at("program/interface/save_load.c") == (game / "save_load.c").string());
-        return std::pair(paths.at("program/interface/mainmenu.c"), report);
+        const auto used = files.find(paths.at("program/interface/mainmenu.c"));
+        return std::pair(used == files.end() ? paths.at("program/interface/mainmenu.c")
+                                             : *used->second.layer->read(used->second.name),
+                         report);
     };
     const auto [first, written] = over("the first game's menu");
-    REQUIRE(first == (layer / "PROGRAM/interface/mainmenu.c").string());
+    REQUIRE(first == "// ours");
     REQUIRE(written.overlaid ==
             std::set<std::string>{"program/interface/mainmenu.c", "program/interface/touch/added.c"});
     REQUIRE(written.skipped.size() == 1);

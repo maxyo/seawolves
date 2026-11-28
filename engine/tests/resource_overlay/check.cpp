@@ -6,22 +6,26 @@ TEST_CASE("resource_overlay")
 {
     namespace fs = std::filesystem;
     using namespace storm::overlay;
-    const fs::path root = fs::temp_directory_path();
+    const fs::path root = fs::temp_directory_path() / "resource-overlay";
+    fs::remove_all(root);
     fs::create_directories(root / "PROGRAM/interface");
-    fs::create_directories(root / "RESOURCE/MODELS");
     std::ofstream(root / "PROGRAM/interface/mainmenu.c") << "// mobile";
-    std::ofstream(root / "RESOURCE/MODELS/excluded.gm") << "not eligible";
-    std::unordered_map<std::string, std::string> paths{{"program/interface/mainmenu.c", "original"},
-                                                       {"resource/models/original.gm", "user asset"}};
-    indexUiOverlay(root, paths);
-    REQUIRE(paths.at("program/interface/mainmenu.c") == (root / "PROGRAM/interface/mainmenu.c").string());
-    REQUIRE(paths.at("resource/models/original.gm") == "user asset");
-    REQUIRE(!paths.contains("resource/models/excluded.gm"));
+    std::ofstream(root / "manifest.json")
+        << R"({"PROGRAM/interface/mainmenu.c": "a", "RESOURCE/MODELS/excluded.gm": "b",
+        "RESOURCE/techniques/sea.fx": "c", "SOURCE.json": "d"})";
+    const auto layer = storm::layers::directory("mobile-ui", root);
+    REQUIRE(layerKeys(*layer, isUiOverlayPath) ==
+            std::map<std::string, std::string>{{"program/interface/mainmenu.c", "PROGRAM/interface/mainmenu.c"}});
+    REQUIRE(layerKeys(*layer, isEngineShaderOverlayPath) ==
+            std::map<std::string, std::string>{{"resource/techniques/sea.fx", "RESOURCE/techniques/sea.fx"}});
     REQUIRE(!isUiOverlayPath("../program/interface/mainmenu.c"));
     REQUIRE(!isUiOverlayPath("/program/interface/mainmenu.c"));
     REQUIRE(!isUiOverlayPath("PROGRAM/interface/setup.exe"));
     REQUIRE(isUiOverlayPath("RESOURCE/INI/INTERFACES/mainmenu.ini"));
-    fs::create_symlink(root / "RESOURCE/MODELS/excluded.gm", root / "PROGRAM/interface/link.c");
-    indexUiOverlay(root, paths);
-    REQUIRE(!paths.contains("program/interface/link.c"));
+
+    std::unordered_map<std::string, std::string> paths{{"program/interface/mainmenu.c", "original"}};
+    storm::layers::Files files;
+    lay(layer, "program/interface/mainmenu.c", "PROGRAM/interface/mainmenu.c", paths, files);
+    const auto &file = files.at(paths.at("program/interface/mainmenu.c"));
+    REQUIRE(file.layer->read(file.name) == "// mobile");
 }

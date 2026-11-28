@@ -166,7 +166,7 @@ bool Ready()
 
 std::unique_ptr<storm::ui::FileSource> OpenPack()
 {
-    const auto root = storm::storage::folders().layers.mobileUi / "ui";
+    const auto root = storm::storage::folders().uiPack;
     if (!std::filesystem::is_regular_file(root / "pack.json"))
         throw std::runtime_error("the UI pack is missing: " + root.string() +
                                  " has no pack.json (the engine's build "

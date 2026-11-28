@@ -112,7 +112,6 @@
       ["GameActivity", "onUiTextRequest", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZIIII)V"],
       ["GameActivity", "pollLocationLoadCancel", "(J)Z"],
       ["GameActivity", "renderBackendChosen", "(Ljava/lang/String;Ljava/lang/String;)V"],
-      ["GameActivity", "restoreLayers", "()V"],
       ["GameActivity", "showCinematic", "(Z)V"],
       ["GameActivity", "showDialogue", "(Z)V"],
       ["GameActivity", "showEngineError", "(Ljava/lang/String;Ljava/lang/String;)V"],

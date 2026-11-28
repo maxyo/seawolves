@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -56,8 +57,9 @@ class VFILE_SERVICE
     // Resource paths
     virtual void ScanResourcePaths() = 0;
     virtual std::string ConvertPathResource(const char *path) = 0;
-    // The text of a resource held in memory (a patched script), nullptr for a file on disk.
-    virtual const std::string *MemoryFile(const char *filename) = 0;
+    // The text of a resource no file system holds (a patched script, a file of a layer read in place), read now;
+    // nullopt for a file on disk.
+    virtual std::optional<std::string> ReadVirtualFile(const char *filename) = 0;
 
     virtual uint64_t GetPathFingerprint(const std::filesystem::path& path) = 0;
 };

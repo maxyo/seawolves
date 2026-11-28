@@ -332,8 +332,11 @@ storm_host_check(relief_staged SOURCES check.cpp ${src}/libs/renderer_bgfx/src/e
     LIBS -Wl,--gc-sections CATCH2)
 storm_host_check(storage INCLUDES ${util_include} OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(resource_index INCLUDES ${util_include} OPTIONS -O2 ${warnings} CATCH2)
-storm_host_check(resource_overlay INCLUDES ${util_include}
+storm_host_check(resource_overlay INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include
     OPTIONS -O1 -g -Wall -Wextra ${asan_strict} TIMEOUT 120 CATCH2)
+# The fake asset manager (core_fake/android) stands a directory in for the APK's assets.
+storm_host_check(layer_files INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include ${STORM_TESTS_DIR}/core_fake
+    OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(sail_limit_point INCLUDES ${glm_headers} OPTIONS -O1 ${warnings} ${asan} CATCH2)
 storm_host_check(save_autosave INCLUDES ${src}/libs/core/include OPTIONS -O1 ${warnings} ${asan_strict} CATCH2)
 foreach(check load dangling_references loaded_object_handles)
@@ -369,7 +372,7 @@ storm_host_check(script_event_handlers SOURCES check.cpp ${src}/libs/core/src/s_
 storm_host_check(script_patches INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 # The script patch tool compiles (a build error otherwise).
 add_library(script_patch_tool_syntax OBJECT "${STORM_ROOT}/tools/script_patches/script_patch_tool.cpp")
-target_include_directories(script_patch_tool_syntax PRIVATE ${util_include})
+target_include_directories(script_patch_tool_syntax PRIVATE ${util_include} ${storm_json_SOURCE_DIR}/include)
 target_compile_options(script_patch_tool_syntax PRIVATE ${warnings})
 storm_host_check(script_vm_names SOURCES check.cpp ${src}/libs/core/src/attributes.cpp ${src}/libs/core/src/vm_verify.cpp
     INCLUDES ${src}/libs/core/include ${src}/libs/core/src ${util_include} ${fmt_headers} .
@@ -508,7 +511,6 @@ add_subdirectory(glm_math)
 add_subdirectory(portability)
 add_subdirectory(script_language)
 add_subdirectory(save_session)
-add_subdirectory(layer_restore)
 add_subdirectory(ui_scripts)
 add_subdirectory(script_natives)
 # The renderer's checks need bgfx's build (X11 and OpenGL development files, the pinned shaderc): a build that runs

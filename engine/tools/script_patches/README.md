@@ -10,10 +10,10 @@ may be packaged, and per fix which platforms apply it (`platforms` in `set.json`
 
 ## Layer
 
-Android: `<cache root>/layers/script-patches/current`, installed from the APK like
-the other layers (sha256 per file in `manifest.json`). Desktop: `layers/script-patches`
+Android: the APK's `assets/script-patches`, read in place like the other layers;
+its `manifest.json` (sha256 per file) lists them. Desktop: `layers/script-patches`
 beside the engine, written by the engine build with the application's packager
-(`../../README.md`, "Where files live"). Without a `sets/` directory the layer
+(`../../README.md`, "Where files live"). Without files under `sets/` the layer
 patches nothing.
 
 ```text
@@ -74,14 +74,14 @@ A file of the overlay that the game has too is bound to that file's version like
 - **Memory, not files.** Every applied target is derived at start-up (base and
   result sha256 verified) and kept in memory; the resource index points the
   target at `memoryPath(<target>)`, which no file system holds, and the file
-  service serves it from memory (`FILE_SERVICE::MemoryFile`: the compiler,
+  service serves it from memory (`FILE_SERVICE::ReadVirtualFile`: the compiler,
   `LoadFile`, `_GetFileSize`, `_FileOrDirectoryExists`; opening one as a stream
   is an error). Nothing is written, so a full or trimmed cache cannot stop a
   running game. The start-up log line of the set gives the scripts' count, bytes
   and derive time.
 - **Script cache.** The compiled script cache key covers the program tree and
-  the patch layer (`programLayers`, `FILE_SERVICE::GetPathFingerprint`): a new
-  patch, a new set or a changed player file recompiles.
+  the patch layer's manifest (`Layer::fingerprint`, `FILE_SERVICE::GetPathFingerprint`):
+  a new patch, a new set or a changed player file recompiles.
 - **Saves.** Saves store script variables by name and recompile segments from
   the current scripts, so code fixes load into existing games. A fix that
   renames or retypes a global, changes array sizes, or writes new attributes

@@ -20,6 +20,8 @@ import tempfile
 app = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(app / 'tools/android'))
 import script_patch_assets  # noqa: E402
+sys.path.insert(0, str(app.parent / 'engine/tools'))
+import pins  # noqa: E402
 
 shipped = app / 'script-patches'
 teho = 'teho-1.7.3-x64'
@@ -48,6 +50,7 @@ with tempfile.TemporaryDirectory(prefix='storm-script-patches-') as work:
     work = Path(work)
     tool = work / 'script_patch_tool'
     subprocess.run([os.environ.get('CXX', 'c++'), '-std=c++20', '-O1', '-I', str(app.parent / 'engine/src/libs/util/include'),
+                    '-I', str(pins.json_headers()),
                     str(app.parent / 'engine/tools/script_patches/script_patch_tool.cpp'), '-o', str(tool)], check=True)
 
     files, notice = script_patch_assets.collect(shipped, 'android')

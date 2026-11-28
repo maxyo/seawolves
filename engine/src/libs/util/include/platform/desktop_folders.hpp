@@ -144,31 +144,23 @@ inline GameKey gameKey(const fs::path &game)
     return {detail::hex64(hash::fnv1a(title)), std::move(title)};
 }
 
-// `engine`: the engine's own folder, which holds the layers installed with it.
-inline storage::Folders gameFolders(const BaseFolders &base, const fs::path &game, const fs::path &engine)
+// The player's folders for `game`; the layers are the engine's (installed beside it), not the game's.
+inline storage::Folders gameFolders(const BaseFolders &base, const fs::path &game)
 {
     if (!game.is_absolute())
         throw std::invalid_argument("The game folder must be absolute: " + game.string());
     const auto key = gameKey(game).key;
-    const auto layers = engine / "layers";
     storage::Folders folders{game,
                              base.data / kFolderName / key / "saves",
                              base.config / kFolderName / key,
                              {"options", "engine.ini"},
                              base.cache / kFolderName / buildIdentity(game),
-                             {{}, layers / "engine-shaders", layers / "script-patches"},
+                             {},
                              {}};
-#ifdef STORM_TOUCH_UI
-    // The touch interface's scripts and, in its ui/, its pack: the development build's (engine/README.md, "Linux").
-    folders.layers.mobileUi = layers / "mobile-ui";
-#endif
     for (const auto *root : {&folders.saves, &folders.settings, &folders.cache})
         if (storage::inside(game, *root) || storage::inside(*root, game))
             throw std::runtime_error("The player's folder " + root->string() + " and the game folder " + game.string() +
                                      " overlap: the engine never writes into the game folder");
-    for (const auto *layer : {&folders.layers.mobileUi, &folders.layers.engineShaders, &folders.layers.scriptPatches})
-        if (!layer->empty() && !fs::is_directory(*layer))
-            throw std::runtime_error("The engine's " + layer->string() + " is missing: the installation is incomplete");
     return folders;
 }
 

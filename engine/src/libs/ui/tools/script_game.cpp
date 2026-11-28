@@ -3,6 +3,7 @@
 #include "../src/screens/script_screen.h"
 #include "compiler.h"
 #include "core_impl.h"
+#include "platform/layer_files.hpp"
 #include "platform/storage.hpp"
 #include "script_port.hpp"
 
@@ -50,7 +51,8 @@ ScriptGame::ScriptGame()
         c->SetHash(MakeHashValue(c->GetName()));
     const fs::path cwd = fs::current_path();
     fs::current_path(STORM_UI_SCRIPT_GAME);
-    storm::storage::select({.game = STORM_UI_SCRIPT_GAME, .layers = {.mobileUi = STORM_UI_SCRIPT_LAYER}});
+    storm::storage::select({.game = STORM_UI_SCRIPT_GAME,
+                            .layers = {.mobileUi = storm::layers::directory("mobile-ui", STORM_UI_SCRIPT_LAYER)}});
     fio->ScanResourcePaths();
     program_ = std::make_unique<Program>();
     core_internal.Compiler = &program_->compiler;

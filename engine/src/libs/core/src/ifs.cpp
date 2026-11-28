@@ -368,31 +368,28 @@ bool IFS::LoadFile(const char *_file_name)
     {
         return false;
     }
-    auto fileS = fs->_CreateFile(_file_name, std::ios::binary | std::ios::in);
-    if (!fileS.is_open())
+    // A layer's interface ini is read from where the build put it, the game's from disk.
+    std::string text;
+    if (auto held = fs->ReadVirtualFile(_file_name))
+        text = std::move(*held);
+    else
     {
-        spdlog::trace("Unable to load file: {}", _file_name);
-        return false;
+        auto fileS = fs->_CreateFile(_file_name, std::ios::binary | std::ios::in);
+        if (!fileS.is_open())
+        {
+            spdlog::trace("Unable to load file: {}", _file_name);
+            return false;
+        }
+        text.resize(fs->_GetFileSize(_file_name));
+        const bool read = fs->_ReadFile(fileS, text.data(), text.size());
+        fs->_CloseFile(fileS);
+        if (!read)
+            return false;
     }
-
-    const auto file_size = fs->_GetFileSize(_file_name);
-
+    const auto file_size = text.size();
     auto *const file_data = new char[file_size + 1]; // +1 for zero at the end
-    if (file_data == nullptr)
-    {
-        fs->_CloseFile(fileS);
-        return false;
-    }
+    std::memcpy(file_data, text.data(), file_size);
     file_data[file_size] = 0;
-
-    if (!fs->_ReadFile(fileS, file_data, file_size))
-    {
-        delete[] file_data;
-        fs->_CloseFile(fileS);
-        return false;
-    }
-
-    fs->_CloseFile(fileS);
 
     const uint32_t name_size = strlen(_file_name) + 1;
 
@@ -401,7 +398,6 @@ bool IFS::LoadFile(const char *_file_name)
     if (FileName == nullptr)
     {
         delete[] file_data;
-        fs->_CloseFile(fileS);
         return false;
     }
     strcpy_s(FileName, name_size, _file_name);

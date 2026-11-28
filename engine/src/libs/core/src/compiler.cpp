@@ -219,9 +219,9 @@ bool COMPILER::AppendFile(std::string &program, const char *file_name)
     const std::string path = SourcePath(file_name);
     const char *buffer = path.c_str();
     const size_t offset = program.size();
-    if (const auto *memory = fio->MemoryFile(buffer))
+    if (const auto text = fio->ReadVirtualFile(buffer))
     {
-        program += *memory;
+        program += *text;
     }
     else
     {
@@ -500,8 +500,7 @@ storm::script::Attached COMPILER::Attach(const char *segment)
     if (!BC_LoadSegment(segment))
     {
         const std::string path = SourcePath(segment);
-        return fio->MemoryFile(path.c_str()) || fio->_FileOrDirectoryExists(path.c_str()) ? Attached::NotCompiled
-                                                                                         : Attached::NoFile;
+        return fio->_FileOrDirectoryExists(path.c_str()) ? Attached::NotCompiled : Attached::NoFile;
     }
     SegmentTable.back().attached = true;
     return Attached::Yes;

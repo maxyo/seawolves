@@ -1543,12 +1543,11 @@ bool CTechnique::DecodeFile(std::string sname)
 
     sprintf(fname, "%s", sname.c_str());
     strcpy(sCurrentFileName, fname);
-    auto fileS = fio->_CreateFile(fname, std::ios::binary | std::ios::in);
-    auto dwSize = fio->_GetFileSize(fname);
+    // The engine's techniques replace the game's from their layer (ReadVirtualFile).
+    char *pFile = nullptr;
+    uint32_t dwSize = 0;
+    fio->LoadFile(fname, &pFile, &dwSize);
     Assert(dwSize != 0);
-    char *pFile = new char[dwSize];
-    fio->_ReadFile(fileS, pFile, dwSize);
-    fio->_CloseFile(fileS);
 
     // change 0xd and 0xa to 0x0
     for (uint32_t i = 0; i < dwSize; i++)

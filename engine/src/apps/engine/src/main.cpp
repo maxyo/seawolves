@@ -39,6 +39,7 @@
 #include "platform/frame_work.hpp"
 #include "platform/stall_watch.hpp"
 #include "platform/host_hooks.hpp"
+#include "platform/layer_files.hpp"
 #include "platform/script_patches.hpp"
 #include "profiler.hpp"
 #ifdef STORM_TRACY
@@ -498,7 +499,17 @@ storm::storage::Folders DesktopFolders(const CommandLine &command, bool remember
     game = std::filesystem::canonical(game);
     if (!std::filesystem::is_regular_file(storm::storage::child(game, fs::ENGINE_INI_FILE_NAME)))
         throw std::runtime_error(game.string() + " is not a game folder: it has no engine.ini");
-    auto folders = storm::desktop::gameFolders(base, game, EngineFolder());
+    auto folders = storm::desktop::gameFolders(base, game);
+    // The layers the engine's build installed beside it; one without its manifest throws: the installation is
+    // incomplete.
+    const auto installed = EngineFolder() / "layers";
+    folders.layers.engineShaders = storm::layers::directory("engine-shaders", installed / "engine-shaders");
+    folders.layers.scriptPatches = storm::layers::directory("script-patches", installed / "script-patches");
+#ifdef STORM_TOUCH_UI
+    // The touch interface's scripts and, in its ui/, its pack: the development build's (README.md, "Linux").
+    folders.layers.mobileUi = storm::layers::directory("mobile-ui", installed / "mobile-ui");
+    folders.uiPack = installed / "mobile-ui" / "ui";
+#endif
     if (remember && !command.game.empty())
         storm::desktop::rememberGame(settings, game);
     return folders;

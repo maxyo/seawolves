@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     {
         if (command == "check" && argc == 3)
         {
-            for (const auto &set : loadLayer(argv[2]))
+            for (const auto &set : loadLayer(*storm::layers::directory("script-patches", argv[2])))
                 std::cout << "set " << set.id << " (" << set.game << " " << set.version << "): " << set.targets.size()
                           << " target(s), " << set.fixes.size() << " fix(es)\n";
             return 0;
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
                     paths[storm::AsciiLower(entry.path().lexically_relative(game).generic_string())] =
                         entry.path().string();
             Derived derived;
-            const auto report = applyLayer(argv[2], paths, derived);
+            const auto report = applyLayer(storm::layers::directory("script-patches", argv[2]).get(), paths, derived);
             const fs::path out(argv[4]);
             std::set<fs::path> written;
             for (const auto &[file, text] : derived)

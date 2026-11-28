@@ -11,6 +11,7 @@
 #include "platform/resource_index.hpp"
 #include "platform/path_fingerprint.hpp"
 
+#include "platform/layer_files.hpp"
 #include "platform/resource_overlay.hpp"
 #include "platform/script_patches.hpp"
 #include "platform/ui_overlay.hpp"
@@ -50,28 +51,6 @@ bool Writable(const std::filesystem::path &path, const char *what)
     spdlog::error("Refusing to {} '{}': it is not in the player's saves, settings or cache", what, path.string());
     return false;
 }
-
-// On a phone the layers live in the app's cache, which the system trims while the game runs when the storage runs low:
-// a layer file found missing has the app put the layers back (it logs what was missing), and the caller reads it once
-// more. True when the app restored them.
-bool RestoredLayerFile(const std::filesystem::path &path)
-{
-    const auto &folders = storm::storage::folders();
-    const auto &layers = folders.layers;
-    const auto under = [&](const std::filesystem::path &root) {
-        return !root.empty() && !storm::storage::suffixUnder(path, root).empty();
-    };
-    if (!folders.restoreLayers || !(under(layers.mobileUi) || under(layers.engineShaders) || under(layers.scriptPatches)))
-        return false;
-    if (!folders.restoreLayers())
-    {
-        spdlog::error("Layer file '{}' is missing and the app could not restore the layers", path.string());
-        return false;
-    }
-    spdlog::warn("Layer file '{}' was gone from the app's cache: the layers are restored and it is read again",
-                 path.string());
-    return true;
-}
 }
 
 extern VFILE_SERVICE *fio = &file_service;
@@ -92,9 +71,10 @@ FILE_SERVICE::~FILE_SERVICE()
 std::fstream FILE_SERVICE::_CreateFile(const char *filename, std::ios::openmode mode)
 {
     const auto resolved = filename ? ConvertPathResource(filename) : std::string();
-    if (PatchedScripts.contains(resolved))
+    if (PatchedScripts.contains(resolved) || LayerFiles.contains(resolved))
     {
-        spdlog::error("'{}' is a patched script held in memory: read it with MemoryFile, not a stream", filename);
+        spdlog::error("'{}' is not a file on disk ({}): read it with ReadVirtualFile, not a stream", filename,
+                      resolved);
         return {};
     }
     const auto path = std::filesystem::u8path(resolved);
@@ -102,8 +82,6 @@ std::fstream FILE_SERVICE::_CreateFile(const char *filename, std::ios::openmode 
         return {};
     errno = 0;
     std::fstream fileS(path, mode);
-    if (!fileS.is_open() && !(mode & std::ios::out) && RestoredLayerFile(path))
-        fileS.open(path, mode);
     const int error = errno;
     if (!fileS.is_open() && (mode & std::ios::out))
         spdlog::error("Cannot open writable file '{}' (resolved '{}'): errno={}",
@@ -169,7 +147,7 @@ bool FILE_SERVICE::_ReadFile(std::fstream &fileS, void *s, std::streamsize count
 bool FILE_SERVICE::_FileOrDirectoryExists(const char *p)
 {
     const auto resolved = ConvertPathResource(p);
-    if (PatchedScripts.contains(resolved))
+    if (PatchedScripts.contains(resolved) || LayerFiles.contains(resolved))
         return true;
     std::filesystem::path path = std::filesystem::u8path(resolved);
     auto ec = std::error_code{};
@@ -180,7 +158,7 @@ bool FILE_SERVICE::_FileOrDirectoryExists(const char *p)
         return false;
     }
 
-    return result || RestoredLayerFile(path);
+    return result;
 }
 
 std::vector<std::string> FILE_SERVICE::_GetPathsOrFilenamesByMask(const char *sourcePath, const char *mask,
@@ -344,9 +322,15 @@ std::string FILE_SERVICE::_GetExecutableDirectory()
 
 std::uintmax_t FILE_SERVICE::_GetFileSize(const char *filename)
 {
-    if (const auto *memory = MemoryFile(filename))
-        return memory->size();
-    std::filesystem::path path = std::filesystem::u8path(ConvertPathResource(filename));
+    const auto resolved = ConvertPathResource(filename);
+    if (const auto patched = PatchedScripts.find(resolved); patched != PatchedScripts.end())
+        return patched->second.size();
+    if (LayerFiles.contains(resolved))
+    {
+        spdlog::error("'{}' is not a file on disk ({}): read it with ReadVirtualFile", filename, resolved);
+        return 0;
+    }
+    std::filesystem::path path = std::filesystem::u8path(resolved);
     std::error_code error;
     const auto size = std::filesystem::file_size(path, error);
     if (error) spdlog::error("Cannot get file size '{}': {}", path.string(), error.message());
@@ -482,12 +466,12 @@ bool FILE_SERVICE::LoadFile(const char *file_name, char **ppBuffer, uint32_t *dw
 {
     if (ppBuffer == nullptr)
         return false;
-    if (const auto *memory = MemoryFile(file_name))
+    if (const auto text = ReadVirtualFile(file_name))
     {
         if (dwSize)
-            *dwSize = static_cast<uint32_t>(memory->size());
-        *ppBuffer = new char[memory->size()];
-        memcpy(*ppBuffer, memory->data(), memory->size());
+            *dwSize = static_cast<uint32_t>(text->size());
+        *ppBuffer = new char[text->size()];
+        memcpy(*ppBuffer, text->data(), text->size());
         return true;
     }
 
@@ -560,15 +544,23 @@ void FILE_SERVICE::ScanResourcePaths()
     PlayerFiles.reset();
     // The working directory is the game directory; see platform/resource_index.hpp.
     storm::resource_index::scan(ResourcePaths, fio->_GetExecutableDirectory());
-    // The layers over the game's files; a platform without one has an empty path, which indexes nothing.
+    // The layers over the game's files, indexed from their manifests and read when a file is opened; a platform
+    // without one has none.
+    LayerFiles.clear();
     const auto &layers = storm::storage::folders().layers;
     // A layer file that replaces one of the game's is used only over the version it was written for.
-    auto overlay = storm::script_patches::applyUiOverlay(layers.mobileUi, ResourcePaths);
-    const auto techniques = storm::overlay::indexUiOverlay(layers.engineShaders, ResourcePaths, true);
-    spdlog::info("Engine techniques: {} files from {}", techniques, layers.engineShaders.string());
-    // Fixes to the player's own scripts, held in memory (MemoryFile); throws LayerError if the layer is damaged.
+    auto overlay = storm::script_patches::applyUiOverlay(layers.mobileUi, ResourcePaths, LayerFiles);
+    if (layers.engineShaders)
+    {
+        const auto techniques = storm::overlay::layerKeys(*layers.engineShaders, storm::overlay::isEngineShaderOverlayPath);
+        for (const auto &[key, file] : techniques)
+            storm::overlay::lay(layers.engineShaders, key, file, ResourcePaths, LayerFiles);
+        spdlog::info("Engine techniques: {} files from {}", techniques.size(), layers.engineShaders->where(""));
+    }
+    // Fixes to the player's own scripts, held in memory (ReadVirtualFile); throws LayerError if the layer is damaged.
     auto &report = storm::script_patches::lastReport();
-    report = storm::script_patches::applyLayer(layers.scriptPatches, ResourcePaths, PatchedScripts, overlay.overlaid);
+    report = storm::script_patches::applyLayer(layers.scriptPatches.get(), ResourcePaths, PatchedScripts,
+                                               overlay.overlaid);
     report.info.insert(report.info.end(), overlay.skipped.begin(), overlay.skipped.end());
     ResourcePathsFirstScan = false;
 }
@@ -618,12 +610,21 @@ std::string FILE_SERVICE::ConvertPathResource(const char *path)
     }
 }
 
-const std::string *FILE_SERVICE::MemoryFile(const char *filename)
+std::optional<std::string> FILE_SERVICE::ReadVirtualFile(const char *filename)
 {
-    if (filename == nullptr || PatchedScripts.empty())
-        return nullptr;
-    const auto found = PatchedScripts.find(ConvertPathResource(filename));
-    return found == PatchedScripts.end() ? nullptr : &found->second;
+    if (filename == nullptr || (PatchedScripts.empty() && LayerFiles.empty()))
+        return std::nullopt;
+    const auto resolved = ConvertPathResource(filename);
+    if (const auto patched = PatchedScripts.find(resolved); patched != PatchedScripts.end())
+        return patched->second;
+    const auto layer = LayerFiles.find(resolved);
+    if (layer == LayerFiles.end())
+        return std::nullopt;
+    auto text = layer->second.layer->read(layer->second.name);
+    // The manifest names the file: the build that made the layer is broken.
+    if (!text)
+        throw std::runtime_error("Cannot read " + layer->second.layer->where(layer->second.name));
+    return text;
 }
 
 uint64_t FILE_SERVICE::GetPathFingerprint(const std::filesystem::path &path)
@@ -633,9 +634,11 @@ uint64_t FILE_SERVICE::GetPathFingerprint(const std::filesystem::path &path)
     // The interface layer overrides files of the program tree, and the script patch layer changes others.
     const auto normal = path.lexically_normal();
     const auto leaf = normal.filename().empty() ? normal.parent_path().filename() : normal.filename();
+    const auto &layers = storm::storage::folders().layers;
     if (storm::AsciiLower(leaf.generic_string()) == "program")
-        for (const auto &layer : storm::overlay::programLayers(storm::storage::folders().layers))
-            result += storm::fingerprint::mix(storm::fingerprint::tree(layer));
+        for (const auto *layer : {layers.mobileUi.get(), layers.scriptPatches.get()})
+            if (layer)
+                result += storm::fingerprint::mix(layer->fingerprint());
     return result;
 }
 

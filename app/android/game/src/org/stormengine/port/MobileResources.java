@@ -19,9 +19,8 @@ import java.util.Set;
 
 /**
  * Install only the APK's licensed layers (UI source, engine shaders, script fixes), never copy the user's game. They
- * live under the cache root (GameCache, {@code layers/<layer>/current}): the system's «Очистить кэш» may remove them,
- * also while the game runs, and the next install puts them back at the same paths (GameActivity.resumeNativeThread,
- * GameActivity.restoreLayers).
+ * live under the cache root (GameCache, {@code layers/<layer>/current}) for the launcher's archive reader; the engine
+ * reads them from the assets in place.
  */
 final class MobileResources {
     static final String LAYERS = "layers";
@@ -77,6 +76,7 @@ final class MobileResources {
         if (!stamp.isFile()) return "not installed";
         if (!new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
                 .equals(hash(manifest))) return "another version installed";
+        if (!new File(current, "manifest.json").isFile()) return "manifest.json is missing";
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));
         List<String> found = new ArrayList<>();
         Set<String> directories = new HashSet<>();
@@ -108,7 +108,11 @@ final class MobileResources {
             boolean link = Files.isSymbolicLink(child.toPath());
             if (!link && child.isDirectory() && directories.contains(name))
                 strays(child, name + "/", files, directories, found);
-            else if (link || !(child.isFile() && (files.has(name) || name.equals(".version"))))
+            else if (link
+                    || !(child.isFile()
+                            && (files.has(name)
+                                    || name.equals(".version")
+                                    || name.equals("manifest.json"))))
                 found.add(name + " is not the layer's");
         }
     }
@@ -173,6 +177,9 @@ final class MobileResources {
                 Files.copy(in, target.toPath());
             }
         }
+        // The archive reader reads the layer by its manifest (the engine's
+        // platform/layer_files.hpp).
+        Files.write(new File(staging, "manifest.json").toPath(), manifest);
         Files.write(
                 new File(staging, ".version").toPath(), version.getBytes(StandardCharsets.UTF_8));
         Trees.delete(previous);

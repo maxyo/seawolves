@@ -13,7 +13,10 @@
 #include <string>
 #include "app_upcalls.hpp"
 #include "jni_text.hpp"
+#include "apk_assets.hpp"
 #include "storage.hpp"
+#include <android/asset_manager_jni.h>
+#include <memory>
 #endif
 
 namespace storm::android
@@ -186,23 +189,40 @@ inline std::filesystem::path cacheDirectory()
     return result;
 }
 
-// The selected game, the private user data and the app's cache, with the layers the app installs there from the APK
-// (MobileResources).
+// The activity's AssetManager, held by a global reference for the process: the layers and the UI pack read the APK
+// through it while the game runs.
+inline AAssetManager *assets()
+{
+    static AAssetManager *const manager = [] {
+        jobject held = nullptr;
+        CallActivity(JavaMethod{"getAssets", "()Landroid/content/res/AssetManager;"},
+                     [&](JNIEnv *env, jobject activity, jmethodID method) {
+                         const auto local = env->CallObjectMethod(activity, method);
+                         if (env->ExceptionCheck() || !local)
+                             return false;
+                         held = env->NewGlobalRef(local);
+                         env->DeleteLocalRef(local);
+                         return true;
+                     });
+        if (!held)
+            throw std::runtime_error("The APK's assets (Activity.getAssets) are unavailable");
+        return AAssetManager_fromJava(static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv()), held);
+    }();
+    return manager;
+}
+
+// The selected game, the private user data and the app's cache, with the layers read from the APK's assets.
 inline storage::Folders folders()
 {
     const auto paths = storagePaths();
-    const auto cache = cacheDirectory();
-    const auto layer = [&](const char *name) { return cache / "layers" / name / "current"; };
-    const auto restore = [] {
-        return CallActivity(upcall::GameActivity::restoreLayers, [](JNIEnv *env, jobject activity, jmethodID method) {
-            env->CallVoidMethod(activity, method);
-            return true;
-        });
-    };
-    return {paths.game, paths.user / "SaveData",
-            paths.user, {"options"},
-            cache,      {layer("mobile-ui"), layer("engine-shaders"), layer("script-patches")},
-            restore};
+    return {paths.game,
+            paths.user / "SaveData",
+            paths.user,
+            {"options"},
+            cacheDirectory(),
+            {apk::layer(assets(), "mobile-ui"), apk::layer(assets(), "engine-shaders"),
+             apk::layer(assets(), "script-patches")},
+            {}};
 }
 
 inline void prepareGameDirectory()

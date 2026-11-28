@@ -1,12 +1,14 @@
 #pragma once
 
 #include "../istring.hpp"
+#include "layer_files.hpp"
 #include "storage.hpp"
 
 #include <filesystem>
+#include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace storm::overlay
 {
@@ -38,35 +40,23 @@ inline bool isEngineShaderOverlayPath(const std::filesystem::path &relative)
     return key.starts_with("resource/techniques/") && (extension == ".fx" || extension == ".h" || extension == ".sha");
 }
 
-// The layers that change the scripts of the program tree; part of the compiled script cache key
-// (FILE_SERVICE::GetPathFingerprint).
-inline std::vector<std::filesystem::path> programLayers(const storage::Layers &layers)
+// The resource index entries of a layer's files a filter (isUiOverlayPath, isEngineShaderOverlayPath) admits:
+// key -> the file's name in the layer.
+template <class Admits> std::map<std::string, std::string> layerKeys(const layers::Layer &layer, Admits &&admits)
 {
-    std::vector<std::filesystem::path> result;
-    for (const auto *layer : {&layers.mobileUi, &layers.scriptPatches})
-        if (!layer->empty())
-            result.push_back(*layer);
-    return result;
+    std::map<std::string, std::string> keys;
+    for (const auto &file : layer.files())
+        if (admits(std::filesystem::path(file)))
+            keys.emplace(AsciiLower(file), file);
+    return keys;
 }
 
-// Returns the number of files indexed.
-inline size_t indexUiOverlay(const std::filesystem::path &root, std::unordered_map<std::string, std::string> &paths,
-                             bool shaders = false)
+// Points the resource index key `key` at `file` of `layer`.
+inline void lay(const std::shared_ptr<const layers::Layer> &layer, const std::string &key, const std::string &file,
+                std::unordered_map<std::string, std::string> &paths, layers::Files &files)
 {
-    size_t indexed = 0;
-    if (!std::filesystem::is_directory(root))
-        return indexed;
-    for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
-    {
-        if (entry.is_symlink() || !entry.is_regular_file())
-            continue;
-        const auto relative = entry.path().lexically_relative(root);
-        if (shaders ? isEngineShaderOverlayPath(relative) : isUiOverlayPath(relative))
-        {
-            paths[AsciiLower(relative.generic_string())] = entry.path().string();
-            ++indexed;
-        }
-    }
-    return indexed;
+    auto entry = layers::indexPath(*layer, file);
+    paths[key] = entry;
+    files[std::move(entry)] = {layer, file};
 }
 } // namespace storm::overlay

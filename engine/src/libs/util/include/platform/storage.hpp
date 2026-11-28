@@ -6,25 +6,39 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
+
+namespace storm::layers
+{
+class Layer; // platform/layer_files.hpp
+
+// A file of a layer the resource index answers a key with (layers::indexPath), read when it is opened.
+struct File
+{
+    std::shared_ptr<const Layer> layer;
+    std::string name;
+};
+using Files = std::unordered_map<std::string, File>; // index entry -> file
+} // namespace storm::layers
 
 namespace storm::storage
 {
 namespace fs = std::filesystem;
 
-// The layers laid over the game's files (platform/resource_overlay.hpp, platform/script_patches.hpp). An empty path:
-// the platform has no such layer.
+// The layers laid over the game's files (platform/resource_overlay.hpp, platform/script_patches.hpp). Null: the
+// platform has no such layer.
 struct Layers
 {
-    fs::path mobileUi;      // whole interface scripts and their ini files
-    fs::path engineShaders; // the engine's techniques
-    fs::path scriptPatches; // fixes to the game's scripts
+    std::shared_ptr<const layers::Layer> mobileUi;      // whole interface scripts and their ini files
+    std::shared_ptr<const layers::Layer> engineShaders; // the engine's techniques
+    std::shared_ptr<const layers::Layer> scriptPatches; // fixes to the game's scripts
 };
 
 struct Folders
@@ -35,9 +49,7 @@ struct Folders
     std::vector<std::string> settingsFiles; // lower-case names of files in the game's root kept in `settings`
     fs::path cache;                         // everything the engine derives and can make again
     Layers layers;
-    // Puts the layers back where the system may remove them while the game runs (Android: the app's cache); false when
-    // that failed. Empty where nothing removes them.
-    std::function<bool()> restoreLayers;
+    fs::path uiPack; // the touch interface's pack on desktop (Android reads it from the APK's assets)
 };
 
 // A UTF-8 path from text (std::filesystem::u8path is deprecated; a plain string is not UTF-8 on every platform).

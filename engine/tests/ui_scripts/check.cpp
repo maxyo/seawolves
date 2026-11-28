@@ -6,6 +6,7 @@
 #include "istring.hpp"
 #include "game_profile.hpp"
 #include "logging.hpp"
+#include "platform/layer_files.hpp"
 #include "platform/storage.hpp"
 #include "save_state.hpp"
 #include "script_libriary.h"
@@ -63,7 +64,8 @@ void MakeGame()
     // The fixture game, read only (saves are made in memory), with the interface's layer over it as on a phone.
     const fs::path root = Environment("STORM_UI_TESTS") + "/game";
     fs::current_path(root);
-    storm::storage::select({.game = root, .layers = {.mobileUi = Environment("STORM_UI_LAYER")}});
+    storm::storage::select(
+        {.game = root, .layers = {.mobileUi = storm::layers::directory("mobile-ui", Environment("STORM_UI_LAYER"))}});
     fio->ScanResourcePaths();
 }
 
