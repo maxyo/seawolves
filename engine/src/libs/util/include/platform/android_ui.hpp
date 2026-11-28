@@ -116,21 +116,25 @@ inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall
     return nullptr;
 }
 
-// The engine's fatal error in the app's dialog, in the player's language (GameActivity.showFatalError); returns once
-// the player dismissed it. False (logged) when the activity could not show it.
-inline bool showFatalError(const std::string &reason)
+// An engine error that ends the game, in the app's dialog in the player's language (GameActivity.showEngineError):
+// `title` is a key of the strings tables, `reason` the engine's text. Returns once the player dismissed it; false
+// (logged) when the activity could not show it.
+inline bool showEngineError(const char *title, const std::string &reason)
 {
     const bool shown =
-        CallActivity(upcall::GameActivity::showFatalError, [&](JNIEnv *env, jobject activity, jmethodID method) {
-            const jstring text = javaText(env, reason, "showFatalError");
-            if (!text)
-                return false;
-            env->CallVoidMethod(activity, method, text);
-            env->DeleteLocalRef(text);
-            return true;
+        CallActivity(upcall::GameActivity::showEngineError, [&](JNIEnv *env, jobject activity, jmethodID method) {
+            const jstring key = javaText(env, title, "showEngineError");
+            const jstring text = key ? javaText(env, reason, "showEngineError") : nullptr;
+            if (text)
+                env->CallVoidMethod(activity, method, key, text);
+            if (key)
+                env->DeleteLocalRef(key);
+            if (text)
+                env->DeleteLocalRef(text);
+            return text != nullptr;
         });
     if (!shown)
-        spdlog::error("GameActivity.showFatalError failed: the error is shown in SDL's dialog");
+        spdlog::error("GameActivity.showEngineError failed: the error is shown in SDL's dialog");
     return shown;
 }
 #endif

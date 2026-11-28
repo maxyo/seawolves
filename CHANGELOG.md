@@ -12,8 +12,8 @@
   заново при запуске игры, при возвращении в неё и в тот момент, когда игре понадобился удалённый файл: раньше игра
   замечала только полностью удалённый кэш и могла закончиться ложным сообщением, что скрипт интерфейса «не
   компилируется», а удаление посреди игры завершало её при следующей загрузке.
-- Сообщение об ошибке, на которой игра остановилась, написано на языке игры: раньше его заголовок и пояснение
-  были по-английски.
+- Сообщение об ошибке, на которой игра остановилась, написано на языке игры — и в игре, и при запуске (нет файлов
+  игры, повреждены исправления скриптов, недоступны журналы): раньше его заголовок и пояснение были по-английски.
 - Экран интерфейса, который не смог открыться или сломался посреди работы, больше не закрывает окно игры: до его
   закрытия окно показывается раскладкой по умолчанию с коротким сообщением, а при следующем открытии экран пробует
   снова. Окно, к которому экран не подходит в этой игре, сразу показывается раскладкой по умолчанию. Так же
@@ -244,8 +244,8 @@
   installed again when the game starts, when it comes back and when the game needs a file that was removed: only a
   wholly cleared cache used to be noticed, the game could end with a false message that an interface script "does
   not compile", and a removal during play ended the game at the next load.
-- The message of an error the game stopped on is in the game's language: its title and explanation used to be in
-  English.
+- The message of an error the game stopped on is in the game's language, in play and at start-up (no game files,
+  damaged script fixes, logs unavailable): its title and explanation used to be in English.
 - A screen of the interface that cannot open or breaks while in use no longer closes the game's window: until it is
   closed the window is shown in the default layout with a short note, and the screen is tried again the next time.
   A window a screen does not fit in this game is shown in the default layout at once. So is a screen that would be

@@ -742,6 +742,9 @@
   "host.interface_error": "Erreur de l'interface",
   "host.game_stopped": "Jeu arrêté",
   "host.game_stopped_reason": "Le jeu s'est arrêté sur une erreur et va se fermer. Raison : {1}",
+  "host.logs_unavailable": "Journaux indisponibles",
+  "host.script_fixes_damaged": "Correctifs de scripts endommagés",
+  "host.game_data_required": "Fichiers du jeu requis",
   "plural.form": "one",
   "generic.empty": "Cette fenêtre du jeu n’a rien à toucher du doigt ; fermez-la avec la flèche de l’en-tête."
 }

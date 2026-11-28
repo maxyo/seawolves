@@ -841,10 +841,11 @@ public final class GameActivity extends SDLActivity {
     }
 
     /**
-     * Upcall (game thread): the engine stopped on an error. Its dialog in the game's language, the reason as the engine
-     * wrote it; the game thread waits until the player dismisses it, as with SDL's dialog, and then ends the session.
+     * Upcall (game thread): an engine error that ends the game, at start-up or in play. Its dialog titled by `title` (a
+     * key of the strings tables) in the game's language, or the device's before the game told it, with the reason as
+     * the engine wrote it; the game thread waits until the player dismisses it, as with SDL's dialog.
      */
-    public void showFatalError(String reason) throws InterruptedException {
+    public void showEngineError(String title, String reason) throws InterruptedException {
         CountDownLatch dismissed = new CountDownLatch(1);
         runOnUiThread(
                 () -> {
@@ -855,7 +856,7 @@ public final class GameActivity extends SDLActivity {
                     }
                     MenuText words = new MenuText(this, gameplayState.language);
                     new AlertDialog.Builder(this)
-                            .setTitle(words.get("host.game_stopped"))
+                            .setTitle(words.get(title))
                             .setMessage(words.format("host.game_stopped_reason", reason))
                             .setCancelable(false)
                             .setPositiveButton(android.R.string.ok, null)

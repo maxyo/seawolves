@@ -106,13 +106,17 @@ void RunFrame()
     SessionMarkerResult(sessionMarker.load()->Beat(std::time(nullptr)));
 }
 
-// Every dialog of the engine is logged first (an error one at error level: error.log too), so what the player saw
-// is in the logs.
-void ShowEngineDialog(Uint32 flags, const char *title, const char *text)
+// An error that ends the game at start-up, logged first (error.log too) so what the player saw is in the logs. On
+// Android the app's dialog titles it in the player's language by `key` (strings tables); SDL's shows `title`
+// elsewhere, and on Android when the app's could not be shown (logged).
+void ShowEngineError(const char *title, const char *key, const char *text)
 {
-    spdlog::log(flags & SDL_MESSAGEBOX_ERROR ? spdlog::level::err : spdlog::level::warn, "dialog \"{}\": {}", title,
-                text);
-    if (SDL_ShowSimpleMessageBox(flags, title, text, nullptr) != 0)
+    spdlog::error("dialog \"{}\": {}", title, text);
+#ifdef __ANDROID__
+    if (storm::android::showEngineError(key, text))
+        return;
+#endif
+    if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, text, nullptr) != 0)
         spdlog::error("cannot show the dialog \"{}\": {}", title, SDL_GetError());
 }
 
@@ -133,7 +137,7 @@ void ReportFatalError(const char *what)
 #ifdef __ANDROID__
     // The app's dialog speaks the player's language; SDL's below is the desktop's, and Android's only when the app's
     // could not be shown (logged).
-    if (storm::android::showFatalError(what))
+    if (storm::android::showEngineError("host.game_stopped", what))
         return;
 #endif
     // SDL's Android bridge shows a Java dialog and waits for dismissal
@@ -436,7 +440,7 @@ bool StartLogs()
     catch (const std::exception &error)
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Logs unavailable: %s", error.what()); // no log file to write
-        ShowEngineDialog(SDL_MESSAGEBOX_ERROR, "Logs unavailable", error.what());
+        ShowEngineError("Logs unavailable", "host.logs_unavailable", error.what());
         return false;
     }
 }
@@ -547,11 +551,11 @@ bool PrepareGame([[maybe_unused]] const CommandLine &command)
     }
     catch (const storm::script_patches::LayerError &error)
     {
-        ShowEngineDialog(SDL_MESSAGEBOX_ERROR, "Damaged script fixes", error.what());
+        ShowEngineError("Damaged script fixes", "host.script_fixes_damaged", error.what());
     }
     catch (const std::exception &error)
     {
-        ShowEngineDialog(SDL_MESSAGEBOX_ERROR, "Game data required", error.what());
+        ShowEngineError("Game data required", "host.game_data_required", error.what());
     }
     return false;
 }

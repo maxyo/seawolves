@@ -115,7 +115,7 @@
       ["GameActivity", "restoreLayers", "()V"],
       ["GameActivity", "showCinematic", "(Z)V"],
       ["GameActivity", "showDialogue", "(Z)V"],
-      ["GameActivity", "showFatalError", "(Ljava/lang/String;)V"],
+      ["GameActivity", "showEngineError", "(Ljava/lang/String;Ljava/lang/String;)V"],
       ["GameActivity", "showGameplayState", "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZJ)V"],
       ["GameActivity", "showLoading", "(Z)V"],
       ["GameActivity", "showMobileScreen", "(Ljava/lang/String;)V"],

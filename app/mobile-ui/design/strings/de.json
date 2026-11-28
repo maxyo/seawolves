@@ -742,6 +742,9 @@
   "host.interface_error": "Fehler der Oberfläche",
   "host.game_stopped": "Spiel angehalten",
   "host.game_stopped_reason": "Das Spiel wurde wegen eines Fehlers angehalten und wird geschlossen. Grund: {1}",
+  "host.logs_unavailable": "Protokolle nicht verfügbar",
+  "host.script_fixes_damaged": "Skriptkorrekturen beschädigt",
+  "host.game_data_required": "Spieldateien erforderlich",
   "plural.form": "one",
   "generic.empty": "Dieses Spielfenster hat nichts, was ein Finger erreichen kann; schließen Sie es mit dem Pfeil in der Kopfzeile."
 }

@@ -742,6 +742,9 @@
   "host.interface_error": "Interface error",
   "host.game_stopped": "Game stopped",
   "host.game_stopped_reason": "The game stopped on an error and will close. The reason: {1}",
+  "host.logs_unavailable": "Logs unavailable",
+  "host.script_fixes_damaged": "Script fixes damaged",
+  "host.game_data_required": "Game files required",
   "plural.form": "one",
   "generic.empty": "This game window has nothing a finger can reach; close it with the arrow in the header."
 }

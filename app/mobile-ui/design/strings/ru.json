@@ -742,6 +742,9 @@
   "host.interface_error": "Ошибка интерфейса",
   "host.game_stopped": "Игра остановлена",
   "host.game_stopped_reason": "Игра остановилась из-за ошибки и закроется. Причина: {1}",
+  "host.logs_unavailable": "Журналы недоступны",
+  "host.script_fixes_damaged": "Исправления скриптов повреждены",
+  "host.game_data_required": "Нужны файлы игры",
   "plural.form": "slavic",
   "generic.empty": "В этом окне игры нечего нажать пальцем; закройте его стрелкой в заголовке."
 }
