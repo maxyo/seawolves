@@ -178,6 +178,8 @@ void TouchSaves_Question(aref ui, aref game, aref state)
 		// Once while the question stays.
 		if (!sti(state.answered)) TouchAdpSaves_Answer(ui, true);
 		state.answered = true;
+		// A step of the load the player asked for: the list stays as it was until the load's cover.
+		UiAwait();
 		return;
 	}
 	aref confirm;

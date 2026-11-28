@@ -1153,6 +1153,29 @@ TEST_CASE("the save list's script gives the pack screen the props and actions of
     CheckCases("saves", "saves");
 }
 
+TEST_CASE("a load asked for from the title answers the game's question and keeps the list as it was")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/saves.json"));
+    const auto spec = PackScreen("saves");
+    const auto &screen = Screen(vm, "saves");
+    Calls calls(*spec);
+    calls.notes["saves"] = storm::ui::ViewTree{"", "", {{"from", "title", {}}}};
+    storm::ui::InterfaceModel model;
+    REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases").at(0).at("model").dump(), model));
+    calls.widgets = model.widgets;
+    port.Build(screen, calls.Single(), calls);
+    port.Event(screen, "primary", "click", "", calls); // the chosen record, the one the question is about
+    REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases").at(3).at("model").dump(), model));
+    calls.widgets = model.widgets;
+    calls.first = false;
+    calls.calls.clear();
+    port.Build(screen, calls.Single(), calls);
+    CHECK(calls.calls == std::vector<std::string>{"send CONFIRM_YES press ", "await"});
+}
+
 TEST_CASE("the settings' script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("settings", "settings");
