@@ -82,31 +82,58 @@ static void Admission_()
     Expect(Hidden(Make("EMPTY", "text")) && !Hidden(Make("NAME", "edit")), "empty text hidden, empty edit shown");
 }
 
+// What a button is to the generic layout, by its node and caption in every shipped language: the exit is the
+// header's ←, a confirm the primary, a danger apart on the left, anything else secondary.
 static void Roles()
 {
-    Expect(RoleOf(Make("EXIT_BTN", "button", "x")) == ButtonRole::Exit, "EXIT* node is the exit");
-    Expect(RoleOf(Make("B1", "button", "Отмена")) == ButtonRole::Exit, "«Отмена» is the exit");
-    Expect(RoleOf(Make("B_OK", "button", "Дальше")) == ButtonRole::Confirm, "*_OK node confirms");
-    Expect(RoleOf(Make("B2", "button", "Готово")) == ButtonRole::Confirm, "«Готово» confirms");
-    Expect(RoleOf(Make("B3", "button", "Удалить запись")) == ButtonRole::Danger, "«Удалить» is dangerous");
-    Expect(RoleOf(Make("I_SHIP_2", "button", "Корабль")) == ButtonRole::Section &&
-               SectionOf(Make("I_SHIP_2", "button")) == "ship",
-           "section navigation");
-    Expect(RoleOf(Make("B4", "button", "Подробнее")) == ButtonRole::Other, "anything else is secondary");
-    // One case per shipped language (en is covered by the checks of the shared words above).
-    Expect(RoleOf(Make("B5", "button", "Zurück")) == ButtonRole::Exit, "de: «Zurück» is the exit");
-    Expect(RoleOf(Make("B6", "button", "Bestätigen")) == ButtonRole::Confirm, "de: «Bestätigen» confirms");
-    Expect(RoleOf(Make("B7", "button", "Eintrag löschen")) == ButtonRole::Danger, "de: «löschen» is dangerous");
-    Expect(RoleOf(Make("B8", "button", "Cancelar")) == ButtonRole::Exit, "es: «Cancelar» is the exit");
-    Expect(RoleOf(Make("B9", "button", "Sí")) == ButtonRole::Confirm, "es: «Sí» confirms");
-    Expect(RoleOf(Make("B10", "button", "Eliminar partida")) == ButtonRole::Danger, "es: «Eliminar» is dangerous");
-    Expect(RoleOf(Make("B11", "button", "Annuler")) == ButtonRole::Exit, "fr: «Annuler» is the exit");
-    Expect(RoleOf(Make("B12", "button", "Terminé")) == ButtonRole::Confirm, "fr: «Terminé» confirms");
-    Expect(RoleOf(Make("B13", "button", "Supprimer la sauvegarde")) == ButtonRole::Danger,
-           "fr: «Supprimer» is dangerous");
-    Expect(RoleOf(Make("B14", "button", "Indietro")) == ButtonRole::Exit, "it: «Indietro» is the exit");
-    Expect(RoleOf(Make("B15", "button", "Conferma")) == ButtonRole::Confirm, "it: «Conferma» confirms");
-    Expect(RoleOf(Make("B16", "button", "Elimina partita")) == ButtonRole::Danger, "it: «Elimina» is dangerous");
+    FakeSurface surface;
+    Router router(surface);
+    Scripted(router);
+    const auto role = [&](const char *node, const char *label) {
+        InterfaceModel model;
+        model.screen = "mod_roles";
+        model.opening = 1;
+        model.widgets = {Make("T", "text", "Выберите"), Make(node, "button", label, {"press"}),
+                         Make("B_X", "button", "Подробнее", {"press"})};
+        router.SetInterface(model);
+        if (!surface.props["danger"].is_null() && surface.props["danger"]["id"] == node)
+            return std::string("danger");
+        for (const Json &action : surface.props["actions"])
+            if (action["id"] == node)
+                return std::string(action["variant"] == "primary" ? "confirm" : "other");
+        if (surface.props["extras"]["rows"].size() == 1 &&
+            surface.props["extras"]["rows"][0]["id"] == std::string("extra-") + node)
+            return std::string("section");
+        router.OnEvent({"header-back", "click", ""});
+        return std::string(surface.Last() == std::string("widget:mod_roles\t") + node + "\t-1\tpress" ? "exit"
+                                                                                                      : "none");
+    };
+    const std::pair<std::pair<const char *, const char *>, const char *> cases[] = {
+        {{"EXIT_BTN", "x"}, "exit"},
+        {{"B1", "Отмена"}, "exit"},
+        {{"B_OK", "Дальше"}, "confirm"},
+        {{"B2", "Готово"}, "confirm"},
+        {{"B3", "Удалить запись"}, "danger"},
+        {{"I_SHIP_2", "Корабль"}, "section"},
+        {{"B4", "Подробнее"}, "other"},
+        {{"B5", "Zurück"}, "exit"},
+        {{"B6", "Bestätigen"}, "confirm"},
+        {{"B7", "Eintrag löschen"}, "danger"},
+        {{"B8", "Cancelar"}, "exit"},
+        {{"B9", "Sí"}, "confirm"},
+        {{"B10", "Eliminar partida"}, "danger"},
+        {{"B11", "Annuler"}, "exit"},
+        {{"B12", "Terminé"}, "confirm"},
+        {{"B13", "Supprimer la sauvegarde"}, "danger"},
+        {{"B14", "Indietro"}, "exit"},
+        {{"B15", "Conferma"}, "confirm"},
+        {{"B16", "Elimina partita"}, "danger"},
+        {{"B_DELETE", "Стереть"}, "danger"}};
+    for (const auto &[button, expected] : cases)
+        ExpectEqual(role(button.first, button.second), expected,
+                    std::string(button.first) + " «" + button.second + "» is " + expected);
+    Expect(surface.errors.empty(), "the roles' windows draw without errors: " +
+                                       (surface.errors.empty() ? std::string("none") : surface.errors[0]));
 }
 
 static void Commands()
@@ -148,6 +175,7 @@ static void Predictions(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel model = Load(models, "generic-settings.json");
     router.SetInterface(model);
     const auto toggle = [&]() -> const Json & { return surface.props["left"][0]["rows"][0]; };
@@ -194,12 +222,13 @@ static void Predictions(const std::string &models)
            "a refusal ends the prediction at once (the refusal is the log's line)");
     surface.errors.clear();
 
-    // An event whose handler asks the game nothing predicts nothing (the screen's own state is its result).
-    Json view =
-        Json{{"rows", Json::array({Json{{"id", "a"}, {"selected", true}}, Json{{"id", "b"}, {"selected", false}}})}};
-    Expect(Bindings::Patch(view, "a", "on", true) && view["rows"][0]["on"] == true &&
-               !Bindings::Patch(view, "nobody", "on", true),
-           "Patch sets the field of the object with that id, and says when there is none");
+    // The segment's option is drawn chosen in the tap's frame too.
+    const auto segment = [&]() -> const Json & { return surface.props["left"][0]["rows"][2]; };
+    router.OnEvent({segment()["id"], "change", "0"});
+    Expect(segment()["selected"] == 0 && router.Predicted() == 4, "the chosen option is drawn chosen at once");
+    AnswerAll(router, surface, false, "locked");
+    Expect(segment()["selected"] == 1, "refused: the game's option again");
+    surface.errors.clear();
 }
 
 // A hero section tapped in the header is selected in the tap's frame. Its press ends the interface and the next
@@ -256,16 +285,22 @@ static void Generic(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     router.SetInterface(Load(models, "generic-split.json"));
     ExpectEqual(router.Using(), "generic", "unknown interface → generic layout");
     Expect(router.Rejection().empty() && surface.errors.empty(),
-           "an unknown interface in the generic layout is no error");
-    Expect(surface.logs.size() == 1 &&
-               surface.logs[0].rfind("screen mod_bounty: no ported screen, generic layout; nodes=TITLE,TABLE_TARGETS",
-                                     0) == 0,
+           "an unknown interface in the generic layout is no error: " +
+               (surface.errors.empty() ? std::string("none") : surface.errors[0]));
+    Expect(std::count_if(surface.logs.begin(), surface.logs.end(),
+                         [](const std::string &line) {
+                             return line.rfind("screen mod_bounty: no ported screen, generic layout; nodes=TITLE,"
+                                               "TABLE_TARGETS",
+                                               0) == 0;
+                         }) == 1,
            "generic use is logged once with the node set");
+    const size_t logs = surface.logs.size();
     router.SetInterface(Load(models, "generic-split.json"));
-    Expect(surface.logs.size() == 1, "the same node set is not logged again");
+    Expect(surface.logs.size() == logs, "the same node set is not logged again");
     Expect(!router.OnEvent({"nobody", "click", ""}) && surface.errors.size() == 1 &&
                surface.errors[0] == "screen generic: no mapping for event nobody click ",
            "an event without a mapping is an error");
@@ -273,28 +308,32 @@ static void Generic(const std::string &models)
     ExpectEqual(surface.tag, "s-generic", "generic screen mounted");
     ExpectEqual(surface.props.value("layout", ""), "split", "table + long text → Split");
     ExpectEqual(surface.props.value("title", ""), "Доска розыска", "heading → title");
-    Expect(surface.props["left"].size() == 1 && surface.props["left"][0]["kind"] == "table", "main block is the table");
-    Expect(surface.props["left"][0]["rows"].size() == 5 && surface.props["left"][0]["rows"][4]["disabled"] == true,
-           "disabled row keeps its reason");
+    Expect(surface.props["left"].size() == 1 && surface.props["left"][0]["kind"] == "table" &&
+               surface.props["left"][0]["id"] == "TABLE_TARGETS",
+           "main block is the table, by its node");
+    Expect(surface.props["left"][0]["rows"].size() == 5 && surface.props["left"][0]["rows"][4]["disabled"] == true &&
+               surface.props["left"][0]["rows"][2]["id"] == "t2",
+           "rows by their identity; a disabled row keeps its reason");
     Expect(surface.props["right"].size() == 1 && surface.props["right"][0]["paragraphs"].size() == 2,
            "detail = the text, two paragraphs");
     Expect(surface.props["actions"].size() == 2 && surface.props["actions"][1]["variant"] == "primary" &&
-               surface.props["actions"][1]["label"] == "Взять",
-           "«Взять» is the primary, bottom-right");
+               surface.props["actions"][1]["label"] == "Взять" && surface.props["actions"][1]["id"] == "B_TAKE",
+           "«Взять» is the primary, bottom-right, by its node");
     Expect(surface.props["extras"]["actions"].empty(), "no «⋯» without overflow");
 
-    Expect(router.OnEvent({"g0", "row", "2"}), "table row event is bound");
+    Expect(router.OnEvent({"TABLE_TARGETS", "row", "t2"}), "table row event is bound");
     ExpectEqual(surface.Last(), "widget:mod_bounty\tTABLE_TARGETS\t2\tselect@7:t2", "row tap selects by row identity");
-    router.OnEvent({"g0", "row", "4"});
+    router.OnEvent({"TABLE_TARGETS", "row", "t4"});
     Expect(surface.commands.size() == 1, "a row without verbs sends nothing");
-    router.OnEvent({"g-primary", "click", ""});
+    Expect(surface.props["left"][0]["rows"].size() == 5, "the table keeps its rows after a tap");
+    router.OnEvent({"B_TAKE", "click", ""});
     ExpectEqual(surface.Last(), "widget:mod_bounty\tB_TAKE\t-1\tpress", "primary presses its button");
     Expect(surface.props["actions"][1]["busy"] == true, "pressed button is busy until the next revision");
     InterfaceModel next = Load(models, "generic-split.json");
     next.revision = 2;
     router.SetInterface(next);
     Expect(surface.props["actions"][1]["busy"] == false, "next revision clears busy");
-    router.OnEvent({"g-primary", "click", ""});
+    router.OnEvent({"B_TAKE", "click", ""});
     Expect(surface.props["actions"][1]["busy"] == true && surface.actions.back().request != 0,
            "a widget press carries a request and looks busy");
     AnswerAll(router, surface, true);
@@ -302,27 +341,29 @@ static void Generic(const std::string &models)
     router.SetInterface(next); // the engine sends the model again after its answer, unchanged here
     Expect(surface.props["actions"][1]["busy"] == false,
            "the model after the answer ends busy, without a new revision");
-    router.OnEvent({"g-primary", "click", ""});
+    router.OnEvent({"B_TAKE", "click", ""});
     AnswerAll(router, surface, false, "the button cannot be pressed now");
     Expect(surface.props["actions"][1]["busy"] == false && !surface.logs.empty() &&
                surface.logs.back().find("cannot be pressed") != std::string::npos,
            "a refusal ends busy at once and is logged");
     const size_t errors_before = surface.errors.size();
-    router.OnEvent({"g-primary", "click", ""});
+    router.OnEvent({"B_TAKE", "click", ""});
     surface.now = 6.0;
     router.Tick();
     Expect(surface.props["actions"][1]["busy"] == false && surface.errors.size() == errors_before + 1,
            "no answer within 5 s is an error, and the press stops looking busy");
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), "widget:mod_bounty\tEXIT_BTN\t-1\tpress", "← presses the exit button");
+    surface.errors.clear();
 
     router.SetInterface(Load(models, "generic-settings.json"));
     ExpectEqual(surface.props.value("layout", ""), "settings", "controls only → Settings");
     const Json rows = surface.props["left"][0]["rows"];
     Expect(rows.size() == 6, "two toggles, one segment, slider, field, stepper");
+    Expect(rows[0]["id"] == "CHECK_OPTIONS:0" && rows[2]["id"] == "CHECK_DIFF", "rows by their nodes");
     Expect(rows[2]["kind"] == "segment" && rows[2]["label"] == "Сложность" && rows[2]["selected"] == 1,
            "radio group → segment named by the preceding text");
-    Expect(rows[3]["kind"] == "slider" && rows[3]["value"] == 60, "slider shows percent of its range");
+    Expect(rows[3]["kind"] == "slider" && rows[3]["value"] == "60", "slider shows percent of its range");
     Expect(surface.props["danger"]["label"] == "Удалить настройки", "danger button on the left");
     const std::string prefix = "widget:mod_options\t";
     router.OnEvent({rows[0]["id"], "change", "0"});
@@ -359,6 +400,47 @@ static void Generic(const std::string &models)
     Expect(surface.props["extras"]["open"] == false, "the sheet closes after an action");
     router.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface.Last(), "back", "no exit button → global back");
+
+    // The ‹ › of a window are a switch of what it shows, not actions: its other buttons keep the bar.
+    InterfaceModel pick;
+    pick.screen = "mod_pick";
+    pick.opening = 4;
+    pick.widgets = {Make("HERO_NAME", "text", "Капитан"), Make("LEFTCHANGE_HERO", "button", "‹", {"press"}),
+                    Make("RIGHTCHANGE_HERO", "button", "›", {"press"}),
+                    Make("BTN_START1", "button", "Сюжет", {"press"}),
+                    Make("BTN_START2", "button", "Песочница", {"press"})};
+    router.SetInterface(pick);
+    Expect(surface.props["actions"].size() == 2 && surface.props["actions"][0]["id"] == "BTN_START1" &&
+               surface.props["extras"]["rows"].empty(),
+           "both start buttons in the bar, nothing under «⋯»");
+    router.OnEvent({"LEFTCHANGE_HERO-right", "click", ""});
+    ExpectEqual(surface.Last(), "widget:mod_pick\tRIGHTCHANGE_HERO\t-1\tpress", "the switch's › presses its button");
+
+    // Pictures the player presses with their words in another node: tabs.
+    InterfaceModel tabs;
+    tabs.screen = "mod_tabs";
+    tabs.opening = 5;
+    Widget first = Make("TABBTN_1", "image", "", {"press"}), second = Make("TABBTN_2", "image", "", {"press"});
+    first.value = "1";
+    second.value = "0";
+    tabs.widgets = {Make("TABSTR_1", "text", "Все"), Make("TABSTR_2", "text", "Эликсиры"), first, second,
+                    Make("INFO", "text", "Описание")};
+    router.SetInterface(tabs);
+    const Json tab = surface.props["left"][0];
+    Expect(tab["kind"] == "tabs" && tab["items"].size() == 2 && tab["items"][1]["label"] == "Эликсиры" &&
+               tab["items"][0]["selected"] == true,
+           "picture tabs take their words from their text nodes");
+    router.OnEvent({tab["id"], "select", "1"});
+    ExpectEqual(surface.Last(), "widget:mod_tabs\tTABBTN_2\t-1\tpress", "a tab presses its picture");
+
+    // A window of nothing the engine models says so; ← leaves it.
+    InterfaceModel none;
+    none.screen = "mod_none";
+    none.opening = 6;
+    router.SetInterface(none);
+    Expect(surface.props["left"].size() == 1 && surface.props["left"][0]["paragraphs"].size() == 1 &&
+               surface.errors.empty(),
+           "an empty window is not blank");
 
     // Section buttons of an interface with no ported screen are rows of «Прочее»; their
     // captions leave the content.
@@ -3466,6 +3548,7 @@ struct LauncherRun
         game.screen = "about";
         game.opening = 1;
         game.revision = 1;
+        Scripted(router);
         router.SetInterface(game);
         Expect(router.Using() == "generic", "the game's about interface is not the application's about screen");
     }

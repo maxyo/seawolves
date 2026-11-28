@@ -739,5 +739,6 @@
   "host.settings_not_saved": "Graphics settings were not saved",
   "host.cache_clear_not_marked": "The cache could not be marked for clearing",
   "host.interface_error": "Interface error",
-  "plural.form": "one"
+  "plural.form": "one",
+  "generic.empty": "This game window has nothing a finger can reach; close it with the arrow in the header."
 }

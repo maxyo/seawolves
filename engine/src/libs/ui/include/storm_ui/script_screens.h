@@ -33,6 +33,11 @@ struct ViewTree
 
 // The interface of a HUD scene's entry in scripts.json: no game interface; the scene draws a gameplay mode's HUD.
 inline constexpr char kHudInterface[] = "hud";
+// The interfaces of the universal screens (scripts.json `screens` with these interfaces, no nodes): the generic layout
+// draws every game interface no other screen draws, from the engine's model alone; the Other sheet lists what a
+// screen does not draw of its interface. Both are given the widgets they lay out, nothing is admitted by name.
+inline constexpr char kAnyInterface[] = "*";
+inline constexpr char kOtherInterface[] = "*other";
 
 // A screen provided by a script segment: the capability it stands for, the game interface it draws, the pack screen
 // it fills and the nodes it reads; `script` is the stem of the screen's file (its events name it), `look` the

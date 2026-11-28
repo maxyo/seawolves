@@ -630,7 +630,8 @@ void FillOffers(ATTRIBUTES &at, const storm::ui::Widget &widget)
             offers.SetAttribute(verb, "1");
 }
 
-// A table row: <model>.<node>.rows.r<index>.{index, id, label, value, enabled, reason, offers.<verb>,
+// A table row: <model>.<node>.rows.r<index>.{index, id, label, value, enabled, reason, offers.<verb>, listed (the
+// engine lists its verbs: they act on the row's identity), exclusive (an option of a radio group),
 // cells.c<column>.{text, color, images}, images, context.<key>}; a cell's color is the game's RGB as six hex digits.
 void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
 {
@@ -641,6 +642,9 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
     row.SetAttribute("value", widget.value);
     row.SetAttribute("enabled", widget.enabled ? "1" : "0");
     row.SetAttribute("reason", widget.unavailable_reason);
+    row.SetAttribute("listed", widget.actions.empty() ? "0" : "1");
+    if (widget.exclusive)
+        row.SetAttribute("exclusive", "1");
     FillOffers(row, widget);
     size_t columns = widget.column_headers.size();
     for (const storm::ui::Cell &cell : widget.cells)
@@ -665,9 +669,9 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
         Child(row, "context").SetAttribute(key, value);
 }
 
-// The admitted widgets as <model>.<node>.{type, label, value, min, max, step, reason, offers.<verb>, context.<key>,
-// headers.c<column>, images (a node's own), rows}: a node's first widget stands for it, its widgets with an index are
-// its rows (FillRow).
+// The admitted widgets as <model>.<node>.{node (its name as the game writes it), type, label, value, min, max, step,
+// reason, offers.<verb>, context.<key>, headers.c<column>, images (a node's own), rows}: a node's first widget stands
+// for it, its widgets with an index are its rows (FillRow).
 void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &widgets)
 {
     for (const storm::ui::Widget *widget : widgets)
@@ -676,6 +680,7 @@ void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &
         if (!node)
         {
             node = &model.CreateAttribute(widget->node);
+            node->SetAttribute("node", widget->node); // an attribute's name keeps the case it was first seen with
             node->SetAttribute("type", widget->type);
             node->SetAttribute("label", widget->label);
             node->SetAttribute("value", widget->value);

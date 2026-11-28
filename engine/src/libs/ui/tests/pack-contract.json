@@ -132,7 +132,9 @@
     {"name": "about-restore-conflict", "states": ["launcher=states/about-restore-conflict.json"], "covers": ["app:about"]},
     {"name": "about-restore-conflict-many", "states": ["launcher=states/about-restore-conflict-many.json"], "covers": ["app:about"]},
     {"name": "about-restore-error", "states": ["launcher=states/about-restore-error.json"], "covers": ["app:about"]},
-    {"name": "about-restore-done", "states": ["launcher=states/about-restore-done.json"], "covers": ["app:about"]}
+    {"name": "about-restore-done", "states": ["launcher=states/about-restore-done.json"], "covers": ["app:about"]},
+    {"name": "generic-split", "interface": "models/generic-split.json", "covers": ["generic"]},
+    {"name": "rest-other", "interface": "models/rest-other.json", "covers": ["other"]}
   ],
   "uncovered": {},
   "flows": [

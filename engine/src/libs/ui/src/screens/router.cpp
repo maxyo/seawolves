@@ -621,8 +621,8 @@ void Router::CloseOnDefect(const std::string &line, bool logged)
     surface_.Send(back);
 }
 
-Router::Router(Surface &surface, std::span<const ScreenEntry> screens, std::unique_ptr<Screen> (*generic)())
-    : surface_(surface), screens_(screens), generic_(generic), bindings_(*this), consumers_(CreateStateConsumers())
+Router::Router(Surface &surface, std::span<const ScreenEntry> screens)
+    : surface_(surface), screens_(screens), bindings_(*this), consumers_(CreateStateConsumers())
 {
 }
 
@@ -707,7 +707,22 @@ void Router::SetScriptScreens(ScriptScreens screens)
         return std::ranges::any_of(list, [this](const auto &entry) { return entry.first == model_.screen; });
     };
     // The open interface's screen comes from another implementation now (the script program was replaced).
-    const bool open = !model_.screen.empty() && (scripted(script_screens_) || scripted(screens));
+    // The universal screens: the generic layout (drawing the open interface when no other screen does) and the Other
+    // sheet (of every other screen) are rebuilt with the program too.
+    const bool open =
+        !model_.screen.empty() && (scripted(script_screens_) || scripted(screens) || using_ == "generic" || other_);
+    generic_ = nullptr;
+    other_make_ = nullptr;
+    other_.reset();
+    std::erase_if(screens, [this](auto &entry) {
+        if (entry.first == kAnyInterface)
+            generic_ = std::move(entry.second);
+        else if (entry.first == kOtherInterface)
+            other_make_ = std::move(entry.second);
+        else
+            return false;
+        return true;
+    });
     script_screens_ = std::move(screens);
     if (!open)
         return;
@@ -919,20 +934,34 @@ void Router::BuildView()
     rejection_.clear();
     if (!create)
     {
+        if (!generic_)
+        {
+            // Not quietly blank: the generic layout's script did not attach (the start reports why).
+            CloseOnDefect("interface " + model_.screen +
+                              ": no screen draws it and no generic layout is attached; the "
+                              "interface is closed (the engine's back)",
+                          !logged_.insert("no generic:" + model_.screen).second);
+            return;
+        }
         if (using_ != "generic" || !screen_)
         {
             screen_ = generic_();
             using_ = "generic";
         }
         admitted = Admit(model_, screen_->Nodes());
+        // The generic layout lays out every widget shown, and the pictures the game lets the player press: a picture
+        // without a caption of its own (a tab whose words are another node, an arrow) is still a control there.
+        admitted.known.clear();
+        for (const Widget &widget : model_.widgets)
+            if (!Hidden(widget) || (widget.type == "image" && widget.Offers("press")))
+                admitted.known.push_back(&widget);
         if (const std::string list = nodes(); logged_.insert("generic:" + model_.screen + ":" + list).second)
             surface_.Log("screen " + model_.screen +
                          ": no ported screen, generic layout; nodes=" + (list.empty() ? std::string("none") : list));
     }
     Json view = screen_->Build(admitted, bindings_);
     // The generic layout places every widget itself and hands over only its overflow rows.
-    Json rows = view.contains("more") ? view["more"] : Json::array();
-    view.erase("more");
+    Json rows = view.contains("extras") && view["extras"].contains("rows") ? view["extras"]["rows"] : Json::array();
     view["extras"] = ExtrasView(admitted, std::move(rows));
     built_ = view;
     Predict(view);
@@ -1126,34 +1155,29 @@ void Router::Predict(Json &view)
 Json Router::ExtrasView(const Admission &admitted, Json rows)
 {
     std::string note, nodes;
-    std::vector<const Widget *> controls;
-    const auto flush = [&] {
-        if (!controls.empty())
-            ControlRows(bindings_, controls, "extra-c" + std::to_string(rows.size()) + "-", std::vector<std::string>(),
-                        rows);
-        controls.clear();
-    };
-    const bool generic = screen_->Nodes().empty();
-    for (const Widget *widget : admitted.extras)
+    if (using_ != "generic")
     {
-        if (generic)
-            break;
-        nodes += (nodes.empty() ? "" : ", ") + widget->node;
-        if (widget->type == "text" || widget->type == "heading")
+        Admission other;
+        other.model = admitted.model;
+        for (const Widget *widget : admitted.extras)
         {
-            note += (note.empty() ? "" : "\n") + widget->label;
-            continue;
+            nodes += (nodes.empty() ? "" : ", ") + widget->node;
+            other.known.push_back(widget);
         }
-        if (widget->type == "check" || widget->type == "edit" || widget->type == "slider" || widget->type == "stepper")
+        if (!other.known.empty())
         {
-            controls.push_back(widget);
-            continue;
+            if (!other_make_)
+                throw std::runtime_error("the game's " + nodes +
+                                         " are not drawn by the screen and no Other sheet is "
+                                         "attached");
+            if (!other_)
+                other_ = other_make_();
+            const Json sheet = other_->Build(other, bindings_).value("extras", Json::object());
+            for (const Json &row : sheet.value("rows", Json::array()))
+                rows.push_back(row);
+            note = sheet.value("note", std::string());
         }
-        flush();
-        if (widget->type == "button" || widget->type == "choice" || widget->type == "image")
-            rows.push_back(ActionRow(bindings_, *widget, "extra-a" + std::to_string(rows.size())));
     }
-    flush();
     if (!nodes.empty() && logged_.insert("extras:" + model_.screen + ":" + nodes).second)
         surface_.Log("screen " + model_.screen + ": the game's " + nodes +
                      " are not drawn by the screen: offered in its Other sheet");
@@ -1240,8 +1264,8 @@ bool Router::OnEvent(const Event &event)
         return true; // Failed closed the interface
     current_ = nullptr;
     std::optional<Json> predicted = std::exchange(bindings_.handled_, std::nullopt);
-    if (predicted && !predicted->contains("extras") && built_.contains("extras"))
-        (*predicted)["extras"] = built_["extras"]; // the router's part of the view, which a screen's view lacks
+    if (predicted && built_.contains("extras"))
+        (*predicted)["extras"] = built_["extras"]; // the router's part of the view, which a screen does not predict
     if (!predicted && declared && screen_)
     {
         predicted = built_;
@@ -1255,7 +1279,7 @@ bool Router::OnEvent(const Event &event)
     if (sent_in_event_)
     {
         // An action row of the «Прочее» sheet closes it, as a menu does.
-        if (event.id.rfind("extra-a", 0) == 0)
+        if (event.id.rfind("extra-", 0) == 0)
             extras_open_ = false;
         const bool answers = MarkOpen(event.id, event.value);
         pending_.push_back({event.id, event.value, model_.revision,

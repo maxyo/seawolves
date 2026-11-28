@@ -1,6 +1,6 @@
 {
   "tag": "s-control",
-  "doc": "Screen part: one row built by controls.cpp from a widget — action, toggle, radio, segment, slider, stepper or field.",
+  "doc": "Screen part: one row of the generic layout or the Other sheet (interface/touch/universal/generic.c) — action, toggle, radio, segment, slider, stepper or field.",
   "props": {
     "row": {"type": "json", "default": {}},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}

@@ -27,9 +27,11 @@ mechanically: a reviewer does.
 | `lineages/<lineage>/lib.c` | what that lineage's adapters share (table cells, the amount window, tabs) | game, lib, core |
 | `screens/<family>/<screen>.c`, `screens/<screen>.c` | the shared screens | contracts, lib, core |
 | `hud/<scene>.c` | the HUD scenes of the gameplay modes (below, "HUD scenes") | contracts, lib, core |
+| `universal/generic.c` | the generic layout of any window no other screen draws, and every screen's Other sheet: from the engine's model alone (below, "The universal screens") | lib, core |
 
-`build.py --check` enforces the layers: a shared layer calls natives, `TouchLib_*`, the contracts it uses and a short
-list of built-ins; it reads no model (`.model`), names no game and writes into no object that is not its own. Not made
+`build.py --check` enforces the layers: a shared layer (all but `lineages/` and `games/`) calls natives, `TouchLib_*`, the contracts it uses and a short
+list of built-ins; it reads no model (`.model`; `universal/` does, and names no node of a game's own), names no game
+and writes into no object that is not its own. Not made
 yet: `games/<game>/` (a game's own screens), the `cl` lineage.
 
 ## Names
@@ -85,9 +87,10 @@ not send are string keys (`UiText`) of `../../../design/strings/<lang>.json`, ev
 ## The runtime
 
 Each capability has its object `ui` = `UiScreens.<capability>`: `capability`, `screen` (the screen file's stem), `look`,
-`data`, `model` (the admitted widgets of its last build: `<NODE>.{type, label, value, min, max, step, reason, offers.<verb>,
-context, headers, images (a node without rows), rows.r<index>.{index, id, label, value, reason, offers, images,
-cells.c<n>.{text, color, images}}}`; an image is `i<n>.{kind, group, image, uv}`, copied whole into a view's
+`data`, `model` (the admitted widgets of its last build: `<NODE>.{node (the name as the game writes it), type, label,
+value, min, max, step, reason, offers.<verb>, context, headers, images (a node without rows), rows.r<index>.{index, id,
+label, value, enabled, reason, offers, listed (the engine lists the row's verbs: they act on its id), exclusive (an
+option of a radio group), images, cells.c<n>.{text, color, images}}}`; an image is `i<n>.{kind, group, image, uv}`, copied whole into a view's
 `picture` or `texture`). The
 events are `UiBuild(ui)` and `UiTap(ui, id, verb, value)`, raised to every screen: a screen's handler starts with
 `aref ui = GetEventData(); if (ui.screen != "<stem>") return;`. Only adapters read `ui.model`; the screen hands `ui` to
@@ -181,6 +184,18 @@ engine's states'. The revisions and generations a command carries are the runtim
   shows (a sheet row by its `id`): drawn until the game has answered; a second map tap meanwhile, or one on an element
   not drawn as built, sends nothing. A menu row chosen is selected and then activated as the engine wants; a travel
   place activated hides the HUD until the game's scene change.
+
+## The universal screens
+
+`universal/generic.c` draws what no screen of a capability draws: the generic layout (capability `generic`, interface
+`*`) of a game window without a screen, and the Other sheet (`other`, interface `*other`) of every screen: the widgets
+of its window it does not draw. Both are core (the start stops without them: every unknown window depends on them) and
+read only the model: widget types, captions, verbs, and the conventions of the engine's windows (exit and confirm
+buttons by node and caption in the six languages, the hero's section buttons, a picture tab named by `<node>_STR`).
+An element's id is its node's name (a row's `<node>:<row id>`, the sheet's `extra-<node>`); a tap sends the node's own
+verb. The layout: blocks of a kind (table, list, tabs, controls, text, heading) in the template they fit (`reading`,
+`split`: a list beside anything else, `settings`, `list`, `fallback`); the ‹ › buttons of a window a switch row, not
+actions; a window with nothing to show says so.
 
 ## Helpers
 

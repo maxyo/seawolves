@@ -739,5 +739,6 @@
   "host.settings_not_saved": "Настройки графики не сохранены",
   "host.cache_clear_not_marked": "Не удалось отметить кэш для очистки",
   "host.interface_error": "Ошибка интерфейса",
-  "plural.form": "slavic"
+  "plural.form": "slavic",
+  "generic.empty": "В этом окне игры нечего нажать пальцем; закройте его стрелкой в заголовке."
 }

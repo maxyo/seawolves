@@ -525,8 +525,11 @@ def capability_header(capabilities):
 
 TOUCH = "interface/touch/"
 # The layers of the interface's scripts, in the order they are attached; what each may call is SHARED_LAYERS below.
-LAYERS = ("core", "lib", "contracts", "lineages", "screens", "hud", "games")
-SHARED_LAYERS = {"core", "lib", "contracts", "screens", "hud"}
+LAYERS = ("core", "lib", "contracts", "lineages", "screens", "hud", "universal", "games")
+# universal/: the screens of every game window (the generic layout, the Other sheet): they read the engine's model
+# of any game's window, and nothing that names a game.
+SHARED_LAYERS = {"core", "lib", "contracts", "screens", "hud", "universal"}
+UNIVERSAL_INTERFACES = {"*", "*other"}
 # The language's built-ins the shared layers call. Short on purpose: a shared script that needs another one is a
 # decision, taken by adding it here.
 SHARED_BUILTINS = {"GetEventData", "DeleteAttribute", "CheckAttribute", "makearef", "sti", "stf", "makeint",
@@ -726,7 +729,7 @@ def lint_script(file, parts, text, uses, natives, contracts):
                 problems.append(f"{file}: {name}/{arguments} is not declared so in contracts/{family}.c")
     for word in GAME_NAMES.findall(code + "\n" + "\n".join(strings)):
         problems.append(f"{file}: names a game ('{word}'); shared code and adapters are chosen by requirements")
-    if layer in SHARED_LAYERS - {"core"} and re.search(r"\bUiScreens\b|\.model\b", code):
+    if layer in SHARED_LAYERS - {"core", "universal"} and re.search(r"\bUiScreens\b|\.model\b", code):
         problems.append(f"{file}: reads the model; only lineages/ and games/ read the game's widgets")
     if layer in SHARED_LAYERS:
         allowed = set(functions) | natives | SHARED_BUILTINS
@@ -828,8 +831,8 @@ def check_scripts(capabilities, screens):
         if LAYERS.index(layer) < rank:
             problems.append(f"{where}: {layer} comes before {LAYERS[rank]} (order: {', '.join(LAYERS)})")
         rank = max(rank, LAYERS.index(layer))
-        if segment.get("core") and layer not in ("core", "lib"):
-            problems.append(f"{where}: only core/ and lib/ are core")
+        if segment.get("core") and layer not in ("core", "lib", "universal"):
+            problems.append(f"{where}: only core/, lib/ and universal/ are core")
         for contract in segment.get("provides", []):
             family = contract.removeprefix("adapter:")
             if layer != "lineages" or parts is None or Path(file).stem != family:
@@ -864,6 +867,11 @@ def check_scripts(capabilities, screens):
                 continue
             if screen["component"] not in tags:
                 problems.append(f"{where}: no pack screen <{screen['component']}>")
+            if layer == "universal":
+                if screen.get("interface") not in UNIVERSAL_INTERFACES or screen.get("nodes") != []:
+                    problems.append(f"{where}: a universal screen is of interface {' or '.join(sorted(UNIVERSAL_INTERFACES))} "
+                                    "with no nodes")
+                continue
             if "interface" in screen and layer != "games":
                 problems.append(f"{where}: only a game's own screen binds its interface itself; others use an adapter")
             if "interface" not in screen and not bound.get(screen["capability"], set()) & set(segment.get("uses", [])):

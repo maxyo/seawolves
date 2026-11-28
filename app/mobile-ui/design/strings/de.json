@@ -739,5 +739,6 @@
   "host.settings_not_saved": "Grafikeinstellungen wurden nicht gespeichert",
   "host.cache_clear_not_marked": "Der Cache konnte nicht zum Leeren vorgemerkt werden",
   "host.interface_error": "Fehler der Oberfläche",
-  "plural.form": "one"
+  "plural.form": "one",
+  "generic.empty": "Dieses Spielfenster hat nichts, was ein Finger erreichen kann; schließen Sie es mit dem Pfeil in der Kopfzeile."
 }

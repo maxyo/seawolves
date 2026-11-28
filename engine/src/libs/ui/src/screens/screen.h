@@ -280,7 +280,6 @@ struct LauncherResult
     bool detail;
 };
 std::span<const LauncherResult> LauncherResults();
-std::unique_ptr<Screen> CreateGenericScreen();
 
 // A named state channel of the game (gameplay, combat, dialogue, …): consumers get the
 // engine's JSON for it. Zone authors register one consumer per channel in registry.cpp.
@@ -360,13 +359,13 @@ struct PredictedField
 class Router
 {
   public:
-    // `screens`: the ported screens by interface id, `generic`: the generic layout; unit tests give their own.
-    explicit Router(Surface &surface, std::span<const ScreenEntry> screens = PortedScreens(),
-                    std::unique_ptr<Screen> (*generic)() = CreateGenericScreen);
+    // `screens`: the ported screens by interface id; unit tests give their own.
+    explicit Router(Surface &surface, std::span<const ScreenEntry> screens = PortedScreens());
     ~Router();
 
     void SetInterface(const InterfaceModel &model);
-    // Screens of scripts by interface id, preferred to the ported ones; a model open now is built again.
+    // Screens of scripts by interface id, preferred to the ported ones; a model open now is built again. The entries of
+    // kAnyInterface and kOtherInterface are the generic layout and the Other sheet.
     using ScriptScreens = std::vector<std::pair<std::string, std::function<std::unique_ptr<Screen>()>>>;
     void SetScriptScreens(ScriptScreens screens);
     void CloseInterface();
@@ -519,7 +518,8 @@ class Router
     Surface &surface_;
     std::span<const ScreenEntry> screens_;
     ScriptScreens script_screens_;
-    std::unique_ptr<Screen> (*generic_)();
+    std::function<std::unique_ptr<Screen>()> generic_, other_make_; // the universal screens (SetScriptScreens)
+    std::unique_ptr<Screen> other_;                                 // the Other sheet of the screen shown
     hud::Hud *hud_ = nullptr;
     InterfaceModel model_;
     std::unique_ptr<Screen> screen_;

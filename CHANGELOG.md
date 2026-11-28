@@ -4,6 +4,10 @@
 
 **Русский**
 
+- Окно игры без своего экрана (раскладка по умолчанию) теперь рисуется скриптом интерфейса: кнопки «‹ ›»
+  листают, а не занимают место кнопок окна (на выборе героя кнопки начала игры больше не прячутся под «⋯»),
+  вкладки-картинки нажимаются, таблица рядом с другими блоками не теряет строк после касания, а пустое окно
+  говорит, что в нём нечего нажать.
 - Верфь: при показанном предложении верфи свой корабль снова выбирается касанием — карточка возвращается к нему и к
   «Ремонту», а отмеченной остаётся одна строка; раньше касание ничего не делало, и отмеченными выглядели две строки.
 - Тени панелей, кнопок и окон рисуются сразу, без заготовки текстур: экран с тенями появляется в первом же кадре
@@ -186,6 +190,10 @@
 
 **English**
 
+- A game window without a screen of its own (the default layout) is drawn by the interface's script now: its ‹ ›
+  buttons switch rather than take the window's buttons' places (the hero choice's start buttons no longer hide under
+  «⋯»), picture tabs can be pressed, a table beside other blocks keeps its rows after a tap, and an empty window says
+  there is nothing to press.
 - Shipyard: with a yard offer shown, tapping your own ship again returns the card to it and to «Repair», and only
   one row is marked; the tap used to do nothing and two rows looked selected.
 - Shadows of panels, buttons and windows are drawn at once, without preparing textures: a screen with shadows

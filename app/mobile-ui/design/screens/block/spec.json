@@ -1,6 +1,6 @@
 {
   "tag": "s-block",
-  "doc": "Screen part: one block of the generic layout (generic.cpp BlockView) — table, list, tabs, controls, text or label.",
+  "doc": "Screen part: one block of the generic layout (interface/touch/universal/generic.c) — table, list, tabs, controls, text or label.",
   "props": {
     "block": {"type": "json", "default": {}}
   },

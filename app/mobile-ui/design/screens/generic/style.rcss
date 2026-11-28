@@ -9,4 +9,5 @@ s-generic .sg-settings-wide > .sg-right { flex: 42 1 0; }
 s-generic .sg-settings > .sg-left { flex: 0 1 560dp; }
 s-generic .sg-reading > .sg-left { flex: 0 1 640dp; }
 s-generic .sg-flow { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-s-generic .sg-fallback .sg-flow, s-generic .sg-settings .sg-flow, s-generic .sg-settings-wide .sg-flow, s-generic .sg-reading .sg-flow { display: block; overflow-y: auto; }
+/* The split's right column scrolls as a whole: the main list keeps the left. */
+s-generic .sg-split > .sg-right .sg-flow, s-generic .sg-fallback .sg-flow, s-generic .sg-settings .sg-flow, s-generic .sg-settings-wide .sg-flow, s-generic .sg-reading .sg-flow { display: block; overflow-y: auto; }

@@ -999,6 +999,11 @@ TEST_CASE("the ship screen's script gives the pack screen the props and actions 
     CheckCases("ship", "ship");
 }
 
+TEST_CASE("the generic layout and the Other sheet give their pack screens the props and actions of the models")
+{
+    CheckCases("generic", "generic");
+}
+
 TEST_CASE("the alchemy screen's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("alchemy", "alchemy");

@@ -739,5 +739,6 @@
   "host.settings_not_saved": "Le impostazioni grafiche non sono state salvate",
   "host.cache_clear_not_marked": "Impossibile segnare la cache da svuotare",
   "host.interface_error": "Errore dell'interfaccia",
-  "plural.form": "one"
+  "plural.form": "one",
+  "generic.empty": "Questa finestra del gioco non ha nulla da toccare con il dito; chiudila con la freccia nell’intestazione."
 }

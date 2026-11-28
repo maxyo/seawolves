@@ -5,7 +5,8 @@ The engine describes every open game interface as an `InterfaceModel`
 `Host::SetInterface` routes the model to a *screen*: C++ code here that turns the widgets
 into the props of a pack screen (`<s-…>`, the application's
 `mobile-ui/design/screens/<name>/`) and component events back into engine actions.
-Interfaces without a ported screen (`kPorted` in `registry.cpp`) get the generic layout (`generic.cpp`).
+Interfaces without a screen get the generic layout, a script of the touch interface (`universal/generic.c`, the
+script screens of `kAnyInterface`); without it attached such an interface is closed with an error line.
 
 A *script screen* (`script_screen.h`) is the same thing written in the game's script language by the touch
 interface's scripts (`Host::SetScriptScreens`, preferred to a ported screen of the same interface): the router admits
@@ -14,8 +15,8 @@ engine `src/libs/ui_host/README.md`) and binds the events it answers; `script_pr
 screen's props by their types and, for a `json` prop, by its `shape` in the spec.
 
 ```text
-engine ──InterfaceModel──▶ Router ──admission──▶ ported Screen ─┐
-                                   └─(unknown id)─▶ generic layout ─┤─▶ props ─▶ <s-…> in the pack
+engine ──InterfaceModel──▶ Router ──admission──▶ script or ported Screen ─┐
+                                   └─(unknown id)─▶ generic layout ──────────┤─▶ props ─▶ <s-…> in the pack
 engine ◀──────Action {screen, opening, node, index, verb, value}──┘◀─ events (id, verb, value)
 ```
 
@@ -87,8 +88,9 @@ applied answer shows it. Logs and checks print one line (`to_string`, `widget:<s
   hidden for the first second of the opening; after that it is an error (missing nodes logged,
   a toast in debug builds) and the interface closes through the engine's back. Mark nodes
   REQUIRED only when every way the game opens the interface has them.
-- **Extras.** Widgets a ported screen does not know become rows of the Other sheet (header «⋯»);
-  texts become one note.
+- **Extras.** Widgets a screen does not know become rows of the Other sheet (header «⋯»), texts one note: the rows
+  are the script's of `kOtherInterface` (`universal/generic.c`); the sheet's opening and reading sheet are the
+  router's.
 - **Busy until answered.** An event that sent something marks its element
   (`bindings.Pending(id)`) until the engine answers; no answer in 5 s is an error.
 - **Incremental update.** Every revision patches the mounted screen in place; scroll offsets and

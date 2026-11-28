@@ -8,6 +8,7 @@
 #include "../src/hud/hud.h"
 
 #include <cstdio>
+#include <functional>
 #include <stdexcept>
 
 using namespace storm::ui;
@@ -28,10 +29,14 @@ static bool throw_in_handler = false;
 static bool throw_in_back = false;
 static int generic_created = 0;
 
-static std::unique_ptr<Screen> CountingGeneric()
+class ThrowingGeneric;
+static std::unique_ptr<Screen> CountingGeneric();
+
+// A router whose generic layout is `generic`, as the touch interface's scripts attach theirs.
+static Router &WithGeneric(Router &router, std::function<std::unique_ptr<Screen>()> generic)
 {
-    ++generic_created;
-    return CreateGenericScreen();
+    router.SetScriptScreens({{kAnyInterface, std::move(generic)}});
+    return router;
 }
 
 class ThrowingScreen final : public Screen
@@ -107,7 +112,8 @@ static void CheckScreenBuild()
     FakeSurface surface;
     surface.now = 5.0;
     generic_created = 0;
-    Router router(surface, kScreens, CountingGeneric);
+    Router router(surface, kScreens);
+    WithGeneric(router, CountingGeneric);
     throw_in_build = true;
     router.SetInterface(Model(1, 1));
     ExpectClosed(router, surface, 1);
@@ -128,7 +134,8 @@ static void CheckLeft()
     FakeSurface surface;
     surface.now = 5.0;
     generic_created = 0;
-    Router router(surface, kScreens, CountingGeneric);
+    Router router(surface, kScreens);
+    WithGeneric(router, CountingGeneric);
     throw_in_build = false;
     throw_in_handler = true;
     router.SetInterface(Model(1, 1));
@@ -151,7 +158,8 @@ static void CheckHandler()
     FakeSurface surface;
     surface.now = 5.0;
     generic_created = 0;
-    Router router(surface, kScreens, CountingGeneric);
+    Router router(surface, kScreens);
+    WithGeneric(router, CountingGeneric);
     throw_in_build = false;
     throw_in_handler = true;
     router.SetInterface(Model(1, 1));
@@ -169,7 +177,8 @@ static void CheckBack()
     FakeSurface surface;
     surface.now = 5.0;
     generic_created = 0;
-    Router router(surface, kScreens, CountingGeneric);
+    Router router(surface, kScreens);
+    WithGeneric(router, CountingGeneric);
     throw_in_back = true;
     router.SetInterface(Model(5, 1));
     Expect(router.WantsBack(), "the screen owns back before failure");
@@ -185,7 +194,8 @@ static void CheckTextAnswer()
     FakeSurface surface;
     surface.now = 5.0;
     generic_created = 0;
-    Router router(surface, kScreens, CountingGeneric);
+    Router router(surface, kScreens);
+    WithGeneric(router, CountingGeneric);
     router.SetInterface(Model(6, 1));
     Expect(router.OnEvent({"edit", "click", ""}) && !surface.text.token.empty(), "the screen requested a text editor");
     router.SubmitText(surface.text.token, "answer", true);
@@ -214,12 +224,19 @@ class ThrowingGeneric final : public Screen
     }
 };
 
+static std::unique_ptr<Screen> CountingGeneric()
+{
+    ++generic_created;
+    return std::make_unique<ThrowingGeneric>();
+}
+
 // A generic screen is still allowed for an unported interface; its own failure closes it.
 static void CheckGenericFails()
 {
     FakeSurface surface;
     surface.now = 5.0;
-    Router router(surface, kScreens, [] { return std::unique_ptr<Screen>(std::make_unique<ThrowingGeneric>()); });
+    Router router(surface, kScreens);
+    WithGeneric(router, [] { return std::unique_ptr<Screen>(std::make_unique<ThrowingGeneric>()); });
     InterfaceModel other = Model(4, 1);
     other.screen = "unported";
     router.SetInterface(other);
