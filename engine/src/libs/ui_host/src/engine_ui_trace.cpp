@@ -55,23 +55,17 @@ void EngineUi::Prewarmer::OnFrameEnd(const storm::render::FrameContext &)
     EngineUi &ui = EngineUi::Get();
     if (!ui.host_)
         return;
-    // Behind the loading screen of a scene load (its transaction) that has gone on for kPrewarmAfterMs: its
-    // frames wait for workers, uploads and the quality products' time budget. Not in a short reload (a few
-    // frames that the steps would stretch), not behind the title's (its reveal counts frames: the graphics
-    // preset's start) nor the scripts' own progress frames (InitGame): there it would delay what the player
-    // waits for.
-    const std::string &screen = ui.presentation_.screen;
+    // Behind the loading screen of a scene load (its transaction) that has gone on for kPrewarmAfterMs. Not in a
+    // short reload, not behind the title's (its reveal counts frames: the graphics preset's start) nor the scripts' own
+    // progress frames (InitGame): there it would delay what the player waits for. Never in play or on the title: a
+    // font use costs a frame or more there (measured: 3-85 ms each on a desktop release build).
     const auto now = std::chrono::steady_clock::now();
     if (!storm::loading::active)
         load_started.reset();
     else if (!load_started)
         load_started = now;
-    const bool hidden = load_started && screen != "mainmenu" &&
-                        std::chrono::duration<double, std::milli>(now - *load_started).count() >= kPrewarmAfterMs;
-    if (!hidden && storm::loading::screen_up)
-        return;
-    if (!hidden && !screen.empty() && screen != "mainmenu")
-        return;                                                            // an open screen is what the frames are for
-    ui.host_->Prewarm(hidden ? kPrewarmHiddenMs : kPrewarmIdleMs, hidden); // nothing left: returns at once
+    if (load_started && ui.presentation_.screen != "mainmenu" &&
+        std::chrono::duration<double, std::milli>(now - *load_started).count() >= kPrewarmAfterMs)
+        ui.host_->Prewarm(); // made already: returns at once
 }
 } // namespace storm::android::ui

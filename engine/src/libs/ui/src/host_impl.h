@@ -51,7 +51,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
   public:
     ~HostImpl() override;
     bool Start(const Config &config, std::string *error);
-    bool Prewarm(double budget_ms, bool hidden) override;
+    void Prewarm() override;
 
     // --- Host ---------------------------------------------------------------------
 
@@ -296,13 +296,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     Warmer warmer_;
     std::string prewarm_language_;
     float prewarm_ratio_ = 0.0f;
-    bool prewarm_reported_ = false;
-    struct
-    {
-        double ms = 0.0, slowest_ms = 0.0;
-        int textures = 0;
-        size_t bytes = 0;
-    } prewarm_;
+    bool prewarm_reported_ = false; // a pack without the list, said once
     std::set<std::string> unknown_languages_, missing_strings_;
     std::set<std::string> component_errors_;   // "<tag>: what" logged (ComponentError)
     std::string screen_failure_, hud_failure_; // the first component error of each since TakeComponentFailures

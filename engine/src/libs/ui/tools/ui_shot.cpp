@@ -6,7 +6,7 @@
 //   script commands: down|move|up <pointer> <x> <y>, wait <s>, shot <png>, toast <text>,
 //   message <target|-> <text> (a game log line, Host::GameMessage), timed (print what
 //                    each later command costs up to its finished frame),
-//                    props <element id> <json>, scroll <element id>, prewarm (Host::Prewarm until done),
+//                    props <element id> <json>, scroll <element id>, prewarm (Host::Prewarm),
 //                    bounds <CSS selector> (settled visible border boxes in dp),
 //                    device-reset (bgfx: device loss and restore, as after a lost EGL context),
 //                    same (the screen shows the picture `mark` remembered), pack-bytes <max> (the decoded pack
@@ -933,11 +933,10 @@ class Script
     {
         if (verb == "bench") // bench <frames> [<channel> <a.json> <b.json> | redraw | drag <x> <y> <dx> <dy>]
             Bench(words);
-        else if (verb == "prewarm") // prewarm: Host::Prewarm behind a loading screen until nothing is left
+        else if (verb == "prewarm") // prewarm: Host::Prewarm, as behind a loading screen
         {
             const auto started = std::chrono::steady_clock::now();
-            while (host_.Prewarm(1000.0, true))
-                ;
+            host_.Prewarm();
             std::printf("prewarm: %.1f ms\n",
                         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
             Run(1.0 / 60.0);

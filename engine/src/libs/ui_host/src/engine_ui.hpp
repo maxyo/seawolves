@@ -43,10 +43,9 @@ namespace storm::android::ui
 constexpr const char *kTag = "StormUi";
 // Frame owner client order: after the renderer's own clients.
 constexpr int kClientOrder = 1000;
-// Host::Prewarm after each presented frame: behind the loading screen of a scene load that lasts (kPrewarmAfterMs) up
-// to kPrewarmHiddenMs, its first step whatever it costs; on the title and in play with no interface open only steps
-// the slowest one of their kind so far shows to fit in kPrewarmIdleMs (the texture realize budget of a frame of play).
-constexpr double kPrewarmHiddenMs = 8.0, kPrewarmIdleMs = 4.0, kPrewarmAfterMs = 400.0;
+// Host::Prewarm, all of it, after a presented frame behind the loading screen of a scene load that has lasted
+// kPrewarmAfterMs: the first load after the title (or of a new game) pays it once.
+constexpr double kPrewarmAfterMs = 400.0;
 
 // The host's own lines: ui.log (its errors in error.log too) and the platform's log under kTag.
 spdlog::logger &Log();
@@ -448,8 +447,7 @@ class EngineUi
         double update_ms = 0.0, render_ms = 0.0;
         long draws = 0, layers = 0, layouts = 0, touched = 0, boxes = 0, meshes = 0;
     } frame_trace_;
-    // What the first opening of a screen would make, made between frames while nothing the player waits for is drawn
-    // (Host::Prewarm, kPrewarmHiddenMs / kPrewarmIdleMs).
+    // What the first opening of a screen would make, made behind a loading screen (Host::Prewarm, kPrewarmAfterMs).
     struct Prewarmer final : storm::render::FrameClient
     {
         void OnFrameEnd(const storm::render::FrameContext &) override;

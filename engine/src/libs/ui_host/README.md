@@ -11,7 +11,7 @@ text editor, the activity's actions, the log) is `src/platform/android.cpp`, wit
 
 `src/engine_ui.hpp` holds the host (`EngineUi`): `engine_ui.cpp` its game-thread side and the engine's calls,
 `engine_ui_start.cpp` a new host, `engine_ui_platform.cpp` the platform's state channels, `engine_ui_trace.cpp` its frame
-clients (the input trace and the prewarm between frames), `dialogue_relay.hpp` the dialogue's states on their way
+clients (the input trace and the prewarm behind a loading screen), `dialogue_relay.hpp` the dialogue's states on their way
 to the host (checked on the host by `tests/ui_host_dialogue`).
 
 ## The touch interface's scripts

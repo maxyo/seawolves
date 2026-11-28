@@ -496,14 +496,14 @@ bool HostImpl::Start(const Config &config, std::string *error)
     return true;
 }
 
-bool HostImpl::Prewarm(double budget_ms, bool hidden)
+void HostImpl::Prewarm()
 {
     if (font_uses_.empty())
     {
         if (!prewarm_reported_)
             Error("UI prewarm: the pack lists nothing to make ahead (pack.json prewarm)");
         prewarm_reported_ = true;
-        return false;
+        return;
     }
     const float ratio = context_->GetDensityIndependentPixelRatio();
     if (prewarm_language_ != language_ || prewarm_ratio_ != ratio)
@@ -517,52 +517,36 @@ bool HostImpl::Prewarm(double budget_ms, bool hidden)
                     strings += entry.value().get<std::string>();
         warmer_.Reset(font_uses_, BlockSample(strings), ratio,
                       static_cast<double>(config_.width) / ratio / prewarm_width_);
-        prewarm_ = {};
-        prewarm_reported_ = false;
     }
     if (warmer_.Done())
-        return false;
+        return;
     // Its textures are not the frame's: counted apart, the frame's own counters as they were.
     const int textures = counters_.textures;
     const size_t bytes = counters_.texture_bytes;
     const double texture_ms = counters_.texture_ms;
-    double spent = 0.0;
+    double spent = 0.0, slowest = 0.0;
     renderer_->OnTextureMade([this](Rml::TextureHandle texture) { backend_->Upload(texture); });
     while (!warmer_.Done())
     {
-        // Behind a loading screen the first step of a call runs whatever it costs; in play a step runs only once
-        // one was measured and the slowest of them fits what is left.
-        double &slowest = prewarm_.slowest_ms;
-        const bool unseen = hidden && spent == 0.0;
-        if (!unseen && (slowest == 0.0 || spent + slowest > budget_ms))
-            break;
         double made_ms = 0.0;
         std::string error;
         warmer_.Step(context_->GetRenderManager(), made_ms, error);
         if (!error.empty())
             Error(error);
         spent += made_ms;
-        prewarm_.ms += made_ms;
         slowest = std::max(slowest, made_ms);
     }
     renderer_->OnTextureMade({});
-    prewarm_.textures += counters_.textures - textures;
-    prewarm_.bytes += counters_.texture_bytes - bytes;
+    char line[256];
+    std::snprintf(line, sizeof line,
+                  "UI prewarm: %zu font uses made for '%s' at %.3f px/dp in %.0f ms (slowest %.1f ms); %d "
+                  "textures, %zu KB",
+                  warmer_.Count(), language_.c_str(), static_cast<double>(ratio), spent, slowest,
+                  counters_.textures - textures, (counters_.texture_bytes - bytes) / 1024);
+    Log(line);
     counters_.textures = textures;
     counters_.texture_bytes = bytes;
     counters_.texture_ms = texture_ms;
-    if (warmer_.Done() && !prewarm_reported_)
-    {
-        prewarm_reported_ = true;
-        char line[256];
-        std::snprintf(line, sizeof line,
-                      "UI prewarm: %zu font uses made for '%s' at %.3f px/dp in %.0f ms (slowest %.1f ms); %d "
-                      "textures, %zu KB",
-                      warmer_.Count(), language_.c_str(), static_cast<double>(prewarm_ratio_), prewarm_.ms,
-                      prewarm_.slowest_ms, prewarm_.textures, prewarm_.bytes / 1024);
-        Log(line);
-    }
-    return !warmer_.Done();
 }
 
 bool HostImpl::LoadDocument(const std::string &path)

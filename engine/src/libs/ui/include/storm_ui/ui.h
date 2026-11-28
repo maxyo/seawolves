@@ -223,13 +223,12 @@ class Host
     // What the last Frame did (see FrameStats).
     virtual FrameStats LastFrameStats() const = 0;
     // Makes ahead what the first opening of a screen would make (src/prewarm.h): the font face handles of the pack's
-    // font uses (pack.json "prewarm") with the glyph blocks of the game language and their layer textures, one use a
-    // step, then its icons' textures. Steps run while the time spent stays within `budget_ms`, each predicted by the
-    // slowest step so far; with `hidden` (nothing the player sees waits: a loading screen is up) the first step runs
-    // whatever it costs. Call it between frames, on the thread of Frame. True while something is left to make; a new
-    // game language or UI scale makes the uses again at the new size. Its time and textures are not those of a frame
-    // (FrameStats) but its own line in the log when it is done.
-    virtual bool Prewarm(double budget_ms, bool hidden) = 0;
+    // font uses (pack.json "prewarm") with the glyph blocks of the game language and their layer textures, all of
+    // them in this call (behind a loading screen: a step at a time per frame did not finish behind the first load).
+    // Call it between frames, on the thread of Frame; made once, it returns at once until a new game language or UI
+    // scale makes the uses again at the new size. Its time and textures are not those of a frame (FrameStats) but
+    // its own line in the log.
+    virtual void Prewarm() = 0;
     virtual void Toast(const std::string &text, const std::string &tone) = 0;
     // Something the player asked for failed, in the pack's words: a danger toast of the string
     // `key` (the pack's table in the game language) that stays several seconds.
