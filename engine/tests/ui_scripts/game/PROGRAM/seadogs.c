@@ -330,6 +330,17 @@ int GetCharacterShipType(ref chr)
 ref xi_refCharacter;
 int iShipQty;
 
+// Whether the game would refuse a flag change now (a script fix's function); a case sets TestFlagRefused, and
+// TestFlagAsked counts the questions (the game's check writes, so a screen asks only when the game has just checked).
+int TestFlagRefused;
+int TestFlagAsked;
+string FlagChangeRefusal()
+{
+	TestFlagAsked = TestFlagAsked + 1;
+	if (TestFlagRefused) return "land";
+	return "";
+}
+
 // The alchemy of the recorded models (ui/tests/models/alchemy*.json): the recipes cartridge (Items[33]), potion1,
 // grenade (34) and potion3 (35), the cartridge of a bullet (36) and a measure of gunpowder (37) a batch; the hero's
 // free items TestHero.items.<id>, the pot NullCharacter.alchemy.Items.<id>. What the game counts is the cases' own

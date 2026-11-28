@@ -537,6 +537,819 @@
     "hold",
     "back "
    ]
+  },
+  {
+   "name": "the game would refuse the flag now: opening and building again ask it nothing; the press it knocks back, one question and its reason under the button",
+   "model": {
+    "schemaVersion": 2,
+    "language": "english",
+    "revision": 8,
+    "screenRevision": 6,
+    "screen": "nationrelation",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 56,
+        "imageRevision": 56,
+        "tintArgb": 4286611584
+       }
+      ]
+     },
+     {
+      "node": "I_CHARACTER",
+      "type": "button",
+      "label": "Characters",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_CHARACTER_2",
+      "type": "button",
+      "label": "Characters",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_SHIP",
+      "type": "button",
+      "label": "Ships",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_SHIP_2",
+      "type": "button",
+      "label": "Ships",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_QUESTBOOK",
+      "type": "button",
+      "label": "Journal",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_QUESTBOOK_2",
+      "type": "button",
+      "label": "Journal",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_TRADEBOOK",
+      "type": "button",
+      "label": "Trade",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_TRADEBOOK_2",
+      "type": "button",
+      "label": "Trade",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_ITEMS",
+      "type": "button",
+      "label": "Items",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "I_ITEMS_2",
+      "type": "button",
+      "label": "Items",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Characters",
+      "index": 0
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Ships",
+      "index": 1
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Journal",
+      "index": 2
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Trade",
+      "index": 3
+     },
+     {
+      "node": "STR_BUTTONS",
+      "type": "text",
+      "label": "Items",
+      "index": 4
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Relations  ",
+      "index": -1
+     },
+     {
+      "node": "ENG_Text",
+      "type": "text",
+      "label": "Neutral",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FRA_Text",
+      "type": "text",
+      "label": "Neutral",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SPA_Text",
+      "type": "text",
+      "label": "Neutral",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HOL_Text",
+      "type": "text",
+      "label": "Neutral",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FlagPic",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 57,
+        "imageRevision": 57,
+        "tintArgb": 4286611584,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "LEFTCHANGE_NATION",
+      "type": "button",
+      "label": "‹",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "RIGHTCHANGE_NATION",
+      "type": "button",
+      "label": "›",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "FLAGS",
+      "type": "button",
+      "label": "Change flag",
+      "index": -1,
+      "enabled": true,
+      "actions": [
+       "press"
+      ]
+     }
+    ]
+   },
+   "props": {
+    "apply": {
+     "disabled": false,
+     "id": "flag-apply",
+     "label": "Change flag",
+     "reason": "",
+     "variant": "primary"
+    },
+    "columns": [
+     {
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "flag": {
+     "label": "France"
+    },
+    "flagTitle": "<nations.flag>",
+    "flags": [
+     {
+      "disabled": false,
+      "icon": "nation-england",
+      "id": "0",
+      "label": "England",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-france",
+      "id": "1",
+      "label": "France",
+      "selected": true
+     },
+     {
+      "disabled": false,
+      "icon": "nation-spain",
+      "id": "2",
+      "label": "Spain",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-holland",
+      "id": "3",
+      "label": "Holland",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-pirates",
+      "id": "4",
+      "label": "Pirate",
+      "selected": false
+     }
+    ],
+    "flagsDisabled": false,
+    "headerSection": "nations",
+    "helpFlag": true,
+    "helpReputation": true,
+    "legend": [
+     {
+      "icon": "rel-ally",
+      "label": "<nations.ally>"
+     },
+     {
+      "icon": "rel-neutral",
+      "label": "<nations.neutral>"
+     },
+     {
+      "icon": "rel-war",
+      "label": "<nations.war>"
+     }
+    ],
+    "reputation": [
+     {
+      "bar": 52,
+      "icon": "nation-england",
+      "image": null,
+      "label": "England",
+      "tone": "",
+      "value": "Neutral"
+     },
+     {
+      "bar": 67,
+      "icon": "nation-france",
+      "image": null,
+      "label": "France",
+      "tone": "ok",
+      "value": "Neutral"
+     },
+     {
+      "bar": 30,
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain",
+      "tone": "danger",
+      "value": "Neutral"
+     },
+     {
+      "bar": 52,
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland",
+      "tone": "",
+      "value": "Neutral"
+     }
+    ],
+    "reputationTitle": "Reputation with the nations",
+    "rows": [
+     {
+      "cells": [
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "England — Enemy"
+       }
+      ],
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "icon": "rel-ally",
+        "image": null,
+        "label": "France — Friend"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "France — Enemy"
+       }
+      ],
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Spain — Enemy"
+       }
+      ],
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Holland — Enemy"
+       }
+      ],
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "self": true
+       }
+      ],
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "title": "  Relations  "
+   },
+   "events": [
+    [
+     "flag-apply",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send FLAGS press ",
+    "hold"
+   ],
+   "game": {
+    "TestFlagRefused": 1,
+    "TestFlagAsked": 0
+   },
+   "rebuilds": 3,
+   "asked": {
+    "before": 0,
+    "after": 1
+   },
+   "after": {
+    "apply": {
+     "disabled": false,
+     "id": "flag-apply",
+     "label": "Change flag",
+     "reason": "<nations.refusal_land>",
+     "variant": "primary"
+    },
+    "columns": [
+     {
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "flag": {
+     "label": "France"
+    },
+    "flagTitle": "<nations.flag>",
+    "flags": [
+     {
+      "disabled": false,
+      "icon": "nation-england",
+      "id": "0",
+      "label": "England",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-france",
+      "id": "1",
+      "label": "France",
+      "selected": true
+     },
+     {
+      "disabled": false,
+      "icon": "nation-spain",
+      "id": "2",
+      "label": "Spain",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-holland",
+      "id": "3",
+      "label": "Holland",
+      "selected": false
+     },
+     {
+      "disabled": false,
+      "icon": "nation-pirates",
+      "id": "4",
+      "label": "Pirate",
+      "selected": false
+     }
+    ],
+    "flagsDisabled": false,
+    "headerSection": "nations",
+    "helpFlag": true,
+    "helpReputation": true,
+    "legend": [
+     {
+      "icon": "rel-ally",
+      "label": "<nations.ally>"
+     },
+     {
+      "icon": "rel-neutral",
+      "label": "<nations.neutral>"
+     },
+     {
+      "icon": "rel-war",
+      "label": "<nations.war>"
+     }
+    ],
+    "reputation": [
+     {
+      "bar": 52,
+      "icon": "nation-england",
+      "image": null,
+      "label": "England",
+      "tone": "",
+      "value": "Neutral"
+     },
+     {
+      "bar": 67,
+      "icon": "nation-france",
+      "image": null,
+      "label": "France",
+      "tone": "ok",
+      "value": "Neutral"
+     },
+     {
+      "bar": 30,
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain",
+      "tone": "danger",
+      "value": "Neutral"
+     },
+     {
+      "bar": 52,
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland",
+      "tone": "",
+      "value": "Neutral"
+     }
+    ],
+    "reputationTitle": "Reputation with the nations",
+    "rows": [
+     {
+      "cells": [
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "England — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "England — Enemy"
+       }
+      ],
+      "icon": "nation-england",
+      "image": null,
+      "label": "England"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "France — Neutral"
+       },
+       {
+        "icon": "rel-ally",
+        "image": null,
+        "label": "France — Friend"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "France — Enemy"
+       }
+      ],
+      "icon": "nation-france",
+      "image": null,
+      "label": "France"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Spain — Neutral"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Spain — Enemy"
+       }
+      ],
+      "icon": "nation-spain",
+      "image": null,
+      "label": "Spain"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "icon": "rel-neutral",
+        "image": null,
+        "label": "Holland — Neutral"
+       },
+       {
+        "self": true
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Holland — Enemy"
+       }
+      ],
+      "icon": "nation-holland",
+      "image": null,
+      "label": "Holland"
+     },
+     {
+      "cells": [
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "icon": "rel-war",
+        "image": null,
+        "label": "Pirate — Enemy"
+       },
+       {
+        "self": true
+       }
+      ],
+      "icon": "nation-pirates",
+      "image": null,
+      "label": "Pirate"
+     }
+    ],
+    "title": "  Relations  "
+   }
   }
  ]
 }

@@ -98,6 +98,7 @@ void TouchAdpNations_State(aref ui, aref out)
 	aref model = TouchLegLib_Model(ui);
 	string current = TouchLegNations_Candidate(model);
 	TouchLegNations_Step(ui, current);
+	TouchLegNations_Raised(ui);
 	out.title = UiOneLine(TouchLegLib_Label(model, "TITLE"));
 	out.flags = false;
 	if (CheckAttribute(model, "RIGHTCHANGE_NATION")) out.flags = UiOffers("RIGHTCHANGE_NATION", "press");
@@ -123,6 +124,8 @@ void TouchAdpNations_State(aref ui, aref out)
 		out.apply.label = model.FLAGS.label;
 		out.apply.can = UiOffers("FLAGS", "press");
 		out.apply.reason = model.FLAGS.reason;
+		if (CheckAttribute(&TouchLegNations, "refusal"))
+			out.apply.reason = UiText("nations.refusal_" + TouchLegNations.refusal);
 	}
 	out.help.standing = CheckAttribute(ui, "data.help.standing");
 	out.help.flag = CheckAttribute(ui, "data.help.flag");
@@ -141,9 +144,30 @@ void TouchAdpNations_Pick(aref ui, int nation)
 	UiSend("RIGHTCHANGE_NATION", "press", "");
 }
 
+// The press of the game's flag button; its knock says no more than that it refused (TouchLegNations_Raised).
 void TouchAdpNations_Raise(aref ui)
 {
+	ref hero = GetMainCharacter();
+	DeleteAttribute(&TouchLegNations, "refusal");
+	TouchLegNations.raise = CheckAttribute(hero, "DisableChangeFlagMode");
 	UiSend("FLAGS", "press", "");
+}
+
+// After the game answered a press of its flag button: a change it made sets DisableChangeFlagMode; a press it knocked
+// back did not, and the reason is asked of the game (FlagChangeRefusal, which repeats the check FlagsProcess has just
+// made, writes included) once, shown until the next press. A press while a change was under way is that reason.
+void TouchLegNations_Raised(aref ui)
+{
+	if (!CheckAttribute(&TouchLegNations, "raise")) return;
+	if (UiAnswer() == "waiting") return;
+	ref hero = GetMainCharacter();
+	bool under = sti(TouchLegNations.raise);
+	DeleteAttribute(&TouchLegNations, "raise");
+	if (!under && CheckAttribute(hero, "DisableChangeFlagMode")) return;
+	if (under) { TouchLegNations.refusal = "wait"; return; }
+	if (!sti(ui.data.optional.flag_change)) return;
+	string refusal = TouchAdpFlagChange_Refusal();
+	if (refusal != "") TouchLegNations.refusal = refusal;
 }
 
 void TouchAdpNations_Help(aref ui, string part, aref out)

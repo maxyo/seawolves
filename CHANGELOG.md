@@ -129,6 +129,8 @@
   предметов. Без этого исправления (другая версия игры) окно алхимии остаётся окном самой игры.
 - На экране персонажа ключевой навык должности берётся из самой игры: у канонира — лучший из «Орудий» и «Меткости»,
   которые игра берёт у него для героя.
+- Экран наций: когда игра отказывает в смене флага (смена ещё идёт, на суше, компаньон под ударом, эскадра не может
+  выйти на карту), под кнопкой «Сменить флаг» пишется почему, а не только звучит стук.
 
 **English**
 
@@ -264,6 +266,8 @@
   count of items. Without that fix (another game version) the alchemy window stays the game's own.
 - The character screen takes a post's key skill from the game: a cannoner shows the better of Cannons and Accuracy,
   both of which the game takes from him for the hero.
+- The nations screen: when the game refuses to change the flag (a change still under way, on land, a companion under
+  attack, the squadron unable to go to the map), the «Change flag» button says why, not only with a knock.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

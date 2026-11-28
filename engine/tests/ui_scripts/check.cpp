@@ -794,17 +794,31 @@ TEST_CASE("the nations screen's script gives the pack screen the props and actio
         INFO(recorded.at("name").get<std::string>());
         storm::ui::InterfaceModel model;
         REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+        SetGame(recorded);
         Calls calls(*spec);
         calls.widgets = model.widgets;
         port.Build(screen, calls.Single(), calls);
         calls.first = false;
         CHECK(calls.props == recorded.at("props"));
+        // "rebuilds": more builds of the same model, after which the game was asked "asked.before" questions
+        for (int n = 0; n < recorded.value("rebuilds", 0); n++)
+            port.Build(screen, calls.Single(), calls);
+        if (recorded.contains("asked"))
+            CHECK(vm.Integer("TestFlagAsked") == recorded.at("asked").at("before").get<int>());
         for (const Json &event : recorded.at("events"))
         {
             REQUIRE(calls.Binds(event[0], event[1]));
             port.Event(screen, event[0], event[1], event[2], calls);
         }
         CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
+        if (recorded.contains("after")) // the build of the game's answer to the events
+        {
+            calls.answer = "applied";
+            port.Build(screen, calls.Single(), calls);
+            CHECK(calls.props == recorded.at("after"));
+        }
+        if (recorded.contains("asked"))
+            CHECK(vm.Integer("TestFlagAsked") == recorded.at("asked").at("after").get<int>());
     }
 }
 
