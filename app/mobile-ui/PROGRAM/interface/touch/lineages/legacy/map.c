@@ -3,9 +3,10 @@
 // size, view and imagelist markers, a point given back as the right click the scripts read, and the colony window
 // they fill while it is held. The binding's data: exit (the node that leaves), backdrop (the picture under a
 // transparent MAP, "" none), and pictures (absent: the window names its goods by nodes), MapBest's goods drawn as
-// pictures at the script's own places: node, colonyFrom (x of the colony's goods), bands.b<k>.{caption, from, to}
-// (their y bands), returnFrom (x of the trade assistant's second column), prices.{p0, p1} (the nodes of the two
-// columns' profits). Implements contracts/map.c.
+// pictures of `node`: sections.s<k>.{drawn (the game's name of the list, as goods_sections gives it), caption, page,
+// prices (the node of the profits beside its goods)}; without that script fix, the lists by the pictures' places:
+// colonyFrom (x of the colony's goods), bands.b<k>.{caption, from, to} (their y bands), returnFrom (x of the trade
+// assistant's second column), prices.{p0, p1} (the nodes of the two columns' profits). Implements contracts/map.c.
 
 // One section of the colony window: <prefix>_CAPTION heads the <prefix>… pictures, named by the <prefix>_INFO lines,
 // and its other texts; a section with neither is left out.
@@ -74,8 +75,77 @@ int TouchLegMap_Place(aref picture, string axis)
 	return UiAmount(picture.context.(axis), "the place " + axis + " of " + picture.id);
 }
 
-// MapBest's goods by the places its script drew them at: the colony's own in y bands right of colonyFrom, the trade
-// assistant's in two columns left of it, each good beside its profit on the price line of its row.
+// MapBest's goods by the list the game drew each in (goods_sections), each good of a list with a price line beside the
+// profit of the same row; a picture drawn without a record, or a record without its picture, is an error.
+void TouchLegMap_Drawn(aref model, aref layout, aref sections)
+{
+	string node = layout.node;
+	aref rows;
+	makearef(rows, model.(node).rows);
+	object drawn, section, prices, words;
+	TouchAdpGoodsSections_Drawn(&drawn);
+	if (GetAttributesNum(&drawn) != GetAttributesNum(rows))
+		UiError("map: the game drew " + GetAttributesNum(rows) + " goods pictures and recorded " +
+		        GetAttributesNum(&drawn));
+	aref lists;
+	makearef(lists, layout.sections);
+	for (int s = 0; s < GetAttributesNum(lists); s++)
+	{
+		aref list = GetAttributeN(lists, s);
+		DeleteAttribute(&section, "");
+		section.title = TouchLegLib_Label(model, list.caption);
+		section.page = list.page;
+		section.lines = "";
+		aref goods;
+		makearef(goods, section.goods);
+		DeleteAttribute(&prices, "");
+		DeleteAttribute(&words, "");
+		if (CheckAttribute(list, "prices"))
+		{
+			TouchLegLib_Lines(model, list.prices, &prices, "p");
+			for (int p = 0; p < GetAttributesNum(&prices); p++)
+			{
+				aref line = GetAttributeN(&prices, p);
+				TouchLib_Words(line.text, &words);
+			}
+		}
+		for (int d = 0; d < GetAttributesNum(&drawn); d++)
+		{
+			aref record = GetAttributeN(&drawn, d);
+			if (record.section != list.drawn) continue;
+			string profit = "";
+			if (CheckAttribute(list, "prices") && GetAttributesNum(goods) < GetAttributesNum(&words))
+			{
+				aref word = GetAttributeN(&words, GetAttributesNum(goods));
+				profit = "+" + word.text;
+			}
+			TouchLegMap_Good(TouchLegMap_PictureAt(rows, record), goods, profit);
+		}
+		if (GetAttributesNum(goods) > 0)
+		{
+			aref at = TouchLib_Add(sections, "s");
+			CopyAttributes(at, &section);
+		}
+	}
+}
+
+// The picture the game drew for `record` {good, x, y}.
+aref TouchLegMap_PictureAt(aref rows, aref record)
+{
+	for (int k = 0; k < GetAttributesNum(rows); k++)
+	{
+		aref picture = GetAttributeN(rows, k);
+		if (picture.id == record.good && TouchLegMap_Place(picture, "x") == sti(record.x) &&
+		    TouchLegMap_Place(picture, "y") == sti(record.y))
+			return picture;
+	}
+	UiError("map: no picture of " + record.good + " at " + record.x + ", " + record.y + " the game recorded");
+	return rows;
+}
+
+// Without the script fix that records them: MapBest's goods by the places its script drew them at, the colony's own
+// in y bands right of colonyFrom, the trade assistant's in two columns left of it, each good beside its profit on the
+// price line of its row. A reading by place, marked: it holds only while the game draws where these bands say.
 void TouchLegMap_Pictures(aref model, aref layout, aref sections)
 {
 	string drawn = layout.node;
@@ -156,9 +226,14 @@ void TouchLegMap_Pictures(aref model, aref layout, aref sections)
 			CopyAttributes(at, &section);
 		}
 	}
+}
+
+// The trade assistant's word when it lists nothing (no prices known, no profit).
+void TouchLegMap_Special(aref model, aref sections)
+{
 	string special = TouchLegLib_Label(model, "TRADEASSISTANT_SPECIAL");
 	if (special == "") return;
-	at = TouchLib_Add(sections, "s");
+	aref at = TouchLib_Add(sections, "s");
 	at.title = "";
 	at.page = "assistant";
 	at.goods = "";
@@ -217,7 +292,9 @@ void TouchLegMap_Colony(aref model, aref data, aref out)
 		{
 			aref layout;
 			makearef(layout, data.pictures);
-			TouchLegMap_Pictures(model, layout, sections);
+			if (sti(data.optional.goods_sections)) TouchLegMap_Drawn(model, layout, sections);
+			else TouchLegMap_Pictures(model, layout, sections);
+			TouchLegMap_Special(model, sections);
 			return;
 		}
 	}

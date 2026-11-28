@@ -572,6 +572,7 @@ void Main()
 	TestCharacters();
 	TestTransfer();
 	TestTable();
+	TestGoodsPictures();
 	GameValue = 7;
 	GameName = "kept";
 }
@@ -886,4 +887,29 @@ void TestTable()
 	}
 	DiceState.Hero.Result.Type = "";
 	DiceState.Comp.Result.Type = "";
+}
+
+// The excellent map's goods pictures as MapBest draws them (a script fix records each one's list): those of the colony
+// window that ui/tests/rare_check.cpp builds, the colony's export, import and contraband and the trade assistant's two
+// columns.
+void GoodsPictureDrawn(string good, int x, int y, string section)
+{
+	aref drawn;
+	makearef(drawn, GameInterface.GoodsPictures);
+	string n = "p" + GetAttributesNum(drawn);
+	drawn.(n).good = good;
+	drawn.(n).x = x;
+	drawn.(n).y = y;
+	drawn.(n).section = section;
+}
+
+void TestGoodsPictures()
+{
+	GoodsPictureDrawn("Sugar", 410, 245, "Trade.Export");
+	GoodsPictureDrawn("Coffee", 438, 245, "Trade.Export");
+	GoodsPictureDrawn("Rum", 410, 330, "Trade.Import");
+	GoodsPictureDrawn("Weapon", 410, 415, "Trade.Contraband");
+	GoodsPictureDrawn("Rum", 230, 395, "TradeAssistant0");
+	GoodsPictureDrawn("Sugar", 230, 423, "TradeAssistant0");
+	GoodsPictureDrawn("Coffee", 310, 395, "TradeAssistant1");
 }

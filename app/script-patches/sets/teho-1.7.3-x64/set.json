@@ -216,7 +216,7 @@
     {
       "path": "PROGRAM/interface/interface_utils.c",
       "base_sha256": "5efc55bcff8e780d0c16c474a97653060c405f174216ee805dba5427c74e086a",
-      "result_sha256": "ac6a253cccfb96e003bfd6641cdb16c8a59149ab4ae8b891e89ce15d36b64b73",
+      "result_sha256": "0453dbdb8667df2902dc2c3c7f116b58866b427a45dded2fca9c58a18b1132bd",
       "patch": "interface_utils.c.patch"
     },
     {
@@ -224,6 +224,12 @@
       "base_sha256": "bfced6e3444bfb78e4c14ae046d045ee904147a5547dc151bdab10241eac4e97",
       "result_sha256": "27c8070252bf5e5b585d84d6ec518d26c0d77cfc3e9b3354fffcdb5cf6d23edf",
       "patch": "alchemy.c.patch"
+    },
+    {
+      "path": "PROGRAM/interface/MapBest.c",
+      "base_sha256": "8bb0fe0a134fde24b5b949bb1fb6bf155b9142e0aa51ef3deb16c11308bc8422",
+      "result_sha256": "7558e1e1ea147c67af927599d80ad653f1f8e55621a636c0d495c955450f138f",
+      "patch": "MapBest.c.patch"
     }
   ],
   "fixes": [
@@ -608,6 +614,18 @@
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: MakeQuickLoad and QuickSaveContinue built the quick save's record name inline (\"<profile> QuickSave <n>\", n from PlayerProfile.QuickSaveIndex), so an interface that shows the record a quick load will load had to rebuild the name itself. The number and the name are now the functions GetQuickSaveIndex and QuickSaveName, which both call; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "goods-picture-sections",
+      "title": "The excellent map records which list each goods picture belongs to",
+      "targets": [
+        "PROGRAM/interface/interface_utils.c",
+        "PROGRAM/interface/MapBest.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "Not a defect: MapBest drew the goods of a colony's export, import, contraband and wanted lists and of the trade assistant's two columns as pictures at places of its own, so an interface that lists the goods by section had to guess each picture's list from its place. As it draws each picture it now also records the picture's good, place and list (GoodsPictureDrawn, under GameInterface.GoodsPictures, cleared with the pictures); what the window draws and does is unchanged",
+      "save_compatibility": "No new globals. The record is an attribute of the interface object, which the game clears whenever an interface starts; existing saves load unchanged."
     }
   ]
 }

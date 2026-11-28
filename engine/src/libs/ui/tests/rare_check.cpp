@@ -215,7 +215,8 @@ static void Maps(const std::string &models)
     ExpectEqual(surface.Last(), "widget:mapbest\tMAP\t-1\trelease", "so does the back key");
 
     // As the game really sends it (MapBest.c): the goods are pictures the script drew at its own places (the engine
-    // exports them with x, y and the good's name), the assistant's profits two joined columns of numbers.
+    // exports them with x, y and the good's name), each recorded with its list as it was drawn (the fixture game's
+    // GoodsPictures), the assistant's profits two joined columns of numbers.
     {
         InterfaceModel real = Load(models, "map-best-colony.json");
         Widget picture_template;
@@ -270,7 +271,7 @@ static void Maps(const std::string &models)
         Expect(real_surface.errors.empty() && rows.size() == 5 && rows[0]["title"] == "Экспорт" &&
                    rows[0]["goods"].size() == 2 && rows[1]["goods"][0]["label"] == "Ром" &&
                    rows[2]["title"] == "Контрабанда" && rows[2]["goods"][0]["texture"] == "atlas:GOODS/Weapon",
-               "the colony's goods by the script's bands: " + rows.dump());
+               "the colony's goods by the lists the game drew them in: " + rows.dump());
         Expect(rows[3]["title"] == "Туда" && rows[3]["page"] == "assistant" && rows[0]["page"] == "trade" &&
                    rows[3]["goods"].size() == 2 && rows[3]["goods"][0]["label"] == "Ром" &&
                    rows[3]["goods"][0]["value"] == "+6.4" && rows[3]["goods"][1]["value"] == "+5.7" &&

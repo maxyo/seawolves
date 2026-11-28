@@ -1,0 +1,26 @@
+--- a/PROGRAM/interface/MapBest.c
++++ b/PROGRAM/interface/MapBest.c
+@@ -335,6 +335,7 @@
+ 	SetFormatedText("TRADEASSISTANT_SPECIAL", "");
+ 
+ 	SendMessage( &GameInterface,"lsl",MSG_INTERFACE_MSG_TO_NODE,"GOODS_PICTURES", 2 ); 
++	DeleteAttribute(&GameInterface, "GoodsPictures");
+ 	//Clean up <--
+ 	
+ 	//Time to travel
+@@ -504,6 +505,7 @@
+ 			sGood = goods[iGood].name;
+ 			SendMessage( &GameInterface,"lslslllll",MSG_INTERFACE_MSG_TO_NODE,"GOODS_PICTURES", 0,
+ 				sGood, argb(255, 128, 128, 128), iGoods_x,iGoods_y,iGoods_x+28,iGoods_y+28 );
++			GoodsPictureDrawn(sGood, iGoods_x, iGoods_y, sType);
+ 			
+ 			if(i%6)
+ 				iGoods_x+=28;
+@@ -659,6 +661,7 @@
+ 			
+ 			SendMessage( &GameInterface,"lslslllll",MSG_INTERFACE_MSG_TO_NODE,"GOODS_PICTURES", 0,
+ 				Goods[a_iMax[i]].name, argb(255, 128, 128, 128), iGoods_x,iGoods_y,iGoods_x+28,iGoods_y+28 );
++			GoodsPictureDrawn(Goods[a_iMax[i]].name, iGoods_x, iGoods_y, "TradeAssistant" + iType);
+ 			iGoods_y+=28;
+ 			
+ 			bFound = true;

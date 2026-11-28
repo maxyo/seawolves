@@ -1,6 +1,6 @@
 --- a/PROGRAM/interface/interface_utils.c
 +++ b/PROGRAM/interface/interface_utils.c
-@@ -794,4 +794,182 @@
+@@ -794,4 +794,198 @@
  		
  		SendMessage(&GameInterface, "lslll", MSG_INTERFACE_MSG_TO_NODE, _node, 8, -1, color);	
  	}
@@ -184,4 +184,20 @@
 +	if (bCompanion) return "companion";
 +	if (bDisableMapEnter) return "map";
 +	return "";
++}
++
++// MapBest.c draws each good of a colony's trade lists and of the trade assistant as a picture of GOODS_PICTURES at a
++// place of its own; this records the list the picture belongs to as it is drawn ("Trade.Export", "Trade.Import",
++// "Trade.Contraband", "Trade.Aggressive", "TradeAssistant0": bought here, "TradeAssistant1": bought there), in
++// GameInterface.GoodsPictures.p<n>.{good, x, y, section}, n in drawing order, so an interface can list the goods by
++// section. MapBest clears it with the pictures; GameInterface is cleared when an interface starts.
++void GoodsPictureDrawn(string good, int x, int y, string section)
++{
++	aref drawn;
++	makearef(drawn, GameInterface.GoodsPictures);
++	string n = "p" + GetAttributesNum(drawn);
++	drawn.(n).good = good;
++	drawn.(n).x = x;
++	drawn.(n).y = y;
++	drawn.(n).section = section;
 +}

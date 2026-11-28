@@ -66,6 +66,7 @@
     {"file": "interface/touch/contracts/flag_change.c"},
     {"file": "interface/touch/contracts/musket.c"},
     {"file": "interface/touch/contracts/saves.c"},
+    {"file": "interface/touch/contracts/goods_sections.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -329,8 +330,14 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/goods_sections.c",
+      "requires": ["fn:GoodsPictureDrawn/4", "var:GameInterface"],
+      "provides": ["adapter:goods_sections"]
+    },
+    {
       "file": "interface/touch/lineages/legacy/map.c",
       "provides": ["adapter:map"],
+      "optional": ["adapter:goods_sections"],
       "binds": [
         {"capability": "map_atlas", "interface": "mapview", "nodes": ["@map"], "data": {"exit": "EXIT_BTN", "backdrop": ""}},
         {
@@ -338,7 +345,18 @@
           "data": {
             "exit": "EXIT_BTN", "backdrop": "MAIN_BACK",
             "pictures": {
-              "node": "GOODS_PICTURES", "colonyFrom": 400, "returnFrom": 270,
+              "node": "GOODS_PICTURES",
+              "sections": {
+                "s1": {"drawn": "Trade.Export", "caption": "EXPORT_CAPTION", "page": "trade"},
+                "s2": {"drawn": "Trade.Import", "caption": "IMPORT_CAPTION", "page": "trade"},
+                "s3": {"drawn": "Trade.Contraband", "caption": "CONTRABAND_CAPTION", "page": "trade"},
+                "s4": {"drawn": "Trade.Aggressive", "caption": "AGGRESSIVE_CAPTION", "page": "trade"},
+                "s5": {"drawn": "TradeAssistant0", "caption": "TRADEASSISTANT_TO", "page": "assistant",
+                       "prices": "TRADEASSISTANT_PRICES1"},
+                "s6": {"drawn": "TradeAssistant1", "caption": "TRADEASSISTANT_FROM", "page": "assistant",
+                       "prices": "TRADEASSISTANT_PRICES2"}
+              },
+              "colonyFrom": 400, "returnFrom": 270,
               "bands": {
                 "b1": {"caption": "EXPORT_CAPTION", "from": 0, "to": 330},
                 "b2": {"caption": "IMPORT_CAPTION", "from": 330, "to": 415},
