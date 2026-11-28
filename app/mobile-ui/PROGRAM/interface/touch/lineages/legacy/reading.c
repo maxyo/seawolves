@@ -5,7 +5,8 @@
 // sum), picture with its ornament (the window's own frame texture, no picture of the moment), flags {n<k>: node},
 // relation. Implements contracts/reading.c.
 
-// The flags' nations, and between two of them the game's relation picture: Enemy is war, Friend an alliance.
+// The flags' nations, and between two of them the game's relation picture (NationLegend.c GetRelationName): Enemy is
+// war, Friend an alliance, Neutral peace.
 void TouchLegReading_Flags(aref model, aref data, aref out)
 {
 	out.relation = "";
@@ -30,10 +31,13 @@ void TouchLegReading_Flags(aref model, aref data, aref out)
 	}
 	if (GetAttributesNum(flags) != 2) return;
 	DeleteAttribute(&image, "");
-	out.relation = "peace";
-	if (!TouchLegLib_NodeImage(model, data.relation, &image)) return;
-	if (image.image == "Enemy") out.relation = "war";
-	if (image.image == "Friend") out.relation = "alliance";
+	if (!TouchLegLib_NodeImage(model, data.relation, &image))
+		UiError("reading: two nations and no relation picture " + data.relation);
+	object relations = {Enemy = "war", Friend = "alliance", Neutral = "peace"};
+	string named = image.image;
+	if (named == "" || !CheckAttribute(&relations, named))
+		UiError("reading: the relation picture " + data.relation + " shows '" + named + "'");
+	out.relation = relations.(named);
 }
 
 void TouchAdpReading_State(aref ui, aref out)

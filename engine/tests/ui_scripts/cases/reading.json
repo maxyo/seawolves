@@ -937,6 +937,18 @@
     "text": "",
     "title": ""
    }
+  },
+  {
+   "name": "two flags and no relation picture: the build refuses it, no peace stands for it",
+   "capability": "news_nations",
+   "like": 6,
+   "without": [
+    [
+     "RelNat",
+     ""
+    ]
+   ],
+   "fails": "reading: two nations and no relation picture RelNat"
   }
  ]
 }
