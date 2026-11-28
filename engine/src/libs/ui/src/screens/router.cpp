@@ -1,4 +1,4 @@
-#include "controls.h"
+#include "format.h"
 
 #include "../hud/hud.h"
 
@@ -237,38 +237,11 @@ void Bindings::Modal(const std::string &id, Handler cancel)
     handlers_[id + '\x1f' + "back"] = std::move(cancel);
 }
 
-void Bindings::Predict(const std::string &id, const std::string &verb, Prediction predict)
-{
-    predictions_[id + '\x1f' + verb] = std::move(predict);
-}
-
 void Bindings::PredictThis(Json view)
 {
     if (!router_.current_)
         throw std::logic_error("PredictThis outside a handler");
     handled_ = std::move(view);
-}
-
-bool Bindings::Patch(Json &view, const std::string &id, const char *key, const Json &value)
-{
-    bool found = false;
-    if (view.is_object())
-    {
-        if (const auto own = view.find("id");
-            own != view.end() && own->is_string() && own->get_ref<const std::string &>() == id)
-        {
-            view[key] = value;
-            found = true;
-        }
-        for (auto &[name, child] : view.items())
-            if (child.is_structured())
-                found = Patch(child, id, key, value) || found;
-    }
-    else if (view.is_array())
-        for (Json &child : view)
-            if (child.is_structured())
-                found = Patch(child, id, key, value) || found;
-    return found;
 }
 
 void Bindings::Ignore(const std::string &id, const std::string &verb)
@@ -595,7 +568,6 @@ void Router::CloseOnDefect(const std::string &line, bool logged)
         surface_.Error(line);
     // Nothing of the failed build stays: its bindings may point into state the throw left half made.
     bindings_.handlers_.clear();
-    bindings_.predictions_.clear();
     modals_.clear();
     screen_.reset();
     using_.clear();
@@ -877,7 +849,6 @@ void Router::BuildView()
     if (rebuild_at_ > 0.0 && rebuild_at_ <= surface_.Now())
         rebuild_at_ = 0.0;
     bindings_.handlers_.clear();
-    bindings_.predictions_.clear();
     modals_.clear();
     // The ported screen registered for the id draws it when the model passes its admission.
     // If its REQUIRED nodes are missing or mistyped once the first model settled, the screen
@@ -1251,10 +1222,6 @@ bool Router::OnEvent(const Event &event)
         return false;
     }
     const Bindings::Handler handler = found->second; // a rebuild replaces the table
-    Bindings::Prediction declared;
-    if (const auto predicted = bindings_.predictions_.find(event.id + '\x1f' + event.verb);
-        predicted != bindings_.predictions_.end())
-        declared = predicted->second;
     const uint64_t floor = requests_.Next();
     current_ = &event;
     sent_in_event_ = false;
@@ -1266,16 +1233,6 @@ bool Router::OnEvent(const Event &event)
     std::optional<Json> predicted = std::exchange(bindings_.handled_, std::nullopt);
     if (predicted && built_.contains("extras"))
         (*predicted)["extras"] = built_["extras"]; // the router's part of the view, which a screen does not predict
-    if (!predicted && declared && screen_)
-    {
-        predicted = built_;
-        if (const auto thrown = Caught([&] { declared(event, *predicted); }))
-        {
-            surface_.Error("screen " + using_ + ": the prediction of " + event.id + " " + event.verb + " threw (" +
-                           *thrown + "); the game's state is shown");
-            predicted.reset();
-        }
-    }
     if (sent_in_event_)
     {
         // An action row of the «Прочее» sheet closes it, as a menu does.

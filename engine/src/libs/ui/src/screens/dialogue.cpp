@@ -5,7 +5,7 @@
 // proposal) and EDIT_ERROR (the engine's refusal of a typed answer: too_long, invalid_text, unavailable). The opening
 // is the dialogue's generation: a reply goes back as a widget action of it, answered by the engine (libs/dialog
 // takeDialogueChoice).
-#include "controls.h"
+#include "format.h"
 
 #include "../hud/hud.h"
 #include "storm_ui/dialogue_state.h"

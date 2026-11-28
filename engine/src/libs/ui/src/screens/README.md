@@ -104,18 +104,14 @@ applied answer shows it. Logs and checks print one line (`to_string`, `widget:<s
 Nothing in the UI waits before it draws: no frame is held for the game, and no timer stands between a tap and its
 result. Three rules keep that free of flicker:
 
-- **Predict what needs no decision of the game.** `bindings.Predict(id, verb, [](const Event &, Json &view) {…})`
-  next to the `On` of the same event: the function changes the view to what the tap leads to (the tapped row
-  selected, the switch moved; `Bindings::Patch`). The router keeps what that changes as fields addressed by name and
-  by a list row's `id` (a row's identity; only lists whose items carry no id, the screen's own sections, are stepped
-  by place) and lays them over every view built until the ledger says the requests the handler sent are shown (and
-  the screen no longer `Await`s) or refused. Shown, they are compared with the game's view: a difference is the
-  error line "UI prediction corrected: …"; refused, they end at once; a row absent from a build is not marked, and
-  one log line says so when the request ends. Capture values only (the function outlives the model it was declared
-  for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is not
-  predicted. A handler that alone knows the result says `bindings.PredictThis(view)`: a script screen's `UiPredict`
-  gives the view the tap leads to. Predicted today: the toggles and segments of `ControlRows` (the generic
-  layout, Other).
+- **Predict what needs no decision of the game.** A handler that knows what the tap leads to (the tapped row
+  selected, the switch moved) says `bindings.PredictThis(view)`: a script screen's `UiPredict`. The router keeps what
+  that changes as fields addressed by name and by a list row's `id` (a row's identity; only lists whose items carry
+  no id, the screen's own sections, are stepped by place) and lays them over every view built until the ledger says
+  the requests the handler sent are shown (and the screen no longer `Await`s) or refused. Shown, they are compared
+  with the game's view: a difference is the error line "UI prediction corrected: …"; refused, they end at once; a row
+  absent from a build is not marked, and one log line says so when the request ends. Predict only what the game
+  cannot quietly decide otherwise; an event without a prediction is not predicted.
 - **Do not draw a step.** A model the screen knows to be a step of the game's answer (the store's row selected
   before its amount window, a confirmed deal closed before it reopens) is not drawn: the build returns the view
   it had and says `bindings.Await()` (a script screen: `UiAwait()`). A rule about models, never about time; a
@@ -136,15 +132,16 @@ else is a key of the pack's string table (`mobile-ui/design/strings/<lang>.json`
 - templates: `{{ tr('common.next') }}`.
 
 Add a key to every `strings/<lang>.json` (the design build fails otherwise) with its zone prefix
-(`trade.`, `crew.`, `common.`). The word lists in `controls.cpp` (`kExitLabels`, `kConfirmLabels`,
-`kDangerWords`) recognise button roles in all six game languages; add a language's words there with
-its string table, and a case to `Roles` in `tests/screens_check.cpp`.
+(`trade.`, `crew.`, `common.`). The generic layout's words of exit, confirm and destructive buttons in all six
+languages are in its script (`universal/generic.c`); a language's words go there with its string table, and a case
+to `Roles` in `tests/screens_check.cpp`.
 
 ## Game pictures in rows
 
-`PictureOf(image)` (controls.h) turns a `pictures.ini` reference into a row image
+`PictureOf(image)` (pictures.h) turns a `pictures.ini` reference into a row image
 (`atlas:GROUP/Picture`); `TextureOf(image)` gives `{texture, uv}` for
-`<ui-game-image texture uv [fit="contain|cover"]>`, `MapViewOf` the props of `c-map-view`.
+`<ui-game-image texture uv [fit="contain|cover"]>`; a script's view gives them as its `picture` and `texture` shapes
+(`script_props.cpp`).
 Pictures are resolved from the game root at run time; nothing of the game is bundled.
 
 ## State channels

@@ -1,53 +1,13 @@
-// View builders shared by every screen: one widget (or one group of widgets) becomes the
-// JSON of one row of the pack parts <s-control> / <s-block>, with its events bound.
+// The amount of a quantity control as the player sets it until he confirms it (the deal of UiDeal).
 #pragma once
 
 #include "screen.h"
-#include "../text_utf8.h"
-#include "amount.h"
-#include "pictures.h"
 
 #include <functional>
-#include <initializer_list>
-#include <span>
 
 namespace storm::ui::screens
 {
 
-inline constexpr double kMiB = 1048576.0, kGiB = 1073741824.0;
-
-// A game text on one line: line breaks ("\r", "\n"), tabs and runs of spaces become one space, trimmed.
-std::string OneLine(const std::string &text);
-bool Short(const std::string &text, size_t chars); // at most `chars` code points, one line
-// "{1}", "{2}" … of a string table entry replaced by the arguments.
-std::string Fill(std::string text, std::span<const std::string> args);
-inline std::string Fill(std::string text, std::initializer_list<std::string> args)
-{
-    return Fill(std::move(text), std::span<const std::string>(args.begin(), args.size()));
-}
-// One decimal with the decimal mark of the language ("2,3").
-std::string Decimal(const Bindings &bindings, double value);
-// A game number with a decimal point in the interface's language ("2.4" → "2,4" except in
-// English): every point between two digits.
-std::string Decimal(const std::string &text, const std::string &language);
-// A size in GB from a tenth of a GB, else in MB; `scale` (when given) picks the unit, so that "done of total" share
-// one.
-std::string Size(const Bindings &bindings, double bytes, double scale = -1);
-
-enum class ButtonRole
-{
-    Exit,
-    Confirm,
-    Danger,
-    Section,
-    Other
-};
-ButtonRole RoleOf(const Widget &button);
-// Header section a navigation button opens ("hero", "ship", …), or empty.
-std::string SectionOf(const Widget &button);
-
-// {id, label, variant, disabled, reason, busy} of a c-button; a tap presses the widget.
-Json ButtonView(Bindings &bindings, const Widget &button, const std::string &id, const char *variant);
 // The amount a quantity control sets is the player's draft until he confirms it (picking an
 // amount moves nothing). A change or a drag of the control moves only the draft; the deal's button
 // («Взять / Отдать N» for a free transfer, «Купить / Продать N» for a money deal) sends it to the game.
@@ -116,14 +76,5 @@ class AmountDraft
     uint64_t floor_ = 0;       // the first request of the deal (Bindings::RequestFloor)
     double reason_at_ = -10.0; // when the "cannot go further" reason was last said
 };
-// {kind:"action", id, title, disabled, reason, selected, busy}: a button or choice as a list row.
-Json ActionRow(Bindings &bindings, const Widget &widget, const std::string &id);
-// Sends the verb a tap on a choice row means: activate on the selected row when offered,
-// else select, else open.
-void TapChoice(Bindings &bindings, const Widget &choice);
-// Appends the rows of a run of controls (check, edit, slider, stepper) to `rows`.
-// `labels` (empty, or one per widget) holds the short text that preceded a control and names it.
-void ControlRows(Bindings &bindings, std::span<const Widget *const> widgets, const std::string &id_prefix,
-                 const std::vector<std::string> &labels, Json &rows);
 
 } // namespace storm::ui::screens

@@ -126,17 +126,11 @@ class Bindings
     void Ignore(const std::string &id, const std::string &verb);
     // An event of `id` sends this verb of the widget to the engine.
     void Forward(const std::string &id, const Widget &widget, const std::string &verb);
-    // Local feedback: `predict` changes the view to what the event `id` `verb` leads to without a decision of the
-    // game. Its difference from the view built is kept as fields addressed by name and by row id, laid over every
-    // view built until the game has answered what the handler sent; a different answer is shown and logged. See
-    // src/screens/README.md, "Answering a tap at once".
-    using Prediction = std::function<void(const Event &, Json &view)>;
-    void Predict(const std::string &id, const std::string &verb, Prediction predict);
-    // Inside a handler: the view the event it handles leads to, when only the handler knows it (a script screen's
-    // tap). It replaces one declared with Predict.
+    // Inside a handler: the view the event it handles leads to (a script screen's tap: UiPredict). Its difference from
+    // the view built is kept as fields addressed by name and by row id, laid over every view built until the game has
+    // answered what the handler sent; a different answer is shown and logged (src/screens/README.md, "Answering a tap
+    // at once").
     void PredictThis(Json view);
-    // For predictions: sets `key` of every object in the view whose "id" is `id`; false when there is none.
-    static bool Patch(Json &view, const std::string &id, const char *key, const Json &value);
     // The view shows the modal `id` (a c-dialog, or a sheet with a scrim of its own): declared in
     // every Build that shows it, the topmost last. Every modal goes through here, so all of them
     // answer the scrim and the back key the same way: `cancel` is the modal's way back without
@@ -237,8 +231,7 @@ class Bindings
     }
     Router &router_;
     std::unordered_map<std::string, Handler> handlers_;
-    std::unordered_map<std::string, Prediction> predictions_; // by "<id>\x1f<verb>", of the view on the screen
-    std::optional<Json> handled_;                             // PredictThis of the running handler
+    std::optional<Json> handled_; // PredictThis of the running handler
 };
 
 class Screen
@@ -431,7 +424,7 @@ class Router
     // waits for its turn, an applied answer whose model has not come yet, or a screen that awaits more
     // (Bindings::Await). The flicker check does not take an action for settled meanwhile.
     bool Answering() const;
-    // How many events were predicted so far (Bindings::Predict): the host tells the flicker check which actions
+    // How many events were predicted so far (Bindings::PredictThis): the host tells the flicker check which actions
     // must show their feedback in the frame of the tap.
     uint64_t Predicted() const
     {

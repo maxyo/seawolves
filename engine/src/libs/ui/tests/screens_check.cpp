@@ -6,7 +6,8 @@
 #include "../src/hud/hud.h"
 #include "../src/picture_atlas.h"
 #include "../src/screens/amount.h"
-#include "../src/screens/controls.h"
+#include "../src/screens/deal.h"
+#include "../src/screens/format.h"
 #include "storm_ui/dialogue_state.h"
 
 #include <algorithm>

@@ -3,7 +3,7 @@
 // course, the clock): it is never handed to a script, which only says where it goes; the script's states carry
 // `readings.<name>` = 1 for each one the engine knows now.
 #include "hud.h"
-#include "../screens/controls.h"
+#include "../screens/format.h"
 
 #include <charconv>
 #include <cmath>

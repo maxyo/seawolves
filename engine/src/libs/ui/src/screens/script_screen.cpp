@@ -1,7 +1,8 @@
 #include "script_screen.h"
 
 #include "app_settings.h"
-#include "controls.h"
+#include "deal.h"
+#include "format.h"
 #include "script_props.h"
 #include "amount.h"
 #include "../numbers.h"

@@ -5,7 +5,10 @@
 // screens: a tap opens a good's quantity; the amount set is a draft (AmountDraft, controls.h) that
 // «Сохранить N» saves as one `order@…:<good>=<amount>` engine action (through the game's own amount
 // window) and «Отмена» returns to the saved order.
-#include "controls.h"
+#include "amount.h"
+#include "deal.h"
+#include "format.h"
+#include "pictures.h"
 
 #include <algorithm>
 #include <cstdlib>

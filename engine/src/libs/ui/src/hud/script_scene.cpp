@@ -11,7 +11,7 @@
 #include "app_ui_names.hpp"
 #include "../component_spec.h"
 #include "../screens/amount.h"
-#include "../screens/controls.h"
+#include "../screens/format.h"
 #include "../screens/script_props.h"
 
 #include <algorithm>

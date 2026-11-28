@@ -30,7 +30,9 @@
 // What the player does goes back as Action{node "APP", verb, value} (text fields:
 // node "PASSWORD" / "MAGNET", verb "edit"); the global back without a ← binding is
 // Action{verb "back"}. The Android host is UiScreenActivity and its subclasses.
-#include "controls.h"
+#include "amount.h"
+#include "format.h"
+#include "../text_utf8.h"
 #include "app_ui_names.hpp"
 
 #include <algorithm>
