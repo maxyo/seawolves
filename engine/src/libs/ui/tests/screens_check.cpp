@@ -1066,8 +1066,8 @@ struct CommerceRun
     void Models()
     {
         for (const char *name :
-             {"storage.json", "storage-deal.json", "itemsbox.json", "itemsbox-deal.json", "itemstrade-deal.json",
-              "cannons-deal.json", "contraband-deal.json", "cannons-buy.json"})
+             {"real-storage.json", "storage-deal.json", "itemsbox.json", "itemsbox-deal.json", "itemstrade-deal.json",
+              "cannons-deal.json", "contraband-deal.json", "real-cannons.json"})
         {
             const InterfaceModel model = Load(models, name);
             router.SetInterface(model);
@@ -1082,10 +1082,10 @@ struct CommerceRun
     void Storage()
     {
         // The game's own storage figures: the hold on one line, the load of the storage in a sentence.
-        router.SetInterface(Load(models, "storage.json"));
-        Expect(surface.props["stats"].size() == 2 && surface.props["stats"][0]["value"] == "189 / 700" &&
+        router.SetInterface(Load(models, "real-storage.json"));
+        Expect(surface.props["stats"].size() == 2 && surface.props["stats"][0]["value"] == "288 / 1700" &&
                    surface.props["stats"][1]["label"] == "Склад" &&
-                   surface.props["stats"][1]["value"] == "0 / 50000 ц.",
+                   surface.props["stats"][1]["value"] == "40 / 50000 ц.",
                "storage: hold and storage load in the header");
 
         // Storage: a free transfer is confirmed like a money deal (AmountDraft): «Взять / Отдать N», «Отмена».
@@ -1102,7 +1102,7 @@ struct CommerceRun
                 "widget:storage\tQTY_OK_BUTTON\t-1\tguard@7:commerce:storage:item:14:owner:1:role:0|press";
             OfferFlow("storage: take", router, surface, Load(models, "storage-deal.json"), 60, 90, 90,
                       "<trade.take> 30", edit, ok);
-            router.SetInterface(Load(models, "storage.json")); // the game closed its window after the transfer
+            router.SetInterface(Load(models, "real-storage.json")); // the game closed its window after the transfer
             Expect(surface.commands.empty() && surface.props["primary"]["label"] != "<trade.take> 30",
                    "the moved row is not opened again by itself");
             router.SetInterface(Load(models, "storage-deal.json"));
@@ -1738,7 +1738,7 @@ struct TransferRun
 
     void Tabs()
     {
-        router.SetInterface(Load(models, "transfer-loot.json"));
+        router.SetInterface(Load(models, "real-loot-prize.json"));
         Expect(router.Using() == "transfer_main" && surface.tag == "s-transfer" && surface.errors.empty() &&
                    surface.props["tabs"].size() == 3 && surface.props["ships"].is_null(),
                "loot is drawn by the transfer script screen, cargo open: " + Json(surface.errors).dump());
@@ -1750,7 +1750,7 @@ struct TransferRun
         router.OnEvent({"header", "tab", "0"});
         Expect(surface.props["ships"].is_null() && surface.props["tabs"][0]["selected"] == true, "back to the cargo");
         // «Корабли» from the crew window: the game closes it first, the models until it has still show it open.
-        InterfaceModel crew = Load(models, "transfer-crew.json");
+        InterfaceModel crew = Load(models, "real-loot-crew.json");
         crew.revision = 100;
         router.SetInterface(crew);
         router.OnEvent({"header", "tab", "2"});
@@ -1760,7 +1760,7 @@ struct TransferRun
         router.SetInterface(crew);
         Expect(surface.props["tabs"][2]["selected"] == true && surface.props["ships"].is_null(),
                "while the crew window is still open: the ships tab is chosen, the crew stays drawn");
-        InterfaceModel closed = Load(models, "transfer-loot.json");
+        InterfaceModel closed = Load(models, "real-loot-prize.json");
         closed.revision = crew.revision + 1;
         router.SetInterface(closed);
         Expect(surface.props["tabs"][2]["selected"] == true && !surface.props["ships"].is_null(),
@@ -1824,7 +1824,7 @@ struct TransferRun
         router.OnEvent({"modal", "dismiss", ""});
         ExpectEqual(surface.Last(), prefix + "REMOVE_CANCEL_OFFICER\t-1\tpress",
                     "beside the ship's question: keep the ship");
-        InterfaceModel captain = Load(models, "transfer-captain.json");
+        InterfaceModel captain = Load(models, "real-loot-captains.json");
         captain.revision = 202;
         router.SetInterface(captain);
         Expect(surface.props["sheet"]["kind"] == "captain" && surface.props["sheet"]["skills"].size() == 7 &&

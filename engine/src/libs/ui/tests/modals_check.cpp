@@ -89,7 +89,7 @@ static std::vector<Case> Cases()
         {"encounter card without a way past", file("reading-dirsailenc.json"), "card", {}},
         {"crew wages card", file("reading-salary.json"), "card", {}},
         {"notice card", file("reading-colonyinfo.json"), "card", {"card-close", "click", ""}},
-        {"rest (a script screen)", file("rest.json"), "rest", {"rest-close", "click", ""}},
+        {"rest (a script screen)", file("real-tavernwait.json"), "rest", {"rest-close", "click", ""}},
         {"shipyard buy question", file("shipyard-confirm-buy.json"), "sheet", {"sheet-cancel", "click", ""}},
         {"defectors (quantity)", file("transfer-hire.json"), "amount", {}},
         {"prisoners' fate", file("transfer-crew-capture.json"), "modal", {}},
