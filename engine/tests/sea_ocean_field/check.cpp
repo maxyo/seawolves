@@ -1,10 +1,13 @@
 // The sea's wave spectrum and field (src/libs/sea/src/ocean_*): the physics of a single wave, the spectrum's
 // normalisation and bands, the transform's scale, the height query over choppy waves and determinism.
+#include "ocean_driver.hpp"
 #include "ocean_field.hpp"
 
 #include <catch2/catch.hpp>
 
 #include <cmath>
+#include <cstdint>
+#include <stdexcept>
 #include <cstring>
 #include <numbers>
 
@@ -195,4 +198,24 @@ TEST_CASE("equal inputs make the same field")
     calm.SetState(Weather(0.0f, 0.5f, 0.0f, 2.0f, 1.0f));
     calm.Update(5.0);
     CHECK(calm.Height(10.0f, 20.0f, 2) == 0.0f);
+}
+
+TEST_CASE("the transform runs only on buffers aligned for av_tx's vector code")
+{
+    InverseFft2d transform(16);
+    FftBuffer data(16 * 16 + 1);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(data.data()) % kFftAlignment == 0);
+    transform.Run(data.data());
+    CHECK_THROWS_AS(transform.Run(data.data() + 1), std::invalid_argument);
+}
+
+TEST_CASE("a sea deleted while its worker makes the next field waits for the worker")
+{
+    const Sea2Keys keys{7.0f, 0.5f, 1.1f, 3.0f, 2.0f, 200.0f, 0.7f};
+    for (int i = 0; i < 8; i++)
+    {
+        Driver driver;
+        driver.Frame(3, 128, keys, 0.02, true);  // made at once, the worker starts on the next field
+        driver.Frame(3, 128, keys, 0.02, false); // waits, the worker starts again; the driver goes at once
+    }
 }

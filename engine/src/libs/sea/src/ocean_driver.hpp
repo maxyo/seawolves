@@ -16,6 +16,12 @@ class Driver
     // A weather change eases over this long: the old spectrum fades into the new one.
     static constexpr double kEaseSeconds = 8.0;
 
+    // The worker's job uses the fields and transforms below: a sea deleted while it runs (a scene change) waits for it.
+    ~Driver()
+    {
+        worker_.Wait();
+    }
+
     // Once per sea frame, game thread. Waits for the field the worker made during the last frame and makes it the one
     // read (Current), takes `cascades` x `size` and the weather's `keys` (a change eases in unless `snap`: then, and
     // at a new layout, the field is made here at once), advances the sea's clock by `dt` seconds and starts the

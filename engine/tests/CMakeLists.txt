@@ -395,8 +395,9 @@ include("${STORM_ROOT}/cmake/ffmpeg.cmake")
 storm_ffmpeg(host)
 storm_host_check(sea_ocean_field
     SOURCES check.cpp ${src}/libs/sea/src/ocean_fft.cpp ${src}/libs/sea/src/ocean_spectrum.cpp
-            ${src}/libs/sea/src/ocean_field.cpp
-    INCLUDES ${glm_headers} ${src}/libs/sea/src OPTIONS -O1 -g ${asan_strict} -fno-omit-frame-pointer ${warnings}
+            ${src}/libs/sea/src/ocean_field.cpp ${src}/libs/sea/src/ocean_driver.cpp ${src}/libs/sea/src/ocean_worker.cpp
+    INCLUDES ${glm_headers} ${src}/libs/sea/src ${util_include}
+    OPTIONS -O1 -g ${asan_strict} -fno-omit-frame-pointer ${warnings}
     LIBS storm_ffmpeg CATCH2)
 storm_host_check(ship_script_protocol SOURCES ${src}/libs/core/src/message.cpp check.cpp
     INCLUDES ${glm_headers} ${src}/libs/core/include ${util_include}

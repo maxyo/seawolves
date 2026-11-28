@@ -102,7 +102,7 @@ class Field
     std::vector<std::vector<Displacement>> samples_;
     std::vector<std::vector<Slope>> slopes_;
     // Per cascade: h + i dx and dz in frequency, transformed in place.
-    std::vector<std::array<std::vector<std::complex<float>>, 2>> work_;
+    std::vector<std::array<FftBuffer, 2>> work_;
     std::vector<std::unique_ptr<InverseFft2d>> transforms_; // Update's, one per size
 };
 } // namespace storm::sea::ocean

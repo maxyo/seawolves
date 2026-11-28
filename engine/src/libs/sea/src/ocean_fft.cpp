@@ -5,6 +5,7 @@ extern "C"
 #include <libavutil/tx.h>
 }
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -29,6 +30,8 @@ InverseFft2d::~InverseFft2d()
 void InverseFft2d::Run(std::complex<float> *data)
 {
     // Rows into the scratch, transposed back, twice: the second pass transforms the columns.
+    if (reinterpret_cast<std::uintptr_t>(data) % kFftAlignment != 0)
+        throw std::invalid_argument("sea: FFT data not aligned for av_tx (an FftBuffer is)");
     const size_t n = static_cast<size_t>(size_);
     for (int pass = 0; pass < 2; pass++)
     {
