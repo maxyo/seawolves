@@ -10,8 +10,8 @@
 #event_handler("UiTap", "TouchTransfer_Tap");
 
 // The screen's state while its window is open: the ships tab chosen (.ships), the defectors seen (.hired), the goods'
-// order (.sort), the amount set and not yet sent (.draft: {key, amount} of a cargo row or key "crew") and the
-// adapter's state of the last build in .game.
+// order (.sort), the amount set and not yet sent (.draft: {key, amount} of a cargo row or key "crew"), the amount sent
+// and not yet answered (.sent: {key, from, asked}) and the adapter's state of the last build in .game.
 object TouchTransfer;
 object TouchTransfer_View;
 
@@ -29,12 +29,14 @@ void TouchTransfer_Build()
 		fresh.sort.descending = true;
 		fresh.draft.key = "";
 		fresh.draft.amount = 0;
+		fresh.sent.key = "";
 		DeleteAttribute(&TouchTransfer, "");
 		CopyAttributes(&TouchTransfer, &fresh);
 	}
 	aref game;
 	makearef(game, TouchTransfer.game);
 	TouchAdpTransfer_State(ui, game);
+	TouchTransfer_Stopped(game);
 	aref view;
 	makearef(view, TouchTransfer_View);
 	DeleteAttribute(view, "");
@@ -648,16 +650,50 @@ void TouchTransfer_Set(string key, int amount)
 void TouchTransfer_Send(aref ui, aref game)
 {
 	bool crew = CheckAttribute(game, "crew");
-	if (TouchTransfer_Pending(game, crew) < 0)
+	int now = TouchTransfer_Pending(game, crew);
+	if (now < 0)
 	{
 		if (crew || !CheckAttribute(game, "takeAll")) UiError("transfer: the bar's button tapped with nothing to send");
 		TouchAdpTransfer_TakeAll(ui);
 		return;
 	}
 	int amount = sti(TouchTransfer.draft.amount);
+	TouchTransfer.sent.key = TouchTransfer.draft.key;
+	TouchTransfer.sent.from = now;
+	TouchTransfer.sent.asked = amount;
 	TouchTransfer.draft.key = "";
 	if (crew) { TouchAdpTransfer_Men(ui, amount); return; }
 	TouchAdpTransfer_Move(ui, TouchLib_Selected(game, "cargo.rows"), amount);
+}
+
+// The amount sent, once the game has answered: where its arrows stopped short of it (the other ship's room, a hold
+// full) is said, else the player sees the old number and nothing else.
+void TouchTransfer_Stopped(aref game)
+{
+	string key = TouchTransfer.sent.key;
+	if (key == "") return;
+	string answer = UiAnswer();
+	if (answer == "waiting") return;
+	TouchTransfer.sent.key = "";
+	if (answer != "applied" && answer != "late") return;
+	int now = -1;
+	if (key == "crew")
+	{
+		if (CheckAttribute(game, "crew")) now = sti(game.crew.ours);
+	}
+	else
+	{
+		int k = TouchLib_Find(game, "cargo.rows", "key", key);
+		if (k >= 0)
+		{
+			aref row = TouchLib_Item(game, "cargo.rows", k);
+			now = sti(row.own);
+		}
+	}
+	int from = sti(TouchTransfer.sent.from);
+	int asked = sti(TouchTransfer.sent.asked);
+	if (now < 0 || now == asked) return;
+	UiToast(TouchLib_FillTwo(UiText("transfer.stopped"), "" + abs(now - from), "" + abs(asked - from)));
 }
 
 // Back answers the game's question by its way out, puts away the captains or the crew, else leaves.

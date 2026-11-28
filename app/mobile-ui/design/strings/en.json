@@ -394,6 +394,7 @@
   "transfer.sailors": "Sailors",
   "transfer.min_mark": "min {1}",
   "transfer.nobody": "Nobody",
+  "transfer.stopped": "Only {1} of {2} moved",
   "goods.title": "Purchase list",
   "goods.good": "Goods",
   "goods.hold": "In hold",

@@ -394,6 +394,7 @@
   "transfer.sailors": "Marinai",
   "transfer.min_mark": "min. {1}",
   "transfer.nobody": "Nessuno",
+  "transfer.stopped": "Spostati solo {1} su {2}",
   "goods.title": "Lista acquisti",
   "goods.good": "Merce",
   "goods.hold": "In stiva",

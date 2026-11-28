@@ -394,6 +394,7 @@
   "transfer.sailors": "Matrosen",
   "transfer.min_mark": "min. {1}",
   "transfer.nobody": "Niemanden",
+  "transfer.stopped": "Nur {1} von {2} umgeladen",
   "goods.title": "Einkaufsliste",
   "goods.good": "Ware",
   "goods.hold": "Im Laderaum",

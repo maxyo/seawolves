@@ -233,8 +233,6 @@
 - Здоровье, которое игра пишет заглавными буквами («ОТЛИЧНОЕ»), на экране персонажа снова показано строчными.
 - Список сохранений называет запись так, как её назвала игра (быстрые сохранения — «<профиль> QuickSave N»), а под
   именем пишет героя и место: раньше несколько быстрых сохранений в одном месте выглядели одинаково.
-- Экран корабля снова открывается на собственном корабле героя: раньше он показывался раскладкой по умолчанию с
-  сообщением «Этот экран не открылся», если на экране был корабль, с которым игра не предлагает обмен.
 - Обмен с кораблём говорит, когда игра перенесла меньше выставленного (у другого корабля нет места для команды или
   груза): «Перенесено только 0 из 20». Раньше число просто оставалось прежним без объяснения.
 - Удар, начатый в тот миг, когда бой на палубе закончился, больше не выводит ошибку интерфейса, а колесо приёмов
@@ -476,8 +474,6 @@
 - Health, which the game writes in capitals («EXCELLENT»), is shown in lower case again on the character screen.
 - The save list names a record as the game named it (quick saves are «<profile> QuickSave N») with the hero and the
   place under the name: several quick saves made in one place used to look the same.
-- The ship screen opens on the hero's own ship again: it used to fall back to the default layout with «This screen
-  did not open» whenever the ship shown was one the game offers no exchange with.
 - The ship exchange says when the game moved less than the amount set (the other ship has no room for the men or
   the cargo): «Only 0 of 20 moved». The number used to stay as it was with no word why.
 - A strike begun just as the deck fight ends no longer raises an interface error, and the move wheel of the next

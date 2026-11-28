@@ -394,6 +394,7 @@
   "transfer.sailors": "Матросы",
   "transfer.min_mark": "мин. {1}",
   "transfer.nobody": "Никого",
+  "transfer.stopped": "Перенесено только {1} из {2}",
   "goods.title": "Закупка товаров",
   "goods.good": "Товар",
   "goods.hold": "В трюме",

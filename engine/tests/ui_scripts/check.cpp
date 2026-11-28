@@ -905,6 +905,15 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
                 port.Build(screen, calls.Single(), calls);
                 continue;
             }
+            // ["answer", what]: the build of the game's answer to the hold (UiAnswer), on the same model.
+            if (event.size() == 2 && event[0] == "answer")
+            {
+                calls.first = false;
+                calls.answer = event[1].get<std::string>();
+                port.Build(screen, calls.Single(), calls);
+                calls.answer.clear();
+                continue;
+            }
             REQUIRE(calls.Binds(event[0], event[1]));
             port.Event(screen, event[0], event[1], event[2], calls);
         }

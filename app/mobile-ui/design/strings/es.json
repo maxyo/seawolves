@@ -394,6 +394,7 @@
   "transfer.sailors": "Marineros",
   "transfer.min_mark": "mín. {1}",
   "transfer.nobody": "Nadie",
+  "transfer.stopped": "Solo se movieron {1} de {2}",
   "goods.title": "Lista de compras",
   "goods.good": "Mercancía",
   "goods.hold": "En bodega",

@@ -394,6 +394,7 @@
   "transfer.sailors": "Marins",
   "transfer.min_mark": "min {1}",
   "transfer.nobody": "Personne",
+  "transfer.stopped": "Seulement {1} sur {2} transférés",
   "goods.title": "Liste d’achats",
   "goods.good": "Marchandise",
   "goods.hold": "En cale",
