@@ -55,17 +55,11 @@ void EngineUi::Prewarmer::OnFrameEnd(const storm::render::FrameContext &)
     EngineUi &ui = EngineUi::Get();
     if (!ui.host_)
         return;
-    // Behind the loading screen of a scene load (its transaction) that has gone on for kPrewarmAfterMs. Not in a
-    // short reload, not behind the title's (its reveal counts frames: the graphics preset's start) nor the scripts' own
-    // progress frames (InitGame): there it would delay what the player waits for. Never in play or on the title: a
-    // font use costs a frame or more there (measured: 3-85 ms each on a desktop release build).
-    const auto now = std::chrono::steady_clock::now();
-    if (!storm::loading::active)
-        load_started.reset();
-    else if (!load_started)
-        load_started = now;
-    if (load_started && ui.presentation_.screen != "mainmenu" &&
-        std::chrono::duration<double, std::milli>(now - *load_started).count() >= kPrewarmAfterMs)
+    // Behind the loading screen of a scene load (its transaction), which is up for the whole of it. Not behind the
+    // title's (its reveal counts frames: the graphics preset's start) nor the scripts' own progress frames (InitGame):
+    // there it would delay what the player waits for. Never in play or on the title: a font use costs a frame or more
+    // there (measured: 3-85 ms each on a desktop release build).
+    if (storm::loading::active && ui.presentation_.screen != "mainmenu")
         ui.host_->Prewarm(); // made already: returns at once
 }
 } // namespace storm::android::ui

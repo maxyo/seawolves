@@ -43,9 +43,6 @@ namespace storm::android::ui
 constexpr const char *kTag = "StormUi";
 // Frame owner client order: after the renderer's own clients.
 constexpr int kClientOrder = 1000;
-// Host::Prewarm, all of it, after a presented frame behind the loading screen of a scene load that has lasted
-// kPrewarmAfterMs: the first load after the title (or of a new game) pays it once.
-constexpr double kPrewarmAfterMs = 400.0;
 
 // The host's own lines: ui.log (its errors in error.log too) and the platform's log under kTag.
 spdlog::logger &Log();
@@ -447,11 +444,11 @@ class EngineUi
         double update_ms = 0.0, render_ms = 0.0;
         long draws = 0, layers = 0, layouts = 0, touched = 0, boxes = 0, meshes = 0;
     } frame_trace_;
-    // What the first opening of a screen would make, made behind a loading screen (Host::Prewarm, kPrewarmAfterMs).
+    // What the first opening of a screen would make, made behind the first scene load's loading screen
+    // (Host::Prewarm, all of it: the first load after the title or of a new game pays it once).
     struct Prewarmer final : storm::render::FrameClient
     {
         void OnFrameEnd(const storm::render::FrameContext &) override;
-        std::optional<std::chrono::steady_clock::time_point> load_started; // of the scene load under way
     } prewarm_;
     std::map<std::string, std::string> states_;
     DialogueRelay dialogue_;
