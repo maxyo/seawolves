@@ -1,53 +1,172 @@
-// Component templates: RML text with holes, conditions and loops over JSON props.
+// Component templates, compiled once when the pack loads (CompileTemplate) into a tree of element nodes with
+// expressions attached; components.cpp binds that tree to live elements and runs only the expressions whose
+// inputs changed. The syntax is described in app/mobile-ui/design/README.md.
 //
-//   {{ expr }}                      escaped text
-//   {{{ expr }}}                    raw text (RML built by a helper)
-//   <t-if test="expr">…</t-if>      optional <t-else/> inside
-//   <t-for each="expr" as="x">…</t-for>   also defines x_i (index) and x_last
-//
-// Expressions: literals, paths (a.b[0].c), ! - + * / % comparisons && || ?: and calls
-// (see template.cpp for the helper list). Missing values are null; null prints nothing.
-// Strict mode (SetTemplateStrict; Config::strict_templates in host checks): a path that names
-// nothing (an unknown name, a missing key, an index past the end) is an error. A key present
-// with null is defined. A path that may be missing is marked: opt(path), or the arguments of
-// or(path, fallback).
+// Expressions: literals ('text', 12, true, null, [a, b], {k: v}), paths (a.b[0].c), ! - + * / % comparisons
+// && || ?: and calls (see template.cpp for the helper list). Missing values are null; null prints nothing.
+// Strict mode (SetTemplateStrict; Config::strict_templates in host checks): a path that names nothing (an
+// unknown name, a missing key, an index past the end) is an error. A key present with null is defined. A path
+// that may be missing is marked: opt(path), or the arguments of or(path, fallback).
 #pragma once
 
+#include <bitset>
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace storm::ui
 {
 
 using Json = nlohmann::json;
+struct ComponentSpec;
+struct PropSpec;
 
-// What a component keeps between its renders so that a loop over a prop renders again only
-// the items that changed (RenderTemplate): per loop, the output of each item by its value and
-// position, valid while the names of the scope its body reads are what they were (a deal's
-// quantity beside a list of goods does not render the goods again).
-struct TemplateMemo
+// The names one component's templates read, by index: its props first (in the spec's order), then the host's
+// facts (spec, children, dp, safe), then any other name a template writes (it names nothing: null).
+class TemplateNames
 {
-    struct Loop
+  public:
+    static constexpr size_t kMax = 256;
+    int Find(const std::string &name) const;
+    int Add(const std::string &name);
+    const std::vector<std::string> &All() const
     {
-        std::vector<std::string> reads;   // the scope names the loop's body reads (not the looped prop)
-        Json outside;                     // their values as they were (absent: not in the scope)
-        std::vector<Json> items;          // each item as it was rendered, by position
-        std::vector<std::string> outputs; // and its output
-    };
-    std::unordered_map<std::string, Loop> loops; // by the loop's place in the template
-    int rendered = 0, reused = 0;                // items of the last render
+        return names_;
+    }
+
+  private:
+    std::vector<std::string> names_;
 };
 
-std::string RenderTemplate(std::string_view source, const Json &scope, TemplateMemo *memo = nullptr);
+// What a part of a template reads: names of the component (by index), the variables of the enclosing loops (a bit
+// per depth), the string table (tr()). The same type says what changed in an update.
+struct Reads
+{
+    std::bitset<TemplateNames::kMax> names;
+    uint32_t loops = 0;
+    bool strings = false;
+    Reads &operator|=(const Reads &other)
+    {
+        names |= other.names;
+        loops |= other.loops;
+        strings = strings || other.strings;
+        return *this;
+    }
+    bool Meets(const Reads &changed) const
+    {
+        return (loops & changed.loops) != 0 || (strings && changed.strings) || (names & changed.names).any();
+    }
+};
+
+// Where an expression finds its names: the component's values by name index (null: not defined) and the rows of
+// the enclosing loops, outermost first.
+struct LoopFrame
+{
+    const Json *list = nullptr;
+    size_t index = 0;
+};
+struct Scope
+{
+    const std::vector<const Json *> &names;
+    const std::vector<LoopFrame> &loops;
+};
+
+struct ExpressionNode;
+class Expression
+{
+  public:
+    Expression();
+    ~Expression();
+    Expression(Expression &&) noexcept;
+    Expression &operator=(Expression &&) noexcept;
+    // `loops`: the `as` names of the enclosing loops, outermost first. `values`: the expression gives a nested
+    // component's prop, where json(x) is x itself. Throws std::runtime_error naming what is wrong.
+    static Expression Compile(std::string_view text, TemplateNames &names, const std::vector<std::string> &loops,
+                              bool values = false);
+    Json Evaluate(const Scope &scope) const;
+    const Reads &Read() const
+    {
+        return reads_;
+    }
+    explicit operator bool() const
+    {
+        return root_ != nullptr;
+    }
+
+  private:
+    std::unique_ptr<ExpressionNode> root_;
+    Reads reads_;
+    std::string text_;
+};
+
+// Literal text with holes: "a {{ x }} b". Literals are decoded RML.
+struct TemplateText
+{
+    std::vector<std::string> literals; // holes.size() + 1 pieces
+    std::vector<Expression> holes;
+    Reads reads;
+    // `shown`: text content, whose values bind short words (BindShortWords); attribute values do not.
+    std::string Evaluate(const Scope &scope, bool shown) const;
+};
+
+struct TemplateAttribute
+{
+    std::string name;
+    TemplateText value;
+    // name?="{{ expr }}": absent while the value is not true (Truthy); true is written as 1.
+    bool conditional = false;
+    // On a nested component: the prop it fills (null: an attribute of the element), or all its props (props=).
+    const PropSpec *prop = nullptr;
+    bool props = false;
+    Json fixed; // a json prop's literal value, parsed at load
+};
+
+struct TemplateNode
+{
+    enum class Kind
+    {
+        Element,
+        Text,
+        If,
+        For
+    };
+    Kind kind = Kind::Element;
+    int line = 0;
+    std::string tag;                          // element
+    const ComponentSpec *component = nullptr; // element: a nested component's spec
+    std::vector<TemplateAttribute> attributes;
+    TemplateText text;                   // text
+    Expression test;                     // if
+    Expression each, key;                // for (key: the row's identity; none: rows by position)
+    std::vector<TemplateNode> children;  // element; if: the branch taken; for: the row
+    std::vector<TemplateNode> otherwise; // if: <t-else/>
+    Reads reads;                         // of the node and everything in it
+};
+
+struct CompiledTemplate
+{
+    std::vector<TemplateNode> nodes;
+    Reads reads;
+};
+
+// `component`: the spec of a <c-…>/<s-…> tag, null for any other tag. Throws std::runtime_error with the line.
+CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
+                                 const std::function<const ComponentSpec *(const std::string &tag)> &component);
+
 // The lookup behind the template helper tr('key'): the UI string of the current language
 // (pack strings/<lang>.json). The host installs it; without one tr() is a template error.
 void SetTemplateStrings(std::function<std::string(const std::string &key)> lookup);
+// Counts changes of the language: a component runs the programs that call tr() again when it changed.
+void TemplateStringsChanged();
+unsigned TemplateStringsRevision();
 // Strict mode for paths (see the top). The host sets it from Config::strict_templates.
 void SetTemplateStrict(bool strict);
+// One expression over a scope object (its keys are the names).
 Json EvaluateExpression(std::string_view expression, const Json &scope);
 bool Truthy(const Json &value);
 std::string ToText(const Json &value);

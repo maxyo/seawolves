@@ -418,7 +418,7 @@ class Hud
         double until = 0.0;
         std::string base; // the message itself; `text` adds the repeat count
         int count = 1;
-        unsigned key = 0;      // the line's own element in the log (data-key)
+        unsigned key = 0;      // the line's own element in the log (its row key)
         double leaving = -1.0; // when it started to animate out (-1 = shown); removed kLeaveSeconds later
         double held = -1.0;    // the seconds it had left when a finger stopped it (-1 = running)
         std::string target;    // where a tap on it leads, "" = nowhere

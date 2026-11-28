@@ -1,4 +1,5 @@
 #include "template.h"
+#include "component_spec.h"
 
 #include <RmlUi/Core/StringUtilities.h>
 
@@ -22,11 +23,23 @@ std::function<std::string(const std::string &)> &Strings()
     return lookup;
 }
 bool strict_paths = false;
+unsigned strings_revision = 0;
 } // namespace
 
 void SetTemplateStrings(std::function<std::string(const std::string &key)> lookup)
 {
     Strings() = std::move(lookup);
+    ++strings_revision;
+}
+
+void TemplateStringsChanged()
+{
+    ++strings_revision;
+}
+
+unsigned TemplateStringsRevision()
+{
+    return strings_revision;
 }
 
 void SetTemplateStrict(bool strict)
@@ -193,38 +206,148 @@ std::string GroupDigits(const Json &value)
     return grouped + text.substr(end);
 }
 
-// Names in scope: a loop's own (item, index, last) over the scope around it. Each level refers
-// to its parent instead of copying it: a loop copied the whole scope (every prop, every row)
-// per item, and a nested loop per item of the outer one.
-struct Scope
+enum class Op : uint8_t
 {
-    const Json &vars;
-    const Scope *parent = nullptr;
-    TemplateMemo *memo = nullptr; // the root's: loops over a root prop reuse unchanged items
-    const Json *Find(const std::string &name) const
-    {
-        for (const Scope *level = this; level; level = level->parent)
-            if (level->vars.is_object())
-                if (const auto found = level->vars.find(name); found != level->vars.end())
-                    return &*found;
-        return nullptr;
-    }
+    Literal,
+    Name,
+    LoopItem,
+    LoopIndex,
+    LoopLast,
+    Member,
+    Index,
+    Not,
+    Negate,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    And,
+    Or,
+    Choose,
+    Call,
+    Array,
+    Object
 };
+
+enum class Function : uint8_t
+{
+    Or,
+    Opt,
+    Len,
+    Num,
+    Str,
+    Int,
+    Round,
+    Min,
+    Max,
+    Clamp,
+    Abs,
+    IsObject,
+    IsArray,
+    IsString,
+    Has,
+    In,
+    Starts,
+    Contains,
+    Ends,
+    Replace,
+    Split,
+    Range,
+    Digits,
+    Json,
+    Tr,
+    ImageKind,
+    Pick
+};
+
+const std::vector<std::pair<std::string_view, Function>> &Functions()
+{
+    static const std::vector<std::pair<std::string_view, Function>> functions = {{"or", Function::Or},
+                                                                                 {"opt", Function::Opt},
+                                                                                 {"len", Function::Len},
+                                                                                 {"num", Function::Num},
+                                                                                 {"str", Function::Str},
+                                                                                 {"int", Function::Int},
+                                                                                 {"round", Function::Round},
+                                                                                 {"min", Function::Min},
+                                                                                 {"max", Function::Max},
+                                                                                 {"clamp", Function::Clamp},
+                                                                                 {"abs", Function::Abs},
+                                                                                 {"is_object", Function::IsObject},
+                                                                                 {"is_array", Function::IsArray},
+                                                                                 {"is_string", Function::IsString},
+                                                                                 {"has", Function::Has},
+                                                                                 {"in", Function::In},
+                                                                                 {"starts", Function::Starts},
+                                                                                 {"contains", Function::Contains},
+                                                                                 {"ends", Function::Ends},
+                                                                                 {"replace", Function::Replace},
+                                                                                 {"split", Function::Split},
+                                                                                 {"range", Function::Range},
+                                                                                 {"digits", Function::Digits},
+                                                                                 {"json", Function::Json},
+                                                                                 {"tr", Function::Tr},
+                                                                                 {"image_kind", Function::ImageKind},
+                                                                                 {"pick", Function::Pick}};
+    return functions;
+}
+
+} // namespace
+
+struct ExpressionNode
+{
+    Op op = Op::Literal;
+    Function function = Function::Or;
+    int slot = 0;          // Name: the name's index; Loop*: the loop's depth
+    bool optional = false; // a path inside opt() or or(): it may name nothing in strict mode
+    Json literal;          // Literal; Member: the key; Object: the keys
+    std::string path;      // a path step: the path's text up to it (strict mode's error)
+    std::vector<std::unique_ptr<ExpressionNode>> args;
+};
+
+namespace
+{
+
+using Node = std::unique_ptr<ExpressionNode>;
+
+Node Make(Op op)
+{
+    auto node = std::make_unique<ExpressionNode>();
+    node->op = op;
+    return node;
+}
+
+Node Make(Op op, Node left, Node right)
+{
+    Node node = Make(op);
+    node->args.push_back(std::move(left));
+    node->args.push_back(std::move(right));
+    return node;
+}
 
 class Parser
 {
   public:
-    Parser(std::string_view text, const Scope &scope) : text_(text), scope_(scope)
+    Parser(std::string_view text, TemplateNames &names, const std::vector<std::string> &loops, bool values,
+           Reads &reads)
+        : text_(text), names_(names), loops_(loops), values_(values), reads_(reads)
     {
     }
 
-    Json Run()
+    Node Run()
     {
-        Json value = Ternary(true);
+        Node node = Ternary();
         Skip();
         if (pos_ != text_.size())
             Fail("unexpected text");
-        return value;
+        return node;
     }
 
   private:
@@ -249,257 +372,155 @@ class Parser
         return true;
     }
 
-    // `live` is false in the branch not taken: it is parsed but has no effect.
-    Json Ternary(bool live)
+    Node Ternary()
     {
-        Json condition = Or(live);
+        Node condition = Or();
         if (!Eat("?"))
             return condition;
-        const bool pick = Truthy(condition);
-        Json yes = Ternary(live && pick);
+        Node yes = Ternary();
         if (!Eat(":"))
             Fail("expected ':'");
-        Json no = Ternary(live && !pick);
-        return pick ? yes : no;
+        Node no = Ternary();
+        Node node = Make(Op::Choose, std::move(condition), std::move(yes));
+        node->args.push_back(std::move(no));
+        return node;
     }
 
-    Json Or(bool live)
+    Node Or()
     {
-        Json left = And(live);
-        while (true)
-        {
-            Skip();
-            if (text_.substr(pos_, 2) != "||")
-                return left;
-            pos_ += 2;
-            const bool have = Truthy(left);
-            Json right = And(live && !have);
-            if (!have)
-                left = right;
-        }
+        Node left = And();
+        while (Eat("||"))
+            left = Make(Op::Or, std::move(left), And());
+        return left;
     }
 
-    Json And(bool live)
+    Node And()
     {
-        Json left = Compare(live);
-        while (true)
-        {
-            Skip();
-            if (text_.substr(pos_, 2) != "&&")
-                return left;
-            pos_ += 2;
-            const bool have = Truthy(left);
-            Json right = Compare(live && have);
-            if (have)
-                left = right;
-        }
+        Node left = Compare();
+        while (Eat("&&"))
+            left = Make(Op::And, std::move(left), Compare());
+        return left;
     }
 
-    Json Compare(bool live)
+    Node Compare()
     {
-        Json left = Sum(live);
+        Node left = Sum();
         while (true)
         {
+            Op op;
             if (Eat("=="))
-                left = LooseEqual(left, Sum(live));
+                op = Op::Eq;
             else if (Eat("!="))
-                left = !LooseEqual(left, Sum(live));
+                op = Op::Ne;
             else if (Eat("<="))
-                left = ToNumber(left) <= ToNumber(Sum(live));
+                op = Op::Le;
             else if (Eat(">="))
-                left = ToNumber(left) >= ToNumber(Sum(live));
+                op = Op::Ge;
             else if (Eat("<"))
-                left = ToNumber(left) < ToNumber(Sum(live));
+                op = Op::Lt;
             else if (Eat(">"))
-                left = ToNumber(left) > ToNumber(Sum(live));
+                op = Op::Gt;
             else
                 return left;
+            left = Make(op, std::move(left), Sum());
         }
     }
 
-    Json Sum(bool live)
+    Node Sum()
     {
-        Json left = Product(live);
+        Node left = Product();
         while (true)
         {
             if (Eat("+"))
-            {
-                Json right = Product(live);
-                if (left.is_string() || right.is_string())
-                    left = ToText(left) + ToText(right);
-                else
-                    left = ToNumber(left) + ToNumber(right);
-            }
+                left = Make(Op::Add, std::move(left), Product());
             else if (Eat("-"))
-                left = ToNumber(left) - ToNumber(Product(live));
+                left = Make(Op::Sub, std::move(left), Product());
             else
                 return left;
         }
     }
 
-    Json Product(bool live)
+    Node Product()
     {
-        Json left = Unary(live);
+        Node left = Unary();
         while (true)
         {
             if (Eat("*"))
-                left = ToNumber(left) * ToNumber(Unary(live));
+                left = Make(Op::Mul, std::move(left), Unary());
             else if (Eat("/"))
-            {
-                const double divisor = ToNumber(Unary(live));
-                left = divisor == 0.0 ? 0.0 : ToNumber(left) / divisor;
-            }
+                left = Make(Op::Div, std::move(left), Unary());
             else if (Eat("%"))
-            {
-                const double divisor = ToNumber(Unary(live));
-                left = divisor == 0.0 ? 0.0 : std::fmod(ToNumber(left), divisor);
-            }
+                left = Make(Op::Mod, std::move(left), Unary());
             else
                 return left;
         }
     }
 
-    Json Unary(bool live)
+    Node Unary()
     {
         Skip();
         if (pos_ < text_.size() && text_[pos_] == '!' && text_.substr(pos_, 2) != "!=")
         {
             ++pos_;
-            return !Truthy(Unary(live));
+            Node node = Make(Op::Not);
+            node->args.push_back(Unary());
+            return node;
         }
         if (Eat("-"))
-            return -ToNumber(Unary(live));
-        return Postfix(live);
+        {
+            Node node = Make(Op::Negate);
+            node->args.push_back(Unary());
+            return node;
+        }
+        return Postfix();
     }
 
-    Json Postfix(bool live)
+    // The path's text from `start` up to here, for strict mode's error.
+    std::string PathText(size_t start) const
     {
-        // A path from a name (a.b[0].c) is followed by reference: only its end is copied.
-        if (const Json *path = Path(live))
-            return *path;
-        Json value = Primary(live);
-        while (true)
-        {
-            Skip();
-            if (pos_ < text_.size() && text_[pos_] == '.')
-            {
-                const size_t start = pos_;
-                ++pos_;
-                const std::string key = Identifier();
-                const Json *member = MemberRef(value, key);
-                if (!member)
-                    Undefined(live, start);
-                value = member ? Json(*member) : Json();
-            }
-            else if (pos_ < text_.size() && text_[pos_] == '[')
-            {
-                const size_t start = pos_;
-                ++pos_;
-                const Json index = Ternary(live);
-                if (!Eat("]"))
-                    Fail("expected ']'");
-                const Json *member = nullptr;
-                if (index.is_number() && value.is_array())
-                {
-                    const auto at = static_cast<long long>(index.get<double>());
-                    member =
-                        at >= 0 && static_cast<size_t>(at) < value.size() ? &value[static_cast<size_t>(at)] : nullptr;
-                }
-                else
-                    member = MemberRef(value, ToText(index));
-                if (!member)
-                    Undefined(live, start);
-                value = member ? Json(*member) : Json();
-            }
-            else
-                return value;
-        }
-    }
-
-    // The value a name path refers to, or null (position unchanged) when the expression here is
-    // not a path: a literal, a call, a parenthesis, a keyword.
-    const Json *Path(bool live)
-    {
-        static const Json none;
-        Skip();
-        const size_t start = pos_;
-        if (pos_ >= text_.size() ||
-            !(std::isalpha(static_cast<unsigned char>(text_[pos_])) || text_[pos_] == '_' || text_[pos_] == '$'))
-            return nullptr;
-        const std::string name = Identifier();
-        Skip();
-        if (name == "true" || name == "false" || name == "null" || (pos_ < text_.size() && text_[pos_] == '('))
-        {
-            pos_ = start;
-            return nullptr;
-        }
-        const Json *value = scope_.Find(name);
-        if (!value)
-        {
-            Undefined(live, start);
-            value = &none;
-        }
-        while (true)
-        {
-            Skip();
-            if (pos_ < text_.size() && text_[pos_] == '.')
-            {
-                ++pos_;
-                const std::string key = Identifier();
-                value = MemberRef(*value, key);
-                if (!value)
-                {
-                    Undefined(live, start);
-                    value = &none;
-                }
-            }
-            else if (pos_ < text_.size() && text_[pos_] == '[')
-            {
-                ++pos_;
-                const Json index = Ternary(live);
-                if (!Eat("]"))
-                    Fail("expected ']'");
-                if (index.is_number() && value->is_array())
-                {
-                    const auto at = static_cast<long long>(index.get<double>());
-                    value = at >= 0 && static_cast<size_t>(at) < value->size() ? &(*value)[static_cast<size_t>(at)]
-                                                                               : nullptr;
-                }
-                else
-                    value = MemberRef(*value, ToText(index));
-                if (!value)
-                {
-                    Undefined(live, start);
-                    value = &none;
-                }
-            }
-            else
-                return value;
-        }
-    }
-
-    // The member, or nullptr when the object has no such key (or is no object).
-    static const Json *MemberRef(const Json &object, const std::string &key)
-    {
-        if (object.is_object())
-        {
-            const auto found = object.find(key);
-            return found != object.end() ? &*found : nullptr;
-        }
-        return nullptr;
-    }
-
-    // A path that names nothing (from `start` up to here): null, or in strict mode
-    // (SetTemplateStrict) an error unless the expression marks it optional (opt(), or()).
-    void Undefined(bool live, size_t start) const
-    {
-        if (!live || !strict_paths || optional_ > 0)
-            return;
         std::string_view path = text_.substr(start, pos_ - start);
         while (!path.empty() && std::isspace(static_cast<unsigned char>(path.back())))
             path.remove_suffix(1);
-        throw std::runtime_error("template expression: '" + std::string(path) + "' is not defined in '" +
-                                 std::string(text_) + "' (opt() marks a path that may be missing)");
+        return std::string(path);
+    }
+
+    Node Postfix()
+    {
+        Skip();
+        const size_t start = pos_;
+        Node value = Primary();
+        const bool from_name = value->op == Op::Name || value->op == Op::LoopItem || value->op == Op::LoopIndex ||
+                               value->op == Op::LoopLast;
+        if (from_name)
+            value->path = PathText(start);
+        while (true)
+        {
+            Skip();
+            const size_t step = from_name ? start : pos_;
+            if (pos_ < text_.size() && text_[pos_] == '.')
+            {
+                ++pos_;
+                Node node = Make(Op::Member);
+                node->literal = Identifier();
+                node->args.push_back(std::move(value));
+                node->optional = optional_ > 0;
+                node->path = PathText(step);
+                value = std::move(node);
+            }
+            else if (pos_ < text_.size() && text_[pos_] == '[')
+            {
+                ++pos_;
+                Node index = Ternary();
+                if (!Eat("]"))
+                    Fail("expected ']'");
+                Node node = Make(Op::Index, std::move(value), std::move(index));
+                node->optional = optional_ > 0;
+                node->path = PathText(step);
+                value = std::move(node);
+            }
+            else
+                return value;
+        }
     }
 
     std::string Identifier()
@@ -514,7 +535,31 @@ class Parser
         return std::string(text_.substr(start, pos_ - start));
     }
 
-    Json Primary(bool live)
+    Node Name(const std::string &name)
+    {
+        for (size_t depth = loops_.size(); depth-- > 0;)
+        {
+            const std::string &as = loops_[depth];
+            const Op op = name == as             ? Op::LoopItem
+                          : name == as + "_i"    ? Op::LoopIndex
+                          : name == as + "_last" ? Op::LoopLast
+                                                 : Op::Literal;
+            if (op == Op::Literal)
+                continue;
+            Node node = Make(op);
+            node->slot = static_cast<int>(depth);
+            node->optional = optional_ > 0;
+            reads_.loops |= 1u << depth;
+            return node;
+        }
+        Node node = Make(Op::Name);
+        node->slot = names_.Add(name);
+        node->optional = optional_ > 0;
+        reads_.names.set(static_cast<size_t>(node->slot));
+        return node;
+    }
+
+    Node Primary()
     {
         Skip();
         if (pos_ >= text_.size())
@@ -523,19 +568,59 @@ class Parser
         if (c == '(')
         {
             ++pos_;
-            Json value = Ternary(live);
+            Node value = Ternary();
             if (!Eat(")"))
                 Fail("expected ')'");
             return value;
+        }
+        if (c == '[')
+        {
+            ++pos_;
+            Node node = Make(Op::Array);
+            if (!Eat("]"))
+            {
+                do
+                    node->args.push_back(Ternary());
+                while (Eat(","));
+                if (!Eat("]"))
+                    Fail("expected ']'");
+            }
+            return node;
+        }
+        if (c == '{')
+        {
+            ++pos_;
+            Node node = Make(Op::Object);
+            node->literal = Json::array();
+            if (!Eat("}"))
+            {
+                do
+                {
+                    Skip();
+                    std::string key;
+                    if (pos_ < text_.size() && (text_[pos_] == '\'' || text_[pos_] == '"'))
+                        key = Primary()->literal.get<std::string>();
+                    else
+                        key = Identifier();
+                    if (!Eat(":"))
+                        Fail("expected ':'");
+                    node->literal.push_back(key);
+                    node->args.push_back(Ternary());
+                } while (Eat(","));
+                if (!Eat("}"))
+                    Fail("expected '}'");
+            }
+            return node;
         }
         if (c == '\'' || c == '"')
         {
             const size_t end = text_.find(c, pos_ + 1);
             if (end == std::string_view::npos)
                 Fail("unterminated string");
-            Json value = std::string(text_.substr(pos_ + 1, end - pos_ - 1));
+            Node node = Make(Op::Literal);
+            node->literal = std::string(text_.substr(pos_ + 1, end - pos_ - 1));
             pos_ = end + 1;
-            return value;
+            return node;
         }
         if (std::isdigit(static_cast<unsigned char>(c)) ||
             (c == '.' && pos_ + 1 < text_.size() && std::isdigit(static_cast<unsigned char>(text_[pos_ + 1]))))
@@ -544,112 +629,328 @@ class Parser
             char *end = nullptr;
             const double number = std::strtod(rest.c_str(), &end);
             pos_ += static_cast<size_t>(end - rest.c_str());
-            return number;
+            Node node = Make(Op::Literal);
+            node->literal = number;
+            return node;
         }
+        if (!(std::isalpha(static_cast<unsigned char>(c)) || c == '_' || c == '$'))
+            Fail("unexpected character");
         const std::string name = Identifier();
+        Node node = Make(Op::Literal);
         if (name == "true")
-            return true;
-        if (name == "false")
-            return false;
-        if (name == "null")
-            return Json();
-        Skip();
-        if (pos_ < text_.size() && text_[pos_] == '(')
+            node->literal = true;
+        else if (name == "false")
+            node->literal = false;
+        else if (name == "null")
+            node->literal = Json();
+        else
         {
-            ++pos_;
-            std::vector<Json> arguments;
-            // opt(path) and or(…): explicitly optional, their paths may name nothing (strict mode)
-            const bool optional = name == "opt" || name == "or";
-            optional_ += optional;
-            if (!Eat(")"))
-            {
-                do
-                    arguments.push_back(Ternary(live));
-                while (Eat(","));
-                if (!Eat(")"))
-                    Fail("expected ')'");
-            }
-            optional_ -= optional;
-            // A branch that is not taken is parsed, never evaluated: no call (tr() of an
-            // empty key in `c.key ? tr(c.key) : c.label` would report a missing string).
-            if (!live)
-                return Json();
-            return Call(name, arguments);
+            Skip();
+            if (pos_ < text_.size() && text_[pos_] == '(')
+                return Call(name);
+            return Name(name);
         }
-        const Json *found = scope_.Find(name);
-        return found ? *found : Json();
+        return node;
     }
 
-    Json Call(const std::string &name, const std::vector<Json> &a) const
+    Node Call(const std::string &name)
     {
-        const auto arg = [&a](size_t i) -> const Json & {
-            static const Json none;
-            return i < a.size() ? a[i] : none;
-        };
-        if (name == "or") // first non-null argument: or(size, 'md')
+        ++pos_;
+        const auto &functions = Functions();
+        const auto found = std::find_if(functions.begin(), functions.end(),
+                                        [&name](const auto &entry) { return entry.first == name; });
+        if (found == functions.end())
+            Fail(("unknown function " + name).c_str());
+        Node node = Make(Op::Call);
+        node->function = found->second;
+        // opt(path) and or(…): explicitly optional, their paths may name nothing (strict mode)
+        const bool optional = node->function == Function::Or || node->function == Function::Opt;
+        optional_ += optional;
+        if (!Eat(")"))
         {
-            for (const Json &value : a)
-                if (!value.is_null() && !(value.is_string() && value.get_ref<const std::string &>().empty()))
+            do
+                node->args.push_back(Ternary());
+            while (Eat(","));
+            if (!Eat(")"))
+                Fail("expected ')'");
+        }
+        optional_ -= optional;
+        if (node->function == Function::Tr)
+            reads_.strings = true;
+        // A nested component's prop takes the structure itself: json(x) is x.
+        if (node->function == Function::Json && values_)
+        {
+            if (node->args.size() != 1)
+                Fail("json() takes one value");
+            return std::move(node->args[0]);
+        }
+        return node;
+    }
+
+    std::string_view text_;
+    TemplateNames &names_;
+    const std::vector<std::string> &loops_;
+    bool values_;
+    Reads &reads_;
+    size_t pos_ = 0;
+    int optional_ = 0;
+};
+
+// A value of an expression: a reference into the scope where it is one (a path), else its own.
+struct Value
+{
+    const Json *ref = nullptr;
+    Json own;
+    const Json &Get() const
+    {
+        return ref ? *ref : own;
+    }
+    Json Take() &&
+    {
+        return ref ? *ref : std::move(own);
+    }
+};
+
+Value Own(Json value)
+{
+    Value out;
+    out.own = std::move(value);
+    return out;
+}
+
+const Json &None()
+{
+    static const Json none;
+    return none;
+}
+
+class Evaluator
+{
+  public:
+    Evaluator(const Scope &scope, const std::string &text) : scope_(scope), text_(text)
+    {
+    }
+
+    Value Run(const ExpressionNode &node) const
+    {
+        switch (node.op)
+        {
+        case Op::Literal: {
+            Value out;
+            out.ref = &node.literal;
+            return out;
+        }
+        case Op::Name: {
+            const Json *found =
+                static_cast<size_t>(node.slot) < scope_.names.size() ? scope_.names[node.slot] : nullptr;
+            Value out;
+            out.ref = found ? found : Undefined(node);
+            return out;
+        }
+        case Op::LoopItem: {
+            const LoopFrame &frame = scope_.loops.at(static_cast<size_t>(node.slot));
+            Value out;
+            out.ref = &(*frame.list)[frame.index];
+            return out;
+        }
+        case Op::LoopIndex:
+            return Own(scope_.loops.at(static_cast<size_t>(node.slot)).index);
+        case Op::LoopLast: {
+            const LoopFrame &frame = scope_.loops.at(static_cast<size_t>(node.slot));
+            return Own(frame.index + 1 == frame.list->size());
+        }
+        case Op::Member:
+        case Op::Index: {
+            Value object = Run(*node.args[0]);
+            const Json *member = nullptr;
+            const Json &from = object.Get();
+            if (node.op == Op::Member)
+                member = MemberRef(from, node.literal.get_ref<const std::string &>());
+            else
+            {
+                const Value index = Run(*node.args[1]);
+                const Json &at = index.Get();
+                if (at.is_number() && from.is_array())
+                {
+                    const auto i = static_cast<long long>(at.get<double>());
+                    member = i >= 0 && static_cast<size_t>(i) < from.size() ? &from[static_cast<size_t>(i)] : nullptr;
+                }
+                else
+                    member = MemberRef(from, ToText(at));
+            }
+            if (!member)
+                member = Undefined(node);
+            if (object.ref)
+            {
+                Value out;
+                out.ref = member;
+                return out;
+            }
+            return Own(*member);
+        }
+        case Op::Not:
+            return Own(!Truthy(Run(*node.args[0]).Get()));
+        case Op::Negate:
+            return Own(-ToNumber(Run(*node.args[0]).Get()));
+        case Op::And:
+        case Op::Or: {
+            Value left = Run(*node.args[0]);
+            if (Truthy(left.Get()) == (node.op == Op::Or))
+                return left;
+            return Run(*node.args[1]);
+        }
+        case Op::Choose:
+            return Run(*node.args[Truthy(Run(*node.args[0]).Get()) ? 1 : 2]);
+        case Op::Call:
+            return Call(node);
+        case Op::Array: {
+            Json list = Json::array();
+            for (const auto &item : node.args)
+                list.push_back(Run(*item).Take());
+            return Own(std::move(list));
+        }
+        case Op::Object: {
+            Json object = Json::object();
+            for (size_t i = 0; i < node.args.size(); ++i)
+                object[node.literal[i].get<std::string>()] = Run(*node.args[i]).Take();
+            return Own(std::move(object));
+        }
+        default:
+            break;
+        }
+        const Value a = Run(*node.args[0]);
+        const Value b = Run(*node.args[1]);
+        const Json &left = a.Get(), &right = b.Get();
+        switch (node.op)
+        {
+        case Op::Add:
+            if (left.is_string() || right.is_string())
+                return Own(ToText(left) + ToText(right));
+            return Own(ToNumber(left) + ToNumber(right));
+        case Op::Sub:
+            return Own(ToNumber(left) - ToNumber(right));
+        case Op::Mul:
+            return Own(ToNumber(left) * ToNumber(right));
+        case Op::Div: {
+            const double divisor = ToNumber(right);
+            return Own(divisor == 0.0 ? 0.0 : ToNumber(left) / divisor);
+        }
+        case Op::Mod: {
+            const double divisor = ToNumber(right);
+            return Own(divisor == 0.0 ? 0.0 : std::fmod(ToNumber(left), divisor));
+        }
+        case Op::Eq:
+            return Own(LooseEqual(left, right));
+        case Op::Ne:
+            return Own(!LooseEqual(left, right));
+        case Op::Lt:
+            return Own(ToNumber(left) < ToNumber(right));
+        case Op::Le:
+            return Own(ToNumber(left) <= ToNumber(right));
+        case Op::Gt:
+            return Own(ToNumber(left) > ToNumber(right));
+        case Op::Ge:
+            return Own(ToNumber(left) >= ToNumber(right));
+        default:
+            throw std::runtime_error("template expression: bad node in '" + text_ + "'");
+        }
+    }
+
+  private:
+    // The member, or nullptr when the object has no such key (or is no object).
+    static const Json *MemberRef(const Json &object, const std::string &key)
+    {
+        if (object.is_object())
+        {
+            const auto found = object.find(key);
+            return found != object.end() ? &*found : nullptr;
+        }
+        return nullptr;
+    }
+
+    // A path that names nothing: null, or in strict mode (SetTemplateStrict) an error unless the expression marks
+    // it optional (opt(), or()).
+    const Json *Undefined(const ExpressionNode &node) const
+    {
+        if (!strict_paths || node.optional)
+            return &None();
+        throw std::runtime_error("template expression: '" + node.path + "' is not defined in '" + text_ +
+                                 "' (opt() marks a path that may be missing)");
+    }
+
+    Value Call(const ExpressionNode &node) const
+    {
+        const auto &a = node.args;
+        // or() returns one of its arguments as it is, evaluated in turn.
+        if (node.function == Function::Or) // first non-null argument: or(size, 'md')
+        {
+            for (const auto &argument : a)
+            {
+                Value value = Run(*argument);
+                const Json &v = value.Get();
+                if (!v.is_null() && !(v.is_string() && v.get_ref<const std::string &>().empty()))
                     return value;
-            return Json();
+            }
+            return Own(Json());
         }
-        if (name == "opt") // opt(path): the value, null when the path names nothing (also in strict mode)
-            return arg(0);
-        if (name == "len")
-            return arg(0).is_string() ? arg(0).get_ref<const std::string &>().size()
-                                      : (arg(0).is_structured() ? arg(0).size() : size_t(0));
-        if (name == "num") // amount with grouped thousands
-            return GroupDigits(arg(0));
-        if (name == "str")
-            return ToText(arg(0));
-        if (name == "int")
-            return std::floor(ToNumber(arg(0)));
-        if (name == "round")
-            return std::round(ToNumber(arg(0)));
-        if (name == "min")
-            return std::min(ToNumber(arg(0)), ToNumber(arg(1)));
-        if (name == "max")
-            return std::max(ToNumber(arg(0)), ToNumber(arg(1)));
-        if (name == "clamp")
-            return std::min(std::max(ToNumber(arg(0)), ToNumber(arg(1))), ToNumber(arg(2)));
-        if (name == "abs")
-            return std::fabs(ToNumber(arg(0)));
-        if (name == "is_object")
-            return arg(0).is_object();
-        if (name == "is_array")
-            return arg(0).is_array();
-        if (name == "is_string")
-            return arg(0).is_string();
-        if (name == "has")
-            return arg(0).is_object() && arg(0).contains(ToText(arg(1)));
-        if (name == "in") // in(value, 'a', 'b', …)
+        if (node.function == Function::Opt) // opt(path): the value, null when the path names nothing
+            return a.empty() ? Own(Json()) : Run(*a[0]);
+        std::vector<Value> values;
+        values.reserve(a.size());
+        for (const auto &argument : a)
+            values.push_back(Run(*argument));
+        const auto arg = [&values](size_t i) -> const Json & { return i < values.size() ? values[i].Get() : None(); };
+        switch (node.function)
         {
-            for (size_t i = 1; i < a.size(); ++i)
-                if (LooseEqual(a[0], a[i]))
-                    return true;
-            return false;
-        }
-        if (name == "starts")
-            return ToText(arg(0)).rfind(ToText(arg(1)), 0) == 0;
-        if (name == "contains")
-            return ToText(arg(0)).find(ToText(arg(1))) != std::string::npos;
-        if (name == "ends")
-        {
+        case Function::Len:
+            return Own(arg(0).is_string() ? arg(0).get_ref<const std::string &>().size()
+                                          : (arg(0).is_structured() ? arg(0).size() : size_t(0)));
+        case Function::Num: // amount with grouped thousands
+            return Own(GroupDigits(arg(0)));
+        case Function::Str:
+            return Own(ToText(arg(0)));
+        case Function::Int:
+            return Own(std::floor(ToNumber(arg(0))));
+        case Function::Round:
+            return Own(std::round(ToNumber(arg(0))));
+        case Function::Min:
+            return Own(std::min(ToNumber(arg(0)), ToNumber(arg(1))));
+        case Function::Max:
+            return Own(std::max(ToNumber(arg(0)), ToNumber(arg(1))));
+        case Function::Clamp:
+            return Own(std::min(std::max(ToNumber(arg(0)), ToNumber(arg(1))), ToNumber(arg(2))));
+        case Function::Abs:
+            return Own(std::fabs(ToNumber(arg(0))));
+        case Function::IsObject:
+            return Own(arg(0).is_object());
+        case Function::IsArray:
+            return Own(arg(0).is_array());
+        case Function::IsString:
+            return Own(arg(0).is_string());
+        case Function::Has:
+            return Own(arg(0).is_object() && arg(0).contains(ToText(arg(1))));
+        case Function::In: // in(value, 'a', 'b', …)
+            for (size_t i = 1; i < values.size(); ++i)
+                if (LooseEqual(arg(0), arg(i)))
+                    return Own(true);
+            return Own(false);
+        case Function::Starts:
+            return Own(ToText(arg(0)).rfind(ToText(arg(1)), 0) == 0);
+        case Function::Contains:
+            return Own(ToText(arg(0)).find(ToText(arg(1))) != std::string::npos);
+        case Function::Ends: {
             const std::string text = ToText(arg(0)), tail = ToText(arg(1));
-            return text.size() >= tail.size() && text.compare(text.size() - tail.size(), tail.size(), tail) == 0;
+            return Own(text.size() >= tail.size() && text.compare(text.size() - tail.size(), tail.size(), tail) == 0);
         }
-        if (name == "replace") // replace(text, from, to): every occurrence
-        {
+        case Function::Replace: { // replace(text, from, to): every occurrence
             std::string text = ToText(arg(0));
             const std::string from = ToText(arg(1)), to = ToText(arg(2));
-            if (from.empty())
-                return text;
-            for (size_t at = 0; (at = text.find(from, at)) != std::string::npos; at += to.size())
-                text.replace(at, from.size(), to);
-            return text;
+            if (!from.empty())
+                for (size_t at = 0; (at = text.find(from, at)) != std::string::npos; at += to.size())
+                    text.replace(at, from.size(), to);
+            return Own(text);
         }
-        if (name == "split") // split('2/3', '/') → ['2', '3']
-        {
+        case Function::Split: { // split('2/3', '/') → ['2', '3']
             const std::string text = ToText(arg(0)), separator = ToText(arg(1));
             Json parts = Json::array();
             size_t at = 0;
@@ -662,36 +963,31 @@ class Parser
                 at = end + separator.size();
             }
             parts.push_back(text.substr(at));
-            return parts;
+            return Own(std::move(parts));
         }
-        if (name == "range") // range(3) → [0, 1, 2]
-        {
+        case Function::Range: { // range(3) → [0, 1, 2]
             Json list = Json::array();
             const int count = static_cast<int>(std::min(ToNumber(arg(0)), 1000.0));
             for (int i = 0; i < count; ++i)
                 list.push_back(i);
-            return list;
+            return Own(std::move(list));
         }
-        if (name == "digits") // number written with spaces or thin spaces → number
-        {
+        case Function::Digits: { // number written with spaces or thin spaces → number
             std::string kept;
             for (const char c : ToText(arg(0)))
                 if ((c >= '0' && c <= '9') || c == '-' || c == '.')
                     kept += c;
                 else if (c == ',')
                     kept += '.';
-            return kept.empty() ? Json() : Json(std::strtod(kept.c_str(), nullptr));
+            return Own(kept.empty() ? Json() : Json(std::strtod(kept.c_str(), nullptr)));
         }
-        if (name == "json") // for passing a structure on to a nested component attribute
-            return arg(0).dump();
-        if (name == "tr") // tr('trade.price'): the UI string of the current language
-        {
+        case Function::Json:
+            return Own(arg(0).dump());
+        case Function::Tr: // tr('trade.price'): the UI string of the current language
             if (!Strings())
-                Fail("tr() without a string table");
-            return Strings()(ToText(arg(0)));
-        }
-        if (name == "image_kind") // image_kind(image, icon): the lead of a row (one row-image API)
-        {
+                throw std::runtime_error("template expression: tr() without a string table in '" + text_ + "'");
+            return Own(Strings()(ToText(arg(0))));
+        case Function::ImageKind: { // image_kind(image, icon): the lead of a row (one row-image API)
             // image = {kind: icon|token|item|portrait|emblem, icon, enamel, texture, cell}; a bare
             // `icon` is the shorthand for {kind: 'icon'}; nothing at all = no lead ('').
             const Json &image = arg(0);
@@ -699,378 +995,472 @@ class Parser
             {
                 const std::string kind = image.contains("kind") ? ToText(image["kind"]) : std::string();
                 if (!kind.empty())
-                    return kind;
+                    return Own(kind);
                 if (!ToText(image.value("texture", Json())).empty())
-                    return "item";
+                    return Own("item");
                 if (!ToText(image.value("enamel", Json())).empty())
-                    return "token";
+                    return Own("token");
                 if (!ToText(image.value("icon", Json())).empty())
-                    return "icon";
+                    return Own("icon");
             }
-            return ToText(arg(1)).empty() ? "" : "icon";
+            return Own(ToText(arg(1)).empty() ? "" : "icon");
         }
-        if (name == "pick") // pick(key, 'a', x, 'b', y, fallback)
-        {
+        case Function::Pick: { // pick(key, 'a', x, 'b', y, fallback)
             size_t i = 1;
-            for (; i + 1 < a.size(); i += 2)
-                if (LooseEqual(a[0], a[i]))
-                    return a[i + 1];
-            return i < a.size() ? a[i] : Json();
+            for (; i + 1 < values.size(); i += 2)
+                if (LooseEqual(arg(0), arg(i)))
+                    return Own(arg(i + 1));
+            return Own(i < values.size() ? arg(i) : Json());
         }
-        Fail(("unknown function " + name).c_str());
+        default:
+            throw std::runtime_error("template expression: bad call in '" + text_ + "'");
+        }
     }
 
-    std::string_view text_;
     const Scope &scope_;
-    size_t pos_ = 0;
-    int optional_ = 0; // inside opt() or or(): a missing path is null even in strict mode
+    const std::string &text_;
 };
-
-struct Tag
-{
-    size_t begin = std::string_view::npos; // position of '<'
-    size_t end = 0;                        // position after '>'
-    bool closing = false;
-    bool self_closing = false;
-    std::string_view name;
-    std::string_view attributes;
-};
-
-// Finds the next <t-…> or </t-…> tag at or after `from`.
-Tag NextControlTag(std::string_view source, size_t from)
-{
-    Tag tag;
-    size_t at = from;
-    while ((at = source.find('<', at)) != std::string_view::npos)
-    {
-        size_t name_at = at + 1;
-        const bool closing = name_at < source.size() && source[name_at] == '/';
-        if (closing)
-            ++name_at;
-        if (source.substr(name_at, 2) != "t-")
-        {
-            ++at;
-            continue;
-        }
-        // Attribute values are quoted and may hold '>', so honour the quotes.
-        size_t close = name_at;
-        char quote = 0;
-        for (; close < source.size(); ++close)
-        {
-            const char c = source[close];
-            if (quote)
-            {
-                if (c == quote)
-                    quote = 0;
-            }
-            else if (c == '"' || c == '\'')
-                quote = c;
-            else if (c == '>')
-                break;
-        }
-        if (close >= source.size())
-            throw std::runtime_error("template: unterminated control tag");
-        size_t name_end = name_at;
-        while (name_end < close &&
-               (std::isalnum(static_cast<unsigned char>(source[name_end])) || source[name_end] == '-'))
-            ++name_end;
-        tag.begin = at;
-        tag.end = close + 1;
-        tag.closing = closing;
-        tag.self_closing = close > name_end && source[close - 1] == '/';
-        tag.name = source.substr(name_at, name_end - name_at);
-        tag.attributes = source.substr(name_end, close - name_end - (tag.self_closing ? 1 : 0));
-        return tag;
-    }
-    return tag;
-}
-
-std::string Attribute(std::string_view attributes, std::string_view name)
-{
-    size_t at = 0;
-    while ((at = attributes.find(name, at)) != std::string_view::npos)
-    {
-        const size_t after = at + name.size();
-        if ((at == 0 || attributes[at - 1] == ' ' || attributes[at - 1] == '\n' || attributes[at - 1] == '\t') &&
-            after < attributes.size() && attributes[after] == '=')
-        {
-            const char quote = after + 1 < attributes.size() ? attributes[after + 1] : 0;
-            if (quote != '"' && quote != '\'')
-                break;
-            const size_t end = attributes.find(quote, after + 2);
-            if (end == std::string_view::npos)
-                break;
-            return std::string(attributes.substr(after + 2, end - after - 2));
-        }
-        at = after;
-    }
-    throw std::runtime_error("template: control tag lacks attribute " + std::string(name));
-}
-
-// Finds the tag closing the block opened just before `from`, skipping nested blocks.
-// Reports a top-level <t-else/> of a t-if through `else_tag`.
-Tag MatchingClose(std::string_view source, size_t from, std::string_view name, Tag *else_tag)
-{
-    int depth = 0;
-    size_t at = from;
-    while (true)
-    {
-        Tag tag = NextControlTag(source, at);
-        if (tag.begin == std::string_view::npos)
-            throw std::runtime_error("template: unclosed <" + std::string(name) + ">");
-        at = tag.end;
-        if (tag.name == "t-else")
-        {
-            if (depth == 0 && else_tag && else_tag->begin == std::string_view::npos)
-                *else_tag = tag;
-            continue;
-        }
-        if (tag.closing)
-        {
-            if (depth == 0)
-            {
-                if (tag.name != name)
-                    throw std::runtime_error("template: mismatched </" + std::string(tag.name) + ">");
-                return tag;
-            }
-            --depth;
-        }
-        else if (!tag.self_closing)
-            ++depth;
-    }
-}
-
-void RenderText(std::string_view source, const Scope &scope, std::string &out)
-{
-    size_t at = 0;
-    // Inside a tag (an attribute value) or in text content: only shown text binds short words.
-    // A segment starts outside any tag: control tags are never inside one.
-    bool in_tag = false;
-    while (true)
-    {
-        const size_t open = source.find("{{", at);
-        if (open == std::string_view::npos)
-        {
-            out += source.substr(at);
-            return;
-        }
-        const std::string_view literal = source.substr(at, open - at);
-        const size_t tag_open = literal.rfind('<'), tag_close = literal.rfind('>');
-        if (tag_open != std::string_view::npos || tag_close != std::string_view::npos)
-            in_tag =
-                tag_open != std::string_view::npos && (tag_close == std::string_view::npos || tag_open > tag_close);
-        out += literal;
-        const bool raw = source.substr(open, 3) == "{{{";
-        const std::string_view closer = raw ? "}}}" : "}}";
-        const size_t start = open + closer.size();
-        const size_t close = source.find(closer, start);
-        if (close == std::string_view::npos)
-            throw std::runtime_error("template: unterminated {{");
-        const std::string text = ToText(Parser(source.substr(start, close - start), scope).Run());
-        out += raw ? text : Rml::StringUtilities::EncodeRml(in_tag ? text : BindShortWords(text));
-        at = close + closer.size();
-    }
-}
-
-// The scope names an expression reads: the first name of every path (a in a.b[0].c), not a
-// member, not a called helper, not the text of a string literal, added to `names`. A superset is
-// harmless (a keyword, a loop's own variable): such a name is compared and stays the same.
-void ExpressionNames(std::string_view expression, std::vector<std::string> &names)
-{
-    const auto name_char = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '$'; };
-    char before = 0; // the last character before this one that is not a space
-    for (size_t at = 0; at < expression.size();)
-    {
-        const char c = expression[at];
-        if (c == '\'' || c == '"')
-        {
-            const size_t end = expression.find(c, at + 1);
-            at = end == std::string_view::npos ? expression.size() : end + 1;
-            before = c;
-        }
-        else if (std::isdigit(static_cast<unsigned char>(c)))
-        {
-            while (at < expression.size() && (name_char(expression[at]) || expression[at] == '.'))
-                ++at;
-            before = '0';
-        }
-        else if (name_char(c))
-        {
-            const size_t start = at;
-            while (at < expression.size() && name_char(expression[at]))
-                ++at;
-            size_t next = at;
-            while (next < expression.size() && std::isspace(static_cast<unsigned char>(expression[next])))
-                ++next;
-            const bool member = before == '.', call = next < expression.size() && expression[next] == '(';
-            if (!member && !call)
-            {
-                std::string name(expression.substr(start, at - start));
-                if (std::find(names.begin(), names.end(), name) == names.end())
-                    names.push_back(std::move(name));
-            }
-            before = 'a';
-        }
-        else
-        {
-            if (!std::isspace(static_cast<unsigned char>(c)))
-                before = c;
-            ++at;
-        }
-    }
-}
-
-// ExpressionNames of every expression of a template block: {{ }}, {{{ }}}, test and each.
-void BlockNames(std::string_view block, std::vector<std::string> &names)
-{
-    const auto text = [&names](std::string_view part) {
-        for (size_t open; (open = part.find("{{")) != std::string_view::npos;)
-        {
-            const size_t start = open + (part.substr(open, 3) == "{{{" ? 3 : 2);
-            const size_t close = part.find("}}", start);
-            if (close == std::string_view::npos)
-                throw std::runtime_error("template: unterminated {{");
-            ExpressionNames(part.substr(start, close - start), names);
-            part = part.substr(close + 2);
-        }
-    };
-    size_t at = 0;
-    while (true)
-    {
-        const Tag tag = NextControlTag(block, at);
-        if (tag.begin == std::string_view::npos)
-        {
-            text(block.substr(at));
-            return;
-        }
-        text(block.substr(at, tag.begin - at));
-        if (!tag.closing && tag.name == "t-if")
-            ExpressionNames(Attribute(tag.attributes, "test"), names);
-        else if (!tag.closing && tag.name == "t-for")
-            ExpressionNames(Attribute(tag.attributes, "each"), names);
-        at = tag.end;
-    }
-}
-
-void RenderBlock(std::string_view source, const Scope &scope, std::string &out)
-{
-    size_t at = 0;
-    while (true)
-    {
-        const Tag tag = NextControlTag(source, at);
-        if (tag.begin == std::string_view::npos)
-        {
-            RenderText(source.substr(at), scope, out);
-            return;
-        }
-        RenderText(source.substr(at, tag.begin - at), scope, out);
-        if (tag.closing || tag.name == "t-else")
-            throw std::runtime_error("template: stray <" + std::string(tag.name) + ">");
-        if (tag.name == "t-if")
-        {
-            Tag else_tag;
-            const Tag close = MatchingClose(source, tag.end, "t-if", &else_tag);
-            const bool pick = Truthy(Parser(Attribute(tag.attributes, "test"), scope).Run());
-            const bool has_else = else_tag.begin != std::string_view::npos;
-            if (pick)
-                RenderBlock(source.substr(tag.end, (has_else ? else_tag.begin : close.begin) - tag.end), scope, out);
-            else if (has_else)
-                RenderBlock(source.substr(else_tag.end, close.begin - else_tag.end), scope, out);
-            at = close.end;
-        }
-        else if (tag.name == "t-for")
-        {
-            const Tag close = MatchingClose(source, tag.end, "t-for", nullptr);
-            const Json list = Parser(Attribute(tag.attributes, "each"), scope).Run();
-            const std::string as = Attribute(tag.attributes, "as");
-            const std::string_view body = source.substr(tag.end, close.begin - tag.end);
-            if (list.is_array())
-            {
-                Json local = Json::object();
-                const Scope inner{local, &scope};
-                // A loop over a prop of the component (each="rows") in a memo: an item whose
-                // value and position are as at the last render, with the rest of the scope
-                // unchanged too, gives the same output, which is reused instead of rendered.
-                const std::string each(Attribute(tag.attributes, "each"));
-                TemplateMemo::Loop *memo = nullptr;
-                // Short lists render faster than the scope compares: only lists of some length.
-                if (scope.memo && !scope.parent && list.size() >= 4 && scope.vars.is_object() &&
-                    scope.vars.contains(each))
-                {
-                    memo = &scope.memo->loops[std::to_string(reinterpret_cast<uintptr_t>(body.data())) + ":" + each];
-                    if (!memo->outside.is_object())
-                    {
-                        // Once per loop: the names of the scope its body reads.
-                        BlockNames(body, memo->reads);
-                        std::erase(memo->reads, each);
-                    }
-                    // What the body reads of the rest of the scope as at the last render? Compared in place, not
-                    // copied.
-                    bool same = memo->outside.is_object();
-                    for (size_t i = 0; same && i < memo->reads.size(); ++i)
-                    {
-                        const auto now = scope.vars.find(memo->reads[i]);
-                        const auto then = memo->outside.find(memo->reads[i]);
-                        same = (now == scope.vars.end()) == (then == memo->outside.end()) &&
-                               (now == scope.vars.end() || *now == *then);
-                    }
-                    if (!same || memo->items.size() != list.size())
-                    {
-                        memo->outside = Json::object();
-                        for (const std::string &name : memo->reads)
-                            if (const auto now = scope.vars.find(name); now != scope.vars.end())
-                                memo->outside[name] = *now;
-                        memo->items.assign(list.size(), Json());
-                        memo->outputs.assign(list.size(), std::string());
-                    }
-                }
-                size_t index = 0;
-                for (const Json &item : list)
-                {
-                    // Same item at the same place (so the same _i and _last), same scope: same output.
-                    if (memo && !memo->items[index].is_null() && memo->items[index] == item)
-                    {
-                        out += memo->outputs[index];
-                        ++scope.memo->reused;
-                        ++index;
-                        continue;
-                    }
-                    local[as] = item;
-                    local[as + "_i"] = index;
-                    local[as + "_last"] = index + 1 == list.size();
-                    const size_t from = out.size();
-                    RenderBlock(body, inner, out);
-                    if (memo)
-                    {
-                        memo->items[index] = item;
-                        memo->outputs[index] = out.substr(from);
-                        ++scope.memo->rendered;
-                    }
-                    ++index;
-                }
-            }
-            at = close.end;
-        }
-        else
-            throw std::runtime_error("template: unknown <" + std::string(tag.name) + ">");
-    }
-}
 
 } // namespace
 
-Json EvaluateExpression(std::string_view expression, const Json &scope)
+int TemplateNames::Find(const std::string &name) const
 {
-    return Parser(expression, Scope{scope}).Run();
+    const auto found = std::find(names_.begin(), names_.end(), name);
+    return found == names_.end() ? -1 : static_cast<int>(found - names_.begin());
 }
 
-std::string RenderTemplate(std::string_view source, const Json &scope, TemplateMemo *memo)
+int TemplateNames::Add(const std::string &name)
 {
-    std::string out;
-    out.reserve(source.size() * 2);
-    if (memo)
-        memo->rendered = memo->reused = 0;
-    RenderBlock(source, Scope{scope, nullptr, memo}, out);
+    if (const int found = Find(name); found >= 0)
+        return found;
+    if (names_.size() >= kMax)
+        throw std::runtime_error("template: more than " + std::to_string(kMax) + " names in one component");
+    names_.push_back(name);
+    return static_cast<int>(names_.size() - 1);
+}
+
+Expression::Expression() = default;
+Expression::~Expression() = default;
+Expression::Expression(Expression &&) noexcept = default;
+Expression &Expression::operator=(Expression &&) noexcept = default;
+
+Expression Expression::Compile(std::string_view text, TemplateNames &names, const std::vector<std::string> &loops,
+                               bool values)
+{
+    Expression expression;
+    expression.text_ = std::string(text);
+    expression.root_ = Parser(text, names, loops, values, expression.reads_).Run();
+    return expression;
+}
+
+Json Expression::Evaluate(const Scope &scope) const
+{
+    return Evaluator(scope, text_).Run(*root_).Take();
+}
+
+std::string TemplateText::Evaluate(const Scope &scope, bool shown) const
+{
+    std::string out = literals[0];
+    for (size_t i = 0; i < holes.size(); ++i)
+    {
+        const std::string value = ToText(holes[i].Evaluate(scope));
+        out += shown ? BindShortWords(value) : value;
+        out += literals[i + 1];
+    }
     return out;
+}
+
+Json EvaluateExpression(std::string_view expression, const Json &scope)
+{
+    TemplateNames names;
+    const Expression compiled = Expression::Compile(expression, names, {});
+    std::vector<const Json *> values;
+    for (const std::string &name : names.All())
+    {
+        const auto found = scope.is_object() ? scope.find(name) : scope.end();
+        values.push_back(scope.is_object() && found != scope.end() ? &*found : nullptr);
+    }
+    const std::vector<LoopFrame> loops;
+    return compiled.Evaluate(Scope{values, loops});
+}
+
+// --- the template's markup -----------------------------------------------------------------------------------
+
+namespace
+{
+
+bool IsCodeDrawn(const std::string &tag)
+{
+    return tag.rfind("ui-", 0) == 0 && tag != "ui-wheel"; // the wheel only places the template's children
+}
+
+class TemplateParser
+{
+  public:
+    TemplateParser(std::string_view source, TemplateNames &names,
+                   const std::function<const ComponentSpec *(const std::string &)> &component)
+        : s_(source), names_(names), component_(component)
+    {
+    }
+
+    CompiledTemplate Run()
+    {
+        CompiledTemplate out;
+        Nodes(out.nodes, {}, nullptr);
+        for (const TemplateNode &node : out.nodes)
+            out.reads |= node.reads;
+        return out;
+    }
+
+  private:
+    [[noreturn]] void Fail(size_t at, const std::string &what) const
+    {
+        const int line = 1 + static_cast<int>(std::count(s_.begin(), s_.begin() + std::min(at, s_.size()), '\n'));
+        throw std::runtime_error("line " + std::to_string(line) + ": " + what);
+    }
+
+    int Line(size_t at) const
+    {
+        return 1 + static_cast<int>(std::count(s_.begin(), s_.begin() + std::min(at, s_.size()), '\n'));
+    }
+
+    bool At(std::string_view token) const
+    {
+        return s_.substr(pos_, token.size()) == token;
+    }
+
+    // The position of the "}}" closing the hole whose expression starts at `from`: quotes and braces inside the
+    // expression (an object literal) are skipped.
+    size_t HoleEnd(size_t from) const
+    {
+        int depth = 0;
+        for (size_t at = from; at + 1 < s_.size(); ++at)
+        {
+            const char c = s_[at];
+            if (c == '\'' || c == '"')
+            {
+                const size_t end = s_.find(c, at + 1);
+                if (end == std::string_view::npos)
+                    break;
+                at = end;
+            }
+            else if (c == '{')
+                ++depth;
+            else if (c == '}')
+            {
+                if (depth == 0 && s_[at + 1] == '}')
+                    return at;
+                if (depth > 0)
+                    --depth;
+            }
+        }
+        Fail(from, "unterminated {{");
+    }
+
+    // Literal text and holes from `from` up to `end` (a text run or an attribute value).
+    TemplateText Text(size_t from, size_t end, bool values)
+    {
+        TemplateText text;
+        std::string literal;
+        size_t at = from;
+        while (at < end)
+        {
+            const size_t open = s_.find("{{", at);
+            if (open == std::string_view::npos || open >= end)
+            {
+                literal += s_.substr(at, end - at);
+                break;
+            }
+            if (s_.substr(open, 3) == "{{{")
+                Fail(open, "a raw insertion {{{ }}}: write the attribute as name?=\"{{ expr }}\"");
+            literal += s_.substr(at, open - at);
+            text.literals.push_back(Rml::StringUtilities::DecodeRml(literal));
+            literal.clear();
+            const size_t close = HoleEnd(open + 2);
+            try
+            {
+                text.holes.push_back(
+                    Expression::Compile(s_.substr(open + 2, close - open - 2), names_, loops_, values));
+            }
+            catch (const std::runtime_error &error)
+            {
+                Fail(open, error.what());
+            }
+            text.reads |= text.holes.back().Read();
+            at = close + 2;
+        }
+        text.literals.push_back(Rml::StringUtilities::DecodeRml(literal));
+        return text;
+    }
+
+    // The end of a text run: the next '<' outside a hole.
+    size_t TextEnd(size_t from) const
+    {
+        size_t at = from;
+        while (at < s_.size())
+        {
+            const size_t tag = s_.find('<', at), hole = s_.find("{{", at);
+            if (hole == std::string_view::npos || (tag != std::string_view::npos && tag < hole))
+                return tag == std::string_view::npos ? s_.size() : tag;
+            at = HoleEnd(hole + 2) + 2;
+        }
+        return s_.size();
+    }
+
+    void SkipSpace()
+    {
+        while (pos_ < s_.size() && Rml::StringUtilities::IsWhitespace(s_[pos_]))
+            ++pos_;
+    }
+
+    std::string Word()
+    {
+        const size_t start = pos_;
+        while (pos_ < s_.size() && (std::isalnum(static_cast<unsigned char>(s_[pos_])) || s_[pos_] == '-' ||
+                                    s_[pos_] == '_' || s_[pos_] == ':'))
+            ++pos_;
+        return std::string(s_.substr(start, pos_ - start));
+    }
+
+    // name="value" pairs up to '>' or "/>"; true when the tag closes itself. `values`: the positions of each value.
+    bool Attributes(std::vector<std::pair<std::string, std::pair<size_t, size_t>>> &out, bool control)
+    {
+        while (true)
+        {
+            SkipSpace();
+            if (pos_ >= s_.size())
+                Fail(pos_, "unterminated tag");
+            if (At(">"))
+            {
+                ++pos_;
+                return false;
+            }
+            if (At("/>"))
+            {
+                pos_ += 2;
+                return true;
+            }
+            if (At("{{") || At("<t-"))
+                Fail(pos_, "an insertion or a control tag inside a tag: write the attribute as name?=\"{{ expr }}\"");
+            const size_t start = pos_;
+            std::string name = Word();
+            if (At("?"))
+            {
+                name += '?';
+                ++pos_;
+            }
+            if (name.empty())
+                Fail(start, "an attribute name expected");
+            SkipSpace();
+            if (!At("="))
+            {
+                out.push_back({name, {pos_, pos_}});
+                continue;
+            }
+            ++pos_;
+            SkipSpace();
+            const char quote = pos_ < s_.size() ? s_[pos_] : 0;
+            if (quote != '"' && quote != '\'')
+                Fail(pos_, "attribute " + name + ": a quoted value expected");
+            const size_t value = ++pos_;
+            while (pos_ < s_.size() && s_[pos_] != quote)
+                pos_ = !control && At("{{") ? HoleEnd(pos_ + 2) + 2 : pos_ + 1;
+            if (pos_ >= s_.size())
+                Fail(value, "attribute " + name + ": unterminated value");
+            out.push_back({name, {value, pos_}});
+            ++pos_;
+        }
+    }
+
+    // Nodes up to "</closing>" (consumed; empty: the end of the source). In a t-if, <t-else/> switches to
+    // `otherwise`.
+    void Nodes(std::vector<TemplateNode> &out, const std::string &closing, std::vector<TemplateNode> *otherwise)
+    {
+        std::vector<TemplateNode> *target = &out;
+        while (pos_ < s_.size())
+        {
+            if (!At("<"))
+            {
+                const size_t end = TextEnd(pos_);
+                TemplateText text = Text(pos_, end, false);
+                const bool blank =
+                    text.holes.empty() && std::all_of(text.literals[0].begin(), text.literals[0].end(),
+                                                      [](char c) { return Rml::StringUtilities::IsWhitespace(c); });
+                if (!blank) // RmlUi makes no element of white space alone
+                {
+                    TemplateNode node;
+                    node.kind = TemplateNode::Kind::Text;
+                    node.line = Line(pos_);
+                    node.reads = text.reads;
+                    node.text = std::move(text);
+                    target->push_back(std::move(node));
+                }
+                pos_ = end;
+                continue;
+            }
+            if (At("<!--"))
+            {
+                const size_t end = s_.find("-->", pos_);
+                if (end == std::string_view::npos)
+                    Fail(pos_, "unterminated comment");
+                pos_ = end + 3;
+                continue;
+            }
+            if (At("</"))
+            {
+                const size_t start = pos_;
+                pos_ += 2;
+                const std::string name = Word();
+                SkipSpace();
+                if (!At(">"))
+                    Fail(start, "bad closing tag");
+                ++pos_;
+                if (closing.empty() || Rml::StringUtilities::ToLower(name) != closing)
+                    Fail(start,
+                         "</" + name + "> closes nothing open" + (closing.empty() ? "" : ", <" + closing + "> is"));
+                return;
+            }
+            const size_t start = pos_;
+            ++pos_;
+            const std::string tag = Rml::StringUtilities::ToLower(Word());
+            if (tag.empty())
+                Fail(start, "a tag name expected");
+            if (tag == "t-else")
+            {
+                std::vector<std::pair<std::string, std::pair<size_t, size_t>>> none;
+                if (!otherwise || target == otherwise || !Attributes(none, true) || !none.empty())
+                    Fail(start, "<t-else/> outside a <t-if>");
+                target = otherwise;
+                continue;
+            }
+            TemplateNode node;
+            node.line = Line(start);
+            if (tag == "t-if" || tag == "t-for")
+                Control(node, tag, start);
+            else
+                Element(node, tag, start);
+            target->push_back(std::move(node));
+        }
+        if (!closing.empty())
+            Fail(s_.size(), "<" + closing + "> is not closed");
+    }
+
+    std::string ControlAttribute(const std::vector<std::pair<std::string, std::pair<size_t, size_t>>> &attributes,
+                                 const std::string &name, size_t at, bool required) const
+    {
+        for (const auto &[key, span] : attributes)
+            if (key == name)
+                return std::string(s_.substr(span.first, span.second - span.first));
+        if (required)
+            Fail(at, "control tag lacks attribute " + name);
+        return {};
+    }
+
+    Expression ControlExpression(const std::string &text, size_t at)
+    {
+        try
+        {
+            return Expression::Compile(text, names_, loops_);
+        }
+        catch (const std::runtime_error &error)
+        {
+            Fail(at, error.what());
+        }
+    }
+
+    void Control(TemplateNode &node, const std::string &tag, size_t start)
+    {
+        std::vector<std::pair<std::string, std::pair<size_t, size_t>>> attributes;
+        if (Attributes(attributes, true))
+            Fail(start, "<" + tag + "> cannot close itself");
+        if (tag == "t-if")
+        {
+            node.kind = TemplateNode::Kind::If;
+            node.test = ControlExpression(ControlAttribute(attributes, "test", start, true), start);
+            node.reads = node.test.Read();
+            Nodes(node.children, tag, &node.otherwise);
+            for (const auto *branch : {&node.children, &node.otherwise})
+                for (const TemplateNode &child : *branch)
+                    node.reads |= child.reads;
+            return;
+        }
+        node.kind = TemplateNode::Kind::For;
+        node.each = ControlExpression(ControlAttribute(attributes, "each", start, true), start);
+        node.reads = node.each.Read();
+        loops_.push_back(ControlAttribute(attributes, "as", start, true));
+        if (const std::string key = ControlAttribute(attributes, "key", start, false); !key.empty())
+        {
+            node.key = ControlExpression(key, start);
+            node.reads |= node.key.Read();
+        }
+        Nodes(node.children, tag, nullptr);
+        loops_.pop_back();
+        for (const TemplateNode &child : node.children)
+            node.reads |= child.reads;
+    }
+
+    void Element(TemplateNode &node, const std::string &tag, size_t start)
+    {
+        node.kind = TemplateNode::Kind::Element;
+        node.tag = tag;
+        node.component = component_(tag);
+        if (!node.component && (tag.rfind("c-", 0) == 0 || tag.rfind("s-", 0) == 0))
+            Fail(start, "unknown component <" + tag + ">: no spec in components.json");
+        std::vector<std::pair<std::string, std::pair<size_t, size_t>>> attributes;
+        const bool closed = Attributes(attributes, false);
+        bool slot = false;
+        for (const auto &[written, span] : attributes)
+        {
+            TemplateAttribute attribute;
+            attribute.conditional = !written.empty() && written.back() == '?';
+            attribute.name = attribute.conditional ? written.substr(0, written.size() - 1) : written;
+            slot = slot || attribute.name == "slot";
+            if (node.component)
+            {
+                attribute.props = attribute.name == "props";
+                attribute.prop = attribute.props ? nullptr : node.component->FindAttribute(attribute.name);
+                if (!attribute.props && !attribute.prop && !IsGenericAttribute(attribute.name))
+                    Fail(span.first, "<" + tag + "> has no prop '" + attribute.name + "'");
+            }
+            const bool structure = attribute.props || (attribute.prop && attribute.prop->type == PropSpec::Type::Json);
+            attribute.value = Text(span.first, span.second, structure);
+            const bool single = attribute.value.holes.size() == 1 && attribute.value.literals[0].empty() &&
+                                attribute.value.literals[1].empty();
+            if (attribute.conditional && !single)
+                Fail(span.first, "a conditional attribute " + attribute.name + "?= takes one {{ expr }} alone");
+            if (structure && !single)
+            {
+                if (!attribute.value.holes.empty())
+                    Fail(span.first, "<" + tag + "> " + attribute.name + " takes one {{ expr }} or JSON text");
+                attribute.fixed = Json::parse(attribute.value.literals[0], nullptr, false);
+                if (attribute.fixed.is_discarded() || (attribute.props && !attribute.fixed.is_object()))
+                    Fail(span.first, "<" + tag + "> " + attribute.name + " is not JSON");
+            }
+            node.reads |= attribute.value.reads;
+            node.attributes.push_back(std::move(attribute));
+        }
+        if (closed)
+            return;
+        Nodes(node.children, tag, nullptr);
+        if (!node.children.empty() && (slot || IsCodeDrawn(tag)))
+            Fail(start, "<" + tag + "> owns its children: the template gives it none");
+        for (const TemplateNode &child : node.children)
+            node.reads |= child.reads;
+    }
+
+    std::string_view s_;
+    TemplateNames &names_;
+    const std::function<const ComponentSpec *(const std::string &)> &component_;
+    std::vector<std::string> loops_;
+    size_t pos_ = 0;
+};
+
+} // namespace
+
+CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
+                                 const std::function<const ComponentSpec *(const std::string &tag)> &component)
+{
+    return TemplateParser(source, names, component).Run();
 }
 
 } // namespace storm::ui

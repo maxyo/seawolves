@@ -292,7 +292,7 @@ def check_colour_literals():
 
 GENERIC_ATTRIBUTES = {"id", "class", "style", "props", "slot", "rmlui-layout-boundary"}  # engine components.cpp IsGenericAttribute
 HUD_BEHAVIORS = {"hold", "swipe"}  # behaviours a HUD layout element may add (engine behaviors.cpp)
-ATTRIBUTE = re.compile(r"""\s+([a-zA-Z_][-a-zA-Z0-9_:]*)\s*=\s*("[^"]*"|'[^']*')""")
+ATTRIBUTE = re.compile(r"""\s+([a-zA-Z_][-a-zA-Z0-9_:]*)\??\s*=\s*("[^"]*"|'[^']*')""")  # name?= is conditional
 TAG = re.compile(r"<(c-[a-z0-9-]+)")
 
 

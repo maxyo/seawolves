@@ -1,5 +1,5 @@
 // Host checks for the parts of the UI runtime that need no GL context:
-// the template language, the .tx decoder (synthetic data only) and the interface model's JSON
+// the template expressions, the .tx decoder (synthetic data only) and the interface model's JSON
 // codec (every model fixture of tests/models, given as the argument, written and read back).
 #include "fakes.h"
 #include "../src/action_trace.h"
@@ -17,12 +17,13 @@
 
 using storm::ui::Json;
 
-static void ExpectText(const std::string &source, const Json &scope, const std::string &expected)
+// An expression's value as text, or its error.
+static void ExpectValue(const std::string &expression, const Json &scope, const std::string &expected)
 {
     std::string actual;
     try
     {
-        actual = storm::ui::RenderTemplate(source, scope);
+        actual = storm::ui::ToText(storm::ui::EvaluateExpression(expression, scope));
     }
     catch (const std::exception &error)
     {
@@ -30,7 +31,7 @@ static void ExpectText(const std::string &source, const Json &scope, const std::
     }
     if (actual != expected)
     {
-        std::fprintf(stderr, "FAIL: %s\n  expected: %s\n  actual:   %s\n", source.c_str(), expected.c_str(),
+        std::fprintf(stderr, "FAIL: %s\n  expected: %s\n  actual:   %s\n", expression.c_str(), expected.c_str(),
                      actual.c_str());
         ++failures;
     }
@@ -180,50 +181,51 @@ static Json Scope()
         "items":[{"label":"a","count":2},{"label":"b"}],"empty":[],"size":"md","spec":{"h":{"sm":40,"md":44}}})");
 }
 
-// Expressions, escaping, number formats; in strict mode a path that names nothing is an error.
+// Expressions, number formats; in strict mode a path that names nothing is an error.
 static void Expressions(const Json &scope)
 {
-    ExpectText("{{label}}", scope, "Купить &lt;1&gt;");
-    ExpectText("{{{label}}}", scope, "Купить <1>");
-    ExpectText("{{ num(n) }} / {{ num(small) }}", scope,
-               "1\xE2\x80\xAF"
-               "250\xE2\x80\xAF"
-               "000 / 1250");
-    ExpectText("{{ on && !off ? 'y' : 'n' }}", scope, "y");
+    ExpectValue("label", scope, "Купить <1>");
+    ExpectValue("num(n) + ' / ' + num(small)", scope,
+                "1\xE2\x80\xAF"
+                "250\xE2\x80\xAF"
+                "000 / 1250");
+    ExpectValue("on && !off ? 'y' : 'n'", scope, "y");
     // Amounts as the game and num() group them compare as numbers (the header's preview tone).
-    ExpectText("{{ '3000192' * 1 < '3 000 495' * 1 ? 'y' : 'n' }} {{ '999\xC2\xA0"
-               "800' * 1 < '1\xE2\x80\xAF"
-               "000\xE2\x80\xAF"
-               "500' * 1 ? 'y' : 'n' }} {{ '1 25' * 1 }}",
-               scope, "y y 1");
-    ExpectText("{{ spec.h[size] + 4 }}", scope, "48");
-    ExpectText("{{ missing }}|{{ or(missing, 'x') }}|{{ len(items) }}", scope, "|x|2");
+    ExpectValue("'3000192' * 1 < '3 000 495' * 1 && '999\xC2\xA0"
+                "800' * 1 < '1\xE2\x80\xAF"
+                "000\xE2\x80\xAF"
+                "500' * 1 ? 'y' : 'n'",
+                scope, "y");
+    ExpectValue("'1 25' * 1", scope, "1");
+    ExpectValue("spec.h[size] + 4", scope, "48");
+    ExpectValue("str(missing) + '|' + or(missing, 'x') + '|' + len(items)", scope, "|x|2");
+    // Literals of structures, for a nested component's json props.
+    ExpectValue("[1, 'a', {k: on, 'q': [ ]}]", scope, R"([1.0,"a",{"k":true,"q":[]}])");
     // Strict mode (host checks): a path that names nothing is an error unless marked optional;
     // a branch not taken is not evaluated.
     storm::ui::SetTemplateStrict(true);
-    ExpectText(
-        "{{ missing }}", scope,
-        "<<template expression: 'missing' is not defined in ' missing ' (opt() marks a path that may be missing)>>");
-    ExpectText("{{ items[1].count }}", scope,
-               "<<template expression: 'items[1].count' is not defined in ' items[1].count ' (opt() marks a path that "
-               "may be missing)>>");
-    ExpectText("{{ spec.h[variant] }}", scope,
-               "<<template expression: 'spec.h[variant]' is not defined in ' spec.h[variant] ' (opt() marks a path "
-               "that may be missing)>>");
-    ExpectText("{{ opt(missing) }}|{{ or(items[1].count, 0) }}|{{ opt(items[5].label) }}|{{ items[0].count }}", scope,
-               "|0||2");
-    ExpectText("<t-if test=\"off\">{{ missing }}</t-if>{{ off ? missing.x : 'ok' }}", scope, "ok");
+    ExpectValue(
+        "missing", scope,
+        "<<template expression: 'missing' is not defined in 'missing' (opt() marks a path that may be missing)>>");
+    ExpectValue("items[1].count", scope,
+                "<<template expression: 'items[1].count' is not defined in 'items[1].count' (opt() marks a path that "
+                "may be missing)>>");
+    ExpectValue("spec.h[variant]", scope,
+                "<<template expression: 'spec.h[variant]' is not defined in 'spec.h[variant]' (opt() marks a path "
+                "that may be missing)>>");
+    ExpectValue("str(opt(missing)) + '|' + or(items[1].count, 0) + '|' + str(opt(items[5].label)) + '|' + "
+                "items[0].count",
+                scope, "|0||2");
+    ExpectValue("off ? missing.x : 'ok'", scope, "ok");
     storm::ui::SetTemplateStrict(false);
-    ExpectText("{{ variant == 'primary' ? 'ink' : 'duo' }}", scope, "ink");
+    ExpectValue("variant == 'primary' ? 'ink' : 'duo'", scope, "ink");
 }
 
 static void ShortWords()
 {
-    // A one-letter Russian word holds on to the next word in shown text, never in an attribute value.
-    const Json words = Json::parse(R"({"t":"Я в порту и с ним «к нам» (а он) вы"})");
     const std::string bound = "Я\xC2\xA0в\xC2\xA0порту и\xC2\xA0с\xC2\xA0ним «к\xC2\xA0нам» (а\xC2\xA0он) вы";
-    ExpectText("<div title=\"{{t}}\">{{t}}</div>", words,
-               "<div title=\"Я в порту и с ним «к нам» (а он) вы\">" + bound + "</div>");
+    Expect(storm::ui::BindShortWords("Я в порту и с ним «к нам» (а он) вы") == bound,
+           "short words: a one-letter Russian word holds on to the next word");
     Expect(storm::ui::BindShortWords("слово в") == "слово в" && storm::ui::BindShortWords("ив яд") == "ив яд",
            "short words: a word at the end or inside a longer word stays");
 }
@@ -236,73 +238,29 @@ static void LazyCalls(const Json &scope)
         asked.push_back(key);
         return "[" + key + "]";
     });
-    ExpectText("{{ missing ? tr(missing) : 'plain' }}|{{ variant ? tr('a.b') : tr(missing) }}", scope, "plain|[a.b]");
+    ExpectValue("(missing ? tr(missing) : 'plain') + '|' + (variant ? tr('a.b') : tr(missing))", scope, "plain|[a.b]");
     Expect(asked == std::vector<std::string>({"a.b"}), "template: calls only in the branch taken");
     storm::ui::SetTemplateStrings(nullptr);
-}
-
-// <t-if> and <t-for>.
-static void Blocks(const Json &scope)
-{
-    ExpectText("{{ pick(variant, 'danger', 1, 'primary', 2, 3) }}{{ in(size, 'sm', 'md') }}", scope, "2true");
-    ExpectText("<t-if test=\"on\">A<t-else/>B</t-if><t-if test=\"off\">C<t-else/>D</t-if>", scope, "AD");
-    ExpectText("<t-for each=\"items\" as=\"it\">[{{it_i}}:{{it.label}}<t-if test=\"it.count\">×{{it.count}}</t-if>{{ "
-               "it_last ? '' : ',' }}]</t-for>",
-               scope, "[0:a×2,][1:b]");
-    ExpectText("<t-for each=\"empty\" as=\"it\">x</t-for>-", scope, "-");
-}
-
-static void Memo()
-{
-    // A memo renders again only the loop items that changed, while the names of the scope the
-    // loop's body reads stay as they were: a prop beside the list (a deal's quantity) that
-    // the body does not read keeps every item; one it reads renders them all again.
-    const std::string source =
-        "<t-for each=\"rows\" as=\"r\">[{{r.name}}{{ dense ? '-' : '' }}{{ opt(r.q) ? 'q' : '' }}]</t-for>{{deal}}";
-    Json view = Json::parse(
-        R"({"rows":[{"name":"a"},{"name":"b"},{"name":"c"},{"name":"d"}],"dense":false,"deal":1,"title":"x"})");
-    storm::ui::TemplateMemo memo;
-    const auto render = [&] { return storm::ui::RenderTemplate(source, view, &memo); };
-    Expect(render() == "[a][b][c][d]1" && memo.rendered == 4 && memo.reused == 0,
-           "memo: the first render renders every item");
-    view["deal"] = 2;
-    view["title"] = "y";
-    Expect(render() == "[a][b][c][d]2" && memo.rendered == 0 && memo.reused == 4,
-           "memo: a prop the loop does not read keeps the items");
-    view["rows"][2]["name"] = "C";
-    Expect(render() == "[a][b][C][d]2" && memo.rendered == 1 && memo.reused == 3,
-           "memo: a changed item alone renders again");
-    view["dense"] = true;
-    Expect(render() == "[a-][b-][C-][d-]2" && memo.rendered == 4,
-           "memo: a name the loop reads renders every item again");
-    view.erase("dense");
-    Expect(render() == "[a][b][C][d]2" && memo.rendered == 4,
-           "memo: a name the loop reads that went away renders every item again");
-    Expect(render() == "[a][b][C][d]2" && memo.reused == 4, "memo: unchanged again");
 }
 
 // The template functions.
 static void Helpers(const Json &scope)
 {
-    ExpectText("<t-if test=\"len(items) > 1 && items[1].label == 'b'\">ok</t-if>", scope, "ok");
-    ExpectText("<div class=\"a {{ on ? 'on' : '' }}\">{{ 7 / 2 }} {{ 10 % 4 }} {{ -n < 0 }}</div>", scope,
-               "<div class=\"a on\">3.5 2 true</div>");
-
-    ExpectText("{{ replace('Удалить {s}?', '{s}', label) }}|{{ contains(variant, 'rim') }}|{{ ends('Цель?', '?') }}",
-               scope, "Удалить Купить &lt;1&gt;?|true|true");
-    ExpectText("<t-for each=\"range(int(split('2/3', '/')[1]))\" as=\"d\">{{ d < int(split('2/3', '/')[0]) ? '#' : '.' "
-               "}}</t-for>",
-               scope, "##.");
+    ExpectValue("pick(variant, 'danger', 1, 'primary', 2, 3) + str(in(size, 'sm', 'md'))", scope, "2true");
+    ExpectValue("len(items) > 1 && items[1].label == 'b'", scope, "true");
+    ExpectValue("str(7 / 2) + ' ' + 10 % 4 + ' ' + (-n < 0)", scope, "3.5 2 true");
+    ExpectValue("replace('Удалить {s}?', '{s}', label) + '|' + contains(variant, 'rim') + '|' + ends('Цель?', '?')",
+                scope, "Удалить Купить <1>?|true|true");
+    ExpectValue("len(range(int(split('2/3', '/')[1])))", scope, "3");
     const Json images =
         Json::parse(R"({"tok":{"icon":"ship","enamel":"red"},"pic":{"texture":"INTERFACES/items6","cell":3},
         "face":{"kind":"portrait","texture":"x"},"bare":{"icon":"anchor"}})");
-    ExpectText(
-        "{{ image_kind(tok, '') }}|{{ image_kind(pic, '') }}|{{ image_kind(face, 'a') }}|{{ image_kind(bare, '') }}|"
-        "{{ image_kind(none, 'anchor') }}|{{ image_kind(none, '') }}",
-        images, "token|item|portrait|icon|icon|");
-    ExpectText("{{ digits('1\xE2\x80\xAF"
-               "500') + 1 }}",
-               scope, "1501");
+    ExpectValue("image_kind(tok, '') + '|' + image_kind(pic, '') + '|' + image_kind(face, 'a') + '|' + "
+                "image_kind(bare, '') + '|' + image_kind(none, 'anchor') + '|' + image_kind(none, '')",
+                images, "token|item|portrait|icon|icon|");
+    ExpectValue("digits('1\xE2\x80\xAF"
+                "500') + 1",
+                scope, "1501");
 }
 
 // No silent fallbacks: wrong specs, props, enum values, icons and expressions are errors.
@@ -339,8 +297,8 @@ static void Specs(const Json &scope)
     Expect(storm::ui::AtlasCell(6, 4, uv) && uv[0] == 0.25f && uv[1] == 0.25f && uv[2] == 0.5f, "atlas cell 6 of 4x4");
     Expect(!storm::ui::AtlasCell(17, 4, nullptr) && !storm::ui::AtlasCell(-1, 4, nullptr),
            "cell outside the atlas refused");
-    ExpectText("{{ nosuchfunction(1) }}", scope,
-               "<<template expression: unknown function nosuchfunction in ' nosuchfunction(1) '>>");
+    ExpectValue("nosuchfunction(1)", scope,
+                "<<template expression: unknown function nosuchfunction in 'nosuchfunction(1)'>>");
 }
 
 int main(int argc, char **argv)
@@ -355,8 +313,6 @@ int main(int argc, char **argv)
     Expressions(scope);
     ShortWords();
     LazyCalls(scope);
-    Blocks(scope);
-    Memo();
     Helpers(scope);
     Specs(scope);
 

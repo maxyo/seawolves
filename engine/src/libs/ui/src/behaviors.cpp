@@ -567,7 +567,7 @@ class RangeBehavior final : public Behavior
         self.Emit("commit", ToText(self.Prop(prop_)));
     }
 
-    // A re-render sets the knob's style again (its place at the value): the offset to the finger is put back.
+    // An update sets the knob's style again (its place at the value): the offset to the finger is put back.
     void Rebuilt(ComponentElement &self) override
     {
         Follow(self);
@@ -594,14 +594,7 @@ class RangeBehavior final : public Behavior
         if (self.Flag("active") != active)
             self.SetProps(Json{{prop_, value}, {"active", active}});
         else if (changed)
-        {
-            // Under the finger the value's own texts and marks follow at once (the template's
-            // data-live-* parts), without a render of the control; the model's next revision
-            // brings the same value (Refresh made it the shown one), a branch change renders.
-            self.SetPropQuiet(prop_, value);
-            if (!self.Refresh())
-                self.SetProps(Json{{prop_, value}});
-        }
+            self.SetProps(Json{{prop_, value}});
         Follow(self);
         if (changed)
             self.Emit("change", ToText(Json(value)));

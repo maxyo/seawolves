@@ -102,17 +102,15 @@ struct FrameStats
     // Parts of update_ms (and, for textures, of render_ms), for the screen switch line (Host log
     // "UI switch"): what a frame's CPU went to.
     double apply_ms = 0.0;   // host calls between frames: interface models and state channels applied
-    double rebuild_ms = 0.0; // components re-rendered from their templates (RML parsed, trees patched)
+    double rebuild_ms = 0.0; // components built or updated from their compiled templates
     double style_ms = 0.0;   // RmlUi's element update without the rebuilds: styles, definitions
     double layout_ms = 0.0;  // RmlUi's document layout and positioning
     double picture_ms = 0.0; // game pictures acquired from the renderer (.tx read, decoded, uploaded)
     int pictures = 0;        // game pictures acquired
     double texture_ms = 0.0; // textures made through the render interface (pack images decoded; font atlases)
-    int rebuilds = 0;        // components re-rendered from their template (an unchanged output patches nothing)
-    int touched = 0;         // elements those rebuilds changed: attributes or text set, elements made or removed
-    int forwarded = 0;       // of them, components that only passed changed props on (no template render)
-    int refreshed = 0;       // components whose live parts followed a behaviour's quiet change (no render)
-    int patch_fallbacks = 0; // levels of them morphed whole (a keyed list, a render the light parser refuses)
+    int rebuilds = 0;        // components built or updated (an update runs only what reads a changed prop)
+    int touched = 0;         // elements those updates changed: attributes, text or props set, elements made,
+                             // moved or removed
     int laid_out = 0;        // component boxes formatted (0 = no layout ran)
     int layout_passes = 0;   // documents formatted (RmlUi lays out a whole document at a time)
     int geometry = 0;        // meshes compiled

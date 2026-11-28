@@ -171,18 +171,25 @@ renders a page with insets.
 - Box from a prop: `"constants": {"boxSize": "size"}` makes that number prop the component's
   width and height in dp (C-Icon), so flex rows measure it without formatting its content.
 
-`template.rml` is the inner markup. It is rendered again whenever a prop changes.
+`template.rml` is the inner markup. The engine compiles every template once when the pack loads (an
+error names the template and line and stops the start) and keeps the elements it made: when a prop
+changes, only the parts that read it are set again.
 
-- `{{ expr }}` escaped text, `{{{ expr }}}` raw RML.
+- `{{ expr }}` text, in element text or in an attribute value.
+- `name?="{{ expr }}"`: an attribute that is there only while the value is true (not null, false, 0
+  or empty); `true` is written as `1` (`data-disabled?="{{ disabled }}"`).
 - `<t-if test="expr">…<t-else/>…</t-if>`, `<t-for each="items" as="it">…</t-for>`
-  (also `it_i`, `it_last`).
+  (also `it_i`, `it_last`). `key="it.key"` on a `t-for` gives each row its identity: a row keeps its
+  elements (scroll, a pressed part, an animation) for as long as its key is in the list. Without a key
+  rows are matched by position: for rows that hold no state.
 - Expressions: props by name, `spec.<constant>`, `children` (true when the component
   has content), literals, `! - + * / %`, comparisons, `&& ||`, `a ? b : c`, and
   `or(a, b)`, `len`, `num` (thin-space thousands), `str`, `int`, `round`, `min`, `max`,
   `clamp`, `abs`, `in(x, 'a', 'b')`, `pick(key, 'a', 1, 'b', 2, fallback)`, `starts`,
   `contains`, `ends`, `replace(s, from, to)`, `split(s, sep)`, `range(n)`, `digits('1 500')`,
   `has(obj, 'k')`, `is_object`, `is_array`, `is_string`, `json(x)` (to pass a structure
-  to a nested component: `props="{{ json(it.q) }}"`), `image_kind(image, icon)` (see below).
+  to a nested component: `props="{{ json(it.q) }}"`; the value itself is passed, never text),
+  `[a, b]` and `{key: value}`, `image_kind(image, icon)` (see below).
 - The element with a `slot` attribute receives the component's children.
 - Components nest by tag: `<c-icon icon="{{icon}}" size="18"/>`.
 

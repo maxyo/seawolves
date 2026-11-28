@@ -183,7 +183,7 @@
    "constants": {
     "pressRoot": false
    },
-   "template": "<t-for each=\"ships\" as=\"o\"><div class=\"item ship\" {{{ o.tap ? 'data-action=\"ship\" data-value=\"' + o_i + '\"' : '' }}} style=\"position: absolute; left: {{ int(o_i / 4) * 60 }}dp; top: {{ (o_i - int(o_i / 4) * 4) * 60 }}dp; width: 52dp; height: 52dp;\"></div></t-for>"
+   "template": "<t-for each=\"ships\" as=\"o\"><div class=\"item ship\" data-action?=\"{{ o.tap ? 'ship' : '' }}\" data-value?=\"{{ o.tap ? str(o_i) : '' }}\" style=\"position: absolute; left: {{ int(o_i / 4) * 60 }}dp; top: {{ (o_i - int(o_i / 4) * 4) * 60 }}dp; width: 52dp; height: 52dp;\"></div></t-for>"
   },
   {
    "tag": "c-minimap",
@@ -338,7 +338,7 @@
    "constants": {
     "pressRoot": false
    },
-   "template": "<t-for each=\"officers\" as=\"o\"><div class=\"item ship\" {{{ opt(o.tap) ? 'data-action=\"member\" data-value=\"' + o_i + '\"' : '' }}} style=\"position: absolute; left: {{ o_i * 60 }}dp; top: 0dp; width: 52dp; height: 52dp;\"></div></t-for>"
+   "template": "<t-for each=\"officers\" as=\"o\"><div class=\"item ship\" data-action?=\"{{ opt(o.tap) ? 'member' : '' }}\" data-value?=\"{{ opt(o.tap) ? str(o_i) : '' }}\" style=\"position: absolute; left: {{ o_i * 60 }}dp; top: 0dp; width: 52dp; height: 52dp;\"></div></t-for>"
   },
   {
    "tag": "c-panels",

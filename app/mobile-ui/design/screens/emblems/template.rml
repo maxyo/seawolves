@@ -1,4 +1,4 @@
-<div class="se-scroll"><div class="se-ribbon"><t-for each="items" as="e"><div class="se-card{{ e.selected ? ' sel' : '' }}" data-action="emblem" data-value="{{e_i}}"{{{ e.disabled ? ' data-disabled="1"' : '' }}}>
+<div class="se-scroll"><div class="se-ribbon"><t-for each="items" as="e"><div class="se-card{{ e.selected ? ' sel' : '' }}" data-action="emblem" data-value="{{e_i}}" data-disabled?="{{ e.disabled }}">
 <c-game-image kind="emblem" texture="{{e.texture}}" size="{{size}}" label="{{e.label}}" selected="{{ e.selected ? 1 : 0 }}" disabled="{{ e.disabled ? 1 : 0 }}"/>
 <div class="se-cap">{{ e.applied ? appliedLabel : '' }}</div>
 </div></t-for></div></div><div class="se-fade"></div>

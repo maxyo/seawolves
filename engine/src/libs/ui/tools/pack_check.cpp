@@ -516,6 +516,27 @@ std::string Signature(const std::vector<TapAt> &taps)
     return out;
 }
 
+// An element's tree as it is drawn: tags, classes (also those code sets, which the class attribute does not show),
+// attributes and text.
+void DrawnTree(Rml::Element *element, std::string &out)
+{
+    for (int i = 0; i < element->GetNumChildren(); ++i)
+    {
+        Rml::Element *child = element->GetChild(i);
+        if (auto *text = rmlui_dynamic_cast<Rml::ElementText *>(child))
+        {
+            out += text->GetText() + "\n";
+            continue;
+        }
+        out += "<" + child->GetTagName() + " ." + child->GetClassNames();
+        for (const auto &[name, value] : child->GetAttributes())
+            if (name != "class")
+                out += " " + name + "=" + value.Get<Rml::String>();
+        out += ">\n";
+        DrawnTree(child, out);
+    }
+}
+
 // What is drawn: every visible document's tree (a toast, a selection, a changed detail all show here).
 std::string Drawn()
 {
@@ -525,7 +546,7 @@ std::string Drawn()
         if (Rml::Context *context = Rml::GetContext(c))
             for (int d = 0; d < context->GetNumDocuments(); ++d)
                 if (context->GetDocument(d)->IsVisible())
-                    out += context->GetDocument(d)->GetInnerRML();
+                    DrawnTree(context->GetDocument(d), out);
     return out;
 }
 

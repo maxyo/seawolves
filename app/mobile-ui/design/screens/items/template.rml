@@ -1,4 +1,4 @@
-<c-screen id="header" key="header" title="{{ map ? map.title : title }}" sections="{{headerSection}}" subject="{{ map ? 'null' : json(subject) }}" stats="{{ map ? '[]' : json(stats) }}" actions="{{ json(extras.actions) }}">
+<c-screen id="header" key="header" title="{{ map ? map.title : title }}" sections="{{headerSection}}" subject="{{ map ? null : json(subject) }}" stats="{{ map ? [] : json(stats) }}" actions="{{ json(extras.actions) }}">
 <t-if test="map"><div id="items-map" class="it-cols">
 <c-panel class="it-map" tone="parchment" pad="0"><div class="it-map-pic"><c-row-image image="{{ json(map.image) }}" icon="map" size="320" icon-size="96" label="{{map.title}}" surface="parchment" style="width: 100%; height: 100%"/></div></c-panel>
 <c-panel class="it-map-text" tone="parchment" gap="8"><c-object-header title="{{map.title}}" surface="parchment" style="width: 100%"/><div class="it-scroll"><div class="it-text ink">{{map.text}}</div></div></c-panel>

@@ -18,10 +18,7 @@ namespace storm::ui
 {
 
 class ComponentElement;
-struct RmlNode; // components.cpp: a template render as a light tree
-
-// Attributes every component accepts besides its props: id, class, style, props, slot, data-*.
-bool IsGenericAttribute(const std::string &attribute);
+struct BoundTemplate; // components.cpp: the compiled template's live elements
 // Empty when `value` is acceptable for the prop, else what is wrong (enum value not listed).
 std::string CheckPropValue(const PropSpec &prop, const Json &value);
 // Logs and marks (class "ui-error", drawn only under a ui-debug root) every <c-…> element under `root` that has no
@@ -143,14 +140,10 @@ class ComponentElement final : public Rml::Element
     {
         return Truthy(Prop(name));
     }
-    // Merges the given props and rebuilds on the next update.
+    // Merges the given props; the template's parts that read the changed ones follow on the next update.
     void SetProps(const Json &props);
-    // Changes one prop without rebuilding the inner tree (drag feedback); the behaviour
-    // updates the affected elements itself.
-    void SetPropQuiet(const std::string &name, Json value);
-    // After quiet prop changes: the template's live parts follow them without a render
-    // (data-live-*); false when its shape changed and it must render (components.cpp).
-    bool Refresh();
+    // One prop (null: its default), as a parent template passes it.
+    void SetProp(const PropSpec &prop, Json value);
     // Live state classes ("pressed", "active", "done") owned by behaviours.
     void SetLive(const std::string &name, bool on);
     void Emit(const std::string &verb, const std::string &value = {});
@@ -183,11 +176,13 @@ class ComponentElement final : public Rml::Element
     bool SettleLayout();
     // Independent subscriptions: one behavior cannot stop another owner.
     void RequestTicks(Behavior &owner, bool enable);
+    // Builds the template's elements, or brings them up to the changed props, now instead of on the next update.
     void RebuildNow();
-    // Makes the slot content equal to the children of `content` (taken from it), the
-    // content a parent template passes now; content that appears or disappears rebuilds
-    // the component, since its template may have a slot only `t-if children`.
-    void SyncSlot(Rml::Element *content);
+    // Where a parent template puts the content it passes: the slot, or held aside while the template shows none
+    // (it decides on `children` whether it has one); before the first build the component itself.
+    Rml::Element *ContentParent();
+    // The parent template changed that content: `children` follows whether there is any.
+    void ContentChanged();
 
   protected:
     void OnAttributeChange(const Rml::ElementAttributes &changed) override;
@@ -195,15 +190,15 @@ class ComponentElement final : public Rml::Element
     void OnLayout() override;
 
   private:
-    bool TakeSlotContent(std::vector<Rml::ElementPtr> &kept);
-    Json RenderScope(bool has_children);
-    void ApplyRender(const std::string &rml);
-    void NoteShapes(const Json &scope);
+    friend struct Binder;
+    void Update();
+    void BindNames();
+    bool HasContent();
+    void PlaceContent();
     void ApplyClasses();
-    bool Forward();
-    void ApplyBoxSize(const Json &scope);
-    // A wrong prop, enum value or template: logged with the element and drawn as the
-    // striped "ui-error" marker instead of a silent default.
+    void ApplyBoxSize();
+    // A wrong prop, enum value or template: logged with the element and drawn as the striped "ui-error" marker
+    // instead of a silent default.
     void ReportError(const std::string &what);
     // Queued for SettleLaidOutComponents once per layout pass.
     void NoteLaidOut();
@@ -218,23 +213,17 @@ class ComponentElement final : public Rml::Element
     std::vector<std::string> applied_classes_;
     std::string extra_behavior_; // added by data-behavior
     float box_size_ = -2.0f;     // constants.boxSize applied (dp), -1 = none
-    bool dirty_ = true;
     bool laid_out_noted_ = false;
-    bool built_ = false;
-    bool built_children_ = false; // `children` of the last build
-    std::string built_rml_;       // what the template gave at the last build
-    // built_rml_ as a light tree (components.cpp RmlNode): the next build patches only what
-    // changed against it. Not ok: the render had something the parser does not take.
-    std::vector<RmlNode> built_tree_;
-    bool built_tree_ok_ = false;
-    Json rendered_values_;                   // the props the live tree shows (last render, Forward or Refresh)
-    std::set<std::string> set_since_render_; // props set since rendered_values_ (Forward compares only these)
-    Json rendered_extras_;                   // and the density, safe area and slot it was rendered with
-    bool shapes_pending_ = false;            // a render whose data-live-shape values are still to be noted
-    TemplateMemo memo_;                      // loop items of the last render (RenderTemplate)
-    bool pending_slot_ = false;              // slot_content_ replaces the slot on the next build
-    std::vector<Rml::ElementPtr> slot_content_;
-    bool error_ = false; // ReportError happened since the last rebuild
+    bool dirty_ = false;                   // props were set: the next update compares what changed
+    std::unique_ptr<BoundTemplate> bound_; // null until the first build
+    Reads changed_;                        // what changed since the last build or update
+    // The values of the names that are not props (SpecName), as the elements show them.
+    Json children_ = false, dp_, safe_;
+    unsigned strings_ = 0;                // TemplateStringsRevision() shown
+    std::vector<const Json *> names_;     // what each name of the spec is now (BindNames)
+    Rml::ObserverPtr<Rml::Element> slot_; // the template's slot, while it shows one
+    Rml::ElementPtr held_;                // the content while the template shows no slot
+    bool error_ = false;                  // ReportError happened
 };
 
 class ComponentRegistry
@@ -243,8 +232,9 @@ class ComponentRegistry
     explicit ComponentRegistry(Services &services) : services_(services)
     {
     }
-    // Parses components.json and registers one element instancer per component tag.
-    void Load(const Json &pack);
+    // Parses components.json, compiles every template and registers one element instancer per component tag.
+    // False with the component and line of the first error: the pack is broken.
+    bool Load(const Json &pack, std::string *error);
     const ComponentSpec *Find(const std::string &tag) const;
 
   private:

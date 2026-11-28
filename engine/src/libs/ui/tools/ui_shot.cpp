@@ -690,12 +690,11 @@ class Script
                 const storm::ui::FrameStats stats = host->LastFrameStats();
                 std::printf(
                     "timed %s: %.2f ms to a finished frame (update %.2f: rebuild %.2f, style %.2f, layout %.2f; render "
-                    "%.2f; rebuilds %d (%d forwarded, %d refreshed) touching %d elements (%d whole), laid out %d "
+                    "%.2f; rebuilds %d touching %d elements, laid out %d "
                     "in %d passes, %d meshes, %d textures of %zu KB)\n",
                     text.c_str(), ms, stats.update_ms, stats.rebuild_ms, stats.style_ms, stats.layout_ms,
-                    stats.render_ms, stats.rebuilds, stats.forwarded, stats.refreshed, stats.touched,
-                    stats.patch_fallbacks, stats.laid_out, stats.layout_passes, stats.geometry, stats.textures,
-                    stats.texture_bytes / 1024);
+                    stats.render_ms, stats.rebuilds, stats.touched, stats.laid_out, stats.layout_passes, stats.geometry,
+                    stats.textures, stats.texture_bytes / 1024);
             }
         } timing{
             timed_ && verb != "timed",

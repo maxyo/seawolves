@@ -1,6 +1,6 @@
 <t-if test="icon && mode != 'hud'"><c-icon icon="{{icon}}" size="{{ mode == 'info' ? spec.icon.hud : spec.icon.menu }}" tone="{{ surface == 'parchment' ? 'ink' : 'duo' }}"/></t-if>
 <t-if test="label && !in(mode, 'hud', 'info')"><div class="label" style="width: {{labelWidth}}dp; font-size: {{ max(spec.font, labelSize) }}dp;"><ui-clamp lines="1" min-size="@{type.min}" text="{{label}}"/></div></t-if>
-<div class="track" style="height: {{ mode == 'inside' ? max(spec.height.inside, or(height, spec.height.inside)) : in(mode, 'hud', 'info') ? max(spec.height.hudMin, or(height, spec.height.hud)) : max(spec.height.min, or(height, spec.height.menu)) }}dp;"<t-if test="mode == 'interactive'"> data-range="{{ target != null ? 'target' : 'value' }}"</t-if>>
+<div class="track" style="height: {{ mode == 'inside' ? max(spec.height.inside, or(height, spec.height.inside)) : in(mode, 'hud', 'info') ? max(spec.height.hudMin, or(height, spec.height.hud)) : max(spec.height.min, or(height, spec.height.menu)) }}dp;" data-range?="{{ mode == 'interactive' ? (target != null ? 'target' : 'value') : '' }}">
 <t-if test="mode == 'interactive'"><div class="hit"></div></t-if>
 <t-if test="after != null"><div class="after {{ clamp(after, 0, 100) >= clamp(value, 0, 100) ? 'up' : 'down' }}" style="left: {{ min(clamp(value, 0, 100), clamp(after, 0, 100)) }}%; width: {{ abs(clamp(after, 0, 100) - clamp(value, 0, 100)) }}%;"></div></t-if>
 <t-if test="target != null"><div class="target" style="width: {{ clamp(target, 0, 100) }}%;"><div class="dash"></div></div></t-if>

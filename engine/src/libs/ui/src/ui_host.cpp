@@ -295,7 +295,8 @@ bool HostImpl::Start(const Config &config, std::string *error)
     RegisterGameImageElement();
     LoadIconPack(icons);
     registry_ = std::make_unique<ComponentRegistry>(*this);
-    registry_->Load(components);
+    if (!registry_->Load(components, error))
+        return false;
     SetGameImageRenderer(backend_);
     SetGameImageRoot(config.game_root);
 
@@ -785,6 +786,8 @@ void HostImpl::SetLanguage(const std::string &game_language)
             Error("no UI strings for the game language '" + game_language + "'; using en");
         code = "en";
     }
+    if (code != language_)
+        TemplateStringsChanged(); // the templates' tr() texts follow
     language_ = code;
 }
 

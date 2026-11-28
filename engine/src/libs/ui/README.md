@@ -98,8 +98,9 @@ Debuggable Android builds log frame costs every 5 s (logcat tag `StormUiFrames`)
 
 ## Rules for pack and screen authors
 
-- Errors are loud: an unknown `<c-…>` tag, an attribute a component does not have, an enum value outside
-  its options, a template or class expression error and an icon missing from the pack are logged with the
+- Errors are loud: a template that does not compile (an unknown `<c-…>` tag or function, an attribute a
+  component does not have, a raw `{{{ }}}` insertion) names the template and line and stops the host's start;
+  an enum value outside its options, an expression that fails and an icon missing from the pack are logged with the
   element and, in debug builds, drawn as the striped `ui-error` marker or a crossed red icon (the pack styles
   `.ui-debug .ui-error`; `ui-debug` is the class of every pack document's root with `Config::show_errors`).
   Release builds only log them and draw nothing in their place. With

@@ -2,16 +2,12 @@
 #include "numbers.h"
 
 #include <RmlUi/Core/ElementText.h>
-
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <algorithm>
-#include <cctype>
 #include <chrono>
 #include <cstdlib>
-#include <map>
 #include <optional>
-#include <functional>
 #include <set>
 #include <stdexcept>
 #include <unordered_map>
@@ -28,9 +24,10 @@ std::unordered_map<std::string, BehaviorFactory> &Factories()
     return factories;
 }
 
-Json ParseAttribute(const PropSpec &prop, const Rml::Variant &variant)
+// A prop's value from attribute text (an RML document's attribute, a template's text attribute). Empty `error`: it
+// parsed.
+Json ParseText(const PropSpec &prop, const std::string &text, std::string &error)
 {
-    const std::string text = variant.Get<Rml::String>();
     switch (prop.type)
     {
     case PropSpec::Type::Bool:
@@ -41,41 +38,18 @@ Json ParseAttribute(const PropSpec &prop, const Rml::Variant &variant)
             return Json();
         if (const std::optional<double> number = ParseNumber<double>(text))
             return *number;
-        Rml::Log::Message(Rml::Log::LT_ERROR, "Attribute %s='%s' is not a number", prop.attribute.c_str(),
-                          text.c_str());
+        error = "attribute " + prop.attribute + "='" + text + "' is not a number";
         return Json();
     case PropSpec::Type::Json: {
         Json parsed = Json::parse(text, nullptr, false);
         if (parsed.is_discarded())
-            return text;
-        return parsed;
+            error = "attribute " + prop.attribute + " is not JSON";
+        return parsed.is_discarded() ? Json() : parsed;
     }
     default:
         return text;
     }
 }
-
-Rml::Element *FindSlot(Rml::Element *root);
-
-} // namespace
-
-Rml::Element *ComponentSlot(ComponentElement &component)
-{
-    return FindSlot(&component);
-}
-
-struct RmlNode
-{
-    bool text = false;
-    size_t begin = 0, end = 0;             // the node's whole text in the render
-    size_t inner_begin = 0, inner_end = 0; // between its tags (elements)
-    std::string tag;
-    std::vector<std::pair<std::string, std::string>> attributes; // raw, as written
-    std::vector<RmlNode> children;
-};
-
-namespace
-{
 
 // The slot of a component is the first descendant marked with the `slot` attribute that
 // does not belong to a nested component.
@@ -153,564 +127,602 @@ void TweenStyle(Rml::Element *element, const std::string &before, const std::str
     }
 }
 
-void MorphChildren(Rml::Element *live, Rml::Element *fresh);
-
-// Makes `live` equal to the freshly rendered `fresh` while keeping the element itself,
-// so that running animations, pressed parts and scroll positions survive a prop change.
-void SyncElement(Rml::Element *live, Rml::Element *fresh)
+bool Blank(const std::string &text)
 {
-    if (auto *text = rmlui_dynamic_cast<Rml::ElementText *>(live))
-    {
-        auto *fresh_text = rmlui_dynamic_cast<Rml::ElementText *>(fresh);
-        if (fresh_text && text->GetText() != fresh_text->GetText())
-            text->SetText(fresh_text->GetText());
-        return;
-    }
-    std::vector<std::string> stale;
-    for (const auto &entry : live->GetAttributes())
-        // A component's own layout boundary (constants.layoutBoundary) is not its parent's template's to drop.
-        if (!fresh->HasAttribute(entry.first) &&
-            !(entry.first == "rmlui-layout-boundary" && dynamic_cast<ComponentElement *>(live)))
-            stale.push_back(entry.first);
-    for (const std::string &name : stale)
-    {
-        if (name == "style")
-            for (const auto &old : ParseStyle(live->GetAttribute<Rml::String>("style", "")))
-                live->RemoveProperty(old.first);
-        live->RemoveAttribute(name);
-    }
-    const Rml::ElementAttributes wanted = fresh->GetAttributes();
-    for (const auto &entry : wanted)
-    {
-        const Rml::String value = entry.second.Get<Rml::String>();
-        const bool had = live->HasAttribute(entry.first);
-        const Rml::String current = live->GetAttribute<Rml::String>(entry.first, "");
-        if (had && current == value)
-            continue;
-        if (entry.first == "style" && had)
-        {
-            // The attribute only adds properties: drop the ones the new text no longer has.
-            const auto kept = ParseStyle(value);
-            for (const auto &old : ParseStyle(current))
-                if (!kept.count(old.first))
-                    live->RemoveProperty(old.first);
-        }
-        live->SetAttribute(entry.first, value);
-        if (entry.first == "style" && had)
-            TweenStyle(live, current, value);
-    }
-    if (live->HasAttribute("slot"))
-        return; // the component's own children live here
-    // Code-drawn elements own their children (ui-clamp keeps its cut text); the wheel only places the template's.
-    if (live->GetTagName().rfind("ui-", 0) == 0 && live->GetTagName() != "ui-wheel")
-        return;
-    if (auto *component = dynamic_cast<ComponentElement *>(live))
-    {
-        // A nested component rebuilds itself from its attributes; only content passed
-        // into its slot comes from this template.
-        component->SyncSlot(fresh);
-        return;
-    }
-    MorphChildren(live, fresh);
+    return std::all_of(text.begin(), text.end(), [](char c) { return Rml::StringUtilities::IsWhitespace(c); });
 }
 
-// Children with a data-key (a list whose items come and go, like the HUD's log lines) keep
-// their element by key, not by position: a new item gets a new element, so its entrance
-// animation plays on it and a leaving item keeps animating out instead of taking over the
-// text of its neighbour.
-bool KeyedChildren(const std::vector<Rml::ElementPtr> &wanted)
+// A conditional attribute's value that leaves it out (name?="{{ expr }}"): as `cond ? attribute : ''` did.
+bool Absent(const Json &value)
 {
-    return !wanted.empty() && std::all_of(wanted.begin(), wanted.end(),
-                                          [](const Rml::ElementPtr &child) { return child->HasAttribute("data-key"); });
+    return !Truthy(value);
 }
 
-void MorphKeyed(Rml::Element *live, std::vector<Rml::ElementPtr> &wanted,
-                const std::vector<Rml::Element *> &current_children)
+std::vector<std::string> Words(const std::optional<std::string> &text)
 {
-    std::map<std::string, Rml::Element *> by_key;
-    for (Rml::Element *child : current_children)
-        if (child->HasAttribute("data-key"))
-            by_key.emplace(child->GetAttribute<Rml::String>("data-key", ""), child);
-    std::set<Rml::Element *> kept;
-    Rml::Element *after = nullptr; // the element the next wanted child follows
-    for (Rml::ElementPtr &child : wanted)
-    {
-        const auto found = by_key.find(child->GetAttribute<Rml::String>("data-key", ""));
-        Rml::Element *current =
-            found != by_key.end() && found->second->GetTagName() == child->GetTagName() ? found->second : nullptr;
-        if (current)
-        {
-            SyncElement(current, child.get());
-            // Out of order (a reordered list): move it after its predecessor.
-            Rml::Element *expected = after ? after->GetNextSibling() : live->GetFirstChild();
-            if (expected != current)
-                current = live->InsertBefore(live->RemoveChild(current), expected);
-        }
-        else
-        {
-            Rml::Element *before = after ? after->GetNextSibling() : live->GetFirstChild();
-            current = before ? live->InsertBefore(std::move(child), before) : live->AppendChild(std::move(child));
-        }
-        kept.insert(current);
-        after = current;
-    }
-    for (Rml::Element *child : current_children)
-        if (!kept.count(child))
-            live->RemoveChild(child);
-}
-
-void MorphChildren(Rml::Element *live, Rml::Element *fresh)
-{
-    std::vector<Rml::ElementPtr> wanted;
-    while (fresh->GetNumChildren() > 0)
-        wanted.push_back(fresh->RemoveChild(fresh->GetFirstChild()));
-    // Children the runtime added itself (the scroll-edge fade) are not the template's: they
-    // stay. Dropping them on every rebuild made them come back as new elements, which laid
-    // the whole document out a second time on every model change.
-    std::vector<Rml::Element *> current_children;
-    for (int i = 0; i < live->GetNumChildren(); ++i)
-        if (!live->GetChild(i)->IsClassSet("scroll-fade"))
-            current_children.push_back(live->GetChild(i));
-    if (KeyedChildren(wanted))
-        return MorphKeyed(live, wanted, current_children);
-    for (size_t i = 0; i < wanted.size(); ++i)
-    {
-        Rml::Element *current = i < current_children.size() ? current_children[i] : nullptr;
-        // A component that takes another id is another component (a dialog with a body
-        // slot after one without): build it afresh, its slot content is set only then.
-        // A slot holds the component's content and is never morphed from a plain element
-        // (or back): the old element's children must not end up in the slot.
-        const bool same = current && current->GetTagName() == wanted[i]->GetTagName() &&
-                          current->HasAttribute("slot") == wanted[i]->HasAttribute("slot") &&
-                          (!dynamic_cast<ComponentElement *>(current) ||
-                           current->GetId() == wanted[i]->GetAttribute<Rml::String>("id", ""));
-        if (same)
-            SyncElement(current, wanted[i].get());
-        else if (current)
-            live->ReplaceChild(std::move(wanted[i]), current);
-        else
-            live->AppendChild(std::move(wanted[i]));
-    }
-    for (size_t i = wanted.size(); i < current_children.size(); ++i)
-        live->RemoveChild(current_children[i]);
-}
-
-// --- the rendered template's own tree ---------------------------------------------------
-// A template renders to RML text. Parsing all of it into RmlUi elements to compare them with
-// the live ones (the morph above) instanced every element of the component on every change
-// of one value: the store's list re-made all its rows for a new amount. RmlNode is the same
-// text as spans of a light tree, compared with the previous render's: an element whose text
-// did not change is left alone, a changed one is patched attribute by attribute, and RmlUi
-// elements are instanced only for what is new.
-
-// Parses what the templates write (elements, attributes in quotes, text, comments); anything
-// else is refused and the component falls back to the whole morph.
-bool ParseRml(std::string_view rml, size_t &at, std::vector<RmlNode> &out, const std::string &closing)
-{
-    while (at < rml.size())
-    {
-        if (rml[at] != '<')
-        {
-            const size_t end = std::min(rml.find('<', at), rml.size());
-            const std::string_view run = rml.substr(at, end - at);
-            // RmlUi makes no element of text that is only white space (Factory::InstanceElementText).
-            if (!std::all_of(run.begin(), run.end(), [](char c) { return Rml::StringUtilities::IsWhitespace(c); }))
-            {
-                RmlNode node;
-                node.text = true;
-                node.begin = at;
-                node.end = end;
-                out.push_back(std::move(node));
-            }
-            at = end;
-            continue;
-        }
-        if (rml.compare(at, 4, "<!--") == 0)
-        {
-            const size_t end = rml.find("-->", at);
-            if (end == std::string_view::npos)
-                return false;
-            at = end + 3;
-            continue;
-        }
-        if (rml.compare(at, 2, "</") == 0)
-        {
-            const size_t end = rml.find('>', at);
-            if (end == std::string_view::npos || closing.empty() || rml.substr(at + 2, end - at - 2) != closing)
-                return false;
-            at = end + 1;
-            return true;
-        }
-        if (at + 1 >= rml.size() || !std::isalpha(static_cast<unsigned char>(rml[at + 1])))
-            return false; // <! <? and the like
-        RmlNode node;
-        node.begin = at;
-        size_t i = at + 1;
-        while (i < rml.size() && (std::isalnum(static_cast<unsigned char>(rml[i])) || rml[i] == '-' || rml[i] == '_'))
-            ++i;
-        node.tag = std::string(rml.substr(at + 1, i - at - 1));
-        bool self_closing = false;
-        while (true)
-        {
-            while (i < rml.size() && Rml::StringUtilities::IsWhitespace(rml[i]))
-                ++i;
-            if (i >= rml.size())
-                return false;
-            if (rml[i] == '>')
-            {
-                ++i;
-                break;
-            }
-            if (rml.compare(i, 2, "/>") == 0)
-            {
-                i += 2;
-                self_closing = true;
-                break;
-            }
-            const size_t name_begin = i;
-            while (i < rml.size() && rml[i] != '=' && rml[i] != '>' && rml[i] != '/' &&
-                   !Rml::StringUtilities::IsWhitespace(rml[i]))
-                ++i;
-            std::string name(rml.substr(name_begin, i - name_begin));
-            if (name.empty() || i >= rml.size() || rml[i] != '=')
-                return false; // attributes without a value are not written by the templates
-            ++i;
-            if (i >= rml.size() || (rml[i] != '"' && rml[i] != '\''))
-                return false;
-            const char quote = rml[i];
-            const size_t value_end = rml.find(quote, i + 1);
-            if (value_end == std::string_view::npos)
-                return false;
-            node.attributes.emplace_back(std::move(name), std::string(rml.substr(i + 1, value_end - i - 1)));
-            i = value_end + 1;
-        }
-        node.inner_begin = node.inner_end = i;
-        at = i;
-        if (!self_closing)
-        {
-            if (!ParseRml(rml, at, node.children, node.tag))
-                return false;
-            node.inner_end = rml.rfind("</", at - 1);
-        }
-        node.end = at;
-        out.push_back(std::move(node));
-    }
-    return closing.empty();
-}
-
-std::string_view Span(std::string_view rml, const RmlNode &node)
-{
-    return rml.substr(node.begin, node.end - node.begin);
-}
-
-// RmlUi elements for a piece of the render (one node, or the run of a node list).
-Rml::ElementPtr Instance(Rml::Element *live, std::string_view rml)
-{
-    Rml::ElementPtr fresh = live->GetOwnerDocument()->CreateElement("div");
-    fresh->SetInnerRML(Rml::String(rml));
-    return fresh;
-}
-
-struct PatchStats
-{
-    int touched = 0;   // elements given another attribute or text, made, or removed
-    int fallbacks = 0; // levels morphed whole (a keyed list, a live tree that is not the last render's)
-};
-
-void PatchChildren(Rml::Element *live, std::string_view before, const std::vector<RmlNode> &old_nodes,
-                   std::string_view after, const std::vector<RmlNode> &new_nodes, PatchStats &stats);
-
-// `live` was made from `old_node`; makes it what `new_node` describes. Same rules as SyncElement.
-void PatchElement(Rml::Element *live, std::string_view before, const RmlNode &old_node, std::string_view after,
-                  const RmlNode &new_node, PatchStats &stats)
-{
-    if (new_node.text)
-    {
-        auto *text = rmlui_dynamic_cast<Rml::ElementText *>(live);
-        const Rml::String value = Rml::StringUtilities::DecodeRml(Rml::String(Span(after, new_node)));
-        if (text && text->GetText() != value)
-        {
-            text->SetText(value);
-            ++stats.touched;
-        }
-        return;
-    }
-    std::map<std::string, Rml::String> wanted;
-    for (const auto &[name, value] : new_node.attributes)
-        wanted[name] = Rml::StringUtilities::DecodeRml(value);
-    bool touched = false;
-    std::vector<std::string> stale;
-    for (const auto &entry : live->GetAttributes())
-        if (!wanted.count(entry.first) &&
-            !(entry.first == "rmlui-layout-boundary" && dynamic_cast<ComponentElement *>(live)) &&
-            std::any_of(old_node.attributes.begin(), old_node.attributes.end(),
-                        [&](const auto &old) { return old.first == entry.first; }))
-            stale.push_back(
-                entry.first); // only what the template set: runtime attributes stay, as with an unchanged render
-    for (const std::string &name : stale)
-    {
-        if (name == "style")
-            for (const auto &old : ParseStyle(live->GetAttribute<Rml::String>("style", "")))
-                live->RemoveProperty(old.first);
-        live->RemoveAttribute(name);
-        touched = true;
-    }
-    for (const auto &[name, value] : wanted)
-    {
-        const bool had = live->HasAttribute(name);
-        const Rml::String current = live->GetAttribute<Rml::String>(name, "");
-        if (had && current == value)
-            continue;
-        if (name == "style" && had)
-        {
-            const auto kept = ParseStyle(value);
-            for (const auto &old : ParseStyle(current))
-                if (!kept.count(old.first))
-                    live->RemoveProperty(old.first);
-        }
-        live->SetAttribute(name, value);
-        if (name == "style" && had)
-            TweenStyle(live, current, value);
-        touched = true;
-    }
-    if (touched)
-        ++stats.touched;
-    if (live->HasAttribute("slot"))
-        return; // the component's own children live here
-    if (live->GetTagName().rfind("ui-", 0) == 0 && live->GetTagName() != "ui-wheel")
-        return; // code-drawn elements own their children
-    const std::string_view old_inner = before.substr(old_node.inner_begin, old_node.inner_end - old_node.inner_begin);
-    const std::string_view new_inner = after.substr(new_node.inner_begin, new_node.inner_end - new_node.inner_begin);
-    if (auto *component = dynamic_cast<ComponentElement *>(live))
-    {
-        // A nested component rebuilds itself from its attributes; only content passed into
-        // its slot comes from this template.
-        if (old_inner != new_inner)
-        {
-            Rml::ElementPtr fresh = Instance(live, new_inner);
-            component->SyncSlot(fresh.get());
-            ++stats.touched;
-        }
-        return;
-    }
-    if (old_inner != new_inner)
-        PatchChildren(live, before, old_node.children, after, new_node.children, stats);
-}
-
-void PatchChildren(Rml::Element *live, std::string_view before, const std::vector<RmlNode> &old_nodes,
-                   std::string_view after, const std::vector<RmlNode> &new_nodes, PatchStats &stats)
-{
-    std::vector<Rml::Element *> current;
-    for (int i = 0; i < live->GetNumChildren(); ++i)
-        if (!live->GetChild(i)->IsClassSet("scroll-fade")) // the runtime's own (MorphChildren)
-            current.push_back(live->GetChild(i));
-    const bool keyed = !new_nodes.empty() && std::all_of(new_nodes.begin(), new_nodes.end(), [](const RmlNode &node) {
-        return std::any_of(node.attributes.begin(), node.attributes.end(),
-                           [](const auto &a) { return a.first == "data-key"; });
-    });
-    if (keyed || current.size() != old_nodes.size())
-    {
-        // A keyed list, or a live level that is not the last render (code added or removed
-        // children): the whole level is morphed as before.
-        ++stats.fallbacks;
-        const std::string_view run =
-            new_nodes.empty() ? std::string_view()
-                              : after.substr(new_nodes.front().begin, new_nodes.back().end - new_nodes.front().begin);
-        Rml::ElementPtr fresh = Instance(live, run);
-        MorphChildren(live, fresh.get());
-        stats.touched += int(new_nodes.size());
-        return;
-    }
-    for (size_t i = 0; i < new_nodes.size(); ++i)
-    {
-        const RmlNode &node = new_nodes[i];
-        if (i < old_nodes.size())
-        {
-            const RmlNode &old = old_nodes[i];
-            if (Span(before, old) == Span(after, node))
-                continue; // rendered the same: untouched
-            Rml::Element *element = current[i];
-            const bool same = old.text == node.text &&
-                              (node.text ? rmlui_dynamic_cast<Rml::ElementText *>(element) != nullptr
-                                         : element->GetTagName() == node.tag &&
-                                               std::any_of(old.attributes.begin(), old.attributes.end(),
-                                                           [](const auto &a) { return a.first == "slot"; }) ==
-                                                   std::any_of(node.attributes.begin(), node.attributes.end(),
-                                                               [](const auto &a) { return a.first == "slot"; }));
-            const auto id_of = [](const RmlNode &n) {
-                for (const auto &a : n.attributes)
-                    if (a.first == "id")
-                        return Rml::StringUtilities::DecodeRml(a.second);
-                return Rml::String();
-            };
-            // A component that takes another id is another component (MorphChildren).
-            if (same && (node.text || !dynamic_cast<ComponentElement *>(element) || element->GetId() == id_of(node)))
-            {
-                PatchElement(element, before, old, after, node, stats);
-                continue;
-            }
-            Rml::ElementPtr fresh = Instance(live, Span(after, node));
-            if (fresh->GetNumChildren() == 1)
-                live->ReplaceChild(fresh->RemoveChild(fresh->GetFirstChild()), element);
-            ++stats.touched;
-            continue;
-        }
-        Rml::ElementPtr fresh = Instance(live, Span(after, node));
-        while (fresh->GetNumChildren() > 0)
-            live->AppendChild(fresh->RemoveChild(fresh->GetFirstChild()));
-        ++stats.touched;
-    }
-    for (size_t i = new_nodes.size(); i < current.size(); ++i)
-    {
-        live->RemoveChild(current[i]);
-        ++stats.touched;
-    }
-}
-
-// --- props a template only passes on ------------------------------------------------------
-// A screen's template mostly hands its props to nested components (stats="{{ json(stats) }}").
-// When every prop that changed is used only like that, the component does not render its
-// template again: the attribute is set on the live element, which rebuilds that nested
-// component alone. A drag of the store's amount changed the header figures, the deal row and
-// the button; s-trade, c-screen and c-trade-list each rendered and diffed their whole template
-// for it.
-struct ForwardSite
-{
-    std::string tag, id;   // the element: its tag and literal id (empty: the template's only such tag)
-    std::string attribute; // where the value goes
-    std::string path;      // what goes there: the changed path, or an object around it passed whole
-    bool json = false;     // {{ json(path) }}, else {{ path }}
-};
-
-bool IsNameChar(char c)
-{
-    return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '$';
-}
-
-// Where `path` (a prop, or one key of an object prop: "list.rows") is used in `body`, if every
-// use is a whole attribute value {{ json(path) }} or {{ path }} of an element outside loops, or a
-// t-if test of an enclosing path whose truth did not change (`truth_kept`). Empty optional: some
-// other use; the template must be rendered.
-std::optional<std::vector<ForwardSite>> ForwardSites(std::string_view body, const std::string &path,
-                                                     const std::function<bool(const std::string &)> &truth_kept)
-{
-    std::vector<ForwardSite> sites;
-    const std::string root = path.substr(0, path.find('.'));
-    for (size_t at = body.find(root); at != std::string_view::npos; at = body.find(root, at + 1))
-    {
-        if ((at > 0 && (IsNameChar(body[at - 1]) || body[at - 1] == '.' || body[at - 1] == '-')) ||
-            (at + root.size() < body.size() && (IsNameChar(body[at + root.size()]) || body[at + root.size()] == '-')))
-            continue; // part of another name (or of a class name)
-        // Only expressions read props: {{ … }} and the tests and lists of t-if / t-for; an
-        // attribute name or literal text of the same spelling is no use.
-        const size_t hole = body.rfind("{{", at), hole_end = body.rfind("}}", at);
-        const bool in_hole = hole != std::string_view::npos && (hole_end == std::string_view::npos || hole_end < hole);
-        if (!in_hole)
-        {
-            const size_t tag_open = body.rfind('<', at);
-            const std::string_view head =
-                tag_open == std::string_view::npos ? std::string_view() : body.substr(tag_open, at - tag_open);
-            const bool control = head.rfind("<t-if", 0) == 0 || head.rfind("<t-for", 0) == 0;
-            if (!control || head.find('>') != std::string_view::npos || head.find('"') == std::string_view::npos)
-                continue;
-        }
-        size_t end = at + root.size();
-        while (end + 1 < body.size() && body[end] == '.' && IsNameChar(body[end + 1]))
-        {
-            ++end;
-            while (end < body.size() && IsNameChar(body[end]))
-                ++end;
-        }
-        const std::string used(body.substr(at, end - at));
-        const bool related = used == path || used.rfind(path + ".", 0) == 0 || path.rfind(used + ".", 0) == 0;
-        if (!related)
-            continue;
-        // The enclosing tag and the attribute this use is in (a '<' or '>' in an expression is
-        // inside quotes).
-        size_t open = body.rfind('<', at);
-        while (open != std::string_view::npos && open > 0 && !std::isalpha(static_cast<unsigned char>(body[open + 1])))
-            open = body.rfind('<', open - 1);
-        size_t close = std::string_view::npos;
-        bool quoted = false;
-        for (size_t i = open == std::string_view::npos ? body.size() : open; i < body.size(); ++i)
-        {
-            if (body[i] == '"')
-                quoted = !quoted;
-            else if (body[i] == '>' && !quoted)
-            {
-                close = i;
-                break;
-            }
-        }
-        if (open == std::string_view::npos || close == std::string_view::npos || close < at)
-            return std::nullopt; // in text, not in a tag
-        const std::string_view tag_text = body.substr(open, close - open);
-        size_t name_end = 1;
-        while (name_end < tag_text.size() && (IsNameChar(tag_text[name_end]) || tag_text[name_end] == '-'))
-            ++name_end;
-        const std::string tag(tag_text.substr(1, name_end - 1));
-        const size_t quote = body.rfind('"', at);
-        const size_t equals = quote == std::string_view::npos ? std::string_view::npos : body.rfind('=', quote);
-        if (equals == std::string_view::npos || equals < open)
-            return std::nullopt;
-        size_t name_begin = equals;
-        while (name_begin > open && (IsNameChar(body[name_begin - 1]) || body[name_begin - 1] == '-'))
-            --name_begin;
-        const std::string attribute(body.substr(name_begin, equals - name_begin));
-        const size_t value_end = body.find('"', at);
-        std::string value(body.substr(quote + 1, value_end - quote - 1));
-        value.erase(std::remove_if(value.begin(), value.end(), [](char c) { return c == ' '; }), value.end());
-        if (tag == "t-if" && attribute == "test" && value == used && used != path && truth_kept(used))
-            continue; // only the truth of an enclosing path, which the change kept
-        if (tag.rfind("t-", 0) == 0)
-            return std::nullopt;
-        // The changed path itself, or the object around it passed on whole ({{ json(deal) }} for deal.value).
-        const bool json = value == "{{json(" + used + ")}}";
-        if (!(used == path && (json || value == "{{" + path + "}}")) && !(json && path.rfind(used + ".", 0) == 0))
-            return std::nullopt;
-        // Not in a loop: one element per use.
-        const std::string_view before = body.substr(0, open);
-        size_t loops = 0, at_loop = 0;
-        while ((at_loop = before.find("<t-for", at_loop)) != std::string_view::npos)
-            ++loops, ++at_loop;
-        size_t ends = 0, at_end = 0;
-        while ((at_end = before.find("</t-for>", at_end)) != std::string_view::npos)
-            ++ends, ++at_end;
-        if (loops != ends)
-            return std::nullopt;
-        ForwardSite site;
-        site.tag = tag;
-        site.attribute = attribute;
-        site.path = used;
-        site.json = json;
-        const size_t id_at = tag_text.find(" id=\"");
-        if (id_at != std::string_view::npos)
-        {
-            const size_t id_end = tag_text.find('"', id_at + 5);
-            site.id = std::string(tag_text.substr(id_at + 5, id_end - id_at - 5));
-            if (site.id.find("{{") != std::string::npos)
-                return std::nullopt;
-        }
-        sites.push_back(std::move(site));
-    }
-    return sites;
-}
-
-// The live element of a site under `self`: by id, or the only element of the tag.
-Rml::Element *SiteElement(Rml::Element *self, const ForwardSite &site)
-{
-    Rml::ElementList found;
-    self->QuerySelectorAll(found, site.id.empty() ? site.tag : site.tag + "#" + site.id);
-    return found.size() == 1 ? found.front() : nullptr;
+    std::vector<std::string> words;
+    if (text)
+        Rml::StringUtilities::ExpandString(words, *text, ' ');
+    return words;
 }
 
 } // namespace
 
-bool IsGenericAttribute(const std::string &attribute)
+Rml::Element *ComponentSlot(ComponentElement &component)
 {
-    return attribute == "id" || attribute == "class" || attribute == "style" || attribute == "props" ||
-           attribute == "slot" || attribute == "rmlui-layout-boundary" || attribute.rfind("data-", 0) == 0;
+    return FindSlot(&component);
 }
+
+// --- the compiled template bound to live elements ---------------------------------------------------------------
+
+struct BoundRow;
+
+// A node of the compiled template as it is shown: its element (a text node's while its text is not blank), what
+// its attributes were set to last, and what is under it.
+struct BoundNode
+{
+    const TemplateNode *node = nullptr;
+    Rml::Element *element = nullptr;
+    std::vector<std::optional<std::string>> values; // per attribute of an element: its text (nullopt: absent)
+    std::vector<std::optional<Json>> passed;        // per attribute of a nested component that fills its props
+    std::string text;                               // a text node's text
+    std::vector<BoundNode> children;                // an element's children; the branch an if shows
+    int branch = -1;                                // an if: 0 its first branch, 1 the other
+    Json list;                                      // a for: its rows as shown
+    std::vector<BoundRow> rows;
+};
+
+struct BoundRow
+{
+    std::string key;
+    std::vector<BoundNode> nodes;
+};
+
+struct BoundTemplate
+{
+    std::vector<BoundNode> nodes;
+};
+
+namespace
+{
+
+Rml::Element *First(const BoundNode &node);
+
+Rml::Element *FirstOf(const std::vector<BoundNode> &nodes, size_t from = 0)
+{
+    for (size_t i = from; i < nodes.size(); ++i)
+        if (Rml::Element *element = First(nodes[i]))
+            return element;
+    return nullptr;
+}
+
+Rml::Element *First(const BoundNode &node)
+{
+    if (node.element)
+        return node.element;
+    if (Rml::Element *element = FirstOf(node.children))
+        return element;
+    for (const BoundRow &row : node.rows)
+        if (Rml::Element *element = FirstOf(row.nodes))
+            return element;
+    return nullptr;
+}
+
+void Collect(const std::vector<BoundNode> &nodes, std::vector<Rml::Element *> &out)
+{
+    for (const BoundNode &node : nodes)
+    {
+        if (node.element)
+        {
+            out.push_back(node.element); // what is under it moves with it
+            continue;
+        }
+        Collect(node.children, out);
+        for (const BoundRow &row : node.rows)
+            Collect(row.nodes, out);
+    }
+}
+
+// What follows a node among its parent's children: the first element of the nodes after it, then of the rows after
+// its row, then what follows the enclosing node.
+struct Anchor
+{
+    const std::vector<BoundNode> *nodes = nullptr;
+    size_t index = 0;
+    const std::vector<BoundRow> *rows = nullptr;
+    size_t row = 0;
+    const Anchor *outer = nullptr;
+    Rml::Element *Next() const
+    {
+        if (nodes)
+            if (Rml::Element *element = FirstOf(*nodes, index + 1))
+                return element;
+        if (rows)
+            for (size_t r = row + 1; r < rows->size(); ++r)
+                if (Rml::Element *element = FirstOf((*rows)[r].nodes))
+                    return element;
+        return outer ? outer->Next() : nullptr;
+    }
+};
+
+// `before` null: at the end, before the scroll fade the runtime keeps last (ScrollEdgesChanged).
+Rml::Element *Insert(Rml::Element *parent, Rml::ElementPtr element, Rml::Element *before)
+{
+    if (!before)
+        if (const int count = parent->GetNumChildren();
+            count > 0 && parent->GetChild(count - 1)->IsClassSet("scroll-fade"))
+            before = parent->GetChild(count - 1);
+    return before ? parent->InsertBefore(std::move(element), before) : parent->AppendChild(std::move(element));
+}
+
+// The template's next sibling of `element` (the scroll fade is the runtime's).
+Rml::Element *Following(Rml::Element *element)
+{
+    Rml::Element *next = element->GetNextSibling();
+    return next && next->IsClassSet("scroll-fade") ? nullptr : next;
+}
+
+Rml::ElementPtr MakeText(const std::string &text)
+{
+    Rml::ElementPtr element = Rml::Factory::InstanceElement(nullptr, "#text", "#text", Rml::XMLAttributes());
+    auto *node = rmlui_dynamic_cast<Rml::ElementText *>(element.get());
+    if (!node)
+        throw std::runtime_error("RmlUi made no text element");
+    node->SetText(text);
+    return element;
+}
+
+const std::vector<TemplateNode> &Branch(const TemplateNode &node, int branch)
+{
+    return branch == 0 ? node.children : node.otherwise;
+}
+
+} // namespace
+
+// Makes and updates the live elements of one component's compiled template.
+struct Binder
+{
+    ComponentElement &self;
+    FrameStats &stats;
+    std::vector<LoopFrame> loops;
+    bool structure = false; // an element was made or removed
+
+    Scope Here() const
+    {
+        return Scope{self.names_, loops};
+    }
+
+    std::optional<std::string> AttributeText(const TemplateAttribute &attribute) const
+    {
+        if (!attribute.conditional)
+            return attribute.value.Evaluate(Here(), false);
+        const Json value = attribute.value.holes[0].Evaluate(Here());
+        if (Absent(value))
+            return std::nullopt;
+        return value.is_boolean() ? std::string("1") : ToText(value);
+    }
+
+    // What an attribute gives a nested component: one prop's value, or (props=) an object of them.
+    std::optional<Json> Passed(const TemplateNode &node, const TemplateAttribute &attribute) const
+    {
+        if (attribute.props || attribute.prop->type == PropSpec::Type::Json)
+        {
+            if (attribute.value.holes.empty())
+                return attribute.fixed;
+            Json value = attribute.value.holes[0].Evaluate(Here());
+            if (attribute.conditional && Absent(value))
+                return std::nullopt;
+            if (attribute.props && !value.is_object())
+            {
+                self.ReportError("props of <" + node.tag + "> (line " + std::to_string(node.line) +
+                                 ") is not an object");
+                return std::nullopt;
+            }
+            return value;
+        }
+        const std::optional<std::string> text = AttributeText(attribute);
+        if (!text)
+            return std::nullopt;
+        std::string error;
+        Json value = ParseText(*attribute.prop, *text, error);
+        if (!error.empty())
+            self.ReportError("<" + node.tag + "> (line " + std::to_string(node.line) + "): " + error);
+        return value;
+    }
+
+    static void Give(ComponentElement &component, const TemplateAttribute &attribute, const std::optional<Json> &before,
+                     const std::optional<Json> &after)
+    {
+        if (!attribute.props)
+        {
+            component.SetProp(*attribute.prop, after ? *after : Json());
+            return;
+        }
+        // Keys the object no longer has return to their defaults.
+        Json props = after ? *after : Json::object();
+        if (before)
+            for (const auto &item : before->items())
+                if (!props.contains(item.key()))
+                    props[item.key()] = nullptr;
+        component.SetProps(props);
+    }
+
+    void SetAttribute(Rml::Element *element, const std::string &name, const std::optional<std::string> &before,
+                      const std::optional<std::string> &after)
+    {
+        if (before == after)
+            return;
+        ++stats.touched;
+        if (name == "class")
+        {
+            // Only the template's own classes change: those the component and the runtime set stay.
+            const std::vector<std::string> old_names = Words(before), new_names = Words(after);
+            for (const std::string &old_name : old_names)
+                if (std::find(new_names.begin(), new_names.end(), old_name) == new_names.end())
+                    element->SetClass(old_name, false);
+            for (const std::string &new_name : new_names)
+                element->SetClass(new_name, true);
+            return;
+        }
+        if (name == "style")
+        {
+            // The attribute only adds properties: drop the ones the new text no longer has.
+            const auto kept = after ? ParseStyle(*after) : std::unordered_map<std::string, std::string>();
+            if (before)
+                for (const auto &old : ParseStyle(*before))
+                    if (!kept.count(old.first))
+                        element->RemoveProperty(old.first);
+            if (!after)
+            {
+                element->RemoveAttribute(name);
+                return;
+            }
+            element->SetAttribute(name, *after);
+            if (before)
+                TweenStyle(element, *before, *after);
+            return;
+        }
+        if (after)
+            element->SetAttribute(name, *after);
+        else
+            element->RemoveAttribute(name);
+    }
+
+    void CreateAll(const std::vector<TemplateNode> &nodes, std::vector<BoundNode> &out, Rml::Element *parent,
+                   Rml::Element *before)
+    {
+        out.reserve(out.size() + nodes.size());
+        for (const TemplateNode &node : nodes)
+            out.push_back(Create(node, parent, before));
+    }
+
+    void CreateRow(const TemplateNode &node, BoundNode &bound, size_t index, Rml::Element *parent, Rml::Element *before)
+    {
+        BoundRow &row = bound.rows[index];
+        loops.push_back({&bound.list, index});
+        CreateAll(node.children, row.nodes, parent, before);
+        loops.pop_back();
+    }
+
+    BoundNode Create(const TemplateNode &node, Rml::Element *parent, Rml::Element *before)
+    {
+        structure = true;
+        BoundNode bound;
+        bound.node = &node;
+        switch (node.kind)
+        {
+        case TemplateNode::Kind::Text:
+            bound.text = node.text.Evaluate(Here(), true);
+            if (!Blank(bound.text))
+            {
+                bound.element = Insert(parent, MakeText(bound.text), before);
+                ++stats.touched;
+            }
+            break;
+        case TemplateNode::Kind::If:
+            bound.branch = Truthy(node.test.Evaluate(Here())) ? 0 : 1;
+            CreateAll(Branch(node, bound.branch), bound.children, parent, before);
+            break;
+        case TemplateNode::Kind::For:
+            bound.list = node.each.Evaluate(Here());
+            if (!bound.list.is_array())
+                bound.list = Json::array();
+            bound.rows.resize(bound.list.size());
+            Keys(node, bound.list, bound.rows);
+            for (size_t i = 0; i < bound.rows.size(); ++i)
+                CreateRow(node, bound, i, parent, before);
+            break;
+        case TemplateNode::Kind::Element: {
+            Rml::XMLAttributes attributes;
+            bound.values.resize(node.attributes.size());
+            bound.passed.resize(node.attributes.size());
+            for (size_t i = 0; i < node.attributes.size(); ++i)
+            {
+                const TemplateAttribute &attribute = node.attributes[i];
+                if (attribute.prop || attribute.props)
+                    bound.passed[i] = Passed(node, attribute);
+                else if ((bound.values[i] = AttributeText(attribute)))
+                    attributes[attribute.name] = *bound.values[i];
+            }
+            Rml::ElementPtr element = Rml::Factory::InstanceElement(parent, node.tag, node.tag, attributes);
+            if (!element)
+                throw std::runtime_error("RmlUi made no <" + node.tag + ">");
+            if (node.component)
+            {
+                auto *component = dynamic_cast<ComponentElement *>(element.get());
+                if (!component)
+                    throw std::runtime_error("<" + node.tag + "> is not a component element");
+                for (size_t i = 0; i < node.attributes.size(); ++i)
+                    if (bound.passed[i])
+                        Give(*component, node.attributes[i], std::nullopt, bound.passed[i]);
+            }
+            // Made before it is placed: a nested component takes these as its content at its first build.
+            CreateAll(node.children, bound.children, element.get(), nullptr);
+            bound.element = Insert(parent, std::move(element), before);
+            ++stats.touched;
+            break;
+        }
+        }
+        return bound;
+    }
+
+    // The rows' keys: by the template's key expression, else their positions.
+    void Keys(const TemplateNode &node, const Json &list, std::vector<BoundRow> &rows)
+    {
+        std::set<std::string> seen;
+        for (size_t i = 0; i < rows.size(); ++i)
+        {
+            if (!node.key)
+            {
+                rows[i].key = std::to_string(i);
+                continue;
+            }
+            loops.push_back({&list, i});
+            rows[i].key = ToText(node.key.Evaluate(Here()));
+            loops.pop_back();
+            if (!seen.insert(rows[i].key).second)
+            {
+                self.ReportError("line " + std::to_string(node.line) + ": two rows have the key '" + rows[i].key + "'");
+                rows[i].key += "\n" + std::to_string(i); // still one element each
+            }
+        }
+    }
+
+    void Evacuate(Rml::Element *element)
+    {
+        // The slot goes with it: the content a parent template keeps there waits aside (ContentParent).
+        Rml::Element *slot = self.slot_.get();
+        if (!slot || slot->GetNumChildren() == 0)
+            return;
+        Rml::Element *at = slot;
+        while (at && at != element && at != &self)
+            at = at->GetParentNode();
+        if (at != element)
+            return;
+        if (!self.held_)
+            self.held_ = Rml::Factory::InstanceElement(nullptr, "div", "div", Rml::XMLAttributes());
+        while (slot->GetNumChildren() > 0)
+            self.held_->AppendChild(slot->RemoveChild(slot->GetFirstChild()));
+        self.slot_.reset();
+    }
+
+    void RemoveAll(std::vector<BoundNode> &nodes)
+    {
+        for (BoundNode &node : nodes)
+            Remove(node);
+        nodes.clear();
+    }
+
+    void Remove(BoundNode &node)
+    {
+        structure = true;
+        if (node.element)
+        {
+            Evacuate(node.element);
+            node.element->GetParentNode()->RemoveChild(node.element);
+            node.element = nullptr;
+            ++stats.touched;
+            return;
+        }
+        RemoveAll(node.children);
+        for (BoundRow &row : node.rows)
+            RemoveAll(row.nodes);
+        node.rows.clear();
+    }
+
+    void UpdateAll(std::vector<BoundNode> &nodes, const Reads &changed, Rml::Element *parent, const Anchor *outer)
+    {
+        for (size_t i = 0; i < nodes.size(); ++i)
+            if (nodes[i].node->reads.Meets(changed))
+            {
+                Anchor after;
+                after.nodes = &nodes;
+                after.index = i;
+                after.outer = outer;
+                Update(nodes[i], changed, parent, after);
+            }
+    }
+
+    void Update(BoundNode &bound, const Reads &changed, Rml::Element *parent, const Anchor &after)
+    {
+        const TemplateNode &node = *bound.node;
+        switch (node.kind)
+        {
+        case TemplateNode::Kind::Text: {
+            std::string text = node.text.Evaluate(Here(), true);
+            if (text == bound.text)
+                return;
+            bound.text = std::move(text);
+            ++stats.touched;
+            if (Blank(bound.text))
+            {
+                if (bound.element)
+                    Remove(bound);
+            }
+            else if (bound.element)
+                static_cast<Rml::ElementText *>(bound.element)->SetText(bound.text);
+            else
+            {
+                bound.element = Insert(parent, MakeText(bound.text), after.Next());
+                structure = true;
+            }
+            return;
+        }
+        case TemplateNode::Kind::If: {
+            const int branch =
+                node.test.Read().Meets(changed) ? (Truthy(node.test.Evaluate(Here())) ? 0 : 1) : bound.branch;
+            if (branch == bound.branch)
+            {
+                UpdateAll(bound.children, changed, parent, &after);
+                return;
+            }
+            RemoveAll(bound.children);
+            bound.branch = branch;
+            CreateAll(Branch(node, branch), bound.children, parent, after.Next());
+            return;
+        }
+        case TemplateNode::Kind::For:
+            UpdateRows(bound, changed, parent, after);
+            return;
+        case TemplateNode::Kind::Element:
+            break;
+        }
+        auto *component = node.component ? static_cast<ComponentElement *>(bound.element) : nullptr;
+        if (component && Renamed(bound, changed))
+        {
+            // A component that takes another id is another component (the events of the screen name it): it is
+            // made afresh, without the state its behaviours kept.
+            Rml::Element *next = Following(bound.element);
+            Remove(bound);
+            bound = Create(node, parent, next);
+            return;
+        }
+        for (size_t i = 0; i < node.attributes.size(); ++i)
+        {
+            const TemplateAttribute &attribute = node.attributes[i];
+            if (!attribute.value.reads.Meets(changed))
+                continue;
+            if (attribute.prop || attribute.props)
+            {
+                std::optional<Json> value = Passed(node, attribute);
+                if (value != bound.passed[i])
+                {
+                    Give(*component, attribute, bound.passed[i], value);
+                    bound.passed[i] = std::move(value);
+                    ++stats.touched;
+                }
+                continue;
+            }
+            std::optional<std::string> value = AttributeText(attribute);
+            SetAttribute(bound.element, attribute.name, bound.values[i], value);
+            bound.values[i] = std::move(value);
+        }
+        if (bound.children.empty() && node.children.empty())
+            return;
+        UpdateAll(bound.children, changed, component ? component->ContentParent() : bound.element, nullptr);
+        if (component)
+            component->ContentChanged();
+    }
+
+    bool Renamed(const BoundNode &bound, const Reads &changed) const
+    {
+        const auto &attributes = bound.node->attributes;
+        for (size_t i = 0; i < attributes.size(); ++i)
+            if (attributes[i].name == "id" && attributes[i].value.reads.Meets(changed))
+                return AttributeText(attributes[i]) != bound.values[i];
+        return false;
+    }
+
+    void UpdateRows(BoundNode &bound, const Reads &changed, Rml::Element *parent, const Anchor &after)
+    {
+        const TemplateNode &node = *bound.node;
+        const uint32_t own = 1u << loops.size();
+        Json fresh;
+        const bool relist = node.each.Read().Meets(changed);
+        if (relist)
+        {
+            fresh = node.each.Evaluate(Here());
+            if (!fresh.is_array())
+                fresh = Json::array();
+        }
+        if (!relist || fresh == bound.list)
+        {
+            for (size_t r = 0; r < bound.rows.size(); ++r)
+            {
+                Anchor row;
+                row.rows = &bound.rows;
+                row.row = r;
+                row.outer = &after;
+                loops.push_back({&bound.list, r});
+                UpdateAll(bound.rows[r].nodes, changed, parent, &row);
+                loops.pop_back();
+            }
+            return;
+        }
+        // The rows that stay keep their elements (matched by key, else by position); the others are made or removed.
+        std::vector<BoundRow> rows(fresh.size());
+        Keys(node, fresh, rows);
+        std::unordered_map<std::string, size_t> old_rows;
+        for (size_t j = 0; j < bound.rows.size(); ++j)
+            old_rows.emplace(bound.rows[j].key, j);
+        std::vector<long> from(rows.size(), -1);
+        std::vector<bool> taken(bound.rows.size(), false);
+        for (size_t i = 0; i < rows.size(); ++i)
+            if (const auto found = old_rows.find(rows[i].key); found != old_rows.end() && !taken[found->second])
+            {
+                from[i] = static_cast<long>(found->second);
+                taken[found->second] = true;
+            }
+        for (size_t j = 0; j < bound.rows.size(); ++j)
+            if (!taken[j])
+                RemoveAll(bound.rows[j].nodes);
+        for (size_t i = 0; i < rows.size(); ++i)
+            if (from[i] >= 0)
+                rows[i].nodes = std::move(bound.rows[static_cast<size_t>(from[i])].nodes);
+        const size_t old_count = bound.rows.size();
+        const Json old_list = std::move(bound.list);
+        bound.rows = std::move(rows);
+        bound.list = std::move(fresh);
+        // From the last row to the first, each row is put just before what follows it.
+        Rml::Element *following = after.Next();
+        for (size_t i = bound.rows.size(); i-- > 0;)
+        {
+            BoundRow &row = bound.rows[i];
+            Anchor place;
+            place.rows = &bound.rows;
+            place.row = i;
+            place.outer = &after;
+            loops.push_back({&bound.list, i});
+            if (from[i] < 0)
+                CreateAll(node.children, row.nodes, parent, following);
+            else
+            {
+                const auto j = static_cast<size_t>(from[i]);
+                std::vector<Rml::Element *> elements;
+                Collect(row.nodes, elements);
+                Rml::Element *target = following;
+                for (size_t k = elements.size(); k-- > 0;)
+                {
+                    Rml::Element *element = elements[k];
+                    if (Following(element) != target)
+                    {
+                        Rml::Element *owner = element->GetParentNode();
+                        Insert(owner, owner->RemoveChild(element), target);
+                        ++stats.touched;
+                    }
+                    target = element;
+                }
+                Reads row_changed = changed;
+                if (j != i || old_list[j] != bound.list[i] || (j + 1 == old_count) != (i + 1 == bound.rows.size()))
+                    row_changed.loops |= own;
+                UpdateAll(row.nodes, row_changed, parent, &place);
+            }
+            loops.pop_back();
+            if (Rml::Element *first = FirstOf(row.nodes))
+                following = first;
+        }
+    }
+};
 
 std::string CheckPropValue(const PropSpec &prop, const Json &value)
 {
@@ -779,6 +791,8 @@ Json ComponentElement::Prop(const std::string &name) const
 
 void ComponentElement::SetProps(const Json &props)
 {
+    // Also with nothing in it: the host's facts (safe area, density) are compared on the next update.
+    dirty_ = true;
     if (!props.is_object())
     {
         ReportError("props must be a JSON object");
@@ -786,14 +800,25 @@ void ComponentElement::SetProps(const Json &props)
     }
     for (const auto &item : props.items())
     {
-        const bool known = std::any_of(spec_.props.begin(), spec_.props.end(),
-                                       [&](const PropSpec &prop) { return prop.name == item.key(); });
-        if (!known)
+        const int index = spec_.names.Find(item.key());
+        if (index < 0 || static_cast<size_t>(index) >= spec_.props.size())
+        {
             ReportError("unknown prop '" + item.key() + "'");
-        props_[item.key()] = item.value();
-        set_since_render_.insert(item.key());
+            continue;
+        }
+        SetProp(spec_.props[static_cast<size_t>(index)], item.value());
     }
+}
+
+void ComponentElement::SetProp(const PropSpec &prop, Json value)
+{
+    const auto found = props_.find(prop.name);
+    const Json &before = found != props_.end() && !found->is_null() ? *found : prop.fallback;
+    if (before == (value.is_null() ? prop.fallback : value))
+        return;
+    changed_.names.set(static_cast<size_t>(&prop - spec_.props.data()));
     dirty_ = true;
+    props_[prop.name] = std::move(value);
 }
 
 void ComponentElement::ReportError(const std::string &what)
@@ -802,12 +827,6 @@ void ComponentElement::ReportError(const std::string &what)
                       what.c_str());
     error_ = true;
     ApplyClasses();
-}
-
-void ComponentElement::SetPropQuiet(const std::string &name, Json value)
-{
-    props_[name] = std::move(value);
-    set_since_render_.insert(name);
 }
 
 void ComponentElement::SetLive(const std::string &name, bool on)
@@ -827,6 +846,7 @@ void ComponentElement::Emit(const std::string &verb, const std::string &value)
     services_.Emit(*this, verb, value);
 }
 
+// Attributes as an RML document writes them (a gallery page, a toast the host makes): props from their text.
 void ComponentElement::OnAttributeChange(const Rml::ElementAttributes &changed)
 {
     Rml::Element::OnAttributeChange(changed);
@@ -835,14 +855,6 @@ void ComponentElement::OnAttributeChange(const Rml::ElementAttributes &changed)
         if (entry.first == "props") // a whole props object at once
         {
             const Json parsed = Json::parse(entry.second.Get<Rml::String>(), nullptr, false);
-            // The same props again (a parent's render after it passed them on directly, Forward): nothing to rebuild.
-            const bool same = parsed.is_object() &&
-                              std::all_of(parsed.items().begin(), parsed.items().end(), [this](const auto &item) {
-                                  const auto current = props_.find(item.key());
-                                  return current != props_.end() && *current == item.value();
-                              });
-            if (same)
-                continue;
             if (parsed.is_object())
                 SetProps(parsed);
             else
@@ -865,18 +877,12 @@ void ComponentElement::OnAttributeChange(const Rml::ElementAttributes &changed)
         }
         if (const PropSpec *prop = spec_.FindAttribute(entry.first))
         {
-            // A removed attribute (a morph from another instance of the component) returns the
-            // prop to its default; it is not an empty, "present" value (a bool would read true).
-            Json value = HasAttribute(entry.first) ? ParseAttribute(*prop, entry.second) : Json();
-            const auto current = props_.find(prop->name);
-            if (current != props_.end() ? *current == value && !value.is_null() : value.is_null())
-                continue; // the same value again (see "props" above)
-            if (HasAttribute(entry.first))
-                props_[prop->name] = std::move(value);
-            else
-                props_.erase(prop->name);
-            set_since_render_.insert(prop->name);
-            dirty_ = true;
+            // A removed attribute returns the prop to its default; it is not an empty, "present" value.
+            std::string error;
+            Json value = HasAttribute(entry.first) ? ParseText(*prop, entry.second.Get<Rml::String>(), error) : Json();
+            if (!error.empty())
+                ReportError(error);
+            SetProp(*prop, std::move(value));
         }
         else if (!IsGenericAttribute(entry.first))
             ReportError("unknown attribute '" + entry.first + "'");
@@ -886,8 +892,8 @@ void ComponentElement::OnAttributeChange(const Rml::ElementAttributes &changed)
 void ComponentElement::OnUpdate()
 {
     Rml::Element::OnUpdate();
-    if (dirty_)
-        RebuildNow();
+    if (dirty_ || !bound_)
+        Update();
 }
 
 namespace
@@ -935,228 +941,181 @@ bool ComponentElement::SettleLayout()
 
 void ComponentElement::RebuildNow()
 {
-    // FrameStats::rebuild_ms: the outermost rebuild only (a morph rebuilds nested components inside it).
-    static int depth = 0;
-    const auto started = std::chrono::steady_clock::now();
-    ++depth;
-    struct Timed
-    {
-        FrameStats &stats;
-        std::chrono::steady_clock::time_point started;
-        ~Timed()
-        {
-            if (--depth == 0)
-                stats.rebuild_ms +=
-                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
-        }
-    } timed{services_.Counters(), started};
-    dirty_ = false;
-    if (built_ && GetOwnerDocument() && Forward())
-    {
-        for (const auto &behavior : behaviors_)
-            behavior->Rebuilt(*this);
-        NoteLaidOut(); // a change inside a layout boundary may not lay the component itself out
-        return;
-    }
-    // Counted for every re-render, also one whose output is unchanged: a behaviour may still
-    // change what is shown in Rebuilt (Prepare draws a frame for it).
-    ++services_.Counters().rebuilds;
+    Update();
+}
 
-    // First build: the element's own children are the content for the slot.
-    std::vector<Rml::ElementPtr> kept;
-    const bool has_children = TakeSlotContent(kept);
-    const Json scope = RenderScope(has_children);
-    std::string rml;
+void ComponentElement::BindNames()
+{
+    const size_t props = spec_.props.size();
+    names_.assign(spec_.names.All().size(), nullptr);
+    for (size_t i = 0; i < props; ++i)
+    {
+        const auto found = props_.find(spec_.props[i].name);
+        names_[i] = found != props_.end() && !found->is_null() ? &*found : &spec_.props[i].fallback;
+    }
+    names_[props + size_t(SpecName::Spec)] = &spec_.constants;
+    names_[props + size_t(SpecName::Children)] = &children_;
+    names_[props + size_t(SpecName::Dp)] = &dp_;
+    names_[props + size_t(SpecName::Safe)] = &safe_;
+}
+
+// Builds the elements of the template on the first call, then runs only what reads what changed since.
+void ComponentElement::Update()
+{
+    dirty_ = false;
+    const bool first = !bound_;
+    const size_t props = spec_.props.size();
+    const auto fact = [&](Json &shown, Json now, SpecName name) {
+        if (shown == now)
+            return;
+        shown = std::move(now);
+        changed_.names.set(props + size_t(name));
+    };
+    fact(dp_, services_.Density(), SpecName::Dp);
+    fact(safe_, services_.SafeArea(), SpecName::Safe);
+    if (strings_ != TemplateStringsRevision())
+    {
+        strings_ = TemplateStringsRevision();
+        changed_.strings = true;
+    }
+    if (!first && changed_.names.none() && !changed_.strings)
+        return;
+    const auto started = std::chrono::steady_clock::now();
+    FrameStats &stats = services_.Counters();
+    // Counted for every update, also one that changes no element: a behaviour may still change what is shown in
+    // Rebuilt (Prepare draws a frame for it).
+    ++stats.rebuilds;
+    if (first)
+    {
+        // The element's own children are the content for the slot.
+        held_ = Rml::Factory::InstanceElement(nullptr, "div", "div", Rml::XMLAttributes());
+        while (GetNumChildren() > 0)
+            held_->AppendChild(RemoveChild(GetFirstChild()));
+        children_ = held_->GetNumChildren() > 0;
+        // constants.layoutBoundary: the component's size never depends on its contents (a header bar of fixed
+        // height across the screen), so a change inside it lays out only it (patches/rmlui-layout-boundary.patch).
+        if (Truthy(spec_.constants.value("layoutBoundary", Json(false))))
+            SetAttribute("rmlui-layout-boundary", "");
+    }
+    BindNames();
+    prop_classes_.clear();
+    for (size_t i = 0; i < props; ++i)
+    {
+        const PropSpec &prop = spec_.props[i];
+        const Json &value = *names_[i];
+        if (first || changed_.names.test(i))
+            if (const std::string wrong = CheckPropValue(prop, value); !wrong.empty())
+                ReportError(wrong);
+        if (!prop.as_class)
+            continue;
+        if (prop.type == PropSpec::Type::Bool)
+        {
+            if (Truthy(value))
+                prop_classes_.push_back(prop.attribute);
+        }
+        else if (!ToText(value).empty())
+            prop_classes_.push_back(prop.attribute + "-" + ToText(value));
+    }
+    const std::vector<LoopFrame> no_loops;
+    for (const auto &[name, rule] : spec_.classes)
+    {
+        try
+        {
+            if (Truthy(rule.Evaluate(Scope{names_, no_loops})))
+                prop_classes_.push_back(name);
+        }
+        catch (const std::exception &error)
+        {
+            ReportError("class " + name + ": " + error.what());
+        }
+    }
+    Binder binder{*this, stats, {}};
     try
     {
-        rml = RenderTemplate(spec_.body, scope, &memo_);
+        if (first)
+        {
+            bound_ = std::make_unique<BoundTemplate>();
+            binder.CreateAll(spec_.compiled.nodes, bound_->nodes, this, nullptr);
+        }
+        else
+            binder.UpdateAll(bound_->nodes, changed_, this, nullptr);
     }
     catch (const std::exception &error)
     {
         ReportError(std::string("template: ") + error.what());
     }
-    ApplyRender(rml);
-    built_rml_ = std::move(rml);
-    rendered_values_ = Json::object();
-    for (const PropSpec &prop : spec_.props)
-        rendered_values_[prop.name] = Prop(prop.name);
-    rendered_extras_ = Json{{"dp", scope["dp"]}, {"safe", scope["safe"]}, {"children", has_children}};
-    set_since_render_.clear();
-    shapes_pending_ = true; // data-live-shown is noted once the tree is the render (end of RebuildNow)
-    if (!kept.empty())
-    {
-        if (Rml::Element *slot = FindSlot(this))
-            for (Rml::ElementPtr &child : kept)
-                slot->AppendChild(std::move(child));
-        else
-            ReportError("content passed to a component whose template has no slot");
-    }
-    built_ = true;
-    built_children_ = has_children;
-    if (shapes_pending_)
-    {
-        // What the render's structure was decided on (Refresh compares with it).
-        shapes_pending_ = false;
-        NoteShapes(scope);
-    }
-    ReportUnknownComponents(this);
-    ApplyBoxSize(scope);
+    changed_ = Reads();
+    if (first || binder.structure)
+        PlaceContent();
+    ApplyBoxSize();
     ApplyClasses();
     for (const auto &behavior : behaviors_)
         behavior->Rebuilt(*this);
-    NoteLaidOut();
+    NoteLaidOut(); // a change inside a layout boundary may not lay the component itself out
+    stats.rebuild_ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
 }
 
-// The content for the slot (`kept`): on the first build the element's own children, later the content a parent
-// passed (SyncSlot). True when the slot has content.
-bool ComponentElement::TakeSlotContent(std::vector<Rml::ElementPtr> &kept)
+// After the template's elements changed: the content waiting aside goes into the slot the template shows now.
+void ComponentElement::PlaceContent()
 {
-    bool has_children = false;
-    if (!built_)
+    Rml::Element *slot = FindSlot(this);
+    slot_ = slot ? slot->GetObserverPtr() : Rml::ObserverPtr<Rml::Element>();
+    if (!held_ || held_->GetNumChildren() == 0)
+        return;
+    if (!slot)
     {
-        while (GetNumChildren() > 0)
-            kept.push_back(RemoveChild(GetFirstChild()));
-        has_children = !kept.empty();
+        if (children_.get<bool>())
+            ReportError("content passed to a component whose template has no slot");
+        return;
     }
-    else if (pending_slot_)
-    {
-        kept = std::move(slot_content_);
-        slot_content_.clear();
-        pending_slot_ = false;
-        has_children = !kept.empty();
-    }
-    else if (Rml::Element *slot = FindSlot(this))
-        has_children = slot->GetNumChildren() > 0;
-    return has_children;
+    while (held_->GetNumChildren() > 0)
+        slot->AppendChild(held_->RemoveChild(held_->GetFirstChild()));
 }
 
-// What the template renders from: the props (checked; those that are classes noted), the spec's constants and the
-// host's facts; the class rules evaluated.
-Json ComponentElement::RenderScope(bool has_children)
+Rml::Element *ComponentElement::ContentParent()
 {
-    Json scope = Json::object();
-    prop_classes_.clear();
-    for (const PropSpec &prop : spec_.props)
-    {
-        Json value = Prop(prop.name);
-        const std::string wrong = CheckPropValue(prop, value);
-        if (!wrong.empty())
-            ReportError(wrong);
-        if (prop.as_class)
-        {
-            if (prop.type == PropSpec::Type::Bool)
-            {
-                if (Truthy(value))
-                    prop_classes_.push_back(prop.attribute);
-            }
-            else if (!ToText(value).empty())
-                prop_classes_.push_back(prop.attribute + "-" + ToText(value));
-        }
-        scope[prop.name] = std::move(value);
-    }
-    scope["spec"] = spec_.constants;
-    scope["children"] = has_children;
-    scope["dp"] = services_.Density();
-    scope["safe"] = services_.SafeArea();
-    for (const auto &rule : spec_.class_rules)
-    {
-        try
-        {
-            if (Truthy(EvaluateExpression(rule.second, scope)))
-                prop_classes_.push_back(rule.first);
-        }
-        catch (const std::exception &error)
-        {
-            ReportError("class " + rule.first + ": " + error.what());
-        }
-    }
-
-    return scope;
+    if (!bound_)
+        return this;
+    if (Rml::Element *slot = slot_.get())
+        return slot;
+    if (!held_)
+        held_ = Rml::Factory::InstanceElement(nullptr, "div", "div", Rml::XMLAttributes());
+    return held_.get();
 }
 
-// Makes the children the render `rml`: set whole on the first build, else patched in place (morphed when the
-// render cannot be patched). A render that gives what is shown already (a model revision that did not touch this
-// component) parses, compares and lays out nothing.
-void ComponentElement::ApplyRender(const std::string &rml)
+bool ComponentElement::HasContent()
 {
-    Rml::ElementDocument *document = GetOwnerDocument();
-    if (!built_ || !document)
-    {
-        // constants.layoutBoundary: the component's size never depends on its contents (a header bar of fixed
-        // height across the screen), so a change inside it lays out only it (patches/rmlui-layout-boundary.patch).
-        if (!built_ && Truthy(spec_.constants.value("layoutBoundary", Json(false))))
-            SetAttribute("rmlui-layout-boundary", "");
-        SetInnerRML(rml);
-        ++services_.Counters().touched;
-        size_t at = 0;
-        built_tree_.clear();
-        built_tree_ok_ = ParseRml(rml, at, built_tree_, {});
-    }
-    else if (rml != built_rml_)
-    {
-        // Later builds patch the existing tree in place: only what the render changed.
-        std::vector<RmlNode> fresh_tree;
-        size_t at = 0;
-        if (built_tree_ok_ && ParseRml(rml, at, fresh_tree, {}))
-        {
-            PatchStats stats;
-            PatchChildren(this, built_rml_, built_tree_, rml, fresh_tree, stats);
-            services_.Counters().touched += stats.touched;
-            services_.Counters().patch_fallbacks += stats.fallbacks;
-            built_tree_ = std::move(fresh_tree);
-        }
-        else
-        {
-            Rml::ElementPtr fresh = document->CreateElement("div");
-            fresh->SetInnerRML(rml);
-            MorphChildren(this, fresh.get());
-            ++services_.Counters().patch_fallbacks;
-            ++services_.Counters().touched;
-            at = 0;
-            fresh_tree.clear();
-            built_tree_ok_ = ParseRml(rml, at, fresh_tree, {});
-            built_tree_ = std::move(fresh_tree);
-        }
-    }
+    Rml::Element *content = ContentParent();
+    for (int i = 0; i < content->GetNumChildren(); ++i)
+        if (!content->GetChild(i)->IsClassSet("scroll-fade"))
+            return true;
+    return false;
 }
 
-// data-live-shown of every element with a data-live-shape, outside nested components.
-void ComponentElement::NoteShapes(const Json &scope)
+void ComponentElement::ContentChanged()
 {
-    std::function<void(Rml::Element *)> note = [&](Rml::Element *element) {
-        for (int i = 0; i < element->GetNumChildren(); ++i)
-        {
-            Rml::Element *child = element->GetChild(i);
-            if (child->HasAttribute("data-live-shape"))
-            {
-                try
-                {
-                    child->SetAttribute(
-                        "data-live-shown",
-                        ToText(EvaluateExpression(child->GetAttribute<Rml::String>("data-live-shape", ""), scope)));
-                }
-                catch (const std::exception &error)
-                {
-                    ReportError(std::string("data-live-shape: ") + error.what());
-                }
-            }
-            if (!dynamic_cast<ComponentElement *>(child))
-                note(child);
-        }
-    };
-    note(this);
+    if (!bound_)
+        return; // the first build counts it
+    const bool now = HasContent();
+    if (now == children_.get<bool>())
+        return;
+    // The template decides on `children` whether it has a slot at all.
+    children_ = now;
+    changed_.names.set(spec_.props.size() + size_t(SpecName::Children));
+    dirty_ = true;
 }
 
 // constants.boxSize: the name of a prop that is the component's width and height in dp (C-Icon:
 // its size). A box whose size is set needs no formatting of its content to be measured: an
 // icon in a header's nested flex rows was formatted about 500 times per layout of the header.
-void ComponentElement::ApplyBoxSize(const Json &scope)
+void ComponentElement::ApplyBoxSize()
 {
     const auto prop = spec_.constants.find("boxSize");
     if (prop == spec_.constants.end() || !prop->is_string())
         return;
-    const auto value = scope.find(prop->get<std::string>());
-    const float size = value != scope.end() && value->is_number() ? value->get<float>() : -1.0f;
+    const int index = spec_.names.Find(prop->get<std::string>());
+    const Json *value = index >= 0 && static_cast<size_t>(index) < spec_.props.size() ? names_[index] : nullptr;
+    const float size = value && value->is_number() ? value->get<float>() : -1.0f;
     if (size == box_size_)
         return;
     box_size_ = size;
@@ -1171,293 +1130,6 @@ void ComponentElement::ApplyBoxSize(const Json &scope)
         RemoveProperty(Rml::PropertyId::Height);
         ReportError("constants.boxSize names prop '" + prop->get<std::string>() + "', which is not a number");
     }
-}
-
-// The props that changed since the last render, by path (a changed object prop by its keys).
-// When the template only passes each of them on (ForwardSites), they are set on the elements
-// that take them and the template is not rendered. False: it must be.
-bool ComponentElement::Forward()
-{
-    if (pending_slot_ || error_)
-        return false;
-    std::vector<std::pair<std::string, Json>> changed; // path -> new value
-    Json current = Json::object();                     // the props that changed, as they are now
-    for (const PropSpec &prop : spec_.props)
-    {
-        if (!set_since_render_.count(prop.name) && rendered_values_.contains(prop.name))
-            continue; // not set since the live tree showed it
-        // By reference: a screen's props are its whole list.
-        static const Json none;
-        const auto set = props_.find(prop.name);
-        const Json &now = set != props_.end() && !set->is_null() ? *set
-                          : prop.fallback.is_null()              ? none
-                                                                 : prop.fallback;
-        const auto before = rendered_values_.find(prop.name);
-        if (before == rendered_values_.end())
-            return false;
-        if (*before == now)
-            continue;
-        // Classes and class rules read props as they are.
-        if (prop.as_class || std::any_of(spec_.class_rules.begin(), spec_.class_rules.end(), [&](const auto &rule) {
-                return rule.second.find(prop.name) != std::string::npos;
-            }))
-            return false;
-        current[prop.name] = now;
-        if (before->is_object() && now.is_object())
-        {
-            for (const auto &item : now.items())
-                if (!before->contains(item.key()) || (*before)[item.key()] != item.value())
-                    changed.emplace_back(prop.name + "." + item.key(), item.value());
-            for (const auto &item : before->items())
-                if (!now.contains(item.key()))
-                    changed.emplace_back(prop.name + "." + item.key(), Json());
-        }
-        else
-            changed.emplace_back(prop.name, now);
-    }
-    if (changed.empty())
-    {
-        // The live tree already shows these props (Forward or Refresh made it so, and the
-        // density, safe area and slot are as rendered): nothing to render.
-        const bool shown = !built_tree_ok_ && rendered_extras_ == Json{{"dp", services_.Density()},
-                                                                       {"safe", services_.SafeArea()},
-                                                                       {"children", built_children_}};
-        if (shown)
-            set_since_render_.clear();
-        return shown;
-    }
-    struct Set
-    {
-        Rml::Element *element;
-        std::string attribute, value;
-        Json passed; // a nested component's prop: given as it is (no text to write and parse again)
-        bool direct = false;
-    };
-    std::vector<Set> sets;
-    const auto value_at = [this](const Json &values, const std::string &path) {
-        const Json *value = &values;
-        size_t at = 0;
-        while (value && at <= path.size())
-        {
-            const size_t dot = std::min(path.find('.', at), path.size());
-            const std::string key = path.substr(at, dot - at);
-            value = value->is_object() && value->contains(key) ? &(*value)[key] : nullptr;
-            at = dot + 1;
-        }
-        return value ? *value : Json();
-    };
-    for (const auto &[path, value] : changed)
-    {
-        const auto truth_kept = [&](const std::string &enclosing) {
-            return Truthy(value_at(rendered_values_, enclosing)) == Truthy(value_at(current, enclosing));
-        };
-        // The analysis of a path is the template's, kept per spec with the enclosing paths whose
-        // truth it assumed (t-if tests), which are checked on every use.
-        struct Analysis
-        {
-            std::optional<std::vector<ForwardSite>> sites;
-            std::vector<std::string> truths;
-        };
-        static std::map<std::pair<const ComponentSpec *, std::string>, Analysis> analysed;
-        const auto key = std::make_pair(&spec_, path);
-        auto cached = analysed.find(key);
-        if (cached == analysed.end())
-        {
-            Analysis analysis;
-            analysis.sites = ForwardSites(spec_.body, path, [&](const std::string &enclosing) {
-                analysis.truths.push_back(enclosing);
-                return true;
-            });
-            cached = analysed.emplace(key, std::move(analysis)).first;
-        }
-        std::optional<std::vector<ForwardSite>> found = cached->second.sites;
-        for (const std::string &enclosing : cached->second.truths)
-            if (!truth_kept(enclosing))
-                found.reset();
-        const auto &sites = found;
-        if (!sites || sites->empty())
-            return false;
-        for (const ForwardSite &site : *sites)
-        {
-            Rml::Element *element = SiteElement(this, site);
-            if (!element)
-                return false;
-            const Json passed = site.path == path ? value : value_at(current, site.path);
-            // A nested component's prop (or its whole props) takes the value itself; its attribute
-            // text stays the last render's until the next render writes it (with the same props).
-            auto *component = dynamic_cast<ComponentElement *>(element);
-            const PropSpec *prop = component ? component->Spec().FindAttribute(site.attribute) : nullptr;
-            if (component && site.json && (prop || (site.attribute == "props" && passed.is_object())))
-                sets.push_back({element, site.attribute, prop ? prop->name : std::string(), passed, true});
-            else
-                sets.push_back({element, site.attribute, site.json ? passed.dump() : ToText(passed)});
-        }
-    }
-    for (const Set &set : sets)
-    {
-        if (set.direct)
-        {
-            auto *component = static_cast<ComponentElement *>(set.element);
-            const Json props = set.value.empty() ? set.passed : Json{{set.value, set.passed}};
-            bool differs = false;
-            for (const auto &item : props.items())
-                differs = differs || component->Prop(item.key()) != item.value();
-            if (differs)
-            {
-                component->SetProps(props);
-                ++services_.Counters().touched;
-            }
-            continue;
-        }
-        if (set.element->GetAttribute<Rml::String>(set.attribute, "") != set.value)
-        {
-            set.element->SetAttribute(set.attribute, set.value);
-            ++services_.Counters().touched;
-        }
-    }
-    ++services_.Counters().forwarded;
-    set_since_render_.clear();
-    for (auto &item : current.items())
-        rendered_values_[item.key()] = std::move(item.value());
-    // The live tree is no longer the last render: the next render morphs it whole once.
-    built_tree_ok_ = false;
-    built_rml_.clear();
-    return true;
-}
-
-// Live parts (data-live-text / -class / -style: template expressions of the props) are
-// evaluated again and applied, without a render, after a behaviour changed props quietly (a
-// slider's value under the finger). data-live-shape on the template's root names an expression
-// of everything that changes the template's structure (which branches show): when its value
-// changed, false, and the caller renders the template instead.
-bool ComponentElement::Refresh()
-{
-    if (!built_ || pending_slot_ || error_)
-        return false;
-    Json scope = Json::object();
-    for (const PropSpec &prop : spec_.props)
-        scope[prop.name] = Prop(prop.name);
-    scope["spec"] = spec_.constants;
-    scope["children"] = built_children_;
-    scope["dp"] = services_.Density();
-    scope["safe"] = services_.SafeArea();
-    // Only this template's own elements: a nested component refreshes itself.
-    std::vector<Rml::Element *> live;
-    std::function<void(Rml::Element *)> walk = [&](Rml::Element *element) {
-        for (int i = 0; i < element->GetNumChildren(); ++i)
-        {
-            Rml::Element *child = element->GetChild(i);
-            if (child->HasAttribute("data-live-shape") || child->HasAttribute("data-live-text") ||
-                child->HasAttribute("data-live-class") || child->HasAttribute("data-live-style"))
-                live.push_back(child);
-            if (!dynamic_cast<ComponentElement *>(child))
-                walk(child);
-        }
-    };
-    walk(this);
-    if (live.empty())
-        return false; // a template without live parts follows its props by rendering
-    try
-    {
-        for (Rml::Element *element : live)
-            if (element->HasAttribute("data-live-shape") &&
-                ToText(EvaluateExpression(element->GetAttribute<Rml::String>("data-live-shape", ""), scope)) !=
-                    element->GetAttribute<Rml::String>("data-live-shown", ""))
-                return false;
-        for (Rml::Element *element : live)
-        {
-            if (element->HasAttribute("data-live-text"))
-            {
-                const std::string text =
-                    ToText(EvaluateExpression(element->GetAttribute<Rml::String>("data-live-text", ""), scope));
-                if (element->GetNumChildren() != 1 || !rmlui_dynamic_cast<Rml::ElementText *>(element->GetFirstChild()))
-                    return false;
-                auto *node = rmlui_dynamic_cast<Rml::ElementText *>(element->GetFirstChild());
-                if (node->GetText() != text)
-                {
-                    node->SetText(text);
-                    ++services_.Counters().touched;
-                }
-            }
-            if (element->HasAttribute("data-live-class"))
-            {
-                // "name: expr; name: expr": each class on while its expression is true.
-                const std::string rules = element->GetAttribute<Rml::String>("data-live-class", "");
-                for (size_t at = 0; at < rules.size();)
-                {
-                    const size_t end = std::min(rules.find(';', at), rules.size());
-                    const size_t colon = rules.find(':', at);
-                    if (colon != std::string::npos && colon < end)
-                    {
-                        std::string name = rules.substr(at, colon - at);
-                        name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
-                        const bool on = Truthy(EvaluateExpression(rules.substr(colon + 1, end - colon - 1), scope));
-                        if (element->IsClassSet(name) != on)
-                        {
-                            element->SetClass(name, on);
-                            ++services_.Counters().touched;
-                        }
-                    }
-                    at = end + 1;
-                }
-            }
-            if (element->HasAttribute("data-live-style"))
-            {
-                const std::string style =
-                    ToText(EvaluateExpression(element->GetAttribute<Rml::String>("data-live-style", ""), scope));
-                for (const auto &[name, value] : ParseStyle(style))
-                    if (element->GetProperty(name) == nullptr || element->GetProperty(name)->ToString() != value)
-                        element->SetProperty(name, value);
-                ++services_.Counters().touched;
-            }
-        }
-    }
-    catch (const std::exception &error)
-    {
-        ReportError(std::string("data-live: ") + error.what());
-        return false;
-    }
-    set_since_render_.clear();
-    rendered_values_ = scope;
-    rendered_values_.erase("spec");
-    rendered_values_.erase("children");
-    rendered_values_.erase("dp");
-    rendered_values_.erase("safe");
-    built_tree_ok_ = false; // the live tree is no longer the last render (Forward)
-    built_rml_.clear();
-    ++services_.Counters().refreshed;
-    return true;
-}
-
-void ComponentElement::SyncSlot(Rml::Element *content)
-{
-    const bool wanted = content->GetNumChildren() > 0;
-    if (!built_)
-    {
-        // Not built yet: the element's own children are still the slot content of the first build.
-        while (GetNumChildren() > 0)
-            RemoveChild(GetFirstChild());
-        while (content->GetNumChildren() > 0)
-            AppendChild(content->RemoveChild(content->GetFirstChild()));
-        return;
-    }
-    Rml::Element *slot = FindSlot(this);
-    if (wanted == built_children_ && (slot || !wanted))
-    {
-        if (slot)
-            MorphChildren(slot, content);
-        return;
-    }
-    // Content appeared or disappeared: the template decides on `children` whether it has a
-    // slot at all, so rebuild with the new content, as the first build does.
-    if (slot)
-        while (slot->GetNumChildren() > 0)
-            slot->RemoveChild(slot->GetFirstChild());
-    slot_content_.clear();
-    while (content->GetNumChildren() > 0)
-        slot_content_.push_back(content->RemoveChild(content->GetFirstChild()));
-    pending_slot_ = true;
-    RebuildNow();
 }
 
 void ComponentElement::ApplyClasses()
@@ -1564,16 +1236,33 @@ class ComponentRegistry::Instancer final : public Rml::ElementInstancer
     Services &services_;
 };
 
-void ComponentRegistry::Load(const Json &pack)
+bool ComponentRegistry::Load(const Json &pack, std::string *error)
 {
-    for (const Json &entry : pack.at("components"))
+    try
     {
-        std::unique_ptr<ComponentSpec> spec = ParseComponentSpec(entry);
-        auto instancer = std::make_unique<Instancer>(*spec, services_);
-        Rml::Factory::RegisterElementInstancer(spec->tag, instancer.get());
-        instancers_.push_back(std::move(instancer));
-        specs_[spec->tag] = std::move(spec);
+        for (const Json &entry : pack.at("components"))
+        {
+            std::unique_ptr<ComponentSpec> spec = ParseComponentSpec(entry);
+            const std::string tag = spec->tag;
+            specs_[tag] = std::move(spec);
+        }
+        // Every template at once, at load: a broken one stops the start instead of failing when a screen reaches it.
+        for (auto &[tag, spec] : specs_)
+            CompileComponentSpec(*spec, [this](const std::string &nested) { return Find(nested); });
     }
+    catch (const std::exception &failure)
+    {
+        if (error)
+            *error = std::string("UI pack: ") + failure.what();
+        return false;
+    }
+    for (auto &[tag, spec] : specs_)
+    {
+        auto instancer = std::make_unique<Instancer>(*spec, services_);
+        Rml::Factory::RegisterElementInstancer(tag, instancer.get());
+        instancers_.push_back(std::move(instancer));
+    }
+    return true;
 }
 
 const ComponentSpec *ComponentRegistry::Find(const std::string &tag) const

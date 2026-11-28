@@ -139,6 +139,9 @@
 - Перебежчики после абордажа: окно считает тех, кого игра уже приняла, из всех желающих, и «Принять» берёт столько,
   сколько выбрано; раньше кнопка показывала желающих, а принимала никого. В карточке корабля компаньона и сдавшегося
   капитана его имя теперь видно и в окне команды.
+- Экраны интерфейса обновляют только то, что изменилось: строка списка сохраняет свой элемент, пока она в списке.
+  Кнопка покупки и всё под списком в сделке больше не пропадают после смены фильтра, а значок предмета в ячейке
+  больше не остаётся цвета прежнего значка.
 
 **English**
 
@@ -284,6 +287,9 @@
 - Defectors after a boarding: the window counts the men the game has already taken out of all who are willing, and
   «Accept» takes as many as chosen; before, the button showed the willing and took nobody. The card of a companion's
   or a surrendered captain's ship now names him in the crew window too.
+- Interface screens update only what changed: a list row keeps its element while it is in the list. The buy button
+  and everything under the list in a deal no longer vanish after a filter change, and an item's placeholder icon in
+  a slot no longer keeps the colour of the icon shown there before.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

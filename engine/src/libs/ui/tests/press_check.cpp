@@ -169,6 +169,11 @@ static void AddStoreComponents(Json &components)
         "tag": "c-outer",
         "props": {"deal": {"type": "json", "default": null}, "rows": {"type": "json", "default": []}, "label": {"type": "text", "default": ""}},
         "template": "<div class=\"label\">{{label}}</div><t-if test=\"deal\"><c-store id=\"inner\" rows=\"{{ json(rows) }}\" props=\"{{ json(deal) }}\"/></t-if>"})"));
+    // Rows with identity: each row's element lives while its key does; a scrolling box inside it.
+    components["components"].push_back(Json::parse(R"({
+        "tag": "c-keyed", "behaviors": ["press"],
+        "props": {"rows": {"type": "json", "default": []}},
+        "template": "<div id=\"keyed\"><t-for each=\"rows\" as=\"r\" key=\"r.key\"><div class=\"krow\" data-action=\"row\" data-value=\"{{r.key}}\" style=\"display: block; height: 40dp;\"><div class=\"kbox\" style=\"display: block; height: 30dp; overflow-y: scroll;\"><div style=\"display: block; height: 200dp;\">{{r.name}}</div></div></div></t-for></div>"})"));
     // constants.boxSize: the size prop is the box (an icon measured without formatting its content).
     components["components"].push_back(Json::parse(R"({
         "tag": "c-sized", "constants": {"boxSize": "size"},
@@ -188,13 +193,12 @@ static void AddSliders(const fs::path &pack, Json &components)
     Write(pack / "slide.rml", "<rml><head><style>body { font-family: LatoLatin; font-size: 16dp; width: 800dp; height: "
                               "400dp; }</style></head><body>"
                               "<c-slide id=\"coarse\" max=\"4\"/></body></rml>");
-    // A slider whose value's texts and marks are live parts (data-live-*): a drag needs no render
-    // of the control until its shape (here: above or below the middle) changes.
+    // A slider that shows its value and, above the middle, a mark: a drag move runs only what reads the value.
     components["components"].push_back(Json::parse(R"({
         "tag": "c-live-slide", "behaviors": ["range"],
         "props": {"value": {"type": "int", "default": 0}, "min": {"type": "int", "default": 0}, "max": {"type": "int", "default": 100},
                   "active": {"type": "bool", "default": false}},
-        "template": "<div data-live-shape=\"value > 50 ? 'high' : 'low'\"><div data-range=\"value\" style=\"position: absolute; left: 100dp; top: 100dp; width: 400dp; height: 40dp;\"><div id=\"live-knob\" data-range-knob=\"\" data-live-style=\"'left: ' + value + '%;'\" style=\"position: absolute; left: {{value}}%; top: 0; width: 0; height: 40dp;\"></div></div><div id=\"live-num\" data-live-text=\"value\">{{value}}</div><t-if test=\"value > 50\"><div id=\"live-high\">high</div></t-if></div>"})"));
+        "template": "<div><div data-range=\"value\" style=\"position: absolute; left: 100dp; top: 100dp; width: 400dp; height: 40dp;\"><div id=\"live-knob\" data-range-knob=\"\" style=\"position: absolute; left: {{value}}%; top: 0; width: 0; height: 40dp;\"></div></div><div id=\"live-num\">{{value}}</div><t-if test=\"value > 50\"><div id=\"live-high\">high</div></t-if></div>"})"));
     Write(pack / "live-slide.rml", "<rml><head><style>body { font-family: LatoLatin; font-size: 16dp; width: 800dp; "
                                    "height: 400dp; }</style></head><body>"
                                    "<c-live-slide id=\"live\" value=\"10\"/></body></rml>");
@@ -230,6 +234,10 @@ static void WriteStoreDocuments(const fs::path &pack)
           "<rml><head><style>body { font-family: LatoLatin; font-size: 16dp; width: 800dp; height: 400dp; "
           "}</style></head><body><c-store id=\"store\" amount=\"1\" total=\"Buy 1\" rows='" +
               rows.dump() + "'/><div style=\"display: flex;\"><c-sized id=\"sized\" size=\"20\"/></div></body></rml>");
+    Write(pack / "keyed.rml", "<rml><head><style>body { font-family: LatoLatin; font-size: 16dp; width: 800dp; "
+                              "height: 400dp; }</style></head><body><c-keyed id=\"keyed-list\" "
+                              "rows='[{\"key\": \"a\", \"name\": \"A\"}, {\"key\": \"b\", \"name\": \"B\"}, "
+                              "{\"key\": \"c\", \"name\": \"C\"}]'/></body></rml>");
     Write(pack / "bar.rml",
           "<rml><head><style>body { font-family: LatoLatin; font-size: 16dp; width: 800dp; height: 400dp; "
           "}</style></head><body><div id=\"bar\" rmlui-layout-boundary=\"\" style=\"display: flex; flex-direction: "
@@ -921,10 +929,9 @@ struct PressRun
             clock += 1.0 / 60.0;
             host->Frame();
             const FrameStats changed = host->LastFrameStats();
-            Expect(changed.touched > 0 && changed.touched <= 4 && changed.patch_fallbacks == 0,
+            Expect(changed.touched > 0 && changed.touched <= 4,
                    "a new amount touches the amount, the total and the button only (" +
-                       std::to_string(changed.touched) + " elements, " + std::to_string(changed.patch_fallbacks) +
-                       " whole levels)");
+                       std::to_string(changed.touched) + " elements)");
             Expect(find("list") == list && rows_of() == rows_before, "the rows are the same elements");
             Json rows = Json::array();
             for (int i = 0; i < 20; ++i)
@@ -956,6 +963,60 @@ struct PressRun
             Expect(std::abs(sized->GetBox().GetSize(Rml::BoxArea::Border).x - 32.0f) < 0.01f,
                    "… and the box follows: 32");
         }
+    }
+
+    void KeyedRows()
+    {
+        // A keyed list reorders, loses a row and gains one: every row that stays keeps its element, the scroll
+        // offset inside it and its pressed part; the one that is new is made, the one that is gone removed.
+        Expect(host->LoadDocument("keyed.rml"), "the keyed document loads");
+        Frames(0.1);
+        Rml::Context *context = Rml::GetContext("storm-ui");
+        Rml::Element *list = nullptr;
+        for (int i = 0; context && i < context->GetNumDocuments() && !list; ++i)
+            list = context->GetDocument(i)->GetElementById("keyed");
+        const auto rows = [&] {
+            std::map<std::string, Rml::Element *> by_key;
+            std::string order;
+            for (int i = 0; list && i < list->GetNumChildren(); ++i)
+            {
+                const std::string key = list->GetChild(i)->GetAttribute<Rml::String>("data-value", "");
+                by_key[key] = list->GetChild(i);
+                order += key;
+            }
+            return std::make_pair(by_key, order);
+        };
+        const auto [before, first_order] = rows();
+        Expect(list && first_order == "abc", "the keyed rows are shown in order: " + first_order);
+        if (!list || first_order != "abc")
+            return;
+        Rml::Element *box_a = before.at("a")->GetChild(0);
+        box_a->SetScrollTop(25.0f);
+        Rml::Element *row_c = before.at("c");
+        const Rml::Vector2f at = row_c->GetAbsoluteOffset(Rml::BoxArea::Border) + Rml::Vector2f(5.0f, 5.0f);
+        host->Touch(TouchPhase::Down, 1, at.x, at.y, clock);
+        Frames(1.0 / 60.0);
+        Expect(row_c->IsClassSet("pressed"), "the row under the finger is pressed");
+        Expect(storm::ui::tools::SetProps(*host, "keyed-list",
+                                          R"({"rows": [{"key": "c", "name": "C"}, {"key": "a", "name": "A2"},
+                                                       {"key": "d", "name": "D"}]})"),
+               "the rows reorder");
+        clock += 1.0 / 60.0;
+        host->Frame();
+        const FrameStats changed = host->LastFrameStats();
+        const auto [after, order] = rows();
+        Expect(order == "cad", "the rows follow the new order: " + order);
+        Expect(after.count("a") && after.at("a") == before.at("a") && after.count("c") && after.at("c") == row_c,
+               "the rows that stay keep their elements");
+        Expect(after.count("a") && after.at("a")->GetChild(0) == box_a &&
+                   std::abs(box_a->GetScrollTop() - 25.0f) < 0.5f,
+               "a kept row keeps the scroll offset inside it (" + std::to_string(box_a->GetScrollTop()) + ")");
+        Expect(row_c->IsClassSet("pressed"), "the pressed row stays pressed where it went");
+        // c moves, b goes, d comes (its four elements), A2 is the one text that changed.
+        Expect(changed.touched <= 7, "the reorder touches what moved, went, came and changed (" +
+                                         std::to_string(changed.touched) + " elements)");
+        host->Touch(TouchPhase::Up, 1, at.x, at.y, clock);
+        Frames(0.5);
     }
 
     void ContentSizedBoundary()
@@ -994,8 +1055,8 @@ struct PressRun
 
     void PassedOnValue()
     {
-        // A value a screen only passes on (a drag of the deal's amount): the screen does not render its
-        // template, the store renders once and touches the amount, the total and the button only.
+        // A value a screen only passes on (a drag of the deal's amount): the screen hands the deal to the store as
+        // it is, the store touches the amount, the total and the button only.
         Expect(host->LoadDocument("outer.rml"), "the outer document loads");
         Frames(0.1);
         {
@@ -1004,17 +1065,15 @@ struct PressRun
             clock += 1.0 / 60.0;
             host->Frame();
             const FrameStats moved = host->LastFrameStats();
-            Expect(moved.forwarded >= 1 && moved.rebuilds == 1 && moved.touched <= 5 && moved.laid_out <= 30 &&
-                       moved.patch_fallbacks == 0,
-                   "a passed-on value: the screen forwards it (" + std::to_string(moved.forwarded) +
-                       "), only the store renders (" + std::to_string(moved.rebuilds) + " renders), " +
-                       std::to_string(moved.touched) + " elements touched, " + std::to_string(moved.laid_out) +
-                       " boxes");
+            Expect(moved.rebuilds == 3 && moved.touched <= 6 && moved.laid_out <= 30,
+                   "a passed-on value: the screen, the store and its button update (" + std::to_string(moved.rebuilds) +
+                       " updates), " + std::to_string(moved.touched) + " elements touched, " +
+                       std::to_string(moved.laid_out) + " boxes");
             Expect(storm::ui::tools::SetProps(*host, "outer", R"({"label": "Shop"})"), "the screen's own text changes");
             clock += 1.0 / 60.0;
             host->Frame();
             const FrameStats own = host->LastFrameStats();
-            Expect(own.forwarded == 0 && own.rebuilds == 1, "its own text: the screen renders, the store does not");
+            Expect(own.rebuilds == 1 && own.touched == 1, "its own text: the screen updates it, the store nothing");
             Expect(storm::ui::tools::SetProps(*host, "outer", R"({"deal": {"amount": 3, "total": "Buy 3"}})"),
                    "the amount after the screen rendered");
             clock += 1.0 / 60.0;
@@ -1038,8 +1097,8 @@ struct PressRun
         // A slider's knob stays under the finger: the value has steps (0…4 over 400 px: 100 px each),
         // the finger has none. The template places the knob at the value; the behaviour moves it on
         // to the finger with a transform and takes that away on release.
-        // The live slider: the drag moves change its number and knob without a render; the middle
-        // (its shape) renders once; each move does a counted, small amount of work.
+        // The live slider: each drag move updates the control once and changes its number and knob only; the
+        // middle shows its mark.
         Expect(host->LoadDocument("live-slide.rml"), "the live slider loads");
         Frames(0.1);
         {
@@ -1053,9 +1112,9 @@ struct PressRun
             // 400 px track at 100..500 (density 1): value 10 at 140, 30 at 220.
             host->Touch(TouchPhase::Down, 1, 140, 120, clock);
             Frames(1.0 / 60.0);
-            int renders = 0, refreshed = 0;
+            int renders = 0;
             double worst = 0.0;
-            int moves = 0, touched = 0, fallbacks = 0, most_laid_out = 0, most_passes = 0, most_geometry = 0;
+            int moves = 0, touched = 0, most_laid_out = 0, most_passes = 0, most_geometry = 0;
             for (float x = 150; x <= 300; x += 10) // values 12 … 50: below the middle
             {
                 host->Touch(TouchPhase::Move, 1, x, 120, clock);
@@ -1064,34 +1123,30 @@ struct PressRun
                 const FrameStats moved = host->LastFrameStats();
                 ++moves;
                 renders += moved.rebuilds;
-                refreshed += moved.refreshed;
                 touched += moved.touched;
-                fallbacks += moved.patch_fallbacks;
                 most_laid_out = std::max(most_laid_out, moved.laid_out);
                 most_passes = std::max(most_passes, moved.layout_passes);
                 most_geometry = std::max(most_geometry, moved.geometry);
                 worst = std::max(worst, moved.update_ms);
             }
             Rml::Element *num = find("live-num");
-            Expect(renders == 0 && refreshed >= 10, "a drag below the middle renders the control " +
-                                                        std::to_string(renders) + " times (" +
-                                                        std::to_string(refreshed) + " live refreshes)");
+            Expect(renders <= moves, "a drag below the middle updates the control at most once a move (" +
+                                         std::to_string(renders) + " updates in " + std::to_string(moves) + " moves)");
             Expect(num && num->GetInnerRML() == "50",
                    "the number follows the finger: " + (num ? std::string(num->GetInnerRML()) : std::string("none")));
-            // The cost of a move is counted, not timed (a loaded machine stretches milliseconds, not work): two live
-            // elements changed (the number and the knob), no morph, one box pair laid out in one pass, one mesh.
-            Expect(
-                touched <= 2 * moves && fallbacks == 0 && most_laid_out <= 2 && most_passes <= 1 && most_geometry <= 1,
-                "a drag move changes the number and the knob only: " + std::to_string(touched) +
-                    " elements changed in " + std::to_string(moves) + " moves, " + std::to_string(fallbacks) +
-                    " morphs, at most " + std::to_string(most_laid_out) + " boxes in " + std::to_string(most_passes) +
-                    " layout passes, " + std::to_string(most_geometry) + " meshes per move");
+            // The cost of a move is counted, not timed (a loaded machine stretches milliseconds, not work): two
+            // elements changed (the number and the knob), one box pair laid out in one pass, one mesh.
+            Expect(touched <= 2 * moves && most_laid_out <= 2 && most_passes <= 1 && most_geometry <= 1,
+                   "a drag move changes the number and the knob only: " + std::to_string(touched) +
+                       " elements changed in " + std::to_string(moves) + " moves, at most " +
+                       std::to_string(most_laid_out) + " boxes in " + std::to_string(most_passes) + " layout passes, " +
+                       std::to_string(most_geometry) + " meshes per move");
             std::printf("a drag move's update: worst %.3f ms (reported, not checked)\n", worst);
             host->Touch(TouchPhase::Move, 1, 340, 120, clock); // 60: above the middle
             clock += 1.0 / 60.0;
             host->Frame();
             Expect(host->LastFrameStats().rebuilds == 1 && find("live-high") != nullptr,
-                   "crossing the middle renders once: its branch shows");
+                   "crossing the middle updates once: its branch shows");
             host->Touch(TouchPhase::Up, 1, 340, 120, clock);
             Frames(0.05);
             num = find("live-num");
@@ -1461,6 +1516,7 @@ int main(int argc, char **argv)
     if (!run.BetweenScenes())
         return 1;
     run.ValueChanges();
+    run.KeyedRows();
     run.ContentSizedBoundary();
     run.PassedOnValue();
     run.SliderKnob();
