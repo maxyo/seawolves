@@ -153,41 +153,294 @@
     "screen": "mainmenu",
     "widgets": [
      {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 9,
+        "imageRevision": 9,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "VERSION_TEXT",
+      "type": "text",
+      "label": "xxxxxxxxx xxxxxx xxx. 2.0.0-xxxx (25.11.26)",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "COPYRIGHT_TEXT",
+      "type": "text",
+      "label": " xxxxxxxxx xxxxxx - 2026 ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 1,
+        "imageRevision": 1,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
       "node": "RESUME_GAME",
       "type": "button",
-      "label": "Кнопка Один",
+      "label": "xxxxxxxxxx xxxx",
       "index": -1,
       "enabled": false
      },
      {
       "node": "NEW_GAME",
       "type": "button",
-      "label": "Кнопка Два",
+      "label": "xxxxx xxxx",
       "index": -1
      },
      {
       "node": "LOAD_GAME",
       "type": "button",
-      "label": "Кнопка Три",
+      "label": "xxxxxxxxx",
       "index": -1
+     },
+     {
+      "node": "ENCYCLOPEDIA",
+      "type": "button",
+      "label": "xxxxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "A_ENCYCLOPEDIA",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 2,
+        "imageRevision": 2,
+        "source": {
+         "group": "alert",
+         "image": "alert",
+         "kind": "atlas"
+        }
+       }
+      ]
      },
      {
       "node": "OPTIONS",
       "type": "button",
-      "label": "Кнопка Четыре",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
       "node": "CREDITS",
       "type": "button",
-      "label": "Кнопка Пять",
+      "label": "xxxxxx",
       "index": -1
      },
      {
       "node": "QUIT",
       "type": "button",
-      "label": "Кнопка Шесть",
+      "label": "xxxxx",
       "index": -1
+     },
+     {
+      "node": "UPDATES",
+      "type": "button",
+      "label": "xxxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "NEWS",
+      "type": "button",
+      "label": "xxxxxxxxx xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "WORKSHOP",
+      "type": "button",
+      "label": "xxxxxxxxxx xxxxx",
+      "index": -1
+     },
+     {
+      "node": "REWARDS_TITLE",
+      "type": "text",
+      "label": "xxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "REWARD_AVAILABLE_3",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 7,
+        "imageRevision": 7,
+        "source": {
+         "image": "interfaces/usedflag",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_ITEM_1",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "source": {
+         "group": "ITEMS_42",
+         "image": "itm6",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_ITEM_2",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 4,
+        "imageRevision": 4,
+        "source": {
+         "group": "ITEMS_42",
+         "image": "itm5",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_ITEM_3",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 5,
+        "imageRevision": 5,
+        "source": {
+         "group": "ITEMS_42",
+         "image": "itm10",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_ITEM_4",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 6,
+        "imageRevision": 6,
+        "source": {
+         "group": "ITEMS_EMPTY",
+         "image": "empty",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_ITEM_5",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 6,
+        "imageRevision": 6,
+        "source": {
+         "group": "ITEMS_EMPTY",
+         "image": "empty",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_AVAILABLE_4",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 8,
+        "imageRevision": 8,
+        "source": {
+         "group": "HELP_ICONS",
+         "image": "HelpLight",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "REWARD_AVAILABLE_5",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 8,
+        "imageRevision": 8,
+        "source": {
+         "group": "HELP_ICONS",
+         "image": "HelpLight",
+         "kind": "atlas"
+        }
+       }
+      ]
      }
     ]
    },
@@ -348,6 +601,13 @@
       "label": "<menu.credits>"
      }
     ],
+    "confirm": {
+     "no": "<common.cancel>",
+     "preset": "danger",
+     "text": "",
+     "title": "Строка вопроса",
+     "yes": "<menu.exit>"
+    },
     "exit": {
      "busy": false,
      "id": "exit",
@@ -360,13 +620,6 @@
      "label": "<menu.continue>",
      "reason": "",
      "sub": ""
-    },
-    "confirm": {
-     "preset": "danger",
-     "title": "Строка вопроса",
-     "text": "",
-     "yes": "<menu.exit>",
-     "no": "<common.cancel>"
     }
    },
    "modals": [

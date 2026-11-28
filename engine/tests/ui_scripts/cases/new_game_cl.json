@@ -1,5 +1,5 @@
 {
- "$comment": "The new game of a game whose window is cards of ‹ › choices, pages and several starts (fixture game-cl; hand-made models of its node ids, every text a placeholder): each choice, page, switch and start is the game's own button; its profile window's name is edited in the game's field.",
+ "$comment": "The new game of a game whose window is cards of ‹ › choices, pages and several starts (fixture game-cl; models recorded on its window, every text a placeholder): each choice, page, switch and start is the game's own button; its profile window's name is edited in the game's field.",
  "fixture": "game-cl",
  "cases": [
   {
@@ -13,23 +13,88 @@
     "screen": "selectcharacter",
     "widgets": [
      {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxxx_1",
+      "index": -1
+     },
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_inventory",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
       "node": "BTN_EXIT",
       "type": "button",
-      "label": "Кнопка выхода",
+      "label": "xxxxx",
       "index": -1
      },
      {
       "node": "TITLE",
       "type": "heading",
-      "label": "Заголовок окна",
+      "label": "  xxxxx xxxxxxxxxx xx xxxxxx!  ",
+      "index": -1
+     },
+     {
+      "node": "HEADER_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_TRAIT",
+      "type": "text",
+      "label": "xxxxx xxxxxxxxx",
       "index": -1
      },
      {
       "node": "INFO_FRAME_CAPTION",
       "type": "text",
-      "label": "Подпись героя",
+      "label": "xxxxxxx",
+      "value": "1",
       "index": 0,
-      "value": "1"
+      "actions": [
+       "press"
+      ]
      },
      {
       "node": "LEFTCHANGE_CHARACTER",
@@ -44,28 +109,9 @@
       "index": -1
      },
      {
-      "node": "HERO_NAME",
-      "type": "text",
-      "label": "Герой Альфа",
-      "index": 0,
-      "value": "1"
-     },
-     {
-      "node": "HEADER_HERO_TYPE",
-      "type": "text",
-      "label": "Занятие",
-      "index": -1
-     },
-     {
       "node": "BUTTON_L_HERO_TYPE",
       "type": "button",
       "label": "‹",
-      "index": -1
-     },
-     {
-      "node": "VALUE_HERO_TYPE",
-      "type": "text",
-      "label": "Первое",
       "index": -1
      },
      {
@@ -75,27 +121,9 @@
       "index": -1
      },
      {
-      "node": "TEXT_HERO_TYPE",
-      "type": "text",
-      "label": "Описание занятия.",
-      "index": -1
-     },
-     {
-      "node": "HEADER_TRAIT",
-      "type": "text",
-      "label": "Черта",
-      "index": -1
-     },
-     {
       "node": "BUTTON_L_TRAIT",
       "type": "button",
       "label": "‹",
-      "index": -1
-     },
-     {
-      "node": "VALUE_TRAIT",
-      "type": "text",
-      "label": "Вторая",
       "index": -1
      },
      {
@@ -105,127 +133,356 @@
       "index": -1
      },
      {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "xxxxx xx xxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VALUE_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "VALUE_TRAIT",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "PICTURE_HERO_TYPE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 16,
+        "imageRevision": 16,
+        "source": {
+         "group": "FEATS",
+         "image": "HT1",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PICTURE_TRAIT",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 17,
+        "imageRevision": 17,
+        "source": {
+         "group": "FEATS",
+         "image": "wiry",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TEXT_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxx xxxxx xxxxxx xxxx xxxxxxx xxxx. xxxx xxxxxx x xxxxxxx xxxxxxxxx xxxxxxxx xxx xxxxxx x xxxxxxx xxxxxxxxxx xxxxxx xxxxx xx xxxxxxxxxxx xxxxxxxxxx.",
+      "index": -1
+     },
+     {
       "node": "TEXT_TRAIT",
       "type": "text",
-      "label": "Описание черты.",
+      "label": "xx xxxx, xxxxx x xxxxxxxxx. xxx, xxx xxxxxx xxxxxxxxxx xxxxx xxxx xxxxxx xxxxxxxx, xx xxxxxx xxxxxxx x xxxx. xx xxxxxxxxxxx xxxx, xxxxxxxxx xxxxxxxxxxxxxx xxxxxx.",
       "index": -1
      },
      {
       "node": "FACEPICT",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 3,
-        "imageRevision": 3,
-        "source": {
-         "kind": "portrait",
-         "image": "1"
-        }
-       }
-      ],
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 14,
+        "imageRevision": 14,
+        "source": {
+         "image": "201",
+         "kind": "portrait"
+        }
+       }
       ]
      },
      {
       "node": "NATIONS_PICTURE",
       "type": "image",
       "index": -1,
+      "actions": [
+       "press"
+      ],
       "images": [
        {
-        "handle": 4,
-        "imageRevision": 4,
+        "handle": 15,
+        "imageRevision": 15,
         "source": {
-         "kind": "atlas",
          "group": "NATIONS",
-         "image": "France"
+         "image": "France",
+         "kind": "atlas"
         }
        }
-      ],
+      ]
+     },
+     {
+      "node": "HEADER_HOBBY",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_START_ITEM",
+      "type": "text",
+      "label": "xxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_HOBBY",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_HOBBY",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_START_ITEM",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_START_ITEM",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "VALUE_HOBBY",
+      "type": "text",
+      "label": "xxxxx",
+      "index": -1
+     },
+     {
+      "node": "VALUE_START_ITEM",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "START_INFO_TEXT",
+      "type": "text",
+      "label": "xx xxxxxxxxxxx xxxxx xxxxxxx xxxxxxx xxxxxxxx x xxxxxxxx xxxxx",
+      "value": "1",
+      "index": 0,
       "actions": [
        "press"
       ]
+     },
+     {
+      "node": "PICTURE_HOBBY",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 18,
+        "imageRevision": 18,
+        "source": {
+         "group": "FEATS",
+         "image": "hunt",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PICTURE_START_ITEM",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 19,
+        "imageRevision": 19,
+        "source": {
+         "group": "ITEMS_28",
+         "image": "itm3",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TEXT_HOBBY",
+      "type": "text",
+      "label": "xx xxxxxxx xxxxxxxxx xxxx x xxxxx x xxxxxx xxxxxxxx, xxxxx xxxxxxxxxxx x xxxxxxxxx xxxxx, xxx xxxxxxx x xxxxx xxxxx. xxx xxxxxxx xx xxxxxx xxxx xxxxxx xxxx xxxxxxx — xxxxxx.",
+      "index": -1
+     },
+     {
+      "node": "TEXT_START_ITEM",
+      "type": "text",
+      "label": "x xxxxxx xx xxxxxxxxx xxxxxxx xxxxxxxxx xxx, xxxxx xxx xxxxxxxxxx x xxxxxxx. xxxxxx xxxxxxx xxxxxx xxxxx xxxx xxxxxx xxxxxxx xxxxxx, x xxxxx xxxxx xxxx xxxxxx.",
+      "index": -1
      },
      {
       "node": "TABBTN_1",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 11,
-        "imageRevision": 11,
-        "source": {
-         "kind": "atlas",
-         "group": "TABS4",
-         "image": "TabDeSelected"
-        }
-       }
-      ],
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "TABS4",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
       ]
      },
      {
       "node": "TABBTN_1_STR",
       "type": "text",
-      "label": "Страница один",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
       "node": "TABBTN_2",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 12,
-        "imageRevision": 12,
-        "source": {
-         "kind": "atlas",
-         "group": "TABS4",
-         "image": "TabDeSelected"
-        }
-       }
-      ],
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "TABS4",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
       ]
      },
      {
       "node": "TABBTN_2_STR",
       "type": "text",
-      "label": "Страница два",
+      "label": "xxxxxxxxxxxxxx",
       "index": -1
      },
      {
       "node": "TABBTN_3",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 13,
-        "imageRevision": 13,
-        "source": {
-         "kind": "atlas",
-         "group": "TABS4",
-         "image": "TabSelected"
-        }
-       }
-      ],
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "TABS4",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
       ]
      },
      {
       "node": "TABBTN_3_STR",
       "type": "text",
-      "label": "Страница три",
+      "label": "xxxxxxxxx xxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_ECONOMY",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_OFFICER_BONUS",
+      "type": "text",
+      "label": "xxxxx xxxxxx xx xxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_ECONOMY",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_ECONOMY",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_ECONOMY",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_OFFICER_BONUS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_OFFICER_BONUS",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_OFFICER_BONUS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "HEADER_HONOR",
+      "type": "text",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
       "node": "HEADER_COMPLEXITY",
       "type": "text",
-      "label": "Мир",
+      "label": "xxxxx xxx xxx xxxx?",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_HONOR",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_HONOR",
+      "type": "button",
+      "label": "›",
       "index": -1
      },
      {
@@ -235,27 +492,68 @@
       "index": -1
      },
      {
-      "node": "VALUE_COMPLEXITY",
-      "type": "text",
-      "label": "Обычный",
-      "index": -1
-     },
-     {
       "node": "BUTTON_R_COMPLEXITY",
       "type": "button",
       "label": "›",
       "index": -1
      },
      {
-      "node": "TEXT_COMPLEXITY",
+      "node": "HEADER_SETTING_PROGRESSION",
       "type": "text",
-      "label": "Описание мира.",
+      "label": "xxxxxxxx xxxxxxxx",
       "index": -1
      },
      {
       "node": "HEADER_SETTING_NAVAL_COMBAT",
       "type": "text",
-      "label": "Настройка",
+      "label": "xxxxxxx xxx",
+      "index": -1
+     },
+     {
+      "node": "VALUE_HONOR",
+      "type": "text",
+      "label": "xxxxxxx xxxxx",
+      "index": -1
+     },
+     {
+      "node": "VALUE_COMPLEXITY",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "PICTURE_COMPLEXITY",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 20,
+        "imageRevision": 20,
+        "source": {
+         "group": "SQUARE_COMPLEXITY",
+         "image": "complexity_1",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "BUTTON_L_SETTING_PROGRESSION",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_PROGRESSION",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_PROGRESSION",
+      "type": "button",
+      "label": "›",
       "index": -1
      },
      {
@@ -267,7 +565,7 @@
      {
       "node": "VALUE_SETTING_NAVAL_COMBAT",
       "type": "text",
-      "label": "Значение",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
@@ -277,35 +575,77 @@
       "index": -1
      },
      {
-      "node": "CHECK_PISTOL",
-      "type": "check",
-      "label": "Переключатель один",
-      "index": 0,
-      "value": "1"
+      "node": "TEXT_HONOR",
+      "type": "text",
+      "label": "xx xx xxxxxx xxxxxxxxxx xxxxxxx xxxxxxxxx. xxxxxx xx xxxxx xxxxxxxxx xxxxxxx, xxx xxx xxxxxxxx xxxxxx.",
+      "index": -1
+     },
+     {
+      "node": "TEXT_COMPLEXITY",
+      "type": "text",
+      "label": "xxx xxxxx xx xxxxx xxxxxxx x xx xxxxxx xxx xxx xxxxxxxxxxxxxx. xxxxxx xxxxxxxxx xxxxxxxxx, x xxxxxx xxxxxx xxxxx xxxxx xxxx.",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_LAND_TIME",
+      "type": "text",
+      "label": "xxxxxxxxxx xxxxxxxx xx xxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTINGS_OTHER",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_LAND_TIME",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_LAND_TIME",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_LAND_TIME",
+      "type": "button",
+      "label": "›",
+      "index": -1
      },
      {
       "node": "CHECK_CASUALMODE",
       "type": "check",
-      "label": "Переключатель два",
-      "index": 0,
-      "value": "0"
+      "label": "xxxxx xxxxxxxxxxxx",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "xxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
      },
      {
       "node": "TOOLTIP_NOTE",
       "type": "text",
-      "label": "Подсказка окна",
+      "label": "xxxxxxxx xxxxxx xx xxxxxxx, xxxxx xxxxxxxx xxxxxxxxx xxxxxxxxx",
       "index": -1
      },
      {
       "node": "BTN_START1",
       "type": "button",
-      "label": "Начало один",
+      "label": "xxxxx",
       "index": -1
      },
      {
       "node": "BTN_START2",
       "type": "button",
-      "label": "Начало два",
+      "label": "xxxxxxxxx xxxx",
       "index": -1
      }
     ]
@@ -362,9 +702,9 @@
      "bio": false,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "INTERFACES/PORTRAITS/128/face_201"
      },
-     "name": "Герой Альфа",
+     "name": "xxxxx xx xxx",
      "nation": "<menu.nation_france>"
     },
     "rows": [
@@ -374,27 +714,59 @@
       "kind": "segment",
       "label": "",
       "options": [
-       "Страница один",
-       "Страница два",
-       "Страница три"
+       "xxxxxxxxx",
+       "xxxxxxxxxxxxxx",
+       "xxxxxxxxx xxxx"
       ],
       "selected": 2
      },
      {
-      "id": "COMPLEXITY",
+      "id": "SETTING_ECONOMY",
       "kind": "stepper",
-      "label": "Мир",
+      "label": "xxxxxxxxx",
       "left": true,
       "right": true,
-      "text": "Обычный"
+      "text": "xxxxxxx"
+     },
+     {
+      "id": "SETTING_OFFICER_BONUS",
+      "kind": "stepper",
+      "label": "xxxxx xxxxxx xx xxxxxxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxx"
+     },
+     {
+      "id": "COMPLEXITY",
+      "kind": "stepper",
+      "label": "xxxxx xxx xxx xxxx?",
+      "left": true,
+      "right": true,
+      "text": "xxxxxxx"
+     },
+     {
+      "id": "SETTING_PROGRESSION",
+      "kind": "stepper",
+      "label": "xxxxxxxx xxxxxxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxxx"
      },
      {
       "id": "SETTING_NAVAL_COMBAT",
       "kind": "stepper",
-      "label": "Настройка",
+      "label": "xxxxxxx xxx",
       "left": true,
       "right": true,
-      "text": "Значение"
+      "text": "xxxxxxxxx"
+     },
+     {
+      "id": "SETTING_LAND_TIME",
+      "kind": "stepper",
+      "label": "xxxxxxxxxx xxxxxxxx xx xxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxxxxx"
      }
     ],
     "setup": {
@@ -404,12 +776,12 @@
      "left": true,
      "note": "",
      "right": true,
-     "text": "Герой Альфа"
+     "text": "xxxxx xx xxx"
     },
     "start": {
      "busy": false,
      "disabled": false,
-     "label": "Начало один",
+     "label": "xxxxx",
      "reason": ""
     },
     "starts": [
@@ -417,7 +789,7 @@
       "busy": false,
       "disabled": false,
       "id": "start-1",
-      "label": "Начало два",
+      "label": "xxxxxxxxx xxxx",
       "reason": ""
      }
     ],
@@ -425,18 +797,18 @@
     "toggles": [
      {
       "disabled": false,
-      "id": "CHECK_PISTOL",
+      "id": "CHECK_CASUALMODE",
       "kind": "toggle",
-      "label": "Переключатель один",
-      "on": true,
+      "label": "xxxxx xxxxxxxxxxxx",
+      "on": false,
       "reason": ""
      },
      {
       "disabled": false,
-      "id": "CHECK_CASUALMODE",
+      "id": "CHECK_PISTOL",
       "kind": "toggle",
-      "label": "Переключатель два",
-      "on": false,
+      "label": "xxxxxxxxx xxxxxxxx",
+      "on": true,
       "reason": ""
      }
     ],
@@ -444,20 +816,47 @@
      {
       "id": "HERO_TYPE",
       "kind": "stepper",
-      "label": "Занятие",
+      "label": "xxxxxxxxxxx",
       "left": true,
-      "note": "Описание занятия.",
+      "note": "xxxxxx xxxxx xxxxxx xxxx xxxxxxx xxxx. xxxx xxxxxx x xxxxxxx xxxxxxxxx xxxxxxxx xxx xxxxxx x xxxxxxx xxxxxxxxxx xxxxxx xxxxx xx xxxxxxxxxxx xxxxxxxxxx.",
       "right": true,
-      "text": "Первое"
+      "text": "xxxxxxx"
      },
      {
       "id": "TRAIT",
       "kind": "stepper",
-      "label": "Черта",
+      "label": "xxxxx xxxxxxxxx",
       "left": true,
-      "note": "Описание черты.",
+      "note": "xx xxxx, xxxxx x xxxxxxxxx. xxx, xxx xxxxxx xxxxxxxxxx xxxxx xxxx xxxxxx xxxxxxxx, xx xxxxxx xxxxxxx x xxxx. xx xxxxxxxxxxx xxxx, xxxxxxxxx xxxxxxxxxxxxxx xxxxxx.",
       "right": true,
-      "text": "Вторая"
+      "text": "xxxxxxxx"
+     },
+     {
+      "id": "HOBBY",
+      "kind": "stepper",
+      "label": "xxxxxxxxx",
+      "left": true,
+      "note": "xx xxxxxxx xxxxxxxxx xxxx x xxxxx x xxxxxx xxxxxxxx, xxxxx xxxxxxxxxxx x xxxxxxxxx xxxxx, xxx xxxxxxx x xxxxx xxxxx. xxx xxxxxxx xx xxxxxx xxxx xxxxxx xxxx xxxxxxx — xxxxxx.",
+      "right": true,
+      "text": "xxxxx"
+     },
+     {
+      "id": "START_ITEM",
+      "kind": "stepper",
+      "label": "xxxxx",
+      "left": true,
+      "note": "x xxxxxx xx xxxxxxxxx xxxxxxx xxxxxxxxx xxx, xxxxx xxx xxxxxxxxxx x xxxxxxx. xxxxxx xxxxxxx xxxxxx xxxxx xxxx xxxxxx xxxxxxx xxxxxx, x xxxxx xxxxx xxxx xxxxxx.",
+      "right": true,
+      "text": "xxxxxxx xxxxxxx"
+     },
+     {
+      "id": "HONOR",
+      "kind": "stepper",
+      "label": "xxxxxxxxx",
+      "left": true,
+      "note": "xx xx xxxxxx xxxxxxxxxx xxxxxxx xxxxxxxxx. xxxxxx xx xxxxx xxxxxxxxx xxxxxxx, xxx xxx xxxxxxxx xxxxxx.",
+      "right": true,
+      "text": "xxxxxxx xxxxx"
      }
     ]
    },
@@ -485,117 +884,262 @@
     "screen": "selectcharacter",
     "widgets": [
      {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "CONFIRM_WINDOW_FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 21,
+        "imageRevision": 21,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxxx_1",
+      "index": -1
+     },
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_inventory",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
       "node": "BTN_EXIT",
       "type": "button",
-      "label": "Кнопка выхода",
-      "index": -1
+      "label": "xxxxx",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "TITLE",
       "type": "heading",
-      "label": "Заголовок окна",
-      "index": -1
+      "label": "  xxxxx xxxxxxxxxx xx xxxxxx!  ",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_TRAIT",
+      "type": "text",
+      "label": "xxxxx xxxxxxxxx",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "INFO_FRAME_CAPTION",
       "type": "text",
-      "label": "Подпись героя",
+      "label": "xxxxxxx",
+      "value": "1",
       "index": 0,
-      "value": "1"
+      "enabled": false
      },
      {
       "node": "LEFTCHANGE_CHARACTER",
       "type": "button",
       "label": "‹",
-      "index": -1
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "RIGHTCHANGE_CHARACTER",
       "type": "button",
       "label": "›",
-      "index": -1
-     },
-     {
-      "node": "HERO_NAME",
-      "type": "text",
-      "label": "Герой Альфа",
-      "index": 0,
-      "value": "1"
-     },
-     {
-      "node": "HEADER_HERO_TYPE",
-      "type": "text",
-      "label": "Занятие",
-      "index": -1
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "BUTTON_L_HERO_TYPE",
       "type": "button",
       "label": "‹",
-      "index": -1
-     },
-     {
-      "node": "VALUE_HERO_TYPE",
-      "type": "text",
-      "label": "Первое",
-      "index": -1
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "BUTTON_R_HERO_TYPE",
       "type": "button",
       "label": "›",
-      "index": -1
-     },
-     {
-      "node": "TEXT_HERO_TYPE",
-      "type": "text",
-      "label": "Описание занятия.",
-      "index": -1
-     },
-     {
-      "node": "HEADER_TRAIT",
-      "type": "text",
-      "label": "Черта",
-      "index": -1
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "BUTTON_L_TRAIT",
       "type": "button",
       "label": "‹",
-      "index": -1
-     },
-     {
-      "node": "VALUE_TRAIT",
-      "type": "text",
-      "label": "Вторая",
-      "index": -1
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "BUTTON_R_TRAIT",
       "type": "button",
       "label": "›",
-      "index": -1
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "xxxxx xx xxx",
+      "value": "1",
+      "index": 0,
+      "enabled": false
+     },
+     {
+      "node": "VALUE_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VALUE_TRAIT",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "PICTURE_HERO_TYPE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 16,
+        "imageRevision": 16,
+        "source": {
+         "group": "FEATS",
+         "image": "HT1",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PICTURE_TRAIT",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 17,
+        "imageRevision": 17,
+        "source": {
+         "group": "FEATS",
+         "image": "wiry",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TEXT_HERO_TYPE",
+      "type": "text",
+      "label": "xxxxxx xxxxx xxxxxx xxxx xxxxxxx xxxx. xxxx xxxxxx x xxxxxxx xxxxxxxxx xxxxxxxx xxx xxxxxx x xxxxxxx xxxxxxxxxx xxxxxx xxxxx xx xxxxxxxxxxx xxxxxxxxxx.",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "TEXT_TRAIT",
       "type": "text",
-      "label": "Описание черты.",
-      "index": -1
+      "label": "xx xxxx, xxxxx x xxxxxxxxx. xxx, xxx xxxxxx xxxxxxxxxx xxxxx xxxx xxxxxx xxxxxxxx, xx xxxxxx xxxxxxx x xxxx. xx xxxxxxxxxxx xxxx, xxxxxxxxx xxxxxxxxxxxxxx xxxxxx.",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "FACEPICT",
       "type": "image",
       "index": -1,
+      "enabled": false,
+      "actions": [
+       "press"
+      ],
       "images": [
        {
-        "handle": 3,
-        "imageRevision": 3,
+        "handle": 14,
+        "imageRevision": 14,
         "source": {
-         "kind": "portrait",
-         "image": "1"
+         "image": "201",
+         "kind": "portrait"
         }
        }
-      ],
+      ]
+     },
+     {
+      "node": "CONFIRM_WINDOW_FRAME",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 22,
+        "imageRevision": 22,
+        "source": {
+         "group": "paper_confirm",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PROFILE_STR",
+      "type": "text",
+      "label": "xxx xxxxxxx",
+      "value": "1",
+      "index": 0,
       "actions": [
        "press"
       ]
@@ -604,130 +1148,405 @@
       "node": "NATIONS_PICTURE",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 4,
-        "imageRevision": 4,
-        "source": {
-         "kind": "atlas",
-         "group": "NATIONS",
-         "image": "France"
-        }
-       }
-      ],
+      "enabled": false,
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 15,
+        "imageRevision": 15,
+        "source": {
+         "group": "NATIONS",
+         "image": "France",
+         "kind": "atlas"
+        }
+       }
       ]
+     },
+     {
+      "node": "HEADER_HOBBY",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_START_ITEM",
+      "type": "text",
+      "label": "xxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "PROFILE_NAME_FRAME",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 23,
+        "imageRevision": 23,
+        "source": {
+         "group": "LE_ICONS",
+         "image": "text_frame",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PROFILE_NAME",
+      "type": "edit",
+      "value": "xxxxx-xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_HOBBY",
+      "type": "button",
+      "label": "‹",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_R_HOBBY",
+      "type": "button",
+      "label": "›",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_L_START_ITEM",
+      "type": "button",
+      "label": "‹",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_R_START_ITEM",
+      "type": "button",
+      "label": "›",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VALUE_HOBBY",
+      "type": "text",
+      "label": "xxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VALUE_START_ITEM",
+      "type": "text",
+      "label": "xxxxxxx xxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "START_INFO_TEXT",
+      "type": "text",
+      "label": "xx xxxxxxxxxxx xxxxx xxxxxxx xxxxxxx xxxxxxxx x xxxxxxxx xxxxx",
+      "value": "1",
+      "index": 0,
+      "enabled": false
+     },
+     {
+      "node": "PICTURE_HOBBY",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 18,
+        "imageRevision": 18,
+        "source": {
+         "group": "FEATS",
+         "image": "hunt",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PICTURE_START_ITEM",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 19,
+        "imageRevision": 19,
+        "source": {
+         "group": "ITEMS_28",
+         "image": "itm3",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TEXT_CONFIRM_WINDOW",
+      "type": "text",
+      "label": "xxxxxx xxxxxxxxxxx xxxxxxxxx xxxxxxxxxxxx?",
+      "index": -1
+     },
+     {
+      "node": "TEXT_HOBBY",
+      "type": "text",
+      "label": "xx xxxxxxx xxxxxxxxx xxxx x xxxxx x xxxxxx xxxxxxxx, xxxxx xxxxxxxxxxx x xxxxxxxxx xxxxx, xxx xxxxxxx x xxxxx xxxxx. xxx xxxxxxx xx xxxxxx xxxx xxxxxx xxxx xxxxxxx — xxxxxx.",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TEXT_START_ITEM",
+      "type": "text",
+      "label": "x xxxxxx xx xxxxxxxxx xxxxxxx xxxxxxxxx xxx, xxxxx xxx xxxxxxxxxx x xxxxxxx. xxxxxx xxxxxxx xxxxxx xxxxx xxxx xxxxxx xxxxxxx xxxxxx, x xxxxx xxxxx xxxx xxxxxx.",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "TABBTN_1",
       "type": "image",
       "index": -1,
-      "images": [
-       {
-        "handle": 11,
-        "imageRevision": 11,
-        "source": {
-         "kind": "atlas",
-         "group": "TABS4",
-         "image": "TabDeSelected"
-        }
-       }
-      ],
+      "enabled": false,
       "actions": [
        "press"
-      ]
-     },
-     {
-      "node": "TABBTN_1_STR",
-      "type": "text",
-      "label": "Страница один",
-      "index": -1
-     },
-     {
-      "node": "TABBTN_2",
-      "type": "image",
-      "index": -1,
-      "images": [
-       {
-        "handle": 12,
-        "imageRevision": 12,
-        "source": {
-         "kind": "atlas",
-         "group": "TABS4",
-         "image": "TabDeSelected"
-        }
-       }
       ],
-      "actions": [
-       "press"
-      ]
-     },
-     {
-      "node": "TABBTN_2_STR",
-      "type": "text",
-      "label": "Страница два",
-      "index": -1
-     },
-     {
-      "node": "TABBTN_3",
-      "type": "image",
-      "index": -1,
       "images": [
        {
         "handle": 13,
         "imageRevision": 13,
         "source": {
-         "kind": "atlas",
          "group": "TABS4",
-         "image": "TabSelected"
+         "image": "TabDeSelected",
+         "kind": "atlas"
         }
        }
-      ],
+      ]
+     },
+     {
+      "node": "TABBTN_1_STR",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
       "actions": [
        "press"
+      ],
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "TABS4",
+         "image": "TabDeSelected",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TABBTN_2_STR",
+      "type": "text",
+      "label": "xxxxxxxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "TABS4",
+         "image": "TabSelected",
+         "kind": "atlas"
+        }
+       }
       ]
      },
      {
       "node": "TABBTN_3_STR",
       "type": "text",
-      "label": "Страница три",
+      "label": "xxxxxxxxx xxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "CONFIRM_WINDOW_MB_YES",
+      "type": "button",
+      "label": "xxxxxx",
       "index": -1
      },
      {
-      "node": "HEADER_COMPLEXITY",
+      "node": "CONFIRM_WINDOW_MB_NO",
+      "type": "button",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_ECONOMY",
       "type": "text",
-      "label": "Мир",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
-      "node": "BUTTON_L_COMPLEXITY",
+      "node": "HEADER_SETTING_OFFICER_BONUS",
+      "type": "text",
+      "label": "xxxxx xxxxxx xx xxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_ECONOMY",
       "type": "button",
       "label": "‹",
       "index": -1
      },
      {
-      "node": "VALUE_COMPLEXITY",
+      "node": "VALUE_SETTING_ECONOMY",
       "type": "text",
-      "label": "Обычный",
+      "label": "xxxxxxx",
       "index": -1
      },
      {
-      "node": "BUTTON_R_COMPLEXITY",
+      "node": "BUTTON_R_SETTING_ECONOMY",
       "type": "button",
       "label": "›",
       "index": -1
      },
      {
-      "node": "TEXT_COMPLEXITY",
+      "node": "BUTTON_L_SETTING_OFFICER_BONUS",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_OFFICER_BONUS",
       "type": "text",
-      "label": "Описание мира.",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_OFFICER_BONUS",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "HEADER_HONOR",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_COMPLEXITY",
+      "type": "text",
+      "label": "xxxxx xxx xxx xxxx?",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_L_HONOR",
+      "type": "button",
+      "label": "‹",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_R_HONOR",
+      "type": "button",
+      "label": "›",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_L_COMPLEXITY",
+      "type": "button",
+      "label": "‹",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "BUTTON_R_COMPLEXITY",
+      "type": "button",
+      "label": "›",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_SETTING_PROGRESSION",
+      "type": "text",
+      "label": "xxxxxxxx xxxxxxxx",
       "index": -1
      },
      {
       "node": "HEADER_SETTING_NAVAL_COMBAT",
       "type": "text",
-      "label": "Настройка",
+      "label": "xxxxxxx xxx",
+      "index": -1
+     },
+     {
+      "node": "VALUE_HONOR",
+      "type": "text",
+      "label": "xxxxxxx xxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "VALUE_COMPLEXITY",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "PICTURE_COMPLEXITY",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 20,
+        "imageRevision": 20,
+        "source": {
+         "group": "SQUARE_COMPLEXITY",
+         "image": "complexity_1",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "BUTTON_L_SETTING_PROGRESSION",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_PROGRESSION",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_PROGRESSION",
+      "type": "button",
+      "label": "›",
       "index": -1
      },
      {
@@ -739,7 +1558,7 @@
      {
       "node": "VALUE_SETTING_NAVAL_COMBAT",
       "type": "text",
-      "label": "Значение",
+      "label": "xxxxxxxxx",
       "index": -1
      },
      {
@@ -749,70 +1568,82 @@
       "index": -1
      },
      {
-      "node": "CHECK_PISTOL",
-      "type": "check",
-      "label": "Переключатель один",
-      "index": 0,
-      "value": "1"
+      "node": "TEXT_HONOR",
+      "type": "text",
+      "label": "xx xx xxxxxx xxxxxxxxxx xxxxxxx xxxxxxxxx. xxxxxx xx xxxxx xxxxxxxxx xxxxxxx, xxx xxx xxxxxxxx xxxxxx.",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TEXT_COMPLEXITY",
+      "type": "text",
+      "label": "xxx xxxxx xx xxxxx xxxxxxx x xx xxxxxx xxx xxx xxxxxxxxxxxxxx. xxxxxx xxxxxxxxx xxxxxxxxx, x xxxxxx xxxxxx xxxxx xxxxx xxxx.",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "HEADER_SETTING_LAND_TIME",
+      "type": "text",
+      "label": "xxxxxxxxxx xxxxxxxx xx xxxx",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTINGS_OTHER",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_LAND_TIME",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_LAND_TIME",
+      "type": "text",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_LAND_TIME",
+      "type": "button",
+      "label": "›",
+      "index": -1
      },
      {
       "node": "CHECK_CASUALMODE",
       "type": "check",
-      "label": "Переключатель два",
-      "index": 0,
-      "value": "0"
+      "label": "xxxxx xxxxxxxxxxxx",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "xxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
      },
      {
       "node": "TOOLTIP_NOTE",
       "type": "text",
-      "label": "Подсказка окна",
+      "label": "xxxxxxxx xxxxxx xx xxxxxxx, xxxxx xxxxxxxx xxxxxxxxx xxxxxxxxx",
       "index": -1
      },
      {
       "node": "BTN_START1",
       "type": "button",
-      "label": "Начало один",
-      "index": -1
+      "label": "xxxxx",
+      "index": -1,
+      "enabled": false
      },
      {
       "node": "BTN_START2",
       "type": "button",
-      "label": "Начало два",
-      "index": -1
-     },
-     {
-      "node": "PROFILE_STR",
-      "type": "text",
-      "label": "Подпись поля",
-      "index": 0,
-      "value": "1",
-      "actions": [
-       "press"
-      ]
-     },
-     {
-      "node": "PROFILE_NAME",
-      "type": "edit",
+      "label": "xxxxxxxxx xxxx",
       "index": -1,
-      "value": "Герой-Первое"
-     },
-     {
-      "node": "TEXT_CONFIRM_WINDOW",
-      "type": "text",
-      "label": "Вопрос окна?",
-      "index": -1
-     },
-     {
-      "node": "CONFIRM_WINDOW_MB_YES",
-      "type": "button",
-      "label": "Ответ один",
-      "index": -1
-     },
-     {
-      "node": "CONFIRM_WINDOW_MB_NO",
-      "type": "button",
-      "label": "Ответ два",
-      "index": -1
+      "enabled": false
      }
     ]
    },
@@ -838,9 +1669,9 @@
      "bio": false,
      "image": {
       "kind": "portrait",
-      "texture": "INTERFACES/PORTRAITS/128/face_1"
+      "texture": "INTERFACES/PORTRAITS/128/face_201"
      },
-     "name": "Герой Альфа",
+     "name": "xxxxx xx xxx",
      "nation": "<menu.nation_france>"
     },
     "modal": {
@@ -848,13 +1679,13 @@
       {
        "disabled": false,
        "id": "modal-0",
-       "label": "Ответ один",
+       "label": "xxxxxx",
        "variant": "primary"
       },
       {
        "disabled": false,
        "id": "modal-1",
-       "label": "Ответ два",
+       "label": "xxxxxx",
        "variant": "secondary"
       },
       {
@@ -864,60 +1695,92 @@
        "variant": "secondary"
       }
      ],
-     "text": "Подпись поля: Герой-Первое",
-     "title": "Вопрос окна?"
+     "text": "xxx xxxxxxx: xxxxx-xxxxxxx",
+     "title": "xxxxxx xxxxxxxxxxx xxxxxxxxx xxxxxxxxxxxx?"
     },
     "rows": [
      {
-      "disabled": false,
+      "disabled": true,
       "id": "page",
       "kind": "segment",
       "label": "",
       "options": [
-       "Страница один",
-       "Страница два",
-       "Страница три"
+       "xxxxxxxxx",
+       "xxxxxxxxxxxxxx",
+       "xxxxxxxxx xxxx"
       ],
       "selected": 2
      },
      {
-      "id": "COMPLEXITY",
+      "id": "SETTING_ECONOMY",
       "kind": "stepper",
-      "label": "Мир",
+      "label": "xxxxxxxxx",
       "left": true,
       "right": true,
-      "text": "Обычный"
+      "text": "xxxxxxx"
+     },
+     {
+      "id": "SETTING_OFFICER_BONUS",
+      "kind": "stepper",
+      "label": "xxxxx xxxxxx xx xxxxxxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxx"
+     },
+     {
+      "id": "COMPLEXITY",
+      "kind": "stepper",
+      "label": "xxxxx xxx xxx xxxx?",
+      "left": false,
+      "right": false,
+      "text": "xxxxxxx"
+     },
+     {
+      "id": "SETTING_PROGRESSION",
+      "kind": "stepper",
+      "label": "xxxxxxxx xxxxxxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxxx"
      },
      {
       "id": "SETTING_NAVAL_COMBAT",
       "kind": "stepper",
-      "label": "Настройка",
+      "label": "xxxxxxx xxx",
       "left": true,
       "right": true,
-      "text": "Значение"
+      "text": "xxxxxxxxx"
+     },
+     {
+      "id": "SETTING_LAND_TIME",
+      "kind": "stepper",
+      "label": "xxxxxxxxxx xxxxxxxx xx xxxx",
+      "left": true,
+      "right": true,
+      "text": "xxxxxxxxx"
      }
     ],
     "setup": {
      "id": "hero",
      "kind": "stepper",
      "label": "",
-     "left": true,
+     "left": false,
      "note": "",
-     "right": true,
-     "text": "Герой Альфа"
+     "right": false,
+     "text": "xxxxx xx xxx"
     },
     "start": {
      "busy": false,
-     "disabled": false,
-     "label": "Начало один",
+     "disabled": true,
+     "label": "xxxxx",
      "reason": ""
     },
     "starts": [
      {
       "busy": false,
-      "disabled": false,
+      "disabled": true,
       "id": "start-1",
-      "label": "Начало два",
+      "label": "xxxxxxxxx xxxx",
       "reason": ""
      }
     ],
@@ -925,18 +1788,18 @@
     "toggles": [
      {
       "disabled": false,
-      "id": "CHECK_PISTOL",
+      "id": "CHECK_CASUALMODE",
       "kind": "toggle",
-      "label": "Переключатель один",
-      "on": true,
+      "label": "xxxxx xxxxxxxxxxxx",
+      "on": false,
       "reason": ""
      },
      {
       "disabled": false,
-      "id": "CHECK_CASUALMODE",
+      "id": "CHECK_PISTOL",
       "kind": "toggle",
-      "label": "Переключатель два",
-      "on": false,
+      "label": "xxxxxxxxx xxxxxxxx",
+      "on": true,
       "reason": ""
      }
     ],
@@ -944,20 +1807,47 @@
      {
       "id": "HERO_TYPE",
       "kind": "stepper",
-      "label": "Занятие",
-      "left": true,
-      "note": "Описание занятия.",
-      "right": true,
-      "text": "Первое"
+      "label": "xxxxxxxxxxx",
+      "left": false,
+      "note": "xxxxxx xxxxx xxxxxx xxxx xxxxxxx xxxx. xxxx xxxxxx x xxxxxxx xxxxxxxxx xxxxxxxx xxx xxxxxx x xxxxxxx xxxxxxxxxx xxxxxx xxxxx xx xxxxxxxxxxx xxxxxxxxxx.",
+      "right": false,
+      "text": "xxxxxxx"
      },
      {
       "id": "TRAIT",
       "kind": "stepper",
-      "label": "Черта",
-      "left": true,
-      "note": "Описание черты.",
-      "right": true,
-      "text": "Вторая"
+      "label": "xxxxx xxxxxxxxx",
+      "left": false,
+      "note": "xx xxxx, xxxxx x xxxxxxxxx. xxx, xxx xxxxxx xxxxxxxxxx xxxxx xxxx xxxxxx xxxxxxxx, xx xxxxxx xxxxxxx x xxxx. xx xxxxxxxxxxx xxxx, xxxxxxxxx xxxxxxxxxxxxxx xxxxxx.",
+      "right": false,
+      "text": "xxxxxxxx"
+     },
+     {
+      "id": "HOBBY",
+      "kind": "stepper",
+      "label": "xxxxxxxxx",
+      "left": false,
+      "note": "xx xxxxxxx xxxxxxxxx xxxx x xxxxx x xxxxxx xxxxxxxx, xxxxx xxxxxxxxxxx x xxxxxxxxx xxxxx, xxx xxxxxxx x xxxxx xxxxx. xxx xxxxxxx xx xxxxxx xxxx xxxxxx xxxx xxxxxxx — xxxxxx.",
+      "right": false,
+      "text": "xxxxx"
+     },
+     {
+      "id": "START_ITEM",
+      "kind": "stepper",
+      "label": "xxxxx",
+      "left": false,
+      "note": "x xxxxxx xx xxxxxxxxx xxxxxxx xxxxxxxxx xxx, xxxxx xxx xxxxxxxxxx x xxxxxxx. xxxxxx xxxxxxx xxxxxx xxxxx xxxx xxxxxx xxxxxxx xxxxxx, x xxxxx xxxxx xxxx xxxxxx.",
+      "right": false,
+      "text": "xxxxxxx xxxxxxx"
+     },
+     {
+      "id": "HONOR",
+      "kind": "stepper",
+      "label": "xxxxxxxxx",
+      "left": false,
+      "note": "xx xx xxxxxx xxxxxxxxxx xxxxxxx xxxxxxxxx. xxxxxx xx xxxxx xxxxxxxxx xxxxxxx, xxx xxx xxxxxxxx xxxxxx.",
+      "right": false,
+      "text": "xxxxxxx xxxxx"
      }
     ]
    },
@@ -965,7 +1855,7 @@
     "modal "
    ],
    "calls": [
-    "edit-text PROFILE_NAME Подпись поля",
+    "edit-text PROFILE_NAME xxx xxxxxxx",
     "send CONFIRM_WINDOW_MB_NO press ",
     "send CONFIRM_WINDOW_MB_YES press "
    ]
