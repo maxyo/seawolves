@@ -161,6 +161,9 @@
   были две записи подряд, и если игру закрывали или место кончалось между ними, прежнее сохранение уже было удалено,
   а новое не загружалось. Теперь в слоте всегда либо прежнее сохранение, либо новое целиком; о неудаче на любом шаге
   игра сообщает. Caribbean Legend теперь узнаёт от движка, что сохранение записано.
+- Загрузка проверяет сохранение целиком до того, как стирает текущую игру: сохранение, сделанное другой программой
+  скриптов (другой каталог скриптов или файл скрипта, которого у этой игры нет — чужая игра, изменённый файл),
+  отклоняется с сообщением, а игра продолжается. Раньше такое сохранение оставляло движок без скриптов и без меню.
 
 **English**
 
@@ -329,6 +332,9 @@
   be two writes in a row, and when the game was closed or the storage ran out between them, the previous save was
   already deleted and the new one did not load. A slot now always holds either the previous save or the whole new
   one; a failure at any step is reported. Caribbean Legend is now told by the engine that a save was written.
+- A load checks the whole save before it erases the running game: a save made by another script program (another
+  script folder, or a script file this game does not have — another game, an edited file) is refused with a message
+  and the game goes on. Such a save used to leave the engine with no scripts and no menu.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

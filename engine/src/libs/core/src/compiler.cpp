@@ -7143,19 +7143,44 @@ bool COMPILER::SaveState(std::vector<char> &image)
     return built;
 }
 
-// `raw` is the uncompressed script state (save_file.hpp) and `state` its structure, both
-// checked before the caller erased the running game (save_state.hpp): from here on nothing of
-// the file can fail. What remains is the program itself (a segment that does not compile).
+// Whether a saved state is of the running program, asked before the running game is erased: "" when its program
+// directory is this one and every segment it names is loaded now, else why not. A load compiles the program again
+// from what the running one was compiled from, never from a place a file names: the state's segments become the
+// running program's own names for them.
+std::string COMPILER::BindStateProgram(storm::save::ParsedState &state) const
+{
+    // The game's paths take either slash and any case of ASCII letters.
+    const auto folded = [](std::string path) {
+        std::ranges::replace(path, '/', '\\');
+        while (!path.empty() && path.back() == '\\')
+            path.pop_back();
+        return storm::AsciiLower(std::move(path));
+    };
+    if (folded(state.programDirectory.value_or("")) != folded(ProgramDirectory ? ProgramDirectory : ""))
+        return std::string("the save is of another program: its scripts are not in this game's '") +
+               (ProgramDirectory ? ProgramDirectory : "") + "'";
+    if (state.segments.empty())
+        return "the save names no script segment";
+    for (std::string &segment : state.segments)
+    {
+        const auto running = std::ranges::find_if(SegmentTable, [&](const SEGMENT_DESC &loaded) {
+            return !loaded.bUnload && folded(loaded.name) == folded(segment);
+        });
+        if (running == SegmentTable.end())
+            return "the save is of another program: it names a script segment this game does not run";
+        segment = running->name;
+    }
+    return {};
+}
+
+// `raw` is the uncompressed script state (save_file.hpp) and `state` its structure, both checked before the caller
+// erased the running game (save_state.hpp, BindStateProgram): from here on nothing of the file can fail. What
+// remains is the program itself, which compiled in this session (a segment that does not compile again).
 bool COMPILER::LoadState(const std::vector<char> &raw, const storm::save::ParsedState &state)
 {
+    char *const directory = std::exchange(ProgramDirectory, nullptr); // Release forgets it
     Release();
-
-    // 1. Program Directory
-    if (state.programDirectory)
-    {
-        ProgramDirectory = new char[state.programDirectory->size() + 1];
-        memcpy(ProgramDirectory, state.programDirectory->c_str(), state.programDirectory->size() + 1);
-    }
+    ProgramDirectory = directory;
 
     // 4. SCodec data: in saved order, which gives every name its saved code
     for (const auto &name : state.codec)

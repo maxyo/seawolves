@@ -51,6 +51,8 @@ class CoreImpl final : public CorePrivate
 
     void ProcessExecute();
     void ProcessRealize();
+    bool ReadStateFile(const char *file_name, std::vector<char> &raw, storm::save::ParsedState &state,
+                       std::string &problem);
     void ProcessStateLoading();
     void ReportFailedLoad();
     void FailSave(const std::string &record, std::string reason, bool space = false);

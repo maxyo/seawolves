@@ -781,25 +781,44 @@ bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_s
     return true;
 }
 
-// force core to load state file at the start of next game loop, return false if no state file
+// Reads a save for a load and checks everything the load takes from the file, while the running game is whole:
+// the file (save_file.hpp), the structure of its state (save_state.hpp) and the program it names
+// (COMPILER::BindStateProgram). False with the `problem`; nothing of the file is checked again afterwards.
+bool CoreImpl::ReadStateFile(const char *file_name, storm::save::Bytes &raw, storm::save::ParsedState &state,
+                             std::string &problem)
+{
+    const auto path = std::filesystem::u8path(fio->ConvertPathResource(file_name));
+    storm::save::Bytes image;
+    std::string error;
+    const auto source = storm::save::loadWithRecovery(path, image, raw, error);
+    if (source == storm::save::Source::None)
+    {
+        problem = error.empty() ? std::string("unreadable") : error;
+        return false;
+    }
+    if (source == storm::save::Source::Backup)
+        spdlog::warn("Save '{}': {}", file_name, error);
+    if (!storm::save::parseState(raw.data(), raw.size(), state, error))
+    {
+        problem = "the script state is damaged: " + error;
+        return false;
+    }
+    problem = Compiler->BindStateProgram(state);
+    return problem.empty();
+}
+
 std::string CoreImpl::StateFileProblem(const char *file_name)
 {
     if (!file_name)
         return "no file name";
-    const auto path = std::filesystem::u8path(fio->ConvertPathResource(file_name));
-    storm::save::Bytes image, raw;
-    std::string error;
-    const auto source = storm::save::loadWithRecovery(path, image, raw, error);
-    if (source == storm::save::Source::None)
-        return error.empty() ? std::string("unreadable") : error;
-    if (source == storm::save::Source::Backup)
-        spdlog::warn("Save '{}': {}", file_name, error);
+    storm::save::Bytes raw;
     storm::save::ParsedState state;
-    if (!storm::save::parseState(raw.data(), raw.size(), state, error))
-        return "the script state is damaged: " + error;
-    return {};
+    std::string problem;
+    ReadStateFile(file_name, raw, state, problem);
+    return problem;
 }
 
+// force core to load state file at the start of next game loop, return false if no state file
 bool CoreImpl::InitiateStateLoading(const char *file_name)
 {
     if (!file_name)
@@ -838,55 +857,34 @@ void CoreImpl::ProcessStateLoading()
     {
         return;
     }
+    const std::string record = State_file_name;
+    delete[] State_file_name;
+    State_file_name = nullptr;
 
-    // Read and validate before erasing anything: a save that became unreadable
-    // since InitiateStateLoading must not cost the player the current session.
-    const auto path = std::filesystem::u8path(fio->ConvertPathResource(State_file_name));
-    storm::save::Bytes image, raw;
-    std::string error;
-    const auto source = storm::save::loadWithRecovery(path, image, raw, error);
-    if (source == storm::save::Source::None)
-    {
-        spdlog::error("Save '{}' is unreadable, load cancelled: {}", State_file_name, error);
-        storm::loadWatch().Refused(State_file_name, "the record became unreadable: " + error);
-        delete[] State_file_name;
-        State_file_name = nullptr;
-        State_loading = false;
-        return;
-    }
-    image = {};
-    // The whole script state is read before the game is erased: a state that does not parse
-    // costs nothing but this load (save_state.hpp).
+    // The file is read again: a save that changed since InitiateStateLoading must not cost the player the
+    // current session.
+    storm::save::Bytes raw;
     storm::save::ParsedState state;
-    if (!storm::save::parseState(raw.data(), raw.size(), state, error))
+    if (std::string problem; !ReadStateFile(record.c_str(), raw, state, problem))
     {
-        spdlog::error("Save '{}' has a damaged script state, load cancelled: {}", State_file_name, error);
-        storm::loadWatch().Refused(State_file_name, "the script state is damaged: " + error);
-        delete[] State_file_name;
-        State_file_name = nullptr;
-        State_loading = false;
+        spdlog::error("Save '{}' cannot be loaded, load cancelled: {}", record, problem);
+        storm::loadWatch().Refused(record, "the record cannot be read: " + problem);
         return;
     }
 
     State_loading = true;
     EraseEntities();
-
-    if (!Compiler->LoadState(raw, state))
-    {
-        spdlog::error("Save '{}' could not be applied", State_file_name);
-        storm::loadWatch().Refused(State_file_name, "the game could not apply the record");
-    }
-    else
-    {
-        if (storm::loadWatch().Armed())
-            spdlog::info("load watch: '{}' applied; its state was taken {:.1f} s (wall clock) after it was asked for", State_file_name,
-                         storm::loadWatch().Waited());
-        storm::loadWatch().Loaded();
-    }
-
-    delete[] State_file_name;
-    State_file_name = nullptr;
+    const bool applied = Compiler->LoadState(raw, state);
     State_loading = false;
+    // The game is erased and its program, which ran until now, did not load again: no script is left to bring a
+    // menu back. The frame loop shows the reason and ends the session.
+    if (!applied)
+        throw std::runtime_error("The save '" + record + "' could not be loaded: the game's scripts did not load again");
+
+    if (storm::loadWatch().Armed())
+        spdlog::info("load watch: '{}' applied; its state was taken {:.1f} s (wall clock) after it was asked for", record,
+                     storm::loadWatch().Waited());
+    storm::loadWatch().Loaded();
 }
 
 // The load watchdog (load_watch.hpp): a load the player asked for that was refused or never

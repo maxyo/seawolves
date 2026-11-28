@@ -308,6 +308,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     void ForEachFunction(const std::function<void(const storm::script::Function &)> &visit) const override;
     void ForEachGlobal(const std::function<void(std::string_view name)> &visit) const override;
     void ForEachEvent(const std::function<void(std::string_view name)> &visit) const override;
+    std::string BindStateProgram(storm::save::ParsedState &state) const;
     bool LoadState(const std::vector<char> &raw, const storm::save::ParsedState &state);
     bool OnLoad();
 
