@@ -39,6 +39,7 @@ class AICharacter : public Character
         glm::vec3 tpnt;      // The point we are going at the moment
         int32_t tnode;        // The node we're on
         float radius;      // Radius to complete the task
+        float areaRadius;  // > 0: the move ends anywhere inside this radius of pnt
         float waitTime;    // Waiting time (stand)
         AICharacter *exch; // don't collide with this character
         // Flags
@@ -71,7 +72,8 @@ class AICharacter : public Character
     // To stand
     bool CmdStay();
     // Go to the point
-    bool CmdGotoPoint(float x, float y, float z, float rad, int32_t node = -1, bool isCheckBusyPos = true);
+    bool CmdGotoPoint(float x, float y, float z, float rad, int32_t node = -1, bool isCheckBusyPos = true,
+                      float areaRadius = 0.0f);
     // Move away from the point
     bool CmdEscape(float x, float y, float z, float rad);
     // Set the character we don't collide with
@@ -101,6 +103,8 @@ class AICharacter : public Character
     int32_t FindNodeIndex(const glm::vec3 &pos, float *hy = nullptr);
     // Find direction where to go (orientation on the terrain)
     bool FindDirectional();
+    // An area move stands inside its area on a place the patch connects to the area's centre
+    bool ReachedArea();
     // Find the pushing forces
     void CalcRepulsionForces();
   protected:

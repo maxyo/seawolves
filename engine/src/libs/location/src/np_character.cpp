@@ -6,6 +6,7 @@
 #include "land_protocol.hpp"
 #include "characters_groups.h"
 #include "math_inlines.h"
+#include "npc_navigation.hpp"
 #include "shared/messages.h"
 
 // Goto
@@ -17,6 +18,9 @@
 #define NPC_RUN_DIST_NPC 10.0f  // Distance to the character, at which to run
 #define NPC_WALK_DIST_NPC 4.0f  // Distance to the character, at which running turns into walking
 
+// Area: the stop radius of the move toward the centre (Caribbean Legend's engine)
+#define NPC_AREA_APPROACH_STOP_DIST 0.6f
+
 // Escape
 #define NPC_STOP_ESCAPE 20.0f // Distance at which to stop the escape
 
@@ -27,7 +31,7 @@
 #define NPC_FIGHT_WALK_DIST 2.5f  // Distance to the character, at which to switch to walking mode
 #define NPC_FIGHT_FIRE_DIST 25.0f // Distance to the character, at which you can shoot
 
-NPCharacter::NPCharacter() : taskstack{}
+NPCharacter::NPCharacter() : task{}, taskstack{}
 {
     charactersGroups = {};
     fMusketerTime = {};
@@ -119,7 +123,10 @@ uint32_t NPCharacter::ChlProcessMessage(int32_t messageID, MESSAGE &message)
     {
     case MSG_NPCHARACTER_SETTASK: {
         const std::string &buf = message.String();
-        return SetNewTask(GetTaskID(buf.c_str()), message);
+        const NPCTask tsk = GetTaskID(buf.c_str());
+        if (tsk == npct_unknow)
+            storm::location::ReportUnknownCommand("MSG_NPCHARACTER_SETTASK", buf);
+        return SetNewTask(tsk, message);
     }
     case MSG_NPCHARACTER_PUSHTASK:
         return PushTask();
@@ -148,24 +155,6 @@ uint32_t NPCharacter::ChlProcessMessage(int32_t messageID, MESSAGE &message)
 // Move the character to the desired position
 void NPCharacter::Move(float dltTime)
 {
-    // process the task
-    switch (task.task)
-    {
-    case npct_none:
-        break;
-    case npct_stay:
-        break;
-    case npct_gotopoint:
-        break;
-    case npct_followcharacter:
-        break;
-    case npct_fight:
-        break;
-    case npct_escape:
-        break;
-    case npct_dead:
-        break;
-    }
     AICharacter::Move(dltTime);
 }
 
@@ -201,6 +190,10 @@ void NPCharacter::Update(float dltTime)
         break;
     case npct_escape:
         UpdateEscapeCharacter(dltTime);
+        break;
+    case npct_runtoarea:
+    case npct_gotoarea:
+        UpdateAreaTask();
         break;
     case npct_dead:
         break;
@@ -308,6 +301,7 @@ void NPCharacter::SetEscapeTask(Character *c)
 
     task.task = npct_runtopoint;
     lastSetTask = npct_runtopoint;
+    task.isCheckBusy = 1;
     memset(&task.target, 0, sizeof(task.target));
 
     glm::vec3 vOurPos, vPos;
@@ -331,16 +325,29 @@ void NPCharacter::SetEscapeTask(Character *c)
     }
 }
 
-// Set a new task
-// Caribbean Legend puts a flag before the point of "Goto point" and "Runto point": check that the point is free.
-void NPCharacter::ReadBusyPositionCheck(MESSAGE &message)
+// Caribbean Legend puts a flag before the point of a move task: whether to wait while the point is taken.
+// To Each His Own's moves always wait.
+bool NPCharacter::ReadBusyPositionCheck(MESSAGE &message)
 {
     if (message.GetCurrentFormatType() != 'l')
-        return;
-    if (message.Long() != 0)
-        storm::location::ReportWithoutEffect("MSG_NPCHARACTER_SETTASK", "the check that the point is free is not made");
+        return true;
+    return message.Long() != 0;
 }
 
+// "Runto area" / "Goto area": a busy check flag, the centre and the radius; the move starts in UpdateAreaTask.
+bool NPCharacter::SetAreaTask(NPCTask tsk, MESSAGE &message)
+{
+    ReadBusyPositionCheck(message);
+    task.to.x = message.Float();
+    task.to.y = message.Float();
+    task.to.z = message.Float();
+    task.areaRadius = message.Float();
+    task.isAreaPending = 1;
+    CmdStay();
+    return storm::location::PositiveFinite(task.areaRadius);
+}
+
+// Set a new task
 bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
 {
     if (bMusketerNoMove)
@@ -350,6 +357,8 @@ bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
         if (tsk == npct_runtopoint)
             return true;
         if (tsk == npct_followcharacter)
+            return true;
+        if (tsk == npct_runtoarea || tsk == npct_gotoarea)
             return true;
     }
 
@@ -364,22 +373,33 @@ bool NPCharacter::SetNewTask(NPCTask tsk, MESSAGE &message)
     case npct_stay:
         SetFightMode(false);
         return CmdStay();
-    case npct_gotopoint:
+    case npct_gotopoint: {
         SetFightMode(false);
         SetRunMode(false);
-        ReadBusyPositionCheck(message);
+        const bool checkBusy = ReadBusyPositionCheck(message);
         task.to.x = message.Float();
         task.to.y = message.Float();
         task.to.z = message.Float();
-        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_STOP_GOTODIST);
-    case npct_runtopoint:
+        task.stopRadius = NPC_STOP_GOTODIST;
+        if (message.ParamValid())
+            task.stopRadius = storm::location::GotoStopRadius(message.Float(), NPC_STOP_GOTODIST);
+        task.isCheckBusy = checkBusy;
+        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, task.stopRadius, -1, checkBusy);
+    }
+    case npct_runtopoint: {
         SetFightMode(false);
         SetRunMode(true);
-        ReadBusyPositionCheck(message);
+        const bool checkBusy = ReadBusyPositionCheck(message);
         task.to.x = message.Float();
         task.to.y = message.Float();
         task.to.z = message.Float();
-        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_STOP_GOTODIST * 2.0f);
+        task.stopRadius = NPC_STOP_GOTODIST * 2.0f;
+        task.isCheckBusy = checkBusy;
+        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, task.stopRadius, -1, checkBusy);
+    }
+    case npct_runtoarea:
+    case npct_gotoarea:
+        return SetAreaTask(tsk, message);
     case npct_followcharacter:
         SetFightMode(false);
         task.target = message.EntityID();
@@ -492,6 +512,24 @@ void NPCharacter::UpdateEscapeCharacter(float dltTime)
     }
 }
 
+void NPCharacter::UpdateAreaTask()
+{
+    if (!task.isAreaPending)
+        return;
+    SetFightMode(false);
+    if (IsFight())
+        return;
+    task.isAreaPending = 0;
+    SetRunMode(task.task == npct_runtoarea);
+    if (!storm::location::PositiveFinite(task.areaRadius) ||
+        !CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_AREA_APPROACH_STOP_DIST, -1, true, task.areaRadius))
+    {
+        const NPCTask tsk = task.task;
+        task.task = npct_none;
+        FailureCommand(tsk);
+    }
+}
+
 // Combat mission execution
 void NPCharacter::UpdateFightCharacter(float dltTime)
 {
@@ -574,6 +612,7 @@ void NPCharacter::UpdateFightCharacter(float dltTime)
 
             task.task = npct_runtopoint;
             lastSetTask = npct_runtopoint;
+            task.isCheckBusy = 1;
             memset(&task.target, 0, sizeof(task.target));
 
             glm::vec3 vOurPos, vPos;
@@ -1200,11 +1239,15 @@ void NPCharacter::EndGotoCommand()
         core.Event("Location_CharacterEndTask", "si", GetTaskName(npct_gotopoint), GetId());
         return;
     case npct_runtopoint:
+    case npct_runtoarea:
+    case npct_gotoarea: {
+        const NPCTask tsk = task.task;
         task.task = npct_none;
         CmdStay();
         SetRunMode(false);
-        core.Event("Location_CharacterEndTask", "si", GetTaskName(npct_runtopoint), GetId());
+        core.Event("Location_CharacterEndTask", "si", GetTaskName(tsk), GetId());
         return;
+    }
     case npct_followcharacter:
         CmdStay();
         core.Event("Location_CharacterFollowStay", "si", GetTaskName(npct_followcharacter), GetId());
@@ -1255,10 +1298,14 @@ bool NPCharacter::PopTask()
         return CmdStay();
     case npct_gotopoint:
         SetRunMode(false);
-        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_STOP_GOTODIST);
+        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, task.stopRadius, -1, task.isCheckBusy);
     case npct_runtopoint:
         SetRunMode(true);
-        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_STOP_GOTODIST);
+        return CmdGotoPoint(task.to.x, task.to.y, task.to.z, NPC_STOP_GOTODIST, -1, task.isCheckBusy);
+    case npct_runtoarea:
+    case npct_gotoarea:
+        task.isAreaPending = 1;
+        return CmdStay();
     case npct_followcharacter:
         return InitFollowChartacter(task.target);
     case npct_fight:
@@ -1317,6 +1364,10 @@ const char *NPCharacter::GetTaskName(NPCTask t)
         return "Escape";
     case npct_dead: // Death of a character
         return "Dead";
+    case npct_runtoarea:
+        return "Runto area";
+    case npct_gotoarea:
+        return "Goto area";
     }
     return "Unknow task";
 }

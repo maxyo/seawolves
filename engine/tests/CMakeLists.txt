@@ -246,7 +246,7 @@ storm_host_check(load_watch INCLUDES ${src}/libs/core/include ${src}/libs/xinter
 storm_host_check(location_light_choice INCLUDES ${glm_headers} ${src}/libs/location/src
     OPTIONS -O1 -g ${warnings} ${asan} -fno-omit-frame-pointer CATCH2)
 # The location's side of the land scripts' protocol (location/src); "[corpus]" reads the game in $STORM_GAME_DIR.
-storm_host_check(location_land.check DIRECTORY location_land SOURCES objects.cpp messages.cpp fight.cpp
+storm_host_check(location_land.check DIRECTORY location_land SOURCES objects.cpp messages.cpp fight.cpp navigation.cpp
     ${src}/libs/location/src/object_library.cpp ${src}/libs/location/src/fight_rules.cpp
     ${src}/libs/location/src/land_protocol.cpp ${src}/libs/core/src/message.cpp
     INCLUDES ${src}/libs/location/src ${util_include} ${glm_headers} ${fmt_headers} ${storm_json_SOURCE_DIR}/include

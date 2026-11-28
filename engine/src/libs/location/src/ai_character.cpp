@@ -7,6 +7,7 @@
 #include "core.h"
 
 #include "location.h"
+#include "npc_navigation.hpp"
 
 #define FALURE_GOTO 2.0f
 
@@ -165,7 +166,7 @@ bool AICharacter::CmdStay()
 }
 
 // Go to the point
-bool AICharacter::CmdGotoPoint(float x, float y, float z, float rad, int32_t node, bool isCheckBusyPos)
+bool AICharacter::CmdGotoPoint(float x, float y, float z, float rad, int32_t node, bool isCheckBusyPos, float areaRadius)
 {
     if (bMusketer && bMusketerNoMove)
         return true;
@@ -181,6 +182,7 @@ bool AICharacter::CmdGotoPoint(float x, float y, float z, float rad, int32_t nod
     command.tpnt = curPos;
     command.tnode = currentNode;
     command.radius = rad;
+    command.areaRadius = areaRadius;
     command.waitTime = 0.0f;
     command.isWait = false;
     command.isBusy = isCheckBusyPos;
@@ -188,6 +190,18 @@ bool AICharacter::CmdGotoPoint(float x, float y, float z, float rad, int32_t nod
     command.exch = nullptr;
     StartMove();
     return true;
+}
+
+bool AICharacter::ReachedArea()
+{
+    if (command.areaRadius <= 0.0f || currentNode < 0 ||
+        !storm::location::InsideArea(curPos, command.pnt, command.areaRadius, height))
+        return false;
+    if (currentNode == command.node)
+        return true;
+    int32_t node;
+    glm::vec3 next;
+    return GetLocation()->GetPtcData().FindPathDir(currentNode, curPos, command.node, command.pnt, node, next);
 }
 
 // Move away from the point
@@ -215,6 +229,13 @@ void AICharacter::SetExCharacter(AICharacter *chr)
 // Go to the point
 void AICharacter::CmdProcessGotoPoint(float dltTime)
 {
+    if (ReachedArea())
+    {
+        command.cmd = aicmd_none;
+        StopMove();
+        EndGotoCommand();
+        return;
+    }
     if (command.isWait)
         return;
     // Find the direction of the path
@@ -290,7 +311,7 @@ void AICharacter::CmdProcessGotoPoint(float dltTime)
     if (d < command.radius * command.radius)
     {
         d = fabsf(command.pnt.y - curPos.y);
-        if (d < height)
+        if (command.areaRadius <= 0.0f && d < height)
         {
             command.cmd = aicmd_none;
             StopMove();

@@ -31,6 +31,10 @@ class NPCharacter : public AICharacter
         // Leave the character
         npct_dead,
         // Death of a character
+        npct_runtoarea,
+        // Run to anywhere inside an area
+        npct_gotoarea,
+        // Walk to anywhere inside an area
         npct_max
     };
 
@@ -39,6 +43,8 @@ class NPCharacter : public AICharacter
         NPCTask task;
         glm::vec3 to;
         entid_t target;
+        float stopRadius; // goto and run-to point
+        float areaRadius; // area tasks
 
         union {
             uint32_t flags;
@@ -48,6 +54,8 @@ class NPCharacter : public AICharacter
                 uint32_t isRun : 1;
                 uint32_t isFight : 1;
                 uint32_t isFollowInit : 1;
+                uint32_t isAreaPending : 1; // the area move starts once the character is out of fight mode
+                uint32_t isCheckBusy : 1;   // a goto waits while its point is taken
             };
         };
     };
@@ -78,7 +86,8 @@ class NPCharacter : public AICharacter
 
     // Set a new task
     bool SetNewTask(NPCTask tsk, MESSAGE &message);
-    static void ReadBusyPositionCheck(MESSAGE &message);
+    static bool ReadBusyPositionCheck(MESSAGE &message);
+    bool SetAreaTask(NPCTask tsk, MESSAGE &message);
     // The fight parameters asked of the scripts
     void ReadFightParams();
     // The cancel of an attack that will not land, when the scripts enable it
@@ -93,6 +102,8 @@ class NPCharacter : public AICharacter
     void UpdateFollowCharacter(float dltTime);
     // Execution of the escape task
     void UpdateEscapeCharacter(float dltTime);
+    // Starting the move of an area task
+    void UpdateAreaTask();
     // Completing the task of fighting a character
     void UpdateFightCharacter(float dltTime);
 
