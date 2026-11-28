@@ -1812,13 +1812,13 @@ struct TransferRun
     {
         // A tap beside a question whose way out leaves things as they are takes it; beside one whose every answer
         // decides something (the prisoners) it is refused.
-        InterfaceModel capture = Load(models, "transfer-crew-capture.json");
+        InterfaceModel capture = Load(models, "real-transfer-crew-fate.json");
         capture.revision = 200;
         router.SetInterface(capture);
         surface.commands.clear();
         router.OnEvent({"modal", "dismiss", ""});
         Expect(surface.commands.empty(), "the prisoners' fate is answered by its buttons only");
-        InterfaceModel fate = Load(models, "transfer-fate.json");
+        InterfaceModel fate = Load(models, "real-transfer-sink.json");
         fate.revision = 201;
         router.SetInterface(fate);
         router.OnEvent({"modal", "dismiss", ""});
