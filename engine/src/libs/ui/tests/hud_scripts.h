@@ -24,21 +24,19 @@ class ScriptPack
         std::string error;
         Expect(ParseLayout(read("hud-layout.json"), layout_, &error), "the pack's HUD layout is read: " + error);
     }
-    const ComponentSpec *Find(const std::string &scene, const std::string &element) const
+    const ComponentSpec *Find(const std::string &tag) const
     {
-        const LayoutElement *found = FindLayoutElement(layout_, scene, element);
-        if (!found)
-            return nullptr;
         for (const auto &spec : specs_)
-            if (spec->tag == found->component)
+            if (spec->tag == tag)
                 return spec.get();
         return nullptr;
     }
     // The bench's HUD draws its script scenes with this pack.
     void Attach(Bench &bench) const
     {
-        bench.mount.components = [this](const std::string &scene, const std::string &element) {
-            return Find(scene, element);
+        bench.mount.components = [this](const std::string &tag) { return Find(tag); };
+        bench.mount.elements = [this](const std::string &scene, const std::string &element) {
+            return FindLayoutElement(layout_, scene, element);
         };
         std::vector<ScriptScreen> scenes;
         for (const ScriptScreen &screen : ScriptGame::Get().Screens())
@@ -52,3 +50,9 @@ class ScriptPack
     std::vector<std::unique_ptr<ComponentSpec>> specs_;
     Layout layout_;
 };
+
+// The whole runtime draws the scripts' screens and HUD scenes, as a phone attaches them.
+inline void AttachScripts(Runtime &run)
+{
+    run.host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
+}

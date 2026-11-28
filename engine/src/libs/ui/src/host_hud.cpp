@@ -313,10 +313,22 @@ void HostImpl::RemoveHudElement(Rml::Element *layer, Rml::Element *mounted)
     layer->RemoveChild(mounted);
 }
 
-const ComponentSpec *HostImpl::HudComponent(const std::string &layout, const std::string &element) const
+const ComponentSpec *HostImpl::PackComponent(const std::string &tag) const
 {
-    const hud::LayoutElement *found = hud::FindLayoutElement(layout_, layout, element);
-    return found ? registry_->Find(found->component) : nullptr;
+    return registry_->Find(tag);
+}
+
+const hud::LayoutElement *HostImpl::HudElement(const std::string &layout, const std::string &element) const
+{
+    return hud::FindLayoutElement(layout_, layout, element);
+}
+
+double HostImpl::HudSeconds(const std::string &token) const
+{
+    const auto found = settings_.find(token);
+    if (found == settings_.end() || !found->is_number())
+        throw std::runtime_error("the pack's design tokens have no time " + token);
+    return found->get<double>() / (token.ends_with("Ms") ? 1000.0 : 1.0);
 }
 
 } // namespace storm::ui

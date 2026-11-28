@@ -108,8 +108,25 @@ struct HudShortcutCommand
 {
     std::string name;
 };
-using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand,
-                                   HudControlCommand, HudMapCommand, HudShortcutCommand>;
+// A step of a menu the engine keeps (`menu` "land"): `verb` open (`id`: the root command it opens into, "" for the
+// root), back, close, choose (`id`: the row tapped; the runtime selects it and activates it as the engine wants).
+struct HudMenuCommand
+{
+    std::string menu, verb, id;
+};
+// A combat action the engine offers (`phase` tap, down, up).
+struct HudCombatCommand
+{
+    std::string action, phase;
+};
+// The quick action the game's scripts published (contextAction).
+struct HudContextCommand
+{
+    std::string name;
+};
+using ScriptCommand =
+    std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand, HudControlCommand,
+                 HudMapCommand, HudShortcutCommand, HudMenuCommand, HudCombatCommand, HudContextCommand>;
 
 struct DealView
 {

@@ -135,9 +135,11 @@ class NoRenderer final : public Rml::RenderInterface
     void ReleaseGeometry(Rml::CompiledGeometryHandle) override
     {
     }
-    Rml::TextureHandle LoadTexture(Rml::Vector2i &, const Rml::String &) override
+    // The pack's images (the icon atlas): a texture of a pixel each.
+    Rml::TextureHandle LoadTexture(Rml::Vector2i &dimensions, const Rml::String &) override
     {
-        return 0;
+        dimensions = {1, 1};
+        return ++next_;
     }
     Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte>, Rml::Vector2i) override
     {
@@ -149,6 +151,25 @@ class NoRenderer final : public Rml::RenderInterface
     Rml::TextureHandle SaveLayerAsTexture() override
     {
         return ++next_;
+    }
+    // The decorators and filters of the application's pack (gradients, blur): compiled, drawn as nothing.
+    Rml::CompiledShaderHandle CompileShader(const Rml::String &, const Rml::Dictionary &) override
+    {
+        return ++next_;
+    }
+    void RenderShader(Rml::CompiledShaderHandle, Rml::CompiledGeometryHandle, Rml::Vector2f,
+                      Rml::TextureHandle) override
+    {
+    }
+    void ReleaseShader(Rml::CompiledShaderHandle) override
+    {
+    }
+    Rml::CompiledFilterHandle CompileFilter(const Rml::String &, const Rml::Dictionary &) override
+    {
+        return ++next_;
+    }
+    void ReleaseFilter(Rml::CompiledFilterHandle) override
+    {
     }
     void EnableScissorRegion(bool) override
     {

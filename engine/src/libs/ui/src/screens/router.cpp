@@ -669,8 +669,8 @@ void Router::Answer(uint64_t request, bool applied, const std::string &reason, u
     if (found == outstanding_.end() && hud_ && requests_.Answer(request, applied, revision))
     {
         // A HUD command: its scene reads the answer from the ledger.
-        if (!applied)
-            surface_.Log("HUD: the game refused request " + std::to_string(request) + ": " + reason);
+        surface_.Log("HUD answer " + std::to_string(request) + ": " +
+                     (applied ? "applied, revision " + std::to_string(revision) : "refused: " + reason));
         hud_->Rebuild();
         return;
     }

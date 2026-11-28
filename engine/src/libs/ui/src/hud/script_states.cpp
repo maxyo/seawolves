@@ -40,12 +40,151 @@ std::string Uv(const Picture &picture)
     return uv;
 }
 
-Json GameplayState(const Gameplay &gameplay)
+Json GameplayState(const Gameplay &gameplay, Hud &hud)
 {
+    if ((gameplay.mode == "explore" || gameplay.mode == "melee") && !gameplay.analog_movement)
+        hud.Error("land HUD: no analog movement from the engine (inputOwner or movementGeneration missing)");
     Json controls = Json::object();
     for (const std::string &control : gameplay.capabilities)
         controls[control] = true;
-    return {{"mode", gameplay.mode}, {"blocked", gameplay.blocked}, {"controls", controls}};
+    return {{"mode", gameplay.mode},
+            {"blocked", gameplay.blocked},
+            {"controls", controls},
+            {"analogMovement", gameplay.analog_movement}};
+}
+
+// The combat state of the gameplay the HUD shows (`current`: of its revision and mode; otherwise its actions are not
+// sent). The actions' generations are the runtime's, which a "combat" command carries.
+Json CombatState(const States &states)
+{
+    const Combat &combat = states.combat;
+    if (!combat.known)
+        return {{"known", false}};
+    Json actions = Json::object();
+    for (const auto &[action, generation] : combat.actions)
+        actions[action] = true;
+    return {{"known", true},
+            {"current", CombatCurrent(states)},
+            {"mode", combat.mode},
+            {"actions", actions},
+            {"pistol", combat.pistol},
+            {"interactKind", combat.interact_kind},
+            {"interactName", combat.interact_name},
+            {"interactDialog", combat.interact_dialog},
+            {"readings", combat.pistol == "unloaded" ? Json{{"reload", true}} : Json::object()}};
+}
+
+// A party member's portrait: the game's 128 px face by FaceId; without one the land interface's own figure, which the
+// engine sends as `picture` when the game has it (none: the placeholder). Both are said once per person.
+Json Portrait(const std::string &face, const Picture &picture, const std::string &name, int character, Hud &hud)
+{
+    if (!face.empty())
+        return {{"texture", "INTERFACES/PORTRAITS/128/face_" + face}, {"uv", "0,0,1,1"}};
+    hud.Log("land HUD: " + name + " (character " + std::to_string(character) + ") has no FaceId: " +
+            (picture.texture.empty() ? "the game's two.tga fallback is missing, the placeholder stays"
+                                     : "the game's own figure " + picture.texture));
+    return {{"texture", picture.texture}, {"uv", Uv(picture)}};
+}
+
+Json VitalsState(const Vitals &vitals, Hud &hud)
+{
+    if (!vitals.known)
+        return {{"known", false}};
+    Json effects = Json::object();
+    for (const std::string &effect : vitals.effects)
+        effects[effect] = true;
+    Json officers = Json::array();
+    for (const Vitals::Officer &officer : vitals.officers)
+        officers.push_back({{"id", officer.id},
+                            {"name", officer.name},
+                            {"portrait", Portrait(officer.face, officer.picture, officer.name, officer.id, hud)}});
+    Json abilities = Json::array();
+    Json readings = {{"health", true}, {"energy", true}};
+    bool running = false;
+    for (const Ability &ability : vitals.abilities)
+    {
+        abilities.push_back(
+            {{"id", ability.id}, {"label", ability.label}, {"state", ability.state}, {"command", ability.command}});
+        if (ability.command.empty())
+            hud.Error("land HUD: ability " + ability.id + " has no land menu command; it cannot be launched");
+        if (ability.state == "active" || ability.state == "recovery")
+            readings["ability." + ability.id] = true;
+        running = running || ability.state == "active";
+    }
+    if (running)
+        readings["abilitiesRunning"] = true;
+    if (vitals.dash > 0.0)
+        readings["dash"] = true;
+    if (!vitals.opponent.empty())
+        readings["opponent"] = true;
+    if (vitals.boarding)
+        readings["boarding"] = true;
+    return {{"known", true},
+            {"hero", vitals.hero},
+            {"name", vitals.name},
+            {"portrait", Portrait(vitals.face, vitals.picture, vitals.name, vitals.hero, hud)},
+            {"effects", effects},
+            {"potions", vitals.potions},
+            {"loaded", vitals.loaded},
+            {"capacity", vitals.capacity},
+            {"officers", officers},
+            {"dash", vitals.dash < 0.0   ? "none"
+                     : vitals.dash > 0.0 ? "cooling"
+                                         : "ready"},
+            {"abilities", abilities},
+            {"opponent", vitals.opponent},
+            {"boarding", vitals.boarding.has_value()},
+            {"readings", readings}};
+}
+
+// The engine's land menu: what it offers, the stage open and its rows by the engine's ids (`cooldown`: the whole
+// percent a recovering row has still to go). Its revision is the runtime's, which a "menu" command carries.
+Json LandCommandsState(const LandCommands &commands)
+{
+    if (!commands.known)
+        return {{"known", false}};
+    Json items = Json::array();
+    for (const LandCommands::Item &item : commands.items)
+        items.push_back({{"id", item.id},
+                         {"kind", item.kind},
+                         {"label", item.label},
+                         {"source", item.source},
+                         {"picture", item.picture},
+                         {"enabled", item.enabled},
+                         {"cooldown", item.enabled ? 0 : Whole((1.0 - item.cooldown) * 100.0)}});
+    Json offered = Json::object();
+    for (const std::string &command : commands.offered)
+        offered[command] = true;
+    Json out = {{"known", true},
+                {"active", commands.active},
+                {"available", commands.available},
+                {"complete", commands.complete},
+                {"stage", commands.stage},
+                {"title", commands.title},
+                {"selected", commands.selected},
+                {"canBack", commands.can_back},
+                {"canClose", commands.can_close},
+                {"items", items},
+                {"offered", offered}};
+    if (!commands.here_picture.empty())
+        out["here"] = {{"picture", commands.here_picture}, {"label", commands.here_label}};
+    return out;
+}
+
+// The location text's names: the engine lists island, town and place and then the date and the time, one per line,
+// without saying which is which; the calendar lines are the ones with digits.
+Json WorldInfoState(const std::string &text)
+{
+    Json names = Json::array();
+    for (size_t at = 0; at <= text.size();)
+    {
+        const size_t end = std::min(text.find('\n', at), text.size());
+        const std::string line = text.substr(at, end - at);
+        if (!line.empty() && line.find_first_of("0123456789") == std::string::npos)
+            names.push_back(line);
+        at = end + 1;
+    }
+    return {{"names", names}};
 }
 
 // The world map of the gameplay the HUD shows: `current` = false while the engine shows none (or another gameplay's).
@@ -143,8 +282,84 @@ Value Sky(const WorldMap &map, bool angle, Hud &hud)
     return {{}, day ? "sun" : "moon"};
 }
 
+// The number after `prefix` in `name` ("vitals.officerHealth.2" → 2), -1 for another name.
+int Index(const std::string &name, std::string_view prefix)
+{
+    if (!name.starts_with(prefix))
+        return -1;
+    int index = -1;
+    const char *end = name.data() + name.size();
+    const auto parsed = std::from_chars(name.data() + prefix.size(), end, index);
+    return parsed.ec == std::errc() && parsed.ptr == end ? index : -1;
+}
+
+const Ability *AbilityOf(const Vitals &vitals, const std::string &id)
+{
+    for (const Ability &ability : vitals.abilities)
+        if (ability.id == id)
+            return &ability;
+    return nullptr;
+}
+
+// The land readings: the party's bars, the fight's cooldowns, the boarding's men.
+Value ReadLand(const std::string &name, const States &states)
+{
+    const Vitals &vitals = states.vitals;
+    if (name == "combat.reload")
+        return states.combat.known && states.combat.pistol == "unloaded"
+                   ? Value{states.combat.pistol_progress / 20.0, {}}
+                   : Value{};
+    if (!vitals.known)
+        return {};
+    const auto share = [](int men, int start) { return Value{static_cast<double>(men) / start, {}}; };
+    if (name == "vitals.health")
+        return {vitals.health, {}};
+    if (name == "vitals.energy")
+        return {vitals.energy, {}};
+    if (const int k = Index(name, "vitals.officerHealth."); k >= 0)
+        return k < static_cast<int>(vitals.officers.size()) ? Value{vitals.officers[k].health, {}} : Value{};
+    if (const int k = Index(name, "vitals.officerEnergy."); k >= 0)
+        return k < static_cast<int>(vitals.officers.size()) ? Value{vitals.officers[k].energy, {}} : Value{};
+    if (name == "vitals.dash")
+        return vitals.dash > 0.0 ? Value{vitals.dash, {}} : Value{};
+    if (name == "vitals.opponent")
+        return vitals.opponent.empty() ? Value{} : Value{vitals.opponent_health, {}};
+    if (vitals.boarding && name == "vitals.ours")
+        return share(vitals.boarding->ours, vitals.boarding->ours_start);
+    if (vitals.boarding && name == "vitals.theirs")
+        return share(vitals.boarding->theirs, vitals.boarding->theirs_start);
+    if (vitals.boarding && name == "vitals.oursMen")
+        return {vitals.boarding->ours, {}};
+    if (vitals.boarding && name == "vitals.theirsMen")
+        return {vitals.boarding->theirs, {}};
+    if (name == "vitals.abilitiesRunning")
+    {
+        double fill = -1.0;
+        for (const Ability &ability : vitals.abilities)
+            if (ability.state == "active")
+                fill = std::max(fill, ability.fill);
+        return fill < 0.0 ? Value{} : Value{fill, {}};
+    }
+    // vitals.ability.<id>.fill (what is left of the effect, how far it recovered) and .left (the seconds the scripts
+    // still count, at least the one being counted).
+    if (name.starts_with("vitals.ability."))
+    {
+        const size_t dot = name.rfind('.');
+        const Ability *ability = AbilityOf(vitals, name.substr(15, dot - 15));
+        if (!ability || (ability->state != "active" && ability->state != "recovery"))
+            return {};
+        if (name.ends_with(".fill"))
+            return {ability->fill, {}};
+        if (name.ends_with(".left"))
+            return {static_cast<double>(std::max(1, ability->left)), {}};
+    }
+    throw std::runtime_error("no reading '" + name + "'");
+}
+
 Value Read(const std::string &name, const States &states, Hud &hud)
 {
+    if (name.starts_with("vitals.") || name.starts_with("combat."))
+        return ReadLand(name, states);
     const WorldMap &map = states.world_map;
     if (name == "worldMap.course")
         return map.angles ? Value{map.heading, {}} : Value{};
@@ -225,12 +440,30 @@ std::vector<std::string> Words(const std::string &text)
 }
 } // namespace
 
+bool CombatCurrent(const States &states)
+{
+    return states.combat.known && states.combat.gameplay_revision == states.gameplay.revision &&
+           states.combat.mode == states.gameplay.mode;
+}
+
 Json ScriptState(const std::string &channel, const States &states, Hud &hud)
 {
     if (channel == "gameplay")
-        return GameplayState(states.gameplay);
+        return GameplayState(states.gameplay, hud);
     if (channel == "worldMap")
         return WorldMapState(states, hud);
+    if (channel == "combat")
+        return CombatState(states);
+    if (channel == "vitals")
+        return VitalsState(states.vitals, hud);
+    if (channel == "landCommands")
+        return LandCommandsState(states.land_commands);
+    if (channel == "worldInfo")
+        return WorldInfoState(states.world_info);
+    if (channel == "contextAction")
+        return {{"name", states.context_action}};
+    if (channel == "reloadPlace")
+        return {{"place", Capitalized(states.door.place)}, {"locked", states.door.locked}}; // as a line starts
     throw std::runtime_error("no HUD state channel '" + channel + "' for scene scripts");
 }
 

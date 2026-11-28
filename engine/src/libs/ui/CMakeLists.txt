@@ -123,7 +123,6 @@ add_library(storm_ui STATIC
     src/hud/abilities.cpp
     src/hud/hud.cpp
     src/hud/states.cpp
-    src/hud/land.cpp
     src/hud/sea.cpp
     src/hud/script_scene.cpp
     src/hud/script_states.cpp
@@ -240,7 +239,9 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     endfunction()
     storm_ui_check(unit unit_check.cpp "${models}")
     storm_ui_check(perk_tree perk_tree_check.cpp)
-    storm_ui_check(hud_lifecycle hud_lifecycle_check.cpp "${states}" "${pack}")
+    storm_ui_check(hud_lifecycle hud_lifecycle_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_hud_lifecycle_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_hud_lifecycle_unit storm_ui_app_pack)
     storm_ui_check(hud hud_check.cpp "${states}")
     storm_ui_check(hud_spyglass hud_spyglass_check.cpp "${states}")
     storm_ui_check(press press_check.cpp "${pack}" "${font}")
@@ -248,12 +249,16 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     storm_ui_check(launcher_hud launcher_hud_check.cpp "${pack}")
     storm_ui_check(display display_check.cpp "${pack}")
     storm_ui_check(slot slot_check.cpp "${pack}")
-    storm_ui_check(hud_land hud_land_check.cpp "${states}" "${pack}")
+
     # Reads an installed game ($STORM_GAME_DIR); without one it exits 77 and ctest reports it as not run.
-    storm_ui_check(hud_land_game hud_land_game_check.cpp)
+    storm_ui_check(hud_land_game hud_land_game_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_hud_land_game_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_hud_land_game_unit storm_ui_app_pack)
     set_tests_properties(ui_hud_land_game PROPERTIES SKIP_RETURN_CODE 77)
     storm_ui_check(hud_sea hud_sea_check.cpp "${states}" "${pack}")
-    storm_ui_check(frame_cost frame_cost_check.cpp "${states}" "${pack}")
+    storm_ui_check(frame_cost frame_cost_check.cpp "${states}" "${pack}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_frame_cost_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_frame_cost_unit storm_ui_app_pack)
     target_include_directories(storm_ui_frame_cost_unit PRIVATE src)
     storm_ui_check(text text_check.cpp)
     storm_ui_check(boundary boundary_check.cpp)
@@ -263,6 +268,9 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         COMMAND "${Python3_EXECUTABLE}" "${STORM_MOBILE_UI}/design/build.py" --pack "${CMAKE_BINARY_DIR}/app-pack"
                 --engine-root "${CMAKE_CURRENT_SOURCE_DIR}/../../.." DEPENDS ${storm_ui_app_design})
     add_custom_target(storm_ui_app_pack DEPENDS "${CMAKE_BINARY_DIR}/app-pack/pack.json")
+    storm_ui_check(hud_land hud_land_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_hud_land_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_hud_land_unit storm_ui_app_pack)
     storm_ui_check(hud_worldmap hud_worldmap_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_hud_worldmap_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_hud_worldmap_unit storm_ui_app_pack)
@@ -280,7 +288,9 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     add_dependencies(storm_ui_screens_unit storm_ui_app_pack)
     storm_ui_check(taps taps_check.cpp "${models}" "${pack}" "${font}" "${STORM_MOBILE_UI}/design")
     target_link_libraries(storm_ui_taps_unit PRIVATE storm_ui_script_game)
-    storm_ui_check(routing routing_check.cpp "${states}" "${pack}")
+    storm_ui_check(routing routing_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_routing_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_routing_unit storm_ui_app_pack)
     storm_ui_check(script_screen script_screen_check.cpp)
     # A new picture is shown whole or not yet (RenderBackend::FrameHeld), through the bgfx backend: six
     # panels with a box shadow each appear, with too few views to make their textures beside the frame.

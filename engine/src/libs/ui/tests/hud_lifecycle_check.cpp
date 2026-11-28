@@ -1,6 +1,7 @@
 // Full runtime regression: removing held land controls must cancel them while their scene
-// and its bindings still exist. Synthetic pack/states, no graphics context or game files.
-#include "hud_bench.h"
+// and its bindings still exist. The application's pack and the touch interface's scripts over the fixture game,
+// synthetic states, no graphics context or game files.
+#include "hud_scripts.h"
 
 #include <filesystem>
 #include <unistd.h>
@@ -28,6 +29,7 @@ static void ChangeScene(const std::string &pack, bool combat)
     Expect(host != nullptr, "runtime starts: " + error);
     if (!host)
         return;
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
     const auto feed = [&](const char *channel, const char *file) { Expect(host->SetState(channel, Text(file)), file); };
     const auto frame = [&] {
         clock += 1.0 / 60.0;
@@ -45,7 +47,7 @@ static void ChangeScene(const std::string &pack, bool combat)
     errors.clear();
     if (combat)
     {
-        host->Touch(TouchPhase::Down, 1, 110, 132); // block
+        host->Touch(TouchPhase::Down, 1, 44, 216);  // block
         host->Touch(TouchPhase::Down, 2, 672, 282); // strike gesture
     }
     else
@@ -100,6 +102,7 @@ static void LeftHanded(const std::string &pack)
     Expect(host != nullptr, "runtime starts: " + error);
     if (!host)
         return;
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
     const auto feed = [&](const char *channel, const char *file) { Expect(host->SetState(channel, Text(file)), file); };
     const auto frame = [&] {
         for (int i = 0; i < 4; ++i)
@@ -156,6 +159,7 @@ static void TapAsTheAppLeaves(const std::string &pack)
     Expect(host != nullptr, "runtime starts: " + error);
     if (!host)
         return;
+    host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
     const auto feed = [&](const char *channel, const char *file) { Expect(host->SetState(channel, Text(file)), file); };
     const auto frames = [&](int count) {
         for (int i = 0; i < count; ++i)
@@ -216,27 +220,11 @@ static void TapAsTheAppLeaves(const std::string &pack)
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
-    const std::filesystem::path base = argc > 2 ? argv[2] : "tests/pack";
-    const auto pack = std::filesystem::temp_directory_path() / ("storm-ui-lifecycle-" + std::to_string(::getpid()));
-    std::filesystem::copy(base, pack, std::filesystem::copy_options::recursive);
-    // The runtime's fallback menu uses c-hud-button; the small test pack names its plain
-    // button c-button. Give the fallback the same synthetic implementation.
-    {
-        std::ifstream file(pack / "components.json");
-        Json components = Json::parse(file);
-        Json button;
-        for (const auto &entry : components["components"])
-            if (entry["tag"] == "c-button")
-                button = entry;
-        button["tag"] = "c-hud-button";
-        components["components"].push_back(button);
-        std::ofstream(pack / "components.json") << components.dump();
-    }
-    LeftHanded(pack.string());
-    TapAsTheAppLeaves(pack.string());
-    ChangeScene(pack.string(), false);
-    ChangeScene(pack.string(), true);
-    std::filesystem::remove_all(pack);
+    const std::string pack = argc > 2 ? argv[2] : "build/app-pack";
+    LeftHanded(pack);
+    TapAsTheAppLeaves(pack);
+    ChangeScene(pack, false);
+    ChangeScene(pack, true);
     if (!failures)
         std::printf("HUD lifecycle checks passed\n");
     return failures ? 1 : 0;

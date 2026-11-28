@@ -263,6 +263,12 @@ struct Calls final : storm::ui::ScriptCall
                     return "control " + asked.control;
                 else if constexpr (std::is_same_v<Kind, storm::ui::HudMapCommand>)
                     return "map " + asked.id;
+                else if constexpr (std::is_same_v<Kind, storm::ui::HudMenuCommand>)
+                    return "menu " + asked.menu + " " + asked.verb + " " + asked.id;
+                else if constexpr (std::is_same_v<Kind, storm::ui::HudCombatCommand>)
+                    return "combat " + asked.action + " " + asked.phase;
+                else if constexpr (std::is_same_v<Kind, storm::ui::HudContextCommand>)
+                    return "context " + asked.name;
                 else
                     return "shortcut " + asked.name;
             },

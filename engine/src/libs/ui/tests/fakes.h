@@ -234,11 +234,24 @@ struct FakeMount final : storm::ui::hud::Mount
     {
         visible = false;
     }
-    // The pack component of a layout element, for script scenes (hud_scripts.h); none without a pack.
-    std::function<const storm::ui::ComponentSpec *(const std::string &, const std::string &)> components;
-    const storm::ui::ComponentSpec *HudComponent(const std::string &layout, const std::string &element) const override
+    // The pack's components, for script scenes (hud_scripts.h); none without a pack.
+    std::function<const storm::ui::ComponentSpec *(const std::string &)> components;
+    const storm::ui::ComponentSpec *PackComponent(const std::string &tag) const override
     {
-        return components ? components(layout, element) : nullptr;
+        return components ? components(tag) : nullptr;
+    }
+    // The layout elements, for script scenes (hud_scripts.h); none without a pack.
+    std::function<const storm::ui::hud::LayoutElement *(const std::string &, const std::string &)> elements;
+    const storm::ui::hud::LayoutElement *HudElement(const std::string &layout,
+                                                    const std::string &element) const override
+    {
+        return elements ? elements(layout, element) : nullptr;
+    }
+    // The pack's times (tokens.json "time"), the ones the HUD reads.
+    std::map<std::string, double> times{{"pickerFoldMs", 6000.0}, {"hintHoldMs", 500.0}, {"toastLeave", 0.22}};
+    double HudSeconds(const std::string &token) const override
+    {
+        return times.at(token) / (token.ends_with("Ms") ? 1000.0 : 1.0);
     }
     void Send(const storm::ui::Action &action) override
     {

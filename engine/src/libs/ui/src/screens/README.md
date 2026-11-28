@@ -171,17 +171,20 @@ elements by id (an element left out is not mounted), an optional sheet and eleme
 
 A scene is a script of the touch interface (`app/mobile-ui/PROGRAM/interface/touch/hud/`, its README "HUD
 scenes"); `kScenes` in `hud.cpp` names the gameplay modes each one draws and the capability of its script, and
-`script_scene.cpp` runs it. The land and sea scenes are still C++ (`land.cpp`, `sea.cpp`) until they move. What
-stays native, because it runs every frame or every touch move without a script: the readings laid into a view
+`script_scene.cpp` runs it. The sea scene is still C++ (`sea.cpp`) until it moves. What stays native, because it
+runs every frame or every touch move without a script, or is the engine's protocol: the readings laid into a view
 (`script_states.cpp`: one table of readings and their formats), the continuous controls (`HoldSet`: helm, held
-buttons, the sail lever), the geometry the engine is told (the world map's label area), and a tapped choice drawn
-until the game answers its command (the request ledger).
+buttons, the sail lever; the walk stick; the sword wheel; the picker `Fan` with its fold time), an element that
+lingers, the geometry the engine is told (the world map's label area), a tapped choice drawn until the game answers
+its command (the request ledger), the land menu's select-then-activate and the wait for the scene change a travel
+place starts, and the revisions and generations every command carries.
 
 A new channel for scenes: its struct in `hud_state.h` (and `HudState`), its field in `States`, its fixture reader in
 `states.cpp`, and its writer for scripts (without its readings) in `script_states.cpp`.
 
-Tests: synthetic states in `tests/states`, a scene check like `tests/hud_worldmap_check.cpp` (the script scene on the
-fixture game's program with the application's pack, `tests/hud_scripts.h`).
+Tests: synthetic states in `tests/states`, a scene check like `tests/hud_worldmap_check.cpp` or
+`tests/hud_land_check.cpp` (the script scene on the fixture game's program with the application's pack,
+`tests/hud_scripts.h`; `AttachScripts` gives a whole runtime the scripts).
 
 ```sh
 build/ui-host/storm_ui_shot --pack <app>/build/ui-pack --size 915x412 --density 2 --out land.png \

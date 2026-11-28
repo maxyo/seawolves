@@ -1,5 +1,5 @@
 // The HUD core: which scene draws the current gameplay mode, when it is visible, and the
-// way its events and timed work run. Scenes are in their own files (land.cpp).
+// way its events and timed work run. Scenes are scripts (script_scene.cpp) or their own files (sea.cpp).
 #include "hud.h"
 #include "app_ui_names.hpp"
 
@@ -13,7 +13,6 @@
 namespace storm::ui::hud
 {
 
-std::unique_ptr<Scene> CreateLandScene(Hud &hud);
 std::unique_ptr<Scene> CreateSeaScene(Hud &hud);
 
 namespace
@@ -38,7 +37,7 @@ const char *const kWorldMapModes[] = {"worldmap"};
 
 // The HUD scenes by gameplay mode.
 const SceneEntry kScenes[] = {
-    {"land", kLandModes, CreateLandScene, "land"},
+    {"land", kLandModes, nullptr, "land", "hud_land"},
     {"sea", kSeaModes, CreateSeaScene, "sea"},
     {"world-map", kWorldMapModes, nullptr, "worldmap", "hud_world_map"},
 };
@@ -207,7 +206,7 @@ void Fan::Build(Json props, const std::vector<Option> &options, View &view, Inpu
     }
     input.On(button_, "click", [this, opened](const Event &) {
         open_ = !open_;
-        until_ = hud_.Now() + kSeconds;
+        until_ = hud_.Now() + hud_.Seconds("pickerFoldMs");
         if (open_ && opened)
             opened();
         hud_.Rebuild();
@@ -304,6 +303,12 @@ void Hud::Disable(const std::string &component, const char *where, const std::st
 
 Hud::~Hud() = default;
 
+const ComponentSpec *Hud::Component(const std::string &layout, const std::string &element) const
+{
+    const LayoutElement *found = mount_.HudElement(layout, element);
+    return found ? mount_.PackComponent(found->component) : nullptr;
+}
+
 std::unique_ptr<Scene> Hud::Create(const SceneEntry &entry)
 {
     if (entry.create)
@@ -384,6 +389,8 @@ template <class T> uint64_t Hud::Request(T command)
     }
     command.request = router_->Requests().Open(ShowingChannel(command));
     const uint64_t request = command.request;
+    // Traced with its number: the router logs the game's answer to it (applied or refused) the same way.
+    mount_.Log("HUD request " + std::to_string(request) + ": " + to_string(Command(command)));
     Send(std::move(command));
     return request;
 }
@@ -894,6 +901,9 @@ bool ParseElement(const Json &source, LayoutElement &out, const std::string &whe
         }
         out.toast_clear = clear->get<float>();
     }
+    if (const auto replaces = source.find("replaces"); replaces != source.end())
+        for (const Json &id : *replaces)
+            out.replaces.push_back(id.is_string() ? id.get<std::string>() : std::string());
     if (out.id.empty() || out.component.empty())
     {
         *error = where + ": an element needs 'id' and 'component'";

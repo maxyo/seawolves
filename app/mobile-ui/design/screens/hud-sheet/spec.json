@@ -5,7 +5,7 @@
     "title": {"type": "text", "default": ""},
     "back": {"type": "bool", "default": false, "class": false},
     "layout": {"type": "enum", "options": ["rows", "dense", "tiles"], "default": "rows", "class": false},
-    "rows": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": [], "shape": [{"id": "text", "title": "text", "icon": "text", "disabled": "bool", "pressed": "bool", "chevron": "bool", "cooldown": "int", "heading": "text", "here": "bool"}]},
     "headings": {"type": "int", "default": 0, "class": false}
   },
   "behaviors": ["press"],

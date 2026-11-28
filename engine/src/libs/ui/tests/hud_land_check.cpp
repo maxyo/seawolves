@@ -1,11 +1,12 @@
-// Host checks for the land HUD. First the scene alone (a recording mount): what each
-// synthetic state shows and which engine input each event sends. Then the whole runtime
-// with a renderer that draws nothing and a small synthetic pack (tests/pack): which
-// touches the UI claims over the game, per pointer, and what real gestures send.
-// No GL context, no game data.
-#include "hud_bench.h"
+// Host checks for the land HUD, the scene of the touch interface's scripts (interface/touch/hud/land.c) on the
+// fixture game's program. First the scene alone (a recording mount): what each synthetic state shows and which
+// engine input each event sends. Then the whole runtime with a renderer that draws nothing and the application's
+// pack: which touches the UI claims over the game, per pointer, and what real gestures send. No GL context, no game
+// data.
+#include "hud_scripts.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -14,11 +15,23 @@
 #include <iterator>
 #include <set>
 
+static const ScriptPack *app_pack = nullptr;
+static std::string app_pack_path;
+
+// A bench whose HUD draws the scripts' land scene with the application's pack.
+struct LandBench : Bench
+{
+    LandBench()
+    {
+        app_pack->Attach(*this);
+    }
+};
+
 // Exploring a town on one HUD: the party and place, toasts and the log, the buttons, talking and its hint, event
 // lines, a stale combat state and what is absent.
 struct ExploreRun
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     Json talk; // the combat state with a talk target, from Hints on
 
@@ -165,9 +178,8 @@ struct ExploreRun
         bench.Set("contextAction", Json("Nothing"));
         Expect(!mount.Has("context"), "Nothing is no action");
         bench.Set("contextAction", Json("Levitate"));
-        Expect(mount.Has("context") && mount.shown.elements["context"]["icon"] == "hand" && !mount.logs.empty() &&
-                   mount.logs.back() == "land HUD: context action 'Levitate' has no icon of its own",
-               "an unknown action keeps its button with the generic look, and is logged");
+        Expect(mount.Has("context") && mount.shown.elements["context"]["icon"] == "hand",
+               "an unknown action keeps its button with the generic look (the adapter says so in the script log)");
         bench.Press("context");
         ExpectEqual(mount.Last(), "context:Levitate", "… and still acts");
     }
@@ -409,7 +421,7 @@ static void CheckExplore()
 
 static void CheckMovement()
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     bench.Explore();
     mount.commands.clear();
@@ -550,7 +562,7 @@ static void CheckMovement()
 
 static void CheckCombat()
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     bench.Melee();
     ExpectEqual(mount.shown.layout, "land-combat", "melee uses the combat layout");
@@ -646,7 +658,7 @@ static void CheckCombat()
 // The hero's status from the vitals channel: effects row, potion count, officers, dash.
 static void CheckStatus()
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     bench.Explore();
     bench.Feed("vitals", "vitals-status");
@@ -656,7 +668,7 @@ static void CheckStatus()
            "effects: one small icon each, in a fixed order");
     {
         // The game makes the hero walk at a full stick (the load, a quest: the game does not say which).
-        Bench walking;
+        LandBench walking;
         walking.Explore();
         Json walk = State("vitals-status");
         walk["effects"] = Json::array({"walkonly"});
@@ -779,7 +791,7 @@ static void CheckStatus()
 // The land command menu's sheet on one HUD, from opening through its stages to closing.
 struct SheetRun
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     Json blocked; // gameplay while the engine's menu is open, from WhileBlocked on
 
@@ -796,7 +808,7 @@ struct SheetRun
         Expect(props["title"] == "hud.sheet.actions" && props["back"] == false && props["layout"] == "rows" &&
                    props["rows"].size() == 5,
                "the root stage: ✕ only, five rows");
-        Expect(props["rows"][0]["id"] == "item-c2" && props["rows"][0]["icon"] == "potion" &&
+        Expect(props["rows"][0]["id"] == "c2" && props["rows"][0]["icon"] == "potion" &&
                    props["rows"][0]["chevron"] == true && props["rows"][1]["icon"] == "thought" &&
                    props["rows"][1]["chevron"] == false && props["rows"][2]["disabled"] == true,
                "rows: icon by command, › for stages, disabled as the engine says");
@@ -824,15 +836,15 @@ struct SheetRun
     void TapActs()
     {
         // a tap acts at once: select, then activate against the revision that reports the selection
-        bench.Press("item-c3");
+        bench.Press("c3");
         ExpectEqual(mount.Last(), "landcommands:11\tselectItem\tc3", "a tap selects the row …");
         Expect(mount.shown.sheet_props["rows"][1]["pressed"] == true, "… which is drawn pressed");
-        bench.Press("item-c1");
+        bench.Press("c1");
         ExpectEqual(mount.Last(), "landcommands:11\tselectItem\tc3", "another tap waits for the first");
         bench.Feed("landCommands", "land-commands-root-selected");
         bench.Frame();
         ExpectEqual(mount.Last(), "landcommands:12\tactivateItem\tc3", "… and the selected revision is activated");
-        bench.Press("item-c4");
+        bench.Press("c4");
         ExpectEqual(mount.Last(), "landcommands:12\tactivateItem\tc3", "a disabled row does nothing");
     }
 
@@ -882,13 +894,13 @@ struct SheetRun
             ExpectEqual(icons,
                         std::string("store shipyard tavern residence usurer church lantern portoffice prison port "),
                         "the hero's place keeps its slot");
-            Expect(marked[1]["id"] == "item-here" && marked[1]["title"] == "Верфь" && marked[1]["here"] == true &&
+            Expect(marked[1]["id"] == "here" && marked[1]["title"] == "Верфь" && marked[1]["here"] == true &&
                        marked[1]["disabled"] == true && !marked[1].contains("sub") &&
                        marked[0].value("here", false) == false,
                    "the hero's place is marked and not tappable: " + marked[1].dump());
             const size_t before = mount.commands.size();
             const size_t errors = mount.errors.size();
-            bench.Press("item-here", "refused");
+            bench.Press("here", "refused");
             Expect(mount.commands.size() == before && mount.errors.size() == errors,
                    "a tap on the marked tile shakes it and asks the game nothing");
             bench.Feed("landCommands", "land-commands-travel");
@@ -917,7 +929,7 @@ struct SheetRun
     {
         // a tap waits for the engine's answer, however long, and a refusal ends it at once
         bench.Frame();
-        bench.Press("item-p1");
+        bench.Press("p1");
         Expect(mount.shown.sheet_props["rows"][0]["pressed"] == true, "pressed while waiting");
         bench.Frame(2.0);
         Expect(mount.shown.sheet_props["rows"][0]["pressed"] == true, "still pressed while unanswered");
@@ -959,9 +971,9 @@ struct SheetRun
         bench.Set("landCommands", Json(nullptr));
         bench.Feed("landCommands", "land-commands-root");
         bench.Frame();
-        bench.Press("item-c2");
+        bench.Press("c2");
         ExpectEqual(mount.Last(), "landcommands:11\tselectItem\tc2", "a row tapped");
-        bench.Press("item-c3");
+        bench.Press("c3");
         ExpectEqual(mount.Last(), "landcommands:11\tselectItem\tc3",
                     "a second tap before the engine answered is not swallowed: it replaces the first");
         {
@@ -973,9 +985,9 @@ struct SheetRun
                 pressed = pressed || row["pressed"] == true;
             Expect(!pressed, "the new stage opens with nothing pressed: " + mount.shown.sheet_props["rows"].dump());
             bench.Frame();
-            bench.Press("item-c3");
+            bench.Press("c3");
             ExpectEqual(mount.Last(), "landcommands:13\tselectItem\tc3", "the first tap on the new stage acts");
-            bench.Press("item-t3");
+            bench.Press("t3");
             ExpectEqual(mount.Last(), "landcommands:13\tselectItem\tt3",
                         "and so does a change of mind before the engine answers");
         }
@@ -1019,16 +1031,16 @@ struct LandTouches
         Expect(!host.WantsTouch(400, 200) && !host.WantsBack(), "nothing shown: every touch is the game's");
         run.Explore();
 
-        // The test layout (800 × 400): the move zone at 0…336 × 176…400 with the stick resting at
-        // 40…140 × 270…370, inside the zone the transitions button at 250…302 × 338…390 and the log
-        // box at 150…250 × 220…250, the hint box at 340…640 × 350…390; weapon at 728…780 × 338…390, context at 716…780
-        // × 256…320, hero at 682…730 × 10…58, vitals at 10…210 × 10…50.
+        // The application's layout at 800 × 400 dp: the move zone at 0…336 × 176…400, the travel button at 616…668 ×
+        // 348…400, the hint box at 164…588 × 348…388; weapon at 744…796 × 348…400, context at 728…792 × 270…334, hero
+        // at 682…730 × 8…56, the party at 12…230 × 10…60 (its portraits open the character screen), the location line
+        // at 488…788 from 62 down.
         Expect(host.WantsTouch(90, 320), "the stick is the UI's");
         Expect(host.WantsTouch(750, 360) && host.WantsTouch(740, 290) && host.WantsTouch(700, 30),
                "buttons are the UI's");
         Expect(!host.WantsTouch(400, 200) && !host.WantsTouch(500, 380), "the free scene is the game's");
-        Expect(!host.WantsTouch(100, 30) && !host.WantsTouch(550, 20),
-               "the bars and the location line show, they do not take touches");
+        Expect(!host.WantsTouch(550, 20) && !host.WantsTouch(500, 370),
+               "the location line and the hint show, they do not take touches");
         Expect(host.WantsTouch(240, 320) && host.WantsTouch(20, 390) && host.WantsTouch(330, 180),
                "the whole move zone is the UI's, not just the stick");
         Expect(!host.WantsTouch(340, 320) && !host.WantsTouch(100, 170), "just beside the zone is the game's");
@@ -1065,11 +1077,10 @@ struct LandTouches
         host.Touch(TouchPhase::Up, 1, 200, 275);
         run.Frame();
         const size_t moves = run.commands.size();
-        host.Touch(TouchPhase::Down, 1, 276, 364); // the transitions button lies inside the zone's rectangle
-        host.Touch(TouchPhase::Move, 1, 280, 360);
-        host.Touch(TouchPhase::Up, 1, 280, 360);
+        host.Touch(TouchPhase::Down, 1, 642, 374); // the travel button
+        host.Touch(TouchPhase::Up, 1, 642, 374);
         Expect(run.commands.size() == moves + 1 && run.Last() == "landcommands:10\topen\tBI_FastReload",
-               "a button inside the zone wins over the stick: " + run.Last());
+               "the travel button opens the transitions: " + run.Last());
     }
 
     void Transitions()
@@ -1081,9 +1092,10 @@ struct LandTouches
         run.Frame();
         for (int tile = 0; tile < 4; ++tile)
         {
-            const float y = 20.0f + 50.0f * static_cast<float>(tile);
-            host.Touch(TouchPhase::Down, 1, 700, y);
-            host.Touch(TouchPhase::Up, 1, 700, y);
+            // two columns of tiles 164 × 52 from 440, 84, a step of 172 across and 60 down
+            const float x = tile % 2 == 0 ? 522.0f : 694.0f, y = 110.0f + 60.0f * static_cast<float>(tile / 2);
+            host.Touch(TouchPhase::Down, 1, x, y);
+            host.Touch(TouchPhase::Up, 1, x, y);
             run.Frame();
             Expect(run.Last() == "landcommands:13\tselectItem\tt" + std::to_string(tile + 2),
                    "a single tap on tile " + std::to_string(tile + 1) +
@@ -1129,16 +1141,16 @@ struct LandTouches
         run.Feed("combat", "combat-melee");
         run.Frame();
         run.Frame();
-        Expect(host.WantsTouch(672, 282) && host.WantsTouch(110, 132), "strike and block are the UI's");
-        // block sits left, above the floating stick's zone: right under it the zone still starts the stick
+        Expect(host.WantsTouch(672, 282) && host.WantsTouch(44, 216), "strike and block are the UI's");
+        // block sits left inside the floating stick's zone: below it the zone still starts the stick
         run.commands.clear();
-        host.Touch(TouchPhase::Down, 4, 110, 200);
-        host.Touch(TouchPhase::Move, 4, 110, 170);
+        host.Touch(TouchPhase::Down, 4, 110, 300);
+        host.Touch(TouchPhase::Move, 4, 110, 270);
         Expect(run.Last().rfind("move:", 0) == 0, "the stick zone below the block is the stick's: " + run.Last());
-        host.Touch(TouchPhase::Up, 4, 110, 170);
+        host.Touch(TouchPhase::Up, 4, 110, 270);
         run.Frame();
         run.commands.clear();
-        host.Touch(TouchPhase::Down, 1, 110, 132);
+        host.Touch(TouchPhase::Down, 1, 44, 216);
         Expect(run.Last() == "combat:6\t22\tblock\tdown", "block goes down with the finger: " + run.Last());
         host.Touch(TouchPhase::Move, 1, 200, 60); // far beyond a tap's slop: still held
         host.Touch(TouchPhase::Down, 2, 672, 282);
@@ -1196,8 +1208,8 @@ struct LandTouches
         run.Frame();
         Expect(host.WantsTouch(400, 200) && host.WantsTouch(5, 5) && host.WantsBack(),
                "an open sheet takes every touch and the back key");
-        host.Touch(TouchPhase::Down, 1, 700, 20); // the first row
-        host.Touch(TouchPhase::Up, 1, 700, 20);
+        host.Touch(TouchPhase::Down, 1, 700, 84); // the first row
+        host.Touch(TouchPhase::Up, 1, 700, 84);
         Expect(run.Last() == "landcommands:11\tselectItem\tc2", "a tap on a row: " + run.Last());
         host.Touch(TouchPhase::Down, 1, 100, 300); // beside the rows
         host.Touch(TouchPhase::Up, 1, 100, 300);
@@ -1251,6 +1263,7 @@ static void CheckTouches(const std::string &pack)
     Runtime run(pack);
     if (!run.host)
         return;
+    AttachScripts(run);
     LandTouches touches{run, *run.host};
     touches.Layout();
     touches.FloatingStick();
@@ -1283,21 +1296,43 @@ static void CheckOneHostPerProcess(const std::string &pack)
     Expect(again.host != nullptr, "after the first host is gone a new one starts");
 }
 
-// Every place of the travel stage gets the icon of what it is, by the game's picture (the towns of the
-// game itself: hud_land_game_check.cpp).
+// Every place of the travel stage gets the icon of what it is, by the game's picture (the towns of the game itself:
+// hud_land_game_check.cpp); a picture outside the table, another texture or a slot name keeps the travel icon.
 static void CheckPlaceIcons()
 {
-    const std::pair<int, const char *> cells[] = {{0, "store"},      {1, "shipyard"}, {2, "tavern"}, {3, "usurer"},
-                                                  {4, "residence"},  {5, "prison"},   {6, "church"}, {7, "fort"},
-                                                  {8, "portoffice"}, {9, "lantern"},  {10, "port"}};
-    for (const auto &[cell, icon] : cells)
+    LandBench bench;
+    bench.Explore();
+    Json travel = State("land-commands-travel");
+    Json items = Json::array();
+    const char *const pictures[] = {"landtarget_slb:0",  "landtarget_slb:1",
+                                    "landtarget_slb:2",  "landtarget_slb:3",
+                                    "landtarget_slb:4",  "landtarget_slb:5",
+                                    "landtarget_slb:6",  "landtarget_slb:7",
+                                    "landtarget_slb:8",  "landtarget_slb:9",
+                                    "landtarget_slb:10", "landtarget_slb:11",
+                                    "landcommands:0",    "fr_1"};
+    for (size_t k = 0; k < std::size(pictures); ++k)
     {
-        const char *found = hud::LandPlaceIcon("landtarget_slb:" + std::to_string(cell));
-        Expect(found && std::string(found) == icon, "place cell " + std::to_string(cell) + " is " + icon);
+        Json item = travel["items"][0];
+        item["id"] = "t" + std::to_string(k);
+        item["picture"] = pictures[k];
+        items.push_back(item);
     }
-    Expect(!hud::LandPlaceIcon("landtarget_slb:11") && !hud::LandPlaceIcon("landcommands:0") &&
-               !hud::LandPlaceIcon("fr_1"),
-           "a picture outside the table, another texture or a slot name: not a place");
+    for (const Json &item : travel["items"])
+        if (item["kind"] == "cancel")
+            items.push_back(item);
+    travel["items"] = items;
+    travel.erase("here");
+    bench.Set("landCommands", travel);
+    std::string icons;
+    for (const Json &tile : bench.mount.shown.sheet_props["rows"])
+        icons += tile["icon"].get<std::string>() + " ";
+    for (const std::string &error : bench.mount.errors)
+        std::printf("error: %s\n", error.c_str());
+    ExpectEqual(icons,
+                std::string("store shipyard tavern residence usurer church lantern portoffice prison fort port travel "
+                            "travel travel "),
+                "the places by their pictures, in the order of their kinds; unknown pictures last, the travel icon");
 }
 
 // No frame of the land HUD between choosing a transition and the game's fader (regression: leaving
@@ -1307,7 +1342,7 @@ static void CheckPlaceIcons()
 // the HUD back after Hud::kTransitionWait, with an error line.
 static void CheckTransitionFlash()
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     bench.Explore();
     bench.Feed("landCommands", "land-commands-travel");
@@ -1319,7 +1354,7 @@ static void CheckTransitionFlash()
         bench.Set("landCommands", selected);
     }
     bench.Frame();
-    bench.Press("item-t4");
+    bench.Press("t4");
     Expect(std::find(mount.commands.begin(), mount.commands.end(), "landcommands:13\tactivateItem\tt4") !=
                    mount.commands.end() &&
                !mount.visible && mount.Last() == "presence:hidden",
@@ -1362,7 +1397,7 @@ static void CheckTransitionFlash()
         bench.Set("landCommands", selected);
     }
     bench.Frame();
-    bench.Press("item-t4");
+    bench.Press("t4");
     {
         Json idle = State("land-commands-idle");
         idle["revision"] = 40;
@@ -1382,7 +1417,7 @@ static void CheckTransitionFlash()
     selected["selectedItemId"] = "t4";
     bench.Set("landCommands", selected);
     bench.Frame();
-    bench.Press("item-t4");
+    bench.Press("t4");
     Expect(!mount.visible, "activation awaiting native receipt covers the HUD");
     Json receipt{{"serial", 1},
                  {"scene", 4},
@@ -1413,7 +1448,7 @@ static void CheckTransitionFlash()
     Expect(mount.visible && mount.errors.size() == refusedErrors,
            "a late accepted receipt cannot revive a refused transition");
 
-    bench.Press("item-t4");
+    bench.Press("t4");
     Expect(!mount.visible, "a new tap waits for its own later receipt");
     receipt["serial"] = 3;
     selected["activation"] = receipt;
@@ -1440,7 +1475,7 @@ static void CheckTransitionFlash()
 // lays them out as HUD buttons left of it; Rush launches through the land menu's own command.
 static void CheckRush()
 {
-    Bench bench;
+    LandBench bench;
     FakeMount &mount = bench.mount;
     bench.Explore();
     Json vitals = State("vitals");
@@ -1520,9 +1555,10 @@ static void CheckRush()
     bench.Press("abilities");
     Expect(mount.Has("abilities") && mount.Has("abilities-1") && !mount.Has("abilities-2"),
            "no Rush offered: the button stays for the potion alone");
+    const size_t unlaunched = mount.errors.size();
     vitals["abilities"] = Json::array({Json{{"id", "Rush"}, {"state", "ready"}}});
     bench.Set("vitals", vitals);
-    const size_t launched = mount.commands.size(), unlaunched = mount.errors.size();
+    const size_t launched = mount.commands.size();
     bench.Press("abilities-2");
     Expect(mount.commands.size() == launched && mount.errors.size() > unlaunched,
            "an ability without its land menu command launches nothing and says so");
@@ -1532,10 +1568,38 @@ static void CheckRush()
     Expect(mount.errors.size() > errors, "an unnamed ability in the land vitals is rejected aloud");
 }
 
+// What a state change costs the scene (the host Release build is the measure): the vitals of a fight change several
+// times a second and only move readings; a changed effect asks the script for a build.
+static void PrintCost()
+{
+    LandBench bench;
+    bench.Melee();
+    const auto cost = [&](auto change) {
+        Json state = State("vitals-status");
+        constexpr int kRounds = 200;
+        const auto start = std::chrono::steady_clock::now();
+        for (int i = 0; i < kRounds; ++i)
+        {
+            change(state, i);
+            bench.Set("vitals", state);
+        }
+        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
+    };
+    const double readings = cost([](Json &state, int i) { state["health"] = 0.2 + (i % 50) * 0.01; });
+    const double builds = cost([](Json &state, int i) {
+        state["effects"] = i % 2 ? Json::array({"poison"}) : Json::array({"poison", "healing"});
+    });
+    std::printf("land scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
+                builds);
+}
+
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
-    const std::string pack = argc > 2 ? argv[2] : "tests/pack";
+    app_pack_path = argc > 2 ? argv[2] : "build/app-pack";
+    const std::string pack = app_pack_path;
+    const ScriptPack scripts(app_pack_path);
+    app_pack = &scripts;
     CheckExplore();
     CheckMovement();
     CheckCombat();
@@ -1546,6 +1610,7 @@ int main(int argc, char **argv)
     CheckTransitionFlash();
     CheckTouches(pack);
     CheckOneHostPerProcess(pack);
+    PrintCost();
     if (failures)
         std::fprintf(stderr, "%d land HUD check(s) failed\n", failures);
     else

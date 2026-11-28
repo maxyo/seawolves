@@ -125,7 +125,10 @@ The natives (`core/core.c`):
   `Credits`, `Exit`, `Continue`}, `"settings"` {verb: `open` (a new draft of the application's settings) | `keep`
   (the draft to the phone)}, `"setting"` {key, value} (one of the values the engine's table offers for it). A HUD scene's: `"control"` {control} (a
   control the gameplay binds now, `gameplay.controls`), `"map"` {id} (a world map command; answered by the game),
-  `"shortcut"` {name} (a game menu: `mainmenu`, `shipscreen`, …). An unknown kind, a missing or unknown field or a value the engine does not know
+  `"shortcut"` {name} (a game menu: `mainmenu`, `shipscreen`, …), `"menu"` {menu: `land`, verb: `open` (`id`: the root
+  command it opens into, "" for the root) | `back` | `close` | `choose` (`id`: a row)}, `"combat"` {action, phase:
+  `tap` | `down` | `up`} (sent only while the engine offers it to the player shown), `"context"` {name} (the quick
+  action the game published). An unknown kind, a missing or unknown field or a value the engine does not know
   fails the tap. A new engine or host command is a new kind (the table in `ui_host/src/scripts/script_port.cpp` and
   its struct in `storm_ui/script_screens.h`), never a new native;
 - a note for a screen that opens later, which outlives the script program (a load resets it): `UiPass(screen,
@@ -150,20 +153,34 @@ read what its contract promises calls `UiError`.
 
 A scene of `hud/` draws the HUD of gameplay modes (the engine's `hud/hud.cpp` names which); its entry in
 `scripts.json` is `{capability: "hud_<scene>", component: "hud", interface: "hud", nodes: []}`, and every `hud_`
-capability must have one. It reads the engine's HUD channels with `UiState` (`gameplay`, `worldMap`: their writers
-in `engine/src/libs/ui/src/hud/script_states.cpp`) and builds, with `UiShow`, `{layout, log, holds, elements.<id>,
-controls.<id>, covers.<id>}`: the layout scene of `design/hud-layout.json`, its elements' props by their components,
-`log` 1 for the event lines, `holds` 1 while it keeps the HUD through a blocked game. It builds only when a channel
-it read changes or it says `UiRebuild()`; it has no timer.
+capability must have one. It reads the engine's HUD channels with `UiState` (`gameplay`, `worldMap`, `combat`,
+`vitals`, `landCommands`, `worldInfo`, `contextAction`, `reloadPlace`: their writers in
+`engine/src/libs/ui/src/hud/script_states.cpp`) and builds, with `UiShow`, `{layout, log, holds, elements.<id>,
+controls.<id>, covers.<id>, lingers.<id>, sheet}`: the layout scene of `design/hud-layout.json`, its elements' props by
+their components, `log` 1 for the event lines, `holds` 1 while it keeps the HUD through a blocked game (an open menu
+of the engine). It builds only when a channel it read changes or it says `UiRebuild()`; it has no timer. What the
+game names (a place's picture, a dialog file, a menu command, a quick action) it asks its adapter
+(`contracts/hud.c`, `adapter:hud`) in the HUD's notions; which commands and actions exist and are allowed is the
+engine's states'. The revisions and generations a command carries are the runtime's.
 - What moves every frame is a reading, never read by the script: a prop given as `{reading, as, fill}` (one reading
   or several, space-separated, with one format each: `degrees`, `degreesText`, `point`, `percent`, `percentText`,
   `clock`, `whole`, `word`; several go into `fill` as `{1}`, `{2}`) is filled by the runtime at every state change.
   The channel says which readings it has now: `readings.<name>` = 1.
 - What the finger holds or drags is a control the runtime drives: `controls.<id>` = `{kind: "hold", control}`,
-  `{kind: "helm", left, right}`, `{kind: "lever", up, down}`.
+  `{kind: "helm", left, right}`, `{kind: "lever", up, down}`, `{kind: "stick"}` (the walk stick: bound whether or
+  not its element is shown, so a lift under a sheet still stops the hero), `{kind: "wheel", moves, dims, captions.<move>}`
+  (the strike's swipe: the element `moves` the script builds is drawn only while the wheel is open, on the move
+  previewed, the elements `dims` names subdued; the lift sends that combat action), `{kind: "fan"}` (a picker: its
+  slots are the script's elements `<id>-1…`, drawn while it is open, in place of what each slot `replaces`; it folds on
+  a pick, Back, a sheet or the pack's `time.pickerFoldMs` untouched; a slot's click the script bound is its pick).
+- `lingers.<id>` = 1: an element the script stops giving stays as it was for the pack's `time.hintHoldMs`, then
+  `leaving` for `time.toastLeave`; not said, it goes at once.
+- `sheet` = the pack part over the scene (`"s-hud-sheet"`) with its props: modal, it takes every touch.
 - `covers.<id>` = `"map-labels"`: the world map draws no label under that element.
-- A tap that sends a command the game answers (`"map"`) says `UiPredict(view)` with the mark it shows: drawn until
-  the game has answered; a second such tap meanwhile, or one on an element not drawn as built, sends nothing.
+- A tap that sends a command the game answers (`"map"`, `"menu"` `choose`) says `UiPredict(view)` with the mark it
+  shows (a sheet row by its `id`): drawn until the game has answered; a second map tap meanwhile, or one on an element
+  not drawn as built, sends nothing. A menu row chosen is selected and then activated as the engine wants; a travel
+  place activated hides the HUD until the game's scene change.
 
 ## Helpers
 

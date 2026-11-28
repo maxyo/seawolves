@@ -1,6 +1,7 @@
-// The land HUD's place and talk icons against the game's own scripts (PROGRAM/*.c of an installed game).
+// The land HUD's place and talk icons against the game's own scripts (PROGRAM/*.c of an installed game): the land
+// scene of the touch interface's scripts with its legacy adapter, shown the game's pictures and dialog files.
 // Game data is never in CI: without $STORM_GAME_DIR the check exits 77, which ctest reports as not run.
-#include "fakes.h"
+#include "hud_scripts.h"
 
 #include <algorithm>
 #include <cctype>
@@ -13,6 +14,45 @@
 #include <set>
 
 using namespace storm::ui;
+
+// The land scene on a bench: the icon it shows for a travel place's picture ("" for the plain travel icon) and the
+// talk hint's icon for a target's dialog file.
+struct LandScene
+{
+    Bench bench;
+    explicit LandScene(const ScriptPack &pack)
+    {
+        pack.Attach(bench);
+        bench.Explore();
+    }
+    std::string PlaceIcon(const std::string &picture)
+    {
+        Json travel = State("land-commands-travel");
+        Json items = Json::array();
+        for (Json item : travel["items"])
+            if (item["kind"] == "cancel" || items.empty())
+            {
+                if (item["kind"] != "cancel")
+                    item["picture"] = picture;
+                items.push_back(item);
+            }
+        travel["items"] = items;
+        travel.erase("here");
+        bench.Set("landCommands", travel);
+        const std::string icon = bench.mount.shown.sheet_props["rows"][0]["icon"];
+        bench.Set("landCommands", Json(nullptr));
+        return icon == "travel" ? std::string() : icon;
+    }
+    std::string TalkIcon(const std::string &dialog)
+    {
+        Json talk = State("combat-explore-talk");
+        talk["interactName"] = "Жан";
+        talk["interactDialog"] = dialog;
+        bench.Set("combat", talk);
+        return bench.mount.shown.elements["hint"]["icon"];
+    }
+};
+static LandScene *scene = nullptr;
 
 // Every town of the game's fast_reload_table.c: its place's picture (pic = FRP_*, the menu shows cell pic of
 // LandTarget_SLB) against what the location id says the place is.
@@ -34,8 +74,7 @@ static void CheckPlaceIcons(const std::string &root)
                land, port,
                std::regex(
                    R"(UserIcons\.port\.selpic\s*=\s*(\d+);\s*\n\s*objLandInterface\.UserIcons\.port\.tex\s*=\s*1;)")) &&
-               hud::LandPlaceIcon("landtarget_slb:" + port[1].str()) &&
-               std::string(hud::LandPlaceIcon("landtarget_slb:" + port[1].str())) == "port",
+               scene->PlaceIcon("landtarget_slb:" + port[1].str()) == "port",
            "the ship's port tile is the port");
     std::map<std::string, int> defines;
     const std::regex define(R"(#define\s+(FR[PT]_\w+)\s+(\d+))");
@@ -75,8 +114,8 @@ static void CheckPlaceIcons(const std::string &root)
                                                                         : -1;
             };
             const int cell = number(pic[slot]), texture = number(tex[slot]);
-            const char *icon =
-                cell >= 0 && texture == 0 ? hud::LandPlaceIcon("landtarget_slb:" + std::to_string(cell)) : nullptr;
+            const std::string icon =
+                cell >= 0 && texture == 0 ? scene->PlaceIcon("landtarget_slb:" + std::to_string(cell)) : "";
             std::string lower = location;
             std::transform(lower.begin(), lower.end(), lower.begin(),
                            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -85,11 +124,11 @@ static void CheckPlaceIcons(const std::string &root)
                 if (lower.find(suffix) != std::string::npos)
                     expected = kind;
             ++places;
-            if (!icon || !expected || std::string(icon) != expected)
+            if (icon.empty() || !expected || icon != expected)
             {
                 ++wrong;
                 Expect(false, town + " " + slot + " " + location + ": pic " + pic[slot] + " tex " + tex[slot] +
-                                  " shows '" + (icon ? icon : "?") + "', the location is '" +
+                                  " shows '" + (icon.empty() ? "?" : icon) + "', the location is '" +
                                   (expected ? expected : "unknown kind") + "'");
             }
         }
@@ -128,7 +167,7 @@ static void CheckTalkRoles(const std::string &root)
                              "waitress_dialog", "usurer_dialog", "common_mayor", "common_governor", "common_church",
                              "common_portman", "common_brothel", "common_prison", "common_lighthouse",
                              "enc_officer_dialog", "smuggler agent_dialog", "common_soldier", "common_fort"})
-        Expect(files.count(role) && std::string(hud::LandTalkIcon(role)) != "talk",
+        Expect(files.count(role) && scene->TalkIcon(role) != "talk",
                std::string("role '") + role + "' is a dialog file of the game, with its icon");
     const std::set<std::string> plain = {"common_poorman", "common_citizen", "common_cemeteryman"};
     int roles = 0;
@@ -136,21 +175,25 @@ static void CheckTalkRoles(const std::string &root)
         if (file.rfind("common_", 0) == 0)
         {
             ++roles;
-            Expect(std::string(hud::LandTalkIcon(file)) != "talk" || plain.count(file),
+            Expect(scene->TalkIcon(file) != "talk" || plain.count(file),
                    "the game's role '" + file + "' has no talk icon and is not a plain person");
         }
     std::printf("talk roles against the game's characters: %zu dialog files, %d common roles checked\n", files.size(),
                 roles);
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    states_directory = argc > 1 ? argv[1] : "tests/states";
     const char *root = std::getenv("STORM_GAME_DIR");
     if (!root || !*root)
     {
         std::printf("NOT_RUN: set STORM_GAME_DIR to an installed game\n");
         return 77;
     }
+    const ScriptPack pack(argc > 2 ? argv[2] : "build/app-pack");
+    LandScene land(pack);
+    scene = &land;
     CheckPlaceIcons(root);
     CheckTalkRoles(root);
     if (failures)

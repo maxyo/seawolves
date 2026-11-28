@@ -29,15 +29,6 @@ struct ComponentSpec;
 namespace storm::ui::hud
 {
 
-// The icon of a fast-travel place by the game's picture of it ("landtarget_slb:<cell>", the
-// landCommands item's `picture`); nullptr = a picture the land HUD does not know.
-const char *LandPlaceIcon(const std::string &picture);
-
-// The talk hint's icon by the role of the person spoken to, read from the game's own data: the
-// target's dialog file (combat channel interactDialog, "common_store", "usurer_dialog",
-// "enc_officer_dialog"). An ordinary person (a citizen, a quest character) keeps "talk".
-const char *LandTalkIcon(const std::string &dialog);
-
 // A message shown again while its toast is still up: one toast, "text ×N". Shared by the
 // HUD's event log and the runtime's toast stack (every game log line comes through these).
 inline std::string RepeatedText(const std::string &text, int count)
@@ -112,13 +103,12 @@ class Hud;
 // A picker of the HUD (the sea ammunition fan, the abilities): a button that, tapped, lays its options
 // out as ordinary HUD buttons in the layout's slots <button>-1…N (hud-layout.json), beside it. The
 // slots take the place of the buttons under them (their "replaces"): the scene leaves those out
-// while Open(). The button again, a pick, Back or kSeconds untouched fold it. An option without a
+// while Open(). The button again, a pick, Back or the pack's time pickerFoldMs untouched fold it. An option without a
 // pick is not tappable: greyed by its props ("disabled") when it cannot be used, its tap (or the press
 // behaviour's "refused") does nothing.
 class Fan
 {
   public:
-    static constexpr double kSeconds = 6.0; // an untouched picker folds by itself
     struct Option
     {
         Json props;                 // the c-hud-button props of the slot (icon, label, badge, fill, disabled)
@@ -188,6 +178,8 @@ class AbilityControls
     Hud &hud_;
     Fan fan_;
 };
+
+struct LayoutElement;
 
 // One ported gameplay zone (land, sea, world map). The instance lives while the gameplay
 // mode stays in its zone, so members hold local state (an open wheel, a held stick).
@@ -288,9 +280,14 @@ class Mount
     {
         return false;
     }
-    // The spec of the pack component that element `element` of layout scene `layout` is (a script scene's props are
-    // converted by it); nullptr when the pack has no such element.
-    virtual const ComponentSpec *HudComponent(const std::string &layout, const std::string &element) const = 0;
+    // The spec of the pack component `tag` (a script scene's props are converted by it); nullptr when the pack has
+    // none.
+    virtual const ComponentSpec *PackComponent(const std::string &tag) const = 0;
+    // The element `element` of layout scene `layout` (its `replaces`), nullptr when there is none.
+    virtual const LayoutElement *HudElement(const std::string &layout, const std::string &element) const = 0;
+    // A time of the pack's design tokens (pack.json "settings": "…Ms" in milliseconds, the others in seconds) in
+    // seconds; throws for one it lacks.
+    virtual double HudSeconds(const std::string &token) const = 0;
 };
 
 // Where a script scene puts a reading (script_states.cpp): `readings` names one or more ("worldMap.course"), `as`
@@ -304,6 +301,8 @@ struct ReadingRef
     // Its value as the view takes it; throws for an unknown reading or format, or one the engine does not give.
     Json Resolve(const States &states, Hud &hud) const;
 };
+// The combat state is of the gameplay the HUD shows (its revision and mode): its actions may be sent.
+bool CombatCurrent(const States &states);
 // The state of HUD channel `channel` as a scene script reads it (UiState), without its readings; throws for a channel
 // that is not given to scripts. What the engine should have given and did not is reported through `hud`.
 Json ScriptState(const std::string &channel, const States &states, Hud &hud);
@@ -396,10 +395,19 @@ class Hud
     // The HUD scenes of the scripts attached to the game's program (interface "hud" of scripts.json) and the VM that
     // runs them; a new program replaces them, and the scene of one gone ends as on a mode change.
     void SetScriptScenes(std::vector<ScriptScreen> scenes, ScriptPort *port);
-    // The mount's component of a layout element (Mount::HudComponent).
-    const ComponentSpec *Component(const std::string &layout, const std::string &element) const
+    // The pack component of element `element` of layout scene `layout`; nullptr when there is no such element.
+    const ComponentSpec *Component(const std::string &layout, const std::string &element) const;
+    const ComponentSpec *Part(const std::string &tag) const
     {
-        return mount_.HudComponent(layout, element);
+        return mount_.PackComponent(tag);
+    }
+    const LayoutElement *Element(const std::string &layout, const std::string &element) const
+    {
+        return mount_.HudElement(layout, element);
+    }
+    double Seconds(const std::string &token) const
+    {
+        return mount_.HudSeconds(token);
     }
 
     // A scene sent what leads into a scene change (a fast-travel place chosen): the HUD stays
@@ -607,6 +615,7 @@ struct LayoutElement
     // A top status the toasts must not cover (pack "toastClear": its bottom below the safe top, dp);
     // 0 = none. While it is shown the host's toast stack starts below it.
     float toast_clear = 0.0f;
+    std::vector<std::string> replaces; // the elements an open picker's slot takes the place of
     std::vector<LayoutElement> children;
 };
 using Layout = std::unordered_map<std::string, std::vector<LayoutElement>>;

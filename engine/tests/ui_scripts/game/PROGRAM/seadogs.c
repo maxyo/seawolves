@@ -924,3 +924,6 @@ void TestGoodsPictures()
 	GoodsPictureDrawn("Sugar", 230, 423, "TradeAssistant0");
 	GoodsPictureDrawn("Coffee", 310, 395, "TradeAssistant1");
 }
+
+// The land HUD entity of the games of this engine (its HUD adapter attaches to a game that has it).
+object objLandInterface;

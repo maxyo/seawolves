@@ -1,12 +1,12 @@
-// Who gets a touch over the game, per state of the game: the whole runtime with the synthetic
-// pack (hud_bench.h). For every gameplay mode and every reason the engine gives for "unknown"
+// Who gets a touch over the game, per state of the game: the whole runtime with the application's pack and the touch
+// interface's scripts (hud_scripts.h). For every gameplay mode and every reason the engine gives for "unknown"
 // (GameplaySnapshot::blocked), with a cutscene, a full-screen video or the raised telescope on
 // top, a touch beside every HUD control goes to the game (camera look, the scripts' own taps)
 // unless the game is between scenes (starting, loading, no scene, an interface launched but not
 // shown yet): then the UI holds it for what comes next. Interfaces (the card and dice games
 // among them) and modal sheets own every touch; press_check and the scene checks cover them.
 #include <algorithm>
-#include "hud_bench.h"
+#include "hud_scripts.h"
 
 #include <nlohmann/json.hpp>
 
@@ -73,8 +73,9 @@ std::string GameplayJson(const Case &state, uint64_t revision)
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
-    const std::string pack = argc > 2 ? argv[2] : "tests/pack";
+    const std::string pack = argc > 2 ? argv[2] : "build/app-pack";
     Runtime run(pack);
+    AttachScripts(run);
     Host &host = *run.host;
     run.Feed("presentation", "presentation-game");
     uint64_t revision = 100;

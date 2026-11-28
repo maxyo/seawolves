@@ -64,7 +64,7 @@ inline std::string dialogTargetName(int64_t target)
 }
 // The talk target's role as the game knows it: its dialog file (Dialog.Filename, "Common_Store.c",
 // "Usurer_dialog.c", "Enc_Officer_dialog.c"), the stem in lower case without folders; "" = none.
-// The touch HUD picks the talk hint's icon by it (land.cpp LandTalkIcon).
+// The touch HUD picks the talk hint's icon by it (the land scene's adapter, TouchAdpHud_Role).
 inline std::string dialogTargetFile(int64_t target)
 {
     auto *characters = static_cast<VDATA *>(core.GetScriptVariable("Characters"));

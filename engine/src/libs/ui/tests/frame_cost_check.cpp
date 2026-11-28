@@ -3,7 +3,7 @@
 //   * FrameRenderer alone, with a recording backend: a filtered layer that did not change
 //     is drawn from its cached result (no backend layer, no filter pass); a change, a
 //     nested layer, a clip mask and an empty region behave as documented.
-//   * The whole runtime with the synthetic pack (tests/pack, NoBackend of hud_bench.h): a
+//   * The whole runtime with the application's pack and its world map HUD script (NoBackend of hud_bench.h): a
 //     steady HUD needs no frame (Prepare false) and a drawn steady frame rebuilds, lays out,
 //     compiles and uploads nothing; a state that changes nothing visible needs no frame; one
 //     that does is drawn. Every frame Prepare calls unchanged is verified (Runtime::Frame).
@@ -12,7 +12,7 @@
 //   * Touch scrolling (ScrollFling): drag 1:1, fling on the frame clock, nothing laid out.
 #include "../src/frame_renderer.h"
 #include "../src/job_rows.h"
-#include "hud_bench.h"
+#include "hud_scripts.h"
 
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/Variant.h>
@@ -292,10 +292,22 @@ void SharedShadows()
     Expect(backend.Count("release-texture") == 0, "a held texture is not released");
 }
 
+// The world map's HUD of the application's pack, drawn by its script, after a second of frames: the pack's elements
+// have played their entrance.
+void WorldMap(Runtime &runtime)
+{
+    runtime.Feed("presentation", "presentation-game");
+    runtime.Feed("gameplay", "gameplay-worldmap");
+    runtime.Feed("worldMap", "world-map");
+    for (int i = 0; i < 60; ++i)
+        runtime.Frame();
+}
+
 void SteadyRuntime(const std::string &pack)
 {
     Runtime runtime(pack);
-    runtime.Explore();
+    AttachScripts(runtime);
+    WorldMap(runtime);
     double delay = 0.0;
     Expect(!runtime.host->Prepare(delay), "a steady HUD needs no frame");
     runtime.Frame();
@@ -303,11 +315,11 @@ void SteadyRuntime(const std::string &pack)
     Expect(steady.rebuilds == 0 && steady.laid_out == 0, "a steady frame rebuilds and lays out nothing");
     Expect(steady.geometry == 0 && steady.textures == 0, "a steady frame compiles and uploads nothing");
 
-    runtime.Feed("vitals", "vitals"); // published again, same content
+    runtime.Feed("worldMap", "world-map"); // published again, same content
     Expect(!runtime.host->Prepare(delay), "a state that changes nothing visible needs no frame");
     runtime.Frame();
 
-    runtime.Feed("vitals", "vitals-status");
+    runtime.Feed("worldMap", "world-map-encounter");
     Expect(runtime.host->Prepare(delay), "a state that changes the HUD asks for a frame");
     runtime.Frame();
     Expect(runtime.host->LastFrameStats().rebuilds > 0, "and that frame rebuilds what changed");
@@ -322,17 +334,18 @@ void SteadyRuntime(const std::string &pack)
 void TapLatency(const std::string &pack)
 {
     Runtime runtime(pack);
-    runtime.Explore();
+    AttachScripts(runtime);
+    WorldMap(runtime);
     double delay = 0.0;
     Expect(!runtime.host->Prepare(delay), "the HUD is steady before the tap");
 
-    runtime.host->Touch(TouchPhase::Down, 1, 766, 34); // the pause (menu) button
+    runtime.host->Touch(TouchPhase::Down, 1, 532, 34); // the pause (menu) button
     Expect(runtime.host->Prepare(delay), "a touch-down asks for a frame at once (the press)");
     runtime.Frame();
     Expect(!runtime.host->Prepare(delay), "the press is complete in that one frame: no second frame needed");
 
     const size_t before = runtime.commands.size();
-    runtime.host->Touch(TouchPhase::Up, 1, 766, 34);
+    runtime.host->Touch(TouchPhase::Up, 1, 532, 34);
     Expect(runtime.commands.size() > before && runtime.Sent("shortcut:mainmenu"),
            "the action leaves in the touch-up call, before any frame");
 
@@ -356,7 +369,8 @@ void TapLatency(const std::string &pack)
 void HeldFrame(const std::string &pack)
 {
     Runtime runtime(pack);
-    runtime.Explore();
+    AttachScripts(runtime);
+    WorldMap(runtime);
     double delay = 0.0;
     Expect(!runtime.host->Prepare(delay), "the HUD is steady before the screen opens");
     const uint64_t shown = runtime.host->LastFrameStats().number;
@@ -682,9 +696,9 @@ void JobBuffers()
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        std::fprintf(stderr, "usage: storm_ui_frame_cost_unit <tests/states> <tests/pack>\n");
+        std::fprintf(stderr, "usage: storm_ui_frame_cost_unit <tests/states> <tests/pack> <app-pack>\n");
         return 2;
     }
     states_directory = argv[1];
@@ -692,9 +706,9 @@ int main(int argc, char **argv)
     FilterCache();
     DroppedFrame();
     SharedShadows();
-    SteadyRuntime(argv[2]);
-    TapLatency(argv[2]);
-    HeldFrame(argv[2]);
+    SteadyRuntime(argv[3]);
+    TapLatency(argv[3]);
+    HeldFrame(argv[3]);
     ScrollFling(argv[2]);
     ScrollStretch(argv[2]);
     if (failures)

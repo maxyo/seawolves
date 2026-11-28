@@ -265,6 +265,10 @@ storm::ui::ScriptCommand Command(const std::string &kind, Fields &fields)
         {"control", [](Fields &f) -> ScriptCommand { return HudControlCommand{f.Text("control")}; }},
         {"map", [](Fields &f) -> ScriptCommand { return HudMapCommand{f.Text("id")}; }},
         {"shortcut", [](Fields &f) -> ScriptCommand { return HudShortcutCommand{f.Text("name")}; }},
+        {"menu",
+         [](Fields &f) -> ScriptCommand { return HudMenuCommand{f.Text("menu"), f.Text("verb"), f.Text("id")}; }},
+        {"combat", [](Fields &f) -> ScriptCommand { return HudCombatCommand{f.Text("action"), f.Text("phase")}; }},
+        {"context", [](Fields &f) -> ScriptCommand { return HudContextCommand{f.Text("name")}; }},
     };
     for (const auto &[name, make] : kinds)
         if (kind == name)

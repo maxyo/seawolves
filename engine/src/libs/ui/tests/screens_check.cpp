@@ -2406,9 +2406,17 @@ struct SubjectMount final : storm::ui::hud::Mount
     void HideHud() override
     {
     }
-    const storm::ui::ComponentSpec *HudComponent(const std::string &, const std::string &) const override
+    const storm::ui::ComponentSpec *PackComponent(const std::string &) const override
     {
         return nullptr;
+    }
+    const storm::ui::hud::LayoutElement *HudElement(const std::string &, const std::string &) const override
+    {
+        return nullptr;
+    }
+    double HudSeconds(const std::string &) const override
+    {
+        return 0.0;
     }
     void Send(const Action &) override
     {

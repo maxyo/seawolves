@@ -41,5 +41,6 @@
   "saves": "The save list: load, write or write over a record, delete one, the game's questions about it",
   "settings": "The game's options and the application's settings, kept or dropped together",
   "hud_world_map": "The world map's HUD: the squadron, the compass, the helm, the sail lever and the map's commands",
+  "hud_land": "The land HUD: the party, the walk stick, the land menu, the potion and Rush, the context button and its hint, the sword fight",
   "dialogue": "A conversation with a person of the game: the speech and the replies it offers, a typed answer"
 }

@@ -69,6 +69,7 @@
     {"file": "interface/touch/contracts/saves.c"},
     {"file": "interface/touch/contracts/goods_sections.c"},
     {"file": "interface/touch/contracts/settings.c"},
+    {"file": "interface/touch/contracts/hud.c"},
     {"file": "interface/touch/contracts/dialogue.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
@@ -841,6 +842,11 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/hud.c",
+      "requires": ["var:objLandInterface"],
+      "provides": ["adapter:hud"]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -1052,6 +1058,11 @@
       "file": "interface/touch/screens/dialogue.c",
       "uses": ["adapter:dialogue"],
       "screens": [{"capability": "dialogue", "component": "s-dialogue"}]
+    },
+    {
+      "file": "interface/touch/hud/land.c",
+      "uses": ["adapter:hud"],
+      "screens": [{"capability": "hud_land", "component": "hud", "interface": "hud", "nodes": []}]
     },
     {
       "file": "interface/touch/hud/world_map.c",
