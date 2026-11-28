@@ -87,6 +87,9 @@ struct InterfaceModel
     uint64_t opening = 0;  // changes every time a screen is opened ("screenRevision" on the wire)
     uint64_t revision = 0; // changes whenever the widgets change
     std::vector<Widget> widgets;
+    // Made by the engine for a screen of its own (the dialogue, the death picture, the application's screens), not
+    // collected from a game window: no generic layout stands in for its screen. Not on the wire.
+    bool engine = false;
 
     bool operator==(const InterfaceModel &) const = default;
 

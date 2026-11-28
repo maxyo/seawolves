@@ -164,7 +164,8 @@ static void GameMenu(const std::string &models)
     router.SetInterface(broken);
     surface.now += 1.0; // a rejected opening is reported once it has settled
     router.Tick();
-    Expect(!router.Active() && router.Rejection() == "MB_RESUME(button)" && surface.errors.size() == 1,
+    Expect(router.Using() == "generic" && router.Rejection() == "MB_RESUME(button; absent)" &&
+               surface.errors.size() == 1,
            "without «Продолжить» the pause menu is rejected loudly");
 }
 
@@ -308,7 +309,7 @@ static void Saves(const std::string &models)
     Without(empty, "ANDROID_SAVES");
     empty.opening = 50;
     router.SetInterface(empty);
-    Expect(!router.Active() && surface.errors.size() == 1 &&
+    Expect(router.Using() == "generic" && surface.errors.size() == 1 &&
                surface.errors[0].find("the engine lists no records") != std::string::npos,
            "without the engine's record list the saves screen fails loudly");
 }
@@ -667,7 +668,8 @@ struct SettingsRun
         router.SetInterface(broken);
         surface.now += 1.0; // a rejected opening is reported once it has settled
         router.Tick();
-        Expect(!router.Active() && router.Rejection() == "BTN_OK(button)" && surface.errors.size() == 1,
+        Expect(router.Using() == "generic" && router.Rejection() == "BTN_OK(button; absent)" &&
+                   surface.errors.size() == 1,
                "without «Ок» the settings screen is rejected loudly");
     }
 };
@@ -826,7 +828,7 @@ static void NewGame(const std::string &models)
     router.SetInterface(broken);
     surface.now += 1.0; // a rejected opening is reported once it has settled
     router.Tick();
-    Expect(!router.Active() && router.Rejection() == "OK_BUTTON(button)",
+    Expect(router.Using() == "generic" && router.Rejection() == "OK_BUTTON(button; absent)",
            "without «Ок» the new game screen is rejected loudly");
 }
 

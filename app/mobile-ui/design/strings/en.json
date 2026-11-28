@@ -5,6 +5,7 @@
   "common.previous": "Previous",
   "common.next": "Next",
   "common.description": "Description",
+  "common.screen_failed": "This screen could not be shown: the game's own window is shown as it is.",
   "trade.store": "Store",
   "trade.contraband": "Contraband",
   "trade.cannons": "Cannons",

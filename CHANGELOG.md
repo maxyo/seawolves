@@ -11,6 +11,9 @@
 - Когда памяти мало и Android удаляет часть файлов кэша приложения, недостающие файлы интерфейса ставятся
   заново при запуске игры и при возвращении в неё: раньше игра замечала только полностью удалённый кэш и могла
   закончиться ложным сообщением, что скрипт интерфейса «не компилируется».
+- Экран интерфейса, который не смог открыться или сломался посреди работы, больше не закрывает окно игры: до его
+  закрытия окно показывается раскладкой по умолчанию с коротким сообщением, а при следующем открытии экран пробует
+  снова. Окно, к которому экран не подходит в этой игре, сразу показывается раскладкой по умолчанию.
 - Список загрузки, где у двух игр (профилей) есть записи с одинаковым именем, загружает и удаляет именно
   выбранную запись: раньше «Загрузить» и корзина у второй такой записи действовали на первую.
 - Повреждённая запись в списке загрузки объясняет, почему её нельзя загрузить: причина написана над неактивной
@@ -223,6 +226,9 @@
 - When storage runs low and Android removes some of the app's cache files, the missing interface files are
   installed again when the game starts or comes back: only a wholly cleared cache used to be noticed, and the game
   could end with a false message that an interface script "does not compile".
+- A screen of the interface that cannot open or breaks while in use no longer closes the game's window: until it is
+  closed the window is shown in the default layout with a short note, and the screen is tried again the next time.
+  A window a screen does not fit in this game is shown in the default layout at once.
 - In a load list where two games (profiles) have records of the same name, «Load» and the trash act on the record
   chosen: on the second such record they used to act on the first.
 - A damaged record in the load list says why it cannot be loaded: the reason is written above the disabled

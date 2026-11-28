@@ -1,8 +1,10 @@
 // Host checks of the UI exception boundary: a screen, a screen's handler, a state consumer
 // or a HUD scene that throws must not end the game session. Each throw is an error line naming
-// the screen or component and the exception, a danger toast for the player, and a logged
-// recovery: a failed screen closes the interface through the engine's back immediately,
-// without constructing a generic replacement; a HUD scene goes off until the game mode changes and comes back.
+// the screen or component and the exception, and a logged recovery: a failed screen gives its opening to the generic
+// layout of the same window with a note for the player, and the next opening tries it again; the generic layout
+// failing, or the screen of an engine-made model, closes the interface through the engine's back; a screen that
+// cannot draw this game's window (a required node of another type) is not used for it; a HUD scene goes off until
+// the game mode changes and comes back.
 // Fake screens and scenes only; no GL context, no pack, no game data.
 #include "fakes.h"
 #include "../src/hud/hud.h"
@@ -23,21 +25,20 @@ static bool Has(const std::vector<std::string> &lines, const std::string &part)
     return false;
 }
 
+static size_t Count(const std::vector<std::string> &lines, const std::string &part)
+{
+    size_t count = 0;
+    for (const std::string &line : lines)
+        count += line.find(part) != std::string::npos;
+    return count;
+}
+
 // What the fake screens do, set by each case.
 static bool throw_in_build = false;
 static bool throw_in_handler = false;
 static bool throw_in_back = false;
+static bool generic_throws = false;
 static int generic_created = 0;
-
-class ThrowingGeneric;
-static std::unique_ptr<Screen> CountingGeneric();
-
-// A router whose generic layout is `generic`, as the touch interface's scripts attach theirs.
-static Router &WithGeneric(Router &router, std::function<std::unique_ptr<Screen>()> generic)
-{
-    router.SetScriptScreens({{kAnyInterface, std::move(generic)}});
-    return router;
-}
 
 class ThrowingScreen final : public Screen
 {
@@ -75,139 +76,7 @@ class ThrowingScreen final : public Screen
     }
 };
 
-static const ScreenEntry kScreens[] = {
-    {"throwing", [] { return std::unique_ptr<Screen>(std::make_unique<ThrowingScreen>()); }}};
-
-static InterfaceModel Model(uint64_t opening, uint64_t revision)
-{
-    InterfaceModel model;
-    model.screen = "throwing";
-    model.language = "english";
-    model.opening = opening;
-    model.revision = revision;
-    Widget ok;
-    ok.node = "OK";
-    ok.type = "button";
-    ok.label = "Fine";
-    model.widgets.push_back(ok);
-    return model;
-}
-
-static void ExpectClosed(const Router &router, const FakeSurface &surface, uint64_t opening)
-{
-    Expect(!router.Active() && router.Using().empty() && surface.tag.empty() && surface.hides > 0,
-           "the failed interface is hidden and has no active screen");
-    Expect(router.Model().screen.empty() && router.Model().opening == 0 && router.Rejection().empty(),
-           "the failed interface model and rejection are cleared");
-    Expect(surface.commands.size() == 1 && surface.commands[0] == "back" && surface.actions[0].screen == "throwing" &&
-               surface.actions[0].opening == opening,
-           "exactly one normal engine back targets the failed opening");
-    Expect(surface.alerts.empty(),
-           "the defect is an error line, no alert of its own (Config::show_errors shows errors)");
-    Expect(generic_created == 0, "the boundary never constructs a generic replacement");
-}
-
-static void CheckScreenBuild()
-{
-    FakeSurface surface;
-    surface.now = 5.0;
-    generic_created = 0;
-    Router router(surface, kScreens);
-    WithGeneric(router, CountingGeneric);
-    throw_in_build = true;
-    router.SetInterface(Model(1, 1));
-    ExpectClosed(router, surface, 1);
-    Expect(Has(surface.errors, "screen throwing (interface throwing #1 revision 1) threw in Build: bad widget in "
-                               "Build; the interface is closed"),
-           "the error line names the screen, the interface, the call, the exception and closure");
-    Expect(!router.OnEvent({"ok", "click", ""}), "the failed build leaves no live event bindings");
-    // A new opening tries the ported screen again.
-    throw_in_build = false;
-    router.SetInterface(Model(2, 1));
-    Expect(router.Using() == "throwing" && surface.tag == "s-throwing", "a new opening draws the ported screen again");
-}
-
-// The game's script ended the interface (its segment unloaded, the next interface frames later): the screen stays as
-// drawn and is not built again, though its build would now fail on the script state that went with it.
-static void CheckLeft()
-{
-    FakeSurface surface;
-    surface.now = 5.0;
-    generic_created = 0;
-    Router router(surface, kScreens);
-    WithGeneric(router, CountingGeneric);
-    throw_in_build = false;
-    throw_in_handler = true;
-    router.SetInterface(Model(1, 1));
-    router.LeaveInterface();
-    throw_in_build = true;
-    router.RebuildActive();
-    surface.now = 50.0;
-    router.Tick();
-    Expect(surface.errors.empty() && surface.commands.empty() && surface.tag == "s-throwing",
-           "a left interface's screen stays drawn and is not built again");
-    Expect(router.OnEvent({"ok", "click", ""}) && surface.errors.empty(), "a tap on a left interface is dropped");
-    throw_in_build = false;
-    throw_in_handler = false;
-    router.SetInterface(Model(2, 1));
-    Expect(router.Using() == "throwing" && surface.errors.empty(), "the next opening is built");
-}
-
-static void CheckHandler()
-{
-    FakeSurface surface;
-    surface.now = 5.0;
-    generic_created = 0;
-    Router router(surface, kScreens);
-    WithGeneric(router, CountingGeneric);
-    throw_in_build = false;
-    throw_in_handler = true;
-    router.SetInterface(Model(1, 1));
-    Expect(router.Using() == "throwing", "the ported screen is in use");
-    Expect(router.OnEvent({"ok", "click", ""}), "the event was handled (by the boundary)");
-    ExpectClosed(router, surface, 1);
-    Expect(Has(surface.errors, "threw in the handler of ok click: bad row in a handler"),
-           "the error line names the event");
-    Expect(!router.OnEvent({"ok", "click", ""}), "a failed handler leaves no live event bindings");
-    throw_in_handler = false;
-}
-
-static void CheckBack()
-{
-    FakeSurface surface;
-    surface.now = 5.0;
-    generic_created = 0;
-    Router router(surface, kScreens);
-    WithGeneric(router, CountingGeneric);
-    throw_in_back = true;
-    router.SetInterface(Model(5, 1));
-    Expect(router.WantsBack(), "the screen owns back before failure");
-    router.Back();
-    ExpectClosed(router, surface, 5);
-    Expect(!router.WantsBack() && router.Modals().empty(), "the failed screen no longer owns back or modals");
-    Expect(Has(surface.errors, "threw in Back: bad Back"), "the error line names Back");
-    throw_in_back = false;
-}
-
-static void CheckTextAnswer()
-{
-    FakeSurface surface;
-    surface.now = 5.0;
-    generic_created = 0;
-    Router router(surface, kScreens);
-    WithGeneric(router, CountingGeneric);
-    router.SetInterface(Model(6, 1));
-    Expect(router.OnEvent({"edit", "click", ""}) && !surface.text.token.empty(), "the screen requested a text editor");
-    router.SubmitText(surface.text.token, "answer", true);
-    ExpectClosed(router, surface, 6);
-    Expect(Has(surface.errors, "threw in the text editor's answer: bad text answer"),
-           "the error line names the text answer");
-    router.SubmitText(surface.text.token, "late answer", true);
-    Expect(surface.commands.size() == 1 && surface.errors.size() == 1 && surface.alerts.empty(),
-           "a late editor answer cannot revive the failed screen or send another command");
-}
-
-class ThrowingGeneric final : public Screen
+class Generic final : public Screen
 {
   public:
     const char *Component() const override
@@ -218,37 +87,226 @@ class ThrowingGeneric final : public Screen
     {
         return {};
     }
-    Json Build(const Admission &, Bindings &) override
+    Json Build(const Admission &admitted, Bindings &) override
     {
-        throw std::logic_error("generic failed");
+        if (generic_throws)
+            throw std::logic_error("generic failed");
+        return Json{{"widgets", admitted.known.size()}};
     }
 };
 
 static std::unique_ptr<Screen> CountingGeneric()
 {
     ++generic_created;
-    return std::make_unique<ThrowingGeneric>();
+    return std::make_unique<Generic>();
 }
 
-// A generic screen is still allowed for an unported interface; its own failure closes it.
-static void CheckGenericFails()
+static const ScreenEntry kScreens[] = {
+    {"throwing", [] { return std::unique_ptr<Screen>(std::make_unique<ThrowingScreen>()); }}};
+
+// A router whose generic layout is CountingGeneric, as the touch interface's scripts attach theirs.
+struct Bench
 {
     FakeSurface surface;
-    surface.now = 5.0;
-    Router router(surface, kScreens);
-    WithGeneric(router, [] { return std::unique_ptr<Screen>(std::make_unique<ThrowingGeneric>()); });
+    Router router{surface, kScreens};
+    Bench()
+    {
+        surface.now = 5.0;
+        generic_created = 0;
+        generic_throws = false;
+        throw_in_build = throw_in_handler = throw_in_back = false;
+        router.SetScriptScreens({{kAnyInterface, CountingGeneric}});
+    }
+};
+
+static InterfaceModel Model(uint64_t opening, uint64_t revision, const char *type = "button")
+{
+    InterfaceModel model;
+    model.screen = "throwing";
+    model.language = "english";
+    model.opening = opening;
+    model.revision = revision;
+    Widget ok;
+    ok.node = "OK";
+    ok.type = type;
+    ok.label = "Fine";
+    ok.actions = {"press"};
+    model.widgets.push_back(ok);
+    return model;
+}
+
+static void ExpectClosed(const Router &router, const FakeSurface &surface, uint64_t opening, const char *screen)
+{
+    Expect(!router.Active() && router.Using().empty() && surface.tag.empty() && surface.hides > 0,
+           "the failed interface is hidden and has no active screen");
+    Expect(router.Model().screen.empty() && router.Model().opening == 0 && router.Rejection().empty(),
+           "the failed interface model and rejection are cleared");
+    Expect(surface.commands.size() == 1 && surface.commands[0] == "back" && surface.actions[0].screen == screen &&
+               surface.actions[0].opening == opening,
+           "exactly one normal engine back targets the failed opening");
+    Expect(surface.alerts.empty(), "a closed interface has no note of its own (Config::show_errors shows errors)");
+}
+
+// The failed screen's opening is the generic layout's, with the note; the game's window stays open.
+static void ExpectFellBack(const Router &router, const FakeSurface &surface, const std::string &error)
+{
+    Expect(router.Active() && router.Using() == "generic" && surface.tag == "s-generic",
+           "the generic layout draws the window of the failed screen");
+    Expect(surface.commands.empty(), "the interface is not closed: no engine back");
+    Expect(surface.errors.size() == 1 && Has(surface.errors, error + "; the generic layout draws this opening"),
+           "one error line names the screen, the interface, the call and the exception");
+    Expect(surface.alerts.size() == 1 && surface.alerts[0] == "<common.screen_failed>",
+           "the player is told the screen failed and the window is shown as it is");
+}
+
+static void CheckScreenBuild()
+{
+    Bench bench;
+    throw_in_build = true;
+    bench.router.SetInterface(Model(1, 1));
+    ExpectFellBack(bench.router, bench.surface,
+                   "screen throwing (interface throwing #1 revision 1) threw in Build: bad widget in Build");
+    Expect(!bench.router.OnEvent({"ok", "click", ""}), "the failed screen leaves no event bindings");
+    bench.router.SetInterface(Model(1, 2));
+    Expect(bench.router.Using() == "generic" && Count(bench.surface.errors, "threw") == 1,
+           "the rest of the opening stays the generic layout's");
+    // A new opening tries the screen again.
+    throw_in_build = false;
+    bench.router.SetInterface(Model(2, 1));
+    Expect(bench.router.Using() == "throwing" && bench.surface.tag == "s-throwing",
+           "a new opening draws the screen again");
+}
+
+// The game's script ended the interface (its segment unloaded, the next interface frames later): the screen stays as
+// drawn and is not built again, though its build would now fail on the script state that went with it.
+static void CheckLeft()
+{
+    Bench bench;
+    throw_in_handler = true;
+    bench.router.SetInterface(Model(1, 1));
+    bench.router.LeaveInterface();
+    throw_in_build = true;
+    bench.router.RebuildActive();
+    bench.surface.now = 50.0;
+    bench.router.Tick();
+    Expect(bench.surface.errors.empty() && bench.surface.commands.empty() && bench.surface.tag == "s-throwing",
+           "a left interface's screen stays drawn and is not built again");
+    Expect(bench.router.OnEvent({"ok", "click", ""}) && bench.surface.errors.empty(),
+           "a tap on a left interface is dropped");
+    throw_in_build = false;
+    throw_in_handler = false;
+    bench.router.SetInterface(Model(2, 1));
+    Expect(bench.router.Using() == "throwing" && bench.surface.errors.empty(), "the next opening is built");
+}
+
+static void CheckHandler()
+{
+    Bench bench;
+    throw_in_handler = true;
+    bench.router.SetInterface(Model(1, 1));
+    Expect(bench.router.Using() == "throwing", "the screen is in use");
+    Expect(bench.router.OnEvent({"ok", "click", ""}), "the event was handled (by the boundary)");
+    ExpectFellBack(bench.router, bench.surface, "threw in the handler of ok click: bad row in a handler");
+    Expect(!bench.router.OnEvent({"ok", "click", ""}), "a failed handler leaves no event bindings");
+}
+
+static void CheckBack()
+{
+    Bench bench;
+    throw_in_back = true;
+    bench.router.SetInterface(Model(5, 1));
+    Expect(bench.router.WantsBack(), "the screen owns back before failure");
+    bench.router.Back();
+    ExpectFellBack(bench.router, bench.surface, "threw in Back: bad Back");
+    Expect(!bench.router.WantsBack() && bench.router.Modals().empty(),
+           "the failed screen no longer owns back or modals");
+}
+
+static void CheckTextAnswer()
+{
+    Bench bench;
+    bench.router.SetInterface(Model(6, 1));
+    Expect(bench.router.OnEvent({"edit", "click", ""}) && !bench.surface.text.token.empty(),
+           "the screen requested a text editor");
+    bench.router.SubmitText(bench.surface.text.token, "answer", true);
+    ExpectFellBack(bench.router, bench.surface, "threw in the text editor's answer: bad text answer");
+    bench.router.SubmitText(bench.surface.text.token, "late answer", true);
+    Expect(bench.surface.commands.empty() && bench.surface.errors.size() == 1 && bench.surface.alerts.size() == 1,
+           "a late editor answer cannot revive the failed screen or send anything");
+}
+
+// The generic layout for an interface no screen draws; its own failure closes it.
+static void CheckGenericFails()
+{
+    Bench bench;
+    generic_throws = true;
     InterfaceModel other = Model(4, 1);
     other.screen = "unported";
-    router.SetInterface(other);
-    Expect(!router.Active() && router.Using().empty() && surface.tag.empty() && surface.hides > 0,
-           "the generic layout alone: hidden and closed at once");
-    Expect(surface.commands.size() == 1 && surface.commands[0] == "back" && surface.actions[0].screen == "unported" &&
-               surface.actions[0].opening == 4,
-           "the generic failure sends exactly one back for its opening");
-    Expect(Has(surface.errors, "screen generic (interface unported #4 revision 1) threw in Build: generic failed; the "
-                               "interface is closed"),
+    bench.router.SetInterface(other);
+    ExpectClosed(bench.router, bench.surface, 4, "unported");
+    Expect(Has(bench.surface.errors, "screen generic (interface unported #4 revision 1) threw in Build: generic "
+                                     "failed; the interface is closed"),
            "the generic error names the failure and closure");
-    Expect(surface.alerts.empty(), "the generic failure is an error line, no alert of its own");
+}
+
+// A failed screen whose generic layout fails too: closed, once (no loop between the two).
+static void CheckBothFail()
+{
+    Bench bench;
+    generic_throws = true;
+    throw_in_build = true;
+    bench.router.SetInterface(Model(3, 1));
+    ExpectClosed(bench.router, bench.surface, 3, "throwing");
+    Expect(bench.surface.errors.size() == 2 && generic_created == 1,
+           "the screen's error, then the generic layout's, which closes the interface");
+}
+
+// A model the engine makes for a screen of its own has no game window to show as it is: its failed screen closes it.
+static void CheckEngineMade()
+{
+    Bench bench;
+    throw_in_build = true;
+    InterfaceModel model = Model(7, 1);
+    model.engine = true;
+    bench.router.SetInterface(model);
+    ExpectClosed(bench.router, bench.surface, 7, "throwing");
+    Expect(generic_created == 0, "no generic layout stands in for an engine-made screen");
+}
+
+// A screen whose required node this game's window has with another type: the generic layout draws the window, one
+// error line names the screen and the node with both types, and the window is not closed; later openings do not
+// check or log again.
+static void CheckUnfit()
+{
+    Bench bench;
+    bench.router.SetInterface(Model(1, 1, "image"));
+    Expect(!bench.router.Active() && bench.surface.commands.empty(),
+           "a rejected first model waits for the model to settle");
+    bench.surface.now = 7.0;
+    bench.router.Tick();
+    Expect(bench.router.Using() == "generic" && bench.surface.tag == "s-generic" && bench.surface.commands.empty(),
+           "the generic layout draws the window and it stays open");
+    Expect(bench.surface.errors.size() == 1 &&
+               Has(bench.surface.errors, "screen throwing cannot draw this game's window: required nodes missing or "
+                                         "mistyped: OK(button; found image); the generic layout draws it"),
+           "one error line names the screen and the node with the type expected and the type found");
+    Expect(bench.router.Rejection() == "OK(button; found image)", "the rejection says why");
+    bench.router.SetInterface(Model(2, 1, "image"));
+    Expect(bench.router.Using() == "generic" && bench.surface.errors.size() == 1,
+           "the next opening goes to the generic layout at once, without another line");
+    // A new list of screens (another program) checks again.
+    bench.router.SetScriptScreens({{kAnyInterface, CountingGeneric}});
+    bench.router.SetInterface(Model(3, 1));
+    Expect(bench.router.Using() == "throwing", "a window of the type it needs is drawn by the screen");
+    // Once a screen has drawn its window, a required node gone later fails that opening only.
+    bench.router.SetInterface(Model(4, 1));
+    bench.surface.now = 9.0;
+    bench.router.SetInterface(Model(4, 2, "image"));
+    Expect(bench.router.Using() == "generic" && bench.surface.alerts.size() == 1 &&
+               Count(bench.surface.errors, "the generic layout draws this opening") == 1,
+           "a required node gone in a later revision gives the rest of the opening to the generic layout");
+    bench.router.SetInterface(Model(5, 1));
+    Expect(bench.router.Using() == "throwing", "and the next opening tries the screen again");
 }
 
 // Bad states of real channels: whatever a consumer does with them, the screen in use stays.
@@ -374,6 +432,9 @@ int main()
     CheckBack();
     CheckTextAnswer();
     CheckGenericFails();
+    CheckBothFail();
+    CheckEngineMade();
+    CheckUnfit();
     CheckConsumers();
     CheckHudComponent("Build", scene_throws_in_build, false);
     CheckHudComponent("Tick", scene_throws_in_tick, false);

@@ -84,10 +84,19 @@ applied answer shows it. Logs and checks print one line (`to_string`, `widget:<s
 
 ## What the router does for every screen
 
-- **Admission.** All REQUIRED nodes present → the ported screen. A model missing one is held
-  hidden for the first second of the opening; after that it is an error (missing nodes logged,
-  a toast in debug builds) and the interface closes through the engine's back. Mark nodes
-  REQUIRED only when every way the game opens the interface has them.
+- **Admission.** All REQUIRED nodes present with their types → the screen. A model missing one is held hidden for
+  the first second of the opening. After that, at the screen's first opening in this game, the window is not one the
+  screen was made for: one error line names the screen's binding and each node with the type expected and the type
+  found, and the generic layout draws that window until the script screens are set again. A screen that has drawn
+  its window before and is refused later fails that opening only (below). Mark nodes REQUIRED only when every way the
+  game opens the interface has them.
+- **A failed screen.** A screen that throws in its build, a tap, its back or a text answer (a script error, the
+  adapter's `UiError`, a view its spec refuses), or is refused in a later revision, gives the rest of the opening to
+  the generic layout of the same window: the full error in the log, a short note for the player
+  (`common.screen_failed`); the next opening tries the screen again. The generic layout failing, and the screen of a
+  model the engine makes for a screen of its own (`InterfaceModel::engine`: the dialogue, the death picture, the
+  application's screens; a generic layout of it would show an id list, or nothing), close the interface through the
+  engine's back with the error line.
 - **Extras.** Widgets a screen does not know become rows of the Other sheet (header «⋯»), texts one note: the rows
   are the script's of `kOtherInterface` (`universal/generic.c`); the sheet's opening and reading sheet are the
   router's.

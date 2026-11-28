@@ -81,7 +81,8 @@ static void Card(const std::string &models)
     router.SetInterface(broken);
     surface.now += 1.0;
     router.Tick();
-    Expect(!router.Active() && router.Rejection() == "B_OK(button)", "a card without its answer is rejected loudly");
+    Expect(router.Using() == "generic" && router.Rejection() == "B_OK(button; absent)",
+           "a card without its answer is rejected loudly");
 }
 
 static void Frame(const std::string &models)
@@ -389,7 +390,7 @@ static void TradeBookAsSent(const std::string &models)
     router.SetInterface(stale);
     surface.now += 1.0;
     router.Tick();
-    ExpectEqual(router.Rejection(), "TABLE_CITY(choice|table)",
+    ExpectEqual(router.Rejection(), "TABLE_CITY(choice|table; absent)",
                 "without the table at all the screen still refuses loudly");
 }
 

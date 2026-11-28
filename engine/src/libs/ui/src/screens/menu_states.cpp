@@ -59,6 +59,7 @@ class GameOverConsumer final : public StateConsumer
         }
         InterfaceModel model;
         model.screen = "game_over";
+        model.engine = true;
         model.language = state.contains("language") && state["language"].is_string()
                              ? state["language"].get<std::string>()
                              : std::string();

@@ -1031,31 +1031,27 @@ struct StoreRun
         Expect(router.Using() == "store" && surface.errors.empty(),
                "the ported screen when the game has filled the interface");
         broken.opening = 9;
-        const size_t toasts = surface.toasts.size();
         router.SetInterface(broken);
         surface.now += 1.0;
         router.Tick();
-        Expect(!router.Active() && surface.tag.empty() && router.Using().empty(),
-               "store without TABLE_LIST: nothing stands in for its screen");
-        ExpectEqual(router.Rejection(), "TABLE_LIST(choice|table)", "the rejection names the missing required node");
+        Expect(router.Using() == "generic" && surface.tag == "s-generic" && surface.Last() != "back",
+               "store without TABLE_LIST: the generic layout draws the rest of the opening, the window stays open");
+        ExpectEqual(router.Rejection(), "TABLE_LIST(choice|table; absent)",
+                    "the rejection names the missing required node");
         Expect(surface.errors.size() == 1 && surface.errors[0] ==
-                                                 "screen store (interface #9 revision 1): required nodes missing or "
-                                                 "mistyped: TABLE_LIST(choice|table); "
-                                                 "the interface is closed (the engine's back)",
-               "a ported screen that cannot be used is a defect");
-        Expect(surface.Last() == "back" && surface.toasts.size() == toasts,
-               "the defect closes the interface the game's way; its error line is the only report");
+                                                 "screen store (binding trade_store) (interface #9 revision 1): "
+                                                 "required nodes missing or mistyped: TABLE_LIST(choice|table; "
+                                                 "absent); the generic layout draws this opening",
+               "a screen that cannot draw a revision it drew before is a defect, reported");
+        Expect(surface.alerts.size() == 1 && surface.alerts[0] == "<common.screen_failed>",
+               "the player is told the screen failed and the window is shown as it is");
         broken.revision = 99;
         router.SetInterface(broken);
         surface.now += 1.0;
         router.Tick();
-        Expect(surface.errors.size() == 1 && surface.toasts.size() == toasts,
-               "the same node set again: closed again, reported once");
-        broken.widgets.pop_back();
-        router.SetInterface(broken);
-        surface.now += 1.0;
-        router.Tick();
-        Expect(surface.errors.size() == 2, "and reported again when the node set changes");
+        Expect(router.Using() == "generic" && surface.errors.size() == 1 && surface.alerts.size() == 1,
+               "the rest of the opening stays the generic layout's, reported once");
+        // A new opening tries the screen again.
         router.SetInterface(Load(models, "store.json"));
         Expect(router.Using() == "store" && router.Rejection().empty(),
                "the ported screen returns when its nodes are back");
@@ -1670,7 +1666,7 @@ static void Crew(const std::string &models)
     router.SetInterface(broken);
     surface.now += 1.0;
     router.Tick();
-    Expect(!router.Active() && router.Rejection() == "QTY_EDIT(edit)" && surface.errors.size() == 1,
+    Expect(router.Using() == "generic" && router.Rejection() == "QTY_EDIT(edit; absent)" && surface.errors.size() == 1,
            "without its edit box the crew screen is rejected loudly: " + router.Rejection() +
                Json(surface.errors).dump());
 }
@@ -2246,7 +2242,8 @@ static void Nations(const std::string &models)
     router.SetInterface(broken);
     surface.now += 2.0;
     router.Tick();
-    Expect(!router.Active() && router.Rejection() == "FlagPic(image)", "without its candidate it is rejected loudly");
+    Expect(router.Using() == "generic" && router.Rejection() == "FlagPic(image; absent)",
+           "without its candidate it is rejected loudly");
 }
 
 static Widget *Row(InterfaceModel &model, const char *node, int index)

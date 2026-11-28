@@ -52,6 +52,10 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     {
         Raise(back_, "", "");
     }
+    std::string Binding() const override
+    {
+        return screen_.capability;
+    }
 
     Json Build(const Admission &admitted, Bindings &bindings) override
     {

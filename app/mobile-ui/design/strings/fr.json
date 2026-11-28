@@ -5,6 +5,7 @@
   "common.previous": "Précédent",
   "common.next": "Suivant",
   "common.description": "Description",
+  "common.screen_failed": "Cet écran n'a pas pu s'ouvrir : la fenêtre du jeu est montrée telle quelle.",
   "trade.store": "Magasin",
   "trade.contraband": "Contrebande",
   "trade.cannons": "Canons",

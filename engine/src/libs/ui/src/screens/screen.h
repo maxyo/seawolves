@@ -64,8 +64,9 @@ bool Hidden(const Widget &widget);
 struct Admission
 {
     const InterfaceModel *model = nullptr;
-    bool accepted = false;              // every REQUIRED node is present with its type
-    std::string missing;                // REQUIRED nodes that are absent or mistyped: "TABLE_LIST(choice), …"
+    bool accepted = false; // every REQUIRED node is present with its type
+    // REQUIRED nodes that are absent or mistyped: "TABLE_LIST(choice|table; found image), B_OK(button; absent)".
+    std::string missing;
     std::vector<const Widget *> known;  // KNOWN node with the expected type
     std::vector<const Widget *> extras; // everything else that is not hidden
 
@@ -255,6 +256,11 @@ class Screen
     virtual void Back(Bindings &)
     {
     }
+    // The script binding it is made of, for the log line that says it cannot draw its interface; "" for C++ screens.
+    virtual std::string Binding() const
+    {
+        return {};
+    }
 };
 
 struct ScreenEntry
@@ -440,8 +446,8 @@ class Router
     {
         return using_;
     }
-    // Why the ported screen of the last interface could not draw it (its REQUIRED nodes that
-    // were missing or mistyped: the interface was closed, CloseOnDefect); empty otherwise.
+    // Why the screen of the open interface cannot draw it (its REQUIRED nodes absent or mistyped: the generic layout
+    // draws it, or an engine-made model's interface was closed); empty otherwise.
     const std::string &Rejection() const
     {
         return rejection_;
@@ -474,15 +480,18 @@ class Router
     // state consumer must not end the game session. Runs `call`; a std::exception (or anything
     // else thrown) is reported by Failed and false returned.
     template <class Call> bool Guarded(const std::string &where, Call &&call);
-    // A screen threw: an error line naming the screen, the interface, the call and the exception,
-    // (shown as a toast in debug builds only: Config::show_errors), and the interface is closed
-    // through the engine's back. No replacement layout is built for a screen that threw.
+    // A screen threw: FallBack with an error line naming the screen, the interface, the call and the exception.
     void Failed(const std::string &where, const std::string &what);
-    // A ported screen cannot draw its interface (a thrown screen, REQUIRED nodes missing or
-    // mistyped once the first model settled): the defect `line` (an error line, unless
-    // `logged` says it was already reported for this node set) and the interface closes through
-    // the engine's back. Nothing else draws it.
+    // The screen in use failed in this opening (`line` says how): the generic layout draws the rest of the opening,
+    // with a note for the player, and the next opening tries the screen again. The generic layout failing, or the
+    // screen of an engine-made model (no game window to show as it is), closes the interface instead (CloseOnDefect).
+    // False then.
+    bool FallBack(const std::string &line);
+    // The defect `line` (an error line, unless `logged` says it was already reported for this node set) and the
+    // interface closes through the engine's back. Nothing else draws it.
     void CloseOnDefect(const std::string &line, bool logged);
+    // Forgets everything of the screen in use: its bindings may point into state a throw left half made.
+    void Drop();
     // The boundary of state consumer code: a throw is an error line and the state is dropped
     // (the screen in use stays: a channel's data is not the screen's). False when it threw.
     bool Consume(const std::string &channel, const char *what, const std::function<void()> &call);
@@ -534,6 +543,12 @@ class Router
     // it appears, not again at every build while it stays.
     std::set<std::string> notices_shown_, notices_building_;
     std::string rejection_;
+    // The windows of this game whose screen cannot draw them (BuildView: found at the first opening), with why; the
+    // screens that have drawn theirs; the opening (interface, number) whose screen failed (FallBack). The first two
+    // are about these screens: a new list (SetScriptScreens) forgets them.
+    std::map<std::string, std::string> unfit_;
+    std::set<std::string> fit_;
+    std::pair<std::string, uint64_t> fell_back_;
     // Shared «Прочее» sheet and reading sheet.
     bool extras_open_ = false;
     std::string reading_title_, reading_text_;

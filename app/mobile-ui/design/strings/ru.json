@@ -5,6 +5,7 @@
   "common.previous": "Предыдущее",
   "common.next": "Следующее",
   "common.description": "Описание",
+  "common.screen_failed": "Этот экран не открылся: окно игры показано как есть.",
   "trade.store": "Магазин",
   "trade.contraband": "Контрабанда",
   "trade.cannons": "Орудия",

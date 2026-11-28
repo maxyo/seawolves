@@ -96,6 +96,7 @@ class DialogueScreenConsumer final : public DialogueConsumer
         shown_->refusal.reset(); // a refusal answers one submission: it is not shown again
         InterfaceModel model;
         model.screen = "dialogue";
+        model.engine = true;
         model.opening = dialogue.generation;
         model.revision = ++revision_;
         // The game's language as the engine sends it with the dialogue (the gameplay state

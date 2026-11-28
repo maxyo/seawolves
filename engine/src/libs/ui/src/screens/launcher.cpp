@@ -1599,6 +1599,7 @@ class LauncherConsumer final : public StateConsumer
         // The application's screens live in their own id space: game interface ids are ini
         // file stems (the game's credits are "about"), which can never contain ':'.
         model.screen = kAppScreenPrefix + screen;
+        model.engine = true;
         model.language = text("language");
         model.opening = opening_;
         model.revision = ++revision_;
