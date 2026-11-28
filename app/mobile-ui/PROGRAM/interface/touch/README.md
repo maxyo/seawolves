@@ -72,6 +72,9 @@ is provided, else `"0"` with a warning at attach, and the segment attaches eithe
   it is not looked up in the game's interface table.
 - a screen's `screens`: `{capability, component, look}`; `look` is the screen's presentation per capability (title
   key, icons, captions). A screen takes the interface, nodes and data of its capability's attached binding.
+- A segment of a game's set that only `uses` a contract may bind windows only that game has and list their screens:
+  the common adapter reads them, and a game without those windows does not list them (Caribbean Legend's lessons and
+  messages, `lineages/cl/reading.c`).
 
 A value or decision the game gets only from a script fix (`../../../../script-patches`: a function the fix adds, which
 the game's own handler calls) is such a feature: a small provider `lineages/<lineage>/<family>.c` requires the

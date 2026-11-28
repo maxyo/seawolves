@@ -7,6 +7,7 @@
 #include "string_compare.hpp"
 #include "utf8.h"
 #include "xi_scroller.h"
+#include "../rich_text.hpp"
 
 #include <cstdio>
 
@@ -1635,6 +1636,7 @@ void CXI_FORMATEDTEXT::MobileCollect(std::vector<MobileWidget> &widgets) const
     const bool pressable = !m_bSelectableCursor && m_bUse && m_bClickable && !m_bLockedNode && !m_bLockStatus &&
                            CheckCommandUsed(ACTION_MOUSECLICK);
     auto append = [&]() {
+        while (!text.empty() && text.back() == '\n') text.pop_back();
         if (!text.empty()) {
             MobileWidget widget{m_nodeName, m_bSelectableCursor ? "choice" : "text", text,
                 group == m_nCurGroupNum ? "1" : "0", group, m_rect.top * 8192 + m_rect.left + std::max(group, 0)};
@@ -1644,10 +1646,11 @@ void CXI_FORMATEDTEXT::MobileCollect(std::vector<MobileWidget> &widgets) const
         }
         text.clear();
     };
+    bool broken = false;
     for (auto *line = m_listRoot; line; line = line->next)
     {
-        if (group != line->strGroup || (styled&&color!=line->color)) { append(); group = line->strGroup; color=line->color; }
-        if (line->lineStr && *line->lineStr) { if (!text.empty()) text += ' '; text += line->lineStr; }
+        if (group != line->strGroup || (styled&&color!=line->color)) { append(); group = line->strGroup; color=line->color; broken = false; }
+        storm::xi::AppendTextLine(text, broken, line->lineStr ? line->lineStr : "");
         if (text.size() > 32768) break;
     }
     append();

@@ -1,6 +1,6 @@
 {
   "tag": "s-reading",
-  "doc": "Reading cards over the game (interfaces `map`, `dirsailenc`, `leavebattle`, `salary`), news notices (`colonyinfo`, `nationlegend`), the interlude `boal_frame` and nothing at all for `fortcapture`, which the game closes at once, filled by the script interface/touch/screens/reading.c through the shapes of its json props.",
+  "doc": "Reading cards over the game (interfaces `map`, `dirsailenc`, `leavebattle`, `salary`), news notices (`colonyinfo`, `nationlegend`), the interlude `boal_frame`, pages of long text (`tutorial`, `message`) and nothing at all for `fortcapture`, which the game closes at once, filled by the script interface/touch/screens/reading.c through the shapes of its json props.",
   "props": {
     "mode": {
       "type": "enum",
@@ -8,6 +8,7 @@
         "card",
         "notice",
         "frame",
+        "page",
         "none"
       ],
       "default": "card"
@@ -31,6 +32,7 @@
     },
     "actions": {"type": "json", "default": [], "shape": {"$of": "c-dialog.actions"}},
     "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}},
-    "picture": {"type": "json", "default": null, "shape": {"$of": "s-interlude.picture"}}
+    "picture": {"type": "json", "default": null, "shape": {"$of": "s-interlude.picture"}},
+    "check": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "on": "bool", "disabled": "bool", "reason": "text"}}}
   }
 }

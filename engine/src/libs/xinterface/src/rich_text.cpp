@@ -285,4 +285,26 @@ std::string RichPlainText(const std::vector<RichItem> &items)
     }
     return plain;
 }
+void AppendTextLine(std::string &text, bool &broken, std::string_view line)
+{
+    bool ends = false;
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+    {
+        line.remove_suffix(1);
+        ends = true;
+    }
+    const auto first = line.find_first_not_of(' ');
+    const std::string_view trimmed = first == std::string_view::npos
+                                         ? std::string_view{}
+                                         : line.substr(first, line.find_last_not_of(' ') - first + 1);
+    const bool mark = trimmed == "~";
+    if (broken || mark)
+        line = mark ? std::string_view{} : trimmed;
+    if (line.empty() && !mark && !ends)
+        return;
+    if (!text.empty())
+        text += broken ? '\n' : ' ';
+    text += line;
+    broken = ends || mark;
+}
 } // namespace storm::xi

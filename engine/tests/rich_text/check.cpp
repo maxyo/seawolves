@@ -125,3 +125,12 @@ TEST_CASE("rich_text.plain")
                               "[icon:group=G,pic=P,width=8,height=8] c\nd[x]")) == "Head\na b c\nd");
     CHECK(RichPlainText(Parse("")).empty());
 }
+
+TEST_CASE("rich_text.lines")
+{
+    std::string text;
+    bool broken = false;
+    for (const char *line : {"Welcome!\r\n", " ~\r\n", " Turn the ship with", "the keys.\r\n", "", "~", "End"})
+        AppendTextLine(text, broken, line);
+    CHECK(text == "Welcome!\n\nTurn the ship with the keys.\n\nEnd");
+}

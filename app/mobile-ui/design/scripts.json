@@ -902,6 +902,31 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/cl/reading.c",
+      "set": "caribbean_legend",
+      "uses": ["adapter:reading"],
+      "binds": [
+        {
+          "capability": "lesson", "interface": "tutorial",
+          "nodes": [
+            ["TITLE", "text", true], ["INFO_TEXT", "text"], ["B_OK", "button"], ["B_OK2", "button"],
+            ["TUTORIAL_CHECKBOX", "check"], ["CONTROLS_TEXT", "text"], ["CONTROLS_IMG", "text"], ["ZOOM", "image"],
+            ["ZOOMPLUS", "image"], ["VFRAME", "image"], ["INFO_PICTURE", "image"]
+          ],
+          "data": {"title": "TITLE", "amount": "", "picture": "", "check": "TUTORIAL_CHECKBOX"}
+        },
+        {
+          "capability": "message", "interface": "message",
+          "nodes": [["INFO_TEXT", "text", true], ["B_OK", "button"]],
+          "data": {"title": "", "amount": "", "picture": ""}
+        }
+      ],
+      "screens": [
+        {"capability": "lesson", "component": "s-reading", "look": {"mode": "page"}},
+        {"capability": "message", "component": "s-reading", "look": {"mode": "page"}}
+      ]
+    },
+    {
       "file": "interface/touch/lineages/legacy/dialogue.c",
       "provides": ["adapter:dialogue"],
       "binds": [

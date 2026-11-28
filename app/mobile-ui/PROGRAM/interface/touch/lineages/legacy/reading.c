@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The reading windows of this lineage: a caption, INFO_TEXT… lines, an info picture, B_OK and B_CANCEL (map,
-// DirSailEnc, LeaveBattle, salary), the news notices with their flags (ColonyInfo, NationLegend) and the interlude's
-// picture and line (boal_frame). The binding's data names the nodes: title, amount (the line that is the window's
-// sum), picture with its ornament (the window's own frame texture, no picture of the moment), flags {n<k>: node},
-// relation. Implements contracts/reading.c.
+// The reading windows of this lineage: a caption, INFO_TEXT… lines, an info picture, B_OK (or B_OK2) and B_CANCEL
+// (map, DirSailEnc, LeaveBattle, salary; a lesson, a message), the news notices with their flags (ColonyInfo,
+// NationLegend) and the interlude's picture and line (boal_frame). The binding's data names the nodes: title, amount
+// (the line that is the window's sum), picture with its ornament (the window's own frame texture, no picture of the
+// moment), flags {n<k>: node}, relation, check (a switch beside the answers). Implements contracts/reading.c.
 
 // The flags' nations, and between two of them the game's relation picture (NationLegend.c GetRelationName): Enemy is
 // war, Friend an alliance, Neutral peace.
@@ -40,6 +40,12 @@ void TouchLegReading_Flags(aref model, aref data, aref out)
 	out.relation = relations.(named);
 }
 
+// The window's answer that accepts (a window shows one of its two OK buttons at a time).
+string TouchLegReading_Accept(aref model)
+{
+	return TouchLegLib_Exit(model, "B_OK B_OK2");
+}
+
 void TouchAdpReading_State(aref ui, aref out)
 {
 	aref model = TouchLegLib_Model(ui);
@@ -67,10 +73,17 @@ void TouchAdpReading_State(aref ui, aref out)
 	}
 	TouchLegReading_Flags(model, data, out);
 	aref answer;
-	if (CheckAttribute(model, "B_OK"))
+	string accept = TouchLegReading_Accept(model);
+	if (accept != "")
 	{
 		makearef(answer, out.accept);
-		TouchLegLib_Button(model, "B_OK", answer);
+		TouchLegLib_Button(model, accept, answer);
+	}
+	if (CheckAttribute(data, "check") && CheckAttribute(model, data.check))
+	{
+		makearef(answer, out.check);
+		answer.label = "";
+		TouchLegLib_Option(model, data.check, answer);
 	}
 	// A cancel without a caption is no answer of the window.
 	if (TouchLegLib_Label(model, "B_CANCEL") != "")
@@ -82,7 +95,12 @@ void TouchAdpReading_State(aref ui, aref out)
 
 void TouchAdpReading_Accept(aref ui)
 {
-	UiSend("B_OK", "press", "");
+	UiSend(TouchLegReading_Accept(TouchLegLib_Model(ui)), "press", "");
+}
+
+void TouchAdpReading_Check(aref ui, bool on)
+{
+	TouchLegLib_OptionToggle(ui, ui.data.check, 0, on);
 }
 
 void TouchAdpReading_Decline(aref ui)

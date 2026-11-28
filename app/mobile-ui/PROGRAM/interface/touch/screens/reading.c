@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The reading windows over the running game: a card with the game's answers, a notice of news under its flags, the
-// interlude's line over its picture, or nothing for a window the game closes at once. The look of each capability:
-// mode ("card", "notice", "frame", "none"), icon, decline (the variant of the second answer), the string keys
+// interlude's line over its picture, a page of long text with its switch and answers, or nothing for a window the game
+// closes at once. The look of each capability: mode ("card", "notice", "frame", "page", "none"), icon, decline (the variant of the second answer), the string keys
 // acceptLabel and declineLabel (the game's captions where ""), acceptRefused and declineRefused (said of an answer
 // the game does not offer without saying why, "" nothing), aside (a tap beside the card declines) and title (a
 // notice's when the game gives none).
@@ -111,6 +111,31 @@ void TouchReading_Notice(aref ui, aref game)
 	UiModal("card", "ok");
 }
 
+// A page: the game's title and text, its switch and its answers in the bar; the way back is its answer.
+void TouchReading_Page(aref ui, aref game)
+{
+	TouchReading.title = game.title;
+	TouchReading.text = TouchReading_Joined(game, TouchLib_Newline() + TouchLib_Newline());
+	if (CheckAttribute(game, "check"))
+	{
+		object check = {label = game.check.label, on = game.check.on, disabled = !sti(game.check.can),
+		                reason = game.check.reason};
+		aref at;
+		makearef(at, TouchReading.check);
+		CopyAttributes(at, &check);
+		UiOn("check", "");
+	}
+	aref actions;
+	makearef(actions, TouchReading.actions);
+	if (CheckAttribute(game, "accept"))
+	{
+		aref accept;
+		makearef(accept, game.accept);
+		TouchReading_Button(actions, accept, "ok", "primary", "", "");
+	}
+	UiOn("header-back", "");
+}
+
 void TouchReading_Build()
 {
 	aref ui = GetEventData();
@@ -125,6 +150,7 @@ void TouchReading_Build()
 	TouchReading.actions = "";
 	if (ui.look.mode == "card") TouchReading_Card(ui, &game);
 	if (ui.look.mode == "notice") TouchReading_Notice(ui, &game);
+	if (ui.look.mode == "page") TouchReading_Page(ui, &game);
 	if (ui.look.mode == "frame")
 	{
 		TouchReading.text = TouchReading_Joined(&game, TouchLib_Newline());
@@ -143,6 +169,12 @@ void TouchReading_Tap()
 	if (id == "frame") { TouchAdpReading_Leave(ui); return; }
 	object game;
 	TouchAdpReading_State(ui, &game);
+	if (id == "check")
+	{
+		if (sti(game.check.can)) TouchAdpReading_Check(ui, value == "1");
+		return;
+	}
+	if (id == "header-back" && !CheckAttribute(game, "accept")) { TouchAdpReading_Leave(ui); return; }
 	if (id == "cancel")
 	{
 		if (sti(game.decline.can)) TouchAdpReading_Decline(ui);

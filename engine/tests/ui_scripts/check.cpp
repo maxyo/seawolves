@@ -424,13 +424,14 @@ std::unique_ptr<storm::ui::ComponentSpec> PackScreen(const char *folder)
     throw std::runtime_error(std::string("the pack has no s-") + folder);
 }
 
-// The capabilities of the screens the pack's list declares, in its order: on the fixture game every one attaches.
+// The capabilities of the screens the pack's list declares for the common set, in its order: on the fixture game every
+// one attaches (a game's set lists the screens of windows only that game has).
 std::vector<std::string> PackCapabilities()
 {
     std::vector<std::string> capabilities;
     const Json list = Json::parse(PackList());
     for (const Json &segment : list.at("segments"))
-        for (const Json &screen : segment.value("screens", Json::array()))
+        for (const Json &screen : segment.contains("set") ? Json::array() : segment.value("screens", Json::array()))
             capabilities.push_back(screen.at("capability"));
     return capabilities;
 }
@@ -1150,6 +1151,7 @@ TEST_CASE("the self repair's script gives the pack screen the props and actions 
 TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("reading", "reading");
+    CheckCases("reading", "reading_cl");
 }
 
 TEST_CASE("the menus' script gives the pack screens the props and actions of the recorded models")

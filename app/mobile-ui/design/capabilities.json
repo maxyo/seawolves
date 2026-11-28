@@ -46,5 +46,7 @@
   "dialogue": "A conversation with a person of the game: the speech and the replies it offers, a typed answer",
   "generic": "Any game window no other screen draws, laid out from the engine's model of it alone",
   "other": "The Other sheet of every screen: what the screen does not draw of its game window",
-  "goods_order": "The treasurer's purchase list: per good, what a ship of the squadron is to have bought in port"
+  "goods_order": "The treasurer's purchase list: per good, what a ship of the squadron is to have bought in port",
+  "lesson": "A lesson of the game: a page of text to read, with the game's switch for its lessons",
+  "message": "A message of the game: a page of text to read and close"
 }

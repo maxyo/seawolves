@@ -1,0 +1,310 @@
+{
+ "$comment": "The lessons of a game whose lesson and message windows only it has (fixture game-cl; models recorded on its window, every text a placeholder): a page of the game's text, its paragraph marks as empty lines, its answer in the bar and on the way back.",
+ "fixture": "game-cl",
+ "cases": [
+  {
+   "name": "a lesson as a page: its title and paragraphs, its OK the window's second one",
+   "capability": "lesson",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 5,
+    "screen": "tutorial",
+    "widgets": [
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 24,
+        "imageRevision": 24,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLE",
+      "type": "text",
+      "label": "xxxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VFRAME",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 25,
+        "imageRevision": 25,
+        "source": {
+         "image": "interfaces/le/frame_v",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "ZOOMPLUS",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 27,
+        "imageRevision": 27,
+        "source": {
+         "group": "icons",
+         "image": "pluss",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ZOOM",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 26,
+        "imageRevision": 26,
+        "source": {
+         "group": "keyboard_icons",
+         "image": "rmb",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "xxxxx xxxxxxxxxx x xxxxxxxxx xxxx!\n\nxxxxxxx xxxx xxxxx x xxxxxxx xxxxxx xxxxxxxx. xxxxxxx - xxxxxxx xxxxxx x xxxxxxx xxxxxxxx, x xxxxxxxxxxxx xx xxxxxxxx. xxxxxxxxxxxxx xxx.\n\nxxxxxxxxxx xxxxxxxx x xxxxxxxxx xxxxx xxxxxxxxxxxxxx x xxxxxxx xxxxxx xxxxxxxxxxxx xxxxxx xxxxxxx.\n\nxxxxxxx xxxxxxx xxxxx 3: xxxxxx, xxxxxx x xxxxxxxxx. xx xxxxxx xxxxxxx xxxxx xxxxxxx, xx xxxxxx - xxxxx xxxxxxxxxxxxx, x xxxxxxxxx xxxxxx xxxxxxxx x xxxxxxx xxxxxxxxx.\n\nx xxxxxxx x xxx xxxxx xxxxxxxxxx xxxxxx xxxxx xxxxxxx, xxx xxxxxxxxxx x xxxxxxxxxxxx - xxxxxxx x xxxxxx xxxxx, x xxx xxxxxxxxxxxxx xxxxx xxx xxxxxx xxxxx xxxxxx xxxxxxx.\n\nxxxxxxxxxx xxxxxx xxxxxx xxxxxxx x xxxxxxxx, xxxxxxxxxxxx xxxxxxx xxxxx x xxxxxxxxxxx xxxxxxxx xxxxxxx!",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "B_OK2",
+      "type": "button",
+      "label": "xx",
+      "index": -1
+     },
+     {
+      "node": "CONTROLS_IMG",
+      "type": "text",
+      "label": "ⓌⒶⓈⒹ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_TEXT",
+      "type": "text",
+      "label": "xxxxxxxxxx:",
+      "value": "1",
+      "index": 0
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "xx",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "",
+    "mode": "page",
+    "text": "xxxxx xxxxxxxxxx x xxxxxxxxx xxxx!\n\nxxxxxxx xxxx xxxxx x xxxxxxx xxxxxx xxxxxxxx. xxxxxxx - xxxxxxx xxxxxx x xxxxxxx xxxxxxxx, x xxxxxxxxxxxx xx xxxxxxxx. xxxxxxxxxxxxx xxx.\n\nxxxxxxxxxx xxxxxxxx x xxxxxxxxx xxxxx xxxxxxxxxxxxxx x xxxxxxx xxxxxx xxxxxxxxxxxx xxxxxx xxxxxxx.\n\nxxxxxxx xxxxxxx xxxxx 3: xxxxxx, xxxxxx x xxxxxxxxx. xx xxxxxx xxxxxxx xxxxx xxxxxxx, xx xxxxxx - xxxxx xxxxxxxxxxxxx, x xxxxxxxxx xxxxxx xxxxxxxx x xxxxxxx xxxxxxxxx.\n\nx xxxxxxx x xxx xxxxx xxxxxxxxxx xxxxxx xxxxx xxxxxxx, xxx xxxxxxxxxx x xxxxxxxxxxxx - xxxxxxx x xxxxxx xxxxx, x xxx xxxxxxxxxxxxx xxxxx xxx xxxxxx xxxxx xxxxxx xxxxxxx.\n\nxxxxxxxxxx xxxxxx xxxxxx xxxxxxx x xxxxxxxx, xxxxxxxxxxxx xxxxxxx xxxxx x xxxxxxxxxxx xxxxxxxx xxxxxxx!",
+    "title": "xxxxxxxxxx xxxxxxxx"
+   },
+   "modals": [],
+   "events": [
+    [
+     "ok",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send B_OK2 press "
+   ]
+  },
+  {
+   "name": "a lesson left by the way back: the game's OK",
+   "capability": "lesson",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 7,
+    "screen": "tutorial",
+    "widgets": [
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 28,
+        "imageRevision": 28,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLE",
+      "type": "text",
+      "label": "xxxxxxxxxx xxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VFRAME",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ],
+      "images": [
+       {
+        "handle": 29,
+        "imageRevision": 29,
+        "source": {
+         "image": "interfaces/le/frame_v",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "ZOOMPLUS",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 31,
+        "imageRevision": 31,
+        "source": {
+         "group": "icons",
+         "image": "pluss",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ZOOM",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 30,
+        "imageRevision": 30,
+        "source": {
+         "group": "keyboard_icons",
+         "image": "rmb",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "INFO_TEXT",
+      "type": "text",
+      "label": "xxxxxx xxxx x xxxx xxxxxxxxxx xxxxxxxx xxxxxxxx. xxxxxxxx, xxxxx xxxxxx xxxxxxx xxx xxxxxxxxxxx xxxxx.\n\nxx xxxxxx xxxxxxxx x xxxxxxxxx xxxxx x xxxx, xx xxxx x xx xxxxxxxxxx xxxxx.\n\nxxxxxxxxxxxxx xxxxxx xxx xxxxxxxx x xxxxxxxxxxxxx xx xxxxxx xxxxxxx. x xxxx xxxxx xxxxxxxxxx.",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "B_OK2",
+      "type": "button",
+      "label": "xx",
+      "index": -1
+     },
+     {
+      "node": "CONTROLS_IMG",
+      "type": "text",
+      "label": "⊞Ⓡ",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_TEXT",
+      "type": "text",
+      "label": "xxxxxxxxxx:",
+      "value": "1",
+      "index": 0
+     }
+    ]
+   },
+   "props": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "ok",
+      "label": "xx",
+      "reason": "",
+      "variant": "primary"
+     }
+    ],
+    "icon": "",
+    "mode": "page",
+    "text": "xxxxxx xxxx x xxxx xxxxxxxxxx xxxxxxxx xxxxxxxx. xxxxxxxx, xxxxx xxxxxx xxxxxxx xxx xxxxxxxxxxx xxxxx.\n\nxx xxxxxx xxxxxxxx x xxxxxxxxx xxxxx x xxxx, xx xxxx x xx xxxxxxxxxx xxxxx.\n\nxxxxxxxxxxxxx xxxxxx xxx xxxxxxxx x xxxxxxxxxxxxx xx xxxxxx xxxxxxx. x xxxx xxxxx xxxxxxxxxx.",
+    "title": "xxxxxxxxxx xxxxxxxx"
+   },
+   "modals": [],
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send B_OK2 press "
+   ]
+  }
+ ]
+}

@@ -263,6 +263,8 @@
   бой, лучший курс, метки, промо-контент, чувствительность камеры, громкость); страница окна игры, на которой они лежат,
   открывается вкладкой экрана или строкой «Открыть настройки игры». Плотность растительности островов — ползунок
   предпросмотра графики игры, «Готово» сохраняет её кнопкой предпросмотра.
+- Caribbean Legend: обучение и сообщения игры — страница текста во весь экран с прокруткой, её «Ок» внизу и стрелкой
+  назад; абзацы игры видны пустыми строками, а не значками «~», переносы строк игры сохранены.
 
 **English**
 
@@ -530,6 +532,8 @@
   best course, marks, promotional content, camera sensitivity, volume); the page of the game's window that holds them
   opens with the screen's tab or the row «Open the game's settings». The island foliage density is the slider of the
   game's picture preview; «Done» keeps it with the preview's own button.
+- Caribbean Legend: the game's lessons and messages — a full-screen page of text that scrolls, its «OK» in the bar and
+  on the back arrow; the game's paragraphs show as empty lines instead of «~» marks, its line breaks are kept.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -885,12 +885,16 @@ def check_scripts(capabilities, screens):
             family = contract.removeprefix("adapter:")
             if f"{TOUCH}contracts/{family}.c" not in files[:files.index(file)]:
                 problems.append(f"{where}: optional {contract} before its contracts/{family}.c is listed")
+        # A game set's segment may bind its own windows for a contract its base provides (the windows only that game
+        # has, read by the common adapter): its bindings are of the contracts it uses.
+        binders = segment.get("provides") or (segment.get("uses", []) if segment.get("set") else [])
         for binding in segment.get("binds", []):
-            if not segment.get("provides"):
-                problems.append(f"{where}: binds {binding['capability']} but provides no contract")
+            if not binders:
+                problems.append(f"{where}: binds {binding['capability']} but provides no contract (nor uses one in a "
+                                "game's set)")
             if binding["capability"] not in capabilities:
                 problems.append(f"{where}: capability '{binding['capability']}' is not in capabilities.json")
-            bound.setdefault(binding["capability"], set()).update(segment.get("provides", []))
+            bound.setdefault(binding["capability"], set()).update(binders)
         for screen in segment.get("screens", []):
             if screen["capability"] not in capabilities:
                 problems.append(f"{where}: capability '{screen['capability']}' is not in capabilities.json")

@@ -85,4 +85,9 @@ int32_t RichTextWidth(const std::vector<RichItem> &items,
 // The text as the touch interface's model carries it: the runs without their styles, a break as a line feed; icons
 // are not carried yet (the pack has no game pictures inside a text).
 std::string RichPlainText(const std::vector<RichItem> &items);
+
+// A laid out line of a formatted text added to the model's text: a line the game ends with a line break keeps it
+// ('\n'), the lines of a paragraph join with a space, a line of only '~' is the game's paragraph mark (an empty line);
+// `broken` carries whether the text so far ended a line (a text ending in a mark ends in a line break).
+void AppendTextLine(std::string &text, bool &broken, std::string_view line);
 } // namespace storm::xi
