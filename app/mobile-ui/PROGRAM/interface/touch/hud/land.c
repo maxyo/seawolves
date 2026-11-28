@@ -487,7 +487,6 @@ void TouchHudLand_Sheet(aref view, aref menu)
 		if (CheckAttribute(item, "here"))
 		{
 			row.here = true;
-			UiOn(row.id, "refused"); // the disabled tile shakes and asks the game nothing
 			continue;
 		}
 		// Potions and abilities share one stage: each kind under its own heading.
@@ -606,7 +605,6 @@ void TouchHudLand_Tap()
 		case "sheet-back": TouchHudLand_Step("back", ""); return;
 		case "sheet-close": TouchHudLand_Step("close", ""); return;
 		case "sheet": TouchHudLand_Step("close", ""); return;
-		case "here": return;
 	}
 	if (id == "block")
 	{

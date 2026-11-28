@@ -173,7 +173,7 @@ void Fan::Build(Json props, const std::vector<Option> &options, View &view, Inpu
         view.elements[slot] = options[i].props;
         if (!options[i].pick)
         {
-            input.Ignore(slot, ""); // a tap on it, or the disabled look's "refused": nothing to do
+            input.Ignore(slot, ""); // a tap on it: nothing to do
             continue;
         }
         input.On(slot, "click", [this, pick = options[i].pick](const Event &) {
@@ -437,6 +437,8 @@ bool Hud::OnEvent(const Event &event)
         return true;
     }
     auto found = input_.handlers_.find(event.id + "\n" + event.verb);
+    if (found == input_.handlers_.end() && event.verb == "refused")
+        return true; // a disabled control's tap: its shake answered it, as on screens (Router::Maps)
     if (found == input_.handlers_.end())
         found = input_.handlers_.find(event.id + "\n");
     if (found == input_.handlers_.end())

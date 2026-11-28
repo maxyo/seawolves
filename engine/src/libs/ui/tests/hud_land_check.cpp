@@ -756,6 +756,11 @@ static void CheckStatus()
     Expect(mount.shown.elements["dash"]["fill"] == 40 && mount.shown.elements["dash"]["fillTone"] == "cooldown" &&
                mount.shown.elements["dash"]["disabled"] == true,
            "dash cooling down: filled and not pressable");
+    mount.commands.clear();
+    mount.errors.clear();
+    bench.Press("dash", "refused");
+    Expect(mount.commands.empty() && mount.errors.empty(),
+           "a tap on the cooling dash: it shook, nothing is sent and the scene needs no binding for it");
     bench.Feed("worldInfo", "world-info");
     Expect(!mount.Has("opponent") && mount.Has("location"), "no cabin captain: no captain bar, the location line");
     Json cabin = State("vitals-status");
