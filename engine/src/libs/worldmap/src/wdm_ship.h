@@ -85,7 +85,7 @@ class WdmShip : public WdmRenderModel
     int32_t collisionCounter;
     float slope;
     int32_t wmtexture;
-    bool isWMRender;
+    bool isWMRender = false;
 
     Line lines[8];
 };
