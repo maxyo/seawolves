@@ -6,6 +6,7 @@ native int attrrename(aref attribute, string name);
 native void AppendAttributes(ref destination, ref source);
 native float ceilf(float value);
 native string GetCallerName();
+native fref GetFunction(string name);
 
 int test_array_sort()
 {
@@ -56,4 +57,16 @@ string Outer()
 int test_caller_and_math()
 {
 	return Outer() == "Outer" && ceilf(1.2) == 2.0;
+}
+
+int Halve(int value)
+{
+	return value / 2;
+}
+
+int test_function_by_name()
+{
+	fref found = GetFunction("Ha" + "lve");
+	fref missing = GetFunction("NoSuchFunctionHere");
+	return bool(found) && found(10) == 5 && !bool(missing) && missing is nullptr;
 }

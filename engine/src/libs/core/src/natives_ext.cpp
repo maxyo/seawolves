@@ -681,6 +681,17 @@ DATA *callNativeExt(uint32_t index, NativeCall &call, DATA *&result)
             appendAttributes(a, b);
         return nullptr;
     }
+    case FUNC_X_GET_FUNCTION: {
+        // GetFunction(name): a reference to the script function of that name, a null reference when there is none
+        std::string name;
+        {
+            Args args(call);
+            name = args.text(0);
+        }
+        DATA *v = call.stack.Push();
+        v->SetFref(call.functions.FindFunc(name) != INVALID_FUNC_CODE ? name : std::string());
+        return result = v;
+    }
     case FUNC_X_DLGO:
         return callTextNative(TextNative::Dlgo, call, result);
     case FUNC_X_DLG_CONVERT:
