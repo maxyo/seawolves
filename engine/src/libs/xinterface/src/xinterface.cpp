@@ -1960,11 +1960,19 @@ void XINTERFACE::SFLB_CreateNode(INIFILE *pOwnerIni, INIFILE *pUserIni, const ch
             AddNodeToList(pNewNod, priority);
         }
 
-        INIFILE *usedini = pUserIni;
         pNewNod->m_bBreakPress = pNewNod->GetIniBool(pUserIni, sNodeName, pOwnerIni, sNodeType, "bBreakCommand", false);
         if (pNewNod->GetIniBool(pUserIni, sNodeName, pOwnerIni, sNodeType, "moveMouseDoSelect", false))
             pNewNod->m_bMouseSelect = true;
-        if (usedini && usedini->ReadString(pNewNod->m_nodeName, "command", param, sizeof(param) - 1, ""))
+        // The commands are the node's own, else its type's, as every other key: a node a script makes from a type
+        // (XI_MakeNode) has no section of its own.
+        INIFILE *usedini = pUserIni;
+        const char *commandSection = pNewNod->m_nodeName;
+        if (!usedini || !usedini->ReadString(commandSection, "command", param, sizeof(param) - 1, ""))
+        {
+            usedini = pOwnerIni;
+            commandSection = sNodeType;
+        }
+        if (usedini && usedini->ReadString(commandSection, "command", param, sizeof(param) - 1, ""))
             do
             {
                 char stmp[sizeof(param)];
@@ -2030,7 +2038,7 @@ void XINTERFACE::SFLB_CreateNode(INIFILE *pOwnerIni, INIFILE *pUserIni, const ch
                         sscanf(stmp, "sound:%d", &pNewNod->m_pCommands[nComNum].nSound);
                     }
                 }
-            } while (usedini->ReadStringNext(pNewNod->m_nodeName, "command", param, sizeof(param) - 1));
+            } while (usedini->ReadStringNext(commandSection, "command", param, sizeof(param) - 1));
     }
 
     if (m_pEditor && pNewNod)
