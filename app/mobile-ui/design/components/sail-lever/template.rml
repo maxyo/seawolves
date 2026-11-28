@@ -1,15 +1,17 @@
 <t-if test="mode == 'continuous'">
 <div class="lever" data-lever="continuous" data-knob-size="{{spec.knob}}" style="height: {{ max(spec.minHeight, height) }}dp;">
 <div class="rail"></div>
-<div class="track"><div class="fill" style="top: {{ 100 - clamp(or(value, 60), 0, 100) }}%;"></div></div>
-<t-if test="clamp(or(value, 60), 0, 100) < spec.markHide"><div class="mark top"><c-icon icon="sail-full" size="20" tone="paper"/></div></t-if>
-<t-if test="clamp(or(value, 60), 0, 100) > 100 - spec.markHide"><div class="mark bottom"><c-icon icon="sail-furled" size="20" tone="paper"/></div></t-if>
-<div class="track"><t-if test="active && in(dir, 'up', 'down')"><div class="dir {{dir}}" style="top: {{ 100 - clamp(or(value, 60), 0, 100) }}%;"></div></t-if><div class="knob" style="top: {{ 100 - clamp(or(value, 60), 0, 100) }}%;"><c-icon icon="{{ or(value, 60) < 15 ? 'sail-furled' : (or(value, 60) < 60 ? 'sail-half' : 'sail-full') }}" size="28"/></div></div>
+<t-if test="value != null">
+<div class="track"><div class="fill" style="top: {{ 100 - clamp(value, 0, 100) }}%;"></div></div>
+<t-if test="clamp(value, 0, 100) < spec.markHide"><div class="mark top"><c-icon icon="sail-full" size="20" tone="paper"/></div></t-if>
+<t-if test="clamp(value, 0, 100) > 100 - spec.markHide"><div class="mark bottom"><c-icon icon="sail-furled" size="20" tone="paper"/></div></t-if>
+<div class="track"><t-if test="active && in(dir, 'up', 'down')"><div class="dir {{dir}}" style="top: {{ 100 - clamp(value, 0, 100) }}%;"></div></t-if><div class="knob" style="top: {{ 100 - clamp(value, 0, 100) }}%;"><c-icon icon="{{ value < 15 ? 'sail-furled' : (value < 60 ? 'sail-half' : 'sail-full') }}" size="28"/></div></div>
+</t-if>
 </div>
 <t-else/>
 <div class="lever" data-lever="steps" data-steps="3" data-knob-size="{{spec.knob}}" style="height: {{ max(spec.minHeight, height) }}dp;">
 <div class="rail"></div>
-<div class="track"><t-for each="spec.steps" as="st"><t-if test="st_i != clamp(round(or(value, 2)), 0, 2)"><div class="mark step" style="top: {{ (1 - st_i / 2) * 100 }}%;"><c-icon icon="{{st.icon}}" size="20" tone="paper"/></div></t-if></t-for>
-<div class="knob" style="top: {{ (1 - clamp(round(or(value, 2)), 0, 2) / 2) * 100 }}%;"><c-icon icon="{{ spec.steps[clamp(round(or(value, 2)), 0, 2)].icon }}" size="28"/></div></div>
+<div class="track"><t-for each="spec.steps" as="st"><t-if test="st_i != clamp(round(value), 0, 2)"><div class="mark step" style="top: {{ (1 - st_i / 2) * 100 }}%;"><c-icon icon="{{st.icon}}" size="20" tone="paper"/></div></t-if></t-for>
+<div class="knob" style="top: {{ (1 - clamp(round(value), 0, 2) / 2) * 100 }}%;"><c-icon icon="{{ spec.steps[clamp(round(value), 0, 2)].icon }}" size="28"/></div></div>
 </div>
 </t-if>
