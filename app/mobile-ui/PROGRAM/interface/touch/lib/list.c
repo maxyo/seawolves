@@ -199,6 +199,25 @@ bool TouchLib_SectionAsk(aref state, string own, string tapped)
 	return true;
 }
 
+// The hero sections of a screen's header where its window has them (`shown`): the one TouchLib_Section shows, bound.
+void TouchLib_SectionHead(aref view, aref state, string own, bool shown)
+{
+	view.headerSection = "";
+	if (!shown) return;
+	view.headerSection = TouchLib_Section(state, own);
+	UiOn("header", "section");
+}
+
+// A section tapped in the header, asked of the game when TouchLib_SectionAsk says so (true): it is drawn chosen from
+// this frame; the caller has the game open it.
+bool TouchLib_SectionTap(aref state, aref view, string own, string tapped)
+{
+	if (!TouchLib_SectionAsk(state, own, tapped)) return false;
+	view.headerSection = tapped;
+	UiPredict(view);
+	return true;
+}
+
 // The header's switch over the people a screen shows one of: `people` entries {label, meta, image ("" none: a picture
 // {kind, group, image})}, k `shown`, its list open or not. Its events (TouchLib_SubjectOn in a build): header
 // subject-prev, subject-next, subject-list, header-subject-<k>, the list's ✕ header-subjects-close and its dismissal.

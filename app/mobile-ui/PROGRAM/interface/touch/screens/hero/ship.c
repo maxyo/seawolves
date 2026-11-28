@@ -549,12 +549,7 @@ void TouchShip_Build()
 	aref view;
 	makearef(view, TouchShip_View);
 	view.title = game.title;
-	view.headerSection = "";
-	if (sti(game.sections))
-	{
-		view.headerSection = TouchLib_Section(&TouchShip_Header, "ship");
-		UiOn("header", "section");
-	}
+	TouchLib_SectionHead(view, &TouchShip_Header, "ship", sti(game.sections));
 	string tab = TouchShip.tab;
 	aref tabs;
 	makearef(tabs, view.tabs);
@@ -590,10 +585,7 @@ void TouchShip_Tap()
 	bool window = TouchShip_Window(game);
 	if (id == "header" && verb == "section")
 	{
-		if (!TouchLib_SectionAsk(&TouchShip_Header, "ship", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchShip_View.headerSection = value;
-		UiPredict(&TouchShip_View);
+		if (!TouchLib_SectionTap(&TouchShip_Header, &TouchShip_View, "ship", value)) return;
 		TouchAdpShip_Section(ui, value);
 		UiHold(TouchShip_Wait);
 		return;

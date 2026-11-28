@@ -163,12 +163,7 @@ void TouchJournal_Build()
 	view.title = game.title;
 	view.date = game.date;
 	view.section = game.part;
-	view.headerSection = "";
-	if (sti(game.sections))
-	{
-		view.headerSection = TouchLib_Section(&TouchJournal_Header, "journal");
-		UiOn("header", "section");
-	}
+	TouchLib_SectionHead(view, &TouchJournal_Header, "journal", sti(game.sections));
 	TouchJournal_Rail(game, view);
 	TouchJournal_Subtabs(game, view);
 	UiOn("journal-tabs", "select");
@@ -204,10 +199,7 @@ void TouchJournal_Tap()
 	makearef(game, TouchJournal.game);
 	if (id == "header")
 	{
-		if (!TouchLib_SectionAsk(&TouchJournal_Header, "journal", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchJournal_View.headerSection = value;
-		UiPredict(&TouchJournal_View);
+		if (!TouchLib_SectionTap(&TouchJournal_Header, &TouchJournal_View, "journal", value)) return;
 		TouchAdpJournal_Section(ui, value);
 		UiHold(TouchJournal_Wait);
 		return;

@@ -91,12 +91,7 @@ void TouchTradebook_Build()
 	aref view;
 	makearef(view, TouchTradebook_View);
 	view.title = game.title;
-	view.headerSection = "";
-	if (sti(game.sections))
-	{
-		view.headerSection = TouchLib_Section(&TouchTradebook_Header, "tradebook");
-		UiOn("header", "section");
-	}
+	TouchLib_SectionHead(view, &TouchTradebook_Header, "tradebook", sti(game.sections));
 	TouchTradebook_Places(game, view);
 	TouchTradebook_Prices(game, view);
 	UiOn("towns", "row");
@@ -111,10 +106,7 @@ void TouchTradebook_Tap()
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
 	if (id == "header")
 	{
-		if (!TouchLib_SectionAsk(&TouchTradebook_Header, "tradebook", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchTradebook_View.headerSection = value;
-		UiPredict(&TouchTradebook_View);
+		if (!TouchLib_SectionTap(&TouchTradebook_Header, &TouchTradebook_View, "tradebook", value)) return;
 		TouchAdpTradebook_Section(ui, value);
 		UiHold(TouchTradebook_Wait);
 		return;

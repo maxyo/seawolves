@@ -715,12 +715,7 @@ void TouchCharacter_Build()
 	makearef(view, TouchCharacter_View);
 	view.title = game.title;
 	view.tab = TouchCharacter.tab;
-	view.headerSection = "";
-	if (sti(game.full) && sti(game.sections))
-	{
-		view.headerSection = TouchLib_Section(&TouchCharacter_Header, "hero");
-		UiOn("header", "section");
-	}
+	TouchLib_SectionHead(view, &TouchCharacter_Header, "hero", sti(game.full) && sti(game.sections));
 	TouchCharacter_Tabs(game, view);
 	UiOn("header-tabs", "select");
 	UiOn("header", "tab");
@@ -805,10 +800,7 @@ void TouchCharacter_Tap()
 	makearef(game, TouchCharacter.game);
 	if (id == "header" && verb == "section")
 	{
-		if (!TouchLib_SectionAsk(&TouchCharacter_Header, "hero", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchCharacter_View.headerSection = value;
-		UiPredict(&TouchCharacter_View);
+		if (!TouchLib_SectionTap(&TouchCharacter_Header, &TouchCharacter_View, "hero", value)) return;
 		TouchAdpCharacter_Section(ui, value);
 		UiHold(TouchCharacter_Wait);
 		return;
