@@ -558,8 +558,8 @@ public final class GameLauncherActivity extends UiScreenActivity {
     }
 
     /**
-     * Checks the imported game and installs the UI, shader and script layers off the main thread: on it they
-     * hold the launcher's frames for most of a second after an update (the layers are copied and hashed again).
+     * Checks the imported game and removes an old cache off the main thread: both walk files on disk and would hold
+     * the launcher's frames.
      * A second tap while it runs starts nothing more.
      */
     private void play() {

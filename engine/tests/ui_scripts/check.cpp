@@ -545,20 +545,21 @@ TEST_CASE("a segment that fails is left out with its screens; the core stops the
         REQUIRE(vm.compiler.CreateProgram("seadogs.c"));
         CHECK_THROWS_WITH(vm.compiler.Run(), Catch::Contains("interface/test/broken.c does not compile"));
     }
-    // The app's files on a phone live in its cache, which the system may empty while the game runs.
+    // A segment scripts.json names that the installed app lacks: a broken build or installation.
     SECTION("its file is gone: said so, not called a compile error")
     {
         Log log;
         Vm vm(List(R"({"file": "interface/test/gone.c"}, {"file": "interface/test/plain.c"})"));
         vm.Start();
         CHECK(vm.Loaded("interface/test/plain.c"));
-        CHECK(log.Has("UI script interface/test/gone.c is off: is missing from the app's files"));
+        CHECK(log.Has("UI script interface/test/gone.c is off: is missing from the installed app"));
     }
     SECTION("the core's file is gone")
     {
         Vm vm(R"({"segments": [{"file": "interface/test/gone.c", "core": true}]})");
         REQUIRE(vm.compiler.CreateProgram("seadogs.c"));
-        CHECK_THROWS_WITH(vm.compiler.Run(), Catch::Contains("interface/test/gone.c is missing from the app's files"));
+        CHECK_THROWS_WITH(vm.compiler.Run(),
+                          Catch::Contains("interface/test/gone.c is missing from the installed app. Reinstall"));
     }
 }
 

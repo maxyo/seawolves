@@ -412,17 +412,15 @@ void Attacher::Attach(storm::script::Program &program)
         for (const std::string &contract : segment.uses)
             if (!providers.contains(contract))
                 reason += (reason.empty() ? "" : "; ") + contract + ": no attached script provides it";
-        bool gone = false;
         if (reason.empty())
             switch (program.Attach(segment.file.c_str()))
             {
             case storm::script::Attached::Yes:
                 break;
             case storm::script::Attached::NoFile:
-                // On a phone the app's files live in its cache, which the system may trim while the game runs; the
-                // file service has already had the app restore them, so missing here means that failed.
-                reason = "is missing from the app's files";
-                gone = true;
+                // The interface scripts are read from the installed app itself (the mobile-ui layer), which nothing
+                // trims: a file scripts.json names and the app lacks is a broken build or installation.
+                reason = "is missing from the installed app";
                 break;
             case storm::script::Attached::NotCompiled:
                 reason = "does not compile (see the compile log)";
@@ -430,7 +428,7 @@ void Attacher::Attach(storm::script::Program &program)
             }
         if (!reason.empty() && segment.core)
             throw std::runtime_error("The touch interface's script " + segment.file + " " + reason +
-                                     (gone ? ". Start the game again." : ". Reinstall the app."));
+                                     ". Reinstall the app.");
         if (!reason.empty())
         {
             off(segment, reason);

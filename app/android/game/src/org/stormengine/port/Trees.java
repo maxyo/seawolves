@@ -10,7 +10,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
 /**
- * Trees whose names the app or the engine wrote (the engine cache, the installed UI layers), walked and deleted
+ * Trees whose names the app or the engine wrote (the engine cache), walked and deleted
  * without following symbolic links: a link is counted and removed as itself, its target is never touched. A tree of
  * untrusted names (an import stage, a download, anything from an archive or a torrent) is removed by the bytes of its
  * names instead, which java.nio.file cannot do for a name that is not UTF-8: ResourceImporter.deleteTree.
