@@ -3,11 +3,13 @@
 
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <chrono>
 
 #include "animation.h"
+#include "locomotion.hpp"
 #include "storm_glm.h"
 #include "model.h"
 #include "string_compare.hpp"
@@ -24,6 +26,7 @@ class VSoundService;
 #define CHARACTER_ATTACK_ANG 60.0f // Maximum angle of attack (degrees)
 #define CHARACTER_BLOCK_ANG 50.0f  // Maximum angle of block (degrees)
 #define CHARACTER_MAX_JMP_STEPS 50
+#define CHARACTER_COS_STAIR 0.9f // The ground under a character is stairs where its slope cosine is not above this
 
 namespace storm::location
 {
@@ -55,6 +58,8 @@ class Character : public Entity
         ActionMove();
         float speed;   // Travel speed for a given action m / s
         float turnspd; // Turn speed rad / sec
+        storm::location::Easing easing = storm::location::Easing::none; // the speed curve of a start / stop clip
+        bool inAnimation = false; // the animation set has this action
     };
 
     // Inaction action
@@ -261,6 +266,8 @@ class Character : public Entity
   public:
     // To go
     void StartMove(bool isBack = false);
+    // Directional locomotion: walk in this direction relative to the heading.
+    void StartMove(storm::location::MoveDir dir);
     // Stay
     void StopMove();
     // Guide the character using the vector
@@ -420,6 +427,13 @@ class Character : public Entity
     bool BuildJump(glm::vec3 pos, float fAng);
     bool TraceWithObstacle(const glm::vec3 &src, const glm::vec3 &dst);
     void UpdateActionsData();
+    void ReadDirectionalActions(ATTRIBUTES *actions);
+    void UpdateDirectionalData(Animation *a);
+    storm::location::Gait DirectionalGait() const;
+    ActionMove *DirectionalClip();
+    bool StepStride();
+    void PlayDirectionalClip();
+    float DirectionalPace() const;
     void UpdateActionMoveData(ActionMove &am, Animation *a);
     void UpdateActionCharacterData(ActionCharacter &ac, Animation *a);
     void UpdateActionIdleData(ActionIdle &ai, Animation *a);
@@ -587,6 +601,20 @@ class Character : public Entity
     ActionMove fightbackwalk; // Walking back in combat mode
     ActionMove fightrun;      // Running forward in combat mode
     ActionMove fightbackrun;  // Running back in combat mode
+
+    // Directional locomotion (locomotion.hpp), for a character whose scripts give it the directional actions
+    // (actions.forward_walk): those actions by [fight][gait][direction], and the legs' state. Null otherwise: the
+    // character walks by heading (walk, backwalk, run ...).
+    struct DirectionalActions
+    {
+        ActionMove move[2][storm::location::kGaits][storm::location::kMoveDirs];
+        ActionMove start[2][storm::location::kGaits][storm::location::kMoveDirs];
+        ActionMove stop[storm::location::kGaits][storm::location::kMoveDirs][storm::location::kStopSteps];
+        ActionMove stairs[2][storm::location::kStairsDirs][2]; // [fight][direction][up, down]
+    };
+    std::unique_ptr<DirectionalActions> directional;
+    storm::location::MoveDir wantDir = storm::location::MoveDir::none;
+    storm::location::Stride stride;
     // Attacks
     ActionCharacter attackFast[4];   // Rapid attacks
     int32_t numAttackFast;           // Number of quick attacks

@@ -102,6 +102,13 @@ struct Motion
     } walk, stsUp, stsDown, stsUpBack, stsDownBack;
     Action backwalk{-2}, run{5}, backrun{-5}, fightwalk{2}, fightrun{5};
     Action *curMove = &walk;
+    // A character walking by heading: no directional actions.
+    const void *directional = nullptr;
+    storm::location::Stride stride;
+    float DirectionalPace() const
+    {
+        return 1.0f;
+    }
     Vec3 androidMotionDirection{1, 0, 0}, curPos, impulse;
     // One frame of Character::Move's travel (no animation, collision or turning).
     void step()

@@ -66,6 +66,8 @@ class Player : public NPCharacter
     void ShootParticles(const glm::vec3 &pos, const glm::vec3 &ndir, float size, uint32_t color, int32_t num);
 
     float GetRotateH();
+    // The character's "alwaysrun" (the scripts' option, run by default).
+    bool alwaysRun() const;
 
   private:
 #ifdef STORM_TOUCH_UI
@@ -82,4 +84,5 @@ class Player : public NPCharacter
     bool shootgunMode;
     float kSMReload;
     LocationCamera *locCam;
+    bool walkToggled = false; // ChrSwitchWalk flips "alwaysrun"
 };

@@ -28,7 +28,6 @@
 
 #define CHARACTER_WAIT_AFTER_DEAD 6.0f //
 
-#define CHARACTER_COS_STAIR 0.9f //
 
 #define CHARACTER_NORM_TO_FIGHT "Normal to fight"
 #define CHARACTER_FIGHT_TO_NORM "Fight to normal"
@@ -1061,6 +1060,18 @@ uint32_t Character::AttributeChanged(ATTRIBUTES *apnt)
                 j = 1;
             numFightActionIdles = j;
         }
+        if (apnt->GetAttribute("forward_walk"))
+        {
+            if (!directional)
+                directional = std::make_unique<DirectionalActions>();
+            ReadDirectionalActions(apnt);
+        }
+        else if (directional)
+        {
+            curMove = nullptr;
+            directional.reset();
+            stride.reset();
+        }
         // Updating parameters
         UpdateActionsData();
         // Updating the animation being played
@@ -1341,6 +1352,7 @@ void Character::StartMove(bool isBack)
         return;
     isMove = true;
     this->isBack = isBack;
+    wantDir = isBack ? storm::location::MoveDir::back : storm::location::MoveDir::forward;
 }
 
 // Stay
@@ -2747,6 +2759,11 @@ void Character::ActionEvent(const char *actionName, Animation *animation, int32_
         return;
     if (event == ae_end)
         curIdleIndex = -1;
+    if (directional && event == ae_end && curMove && curMove->name && storm::iEquals(actionName, curMove->name))
+    {
+        stride.clipEnded();
+        curMove = nullptr;
+    }
 
     if (fgtCurType != fgt_block)
         fgtCurType = fgt_none;
@@ -2847,10 +2864,14 @@ void Character::ActionEvent(Animation *animation, int32_t playerIndex, const cha
     if (storm::iEquals(eventName, "LStep"))
     {
         soundStep = true;
+        if (stride.phase != storm::location::StridePhase::stopping)
+            stride.lastStep = storm::location::Foot::left;
     }
     else if (storm::iEquals(eventName, "RStep"))
     {
         soundStep = true;
+        if (stride.phase != storm::location::StridePhase::stopping)
+            stride.lastStep = storm::location::Foot::right;
     }
     else if (storm::iEquals(eventName, "swim"))
     {
@@ -3921,6 +3942,8 @@ void Character::UpdateActionsData()
     UpdateActionMoveData(fightbackwalk, a);
     UpdateActionMoveData(fightrun, a);
     UpdateActionMoveData(fightbackrun, a);
+    if (directional)
+        UpdateDirectionalData(a);
     for (i = 0; i < numAttackFast; i++)
         UpdateActionCharacterData(attackFast[i], a);
     for (i = 0; i < numAttackForce; i++)
@@ -3967,9 +3990,20 @@ void Character::UpdateActionMoveData(ActionMove &am, Animation *a)
     const char *s;
     if (!a)
         return;
+    am.inAnimation = false;
     // set player action
     if (!a->Player(1).SetAction(am.name))
         return;
+    am.inAnimation = true;
+    am.easing = storm::location::Easing::none;
+    s = a->Player(1).GetData("Easing");
+    if (s && s[0])
+    {
+        if (const auto easing = storm::location::parseEasing(s))
+            am.easing = *easing;
+        else
+            core.Trace("Character animation: unknown easing \"%s\" of action \"%s\"", s, am.name);
+    }
     // speed
     am.speed = 0.0f;
     s = a->Player(1).GetData("Walk speed");
@@ -4176,6 +4210,7 @@ void Character::UpdateAnimation()
             curMove = nullptr;
             fgtCurType = fgtSetType = fgt_none;
             fgtSetIndex = -1;
+            stride.reset();
         }
     }
     else if (isSwim)
@@ -4185,6 +4220,7 @@ void Character::UpdateAnimation()
             core.Trace("Character animation: not set priority action: \"%s\"", swim.name);
         }
         curMove = nullptr;
+        stride.reset();
         fgtCurType = fgtSetType = fgt_none;
         fgtSetIndex = -1;
     }
@@ -4219,7 +4255,11 @@ void Character::UpdateAnimation()
                     core.Trace("Character animation: not fall action: \"%s\"", fall.name);
                 }
             }
-            else if (isMove)
+            else if (directional && StepStride())
+            {
+                PlayDirectionalClip();
+            }
+            else if (!directional && isMove)
             {
                 curIdleIndex = -1;
                 if (movecs > CHARACTER_COS_STAIR || IsRun())
@@ -4801,7 +4841,11 @@ void Character::UpdateAnimation()
             else
             {
                 core.Send_Message(blade, "ll", MSG_BLADE_TRACE_OFF, 0);
-                if (isMove)
+                if (directional && StepStride())
+                {
+                    PlayDirectionalClip();
+                }
+                else if (!directional && isMove)
                 {
                     curIdleIndex = -1;
                     if (!IsRun())

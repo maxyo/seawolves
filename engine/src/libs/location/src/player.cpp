@@ -131,10 +131,20 @@ void Player::Move(float dltTime)
         {
 #ifdef STORM_TOUCH_UI
             if (androidAxes && command.cmd == aicmd_none && !shootgunMode && !isJump)
-                storm::location::PlayerMotion::stickGait(*this, *androidAxes);
+            {
+                if (directional)
+                    storm::location::PlayerMotion::directionalStick(*this, *androidAxes);
+                else
+                    storm::location::PlayerMotion::stickGait(*this, *androidAxes);
+            }
             else
 #endif
-                storm::location::PlayerMotion::controlsGait(*this, dltTime);
+            {
+                if (directional)
+                    storm::location::PlayerMotion::directionalGait(*this);
+                else
+                    storm::location::PlayerMotion::controlsGait(*this, dltTime);
+            }
         }
         else
             lastChange += dltTime;
@@ -798,6 +808,11 @@ void Player::FireFromShootgun()
     {
         core.Event("Location_CharacterSGFire", "iif", GetId(), chrs[i].chr->GetId(), chrs[i].dmg);
     }
+}
+
+bool Player::alwaysRun() const
+{
+    return AttributesPointer->GetAttributeAsDword("alwaysrun", 1) != 0;
 }
 
 float Player::GetRotateH()

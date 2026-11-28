@@ -4,6 +4,7 @@
 #pragma once
 
 #include "core.h"
+#include "locomotion.hpp"
 #include "storm_glm.h"
 
 #include <algorithm>
@@ -69,11 +70,18 @@ struct CharacterMotion
     {
         const float spd = dltTime * self.speed * k;
         glm::vec3 moveVec(sinf(self.ay) * spd, 0.0f, cosf(self.ay) * spd);
+        if (self.directional)
+        {
+            // The clip's speed along the stride's direction turned by the heading; the speed's sign means nothing.
+            const auto travel = worldTravel(self.stride.dir, self.ay);
+            const float step = dltTime * std::fabs(self.speed) * k * self.DirectionalPace();
+            self.curPos += glm::vec3(travel.x, 0.0f, travel.z) * step;
+        }
 #ifdef STORM_TOUCH_UI
-        if (touch.motion)
+        else if (touch.motion)
             self.curPos += self.androidMotionDirection * (dltTime * touch.speed * k);
-        else
 #endif
+        else
         {
             self.curPos += moveVec;
             if (spd < 0.0f)
@@ -191,7 +199,46 @@ struct PlayerMotion
         }
     }
 
+    // Directional locomotion: the held keys' direction relative to the heading, which the mouse turns; a run unless
+    // the walk toggle flips the character's "alwaysrun".
+    template <class P> static void directionalGait(P &self)
+    {
+        CONTROL_STATE cs;
+        const auto held = [&cs](const char *control) {
+            return core.Controls->GetControlState(control, cs) && cs.lValue != 0;
+        };
+        const auto dir = directionFromKeys(held("ChrForward") || held("ChrForward2"), held("ChrBackward"),
+                                           held("ChrStrafeRight"), held("ChrStrafeLeft"));
+        if (core.Controls->GetControlState("ChrSwitchWalk", cs) && cs.state == CST_ACTIVATED)
+            self.walkToggled = !self.walkToggled;
+        directionalIntent(self, {dir, self.alwaysRun() != self.walkToggled});
+    }
+
+    template <class P> static void directionalIntent(P &self, const MoveIntent &intent)
+    {
+        self.SetRunMode(intent.run);
+        if (intent.dir == MoveDir::none)
+            self.StopMove();
+        else
+            self.StartMove(intent.dir);
+    }
+
 #ifdef STORM_TOUCH_UI
+    // The held touch stick under directional locomotion: the stick's direction as keys, relative to the camera, which
+    // the hero turns to while he walks.
+    template <class P> static void directionalStick(P &self, const storm::android::MovementAxes &axes)
+    {
+        auto intent = intentFromStick(axes.x, axes.y);
+        intent.run = intent.run && axes.runAllowed;
+        self.androidMotionStop = intent.dir == MoveDir::none;
+        if (intent.dir != MoveDir::none && self.androidCameraRelative && self.locCam && self.locCam->IsMovementCamera())
+        {
+            const glm::vec3 view = self.locCam->MovementViewDirection();
+            self.Turn(view.x, view.z);
+        }
+        directionalIntent(self, intent);
+    }
+
     template <class P> static void StopAndroidMovement(P &self)
     {
         self.StopMove();

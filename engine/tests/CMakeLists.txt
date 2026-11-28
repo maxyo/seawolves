@@ -116,7 +116,7 @@ storm_host_check(android_movement INCLUDES ${util_include} ${src}/libs/ui/includ
 storm_host_check(android_movement.camera SOURCES camera.cpp ${core_fake_sources}
     INCLUDES ${core_fake_android_includes} ${src}/libs/location/src DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
-storm_host_check(android_movement.motion SOURCES motion.cpp ${core_fake_sources}
+storm_host_check(android_movement.motion SOURCES motion.cpp ${src}/libs/location/src/locomotion.cpp ${core_fake_sources}
     INCLUDES ${core_fake_android_includes} ${src}/libs/location/src DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(android_newgame SOURCES check.cpp ${core_fake_sources} INCLUDES ${core_fake_includes}
@@ -262,6 +262,8 @@ storm_host_check(effects.table DIRECTORY effects SOURCES check.cpp ${src}/libs/e
     DEFINES FMT_HEADER_ONLY OPTIONS -g ${asan_strict} CATCH2)
 storm_check_test(effects.corpus COMMAND effects.table "[corpus]" LABELS game)
 storm_host_check(game_profile INCLUDES ${src}/libs/core/include OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(locomotion SOURCES check.cpp ${src}/libs/location/src/locomotion.cpp INCLUDES ${src}/libs/location/src
+    OPTIONS ${warnings} ${asan_strict} CATCH2)
 storm_host_check(natives_ext SOURCES check.cpp ${src}/libs/core/src/natives_logic.cpp
     INCLUDES ${src}/libs/core/src ${util_include} ${fmt_headers} DEFINES FMT_HEADER_ONLY OPTIONS ${warnings} ${asan_strict}
     CATCH2)
