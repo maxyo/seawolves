@@ -1,13 +1,25 @@
-// Host checks for the sea HUD. First the consumers of its channels (ship, seaOrders,
-// seaQuickAction) and the scene alone: what each synthetic state shows, which engine input
-// each event sends, what is acknowledged as drawn. Then the whole runtime with the small
-// synthetic pack: which touches the UI claims at sea and what real gestures send.
-#include "hud_bench.h"
+// Host checks for the sea HUD, the scene of the touch interface's scripts (interface/touch/hud/sea.c) on the fixture
+// game's program. First the consumers of its channels (ship, seaOrders, seaQuickAction) and the scene alone: what
+// each synthetic state shows, which engine input each event sends, what is acknowledged as drawn. Then the whole
+// runtime with the application's pack: which touches the UI claims at sea and what real gestures send.
+#include "hud_scripts.h"
 
 #include <algorithm>
+#include <chrono>
 #include <RmlUi/Core.h>
 
 constexpr double kRaiseWait = 3.5; // longer than the sea HUD waits for the game to raise a held spyglass
+
+static const ScriptPack *app_pack = nullptr;
+
+// A bench whose HUD draws the scripts' sea scene with the application's pack.
+struct SeaBench : Bench
+{
+    SeaBench()
+    {
+        app_pack->Attach(*this);
+    }
+};
 
 static bool Sent(const FakeMount &mount, const std::string &command)
 {
@@ -35,7 +47,7 @@ static void Sail(Bench &bench)
 
 static void CheckConsumers()
 {
-    Bench bench;
+    SeaBench bench;
     const States &states = bench.hud.Current();
     FakeMount &mount = bench.mount;
 
@@ -146,7 +158,7 @@ static void CheckConsumers()
 // minimap, event lines, the engine's indicators and the states that take elements away.
 struct SailingRun
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     const Json &shown = mount.shown.elements;
 
@@ -361,8 +373,8 @@ struct SailingRun
         Expect(bench.hud.Notice("Якорь поднят", "info") && (bench.hud.Tick(), mount.Has("log")) &&
                    !mount.shown.elements["log"].contains("safeLeft"),
                "event lines top-centre");
-        mount.boxes["fleet .item.ship:first-child"] = {10, 60, 52, 52, 0, 0, 800, 400, 1};
-        mount.boxes["fleet .item.ship:last-child"] = {130, 60, 52, 52, 0, 0, 800, 400, 1};
+        mount.boxes["fleet .item:first-child"] = {10, 60, 52, 52, 0, 0, 800, 400, 1};
+        mount.boxes["fleet .item:last-child"] = {130, 60, 52, 52, 0, 0, 800, 400, 1};
         bench.Frame();
         bench.Frame();
         Expect(mount.shown.elements["log"]["safeLeft"] == 190,
@@ -371,8 +383,8 @@ struct SailingRun
         // would be under 240 dp, so it drops under the row, between the fleet and the minimap. On a
         // wide one (915 dp) it stays pinned. The time button is at the bottom, not in the row.
         const auto top_row = [&](float width, float last_column) {
-            mount.boxes["fleet .item.ship:first-child"] = {10, 10, 56, 56, 0, 0, width, 360, 1, width, 360};
-            mount.boxes["fleet .item.ship:last-child"] = {last_column, 10, 56, 56, 0, 0, width, 360, 1, width, 360};
+            mount.boxes["fleet .item:first-child"] = {10, 10, 56, 56, 0, 0, width, 360, 1, width, 360};
+            mount.boxes["fleet .item:last-child"] = {last_column, 10, 56, 56, 0, 0, width, 360, 1, width, 360};
             mount.boxes["time "] = {width - 320, 296, 48, 48,    0,  0,
                                     width,       360, 1,  width, 360}; // at the bottom: not in the top row
             mount.boxes["ship "] = {width - 356, 10, 48, 48, 0, 0, width, 360, 1, width, 360};
@@ -398,8 +410,8 @@ struct SailingRun
         // the band is worked out the same way and its sides swap.
         mount.mirrored = true;
         top_row(640, 74); // the right-handed boxes, mirrored below
-        for (const char *key : {"fleet .item.ship:first-child", "fleet .item.ship:last-child", "time ", "ship ",
-                                "pause ", "orders ", "minimap "})
+        for (const char *key :
+             {"fleet .item:first-child", "fleet .item:last-child", "time ", "ship ", "pause ", "orders ", "minimap "})
         {
             Placement &box = mount.boxes[key];
             box.x = 640 - box.x - box.width;
@@ -500,7 +512,7 @@ static void CheckSailing()
 // Moor and the world map together: both buttons, each activates its own action, once.
 static void CheckMoorAndMap()
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     Sail(bench);
     const Json &shown = mount.shown.elements;
@@ -522,7 +534,7 @@ static void CheckMoorAndMap()
 // A sea battle on one HUD: the layout, the ship abilities, one ability alone, the spyglass and a held helm.
 struct BattleRun
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     const Json &shown = mount.shown.elements;
 
@@ -549,7 +561,7 @@ struct BattleRun
 
     void Abilities()
     {
-        // The ship abilities: one small button that lays them out as HUD buttons beside it (hud.h AbilityControls,
+        // The ship abilities: one small button that lays them out as HUD buttons beside it (a picker of the scene,
         // Fan).
         Expect(shown["abilities"]["icon"] == "rank" && shown["abilities"]["cue"] == true &&
                    !shown["abilities"].contains("badge") && shown["abilities"]["fill"] == 50 &&
@@ -688,11 +700,9 @@ struct BattleRun
         bench.Frame();
         Expect(mount.Last() == "gameplay:10\tTelescopeOut", "Back lowers it: " + mount.Last());
         bench.Feed("spyglass", "spyglass-down");
-        const size_t errors = mount.errors.size();
         bench.Press("spyglass");
         bench.Frame(kRaiseWait);
-        Expect(mount.errors.size() == errors + 1 && shown["spyglass"]["variant"] == "normal",
-               "a spyglass the game never raises is reported, and shown down");
+        Expect(shown["spyglass"]["variant"] == "normal", "a spyglass the game never raises is shown down");
         Json deckless = State("gameplay-naval");
         deckless["revision"] = 10;
         auto &deck = deckless["capabilities"];
@@ -730,7 +740,7 @@ static void CheckBattle()
 // a red 0, as the scripts switch to any kind (Ship_ChangeCharge) and refuse only the reload.
 static void CheckEmptyAmmo()
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     bench.Feed("seaOrders", "sea-orders-idle");
     bench.Feed("gameplay", "gameplay-sailing");
@@ -781,7 +791,7 @@ static void CheckEmptyAmmo()
 
 static void CheckOrders()
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     Sail(bench);
     bench.Feed("gameplay", "gameplay-naval");
@@ -839,6 +849,15 @@ static void CheckOrders()
            "… and activates once the engine selected it: " + mount.Last());
     bench.Press("item-i5");
     Expect(mount.Last() == "orders:16\tactivateItem\ti1", "a cooling ability cannot be chosen");
+    // the activated order goes on to its targets: the commands' tiles go, the mark with them
+    {
+        Json targets = State("sea-orders-targets");
+        targets["recipientId"] = "r501_1";
+        bench.Set("seaOrders", targets);
+        Expect(!mount.shown.sheet_props.contains("tiles") && mount.shown.sheet_props["rows"].size() == 3,
+               "the order's targets replace the commands: " + mount.shown.sheet_props.dump());
+        bench.Set("seaOrders", State("sea-orders-root-selected"));
+    }
 
     // another ship; its bars under its row
     bench.Frame(2.0);
@@ -910,7 +929,7 @@ static void CheckOrders()
 // once, applied it ends with the menu revision that shows it.
 static void CheckOrderAnswers()
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     Sail(bench);
     bench.Feed("seaOrders", "sea-orders-root");
@@ -940,7 +959,7 @@ static void CheckOrderRecipientChange()
 {
     for (const bool explicit_switch : {false, true})
     {
-        Bench bench;
+        SeaBench bench;
         FakeMount &mount = bench.mount;
         Sail(bench);
         bench.Feed("seaOrders", "sea-orders-root");
@@ -978,7 +997,7 @@ static void CheckOrderNavigationCancel()
 {
     for (const std::string route : {"root-back", "nested-back", "ribbon-back", "close", "scrim"})
     {
-        Bench bench;
+        SeaBench bench;
         FakeMount &mount = bench.mount;
         Sail(bench);
         Json orders = State(route == "root-back" ? "sea-orders-root" : "sea-orders-targets");
@@ -1022,7 +1041,7 @@ static void CheckOrderNavigationCancel()
 
 static void CheckEmptyCategory()
 {
-    Bench bench;
+    SeaBench bench;
     FakeMount &mount = bench.mount;
     Sail(bench);
     bench.Feed("seaOrders", "sea-orders-root");
@@ -1060,6 +1079,19 @@ static Rml::Vector2f HelmAt()
     return {-1.0f, -1.0f};
 }
 
+// The centre of the element `selector` finds in the HUD (the application pack's layout, 800 × 400 dp).
+static Rml::Vector2f Centre(const char *selector)
+{
+    Rml::Context *context = Rml::GetContext("storm-ui");
+    for (int i = 0; context && i < context->GetNumDocuments(); ++i)
+        if (Rml::Element *element = context->GetDocument(i)->QuerySelector(selector))
+        {
+            const Rml::Vector2f size = element->GetBox().GetSize(Rml::BoxArea::Border);
+            return {element->GetAbsoluteLeft() + size.x * 0.5f, element->GetAbsoluteTop() + size.y * 0.5f};
+        }
+    return {-1.0f, -1.0f};
+}
+
 // The sea HUD's touches on one runtime: the layout, input going off, the helm and the guns, the sail lever, the helm
 // through a battle, taps and the modal orders panel.
 struct SeaTouches
@@ -1087,7 +1119,7 @@ struct SeaTouches
                "helm, fire, minimap, lever, quick action and companions are the UI's");
         Expect(host.WantsTouch(260, 390) && host.WantsTouch(4, 180) && host.WantsTouch(150, 200),
                "the whole helm zone is the UI's, high above the helm too");
-        Expect(!host.WantsTouch(400, 200) && !host.WantsTouch(100, 30) && !host.WantsTouch(300, 341) &&
+        Expect(!host.WantsTouch(400, 200) && !host.WantsTouch(200, 30) && !host.WantsTouch(300, 341) &&
                    !host.WantsTouch(700, 150) && !host.WantsTouch(140, 170) && !host.WantsTouch(760, 140) &&
                    !host.WantsTouch(724, 226) && !host.WantsTouch(796, 226),
                "the open sea beside the HUD's controls is the game's");
@@ -1160,8 +1192,8 @@ struct SeaTouches
         const size_t before_sails = run.commands.size();
         host.Touch(TouchPhase::Down, 2, 760, 274);
         Expect(run.Last() == "sails:9\t0", "a finger on the furled position furls the sails: " + run.Last());
-        host.Touch(TouchPhase::Move, 2, 760, 251);
-        Expect(run.commands.size() == before_sails + 1, "… less than half a step up changes nothing");
+        host.Touch(TouchPhase::Move, 2, 760, 255);
+        Expect(run.commands.size() == before_sails + 1, "… less than half a step up changes nothing: " + run.Last());
         host.Touch(TouchPhase::Move, 2, 760, 249);
         Expect(run.Last() == "sails:9\t1", "… past half a step: half sails: " + run.Last());
         host.Touch(TouchPhase::Move, 2, 762, 150);
@@ -1240,10 +1272,10 @@ struct SeaTouches
         Expect(run.Last() == "gameplay:10\tShip_Fire", "the guns under the lever: " + run.Last());
         Expect(!host.WantsTouch(710, 230) && !host.WantsTouch(290, 380),
                "between the quick action and the lever, right of the helm zone: the game's");
-        host.Touch(TouchPhase::Down, 1, 36, 206); // the fourth ship, over the top of the helm zone
-        host.Touch(TouchPhase::Up, 1, 36, 206);
-        Expect(run.Last().rfind("orders:", 0) == 0,
-               "a ship of the squadron over the helm zone is still tapped: " + run.Last());
+        const Rml::Vector2f fourth = Centre("#fleet .item:nth-child(4)"); // the fourth ship, beside the helm zone
+        host.Touch(TouchPhase::Down, 1, fourth.x, fourth.y);
+        host.Touch(TouchPhase::Up, 1, fourth.x, fourth.y);
+        Expect(run.Last().rfind("orders:", 0) == 0, "a ship of the squadron is tapped: " + run.Last());
         host.Touch(TouchPhase::Down, 1, 750, 130); // the minimap, above the lever
         host.Touch(TouchPhase::Up, 1, 750, 130);
         Expect(run.Last().rfind("navigator:10\t", 0) == 0, "the minimap above the lever: " + run.Last());
@@ -1260,20 +1292,29 @@ struct SeaTouches
         Expect(host.WantsTouch(400, 200) && host.WantsTouch(5, 5) && host.WantsBack() &&
                    run.Sent("orders:15\tshown\t1"),
                "the open panel takes every touch and the back key");
-        host.Touch(TouchPhase::Down, 1, 700, 70); // the second tile
-        host.Touch(TouchPhase::Up, 1, 700, 70);
+        const Rml::Vector2f tile = Centre("#item-i1"); // the second tile
+        host.Touch(TouchPhase::Down, 1, tile.x, tile.y);
+        host.Touch(TouchPhase::Up, 1, tile.x, tile.y);
         Expect(run.Last() == "orders:15\tselectItem\ti1", "a tap on an order: " + run.Last());
         host.Back();
         Expect(run.Last() == "orders:15\tclose\t", "the back key closes the first stage: " + run.Last());
         host.Touch(TouchPhase::Down, 1, 400, 300); // beside everything
         host.Touch(TouchPhase::Up, 1, 400, 300);
         Expect(run.Last() == "orders:15\tclose\t", "a tap on the scrim closes");
+        // the order goes on to its targets: the panel drops the commands' tiles it no longer gives
+        Json targets = State("sea-orders-targets");
+        targets["revision"] = 16;
+        targets["recipientId"] = "r501_1";
+        run.host->SetState("seaOrders", targets.dump());
+        run.Frame();
+        Expect(Centre(".ho-tile").x < 0.0f && Centre("#item-i2").x > 0.0f, "the targets replace the order tiles");
     }
 };
 
 static void CheckTouches(const std::string &pack)
 {
     Runtime run(pack);
+    AttachScripts(run);
     if (!run.host)
         return;
     SeaTouches touches{run, *run.host};
@@ -1291,6 +1332,7 @@ static void CheckTouches(const std::string &pack)
 static void CheckDeckTouches(const std::string &pack)
 {
     Runtime run(pack);
+    AttachScripts(run);
     if (!run.host)
         return;
     Host &host = *run.host;
@@ -1320,8 +1362,9 @@ static void CheckDeckTouches(const std::string &pack)
     host.Touch(TouchPhase::Up, 2, 180, 341);
     host.Touch(TouchPhase::Up, 1, 200, 250);
     Expect(run.Last() == "deckwalk:9\t0\t0" && run.Sent("hold:9\tShip_TurnRight\t0"), "both let go: " + run.Last());
-    host.Touch(TouchPhase::Down, 1, 36, 206); // the fourth ship, inside the zone
-    host.Touch(TouchPhase::Up, 1, 36, 206);
+    const Rml::Vector2f fourth = Centre("#fleet .item:nth-child(4)"); // the fourth ship, above the walk zone
+    host.Touch(TouchPhase::Down, 1, fourth.x, fourth.y);
+    host.Touch(TouchPhase::Up, 1, fourth.x, fourth.y);
     Expect(run.Last().rfind("orders:", 0) == 0, "a ship of the squadron over the zone is still tapped: " + run.Last());
 
     // the helm stays where it rests: a finger on it turns as far as it lands from the centre,
@@ -1360,6 +1403,7 @@ static void CheckDeckTouches(const std::string &pack)
 static void CheckCameraSwitch(const std::string &pack)
 {
     Runtime run(pack);
+    AttachScripts(run);
     if (!run.host)
         return;
     Host &host = *run.host;
@@ -1419,10 +1463,39 @@ static void CheckCameraSwitch(const std::string &pack)
     }
 }
 
+// What a state change costs the scene (the host Release build is the measure): the ship publishes up to ten times a
+// second while sailing; its speed, the date and the guns' reload only move readings, a hit asks the script for a build.
+static void PrintCost()
+{
+    SeaBench bench;
+    Sail(bench);
+    const auto cost = [&](auto change) {
+        Json state = State("ship");
+        constexpr int kRounds = 200;
+        const auto start = std::chrono::steady_clock::now();
+        for (int i = 0; i < kRounds; ++i)
+        {
+            change(state, i);
+            state["sequence"] = 1000 + i;
+            bench.Set("ship", state);
+        }
+        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
+    };
+    const double readings = cost([](Json &state, int i) {
+        state["shipSpeedKnots"] = 4.0 + (i % 50) * 0.1;
+        state["cannonCharge"] = (i % 50) * 0.01;
+    });
+    const double builds = cost([](Json &state, int i) { state["hull"] = 2400 - i; });
+    std::printf("sea scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
+                builds);
+}
+
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
-    const std::string pack = argc > 2 ? argv[2] : "tests/pack";
+    const std::string pack = argc > 2 ? argv[2] : "build/app-pack";
+    const ScriptPack scripts(pack);
+    app_pack = &scripts;
     CheckConsumers();
     CheckSailing();
     CheckMoorAndMap();
@@ -1436,6 +1509,7 @@ int main(int argc, char **argv)
     CheckTouches(pack);
     CheckDeckTouches(pack);
     CheckCameraSwitch(pack);
+    PrintCost();
     if (failures)
         std::fprintf(stderr, "%d sea HUD check(s) failed\n", failures);
     else

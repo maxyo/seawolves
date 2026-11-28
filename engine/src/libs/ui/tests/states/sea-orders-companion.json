@@ -65,7 +65,7 @@
    "id": "i2",
    "kind": "command",
    "label": "Следовать за мной",
-   "source": "BI_CCommand",
+   "source": "BI_CompanionCommand",
    "enabled": true,
    "cooldown": 1.0
   },

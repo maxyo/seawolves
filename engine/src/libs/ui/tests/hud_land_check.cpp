@@ -1470,7 +1470,7 @@ static void CheckTransitionFlash()
            "native acceptance alone never proves that the script changed the location");
 }
 
-// The potion and Rush behind one button bottom right, where the potion button was (hud.h AbilityControls):
+// The potion and Rush behind one button bottom right, where the potion button was (a picker of the scene):
 // the potion while the gameplay offers it, Rush only in a fight while the scripts offer it or it runs; a tap
 // lays them out as HUD buttons left of it; Rush launches through the land menu's own command.
 static void CheckRush()

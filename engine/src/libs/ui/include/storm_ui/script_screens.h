@@ -113,8 +113,9 @@ struct HudShortcutCommand
 {
     std::string name;
 };
-// A step of a menu the engine keeps (`menu` "land"): `verb` open (`id`: the root command it opens into, "" for the
-// root), back, close, choose (`id`: the row tapped; the runtime selects it and activates it as the engine wants).
+// A step of a menu the engine keeps (`menu` "land" or "sea"): `verb` open (`id`: land, the root command it opens
+// into; sea, the ship it opens for; "" for the root), back, close, recipient (sea: `id` the ship the orders go to),
+// choose (`id`: the row tapped; the runtime selects it and activates it as the engine wants).
 struct HudMenuCommand
 {
     std::string menu, verb, id;
@@ -129,9 +130,19 @@ struct HudContextCommand
 {
     std::string name;
 };
-using ScriptCommand =
-    std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand, HudControlCommand,
-                 HudMapCommand, HudShortcutCommand, HudMenuCommand, HudCombatCommand, HudContextCommand>;
+// The sails set to a position (0 down, 1 half, 2 full) the engine answers.
+struct HudSailsCommand
+{
+    int position = 0;
+};
+// The sea's quick action the engine offers now (`action` its own, or Map beside it).
+struct HudSeaActionCommand
+{
+    std::string action;
+};
+using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand,
+                                   HudControlCommand, HudMapCommand, HudShortcutCommand, HudMenuCommand,
+                                   HudCombatCommand, HudContextCommand, HudSailsCommand, HudSeaActionCommand>;
 
 struct DealView
 {

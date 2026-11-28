@@ -157,7 +157,8 @@ read what its contract promises calls `UiError`.
 A scene of `hud/` draws the HUD of gameplay modes (the engine's `hud/hud.cpp` names which); its entry in
 `scripts.json` is `{capability: "hud_<scene>", component: "hud", interface: "hud", nodes: []}`, and every `hud_`
 capability must have one. It reads the engine's HUD channels with `UiState` (`gameplay`, `worldMap`, `combat`,
-`vitals`, `landCommands`, `worldInfo`, `contextAction`, `reloadPlace`: their writers in
+`vitals`, `landCommands`, `worldInfo`, `contextAction`, `reloadPlace`, `ship`, `seaOrders`, `seaQuickAction`,
+`spyglass`: their writers in
 `engine/src/libs/ui/src/hud/script_states.cpp`) and builds, with `UiShow`, `{layout, log, holds, elements.<id>,
 controls.<id>, covers.<id>, lingers.<id>, sheet}`: the layout scene of `design/hud-layout.json`, its elements' props by
 their components, `log` 1 for the event lines, `holds` 1 while it keeps the HUD through a blocked game (an open menu
@@ -167,7 +168,7 @@ game names (a place's picture, a dialog file, a menu command, a quick action) it
 engine's states'. The revisions and generations a command carries are the runtime's.
 - What moves every frame is a reading, never read by the script: a prop given as `{reading, as, fill}` (one reading
   or several, space-separated, with one format each: `degrees`, `degreesText`, `point`, `percent`, `percentText`,
-  `clock`, `whole`, `word`; several go into `fill` as `{1}`, `{2}`) is filled by the runtime at every state change.
+  `clock`, `whole`, `knots`, `word`; several go into `fill` as `{1}`, `{2}`) is filled by the runtime at every state change.
   The channel says which readings it has now: `readings.<name>` = 1.
 - What the finger holds or drags is a control the runtime drives: `controls.<id>` = `{kind: "hold", control}`,
   `{kind: "helm", left, right}`, `{kind: "lever", up, down}`, `{kind: "stick"}` (the walk stick: bound whether or
@@ -175,15 +176,23 @@ engine's states'. The revisions and generations a command carries are the runtim
   (the strike's swipe: the element `moves` the script builds is drawn only while the wheel is open, on the move
   previewed, the elements `dims` names subdued; the lift sends that combat action), `{kind: "fan"}` (a picker: its
   slots are the script's elements `<id>-1…`, drawn while it is open, in place of what each slot `replaces`; it folds on
-  a pick, Back, a sheet or the pack's `time.pickerFoldMs` untouched; a slot's click the script bound is its pick).
+  a pick, Back, a sheet or the pack's `time.pickerFoldMs` untouched; a slot's click the script bound is its pick; one picker is open at a time), `{kind: "deck"}` (the deck walk
+  stick at sea: as far as it is pushed, the engine's DeckWalk).
 - `lingers.<id>` = 1: an element the script stops giving stays as it was for the pack's `time.hintHoldMs`, then
   `leaving` for `time.toastLeave`; not said, it goes at once.
 - `sheet` = the pack part over the scene (`"s-hud-sheet"`) with its props: modal, it takes every touch.
-- `covers.<id>` = `"map-labels"`: the world map draws no label under that element.
-- A tap that sends a command the game answers (`"map"`, `"menu"` `choose`) says `UiPredict(view)` with the mark it
+- `covers.<id>` = `"map-labels"`: the world map draws no label under that element; `"navigator"`: the engine draws
+  its sea radar into the element's disc (`.mm-disc`), the runtime tells it the disc's place and that the readouts
+  around it are up, and a `zoom` of the element steps the radar's scale.
+- `band` = `{after, row, under}`: the event lines run right of `after`'s last column beside the buttons of `row`;
+  where that leaves them too narrow they drop under the row, left of `under`.
+- A tap that sends a command the game answers (`"map"`, `"menu"` `choose`, `"sails"` {position}) says `UiPredict(view)` with the mark it
   shows (a sheet row by its `id`): drawn until the game has answered; a second map tap meanwhile, or one on an element
   not drawn as built, sends nothing. A menu row chosen is selected and then activated as the engine wants; a travel
-  place activated hides the HUD until the game's scene change.
+  place activated hides the HUD until the game's scene change. `"menu"` with `menu` `"sea"` is the engine's orders:
+  `open` (`id` the ship it opens for, "" the flagship), `recipient` {id}, `choose`, `back`, `close`; while a sheet
+  shows them the runtime tells the engine its menu is covered. `"seaAction"` {action} is the sea's quick action (or
+  `Map` beside it): sent once per offer, only for the one drawn.
 
 ## The universal screens
 
@@ -203,6 +212,7 @@ Look here before writing one; a helper earns its place with three sites (or two 
 keys), not flags that switch behaviours, and computes nothing the game computes.
 - `lib/text.c`: `TouchLib_Newline`, `Cut`, `StartsWith`, `EndsWith`, `Trim`, `AfterColon`, `Figure` (a caption's
   label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
+- `lib/hud.c`: `TouchLib_Reading` (a prop as a reading), `TouchLib_TimeScale` (the time acceleration button).
 - `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Find` (by a field's value), `Current`: of a list the game always marks one of,
   `Order`, `TapIndex`, `Copy`: a sub-object when it is there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
   `Actions`, `Action`), `Words`, the header's arrows over one of a list (`Stepper`, `StepTap`), the hero header

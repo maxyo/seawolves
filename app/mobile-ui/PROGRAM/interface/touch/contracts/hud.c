@@ -15,3 +15,12 @@ extern string TouchAdpHud_Command(string source);
 // action (one the adapter does not know by name, which it says); "" for none: nothing to do, or the talk that the
 // engine's own target (combat `interact`) offers.
 extern string TouchAdpHud_Context(string action);
+// ShipKind(type): the kind of a ship by the engine's ship model name (a ship `type` of the ship channel): lugger, sloop,
+// schooner, barkentine, brigantine, brig, caravel, fluyt, galleon, frigate, ketch, tartane, xebec, manowar; "" for a
+// model the adapter has no kind for.
+extern string TouchAdpHud_ShipKind(string type);
+// Order(source): what a sea order does by the game's command event (a seaOrders item's `source`): moor, board,
+// landTroops, map, sailTo, sailDir, sailAway, drift, attack, defend, reload, charge, speed, follow, ability, talk,
+// kill, cabin, boat, brander, bomb, immediateReload, lightRepair, instantRepair, turn180; "" for one the
+// adapter does not know (it says so).
+extern string TouchAdpHud_Order(string source);

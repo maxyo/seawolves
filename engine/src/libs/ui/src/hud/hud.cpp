@@ -13,8 +13,6 @@
 namespace storm::ui::hud
 {
 
-std::unique_ptr<Scene> CreateSeaScene(Hud &hud);
-
 namespace
 {
 
@@ -38,7 +36,7 @@ const char *const kWorldMapModes[] = {"worldmap"};
 // The HUD scenes by gameplay mode.
 const SceneEntry kScenes[] = {
     {"land", kLandModes, nullptr, "land", "hud_land"},
-    {"sea", kSeaModes, CreateSeaScene, "sea"},
+    {"sea", kSeaModes, nullptr, "sea", "hud_sea"},
     {"world-map", kWorldMapModes, nullptr, "worldmap", "hud_world_map"},
 };
 
@@ -47,30 +45,6 @@ const SceneEntry kScenes[] = {
 std::span<const SceneEntry> Scenes()
 {
     return kScenes;
-}
-
-void BuildTimeScale(Hud &hud, const Gameplay &gameplay, double scale, View &view, Input &input)
-{
-    static const char *const kSteps[] = {"TimeScaleX1", "TimeScaleX2", "TimeScaleX4", "TimeScaleX8"};
-    if (scale < 0.0)
-        return;
-    for (const char *step : kSteps)
-        if (!gameplay.Has(step))
-            return;
-    char text[16];
-    std::snprintf(text, sizeof(text), "%.2f", scale);
-    std::string badge = text;
-    while (badge.back() == '0')
-        badge.pop_back();
-    if (badge.back() == '.')
-        badge.pop_back();
-    const int current = scale < 1.5 ? 0 : scale < 3.0 ? 1 : scale < 6.0 ? 2 : 3;
-    view.elements["time"] = Json{{"badge", "×" + badge}, {"variant", current ? "active" : "normal"}};
-    input.On("time", "click", [&hud, next = std::string(kSteps[(current + 1) % 4])](const Event &) {
-        const Gameplay &now = hud.Current().gameplay;
-        if (hud.Interactive() && now.Has(next))
-            hud.Send(GameplayControl{now.revision, next});
-    });
 }
 
 int StickStrength(double deflection)
@@ -160,26 +134,6 @@ void Hud::RequestSubject(const SubjectRequest &request)
           {"quest", request.quest}})
         note.children.push_back({name, value, {}});
     router_->Pass(request.screen, std::move(note), kSubjectSeconds);
-}
-
-Json MemberCell(const std::string &name, const Picture &picture, std::initializer_list<MemberBar> bars, bool tap)
-{
-    // c-game-image takes the rectangle as text: "left,top,right,bottom", each the shortest that reads back.
-    std::string uv;
-    for (const float side : picture.uv)
-    {
-        char text[32];
-        const auto written = std::to_chars(text, std::end(text), side);
-        uv.append(uv.empty() ? "" : ",").append(text, written.ptr);
-    }
-    Json cell = {{"name", name}, {"texture", picture.texture}, {"uv", uv}, {"bars", Json::array()}};
-    for (const MemberBar &bar : bars)
-        if (bar.share >= 0.0)
-            cell["bars"].push_back(Json{
-                {"kind", bar.kind}, {"value", static_cast<int>(std::lround(std::clamp(bar.share, 0.0, 1.0) * 100.0))}});
-    if (tap)
-        cell["tap"] = true;
-    return cell;
 }
 
 void Input::On(const std::string &id, const std::string &verb, Handler handler)

@@ -28,15 +28,6 @@ string TouchHudLand_EffectIds[4] = {"poison", "drunk", "healing", "walkonly"};
 string TouchHudLand_EffectIcons[4] = {"skull", "rum", "potion", "lock"};
 string TouchHudLand_EffectTones[4] = {"danger", "effect", "active", "effect"};
 
-aref TouchHudLand_Reading(aref at, string field, string reading, string as)
-{
-	aref value;
-	makearef(value, at.(field));
-	value.reading = reading;
-	value.as = as;
-	return value;
-}
-
 // The icon of a command of the land menu by what it does.
 string TouchHudLand_CommandIcon(string notion)
 {
@@ -138,10 +129,10 @@ aref TouchHudLand_Member(aref list, aref person, string health, string energy, b
 	makearef(bars, cell.bars);
 	bar = TouchLib_Add(bars, "b");
 	bar.kind = "health";
-	TouchHudLand_Reading(bar, "value", health, "percent");
+	TouchLib_Reading(bar, "value", health, "percent");
 	bar = TouchLib_Add(bars, "b");
 	bar.kind = "energy";
-	TouchHudLand_Reading(bar, "value", energy, "percent");
+	TouchLib_Reading(bar, "value", energy, "percent");
 	if (tap) cell.tap = true;
 	return cell;
 }
@@ -243,11 +234,11 @@ void TouchHudLand_Abilities(aref view, aref combat, aref vitals, bool ready, boo
 		if (slot.label == "") slot.label = UiText("hud.ability.name." + ability.id);
 		if (state == "active" || state == "recovery")
 		{
-			TouchHudLand_Reading(slot, "fill", "vitals.ability." + ability.id + ".fill", "percent");
+			TouchLib_Reading(slot, "fill", "vitals.ability." + ability.id + ".fill", "percent");
 			slot.fillTone = "cooldown";
 			if (state == "active") slot.fillTone = "reload";
 			slot.reloading = true;
-			TouchHudLand_Reading(slot, "badge", "vitals.ability." + ability.id + ".left", "whole");
+			TouchLib_Reading(slot, "badge", "vitals.ability." + ability.id + ".left", "whole");
 		}
 		if (state == "recovery" || state == "blocked") slot.disabled = true;
 		if (state == "ready") button.cue = true;
@@ -261,7 +252,7 @@ void TouchHudLand_Abilities(aref view, aref combat, aref vitals, bool ready, boo
 	}
 	if (CheckAttribute(vitals, "readings.abilitiesRunning"))
 	{
-		TouchHudLand_Reading(button, "fill", "vitals.abilitiesRunning", "percent");
+		TouchLib_Reading(button, "fill", "vitals.abilitiesRunning", "percent");
 		button.fillTone = "reload";
 		button.reloading = true;
 	}
@@ -388,7 +379,7 @@ void TouchHudLand_Combat(aref view, aref combat, aref vitals, bool ready)
 			shot.reloading = loading;
 			if (loading)
 			{
-				TouchHudLand_Reading(shot, "fill", "combat.reload", "percent");
+				TouchLib_Reading(shot, "fill", "combat.reload", "percent");
 				shot.fillTone = "reload";
 			}
 			if (known && sti(vitals.capacity) > 0) shot.badge = vitals.loaded;
@@ -403,7 +394,7 @@ void TouchHudLand_Combat(aref view, aref combat, aref vitals, bool ready)
 		dash.disabled = !ready || cooling;
 		if (cooling)
 		{
-			TouchHudLand_Reading(dash, "fill", "vitals.dash", "percent");
+			TouchLib_Reading(dash, "fill", "vitals.dash", "percent");
 			dash.fillTone = "cooldown";
 		}
 		UiOn("dash", "click");
@@ -415,17 +406,17 @@ void TouchHudLand_Combat(aref view, aref combat, aref vitals, bool ready)
 		view.elements.opponent.title = UiText("hud.captain") + " " + vitals.opponent;
 		aref health;
 		makearef(health, view.elements.("opponent-hp"));
-		TouchHudLand_Reading(health, "value", "vitals.opponent", "percent");
+		TouchLib_Reading(health, "value", "vitals.opponent", "percent");
 		DeleteAttribute(view, "elements.location");
 		return;
 	}
 	if (!sti(vitals.boarding)) return;
 	aref deck;
 	makearef(deck, view.elements.boarding);
-	TouchHudLand_Reading(deck, "ours", "vitals.ours", "percent");
-	TouchHudLand_Reading(deck, "theirs", "vitals.theirs", "percent");
-	TouchHudLand_Reading(deck, "oursCount", "vitals.oursMen", "whole");
-	TouchHudLand_Reading(deck, "theirsCount", "vitals.theirsMen", "whole");
+	TouchLib_Reading(deck, "ours", "vitals.ours", "percent");
+	TouchLib_Reading(deck, "theirs", "vitals.theirs", "percent");
+	TouchLib_Reading(deck, "oursCount", "vitals.oursMen", "whole");
+	TouchLib_Reading(deck, "theirsCount", "vitals.theirsMen", "whole");
 	if (CheckAttribute(view, "elements.location.text")) deck.title = view.elements.location.text;
 	DeleteAttribute(view, "elements.location");
 }

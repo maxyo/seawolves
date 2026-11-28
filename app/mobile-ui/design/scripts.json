@@ -43,6 +43,7 @@
     {"file": "interface/touch/core/core.c", "core": true},
     {"file": "interface/touch/lib/text.c", "core": true},
     {"file": "interface/touch/lib/list.c", "core": true},
+    {"file": "interface/touch/lib/hud.c", "core": true},
     {"file": "interface/touch/contracts/rest.c"},
     {"file": "interface/touch/contracts/trade.c"},
     {"file": "interface/touch/contracts/reading.c"},
@@ -1092,6 +1093,11 @@
     {
       "file": "interface/touch/hud/world_map.c",
       "screens": [{"capability": "hud_world_map", "component": "hud", "interface": "hud", "nodes": []}]
+    },
+    {
+      "file": "interface/touch/hud/sea.c",
+      "uses": ["adapter:hud"],
+      "screens": [{"capability": "hud_sea", "component": "hud", "interface": "hud", "nodes": []}]
     },
     {"file": "interface/touch/universal/generic.c", "core": true, "screens": [
       {"capability": "generic", "component": "s-generic", "interface": "*", "nodes": []},

@@ -117,10 +117,8 @@ add_library(storm_ui STATIC
     src/screens/script_props.cpp
     src/component_spec.cpp
     src/screens/launcher.cpp
-    src/hud/abilities.cpp
     src/hud/hud.cpp
     src/hud/states.cpp
-    src/hud/sea.cpp
     src/hud/script_scene.cpp
     src/hud/script_states.cpp
     src/hud/spyglass.cpp
@@ -253,7 +251,9 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     target_link_libraries(storm_ui_hud_land_game_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_hud_land_game_unit storm_ui_app_pack)
     set_tests_properties(ui_hud_land_game PROPERTIES SKIP_RETURN_CODE 77)
-    storm_ui_check(hud_sea hud_sea_check.cpp "${states}" "${pack}")
+    storm_ui_check(hud_sea hud_sea_check.cpp "${states}" "${CMAKE_BINARY_DIR}/app-pack")
+    target_link_libraries(storm_ui_hud_sea_unit PRIVATE storm_ui_script_game)
+    add_dependencies(storm_ui_hud_sea_unit storm_ui_app_pack)
     storm_ui_check(frame_cost frame_cost_check.cpp "${states}" "${pack}" "${CMAKE_BINARY_DIR}/app-pack")
     target_link_libraries(storm_ui_frame_cost_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_frame_cost_unit storm_ui_app_pack)

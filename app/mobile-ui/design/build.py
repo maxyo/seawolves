@@ -440,6 +440,7 @@ RUNTIME_ICON_PREFIXES = {
     "suit-": "screens/pieces/template.rml: suit-{{p.suit}}",
     "c-sky-": "components/compass/template.rml: 'c-sky-' + weather",
     "nation-": "the flags: \"nation-\" + the nation (engine screens/maps.cpp, hud/spyglass.cpp, …)",
+    "ship-": "the ship tokens: \"ship-\" + the adapter's ship kind (interface/touch/hud/sea.c)",
 }
 QUOTED = re.compile(r"""["']([A-Za-z0-9_-]+)["']""")
 

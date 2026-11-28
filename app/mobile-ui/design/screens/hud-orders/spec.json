@@ -5,9 +5,9 @@
     "title": {"type": "text", "default": ""},
     "back": {"type": "bool", "default": false, "class": false},
     "crumb": {"type": "text", "default": ""},
-    "recipients": {"type": "json", "default": []},
-    "tiles": {"type": "json", "default": []},
-    "rows": {"type": "json", "default": []}
+    "recipients": {"type": "json", "default": [], "shape": [{"id": "text", "title": "text", "meta": "text", "image": {"icon": "text", "enamel": "text"}, "value": "text", "selected": "bool", "bars": {"hull": "int", "crew": "int", "sails": "int"}}]},
+    "tiles": {"type": "json", "default": [], "shape": [{"id": "text", "title": "text", "image": {"icon": "text", "enamel": "text"}, "disabled": "bool", "pressed": "bool", "cooldown": "int"}]},
+    "rows": {"type": "json", "default": [], "shape": [{"id": "text", "title": "text", "image": {"icon": "text", "enamel": "text"}, "disabled": "bool", "pressed": "bool", "cooldown": "int"}]}
   },
   "behaviors": ["press"],
   "constants": {"pressRoot": false, "width": 680, "ships": 220, "inset": 12, "barHeight": 6, "tile": 92, "tileIcon": 28}

@@ -14,16 +14,6 @@ object TouchHudWorldMap_View;
 
 string TouchHudWorldMap_Flags[5] = {"holland", "england", "france", "spain", "pirates"};
 
-// Field `field` of `at` is a reading of the map that the runtime lays in.
-aref TouchHudWorldMap_Reading(aref at, string field, string reading, string as)
-{
-	aref value;
-	makearef(value, at.(field));
-	value.reading = reading;
-	value.as = as;
-	return value;
-}
-
 // Where each of the engine's map commands sits, as `out` {element, icon, variant}: going on (to sea, a port, a ship)
 // in the corner, the fight beside it, the storm further in; a command the HUD has no picture for (a mod's) takes the
 // corner with a plain icon.
@@ -79,9 +69,9 @@ void TouchHudWorldMap_Details(aref view, aref map)
 	makearef(rows, view.elements.("detail-rows").items);
 	string days = " " + UiText("common.days_short");
 	row = TouchHudWorldMap_Row(rows, "hud.map.course");
-	TouchHudWorldMap_Reading(row, "v", "worldMap.course", "degreesText");
+	TouchLib_Reading(row, "v", "worldMap.course", "degreesText");
 	row = TouchHudWorldMap_Row(rows, "hud.map.wind");
-	wind = TouchHudWorldMap_Reading(row, "v", "worldMap.windFrom worldMap.wind", "point percentText");
+	wind = TouchLib_Reading(row, "v", "worldMap.windFrom worldMap.wind", "point percentText");
 	wind.fill = UiText("hud.map.windFrom") + " · {2}";
 	int storm = sti(map.storm);
 	if (storm > 0)
@@ -115,12 +105,12 @@ void TouchHudWorldMap_Compass(aref view, aref map)
 	aref compass;
 	makearef(compass, view.elements.compass);
 	compass.date = map.date;
-	TouchHudWorldMap_Reading(compass, "time", "worldMap.clock", "clock");
-	TouchHudWorldMap_Reading(compass, "course", "worldMap.course", "degrees");
-	TouchHudWorldMap_Reading(compass, "windFrom", "worldMap.windFrom", "degrees");
-	TouchHudWorldMap_Reading(compass, "wind", "worldMap.wind", "percent");
-	TouchHudWorldMap_Reading(compass, "sky", "worldMap.sky", "word");
-	TouchHudWorldMap_Reading(compass, "skyAt", "worldMap.skyAt", "whole");
+	TouchLib_Reading(compass, "time", "worldMap.clock", "clock");
+	TouchLib_Reading(compass, "course", "worldMap.course", "degrees");
+	TouchLib_Reading(compass, "windFrom", "worldMap.windFrom", "degrees");
+	TouchLib_Reading(compass, "wind", "worldMap.wind", "percent");
+	TouchLib_Reading(compass, "sky", "worldMap.sky", "word");
+	TouchLib_Reading(compass, "skyAt", "worldMap.skyAt", "whole");
 	if (sti(map.moonPhase) >= 0) compass.moon = map.moonPhase;
 	int storm = sti(map.storm);
 	if (storm == 1) compass.weather = "storm";
@@ -130,26 +120,6 @@ void TouchHudWorldMap_Compass(aref view, aref map)
 	view.covers.compass = "map-labels";
 	UiOn("compass", "toggle");
 	if (sti(TouchHudWorldMap.details)) TouchHudWorldMap_Details(view, map);
-}
-
-// The game's time acceleration in four steps: the button shows the scale the engine runs at, a tap asks for the next
-// of x1, x2, x4, x8 (the game's scripts clamp it to their limits). Offered when the gameplay binds all four.
-void TouchHudWorldMap_Time(aref view, aref play, aref map)
-{
-	if (!CheckAttribute(map, "timeScale")) return;
-	string steps[4] = {"TimeScaleX1", "TimeScaleX2", "TimeScaleX4", "TimeScaleX8"};
-	for (int i = 0; i < 4; i++)
-		if (!CheckAttribute(play, "controls." + steps[i])) return;
-	float scale = stf(map.timeScale);
-	int current = 3;
-	if (scale < 6.0) current = 2;
-	if (scale < 3.0) current = 1;
-	if (scale < 1.5) current = 0;
-	view.elements.time.badge = "×" + map.timeScale;
-	view.elements.time.variant = "normal";
-	if (current > 0) view.elements.time.variant = "active";
-	TouchHudWorldMap.next = steps[(current + 1) % 4];
-	UiOn("time", "click");
 }
 
 void TouchHudWorldMap_Commands(aref view, aref map)
@@ -213,7 +183,7 @@ void TouchHudWorldMap_Build()
 		if (current && CheckAttribute(map, "readings.speed"))
 		{
 			makearef(sail, view.elements.sail);
-			TouchHudWorldMap_Reading(sail, "value", "worldMap.speed", "percent");
+			TouchLib_Reading(sail, "value", "worldMap.speed", "percent");
 		}
 	}
 	if (!current)
@@ -222,7 +192,8 @@ void TouchHudWorldMap_Build()
 		UiShow(view);
 		return;
 	}
-	TouchHudWorldMap_Time(view, play, map);
+	TouchHudWorldMap.next = "";
+	if (CheckAttribute(map, "timeScale")) TouchHudWorldMap.next = TouchLib_TimeScale(view, play, map.timeScale);
 	TouchHudWorldMap_Fleet(view, map);
 	TouchHudWorldMap_Compass(view, map);
 	TouchHudWorldMap_Commands(view, map);

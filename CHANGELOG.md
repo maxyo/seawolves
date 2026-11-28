@@ -216,6 +216,8 @@
   сам повреждённый байт (знаком «�»), остальной текст, в том числе кириллица, остаётся как был.
 - Последний шаг появления подсказки и других плавных переходов интерфейса теперь рисуется сразу: раньше он мог
   остаться не показанным до следующего изменения на экране.
+- Два морских приказа — команда спутнику и мгновенное уничтожение — получили свои значки вместо общего: раньше
+  интерфейс не узнавал их по именам команд игры.
 
 **English**
 
@@ -437,6 +439,8 @@
   replaced (with «�»), the rest of the text, Cyrillic included, stays as it was.
 - The last step of a hint's fade-in and of other interface transitions is now drawn at once: it could stay unshown
   until something else on the screen changed.
+- Two sea orders, the companion command and the instant kill, have their own icons instead of the plain one: the
+  interface did not recognise them by the game's command names.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

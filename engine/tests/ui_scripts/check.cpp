@@ -272,6 +272,10 @@ struct Calls final : storm::ui::ScriptCall
                     return "combat " + asked.action + " " + asked.phase;
                 else if constexpr (std::is_same_v<Kind, storm::ui::HudContextCommand>)
                     return "context " + asked.name;
+                else if constexpr (std::is_same_v<Kind, storm::ui::HudSailsCommand>)
+                    return "sails " + std::to_string(asked.position);
+                else if constexpr (std::is_same_v<Kind, storm::ui::HudSeaActionCommand>)
+                    return "seaAction " + asked.action;
                 else
                     return "shortcut " + asked.name;
             },

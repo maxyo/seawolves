@@ -188,7 +188,12 @@ bool HostImpl::ShowHudSheet(Rml::Element *layer, const hud::View &view)
             Json &shown = hud_props_["sheet"]; // forgotten with the sheet (RemoveHudElement)
             if (shown != view.sheet_props)
             {
-                component->SetProps(view.sheet_props);
+                Json change = view.sheet_props;
+                if (shown.is_object()) // a prop the scene no longer gives goes back to its default, as an element's
+                    for (const auto &item : shown.items())
+                        if (!change.contains(item.key()))
+                            change[item.key()] = nullptr;
+                component->SetProps(change);
                 shown = view.sheet_props;
             }
         }

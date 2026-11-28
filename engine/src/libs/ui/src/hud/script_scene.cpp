@@ -5,8 +5,9 @@
 //
 // The script's view: {layout, log (1: the event lines), holds (1: the scene keeps the HUD through a blocked game),
 // elements.<id>.<props> (by the element's pack component; a prop may be a reading {reading, as, fill}),
-// controls.<id>.{kind: hold {control} | helm {left, right} | lever {up, down} | stick | wheel {moves, dims,
-// captions.<move>} | fan}, covers.<id> = "map-labels", lingers.<id> = 1, sheet = "<part>" with its props}.
+// controls.<id>.{kind: hold {control} | helm {left, right} | lever {up, down} | stick | deck | wheel {moves, dims,
+// captions.<move>} | fan}, covers.<id> = "map-labels" | "navigator", band.{after, row, under}, lingers.<id> = 1,
+// sheet = "<part>" with its props}.
 #include "hud.h"
 #include "app_ui_names.hpp"
 #include "../component_spec.h"
@@ -191,7 +192,13 @@ class ScriptScene final : public Scene, private ScriptCall
             hud_.Error("land commands: the engine's menu is not drawable here (stage " + commands.stage + "); closed");
             hud_.Send(MenuStep{MenuStep::Menu::Land, commands.revision, "close", ""});
         }
-        if (!commands.known || !commands.active)
+        const SeaOrders &orders = states.sea_orders;
+        if (orders.known && orders.active && !orders.complete)
+            // The engine marked its menu as something only it can draw: it stays on the game's own surface (no
+            // coverage is acknowledged).
+            hud_.Error("sea orders: the engine's menu is not drawable here (stage " + orders.stage +
+                       "); the game's own menu stays");
+        if (!MenuOf(choice_menu_).known || !MenuOf(choice_menu_).active)
             choice_.clear(); // a tapped row of a menu that closed is over
         if (first_ || rebuild_ || !SameStructure(states))
             Run();
@@ -204,11 +211,13 @@ class ScriptScene final : public Scene, private ScriptCall
         holds_.Forget(states);
         if (stick_.Busy())
             stick_.Sync(states.gameplay);
+        if ((walk_.x || walk_.y) && (!hud_.Interactive() || !controls_.contains(deck_)))
+            Walk(0, 0); // the engine stops a walk the gameplay no longer binds (android_deck_walk.hpp)
         for (auto &[id, fan] : fans_)
             fan.Expire(now, next);
         // A tapped row stays drawn until the game answers its step: refused, or applied and its menu revision drawn
         // (activated, or not selected after all).
-        if (!choice_.empty() && ChoiceEnded(states.land_commands))
+        if (!choice_.empty() && ChoiceEnded(MenuOf(choice_menu_)))
         {
             choice_.clear();
             hud_.Rebuild();
@@ -231,21 +240,28 @@ class ScriptScene final : public Scene, private ScriptCall
     {
         drawn_ = elements_;
         Cover(&states);
+        CoverNavigator(states, hud_.Interactive());
+        CoverOrders(states, hud_.Interactive() && hud_.Shown().modal);
+        FollowBand();
         // A tapped row goes on once the sheet showing the menu's new revision is on the screen (select, then activate
         // against the revision that reports the selection).
-        const LandCommands &commands = states.land_commands;
-        if (commands.known && commands.active && commands.complete && hud_.Interactive() && hud_.Shown().modal)
-            Follow(commands);
+        const Menu &menu = MenuOf(choice_menu_);
+        if (menu.known && menu.active && menu.complete && hud_.Interactive() && hud_.Shown().modal)
+            Follow(menu);
     }
     void Hidden(const States &) override
     {
         Cover(nullptr);
+        CoverNavigator(hud_.Current(), false);
+        CoverOrders(hud_.Current(), false);
         Fold();
     }
     void Released(const States &states) override
     {
         holds_.Release(states.gameplay);
         stick_.Release(states.gameplay);
+        if (walk_.x || walk_.y)
+            Walk(0, 0);
         wheel_open_ = false;
         wheel_move_.clear();
         if (fights_ && states.combat.known && states.combat.mode != "unknown")
@@ -255,11 +271,16 @@ class ScriptScene final : public Scene, private ScriptCall
     void Suspended(const States &states) override
     {
         Cover(nullptr);
+        CoverNavigator(states, false);
+        CoverOrders(states, false);
         overlay_.reset();
         first_ = true; // the player comes back to a scene whose own state starts afresh
         const LandCommands &commands = states.land_commands;
         if (commands.known && commands.active)
             hud_.Send(MenuStep{MenuStep::Menu::Land, commands.revision, "close", ""});
+        const SeaOrders &orders = states.sea_orders;
+        if (orders.known && orders.active)
+            hud_.Send(MenuStep{MenuStep::Menu::Sea, orders.revision, "close", ""});
         choice_.clear();
         Fold();
         lingers_.clear();
@@ -358,6 +379,10 @@ class ScriptScene final : public Scene, private ScriptCall
         sheet_part_.clear();
         sheet_ = Json::object();
         fights_ = false;
+        deck_.clear();
+        band_view_ = {};
+        if (const ViewTree *band = Child(view, "band"))
+            band_view_ = {Value(*band, "after"), Split(Value(*band, "row")), Value(*band, "under")};
         if (const ViewTree *elements = Child(view, "elements"))
             for (const ViewTree &element : elements->children)
                 elements_[element.name] = Props(element);
@@ -383,7 +408,7 @@ class ScriptScene final : public Scene, private ScriptCall
         if (const ViewTree *covers = Child(view, "covers"))
             for (const ViewTree &cover : covers->children)
             {
-                if (cover.value != "map-labels")
+                if (cover.value != "map-labels" && cover.value != "navigator")
                     throw std::runtime_error("cover " + cover.name + ": no kind '" + cover.value + "'");
                 covers_[cover.name] = cover.value;
             }
@@ -410,6 +435,8 @@ class ScriptScene final : public Scene, private ScriptCall
         }
         else if (kind == "stick")
             fights_ = true; // the land's: cancelled input also cancels the combat holds
+        else if (kind == "deck")
+            deck_ = control.name;
         else if (kind == "fan")
             fans_.try_emplace(control.name, hud_, control.name);
         else
@@ -512,7 +539,18 @@ class ScriptScene final : public Scene, private ScriptCall
         }
         if (log_)
             if (Json lines = hud_.LogLines(); !lines.empty())
-                view.elements["log"] = Json{{"lines", std::move(lines)}};
+            {
+                Json &log = view.elements["log"] = Json{{"lines", std::move(lines)}};
+                if (band_.left > 0)
+                    log["safeLeft"] = band_.left;
+                if (band_.right > 0)
+                    log["safeRight"] = band_.right;
+                if (band_.top > 0)
+                    log["offset"] = band_.top;
+            }
+        for (const auto &[id, kind] : covers_)
+            if (kind == "navigator")
+                input.On(id, "zoom", [this](const Event &) { Zoom(); });
         view.back = !back_.empty();
         for (const std::string &bound : bound_)
         {
@@ -533,6 +571,8 @@ class ScriptScene final : public Scene, private ScriptCall
         for (auto &[id, fan] : fans_)
             if (controls_.contains(id))
                 Picker(id, fan, view, input);
+            else
+                fan.Close(); // not offered now: an open one goes, and does not come back with its button
     }
 
     // The elements that linger: shown while the script gives them; then held as they were for the pack's hintHoldMs
@@ -588,7 +628,11 @@ class ScriptScene final : public Scene, private ScriptCall
             view.elements.erase(found);
         }
         Json button = view.elements[id];
-        fan.Build(std::move(button), options, view, input);
+        fan.Build(std::move(button), options, view, input, [this, id] {
+            for (auto &[other, picker] : fans_)
+                if (other != id)
+                    picker.Close(); // one picker open at a time
+        });
         if (!fan.Open())
             return;
         for (const std::string &slot : slots)
@@ -611,6 +655,8 @@ class ScriptScene final : public Scene, private ScriptCall
             input.On(id, "change", [this](const Event &event) { stick_.Set(event.value); });
         else if (control.kind == "wheel")
             Wheel(id, control, view, input);
+        else if (control.kind == "deck")
+            input.On(id, "change", [this](const Event &event) { Deck(event.value); });
         else if (control.kind == "fan")
             return;
         else if (control.kind == "hold")
@@ -698,77 +744,110 @@ class ScriptScene final : public Scene, private ScriptCall
         hud_.Send(CombatAction{combat.activity, generation, action, phase});
     }
 
-    // A step of the land menu the engine allows now; the number of the request when it is one of a tapped row's.
-    uint64_t Step(const std::string &verb, const std::string &id)
+    // The engine's menu a "menu" command names; its state now.
+    const Menu &MenuOf(MenuStep::Menu menu) const
     {
-        const LandCommands &commands = hud_.Current().land_commands;
-        if (!hud_.Interactive() || !commands.known)
+        const States &states = hud_.Current();
+        if (menu == MenuStep::Menu::Sea)
+            return states.sea_orders;
+        return states.land_commands;
+    }
+    // What a row id means in: the stage (rows are numbered per stage) and, at sea, the ship and the scene.
+    std::string ChoiceContext(MenuStep::Menu kind, const Menu &menu) const
+    {
+        if (kind != MenuStep::Menu::Sea)
+            return menu.stage;
+        return menu.stage + "\t" + static_cast<const SeaOrders &>(menu).recipient + "\t" + std::to_string(menu.scene);
+    }
+
+    // A step of a menu the engine allows now; the number of the request when it is one of a tapped row's.
+    uint64_t Step(MenuStep::Menu kind, const std::string &verb, const std::string &id)
+    {
+        const Menu &menu = MenuOf(kind);
+        if (!hud_.Interactive() || !menu.known)
             return 0;
-        if (verb == "open" ? !commands.available || commands.active : !commands.active)
+        if (verb == "open" ? !menu.available || menu.active : !menu.active)
             return 0;
-        if (verb == "open" && !id.empty() &&
-            std::find(commands.offered.begin(), commands.offered.end(), id) == commands.offered.end())
+        if (kind == MenuStep::Menu::Land && verb == "open" && !id.empty())
+        {
+            const auto &offered = hud_.Current().land_commands.offered;
+            if (std::find(offered.begin(), offered.end(), id) == offered.end())
+                return 0;
+        }
+        if ((verb == "back" && !menu.can_back) || (verb == "close" && !menu.can_close))
             return 0;
-        if ((verb == "back" && !commands.can_back) || (verb == "close" && !commands.can_close))
-            return 0;
-        const MenuStep step{MenuStep::Menu::Land, commands.revision, verb, id};
+        if (verb == "open")
+        {
+            // The menu takes the screen: what the finger holds is let go first.
+            holds_.Release(hud_.Current().gameplay);
+            if (walk_.x || walk_.y)
+                Walk(0, 0);
+        }
+        if (verb == "selectRecipient" || verb == "back" || verb == "close")
+        {
+            // A delayed selection reply must not activate an abandoned row while the menu moves.
+            choice_.clear();
+            hud_.Rebuild();
+        }
+        const MenuStep step{kind, menu.revision, verb, id};
         if (verb == "selectItem" || verb == "activateItem")
             return hud_.Request(step);
         hud_.Send(step);
         return 0;
     }
 
-    bool ChoiceEnded(const LandCommands &commands) const
+    bool ChoiceEnded(const Menu &menu) const
     {
         const RequestLedger::Status status = hud_.Answered(choice_request_);
         if (status == RequestLedger::Status::Shown)
-            return choice_activated_ || commands.selected != choice_;
+            return choice_activated_ || menu.selected != choice_;
         return status == RequestLedger::Status::Refused || status == RequestLedger::Status::None;
     }
 
     // A row tapped acts at once. The engine wants it selected first and activated second, each against the menu
     // revision it answers to: the second step follows the revision that reports the row as selected. A tap while
     // another waits replaces it unless that one is being activated already. True when the tap is on its way.
-    bool Choose(const std::string &id)
+    bool Choose(MenuStep::Menu kind, const std::string &id)
     {
-        const LandCommands &commands = hud_.Current().land_commands;
-        const LandCommands::Item *item = commands.Find(id);
-        if (!choice_.empty() && commands.stage != choice_stage_)
-            choice_.clear(); // a tap of the last stage is over
+        const Menu &menu = MenuOf(kind);
+        const Menu::Item *item = menu.Find(id);
+        if (!choice_.empty() && (kind != choice_menu_ || ChoiceContext(kind, menu) != choice_context_))
+            choice_.clear(); // a tap of the last stage (or ship) is over
         if (!item || !item->enabled || (!choice_.empty() && (choice_activated_ || choice_ == id)))
             return false;
         choice_ = id;
-        choice_stage_ = commands.stage;
+        choice_menu_ = kind;
+        choice_context_ = ChoiceContext(kind, menu);
         choice_request_ = 0;
         choice_revision_ = 0;
         choice_activated_ = false;
-        Follow(commands);
+        Follow(menu);
         return !choice_.empty();
     }
 
-    void Follow(const LandCommands &commands)
+    void Follow(const Menu &menu)
     {
-        if (!choice_.empty() && commands.stage != choice_stage_)
+        if (!choice_.empty() && ChoiceContext(choice_menu_, menu) != choice_context_)
         {
-            // The menu went on to another stage (its items reuse the ids): the tap belonged to the last one.
+            // The menu went on to another stage or ship (its rows reuse the ids): the tap belonged to the last one.
             choice_.clear();
             hud_.Rebuild();
             return;
         }
-        if (choice_.empty() || choice_revision_ == commands.revision)
+        if (choice_.empty() || choice_revision_ == menu.revision)
             return;
-        const LandCommands::Item *item = commands.Find(choice_);
+        const Menu::Item *item = menu.Find(choice_);
         if (!item || !item->enabled || choice_activated_)
         {
             choice_.clear(); // activated (the menu moved on) or gone: the tap is over
             hud_.Rebuild();
             return;
         }
-        choice_revision_ = commands.revision;
-        choice_activated_ = commands.selected == choice_;
+        choice_revision_ = menu.revision;
+        choice_activated_ = menu.selected == choice_;
         if (choice_activated_ && item->kind == "travel")
-            hud_.ExpectLandTransition("the travel place '" + item->label + "'", commands, choice_);
-        choice_request_ = Step(choice_activated_ ? "activateItem" : "selectItem", choice_);
+            hud_.ExpectLandTransition("the travel place '" + item->label + "'", hud_.Current().land_commands, choice_);
+        choice_request_ = Step(choice_menu_, choice_activated_ ? "activateItem" : "selectItem", choice_);
         if (!choice_request_)
         {
             choice_.clear(); // not sent: nothing is on its way
@@ -779,7 +858,7 @@ class ScriptScene final : public Scene, private ScriptCall
     bool Ended(const Overlay &overlay) const
     {
         if (overlay.choice)
-            return choice_.empty() || hud_.Current().land_commands.stage != choice_stage_;
+            return choice_.empty() || ChoiceContext(choice_menu_, MenuOf(choice_menu_)) != choice_context_;
         for (const uint64_t request : overlay.requests)
             if (const auto status = hud_.Answered(request);
                 status == RequestLedger::Status::Waiting || status == RequestLedger::Status::Applied)
@@ -851,6 +930,193 @@ class ScriptScene final : public Scene, private ScriptCall
             label_geometry_ = geometry;
             hud_.Send(area, "worldmap-labelarea");
         }
+    }
+
+    // --- the sea ------------------------------------------------------------------------------
+
+    // The ship of the gameplay the HUD shows; an older or newer scene's is not ours.
+    static const Ship *CurrentShip(const States &states)
+    {
+        const Ship &ship = states.ship;
+        return ship.known && ship.gameplay_revision == states.gameplay.revision ? &ship : nullptr;
+    }
+    static std::string NavigatorOwner(const Ship &ship)
+    {
+        return std::to_string(ship.gameplay_revision) + "\t" + std::to_string(ship.hud_revision) + "\t" +
+               std::to_string(ship.navigator_generation);
+    }
+    Navigator NavigatorCommand(const Ship &ship, Navigator::Verb verb) const
+    {
+        return {ship.gameplay_revision, ship.hud_revision, ship.navigator_generation, verb, navigator_layout_, {}};
+    }
+
+    // The engine draws its radar into the disc of the element covered "navigator". It needs the place of the disc,
+    // once per owner and geometry, and, once it has drawn there, the word that our readouts around it are on the
+    // screen: only then does it drop its own. An owner the HUD does not draw the disc for is cleared, also one never
+    // prepared: the engine keeps its compass off until it hears either (android_hud_presenter.hpp).
+    void CoverNavigator(const States &states, bool drawn)
+    {
+        std::string id;
+        for (const auto &[element, kind] : covers_)
+            if (kind == "navigator")
+                id = element;
+        const Ship *ship = drawn ? CurrentShip(states) : nullptr;
+        Placement disc;
+        if (!ship || !ship->navigator || id.empty() || !hud_.Shown().elements.contains(id) ||
+            !hud_.Measure(id, ".mm-disc", disc))
+        {
+            navigator_prepared_ = false;
+            const Ship *known = CurrentShip(states);
+            if (known && navigator_cleared_ != NavigatorOwner(*known))
+            {
+                navigator_cleared_ = NavigatorOwner(*known);
+                hud_.Send(NavigatorCommand(*known, Navigator::Verb::Clear), "navigator-prepare");
+            }
+            return;
+        }
+        const std::string owner = NavigatorOwner(*ship);
+        const std::array<long, 7> geometry = {std::lround(disc.screen_width),
+                                              std::lround(disc.screen_height),
+                                              std::lround(disc.x + disc.width * 0.5f),
+                                              std::lround(disc.y + disc.height * 0.5f),
+                                              std::lround(std::min(disc.width, disc.height) * 0.5f),
+                                              std::lround(disc.density * 1000.0f),
+                                              states.gameplay.language == "russian" ? 1 : 0};
+        if (!navigator_prepared_ || owner != navigator_owner_ || geometry != navigator_geometry_)
+        {
+            navigator_prepared_ = true;
+            navigator_owner_ = owner;
+            navigator_geometry_ = geometry;
+            navigator_cleared_.clear();
+            navigator_visible_ = 0;
+            ++navigator_layout_;
+            Navigator prepare = NavigatorCommand(*ship, Navigator::Verb::Prepare);
+            prepare.geometry = geometry;
+            hud_.Send(prepare, "navigator-prepare");
+        }
+        if (ship->navigator_layout == navigator_layout_ && navigator_visible_ != navigator_layout_)
+        {
+            navigator_visible_ = navigator_layout_;
+            hud_.Send(NavigatorCommand(*ship, Navigator::Verb::Visible), "navigator-visible");
+        }
+    }
+
+    // One tap on the radar = the next scale: closer until the engine has no closer one, then back out.
+    void Zoom()
+    {
+        const Ship *ship = CurrentShip(hud_.Current());
+        if (!hud_.Interactive() || !ship || !navigator_prepared_ || navigator_owner_ != NavigatorOwner(*ship))
+            return;
+        if (zoom_in_ ? !ship->zoom_in : !ship->zoom_out)
+            zoom_in_ = !zoom_in_;
+        if (zoom_in_ ? !ship->zoom_in : !ship->zoom_out)
+            return; // the engine has one scale only
+        hud_.Send(NavigatorCommand(*ship, zoom_in_ ? Navigator::Verb::In : Navigator::Verb::Out));
+    }
+
+    // The sheet over the scene shows exactly this revision of the sea orders: only now may the engine stop drawing
+    // its own menu. The engine keeps the word until the menu changes.
+    void CoverOrders(const States &states, bool drawn)
+    {
+        const SeaOrders &orders = states.sea_orders;
+        if (drawn && !sheet_part_.empty() && orders.known && orders.active && orders.complete)
+        {
+            if (orders.revision != orders_covered_)
+            {
+                orders_covered_ = orders.revision;
+                hud_.Send(MenuStep{MenuStep::Menu::Sea, orders.revision, "shown", "1"}, "orders-ack");
+            }
+            return;
+        }
+        if (!orders_covered_)
+            return;
+        // A menu revision the engine has replaced needs no word: its coverage ended with it.
+        if (orders.known && orders.revision == orders_covered_)
+            hud_.Send(MenuStep{MenuStep::Menu::Sea, orders.revision, "shown", "0"}, "orders-ack");
+        orders_covered_ = 0;
+    }
+
+    // The deck walk stick: its direction, and how far it is pushed along the stick curve.
+    void Deck(const std::string &value)
+    {
+        const size_t comma = value.find(',');
+        if (comma == std::string::npos)
+        {
+            hud_.Error("HUD scene: the deck stick reported '" + value + "', expected 'x,y'");
+            return;
+        }
+        const double x = std::strtod(value.c_str(), nullptr), down = std::strtod(value.c_str() + comma + 1, nullptr);
+        const double length = std::hypot(x, down);
+        const int strength = StickStrength(length);
+        if (!strength || !hud_.Interactive())
+            return Walk(0, 0);
+        // y grows downwards: up walks forward.
+        Walk(static_cast<int>(std::lround(x / length * strength)),
+             static_cast<int>(std::lround(-down / length * strength)));
+    }
+    void Walk(int x, int y)
+    {
+        if (x == walk_.x && y == walk_.y)
+            return;
+        walk_ = {x, y};
+        hud_.Send(DeckWalk{hud_.Current().gameplay.revision, x, y}, "deckwalk");
+    }
+
+    // The band of event lines (the declared band: the log runs right of `after`'s last column and beside the `row`
+    // of buttons; where that leaves it under the pack's minimum it drops under the row, left of `under`). On a short
+    // screen the fleet wraps into further columns towards the middle; measured in the design's orientation and
+    // mirrored back for «Под левую руку».
+    void FollowBand()
+    {
+        static constexpr float kBandMin = 240.0f, kGap = 8.0f;
+        const View &shown = hud_.Shown();
+        Band band;
+        if (!band_view_.after.empty())
+        {
+            const bool mirrored = hud_.Mirrored();
+            const auto x0 = [mirrored](const Placement &p) {
+                const float left = p.x - p.layer_x;
+                return (mirrored ? p.layer_width - (left + p.width) : left) / p.density;
+            };
+            const std::string &after = band_view_.after;
+            Placement first, last;
+            const bool columns = shown.elements.contains(after) && hud_.Measure(after, ".item:first-child", first) &&
+                                 hud_.Measure(after, ".item:last-child", last);
+            if (columns && x0(last) > x0(first))
+                band.left = static_cast<int>(std::ceil(x0(last) + last.width / last.density)) + 8;
+            float row_left = 0.0f, row_bottom = 0.0f, map_left = 0.0f, layer_width = 0.0f;
+            for (const std::string &id : band_view_.row)
+            {
+                Placement button;
+                if (!shown.elements.contains(id) || !hud_.Measure(id, "", button))
+                    continue;
+                const float x = x0(button), bottom = (button.y - button.layer_y + button.height) / button.density;
+                row_left = row_left > 0.0f ? std::min(row_left, x) : x;
+                row_bottom = std::max(row_bottom, bottom);
+                layer_width = button.layer_width / button.density;
+            }
+            Placement map;
+            if (shown.elements.contains(band_view_.under) && hud_.Measure(band_view_.under, "", map))
+                map_left = x0(map);
+            const float column_right = columns ? x0(last) + last.width / last.density : 0.0f;
+            if (row_left > 0.0f && map_left > 0.0f && layer_width > 0.0f)
+            {
+                const float left = band.left > 0 ? static_cast<float>(band.left) : column_right + kGap;
+                if (row_left - kGap - left < kBandMin)
+                {
+                    band.left = static_cast<int>(std::ceil(column_right + kGap));
+                    band.right = static_cast<int>(std::ceil(layer_width - (map_left - kGap)));
+                    band.top = static_cast<int>(std::ceil(row_bottom + kGap));
+                }
+            }
+            if (mirrored)
+                std::swap(band.left, band.right); // the notice's safeLeft / safeRight are the screen's
+        }
+        if (band == band_)
+            return;
+        band_ = band;
+        if (shown.elements.contains("log"))
+            hud_.Rebuild();
     }
 
     // --- ScriptCall --------------------------------------------------------------------------
@@ -953,20 +1219,56 @@ class ScriptScene final : public Scene, private ScriptCall
     }
     void Run(const HudMenuCommand &command)
     {
-        if (command.menu != "land")
+        if (command.menu != "land" && command.menu != "sea")
             throw std::runtime_error("no menu '" + command.menu + "' of the HUD");
+        const auto kind = command.menu == "sea" ? MenuStep::Menu::Sea : MenuStep::Menu::Land;
         if (command.verb == "choose")
         {
             if (!tapped_)
                 throw std::runtime_error("a menu row is chosen from a tap");
-            chose_ = Choose(command.id);
+            chose_ = Choose(kind, command.id);
             return;
         }
-        if (command.verb != "open" && command.verb != "back" && command.verb != "close")
-            throw std::runtime_error("no land menu verb '" + command.verb + "'");
-        if (command.verb == "open" && !command.id.empty())
+        const bool sea = kind == MenuStep::Menu::Sea;
+        if (command.verb != "open" && command.verb != "back" && command.verb != "close" &&
+            !(sea && command.verb == "recipient"))
+            throw std::runtime_error("no " + command.menu + " menu verb '" + command.verb + "'");
+        if (command.verb == "open" && (!command.id.empty() || sea))
             Fold(); // the menu opens over the picker it was opened from
-        Step(command.verb, command.id);
+        if (sea && command.verb == "recipient")
+        {
+            if (static_cast<const SeaOrders &>(MenuOf(kind)).recipient != command.id)
+                Step(kind, "selectRecipient", command.id);
+            return;
+        }
+        Step(kind, command.verb, command.id);
+    }
+    // The sails to a position: drawn as asked (the script's prediction) until the engine answers.
+    void Run(const HudSailsCommand &command)
+    {
+        const Ship *ship = CurrentShip(*states_);
+        if (!hud_.Interactive() || !ship || !ship->can_set_sails || command.position < 0 || command.position > 2)
+            return hud_.Log("HUD scene " + screen_.capability + ": the sails cannot be set now; the tap does nothing");
+        requests_.push_back(hud_.Request(hud::Sails{states_->gameplay.revision, command.position}));
+    }
+    // Exactly the quick action drawn, once per offer: a second tap on it and a tap on an offer the engine has replaced
+    // since send nothing.
+    void Run(const HudSeaActionCommand &command)
+    {
+        const SeaQuick &quick = states_->sea_quick;
+        const bool drawn = Drawn();
+        const bool offered = quick.known && quick.available &&
+                             (command.action == quick.action || (command.action == "Map" && quick.map));
+        const char *refused = !offered                          ? "the engine does not offer it now"
+                              : !hud_.Interactive()             ? "the HUD is not interactive"
+                              : !drawn                          ? "the element is not drawn as built"
+                              : quick_tapped_ == quick.revision ? "this offer was tapped already"
+                                                                : nullptr;
+        if (refused)
+            return hud_.Log("HUD scene " + screen_.capability + ": the sea action " + command.action +
+                            " sent nothing: " + refused);
+        quick_tapped_ = quick.revision;
+        hud_.Send(SeaQuickTap{quick.revision, command.action});
     }
     void Run(const HudCombatCommand &command)
     {
@@ -1108,8 +1410,9 @@ class ScriptScene final : public Scene, private ScriptCall
     std::string wheel_move_;
     std::string sheet_part_; // the pack part of the sheet over the scene, "" = none
     Json sheet_ = Json::object();
-    // A tapped menu row on its way through select → activate (Choose).
-    std::string choice_, choice_stage_;
+    // A tapped menu row on its way through select → activate (Choose), in the menu and context it was tapped in.
+    std::string choice_, choice_context_;
+    MenuStep::Menu choice_menu_ = MenuStep::Menu::Land;
     uint64_t choice_request_ = 0, choice_revision_ = 0;
     bool choice_activated_ = false, chose_ = false;
     const States *states_ = nullptr;
@@ -1134,6 +1437,29 @@ class ScriptScene final : public Scene, private ScriptCall
     uint64_t map_request_ = 0;
     std::string label_owner_, label_geometry_;
     uint64_t label_revision_ = 0;
+    // the sea: the deck walk, the navigator's disc, the orders' coverage, the quick action tapped, the event band
+    std::string deck_; // the deck control's id, "" = none
+    struct Walked
+    {
+        int x = 0, y = 0;
+    } walk_; // the deck walk sent: right, forward, -100…100
+    bool navigator_prepared_ = false, zoom_in_ = true;
+    std::string navigator_owner_, navigator_cleared_;
+    std::array<long, 7> navigator_geometry_{};
+    uint64_t navigator_layout_ = 0, navigator_visible_ = 0;
+    uint64_t orders_covered_ = 0; // the sea orders' revision the sheet was said to cover, 0 = none
+    uint64_t quick_tapped_ = 0;
+    struct BandView
+    {
+        std::string after;
+        std::vector<std::string> row;
+        std::string under;
+    } band_view_;
+    struct Band
+    {
+        int left = 0, right = 0, top = 0;
+        bool operator==(const Band &) const = default;
+    } band_; // dp from the safe area; 0 = the layout's own
 };
 } // namespace
 

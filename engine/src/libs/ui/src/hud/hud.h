@@ -142,43 +142,6 @@ class Fan
     double until_ = 0.0;
 };
 
-// The active abilities of a scene (sea: the ship abilities, land: Rush) behind one small button,
-// the layout element "abilities" (a star; a dot while one is ready, the fill while one runs), also
-// for one ability; `lead` are entries of the scene laid out before them (land: the potion), the
-// button is drawn for them alone too. A tap lays them out as HUD buttons beside it (Fan, slots abilities-1…4): ready
-// (a tap launches it through `launch`, the game's own command, and folds the row), running (its
-// fill and seconds, not tappable), recovering and blocked (the disabled look; recovering keeps its
-// fill and seconds). Nothing is drawn without abilities: the button is hidden then.
-class AbilityControls
-{
-  public:
-    explicit AbilityControls(Hud &hud) : hud_(hud), fan_(hud, "abilities")
-    {
-    }
-    void Build(const std::vector<Ability> &abilities, View &view, Input &input,
-               const std::function<void(const Ability &)> &launch, std::vector<Fan::Option> lead = {});
-    bool Open() const
-    {
-        return fan_.Open();
-    }
-    void Close()
-    {
-        fan_.Close();
-    }
-    bool Back()
-    {
-        return fan_.Back();
-    }
-    void Expire(double now, double &next)
-    {
-        fan_.Expire(now, next);
-    }
-
-  private:
-    Hud &hud_;
-    Fan fan_;
-};
-
 struct LayoutElement;
 
 // One ported gameplay zone (land, sea, world map). The instance lives while the gameplay
@@ -539,13 +502,6 @@ class Hud
 // The props of the spyglass overlay's part (spyglass.cpp).
 Json SpyglassProps(const Spyglass &spyglass, Hud &hud);
 
-// The game's time acceleration in four steps, the same at sea and on the world
-// map: the "time" button shows the scale the engine runs at (`scale`, x1 = 1; negative: unknown,
-// no button) and a tap asks for the next of x1, x2, x4, x8. The engine applies it through the
-// scripts, which clamp it to their limits (android_time_scale.hpp). Offered only when the
-// gameplay binds all four steps.
-void BuildTimeScale(Hud &hud, const Gameplay &gameplay, double scale, View &view, Input &input);
-
 // The analog sticks (the helm at sea and on the world map, the deck walk stick): how hard a
 // deflection of the stick (0…100 of its travel) pushes, 0…100. A small dead zone in the middle,
 // then a response curve, gentle near the middle and all the way at the end of the travel.
@@ -584,19 +540,6 @@ class HoldSet
     int turn_ = 0;        // the helm as said: negative to the left, 1…100
     std::string turning_; // the side it holds
 };
-
-// The fleet token of a ship by a word of the engine's ship model name ("Lugger" → ship-lugger).
-const char *ShipIcon(const std::string &type);
-
-// One member of a party or squadron column (c-hud-plate variant officers / fleet): the game
-// picture and its bars, drawn as arcs around it in this order from the outside in, {kind,
-// share 0…1}; a share below 0 (unknown) is left out. `tap` makes the cell report its index (verb `member` / `ship`).
-struct MemberBar
-{
-    const char *kind;
-    double share;
-};
-Json MemberCell(const std::string &name, const Picture &picture, std::initializer_list<MemberBar> bars, bool tap);
 
 // The fixture readers of the HUD channels, added to the router's list of state consumers (screens/registry.cpp).
 void AddStateConsumers(std::vector<std::unique_ptr<screens::StateConsumer>> &consumers);
