@@ -20,12 +20,12 @@ static void GameMenu(const std::string &models)
     Router router(surface);
     Scripted(router);
     router.SetInterface(Load(models, "game-menu.json"));
-    ExpectEqual(surface.props["line"], "Герой Альфа · Порт Альфа · 1 <common.month_10> 1654",
+    ExpectEqual(surface.props["line"], "Anne Bonny · Сен-Пьер улицы · 1 <common.month_10> 1654",
                 "the game in progress above the actions");
     ExpectEqual(router.Using(), "game_menu", "pause menu is a ported screen");
     ExpectEqual(surface.tag, "s-game-menu", "pause menu mounted");
     Expect(surface.errors.empty() && surface.props["extras"]["rows"].empty(), "every node of the pause menu is known");
-    ExpectEqual(surface.props["resume"]["label"], "Продолжить", "resume is the game's button");
+    ExpectEqual(surface.props["resume"]["label"], "Продолжить Игру", "resume is the game's button");
     Expect(surface.props["buttons"].size() == 6 && surface.props["buttons"][2]["id"] == "quick-save" &&
                surface.props["buttons"][3]["id"] == "quick-load" && surface.props["buttons"][5]["id"] == "exit",
            "grid: save, load, quick save, quick load, settings, exit (no disabled updates)");
@@ -54,9 +54,8 @@ static void GameMenu(const std::string &models)
                     std::string(id) + " presses its button");
     }
     {
-        InterfaceModel quick = Load(models, "game-menu.json");
+        InterfaceModel quick = Load(models, "real-game-menu.json");
         quick.opening = 95;
-        quick.widgets.push_back(Widget{"ANDROID_QUICK_LOAD", "text", "Герой QuickSave 1"});
         router.SetInterface(quick);
         Expect(surface.props["buttons"][3]["disabled"] == false && surface.props["buttons"][3]["hold"] == true,
                "quick load offered while its record exists");
@@ -227,25 +226,25 @@ static void Saves(const std::string &models)
     Expect(surface.commands.size() == 1, "and only once per revision");
     router.CloseInterface();
 
-    router.SetInterface(Load(models, "saves-save.json"));
+    router.SetInterface(Load(models, "real-saves-save.json"));
     ExpectEqual(surface.props["title"], "<save.title_save>", "save title");
     Expect(surface.props["rows"][0]["cells"][0]["text"] == "<save.new>" &&
                surface.props["rows"][0]["selected"] == true &&
-               surface.props["rows"][0]["cells"][0]["sub"] == "Герой Альфа · Порт Дельта" &&
+               surface.props["rows"][0]["cells"][0]["sub"] == "Anne Bonny · Сен-Пьер улицы" &&
                surface.props["rows"][0]["cells"][1] == "",
            "«Новая запись» leads, chosen, named by the game in progress, without dates");
-    Expect(surface.props["detail"]["title"] == "Порт Дельта" && surface.props["detail"]["facts"].size() == 1,
+    Expect(surface.props["detail"]["title"] == "Сен-Пьер улицы" && surface.props["detail"]["facts"].size() == 1,
            "new record: the location, the hero, the play time only");
     ExpectEqual(surface.props["detail"]["primary"], "<save.save>", "new record: «Сохранить»");
     router.OnEvent({"primary", "click", ""});
-    ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t3\tactivate@10:4",
+    ExpectEqual(surface.Last(), "widget:save_load\tANDROID_SAVE_LIST\t1\tactivate@13:13",
                 "saving activates the new slot");
     router.OnEvent({"saves", "row", Drawn(surface, "/rows", 1)});
     ExpectEqual(surface.props["detail"]["primary"], "<save.overwrite>",
                 "an existing record when saving: «Перезаписать»");
 
     // The game's name editor is accepted as proposed.
-    InterfaceModel naming = Load(models, "saves-save.json");
+    InterfaceModel naming = Load(models, "real-saves-save.json");
     Widget ok;
     ok.node = "CUSTOM_SAVE_BTN_OK";
     ok.type = "button";

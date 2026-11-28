@@ -1903,21 +1903,21 @@ static void Shipyard(const std::string &models)
     ExpectEqual(surface.Last(), prefix + "MSG_OK\t-1\tpress", "the sheet's ok is the game's");
     AnswerAll(router, surface, true);
 
-    InterfaceModel repair = Load(models, "shipyard-repair.json");
+    InterfaceModel repair = Load(models, "real-shipyard-repair.json");
     router.SetInterface(repair);
     surface.commands.clear();
-    router.OnEvent({"hull", "commit", "58"});
+    router.OnEvent({"hull", "commit", "52"});
     router.Tick();
     Expect(surface.commands.size() == 8 && surface.Last() == prefix + "REPAIR_RIGHT_H\t-1\tpress",
            "+8 % = eight presses of the game's right arrow: " + Json(surface.commands).dump());
-    // The purse stopped the arrows at 54 %: the part shows where the game stopped, its price is the game's.
+    // The purse stopped the arrows at 48 %: the part shows where the game stopped, its price is the game's.
     repair.revision += 1;
-    Find(repair, "REPAIR_QTY_H", "text")->label = "54%";
+    Find(repair, "REPAIR_QTY_H", "text")->label = "48%";
     Find(repair, "REPAIR_WINDOW_TEXT", "text")->label = "2480";
     AnswerAll(router, surface, true);
     router.SetInterface(repair);
     const Json &sheet = surface.props["sheet"];
-    Expect(sheet["parts"][0]["q"]["value"] == 54 && sheet["parts"][0]["q"]["floor"] == 50 &&
+    Expect(sheet["parts"][0]["q"]["value"] == 48 && sheet["parts"][0]["q"]["floor"] == 44 &&
                sheet["actions"][1]["sub"] == "2 480" && sheet["actions"][1]["disabled"] == false &&
                surface.errors.empty(),
            "the game's order and price: " + sheet.dump().substr(0, 400));
