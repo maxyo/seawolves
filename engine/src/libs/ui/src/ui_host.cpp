@@ -2,6 +2,7 @@
 
 #include "storm_ui/host_tools.h"
 #include "elements.h"
+#include "shadow_element.h"
 #include "text_utf8.h"
 
 #define STB_IMAGE_STATIC
@@ -393,6 +394,7 @@ bool HostImpl::Start(const Config &config, std::string *error)
     }
     settings_ = pack.value("settings", Json::object());
     RegisterBuiltinBehaviors();
+    RegisterShadows();
     RegisterDrawElements();
     RegisterIconElement();
     RegisterGameImageElement();
@@ -798,27 +800,14 @@ double HostImpl::Frame()
     backend_->EndFrame();
     renderer_->EndFrame();
     counters_.render_ms += Milliseconds(updated, std::chrono::steady_clock::now());
-    if (backend_->FrameHeld())
-    {
-        // Not shown: the backend is still making textures this frame draws (the box shadows
-        // of a screen's panels) and left the frame before it on the screen. Drawn again
-        // next time; what it cost goes to the frame that is shown, and nothing that waits
-        // for a drawn frame (held touches, the HUD's acknowledgements, the switch report)
-        // is told.
-        renderer_->Dropped();
-        ++counters_.held;
-        changed_ = true;
-        return 0.0;
-    }
     counters_.mispredicted = !predicted && config_.verify_unchanged && renderer_->FrameHash() != shown_hash_;
     if (counters_.mispredicted)
         Error("UI frame predicted unchanged drew something else: a change that does not ask for a frame; " +
               renderer_->Difference());
     shown_hash_ = renderer_->FrameHash();
-    // Textures made or handed out while drawing (a font atlas that grew for new glyphs, a
-    // box shadow made again) make RmlUi re-encode meshes and re-apply its clip state in
-    // the next frame: that frame is drawn too.
-    changed_ = counters_.textures > 0 || counters_.textures_shared > 0;
+    // Textures made while drawing (a font atlas that grew for new glyphs) make RmlUi re-encode meshes and re-apply its
+    // clip state in the next frame: that frame is drawn too.
+    changed_ = counters_.textures > 0;
     drawn_ = true;
     counters_.number = last_frame_.number + 1;
     counters_.shown = Shown();

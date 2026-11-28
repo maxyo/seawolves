@@ -47,9 +47,9 @@ c-quantity.surface-parchment .beyond { background-color: @{color.wax/.45}; }
 c-quantity .at { position: absolute; top: 1dp; width: 0; height: 0; }
 c-quantity .knob { position: absolute; left: -10dp; top: 0; width: @{spec.knob}dp; height: @{spec.knob}dp; border-radius: 10dp; box-sizing: border-box;
     border: 1.5dp @{color.brass}; decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop/.98}, @{color.brassLow/.98});
-    box-shadow: @{color.black/.5} 0 1dp 3dp 0; }
+    shadow: @{color.black/.5} 0 1dp 3dp 0; }
 c-quantity.active .knob { left: -12dp; top: -2dp; width: @{spec.knobActive}dp; height: @{spec.knobActive}dp; border-radius: 12dp;
-    box-shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
+    shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
 
 /* marks: a threshold on the scale (the least crew a ship sails with): a notch under the track, its label below */
 c-quantity .mark { position: absolute; top: 13dp; width: 0; height: 0; pointer-events: none; }
@@ -87,7 +87,7 @@ c-quantity.surface-parchment.signed .fill { decorator: none; background-color: @
 c-quantity.surface-parchment.signed .fill.pos { background-color: @{color.leaf}; }
 c-quantity.surface-parchment .zero { background-color: @{color.inkMuted}; }
 c-quantity.surface-parchment .knob { border-color: @{color.paperGlyph}; decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.knobPaperTop}, @{color.knobPaperLow}); }
-c-quantity.surface-parchment.active .knob { box-shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.paperShade/.22} 0 0 0 6dp; }
+c-quantity.surface-parchment.active .knob { shadow: @{color.black/.5} 0 1dp 3dp 0, @{color.paperShade/.22} 0 0 0 6dp; }
 
 /* glass (HUD): light glyphs with a dark outline */
 c-quantity.surface-glass .step, c-quantity.surface-glass .all { color: @{color.iconDuo}; font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
@@ -95,7 +95,7 @@ c-quantity.surface-glass .step.pressed, c-quantity.surface-glass .all.pressed { 
 c-quantity.surface-glass .step.dim, c-quantity.surface-glass .all.dim { color: @{color.iconDuo/.35}; font-effect: none; }
 c-quantity.surface-glass .cap { color: @{color.textSecond}; font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
 c-quantity.surface-glass .num { font-effect: glow(1dp 2dp 0dp 1dp @{color.black/.85}); }
-c-quantity.surface-glass .track { background-color: @{color.glassTrack/.549}; box-shadow: @{color.black/.35} 0 0 0 1dp; }
+c-quantity.surface-glass .track { background-color: @{color.glassTrack/.549}; shadow: @{color.black/.35} 0 0 0 1dp; }
 c-quantity.surface-glass .zero { background-color: @{color.textSecond}; }
 
 /* zones (trade): one slider for both directions. What we hold is the origin (the mark);

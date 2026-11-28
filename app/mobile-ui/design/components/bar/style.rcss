@@ -26,8 +26,8 @@ c-bar .in-text { position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-ind
 c-bar .at { position: absolute; top: 50%; width: 0; height: 0; z-index: 3; }
 c-bar .knob-hit { position: absolute; left: -22dp; top: -22dp; width: @{spec.knobHit}dp; height: @{spec.knobHit}dp; display: flex; flex-direction: row; align-items: center; justify-content: center; }
 c-bar .knob { box-sizing: border-box; width: @{spec.knob}dp; height: @{spec.knob}dp; border-radius: 10dp; border: 1dp @{color.brassRim};
-    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop}, @{color.brassLow}); box-shadow: @{color.black/.6} 0 1dp 3dp 0; }
-c-bar.active .knob { box-shadow: @{color.black/.6} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
+    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop}, @{color.brassLow}); shadow: @{color.black/.6} 0 1dp 3dp 0; }
+c-bar.active .knob { shadow: @{color.black/.6} 0 1dp 3dp 0, @{color.brass/.26} 0 0 0 6dp; }
 
 /* kinds */
 /* the game's own convention (its ship signs): sails blue, crew cream */
@@ -43,7 +43,7 @@ c-bar .run { display: block; width: 2000dp; height: 100%; margin-left: -40dp; an
     decorator: repeating-linear-gradient(-45deg, @{color.brass/.75} 0dp, @{color.brass/.75} 7dp, @{color.barXpLow/.451} 7dp, @{color.barXpLow/.451} 14dp); }
 
 /* bare (HUD rule): the coloured bar only, thin dark outline */
-c-bar.mode-hud .track { border-width: 0; border-radius: 2dp; overflow: hidden; background-color: @{color.black/.38}; box-shadow: @{color.black/.6} 0 0 0 1dp, @{color.black/.55} 0 1dp 3dp 0; }
+c-bar.mode-hud .track { border-width: 0; border-radius: 2dp; overflow: hidden; background-color: @{color.black/.38}; shadow: @{color.black/.6} 0 0 0 1dp, @{color.black/.55} 0 1dp 3dp 0; }
 
 /* parchment: sepia track, ink text, darker pale fills */
 c-bar.surface-parchment { color: @{color.ink}; }

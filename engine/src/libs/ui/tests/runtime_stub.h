@@ -54,8 +54,8 @@ class NoRenderer final : public Rml::RenderInterface
     void SetScissorRegion(Rml::Rectanglei) override
     {
     }
-    // Layers, filters and shaders as every backend has them (RmlUi's box shadows and the
-    // runtime's filtered-layer cache need a saved layer): handles that are never drawn.
+    // Layers, filters and shaders as every backend has them (the runtime's filtered-layer cache
+    // needs a saved layer): handles that are never drawn.
     Rml::LayerHandle PushLayer() override
     {
         return ++layers_;
@@ -65,10 +65,6 @@ class NoRenderer final : public Rml::RenderInterface
         --layers_;
     }
     Rml::TextureHandle SaveLayerAsTexture() override
-    {
-        return 1;
-    }
-    Rml::CompiledFilterHandle SaveLayerAsMaskImage() override
     {
         return 1;
     }

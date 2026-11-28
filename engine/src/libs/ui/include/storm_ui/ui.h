@@ -120,14 +120,10 @@ struct FrameStats
     int cached_layers = 0;   // of those, filtered layers drawn from the runtime's cache (no backend layer)
     int textures = 0;        // textures created (uploads)
     size_t texture_bytes = 0;
-    int textures_shared = 0; // textures saved from a layer (box shadows) handed out again instead of made
     // With Config::verify_unchanged: this frame was predicted unchanged by Prepare but drew
     // other commands than the frame shown (also an error in the log).
     bool mispredicted = false;
     uint64_t number = 0; // which Frame this was (1, 2, …): a frame composited unchanged keeps the last one's
-    // Frames made for this one that the backend did not show (RenderBackend::FrameHeld): the frame
-    // before stayed on the screen while the textures of this one were made. Their cost is in this one.
-    int held = 0;
     // What the frame showed, for the frame timeline of a platform host: the mounted screen with the
     // interface model it was built from ("s-store store#12.3" = pack screen, interface id, opening,
     // model revision), "document", "hud" or "nothing", and " +opening" while an interface the game

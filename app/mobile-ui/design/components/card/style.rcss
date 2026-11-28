@@ -7,22 +7,22 @@ c-card {
 c-card > .inner { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; }
 
 c-card.tone-plain { background-color: transparent; }
-c-card.tone-danger { background-color: @{color.wax/.22}; box-shadow: @{color.wax} 3dp 0 0 0 inset; }
+c-card.tone-danger { background-color: @{color.wax/.22}; shadow: @{color.wax} 3dp 0 0 0 inset; }
 c-card.surface-parchment { color: @{color.ink}; background-color: @{color.inkMuted/.10}; }
 c-card.surface-parchment.tone-plain { background-color: transparent; }
 /* a small document lying on wood */
 c-card.tone-parchment {
     color: @{color.ink}; background-color: transparent;
     decorator: radial-gradient(ellipse farthest-corner at 20% 10%, @{color.paperLight/.4}, @{color.paperLight/0} 60%), linear-gradient(@{color.paperTop}, @{color.paperBottom});
-    box-shadow: @{color.paperShade/.28} 0 0 14dp 0 inset;
+    shadow: @{color.paperShade/.28} 0 0 14dp 0 inset;
 }
 
 c-card.disabled { color: @{color.textMuted}; background-color: @{color.black/.28}; decorator: none; }
 c-card.paper.disabled { color: @{color.inkDisabled}; background-color: @{color.inkMuted/.06}; }
 
-c-card.selected { background-color: @{color.brassGlow/.16}; decorator: none; box-shadow: @{color.brass} @{spec.selectedBar}dp 0 0 0 inset; }
-c-card.paper.selected { background-color: @{color.paperShade/.16}; box-shadow: @{color.inkRule} @{spec.selectedBar}dp 0 0 0 inset; }
-c-card.tone-parchment.selected { box-shadow: @{color.paperShade/.28} 0 0 14dp 0 inset, @{color.inkRule} @{spec.selectedBar}dp 0 0 0 inset; }
+c-card.selected { background-color: @{color.brassGlow/.16}; decorator: none; shadow: @{color.brass} @{spec.selectedBar}dp 0 0 0 inset; }
+c-card.paper.selected { background-color: @{color.paperShade/.16}; shadow: @{color.inkRule} @{spec.selectedBar}dp 0 0 0 inset; }
+c-card.tone-parchment.selected { shadow: @{color.paperShade/.28} 0 0 14dp 0 inset, @{color.inkRule} @{spec.selectedBar}dp 0 0 0 inset; }
 
 /* dashed = an empty slot only. RCSS borders are solid, so the dashes are four strips. */
 c-card.dashed { background-color: transparent; decorator: none; }

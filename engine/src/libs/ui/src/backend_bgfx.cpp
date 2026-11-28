@@ -15,9 +15,7 @@
 // views, so the number of views follows the depth of the effect chain rather than the
 // number of elements.
 //
-// Spans that only render a texture (box-shadow images) are cut out of the frame, run in a
-// separate small set of frame buffers, and are resumed in later frames when the views
-// left over by the frame do not suffice; the element draws without the shadow until then.
+// Box shadows are drawn by the "ui-shadow" program (shadow_element.cpp), like any other geometry.
 //
 // Coordinates follow the GL conventions of bgfx's GLES backend (bottom-left texture
 // origin, BGFX_CONFIG_GL_NORMALIZE_NDC_CONVENTIONS=0). On a backend whose render targets
@@ -28,7 +26,6 @@
 #include "storm_ui/backend_bgfx.h"
 
 #include "storm_ui/ui.h"
-#include "job_rows.h"
 
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/DecorationTypes.h>
@@ -44,7 +41,6 @@
 #include <array>
 #include <cmath>
 #include <cstring>
-#include <deque>
 #include <limits>
 #include <optional>
 #include <string>
@@ -135,7 +131,7 @@ struct Texture
     enum class Kind
     {
         Pixels,  // RGBA8 premultiplied from RmlUi, or a picture of the pack (PackImage)
-        Target,  // SaveLayerAsTexture output, filled by a blit
+        Target,  // SaveLayerAsTexture output (the frame renderer's filter cache), filled by a blit
         Picture, // game picture owned by the frame owner (straight alpha)
     };
     Kind kind = Kind::Pixels;
@@ -212,13 +208,30 @@ bgfx::TextureHandle CreatePackTexture(const PackImage &image)
                                  BGFX_SAMPLER_NONE, bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
 }
 
+enum class ProgramId
+{
+    Color,
+    Texture,
+    TextureStraight,
+    TextureCoverage,
+    TextureMask,
+    IconShadow,
+    Shadow,
+    Gradient,
+    QuadColor,
+    Passthrough,
+    ColorMatrix,
+    Blur,
+    DropShadow,
+    Count
+};
+
 enum class FilterType
 {
     Passthrough,
     Blur,
     DropShadow,
     ColorMatrix,
-    MaskImage
 };
 
 struct Filter
@@ -243,8 +256,8 @@ enum class GradientFunction
 
 struct Shader
 {
-    bool icon_shadow = false; // "ui-icon-shadow" (icons.cpp), else a gradient
-    float icon[5 * 4] = {};   // its u_ui_icon
+    ProgramId program = ProgramId::Gradient; // or IconShadow ("ui-icon-shadow", icons.cpp), Shadow ("ui-shadow")
+    float parameters[5 * 4] = {};            // u_ui_icon or u_ui_shadow
     GradientFunction function = GradientFunction::Linear;
     Rml::Vector2f p;
     Rml::Vector2f v;
@@ -286,7 +299,6 @@ enum class Op : uint8_t
     Composite,
     PopLayer,
     SaveTexture,
-    SaveMask,
 };
 
 struct Command
@@ -310,43 +322,12 @@ struct Command
 
 using Commands = std::vector<Command>;
 
-// A span of commands that only renders into a texture: drawn in the job frame buffers
-// with `depth` layers below it, possibly over several frames.
-struct Job
-{
-    Commands commands;
-    int depth = 1;
-    Rml::Vector2i extent; // pixels the job covers from the origin
-    bool placed = false;  // moved to its own spot in the job buffers
-    size_t cursor = 0;
-    int layers = 0;
-    std::array<int, 3> post = {0, 1, 2};
-};
-
 // ---- GPU objects owned by the backend ------------------------------------------------
-
-enum class ProgramId
-{
-    Color,
-    Texture,
-    TextureStraight,
-    TextureCoverage,
-    TextureMask,
-    IconShadow,
-    Gradient,
-    QuadColor,
-    Passthrough,
-    ColorMatrix,
-    BlendMask,
-    Blur,
-    DropShadow,
-    Count
-};
 
 struct Uniforms
 {
     bgfx::UniformHandle transform, translate, clip, gradient, gradient_pv, stop_colors, stop_positions, factor,
-        color_matrix, blur_weights, texel_offset, region, shadow_color, icon, tex, mask;
+        color_matrix, blur_weights, texel_offset, region, shadow_color, icon, shadow, tex;
 };
 
 struct FrameBuffer
@@ -355,19 +336,18 @@ struct FrameBuffer
     bgfx::TextureHandle color = BGFX_INVALID_HANDLE;
 };
 
-// Layers (multisampled, one shared depth/stencil) and post buffers (0..2 ping-pong,
-// 3 the mask image) of one size. Set 0 serves the frame, set 1 the texture jobs.
+// Layers (multisampled, one shared depth/stencil) and post buffers (0..2 ping-pong) of the surface's size.
 struct TargetSet
 {
     int width = 0;
     int height = 0;
     std::vector<FrameBuffer> layers;
     bgfx::TextureHandle depth_stencil = BGFX_INVALID_HANDLE;
-    std::array<FrameBuffer, 4> post{};
+    std::array<FrameBuffer, 3> post{};
     // The UI frame (BgfxBackendImpl::frame_) that last asked for each target: the idle ones are released
     // (ReleaseIdleTargets) and made again by their next use.
     std::vector<uint32_t> layer_used;
-    std::array<uint32_t, 4> post_used{};
+    std::array<uint32_t, 3> post_used{};
 
     void Destroy()
     {
@@ -401,18 +381,17 @@ enum class TargetKind : uint8_t
     Final,   // the UI target: surface back buffer or the host's frame buffer
     Layer,   // colour of a layer
     Post,    // post buffer
-    Stencil, // the stencil buffer shared by a set's layers (dependencies only)
+    Stencil, // the stencil buffer shared by the layers (dependencies only)
     Texture, // a SaveLayerAsTexture output (dependencies only)
 };
 struct Target
 {
     TargetKind kind = TargetKind::Final;
-    uint8_t set = 0;
     int index = 0;
     const Texture *texture = nullptr;
     bool operator==(const Target &other) const
     {
-        return kind == other.kind && set == other.set && index == other.index && texture == other.texture;
+        return kind == other.kind && index == other.index && texture == other.texture;
     }
 };
 
@@ -438,13 +417,11 @@ struct Region
     }
 };
 
-// What a frame left out (BgfxBackendImpl::Skipped). The first three: the frame owner's view range is too small.
+// What a frame left out (BgfxBackendImpl::Skipped). The first two: the frame owner's view range is too small.
 enum class Skip : uint8_t
 {
     EffectsDropped,
     FiltersDropped,
-    JobDropped,
-    TextureAwaited,
     TextureLost,
     PictureGone,
     NoGpuObject,
@@ -454,8 +431,6 @@ enum class Skip : uint8_t
 constexpr std::array<const char *, size_t(Skip::Count)> kSkipReasons = {
     "layers drawn without their effects (views short)",
     "elements drawn without their filters (views short)",
-    "box-shadow/layer textures left empty (views short)",
-    "draws of a layer texture its job has not made",
     "draws of a texture with neither pixels nor a GPU copy",
     "draws of a game picture the renderer does not have",
     "draws bgfx gave no buffer or texture for",
@@ -693,21 +668,6 @@ class Executor
     {
         unfiltered_ = other.unfiltered_;
     }
-    void BeginJob(const Job &job);
-    void Step(const Command &command)
-    {
-        Run(command, false);
-    }
-    void EndJob(Job &job) const
-    {
-        job.layers = layers_;
-        job.post = post_;
-    }
-    // Planning: draws left out because the texture they sample is still being made by a queued job.
-    int Starved() const
-    {
-        return starved_;
-    }
 
   private:
     void Run(const Command &command, bool degraded);
@@ -756,19 +716,19 @@ class Executor
 
     Target Post(int role) const
     {
-        return {TargetKind::Post, set_, post_[size_t(role)]};
+        return {TargetKind::Post, post_[size_t(role)]};
     }
     Target PostSlot(int slot) const
     {
-        return {TargetKind::Post, set_, slot};
+        return {TargetKind::Post, slot};
     }
     Target Layer(int index) const
     {
-        return {TargetKind::Layer, set_, index};
+        return {TargetKind::Layer, index};
     }
     Target Stencil() const
     {
-        return {TargetKind::Stencil, set_};
+        return {TargetKind::Stencil};
     }
     void SwapPost()
     {
@@ -813,13 +773,10 @@ class Executor
     Schedule schedule_;
     std::vector<int> plan_; // planned slot of every Begin(), in order
     size_t next_ = 0;
-    uint8_t set_ = 0;
-    std::optional<Rml::Matrix4f> projection_; // job runs: projection of the job buffers
     int layers_ = 0;
     std::array<int, 3> post_ = {0, 1, 2};
     std::unordered_set<const Texture *> filled_;     // filled by this frame's blits
     int budget_ = 0;                                 // planning: views the frame may use (0: no limit)
-    int starved_ = 0;                                // Starved()
     std::unordered_set<const Command *> unfiltered_; // composites drawn without their filters
     Region drawn_;                                   // Drawn()
 };
@@ -857,11 +814,11 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         width = std::max(width, 1);
         height = std::max(height, 1);
         projection_ = Rml::Matrix4f::ProjectOrtho(0, float(width), float(height), 0, -10000, 10000);
-        if (width == sets_[0].width && height == sets_[0].height)
+        if (width == targets_.width && height == targets_.height)
             return;
-        sets_[0].Destroy();
-        sets_[0].width = width;
-        sets_[0].height = height;
+        targets_.Destroy();
+        targets_.width = width;
+        targets_.height = height;
     }
     void BeginFrame(bool clear) override
     {
@@ -874,10 +831,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         open_layers_.clear();
     }
     void EndFrame() override;
-    bool FrameHeld() const override
-    {
-        return held_frames_ > 0;
-    }
     PictureState AcquireGamePicture(const std::string &texture) override;
     void Upload(Rml::TextureHandle handle) override
     {
@@ -917,13 +870,9 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         first_view_ = first;
         view_count_ = count;
     }
-    size_t PendingWork() const override
-    {
-        return jobs_.size();
-    }
     double NextFrameDelay() const override
     {
-        return jobs_.empty() ? next_frame_delay_ : 0.0;
+        return next_frame_delay_;
     }
 
     // ---- FrameClient ------------------------------------------------------------------
@@ -965,12 +914,8 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         device_ready_ = false;
         programs_.fill(BGFX_INVALID_HANDLE);
         uniforms_ = {};
-        for (TargetSet &set : sets_)
-            set.Forget();
-        jobs_.clear();
+        targets_.Forget();
         commands_.clear();
-        shown_main_.clear();
-        held_frames_ = 0;
         kept_ = false;
         ReleaseShownPictures();
         // RmlUi re-creates textures and geometry on demand. Every render manager: RmlUi draws through the host's
@@ -1044,8 +989,8 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     {
         const Ref<Texture> &texture = FromHandle<Texture>(handle);
         texture->released = true;
-        // A game picture stays with the frame on the screen, which may be shown again while the next
-        // one waits for its textures (EndFrame): given back when another frame takes its place.
+        // A game picture released while a frame is recorded may still be drawn by it: given back at its end
+        // (EndFrame).
         if (texture->kind == Texture::Kind::Picture)
             shown_pictures_.push_back(texture->picture);
         ReleaseHandle<Texture>(handle);
@@ -1128,14 +1073,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         Record(Op::SaveTexture).texture = texture;
         return ToHandle(std::move(texture));
     }
-    Rml::CompiledFilterHandle SaveLayerAsMaskImage() override
-    {
-        NoteLayerRead(depth_ - 1);
-        Record(Op::SaveMask);
-        auto filter = std::make_shared<Filter>();
-        filter->type = FilterType::MaskImage;
-        return ToHandle<const Filter>(std::move(filter));
-    }
 
     Rml::CompiledFilterHandle CompileFilter(const Rml::String &name, const Rml::Dictionary &parameters) override;
     void ReleaseFilter(Rml::CompiledFilterHandle filter) override
@@ -1182,22 +1119,8 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
             ReleasePicture(path);
         shown_pictures_.clear();
     }
-    // True while a queued job still has to fill `texture`.
-    bool Awaited(const Texture &texture) const
-    {
-        for (const Job &job : jobs_)
-            for (const Command &command : job.commands)
-                if (command.op == Op::SaveTexture && command.texture.get() == &texture && !texture.released)
-                    return true;
-        return false;
-    }
     bgfx::TextureHandle PictureHandle(const Texture &texture) const;
 
-    void ExtractJobs(Commands &main);
-    // Plans the queued jobs into the views the frame leaves over; returns the command
-    // range of each job that runs this frame.
-    std::vector<std::pair<size_t, size_t>> PlanJobs(Executor &planner, int budget);
-    bool PlaceJob(Job &job);
     // Draws and effects a frame leaves out: an error, not a mode. Counted while the frame is submitted and logged in
     // one line at its end (EndFrame, ReportSkips); a frame with any is not kept, so the next one is drawn again.
     void Skipped(Skip reason)
@@ -1205,10 +1128,6 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         ++skips_[size_t(reason)];
     }
     void ReportSkips();
-    struct Shelf
-    {
-        int x = 0, y = 0, height = 0;
-    } shelf_;
 
     BgfxBackendOptions options_;
     Host *host_ = nullptr;
@@ -1223,47 +1142,36 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
     // Recording.
     bool clear_ = false;
     Commands commands_;
-    // The commands of the frame on the screen, without its texture jobs: submitted again instead
-    // of a frame that would be drawn without textures its jobs are still making (EndFrame).
-    Commands shown_main_;
-    bool shown_clear_ = false;
+    bool shown_clear_ = false; // the clear of the frame on the screen, for its kept frames
     // Layer 0 holds the frame on the screen whole, drawn inside kept_bounds_ (top-left pixels), and an unchanged frame
     // only composites it (SubmitKept). Its texture lives with the frame set: a resize or a surface change
     // (SetViewport) and a device loss end it.
     bool kept_ = false;
     Region kept_bounds_;
     void SubmitKept();
-    int held_frames_ = 0;                     // frames in a row that were not shown (FrameHeld)
-    std::vector<std::string> shown_pictures_; // game pictures RmlUi gave back that the frame on the screen may draw
-    // Submits the queued texture jobs that fit and `main`. With `complete_only`, a `main` that
-    // would be drawn without a texture a job is still making is not submitted at all: false.
-    bool Submit(const Commands &main, bool clear, bool complete_only);
+    std::vector<std::string> shown_pictures_; // game pictures RmlUi gave back that the frame being recorded may draw
+    void Submit(const Commands &main);
     DrawState state_;
     int depth_ = 1;
     std::vector<size_t> open_layers_; // indices of the PushLayer commands of open layers
-    std::deque<Job> jobs_;
     std::array<int, size_t(Skip::Count)> skips_{};
 
     // GPU objects.
     std::array<bgfx::ProgramHandle, size_t(ProgramId::Count)> programs_{};
     Uniforms uniforms_{};
     int msaa_ = 0;
-    std::array<TargetSet, 2> sets_{}; // 0: frame (surface size), 1: texture jobs
-    // UI frames drawn (OnUiRender). Targets no frame asked for in kIdleTargetFrames are released: the texture jobs'
-    // set once no job is queued (a screen's panel shadows are made in its first frames, then drawn from their
-    // textures), and the frame set's layers above the first and its post buffers (filters, masks) once no element
-    // uses them. Layer 0 and the shared depth/stencil stay: every frame draws into them. Half a minute: the HUD
-    // composites its filtered parts (the resting helm's opacity) whenever they change, every few seconds at sea; with
-    // two seconds the targets (some 50 MB of multisampled full-screen layers on a phone) were released and made again
-    // between two changes, a frame-long stall each time. Memory pressure releases them at once (OnLowMemory).
+    TargetSet targets_;
+    // UI frames drawn (OnUiRender). Targets no frame asked for in kIdleTargetFrames are released: the layers above the
+    // first and the post buffers (filters) once no element uses them. Layer 0 and the shared depth/stencil stay: every
+    // frame draws into them. Half a minute: the HUD composites its filtered parts (the resting helm's opacity) whenever
+    // they change, every few seconds at sea; with two seconds the targets (some 50 MB of multisampled full-screen
+    // layers on a phone) were released and made again between two changes, a frame-long stall each time. Memory
+    // pressure releases them at once (OnLowMemory).
     static constexpr uint32_t kIdleTargetFrames = 1800;
     uint32_t frame_ = 0;
     // Releases the targets no frame asked for in `idle_frames` (logged with `why` and the bytes); returns the bytes.
     uint64_t ReleaseIdleTargets(uint32_t idle_frames, const char *why);
     uint64_t LayerBytes(const TargetSet &set) const;
-    // The texture jobs' set is as high as the queued jobs need (PlanJobs), in steps of kJobRows.
-    static constexpr int kJobRows = 128;
-    int JobRowsNeeded() const;
 
     struct PictureRef
     {
@@ -1299,11 +1207,11 @@ bool BgfxBackendImpl::CreateGpu()
     STORM_UI_LINK(ProgramId::TextureCoverage, vs, vs_ui, fs_ui_texture_coverage);
     STORM_UI_LINK(ProgramId::TextureMask, vs, vs_ui, fs_ui_texture_mask);
     STORM_UI_LINK(ProgramId::IconShadow, vs, vs_ui, fs_ui_icon_shadow);
+    STORM_UI_LINK(ProgramId::Shadow, vs, vs_ui, fs_ui_shadow);
     STORM_UI_LINK(ProgramId::Gradient, vs, vs_ui, fs_ui_gradient);
     STORM_UI_LINK(ProgramId::QuadColor, vs_quad, vs_ui_quad, fs_ui_color);
     STORM_UI_LINK(ProgramId::Passthrough, vs_quad, vs_ui_quad, fs_ui_passthrough);
     STORM_UI_LINK(ProgramId::ColorMatrix, vs_quad, vs_ui_quad, fs_ui_color_matrix);
-    STORM_UI_LINK(ProgramId::BlendMask, vs_quad, vs_ui_quad, fs_ui_blend_mask);
     STORM_UI_LINK(ProgramId::Blur, vs_quad, vs_ui_quad, fs_ui_blur);
     STORM_UI_LINK(ProgramId::DropShadow, vs_quad, vs_ui_quad, fs_ui_drop_shadow);
 #undef STORM_UI_LINK
@@ -1327,8 +1235,8 @@ bool BgfxBackendImpl::CreateGpu()
     uniforms_.region = bgfx::createUniform("u_ui_region", T::Vec4);
     uniforms_.shadow_color = bgfx::createUniform("u_ui_shadow_color", T::Vec4);
     uniforms_.icon = bgfx::createUniform("u_ui_icon", T::Vec4, 5);
+    uniforms_.shadow = bgfx::createUniform("u_ui_shadow", T::Vec4, 5);
     uniforms_.tex = bgfx::createUniform("s_ui_tex", T::Sampler);
-    uniforms_.mask = bgfx::createUniform("s_ui_mask", T::Sampler);
 
     const bgfx::Caps *caps = bgfx::getCaps();
     // The layers are RGBA8 colour + depth/stencil: both must render 2x MSAA (per-format caps).
@@ -1349,8 +1257,7 @@ void BgfxBackendImpl::DestroyGpu()
 {
     if (!device_ready_)
         return;
-    for (TargetSet &set : sets_)
-        set.Destroy();
+    targets_.Destroy();
     for (bgfx::ProgramHandle &program : programs_)
     {
         if (options_.owner && bgfx::isValid(program))
@@ -1360,8 +1267,8 @@ void BgfxBackendImpl::DestroyGpu()
     for (bgfx::UniformHandle *uniform :
          {&uniforms_.transform, &uniforms_.translate, &uniforms_.clip, &uniforms_.gradient, &uniforms_.gradient_pv,
           &uniforms_.stop_colors, &uniforms_.stop_positions, &uniforms_.factor, &uniforms_.color_matrix,
-          &uniforms_.blur_weights, &uniforms_.texel_offset, &uniforms_.region, &uniforms_.shadow_color, &uniforms_.tex,
-          &uniforms_.mask})
+          &uniforms_.blur_weights, &uniforms_.texel_offset, &uniforms_.region, &uniforms_.shadow_color, &uniforms_.icon,
+          &uniforms_.shadow, &uniforms_.tex})
         DestroyIfCurrent(*uniform, g_epoch);
 }
 
@@ -1414,36 +1321,11 @@ uint64_t BgfxBackendImpl::ReleaseIdleTargets(uint32_t idle_frames, const char *w
     if (!device_ready_)
         return 0;
     const auto idle = [&](uint32_t used) { return frame_ - used >= idle_frames; };
-    const uint64_t post_bytes = uint64_t(sets_[0].width) * uint64_t(sets_[0].height) * 4;
+    const uint64_t post_bytes = uint64_t(targets_.width) * uint64_t(targets_.height) * 4;
     uint64_t released = 0;
-    int layers = 0, posts = 0, depths = 0;
-    // The texture jobs' set, whole: its content is needed only while a job is queued (jobs span frames).
-    TargetSet &jobs = sets_[1];
-    if (jobs_.empty() && !jobs.Empty())
-    {
-        bool unused = true;
-        for (size_t i = 0; i < jobs.layers.size(); ++i)
-            if (bgfx::isValid(jobs.layers[i].fb) && i < jobs.layer_used.size() && !idle(jobs.layer_used[i]))
-                unused = false;
-        for (size_t i = 0; i < jobs.post.size(); ++i)
-            if (bgfx::isValid(jobs.post[i].fb) && !idle(jobs.post_used[i]))
-                unused = false;
-        if (unused)
-        {
-            for (const FrameBuffer &layer : jobs.layers)
-                if (bgfx::isValid(layer.fb))
-                    released += LayerBytes(jobs), ++layers;
-            for (const FrameBuffer &post : jobs.post)
-                if (bgfx::isValid(post.fb))
-                    released += uint64_t(jobs.width) * uint64_t(jobs.height) * 4, ++posts;
-            if (bgfx::isValid(jobs.depth_stencil))
-                released += uint64_t(jobs.width) * uint64_t(jobs.height) * 4 * uint64_t(std::max(msaa_, 1)), ++depths;
-            jobs.Destroy();
-            shelf_ = {};
-        }
-    }
-    // The frame set: the layers above the first and the post buffers no element drew with lately.
-    TargetSet &frame = sets_[0];
+    int layers = 0, posts = 0;
+    // The layers above the first and the post buffers no element drew with lately.
+    TargetSet &frame = targets_;
     for (size_t i = 1; i < frame.layers.size(); ++i)
         if (bgfx::isValid(frame.layers[i].fb) && (i >= frame.layer_used.size() || idle(frame.layer_used[i])))
         {
@@ -1462,8 +1344,8 @@ uint64_t BgfxBackendImpl::ReleaseIdleTargets(uint32_t idle_frames, const char *w
         }
     if (released)
         Rml::Log::Message(Rml::Log::LT_INFO,
-                          "UI layers: released %d layers, %d post buffers and %d depth/stencil (%.1f MB, %dx MSAA): %s",
-                          layers, posts, depths, double(released) / (1024.0 * 1024.0), msaa_, why);
+                          "UI layers: released %d layers and %d post buffers (%.1f MB, %dx MSAA): %s", layers, posts,
+                          double(released) / (1024.0 * 1024.0), msaa_, why);
     return released;
 }
 
@@ -1625,16 +1507,24 @@ Rml::CompiledFilterHandle BgfxBackendImpl::CompileFilter(const Rml::String &name
 Rml::CompiledShaderHandle BgfxBackendImpl::CompileShader(const Rml::String &name, const Rml::Dictionary &parameters)
 {
     Shader shader;
-    if (name == "ui-icon-shadow")
-    {
-        shader.icon_shadow = true;
-        const char *keys[] = {"pick_tint", "pick_coverage", "map", "bounds", "fade"};
-        for (size_t i = 0; i < std::size(keys); ++i)
+    const auto vectors = [&shader, &parameters](std::initializer_list<const char *> keys) {
+        size_t i = 0;
+        for (const char *key : keys)
         {
-            const Rml::Vector4f value = Rml::Get(parameters, keys[i], Rml::Vector4f(0.f));
-            std::copy(&value.x, &value.x + 4, &shader.icon[i * 4]);
+            const Rml::Vector4f value = Rml::Get(parameters, key, Rml::Vector4f(0.f));
+            std::copy(&value.x, &value.x + 4, &shader.parameters[i++ * 4]);
         }
         return ToHandle<const Shader>(std::make_shared<Shader>(std::move(shader)));
+    };
+    if (name == "ui-icon-shadow")
+    {
+        shader.program = ProgramId::IconShadow;
+        return vectors({"pick_tint", "pick_coverage", "map", "bounds", "fade"});
+    }
+    if (name == "ui-shadow")
+    {
+        shader.program = ProgramId::Shadow;
+        return vectors({"shape", "shape_radii", "cut", "cut_radii", "blur"});
     }
     const bool repeating = Rml::Get(parameters, "repeating", false);
     if (name == "linear-gradient")
@@ -1678,287 +1568,27 @@ Rml::CompiledShaderHandle BgfxBackendImpl::CompileShader(const Rml::String &name
 
 // ---- frame scheduling ---------------------------------------------------------------
 
-// Cuts out every outermost PushLayer..PopLayer span that ends in SaveLayerAsTexture, never
-// composites into or from a layer below it, and draws untransformed inside scissor rectangles:
-// such a span only fills its output texture and can run anywhere and any time.
-void BgfxBackendImpl::ExtractJobs(Commands &main)
-{
-    struct Span
-    {
-        size_t start;
-        int layer; // layer index pushed by the span
-        bool saves = false;
-        bool valid = true;
-        Rml::Vector2i extent;
-    };
-    std::vector<Span> open;
-    struct Range
-    {
-        size_t start, end; // inclusive
-        int depth;
-        Rml::Vector2i extent;
-    };
-    std::vector<Range> ranges;
-    int depth = 1;
-    for (size_t i = 0; i < main.size(); ++i)
-    {
-        const Command &command = main[i];
-        for (Span &span : open)
-        {
-            if (command.state.transformed || !command.state.scissor.Valid())
-                span.valid = false;
-            else
-                span.extent = Rml::Math::Max(span.extent, command.state.scissor.p1);
-        }
-        switch (command.op)
-        {
-        case Op::PushLayer:
-            open.push_back({i, depth});
-            if (command.state.transformed || !command.state.scissor.Valid())
-                open.back().valid = false;
-            else
-                open.back().extent = command.state.scissor.p1;
-            ++depth;
-            break;
-        case Op::SaveTexture:
-            if (!open.empty() && open.back().layer == depth - 1)
-                open.back().saves = true;
-            break;
-        case Op::SaveMask:
-            for (Span &span : open)
-                span.valid = false;
-            break;
-        case Op::Composite:
-            // A span must neither write nor read a layer below its own: it runs in other
-            // buffers, where those layers do not exist (the frame renderer's filter cache
-            // composites the element's layer into a pushed layer and saves that one).
-            for (Span &span : open)
-                if (command.destination < span.layer || command.source < span.layer)
-                    span.valid = false;
-            break;
-        case Op::PopLayer:
-            --depth;
-            if (!open.empty())
-            {
-                const Span span = open.back();
-                open.pop_back();
-                if (span.valid && span.saves)
-                {
-                    while (!ranges.empty() && ranges.back().start > span.start)
-                        ranges.pop_back(); // nested inside this one
-                    ranges.push_back({span.start, i, span.layer, span.extent});
-                }
-            }
-            break;
-        default:
-            break;
-        }
-    }
-    if (ranges.empty())
-        return;
-    Commands rest;
-    rest.reserve(main.size());
-    size_t at = 0;
-    for (const Range &range : ranges)
-    {
-        for (; at < range.start; ++at)
-            rest.push_back(std::move(main[at]));
-        Job job;
-        job.depth = range.depth;
-        job.extent = range.extent;
-        for (; at <= range.end; ++at)
-            job.commands.push_back(std::move(main[at]));
-        jobs_.push_back(std::move(job));
-    }
-    for (; at < main.size(); ++at)
-        rest.push_back(std::move(main[at]));
-    main = std::move(rest);
-}
-
-std::vector<std::pair<size_t, size_t>> BgfxBackendImpl::PlanJobs(Executor &planner, int budget)
-{
-    // Jobs whose textures RmlUi already gave back are pointless.
-    for (auto it = jobs_.begin(); it != jobs_.end();)
-    {
-        bool needed = false;
-        for (const Command &command : it->commands)
-            if (command.op == Op::SaveTexture && !command.texture->released)
-                needed = true;
-        it = needed ? std::next(it) : jobs_.erase(it);
-    }
-    // The job buffers have the surface's width and the height the queued jobs need, shelf-packed as PlaceJob packs
-    // them (rounded up to kJobRows, at most the surface's): a full-width bar's shadow (3268x248 at 3200x1440) once
-    // took 2x layers, posts and a depth/stencil of the whole surface, about 176 MB, made again for every new panel
-    // shadow after the set went idle. Each job is moved to its own spot in them (shelf packing), so the passes of
-    // different jobs share views. A set too low for the waiting jobs grows when none is placed in it.
-    TargetSet &set = sets_[1];
-    bool any_placed = false;
-    for (const Job &job : jobs_)
-        any_placed = any_placed || job.placed;
-    const int need = JobRowsNeeded();
-    if (set.width != sets_[0].width || set.height > sets_[0].height)
-    {
-        set.Destroy();
-        set.width = sets_[0].width;
-        set.height = need;
-        shelf_ = {};
-        if (any_placed)
-        {
-            // Placed for the old size: let RmlUi render those textures again.
-            jobs_.clear();
-            Rml::ReleaseTextures(this);
-            return {};
-        }
-    }
-    else if (!any_placed && (set.Empty() ? set.height != need : set.height < need))
-    {
-        set.Destroy(); // nothing in it is waited for: no job is placed
-        set.height = need;
-    }
-    if (!any_placed)
-        shelf_ = {};
-    std::vector<std::pair<size_t, size_t>> ranges;
-    for (size_t j = 0; j < jobs_.size(); ++j)
-    {
-        Job &job = jobs_[j];
-        if (!job.placed && !PlaceJob(job))
-        {
-            // No room beside the placed jobs. When every one of them finishes in this frame, the
-            // buffers are free again for the views after theirs: the next jobs start over in
-            // them within the same frame (a screen's worth of panel shadows is made in one
-            // frame, not in one frame per buffer-full).
-            bool finishing = true;
-            for (size_t done = 0; done < j; ++done)
-                finishing = finishing && done < ranges.size() && ranges[done].second >= jobs_[done].commands.size();
-            if (!finishing)
-                break; // no room until the placed jobs are done
-            shelf_ = {};
-            if (!PlaceJob(job))
-                break;
-        }
-        const size_t start = job.cursor;
-        size_t end = start;
-        bool full = false;
-        planner.BeginJob(job);
-        while (end < job.commands.size())
-        {
-            Executor before = planner;
-            planner.Step(job.commands[end]);
-            if (planner.Views() <= budget)
-            {
-                ++end;
-                continue;
-            }
-            planner = std::move(before);
-            full = true;
-            if (end == start)
-            {
-                // Would this step fit into a frame of its own at all?
-                Executor alone(*this);
-                alone.BeginJob(job);
-                alone.Step(job.commands[end]);
-                if (alone.Views() > int(view_count_) - 2)
-                {
-                    Skipped(Skip::JobDropped);
-                    jobs_.erase(jobs_.begin() + std::ptrdiff_t(j));
-                    return ranges;
-                }
-            }
-            break;
-        }
-        ranges.emplace_back(start, end);
-        if (full)
-            break;
-    }
-    return ranges;
-}
-
-// The job buffers' height for the queued jobs, packed in PlaceJob's order and way (job_rows.h).
-int BgfxBackendImpl::JobRowsNeeded() const
-{
-    std::vector<std::pair<int, int>> extents;
-    extents.reserve(jobs_.size());
-    for (const Job &job : jobs_)
-        extents.emplace_back(job.extent.x, job.extent.y);
-    return JobBufferHeight(extents, sets_[0].width, sets_[0].height, kJobRows);
-}
-
-// Moves a job (scissors, translations) to the next free spot of the job buffers. The gap
-// keeps the half-resolution blur passes of neighbours apart.
-bool BgfxBackendImpl::PlaceJob(Job &job)
-{
-    constexpr int gap = kJobGap;
-    const TargetSet &set = sets_[1];
-    const int w = job.extent.x + gap, h = job.extent.y + gap;
-    if (shelf_.x + w > set.width)
-        shelf_ = {0, shelf_.y + shelf_.height, 0};
-    if (shelf_.x + w > set.width && shelf_.x > 0)
-        return false;
-    if (shelf_.y + job.extent.y > set.height)
-        return false;
-    const Rml::Vector2i offset(shelf_.x, shelf_.y);
-    shelf_.x += w;
-    shelf_.height = std::max(shelf_.height, h);
-    for (Command &command : job.commands)
-    {
-        command.state.scissor =
-            Rml::Rectanglei::FromCorners(command.state.scissor.p0 + offset, command.state.scissor.p1 + offset);
-        command.translation += Rml::Vector2f(offset);
-        if (command.layer_reads.Valid())
-            command.layer_reads =
-                Rml::Rectanglei::FromCorners(command.layer_reads.p0 + offset, command.layer_reads.p1 + offset);
-    }
-    job.placed = true;
-    return true;
-}
-
 void BgfxBackendImpl::EndFrame()
 {
     Commands main = std::move(commands_);
     commands_.clear();
     kept_ = false;
-    if (!device_ready_ || sets_[0].width <= 0)
-    {
-        held_frames_ = 0;
+    if (!device_ready_ || targets_.width <= 0)
         return;
-    }
     skips_.fill(0);
-    ExtractJobs(main);
-    // A frame is shown whole or not at all. Layer textures (box shadows: the panels of a screen)
-    // are made by jobs that may not fit into this frame's views beside the frame itself; drawn
-    // now, the frame would show the screen without them and the next one with them (a screen
-    // that appears twice). Such a frame is held back: the jobs run, the frame on the screen is
-    // submitted again, and the host draws the new one again until its textures are there.
-    // Bounded: a job that never finishes is an error, and the frame is then shown as it is.
-    constexpr int kMaxHeldFrames = 30;
-    const bool bounded = held_frames_ >= kMaxHeldFrames;
-    if (bounded)
-        Rml::Log::Message(Rml::Log::LT_ERROR,
-                          "UI frame shown without %d layer textures: their jobs did not finish in %d frames",
-                          int(jobs_.size()), kMaxHeldFrames);
-    if (!Submit(main, clear_, !bounded))
-    {
-        ++held_frames_;
-        Submit(shown_main_, shown_clear_, false);
-        ReportSkips();
-        return;
-    }
-    held_frames_ = 0;
+    Submit(main);
     // Kept unless the next frame must be drawn: a frame that saves layers as textures (the frame renderer filling its
-    // filter cache) is followed by one drawing from the cache, texture jobs still queued make what the frame did not
-    // draw yet, and a frame that left something out tries again.
+    // filter cache) is followed by one drawing from the cache, and a frame that left something out tries again.
     kept_ =
-        jobs_.empty() && std::all_of(skips_.begin(), skips_.end(), [](int count) { return count == 0; }) &&
+        std::all_of(skips_.begin(), skips_.end(), [](int count) { return count == 0; }) &&
         std::none_of(main.begin(), main.end(), [](const Command &command) { return command.op == Op::SaveTexture; });
-    shown_main_ = std::move(main);
     shown_clear_ = clear_;
     ReleaseShownPictures();
     ReportSkips();
 }
 
-bool BgfxBackendImpl::Submit(const Commands &main, bool clear, bool complete_only)
+void BgfxBackendImpl::Submit(const Commands &main)
 {
-    const bool clear_ = clear; // the frame's own clear, also for a frame submitted again
     Executor counter(*this);
     counter.SetBudget(view_count_);
     counter.Main(main, clear_, false);
@@ -1973,29 +1603,12 @@ bool BgfxBackendImpl::Submit(const Commands &main, bool clear, bool complete_onl
         Skipped(Skip::EffectsDropped);
     }
 
-    // Texture jobs first, in the views the frame leaves over, then the frame itself.
     Executor planner(*this);
     planner.TakeDecisions(counter);
-    const std::vector<std::pair<size_t, size_t>> ranges = PlanJobs(planner, int(view_count_) - main_views);
     planner.Main(main, clear_, degraded);
-    if (complete_only && planner.Starved() > 0)
-        return false;
-
     Executor live(*this, planner, first_view_);
-    for (size_t j = 0; j < ranges.size(); ++j)
-    {
-        Job &job = jobs_[j];
-        live.BeginJob(job);
-        for (size_t i = ranges[j].first; i < ranges[j].second; ++i)
-            live.Step(job.commands[i]);
-        live.EndJob(job);
-        job.cursor = ranges[j].second;
-    }
     live.Main(main, clear_, degraded);
     kept_bounds_ = live.Drawn();
-    while (!jobs_.empty() && jobs_.front().cursor >= jobs_.front().commands.size())
-        jobs_.pop_front();
-    return true;
 }
 
 void BgfxBackendImpl::SubmitKept()
@@ -2026,16 +1639,15 @@ Executor::Executor(BgfxBackendImpl &backend, const Executor &plan, uint16_t firs
     const std::vector<Schedule::Slot> &slots = schedule_.Slots();
     // Tile GPUs: what the frame no longer needs is invalidated after the last view that draws into it
     // (BGFX_CLEAR_DISCARD_*, patches/bgfx-gl-framebuffer-discard.patch), so it is never written back to memory.
-    // Only the main UI's layers (set 0): it redraws them from a clear every frame. The jobs' layers (set 1) keep
-    // their content across frames. A layer's multisampled colour is not needed once resolved (OpenGL ES: at the view's
-    // end; Vulkan: by its render pass, patches/bgfx-vulkan-resolve-in-pass.patch); without MSAA the attachment is the
-    // texture the composite samples and stays. The set's depth/stencil goes after its last view.
+    // The layers are drawn from a clear every frame. A layer's multisampled colour is not needed once resolved (OpenGL
+    // ES: at the view's end; Vulkan: by its render pass, patches/bgfx-vulkan-resolve-in-pass.patch); without MSAA the
+    // attachment is the texture the composite samples and stays. The set's depth/stencil goes after its last view.
     std::vector<uint16_t> discard(slots.size(), BGFX_CLEAR_NONE);
     int last_layer_slot = -1;
     for (size_t s = 0; s < slots.size(); ++s)
     {
         const Target &target = slots[s].target;
-        if (target.kind != TargetKind::Layer || target.set != 0)
+        if (target.kind != TargetKind::Layer)
             continue;
         last_layer_slot = int(s);
         bool written_later = false;
@@ -2085,12 +1697,12 @@ int Executor::Begin(Target target, ViewRect rect, const Accesses &writes, const 
 
 TargetSet &Executor::Set() const
 {
-    return b_->sets_[set_];
+    return b_->targets_;
 }
 
 bgfx::FrameBufferHandle Executor::Handle(Target target) const
 {
-    TargetSet &set = b_->sets_[target.set];
+    TargetSet &set = b_->targets_;
     switch (target.kind)
     {
     case TargetKind::Final:
@@ -2106,7 +1718,7 @@ bgfx::FrameBufferHandle Executor::Handle(Target target) const
 
 bgfx::TextureHandle Executor::Color(Target target) const
 {
-    TargetSet &set = b_->sets_[target.set];
+    TargetSet &set = b_->targets_;
     if (target.kind == TargetKind::Layer)
         return b_->LayerTarget(set, target.index).color;
     if (target.kind == TargetKind::Post)
@@ -2121,7 +1733,7 @@ Region Executor::DrawRegion(const Command &command) const
         return {};
     Region region = Clip(command.state.scissor);
     Rml::Vector2f min = geometry.min + command.translation, max = geometry.max + command.translation;
-    if (command.state.transformed && !projection_)
+    if (command.state.transformed)
     {
         // Bounds of the transformed corners in pixels.
         const Rml::Vector2f corners[4] = {min, {max.x, min.y}, max, {min.x, max.y}};
@@ -2163,7 +1775,7 @@ bool Executor::UpsideDown(int slot) const
 ViewRect Executor::Placed(int slot, ViewRect rect) const
 {
     if (UpsideDown(slot))
-        rect.y = b_->sets_[schedule_.Slots()[size_t(slot)].target.set].height - rect.y - rect.h;
+        rect.y = Height() - rect.y - rect.h;
     return rect;
 }
 
@@ -2175,7 +1787,7 @@ void Executor::SetClip(int slot) const
 
 void Executor::BindTexture(uint8_t stage, Target source) const
 {
-    bgfx::setTexture(stage, stage == 0 ? b_->uniforms_.tex : b_->uniforms_.mask, Color(source), kSampleClamp);
+    bgfx::setTexture(stage, b_->uniforms_.tex, Color(source), kSampleClamp);
 }
 
 void Executor::SetFactor(float factor) const
@@ -2204,7 +1816,7 @@ void Executor::Geometry(int slot, const Command &command, ProgramId program, uin
     }
     bgfx::setVertexBuffer(0, command.geometry->vb);
     bgfx::setIndexBuffer(command.geometry->ib);
-    bgfx::setUniform(b_->uniforms_.transform, (projection_ ? *projection_ : command.state.transform).data());
+    bgfx::setUniform(b_->uniforms_.transform, command.state.transform.data());
     const float translate[4] = {command.translation.x, command.translation.y, 0.f, 0.f};
     bgfx::setUniform(b_->uniforms_.translate, translate);
     SetClip(slot);
@@ -2418,17 +2030,6 @@ void Executor::Filters(const std::vector<Ref<const Filter>> &filters, const Rml:
             SwapPost();
             break;
         }
-        case FilterType::MaskImage: {
-            const int slot = Begin(Post(1), Full(), {{Post(1), window}}, {{input, window}, {PostSlot(3), window}});
-            if (live_)
-            {
-                BindTexture(0, input);
-                BindTexture(1, PostSlot(3));
-                FullQuad(slot, ProgramId::BlendMask, kWriteColor, scissor);
-            }
-            SwapPost();
-            break;
-        }
         }
     }
 }
@@ -2478,7 +2079,7 @@ void Executor::SaveTexture(const Command &command)
         return;
     const Target layer = Layer(layers_ - 1), post = Post(0);
     const int slot = Begin(post, Full(), {{post, region}}, {{layer, region}});
-    const Target output{TargetKind::Texture, 0, 0, &texture};
+    const Target output{TargetKind::Texture, 0, &texture};
     if (!live_)
     {
         schedule_.AddEarly({post, region}, slot + 1, false);
@@ -2535,13 +2136,8 @@ void Executor::Composite(const Command &command, bool unfiltered)
         Blur(filters.front()->sigma, post_[0], post_[1], Flipped(RectOf(window), Height()), Layer(command.source));
         Filters({filters.begin() + 1, filters.end()}, state.scissor);
     }
-    else if (!filters.empty() && filters.front()->type != FilterType::MaskImage)
-        Filters(filters, state.scissor, Layer(command.source));
     else if (!filters.empty())
-    {
-        CopyLayerToPost(command.source, state.scissor);
-        Filters(filters, state.scissor);
-    }
+        Filters(filters, state.scissor, Layer(command.source));
     // Without filters the layer itself is composited.
     const Target result = filters.empty() ? Layer(command.source) : Post(0);
     const Target destination = Layer(command.destination);
@@ -2596,14 +2192,11 @@ void Executor::Run(const Command &command, bool degraded)
             case Texture::Kind::Target:
                 if (!filled_.count(&texture) && !(texture.filled && texture.Current()))
                 {
-                    const bool awaited = b_->Awaited(texture);
-                    if (!live_ && awaited)
-                        ++starved_;
                     if (live_)
-                        b_->Skipped(awaited ? Skip::TextureAwaited : Skip::TextureLost);
+                        b_->Skipped(Skip::TextureLost);
                     return;
                 }
-                reads.Add({{TargetKind::Texture, 0, 0, &texture}, {0, 0, 1, 1}});
+                reads.Add({{TargetKind::Texture, 0, &texture}, {0, 0, 1, 1}});
                 break;
             case Texture::Kind::Picture:
                 handle = b_->PictureHandle(texture);
@@ -2618,7 +2211,7 @@ void Executor::Run(const Command &command, bool degraded)
             }
         }
         if (command.shader)
-            program = command.shader->icon_shadow ? ProgramId::IconShadow : ProgramId::Gradient;
+            program = command.shader->program;
         const int slot = Begin(layer, Full(), {{layer, region}}, reads);
         if (!live_)
             return;
@@ -2630,8 +2223,10 @@ void Executor::Run(const Command &command, bool degraded)
         }
         if (command.texture && command.texture->kind != Texture::Kind::Picture)
             handle = command.texture->handle;
-        if (command.shader && command.shader->icon_shadow)
-            bgfx::setUniform(b_->uniforms_.icon, command.shader->icon, 5);
+        if (command.shader && command.shader->program == ProgramId::IconShadow)
+            bgfx::setUniform(b_->uniforms_.icon, command.shader->parameters, 5);
+        else if (command.shader && command.shader->program == ProgramId::Shadow)
+            bgfx::setUniform(b_->uniforms_.shadow, command.shader->parameters, 5);
         else if (command.shader)
         {
             const Shader &shader = *command.shader;
@@ -2696,31 +2291,15 @@ void Executor::Run(const Command &command, bool degraded)
         if (!degraded)
             SaveTexture(command);
         break;
-    case Op::SaveMask: {
-        if (degraded)
-            break;
-        const Region window = Clip(state.scissor);
-        CopyLayerToPost(layers_ - 1, state.scissor);
-        const int slot = Begin(PostSlot(3), Full(), {{PostSlot(3), window}}, {{Post(0), window}});
-        if (live_)
-        {
-            BindTexture(0, Post(0));
-            SetFactor(1.f);
-            FullQuad(slot, ProgramId::Passthrough, kWriteColor, state.scissor);
-        }
-        break;
-    }
     }
 }
 
 void Executor::Main(const Commands &commands, bool clear_final, bool degraded)
 {
-    set_ = 0;
-    projection_.reset();
     layers_ = 1;
     post_ = {0, 1, 2};
     // Nothing to draw (no document shown): no layer and no composite over the game picture. Only the frame's clear of
-    // the UI's own target (SetTarget) still runs. The jobs run before Main (Submit).
+    // the UI's own target (SetTarget) still runs.
     if (commands.empty())
     {
         CompositeBase({}, clear_final);
@@ -2737,8 +2316,6 @@ void Executor::Main(const Commands &commands, bool clear_final, bool degraded)
 
 void Executor::Kept(const Region &bounds, bool clear_final)
 {
-    set_ = 0;
-    projection_.reset();
     CompositeBase(bounds, clear_final);
 }
 
@@ -2757,15 +2334,6 @@ void Executor::CompositeBase(const Region &bounds, bool clear_final)
     BindTexture(0, Layer(0));
     SetFactor(1.f);
     FullQuad(slot, ProgramId::Passthrough, kWriteColor | kBlendPremultiplied, RectOf(bounds));
-}
-
-void Executor::BeginJob(const Job &job)
-{
-    set_ = 1;
-    const TargetSet &set = Set();
-    projection_ = Rml::Matrix4f::ProjectOrtho(0, float(set.width), float(set.height), 0, -10000, 10000);
-    layers_ = job.cursor == 0 ? job.depth : job.layers;
-    post_ = job.cursor == 0 ? std::array<int, 3>{0, 1, 2} : job.post;
 }
 
 } // namespace

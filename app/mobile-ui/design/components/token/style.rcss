@@ -5,6 +5,6 @@ c-token .tk-face.enamel-red { background-color: @{color.enamelRed}; }
 c-token .tk-face.enamel-iron { background-color: @{color.enamelIron}; }
 c-token .tk-face.enamel-parchment { background-color: @{color.enamelParchment}; }
 c-token.disabled { filter: grayscale(0.7) brightness(0.75); }
-c-token.selected .tk-face { box-shadow: @{color.wood} 0 0 0 3dp, @{color.brass} 0 0 0 5dp; }
-c-token.current .tk-face { box-shadow: @{color.wood} 0 0 0 3dp, @{color.brassLine/.55} 0 0 0 4dp; }
-c-token.selected.current .tk-face { box-shadow: @{color.wood} 0 0 0 3dp, @{color.brass} 0 0 0 5dp; }
+c-token.selected .tk-face { shadow: @{color.wood} 0 0 0 3dp, @{color.brass} 0 0 0 5dp; }
+c-token.current .tk-face { shadow: @{color.wood} 0 0 0 3dp, @{color.brassLine/.55} 0 0 0 4dp; }
+c-token.selected.current .tk-face { shadow: @{color.wood} 0 0 0 3dp, @{color.brass} 0 0 0 5dp; }

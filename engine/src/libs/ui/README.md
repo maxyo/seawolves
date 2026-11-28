@@ -83,8 +83,8 @@ Options: `--views N` (UI view range), `--game-root` (decodes game pictures itsel
 Component actions are printed as `action <id> <verb> <value>`.
 
 `--script` replays touches and checks frames, e.g.
-`--script "down 1 660 88; wait 0.5; shot held.png; up 1 660 88"`: `shot` waits for the backend's texture
-work; `seen <png>` saves what the last frame left on the screen; `mark` remembers that picture, `whole` fails
+`--script "down 1 660 88; wait 0.5; shot held.png; up 1 660 88"`: `shot` draws a frame and saves it;
+`seen <png>` saves what the last frame left on the screen; `made <max>` fails when the last frame created more textures; `mark` remembers that picture, `whole` fails
 unless the last frame showed the marked picture or the new one complete, `arrived` fails while the marked
 picture is still there; `bench 300 [<channel> <a.json> <b.json>]` measures frames as a platform host makes
 them (with a channel the two states alternate every frame).

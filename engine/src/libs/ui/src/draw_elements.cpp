@@ -6,6 +6,7 @@
 // <ui-links>: smooth anti-aliased curves with arrowheads between points of a drawing (the perk tree).
 // Colours come from RCSS properties registered here, so the tokens stay the only source.
 #include "elements.h"
+#include "shadow_element.h"
 #include "numbers.h"
 #include "text_pages.h"
 #include "text_utf8.h"
@@ -77,10 +78,10 @@ void Quad(Rml::Mesh &mesh, int a, int b, int c, int d)
     Triangle(mesh, a, c, d);
 }
 
-class DrawElement : public Rml::Element
+class DrawElement : public ShadowedElement
 {
   public:
-    explicit DrawElement(const Rml::String &tag) : Rml::Element(tag)
+    explicit DrawElement(const Rml::String &tag) : ShadowedElement(tag)
     {
     }
 
@@ -94,6 +95,7 @@ class DrawElement : public Rml::Element
 
     void OnRender() override
     {
+        ShadowedElement::OnRender();
         Rml::RenderManager *manager = GetRenderManager();
         if (!manager)
             return;
@@ -127,12 +129,12 @@ class DrawElement : public Rml::Element
     }
     void OnPropertyChange(const Rml::PropertyIdSet &changed) override
     {
-        Rml::Element::OnPropertyChange(changed);
+        ShadowedElement::OnPropertyChange(changed);
         dirty_ = true;
     }
     void OnDpRatioChange() override
     {
-        Rml::Element::OnDpRatioChange();
+        ShadowedElement::OnDpRatioChange();
         dirty_ = true;
     }
 
@@ -700,10 +702,10 @@ std::vector<Rml::ObserverPtr<Rml::Element>> laid_out_fits;
 // line boxes shrink with it); the style sheet's size, noted while no step-down applies, stays
 // the base of the next fit, and a new text starts from the style sheet again. natural="1"
 // sizes the element by its text on one line at the base size (see Natural).
-class ClampElement final : public Rml::Element, public FitsText
+class ClampElement final : public ShadowedElement, public FitsText
 {
   public:
-    using Rml::Element::Element;
+    using ShadowedElement::ShadowedElement;
 
     // A clamp that may step down (min-size): the style sheet's size and the one it shows (px); its last fit measured
     // sizes between them. In a narrower layout it would step further down (prewarm.h).
@@ -1044,10 +1046,10 @@ class ClampElement final : public Rml::Element, public FitsText
 // text that would fit beside the reserved part in a taller box needs no extra page; paging
 // starts only when even that is not enough. The ancestor's own min-height must come from its
 // classes: the element sets it inline (and drops it for a new text).
-class PagesElement final : public Rml::Element, public FitsText
+class PagesElement final : public ShadowedElement, public FitsText
 {
   public:
-    using Rml::Element::Element;
+    using ShadowedElement::ShadowedElement;
 
     bool Settle() override
     {

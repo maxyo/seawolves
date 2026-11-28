@@ -3,6 +3,7 @@
 #pragma once
 
 #include "component_spec.h"
+#include "shadow_element.h"
 #include "template.h"
 
 #include "storm_ui/ui.h"
@@ -125,7 +126,7 @@ using BehaviorFactory = std::unique_ptr<Behavior> (*)();
 void RegisterBehavior(const std::string &name, BehaviorFactory factory);
 void RegisterBuiltinBehaviors();
 
-class ComponentElement final : public Rml::Element
+class ComponentElement final : public ShadowedElement
 {
   public:
     ComponentElement(const Rml::String &tag, const CompiledComponent &component, Services &services);

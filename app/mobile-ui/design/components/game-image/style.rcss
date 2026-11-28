@@ -7,11 +7,11 @@ c-game-image .gi-box {
     position: relative; box-sizing: border-box; overflow: hidden; border-radius: 2dp;
     border: 1dp @{color.brassLine/.55};
     decorator: linear-gradient(160deg, @{color.slotTop}, @{color.slotLow});
-    box-shadow: @{color.black/.35} 0 1dp 3dp 0;
+    shadow: @{color.black/.35} 0 1dp 3dp 0;
 }
 c-game-image .gi-hatch { position: absolute; left: 0; top: 0; right: 0; bottom: 0;
     decorator: repeating-linear-gradient(135deg, @{color.white/.035} 0dp, @{color.white/.035} 6dp, @{color.white/0} 6dp, @{color.white/0} 12dp);
-    box-shadow: @{color.black/.35} 0 0 0 1dp inset; }
+    shadow: @{color.black/.35} 0 0 0 1dp inset; }
 c-game-image .gi-sil { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 c-game-image .gi-sil .gi-head, c-game-image .gi-sil .gi-bust { position: absolute; background-color: @{color.brassLine/.2}; }
 c-game-image .gi-box.has-image .gi-sil, c-game-image .gi-box.has-image .gi-hatch, c-game-image .gi-box.has-image .gi-inline { display: none; }
@@ -32,12 +32,12 @@ c-game-image .gi-sil.item { display: flex; align-items: center; justify-content:
 c-game-image .gi-sil.item ui-icon { color: @{color.ink|gray}; }
 
 /* emblem: sail cloth with a slightly curved bottom edge */
-c-game-image.kind-emblem .gi-box { overflow: visible; border-width: 0; border-radius: 0; decorator: none; box-shadow: none; }
+c-game-image.kind-emblem .gi-box { overflow: visible; border-width: 0; border-radius: 0; decorator: none; shadow: none; }
 c-game-image .gi-cloth { position: absolute; left: 0; top: 0; right: 0; bottom: 12%; box-sizing: border-box;
     border-left: 1dp @{color.brassLine/.55}; border-right: 1dp @{color.brassLine/.55}; border-top: 1dp @{color.brassLine/.55};
     border-top-left-radius: 3dp; border-top-right-radius: 3dp;
     decorator: linear-gradient(90deg, @{color.black/.08}, @{color.black/0} 18%, @{color.black/0} 82%, @{color.black/.08}), linear-gradient(180deg, @{color.sailclothTop}, @{color.sailcloth});
-    box-shadow: @{color.black/.4} 0 2dp 5dp 0; }
+    shadow: @{color.black/.4} 0 2dp 5dp 0; }
 c-game-image .gi-hem { position: absolute; left: 0; right: 0; bottom: 0; height: 12%;
     decorator: radial-gradient(ellipse 50% 100% at 50% 0%, @{color.sailcloth} 0%, @{color.sailclothHem} 90%, @{color.brassLine/.55} 90%, @{color.brassLine/.55} 100%, @{color.brassLine/0} 100%); }
 c-game-image .gi-sil .gi-mark { position: absolute; box-sizing: border-box; border: 2dp @{color.sailclothMark/.278}; transform: rotate(45deg); }

@@ -102,23 +102,6 @@ void FrameRenderer::BeginFrame()
     clip_hash_ = 0;
     transform_identity_ = true;
     UpdateStateHash();
-    hash_marks_.clear();
-}
-
-void FrameRenderer::Dropped()
-{
-    for (auto bucket = cache_.begin(); bucket != cache_.end();)
-    {
-        auto &entries = bucket->second;
-        for (size_t i = entries.size(); i-- > 0;)
-            if (entries[i].made == frame_)
-            {
-                target_.ReleaseTexture(entries[i].texture);
-                target_.ReleaseGeometry(entries[i].quad);
-                entries.erase(entries.begin() + static_cast<long>(i));
-            }
-        bucket = entries.empty() ? cache_.erase(bucket) : std::next(bucket);
-    }
 }
 
 void FrameRenderer::EndFrame()
@@ -144,20 +127,6 @@ void FrameRenderer::EndFrame()
                 entries.erase(entries.begin() + static_cast<long>(i));
             }
         bucket = entries.empty() ? cache_.erase(bucket) : std::next(bucket);
-    }
-    for (auto saved = saved_.begin(); saved != saved_.end();)
-    {
-        // Unheld for a few seconds of frames: released (an element that comes back later
-        // makes its texture again).
-        if (saved->second.refs == 0 && saved->second.used + 300 < frame_)
-        {
-            texture_serials_.erase(saved->second.texture);
-            saved_textures_.erase(saved->second.texture);
-            target_.ReleaseTexture(saved->second.texture);
-            saved = saved_.erase(saved);
-        }
-        else
-            ++saved;
     }
     DropUnusedContents(filter_contents_);
     DropUnusedContents(shader_contents_);
@@ -186,10 +155,6 @@ void FrameRenderer::ReleaseCache()
             target_.ReleaseGeometry(entry.quad);
         }
     cache_.clear();
-    for (auto &saved : saved_)
-        target_.ReleaseTexture(saved.second.texture);
-    saved_.clear();
-    saved_textures_.clear();
 }
 
 // --- resources: always straight to the backend ------------------------------------------
@@ -246,17 +211,6 @@ Rml::TextureHandle FrameRenderer::GenerateTexture(Rml::Span<const Rml::byte> sou
 
 void FrameRenderer::ReleaseTexture(Rml::TextureHandle texture)
 {
-    const auto shared = saved_textures_.find(texture);
-    if (shared != saved_textures_.end())
-    {
-        // A saved texture RmlUi holds through one or more elements: kept while any holds
-        // it, and for a while after, to be given again (EndFrame releases it).
-        Saved &saved = saved_[shared->second];
-        if (saved.refs > 0)
-            --saved.refs;
-        saved.used = frame_;
-        return;
-    }
     texture_serials_.erase(texture);
     if (buffering_)
         deferred_textures_.push_back(texture);
@@ -531,7 +485,6 @@ void FrameRenderer::Flush()
 
 Rml::LayerHandle FrameRenderer::PushLayer()
 {
-    hash_marks_.push_back({hash_, false, folded_.size()});
     Fold(8), Fold(state_hash_);
     if (buffering_) // a layer inside the buffered one is part of its content
     {
@@ -746,7 +699,7 @@ void FrameRenderer::CompositeLayers(Rml::LayerHandle source, Rml::LayerHandle de
     swallow_pop_ = true;
     if (!entry.texture)
     {
-        // Every backend must save layers (RmlUi's box shadows need it too): said aloud, not hidden.
+        // Every backend must save layers: said aloud, not hidden.
         Rml::Log::Message(
             Rml::Log::LT_ERROR,
             "UI renderer: the backend did not save a filtered layer as a texture; the element is not drawn");
@@ -766,18 +719,6 @@ void FrameRenderer::CompositeLayers(Rml::LayerHandle source, Rml::LayerHandle de
 void FrameRenderer::PopLayer()
 {
     Fold(10);
-    if (!hash_marks_.empty())
-    {
-        // A layer that only made a texture (a box shadow, made once) is not part of what
-        // the frame shows: the frames before and after it draw the same.
-        if (hash_marks_.back().saved)
-        {
-            hash_ = hash_marks_.back().hash;
-            if (record_)
-                folded_.resize(hash_marks_.back().folded);
-        }
-        hash_marks_.pop_back();
-    }
     if (swallow_pop_)
     {
         swallow_pop_ = false;
@@ -798,61 +739,6 @@ void FrameRenderer::PopLayer()
     }
     --depth_;
     target_.PopLayer();
-}
-
-Rml::TextureHandle FrameRenderer::SaveLayerAsTexture()
-{
-    Fold(11);
-    if (!hash_marks_.empty())
-        hash_marks_.back().saved = true;
-    // A texture made from the buffered layer (RmlUi's box shadows: shape, blur, save). The
-    // same drawing (relative to its region) gives the same texture: a rebuilt element with
-    // an unchanged look gets the texture made before instead of a new layer, blur and save.
-    if (buffering_ && buffer_depth_ == 0 && scissor_enabled_ && scissor_.Width() > 0 && scissor_.Height() > 0)
-    {
-        std::vector<uint64_t> key = Key({});
-        key.push_back(0x5a7ed); // a saved texture, not a composite
-        uint64_t hash = 0;
-        for (uint64_t value : key)
-            hash = Mix(hash, value);
-        auto found = saved_.find(hash);
-        if (found != saved_.end() && found->second.key == key)
-        {
-            SkipBuffer();
-            ++found->second.refs;
-            found->second.used = frame_;
-            ++stats_.textures_shared;
-            return found->second.texture;
-        }
-        Flush();
-        ++stats_.textures;
-        const Rml::TextureHandle texture = target_.SaveLayerAsTexture();
-        if (!texture)
-            return texture;
-        texture_serials_[texture] = next_serial_++;
-        if (found == saved_.end()) // (a hash taken by other drawing keeps its texture; this one is not shared)
-        {
-            saved_[hash] = Saved{std::move(key), texture, 1, frame_};
-            saved_textures_[texture] = hash;
-        }
-        return texture;
-    }
-    if (buffering_) // the backend must draw now
-        Flush();
-    ++stats_.textures;
-    const Rml::TextureHandle texture = target_.SaveLayerAsTexture();
-    texture_serials_[texture] = next_serial_++;
-    return texture;
-}
-
-Rml::CompiledFilterHandle FrameRenderer::SaveLayerAsMaskImage()
-{
-    Fold(12);
-    if (buffering_)
-        Flush();
-    const Rml::CompiledFilterHandle filter = target_.SaveLayerAsMaskImage();
-    filter_serials_[filter] = next_serial_++;
-    return filter;
 }
 
 } // namespace storm::ui

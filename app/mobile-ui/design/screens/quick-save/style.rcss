@@ -3,7 +3,7 @@
 s-quick-save { display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
 s-quick-save .qs-plate { position: absolute; left: 50%; top: @{space.lg}dp; transform: translateX(-50%); display: flex; flex-direction: row; align-items: center; gap: @{space.md}dp;
     box-sizing: border-box; min-height: @{size.touchMin}dp; padding: 8dp 18dp; border-radius: 22dp; border: 1dp @{color.brassLine/.55};
-    background-color: @{color.toastPill/.878}; box-shadow: @{color.black/.5} 0 4dp 12dp 0; }
+    background-color: @{color.toastPill/.878}; shadow: @{color.black/.5} 0 4dp 12dp 0; }
 s-quick-save .qs-spin { flex: 0 0 auto; box-sizing: border-box; width: 20dp; height: 20dp; border-radius: 10dp; border: 2dp @{color.brass/.25}; border-top-color: @{color.brass};
     animation: 0.8s linear infinite c-button-spin; }
 s-quick-save .qs-texts { display: flex; flex-direction: column; line-height: 1.25; }

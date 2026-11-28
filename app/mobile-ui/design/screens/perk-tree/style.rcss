@@ -14,9 +14,9 @@ s-perk-tree .pt-pic { position: absolute; left: 9dp; top: 6dp; width: @{spec.ico
    faded locked one; the selected perk in a gold glow. Links: the selected perk's in gold, the others sepia. */
 s-perk-tree .pt-halo { position: absolute; left: 5dp; top: 2dp; width: 52dp; height: 52dp; border-radius: 26dp; box-sizing: border-box; }
 s-perk-tree .pt-node.st-learned .pt-halo { border: 2dp @{color.brassMid}; }
-s-perk-tree .pt-node.st-open .pt-halo { border: 2dp @{color.brassGlow}; box-shadow: @{color.brassGlow/.6} 0 0 9dp 1dp; }
+s-perk-tree .pt-node.st-open .pt-halo { border: 2dp @{color.brassGlow}; shadow: @{color.brassGlow/.6} 0 0 9dp 1dp; }
 s-perk-tree .pt-node.st-locked .pt-pic, s-perk-tree .pt-node.st-unavailable .pt-pic { opacity: 0.55; }
-s-perk-tree .pt-node.sel .pt-halo { border: 3dp @{color.coinGoldTop}; box-shadow: @{color.flash/.9} 0 0 12dp 3dp; }
+s-perk-tree .pt-node.sel .pt-halo { border: 3dp @{color.coinGoldTop}; shadow: @{color.flash/.9} 0 0 12dp 3dp; }
 s-perk-tree .pt-node.pressed .pt-halo { background-color: @{color.brassGlow/.25}; }
 /* marks on the icon: the state (bottom right), the other group's glyph (top left) */
 s-perk-tree .pt-mark { position: absolute; left: 39dp; top: 36dp; width: 17dp; height: 17dp; border-radius: 9dp; display: flex; align-items: center; justify-content: center;

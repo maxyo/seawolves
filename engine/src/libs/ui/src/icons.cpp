@@ -15,6 +15,7 @@
 // engraving on parchment) shows the glyph's dark shading where it reaches the outline. Full-colour icons always take a
 // blurred cell (no style gives them a hard one).
 #include "elements.h"
+#include "shadow_element.h"
 
 #include <algorithm>
 #include <cmath>
@@ -151,10 +152,10 @@ void MissingIconMarker(Rml::Mesh &mesh, Rml::Vector2f origin, float side)
     }
 }
 
-class IconElement final : public Rml::Element
+class IconElement final : public ShadowedElement
 {
   public:
-    explicit IconElement(const Rml::String &tag) : Rml::Element(tag)
+    explicit IconElement(const Rml::String &tag) : ShadowedElement(tag)
     {
     }
 
@@ -179,6 +180,7 @@ class IconElement final : public Rml::Element
 
     void OnRender() override
     {
+        ShadowedElement::OnRender();
         Rml::RenderManager *manager = GetRenderManager();
         const Rml::Vector2f size = GetBox().GetSize(Rml::BoxArea::Content);
         const std::string name = GetAttribute<Rml::String>("name", "");

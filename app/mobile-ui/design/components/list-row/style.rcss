@@ -11,7 +11,7 @@ c-list-row.dense { min-height: @{spec.height.dense}dp; }
 
 c-list-row .lr-lead { position: relative; display: flex; flex: 0 0 auto; }
 c-list-row .lr-lead .lr-pic { position: relative; z-index: 1; }
-c-list-row .lr-cd { position: absolute; box-shadow: @{color.steel/.349} 0 0 0 1dp inset; pointer-events: none; }
+c-list-row .lr-cd { position: absolute; shadow: @{color.steel/.349} 0 0 0 1dp inset; pointer-events: none; }
 c-list-row .lr-cd.round { left: -6dp; top: -6dp; right: -6dp; bottom: -6dp; z-index: 0; }
 c-list-row .lr-cd.over { left: 0; top: 0; right: 0; bottom: 0; z-index: 2; border-radius: 10dp; }
 
@@ -45,10 +45,10 @@ c-list-row .lr-spinner { box-sizing: border-box; width: 22dp; height: 22dp; bord
 /* states: pressed > selected > disabled */
 c-list-row.disabled { background-color: @{color.black/.26}; }
 c-list-row.disabled .lr-title, c-list-row.disabled .lr-value { color: @{color.textMuted}; }
-c-list-row.selected { border-bottom-color: transparent; background-color: @{color.brassGlow/.16}; box-shadow: @{color.brass} 3dp 0 0 0 inset; }
+c-list-row.selected { border-bottom-color: transparent; background-color: @{color.brassGlow/.16}; shadow: @{color.brass} 3dp 0 0 0 inset; }
 c-list-row.selected .lr-title { color: @{color.textSelected}; }
 c-list-row.selected.disabled .lr-title { color: @{color.textMuted}; }
-c-list-row.pressed { border-bottom-color: transparent; background-color: @{color.brassGlow/.3}; box-shadow: @{color.black/.35} 0 2dp 4dp 0 inset; }
+c-list-row.pressed { border-bottom-color: transparent; background-color: @{color.brassGlow/.3}; shadow: @{color.black/.35} 0 2dp 4dp 0 inset; }
 
 /* tile: 2-column grid tile, icon above the caption */
 c-list-row.layout-tile { flex-direction: column; justify-content: center; gap: 4dp; min-height: @{spec.height.tile}dp; height: 100%; padding: 6dp 8dp;
@@ -74,11 +74,11 @@ c-list-row.surface-parchment .lr-act.pressed { background-color: @{color.inkMute
 c-list-row.surface-parchment .lr-spinner { border-color: @{color.ink/.25}; border-top-color: @{color.ink}; }
 c-list-row.surface-parchment.disabled { background-color: @{color.inkMuted/.06}; }
 c-list-row.surface-parchment.disabled .lr-title, c-list-row.surface-parchment.disabled .lr-value { color: @{color.inkMuted}; }
-c-list-row.surface-parchment.selected { background-color: transparent; box-shadow: none; border-bottom-color: @{color.inkMuted/.28}; }
+c-list-row.surface-parchment.selected { background-color: transparent; shadow: none; border-bottom-color: @{color.inkMuted/.28}; }
 c-list-row.surface-parchment.selected .lr-title { color: @{color.ink}; font-weight: bold; text-decoration: underline; }
 c-list-row.surface-parchment.selected.disabled .lr-title { color: @{color.inkMuted}; }
-c-list-row.surface-parchment.pressed { border-bottom-color: transparent; background-color: @{color.inkMuted/.2}; box-shadow: none; }
+c-list-row.surface-parchment.pressed { border-bottom-color: transparent; background-color: @{color.inkMuted/.2}; shadow: none; }
 c-list-row.surface-parchment.layout-tile { background-color: @{color.inkMuted/.1}; }
 c-list-row.surface-parchment.layout-tile.disabled { background-color: @{color.inkMuted/.06}; }
-c-list-row.surface-parchment.layout-tile.selected { background-color: transparent; border-bottom-width: 1dp; box-shadow: @{color.inkRule} 0 -3dp 0 0 inset; }
-c-list-row.surface-parchment.layout-tile.pressed { background-color: @{color.inkMuted/.2}; box-shadow: none; }
+c-list-row.surface-parchment.layout-tile.selected { background-color: transparent; border-bottom-width: 1dp; shadow: @{color.inkRule} 0 -3dp 0 0 inset; }
+c-list-row.surface-parchment.layout-tile.pressed { background-color: @{color.inkMuted/.2}; shadow: none; }

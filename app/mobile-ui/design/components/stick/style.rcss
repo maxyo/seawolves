@@ -15,14 +15,14 @@ c-stick .caption { font-size: @{type.caption}dp; font-style: italic; white-space
 /* move / look: run-zone ring, inner guide circle, knob */
 c-stick .ring { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; box-sizing: border-box;
     border-radius: @{radius.pill}dp; border: 1dp @{color.brassLine/.55}; background-color: @{color.hudGhost/.22}; }
-c-stick.running .ring { border: 2dp @{color.brassLit}; box-shadow: @{color.brassLit/.6} 0 0 12dp 0; }
+c-stick.running .ring { border: 2dp @{color.brassLit}; shadow: @{color.brassLit/.6} 0 0 12dp 0; }
 /* the design draws this circle dashed; RCSS borders are solid, so it is fainter instead */
 c-stick .inner { position: absolute; box-sizing: border-box; border-radius: @{radius.pill}dp; border: 1dp @{color.brassLine/.28}; }
 c-stick .ring .knob { position: absolute; border-radius: @{radius.pill}dp; background-color: @{color.text/.85}; }
 
 /* helm: horizontal capsule, value −100…100 = knob offset from the centre */
 c-stick .track { position: relative; flex: 0 0 auto; box-sizing: border-box; height: @{spec.helmHeight}dp; border-radius: 32dp;
-    border: 1dp @{color.brassLine/.6}; background-color: @{color.hudGhost/.239}; box-shadow: @{color.black/.4} 0 1dp 4dp 0; }
+    border: 1dp @{color.brassLine/.6}; background-color: @{color.hudGhost/.239}; shadow: @{color.black/.4} 0 1dp 4dp 0; }
 c-stick .helm-fill { position: absolute; top: 28dp; height: 6dp; border-radius: 3dp; decorator: linear-gradient(90deg, @{color.brassTop/.2}, @{color.brassTop/.7}); }
 c-stick .chev { position: absolute; top: 25dp; width: 10dp; height: 10dp; transform: rotate(45deg); }
 c-stick .chev.left { left: 14dp; border-left: 2dp @{color.brass/.7}; border-bottom: 2dp @{color.brass/.7}; }

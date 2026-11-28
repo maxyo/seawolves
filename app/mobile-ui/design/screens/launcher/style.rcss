@@ -21,8 +21,8 @@ s-launcher .ln-untested.top { padding: 8dp 8dp 6dp 8dp; }
 s-launcher .ln-prompt { padding: 12dp 16dp 8dp 16dp; font-size: @{type.name}dp; line-height: 1.4; color: @{color.text}; border-bottom: 1dp @{color.brassLine/.14}; }
 s-launcher .ln-links { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 2dp 6dp; border-top: 1dp @{color.brassLine/.35}; }
 s-launcher .ln-center { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-s-launcher .ln-corner { position: absolute; left: 12dp; bottom: 10dp; padding: 0 4dp; background-color: @{color.wood}; box-shadow: @{color.black/.45} 0 0 0 1dp; }
-s-launcher .ln-corner.bare { bottom: 12dp; padding: 0; background-color: transparent; box-shadow: none; }
+s-launcher .ln-corner { position: absolute; left: 12dp; bottom: 10dp; padding: 0 4dp; background-color: @{color.wood}; shadow: @{color.black/.45} 0 0 0 1dp; }
+s-launcher .ln-corner.bare { bottom: 12dp; padding: 0; background-color: transparent; shadow: none; }
 s-launcher .ln-progress { position: absolute; left: 0; right: 0; top: 34%; margin: 0 auto; width: 600dp; max-width: 92%; }
 s-launcher .ln-line { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12dp; }
 s-launcher .ln-name { font-size: @{type.title}dp; font-weight: bold; color: @{color.text}; }

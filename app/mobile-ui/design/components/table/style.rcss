@@ -19,7 +19,7 @@ c-table .tb-row { position: relative; display: flex; flex-direction: row; align-
 c-table .tb-row.last { border-bottom-width: 0; }
 c-table .tb-row.dis { background-color: @{color.black/.22}; }
 c-table .tb-row.pressed { background-color: @{color.brassGlow/.3}; }
-c-table .tb-row.sel { border-bottom-width: 1dp; background-color: @{color.wood}; decorator: linear-gradient(@{color.brassGlow/.18}, @{color.brassGlow/.18}); box-shadow: @{color.brass} 3dp 0 0 0 inset; }
+c-table .tb-row.sel { border-bottom-width: 1dp; background-color: @{color.wood}; decorator: linear-gradient(@{color.brassGlow/.18}, @{color.brassGlow/.18}); shadow: @{color.brass} 3dp 0 0 0 inset; }
 
 c-table .tb-cell { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; box-sizing: border-box; gap: 10dp; min-width: 0; }
 c-table .tb-cell.al-right { justify-content: flex-end; text-align: right; }
@@ -86,7 +86,7 @@ c-table.surface-parchment .tb-head { color: @{color.inkMuted}; border-bottom-col
 c-table.surface-parchment .tb-row { border-bottom-color: @{color.inkMuted/.3}; }
 c-table.surface-parchment .tb-row.dis { background-color: @{color.inkMuted/.06}; }
 c-table.surface-parchment .tb-row.pressed { background-color: @{color.inkMuted/.2}; }
-c-table.surface-parchment .tb-row.sel { background-color: transparent; decorator: linear-gradient(@{color.paperShade/.16}, @{color.paperShade/.16}); box-shadow: @{color.inkRule} 3dp 0 0 0 inset; }
+c-table.surface-parchment .tb-row.sel { background-color: transparent; decorator: linear-gradient(@{color.paperShade/.16}, @{color.paperShade/.16}); shadow: @{color.inkRule} 3dp 0 0 0 inset; }
 c-table.surface-parchment .tb-t { color: @{color.ink}; }
 c-table.surface-parchment .tb-sub { color: @{color.inkMuted}; }
 c-table.surface-parchment .tb-sub.reason { color: @{color.inkMuted}; }

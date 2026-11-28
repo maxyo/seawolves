@@ -10,14 +10,10 @@
 //     meshes, textures, positions, scissor, transform and filters), the filtered result is
 //     drawn from a texture saved the second time it was seen (content seen once, such as
 //     an animation, is composited as it came), as one textured quad. Positions count relative
-//     to the composite region, so content that only moved (a scrolled list) stays cached. Anything else (a
-//     mask image, a saved texture, another blend mode) is passed through as it
-//     came; layers inside the layer are part of its content. Clip masks inside the layer are replayed on a hit (the
-//     stencil is shared by every layer) and, with the stencil the layer is drawn against, part of the key. A cache
-//     entry not used in a frame is released at its end.
-//   * shares textures saved from a layer (RmlUi's box shadows): the same drawing relative
-//     to its region gives the texture made before, held by reference until RmlUi releases
-//     it everywhere and a few seconds after.
+//     to the composite region, so content that only moved (a scrolled list) stays cached. Anything else (another
+//     blend mode) is passed through as it came; layers inside the layer are part of its content. Clip masks inside the
+//     layer are replayed on a hit (the stencil is shared by every layer) and, with the stencil the layer is drawn
+//     against, part of the key. A cache entry not used in a frame is released at its end.
 #pragma once
 
 #include <RmlUi/Core/RenderInterface.h>
@@ -46,9 +42,6 @@ class FrameRenderer final : public Rml::RenderInterface
     // Around Context::Render. EndFrame releases the cache entries this frame did not use.
     void BeginFrame();
     void EndFrame();
-    // The backend did not show the frame just ended (RenderBackend::FrameHeld): the filter results
-    // it was asked to save in that frame were never made and are forgotten.
-    void Dropped();
     // Hash of the drawing commands of the last finished frame.
     uint64_t FrameHash() const
     {
@@ -87,8 +80,6 @@ class FrameRenderer final : public Rml::RenderInterface
     void CompositeLayers(Rml::LayerHandle source, Rml::LayerHandle destination, Rml::BlendMode blend_mode,
                          Rml::Span<const Rml::CompiledFilterHandle> filters) override;
     void PopLayer() override;
-    Rml::TextureHandle SaveLayerAsTexture() override;
-    Rml::CompiledFilterHandle SaveLayerAsMaskImage() override;
     Rml::CompiledFilterHandle CompileFilter(const Rml::String &name, const Rml::Dictionary &parameters) override;
     void ReleaseFilter(Rml::CompiledFilterHandle filter) override;
     Rml::CompiledShaderHandle CompileShader(const Rml::String &name, const Rml::Dictionary &parameters) override;
@@ -170,13 +161,6 @@ class FrameRenderer final : public Rml::RenderInterface
     uint64_t next_serial_ = 1;
     uint64_t hash_ = 0, last_hash_ = 0;
     uint64_t frame_ = 0;
-    struct HashMark
-    {
-        uint64_t hash = 0;  // the frame hash before the layer was pushed
-        bool saved = false; // the layer was saved as a texture
-        size_t folded = 0;  // with record_: values folded before it
-    };
-    std::vector<HashMark> hash_marks_;
     bool record_ = false;
     std::vector<uint64_t> folded_, folded_last_, folded_shown_; // with record_: what was folded, per frame
 
@@ -207,15 +191,6 @@ class FrameRenderer final : public Rml::RenderInterface
 
     std::unordered_map<uint64_t, std::vector<Entry>> cache_; // key hash → entries
     std::unordered_map<uint64_t, uint64_t> candidates_;      // key hash → the last frame it was composited uncached
-    struct Saved // a texture saved from a layer (box shadow), shared by the elements that drew the same
-    {
-        std::vector<uint64_t> key;
-        Rml::TextureHandle texture = 0;
-        int refs = 0;      // RmlUi's holders
-        uint64_t used = 0; // frame of the last hand-out or release
-    };
-    std::unordered_map<uint64_t, Saved> saved_;                       // key hash → texture
-    std::unordered_map<Rml::TextureHandle, uint64_t> saved_textures_; // texture → key hash
     std::vector<Rml::CompiledGeometryHandle>
         deferred_geometry_; // released after the frame (a buffered layer may still need them)
     std::vector<Rml::TextureHandle> deferred_textures_;

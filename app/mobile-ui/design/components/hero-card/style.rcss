@@ -6,7 +6,7 @@ c-hero-card {
     position: relative; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
     width: @{spec.width}dp; height: 100%; gap: @{space.sm}dp; padding: 8dp 2dp 12dp 2dp;
     color: @{color.text}; background-color: @{color.wood};
-    box-shadow: @{color.black/.45} 0 0 0 1dp inset, @{color.woodLight/.04} 0 1dp 0 0;
+    shadow: @{color.black/.45} 0 0 0 1dp inset, @{color.woodLight/.04} 0 1dp 0 0;
 }
 c-hero-card > .hc-main { display: flex; flex-direction: column; gap: @{space.sm}dp; }
 c-hero-card > .hc-main > .hc-id { display: flex; flex-direction: column; gap: @{space.sm}dp; }

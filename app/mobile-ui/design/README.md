@@ -227,7 +227,8 @@ free text),
 - `max-width: 100%` inside an auto-sized parent collapses; use `flex: 0 1 auto; min-width: 0; overflow: hidden`.
 - Backgrounds: `background-color` plus `decorator: linear-gradient(…), radial-gradient(…)`
   (first listed is on top, as in CSS; gradient stops take one position each).
-- `box-shadow: <colour> <x> <y> <blur> <spread> [inset]` — colour first.
+- `shadow: <colour> <x> <y> <blur> <spread> [inset]` — colour first: box-shadow's syntax, drawn by the runtime
+  without a texture; `box-shadow` and `mask-image` are build errors.
 - Text shadow: `font-effect: shadow(0dp 1dp #000)` or `glow(2dp #000)`.
 - `border: 1dp #colour` (solid only). `transform`, `opacity`, `transition`, `@keyframes`
   + `animation: 0.8s linear infinite name` work.

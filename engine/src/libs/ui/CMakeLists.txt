@@ -134,6 +134,7 @@ add_library(storm_ui STATIC
     src/touch_motion.cpp
     src/action_trace.cpp
     src/draw_elements.cpp
+    src/shadow_element.cpp
     src/icons.cpp
     src/prewarm.cpp
     src/game_image.cpp
@@ -292,12 +293,12 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     target_link_libraries(storm_ui_routing_unit PRIVATE storm_ui_script_game)
     add_dependencies(storm_ui_routing_unit storm_ui_app_pack)
     storm_ui_check(script_screen script_screen_check.cpp)
-    # A new picture is shown whole or not yet (RenderBackend::FrameHeld), through the bgfx backend: six
-    # panels with a box shadow each appear, with too few views to make their textures beside the frame.
+    # Shadows are drawn, not made: six panels with a shadow each (the first wider than the window) appear whole in
+    # the very frame after the change, through the bgfx backend with few views, and no texture is created for them.
     if(STORM_UI_RENDER_BACKEND)
         add_test(NAME ui_whole_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1
                  --views 12 --out "${CMAKE_CURRENT_BINARY_DIR}/whole-frame.png"
-                 --script "wait 0.2; mark; props panels {\"sizes\":[40,50,60,70,80,90]}; whole; wait 0.0166; whole; wait 0.0166; whole; wait 0.3; arrived")
+                 --script "wait 0.2; mark; props panels {\"sizes\":[640,50,60,70,80,90]}; arrived; made 0; whole")
         # The icon atlas's pages hold no CPU copy once uploaded; after a device loss they are decoded from the pack
         # again and the icons draw as before.
         add_test(NAME ui_atlas_device_loss COMMAND storm_ui_shot --pack "${pack}" --doc atlas.rml --size 320x120
@@ -308,6 +309,11 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         add_test(NAME ui_icon_fade_shadow COMMAND storm_ui_shot --pack "${pack}" --doc fade.rml --size 210x210 --density 2
                  --out "${CMAKE_CURRENT_BINARY_DIR}/icon-fade-shadow.png"
                  --script "wait 0.1; covered-same 10 10 10 60 10 110 10 160 40; covered-same 60 10 60 60 10 110 10 160 40; covered-same 110 10 110 60 110 110 110 160 40; covered-same 160 10 160 60 160 110 160 160 40")
+        # A filter keeps the element's outer shadow (drawn by the element, outside RmlUi's ink overflow): below a
+        # filtered panel the shadow is as below the same panel unfiltered.
+        add_test(NAME ui_filtered_shadow COMMAND storm_ui_shot --pack "${pack}" --doc filtered.rml --size 200x100 --density 2
+                 --out "${CMAKE_CURRENT_BINARY_DIR}/filtered-shadow.png"
+                 --script "wait 0.1; covered-same 20 62 120 62 20 62 20 62 16; covered-same 64 62 164 62 64 62 64 62 16")
         # An unchanged frame composites the layer the last drawn one left: the touch opening the view (the clear of the
         # tool's target) and one quad, nothing drawn into the layer; a change draws the layer again.
         add_test(NAME ui_steady_frame COMMAND storm_ui_shot --pack "${pack}" --doc panels.rml --size 640x360 --density 1

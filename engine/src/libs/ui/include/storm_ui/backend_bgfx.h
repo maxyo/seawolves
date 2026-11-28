@@ -7,10 +7,9 @@
 // attach the host; it then lays out on OnSurfaceChanged, draws in OnUiRender and drops and
 // re-creates its GPU objects on device loss.
 //
-// RmlUi layers (box shadows, filters, masks) render into frame buffers, one bgfx view per
-// render-target switch; passes of different elements share views. Work that only produces
-// a texture (box-shadow images) may span frames when views are short. Effects that do not
-// fit into the view range at all are not drawn and are logged as errors. An unchanged frame
+// RmlUi layers (filters) render into frame buffers, one bgfx view per render-target switch;
+// passes of different elements share views; shadows are drawn by a shader, without a layer.
+// Effects that do not fit into the view range at all are not drawn and are logged as errors. An unchanged frame
 // composites the UI layer the last drawn frame left (one draw), and a frame without a document
 // submits nothing (a SetTarget frame buffer is only cleared).
 #pragma once
@@ -50,10 +49,8 @@ class BgfxBackend : public RenderBackend, public storm::render::FrameClient
     virtual void SetTarget(uint16_t frame_buffer) = 0;
     // bgfx view ids the backend may use. OnUiRender takes them from the FrameContext.
     virtual void SetViews(uint16_t first, uint16_t count) = 0;
-    // Queued texture-producing layer work not yet rendered (see the header comment).
-    virtual size_t PendingWork() const = 0;
     // Seconds until the host needs another frame after the last OnUiRender (0 while something
-    // animates or layer work is queued).
+    // animates).
     virtual double NextFrameDelay() const = 0;
 };
 

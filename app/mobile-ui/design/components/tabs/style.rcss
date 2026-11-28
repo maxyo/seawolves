@@ -14,7 +14,7 @@ c-tabs .tabs-lt { display: inline-block; }
 c-tabs .tabs-count { flex: 0 0 auto; font-size: @{spec.font.count}dp; color: @{color.textMuted}; }
 c-tabs .tabs-badge { flex: 0 0 auto; box-sizing: border-box; min-width: @{spec.badge}dp; height: @{spec.badge}dp; padding: 0 5dp; border-radius: 9dp;
     background-color: @{color.wax}; color: @{color.onWax}; font-size: @{spec.font.count}dp; font-weight: normal; line-height: @{spec.badge}dp; text-align: center;
-    box-shadow: @{color.black/.5} 0 1dp 2dp 0; }
+    shadow: @{color.black/.5} 0 1dp 2dp 0; }
 c-tabs .tabs-badge.abs { position: absolute; right: -10dp; top: -7dp; }
 c-tabs .tabs-divider { flex: 0 0 auto; width: 1dp; align-self: stretch; margin: 6dp 4dp; background-color: @{color.brassLine/.4}; }
 c-tabs .tabs-hit { position: absolute; left: 0; right: 0; top: -1dp; bottom: -1dp; }
@@ -49,9 +49,9 @@ c-tabs.surface-parchment .tabs-tab.sel { color: @{color.ink}; font-weight: bold;
 c-tabs.surface-parchment .tabs-tab.pressed { background-color: @{color.inkMuted/.2}; }
 c-tabs.surface-parchment .tabs-count { color: @{color.inkMuted}; font-weight: normal; }
 c-tabs.surface-parchment .tabs-divider { background-color: @{color.inkMuted/.35}; }
-c-tabs.surface-parchment.look-segment { background-color: @{color.inkMuted/.08}; box-shadow: @{color.inkMuted/.35} 0 -1dp 0 0 inset; }
+c-tabs.surface-parchment.look-segment { background-color: @{color.inkMuted/.08}; shadow: @{color.inkMuted/.35} 0 -1dp 0 0 inset; }
 c-tabs.surface-parchment.look-segment .tabs-tab { border-left-color: @{color.inkMuted/.35}; }
-c-tabs.surface-parchment.look-segment .tabs-tab.sel { background-color: @{color.inkMuted/.14}; box-shadow: @{color.ink} 0 -2dp 0 0 inset; }
+c-tabs.surface-parchment.look-segment .tabs-tab.sel { background-color: @{color.inkMuted/.14}; shadow: @{color.ink} 0 -2dp 0 0 inset; }
 c-tabs.surface-parchment.look-icons .tabs-tab.sel { background-color: @{color.inkMuted/.14}; border-left-color: @{color.ink}; }
 c-tabs.surface-parchment.look-rail .tabs-tab { border-bottom-color: @{color.inkMuted/.22}; }
 c-tabs.surface-parchment.look-rail .tabs-tab.sel { background-color: @{color.inkMuted/.12}; border-left-color: @{color.ink}; border-bottom-color: @{color.inkMuted/.22}; }

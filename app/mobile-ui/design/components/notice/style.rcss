@@ -12,15 +12,15 @@ c-notice.place-hud .ntc-outer { position: absolute; left: 0; right: 0; width: au
 
 /* box: flat fill + 3 dp tone bar on the left, no frame */
 c-notice.box .ntc-body { display: flex; flex-direction: row; align-items: center; gap: 10dp; box-sizing: border-box; width: 100%; min-height: @{spec.boxHeight}dp; padding: 8dp 12dp 8dp 14dp;
-    font-size: @{spec.font.box}dp; line-height: 1.4; background-color: @{color.black/.26}; box-shadow: @{color.brassLine/.6} 3dp 0 0 0 inset; }
+    font-size: @{spec.font.box}dp; line-height: 1.4; background-color: @{color.black/.26}; shadow: @{color.brassLine/.6} 3dp 0 0 0 inset; }
 c-notice.box.compact .ntc-body { font-size: @{spec.font.compact}dp; }
 c-notice.box .ntc-text { max-height: 2.8em; }
-c-notice.box.tone-warn .ntc-body { box-shadow: @{color.brassLine} 3dp 0 0 0 inset; }
-c-notice.box.tone-danger .ntc-body { background-color: @{color.wax/.24}; box-shadow: @{color.wax} 3dp 0 0 0 inset; }
-c-notice.box.tone-ok .ntc-body { box-shadow: @{color.okDeep} 3dp 0 0 0 inset; }
-c-notice.box.paper .ntc-body { color: @{color.ink}; background-color: @{color.inkMuted/.12}; box-shadow: @{color.inkRule} 3dp 0 0 0 inset; }
-c-notice.box.paper.tone-danger .ntc-body { background-color: @{color.wax/.1}; box-shadow: @{color.wax} 3dp 0 0 0 inset; }
-c-notice.box.paper.tone-ok .ntc-body { box-shadow: @{color.leaf} 3dp 0 0 0 inset; }
+c-notice.box.tone-warn .ntc-body { shadow: @{color.brassLine} 3dp 0 0 0 inset; }
+c-notice.box.tone-danger .ntc-body { background-color: @{color.wax/.24}; shadow: @{color.wax} 3dp 0 0 0 inset; }
+c-notice.box.tone-ok .ntc-body { shadow: @{color.okDeep} 3dp 0 0 0 inset; }
+c-notice.box.paper .ntc-body { color: @{color.ink}; background-color: @{color.inkMuted/.12}; shadow: @{color.inkRule} 3dp 0 0 0 inset; }
+c-notice.box.paper.tone-danger .ntc-body { background-color: @{color.wax/.1}; shadow: @{color.wax} 3dp 0 0 0 inset; }
+c-notice.box.paper.tone-ok .ntc-body { shadow: @{color.leaf} 3dp 0 0 0 inset; }
 
 /* inline: icon + one 13 dp line */
 c-notice.inline .ntc-body { display: flex; flex-direction: row; align-items: center; gap: 8dp; box-sizing: border-box; width: 100%; min-height: @{spec.inlineHeight}dp;

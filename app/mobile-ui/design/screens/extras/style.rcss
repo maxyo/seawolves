@@ -2,6 +2,6 @@
 s-extras { display: none; position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 s-extras.shown { display: block; }
 s-extras .sx-scrim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
-s-extras .sx-sheet { position: absolute; top: 50dp; right: 8dp; width: 290dp; box-shadow: @{color.black/.55} 0 8dp 24dp; }
+s-extras .sx-sheet { position: absolute; top: 50dp; right: 8dp; width: 290dp; shadow: @{color.black/.55} 0 8dp 24dp; }
 s-extras .sx-rows { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 s-extras .sx-reading { max-height: 290dp; overflow-y: auto; white-space: pre-wrap; font-size: @{type.body}dp; line-height: 1.45; color: @{color.ink}; }

@@ -13,14 +13,13 @@
 //                    pictures alive are at most max bytes), covered-same <x> <y> <bx> <by> <mx> <my> <nx> <ny> <side>
 //                    (the squares at x,y and bx,by agree within 1 wherever the squares at mx,my and nx,ny, the same
 //                    icon over two backgrounds, are equal: where an opaque glyph covers),
-//                    submitted <min> <max> (the UI's bgfx render items in the last frame are within)
+//                    submitted <min> <max> (the UI's bgfx render items in the last frame are within),
+//                    made <max> (textures the last drawn frame created)
 //
 // Draws through the UI's bgfx backend on bgfx's GLES 3.0 renderer (Mesa llvmpipe, headless),
 // the engine configuration, with the tool acting as the frame owner: N UI views from
 // storm::render::kUiViewBegin (default kUiViewCount, the engine's range), and game pictures
 // decoded from --game-root's .tx files (the engine takes them from its texture module).
-// Before each capture it renders frames on the same clock until the backend has no queued
-// layer work (at most 60), and reports how many.
 //
 // A game interface instead of a document: --interface model.json renders a recorded
 // interface model through the screen routing (--state dialogue=state.json feeds a state
@@ -517,15 +516,6 @@ class BgfxCapture final : public Capture
     }
     bool Shot(storm::ui::Host &host, const std::string &path) override
     {
-        int settle = 0;
-        // Animated shadows queue new work every frame: give up after a second.
-        while (backend_->PendingWork() > 0 && settle < 60)
-        {
-            Frame(host);
-            ++settle;
-        }
-        if (settle)
-            std::fprintf(stderr, "settle %d frames\n", settle);
         Frame(host);
         return Seen(path);
     }
@@ -535,8 +525,6 @@ class BgfxCapture final : public Capture
     }
     std::vector<unsigned char> Settled(storm::ui::Host &host) override
     {
-        for (int settle = 0; backend_->PendingWork() > 0 && settle < 60; ++settle)
-            Frame(host);
         Frame(host);
         return Pixels();
     }
@@ -784,6 +772,15 @@ class Script
             const int submitted = capture_.Submitted();
             std::printf("submitted: %d bgfx render items\n", submitted);
             if (submitted < min || submitted > max)
+                status_ = 7;
+        }
+        else if (verb == "made") // made <max>: textures the last drawn frame created (FrameStats::textures)
+        {
+            int max = 0;
+            words >> max;
+            const int made = host_.LastFrameStats().textures;
+            std::printf("made: %d textures\n", made);
+            if (made > max)
                 status_ = 7;
         }
         else if (verb == "arrived") // arrived: the picture on the screen is no longer the marked one

@@ -13,12 +13,12 @@ c-tile.layout-column .ti-label, c-tile.layout-column .ti-sub { text-align: cente
 c-tile .ti-sub { font-size: @{spec.font.sub}dp; color: @{color.textMuted}; }
 c-tile .ti-slot { display: block; flex: 0 0 auto; }
 
-c-tile.pressed { background-color: @{color.brassGlow/.3}; box-shadow: @{color.black/.35} 0 2dp 4dp 0 inset; }
-c-tile.selected { border-color: @{color.brass}; background-color: @{color.brassGlow/.22}; box-shadow: none; }
+c-tile.pressed { background-color: @{color.brassGlow/.3}; shadow: @{color.black/.35} 0 2dp 4dp 0 inset; }
+c-tile.selected { border-color: @{color.brass}; background-color: @{color.brassGlow/.22}; shadow: none; }
 c-tile.selected .ti-label { color: @{color.textSelected}; }
-c-tile.disabled { border-color: transparent; background-color: @{color.black/.3}; box-shadow: none; }
+c-tile.disabled { border-color: transparent; background-color: @{color.black/.3}; shadow: none; }
 c-tile.disabled .ti-label { color: @{color.textMuted}; }
-c-tile.empty { border-color: transparent; background-color: transparent; box-shadow: none; }
+c-tile.empty { border-color: transparent; background-color: transparent; shadow: none; }
 c-tile.empty .ti-label { color: @{color.textMuted}; }
 c-tile.empty.pressed { background-color: @{color.brassGlow/.14}; }
 /* a selected empty slot is selected like any other tile: the solid rim replaces the dashed one (the template drops it) */

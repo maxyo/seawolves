@@ -7,17 +7,17 @@ c-hud-button .disc {
     position: relative; display: flex; flex-direction: row; align-items: center; justify-content: center; flex: 0 0 auto;
     box-sizing: border-box; border-radius: @{radius.pill}dp; border: 1.5dp @{color.brassEdge};
     decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudGlassTop/.6}, @{color.hudGlassLow/.659});
-    box-shadow: @{color.black/.5} 0 2dp 6dp 0;
+    shadow: @{color.black/.5} 0 2dp 6dp 0;
 }
 c-hud-button c-icon { position: relative; z-index: 1; }
 c-hud-button .slot { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 2; }
 c-hud-button .ring { left: -6dp; top: -6dp; right: -6dp; bottom: -6dp; pointer-events: none; }
 
 /* looks */
-c-hud-button.variant-primary .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudPrimaryTop/.722}, @{color.hudPrimaryLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
-c-hud-button.variant-combat .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudCombatTop/.722}, @{color.hudCombatLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
-c-hud-button.variant-active .disc { border: 2dp @{color.brassLit}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudActiveTop/.722}, @{color.hudActiveLow/.78}); box-shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
-c-hud-button.variant-ghost .disc { border: 1dp @{color.brassLine/.45}; decorator: none; background-color: @{color.hudGhost/.251}; box-shadow: none; }
+c-hud-button.variant-primary .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudPrimaryTop/.722}, @{color.hudPrimaryLow/.78}); shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-combat .disc { border: 2dp @{color.ringEnd}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudCombatTop/.722}, @{color.hudCombatLow/.78}); shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-active .disc { border: 2dp @{color.brassLit}; decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudActiveTop/.722}, @{color.hudActiveLow/.78}); shadow: @{color.hudHalo/.349} 0 0 0 3dp, @{color.black/.55} 0 3dp 8dp 0; }
+c-hud-button.variant-ghost .disc { border: 1dp @{color.brassLine/.45}; decorator: none; background-color: @{color.hudGhost/.251}; shadow: none; }
 
 /* pressed, and while the hold ring runs: denser glass, slightly smaller */
 c-hud-button.pressed .disc { transform: scale(0.94); decorator: radial-gradient(circle farthest-corner at 38% 30%, @{color.hudGlassTop/.922}, @{color.hudGlassLow/.98}); }
@@ -27,7 +27,7 @@ c-hud-button.variant-active.pressed .disc { decorator: radial-gradient(circle fa
 c-hud-button.variant-ghost.pressed .disc { decorator: none; }
 
 /* hold completed: short flash */
-c-hud-button.done .disc { box-shadow: @{color.ringStart} 0 0 0 3dp, @{color.flash/.8} 0 0 16dp 4dp; }
+c-hud-button.done .disc { shadow: @{color.ringStart} 0 0 0 3dp, @{color.flash/.8} 0 0 16dp 4dp; }
 
 /* status fill: rises from the bottom, a thin bright line marks the level */
 c-hud-button .fill-clip { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: @{radius.pill}dp; overflow: hidden; pointer-events: none; }
@@ -71,7 +71,7 @@ c-hud-button.spent { pointer-events: none; }
 
 /* indicator (40 dp) and land state icon (26 dp): flat translucent disc, not a button */
 c-hud-button.flat { pointer-events: none; }
-c-hud-button.flat .disc { border: 1dp @{color.brassEdge/.6}; decorator: none; background-color: @{color.hudPlate/.32}; box-shadow: @{color.black/.45} 0 1dp 3dp 0; transform: none; filter: none; }
+c-hud-button.flat .disc { border: 1dp @{color.brassEdge/.6}; decorator: none; background-color: @{color.hudPlate/.32}; shadow: @{color.black/.45} 0 1dp 3dp 0; transform: none; filter: none; }
 c-hud-button.state .disc { border-color: @{color.brassEdge/.7}; background-color: @{color.hudPlate/.4}; }
 c-hud-button.state .level { height: 1dp; }
 c-hud-button.state .badge { left: auto; right: -5dp; bottom: -6dp; font-size: 13dp; line-height: 13dp; }

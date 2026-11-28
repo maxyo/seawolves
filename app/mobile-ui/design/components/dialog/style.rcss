@@ -19,14 +19,14 @@ c-dialog.variant-sheet > .scrim.on { background-color: @{color.scrim/.502}; }
 c-dialog > .outer { position: relative; display: block; flex: 0 1 auto; min-width: 0; margin: 0 12dp; }
 c-dialog.variant-sheet > .outer { margin: 0 0 0 12dp; }
 c-dialog.refused > .outer { animation: 0.36s cubic-in-out 2 ui-refused; }
-c-dialog.edge > .outer { border-radius: 2dp; box-shadow: @{color.black/.55} 0 0 0 1dp, @{color.black/.55} 0 8dp 22dp 0; }
+c-dialog.edge > .outer { border-radius: 2dp; shadow: @{color.black/.55} 0 0 0 1dp, @{color.black/.55} 0 8dp 22dp 0; }
 
 c-dialog > .outer > .box {
     position: relative; display: flex; flex-direction: column; box-sizing: border-box; gap: 12dp; padding: 16dp 18dp;
     max-height: 84vh; /* with the padding about 90 % of the screen: a long text scrolls, the title and the actions stay
                          on the screen (a percentage on the auto-height wrapper does not constrain RmlUi's text layout) */
     background-color: @{color.wood};
-    box-shadow: @{color.black/.5} 0 0 0 1dp inset, @{color.black/.6} 0 8dp 24dp 0;
+    shadow: @{color.black/.5} 0 0 0 1dp inset, @{color.black/.6} 0 8dp 24dp 0;
 }
 c-dialog > .outer > .box > .step, c-dialog > .outer > .box > .head, c-dialog > .outer > .box > .consequence,
 c-dialog > .outer > .box > .actions { flex: 0 0 auto; }
@@ -54,7 +54,7 @@ c-dialog.tone-parchment > .outer > .box {
         radial-gradient(ellipse farthest-corner at 88% 96%, @{color.paperShade/.22}, @{color.paperShade/0} 60%),
         repeating-linear-gradient(0deg, @{color.inkMuted/.035} 0dp, @{color.inkMuted/.035} 1dp, @{color.black/0} 1dp, @{color.black/0} 3dp),
         linear-gradient(@{color.paperTop}, @{color.paperBottom});
-    box-shadow: @{color.paperShade/.32} 0 0 22dp 0 inset, @{color.black/.6} 0 8dp 24dp 0;
+    shadow: @{color.paperShade/.32} 0 0 22dp 0 inset, @{color.black/.6} 0 8dp 24dp 0;
 }
 c-dialog.tone-parchment > .outer > .box > .step,
 c-dialog.tone-parchment > .outer > .box > .head > .titles > .subtitle,
@@ -64,4 +64,4 @@ c-dialog.tone-parchment > .outer > .box > .step > .dot { border-color: @{color.i
 c-dialog.tone-parchment > .outer > .box > .step > .dot.on { background-color: @{color.inkMuted}; }
 
 /* aged: the sheet itself is drawn by ui-paper (torn edge, fibres, foxing, shadow) */
-c-dialog.aged > .outer > .box { color: @{color.inkAged}; decorator: none; box-shadow: none; }
+c-dialog.aged > .outer > .box { color: @{color.inkAged}; decorator: none; shadow: none; }

@@ -197,13 +197,6 @@ class NoBackend final : public RenderBackend
     }
     void EndFrame() override
     {
-        held_ = hold > 0;
-        if (held_)
-            --hold;
-    }
-    bool FrameHeld() const override
-    {
-        return held_;
     }
     PictureState AcquireGamePicture(const std::string &) override
     {
@@ -217,10 +210,8 @@ class NoBackend final : public RenderBackend
     {
         return {}; // every check pack fits the guaranteed 2048 px
     }
-    int hold = 0; // the next frames a backend would hold back (their layer textures still being made)
 
   private:
-    bool held_ = false;
     NoRenderer renderer_;
 };
 

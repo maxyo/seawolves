@@ -6,6 +6,9 @@
 
 - Верфь: при показанном предложении верфи свой корабль снова выбирается касанием — карточка возвращается к нему и к
   «Ремонту», а отмеченной остаётся одна строка; раньше касание ничего не делало, и отмеченными выглядели две строки.
+- Тени панелей, кнопок и окон рисуются сразу, без заготовки текстур: экран с тенями появляется в первом же кадре
+  (раньше мог запаздывать на несколько кадров), а тень шириной во весь экран больше не обрезается. Тени чуть мягче
+  прежних; внутренняя тень нажатой золотой кнопки и пергаментных карточек теперь видна поверх их заливки.
 - Значки интерфейса больше не рисуются на телефоне при первом показе: они заранее собраны в одну текстуру и
   окрашиваются при выводе. Первое открытие экрана с новыми значками не подтормаживает; края значков могут быть на
   долю пикселя мягче или резче.
@@ -185,6 +188,10 @@
 
 - Shipyard: with a yard offer shown, tapping your own ship again returns the card to it and to «Repair», and only
   one row is marked; the tap used to do nothing and two rows looked selected.
+- Shadows of panels, buttons and windows are drawn at once, without preparing textures: a screen with shadows
+  appears in its very first frame (it could be several frames late before), and a shadow as wide as the screen is no
+  longer cut. Shadows are slightly softer; the inner shadow of a pressed gold button and of parchment cards now shows
+  over their fill.
 - Interface icons are no longer drawn on the phone the first time they appear: they are baked into one texture and
   coloured as they are drawn. A screen's first opening with new icons no longer stalls; icon edges may be a fraction of
   a pixel softer or sharper.

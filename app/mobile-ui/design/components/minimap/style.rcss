@@ -10,14 +10,14 @@ c-minimap > .mm-line.bottom { top: @{spec.line2Top}dp; color: @{color.textSecond
 c-minimap > .mm-disc { position: absolute; left: @{spec.disc.left}dp; top: @{spec.disc.top}dp; width: @{spec.disc.size}dp; height: @{spec.disc.size}dp; box-sizing: border-box;
     border-radius: 50dp; border: 1dp @{color.brassLine/.7};
     decorator: radial-gradient(circle closest-side at center, @{color.radarTop/.353}, @{color.radarLow/.502});
-    box-shadow: @{color.black/.45} 0 0 0 1dp, @{color.black/.5} 0 1dp 4dp 0; }
+    shadow: @{color.black/.45} 0 0 0 1dp, @{color.black/.5} 0 1dp 4dp 0; }
 c-minimap > .mm-disc.pressed { border-color: @{color.brass}; }
 c-minimap > .mm-disc > .mm-own { position: absolute; left: 45dp; top: 44dp; width: 0; height: 0; transform-origin: 50% 60%;
     border-left: 4dp transparent; border-right: 4dp transparent; border-bottom: 9dp @{color.text}; }
 c-minimap > .mm-disc > .mm-dot { position: absolute; width: @{spec.dot}dp; height: @{spec.dot}dp; border-radius: 3dp; background-color: @{color.brass}; }
 c-minimap > .mm-disc > .mm-dot.tone-enemy { background-color: @{color.dangerFill}; }
 c-minimap > .mm-disc > .mm-dot.tone-ally { background-color: @{color.radarAlly}; }
-c-minimap.native > .mm-disc { border: 0; decorator: none; box-shadow: none; }
+c-minimap.native > .mm-disc { border: 0; decorator: none; shadow: none; }
 /* the place asks for its natural width (natural="1"); a long one steps its font down, and only
    then ends in an ellipsis, inside the minimap's width; the speed always stays */
 c-minimap > .mm-line.top { display: flex; flex-direction: row; justify-content: center; }

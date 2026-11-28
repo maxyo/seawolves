@@ -11,7 +11,6 @@
 //     screen in the next frame after the model.
 //   * Touch scrolling (ScrollFling): drag 1:1, fling on the frame clock, nothing laid out.
 #include "../src/frame_renderer.h"
-#include "../src/job_rows.h"
 #include "hud_scripts.h"
 
 #include <RmlUi/Core.h>
@@ -225,73 +224,6 @@ void FilterCache()
     Expect(backend.Count("push") == 1 && stats.cached_layers == 0, "a filter with other parameters is another filter");
 }
 
-// A frame the backend held back (RenderBackend::FrameHeld) was never drawn: a filter result it was
-// asked to save in that frame does not exist. The renderer forgets it and saves it again in a
-// frame that is shown; a result made before stays.
-void DroppedFrame()
-{
-    Recorder backend;
-    FrameStats stats;
-    FrameRenderer renderer(backend, stats);
-    const Rml::CompiledGeometryHandle geometry = Mesh(renderer, 0);
-    const Rml::CompiledFilterHandle filter = renderer.CompileFilter("drop-shadow", {});
-    const Rml::Rectanglei region = Rml::Rectanglei::FromPositionSize({0, 0}, {40, 40});
-    const auto frame = [&](bool dropped) {
-        backend.calls.clear();
-        stats = FrameStats();
-        renderer.BeginFrame();
-        FilteredElement(renderer, geometry, filter, region);
-        renderer.EndFrame();
-        if (dropped)
-            renderer.Dropped();
-    };
-    frame(false);
-    frame(true);
-    Expect(backend.Count("save") == 1 && backend.Count("release-texture") == 1,
-           "a result saved in a frame that was not shown is given back");
-    frame(false);
-    Expect(backend.Count("save") == 1 && stats.cached_layers == 0,
-           "the next frame saves it again instead of drawing a texture never filled");
-    frame(true);
-    Expect(backend.Count("draw") == 1 && backend.Count("release-texture") == 0,
-           "a result made in a shown frame survives a held one");
-    frame(false);
-    Expect(backend.Count("push") == 0 && stats.cached_layers == 1, "and is drawn from the cache after it");
-}
-
-// RmlUi's box shadow: a layer drawn, saved as a texture, popped. An element rebuilt with the
-// same look draws the same: it gets the texture made before, and it lives while held.
-void SharedShadows()
-{
-    Recorder backend;
-    FrameStats stats;
-    FrameRenderer renderer(backend, stats);
-    const Rml::CompiledGeometryHandle shape = Mesh(renderer, 0);
-    const auto shadow = [&](float x) {
-        renderer.EnableScissorRegion(true);
-        renderer.SetScissorRegion(Rml::Rectanglei::FromPositionSize({static_cast<int>(x), 0}, {60, 30}));
-        renderer.PushLayer();
-        renderer.RenderGeometry(shape, {x + 4, 4}, 0);
-        const Rml::TextureHandle texture = renderer.SaveLayerAsTexture();
-        renderer.PopLayer();
-        renderer.EnableScissorRegion(false);
-        return texture;
-    };
-    renderer.BeginFrame();
-    const Rml::TextureHandle first = shadow(0);
-    renderer.EndFrame();
-    Expect(backend.Count("save") == 1, "the first box shadow is made");
-    backend.calls.clear();
-    renderer.BeginFrame();
-    renderer.ReleaseTexture(first);               // the element was rebuilt: RmlUi lets go of the old one...
-    const Rml::TextureHandle again = shadow(100); // ...and makes the same shadow elsewhere
-    renderer.EndFrame();
-    Expect(again == first && backend.Count("save") == 0 && backend.Count("push") == 0,
-           "the same shadow again is the texture made before");
-    Expect(stats.textures_shared == 1, "counted as shared");
-    Expect(backend.Count("release-texture") == 0, "a held texture is not released");
-}
-
 // The world map's HUD of the application's pack, drawn by its script, after a second of frames: the pack's elements
 // have played their entrance.
 void WorldMap(Runtime &runtime)
@@ -361,36 +293,6 @@ void TapLatency(const std::string &pack)
     runtime.Frame();
     Expect(runtime.host->LastFrameStats().layout_passes == 0, "a model that changed nothing lays nothing out");
     Expect(!runtime.host->Prepare(delay), "the screen is complete in that one frame");
-}
-
-// A frame the backend holds back (the textures of a new screen are still being made, the frame
-// before stays on the screen) is not a drawn frame: the host draws it again, and nothing that
-// waits for a frame on the screen is told until one is shown.
-void HeldFrame(const std::string &pack)
-{
-    Runtime runtime(pack);
-    AttachScripts(runtime);
-    WorldMap(runtime);
-    double delay = 0.0;
-    Expect(!runtime.host->Prepare(delay), "the HUD is steady before the screen opens");
-    const uint64_t shown = runtime.host->LastFrameStats().number;
-
-    runtime.host->ExpectInterface();
-    const InterfaceModel model = Load(states_directory + "/../models", "game-menu.json");
-    runtime.host->SetInterface(model);
-
-    runtime.backend.hold = 2;
-    runtime.Frame();
-    Expect(runtime.host->LastFrameStats().number == shown, "a held frame is not a frame shown");
-    Expect(runtime.host->Prepare(delay) && delay == 0.0, "the host asks for the frame again at once");
-    runtime.Frame();
-    Expect(runtime.host->LastFrameStats().number == shown, "held a second time");
-    runtime.Frame();
-    const FrameStats stats = runtime.host->LastFrameStats();
-    Expect(stats.number == shown + 1 && stats.held == 2, "the frame shown counts the two held for it");
-    Expect(stats.apply_ms > 0.0, "and carries what they cost (the model was applied before the first)");
-    runtime.Frame();
-    Expect(runtime.host->LastFrameStats().held == 0, "the frames after it are held by nothing");
 }
 
 // The list of scroll.rml (300 px high, 60 rows of 41 px: 2160 px to scroll at density 1).
@@ -676,24 +578,6 @@ void ScrollFling(const std::string &pack)
 
 } // namespace
 
-// The texture jobs' buffers are as high as the queued jobs need (regression: a full-width bar's shadow, 3268x248
-// at 3200x1440, took 2x layers, posts and a depth/stencil of the whole surface, about 176 MB, made again after
-// every idle release).
-void JobBuffers()
-{
-    using storm::ui::JobBufferHeight;
-    const std::pair<int, int> bar[] = {{3268, 248}};
-    Expect(JobBufferHeight(bar, 3200, 1440, 128) == 384,
-           "a top bar's shadow: 248 + gap rounded up to 384 rows, not 1440");
-    const std::pair<int, int> panel[] = {{2798, 1522}};
-    Expect(JobBufferHeight(panel, 3200, 1440, 128) == 1440, "a panel taller than the surface: the surface's height");
-    const std::pair<int, int> row[] = {{1000, 200}, {1000, 300}, {1000, 100}, {1000, 100}};
-    Expect(JobBufferHeight(row, 3200, 1440, 128) == 512,
-           "three side by side (332 high), the fourth on the next row (132): 464 -> 512");
-    Expect(JobBufferHeight({}, 3200, 1440, 128) == 128, "no job: one step");
-    Expect(JobBufferHeight(bar, 3200, 100, 128) == 100, "never above the surface");
-}
-
 int main(int argc, char **argv)
 {
     if (argc < 4)
@@ -702,13 +586,9 @@ int main(int argc, char **argv)
         return 2;
     }
     states_directory = argv[1];
-    JobBuffers();
     FilterCache();
-    DroppedFrame();
-    SharedShadows();
     SteadyRuntime(argv[3]);
     TapLatency(argv[3]);
-    HeldFrame(argv[3]);
     ScrollFling(argv[2]);
     ScrollStretch(argv[2]);
     if (failures)

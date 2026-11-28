@@ -14,8 +14,8 @@ c-hud-plate.align-right > .box { align-items: flex-end; text-align: right; }
 c-hud-plate.align-center > .box { align-items: center; text-align: center; }
 
 c-hud-plate.plate > .box { color: @{color.text}; background-color: @{color.hudPlate/.55}; font-effect: shadow(0dp 1dp @{color.black/.8}); }
-c-hud-plate.plate.tone-danger > .box { box-shadow: @{color.dangerFill} 3dp 0 0 0 inset; }
-c-hud-plate.plate.tone-gold > .box { box-shadow: @{color.brass} 3dp 0 0 0 inset; }
+c-hud-plate.plate.tone-danger > .box { shadow: @{color.dangerFill} 3dp 0 0 0 inset; }
+c-hud-plate.plate.tone-gold > .box { shadow: @{color.brass} 3dp 0 0 0 inset; }
 
 c-hud-plate .head { display: flex; flex-direction: row; align-items: center; gap: 6dp; }
 c-hud-plate .title { flex: 1 1 auto; font-size: @{type.caption}dp; color: @{color.textSecond}; }
@@ -42,7 +42,7 @@ c-hud-plate .item[data-action] { pointer-events: auto; }
    dark mount over a map name or a bright coast, not as doubled outlines with the scene between */
 c-hud-plate .item { border-radius: @{radius.pill}dp; background-color: @{color.black/.3}; }
 c-hud-plate .item .pic { position: absolute; }
-c-hud-plate .item c-game-image .gi-box { border-radius: @{radius.pill}dp; border: 1dp @{color.brassEdge/.7}; box-shadow: @{color.black/.5} 0 1dp 4dp 0; }
+c-hud-plate .item c-game-image .gi-box { border-radius: @{radius.pill}dp; border: 1dp @{color.brassEdge/.7}; shadow: @{color.black/.5} 0 1dp 4dp 0; }
 /* a ship icon of the atlas carries its own square grey frame: the round mask shows the middle */
 c-hud-plate .item.ship ui-game-image { left: -9%; top: -9%; right: -9%; bottom: -9%; }
 c-hud-plate .item ui-ring.arc { position: absolute; ring-track: @{color.black/.55}; }

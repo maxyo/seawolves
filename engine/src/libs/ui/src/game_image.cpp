@@ -14,6 +14,7 @@
 // fit="contain|cover" keeps the picture's proportions (see OnRender).
 #include "elements.h"
 #include "picture_atlas.h"
+#include "shadow_element.h"
 
 #include <RmlUi/Core/StringUtilities.h>
 
@@ -235,10 +236,10 @@ bool ParseUv(const std::string &text, float uv[4])
     return true;
 }
 
-class GameImageElement final : public Rml::Element
+class GameImageElement final : public ShadowedElement
 {
   public:
-    explicit GameImageElement(const Rml::String &tag) : Rml::Element(tag)
+    explicit GameImageElement(const Rml::String &tag) : ShadowedElement(tag)
     {
     }
 
@@ -322,6 +323,7 @@ class GameImageElement final : public Rml::Element
 
     void OnRender() override
     {
+        ShadowedElement::OnRender();
         Rml::RenderManager *manager = GetRenderManager();
         if (!manager || !entry_ || !shown_)
             return;

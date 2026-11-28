@@ -3,8 +3,8 @@ c-setting { display: block; width: 100%; color: @{color.text}; }
 c-setting.disabled { opacity: 0.5; }
 c-setting .set-row { display: block; box-sizing: border-box; width: 100%; min-height: @{spec.minHeight}dp; padding: 6dp 0; }
 c-setting.line .set-row { border-bottom: 1dp @{color.brassLine/.14}; }
-c-setting.pressed .set-row, c-setting .set-row.pressed { background-color: @{color.brassGlow/.16}; box-shadow: @{color.brassLine/.3} 0 0 0 1dp inset; }
-c-setting.disabled .set-row.pressed { background-color: transparent; box-shadow: none; }
+c-setting.pressed .set-row, c-setting .set-row.pressed { background-color: @{color.brassGlow/.16}; shadow: @{color.brassLine/.3} 0 0 0 1dp inset; }
+c-setting.disabled .set-row.pressed { background-color: transparent; shadow: none; }
 
 c-setting .set-label { flex: 0 1 auto; min-width: 0; font-size: @{spec.labelFont}dp; }
 c-setting .set-hint { font-size: @{spec.hintFont}dp; color: @{color.textMuted}; }
@@ -24,7 +24,7 @@ c-setting .set-track { position: absolute; left: 0; right: 0; top: 12dp; height:
 c-setting .set-fill { position: absolute; left: 0; top: 12dp; height: 4dp; background-color: @{color.brassLine}; }
 c-setting .set-at { position: absolute; top: 0; width: 0; height: 0; }
 c-setting .set-thumb { position: absolute; left: -14dp; top: 0; box-sizing: border-box; width: @{spec.thumb}dp; height: @{spec.thumb}dp; border-radius: 14dp; border: 1dp @{color.brassRim};
-    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop}, @{color.brassLow}); box-shadow: @{color.black/.6} 0 1dp 3dp 0; }
+    decorator: radial-gradient(circle farthest-corner at 40% 35%, @{color.brassTop}, @{color.brassLow}); shadow: @{color.black/.6} 0 1dp 3dp 0; }
 
 /* inline row: [check / radio] label + hint [toggle | segment | children]
    Label / control split: the label keeps at least labelMin dp; a control that does not fit
@@ -39,7 +39,7 @@ c-setting .set-slot { flex: 0 0 auto; margin-left: auto; display: flex; flex-dir
 c-setting .set-toggle { position: relative; flex: 0 0 auto; margin-left: auto; box-sizing: border-box; width: @{spec.toggleWidth}dp; height: @{spec.toggleHeight}dp; border-radius: 15dp;
     border: 1dp @{color.toggleTrackOffEdge}; background-color: @{color.black/.45}; }
 c-setting .set-toggle.on { background-color: @{color.brassGlow/.6}; }
-c-setting .set-knob { position: absolute; top: 2dp; left: 2dp; width: 24dp; height: 24dp; border-radius: 12dp; background-color: @{color.toggleKnobOff}; box-shadow: @{color.black/.5} 0 1dp 2dp 0; }
+c-setting .set-knob { position: absolute; top: 2dp; left: 2dp; width: 24dp; height: 24dp; border-radius: 12dp; background-color: @{color.toggleKnobOff}; shadow: @{color.black/.5} 0 1dp 2dp 0; }
 c-setting .set-toggle.on .set-knob { left: 24dp; background-color: @{color.brassTop}; }
 
 c-setting .set-box { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; justify-content: center; box-sizing: border-box; width: @{spec.box}dp; height: @{spec.box}dp; border: 1dp @{color.brassLine}; }
@@ -59,7 +59,7 @@ c-setting .set-cell.next { border-left: 1dp @{color.brassLine/.45}; }
    out of the column; their names wrap and step down. */
 c-setting.stretch .set-cell, c-setting .set-segment.wide .set-cell { flex: 1 1 0; min-width: 0; padding: 0 4dp; overflow: hidden; }
 c-setting.stretch .set-segment { flex: 1 1 0; }
-c-setting .set-cell.selected { background-color: @{color.brassGlow/.28}; color: @{color.textSelected}; box-shadow: @{color.brass} 0 -2dp 0 0 inset; }
+c-setting .set-cell.selected { background-color: @{color.brassGlow/.28}; color: @{color.textSelected}; shadow: @{color.brass} 0 -2dp 0 0 inset; }
 c-setting .set-cell.pressed { background-color: @{color.brassGlow/.16}; color: @{color.text}; }
 /* one option unavailable (its own reason on a tap): dimmed like a disabled row */
 c-setting .set-cell.off { color: @{color.glyphDisabled}; }

@@ -296,9 +296,15 @@ COLOUR_LITERAL = re.compile(r"#[0-9a-fA-F]{3,8}\b|rgba?\(")
 COLOUR_ESCAPE = "colour-literal:"  # `/* colour-literal: why */` on the same line allows one
 
 
+# RmlUi properties the runtime does not draw: box-shadow renders a layer and saves it as a texture (the runtime's
+# `shadow` property draws the same shadow by a shader), mask-image saves a layer as a mask.
+REFUSED_PROPERTY = re.compile(r"(?<![-\w])(box-shadow|mask-image)\s*:")
+REFUSED_INSTEAD = {"box-shadow": "write `shadow:` (the same syntax)", "mask-image": "the runtime draws no masks"}
+
+
 def check_colour_literals():
     """Colours in component and screen sources, base rules, the overlay, gallery pages and the HUD
-    layout are token references only; a raw value is a build error."""
+    layout are token references only; a raw value is a build error. So is a property the runtime refuses."""
     sources = sorted(HERE.glob("components/*/*")) + sorted(HERE.glob("screens/*/*"))
     sources += [HERE / "base.rcss", HERE / "overlay.rml", HERE / "screen.rml", HERE / "hud.rml", HERE / "hud-layout.json"]
     sources += sorted(HERE.glob("gallery/*.rml"))
@@ -308,6 +314,10 @@ def check_colour_literals():
             if COLOUR_LITERAL.search(line) and COLOUR_ESCAPE not in line:
                 problems.append(f"{path.relative_to(HERE)}:{number}: raw colour {COLOUR_LITERAL.search(line).group(0)!r}; "
                                 "use @{color.name} (add a token to tokens.json if none fits)")
+            refused = REFUSED_PROPERTY.search(line)
+            if refused:
+                problems.append(f"{path.relative_to(HERE)}:{number}: `{refused.group(1)}` is not drawn by the runtime; "
+                                f"{REFUSED_INSTEAD[refused.group(1)]}")
     if problems:
         raise DesignError("\n".join(problems))
 

@@ -16,10 +16,10 @@ void EngineUi::FrameTrace::OnUiRender(const storm::render::FrameContext &frame)
         // The frame timeline: every frame the host made, with what it showed and what it cost.
         const double now_ms = MonotonicMs();
         TraceInputs().debug(
-            "loop {}: made frame {} at {:.1f} ms (+{:.1f}): shows {} after {} held | update {:.1f} = apply "
+            "loop {}: made frame {} at {:.1f} ms (+{:.1f}): shows {} | update {:.1f} = apply "
             "{:.1f} + rebuild {:.1f} ({}, {} touched) + style {:.1f} + layout {:.1f} ({} boxes, {} passes) + "
             "pictures {:.1f} ({}), render {:.1f} ({} meshes, {} textures)",
-            ui.loop_, stats.number, now_ms, made_ms ? now_ms - made_ms : 0.0, stats.shown, stats.held, stats.update_ms,
+            ui.loop_, stats.number, now_ms, made_ms ? now_ms - made_ms : 0.0, stats.shown, stats.update_ms,
             stats.apply_ms, stats.rebuild_ms, stats.rebuilds, stats.touched, stats.style_ms, stats.layout_ms,
             stats.laid_out, stats.layout_passes, stats.picture_ms, stats.pictures, stats.render_ms, stats.geometry,
             stats.textures);

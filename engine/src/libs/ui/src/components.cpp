@@ -761,7 +761,7 @@ void RegisterBehavior(const std::string &name, BehaviorFactory factory)
 }
 
 ComponentElement::ComponentElement(const Rml::String &tag, const CompiledComponent &component, Services &services)
-    : Rml::Element(tag), spec_(*component.spec), compiled_(component), services_(services)
+    : ShadowedElement(tag), spec_(*component.spec), compiled_(component), services_(services)
 {
     for (const std::string &name : spec_.behaviors)
     {

@@ -64,7 +64,7 @@ ui-game-image { display: block; position: absolute; left: 0; top: 0; right: 0; b
 #tooltip { position: absolute; display: none; box-sizing: border-box; padding: 10dp 12dp; border-radius: 2dp;
     color: @{color.ink}; font-size: @{type.body}dp; line-height: 1.35;
     decorator: linear-gradient(@{color.paperTop}, @{color.paperBottom});
-    box-shadow: @{color.black/.55} 0 6dp 18dp, @{color.paperShade/.3} 0 0 14dp inset; pointer-events: none; }
+    shadow: @{color.black/.55} 0 6dp 18dp, @{color.paperShade/.3} 0 0 14dp inset; pointer-events: none; }
 #tooltip.open { display: block; }
 
 /* Gallery pages (debug screen with every component). */
