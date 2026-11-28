@@ -55,6 +55,11 @@ class ATTRIBUTES final
     [[nodiscard]] static bool IsAlive(Handle handle) noexcept;
 
     [[nodiscard]] ATTRIBUTES* GetParent() const;
+    // The name table of this tree, for another tree of the same script state.
+    [[nodiscard]] VSTRING_CODEC &GetStringCodec() const noexcept
+    {
+        return stringCodec_;
+    }
     bool operator==(const char *str) const;
     [[nodiscard]] const char* GetThisName() const;
     [[nodiscard]] bool HasValue() const noexcept;

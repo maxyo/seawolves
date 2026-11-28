@@ -104,6 +104,17 @@ class Core
         return Event(event_name, message);
     }
     virtual VDATA *Event(const std::string_view &event_name, MESSAGE &message) = 0;
+    // Runs the script function `name` with the message's values as its arguments; nullopt when the scripts have no
+    // such function, else its result (nullptr when it returns nothing). Caribbean Legend's engine calls some script
+    // functions by name rather than through events.
+    virtual std::optional<VDATA *> CallFunction(const std::string_view &name, MESSAGE &arguments) = 0;
+    template <typename... Args>
+    std::optional<VDATA *> CallFunction(const std::string_view &name, const std::string_view &format, Args... args)
+    {
+        MESSAGE message;
+        message.Reset(format, args...);
+        return CallFunction(name, message);
+    }
     virtual uint32_t PostEvent(const char *Event_name, uint32_t post_time, const char *Format, ...) = 0;
     // True while an event of this name posted with PostEvent has not run yet.
     virtual bool EventPosted(const char *Event_name) = 0;

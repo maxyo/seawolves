@@ -128,6 +128,7 @@ class CoreImpl final : public CorePrivate
     uint32_t GetRDeltaTime() override;
     VDATA *Event(const std::string_view &event_name) override;
     VDATA *Event(const std::string_view &event_name, MESSAGE& message) override;
+    std::optional<VDATA *> CallFunction(const std::string_view &name, MESSAGE &arguments) override;
     uint32_t PostEvent(const char *Event_name, uint32_t post_time, const char *Format, ...) override;
     bool EventPosted(const char *Event_name) override;
 

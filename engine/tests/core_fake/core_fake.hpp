@@ -218,6 +218,11 @@ class FakeCore final : public CorePrivate
             return Event(name);
         return messageEvent(name, message);
     }
+    std::optional<VDATA *> CallFunction(const std::string_view &, MESSAGE &) override
+    {
+        unmodelled("CallFunction");
+        return std::nullopt;
+    }
     bool HasActiveEventHandler(const char *event_name, const char *func_name) override
     {
         return eventHandlers.contains({event_name, func_name});

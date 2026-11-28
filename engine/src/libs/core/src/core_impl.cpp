@@ -567,6 +567,13 @@ VDATA *CoreImpl::Event(const std::string_view &event_name, MESSAGE &message)
     return Compiler->ProcessEvent(event_name.data(), message);
 }
 
+std::optional<VDATA *> CoreImpl::CallFunction(const std::string_view &name, MESSAGE &arguments)
+{
+    Compiler->SetEventOrigin(storm::platform::frame_work::state().current);
+    const storm::platform::frame_work::Scope phase(storm::platform::frame_work::Phase::Script);
+    return Compiler->CallFunction(std::string(name).c_str(), arguments);
+}
+
 void *CoreImpl::MakeClass(const char *class_name)
 {
     const int32_t hash = MakeHashValue(class_name);

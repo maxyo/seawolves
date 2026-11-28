@@ -136,6 +136,8 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     void SetProgramDirectory(const char *dir_name);
     VDATA *ProcessEvent(const char *event_name, MESSAGE message);
     VDATA *ProcessEvent(const char *event_name);
+    // core.CallFunction (script_calls.cpp)
+    std::optional<VDATA *> CallFunction(const char *name, MESSAGE &arguments);
     void SetEventHandler(const char *event_name, const char *func_name, int32_t flag, bool bStatic = false);
     void DelEventHandler(const char *event_name, const char *func_name);
     bool HasActiveEventHandler(const char *event_name, const char *func_name);
