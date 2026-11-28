@@ -138,6 +138,7 @@ prints the current one.
 | `sea_wakes` | 0 off, 1 foam astern and at the bow | 1 | at once |
 | `far_lod` | 0 every model whole, 1..4 pixels a far model's simplified level may differ by | 1 | at once |
 | `wet_surfaces` | 0 off, 1 wet in the rain, 2 also puddles | 2 | at once |
+| `vegetation_sway` | 0 off, 1 plants of a game without wind marks bend in the wind by their height (a guess from their textures) (old games only) | 0 | at once |
 | `texture_normal_maps` | 0 off, 1 relief from normal maps made of the game's textures (old games only) | 0 | at once |
 | `texture_height_maps` | 0 off, 1 parallax from height maps made with the normal maps (drawn through them) (old games only) | 0 | at once |
 | `texture_upscale` | 0 off, 1 neural x2 textures near the camera (old games only) | 0 | at once |
