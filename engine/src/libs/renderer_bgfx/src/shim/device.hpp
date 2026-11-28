@@ -718,7 +718,7 @@ struct Device final : Object
     TexStorePtr paused_picture;
     uint32_t frame_surface_generation = 0; // the surface generation when the previous frame was presented
     bool backbuffer_recreated = false;     // create_backbuffer ran since the previous Present
-    // A small copy of the presented frame every kFrameCopySeconds, read back without waiting (Present): what
+    // A small copy of the presented scene every kFrameCopySeconds, read back without waiting (Present): what
     // GetRenderTargetData returns for the game's back buffer while there is no surface (a save made as the app goes
     // to the background: its thumbnail), as the read-back would without a surface to render on.
     struct FrameCopy
@@ -731,7 +731,7 @@ struct Device final : Object
         bool pending = false;
         std::chrono::steady_clock::time_point taken{}, finished{};
     } frame_copy;
-    void copy_frame(const TexStorePtr &shown);
+    void copy_frame(const TexStorePtr &shown, bool scene);
     bool read_frame_copy(Surface *to);
     void keep_paused_picture();
     void release_paused_picture();

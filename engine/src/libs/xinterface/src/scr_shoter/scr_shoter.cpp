@@ -85,7 +85,8 @@ void SCRSHOTER::Realize(uint32_t Delta_Time)
 // With a surface it is made on the GPU and stays there: the picture scaled into the shot's texture, the border over
 // it, in the frame's own order. Nothing is read back, so opening the game menu does not wait for the GPU (two
 // only a save reads it (MakeReadable). Without a surface (an autosave while the app goes to the background) it
-// comes from the renderer's copy of the last presented frame, read and scaled on the CPU, without the border.
+// comes from the renderer's copy of the last presented frame that drew the scene, read and scaled on the CPU,
+// without the border; with no such frame the save has no picture.
 bool SCRSHOTER::MakeScreenShot()
 {
     auto hr = D3D_OK;

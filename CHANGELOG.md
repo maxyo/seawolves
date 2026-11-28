@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Автосохранение при сворачивании игры, сделанное, пока открыт экран сохранений или другое меню, получает картинку
+  последней показанной сцены: раньше его картинка могла быть чёрной.
 - Сохранение, прерванное закрытием игры, не оставляет в папке сохранений скрытого недописанного файла: при следующем
   запуске он удаляется, а полностью записанная новая запись, которой не успели дать имя, появляется в списке.
 - Когда памяти мало и Android удаляет часть файлов кэша приложения, недостающие файлы интерфейса ставятся
@@ -212,6 +214,8 @@
 
 **English**
 
+- An autosave made as the game goes to the background while the save screen or another menu is open shows the
+  last scene that was on screen: its picture could be black.
 - A save cut off by the game being closed no longer leaves a hidden unfinished file in the saves folder: the next
   start removes it, and a fully written new record that had not yet taken its name appears in the list.
 - When storage runs low and Android removes some of the app's cache files, the missing interface files are

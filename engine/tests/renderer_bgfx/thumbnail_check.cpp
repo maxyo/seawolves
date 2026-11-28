@@ -5,13 +5,15 @@
 // (scr_shoter.cpp, Renderer::GetRenderTargetAsTexture) reads the back buffer then, where no read-back can run. The
 // device keeps a small copy of the presented frame for that: the read without a surface must return the last frame
 // (top red, bottom blue here), the read with a surface the frame itself, and a read of another render target without
-// a surface must still fail.
+// a surface must still fail. The copy is of the last frame that drew the scene: frames that drew none (a game menu,
+// black under the touch interface) do not replace it.
 #include "device.hpp"
 
 #include "check_backend.hpp"
 
 #include <SDL2/SDL.h>
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -71,6 +73,32 @@ void frame(Device &d)
     d.SetTexture(0, nullptr);
     d.SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
     check(d.DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(Vertex)), "draw (blue bottom)");
+    // A perspective draw makes the frame a 3D scene (Device::begin_draw): an empty triangle, nothing on screen.
+    D3DMATRIX identity{}, projection{};
+    for (int i = 0; i < 4; ++i)
+        identity.m[i][i] = projection.m[i][i] = 1.0f;
+    projection.m[2][3] = 1.0f;
+    projection.m[3][3] = 0.0f;
+    d.SetTransform(D3DTS_WORLD, &identity);
+    d.SetTransform(D3DTS_VIEW, &identity);
+    d.SetTransform(D3DTS_PROJECTION, &projection);
+    struct Point
+    {
+        float x, y, z;
+        uint32_t color;
+    };
+    const Point empty[3] = {{0, 0, 1, 0xFF00FF00}, {0, 0, 1, 0xFF00FF00}, {0, 0, 1, 0xFF00FF00}};
+    d.SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE);
+    check(d.DrawPrimitiveUP(D3DPT_TRIANGLELIST, 1, empty, sizeof(Point)), "draw (perspective, empty)");
+    check(d.EndScene(), "EndScene");
+    check(d.Present(), "Present");
+}
+
+// A frame of a game menu: no scene, the game picture black under the interface.
+void menu_frame(Device &d)
+{
+    check(d.BeginScene(), "BeginScene");
+    check(d.Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0), "Clear (black)");
     check(d.EndScene(), "EndScene");
     check(d.Present(), "Present");
 }
@@ -194,13 +222,19 @@ int main()
                 expect(was_read && wrong == 0, "the frame scaled into a small target on the GPU is the frame, opaque");
             shot->Release();
         }
+        // A game menu stays open for longer than the copy's period (copy_frame: a copy every 2 s).
+        for (const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(2500);
+             std::chrono::steady_clock::now() < until;)
+            menu_frame(*device);
         // Android takes the surface away (surfaceDestroyed); the game saves before it gets a new one.
         context.request_surface_release();
         context.poll_surface();
         ok &= expect(!context.ready(), "the surface is gone");
         pixels.clear();
-        ok &= expect(read(*device, back, pixels) == D3D_OK && top_red_bottom_blue(pixels),
-                     "without a surface the back buffer reads the copy of the last frame (the save's thumbnail)");
+        ok &=
+            expect(read(*device, back, pixels) == D3D_OK && top_red_bottom_blue(pixels),
+                   "without a surface the back buffer reads the copy of the last frame that drew the scene (the save's "
+                   "thumbnail)");
         ok &= expect(read(*device, other, pixels) == D3DERR_DEVICELOST,
                      "without a surface another render target still cannot be read");
         context.request_surface_restore();

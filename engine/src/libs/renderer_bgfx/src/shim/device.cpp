@@ -558,7 +558,7 @@ HRESULT Device::Present()
                                     held_color ? held_color->serial : back_color->store->serial);
     effects.lighting().shadows().before_frame();
     if (context.ready())
-        copy_frame(shown_store);
+        copy_frame(shown_store, scene_frame || paused_picture);
     const uint32_t presented = context.last_frame();
     apply_view_order(true);
     context.present(shown.handle, shown.width, shown.height);
@@ -1429,7 +1429,7 @@ constexpr uint32_t kFrameCopyWidth = 512;
 constexpr auto kFrameCopySeconds = std::chrono::seconds(2);
 } // namespace
 
-void Device::copy_frame(const TexStorePtr &shown)
+void Device::copy_frame(const TexStorePtr &shown, bool scene)
 {
     auto &context = Context::instance();
     FrameCopy &copy = frame_copy;
@@ -1449,6 +1449,9 @@ void Device::copy_frame(const TexStorePtr &shown)
         }
     }
     if (copy.pending || (copy.taken != std::chrono::steady_clock::time_point{} && now - copy.taken < kFrameCopySeconds))
+        return;
+    // Only a picture of the scene stands for the game: a menu's frame is black under the touch interface.
+    if (!scene)
         return;
     if (!shown || !bgfx::isValid(shown->handle) || shown->width == 0 || shown->height == 0)
         return;
