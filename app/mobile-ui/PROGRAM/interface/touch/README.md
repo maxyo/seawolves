@@ -176,6 +176,8 @@ second adapter needs the same step record, it moves to `lineages/legacy/lib.c`.
 
 - No escapes in strings: a line break is `TouchLib_Newline()`.
 - `sort` is a built-in: a variable so named does not compile. Check names against `internal_functions.cpp`.
+- A global object passed to an `aref` parameter takes `&` (`f(&TouchTrade)`): without it the call compiles and the
+  callee reads and writes another object, silently (`build.py --check` finds such a call of our functions).
 - A member of a call's result (`f().x`) is not an expression: take the result in a local first.
 - `&&` and `||` are not relied on to short-circuit: test presence with `if` before reading an attribute.
 - Reading an absent attribute is a runtime error (it fails the screen): test it with `CheckAttribute` where it may

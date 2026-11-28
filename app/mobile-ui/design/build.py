@@ -720,6 +720,56 @@ def lint_script(file, parts, text, uses, natives, contracts):
     return problems, set(functions) | set(globals_)
 
 
+def object_arguments(texts):
+    """Calls of our functions and natives that pass an object (declared `object`) bare to an `aref` parameter: the call
+    compiles, and the callee reads and writes another object than the one named. {file: text} -> problems."""
+    codes = {file: script_code(text)[0] for file, text in texts.items()}
+    params, globals_ = {}, set()
+    for code in codes.values():
+        top = top_level(code)
+        for match in TOP_FUNCTION.finditer(top):
+            params[match.group(1).lower()] = [re.match(r"\s*aref\b", part) is not None
+                                              for part in match.group(2).split(",")]
+        globals_ |= set(re.findall(r"\bobject\s+([A-Za-z_]\w*)", top))
+    problems = []
+    for file, code in codes.items():
+        top = top_level(code)
+        for function in TOP_FUNCTION.finditer(top):
+            body_start = top.find("{", function.end())
+            if body_start < 0 or top[function.end():body_start].strip():
+                continue  # a declaration without a body
+            depth, end = 0, body_start
+            while True:
+                depth += {"{": 1, "}": -1}.get(code[end], 0)
+                if depth == 0:
+                    break
+                end += 1
+            scope = code[function.start():end]
+            objects = set(re.findall(r"\bobject\s+([A-Za-z_]\w*)", scope))
+            others = {name for name, _ in declared(scope)} - objects
+            named = (globals_ - others) | objects
+            for match in re.finditer(r"\b([A-Za-z_]\w*)\s*\(", scope):
+                kinds = params.get(match.group(1).lower())
+                if not kinds or match.start() == function.start(1) - function.start():
+                    continue  # not ours, or the function's own name
+                depth, i, start, arguments = 1, match.end(), match.end(), []
+                while i < len(scope) and depth:
+                    if scope[i] in "([":
+                        depth += 1
+                    elif scope[i] in ")]":
+                        depth -= 1
+                    if (scope[i] == "," and depth == 1) or depth == 0:
+                        arguments.append(scope[start:i].strip())
+                        start = i + 1
+                    i += 1
+                for k, argument in enumerate(arguments):
+                    if k < len(kinds) and kinds[k] and argument in named:
+                        line = code.count("\n", 0, function.start() + match.start()) + 1
+                        problems.append(f"{file}:{line}: {match.group(1)} takes the object {argument} without '&' "
+                                        "(it would read and write another object)")
+    return problems
+
+
 def check_scripts(capabilities, screens):
     """scripts.json: the segments the engine attaches to the game's program, in order (the engine reads their
     requirements, contracts and screens), and the rules of the scripts below interface/touch/. Every listed file
@@ -787,6 +837,8 @@ def check_scripts(capabilities, screens):
                         not (layer == "contracts" or names[key].startswith(f"{TOUCH}contracts/")):
                     problems.append(f"{where}: '{name}' is defined in {names[key]} too")
                 names.setdefault(key, file)
+    problems += object_arguments({file: (PROGRAM / file).read_text("utf-8") for file in files
+                                  if file.startswith(TOUCH) and (PROGRAM / file).is_file()})
     if problems:
         raise DesignError("\n".join(problems))
 
