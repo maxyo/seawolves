@@ -406,7 +406,9 @@ void clearPostEventsForEvent(NativeCall &call, const Args &args)
 // (CopyAttributes replaces dst).
 void appendAttributes(ATTRIBUTES *dst, const ATTRIBUTES *src)
 {
-    if (src->HasValue())
+    if (DATA *target = src->GetReference())
+        dst->SetReference(target);
+    else if (src->HasValue())
         dst->SetValue(std::string_view(src->GetValue()));
     for (size_t i = 0; i < src->GetAttributesNum(); ++i)
     {

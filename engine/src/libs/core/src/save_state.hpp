@@ -32,6 +32,9 @@
 //   fref              string function name (null = a null function reference)
 // The `new` arrays the references reach follow the globals as variables of their own (save_references.hpp); a
 // reference to one names its place, kNewArrayPlace + n.
+//   after the variables and the `new` arrays, only when an attribute holds a script reference
+//   (ATTRIBUTES::SetReference): vdword n, n times: the attribute as an aref (never empty), the target as a ref. An
+//                     engine without this section refuses such a state ("bytes after the last variable").
 
 #include "attributes.h"
 #include "data.h"
@@ -181,12 +184,23 @@ struct SavedVariable
     size_t values = 0; // offset of the first value
 };
 
+// An attribute that holds a script reference: where the attribute is (aref layout), and its target (ref layout).
+struct SavedAttributeReference
+{
+    uint32_t variable = 0;
+    uint32_t element = 0;
+    std::optional<std::string> path; // nullopt: the object's root attribute
+    uint32_t targetVariable = 0;
+    uint32_t targetElement = 0;
+};
+
 struct ParsedState
 {
     std::optional<std::string> programDirectory;
     std::vector<std::string> codec; // name codec strings in saved order (null strings are not registered)
     std::vector<std::string> segments;
     std::vector<SavedVariable> variables;
+    std::vector<SavedAttributeReference> attributeReferences;
 };
 
 // Where a value goes; NoSink only consumes it.
@@ -369,7 +383,28 @@ inline bool parseVariables(StateReader &in, std::vector<SavedVariable> &variable
     return true;
 }
 
-// The whole state; it must end exactly where its last variable ends.
+// The attribute references section, when the state has one: it is all that may follow the variables.
+inline bool parseAttributeReferences(StateReader &in, std::vector<SavedAttributeReference> &references,
+                                     std::string &error)
+{
+    references.clear();
+    if (in.Remaining() == 0)
+        return true;
+    const size_t trailing = in.Remaining();
+    uint32_t count;
+    // An entry takes at least five bytes (two places of two vdwords, a path).
+    if (!in.VDword(count) || count == 0 || count > in.Remaining() / 5)
+        return detail::fail(error, std::to_string(trailing) + " bytes after the last variable", in);
+    references.resize(count);
+    for (auto &reference : references)
+        if (!in.VDword(reference.variable) || reference.variable == kNoIndex || !in.VDword(reference.element) ||
+            !in.String(reference.path) || !in.VDword(reference.targetVariable) ||
+            (reference.targetVariable != kNoIndex && !in.VDword(reference.targetElement)))
+            return detail::fail(error, "truncated attribute reference", in);
+    return true;
+}
+
+// The whole state; it must end exactly where its last variable (or its attribute references section) ends.
 inline bool parseState(const char *data, size_t size, ParsedState &state, std::string &error)
 {
     StateReader in(data, size);
@@ -396,20 +431,53 @@ inline bool parseState(const char *data, size_t size, ParsedState &state, std::s
             return detail::fail(error, "segment #" + std::to_string(n) + " has no name", in);
         state.segments.push_back(std::move(*segment));
     }
-    if (!parseVariables(in, state.variables, error))
+    if (!parseVariables(in, state.variables, error) || !parseAttributeReferences(in, state.attributeReferences, error))
         return false;
     if (in.Remaining() != 0)
         return detail::fail(error, std::to_string(in.Remaining()) + " bytes after the last variable", in);
     return true;
 }
 
+namespace detail
+{
+// A reference target: a global variable, a loaded `new` array (place kNewArrayPlace + n), or one element of either.
+inline DATA *referenceTarget(VarTable &table, const std::vector<DATA *> &newArrays, const std::string &name,
+                             uint32_t variable, uint32_t element,
+                             const std::function<void(const std::string &)> &report)
+{
+    const bool isNew = variable >= kNewArrayPlace;
+    const VarInfo *info = isNew ? nullptr : table.GetVarX(variable);
+    DATA *value = isNew
+                      ? (variable - kNewArrayPlace < newArrays.size() ? newArrays[variable - kNewArrayPlace] : nullptr)
+                      : (info ? info->value.get() : nullptr);
+    if (value == nullptr)
+    {
+        report("Load: reference '" + name + "' names variable #" + std::to_string(variable) +
+               ", which the program does not have; it is left empty");
+        return nullptr;
+    }
+    if (element == kNoIndex)
+        return value;
+    if (!value->IsArray() || element >= value->GetArraySize())
+    {
+        report("Load: reference '" + name + "' names element " + std::to_string(element) + " of '" +
+               (isNew ? NewArrayName(variable - kNewArrayPlace) : info->name) + "', which has " +
+               std::to_string(value->GetArraySize()) + "; it is left empty");
+        return nullptr;
+    }
+    return value->GetArrayElement(element);
+}
+} // namespace detail
+
 // Puts the parsed variables into `table` (the program the state was saved from, just loaded).
 // `data` is the buffer that parseVariables / parseState accepted. Reports every saved value that
 // is left (see the top of this file); `report` receives one line each.
-// `newArray` makes an empty value in the program's pool of `new` arrays, for each one the state saved.
-inline void applyVariables(const char *data, size_t size, const std::vector<SavedVariable> &saved, VarTable &table,
-                           VSTRING_CODEC *codec, const std::function<void(const std::string &)> &report,
-                           const std::function<DATA *()> &newArray)
+// `newArray` makes an empty value in the program's pool of `new` arrays, for each one the state saved; the loaded ones
+// are returned in the order of their places.
+inline std::vector<DATA *> applyVariables(const char *data, size_t size, const std::vector<SavedVariable> &saved,
+                                          VarTable &table, VSTRING_CODEC *codec,
+                                          const std::function<void(const std::string &)> &report,
+                                          const std::function<DATA *()> &newArray)
 {
     const auto isScalar = [](uint32_t type) { return type == VAR_INTEGER || type == VAR_FLOAT || type == VAR_STRING; };
     struct Target
@@ -474,29 +542,8 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
         targets.push_back({&variable, value});
     }
 
-    // A reference target: a global variable or one element of a global array, as it is now.
-    const auto place = [&](const std::string &name, uint32_t variable, uint32_t element) -> DATA * {
-        const bool isNew = variable >= kNewArrayPlace;
-        const VarInfo *info = isNew ? nullptr : table.GetVarX(variable);
-        DATA *value =
-            isNew ? (variable - kNewArrayPlace < newArrays.size() ? newArrays[variable - kNewArrayPlace] : nullptr)
-                  : (info ? info->value.get() : nullptr);
-        if (value == nullptr)
-        {
-            report("Load: reference '" + name + "' names variable #" + std::to_string(variable) +
-                   ", which the program does not have; it is left empty");
-            return nullptr;
-        }
-        if (element == kNoIndex)
-            return value;
-        if (!value->IsArray() || element >= value->GetArraySize())
-        {
-            report("Load: reference '" + name + "' names element " + std::to_string(element) + " of '" +
-                   (isNew ? NewArrayName(variable - kNewArrayPlace) : info->name) + "', which has " +
-                   std::to_string(value->GetArraySize()) + "; it is left empty");
-            return nullptr;
-        }
-        return value->GetArrayElement(element);
+    const auto place = [&](const std::string &name, uint32_t variable, uint32_t element) {
+        return detail::referenceTarget(table, newArrays, name, variable, element, report);
     };
 
     struct Sink
@@ -571,7 +618,36 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
                     throw std::logic_error("Load: variable '" + variable->name + "' no longer reads: " + error);
             }
         }
+    return newArrays;
 }
+// Puts the saved attribute references into the attributes applyVariables restored (after it, so that every array has
+// its saved size). An attribute or a target the program no longer has is reported and left without the reference.
+inline void applyAttributeReferences(const std::vector<SavedAttributeReference> &saved, VarTable &table,
+                                     const std::vector<DATA *> &newArrays,
+                                     const std::function<void(const std::string &)> &report)
+{
+    for (const auto &reference : saved)
+    {
+        const std::string name = "attribute " + (reference.path ? *reference.path : std::string("(root)"));
+        DATA *owner = detail::referenceTarget(table, newArrays, name, reference.variable, reference.element, report);
+        if (owner == nullptr)
+            continue;
+        ATTRIBUTES *root = owner->AttributesClass;
+        ATTRIBUTES *attribute =
+            root == nullptr || !reference.path ? root : root->FindAClass(root, reference.path->c_str());
+        if (attribute == nullptr)
+        {
+            report("Load: the " + name + " that held a script reference is not in the restored state; left empty");
+            continue;
+        }
+        if (reference.targetVariable == kNoIndex)
+            continue; // saved empty
+        if (DATA *target = detail::referenceTarget(table, newArrays, name, reference.targetVariable,
+                                                   reference.targetElement, report))
+            attribute->SetReference(target);
+    }
+}
+
 // The writer of the layout above; COMPILER::SerializeState writes the state with it. A value the load could not take
 // back as it is (an element of another type than its array, a reference to no global) is reported through the
 // compiler and written in the form the load reads.
@@ -643,11 +719,36 @@ class StateWriter
             string(nullptr); // attribute value
             return;
         }
+        if (DATA *target = root->GetReference())
+            attributeReference(target);
         vdword(root->GetAttributesNum()); // number of subclasses
         vdword(root->GetThisNameCode());
         string(root->GetThisAttr());
         for (uint32_t n = 0; n < root->GetAttributesNum(); n++)
+        {
+            const size_t length = path_.size();
+            if (!path_.empty())
+                path_ += '.';
+            path_ += root->GetAttributeClass(n)->GetThisName();
             attributes(root->GetAttributeClass(n));
+            path_.resize(length);
+        }
+    }
+    // The attribute references section (layout above), after the last variable; nothing when there is none.
+    void attributeReferences()
+    {
+        if (attributeReferences_.empty())
+            return;
+        vdword(static_cast<uint32_t>(attributeReferences_.size()));
+        for (const auto &reference : attributeReferences_)
+        {
+            vdword(reference.variable);
+            vdword(reference.element);
+            string(reference.path ? reference.path->c_str() : nullptr);
+            vdword(reference.targetVariable);
+            if (reference.targetVariable != kNoIndex)
+                vdword(reference.targetElement);
+        }
     }
 
   private:
@@ -736,6 +837,8 @@ class StateWriter
             entid_t id;
             pV->Get(id);
             data(&id, sizeof(id));
+            object_ = pV;
+            path_.clear();
             attributes(pV->AttributesClass);
             break;
         }
@@ -801,8 +904,30 @@ class StateWriter
         }
     }
 
+    // An attribute of the object being written holds a script reference to `target`.
+    void attributeReference(DATA *target)
+    {
+        const auto owner = references_ == nullptr ? std::nullopt : references_->Place(object_);
+        if (!owner)
+            return; // an object no global variable is (an element saved converted): nothing can name the attribute
+        SavedAttributeReference reference{owner->variable, owner->element,
+                                          path_.empty() ? std::nullopt : std::optional(path_), kNoIndex, 0};
+        if (const auto place = references_->Place(target))
+        {
+            reference.targetVariable = place->variable;
+            reference.targetElement = place->element;
+        }
+        else
+            compiler_.SetError("Ghost reference: attribute '%s.%s' names no global variable and is saved empty", name_,
+                               path_.c_str());
+        attributeReferences_.push_back(std::move(reference));
+    }
+
     VIRTUAL_COMPILER &compiler_;
     std::vector<char> bytes_;
+    DATA *object_ = nullptr; // the object whose attributes are being written
+    std::string path_;       // of the attribute being written, below object_'s root
+    std::vector<SavedAttributeReference> attributeReferences_;
     const ReferenceIndex *references_ = nullptr;
     const char *name_ = "";
 };

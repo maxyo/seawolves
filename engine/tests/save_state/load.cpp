@@ -126,6 +126,7 @@ class COMPILER final : public VIRTUAL_COMPILER
             out.variable(variable->value.get(), variable->name.c_str(), references);
         }
         storm::save::writeNewArrays(out, references);
+        out.attributeReferences();
         return out.take();
     }
     // CoreImpl::ProcessStateLoading and COMPILER::LoadState: the whole state parses before
@@ -139,14 +140,14 @@ class COMPILER final : public VIRTUAL_COMPILER
         require(state.segments.size() == 1 && state.segments[0] == "seadogs.c", "the segment list was misread");
         for (const auto &name : state.codec)
             SCodec.Convert(name.c_str());
-        storm::save::applyVariables(
-            bytes.data(), bytes.size(), state.variables, VarTab, &SCodec,
-            [this](const std::string &line) { errors.push_back(line); },
-            [this] {
+        const auto report = [this](const std::string &line) { errors.push_back(line); };
+        const std::vector<DATA *> loaded =
+            storm::save::applyVariables(bytes.data(), bytes.size(), state.variables, VarTab, &SCodec, report, [this] {
                 DATA &array = newArrays.emplace_back();
                 array.SetVCompiler(this);
                 return &array;
             });
+        storm::save::applyAttributeReferences(state.attributeReferences, VarTab, loaded, report);
     }
 };
 
@@ -381,6 +382,58 @@ void rootAttributeReference()
             "an aref to an object's root was not restored");
 }
 
+// A seated character's session (CL's dynamic objects): a global object's attribute holds a script reference to an
+// element of the characters array (DynamicObject_SetActorNative). It comes back as that element; a reference whose
+// target is gone at save time is saved empty and reported; an engine without the section refuses the state; a state
+// without any reference keeps the original layout.
+void attributeReferences()
+{
+    const auto build = [](COMPILER &game) -> DATA & {
+        DATA &characters = game.add("Characters", VAR_OBJECT, 3);
+        characters.GetAClass(2)->SetAttribute("id", "Bartender");
+        game.add("iAfter", VAR_INTEGER).Set(static_cast<int32_t>(7));
+        return game.add("Sessions", VAR_OBJECT);
+    };
+    std::vector<char> plain, image;
+    {
+        COMPILER game;
+        DATA &sessions = build(game);
+        ATTRIBUTES *session = sessions.GetAClass()->CreateSubAClass(sessions.GetAClass(), "Bartender");
+        session->SetAttribute("seatId", "left");
+        session->CreateAttribute("actor"); // the same tree without the reference: the attribute has no text
+        plain = game.save();
+        session->GetAttributeClass("actor")->SetReference(game.VarTab.GetVar(0)->value->GetArrayElement(2));
+        image = game.save();
+        require(game.errors.empty(), "a live attribute reference was reported");
+        storm::save::ParsedState state;
+        std::string error;
+        require(storm::save::parseState(plain.data(), plain.size(), state, error) && state.attributeReferences.empty(),
+                "a state without attribute references has the section");
+        // The variables end where they ended without the reference: an engine without the section meets bytes after
+        // the last variable and refuses the state.
+        require(image.size() > plain.size() && std::equal(plain.begin(), plain.end(), image.begin()),
+                "the attribute reference changed the state's layout before its section");
+        DATA ghost(VAR_OBJECT);
+        session->GetAttributeClass("actor")->SetReference(&ghost);
+        game.save();
+        require(reported(game, "Ghost reference: attribute 'Sessions.Bartender.actor'"),
+                "a reference to no global variable was not reported");
+    }
+    for (int pass = 0; pass < 2; ++pass)
+    {
+        COMPILER loaded;
+        DATA &sessions = build(loaded);
+        loaded.load(image);
+        require(loaded.errors.empty(), "loading the attribute reference reported errors");
+        ATTRIBUTES *actor = sessions.GetAClass()->FindAClass(sessions.GetAClass(), "Bartender.actor");
+        require(actor && actor->GetReference() == loaded.VarTab.GetVar(0)->value->GetArrayElement(2),
+                "the attribute reference does not name the saved element");
+        require(!actor->HasValue(), "the attribute reference came back with text");
+        require(integer(*loaded.VarTab.GetVar(1)->value) == 7, "a variable before the section was lost");
+        require(loaded.save() == image, "the loaded state saves differently");
+    }
+}
+
 // Damaged states are refused by parseState, before the caller erases the running game.
 void damagedStates()
 {
@@ -593,6 +646,7 @@ int main()
     newArraysAndRunTimeSizes();
     untrustedNewArrays();
     referencesNamingEachOther();
+    attributeReferences();
     std::cout << "PASS: a state is parsed whole before it is applied; drifted scalars and elements, resized arrays, "
                  "references into them and variables the program cannot take load without desynchronising the rest\n";
 }

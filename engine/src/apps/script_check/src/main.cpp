@@ -64,6 +64,16 @@ uint32_t ScriptCheckHalf(VS_STACK *stack)
     return IFUNCRESULT_OK;
 }
 
+// ScriptCheckSetReference(ref holder, ref target): holder.target holds a script reference to target, as the engine's
+// DynamicObject_SetActorNative makes one
+uint32_t ScriptCheckSetReference(VS_STACK *stack)
+{
+    auto *target = static_cast<VDATA *>(stack->Pop());
+    auto *holder = static_cast<VDATA *>(stack->Pop());
+    holder->GetAClass()->VerifyAttributeClass("target")->SetReference(target->GetVarPointer());
+    return IFUNCRESULT_OK;
+}
+
 uint32_t ScriptCheckUnused(VS_STACK *stack)
 {
     static_cast<VDATA *>(stack->Push())->Set(int32_t{0});
@@ -86,6 +96,11 @@ class script_check_test_library : public SCRIPT_LIBRIARY
         info.pReturnValueName = "float";
         info.pFuncAddress = ScriptCheckHalf;
         info.nArguments = 1;
+        core.SetScriptFunction(&info);
+        info.pReturnValueName = "void";
+        info.pFuncName = "ScriptCheckSetReference";
+        info.pFuncAddress = ScriptCheckSetReference;
+        info.nArguments = 2;
         core.SetScriptFunction(&info);
         info.pReturnValueName = "int";
         info.pFuncName = "ScriptCheckUnused";

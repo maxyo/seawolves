@@ -10,6 +10,7 @@
 #include "save_file.hpp"
 #include "save_state.hpp"
 #include "save_trash.hpp"
+#include "script_libriary.h"
 #include "vma.hpp"
 
 #include <catch2/catch.hpp>
@@ -29,6 +30,9 @@ fs::path SavesFolder()
 }
 
 constexpr char kProgram[] = R"(
+#libriary "save_session_library"
+native void SetAttributeReference(ref holder, string name, ref target);
+
 int gCounter = 7;
 string gFailedRecord = "";
 string gFailedReason = "";
@@ -116,6 +120,35 @@ int CallHandler()
 	return gHandler();
 }
 
+object gSeatChars[3];
+object gSession;
+
+int MakeAttributeReferences()
+{
+	gSeatChars[2].id = "Hero";
+	SetAttributeReference(&gSession, "actor", &gSeatChars[2]);
+	ref cells = new int[2];
+	cells[1] = 55;
+	ref cell = cells[1];
+	SetAttributeReference(&gSession, "cell", cell);
+	object gone;
+	SetAttributeReference(&gSession, "gone", &gone);
+	return 1;
+}
+
+int CheckAttributeReferences()
+{
+	int found = 0;
+	ref actor = gSession.actor;
+	if (actor.id == "Hero") found = found + 1;
+	gSeatChars[2].id = "Renamed";
+	if (actor.id == "Renamed") found = found + 2;
+	ref cell = gSession.cell;
+	if (cell == 55) found = found + 4;
+	if (CheckAttribute(&gSession, "gone") && gSession.gone == "") found = found + 8;
+	return found;
+}
+
 int Spin()
 {
 	while (true)
@@ -144,6 +177,37 @@ void ChooseGame()
     fio->ScanResourcePaths();
 }
 
+// SetAttributeReference(ref holder, string name, ref target): holder.<name> holds a script reference to target, as
+// Caribbean Legend's DynamicObject_SetActorNative makes one.
+uint32_t SetAttributeReference(VS_STACK *stack)
+{
+    auto *target = static_cast<VDATA *>(stack->Pop());
+    auto *name = static_cast<VDATA *>(stack->Pop());
+    auto *holder = static_cast<VDATA *>(stack->Pop());
+    holder->GetAClass()->VerifyAttributeClass(name->GetString())->SetReference(target->GetVarPointer());
+    return IFUNCRESULT_OK;
+}
+
+class save_session_library : public SCRIPT_LIBRIARY
+{
+  public:
+    bool Init() override
+    {
+        IFUNCINFO info;
+        info.pFuncName = "SetAttributeReference";
+        info.pReturnValueName = "void";
+        info.nArguments = 3;
+        info.pFuncAddress = SetAttributeReference;
+        core.SetScriptFunction(&info);
+        return true;
+    }
+};
+} // namespace
+
+CREATE_SCRIPTLIBRIARY(save_session_library)
+
+namespace
+{
 // The program above in a compiler of its own, with an empty saves folder.
 struct Game
 {
@@ -156,6 +220,7 @@ struct Game
         fs::remove_all(SavesFolder());
         fs::create_directories(SavesFolder() / "Hero");
         core_internal.Compiler = &compiler;
+
         compiler.ConfigureCompileCheck(&diagnostics, true);
         compiler.SetProgramDirectory("PROGRAM");
         REQUIRE(compiler.BC_LoadSegment("main.c"));
@@ -486,6 +551,34 @@ TEST_CASE("a function reference comes back from a save")
     REQUIRE(Save(Description(13)));
     REQUIRE(Load());
     CHECK(game.Run("CallHandler") == 8);
+}
+
+TEST_CASE("an attribute that holds a script reference comes back from a save, also loaded twice")
+{
+    Game game;
+    REQUIRE(game.Run("MakeAttributeReferences") == 1);
+    REQUIRE(game.Run("CheckAttributeReferences") == 7); // the program itself; "gone" names a local, not saved
+    game.Run("MakeAttributeReferences");
+    REQUIRE(Save(Description(16)));
+    // the local the third attribute named is no global: saved empty and reported
+    REQUIRE(game.diagnostics.size() == 1);
+    CHECK(game.diagnostics[0].find("gSession.gone") != std::string::npos);
+    game.diagnostics.clear();
+    Bytes raw;
+    std::string error;
+    REQUIRE(storm::save::readState(File(SlotFile()), raw, error));
+    storm::save::ParsedState state;
+    REQUIRE(storm::save::parseState(raw.data(), raw.size(), state, error));
+    CHECK(state.attributeReferences.size() == 3);
+    // the new array is reached only through the attribute
+    CHECK(std::ranges::count_if(state.variables, [](const auto &v) { return v.name.starts_with('#'); }) == 1);
+    for (int load = 0; load < 2; ++load)
+    {
+        INFO("load " << load);
+        REQUIRE(Load());
+        CHECK(game.Run("CheckAttributeReferences") == 15);
+        CHECK(game.diagnostics.empty());
+    }
 }
 
 TEST_CASE("a save the running program cannot take is refused with the game still running")

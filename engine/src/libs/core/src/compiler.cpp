@@ -6187,6 +6187,14 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                     pV->Set("error");
                     break;
                 }
+                if (DATA *target = rAP->GetReference())
+                {
+                    // an attribute that holds a script reference reads as that reference
+                    pV->ClearType();
+                    pV->SetType(VAR_REFERENCE);
+                    pV->SetReference(target);
+                    break;
+                }
                 pV->SetText(rAP->HasValue() ? std::string_view(rAP->GetValue()) : std::string_view());
                 break;
             default:
@@ -7223,6 +7231,7 @@ std::vector<char> COMPILER::SerializeState()
         out.variable(variable->value.get(), variable->name.c_str(), references);
     }
     storm::save::writeNewArrays(out, references);
+    out.attributeReferences();
     return out.take();
 }
 
@@ -7321,14 +7330,14 @@ bool COMPILER::LoadState(const std::vector<char> &raw, const storm::save::Parsed
     }
 
     // 5. Variables table, all variables created during previous step, just read value
-    storm::save::applyVariables(
-        raw.data(), raw.size(), state.variables, VarTab, &SCodec,
-        [this](const std::string &line) { SetError("%s", line.c_str()); },
-        [this] {
+    const auto report = [this](const std::string &line) { SetError("%s", line.c_str()); };
+    const std::vector<DATA *> loadedNewArrays =
+        storm::save::applyVariables(raw.data(), raw.size(), state.variables, VarTab, &SCodec, report, [this] {
             DATA &array = newArrays_.emplace_back();
             array.SetVCompiler(this);
             return &array;
         });
+    storm::save::applyAttributeReferences(state.attributeReferences, VarTab, loadedNewArrays, report);
 #ifdef STORM_SCENE_SWEEP
     WriteStateDump("load"); // the state as loaded, before the game's OnLoad runs
 #endif

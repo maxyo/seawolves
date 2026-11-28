@@ -9,6 +9,8 @@
 
 #include "storm_assert.h"
 
+class DATA;
+
 class VSTRING_CODEC
 {
   public:
@@ -62,6 +64,10 @@ class ATTRIBUTES final
     [[deprecated("Pass attribute value by string_view instead")]]
     void SetValue(const char *new_value);
     void SetValue(const std::string_view &new_value);
+    // A script reference (CL's typed attributes, DynamicObject_SetActorNative): the attribute names a script variable
+    // as a `ref` does, and has no text. Setting a text value makes it plain again.
+    void SetReference(DATA *target);
+    [[nodiscard]] DATA *GetReference() const noexcept;
     [[nodiscard]] size_t GetAttributesNum() const;
     [[nodiscard]] ATTRIBUTES *GetAttributeClass(const std::string_view &name) const;
     [[nodiscard]] ATTRIBUTES *GetAttributeClass(uint32_t n) const;
@@ -115,6 +121,7 @@ private:
     uint32_t nameCode_{};
     uint32_t slot_; // see Handle
     std::optional<std::string> value_;
+    DATA *reference_{}; // see SetReference
     std::vector<std::unique_ptr<ATTRIBUTES>> attributes_;
     // The name codes of attributes_, in their order: a lookup scans these, not the children themselves.
     std::vector<uint32_t> codes_;

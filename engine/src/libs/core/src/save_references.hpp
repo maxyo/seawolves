@@ -129,6 +129,13 @@ class ReferenceIndex
         }
     }
 
+    // Which global variable or element `value` is; nothing for any other value.
+    std::optional<VariablePlace> Place(const DATA *value) const
+    {
+        const auto found = variables_.find(value);
+        return found == variables_.end() ? std::nullopt : std::optional(found->second);
+    }
+
     // Where the target of an `aref` is; nullptr when no global object variable owns it.
     const AttributePlace *Attribute(const ATTRIBUTES *target) const
     {
@@ -154,24 +161,36 @@ class ReferenceIndex
             for (uint32_t i = 0; array.IsArray() && i < array.GetArraySize(); ++i)
                 in_pool.try_emplace(array.GetArrayElement(i), &array, i);
         }
-        std::vector<DATA *> references;
+        // The targets of the references to follow: of `ref` values, and of attributes that hold a script reference.
+        std::vector<DATA *> targets;
+        const std::function<void(const ATTRIBUTES *)> attributes = [&](const ATTRIBUTES *node) {
+            if (node == nullptr)
+                return;
+            if (DATA *target = node->GetReference())
+                targets.push_back(target);
+            for (uint32_t n = 0; n < node->GetAttributesNum(); ++n)
+                attributes(node->GetAttributeClass(n));
+        };
         const auto collect = [&](DATA *value) {
-            if (value->GetType() != VAR_REFERENCE)
+            const auto type = value->GetType();
+            if (type != VAR_REFERENCE && type != VAR_OBJECT)
                 return;
-            if (!value->IsArray())
+            const uint32_t count = value->IsArray() ? value->GetArraySize() : 1;
+            for (uint32_t i = 0; i < count; ++i)
             {
-                references.push_back(value);
-                return;
+                DATA *element = value->IsArray() ? value->GetArrayElement(i) : value;
+                if (type == VAR_REFERENCE)
+                    targets.push_back(element->GetReference());
+                else
+                    attributes(element->AttributesClass);
             }
-            for (uint32_t i = 0; i < value->GetArraySize(); ++i)
-                references.push_back(value->GetArrayElement(i));
         };
         for (uint32_t n = 0; n < static_cast<uint32_t>(variables.GetVarNum()); ++n)
             if (const VarInfo *info = variables.GetVarX(n); info && info->value && (!saved || saved(*info)))
                 collect(info->value.get());
-        for (size_t next = 0; next < references.size(); ++next)
+        for (size_t next = 0; next < targets.size(); ++next)
         {
-            const auto found = in_pool.find(references[next]->GetReference());
+            const auto found = in_pool.find(targets[next]);
             if (found == in_pool.end())
                 continue;
             DATA *array = found->second.first;

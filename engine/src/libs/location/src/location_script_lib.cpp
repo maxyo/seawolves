@@ -320,6 +320,36 @@ template <uint32_t Arguments> uint32_t DynamicObjectNative(VS_STACK *stack, cons
     static_cast<VDATA *>(stack->Push())->Set(int32_t{0});
     return IFUNCRESULT_OK;
 }
+
+// DynamicObject_SetActorNative(ref context, ref actor): context.actor becomes a script reference to the actor, which
+// `ref actor = context.actor` reads back as the character and the save keeps (ATTRIBUTES::SetReference).
+uint32_t SetActorNative(VS_STACK *stack)
+{
+    auto *actorArgument = static_cast<VDATA *>(stack->Pop());
+    auto *contextArgument = static_cast<VDATA *>(stack->Pop());
+    ATTRIBUTES *context = contextArgument->IsReference() && contextArgument->GetReference() == nullptr
+                              ? nullptr
+                              : contextArgument->GetAClass();
+    DATA *actor = actorArgument->IsReference() && actorArgument->GetReference() == nullptr
+                      ? nullptr
+                      : actorArgument->GetVarPointer();
+    bool bound = false;
+    if (context != nullptr)
+    {
+        if (actor == nullptr || reinterpret_cast<VDATA *>(actor)->IsAReference())
+        {
+            context->SetAttribute("error", std::string_view("actor_unavailable"));
+            context->SetAttribute("errorDetails", std::string_view());
+        }
+        else
+        {
+            context->VerifyAttributeClass("actor")->SetReference(actor);
+            bound = true;
+        }
+    }
+    static_cast<VDATA *>(stack->Push())->Set(int32_t{bound});
+    return IFUNCRESULT_OK;
+}
 } // namespace
 
 bool ScriptLocationLibrary::Init()
@@ -336,7 +366,7 @@ bool ScriptLocationLibrary::Init()
     core.SetScriptFunction(&native);
     native.nArguments = 2;
     native.pFuncName = "DynamicObject_SetActorNative";
-    native.pFuncAddress = [](VS_STACK *s) { return DynamicObjectNative<2>(s, "DynamicObject_SetActorNative"); };
+    native.pFuncAddress = SetActorNative;
     core.SetScriptFunction(&native);
 
     IFUNCINFO sIFuncInfo;

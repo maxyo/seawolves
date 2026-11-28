@@ -231,7 +231,7 @@ ATTRIBUTES::ATTRIBUTES(VSTRING_CODEC *p): ATTRIBUTES(*p)
 
 ATTRIBUTES::ATTRIBUTES(ATTRIBUTES &&other) noexcept
     : stringCodec_(other.stringCodec_), nameCode_(other.stringCodec_.Convert("root")), slot_(lifetimes().Acquire()),
-      value_(std::move(other.value_)),
+      value_(std::move(other.value_)), reference_(other.reference_),
       attributes_(std::move(other.attributes_)), codes_(std::move(other.codes_)), break_(other.break_)
 {
     AdoptChildren();
@@ -251,6 +251,7 @@ ATTRIBUTES & ATTRIBUTES::operator=(ATTRIBUTES &&other) noexcept
     stringCodec_ = other.stringCodec_;
     // Do not update name code
     value_ = std::move(other.value_);
+    reference_ = other.reference_;
     attributes_ = std::move(other.attributes_);
     codes_ = std::move(other.codes_);
     ChildrenReordered();
@@ -332,6 +333,7 @@ void ATTRIBUTES::SetName(const std::string_view &new_name)
 
 void ATTRIBUTES::SetValue(const char *new_value)
 {
+    reference_ = nullptr;
     if (new_value == nullptr)
     {
         if (value_)
@@ -350,12 +352,29 @@ void ATTRIBUTES::SetValue(const char *new_value)
 
 void ATTRIBUTES::SetValue(const std::string_view &new_value)
 {
+    reference_ = nullptr;
     if (!value_ || *value_ != new_value)
         storm::TreeChanged(this);
     value_ = new_value;
 
     if (break_)
         stringCodec_.VariableChanged();
+}
+
+void ATTRIBUTES::SetReference(DATA *target)
+{
+    if (reference_ != target || value_)
+        storm::TreeChanged(this);
+    value_.reset();
+    reference_ = target;
+    if (break_)
+        stringCodec_.VariableChanged();
+}
+
+DATA *ATTRIBUTES::GetReference() const noexcept
+{
+    storm::TreeRead(this);
+    return reference_;
 }
 
 size_t ATTRIBUTES::GetAttributesNum() const
@@ -624,6 +643,7 @@ size_t ATTRIBUTES::SetAttribute(uint32_t name_code, const char *attribute)
 {
     if (const size_t n = ChildIndex(name_code); n != kNoIndex)
     {
+        attributes_[n]->reference_ = nullptr;
         auto &value = attributes_[n]->value_;
         if (attribute ? !value || *value != attribute : value.has_value())
             storm::TreeChanged(this);
@@ -650,6 +670,7 @@ size_t ATTRIBUTES::SetAttribute(uint32_t name_code, const std::string_view &attr
 {
     if (const size_t n = ChildIndex(name_code); n != kNoIndex)
     {
+        attributes_[n]->reference_ = nullptr;
         auto &value = attributes_[n]->value_;
         if (!value || *value != attribute)
             storm::TreeChanged(this);
@@ -831,6 +852,7 @@ ATTRIBUTES ATTRIBUTES::Copy() const
     ATTRIBUTES result(stringCodec_, nullptr, nameCode_);
     const auto copy = [](const auto &self, const ATTRIBUTES &from, ATTRIBUTES &to) -> void {
         to.value_ = from.value_;
+        to.reference_ = from.reference_;
         to.codes_ = from.codes_;
         to.attributes_.reserve(from.attributes_.size());
         for (const auto &attribute : from.attributes_)
