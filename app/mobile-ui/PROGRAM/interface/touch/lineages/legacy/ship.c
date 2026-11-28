@@ -111,6 +111,8 @@ void TouchLegShip_Ship(aref ui, aref model, ref chr, aref out)
 			out.guns.caliber = TouchLib_Trim(TouchLib_Cut(text, 0, slash));
 		}
 	}
+	// interface_utils.c SetShipOTHERTable writes the Crew row for every ship it fills
+	if (!CheckAttribute(out, "crew.count")) UiError("ship: the game's TABLE_OTHER has no Crew row");
 }
 
 // "now / most" (most -1 without the slash) of the game's text.

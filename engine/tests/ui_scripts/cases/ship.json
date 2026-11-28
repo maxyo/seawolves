@@ -7731,6 +7731,13 @@
    "like": 0,
    "unmark": "SHIPS_SCROLL",
    "fails": "ship: the squadron: the game marks none of 2 current"
+  },
+  {
+   "name": "the figures without the Crew row the game writes for every ship: the build refuses it",
+   "capability": "ship",
+   "like": 0,
+   "without": [["TABLE_OTHER", "Crew"]],
+   "fails": "ship: the game's TABLE_OTHER has no Crew row"
   }
  ]
 }
