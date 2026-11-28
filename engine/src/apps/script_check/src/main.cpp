@@ -14,7 +14,9 @@
 // test: compiles each script as the main segment and runs every function whose name starts with
 // "test_"; it must return 1 (int) without a runtime error. A "fail_" function must stop with a
 // runtime error within 5 s (a script call may execute 2^24 instructions here; a call stopped at that limit stops
-// the program's scripts for good, so it is its file's only "fail_"). A script whose first line is
+// the program's scripts for good, so it is its file's only "fail_"); a line "// expect-runtime-error: <text>" right
+// above it requires an error containing <text>. The events a function posts run after it, as in the engine's next
+// frames, and their errors count as the function's. A script whose first line is
 // "// expect-error: <text>" must instead fail to compile with an error containing <text>. A line
 // "// profile: Caribbean Legend" compiles the script with that game profile (default: legacy). --settings: the
 // game's settings folder (its engine.ini, written by natives that keep the player's choices); default none.
@@ -493,6 +495,13 @@ int test(int argc, char **argv)
         }
         else
         {
+            // A posted event runs in the frame after the one that posted it.
+            const auto run = [&](const std::string &function, std::string &value) {
+                const bool ran = compiler.RunScriptFunction(function.c_str(), value);
+                compiler.ProcessFrame(0);
+                compiler.ProcessFrame(0);
+                return ran;
+            };
             const std::regex test_function(R"(^\s*int\s+(test_\w+)\s*\(\s*\))", std::regex::multiline);
             int count = 0;
             const int failures_before = failures;
@@ -501,7 +510,7 @@ int test(int argc, char **argv)
                 const auto function = (*it)[1].str();
                 diagnostics.clear();
                 std::string value;
-                const bool ran = compiler.RunScriptFunction(function.c_str(), value);
+                const bool ran = run(function, value);
                 const bool errors = std::ranges::any_of(diagnostics, isError);
                 ++count;
                 if (!ran || errors || value != "1")
@@ -512,22 +521,27 @@ int test(int argc, char **argv)
                 }
             }
             // fail_*: must stop with a runtime error (e.g. the endless loop guard) within a few seconds
-            const std::regex fail_function(R"(^\s*int\s+(fail_\w+)\s*\(\s*\))", std::regex::multiline);
+            const std::regex fail_function(
+                R"((?:^// expect-runtime-error: ([^\r\n]*)\r?\n)?^\s*int\s+(fail_\w+)\s*\(\s*\))",
+                std::regex::multiline);
             for (std::sregex_iterator it(text.begin(), text.end(), fail_function), end; it != end; ++it)
             {
-                const auto function = (*it)[1].str();
+                const auto expected_error = (*it)[1].str();
+                const auto function = (*it)[2].str();
                 diagnostics.clear();
                 std::string value;
                 const auto started = std::chrono::steady_clock::now();
-                const bool ran = compiler.RunScriptFunction(function.c_str(), value);
+                const bool ran = run(function, value);
                 const auto seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
-                const bool errors = std::ranges::any_of(diagnostics, isError);
+                const bool errors = std::ranges::any_of(diagnostics, [&](const auto &line) {
+                    return isError(line) && line.find(expected_error) != std::string::npos;
+                });
                 ++count;
                 if ((ran && value == "1") || !errors || seconds > 5.0)
                 {
                     ++failures;
-                    std::printf("FAIL %s: %s did not stop with an error (%.1f s)\n", name.c_str(), function.c_str(),
-                                seconds);
+                    std::printf("FAIL %s: %s did not stop with the error '%s' (%.1f s)\n", name.c_str(),
+                                function.c_str(), expected_error.c_str(), seconds);
                     dump();
                 }
             }

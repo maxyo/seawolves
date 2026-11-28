@@ -178,7 +178,10 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     bool BC_CallFunction(uint32_t func_code, uint32_t &ip, DATA *&pVResult);
     // Value of an integer #define of a loaded script segment; nullopt when there is none.
     std::optional<int32_t> FindIntegerDefine(const char *name);
-    void FindErrorSource();
+    // The running statement's file and line (DebugSourceFileName, DebugSourceLine); false outside a script frame.
+    bool FindErrorSource();
+    // A runtime error's place: the running statement, else the event being dispatched, else the engine.
+    std::string RuntimeErrorPlace();
     S_TOKEN_TYPE BC_TokenGet(uint32_t &ip, uint32_t &token_data_size);
     S_TOKEN_TYPE BC_TokenGet();
     void ReadCondition(int32_t &value);

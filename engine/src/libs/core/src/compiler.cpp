@@ -273,8 +273,6 @@ void COMPILER::SetError(const char *data_PTR, ...)
     va_list args;
     va_start(args, data_PTR);
     vsnprintf(LogBuffer, sizeof(LogBuffer) - 4, data_PTR, args);
-    uint32_t bytes;
-    FindErrorSource();
 
     switch (CompilerStage)
     {
@@ -286,7 +284,7 @@ void COMPILER::SetError(const char *data_PTR, ...)
         sprintf_s(ErrorBuffer, "COMPILE ERROR in %s(%d): %s", DebugSourceFileName, DebugSourceLine + 1, LogBuffer);
         break;
     case CS_RUNTIME:
-        sprintf_s(ErrorBuffer, "RUNTIME ERROR in %s(%d): %s", DebugSourceFileName, DebugSourceLine + 1, LogBuffer);
+        sprintf_s(ErrorBuffer, "RUNTIME ERROR in %s: %s", RuntimeErrorPlace().c_str(), LogBuffer);
         break;
     }
     va_end(args);
@@ -311,10 +309,8 @@ void COMPILER::SetWarning(const char *data_PTR, ...)
     va_list args;
     va_start(args, data_PTR);
     vsnprintf(LogBuffer, sizeof(LogBuffer) - 4, data_PTR, args);
-    uint32_t bytes;
-    FindErrorSource();
 
-    sprintf_s(ErrorBuffer, "WARNING in %s(%d): %s", DebugSourceFileName, DebugSourceLine + 1, LogBuffer);
+    sprintf_s(ErrorBuffer, "WARNING in %s: %s", RuntimeErrorPlace().c_str(), LogBuffer);
     va_end(args);
 
     logTrace_->warn(ErrorBuffer);
@@ -537,12 +533,10 @@ void COMPILER::ForEachEvent(const std::function<void(std::string_view name)> &vi
 
 bool COMPILER::Run()
 {
-    pRun_fi = nullptr;
     const uint32_t function_code = FuncTab.FindFunc("Main");
     DATA *pResult;
     bFirstRun = false;
     const bool executed = BC_Execute(function_code, pResult);
-    pRun_fi = nullptr;
     if (executed)
         AttachEngineSegments();
 #ifdef STORM_TOUCH_UI
@@ -558,11 +552,14 @@ bool COMPILER::Run()
     return true;
 }
 
-void COMPILER::FindErrorSource()
+bool COMPILER::FindErrorSource()
 {
+    // Outside a frame the position is not a statement's: the engine dispatches an event or reads a script value.
+    if (!pRun_fi)
+        return false;
     const uint32_t segment_index = GetSegmentIndex(RunningSegmentID);
     if (segment_index == INVALID_SEGMENT_INDEX)
-        return;
+        return false;
 
     uint32_t index;
     uint32_t token_data_size;
@@ -591,9 +588,7 @@ void COMPILER::FindErrorSource()
         }
 
         if (ip >= InstructionPointer)
-        {
-            return;
-        }
+            return true;
         switch (Token_type)
         {
         case DEBUG_LINE_CODE:
@@ -613,6 +608,16 @@ void COMPILER::FindErrorSource()
         }
         ip += token_data_size; // step to next instruction
     } while (Token_type != END_OF_PROGRAMM);
+    return true;
+}
+
+std::string COMPILER::RuntimeErrorPlace()
+{
+    if (FindErrorSource())
+        return fmt::format("{}({})", DebugSourceFileName, DebugSourceLine + 1);
+    if (!callStack_.empty())
+        return fmt::format("event {}", std::get<2>(callStack_.back()));
+    return "the engine";
 }
 
 void COMPILER::SetEventHandler(const char *event_name, const char *func_name, int32_t flag, bool bStatic)
@@ -793,8 +798,6 @@ VDATA *COMPILER::ProcessEvent(const char *event_name)
         if (bEventsBreak)
             break;
     }
-
-    pRun_fi = nullptr;
 
     return pVD;
 }
@@ -4773,6 +4776,23 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             }
         }
     } execute_depth{*this, frame};
+    // The caller's position (none for the engine's call) is current again once this frame ends: an error raised then
+    // names the caller's statement, not this frame's last line.
+    struct Position
+    {
+        COMPILER &compiler;
+        FuncFrame *const frame = compiler.pRun_fi;
+        const uint32_t instruction = compiler.InstructionPointer;
+        const uint32_t segment = compiler.RunningSegmentID;
+        const char *const code = compiler.pRunCodeBase;
+        ~Position()
+        {
+            compiler.pRun_fi = frame;
+            compiler.InstructionPointer = instruction;
+            compiler.RunningSegmentID = segment;
+            compiler.pRunCodeBase = code;
+        }
+    } position{*this};
     if (execute_depth_++ == 0)
         storm::ScriptRunning(true);
     entid_t eid;
