@@ -6,6 +6,7 @@
 #include <spdlog/sinks/android_sink.h>
 #endif
 
+#include "log_rotation.hpp"
 #include "spdlog_sinks/syncable_sink.hpp"
 #include "fs.h"
 
@@ -20,8 +21,22 @@ constexpr auto kErrorLoggerName = "error";
 namespace storm::logging
 {
 
+const PreviousSession &previousSession()
+{
+    static const PreviousSession previous = [] {
+        PreviousSession taken;
+        const auto logs = fs::GetLogsPath();
+        taken.uncleanEnd = takeUncleanEnd(logs, taken.failures);
+        for (auto &failure : rotatePreviousSessionLogs(logs))
+            taken.failures.push_back(std::move(failure));
+        return taken;
+    }();
+    return previous;
+}
+
 logger_ptr getOrCreateLogger(const std::string &name, const spdlog::level::level_enum level, const bool logcat)
 {
+    previousSession();
     auto logger = spdlog::get(name);
     if (logger)
     {

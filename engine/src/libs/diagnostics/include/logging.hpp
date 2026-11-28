@@ -11,7 +11,17 @@ namespace storm::logging
 
 using logger_ptr = std::shared_ptr<spdlog::logger>;
 
-// The logger writing Logs/<name>.log (opened truncated: log_rotation.hpp keeps the previous session's). On
+// What the previous session left, taken once per process before the first log file opens (log_rotation.hpp): how it
+// ended if it did not end cleanly ("" otherwise) and the files the rotation could not keep. The first logger made
+// takes it, whoever makes it (on Android a call from the app can come before the engine's main).
+struct PreviousSession
+{
+    std::string uncleanEnd;
+    std::vector<std::string> failures;
+};
+const PreviousSession &previousSession();
+
+// The logger writing Logs/<name>.log (opened truncated after previousSession() kept the last session's). On
 // Android its lines also go to logcat unless `logcat` is false (a source that logs there itself).
 logger_ptr getOrCreateLogger(const std::string &name, spdlog::level::level_enum level = spdlog::level::trace,
                              bool logcat = true);

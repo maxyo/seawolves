@@ -401,17 +401,14 @@ void EnterOnce()
 #endif
 
 // The logs and the session marker, first, so that every later failure (the game folder, damaged fixes) is in the
-// logs. Before anything opens a log (mimalloc's output, the loggers truncate their files): the previous process's
-// logs are the evidence of the hang or crash this start may follow. False (shown to the player): no logs.
+// logs. The previous process's logs, the evidence of the hang or crash this start may follow, were kept by the first
+// logger made (logging.hpp previousSession). False (shown to the player): no logs.
 bool StartLogs()
 {
     try
     {
         const auto logs = fs::GetLogsPath();
-        std::vector<std::string> logFailures;
-        const auto uncleanEnd = storm::logging::takeUncleanEnd(logs, logFailures);
-        for (const auto &failure : storm::logging::rotatePreviousSessionLogs(logs))
-            logFailures.push_back(failure);
+        const auto &[uncleanEnd, logFailures] = storm::logging::previousSession();
         spdlog::set_default_logger(storm::logging::getOrCreateLogger(defaultLoggerName));
         storm::logging::startPeriodicFlush();
         // The diagnostics export labels each session's logs with this line's time and pid (app DiagnosticsReport).

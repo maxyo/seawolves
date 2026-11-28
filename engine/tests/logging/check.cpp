@@ -40,7 +40,15 @@ TEST_CASE("logging")
     // fs::GetLogsPath: $XDG_STATE_HOME/seawolves/logs on Linux.
     const auto state = std::filesystem::temp_directory_path();
     REQUIRE(setenv("XDG_STATE_HOME", state.c_str(), 1) == 0);
+    const std::string logs = (state / "seawolves/logs/").string();
+    // The previous session's logs, and a logger of the app's made before the engine's own (on Android a call from
+    // the app comes before the engine's main): the previous logs are kept, this session's lines are in its own.
+    std::filesystem::create_directories(logs);
+    std::ofstream(logs + "error.log") << "the previous session's error\n";
+    std::ofstream(logs + "ui.log") << "the previous session's ui line\n";
     using storm::logging::getOrCreateLogger;
+    auto ui = getOrCreateLogger("ui");
+    ui->error("this session's ui error");
     auto system = getOrCreateLogger("system");
     auto compile = getOrCreateLogger("compile");
     auto errors = getOrCreateLogger("error");
@@ -51,7 +59,11 @@ TEST_CASE("logging")
     errors->info("script error line");
     spdlog::apply_all([](const std::shared_ptr<spdlog::logger> &logger) { logger->flush(); });
 
-    const std::string logs = (state / "seawolves/logs/").string();
+    REQUIRE((count(read(logs + "error.prev1.log"), "the previous session's error") == 1 &&
+             count(read(logs + "ui.prev1.log"), "the previous session's ui line") == 1));
+    REQUIRE((count(read(logs + "error.log"), "this session's ui error") == 1 &&
+             count(read(logs + "error.prev1.log"), "this session's ui error") == 0));
+    REQUIRE(storm::logging::previousSession().failures.empty());
     const auto systemLog = read(logs + "system.log"), compileLog = read(logs + "compile.log"),
                errorLog = read(logs + "error.log");
     REQUIRE((count(systemLog, "system info line") == 1 &&
