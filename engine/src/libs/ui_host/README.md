@@ -1,14 +1,16 @@
-# ui_host — the game's portable UI inside the engine (Android)
+# ui_host — the game's portable UI inside the engine (touch interface builds: Android, the desktop's development build)
 
 One `storm::ui::Host` lives in the engine process, on the game thread, and draws through the bgfx backend
 (`storm_ui_bgfx`) in the frame owner's UI views, after the game picture, at native resolution. It receives state
 channels, interface models (`xinterface`), toasts and presentation from the engine, touches and settings from
 `GameActivity` through the `EngineUi` natives (applied by `ui::tick()` at the top of the next loop iteration), and
 sends widget actions back to `xinterface` and host actions to the activity over JNI. A host that cannot start is an
-error shown to the player (`uiFailed`).
+error shown to the player (`uiFailed`). What it asks of the platform (`ui_platform` in `engine_ui.hpp`: the pack, the
+text editor, the activity's actions, the log) is `src/platform/android.cpp`, with the activity's natives, or
+`src/platform/desktop.cpp` (mouse as one finger; `../../README.md`, "Building").
 
 `src/engine_ui.hpp` holds the host (`EngineUi`): `engine_ui.cpp` its game-thread side and the engine's calls,
-`engine_ui_start.cpp` a new host, `engine_ui_platform.cpp` the activity's natives, `engine_ui_trace.cpp` its frame
+`engine_ui_start.cpp` a new host, `engine_ui_platform.cpp` the platform's state channels, `engine_ui_trace.cpp` its frame
 clients (the input trace and the prewarm between frames), `dialogue_relay.hpp` the dialogue's states on their way
 to the host (checked on the host by `tests/ui_host_dialogue`).
 

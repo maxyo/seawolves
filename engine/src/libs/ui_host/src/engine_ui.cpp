@@ -5,13 +5,14 @@
 
 namespace storm::android::ui
 {
-// The host's own lines: ui.log (its errors in error.log too) and logcat under kTag, like the UI library's lines
-// (Config::on_log writes those to the same files; the library puts them in logcat itself).
+// The host's own lines: ui.log (its errors in error.log too) and the platform's log under kTag, like the UI library's
+// lines (Config::on_log writes those to the same files; on Android the library puts them in logcat itself).
 spdlog::logger &Log()
 {
     static const std::shared_ptr<spdlog::logger> logger = [] {
         std::vector<spdlog::sink_ptr> sinks = storm::logging::fileSinks("ui");
-        sinks.push_back(std::make_shared<spdlog::sinks::android_sink_mt>(kTag, true));
+        if (spdlog::sink_ptr platform = ui_platform::LogSink(kTag))
+            sinks.push_back(std::move(platform));
         auto made = std::make_shared<spdlog::logger>("ui", sinks.begin(), sinks.end());
         made->flush_on(spdlog::level::warn);
         return made;
@@ -19,10 +20,12 @@ spdlog::logger &Log()
     return *logger;
 }
 
-// A debug trace switched on by its own logcat tag (Loggable): logcat only.
+// A debug trace switched on by its own name (platform/debug_switch.hpp): the platform's log (the desktop: ui.log).
 std::shared_ptr<spdlog::logger> Trace(const char *tag)
 {
-    auto trace = std::make_shared<spdlog::logger>(tag, std::make_shared<spdlog::sinks::android_sink_mt>(tag, true));
+    spdlog::sink_ptr platform = ui_platform::LogSink(tag);
+    auto trace = platform ? std::make_shared<spdlog::logger>(tag, std::move(platform))
+                          : std::make_shared<spdlog::logger>(tag, Log().sinks().begin(), Log().sinks().end());
     trace->set_level(spdlog::level::debug);
     return trace;
 }
@@ -39,7 +42,8 @@ spdlog::logger &TraceInputs()
 
 double MonotonicMs()
 {
-    return storm::ui::jni::MonotonicSeconds() * 1000.0;
+    // CLOCK_MONOTONIC on both platforms: the clock of Android's MotionEvent times (SystemClock.uptimeMillis).
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 void EngineUi::Tick(uint64_t input_epoch)
@@ -154,9 +158,7 @@ void EngineUi::Shutdown()
     }
     backend_.reset();
     files_.reset();
-    if (auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv()); env && assets_)
-        env->DeleteGlobalRef(assets_);
-    assets_ = nullptr;
+    ui_platform::ClosePack();
     failed_ = true; // no new host after this
 }
 
@@ -170,13 +172,7 @@ void EngineUi::OnAction(const storm::ui::Action &action)
         const auto *shortcut = std::get_if<Shortcut>(&*action.command);
         const std::string verb = shortcut ? app::hud_input::shortcut : app::hud_input::presence;
         const std::string value = shortcut ? shortcut->name : std::get<Presence>(*action.command).state;
-        CallActivity(upcall::GameActivity::onUiHudInput, [&](JNIEnv *env, jobject activity, jmethodID method) {
-            const JavaStrings texts(env, {&verb, &value}, "onUiHudInput");
-            if (!texts.ok())
-                return false;
-            env->CallVoidMethod(activity, method, texts[0], texts[1]);
-            return true;
-        });
+        ui_platform::HudInput(verb, value);
         return;
     }
     if (storm::ui::AnsweredAction(action))
@@ -206,13 +202,7 @@ void EngineUi::OnAction(const storm::ui::Action &action)
         commands_.push(std::move(command), {});
         return;
     }
-    CallActivity(upcall::GameActivity::onUiAction, [&](JNIEnv *env, jobject activity, jmethodID method) {
-        const JavaStrings texts(env, {&action.node, &action.verb, &action.value}, "onUiAction");
-        if (!texts.ok())
-            return false;
-        env->CallVoidMethod(activity, method, texts[0], texts[1], texts[2]);
-        return true;
-    });
+    ui_platform::Perform(action);
 }
 
 void EngineUi::Record(const storm::ui::InterfaceModel &model) const
@@ -220,11 +210,10 @@ void EngineUi::Record(const storm::ui::InterfaceModel &model) const
     if (screen_.empty() || !record_models_)
         return;
     const std::string json = storm::ui::InterfaceModelJson(model);
-    const char *external = SDL_AndroidGetExternalStoragePath();
-    if (!external)
+    const std::filesystem::path folder = ui_platform::ModelsFolder();
+    if (folder.empty())
         return;
     std::error_code error;
-    const std::filesystem::path folder = std::filesystem::path(external) / "ui-models";
     std::filesystem::create_directories(folder, error);
     std::ofstream out(folder / (screen_ + ".json"), std::ios::binary);
     out.write(json.data(), std::streamsize(json.size()));

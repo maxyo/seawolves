@@ -9,11 +9,9 @@
 #include "platform/android_runtime.hpp"
 #include "platform/android_ui.hpp"
 #include "platform/android_ui_sink.hpp"
+#include "platform/debug_switch.hpp"
 #include "platform/display_options.hpp"
-#include "platform/jni_text.hpp"
 
-#include "storm_ui/android_jni.h"
-#include "storm_ui/asset_files.h"
 #include "storm_ui/backend_bgfx.h"
 #include "storm_ui/interface_model.h"
 #include "storm_ui/ui.h"
@@ -22,10 +20,6 @@
 
 #include <SDL2/SDL.h>
 #include <nlohmann/json.hpp>
-#include <SDL2/SDL_system.h>
-#include <android/asset_manager_jni.h>
-#include <spdlog/sinks/android_sink.h>
-#include <jni.h>
 
 #include <array>
 #include <chrono>
@@ -53,65 +47,34 @@ constexpr int kClientOrder = 1000;
 // the slowest one of their kind so far shows to fit in kPrewarmIdleMs (the texture realize budget of a frame of play).
 constexpr double kPrewarmHiddenMs = 8.0, kPrewarmIdleMs = 4.0, kPrewarmAfterMs = 400.0;
 
-using storm::android::CallActivity;
-using storm::ui::jni::Bytes;
-using storm::ui::jni::Loggable;
-using storm::ui::jni::Text;
-
-// The host's own lines: ui.log (its errors in error.log too) and logcat under kTag.
+// The host's own lines: ui.log (its errors in error.log too) and the platform's log under kTag.
 spdlog::logger &Log();
-// The debug traces switched on by their logcat tags (Loggable): logcat only.
+// The debug traces switched on by their names (platform/debug_switch.hpp): the platform's log only.
 spdlog::logger &TraceStates();
 spdlog::logger &TraceInputs();
 double MonotonicMs();
 
-// The local Java strings of one upcall's texts. ok() is false (logged) when one of them is not valid UTF-8 or the VM
-// failed (its exception pending): the upcall is then not made.
-class JavaStrings
+// What the touch interface asks of the platform it runs on: platform/android.cpp (the Java host) or
+// platform/desktop.cpp (the desktop's development build). Game thread.
+namespace ui_platform
 {
-  public:
-    JavaStrings(JNIEnv *env, std::initializer_list<const std::string *> texts, const char *upcall) : env_(env)
-    {
-        for (const std::string *text : texts)
-        {
-            jstring value = nullptr;
-            try
-            {
-                value = storm::jni_text::ToJava(env, *text);
-            }
-            catch (const std::exception &error)
-            {
-                Log().error("GameActivity.{} is not called: text {}: {}", upcall, values_.size(), error.what());
-            }
-            if (!value)
-            {
-                ok_ = false;
-                return;
-            }
-            values_.push_back(value);
-        }
-    }
-    JavaStrings(const JavaStrings &) = delete;
-    JavaStrings &operator=(const JavaStrings &) = delete;
-    ~JavaStrings()
-    {
-        for (jstring value : values_)
-            env_->DeleteLocalRef(value);
-    }
-    bool ok() const
-    {
-        return ok_;
-    }
-    jstring operator[](size_t index) const
-    {
-        return values_[index];
-    }
-
-  private:
-    JNIEnv *env_;
-    std::vector<jstring> values_;
-    bool ok_ = true;
-};
+// The platform can host the UI now (Android: the game thread has its JNIEnv).
+bool Ready();
+// The UI pack, read in place (the APK's assets, a directory on the desktop); thrown when there is none.
+std::unique_ptr<storm::ui::FileSource> OpenPack();
+void ClosePack();
+void ShowTextEditor(const storm::ui::TextRequest &request);
+// The touch interface cannot start: the player is told `reason`.
+void UiFailed(const std::string &reason);
+// A HUD shortcut or presence change (verb app::hud_input::*): the platform's own controls follow it.
+void HudInput(const std::string &verb, const std::string &value);
+// An action that is neither the engine's nor an interface's (about, settings, exit to the menu ...).
+void Perform(const storm::ui::Action &action);
+// Where recorded interface models go (StormUiModels); empty: nowhere.
+std::filesystem::path ModelsFolder();
+// The platform's log for the UI's lines under `tag` (logcat); nullptr: the files only.
+spdlog::sink_ptr LogSink(const char *tag);
+} // namespace ui_platform
 
 class EngineUi
 {
@@ -281,7 +244,7 @@ class EngineUi
 
     void Tick(uint64_t input_epoch);
 
-    // adb shell setprop log.tag.StormUiInput DEBUG (before the game starts): when touches and
+    // switch StormUiInput (platform/debug_switch.hpp): when touches and
     // the commands they produce reach the engine, in engine loop iterations (one per frame).
     void TraceInput(const char *what, const std::string &detail) const
     {
@@ -416,7 +379,7 @@ class EngineUi
         interface_active_ = host_ && host_->InterfaceActive();
     }
 
-    // adb shell setprop log.tag.StormUiModels DEBUG: the newest model of each screen goes to
+    // switch StormUiModels: the newest model of each screen goes to
     // <external files>/ui-models/<screen>.json, to record real models for the screen tests.
     void Record(const storm::ui::InterfaceModel &model) const;
 
@@ -428,7 +391,6 @@ class EngineUi
     storm::ui_scripts::VmPort port_{scripts_};
     std::vector<storm::ui::ScriptScreen> script_screens_; // of the running program (replayed to a new host)
     std::optional<storm::ui::InterfaceModel> deferred_;   // a script screen's model published inside a script
-    jobject assets_ = nullptr;                            // keeps the Java AssetManager alive
     std::unique_ptr<storm::ui::BgfxBackend> backend_;
     std::unique_ptr<storm::ui::Host> host_;
     std::mutex host_mutex_; // the host's lifetime against the platform thread's queries
@@ -437,9 +399,9 @@ class EngineUi
     uint64_t loop_ = 0;     // engine loop iterations (Tick)
     uint64_t tap_loop_ = 0; // the iteration that applied the newest touch end
     // The debug log tags (Loggable), read once.
-    const bool trace_input_ = Loggable("StormUiInput");
-    const bool trace_states_ = Loggable("StormUiState");
-    const bool record_models_ = Loggable("StormUiModels");
+    const bool trace_input_ = storm::platform::debugSwitch("StormUiInput");
+    const bool trace_states_ = storm::platform::debugSwitch("StormUiState");
+    const bool record_models_ = storm::platform::debugSwitch("StormUiModels");
     // With the input trace: which loop iteration each presented UI frame belongs to, and every
     // 5 s what the UI frames cost on the CPU (GPU work is the renderer's, in RenderMetrics).
     struct FrameTrace final : storm::render::FrameClient

@@ -157,12 +157,16 @@ inline storage::Folders gameFolders(const BaseFolders &base, const fs::path &gam
                              {"options", "engine.ini"},
                              base.cache / kFolderName / buildIdentity(game),
                              {{}, layers / "engine-shaders", layers / "script-patches"}};
+#ifdef STORM_TOUCH_UI
+    // The touch interface's scripts and, in its ui/, its pack: the development build's (engine/README.md, "Linux").
+    folders.layers.mobileUi = layers / "mobile-ui";
+#endif
     for (const auto *root : {&folders.saves, &folders.settings, &folders.cache})
         if (storage::inside(game, *root) || storage::inside(*root, game))
             throw std::runtime_error("The player's folder " + root->string() + " and the game folder " + game.string() +
                                      " overlap: the engine never writes into the game folder");
-    for (const auto *layer : {&folders.layers.engineShaders, &folders.layers.scriptPatches})
-        if (!fs::is_directory(*layer))
+    for (const auto *layer : {&folders.layers.mobileUi, &folders.layers.engineShaders, &folders.layers.scriptPatches})
+        if (!layer->empty() && !fs::is_directory(*layer))
             throw std::runtime_error("The engine's " + layer->string() + " is missing: the installation is incomplete");
     return folders;
 }

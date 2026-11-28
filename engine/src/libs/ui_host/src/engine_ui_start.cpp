@@ -9,7 +9,7 @@ void EngineUi::Start()
     auto *owner = storm::render::FrameOwner::Get();
     if (!owner || !owner->DeviceReady())
         return; // not yet: the renderer starts first
-    if (!SDL_AndroidGetJNIEnv())
+    if (!ui_platform::Ready())
         return;
     std::string error;
     storm::ui::BgfxBackendOptions options;
@@ -34,23 +34,10 @@ void EngineUi::Start()
                surface.density);
 }
 
-// The activity's AssetManager, kept alive by a global reference, and the UI pack in it.
 storm::ui::FileSource &EngineUi::Pack()
 {
-    if (files_)
-        return *files_;
-    auto *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
-    auto activity = static_cast<jobject>(SDL_AndroidGetActivity());
-    if (!env || !activity)
-        throw std::runtime_error("the UI pack cannot be opened: no activity");
-    const jclass type = env->GetObjectClass(activity);
-    const jmethodID get_assets = env->GetMethodID(type, "getAssets", "()Landroid/content/res/AssetManager;");
-    const jobject assets = env->CallObjectMethod(activity, get_assets);
-    assets_ = env->NewGlobalRef(assets);
-    env->DeleteLocalRef(assets);
-    env->DeleteLocalRef(type);
-    env->DeleteLocalRef(activity);
-    files_ = storm::ui::AssetFiles(AAssetManager_fromJava(env, assets_), "ui");
+    if (!files_)
+        files_ = ui_platform::OpenPack();
     return *files_;
 }
 
@@ -64,7 +51,8 @@ storm::ui::Config EngineUi::MakeConfig(const storm::render::SurfaceMetrics &surf
     config.density = surface.density;
     config.game_root = std::filesystem::current_path().string(); // prepareGameDirectory
     config.show_errors = storm::android::debugBuild();
-    config.log_taps = Loggable("StormUiTaps"); // automated UI runs: the tap map in the log (Config::log_taps)
+    // Automated UI runs: the tap map in the log (Config::log_taps).
+    config.log_taps = storm::platform::debugSwitch("StormUiTaps");
     // The flicker check (Config::trace_actions): debug builds and automated UI runs report every action that showed
     // a transient frame ("UI flicker" in logcat and Logs/ui.log).
     config.trace_actions = config.show_errors || config.log_taps;
@@ -78,17 +66,7 @@ storm::ui::Config EngineUi::MakeConfig(const storm::render::SurfaceMetrics &surf
                     "{}", line);
     };
     config.on_action = [this](const storm::ui::Action &action) { OnAction(action); };
-    config.on_text_request = [](const storm::ui::TextRequest &request) {
-        CallActivity(upcall::GameActivity::onUiTextRequest, [&](JNIEnv *env, jobject activity, jmethodID method) {
-            const JavaStrings texts(env, {&request.token, &request.text, &request.title}, "onUiTextRequest");
-            if (!texts.ok())
-                return false;
-            env->CallVoidMethod(activity, method, texts[0], texts[1], texts[2], jboolean(request.numeric),
-                                jboolean(request.secret), jint(request.x), jint(request.y), jint(request.width),
-                                jint(request.height));
-            return true;
-        });
-    };
+    config.on_text_request = [](const storm::ui::TextRequest &request) { ui_platform::ShowTextEditor(request); };
     return config;
 }
 
@@ -97,14 +75,7 @@ void EngineUi::ReportStartFailure(const std::string &error)
 {
     failed_ = true;
     Log().error("UI host failed: {}", error);
-    const std::string reason = "The UI runtime failed to start: " + error;
-    CallActivity(upcall::GameActivity::uiFailed, [&](JNIEnv *env, jobject activity, jmethodID method) {
-        const JavaStrings text(env, {&reason}, "uiFailed");
-        if (!text.ok())
-            return false;
-        env->CallVoidMethod(activity, method, text[0]);
-        return true;
-    });
+    ui_platform::UiFailed("The UI runtime failed to start: " + error);
     backend_.reset();
 }
 

@@ -187,7 +187,8 @@ if(ANDROID)
     include("${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/build_stamp.cmake")
     storm_build_stamp(storm_ui_runtime)
     storm_ui_line_tables(storm_ui storm_ui_bgfx storm_ui_runtime)
-elseif(NOT CMAKE_CROSSCOMPILING)
+elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    # The stand-alone host build: its tools and checks (the desktop engine's touch build links only the runtime).
     if(STORM_UI_RENDER_BACKEND)
         # Headless captures for design checks: bgfx GLES 3.0 on a surfaceless EGL display, PNG output. The game's
         # pictures are read from .tx files by the renderer's texture core (the game takes them from the renderer).
