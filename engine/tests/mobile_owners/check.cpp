@@ -249,3 +249,19 @@ TEST_CASE("mobile_owners")
     std::cout << "PASS real owner selectors, padding, known empty shipyard slots, exact fields, owner/profile/epoch "
                  "and malformed guards; hirecrew quantity owner/profile/epoch/selection validation\n";
 }
+
+TEST_CASE("an owner list whose current is no row is told, not left without rows")
+{
+    using namespace storm::mobile;
+    Codec codec;
+    ATTRIBUTES list(codec);
+    list.SetAttribute("ListSize", "2");
+    list.CreateAttribute("pic1", nullptr)->SetAttribute("companionIndex", "7");
+    list.CreateAttribute("pic2", nullptr)->SetAttribute("companionIndex", "8");
+    CHECK(OwnerCurrentDefect("store", "SHIPS_SCROLL", false, &list, 5) == "its current is '', not a row");
+    list.SetAttribute("current", "2");
+    CHECK(OwnerCurrentDefect("store", "SHIPS_SCROLL", false, &list, 5) == "its current 2 is past its 2 rows");
+    list.SetAttribute("current", "1");
+    CHECK(OwnerCurrentDefect("store", "SHIPS_SCROLL", false, &list, 5).empty());
+    CHECK(OwnerCurrentDefect("store", "OTHER_SCROLL", false, &list, 5).empty()); // not an owner list
+}

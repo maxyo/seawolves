@@ -1548,11 +1548,14 @@ bool CXI_SCROLLIMAGE::MobileOwnerRows(storm::mobile::OfficerListIdentity &state,
                                      std::vector<MobileWidget> &rows) const
 {
     if (!m_nodeName || !m_bUse) return false;
-    return storm::mobile::OwnerRows(storm::android::mobileScreen, m_nodeName, false,
-        core.Entity_GetAttributeClass(g_idInterface, m_nodeName), m_Image.size(),
+    auto *attrs = core.Entity_GetAttributeClass(g_idInterface, m_nodeName);
+    if (storm::mobile::OwnerRows(storm::android::mobileScreen, m_nodeName, false, attrs, m_Image.size(),
         storm::android::mobileScreenRevision, storm::mobile::OwnerProfile(),
         m_bClickable && !m_bLockedNode && !m_bLockStatus && !m_bDoMove,
-        m_rect.top * 8192 + m_rect.left, storm::mobile::OwnerLabel, "", state, rows);
+        m_rect.top * 8192 + m_rect.left, storm::mobile::OwnerLabel, "", state, rows))
+        return true;
+    storm::mobile::SayOwnerCurrentDefect(m_nodeName, false, attrs, m_Image.size());
+    return false;
 }
 std::vector<std::string> CXI_SCROLLIMAGE::MobileEmblemFiles() const
 {

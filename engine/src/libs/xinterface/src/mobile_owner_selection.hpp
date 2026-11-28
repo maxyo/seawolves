@@ -19,6 +19,25 @@ inline const char *OwnerField(std::string_view screen, std::string_view node, bo
     return nullptr;
 }
 
+// Why a game's owner list with rows exports none for its `current` (missing or past the list), "" when it is valid
+// or the list is none of the owner lists: the screen would show no selector at all.
+inline std::string OwnerCurrentDefect(std::string_view screen, std::string_view node, bool vertical, ATTRIBUTES *attrs,
+                                      size_t capacity)
+{
+    if (!OwnerField(screen, node, vertical) || !attrs)
+        return {};
+    const auto count = InventoryNumber(attrs->GetAttribute("ListSize"));
+    if (!count || !*count || *count > 1000 || *count > capacity)
+        return {};
+    const char *raw = attrs->GetAttribute("current");
+    const auto selected = InventoryNumber(raw);
+    if (!selected)
+        return "its current is '" + std::string(raw ? raw : "") + "', not a row";
+    if (*selected >= *count)
+        return "its current " + std::to_string(*selected) + " is past its " + std::to_string(*count) + " rows";
+    return {};
+}
+
 // Resolve names from actual Characters attributes, never from an item index or
 // a copied fixture. Missing trailing image slots are stock padding, not owners.
 template <class Resolve>

@@ -1666,12 +1666,15 @@ bool CXI_VIMAGESCROLL::MobileOfficerRows(storm::mobile::OfficerListIdentity &sta
     if (m_nodeName && m_bUse && storm::mobile::OwnerField(storm::android::mobileScreen, m_nodeName, true))
     {
         const char *empty = pStringService->GetString(pStringService->GetStringNum("NoneBoat"));
-        return storm::mobile::OwnerRows(storm::android::mobileScreen, m_nodeName, true,
-            core.Entity_GetAttributeClass(g_idInterface, m_nodeName), m_nListSize,
+        auto *attrs = core.Entity_GetAttributeClass(g_idInterface, m_nodeName);
+        if (storm::mobile::OwnerRows(storm::android::mobileScreen, m_nodeName, true, attrs, m_nListSize,
             storm::android::mobileScreenRevision, storm::mobile::OwnerProfile(),
             m_bClickable && !m_bLockedNode && !m_bLockStatus && !m_bDoMove,
             m_rect.top * 8192 + m_rect.left, storm::mobile::OwnerLabel,
-            empty ? empty : "", state, rows);
+            empty ? empty : "", state, rows))
+            return true;
+        storm::mobile::SayOwnerCurrentDefect(m_nodeName, true, attrs, m_nListSize);
+        return false;
     }
     // Other vertical image lists keep their existing behavior.
     // The hero's officer list of the character and items screens (character_all.h FillCharactersScroll).
