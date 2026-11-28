@@ -1899,6 +1899,12 @@
    "like": 0,
    "unmark": "SHIPS_SCROLL",
    "fails": "trade: the sides: the game marks none of 2 current"
+  },
+  {
+   "name": "the amount window open on no row of the table: the build refuses it, no other row's deal stands for it",
+   "like": 1,
+   "unmark": "TABLE_LIST",
+   "fails": "the amount window is open on no row of TABLE_LIST"
   }
  ]
 }

@@ -159,6 +159,8 @@ int TouchLegLib_Window(aref model)
 		aref row = TouchLib_Item(model, "TABLE_LIST.rows", k);
 		if (row.value == "1") return k;
 	}
+	// The game opens the window on the table's selected row and keeps it selected while it is open.
+	UiError("the amount window is open on no row of TABLE_LIST");
 	return -1;
 }
 

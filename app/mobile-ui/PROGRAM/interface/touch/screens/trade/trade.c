@@ -473,6 +473,7 @@ void TouchTrade_Tap()
 	}
 	if (id == "primary")
 	{
+		if (!CheckAttribute(game, "takeAll")) UiError("trade: a primary tapped without best or take-all");
 		TouchTrade.takeAll = game.takeAll.label == "";
 		TouchAdpTrade_TakeAll(ui);
 		UiHold(TouchTrade_Wait);

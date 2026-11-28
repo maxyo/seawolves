@@ -165,7 +165,8 @@ void TouchLegItems_Slots(aref ui, ref chr, aref out)
 		if (held != "")
 		{
 			int index = GetItemIndex(held);
-			if (index >= 0 && TouchLegItems_Timed(index)) days = GetCharacterSlotRemainTime(chr, name);
+			if (index < 0) UiError("items: the slot " + name + " holds " + held + ", no item of the game");
+			if (TouchLegItems_Timed(index)) days = GetCharacterSlotRemainTime(chr, name);
 		}
 		TouchLegItems_Slot(ui, out, artefact, artefact.nodes.(name), held, days);
 	}
@@ -179,7 +180,11 @@ void TouchLegItems_Figures(aref ui, ref chr, int index, aref detail)
 	if (group == "" || !CheckAttribute(data, "figures." + group)) return;
 	int against = -1;
 	string worn = GetCharacterEquipByGroup(chr, group);
-	if (worn != "" && worn != Items[index].id) against = GetItemIndex(worn);
+	if (worn != "" && worn != Items[index].id)
+	{
+		against = GetItemIndex(worn);
+		if (against < 0) UiError("items: the hero wears " + worn + ", no item of the game");
+	}
 	aref figures, list;
 	makearef(figures, data.figures.(group));
 	makearef(list, detail.figures);

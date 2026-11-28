@@ -27,14 +27,9 @@ void TouchAdpRepair_State(aref ui, aref out)
 	out.takes.sailcloth = sti(chr.repair.sreq);
 	aref parts;
 	makearef(parts, out.parts);
-	for (int p = 0; p < 3; p++)
-	{
-		string qty = "REPAIR_QTY_" + TouchLegRepair_Nodes[p];
-		if (CheckAttribute(model, qty)) TouchLegRepair_Part(model, chr, p, TouchLib_Add(parts, "p"));
-	}
-	out.hours = 0;
-	string time = TouchLegLib_Label(model, "TIME_STR");
-	if (UiHasAmount(time)) out.hours = UiAmount(time, "TIME_STR");
+	// Part k is TouchLegRepair_Nodes[k]: both games' windows have all three captions and the time.
+	for (int p = 0; p < 3; p++) TouchLegRepair_Part(model, chr, p, TouchLib_Add(parts, "p"));
+	out.hours = UiAmount(TouchLegLib_Label(model, "TIME_STR"), "TIME_STR");
 	out.confirm = UiOffers("REPAIR_OK", "press");
 	out.reason = model.REPAIR_OK.reason;
 	if (!CheckAttribute(model, "REPAIR_ALL_SQUADRON")) return;

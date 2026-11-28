@@ -47,12 +47,10 @@ void TouchAdpMenu_Pause(aref ui, aref out)
 	if (CheckAttribute(model, "ANDROID_GAME.context.gameDate"))
 	{
 		string date = model.ANDROID_GAME.context.gameDate;
-		if (strlen(date) == 10)
-		{
-			out.year = UiAmount(TouchLib_Cut(date, 0, 4), "the game's year");
-			out.month = UiAmount(TouchLib_Cut(date, 5, 7), "the game's month");
-			out.day = UiAmount(TouchLib_Cut(date, 8, 10), "the game's day");
-		}
+		if (strlen(date) != 10) UiError("menu: the game's date " + date + " is not YYYY-MM-DD");
+		out.year = UiAmount(TouchLib_Cut(date, 0, 4), "the game's year");
+		out.month = UiAmount(TouchLib_Cut(date, 5, 7), "the game's month");
+		out.day = UiAmount(TouchLib_Cut(date, 8, 10), "the game's day");
 	}
 	// «Продолжить» is the menu's cancel (the route of MB_RESUME's own command), honoured while the engine's
 	// resumeOnCancel is 1, also where the game greys the button out itself (TEHO's boarding).

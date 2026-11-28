@@ -201,7 +201,9 @@ string TouchLegShipyard_CancelNode(string kind)
 	if (kind == "confirm") return "MSG_CANCEL";
 	if (kind == "repair") return "REPAIR_CANCEL";
 	if (kind == "captain") return "CANCEL_ADD_OFFICER";
-	return "CANNONS_CANCEL";
+	if (kind == "guns") return "CANNONS_CANCEL";
+	UiError("shipyard: no cancel of the window " + kind);
+	return "";
 }
 
 void TouchLegShipyard_Window(aref model, aref out)

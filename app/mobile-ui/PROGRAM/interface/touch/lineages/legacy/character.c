@@ -450,6 +450,9 @@ void TouchLegCharacter_Windows(aref ui, aref out)
 		if (TouchLib_StartsWith(role, "#")) role = TouchLib_Cut(role, 1, strlen(role));
 		post = GetOfficerTypeByNum(slot);
 	}
+	// The game opens both on the scroll's current post, which its list always has.
+	if ((out.window == "remove" || out.window == "assign") && slot < 0)
+		UiError("character: the officer window " + out.window + " is open on no post");
 	if (out.window == "remove")
 	{
 		int idx = sti(GameInterface.CHARACTERS_SCROLL.(pic).character);

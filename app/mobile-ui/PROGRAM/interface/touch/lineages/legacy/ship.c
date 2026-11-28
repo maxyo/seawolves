@@ -365,6 +365,7 @@ void TouchAdpShip_Shares(aref ui)
 void TouchAdpShip_Accept(aref ui)
 {
 	if (CheckAttribute(ui, "model.PARTITION_OK")) { UiSend("PARTITION_OK", "press", ""); return; }
+	if (!CheckAttribute(ui, "model.REMOVE_ACCEPT_OFFICER")) UiError("ship: an accept with no question open");
 	UiSend("REMOVE_ACCEPT_OFFICER", "press", "");
 }
 

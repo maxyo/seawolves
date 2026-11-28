@@ -12217,6 +12217,13 @@
     ],
     "title": "  Character  "
    }
+  },
+  {
+   "name": "the dismissal window open on no post of the list: the build refuses it",
+   "capability": "character",
+   "like": 3,
+   "unmark": "CHARACTERS_SCROLL",
+   "fails": "character: the officer window remove is open on no post"
   }
  ]
 }
