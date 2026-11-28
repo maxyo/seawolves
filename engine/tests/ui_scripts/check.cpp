@@ -816,6 +816,37 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
     }
 }
 
+// A row is tapped by its identity: a tap that arrives after the game's list changed (a row above it gone, the rest
+// moved up) acts on the row the player tapped, not on whatever is now at its old place.
+TEST_CASE("a store row tapped before the list changes acts on the row tapped")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/trade_store.json"));
+    const Json &recorded = fixture.at("cases").at(0);
+    storm::ui::InterfaceModel model;
+    REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
+    const auto spec = PackScreen("trade");
+    SetGame(recorded);
+    const auto &screen = Screen(vm, "trade_store");
+    Calls calls(*spec);
+    calls.widgets = model.widgets;
+    port.Build(screen, calls.Single(), calls);
+    const Json tapped = calls.props.at("list").at("rows").at(2); // the row the player taps, as drawn
+    // The game's next model: the first row is gone, the others moved up.
+    std::erase_if(calls.widgets, [](const storm::ui::Widget &w) { return w.node == "TABLE_LIST" && w.index == 0; });
+    for (auto &widget : calls.widgets)
+        if (widget.node == "TABLE_LIST")
+            --widget.index;
+    calls.first = false;
+    port.Build(screen, calls.Single(), calls);
+    calls.calls.clear();
+    port.Event(screen, "goods", "row", tapped.at("id").get<std::string>(), calls);
+    REQUIRE(!calls.calls.empty());
+    CHECK(calls.calls.front() == "send TABLE_LIST#1 activate goods:2:ship:0");
+}
+
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")
 {
     for (const std::string capability :

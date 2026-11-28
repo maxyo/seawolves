@@ -101,7 +101,7 @@ void TouchNations_Flags(aref game, aref view)
 		aref nation = TouchLib_Item(game, "nations", k);
 		if (nation.icon != "")
 		{
-			object flag = {id = "" + k, icon = nation.icon, label = nation.label, selected = sti(nation.flown),
+			object flag = {id = nation.key, icon = nation.icon, label = nation.label, selected = sti(nation.flown),
 			               disabled = !sti(nation.flag)};
 			aref at = TouchLib_Add(flags, "f");
 			CopyAttributes(at, &flag);
@@ -180,6 +180,8 @@ void TouchNations_Tap()
 		UiHold();
 		return;
 	}
-	TouchAdpNations_Pick(ui, TouchLib_TapIndex(value, TouchLib_Count(game, "nations"), "the flag"));
+	int k = TouchLib_Find(game, "nations", "key", value);
+	if (k < 0) return; // the flag tapped is no longer offered
+	TouchAdpNations_Pick(ui, k);
 	UiHold();
 }

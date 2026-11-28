@@ -268,35 +268,35 @@
      {
       "disabled": false,
       "icon": "nation-england",
-      "id": "0",
+      "id": "England",
       "label": "England",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-france",
-      "id": "1",
+      "id": "France",
       "label": "France",
       "selected": true
      },
      {
       "disabled": false,
       "icon": "nation-spain",
-      "id": "2",
+      "id": "Spain",
       "label": "Spain",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-holland",
-      "id": "3",
+      "id": "Holland",
       "label": "Holland",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-pirates",
-      "id": "4",
+      "id": "Pirate",
       "label": "Pirate",
       "selected": false
      }
@@ -512,7 +512,7 @@
     [
      "flags",
      "pick",
-     "4"
+     "Pirate"
     ],
     [
      "help-flag",
@@ -809,35 +809,35 @@
      {
       "disabled": false,
       "icon": "nation-england",
-      "id": "0",
+      "id": "England",
       "label": "England",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-france",
-      "id": "1",
+      "id": "France",
       "label": "France",
       "selected": true
      },
      {
       "disabled": false,
       "icon": "nation-spain",
-      "id": "2",
+      "id": "Spain",
       "label": "Spain",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-holland",
-      "id": "3",
+      "id": "Holland",
       "label": "Holland",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-pirates",
-      "id": "4",
+      "id": "Pirate",
       "label": "Pirate",
       "selected": false
      }
@@ -1113,35 +1113,35 @@
      {
       "disabled": false,
       "icon": "nation-england",
-      "id": "0",
+      "id": "England",
       "label": "England",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-france",
-      "id": "1",
+      "id": "France",
       "label": "France",
       "selected": true
      },
      {
       "disabled": false,
       "icon": "nation-spain",
-      "id": "2",
+      "id": "Spain",
       "label": "Spain",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-holland",
-      "id": "3",
+      "id": "Holland",
       "label": "Holland",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-pirates",
-      "id": "4",
+      "id": "Pirate",
       "label": "Pirate",
       "selected": false
      }
@@ -1408,35 +1408,35 @@
      {
       "disabled": false,
       "icon": "nation-england",
-      "id": "0",
+      "id": "England",
       "label": "England",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-france",
-      "id": "1",
+      "id": "France",
       "label": "France",
       "selected": true
      },
      {
       "disabled": false,
       "icon": "nation-spain",
-      "id": "2",
+      "id": "Spain",
       "label": "Spain",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-holland",
-      "id": "3",
+      "id": "Holland",
       "label": "Holland",
       "selected": false
      },
      {
       "disabled": false,
       "icon": "nation-pirates",
-      "id": "4",
+      "id": "Pirate",
       "label": "Pirate",
       "selected": false
      }

@@ -362,7 +362,7 @@
          "v": "0.5"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm1"
@@ -389,7 +389,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm2"
@@ -416,7 +416,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm3"
@@ -443,7 +443,7 @@
         }
        ],
        "disabled": false,
-       "id": "3",
+       "id": "row:3",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm4"
@@ -483,7 +483,7 @@
     [
      "goods",
      "row",
-     "3"
+     "row:3"
     ],
     [
      "header-back",
@@ -941,7 +941,7 @@
          "v": "0.5"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm1"
@@ -969,7 +969,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm2"
@@ -996,7 +996,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm3"
@@ -1023,7 +1023,7 @@
         }
        ],
        "disabled": false,
-       "id": "3",
+       "id": "row:3",
        "image": {
         "kind": "item",
         "texture": "atlas:ITEMS_9/itm4"

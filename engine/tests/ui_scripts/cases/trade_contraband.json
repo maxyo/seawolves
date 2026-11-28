@@ -321,7 +321,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Tobacco"
@@ -348,7 +348,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -375,7 +375,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Ebony"
@@ -415,7 +415,7 @@
     [
      "goods",
      "row",
-     "1"
+     "row:1"
     ],
     [
      "header-back",
@@ -828,7 +828,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Tobacco"
@@ -856,7 +856,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -883,7 +883,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Ebony"

@@ -951,7 +951,7 @@
      {
       "disabled": false,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -964,7 +964,7 @@
      {
       "disabled": false,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -976,7 +976,7 @@
     "offers": [
      {
       "disabled": false,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -986,7 +986,7 @@
      },
      {
       "disabled": false,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -996,7 +996,7 @@
      },
      {
       "disabled": false,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -1019,12 +1019,12 @@
    "modals": [],
    "events": [
     [
-     "offer-1",
+     "offer-shipyard:offer:ship2",
      "click",
      ""
     ],
     [
-     "fleet-1",
+     "fleet-1:1",
      "click",
      ""
     ],
@@ -1993,7 +1993,7 @@
      {
       "disabled": false,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -2006,7 +2006,7 @@
      {
       "disabled": false,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -2018,7 +2018,7 @@
     "offers": [
      {
       "disabled": false,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -2028,7 +2028,7 @@
      },
      {
       "disabled": false,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -2038,7 +2038,7 @@
      },
      {
       "disabled": false,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -3036,7 +3036,7 @@
      {
       "disabled": true,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -3049,7 +3049,7 @@
      {
       "disabled": true,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -3061,7 +3061,7 @@
     "offers": [
      {
       "disabled": true,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -3071,7 +3071,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -3081,7 +3081,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -4141,7 +4141,7 @@
      {
       "disabled": true,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -4154,7 +4154,7 @@
      {
       "disabled": true,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -4166,7 +4166,7 @@
     "offers": [
      {
       "disabled": true,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -4176,7 +4176,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -4186,7 +4186,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -5208,7 +5208,7 @@
      {
       "disabled": true,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -5221,7 +5221,7 @@
      {
       "disabled": true,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -5233,7 +5233,7 @@
     "offers": [
      {
       "disabled": true,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -5243,7 +5243,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -5253,7 +5253,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -7012,7 +7012,7 @@
      {
       "disabled": true,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -7025,7 +7025,7 @@
      {
       "disabled": true,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -7037,7 +7037,7 @@
     "offers": [
      {
       "disabled": true,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -7047,7 +7047,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -7057,7 +7057,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",
@@ -8264,7 +8264,7 @@
      {
       "disabled": true,
       "icon": "ship",
-      "id": "fleet-0",
+      "id": "fleet-1:0",
       "image": {
        "kind": "item",
        "texture": "atlas:SHIPS_Lugger/ship"
@@ -8277,7 +8277,7 @@
      {
       "disabled": true,
       "icon": "plus",
-      "id": "fleet-1",
+      "id": "fleet-1:1",
       "image": null,
       "meta": "",
       "selected": false,
@@ -8289,7 +8289,7 @@
     "offers": [
      {
       "disabled": true,
-      "id": "offer-0",
+      "id": "offer-shipyard:offer:ship1",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -8299,7 +8299,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-1",
+      "id": "offer-shipyard:offer:ship2",
       "image": null,
       "meta": "<yard.class> 6",
       "reason": "",
@@ -8309,7 +8309,7 @@
      },
      {
       "disabled": true,
-      "id": "offer-2",
+      "id": "offer-shipyard:offer:ship4",
       "image": null,
       "meta": "<yard.class> 5",
       "reason": "",

@@ -653,7 +653,7 @@
          "v": "<trade.per_units> 20"
         }
        ],
-       "id": "0",
+       "id": "goods:0:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Balls"
@@ -680,7 +680,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "goods:1:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Grapes"
@@ -707,7 +707,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "goods:2:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Knippels"
@@ -734,7 +734,7 @@
         }
        ],
        "disabled": false,
-       "id": "3",
+       "id": "goods:3:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Bombs"
@@ -761,7 +761,7 @@
         }
        ],
        "disabled": false,
-       "id": "4",
+       "id": "goods:4:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -788,7 +788,7 @@
         }
        ],
        "disabled": false,
-       "id": "5",
+       "id": "goods:5:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -815,7 +815,7 @@
         }
        ],
        "disabled": false,
-       "id": "6",
+       "id": "goods:6:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Rum"
@@ -842,7 +842,7 @@
         }
        ],
        "disabled": false,
-       "id": "7",
+       "id": "goods:7:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Food"
@@ -882,7 +882,7 @@
     [
      "goods",
      "row",
-     "2"
+     "goods:2:ship:0"
     ],
     [
      "header-back",
@@ -1645,7 +1645,7 @@
          "v": "<trade.per_units> 20"
         }
        ],
-       "id": "0",
+       "id": "goods:0:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Balls"
@@ -1673,7 +1673,7 @@
         }
        ],
        "disabled": false,
-       "id": "1",
+       "id": "goods:1:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Grapes"
@@ -1700,7 +1700,7 @@
         }
        ],
        "disabled": false,
-       "id": "2",
+       "id": "goods:2:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Knippels"
@@ -1727,7 +1727,7 @@
         }
        ],
        "disabled": false,
-       "id": "3",
+       "id": "goods:3:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Bombs"
@@ -1754,7 +1754,7 @@
         }
        ],
        "disabled": false,
-       "id": "4",
+       "id": "goods:4:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -1781,7 +1781,7 @@
         }
        ],
        "disabled": false,
-       "id": "5",
+       "id": "goods:5:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -1808,7 +1808,7 @@
         }
        ],
        "disabled": false,
-       "id": "6",
+       "id": "goods:6:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Rum"
@@ -1835,7 +1835,7 @@
         }
        ],
        "disabled": false,
-       "id": "7",
+       "id": "goods:7:ship:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Food"

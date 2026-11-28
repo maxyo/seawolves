@@ -10,8 +10,7 @@
 
 // The adapter's state of the last build (.game), the tab, the squadron's list open, the good whose window is open as
 // it was when the window opened (.held: the game takes the amount out of the hold while it is set, so its row may
-// leave the list), the good to open once the game closed another's window (.reopen), the rows of the hold
-// (.listed.l<i>.key: the good's, "" the open one).
+// leave the list), the good to open once the game closed another's window (.reopen).
 object TouchShip;
 object TouchShip_View;
 object TouchShip_Header; // the section tapped while the game opens it (TouchLib_Section)
@@ -201,15 +200,10 @@ void TouchShip_Open(aref game, aref rows)
 	aref to;
 	makearef(to, row.q);
 	CopyAttributes(to, &q);
-	aref listed;
-	makearef(listed, TouchShip.listed);
-	aref entry = TouchLib_Add(listed, "l");
-	entry.key = "";
 }
 
 void TouchShip_Cargo(aref game, aref view)
 {
-	DeleteAttribute(&TouchShip, "listed");
 	bool open = CheckAttribute(game, "drop");
 	int k;
 	aref good;
@@ -258,7 +252,7 @@ void TouchShip_Cargo(aref game, aref view)
 			continue;
 		}
 		aref row = TouchLib_Add(rows, "r");
-		row.id = GetAttributesNum(rows) - 1;
+		row.id = good.key;
 		row.name = good.label;
 		row.meta = TouchShip_Pack(game, good);
 		TouchLib_Copy(row, "image", good, "image");
@@ -266,10 +260,6 @@ void TouchShip_Cargo(aref game, aref view)
 		row.cells.c1 = good.weight;
 		row.disabled = !open && !sti(good.can);
 		row.reason = "";
-		aref listed;
-		makearef(listed, TouchShip.listed);
-		aref entry = TouchLib_Add(listed, "l");
-		entry.key = good.key;
 	}
 	if (open && !listed) TouchShip_Open(game, rows);
 	view.empty = "";
@@ -615,12 +605,13 @@ void TouchShip_Tap()
 	}
 	if (id == "goods" && verb == "row")
 	{
-		int i = TouchLib_TapIndex(value, TouchLib_Count(&TouchShip, "listed"), "the good");
-		aref entry = TouchLib_Item(&TouchShip, "listed", i);
+		// A row is its good's key; "open" is the good whose window is open.
+		string key = value;
+		if (value == "open") key = "";
 		if (window)
 		{
 			// The window holds the list: another good opens once the game closed it.
-			if (entry.key != "") TouchShip.reopen = entry.key;
+			if (key != "") TouchShip.reopen = key;
 			TouchAdpShip_Close(ui);
 			UiHold();
 			return;
@@ -628,7 +619,7 @@ void TouchShip_Tap()
 		for (int g = 0; g < TouchLib_Count(game, "goods"); g++)
 		{
 			aref good = TouchLib_Item(game, "goods", g);
-			if (good.key == entry.key && sti(good.can)) { TouchAdpShip_Good(ui, g); UiHold(); }
+			if (good.key == key && sti(good.can)) { TouchAdpShip_Good(ui, g); UiHold(); }
 		}
 		return;
 	}

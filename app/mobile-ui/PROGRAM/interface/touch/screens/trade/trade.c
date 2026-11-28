@@ -214,7 +214,7 @@ bool TouchTrade_Shown(aref game, aref row)
 void TouchTrade_Row(aref game, aref look, aref captions, aref deal, aref row, aref at)
 {
 	int k = sti(row.k);
-	at.id = k;
+	at.id = row.key;
 	at.name = row.name;
 	TouchLib_Copy(at, "image", row, "image");
 	at.meta = "";
@@ -488,7 +488,9 @@ void TouchTrade_Tap()
 		return;
 	}
 	if (verb == "filter") { TouchTrade_Filter(ui, game, value); return; }
-	int k = TouchLib_TapIndex(value, TouchLib_Count(game, "rows"), "the goods row");
+	// The row by its identity: the list may have changed since the frame the player tapped; a row gone ends the tap.
+	int k = TouchLib_Find(game, "rows", "key", value);
+	if (k < 0) return;
 	aref row = TouchLib_Item(game, "rows", k);
 	if (verb == "quick") TouchAdpTrade_Take(ui, k);
 	if (verb == "row" && (k == open || !sti(row.can))) { TouchAdpTrade_Close(ui); return; }

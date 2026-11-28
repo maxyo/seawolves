@@ -78,7 +78,7 @@ void TouchShipyard_Fleet(aref game, aref view)
 		ship = TouchLib_Item(game, "fleet", k);
 		bool free = sti(ship.free);
 		if (free && k != place) continue;
-		string id = "fleet-" + k;
+		string id = "fleet-" + ship.key;
 		object row = {id = id, title = ship.label, meta = ship.meta, value = ship.value, image = "", icon = "ship",
 		              selected = ship.selected, disabled = !sti(ship.can) || CheckAttribute(game, "window")};
 		if (free)
@@ -108,7 +108,7 @@ void TouchShipyard_Offers(aref game, aref view)
 	for (int k = 0; k < TouchLib_Count(game, "offers"); k++)
 	{
 		aref offer = TouchLib_Item(game, "offers", k);
-		string id = "offer-" + k;
+		string id = "offer-" + offer.key;
 		object row = {id = id, title = offer.label, meta = "", value = TouchShipyard_Price(offer.value), image = "",
 		              selected = offer.selected, disabled = !sti(offer.can) || CheckAttribute(game, "window"),
 		              reason = offer.reason};
@@ -409,7 +409,9 @@ void TouchShipyard_Tap()
 	int k;
 	if (TouchLib_StartsWith(id, "fleet-"))
 	{
-		k = TouchLib_TapIndex(TouchLib_Cut(id, 6, strlen(id)), TouchLib_Count(game, "fleet"), "the ship");
+		// Rows by their identity: a row gone since the tapped frame ends the tap.
+		k = TouchLib_Find(game, "fleet", "key", TouchLib_Cut(id, 6, strlen(id)));
+		if (k < 0) return;
 		aref ship = TouchLib_Item(game, "fleet", k);
 		if (sti(ship.selected)) return;
 		TouchAdpShipyard_Fleet(ui, k);
@@ -418,7 +420,8 @@ void TouchShipyard_Tap()
 	}
 	if (TouchLib_StartsWith(id, "offer-"))
 	{
-		k = TouchLib_TapIndex(TouchLib_Cut(id, 6, strlen(id)), TouchLib_Count(game, "offers"), "the offer");
+		k = TouchLib_Find(game, "offers", "key", TouchLib_Cut(id, 6, strlen(id)));
+		if (k < 0) return;
 		aref offer = TouchLib_Item(game, "offers", k);
 		if (sti(offer.selected)) return;
 		TouchAdpShipyard_Offer(ui, k);
@@ -427,6 +430,7 @@ void TouchShipyard_Tap()
 	}
 	if (TouchLib_StartsWith(id, "candidate-"))
 	{
+		// The game's list of captains gives them no identity (the passengers' rows): by place.
 		k = TouchLib_TapIndex(TouchLib_Cut(id, 10, strlen(id)), TouchLib_Count(game, "window.candidates"),
 		                      "the captain");
 		aref person = TouchLib_Item(game, "window.candidates", k);

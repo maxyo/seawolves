@@ -372,7 +372,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sugar"
@@ -391,7 +391,7 @@
         "400"
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -410,7 +410,7 @@
         "150"
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -429,7 +429,7 @@
         "300"
        ],
        "disabled": false,
-       "id": "3",
+       "id": "row:3",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
@@ -484,7 +484,7 @@
     [
      "goods",
      "row",
-     "1"
+     "row:1"
     ],
     [
      "header-back",
@@ -947,7 +947,7 @@
          "v": "<trade.per_units> 10"
         }
        ],
-       "id": "0",
+       "id": "row:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sugar"
@@ -967,7 +967,7 @@
         "400"
        ],
        "disabled": false,
-       "id": "1",
+       "id": "row:1",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -986,7 +986,7 @@
         "150"
        ],
        "disabled": false,
-       "id": "2",
+       "id": "row:2",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -1005,7 +1005,7 @@
         "300"
        ],
        "disabled": false,
-       "id": "3",
+       "id": "row:3",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Coffee"
