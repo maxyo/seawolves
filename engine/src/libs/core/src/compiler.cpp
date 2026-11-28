@@ -5958,6 +5958,15 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                     break;
                 }
             }
+            if (pVSrc->GetType() == VAR_REFERENCE && pVDst->GetType() == VAR_REFERENCE && pVSrc->IsArray() &&
+                pVDst->IsArray() && nLeftOperandIndex == INVALID_ARRAY_INDEX)
+            {
+                // refs = otherRefs: each element refers to what the other's element refers to
+                ResizeArray(*pVDst, pVSrc->GetArraySize());
+                for (uint32_t i = 0; i < pVSrc->GetArraySize(); ++i)
+                    pVDst->GetArrayElement(i)->SetReference(pVSrc->GetArrayElement(i)->GetReference());
+                break;
+            }
             if (pVSrc->GetType() == VAR_REFERENCE && pVDst->GetType() == VAR_REFERENCE)
             {
                 pVDst->SetReference(pVSrc->GetReference());

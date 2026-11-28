@@ -1929,7 +1929,7 @@ bool DATA::CopyAny(DATA *pV)
         Error("Invalid DATA in copy operation");
         return false;
     }
-    if (pV->IsReference())
+    if (pV->IsReference() && !pV->IsArray()) // an array of references copies as any array
     {
         if (Data_type == VAR_REFERENCE)
         {
