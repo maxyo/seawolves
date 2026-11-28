@@ -57,16 +57,20 @@
  	// <-- ugeen 2017
  	SetEventHandler("evntLoad","LoadGame",0);
  	PostEvent("evntLoad",0,"s", "SAVE\"+PlayerProfile.name+"\"+curSave);
-@@ -2245,7 +2271,7 @@
+@@ -2245,9 +2271,10 @@
  	}
  	PlayerProfile.QuickSaveIndex = QuickSaveIndex;
  	
 -	string curSave = PlayerProfile.name + " QuickSave " + QuickSaveIndex;
 +	string curSave = QuickSaveName(QuickSaveIndex);
  	// <-- ugeen 2017
- 	SendMessage(&GameInterface,"ls",MSG_INTERFACE_DELETE_SAVE_FILE,curSave);
+-	SendMessage(&GameInterface,"ls",MSG_INTERFACE_DELETE_SAVE_FILE,curSave);
++	// No delete before the save: the save below replaces the record in one write. The stock delete named the record
++	// without its folder (LaunchQuickSaveMenu has just cleared GameInterface.SavePath), so it deleted nothing.
  	string sSaveDescriber = GetSaveDataString(GetCurLocationName());
-@@ -2270,8 +2296,12 @@
+ 
+ 	SetEventHandler("evntSave","SaveGame",1);
+@@ -2270,8 +2297,12 @@
  {
  	DelEventHandler("makescrshot","AutoSaveContinue");
  

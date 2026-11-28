@@ -78,7 +78,7 @@
     {
       "path": "PROGRAM/interface/interface.c",
       "base_sha256": "649a68259a6b31aa3e0274f88c820cf48bbab844a8ebc299f7f30ea2a68d8be5",
-      "result_sha256": "30f11c0bac228044e550541d16c4500bd8f679f2b76c591aea17e50eeac310e8",
+      "result_sha256": "9049fa7ec48527a41a36079960225ecbf37810f42d26ed9521557853696e2bc0",
       "patch": "interface.c.patch"
     },
     {
@@ -613,6 +613,17 @@
       "license": "GPL-3.0-only",
       "source": "https://github.com/storm-devs/sd-teho-public",
       "bug": "Not a defect: MakeQuickLoad and QuickSaveContinue built the quick save's record name inline (\"<profile> QuickSave <n>\", n from PlayerProfile.QuickSaveIndex), so an interface that shows the record a quick load will load had to rebuild the name itself. The number and the name are now the functions GetQuickSaveIndex and QuickSaveName, which both call; the game behaves as before",
+      "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
+    },
+    {
+      "id": "quick-save-no-stray-delete",
+      "title": "A quick save no longer asks to delete a file outside the saves folder",
+      "targets": [
+        "PROGRAM/interface/interface.c"
+      ],
+      "license": "GPL-3.0-only",
+      "source": "https://github.com/storm-devs/sd-teho-public",
+      "bug": "QuickSaveContinue sent MSG_INTERFACE_DELETE_SAVE_FILE with the bare record name right after LaunchQuickSaveMenu had cleared GameInterface.SavePath (procInterfacePrepare deletes all its attributes), so the delete named a file in the game folder that never exists and removed nothing; the engine, which refuses any delete outside the player's folders, logged an error at every quick save. The save that follows replaces the record in one write, so the delete is dropped; the game behaves as before",
       "save_compatibility": "Code only; no new globals or attributes. Existing saves load unchanged."
     },
     {
