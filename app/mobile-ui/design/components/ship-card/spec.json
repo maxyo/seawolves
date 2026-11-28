@@ -10,7 +10,6 @@
     "sails": {"type": "json", "default": null, "shape": {"$null": {"text": "text", "value": "int"}}},
     "image": {"type": "json", "default": null, "shape": {"$of": "c-object-header.image"}},
     "icon": {"type": "text", "default": ""},
-    "renameLabel": {"type": "text", "default": "", "defaultKey": "ship.rename"},
     "labelWidth": {"type": "int", "default": 90},
     "key": {"type": "text", "default": "ship"}
   },

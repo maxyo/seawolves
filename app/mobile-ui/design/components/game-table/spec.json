@@ -4,7 +4,6 @@
     "opponent": {"type": "text", "default": ""},
     "portrait": {"type": "text", "default": ""},
     "line": {"type": "text", "default": ""},
-    "bankLabel": {"type": "text", "default": "", "defaultKey": "gametable.bank"},
     "bank": {"type": "text", "default": ""},
     "bankTone": {"type": "enum", "options": ["gold", "win", "loss"], "default": "gold"},
     "bankX": {"type": "text", "default": "46%"},

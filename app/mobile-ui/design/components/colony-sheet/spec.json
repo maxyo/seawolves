@@ -4,7 +4,6 @@
     "title": {"type": "text", "default": ""},
     "nation": {"type": "text", "default": ""},
     "sub": {"type": "text", "default": ""},
-    "closeLabel": {"type": "text", "default": "", "defaultKey": "colony.close"},
     "tabs": {"type": "json", "default": [], "shape": {"$of": "c-tabs.items"}},
     "siege": {"type": "text", "default": ""},
     "exports": {"type": "json", "default": [], "shape": [{"icon": "text", "label": "text"}]},

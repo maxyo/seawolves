@@ -33,9 +33,9 @@
 </div>
 <div class="g-note">states: ряд состояний 26 dp сразу под полосами (суша) · справа · state-size 28</div>
 <div class="g-row g-scene" style="align-items: flex-start; gap: 20dp">
-  <c-hud-plate pad="6" style="width: 196dp" states='[{"icon":"potion","fill":70,"label":"Зелье"},{"icon":"skull","fill":40,"fillTone":"danger","label":"Отравление"},{"icon":"energy","fill":90,"fillTone":"effect","label":"Прилив сил"},{"icon":"eye","fill":25,"fillTone":"cooldown","label":"Скрытность"}]'><c-bar mode="hud" icon="health" value="84" text="84" kind="health" style="width: 100%"/><c-bar mode="hud" icon="energy" value="62" kind="energy" style="width: 100%"/></c-hud-plate>
+  <c-hud-plate pad="6" style="width: 196dp" states='[{"icon":"potion","fill":70,"fillTone":"active","label":"Зелье"},{"icon":"skull","fill":40,"fillTone":"danger","label":"Отравление"},{"icon":"energy","fill":90,"fillTone":"effect","label":"Прилив сил"},{"icon":"eye","fill":25,"fillTone":"cooldown","label":"Скрытность"}]'><c-bar mode="hud" icon="health" value="84" text="84" kind="health" style="width: 100%"/><c-bar mode="hud" icon="energy" value="62" kind="energy" style="width: 100%"/></c-hud-plate>
   <c-hud-plate pad="6" align="right" style="width: 150dp" states='[{"icon":"rum","fill":45,"fillTone":"effect","label":"Опьянение"},{"icon":"skull","fill":40,"fillTone":"danger","label":"Отравление"}]'><div>Справа</div></c-hud-plate>
-  <c-hud-plate pad="6" state-size="28" style="width: 150dp" states='[{"icon":"rum","fill":45,"fillTone":"effect"},{"icon":"potion","fill":80}]'><div>28 dp</div></c-hud-plate>
+  <c-hud-plate pad="6" state-size="28" style="width: 150dp" states='[{"icon":"rum","fill":45,"fillTone":"effect","label":"Опьянение"},{"icon":"potion","fill":80,"fillTone":"active","label":"Зелье"}]'><div>28 dp</div></c-hud-plate>
 </div>
 </div>
 </body>

@@ -8,8 +8,7 @@
     "health": {"type": "json", "default": null, "shape": {"$null": {"text": "text", "value": "int"}}},
     "energy": {"type": "json", "default": null, "shape": {"$null": {"text": "text", "value": "int"}}},
     "free": {"type": "text", "default": ""},
-    "lines": {"type": "json", "default": [], "shape": [{"after": "text", "casing": "text", "k": "text", "tone": "text", "v": "text"}]},
-    "freeLabel": {"type": "text", "default": "", "defaultKey": "common.free"}
+    "lines": {"type": "json", "default": [], "shape": [{"after": "text", "casing": "text", "k": "text", "tone": "text", "v": "text"}]}
   },
   "behaviors": ["press", "fit"],
   "constants": {

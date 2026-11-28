@@ -1,4 +1,4 @@
-<div class="cs-head"><c-token icon="{{nation}}" enamel="teal" size="{{spec.token}}"/><div class="cs-names"><div class="cs-title">{{title}}</div><t-if test="sub"><div class="cs-sub">{{sub}}</div></t-if></div><c-icon-button id="{{key}}-close" icon="close" label="{{ or(closeLabel, tr('colony.close')) }}" look="bare"/></div>
+<div class="cs-head"><c-token icon="{{nation}}" enamel="teal" size="{{spec.token}}"/><div class="cs-names"><div class="cs-title">{{title}}</div><t-if test="sub"><div class="cs-sub">{{sub}}</div></t-if></div><c-icon-button id="{{key}}-close" icon="close" label="{{ tr('colony.close') }}" look="bare"/></div>
 <t-if test="len(tabs) > 1"><div class="cs-tabs"><c-tabs id="{{key}}-tabs" look="segment" stretch="1" items="{{ json(tabs) }}"/></div></t-if>
 <div class="cs-body"><div class="cs-card">
 <t-if test="custom"><div class="cs-custom" slot="1"></div><t-else/>

@@ -1,6 +1,6 @@
 <div class="gt-felt">
 <div class="gt-rim"><div class="gt-line"></div></div>
 <div class="gt-chip"><c-game-image kind="portrait" texture="{{portrait}}" size="{{spec.portrait}}" label="{{ tr('gametable.opponent') + (opponent ? ': ' + opponent : '') }}"/><div class="gt-who"><div class="gt-name">{{opponent}}</div><t-if test="line"><div class="gt-line">{{line}}</div></t-if></div></div>
-<t-if test="bank != ''"><div class="gt-bank" style="left: {{ or(bankX, '46%') }}; top: {{ or(bankY, '44%') }};"><t-if test="coins != 'none'"><div class="gt-coins"><t-for each="spec.stacks" as="s"><div class="gt-stack" style="height: {{ s[len(s) - 1] + 16 }}dp;"><t-for each="s" as="b"><div class="gt-coin" style="bottom: {{b}}dp;"></div></t-for></div></t-for></div></t-if><div class="gt-label">{{ or(bankLabel, tr('gametable.bank')) }} <span class="gt-value">{{bank}}</span></div></div></t-if>
+<t-if test="bank != ''"><div class="gt-bank" style="left: {{ or(bankX, '46%') }}; top: {{ or(bankY, '44%') }};"><t-if test="coins != 'none'"><div class="gt-coins"><t-for each="spec.stacks" as="s"><div class="gt-stack" style="height: {{ s[len(s) - 1] + 16 }}dp;"><t-for each="s" as="b"><div class="gt-coin" style="bottom: {{b}}dp;"></div></t-for></div></t-for></div></t-if><div class="gt-label">{{ tr('gametable.bank') }} <span class="gt-value">{{bank}}</span></div></div></t-if>
 <t-if test="children"><div class="gt-play" slot="1"></div></t-if>
 </div>
