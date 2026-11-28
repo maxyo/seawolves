@@ -159,8 +159,12 @@
   «− max»: количество задаётся ползунком экрана.
 - Сохранение записывается в файл целиком, одной записью: состояние игры вместе с описанием и картинкой. Раньше это
   были две записи подряд, и если игру закрывали или место кончалось между ними, прежнее сохранение уже было удалено,
-  а новое не загружалось. Теперь в слоте всегда либо прежнее сохранение, либо новое целиком; о неудаче на любом шаге
-  игра сообщает. Caribbean Legend теперь узнаёт от движка, что сохранение записано.
+  а новое не загружалось. Теперь, если запись не удалась или игру закрыли посреди неё, в слоте остаётся прежнее
+  сохранение; о неудаче на любом шаге игра сообщает. Caribbean Legend теперь узнаёт от движка, что сохранение
+  записано.
+- Перезаписываемое сохранение больше не удаляется окончательно по времени (через 10 секунд после нажатия), а только
+  когда новое сохранение записано. Раньше, если игру сворачивали сразу после перезаписи слота на экране сохранений,
+  она стояла в фоне дольше 10 секунд и запись потом не удавалась (кончилось место), пропадали оба сохранения.
 - Загрузка проверяет сохранение целиком до того, как стирает текущую игру: сохранение, сделанное другой программой
   скриптов (другой каталог скриптов или файл скрипта, которого у этой игры нет — чужая игра, изменённый файл),
   отклоняется с сообщением, а игра продолжается. Раньше такое сохранение оставляло движок без скриптов и без меню.
@@ -337,8 +341,12 @@
   «− max» buttons: the screen's slider sets the amount.
 - A save is written to its file whole, in one write: the game state with the description and the picture. It used to
   be two writes in a row, and when the game was closed or the storage ran out between them, the previous save was
-  already deleted and the new one did not load. A slot now always holds either the previous save or the whole new
-  one; a failure at any step is reported. Caribbean Legend is now told by the engine that a save was written.
+  already deleted and the new one did not load. Now, when the write fails or the game is closed in the middle of it,
+  the slot keeps the previous save; a failure at any step is reported. Caribbean Legend is now told by the engine
+  that a save was written.
+- A save being overwritten is no longer removed for good by time (10 seconds after the tap), only once the new save
+  is written. Before, when the game was sent to the background right after a slot was overwritten in the save
+  screen, stayed there for more than 10 seconds and the write then failed (no space left), both saves were gone.
 - A load checks the whole save before it erases the running game: a save made by another script program (another
   script folder, or a script file this game does not have — another game, an edited file) is refused with a message
   and the game goes on. Such a save used to leave the engine with no scripts and no menu.

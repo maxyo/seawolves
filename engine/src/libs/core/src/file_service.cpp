@@ -112,7 +112,12 @@ bool FILE_SERVICE::_DeleteFile(const char *filename)
     // See save_trash.hpp for when the delete becomes final.
     if (underSaveRoot(path) && !storm::save::isReservedName(path.filename().string()))
     {
-        return storm::save::trash().discard(path);
+        std::string undeferred;
+        const bool deleted = storm::save::trash().discard(path, &undeferred);
+        if (!undeferred.empty())
+            spdlog::error("Save '{}' could not be set aside ({}): it was deleted at once, {}", path.string(),
+                          undeferred, deleted ? "and a failed save will not bring it back" : "which failed too");
+        return deleted;
     }
     std::error_code error;
     const bool removed = std::filesystem::remove(path, error);

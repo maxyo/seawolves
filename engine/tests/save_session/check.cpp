@@ -150,11 +150,11 @@ Bytes File(const fs::path &path)
     return data;
 }
 
-bool Save(const Bytes &description)
+bool Save(const Bytes &description, const char *record = kSlot)
 {
     Bytes data = description;
-    return core_internal.SaveState(kSlot) &&
-           core_internal.SetSaveData(kSlot, data.data(), static_cast<int32_t>(data.size()));
+    return core_internal.SaveState(record) &&
+           core_internal.SetSaveData(record, data.data(), static_cast<int32_t>(data.size()));
 }
 
 // The record with this description is whole: its state and its description both read back.
@@ -240,6 +240,7 @@ std::vector<std::string> ListedByNextSession()
     for (const auto &entry : fs::directory_iterator(SavesFolder() / "Hero"))
         if (!storm::save::isReservedName(entry.path().filename().string()))
             names.push_back(entry.path().filename().string());
+    std::ranges::sort(names);
     return names;
 }
 } // namespace
@@ -358,6 +359,21 @@ TEST_CASE("the save that replaces a slot makes the slot's delete final")
     REQUIRE(Save(description));
     REQUIRE(Whole(SlotFile(), description));
     REQUIRE(!fs::exists(storm::save::withSuffix(SlotFile(), storm::save::kDeletedSuffix)));
+}
+
+TEST_CASE("a save of another record does not make a slot's delete final")
+{
+    Game game;
+    REQUIRE(Save(Description(14)));
+    const Bytes previous = File(SlotFile());
+    REQUIRE(fio->_DeleteFile(kSlot));                      // the scripts replace the slot: its save is still to come
+    REQUIRE(Save(Description(15), "SAVE\\Hero\\Tortuga")); // another save lands first
+    CHECK(fs::exists(storm::save::withSuffix(SlotFile(), storm::save::kDeletedSuffix)));
+    REQUIRE(core_internal.SaveState(kSlot)); // the slot's own save fails
+    Bytes none(1);
+    CHECK(!core_internal.SetSaveData(kSlot, none.data(), 0));
+    CHECK((File(SlotFile()) == previous));
+    CHECK(ListedByNextSession() == std::vector<std::string>{"Port Royal", "Tortuga"});
 }
 
 // A load the player asked for: LoadEngineState, then the frame's step. True when the load was accepted.

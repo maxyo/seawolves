@@ -200,7 +200,7 @@ bool CoreImpl::Run()
     storm::ScriptStateMayChange(); // the frame's scripts, entities and loading
 
     Timer.Run(); // calc delta time
-    storm::save::trash().tick(); // finalize save deletes whose grace period has passed
+    storm::save::trash().frame(); // before the frame's scripts: save deletes no save replaced become final
 
     auto *pVCTime = static_cast<VDATA *>(core_internal.GetScriptVariable("iRealDeltaTime"));
     if (pVCTime)
@@ -789,8 +789,8 @@ bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_s
         return false;
     }
 
-    // The new save is durable: deletes made on the way to it (slot overwrite) are final.
-    storm::save::trash().commit();
+    // The new save is durable: the delete of the save it replaced under this name is final.
+    storm::save::trash().commit(path);
     return true;
 }
 
