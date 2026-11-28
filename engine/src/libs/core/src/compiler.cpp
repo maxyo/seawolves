@@ -5783,10 +5783,6 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                 }
 
                 pVSrc = real_var->value.get();
-                if (bUseIndex)
-                    pVSrc = pVSrc->GetArrayElement(dwBXIndex);
-                if (!pVSrc)
-                    return false;
                 break;
             case LOCAL_VARIABLE:
                 pVSrc = SStack.Read(pRun_fi->stack_offset, CodeOperand<uint32_t>(&pCodeBase[ip]));
@@ -5795,14 +5791,21 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                     SetError("Local variable not found");
                     return false;
                 }
-                if (bUseIndex)
-                    pVSrc = pVSrc->GetArrayElement(dwBXIndex);
-                if (!pVSrc)
-                    return false;
                 break;
             default:
                 SetError("invalid argument for setref (src)");
                 return false;
+            }
+            if (bUseIndex)
+            {
+                // &a[i]: an element of the array, also of one a reference names (`ref a = new int[2]`)
+                DATA *array = pVSrc->IsArray() ? pVSrc : pVSrc->GetVarPointer();
+                pVSrc = array ? array->GetArrayElement(dwBXIndex) : nullptr;
+                if (!pVSrc)
+                {
+                    SetError("&[%d]: not an element of an array", dwBXIndex);
+                    return false;
+                }
             }
 
             pVDst->SetReference(pVSrc->GetVarPointer());
