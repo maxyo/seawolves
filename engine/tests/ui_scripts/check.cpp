@@ -850,6 +850,11 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
             for (auto &widget : model.widgets)
                 if (widget.node == recorded.at("unmark").get<std::string>())
                     widget.value = "0";
+        // "without": [[node, row id]...]: those rows of the model gone (a row the game's window always writes).
+        for (const Json &gone : recorded.value("without", Json::array()))
+            std::erase_if(model.widgets, [&](const storm::ui::Widget &w) {
+                return w.node == gone.at(0).get<std::string>() && w.row_id == gone.at(1).get<std::string>();
+            });
         // A screen of several pack screens names the case's own ("folder").
         const auto spec = PackScreen(recorded.value("folder", std::string(folder)).c_str());
         Calls calls(*spec);

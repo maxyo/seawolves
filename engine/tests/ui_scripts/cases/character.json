@@ -12341,6 +12341,20 @@
    "like": 3,
    "unmark": "CHARACTERS_SCROLL",
    "fails": "character: the officer window remove is open on no post"
+  },
+  {
+   "name": "the figures without the Life row the game always writes: the build refuses it, no full bar",
+   "capability": "character",
+   "like": 0,
+   "without": [["TABLE_OTHER", "Life"]],
+   "fails": "character: the game's TABLE_OTHER has no Life row"
+  },
+  {
+   "name": "the figures without the Energy row: refused alike",
+   "capability": "character",
+   "like": 0,
+   "without": [["TABLE_OTHER", "Energy"]],
+   "fails": "character: the game's TABLE_OTHER has no Energy row"
   }
  ]
 }

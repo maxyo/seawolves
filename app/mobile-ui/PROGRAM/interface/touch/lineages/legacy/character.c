@@ -107,15 +107,8 @@ string TouchLegCharacter_Group(aref model, string node)
 // "90 / 120" of a TABLE_OTHER row as {now, max}.
 void TouchLegCharacter_Bar(string text, string what, aref out)
 {
-	out.now = 0;
-	out.max = 0;
-	if (text == "") return;
 	int slash = findSubStr(text, "/", 0);
-	if (slash < 0)
-	{
-		out.now = UiAmount(text, what);
-		return;
-	}
+	if (slash < 0) UiError("character: the game's " + what + " row has no maximum: '" + text + "'");
 	out.now = UiAmount(TouchLib_Cut(text, 0, slash), what);
 	out.max = UiAmount(TouchLib_Cut(text, slash + 1, strlen(text)), what);
 }
@@ -168,10 +161,6 @@ void TouchLegCharacter_Card(aref ui, ref chr, aref out)
 	card.healthCaption = "";
 	card.healthBad = false;
 	aref bar;
-	makearef(bar, card.health);
-	TouchLegCharacter_Bar("", "", bar);
-	makearef(bar, card.energy);
-	TouchLegCharacter_Bar("", "", bar);
 	aref facts;
 	makearef(facts, card.facts);
 	for (int k = 0; k < TouchLib_Count(model, "TABLE_OTHER.rows"); k++)
@@ -200,6 +189,9 @@ void TouchLegCharacter_Card(aref ui, ref chr, aref out)
 		fact.caption = caption;
 		fact.value = value;
 	}
+	// character_all.c FillSkillTables always writes both rows
+	if (!CheckAttribute(card, "health.now")) UiError("character: the game's TABLE_OTHER has no Life row");
+	if (!CheckAttribute(card, "energy.now")) UiError("character: the game's TABLE_OTHER has no Energy row");
 	card.reputation = TouchLib_Trim(TouchLegLib_Label(model, "REPUTATION_STR"));
 	card.portrait = "";
 	aref portrait;
