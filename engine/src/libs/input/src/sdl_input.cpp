@@ -455,7 +455,7 @@ bool SDLInput::KeyboardKeyState(const KeyboardKey &key) const
 #ifdef __ANDROID__
     return keyboard_.Active(keyToSDL(key)) && SnapshotCurrent();
 #else
-    return keyStates_[keyToSDL(key)] != 0;
+    return !platform::keyboardTaken && keyStates_[keyToSDL(key)] != 0;
 #endif
 }
 
@@ -464,7 +464,7 @@ bool SDLInput::KeyboardSDLKeyState(const SDL_Scancode &key) const
 #ifdef __ANDROID__
     return keyboard_.Active(static_cast<std::size_t>(key)) && SnapshotCurrent();
 #else
-    return keyStates_[key] != 0;
+    return !platform::keyboardTaken && keyStates_[key] != 0;
 #endif
 }
 

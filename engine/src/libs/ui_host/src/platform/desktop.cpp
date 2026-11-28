@@ -4,9 +4,12 @@
 #include "../engine_ui.hpp"
 #include "app_ui_names.hpp"
 #include "platform/android_mailbox.hpp"
+#include "platform/android_ui.hpp"
+#include "platform/host_hooks.hpp"
 #include "platform/storage.hpp"
 
 #include <SDL2/SDL.h>
+#include <algorithm>
 #include <optional>
 
 namespace storm::android::ui
@@ -95,6 +98,13 @@ int EditText(const SDL_Event &event)
 // a phone's touches and its Back button never reach the game's own controls.
 int Filter(void *, SDL_Event *event)
 {
+    if (!editing && storm::platform::keyboardTaken && event->type == SDL_KEYUP)
+    {
+        int count = 0;
+        const Uint8 *keys = SDL_GetKeyboardState(&count);
+        if (std::none_of(keys, keys + count, [](Uint8 down) { return down != 0; }))
+            storm::platform::keyboardTaken = false;
+    }
     if (editing && (event->type == SDL_TEXTINPUT || event->type == SDL_TEXTEDITING || event->type == SDL_KEYDOWN ||
                     event->type == SDL_KEYUP))
         return EditText(*event);
@@ -136,10 +146,14 @@ int Filter(void *, SDL_Event *event)
             return 1;
         if (event->type == SDL_KEYDOWN && !event->key.repeat)
         {
+            // Where the phone's Back goes (GameActivity.onBackPressed): a modal or screen of the touch interface, the
+            // open game interface's own back, else in gameplay the game's main menu.
             if (ui.WantsBack())
                 ui.Post([](storm::ui::Host &host) { host.Back(); });
-            else
+            else if (!storm::android::mobileScreen.empty())
                 mailbox::pending.push_back(mailbox::Back{});
+            else
+                mailbox::pending.push_back(mailbox::Shortcut{std::string(app::shortcut::mainmenu)});
         }
         return 0;
     default:
@@ -182,6 +196,7 @@ void ShowTextEditor(const storm::ui::TextRequest &request)
     editing =
         Editing{request.token, request.text, request.text, request.numeric, false, SDL_IsTextInputActive() == SDL_TRUE};
     SDL_StartTextInput();
+    storm::platform::keyboardTaken = true;
     Log().info("text field «{}» ({}): type on the keyboard, Enter submits, Escape cancels; starts with «{}»",
                request.title, request.numeric ? "numbers" : "text", request.text);
 }

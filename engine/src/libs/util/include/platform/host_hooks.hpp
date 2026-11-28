@@ -182,6 +182,9 @@ class FrameWorkClock
 // deliberate process kill never lands in the middle of a save (the atomic save
 // would keep the previous file, but the new one would be lost).
 inline std::atomic<int> savesInProgress{0};
+// The keyboard belongs to a text field the host edits (the desktop touch build's editor): the game's controls see no
+// key until every key typed into it is up, else the Enter that submits the field also presses the game's button.
+inline std::atomic<bool> keyboardTaken{false};
 
 class SaveInProgress
 {
