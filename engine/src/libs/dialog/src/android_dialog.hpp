@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_ui.hpp>
 #include <platform/android_dialogue_input.hpp>
 #include <core.h>
@@ -29,11 +29,13 @@ inline void sendDialogue(storm::ui::Dialogue state)
         return;
     dialogueShown = active;
     ui::dialogue(active);
+#ifdef __ANDROID__
     if (!CallActivity(upcall::GameActivity::showDialogue, [&](JNIEnv *env, jobject activity, jmethodID method) {
             env->CallVoidMethod(activity, method, static_cast<jboolean>(active));
             return true;
         }))
         spdlog::error("dialogue: GameActivity.showDialogue(boolean) failed");
+#endif
 }
 inline void closeDialogue(const void *owner)
 {

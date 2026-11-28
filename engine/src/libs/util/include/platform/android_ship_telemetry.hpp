@@ -211,7 +211,7 @@ struct ShipTelemetryFrame
     }
 };
 // Resolve current battle-interface captions on the game thread; implemented by battle_interface.
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void readShipCaptions(ShipTelemetryFrame &frame, uint64_t mainShipId);
 // The character's ship picture in the battle interface's ship icons (BIShipIcon: the picture
 // number the script gives for BIDT_SHIPPICTURE, the icon atlas and its grid); implemented by

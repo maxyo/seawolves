@@ -33,7 +33,7 @@
 #include "mobile_action_frame.hpp"
 // Save facts (the hero and location in each save's description) are game data on every platform.
 #include "mobile_save_facts.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "mobile_image_bridge.hpp"
 #include "mobile_inventory.hpp"
 #include "mobile_save_list.hpp"
@@ -44,7 +44,7 @@
 #include "mobile_owner_bridge.hpp"
 #include "mobile_interface_model.hpp"
 #include "mobile_variable_reads.hpp"
-#include <sys/system_properties.h>
+#include "platform/debug_switch.hpp"
 #include <chrono>
 static std::optional<storm::mobile::SaveListCapability::Target> deferredSaveAction;
 static uint64_t deferredSaveRequest = 0; // the UI's request of deferredSaveAction, answered when it is retried
@@ -67,7 +67,7 @@ static constexpr std::chrono::seconds kDeferredSaveWait{2};
 #include "platform/android_hud_presenter.hpp"
 static storm::mobile::InventoryEquipCapability inventoryEquipCapability;
 #endif
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The Android host knows the interface on screen (mobile_save_list.hpp declares this).
 std::optional<storm::mobile::SaveListSnapshot> storm::mobile::ReadSaveList()
 {
@@ -138,7 +138,7 @@ bool storm::mobile::ChooseSaveProfile(const std::string &profile)
 }
 #endif
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // No profiles in this port. The game's profile chooser (save_load.c opens it
 // on a load from the main menu when there is more than one profile folder) never reaches the
 // player: it is answered at once (mobile_save_list.hpp ProfileToChoose). Whenever the list is
@@ -429,7 +429,7 @@ void XINTERFACE::Execute(uint32_t)
     }
 
     RunNodeEvents();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     MobileFlushAnswers(); // the touch UI's actions that queued these events: their results are in place
 #endif
     if (!m_bUse)
@@ -462,7 +462,7 @@ void XINTERFACE::Execute(uint32_t)
         m_pMouseWeel->Set(0);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // Script variables read by the model's collectors (mobile_variable_reads.hpp).
 static storm::mobile::VariableReads mobileVariableReads;
 using MobileVariableKind = storm::mobile::VariableReads::Kind;
@@ -535,9 +535,7 @@ bool XINTERFACE::MobileModelDue(const std::optional<storm::mobile::SaveListSnaps
         mobileModelStats_ = {};
         mobileModelStats_.opening = opening;
         mobileModelScreen_ = storm::android::mobileScreen;
-        char setting[PROP_VALUE_MAX] = {};
-        __system_property_get("log.tag.StormUiModelCheck", setting);
-        mobileModelCheck_ = std::string_view(setting) == "DEBUG";
+        mobileModelCheck_ = storm::platform::debugSwitch("StormUiModelCheck");
     }
     const char *language = pStringService ? pStringService->GetLanguage() : nullptr;
     auto &why = mobileModelStats_;
@@ -617,7 +615,7 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 
 #endif
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "mobile_facts.inc"
 #include "mobile_table_game.inc"
 #include "mobile_goods_transfer.inc"
@@ -626,7 +624,7 @@ void XINTERFACE::MobileCollectWidgets(std::vector<MobileWidget> &widgets)
 #include "mobile_colony_loot.inc"
 #endif
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The interface model goes out in the frame it changes, as the struct itself (the UI host is in
 // this process): collected again only when something it is made of may have changed
 // (MobileModelInputs), published only when the collection differs from the last one. The save
@@ -777,7 +775,7 @@ void XINTERFACE::Realize(uint32_t)
 
     pRenderService->MakePostProcess();
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The portable UI draws every open interface: the game's own one only runs its nodes.
     const storm::android::NativeInterfaceDrawScope mobileDrawScope(!storm::android::mobileScreen.empty());
 #endif
@@ -800,7 +798,7 @@ void XINTERFACE::Realize(uint32_t)
 
     DrawNode(m_pNodes, Delta_Time, 0, 80);
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     MobileModelFrame();
     ++mobileModelStats_.frames;
 #endif
@@ -883,7 +881,7 @@ void XINTERFACE::Realize(uint32_t)
 
     // Mouse pointer show
     if (m_bShowMouse
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // no pointer of the original interface over a touch UI
         && !storm::android::legacyDrawRefused("interface cursor")
 #endif
@@ -903,7 +901,7 @@ void XINTERFACE::Realize(uint32_t)
 
     pRenderService->SetTransform(D3DTS_VIEW, storm::math::d3dMatrix(moldv));
     pRenderService->SetTransform(D3DTS_PROJECTION, storm::math::d3dMatrix(moldp));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     MobileSettle();
 #endif
 }
@@ -913,7 +911,7 @@ int32_t oldCurNum = -1L;
 uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
 {
     auto cod = message.Long();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // A message may change a node's state: the interface model is collected again. The queries below
     // change nothing (some scripts ask for the current node every frame).
     switch (cod)
@@ -1017,7 +1015,7 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
         ReleaseOld();
         const auto released = std::chrono::steady_clock::now();
         LoadDialog(param.c_str());
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         const auto loaded = std::chrono::steady_clock::now();
         storm::android::showMobileScreen(param, std::chrono::duration<double, std::milli>(released - started).count(),
                                          std::chrono::duration<double, std::milli>(loaded - released).count());
@@ -1054,7 +1052,7 @@ uint64_t XINTERFACE::ProcessMessage(MESSAGE &message)
     break;
 
     case MSG_INTERFACE_RELEASE: {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         MobileFlushAnswers(); // actions whose events released the interface took effect
         storm::ScriptStateForget(); // no interface, no cached facts: gameplay writes are not looked at
         storm::android::showMobileScreen("");
@@ -1882,7 +1880,7 @@ void XINTERFACE::LoadDialog(const char *sFileName)
 
 void XINTERFACE::CreateNode(const char *sFileName, const char *sNodeType, const char *sNodeName, int32_t priority)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++mobileChanges_; // a node's state may change: the interface model is collected again
 #endif
     // there is already such a node
@@ -2113,7 +2111,7 @@ CINODE *XINTERFACE::NewNode(const char *pcNodType)
 
 void XINTERFACE::DeleteNode(const char *pcNodeName)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++mobileChanges_; // a node's state may change: the interface model is collected again
 #endif
     if (!pcNodeName)
@@ -2448,7 +2446,7 @@ void XINTERFACE::SetTooltip(const char *pcHeader, const char *pcText1, uint32_t 
 
 void XINTERFACE::ShowWindow(const char *pcWindowName, bool bShow)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++mobileChanges_; // a node's state may change: the interface model is collected again
 #endif
     if (!m_pNodes)
@@ -2464,7 +2462,7 @@ void XINTERFACE::ShowWindow(const char *pcWindowName, bool bShow)
 
 void XINTERFACE::DisableWindow(const char *pcWindowName, bool bDisable)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++mobileChanges_; // a node's state may change: the interface model is collected again
 #endif
     if (!m_pNodes)
@@ -2480,7 +2478,7 @@ void XINTERFACE::DisableWindow(const char *pcWindowName, bool bDisable)
 
 void XINTERFACE::AddNodeToWindow(const char *pcNodeName, const char *pcWindowName)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++mobileChanges_; // a node's state may change: the interface model is collected again
 #endif
     if (!m_pNodes)
@@ -2586,7 +2584,7 @@ void XINTERFACE::DrawNode(CINODE *nod, uint32_t Delta_Time, int32_t startPrior, 
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // Answers a widget action: refused at once, applied now or, when it queued script events, once they
 // have run (MobileApplyActions runs them next), so that the model the UI gets next shows its result.
 void XINTERFACE::MobileAnswer(uint64_t request, const storm::mobile::ActionOutcome &outcome, bool queuedEvents)
@@ -2808,7 +2806,7 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
 // follows, and the UI shows the game again in this frame.
 void XINTERFACE::MobileInterfaceGone()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (!m_bUse && !core.EventPosted("LaunchIAfterFrame"))
         storm::android::ui::interfaceGone();
 #endif
@@ -2822,7 +2820,7 @@ void XINTERFACE::RunNodeEvents()
     });
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The touch UI's actions queued so far, in the order the player made them. The script events an action queued run
 // before the next action is applied and before the model goes out (mobile_action_frame.hpp): the UI draws the game's
 // answer in the frame of the tap. The scripts' own posted events keep their time.
@@ -2867,7 +2865,7 @@ void XINTERFACE::DoControl()
     if (!m_bUse)
         return;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (deferredSaveAction)
     {
         const auto state = storm::mobile::ReadSaveList();
@@ -4215,7 +4213,7 @@ void XINTERFACE::SaveOptionsFile(const char *fileName, ATTRIBUTES *pAttr)
 {
     if (!fileName || !pAttr) return;
     const auto target = std::filesystem::u8path(fio->ConvertPathResource(fileName));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     auto pending=target;
     pending += ".storm-tmp";
 #else
@@ -4232,14 +4230,14 @@ void XINTERFACE::SaveOptionsFile(const char *fileName, ATTRIBUTES *pAttr)
             fio->_FlushFileBuffers(file);
             fio->_CloseFile(file);
             saved=written && !file.fail();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             if(saved) {std::filesystem::rename(pending,target,error);saved=!error;}
 #endif
         }
     }
     if(!saved) {
         core.Trace("Could not save options '%s' (resolved '%s'), filesystem error=%d: %s",fileName,target.string().c_str(),error.value(),error.message().c_str());
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         storm::android::ui::alert("settings.notSaved"); // the UI's one toast place, the top edge
         std::error_code cleanup;
         std::filesystem::remove(pending,cleanup);

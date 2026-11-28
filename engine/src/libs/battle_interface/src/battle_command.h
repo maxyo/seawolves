@@ -3,7 +3,7 @@
 #include "bi_defines.h"
 #include <string>
 #include <vector>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_sea_orders.hpp>
 #endif
 
@@ -50,7 +50,7 @@ class BICommandList
     }
 
     void SetUpDown(bool bUp, bool bDown);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void ReadAndroidOrders(storm::android::SeaOrdersFrame &frame);
     // How many targets the list of `command` would offer now (the very builder of that list),
     // -1 when the command opens no target list.

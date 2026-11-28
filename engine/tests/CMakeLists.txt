@@ -97,7 +97,7 @@ storm_host_check(android_combat_input INCLUDES ${util_include} OPTIONS ${asan} C
 storm_host_check(android_deck_walk INCLUDES ${util_include} ${src}/libs/sea_cameras/src OPTIONS ${asan} CATCH2)
 storm_host_check(android_dialogue_input INCLUDES stubs ${util_include} ${src}/libs/dialog/src
     ${src}/libs/ui/include
-    DEFINES __ANDROID__ OPTIONS ${warnings} ${asan} CATCH2)
+    DEFINES __ANDROID__ STORM_TOUCH_UI OPTIONS ${warnings} ${asan} CATCH2)
 storm_host_check(android_game_message_target INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_gameplay INCLUDES ${util_include} OPTIONS ${asan})
 storm_host_check(android_gameplay.snapshot SOURCES snapshot.cpp ${core_fake_sources}
@@ -148,7 +148,7 @@ storm_host_check(android_worldmap INCLUDES ${core_fake_android_includes} ${world
 storm_host_check(android_worldmap.control_cache SOURCES control_cache.cpp
     INCLUDES ${src}/libs/pcs_controls/src ${src}/libs/core/include ${src}/libs/shared_headers/include ${util_include}
         ${CMAKE_CURRENT_LIST_DIR}/core_fake
-    DEFINES __ANDROID__ OPTIONS -O1 -g ${asan_strict})
+    DEFINES __ANDROID__ STORM_TOUCH_UI OPTIONS -O1 -g ${asan_strict})
 storm_host_check(android_worldmap.snapshot SOURCES snapshot.cpp ${core_fake_sources}
     INCLUDES ${core_fake_android_includes} ${src}/apps/engine/src DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -Wno-deprecated-declarations ${asan_strict})

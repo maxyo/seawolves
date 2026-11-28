@@ -11,7 +11,7 @@
 #include "vma.hpp"
 
 #include <filesystem>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "mobile_alchemy.hpp"
 #include "mobile_interface_leaving.hpp"
 #include "mobile_facts_cache.hpp"
@@ -324,7 +324,7 @@ class XINTERFACE : public XINTERFACE_BASE
     std::vector<STRING_Entity> m_stringes;
     int m_nStringQuantity;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollectWidgets(std::vector<MobileWidget> &widgets);
     void MobileApplyActions();
     void MobileModelFrame(); // collected when due, published when changed

@@ -10,7 +10,7 @@ class CXI_TEXTBUTTON : public CINODE
     CXI_TEXTBUTTON(const CXI_TEXTBUTTON &) = delete;
     CXI_TEXTBUTTON();
     ~CXI_TEXTBUTTON() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
 #endif
 

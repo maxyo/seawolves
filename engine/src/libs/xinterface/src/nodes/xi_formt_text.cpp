@@ -1,5 +1,5 @@
 #include "xi_formt_text.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #endif
 #include "../xinterface.h"
@@ -1622,7 +1622,7 @@ void CXI_FORMATEDTEXT::VAlignment(int32_t nAlign)
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_FORMATEDTEXT::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

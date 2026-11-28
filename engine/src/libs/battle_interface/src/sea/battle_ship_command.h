@@ -10,11 +10,11 @@ class BIShipCommandList : public BICommandList
     ~BIShipCommandList() override;
 
     void FillIcons() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     int32_t AndroidTargetCount(const std::string &command) override;
 #endif
   private:
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     std::unordered_map<std::string, std::pair<uint32_t, int32_t>> m_androidTargetCounts; // probe time, count
 #endif
   protected:

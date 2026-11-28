@@ -128,4 +128,5 @@ set(core_fake_includes ${STORM_TESTS_DIR}/core_fake ${library_includes} ${STORM_
     ${fmt_headers} ${STORM_TEST_SOURCES}/fast_float/include ${STORM_TEST_SDL_INCLUDE} ${STORM_APP_CONTRACT_INCLUDE})
 set(core_fake_defines FMT_HEADER_ONLY SPDLOG_FMT_EXTERNAL)
 set(core_fake_android_includes ${core_fake_includes} ${JNI_INCLUDE_DIRS} ${storm_json_SOURCE_DIR}/include)
-set(core_fake_android_defines __ANDROID__ SDL_MAIN_HANDLED ${core_fake_defines}) # SDL renames main() on Android
+# The touch interface's code as the Android build compiles it (STORM_TOUCH_UI) with the Android parts beside it.
+set(core_fake_android_defines __ANDROID__ STORM_TOUCH_UI SDL_MAIN_HANDLED ${core_fake_defines}) # SDL renames main() on Android

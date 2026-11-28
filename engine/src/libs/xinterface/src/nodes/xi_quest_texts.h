@@ -26,7 +26,7 @@ class CXI_QUESTTEXTS : public CINODE
     void SaveParametersToIni() override;
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
 #endif
     void StartQuestShow(ATTRIBUTES *pA, int qn);
@@ -41,7 +41,7 @@ class CXI_QUESTTEXTS : public CINODE
     void GetStringListForQuestRecord(std::vector<std::string> &asStringList, const char *pcRecText,
                                      const char *pcUserData) const;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     std::string m_mobileText;
 #endif
     int32_t m_idFont;

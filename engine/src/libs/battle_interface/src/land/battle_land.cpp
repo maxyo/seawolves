@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include <platform/android_ui.hpp>
@@ -62,13 +62,13 @@ void BATTLE_LAND_INTERFACE::Realize(uint32_t delta_time)
         m_pRS->MakePostProcess();
         if (m_pManSign)
             m_pManSign->Draw(); // on Android it only publishes the vitals
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The land interface's images and texts are the touch HUD's (its location line from
         // publishWorldInfo below).
         if (!storm::android::legacyDrawRefused("land interface"))
 #endif
         m_Images.Draw();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         std::string info;
         auto *texts = AttributesPointer ? AttributesPointer->GetAttributeClass("textinfo") : nullptr;
         if (texts) for (uint32_t i=0; i<texts->GetAttributesNum(); ++i) {
@@ -126,7 +126,7 @@ uint64_t BATTLE_LAND_INTERFACE::ProcessMessage(MESSAGE &message)
 
     case MSG_BATTLE_LAND_SET_SHOW: {
         const bool show = message.Long() != 0;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The scripts show the commands again one event after a dialogue ends (EVENT_DIALOG_EXIT),
         // after the touch HUD's refresh on leaving the dialogue found them hidden: a change of the list.
         if (show != m_bShowCommandos && m_pManSign)
@@ -169,7 +169,7 @@ uint64_t BATTLE_LAND_INTERFACE::ProcessMessage(MESSAGE &message)
 
 void BATTLE_LAND_INTERFACE::Release()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::publishWorldInfo("");
     storm::android::publishVitals(std::nullopt);
 #endif
@@ -203,7 +203,7 @@ void BATTLE_LAND_INTERFACE::EnableMessageIcons(VDATA *pvdat)
 {
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../../../xinterface/src/string_service.h"
 #include "../../../core/src/data.h"
 storm::android::LandCommandSource BATTLE_LAND_INTERFACE::ReadAndroidLand(storm::android::LandCommandsFrame &frame)

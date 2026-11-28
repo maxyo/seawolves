@@ -16,7 +16,7 @@ class CXI_IMGCOLLECTION : public CINODE
     void ReleaseAll() override;
     int CommandExecute(int wActCode) override;
     bool IsClick(int buttonID, int32_t xPos, int32_t yPos) override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The pictures a script added at run time (message 0), each as an "image" widget: the picture of the
     // node's image group, its caption from the common strings where there is one, and where the script put
     // it (context x, y: the script's own coordinates, without the node's offset). What the ini lays out

@@ -49,16 +49,18 @@
 #ifdef __ANDROID__
 #include <android/log.h>
 #include <unistd.h>
-#include "android_game.hpp"
-#include "platform/android_ui.hpp"
 #else
 #include "platform/desktop_settings.hpp"
+#endif
+#ifdef STORM_TOUCH_UI
+#include "android_game.hpp"
+#include "platform/android_ui.hpp"
 #endif
 #include <cstdio>
 #include <functional>
 
 using namespace storm::engine;
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
 namespace storm::engine
 {
 class AndroidGame;
@@ -681,7 +683,7 @@ storm::platform::LoadingPlatformState LoadingPlatform::operator()(uint64_t gener
         cancelGeneration_ = generation;
         cancelPending_ = false;
         storm::platform::CancelLoadingPlatformInput();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         android_->CancelLoadingInput();
 #endif
     }
@@ -693,7 +695,7 @@ storm::platform::LoadingPlatformState LoadingPlatform::operator()(uint64_t gener
     storm::AppEvents::instance().dispatch();
     RethrowCallbackError();
     audioGate.apply();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     android_->ConsumeLoadingEvents();
 #else
     if (SDL_HasEvent(SDL_QUIT)) isRunning = false;
@@ -702,7 +704,7 @@ storm::platform::LoadingPlatformState LoadingPlatform::operator()(uint64_t gener
     // SDLInput's separate event-watch queue is gated/cancelled independently.
     SDL_FlushEvents(0, SDL_LASTEVENT);
     if (!isRunning) return State::Quit;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (const auto state = android_->LoadingState(generation, cancelPending_))
         return *state;
 #endif
@@ -748,7 +750,7 @@ bool RunIteration(Loop &loop)
     storm::platform::stall_watch::Progress();
     if (const auto work = loop.frameWork.lap(storm::platform::FrameWorkClock::Clock::now()))
         storm::platform::reportFrameWork(std::chrono::duration_cast<std::chrono::nanoseconds>(*work));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     const auto inputEpoch = loop.android->TakeInput();
 #endif
     SDL_PumpEvents();
@@ -757,7 +759,7 @@ bool RunIteration(Loop &loop)
     // Queued window/lifecycle events, delivered between frames on this thread.
     storm::AppEvents::instance().dispatch();
     audioGate.apply();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     loop.android->AfterEvents(inputEpoch);
 #else
     // SDL turns SIGINT/SIGTERM into SDL_QUIT: the host shuts down in order, like closing the window.
@@ -775,7 +777,7 @@ bool RunIteration(Loop &loop)
     // All SDL/lifecycle and load actions were serviced above. Only real frames run the
     // adapters below; waiting never fabricates frame/stability observations.
     bool canPaceLoading = bActive;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     canPaceLoading = canPaceLoading && loop.android->CanRun();
 #endif
     // The synchronous native stock loop invokes this same controller
@@ -791,13 +793,13 @@ bool RunIteration(Loop &loop)
     }
 
     if ((bActive || loop.runInBackground)
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         && loop.android->CanRun()
 #endif
     )
     {
         loop.frameWork.frame();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         loop.android->BeforeFrame();
 #endif
         {
@@ -807,7 +809,7 @@ bool RunIteration(Loop &loop)
             RunFrame();
         }
         RethrowCallbackError(); // from a handler SDL called during the frame
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         loop.android->AfterFrame();
 #endif
     }
@@ -912,7 +914,7 @@ int main(int argc, char *argv[])
     core_private->InitBase();
 
     // Message loop. Frames are paced by the renderer's present (Swappy on Android, vsync elsewhere).
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     AndroidGame androidGame;
     AndroidGame *android = &androidGame;
 #else
@@ -942,7 +944,7 @@ int main(int argc, char *argv[])
         exitCode = EXIT_FAILURE;
 
     loadingPlatform.reset(); // No callback may retain stack captures during service teardown.
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     androidGame.Shutdown();
 #endif
     storm::AppEvents::instance().uninstall();

@@ -9,7 +9,7 @@ class CXI_SLIDELINE : public CINODE
   public:
     CXI_SLIDELINE();
     ~CXI_SLIDELINE() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
     MobileSliderState MobileState() const;

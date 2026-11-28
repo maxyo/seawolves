@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../inode.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../mobile_officer_selection.hpp"
 #include <optional>
 #endif
@@ -45,7 +45,7 @@ class CXI_SCROLLIMAGE : public CINODE
     CXI_SCROLLIMAGE(const CXI_SCROLLIMAGE &) = delete;
     CXI_SCROLLIMAGE();
     ~CXI_SCROLLIMAGE() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
     bool MobileHireCrewGuard(const std::string &node, const std::string &guard) const;

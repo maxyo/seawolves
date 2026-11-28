@@ -1221,7 +1221,7 @@ ATTRIBUTES *WorldMap::GetEncSaveData(const char *type, const char *retName)
     return a;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_worldmap.hpp"
 std::string storm::android::worldMapContext(uint64_t owner)
 {

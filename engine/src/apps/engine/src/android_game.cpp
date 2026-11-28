@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "android_game.hpp"
 #include "app_script_events.hpp"
 
@@ -22,7 +22,6 @@
 #include "script_state.hpp"
 
 #include <SDL2/SDL.h>
-#include <android/log.h>
 #include <spdlog/spdlog.h>
 
 namespace storm::engine
@@ -114,9 +113,8 @@ uint64_t AndroidGame::TakeInput()
     }
     // A pinch acts only in the frame it came for (android_camera_zoom.hpp).
     if (android::cameraZoom.beginFrame())
-        __android_log_print(ANDROID_LOG_WARN, "StormInput",
-                            "camera pinch dropped: no camera with a zoom took it (gameplay %s, %s)",
-                            gameplay_.snapshot().mode.c_str(), gameplay_.snapshot().blocked.c_str());
+        spdlog::warn("camera pinch dropped: no camera with a zoom took it (gameplay {}, {})", gameplay_.snapshot().mode,
+                     gameplay_.snapshot().blocked);
     const auto uiCommands = android::ui::takeCommands();
     const auto messages = android::pollMobileActions();
     android::publishLocationReadiness();
@@ -345,6 +343,7 @@ std::optional<platform::LoadingPlatformState> AndroidGame::LoadingState(uint64_t
     const auto readiness = render::GetSceneLoadStatus();
     if (!readiness.active || readiness.generation != generation || !android::publishLocationReadiness())
         return State::Unavailable;
+#ifdef __ANDROID__ // the activity's loading overlay can cancel the load; the desktop has none
     const auto cancel = android::pollLocationLoadCancel(generation);
     if (!cancel)
         return State::Unavailable;
@@ -358,6 +357,7 @@ std::optional<platform::LoadingPlatformState> AndroidGame::LoadingState(uint64_t
         isRunning = false;
         return State::Cancel;
     }
+#endif
     if (!lifecycle_.canRun())
         return State::Suspended;
     return std::nullopt;

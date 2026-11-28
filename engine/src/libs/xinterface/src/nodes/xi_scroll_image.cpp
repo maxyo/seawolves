@@ -1539,7 +1539,7 @@ int32_t CXI_SCROLLIMAGE::GetMousePointedPictureNum() const
     return n;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../mobile_owner_bridge.hpp"
 #include "shared/interface/messages.h"
 #include "../mobile_sails_gerald.hpp"

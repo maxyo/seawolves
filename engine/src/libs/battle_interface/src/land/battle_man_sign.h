@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bi_defines.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_land_commands.hpp>
 #endif
 #include <string>
@@ -28,7 +28,7 @@ class BIManSign
     void SetUpdate()
     {
         m_bMakeUpdate = true;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_bAndroidChanged = true;
 #endif
     }
@@ -37,7 +37,7 @@ class BIManSign
     void SetActive(bool bActive);
     void MakeControl();
     void ExecuteCommand(int32_t command);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::LandCommandSource ReadAndroidLand(storm::android::LandCommandsFrame &frame);
     bool ExecuteAndroidLand(const storm::android::HudMenuRequest &request);
     void CloseAndroidLand();
@@ -167,7 +167,7 @@ class BIManSign
     int32_t m_nCommandListVerticalOffset;
 
     bool m_bMakeUpdate;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool m_bAndroidChanged = true;
 #endif
     bool m_bMakeVertexFill;

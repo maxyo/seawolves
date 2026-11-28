@@ -1,8 +1,8 @@
 //    Spirenkov Maxim aka Sp-Max Shaman, 2001
 //
 
-#ifdef __ANDROID__
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
+#ifdef STORM_TOUCH_UI
 #include <platform/android_dialog_target.hpp>
 #endif
 #include <platform/android_movement.hpp>
@@ -2104,7 +2104,7 @@ void Character::Move(float dltTime)
         kSpd = 1.0f;
     kSpdCur += (kSpd - kSpdCur) * k;
     k = kSpdCur * 0.3f + 0.7f + kSpdDlt;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     const auto touch = storm::location::CharacterMotion::touchStep(*this);
 #else
     const storm::location::CharacterMotion::TouchStep touch;
@@ -5024,7 +5024,7 @@ Character *Character::FindDialogCharacter()
     auto *const location = GetLocation();
     if (IsFight() || liveValue < 0 || deadName)
         return nullptr;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Touch: the talk button is this target and a tap talks to it; taken within the enter reach
     // and kept within the wider exit reach, so it does not flicker (android_dialog_target.hpp).
     auto fndCharacter = location->supervisor.FindCharacters(this, storm::android::dialogExit.radius);

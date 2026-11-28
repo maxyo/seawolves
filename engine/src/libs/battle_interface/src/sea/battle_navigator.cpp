@@ -51,7 +51,7 @@ void BATTLE_NAVIGATOR::Draw() const
 {
     if (rs == nullptr)
         return;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_androidDrawn = DrawAndroid();
     // Opt-in exact owner/readiness trace for APK acceptance, not a fake data source.
     static int previous=-1;
@@ -196,7 +196,7 @@ void BATTLE_NAVIGATOR::Update()
     UpdateWindParam();
     SetMainCharacterData();
     UpdateCurrentCharge();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     UpdateAndroidBorts();
     const auto *owner = static_cast<const BATTLE_INTERFACE *>(m_pOwnerEI);
     if (owner && !owner->AndroidCommandActive() && storm::android::mobileScreen.empty() && AndroidAvailable()) {
@@ -942,7 +942,7 @@ int32_t BATTLE_NAVIGATOR::SetCircleVertexTex(BI_ONETEXTURE_VERTEX *v, float x, f
 
 void BATTLE_NAVIGATOR::SetMainCharacterData()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_shipSpeedAvailable = false;
 #endif
     m_fCurAnglLeftCharge = 0;
@@ -975,7 +975,7 @@ void BATTLE_NAVIGATOR::SetMainCharacterData()
     m_fAngle = cAng.y;
     m_fShipSpeed = static_cast<SHIP_BASE *>(psd->pShip)->State.vSpeed.z;
     m_fShipSpeed *= m_fShipSpeedScale; // speed reduction is more necessary here
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     const auto *scaleText = m_pOwnerEI && m_pOwnerEI->AttributesPointer ?
         m_pOwnerEI->AttributesPointer->GetAttribute("ShipSpeedScaler") : nullptr;
     const auto scale = scaleText ? storm::android::shipNumberValue(scaleText) : std::nullopt;
@@ -1130,7 +1130,7 @@ void BATTLE_NAVIGATOR::ReleaseAll()
     TEXTURE_RELEASE(rs, m_idSailTexture);
 
     TEXTURE_RELEASE(rs, m_islandTexture);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     TEXTURE_RELEASE(rs, m_landTexture);
     m_landLevel = -1;
     m_landLevels.clear();
@@ -1349,7 +1349,7 @@ int32_t BATTLE_NAVIGATOR::SetRectangleSegVertexTex(BI_ONETEXTURE_VERTEX *v, floa
 
 void BATTLE_NAVIGATOR::SetIsland()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     ++m_navigatorGeneration;
     m_androidDrawn=false;m_androidLayoutId=0;
     storm::android::seaNavigator.clear();
@@ -1434,7 +1434,7 @@ void BATTLE_NAVIGATOR::SetIsland()
         }
     }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     BuildAndroidLand();
 #endif
     m_bYesIsland = m_islandTexture >= 0;
@@ -1462,7 +1462,7 @@ void BATTLE_NAVIGATOR::UpdateMiniMap()
 
 void BATTLE_NAVIGATOR::UpdateCurrentCharge()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_chargeSignalAvailable = false;
 #endif
     VDATA *pVD = core.Event("GetCurrentCharge");
@@ -1473,7 +1473,7 @@ void BATTLE_NAVIGATOR::UpdateCurrentCharge()
     int32_t curWindPic = m_curWindPic;
     int32_t curPowder = m_curPowder;
     int32_t isPowderRunOut = 0;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Only these three slots are assigned by stock GetCurrentCharge. The shared
     // array's slots 3/4 can contain results of unrelated events; never export them.
     m_chargeSignalAvailable = pVD->Get(curCharge, 0) && pVD->Get(curSailState, 1) && pVD->Get(curWindPic, 2);
@@ -1551,7 +1551,7 @@ void BATTLE_NAVIGATOR::UpdateCurrentCharge()
 
 void BATTLE_NAVIGATOR::UpdateWindParam()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_windSpeedAvailable = false;
 #endif
     if (!m_wb && !m_pAWeather)
@@ -1563,14 +1563,14 @@ void BATTLE_NAVIGATOR::UpdateWindParam()
     {
         m_fWindAngle = m_wb->GetFloat(whf_wind_angle);
         m_fWindStrength = m_wb->GetFloat(whf_wind_speed);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_windSpeedAvailable = std::isfinite(m_fWindStrength) && m_fWindStrength >= 0;
 #endif
     }
     if (m_pAWeather)
     {
         m_fWindStrength = m_pAWeather->GetAttributeAsFloat("WindSpeed");
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         const char *windText = m_pAWeather->GetAttribute("WindSpeed");
         m_windSpeedAvailable = windText && storm::android::shipNumberValue(windText).has_value() &&
             std::isfinite(m_fWindStrength) && m_fWindStrength >= 0;
@@ -1581,7 +1581,7 @@ void BATTLE_NAVIGATOR::UpdateWindParam()
 
 void BATTLE_NAVIGATOR::LostRender()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_renderLost = true;
     ++m_navigatorGeneration;
     m_androidDrawn=false;m_androidLayoutId=0;
@@ -1594,12 +1594,12 @@ void BATTLE_NAVIGATOR::LostRender()
 
 void BATTLE_NAVIGATOR::RestoreRender()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     SetIsland();
 #endif
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void BATTLE_NAVIGATOR::ReadAndroidSpeeds(storm::android::ShipTelemetryFrame &frame, uint64_t mainShipId) const
 {
     if (m_shipSpeedAvailable && m_speedShipId == mainShipId)

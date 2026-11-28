@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include "i_boarding_status.h"
@@ -48,7 +48,7 @@ uint64_t IBoardingStatus::ProcessMessage(MESSAGE &message)
 
 void IBoardingStatus::Realize(uint32_t delta_time)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Shown (a world-space layer) until the touch HUD has its own strength bars.
     if (storm::android::legacyDrawRefused("boarding status")) return;
 #endif

@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include "active_perk_shower.h"
@@ -64,7 +64,7 @@ void ActivePerkShower::Execute(uint32_t delta_time)
 
 void ActivePerkShower::Realize(uint32_t delta_time) const
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The touch HUD presents this mode.
     if (storm::android::legacyDrawRefused("active perk icons")) return;
 #endif

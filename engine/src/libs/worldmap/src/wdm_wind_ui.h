@@ -45,7 +45,7 @@ class WdmWindUI : public WdmInterfaceObject
 
     int32_t dateFont;
     float morale{};
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool androidMoraleValid = false, androidFoodValid = false;
 #endif
     int32_t food{};

@@ -6,7 +6,7 @@
 
 #include "storm_glm.h"
 #include "model.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera.hpp>
 #endif
 
@@ -33,7 +33,7 @@ class CameraFollow
 
     // Find current camera position
     void MoveCamera(float dltTime);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The mobile camera mode of MoveCamera (out of a fight).
     void MoveMobile(float dltTime);
 #endif
@@ -76,7 +76,7 @@ class CameraFollow
     float rotAcc;       // Stop acceleration
     float kRadInert;    // Dependence of the inertia of the radius change on the turning speed
     float kRadInertCur; // Current dependence of inertia
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::AutoFollow autoFollow;
     storm::android::Damped raise; // how much higher (lower: below 0) than the player's pitch the camera is now
     storm::android::Damped swing; // the yaw still to swing out of a tight space (value), easing to 0

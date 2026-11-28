@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // Where the door the hero stands at leads, in the game's own words: the reload the script waits
 // on (characters_events.c chrCharacterEntryToLocator: chrWaitReloadRef = the location's reload
 // list, chrWaitReloadLocator = the locator) carries a `label` ("Tavern", "ExitTown"), which the

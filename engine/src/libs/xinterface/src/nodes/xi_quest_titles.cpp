@@ -1,7 +1,7 @@
 #include "xi_quest_titles.h"
 
 #include <spdlog/spdlog.h>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #endif
 
@@ -158,7 +158,7 @@ bool CXI_QUESTTITLE::Init(INIFILE *ini1, const char *name1, INIFILE *ini2, const
 
 void CXI_QUESTTITLE::ReleaseAll()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_mobileQuests.clear();
 #endif
     FONT_RELEASE(m_rs, m_idFont);
@@ -314,7 +314,7 @@ void CXI_QUESTTITLE::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, co
 
 void CXI_QUESTTITLE::SetNewTopQuest(ATTRIBUTES *pA, int topNum)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     RefreshMobileQuests(pA, topNum);
 #endif
     int i;
@@ -440,7 +440,7 @@ void CXI_QUESTTITLE::MouseThis(float fX, float fY)
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CXI_QUESTTITLE::RefreshMobileQuests(ATTRIBUTES *quests, int top)
 {
     auto *reader = ptrOwner->QuestFileReader();

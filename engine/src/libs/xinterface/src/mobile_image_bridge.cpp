@@ -1,7 +1,7 @@
 #include "mobile_image_bridge.hpp"
 #include "vx_service.h"
 #include "xdefines.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 
 namespace storm::mobile

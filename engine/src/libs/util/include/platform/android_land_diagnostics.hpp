@@ -1,22 +1,17 @@
 #pragma once
-#ifdef __ANDROID__
-#include <android/log.h>
-#include <sys/system_properties.h>
+#ifdef STORM_TOUCH_UI
+#include "debug_switch.hpp"
 #include <array>
 #include <string>
 #include <string_view>
 
 namespace storm::android
 {
-// Opt-in traces of the touch input bridge (game thread): adb shell setprop log.tag.StormInput DEBUG, read once,
-// before the game starts. One budget for the process keeps a broken adapter from flooding the log.
+// Opt-in traces of the touch input bridge (game thread): switch StormInput (debug_switch.hpp), read once, before the
+// game starts. One budget for the process keeps a broken adapter from flooding the log.
 inline bool inputTraceEnabled()
 {
-    static const bool enabled = [] {
-        char setting[PROP_VALUE_MAX] = {};
-        __system_property_get("log.tag.StormInput", setting);
-        return std::string_view(setting) == "DEBUG";
-    }();
+    static const bool enabled = storm::platform::debugSwitch("StormInput");
     return enabled;
 }
 inline void inputTrace(const std::string &line)
@@ -25,7 +20,7 @@ inline void inputTrace(const std::string &line)
     if (!inputTraceEnabled() || !budget)
         return;
     --budget;
-    __android_log_print(ANDROID_LOG_DEBUG, "StormInput", "%s", line.c_str());
+    storm::platform::debugTrace("StormInput", line);
 }
 inline void traceContextAction(const char *stage, const std::string &action, const std::string &detail)
 {

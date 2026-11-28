@@ -9,7 +9,7 @@ class CXI_TITLE : public CINODE
     CXI_TITLE(const CXI_TITLE &) = delete;
     CXI_TITLE();
     ~CXI_TITLE() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
 #endif
     void Draw(bool bSelected, uint32_t Delta_Time) override;

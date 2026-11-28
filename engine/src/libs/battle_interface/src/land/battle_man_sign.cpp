@@ -2,7 +2,7 @@
 #include <cmath>
 #include "battle_man_sign.h"
 #include "platform/android_land_diagnostics.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "land_status.hpp"
 #endif
 #include "bi_utils.h"
@@ -81,7 +81,7 @@ void BIManSign::Draw()
         m_bMakeVertexFill = false;
     }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The native list is not drawn under the touch HUD; its cooldown animation still runs while
     // the menu is open, and each step is a change of the menu the sheet shows.
     if (IsActive() && m_pCommandList->UpdateCooldowns())
@@ -160,7 +160,7 @@ void BIManSign::Draw()
 
 #endif
     if (m_pCommandList
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // the touch HUD's action sheet replaces it.
         && !storm::android::legacyDrawRefused("land command list")
 #endif
@@ -414,7 +414,7 @@ void BIManSign::MakeControl()
 
 void BIManSign::ExecuteCommand(int32_t command)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_bAndroidChanged = true;
 #endif
     switch (command)
@@ -868,7 +868,7 @@ void BIManSign::CheckDataChange()
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 storm::android::LandCommandSource BIManSign::ReadAndroidLand(storm::android::LandCommandsFrame &frame)
 {
     if (!m_pCommandList) { storm::android::traceLandAdapter(5, "missing-command-list"); return storm::android::LandCommandSource::Missing; }

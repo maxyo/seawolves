@@ -555,7 +555,7 @@ void CXI_CHECKBUTTONS::WriteToAttributeButtonState(int32_t nButtonIndex)
         pA->SetAttributeUseDword(atrName, m_aButton[nButtonIndex]->bChoose ? 1 : 0);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_CHECKBUTTONS::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

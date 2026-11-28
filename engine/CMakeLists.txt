@@ -18,11 +18,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug
 
 if(ANDROID)
     include(android)
-    # The game's portable UI is drawn inside the engine frame (src/libs/ui_host): the UI
-    # runtime and its bgfx backend are part of libengine.so.
-    set(STORM_ENABLE_UI ON)
 else()
     include(host)
+endif()
+
+# The touch interface: the UI runtime drawn inside the engine frame (src/libs/ui_host) and the engine's touch glue
+# (code under STORM_TOUCH_UI). Android's only interface; on the desktop a development build that runs the touch
+# interface with the real game (README.md, "Linux"): the players' desktop build keeps the game's own interface.
+option(STORM_TOUCH_UI "Build the touch interface in (Android; a development build on the desktop)" ${ANDROID})
+if(ANDROID AND NOT STORM_TOUCH_UI)
+    message(FATAL_ERROR "STORM_TOUCH_UI=OFF: Android has no other interface")
+endif()
+if(STORM_TOUCH_UI)
+    set(STORM_ENABLE_UI ON)
+    add_compile_definitions(STORM_TOUCH_UI=1)
 endif()
 
 ### Set up build scripts

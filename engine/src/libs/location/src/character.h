@@ -268,7 +268,7 @@ class Character : public Entity
     void Turn(float _ay);
     // Find out direction
     float GetAY() const;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool UsesTouchCamera() const { return androidCameraRelative && !isFight && !isSwim && !isJump; }
     // The mobile camera mode (CameraFollow::MoveCamera): out of a fight the camera turns only
     // from the player's drag. A fight keeps the native camera, which already follows the drag.
@@ -377,7 +377,7 @@ class Character : public Entity
   protected:
     // Find a character for dialogue
     Character *FindDialogCharacter();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     entid_t androidDialogTarget = invalid_entity; // kept with hysteresis (FindDialogCharacter)
 #endif
 
@@ -526,7 +526,7 @@ class Character : public Entity
 
     bool isLookFromEyes;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Player supplies only voluntary locomotion; NPCs and special animations
     // retain the original displacement. Reset by Player on every Move call.
     bool androidCameraRelative = false; // Touch explore camera yaw is independent of movement heading.

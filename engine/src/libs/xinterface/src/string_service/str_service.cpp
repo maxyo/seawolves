@@ -1,5 +1,5 @@
 #include "str_service.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui_sink.hpp"
 #endif
 
@@ -245,7 +245,7 @@ void STRSERVICE::SetLanguage(const char *sLanguage)
         }
         RenderService->SetFontIniFileName(fullIniPath);
     }
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::ui::language(m_sLanguage);
 #endif
 

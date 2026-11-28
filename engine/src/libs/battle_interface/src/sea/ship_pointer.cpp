@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include "ship_pointer.h"
@@ -89,7 +89,7 @@ void SHIPPOINTER::Execute(uint32_t delta_time)
 
 void SHIPPOINTER::Realize(uint32_t delta_time) const
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // A world-space layer (android_hud_presenter.hpp): the pointer over an order's target ship
     // shows under the touch HUD.
     if (storm::android::legacyDrawRefused("ship pointer")) return;

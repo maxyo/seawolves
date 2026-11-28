@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "controls.h"
 
 #include <platform/android_combat_input.hpp>

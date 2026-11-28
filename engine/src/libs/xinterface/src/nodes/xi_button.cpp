@@ -2,7 +2,7 @@
 
 #include "string_compare.hpp"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 
 void CXI_BUTTON::MobileCollect(std::vector<MobileWidget> &widgets) const

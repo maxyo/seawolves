@@ -2,7 +2,7 @@
 #include "core.h"
 #include "shared/battle_interface/msg_control.h"
 #include "vma.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "android_map_commands.hpp"
 #endif
 
@@ -60,7 +60,7 @@ int32_t WMShipCommandList::CommandAdding()
     return retVal;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 std::vector<storm::android::MapCommand> WMShipCommandList::AndroidMapCommands() const
 {
     return storm::android::mapCommands(m_aUsedCommand);

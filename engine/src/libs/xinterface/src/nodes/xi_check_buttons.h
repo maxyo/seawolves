@@ -42,7 +42,7 @@ class CXI_CHECKBUTTONS : public CINODE
     CXI_CHECKBUTTONS(const CXI_CHECKBUTTONS &) = delete;
     CXI_CHECKBUTTONS();
     ~CXI_CHECKBUTTONS() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 #endif

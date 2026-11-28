@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../inode.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../mobile_officer_selection.hpp"
 #endif
 
@@ -43,7 +43,7 @@ class CXI_VIMAGESCROLL : public CINODE
     CXI_VIMAGESCROLL();
     ~CXI_VIMAGESCROLL() override;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 private:

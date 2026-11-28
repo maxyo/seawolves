@@ -2,7 +2,7 @@
 
 #include "bi_defines.h"
 #include "weather_base.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_sea_navigator.hpp>
 #include <vector>
 #endif
@@ -14,7 +14,7 @@
 #define FIRERANGE_QUANTITY (BI_ONESIDE_SIZE + 1) * BI_SIDE_QUANTITY
 #define MAX_ENEMY_SHIP_QUANTITY 20
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 namespace storm::android { struct ShipTelemetryFrame; }
 #endif
 
@@ -30,7 +30,7 @@ class BATTLE_NAVIGATOR
     ~BATTLE_NAVIGATOR();
 
     void Draw() const;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void ReadAndroidSpeeds(storm::android::ShipTelemetryFrame &frame, uint64_t mainShipId) const;
 #endif
     void Update();
@@ -39,7 +39,7 @@ class BATTLE_NAVIGATOR
 
     void DecrementScale()
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_fCurScale=storm::android::sea_nav::zoom(m_fCurScale,m_fScaleStep,m_fMinScale,m_fMaxScale,true);
 #else
         m_fCurScale -= m_fScaleStep;
@@ -50,7 +50,7 @@ class BATTLE_NAVIGATOR
 
     void IncrementScale()
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_fCurScale=storm::android::sea_nav::zoom(m_fCurScale,m_fScaleStep,m_fMinScale,m_fMaxScale,false);
 #else
         m_fCurScale += m_fScaleStep;
@@ -117,7 +117,7 @@ class BATTLE_NAVIGATOR
     float m_fYPos{};
     float m_fAngle{};
     float m_fShipSpeed{};
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool DrawAndroid() const;
     bool AndroidAvailable() const;
     void UpdateAndroidBorts();

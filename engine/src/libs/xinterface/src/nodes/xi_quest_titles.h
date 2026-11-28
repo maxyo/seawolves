@@ -22,7 +22,7 @@ class CXI_QUESTTITLE : public CINODE
     void SaveParametersToIni() override;
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 #endif
@@ -36,7 +36,7 @@ class CXI_QUESTTITLE : public CINODE
     bool GetLineNext(int fontNum, char *&pInStr, char *buf, int bufSize) const;
     void LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2) override;
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void RefreshMobileQuests(ATTRIBUTES *quests, int top);
     MobileQuestList m_mobileQuests;
 #endif

@@ -34,7 +34,7 @@ class CXI_FORMATEDTEXT : public CINODE
     CXI_FORMATEDTEXT(const CXI_FORMATEDTEXT &) = delete;
     CXI_FORMATEDTEXT();
     ~CXI_FORMATEDTEXT() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 #endif

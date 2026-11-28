@@ -10,7 +10,7 @@ class CXI_STRCOLLECTION : public CINODE
     CXI_STRCOLLECTION(const CXI_STRCOLLECTION &) = delete;
     CXI_STRCOLLECTION();
     ~CXI_STRCOLLECTION() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
 #endif
 

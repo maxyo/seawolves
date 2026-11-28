@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include "timer.h"
@@ -34,7 +34,7 @@ void BITimer::Realize(uint32_t delta_time)
             if (m_pForeImage)
                 m_pForeImage->CutSide(0.f, 1.f - m_fCurTimerCounter / m_fMaxTimerCounter, 0.f, 0.f);
             if (m_pImgRndr
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                 // it counts, it does not draw.
                 && !storm::android::legacyDrawRefused("timer bar")
 #endif

@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #include "../mobile_table.hpp"
 #endif
@@ -1499,7 +1499,7 @@ void CXI_TABLE::RecalculateLineHeights()
         m_anRowsHeights.erase(m_anRowsHeights.begin() + n);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CXI_TABLE::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     MobileTableCollect(*this, storm::android::mobileScreen, widgets);

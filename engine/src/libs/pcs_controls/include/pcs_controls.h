@@ -57,7 +57,7 @@ class PCS_CONTROLS : public CONTROLS
     std::shared_ptr<storm::Input> input_;
     int inputHandlerID_ = 0;
     bool GetPhysicalControlState(int32_t control_code, CONTROL_STATE &state);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool AndroidControlAllowed(int32_t code) const;
 #endif
 

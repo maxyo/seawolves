@@ -618,7 +618,7 @@ ATTRIBUTES *BICommandList::GetCurrentCommandAttribute() const
     return nullptr;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void BICommandList::ReadAndroidOrders(storm::android::SeaOrdersFrame &frame)
 {
     frame.items.clear();

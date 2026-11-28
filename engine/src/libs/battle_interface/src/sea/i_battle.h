@@ -4,7 +4,7 @@
 #include "bi_defines.h"
 #include "battle_navigator.h"
 #include "renderer.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_sea_orders.hpp>
 #include <platform/android_ship_telemetry.hpp>
 #include <optional>
@@ -23,7 +23,7 @@ class BATTLE_INTERFACE : public Entity
     bool Init() override;
     void Execute(uint32_t delta_time);
     void Realize(uint32_t delta_time);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool AndroidCommandActive() const;
     bool AndroidCaptionsVisible() const;
     void ReadAndroidCaptions(storm::android::ShipTelemetryFrame &frame, uint64_t mainShipId) const;
@@ -75,7 +75,7 @@ class BATTLE_INTERFACE : public Entity
     bool m_bShowBattleNavigator;
     bool m_bYesShowAll;
     bool m_bVisible;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool m_androidCaptionsDrawn = false;
 #endif
 

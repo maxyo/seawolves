@@ -126,7 +126,7 @@ static void SubRightWord(char *buf, int fontNum, int width, VRenderer *rs)
 
 void CXI_QUESTTEXTS::ReleaseStringes()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_mobileText.clear();
 #endif
     while (m_listRoot != nullptr)
@@ -318,7 +318,7 @@ void CXI_QUESTTEXTS::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, co
 
 void CXI_QUESTTEXTS::StartQuestShow(ATTRIBUTES *pA, int qn)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_mobileText.clear();
 #endif
     if (pA == nullptr)
@@ -365,7 +365,7 @@ void CXI_QUESTTEXTS::StartQuestShow(ATTRIBUTES *pA, int qn)
             // whole string list for one record
             asStringList.clear();
             GetStringListForQuestRecord(asStringList, pAttr->GetThisAttr(), pAttr->GetAttribute("UserData"));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             MobileJournalAppend(m_mobileText, asStringList);
 #endif
             for (int32_t i = 0; i < asStringList.size(); i++)
@@ -470,7 +470,7 @@ void CXI_QUESTTEXTS::GetStringListForQuestRecord(std::vector<std::string> &strin
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CXI_QUESTTEXTS::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     if (m_bUse)

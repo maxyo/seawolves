@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "i_battle.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../../../xinterface/src/string_service.h"
 #endif
 
@@ -136,7 +136,7 @@ void BATTLE_INTERFACE::Execute(uint32_t delta_time)
 
 void BATTLE_INTERFACE::Realize(uint32_t delta_time)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_androidCaptionsDrawn = false;
 #endif
     if (core.Controls->GetDebugAsyncKeyState('K') < 0)
@@ -155,7 +155,7 @@ void BATTLE_INTERFACE::Realize(uint32_t delta_time)
             rs->MakePostProcess();
             // The bars and relation icons over ships and forts are drawn in the scene: the touch HUD
             // has nothing in their place, so they show under it (a world-space layer).
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             const bool shipBars = !storm::android::legacyDrawRefused("ship bars");
 #else
             constexpr bool shipBars = true;
@@ -163,14 +163,14 @@ void BATTLE_INTERFACE::Realize(uint32_t delta_time)
             if (shipBars && m_bShowBattleNavigator && m_pShipInfoImages)
                 m_pShipInfoImages->Draw();
 
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
             if (m_bShowBattleNavigator)
                 m_ImagesInfo.Draw();
 
             if (m_bShowCommandMenu)
                 m_pShipIcon->Draw();
 #endif
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             // The touch orders panel covers the open command menu: the native navigator and its
             // readouts step aside with the menu (the panel brings its own ship list and bars).
             const bool navigatorShown = m_bShowBattleNavigator && !(AndroidCommandActive() && storm::android::seaOrders.covered());
@@ -179,13 +179,13 @@ void BATTLE_INTERFACE::Realize(uint32_t delta_time)
 #endif
             if (navigatorShown)
             {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                 m_androidCaptionsDrawn = true;
 #endif
                 BattleNavigator.Draw();
             }
 
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
             if (navigatorShown)
             {
                 BIUtils::PrintTextInfoArray(m_TextArray);
@@ -392,7 +392,7 @@ void BATTLE_INTERFACE::CheckSeaState()
     m_bShowBattleBorder = !bMap;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 bool BATTLE_INTERFACE::AndroidOrdersShown() const
 {
     return m_bYesShowAll && m_bVisible && m_bShowCommandMenu && m_pShipIcon;
@@ -471,7 +471,7 @@ void storm::android::readShipCaptions(ShipTelemetryFrame &frame, uint64_t mainSh
 }
 #endif
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void storm::android::pollSeaOrders(bool ready)
 {
     auto *battle = dynamic_cast<BATTLE_INTERFACE *>(core.GetEntityPointer(BIUtils::idBattleInterface));

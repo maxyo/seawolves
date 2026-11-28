@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The running script's calls for platform/android_game_message_target.hpp: the interpreter's
 // call stack and the arguments of its calls. Game thread only.
 #include "core_private.h"

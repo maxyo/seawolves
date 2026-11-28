@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The Android stages of the engine's main loop: the touch UI's input and the activity's mailbox at the top of an
 // iteration, the application lifecycle after the system events, the HUD's input before a game frame and the HUD's
 // states after it. One instance for the loop; the input guards it installs refer to it.

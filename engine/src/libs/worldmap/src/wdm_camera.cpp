@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera_look.hpp>
 #include <platform/android_camera_zoom.hpp>
 
@@ -109,7 +109,7 @@ void WdmCamera::Move(float dltTime, VRenderer *rs)
     const auto moveudspd = 50.0f * MoveUpDown(dltTime);
     auto rotspd = 1.0f * RotLeftRight(dltTime);
     auto zoomspd = 30.0f * ZoomInOut(dltTime);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The look finger (platform/android_camera_look.hpp) moves the camera by its travel at this
     // frame's time, 1:1 while it is down and coasting on after a release. It replaces the PC's
     // mouse (a speed per frame, not the finger's travel): the camera that follows the ship turns
@@ -148,7 +148,7 @@ void WdmCamera::Move(float dltTime, VRenderer *rs)
     {
         pos.x += moveudspd * sn - movelrspd * cs;
         pos.z += moveudspd * cs + movelrspd * sn;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The camera as it is drawn (realHeight: the eye; ang: the angles SetCamera gets)
         // moves along the ground by the finger's travel.
         if (float shiftX, shiftZ; look.moved() &&

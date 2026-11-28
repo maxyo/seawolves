@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ship_telemetry.hpp"
 #include "platform/android_ui.hpp"
 #include "platform/android_sea_orders.hpp"

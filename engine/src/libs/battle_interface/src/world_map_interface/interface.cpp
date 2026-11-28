@@ -5,7 +5,7 @@
 #include "ship_command.h"
 #include "ship_sign.h"
 #include "string_compare.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <SDL2/SDL_timer.h>
 #endif
 
@@ -44,7 +44,7 @@ void WM_INTERFACE::Realize(uint32_t delta_time)
 
         if (m_pShipIcon)
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             if (!storm::android::legacyDrawRefused("world map fleet"))
 #endif
                 m_pShipIcon->Draw();
@@ -222,7 +222,7 @@ bool WM_INTERFACE::IsCommandMenuActive() const
     return m_pCommandList->GetActive();
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "v_data.h"
 void WM_INTERFACE::ReadAndroidMapCommands(storm::android::WorldMapFrame &frame)
 {

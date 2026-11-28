@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "bi_defines.h"
 #include "platform/android_ui.hpp"
 #include "platform/android_worldmap.hpp"

@@ -68,7 +68,7 @@ class Player : public NPCharacter
     float GetRotateH();
 
   private:
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool androidMovementHeld = false;
     bool androidRunTier = false;
     uint64_t androidCameraGeneration = 0;

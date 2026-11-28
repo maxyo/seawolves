@@ -12,7 +12,7 @@ class CXI_PCEDITBOX : public CINODE
     CXI_PCEDITBOX(const CXI_PCEDITBOX &) = delete;
     CXI_PCEDITBOX();
     ~CXI_PCEDITBOX() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 #endif

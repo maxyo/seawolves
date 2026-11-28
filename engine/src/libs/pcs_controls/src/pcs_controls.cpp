@@ -11,7 +11,7 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "android_control_state.hpp"
 #include <platform/android_combat_input.hpp>
 #include <platform/android_held_controls.hpp>
@@ -61,6 +61,8 @@ void PCS_CONTROLS::ApplyMouseMode()
 {
 #ifdef __ANDROID__
     input_->SetRelativeMouseMode(updateCursor_);
+#elif defined(STORM_TOUCH_UI)
+    input_->SetRelativeMouseMode(false); // the mouse is the touch interface's finger (the desktop's development build)
 #else
     input_->SetRelativeMouseMode(updateCursor_ && !interfaceCursor_);
 #endif
@@ -77,7 +79,7 @@ void PCS_CONTROLS::SetInterfaceCursor(bool shown)
 
 std::optional<std::pair<float, float>> PCS_CONTROLS::InterfacePointer()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     return std::nullopt;
 #else
     return interfaceCursor_ && updateCursor_ ? input_->PointerInWindow() : std::nullopt;
@@ -92,7 +94,7 @@ PCS_CONTROLS::~PCS_CONTROLS()
 
 void PCS_CONTROLS::AppState(bool state)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (!state) storm::android::cancelAndroidCombatInput();
 #endif
     updateCursor_ = state;
@@ -206,7 +208,7 @@ bool PCS_CONTROLS::GetControlDesc(int32_t code, USER_CONTROL &_user_desc_struct)
 
     _user_desc_struct = pUserControls[code];
     _user_desc_struct.bLocked = _user_desc_struct.bLocked || m_bLockAll;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     _user_desc_struct.bLocked = _user_desc_struct.bLocked || !AndroidControlAllowed(code);
 #endif
 
@@ -355,7 +357,7 @@ bool PCS_CONTROLS::GetControlState(const char *control_name, CONTROL_STATE &_sta
     return bControlFound;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 bool PCS_CONTROLS::AndroidControlAllowed(int32_t code) const
 {
     if (code < 0 || code >= nControlsNum || m_bLockAll) return false;
@@ -377,7 +379,7 @@ bool PCS_CONTROLS::AndroidControlAllowed(int32_t code) const
 bool PCS_CONTROLS::GetControlState(int32_t control_code, CONTROL_STATE &_state_struct)
 {
     const bool found = GetPhysicalControlState(control_code, _state_struct);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (found && AndroidControlAllowed(control_code))
         storm::android::mergeTouchControl(pUserControls[control_code].name, _state_struct);
 #endif
@@ -569,7 +571,7 @@ void PCS_CONTROLS::Update(uint32_t DeltaTime)
         bindings_->Update(std::chrono::duration_cast<std::chrono::milliseconds>(now).count(),
                           [this](int32_t key) { return IsKeyPressed(key); });
     }
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::combatInput.advance();
     storm::android::heldControls.advance(storm::android::combatCancelEpoch.load(std::memory_order_acquire));
 #endif

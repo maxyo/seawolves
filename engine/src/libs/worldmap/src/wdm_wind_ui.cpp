@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #include "platform/android_worldmap.hpp"
 #include <SDL2/SDL_timer.h>
@@ -350,7 +350,7 @@ void WdmWindUI::LRender(VRenderer *rs)
 {
     if (!wdmObjects->showWindUI)
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         storm::android::worldMapHud.source = {};
 #endif
         return;
@@ -362,7 +362,7 @@ void WdmWindUI::LRender(VRenderer *rs)
         if (data)
         {
             morale = data->GetFloat() * 0.02f - 1.0f;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             androidMoraleValid = std::isfinite(morale);
 #endif
         }
@@ -370,7 +370,7 @@ void WdmWindUI::LRender(VRenderer *rs)
         if (data)
         {
             food = static_cast<int32_t>(data->GetFloat() + 0.5f);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             androidFoodValid = std::isfinite(data->GetFloat());
 #endif
             if (food < 0)
@@ -395,7 +395,7 @@ void WdmWindUI::LRender(VRenderer *rs)
     resizeRatio = wdmObjects->resizeRatio;
     const auto widForce = wdmObjects->GetWind(x, y, windDir);
     const auto ang = static_cast<float>(atan2(windDir.x, windDir.z));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::MapInstrumentFrame source;
     source.owner = wdmObjects->wm->GetId();
     source.visible = true;

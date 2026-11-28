@@ -174,7 +174,7 @@ uint32_t CXI_RECTANGLE::MessageProc(int32_t msgcode, MESSAGE &message)
     return 0;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CXI_RECTANGLE::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     if (!m_nodeName || std::string(m_nodeName) != "SAVE_SELECTER") return;

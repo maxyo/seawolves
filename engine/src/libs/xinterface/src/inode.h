@@ -1,7 +1,7 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "mobile_widget.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "storm_ui/action.h"
 #endif
 #endif
@@ -180,7 +180,7 @@ class CINODE
   public:
     CINODE();
     virtual ~CINODE();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     virtual void MobileCollect(std::vector<MobileWidget> &widgets) const {}
     // A widget action of the touch UI on this node, of the open interface's opening (XINTERFACE checked it).
     virtual bool MobileApply(const storm::ui::Action &action) { return false; }

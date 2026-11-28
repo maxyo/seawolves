@@ -1,5 +1,5 @@
 #include "battle_navigator.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "i_battle.h"
 #include "core.h"
 #include "bi_utils.h"

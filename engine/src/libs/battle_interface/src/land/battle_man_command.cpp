@@ -174,7 +174,7 @@ int32_t BIManCommandList::AddCancelIcon()
                          pA->GetAttribute("note"));
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 bool BIManCommandList::SelectAndroidLand(const std::string &id)
 {
     const auto before = m_nSelectedCommandIndex;

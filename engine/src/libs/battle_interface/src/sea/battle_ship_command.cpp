@@ -1,7 +1,7 @@
 #include "battle_ship_command.h"
 
 #include <algorithm>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <SDL2/SDL.h>
 #endif
 
@@ -11,7 +11,7 @@
 #include "math_inlines.h"
 #include "shared/battle_interface/msg_control.h"
 #include "ships_list.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "../../../xinterface/src/string_service.h"
 #endif
 
@@ -110,7 +110,7 @@ void BIShipCommandList::FillIcons()
     nIconsQuantity += AddCancelIcon();
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 int32_t BIShipCommandList::AndroidTargetCount(const std::string &command)
 {
     constexpr int32_t targets = BI_COMMODE_MY_SHIP_SELECT | BI_COMMODE_NEUTRAL_SHIP_SELECT | BI_COMMODE_FRIEND_SHIP_SELECT |
@@ -423,7 +423,7 @@ int32_t BIShipCommandList::ChargeAdding()
         const int32_t nSelectPicIndex = pA ? pA->GetAttributeAsDword("selPicNum", -1) : -1;
         const char *note = nullptr;
         std::string androidNote;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The public game uses this exact charge order; names are resolved by
         // the live string service, never substituted with Java gameplay data.
         static const char *keys[] = {"Balls", "Grapes", "Knippels", "Bombs"};

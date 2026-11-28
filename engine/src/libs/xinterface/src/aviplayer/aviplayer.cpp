@@ -9,7 +9,7 @@
 #include "v_sound_service.h"
 
 #include <spdlog/spdlog.h>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_ui.hpp>
 #endif
 
@@ -73,7 +73,7 @@ CAviPlayer::CAviPlayer() = default;
 
 CAviPlayer::~CAviPlayer()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::publishFullscreenVideo(this, false);
 #endif
     if (appEvents_ >= 0)
@@ -146,7 +146,7 @@ uint64_t CAviPlayer::ProcessMessage(MESSAGE &message)
         ended_ = false;
         tapState_ = 0;
         const bool started = Start();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         storm::android::publishFullscreenVideo(this, started && m_bShowVideo);
 #endif
         if (!started)
@@ -179,7 +179,7 @@ void CAviPlayer::Execute()
     }
     if (!m_bShowVideo)
         return;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (storm::android::startAtMainMenu)
     {
         SkipForMainMenuStart();
@@ -196,7 +196,7 @@ void CAviPlayer::Finish()
     if (bLoop && !failed && Start())
         return;
     ended_ = true;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::publishFullscreenVideo(this, false);
 #endif
     core.Event("ievntEndVideo");

@@ -467,7 +467,7 @@ void CXI_IMGCOLLECTION::SetInternalName(std::string &sName)
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_IMGCOLLECTION::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

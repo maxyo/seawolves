@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../battle_command.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_land_commands.hpp>
 #endif
 
@@ -13,7 +13,7 @@ class BIManCommandList : public BICommandList
 
     void FillIcons() override;
     void Init() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::LandCommandSource RefreshAndroidSource();
     bool SelectAndroidLand(const std::string &id);
     void ReadAndroidLand(storm::android::LandCommandsFrame &frame) const;
@@ -24,7 +24,7 @@ class BIManCommandList : public BICommandList
 #endif
 
   protected:
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     std::string AndroidPicture(const UsedCommand &command) const;
     std::string AndroidPicture(int32_t texture, int32_t cell) const;
 #endif

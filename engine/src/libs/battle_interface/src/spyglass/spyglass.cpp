@@ -11,7 +11,7 @@
 #include "shared/events.h"
 #include "shared/messages.h"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_camera_zoom.hpp"
 #include "platform/android_ui.hpp"
 #include <tuple>
@@ -106,7 +106,7 @@ bool ISPYGLASS::Init()
 
     m_Lens.LoadFromAttr(m_pImgRender, GetAttr("lens"), "battle_interface\\spyglass\\eye_badTub.tga", 0, 0, 1024, 768,
                         8000);
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
     // Only the lens belongs to the native Android telescope; the touch HUD owns all info.
     m_ShipImage.LoadFromAttr(m_pImgRender, GetAttr("shipsign.ship"), "battle_interface\\ship_icons1.tga", 80, 600, 144,
                              664, 9000);
@@ -208,7 +208,7 @@ void ISPYGLASS::Realize(uint32_t delta_time) const
         if (m_pImgRender)
             m_pImgRender->Render();
 
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
         if (m_bIsPresentShipInfo)
         {
             m_txtShipType.Print();
@@ -291,7 +291,7 @@ uint64_t ISPYGLASS::ProcessMessage(MESSAGE &message)
         frUV.top = message.Float();
         frUV.right = message.Float();
         frUV.bottom = message.Float();
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
         m_ShipImage.ChangeIcon(m_pImgRender, texturename.c_str(), frUV);
 #endif
     }
@@ -304,7 +304,7 @@ uint64_t ISPYGLASS::ProcessMessage(MESSAGE &message)
         frUV.top = message.Float();
         frUV.right = message.Float();
         frUV.bottom = message.Float();
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
         m_CaptainBack.ChangeIcon(m_pImgRender, captexturename.c_str(), frUV);
 #endif
     }
@@ -363,7 +363,7 @@ void ISPYGLASS::TurnOnTelescope(bool bTurnOn)
     if (bTurnOn == m_bIsOn)
         return;
     m_bIsOn = bTurnOn;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::spyglass.turn(bTurnOn);
     storm::android::publishSpyglass();
 #endif
@@ -373,7 +373,7 @@ void ISPYGLASS::TurnOnTelescope(bool bTurnOn)
         m_Camera.bIsGrow = true;
         m_Camera.fCurActivateTime = 0.f;
         m_Camera.fCurUpdatingTime = m_Camera.fUpdateTime;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         glm::vec3 pos, ang;
         rs->GetCamera(pos, ang, m_Camera.fRaisedFromPerspective);
 #endif
@@ -406,19 +406,19 @@ void ISPYGLASS::SetShipInfo(int32_t nCharIndex)
 
     core.Event("SetTelescopeInfo", "l", m_nInfoCharacterIndex);
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (m_nInfoCharacterIndex < 0)
     {
         storm::android::spyglass.clear();
         storm::android::publishSpyglass();
     }
 #endif
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
     ApplyInfoColors();
 #endif
 }
 
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
 // Desktop target information keeps its original colors; Android only draws the touch card.
 void ISPYGLASS::ApplyInfoColors()
 {
@@ -519,7 +519,7 @@ void ISPYGLASS::ChangeTelescopeType(const char *pcTextureName, float fZoomScale,
         m_Camera.fSpyGlassPerspective = m_Camera.fOldPerspective / fZoomScale;
     else
         m_Camera.fSpyGlassPerspective = m_Camera.fOldPerspective;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_Camera.fGlassMagnification = m_Camera.fMagnification = fZoomScale > 0.f ? fZoomScale : 1.f;
 #endif
 
@@ -533,7 +533,7 @@ void ISPYGLASS::UpdateCamera()
         return;
     const float fTime = core.GetDeltaTime() * .001f;
     m_Camera.fCurUpdatingTime += fTime;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The pinch of the camera look: the telescope's zoom, from no magnification to the glass's own.
     if (const float scale = storm::android::cameraZoom.take(); scale != 1.f)
     {
@@ -563,7 +563,7 @@ void ISPYGLASS::UpdateCamera()
         float fPerspect = m_Camera.fOldPerspective;
         if (m_Camera.bIsGrow)
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             fPerspect = storm::android::telescopeGrowPerspective(m_Camera.fRaisedFromPerspective, m_Camera.fSpyGlassPerspective,
                                                                  m_Camera.fCurActivateTime / m_Camera.fActivateTime);
 #else
@@ -804,7 +804,7 @@ void ISPYGLASS::ChangeTargetData(const char *pcShipName, const char *pcShipType,
             m_ImgCaptainBoarding.pImage->CutSide(0.f, 1.f, 0.f, 0.f);
     }
     m_TextCaptainName.sText = pcCaptainName;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     using storm::android::scriptIndex;
     using storm::android::scriptText;
     storm::ui::hud::Spyglass target;

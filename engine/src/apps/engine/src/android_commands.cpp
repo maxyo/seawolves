@@ -1,4 +1,4 @@
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "android_commands.hpp"
 
 #include "android_dialogue_watchdog.hpp"

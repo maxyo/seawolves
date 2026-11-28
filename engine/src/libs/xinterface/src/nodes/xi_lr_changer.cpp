@@ -269,7 +269,7 @@ int32_t CXI_LRCHANGER::GetClickState()
     return 2;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_LRCHANGER::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

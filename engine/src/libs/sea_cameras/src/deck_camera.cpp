@@ -8,7 +8,7 @@
 #include "math_inlines.h"
 #include "shared/messages.h"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera.hpp>
 #include <platform/android_deck_walk.hpp>
 #include <platform/android_spyglass.hpp>
@@ -47,7 +47,7 @@ void DECK_CAMERA::SetDevice()
 
 void DECK_CAMERA::Execute(uint32_t Delta_Time)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (!isOn() || !isActive())
         androidZoom.reset(); // off the deck: back to the game's view
 #endif
@@ -57,7 +57,7 @@ void DECK_CAMERA::Execute(uint32_t Delta_Time)
         return;
 
     SetPerspective(AttributesPointer->GetAttributeAsFloat("Perspective"));
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The pinch of the camera look (platform/android_camera_zoom.hpp), unless the raised spyglass
     // takes it for its own zoom.
     if (isActive())
@@ -88,7 +88,7 @@ void DECK_CAMERA::Move(uint32_t DeltaTime)
 
     pModel->Update();
     CONTROL_STATE cs;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The touch drag turns and pitches the deck view as the native fixed angle per pixel did on the reference 3200 px wide screen
     // (platform/android_camera.hpp dragTurn: the same share of any screen, scaled by the camera sensitivity).
     const auto width = static_cast<float>(core.GetWindow()->GetWindowSize().width);
@@ -108,7 +108,7 @@ void DECK_CAMERA::Move(uint32_t DeltaTime)
         camera_ang.y += fSensivityAzimuthAngle * 15.f * static_cast<float>(cs.fValue);
 
     core.Controls->GetControlState("DeckCamera_Turn_V", cs);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     camera_ang.x -= storm::android::dragTurn(cs.fValue, width, storm::android::kNativeDeckTurn * fSensivityHeightAngle);
 #else
     camera_ang.x -= fSensivityHeightAngle * 3.0f * static_cast<float>(cs.fValue);
@@ -135,7 +135,7 @@ void DECK_CAMERA::Move(uint32_t DeltaTime)
     core.Controls->GetControlState("DeckCamera_Backward", cs);
     if (cs.state == CST_ACTIVE)
         walkY = -1.f;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The touch walk stick: forward, back and sideways as far as it is pushed (android_deck_walk.hpp).
     if (const auto step = storm::android::deckWalk.read(); step && !walkY)
     {

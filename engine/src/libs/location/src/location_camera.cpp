@@ -7,7 +7,7 @@
 #include "land_messages.hpp"
 #include "land_protocol.hpp"
 #include <cmath>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera.hpp>
 #include <platform/android_camera_zoom.hpp>
 #include <algorithm>
@@ -45,7 +45,7 @@ LocationCamera::LocationCamera()
     teleport_dist = 12.0f;
     lookHeight = 0.8f;
     radius = 3.0f;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     gameRadius = radius;
     radius = gameRadius * storm::android::cameraZoom.land;
 #endif
@@ -154,7 +154,7 @@ void LocationCamera::Realize(uint32_t delta_time)
     dAx = -cs.lValue * 0.05f; //*0.005f;
     if (character->IsDead())
         dAx = 0.0f;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // A vertical drag pitches the camera as the native pitch did at 60 fps on the reference 3200 px wide screen (dragPitch), but
     // directly, at any frame rate (the native pitch has inertia per frame, twice the turn at half the frame
     // rate, and a speed limit that ate fast drags).
@@ -172,7 +172,7 @@ void LocationCamera::Realize(uint32_t delta_time)
     }
     else
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         ax += dragAx;
         vAx = 0.0f;
 #else
@@ -200,7 +200,7 @@ void LocationCamera::Realize(uint32_t delta_time)
         dAy = -1.0f;
     if (character->IsDead())
         dAy = 0.0f;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     core.Controls->GetControlState("ChrTurnH", cs);
     dragAy = character->IsDead() ? 0.0f : storm::android::dragYaw(cs.fValue, static_cast<float>(core.GetWindow()->GetWindowSize().width));
 #endif
@@ -284,7 +284,7 @@ void LocationCamera::Realize(uint32_t delta_time)
                     if (character->IsDead())
                         dAy = 0.0f;
                 }
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                 // The pinch of the camera look scales the follow radius (platform/android_camera_zoom.hpp);
                 // CameraFollow eases to it and still keeps it out of the walls.
                 if (const float scale = storm::android::cameraZoom.take(); scale != 1.0f)
@@ -319,7 +319,7 @@ void LocationCamera::Realize(uint32_t delta_time)
             break;
         case cwm_topos: // Locator view
             ExecuteTopos(dltTime);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             if (!forcedPos && character->IsDialog())
                 FrameDialogue();
 #endif
@@ -369,7 +369,7 @@ void LocationCamera::Realize(uint32_t delta_time)
     if (dynamic_fog.isOn)
         ProcessDynamicFov(core.GetDeltaTime() * .001f, realPos, lookTo, vUp);
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Keep a stable horizontal camera heading even before the movement stick is held.
     UpdateMovementHeading();
 #endif
@@ -381,7 +381,7 @@ void LocationCamera::Realize(uint32_t delta_time)
 #endif
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void LocationCamera::UpdateMovementHeading()
 {
     storm::location::CameraMotion::UpdateMovementHeading(*this);
@@ -432,7 +432,7 @@ uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
         return 1;
     case MSG_CAMERA_TOPOS:
         forcedPos = false;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         dialogueFrom.reset();
 #endif
         fromLook.x = message.Float();
@@ -464,7 +464,7 @@ uint64_t LocationCamera::ProcessMessage(MESSAGE &message)
         return 1;
     case MSG_CAMERA_SET_RADIUS:
         radius = message.Float();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         gameRadius = radius;
         radius = gameRadius * storm::android::cameraZoom.land;
 #endif
@@ -628,7 +628,7 @@ bool LocationCamera::EyeLocator(Character &chr, glm::mat4 &m)
     return true;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The dialogue close-up (the game's SetCameraDialogMode: a point beside the hero, the speaker's look
 // point as the target). The speaker's face, from his eye locator (seated or standing), is put above
 // the dialogue sheet (dialogueLookElevation). The camera is kept out of the geometry: of the game's

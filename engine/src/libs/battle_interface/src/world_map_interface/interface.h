@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bi_defines.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "android_map_commands.hpp"
 #include <chrono>
 #endif
@@ -17,7 +17,7 @@ class WM_INTERFACE : public Entity
     WM_INTERFACE();
     ~WM_INTERFACE() override;
     bool Init() override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     std::string androidCommandContext;
     std::chrono::steady_clock::time_point androidCommandPoll{};
     void ReadAndroidMapCommands(storm::android::WorldMapFrame &frame);

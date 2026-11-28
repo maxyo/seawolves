@@ -1,21 +1,19 @@
 #pragma once
 #include <optional>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_system.h>
 #include <algorithm>
 #include <atomic>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <deque>
-#include <jni.h>
 #include <nlohmann/json.hpp>
 #include <set>
 #include <spdlog/spdlog.h>
-#include <android/log.h>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 #include "../istring.hpp"
 #include "android_hud_channel.hpp"
@@ -35,6 +33,12 @@
 #include "storm_ui/action.h"
 #include "jni_text.hpp"
 #include "scene_load_status.hpp"
+#ifdef __ANDROID__
+// The activity's copies of the engine's facts (its own controls, overlays and settings): the Java host's only.
+#include <SDL2/SDL_system.h>
+#include <android/log.h>
+#include <jni.h>
+#endif
 
 namespace storm::android
 {
@@ -94,6 +98,7 @@ inline int scriptIndex(int value, int first, int count, const char *channel, con
     logChannelDefect(channel, std::string(what) + " " + std::to_string(value) + " is outside its table");
     return -1;
 }
+#ifdef __ANDROID__
 // A local Java string of engine text for an upcall to the activity; null (logged) when the text is not valid UTF-8 or
 // the VM failed (its exception is then pending).
 inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall)
@@ -110,6 +115,7 @@ inline jstring javaText(JNIEnv *env, const std::string &text, const char *upcall
     }
     return nullptr;
 }
+#endif
 inline uint64_t mobileScreenRevision = 1;
 inline std::deque<std::string> dialogueActions;
 // The touch UI's widget actions for the open interface, as the UI made them (XINTERFACE::DoControl applies them).
@@ -129,6 +135,7 @@ inline void publishGameplayState(const GameplayState &state)
         return;
     gameplayRevisionPublished = state.revision();
     ui::state(state.hud());
+#ifdef __ANDROID__
     const auto &snapshot = state.snapshot();
     if (!CallActivity(upcall::GameActivity::showGameplayState, [&](JNIEnv *env, jobject activity, jmethodID method) {
             const auto mode = javaText(env, snapshot.mode, "showGameplayState");
@@ -144,6 +151,7 @@ inline void publishGameplayState(const GameplayState &state)
             return mode && language && owner;
         }))
         spdlog::error("gameplay state: GameActivity.showGameplayState failed");
+#endif
 }
 // Live ship telemetry (channel "ship"): a change goes at most every 100 ms, a new revision or main ship at once.
 inline void publishShipTelemetry()
@@ -235,6 +243,9 @@ inline std::atomic<bool> graphicsSettingsChanged{false};
 // False when there is no activity to ask.
 inline bool debugBuild()
 {
+#ifndef __ANDROID__
+    return true; // the desktop's touch interface is a development build only (engine/README.md, "Linux")
+#else
     bool result = false;
     const bool asked = CallActivity(JavaMethod{"getApplicationInfo", "()Landroid/content/pm/ApplicationInfo;"},
                                     [&](JNIEnv *env, jobject activity, jmethodID method) {
@@ -251,6 +262,7 @@ inline bool debugBuild()
                                         return flags != nullptr;
                                     });
     return asked && result;
+#endif
 }
 // A non-fatal problem the engine has already logged (error.log / logcat): a toast in debug builds, nothing on
 // the screen in release builds. The one gate for the engine's diagnostic toasts outside the UI library.
@@ -259,6 +271,7 @@ inline void publishDiagnostic(const std::string &text)
     if (debugBuild())
         ui::toast(text);
 }
+#ifdef __ANDROID__
 inline int graphicsSetting(const char *key, int fallback)
 {
     int value = fallback;
@@ -317,6 +330,7 @@ inline void reportRenderBackend(const std::string &backend, const std::string &r
     if (!reported)
         spdlog::error("render backend: GameActivity.renderBackendChosen failed; the settings do not show {}", backend);
 }
+#endif
 // The door the hero stands at (the touch HUD's bottom hint): where its reload locator leads and
 // whether it is locked now (the game's "Closed" quick action); "" = at no door with a name.
 inline std::optional<std::tuple<std::string, bool>> reloadPlacePublished;
@@ -338,6 +352,7 @@ inline void publishContextAction(const std::string &name)
 // after the pause menu's exit): until the first interface opens, the videos are broken off
 // through the game's own video break (CAviPlayer, ICancel as a tap sends).
 inline bool startAtMainMenu = false;
+#ifdef __ANDROID__
 inline void readStartAtMainMenu()
 {
     bool starts = false;
@@ -353,6 +368,7 @@ inline void readStartAtMainMenu()
     if (startAtMainMenu)
         spdlog::info("Start at the main menu: the videos before it are skipped");
 }
+#endif
 inline int loadingState = -1;
 inline void publishLoading(bool active)
 {
@@ -360,16 +376,19 @@ inline void publishLoading(bool active)
         return;
     loadingState = active;
     ui::loading(active);
+#ifdef __ANDROID__
     CallActivity(upcall::GameActivity::showLoading, [&](JNIEnv *env, jobject activity, jmethodID method) {
         env->CallVoidMethod(activity, method, static_cast<jboolean>(active));
         return true;
     });
+#endif
 }
 // Loading overlay consumer is supplied by the app. Synchronous cancel acknowledgement sets its restart reason
 // before the engine loop exits; the Activity marshals only view updates to its UI thread.
 // Selective mailbox read: no gameplay, shortcut, settings or stale-generation
 // command is consumed. Nothing (logged) when the activity could not be asked, which is distinct from an empty
 // mailbox; the activity ships with this engine (tools/android/app_contract.json), so that is an error.
+#ifdef __ANDROID__
 inline std::optional<bool> pollLocationLoadCancel(uint64_t generation)
 {
     bool cancel = false;
@@ -384,6 +403,7 @@ inline std::optional<bool> pollLocationLoadCancel(uint64_t generation)
     }
     return cancel;
 }
+#endif
 inline bool publishLocationReadiness(const char *ack = "", bool cancelled = false)
 {
     const auto r = render::GetSceneLoadStatus();
@@ -395,6 +415,10 @@ inline bool publishLocationReadiness(const char *ack = "", bool cancelled = fals
     const auto current = std::make_tuple(r.generation, active, state, std::string(ack));
     if (previous == current && !cancelled)
         return true;
+#ifndef __ANDROID__
+    previous = current; // the desktop has no loading overlay of its own to tell
+    return true;
+#else
     const bool delivered =
         CallActivity(upcall::GameActivity::onLocationReadiness, [&](JNIEnv *env, jobject activity, jmethodID method) {
             const auto name = javaText(env, state, "onLocationReadiness");
@@ -413,6 +437,7 @@ inline bool publishLocationReadiness(const char *ack = "", bool cancelled = fals
     else
         previous = current;
     return delivered;
+#endif
 }
 inline void publishSpyglass()
 {
@@ -448,10 +473,12 @@ inline void publishCinematic(bool active)
         return;
     cinematicState = active;
     ui::cinematic(active);
+#ifdef __ANDROID__
     CallActivity(upcall::GameActivity::showCinematic, [&](JNIEnv *env, jobject activity, jmethodID method) {
         env->CallVoidMethod(activity, method, static_cast<jboolean>(active));
         return true;
     });
+#endif
 }
 
 // The interface's widget actions still queued are not applied: each is answered as refused.
@@ -479,6 +506,7 @@ inline void showMobileScreen(const std::string &name, double release_ms = 0.0, d
     ++mobileScreenRevision;
     refuseUiWidgetActions("the interface changed before it was applied"); // queued for the interface that went away
     ui::screen(screen, mobileScreenRevision, release_ms, load_ms);
+#ifdef __ANDROID__
     if (!CallActivity(upcall::GameActivity::showMobileScreen, [&](JNIEnv *env, jobject activity, jmethodID method) {
             const auto value = javaText(env, screen, "showMobileScreen");
             if (!value)
@@ -488,8 +516,10 @@ inline void showMobileScreen(const std::string &name, double release_ms = 0.0, d
             return true;
         }))
         spdlog::error("GameActivity.showMobileScreen failed: interface {} not reported", screen);
+#endif
 }
 
+#ifdef __ANDROID__
 // The messages of the activity's mailbox, in its order (GameActivity.deliverMobileActions calls a typed native for
 // each; android_mailbox.hpp).
 inline std::vector<mailbox::Message> pollMobileActions()
@@ -531,5 +561,11 @@ inline std::vector<mailbox::Message> pollMobileActions()
     env->DeleteLocalRef(activity);
     return result;
 }
+#else
+inline std::vector<mailbox::Message> pollMobileActions()
+{
+    return std::exchange(mailbox::pending, {});
+}
+#endif
 } // namespace storm::android
 #endif

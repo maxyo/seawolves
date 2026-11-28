@@ -6,7 +6,7 @@
 #include "math_inlines.h"
 #include "shared/messages.h"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera.hpp>
 #include <platform/android_camera_zoom.hpp>
 #endif
@@ -98,7 +98,7 @@ void SHIP_CAMERA::Move(float fDeltaTime)
         fDistance = 0.0f;
 
     // Rotate
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The touch drag turns and pitches the view as the native turn did at 60 fps on the reference 3200 px wide screen
     // (platform/android_camera.hpp dragTurn: the same share of any screen, scaled by the camera sensitivity),
     // directly at any frame rate: the native turn eased towards counts per frame and moved by them times the
@@ -184,7 +184,7 @@ void SHIP_CAMERA::ApplyView([[maybe_unused]] bool acceptZoom)
         // below 0 driving on an elliptical cylinder
         return std::pair(axes, glm::vec3(axes.x * sinf(vAng.y), 0.0f, axes.z * cosf(vAng.y)));
     };
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The pinch of the camera look (platform/android_camera_zoom.hpp) moves the wheel's distance,
     // within its 0..1, so that the camera comes as many times nearer as the fingers spread.
     if (acceptZoom)

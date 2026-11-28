@@ -59,7 +59,7 @@ void BIShipIcon::Draw()
             core.Event("evntBISelectShip", "ll", -1, true);
     }
 
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
     // Android uses the touch HUD ship cards and command sheet exclusively.
     FillVertexBuffer();
 
@@ -275,7 +275,7 @@ void BIShipIcon::Init(ATTRIBUTES *pRoot, ATTRIBUTES *pA)
         pcTmp = pA->GetAttribute("shiptexturename");
         if (pcTmp)
             m_nShipTextureID = m_pRS->TextureCreate(pcTmp);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_sShipTextureName = pcTmp ? pcTmp : "";
 #endif
         m_dwShipColor = pA->GetAttributeAsDword("shipcolor", m_dwShipColor);
@@ -363,7 +363,7 @@ void BIShipIcon::MakeControl()
 
 void BIShipIcon::ExecuteCommand(CommandType command)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     m_bAndroidChanged = true;
 #endif
     switch (command)
@@ -794,7 +794,7 @@ int32_t BIShipIcon::GetShipClass(int32_t nCharIdx)
     return pVDat->GetInt();
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 namespace
 {
 std::string androidRecipientId(const SHIP_DESCRIBE_LIST::SHIP_DESCR *ship)

@@ -1,7 +1,7 @@
 #include "script_state.hpp"
 #include "compiler.h"
 #include "platform/android_script_errors.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_land_commands.hpp"
 #include "platform/android_land_diagnostics.hpp"
 #endif
@@ -541,7 +541,7 @@ bool COMPILER::Run()
     pRun_fi = nullptr;
     if (executed)
         AttachEngineSegments();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     else
         storm::android::traceLandAdapter(0, "main-execution-failed");
 #endif
@@ -7053,7 +7053,7 @@ bool COMPILER::OnLoad()
     const bool executed = BC_Execute(function_code, pResult);
     if (executed)
         AttachEngineSegments();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     else
         storm::android::traceLandAdapter(0, "onload-execution-failed");
 #endif

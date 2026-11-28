@@ -781,7 +781,7 @@ void CXI_TEXTBUTTON::FillPositionIntoVertices()
     m_v[7].pos.y = (m_v[3].pos.y = static_cast<float>(m_rect.bottom)) + m_fYDeltaPress;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_TEXTBUTTON::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

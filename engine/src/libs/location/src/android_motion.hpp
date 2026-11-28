@@ -10,7 +10,7 @@
 #include <cmath>
 #include <optional>
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera.hpp>
 #include <platform/android_movement.hpp>
 #endif
@@ -29,7 +29,7 @@ struct CharacterMotion
         float speed = 0.0f, pace = 1.0f;
     };
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     template <class C> static TouchStep touchStep(C &self)
     {
         // Only ordinary locomotion may consume the touch vector. Priority, recoil,
@@ -69,7 +69,7 @@ struct CharacterMotion
     {
         const float spd = dltTime * self.speed * k;
         glm::vec3 moveVec(sinf(self.ay) * spd, 0.0f, cosf(self.ay) * spd);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         if (touch.motion)
             self.curPos += self.androidMotionDirection * (dltTime * touch.speed * k);
         else
@@ -86,7 +86,7 @@ struct CharacterMotion
     // The strafe in place, which the touch vector replaces.
     template <class C> static void strafeInPlace(C &self, float dltTime, [[maybe_unused]] const TouchStep &touch)
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         if (!touch.motion)
 #endif
             self.curPos += glm::vec3(cosf(self.ay), 0.0f, -sinf(self.ay)) * (self.strafeVel * dltTime * 0.9f);
@@ -126,7 +126,7 @@ struct PlayerMotion
     template <class P> static void StrafeWhenStop(P &self, float dltTime)
     {
         self.StrafeWhenMove(dltTime);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The native poll above owns physical A/D, including configurations whose
         // stopped strafe is subsequently cleared or converted into a combat dodge.
         if (self.strafeMove != 0.0f)
@@ -156,7 +156,7 @@ struct PlayerMotion
         self.SetRunMode(self.IsRunMode(dltTime));
         if (self.GoForward(dltTime))
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             self.androidMotionStop = false;
             self.androidCameraRelative = false;
 #endif
@@ -165,7 +165,7 @@ struct PlayerMotion
         }
         else if (self.GoBack(dltTime))
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             self.androidMotionStop = false;
             self.androidCameraRelative = false;
 #endif
@@ -181,7 +181,7 @@ struct PlayerMotion
         }
         else
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             if (self.androidMovementHeld)
                 self.StopAndroidMovement();
             else
@@ -191,7 +191,7 @@ struct PlayerMotion
         }
     }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     template <class P> static void StopAndroidMovement(P &self)
     {
         self.StopMove();
@@ -321,7 +321,7 @@ struct CameraMotion
     {
         if (dltTime <= 0.0f)
             return;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // Mobile camera mode, out of a fight (the native camera above swings behind the hero's heading at
         // once and turns him with the drag, which fights a stick that steers relative to the camera). The
         // drag turns the camera by all of it (the hero only turns with the stick, Player::Rotate); while
@@ -369,7 +369,7 @@ struct CameraMotion
         self.CalcPosition(self.camay, self.camradius, 0.0f, self.camPos);
     }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Use the actual camera, not a renderer view temporarily changed by UI/shadow draws.
     template <class L> static bool IsMovementCamera(const L &self)
     {

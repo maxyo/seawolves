@@ -2,7 +2,7 @@
 #include "load_watch.hpp"
 #include "loading_transaction.hpp"
 #include "scene_load_status.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #endif
 #include "core_impl.h"
@@ -864,7 +864,7 @@ void CoreImpl::ReportFailedLoad()
     if (!Compiler->HasActiveEventHandler(storm::app::script_event::AndroidLoadFailed, storm::app::script_event::AndroidLoadFailed))
         spdlog::error("LOAD FAILED: no script handles AndroidLoadFailed; nothing brings the menu back");
     Core::Event(storm::app::script_event::AndroidLoadFailed, "ss", failure->record.c_str(), failure->reason.c_str());
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::ui::state("loadFailure",
                               storm::android::uiJson({{"record", failure->record}, {"reason", failure->reason}}));
 #endif
@@ -883,7 +883,7 @@ void CoreImpl::ReportFailedSave()
     if (!Compiler->HasActiveEventHandler(storm::app::script_event::AndroidSaveFailed, storm::app::script_event::AndroidSaveFailed))
         spdlog::error("SAVE FAILED: no script handles AndroidSaveFailed");
     Core::Event(storm::app::script_event::AndroidSaveFailed, "ss", failure.record.c_str(), failure.reason.c_str());
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::ui::state("saveFailure", storm::android::uiJson({{"record", failure.record},
                                                                      {"reason", failure.reason},
                                                                      {"space", failure.space}}));

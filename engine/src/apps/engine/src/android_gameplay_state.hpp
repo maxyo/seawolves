@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_gameplay.hpp"
 #include "android_ship_state.hpp"
 #include "android_hud_read_error.hpp"

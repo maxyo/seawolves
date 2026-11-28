@@ -216,7 +216,7 @@ DIALOG::DIALOG()
 
 DIALOG::~DIALOG()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::closeDialogue(this);
 #endif
     core.SetTimeScale(1.f);
@@ -688,7 +688,7 @@ void DIALOG::Realize(uint32_t Delta_Time)
         FillButtons();
     }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     const bool mobileDialogue = storm::android::publishDialogue(this, AttributesPointer, m_sTalkPersName.c_str());
     if (auto *choice = storm::android::takeDialogueChoice(this, AttributesPointer,
             [this](std::string_view text) { return linkDescribe_.FitsEditWidth(text); })) {
@@ -860,7 +860,7 @@ void DIALOG::Realize(uint32_t Delta_Time)
         linkDescribe_.Show(
             static_cast<int32_t>(textViewport.Y + m_BackParams.nDividerOffsetY + m_BackParams.nDividerHeight));
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     }
 #endif
     if (snd && !snd->SoundIsPlaying(curSnd))
@@ -982,7 +982,7 @@ void DIALOG::UpdateDlgViewport()
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 std::optional<int64_t> storm::android::dialogueHeroMoney()
 {
     auto *index = static_cast<VDATA *>(core.GetScriptVariable("nMainCharacterIndex"));

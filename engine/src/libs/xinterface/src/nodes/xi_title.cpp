@@ -318,7 +318,7 @@ void CXI_TITLE::FillVertexBuffer() const
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_TITLE::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

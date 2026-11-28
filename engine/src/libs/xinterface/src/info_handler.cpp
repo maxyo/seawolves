@@ -4,7 +4,7 @@
 
 #include "vma.hpp"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "v_data.h"
 #include "string_service.h"
 #include <platform/android_ui.hpp>
@@ -42,7 +42,7 @@ InfoHandler::InfoHandler() : m_rs(nullptr), tex(-1)
 
 InfoHandler::~InfoHandler()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     if (gameOver_)
     {
         storm::android::gameOverShown = false;
@@ -70,7 +70,7 @@ bool InfoHandler::Init()
         core.Trace("DoPreOut failed");
         return false;
     }
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     gameOver_ = PublishGameOver(AttributesPointer);
     storm::android::gameOverShown = storm::android::gameOverShown || gameOver_;
 #endif

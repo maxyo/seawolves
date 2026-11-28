@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "attributes.h"
 #include "platform/android_land_commands.hpp"
 #include "platform/android_land_diagnostics.hpp"

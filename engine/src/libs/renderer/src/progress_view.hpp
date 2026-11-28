@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <cstdint>
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #include <platform/android_ui.hpp>
 #endif
@@ -27,7 +27,7 @@ struct LoadingScreen
     {
         // The full-screen loading picture of every fader load (reload.c: FADER_PICTURE0 "loading\\ImgBack.tga").
         constexpr const char *kStockLoadingBackImage = "loading\\ImgBack.tga";
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         storm::android::publishLoading(true);
 #endif
         storm::loading::screen_up = true;
@@ -270,7 +270,7 @@ struct LoadingScreen
         v[3].u = (fx + 1.0f) / float(sizeX);
         v[3].v = (fy + 1.0f) / float(sizeY);
         // Draw
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The loading/saving spinner of the original interface does not draw over a touch UI; the game's loading
         // picture stays.
         if (!storm::android::legacyDrawRefused("loading spinner"))
@@ -335,7 +335,7 @@ struct LoadingScreen
     // ReleaseProgressView: the loading screen goes with its artwork.
     template <class R> static void release(R &self)
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         storm::android::publishLoading(false);
 #endif
         storm::loading::screen_up = false;

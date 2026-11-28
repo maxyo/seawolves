@@ -11,7 +11,7 @@
 #include "location_camera.h"
 #include "collide.h"
 #include "shared/messages.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_ui.hpp>
 #include <platform/android_movement.hpp>
 #include <platform/android_combat_input.hpp>
@@ -58,7 +58,7 @@ void Player::Reset()
 // Move the character to the desired position
 void Player::Move(float dltTime)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     androidMotion = false;
     androidMotionApplied = false;
     // Poll even during a scripted task: hard context invalidation and lease
@@ -121,7 +121,7 @@ void Player::Move(float dltTime)
     {
         isEnableJump = true;
         Rotate(dltTime);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The HUD's dash button (combat action "dash", engine-only control "ChrRecoil"): the
         // backstep of pulling the stick back.
         if (IsFight() && storm::android::combatInput.merge("ChrRecoil", 0) == 3)
@@ -129,7 +129,7 @@ void Player::Move(float dltTime)
 #endif
         if (lastChange > 0.3f)
         {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
             if (androidAxes && command.cmd == aicmd_none && !shootgunMode && !isJump)
                 storm::location::PlayerMotion::stickGait(*this, *androidAxes);
             else
@@ -252,14 +252,14 @@ void Player::Update(float dltTime)
             if (cs.state == CST_ACTIVATED)
             {
                 aDialog = true;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                 storm::android::traceContextAction("primary-poll", "ChrAction", "player=" + std::to_string(GetId()));
 #endif
             }
             if (activatedDialog)
             {
                 auto *chr = FindDialogCharacter();
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                 storm::android::traceContextAction("dialog-target", "ChrAction",
                     "target=" + std::to_string(chr && chr->AttributesPointer ? chr->AttributesPointer->GetAttributeAsDword("index", -1) : uint32_t(-1)));
 #endif
@@ -271,7 +271,7 @@ void Player::Update(float dltTime)
                     const int32_t next = chr->AttributesPointer->GetAttributeAsDword("index", -1);
                     if (first >= 0 && next >= 0)
                     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
                         storm::android::traceContextAction("dialog-dispatch", "dlgReady",
                             "target=" + std::to_string(next) + " player=" + std::to_string(first));
 #endif
@@ -322,7 +322,7 @@ void Player::Update(float dltTime)
     }
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void Player::StopAndroidMovement()
 {
     storm::location::PlayerMotion::StopAndroidMovement(*this);
@@ -351,14 +351,14 @@ void Player::GetSaveData(ATTRIBUTES *sdata)
 void Player::Rotate(float dltTime)
 {
     CONTROL_STATE cs;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Mobile camera mode: out of a fight the drag turns the camera only (CameraFollow), never
     // the hero; feeding it into the hero's yaw would fight the stick and re-orbit the camera.
     if (MobileCameraOrbit() && (!locCam || locCam->IsThirdPersonFollow())) return;
 #endif
     if (!isSpecialMode)
     {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The drag turns the fighter as it turns the camera out of a fight (dragYaw: the native 0.01 per pixel of the reference 3200 px wide screen).
         const auto a = storm::android::dragYaw(GetRotateH(), static_cast<float>(core.GetWindow()->GetWindowSize().width));
 #else
@@ -482,7 +482,7 @@ void Player::StrafeWhenStop(float dltTime)
 
 bool Player::IsDoBlock()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // A modal/actor can skip the release frame. Reconcile both real controls
     // instead of retaining a latch after all physical/virtual input is gone.
     CONTROL_STATE primary{}, secondary{};

@@ -118,7 +118,7 @@ void CameraFollow::MoveCamera(float dltTime)
     storm::location::CameraMotion::MoveCamera(*this, dltTime);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CameraFollow::MoveMobile(float dltTime)
 {
     storm::location::CameraMotion::MoveMobile(*this, dltTime);
@@ -131,7 +131,7 @@ void CameraFollow::BornCamera()
     // New camera options
     camay = lc->chay;
     camradius = lc->radius;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     raise.reset();
     swing.reset();
     tightRaise = 0.0f;

@@ -76,7 +76,7 @@ class ISPYGLASS : public Entity
         float fUpdateTime;
 
         float fOldPerspective;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         // The glass's own magnification (ChangeTelescopeType) and the current one, which the
         // pinch of the camera look moves between 1 and the glass's (platform/android_camera_zoom.hpp).
         float fGlassMagnification = 1.f;
@@ -182,7 +182,7 @@ class ISPYGLASS : public Entity
     ATTRIBUTES *GetAttr(const char *pcAttrName) const;
     void TurnOnTelescope(bool bTurnOn);
     void SetShipInfo(int32_t nCharIndex);
-#ifndef __ANDROID__
+#ifndef STORM_TOUCH_UI
     void ApplyInfoColors();
 #endif
     void FindNewTargetShip();

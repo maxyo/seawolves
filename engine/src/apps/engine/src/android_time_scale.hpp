@@ -51,7 +51,7 @@ template <class Game> void requestTimeScaleStep(Game &game, int step)
 }
 } // namespace storm::android
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "core.h"
 #include "platform/android_ui.hpp"
 

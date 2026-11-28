@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_sea_orders.hpp>
 #include <platform/android_ship_telemetry.hpp>
 #include <optional>
@@ -45,7 +45,7 @@ class BIShipIcon
     void SetUpdate()
     {
         m_bMakeUpdate = true;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
         m_bAndroidChanged = true;
 #endif
     }
@@ -54,7 +54,7 @@ class BIShipIcon
     void SetActive(bool bActive);
     void MakeControl();
     void ExecuteCommand(CommandType command);
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void ReadAndroidOrders(storm::android::SeaOrdersFrame &frame);
     // The list changed since the last call: the scripts' ship messages and refresh, the menu
     // opened or closed or a command executed (the touch HUD asks the scripts only then).
@@ -123,7 +123,7 @@ class BIShipIcon
     std::vector<float> m_aClassProgress;
 
     int32_t m_nShipTextureID;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     std::string m_sShipTextureName; // the file behind m_nShipTextureID, for the touch HUD's picture
 #endif
     int32_t m_nShipSquareQ;
@@ -161,7 +161,7 @@ class BIShipIcon
     POINT m_ShipNameFontOffset;
 
     bool m_bMakeUpdate;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     bool m_bAndroidChanged = true;
 #endif
 

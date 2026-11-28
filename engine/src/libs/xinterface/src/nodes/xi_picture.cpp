@@ -1,7 +1,7 @@
 #include "xi_picture.h"
 #include "../mobile_image_bridge.hpp"
 #include "../mobile_picture.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #endif
 
@@ -494,7 +494,7 @@ void CXI_PICTURE::ReleasePicture()
     VIDEOTEXTURE_RELEASE(m_rs, m_pTex);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 void CXI_PICTURE::MobileCollect(std::vector<MobileWidget> &widgets) const
 {
     MobilePictureCollect(*this, storm::android::mobileScreen, widgets);

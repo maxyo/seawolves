@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // Reads the sea quick action ILogAndActions offers right now, with the identity of what it
 // would act on. Game thread only; nothing here is kept across a frame.
 #include "platform/android_ui.hpp"

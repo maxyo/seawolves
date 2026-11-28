@@ -1,7 +1,7 @@
 // The land hero's status for the portable HUD, published as extra fields of the "vitals" channel next to the bars
 // (battle_man_sign.cpp): what each LandVitals field (platform/android_land_vitals.hpp) is read from.
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "core.h"
 #include "entity.h"
 #include "shared/messages.h"

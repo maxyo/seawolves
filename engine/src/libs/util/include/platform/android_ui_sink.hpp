@@ -3,7 +3,7 @@
 // interface models here, on the game thread, in-process; nothing of it crosses JNI.
 // Implemented by src/libs/ui_host/src/engine_ui.cpp.
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <cstdint>
 #include <string>
 #include <string_view>

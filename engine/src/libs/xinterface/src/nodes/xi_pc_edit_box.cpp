@@ -447,7 +447,7 @@ bool CXI_PCEDITBOX::IsExcludeChar(utf8::u8_char chr) const
     return m_sExcludeChars.find(fndStr) != std::string::npos;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_PCEDITBOX::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

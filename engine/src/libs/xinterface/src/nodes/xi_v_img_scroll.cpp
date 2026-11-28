@@ -1654,7 +1654,7 @@ int32_t CXI_VIMAGESCROLL::GetMousePointedPictureNum()
     return n;
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #include "../mobile_owner_bridge.hpp"
 #include "shared/interface/messages.h"

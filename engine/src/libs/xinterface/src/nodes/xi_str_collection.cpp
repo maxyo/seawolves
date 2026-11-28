@@ -428,7 +428,7 @@ CXI_STRCOLLECTION::STRINGDESCR *CXI_STRCOLLECTION::CreateNewDinamicString(const 
     return &m_pStrDescr[i];
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 
 void CXI_STRCOLLECTION::MobileCollect(std::vector<MobileWidget> &widgets) const
 {

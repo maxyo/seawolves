@@ -1,6 +1,6 @@
 #include "xi_scrolled_pic.h"
 #include "../mobile_image_bridge.hpp"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include "platform/android_ui.hpp"
 #endif
 #include <cmath>
@@ -337,7 +337,7 @@ void CXI_SCROLLEDPICTURE::SetScale(float fsx, float fsy)
     ChangeUV(frNewUV);
 }
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The scrolled picture as a map for touch (type "map"): the whole picture as a texture source,
 // context "base" (the size the scripts measure it in, ini basesize) and "view" (the part the
 // game shows now, in the same units), then one "map_marker" widget per imagelist entry with

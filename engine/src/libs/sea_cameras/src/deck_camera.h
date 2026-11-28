@@ -6,7 +6,7 @@
 #include "model.h"
 #include "vma.hpp"
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_camera_zoom.hpp>
 #endif
 
@@ -24,7 +24,7 @@ class DECK_CAMERA : public COMMON_CAMERA
     };
 
     VERTEX tri[4];
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::DeckZoom androidZoom; // the pinch's field-of-view zoom (android_camera_zoom.hpp)
 #endif
 

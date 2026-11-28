@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 // The ship's battle abilities a touch HUD offers (ShipAbilityNames): the perk commands of the scripts' battle
 // interface (BattleInterface.c BI_InitializeCommands / procSetUsingAbility). Everything is read from the scripts'
 // own state:

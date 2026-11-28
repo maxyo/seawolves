@@ -4,7 +4,7 @@
 #include <cmath>
 #include <limits>
 
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 MobileSliderState CXI_SLIDELINE::MobileState() const
 {
     return {m_nodeName, m_bUse, m_bSelected, m_bClickable, m_bLockedNode, m_bLockStatus,

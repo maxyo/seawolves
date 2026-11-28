@@ -24,7 +24,7 @@ class CXI_SCROLLEDPICTURE : public CXI_PICTURE
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
     void MoveMouseOutScreen(float fX, float fY) override;
     void ChangeUV(FXYRECT &frNewUV) override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
     int RClickCommand() const;

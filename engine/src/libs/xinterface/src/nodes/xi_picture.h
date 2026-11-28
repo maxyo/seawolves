@@ -32,7 +32,7 @@ class CXI_PICTURE : public CINODE
     void ChangePosition(XYRECT &rNewPos) override;
     void SaveParametersToIni() override;
     uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void MobileCollect(std::vector<MobileWidget> &widgets) const override;
     bool MobileApply(const storm::ui::Action &action) override;
 #endif

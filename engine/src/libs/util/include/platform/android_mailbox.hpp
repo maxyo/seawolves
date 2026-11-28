@@ -39,6 +39,12 @@ struct Shortcut
 using Message =
     std::variant<AudioFocus, GraphicsReload, HudOwnerLost, Back, LocationLoadCancel, CameraZoom, LookEvent, Shortcut>;
 
+#ifdef __ANDROID__
 // The engine thread's list while it is inside deliverMobileActions; null otherwise.
 inline std::vector<Message> *delivering = nullptr;
+#else
+// The desktop's messages of the same kinds (its Back key, the HUD's shortcuts), on the game thread until the next
+// iteration takes them (pollMobileActions).
+inline std::vector<Message> pending;
+#endif
 } // namespace storm::android::mailbox

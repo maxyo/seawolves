@@ -2,7 +2,7 @@
 
 #include "bi_utils.h"
 #include "bi_defines.h"
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
 #include <platform/android_land_commands.hpp>
 #endif
 
@@ -18,7 +18,7 @@ class BATTLE_LAND_INTERFACE : public Entity
     void Execute(uint32_t delta_time) const;
     void Realize(uint32_t delta_time);
     uint64_t ProcessMessage(MESSAGE &message) override;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::LandCommandSource ReadAndroidLand(storm::android::LandCommandsFrame &frame);
     bool ExecuteAndroidLand(const storm::android::HudMenuRequest &request);
     void CloseAndroidLand();

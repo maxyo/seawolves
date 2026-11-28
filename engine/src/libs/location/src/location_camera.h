@@ -70,7 +70,7 @@ class LocationCamera : public Entity
 
     void LockFPMode(bool isLock);
     float GetAx() const;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Use the actual camera, not a renderer view temporarily changed by UI/shadow draws.
     glm::vec3 MovementViewDirection() const { return movementForward; }
     bool IsMovementCamera() const { return storm::location::CameraMotion::IsMovementCamera(*this); }
@@ -78,7 +78,7 @@ class LocationCamera : public Entity
 #endif
 
   private:
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     void UpdateMovementHeading();
     void FrameDialogue();
 #endif
@@ -129,7 +129,7 @@ class LocationCamera : public Entity
     bool lockAx;
 
     float dAx, dAy;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     glm::vec3 movementForward{0.0f, 0.0f, 1.0f};
     float dragAy = 0.0f; // this frame's camera drag as a yaw angle (mobile camera mode)
     float dragAx = 0.0f; // this frame's vertical drag as a pitch angle (mobile)

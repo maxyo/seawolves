@@ -1,5 +1,5 @@
-#ifdef __ANDROID__
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
+#ifdef STORM_TOUCH_UI
 #include <platform/android_hud_presenter.hpp>
 #endif
 #include "platform/android_worldmap.hpp"
@@ -66,7 +66,7 @@ bool ILogAndActions::Init()
 
 void ILogAndActions::Execute(uint32_t delta_time)
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     const bool available = m_bThatRealAction && !m_bDontShowAll && m_bShowActiveCommand && !storm::iEquals(m_sActionName,"Closed");
     static int lastFlags = -1;
     static std::string lastAction;
@@ -284,7 +284,7 @@ void ILogAndActions::Realize(uint32_t delta_time)
         return;
     if (m_bDontShowAll)
         return;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // The quick action, its hints and the log lines are the touch HUD's.
     if (storm::android::legacyDrawRefused("log and actions")) return;
 #endif
@@ -459,7 +459,7 @@ void ILogAndActions::ActionChange(bool bFastComShow, bool bLogStringShow)
 
 void ILogAndActions::Release()
 {
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     storm::android::publishContextAction("");
     if (storm::android::seaQuickAction.frame().host == GetId()) storm::android::seaQuickAction.update({});
 #endif
@@ -483,7 +483,7 @@ void ILogAndActions::SetString(const char *str, bool immortal)
 {
     if (str == nullptr)
         return;
-#ifdef __ANDROID__
+#ifdef STORM_TOUCH_UI
     // Passing lines are the portable UI's toasts, and so are lasting ones while the touch HUD
     // presents the game (the legacy log does not draw then); otherwise lasting lines stay here.
     if (!immortal || storm::android::hudPresenters.any())

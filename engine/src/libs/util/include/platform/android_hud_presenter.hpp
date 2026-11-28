@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#if defined(__ANDROID__) && __has_include(<android/log.h>)
+#if defined(STORM_TOUCH_UI) && __has_include(<android/log.h>)
 #include <android/log.h>
 #define STORM_HUD_PRESENTER_LOG 1
 #endif
