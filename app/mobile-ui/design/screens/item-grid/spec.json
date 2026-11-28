@@ -1,6 +1,6 @@
 {
   "tag": "s-item-grid",
-  "doc": "Screen part of s-items: the character's items as compact rows in as many columns as fit (picture, the name in up to two lines, the worn / quest mark, the count); a tap reports `row <index>`; the selected row is scrolled into view when the selection changes (reveal).",
+  "doc": "Screen part of s-items: the character's items as compact rows in as many columns as fit (picture, the name in up to two lines, the worn / quest mark, the count); a tap reports `row` with the row's id (its index for a row without one); the selected row is scrolled into view when the selection changes (reveal).",
   "props": {
     "rows": {"type": "json", "default": []},
     "empty": {"type": "text", "default": ""}

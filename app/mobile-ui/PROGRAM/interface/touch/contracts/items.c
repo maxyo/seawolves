@@ -2,17 +2,17 @@
 // The items screen's adapter (provides "adapter:items"): the things a person of the hero's company carries, what they
 // wear in each slot and what the game's action does with one of them. `ui` is the screen's object its events hand
 // over; a row is a position k in out.rows (the game's order), a slot a position in out.slots, a person a position in
-// out.people. Whether an item can be put on, taken off or used, and what that does, is the game's.
+// out.people; a screen finds them again by their id, which a change of the lists keeps. Whether an item can be put on, taken off or used, and what that does, is the game's.
 //
 // State(ui, out), once a build:
 //   title; load (the weight carried as the game writes it, "" none)
 //   people.p<k>.{label, meta (the slots' captions), image (picture, "" none)}; shown (k whose things the game shows);
 //     waiting (the game is still to show the person picked, k picked: this build is a step)
-//   tabs.t<n>.{label, selected, can} (none: the game has no categories)
-//   slots.s<k>.{label, icon (ours of the slot), group (its items' group), place (of a group worn in two places, which:
+//   tabs.t<n>.{id, label, selected, can} (none: the game has no categories)
+//   slots.s<k>.{id, label, icon (ours of the slot), group (its items' group), place (of a group worn in two places, which:
 //     "pistol", "musket"; "" the group's only), image (absent: empty), row (k of the row of what it holds, -1 none in
 //     the list), days ("" none: the days of force left)}
-//   rows.r<k>.{label, image (picture), count, weight (as the game writes it), selected, group ("" none), place (where
+//   rows.r<k>.{id (the game's item), label, image (picture), count, weight (as the game writes it), selected, group ("" none), place (where
 //     the game wears it of its group's places, "" any), worn, quest}
 //   detail (absent: none selected).{row, title, image, slot (the caption of its slot, "" none), worn, kind, weight,
 //     text, term ("" none: the days of force), left ("" none: of them left), figures.f<n>.{key (string key), value

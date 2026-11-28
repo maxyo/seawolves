@@ -1,5 +1,5 @@
 <t-if test="len(rows) == 0"><div class="ig-empty">{{empty}}</div></t-if>
-<t-for each="rows" as="r"><div data-reveal?="{{ r.selected ? str(r.id) : '' }}" class="ig-row{{ r.selected ? ' sel' : '' }}" data-action="row" data-value="{{r_i}}" data-item-id="{{r.id}}">
+<t-for each="rows" as="r" key="or(r.id, r_i)"><div data-reveal?="{{ r.selected ? str(or(r.id, r_i)) : '' }}" class="ig-row{{ r.selected ? ' sel' : '' }}" data-action="row" data-value="{{ or(r.id, r_i) }}">
 <div class="ig-pic"><c-row-image image="{{ json(r.cells[0].image) }}" icon="{{ r.cells[0].image ? '' : 'chest' }}" size="{{spec.picture}}" icon-size="22" tone="brass" label="{{r.cells[0].text}}"/></div>
 <ui-clamp class="ig-name" lines="2" min-size="@{type.min}" text="{{r.cells[0].text}}"/>
 <t-if test="opt(r.cells[0].badge)"><c-icon icon="{{ opt(r.cells[0].badge) == 'check' ? 'check' : 'quest' }}" size="14" tone="{{ opt(r.cells[0].badge) == 'check' ? 'green' : 'gold' }}"/></t-if>

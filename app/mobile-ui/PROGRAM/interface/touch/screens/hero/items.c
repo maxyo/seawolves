@@ -6,8 +6,8 @@
 #event_handler("UiBuild", "TouchItems_Build");
 #event_handler("UiTap", "TouchItems_Tap");
 
-// The adapter's state of the last build (.game), the slot whose items the list shows (.filter, -1 all) and whose
-// things they were (.who), the people's list open (.open), the rows listed (.listed.l<i>: k of game.rows).
+// The adapter's state of the last build (.game), the slot whose items the list shows (.filter, its id; "" all) and
+// whose things they were (.who), the people's list open (.open).
 object TouchItems;
 object TouchItems_View;
 object TouchItems_Header; // the section tapped while the game opens it (TouchLib_Section)
@@ -22,9 +22,8 @@ string TouchItems_Number(float value, int digits)
 // Whether row k is listed under the slot filter: what fits the slot, and of what is worn only what this slot holds.
 bool TouchItems_Fits(aref game, aref at, int k)
 {
-	int filter = sti(TouchItems.filter);
-	if (filter < 0) return true;
-	aref slot = TouchLib_Item(game, "slots", filter);
+	if (TouchItems.filter == "") return true;
+	aref slot = TouchLib_Item(game, "slots", TouchLib_Find(game, "slots", "id", TouchItems.filter));
 	if (at.group != slot.group) return false;
 	if (slot.place != "" && at.place != "" && slot.place != at.place) return false;
 	if (!sti(at.worn)) return true;
@@ -39,11 +38,11 @@ void TouchItems_Slots(aref game, aref view)
 	{
 		aref slot = TouchLib_Item(game, "slots", k);
 		aref at = TouchLib_Add(slots, "s");
-		at.id = k;
+		at.id = slot.id;
 		at.label = slot.label;
 		if (slot.days != "") at.label = UiFill(UiText("items.days"), slot.days);
 		at.icon = slot.icon;
-		at.selected = sti(TouchItems.filter) == k;
+		at.selected = TouchItems.filter == slot.id;
 		at.empty = !CheckAttribute(slot, "image");
 		if (!sti(at.empty))
 		{
@@ -54,18 +53,15 @@ void TouchItems_Slots(aref game, aref view)
 
 void TouchItems_Rows(aref game, aref view)
 {
-	aref rows, listed;
+	aref rows;
 	makearef(rows, view.rows);
-	makearef(listed, TouchItems.listed);
 	for (int k = 0; k < TouchLib_Count(game, "rows"); k++)
 	{
 		aref row = TouchLib_Item(game, "rows", k);
 		if (TouchItems_Fits(game, row, k))
 		{
 			aref at = TouchLib_Add(rows, "r");
-			aref entry = TouchLib_Add(listed, "l");
-			entry.k = k;
-			at.id = "r" + k;
+			at.id = row.id;
 			at.selected = row.selected;
 			aref name;
 			makearef(name, at.cells.c0);
@@ -79,7 +75,7 @@ void TouchItems_Rows(aref game, aref view)
 		}
 	}
 	view.empty = UiText("items.none");
-	if (sti(TouchItems.filter) >= 0) view.empty = UiText("items.none_fits");
+	if (TouchItems.filter != "") view.empty = UiText("items.none_fits");
 }
 
 void TouchItems_Fact(aref facts, string key, string value)
@@ -166,7 +162,6 @@ void TouchItems_Detail(aref game, aref view)
 void TouchItems_Show(aref game)
 {
 	DeleteAttribute(&TouchItems_View, "");
-	DeleteAttribute(&TouchItems, "listed");
 	aref view;
 	makearef(view, TouchItems_View);
 	view.title = game.title;
@@ -201,7 +196,7 @@ void TouchItems_Show(aref game)
 	{
 		aref tab = TouchLib_Item(game, "tabs", n);
 		aref at = TouchLib_Add(tabs, "t");
-		at.id = n;
+		at.id = tab.id;
 		at.label = tab.label;
 		at.selected = tab.selected;
 	}
@@ -216,7 +211,7 @@ void TouchItems_Build()
 	if (UiFirst())
 	{
 		DeleteAttribute(&TouchItems, "");
-		TouchItems.filter = -1;
+		TouchItems.filter = "";
 		TouchItems.who = "";
 		TouchItems.open = false;
 	}
@@ -226,7 +221,7 @@ void TouchItems_Build()
 	TouchAdpItems_State(ui, game);
 	// Another person's things: the slot filter was the last person's.
 	aref person = TouchLib_Item(game, "people", sti(game.shown));
-	if (person.label != TouchItems.who) TouchItems.filter = -1;
+	if (person.label != TouchItems.who) TouchItems.filter = "";
 	TouchItems.who = person.label;
 	TouchItems_Show(game);
 	aref people;
@@ -237,7 +232,11 @@ void TouchItems_Build()
 	UiOn("item-tabs", "select");
 	UiOn("items", "row");
 	UiOn("item-equip", "");
-	for (int k = 0; k < TouchLib_Count(game, "slots"); k++) UiOn("slot-" + k, "");
+	for (int k = 0; k < TouchLib_Count(game, "slots"); k++)
+	{
+		aref slot = TouchLib_Item(game, "slots", k);
+		UiOn("slot-" + slot.id, "");
+	}
 	// The game's map window is over the screen: back closes it, not the game's interface.
 	if (CheckAttribute(game, "map"))
 	{
@@ -284,9 +283,11 @@ void TouchItems_Tap()
 	if (id == "header" || TouchLib_StartsWith(id, "header-subject")) return;
 	if (TouchLib_StartsWith(id, "slot-"))
 	{
-		int slot = TouchLib_TapIndex(TouchLib_Cut(id, 5, strlen(id)), TouchLib_Count(game, "slots"), "the slot");
-		if (sti(TouchItems.filter) == slot) { TouchItems.filter = -1; UiRebuild(); return; }
-		TouchItems.filter = slot;
+		string tappedSlot = TouchLib_Cut(id, 5, strlen(id));
+		int slot = TouchLib_Find(game, "slots", "id", tappedSlot);
+		if (slot < 0) return; // the person's slot tapped is gone with another person shown
+		if (TouchItems.filter == tappedSlot) { TouchItems.filter = ""; UiRebuild(); return; }
+		TouchItems.filter = tappedSlot;
 		// A slot that holds an item chooses its row: the parchment and its action are the slot's.
 		aref held = TouchLib_Item(game, "slots", slot);
 		int row = sti(held.row);
@@ -300,16 +301,17 @@ void TouchItems_Tap()
 	}
 	if (id == "item-tabs")
 	{
-		int tab = TouchLib_TapIndex(value, TouchLib_Count(game, "tabs"), "the category");
+		int tab = TouchLib_Find(game, "tabs", "id", value);
+		if (tab < 0) return; // the category tapped is no longer offered
 		aref chosen = TouchLib_Item(game, "tabs", tab);
 		if (sti(chosen.selected) || !sti(chosen.can)) return;
 		// A game category replaces the slot filter; the category is drawn chosen from this frame, its list comes with
 		// the game's answer.
-		TouchItems.filter = -1;
+		TouchItems.filter = "";
 		for (int n = 0; n < TouchLib_Count(&TouchItems_View, "tabs"); n++)
 		{
 			aref shownTab = TouchLib_Item(&TouchItems_View, "tabs", n);
-			shownTab.selected = n == tab;
+			shownTab.selected = shownTab.id == value;
 		}
 		UiPredict(&TouchItems_View);
 		TouchAdpItems_Tab(ui, tab);
@@ -318,16 +320,16 @@ void TouchItems_Tap()
 	}
 	if (id == "items")
 	{
-		int i = TouchLib_TapIndex(value, TouchLib_Count(&TouchItems, "listed"), "the row");
-		aref entry = TouchLib_Item(&TouchItems, "listed", i);
-		int k = sti(entry.k);
+		// The row by its item: the list may have changed since the frame the player tapped; a row gone ends the tap.
+		int k = TouchLib_Find(game, "rows", "id", value);
+		if (k < 0) return;
 		aref tapped = TouchLib_Item(game, "rows", k);
 		// Choosing a row only describes it; the game's action is its own button.
 		if (sti(tapped.selected)) return;
 		for (int r = 0; r < TouchLib_Count(&TouchItems_View, "rows"); r++)
 		{
 			aref shownRow = TouchLib_Item(&TouchItems_View, "rows", r);
-			shownRow.selected = r == i;
+			shownRow.selected = shownRow.id == value;
 		}
 		UiPredict(&TouchItems_View);
 		TouchAdpItems_Select(ui, k);

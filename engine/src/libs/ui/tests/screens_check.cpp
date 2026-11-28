@@ -2322,7 +2322,7 @@ static void Items(const std::string &models)
     ExpectEqual(surface.Last(), "widget:items\tEQUIP_BUTTON\t-1\tpress@5:inventory:7:character:1:role:0",
                 "the action is the game's press on the row it answered for");
     AnswerAll(router, surface, true);
-    router.OnEvent({"items", "row", "1"});
+    router.OnEvent({"items", "row", Drawn(surface, "rows", 1)});
     ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t1\tselect@5:inventory:9:character:1:role:0",
                 "a row is chosen");
     router.Tick();
@@ -2340,11 +2340,11 @@ static void Items(const std::string &models)
                surface.props["detail"]["facts"][0]["dTone"] == "danger" &&
                surface.props["detail"]["facts"][2]["dTone"] == "ok",
            "choosing describes, never equips; its figures against the worn rapier");
-    router.OnEvent({"items", "row", "1"});
+    router.OnEvent({"items", "row", Drawn(surface, "rows", 1)});
     Expect(surface.commands.size() == chosen, "choosing it again sends nothing");
 
     // A slot lists what fits it and chooses what it holds.
-    router.OnEvent({"slot-0", "click", ""});
+    router.OnEvent({"slot-" + surface.props["slots"][0]["id"].get<std::string>(), "click", ""});
     ExpectEqual(surface.Last(), "widget:items\tTABLE_ITEMS\t0\tselect@5:inventory:7:character:1:role:0",
                 "the blade slot chooses the rapier it holds");
     AnswerAll(router, surface, true);
@@ -2356,7 +2356,7 @@ static void Items(const std::string &models)
             widget.label = "Take off", widget.row_id = "inventory:7:character:1:role:0";
     router.SetInterface(model);
     Expect(surface.props["rows"].size() == 2 && surface.props["slots"][0]["selected"] == true, "and lists the blades");
-    router.OnEvent({"item-tabs", "select", "2"});
+    router.OnEvent({"item-tabs", "select", Drawn(surface, "tabs", 2)});
     ExpectEqual(surface.Last(), "widget:items\tTABBTN_3\t-1\tpress", "a game category");
     router.Tick();
     Expect(surface.props["tabs"][2]["selected"] == true, "drawn chosen in the tap's frame");

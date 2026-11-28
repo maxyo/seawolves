@@ -4,7 +4,8 @@
 
 **Русский**
 
-- Строка товара в магазине и трюме, флаг в «Нациях», корабль на верфи, отмеченные касанием, остаются отмеченными,
+- Строка товара в магазине и трюме, флаг в «Нациях», корабль на верфи, предмет, ячейка и вкладка в «Предметах»,
+  отмеченные касанием, остаются отмеченными,
   если список успел измениться до ответа игры: раньше отметка могла перескочить на соседнюю строку, а касание —
   открыть не тот товар.
 - Выбор в боевом интерфейсе (приказ в море, строка действий на суше, команда на карте, положение парусов)
@@ -153,7 +154,8 @@
 
 **English**
 
-- A goods row of the store and of the hold, a flag of the nations screen and a ship of the shipyard marked by a tap
+- A goods row of the store and of the hold, a flag of the nations screen, a ship of the shipyard and an item, slot
+  or category of the items screen marked by a tap
   stay marked when the list changes before the game answers: the mark could jump to a neighbouring row, and the
   tap open other goods.
 - A choice in the HUD (a sea order, a row of land actions, a world map command, the sails' position) stays

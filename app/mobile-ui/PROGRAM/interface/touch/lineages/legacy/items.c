@@ -77,6 +77,7 @@ void TouchLegItems_Rows(aref ui, ref chr, aref out)
 		int index = TouchLegItems_Index(row);
 		string id = Items[index].id;
 		aref at = TouchLib_Add(rows, "r");
+		at.id = id;
 		at.label = UiOneLine(TouchLegLib_Cell(row, 0));
 		at.image = "";
 		aref image;
@@ -122,6 +123,7 @@ void TouchLegItems_Slot(aref ui, aref out, aref slot, string node, string held, 
 	aref slots;
 	makearef(slots, out.slots);
 	aref at = TouchLib_Add(slots, "s");
+	at.id = node;
 	at.label = UiText(slot.label);
 	at.icon = slot.icon;
 	at.group = slot.group;

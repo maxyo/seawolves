@@ -370,7 +370,7 @@
     [
      "items",
      "row",
-     "1"
+     "dagger"
     ],
     [
      "item-equip",
@@ -378,14 +378,14 @@
      ""
     ],
     [
-     "slot-0",
+     "slot-ITEM_1",
      "click",
      ""
     ],
     [
      "item-tabs",
      "select",
-     "2"
+     "TABBTN_3"
     ],
     [
      "header",
@@ -456,7 +456,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": true
      },
      {
@@ -471,7 +471,7 @@
        "",
        "1.5"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": false
      },
      {
@@ -486,7 +486,7 @@
        "×3",
        "0.6"
       ],
-      "id": "r2",
+      "id": "potion1",
       "selected": false
      }
     ],
@@ -494,7 +494,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -505,63 +505,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -605,22 +605,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -1009,7 +1009,7 @@
    },
    "events": [
     [
-     "slot-0",
+     "slot-ITEM_1",
      "click",
      ""
     ],
@@ -1077,7 +1077,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": false
      },
      {
@@ -1092,7 +1092,7 @@
        "",
        "1.5"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": true
      },
      {
@@ -1107,7 +1107,7 @@
        "×3",
        "0.6"
       ],
-      "id": "r2",
+      "id": "potion1",
       "selected": false
      }
     ],
@@ -1115,7 +1115,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -1126,63 +1126,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -1226,22 +1226,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -1685,7 +1685,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": true
      },
      {
@@ -1700,7 +1700,7 @@
        "",
        "1.5"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": false
      },
      {
@@ -1715,7 +1715,7 @@
        "×3",
        "0.6"
       ],
-      "id": "r2",
+      "id": "potion1",
       "selected": false
      }
     ],
@@ -1723,7 +1723,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -1734,63 +1734,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -1844,22 +1844,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -2287,7 +2287,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": true
      },
      {
@@ -2302,7 +2302,7 @@
        "",
        "1.5"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": false
      },
      {
@@ -2317,7 +2317,7 @@
        "×3",
        "0.6"
       ],
-      "id": "r2",
+      "id": "potion1",
       "selected": false
      }
     ],
@@ -2325,7 +2325,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -2336,63 +2336,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -2436,22 +2436,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -2842,7 +2842,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": true
      },
      {
@@ -2857,7 +2857,7 @@
        "×2",
        "3.0"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": false
      }
     ],
@@ -2865,7 +2865,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -2876,63 +2876,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -2976,22 +2976,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -3402,7 +3402,7 @@
        "",
        "0.5"
       ],
-      "id": "r0",
+      "id": "amulet1",
       "selected": false
      },
      {
@@ -3418,7 +3418,7 @@
        "",
        "0.5"
       ],
-      "id": "r1",
+      "id": "amulet2",
       "selected": true
      }
     ],
@@ -3426,7 +3426,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -3437,49 +3437,49 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": false,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_2/itm6"
@@ -3490,14 +3490,14 @@
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -3541,22 +3541,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": false
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": true
      }
@@ -4437,7 +4437,7 @@
    },
    "events": [
     [
-     "slot-2",
+     "slot-ITEM_5",
      "click",
      ""
     ]
@@ -4495,7 +4495,7 @@
        "",
        "2.4"
       ],
-      "id": "r0",
+      "id": "rapier",
       "selected": true
      },
      {
@@ -4510,7 +4510,7 @@
        "",
        "1.5"
       ],
-      "id": "r1",
+      "id": "dagger",
       "selected": false
      },
      {
@@ -4525,7 +4525,7 @@
        "×3",
        "0.6"
       ],
-      "id": "r2",
+      "id": "potion1",
       "selected": false
      },
      {
@@ -4540,7 +4540,7 @@
        "",
        "3"
       ],
-      "id": "r3",
+      "id": "pistol1",
       "selected": false
      },
      {
@@ -4555,7 +4555,7 @@
        "",
        "3"
       ],
-      "id": "r4",
+      "id": "mushket1",
       "selected": false
      }
     ],
@@ -4563,7 +4563,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -4574,63 +4574,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -4674,22 +4674,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }
@@ -4715,7 +4715,7 @@
        "",
        "3"
       ],
-      "id": "r4",
+      "id": "mushket1",
       "selected": false
      }
     ],
@@ -4723,7 +4723,7 @@
      {
       "empty": false,
       "icon": "sabre",
-      "id": "0",
+      "id": "ITEM_1",
       "image": {
        "kind": "item",
        "texture": "atlas:ITEMS_1/itm1"
@@ -4734,63 +4734,63 @@
      {
       "empty": true,
       "icon": "pistol",
-      "id": "1",
+      "id": "ITEM_2",
       "label": "<items.slot_gun>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "musket",
-      "id": "2",
+      "id": "ITEM_5",
       "label": "<items.slot_musket>",
       "selected": true
      },
      {
       "empty": true,
       "icon": "spyglass",
-      "id": "3",
+      "id": "ITEM_3",
       "label": "<items.slot_spyglass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "shield",
-      "id": "4",
+      "id": "ITEM_4",
       "label": "<items.slot_cirass>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-ruby",
-      "id": "5",
+      "id": "ITEM_6",
       "label": "<items.slot_talisman>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "compass",
-      "id": "6",
+      "id": "ITEM_7",
       "label": "<items.slot_tool>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "7",
+      "id": "SLOT_ITEM_1",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "8",
+      "id": "SLOT_ITEM_2",
       "label": "<items.slot_amulet>",
       "selected": false
      },
      {
       "empty": true,
       "icon": "c-amulet",
-      "id": "9",
+      "id": "SLOT_ITEM_3",
       "label": "<items.slot_amulet>",
       "selected": false
      }
@@ -4834,22 +4834,22 @@
     },
     "tabs": [
      {
-      "id": "0",
+      "id": "TABBTN_1",
       "label": "All",
       "selected": true
      },
      {
-      "id": "1",
+      "id": "TABBTN_2",
       "label": "Gear",
       "selected": false
      },
      {
-      "id": "2",
+      "id": "TABBTN_3",
       "label": "Misc",
       "selected": false
      },
      {
-      "id": "3",
+      "id": "TABBTN_4",
       "label": "Amulets",
       "selected": false
      }

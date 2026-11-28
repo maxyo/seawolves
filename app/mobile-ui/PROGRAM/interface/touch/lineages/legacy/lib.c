@@ -227,7 +227,8 @@ void TouchLegLib_Confirm(aref model, int amount, string row)
 }
 
 // The game's category tabs TABBTN_<n> with their captions TABSTR_<n> as {node (pressed: the caption where it takes
-// it), label (`words` t<n>, else the game's), selected, can}; none without tabs.
+// it), id (the tab's button: it stays when other tabs come or go), label (`words` t<n>, else the game's), selected,
+// can}; none without tabs.
 void TouchLegLib_Tabs(aref model, aref words, aref out)
 {
 	aref tabs;
@@ -239,7 +240,7 @@ void TouchLegLib_Tabs(aref model, aref words, aref out)
 		string word = "t" + position;
 		if (CheckAttribute(model, button) && TouchLegLib_Label(model, caption) != "")
 		{
-			object tab = {node = button, label = model.(caption).label, selected = model.(button).value == "1"};
+			object tab = {id = button, node = button, label = model.(caption).label, selected = model.(button).value == "1"};
 			if (CheckAttribute(model, caption + ".offers.press")) tab.node = caption;
 			if (CheckAttribute(words, word)) tab.label = UiText(words.(word));
 			tab.can = UiOffers(tab.node, "press");

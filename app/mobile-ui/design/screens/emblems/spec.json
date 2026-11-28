@@ -1,6 +1,6 @@
 {
   "tag": "s-emblems",
-  "doc": "Screen part of the sail emblem screen: the ribbon of emblems painted on sailcloth (game textures at run time), the chosen one framed, the one on the sails captioned. A tap reports `emblem` with the emblem's index.",
+  "doc": "Screen part of the sail emblem screen: the ribbon of emblems painted on sailcloth (game textures at run time), the chosen one framed, the one on the sails captioned. A tap reports `emblem` with the emblem's id (its index for one without).",
   "props": {
     "items": {"type": "json", "default": []},
     "size": {"type": "int", "default": 124},
