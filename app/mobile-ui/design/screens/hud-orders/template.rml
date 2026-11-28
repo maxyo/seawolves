@@ -2,11 +2,11 @@
 <div class="ho-place"><c-panel class="ho-panel" tone="veil" pad="0" gap="0" edge="1">
 <c-header class="ho-header" key="sheet" title="{{title}}" sections="" back="{{ back ? 1 : 0 }}" close="{{ back ? 0 : 1 }}"/>
 <div class="ho-body">
-<div class="ho-ships"><t-for each="recipients" as="r"><c-list-row id="{{r.id}}" image="{{ json(r.image) }}" title="{{r.title}}" meta="{{ or(r.meta, '') }}" value="{{ or(r.value, '') }}" selected="{{ r.selected ? 1 : 0 }}"/><t-if test="opt(r.bars)"><div class="ho-bars"><c-bar mode="hud" kind="health" value="{{opt(r.bars.hull)}}" height="{{spec.barHeight}}"/><c-bar mode="hud" kind="sails" value="{{opt(r.bars.sails)}}" height="{{spec.barHeight}}"/><c-bar mode="hud" kind="crew" value="{{opt(r.bars.crew)}}" height="{{spec.barHeight}}"/></div></t-if></t-for></div>
+<div class="ho-ships"><t-for each="recipients" as="r"><c-list-row id="{{r.id}}" image="{{ json(r.image) }}" title="{{r.title}}" meta="{{ r.meta }}" value="{{ r.value }}" selected="{{ r.selected ? 1 : 0 }}"/><t-if test="opt(r.bars)"><div class="ho-bars"><c-bar mode="hud" kind="health" value="{{opt(r.bars.hull)}}" height="{{spec.barHeight}}"/><c-bar mode="hud" kind="sails" value="{{opt(r.bars.sails)}}" height="{{spec.barHeight}}"/><c-bar mode="hud" kind="crew" value="{{opt(r.bars.crew)}}" height="{{spec.barHeight}}"/></div></t-if></t-for></div>
 <div class="ho-orders">
 <t-if test="crumb"><div class="ho-crumb"><c-label text="{{crumb}}"/></div></t-if>
 <t-if test="len(tiles) > 0"><div class="ho-tiles"><t-for each="tiles" as="o"><div class="ho-tile"><c-tile id="{{o.id}}" label="{{o.title}}" icon="{{o.image.icon}}" layout="column" size="{{spec.tileIcon}}" pressed="{{ o.pressed ? 1 : 0 }}" disabled="{{ o.disabled ? 1 : 0 }}"/></div></t-for></div></t-if>
-<t-for each="rows" as="o"><c-list-row id="{{o.id}}" image="{{ json(o.image) }}" title="{{o.title}}" pressed="{{ o.pressed ? 1 : 0 }}" disabled="{{ o.disabled ? 1 : 0 }}" cooldown="{{ or(o.cooldown, 0) }}"/></t-for>
+<t-for each="rows" as="o"><c-list-row id="{{o.id}}" image="{{ json(o.image) }}" title="{{o.title}}" pressed="{{ o.pressed ? 1 : 0 }}" disabled="{{ o.disabled ? 1 : 0 }}" cooldown="{{ o.cooldown }}"/></t-for>
 </div>
 </div>
 </c-panel></div>

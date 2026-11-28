@@ -1,9 +1,9 @@
 <c-screen id="header" key="header" title="{{title}}" stats="{{ json(stats) }}" back-disabled="{{ locked ? 1 : 0 }}" actions="{{ json(extras.actions) }}">
 <div class="tg-main">
-<div class="tg-table"><c-game-table opponent="{{table.opponent}}" portrait="{{table.portrait}}" line="{{table.line}}" bank="{{table.bank}}" coins="{{ or(table.coins, 'silver') }}" bank-x="46%" bank-y="50%">
-<div class="tg-top"><s-pieces id="top" pieces="{{ json(top.pieces) }}" label="{{top.label}}" size="{{ or(top.size, 44) }}" below="{{ opt(top.below) ? 1 : 0 }}"/></div>
+<div class="tg-table"><c-game-table opponent="{{table.opponent}}" portrait="{{table.portrait}}" line="{{table.line}}" bank="{{table.bank}}" coins="{{ table.coins }}" bank-x="46%" bank-y="50%">
+<div class="tg-top"><s-pieces id="top" pieces="{{ json(top.pieces) }}" label="{{top.label}}" size="{{ top.size }}" below="{{ opt(top.below) ? 1 : 0 }}"/></div>
 <div class="tg-pack"><s-pieces id="pack" pieces="{{ json(pack) }}" size="{{ kind == 'cards' ? 90 : 80 }}"/></div>
-<div class="tg-bottom"><s-pieces id="bottom" pieces="{{ json(bottom.pieces) }}" label="{{bottom.label}}" size="{{ or(bottom.size, 60) }}"/></div>
+<div class="tg-bottom"><s-pieces id="bottom" pieces="{{ json(bottom.pieces) }}" label="{{bottom.label}}" size="{{ bottom.size }}"/></div>
 </c-game-table></div>
 <div class="tg-side"><div class="tg-grow"></div>
 <t-for each="buttons" as="b"><c-button id="{{b.id}}" variant="{{b.variant}}" size="{{ b.variant == 'primary' ? 'lg' : 'md' }}" label="{{b.label}}" sub="{{b.sub}}" disabled="{{ b.disabled ? 1 : 0 }}" reason="{{b.reason}}" busy="{{ b.busy ? 1 : 0 }}" style="width: 100%"/></t-for>
