@@ -10,7 +10,7 @@
 #include "hud.h"
 #include "app_ui_names.hpp"
 #include "../component_spec.h"
-#include "../screens/amount.h"
+#include "../numbers.h"
 #include "../screens/format.h"
 #include "../screens/script_props.h"
 
@@ -1075,13 +1075,13 @@ class ScriptScene final : public Scene, private ScriptCall
     }
     int Amount(const std::string &text, const std::string &what) const override
     {
-        if (const std::optional<int> value = screens::ParseAmount(text))
+        if (const std::optional<int> value = ParseAmount(text))
             return *value;
         throw std::runtime_error("no number in " + what + " ('" + text + "')");
     }
     bool HasAmount(const std::string &text) const override
     {
-        return screens::ParseAmount(text).has_value();
+        return ParseAmount(text).has_value();
     }
     double Number(const std::string &, const std::string &) const override
     {

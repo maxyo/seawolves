@@ -1,5 +1,4 @@
-// Which implementation draws which game interface: a ported screen by interface id, the
-// generic layout for every other one.
+// The C++ screens by id (the application's own: every game interface is a script screen) and the state consumers.
 #include "screen.h"
 
 #include "../hud/hud.h"
@@ -23,8 +22,8 @@ namespace
 {
 
 const ScreenEntry kPorted[] = {
-    // The application's own screens, routed from the platform host's "launcher" channel; the
-    // "app:" prefix keeps them apart from game interfaces (ids are ini stems, e.g. "about").
+    // Routed from the platform host's "launcher" channel; the "app:" prefix keeps them apart from game interfaces
+    // (ids are ini stems, e.g. "about").
     {"app:launcher", CreateLauncherScreen},
     {"app:downloads", CreateDownloadsScreen},
     {"app:about", CreateAboutScreen},

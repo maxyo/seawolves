@@ -26,4 +26,10 @@ template <class T> std::optional<T> ParseNumber(std::string_view text)
     return value;
 }
 
+// The first whole number of a game text. Its digits may be grouped by thousands with a space or a no-break space
+// ("23 824", "11 575" → 23824; a group is exactly three digits, so "5 10" → 5); a minus sign right before
+// the first digit makes it negative ("-3"); it ends at any other character ("4.6 / 140" → 4, "40 : 9 / 40" → 40,
+// "100%" → 100). nullopt when the text holds no digit ("", "-", "—") or the number does not fit an int.
+std::optional<int> ParseAmount(std::string_view text);
+
 } // namespace storm::ui

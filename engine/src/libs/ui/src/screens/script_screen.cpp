@@ -4,7 +4,6 @@
 #include "deal.h"
 #include "format.h"
 #include "script_props.h"
-#include "amount.h"
 #include "../numbers.h"
 #include "../text_utf8.h"
 #include "storm_ui/interface_model.h"

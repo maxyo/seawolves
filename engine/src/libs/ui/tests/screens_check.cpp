@@ -5,7 +5,7 @@
 #include "../tools/script_game.h"
 #include "../src/hud/hud.h"
 #include "../src/picture_atlas.h"
-#include "../src/screens/amount.h"
+#include "../src/numbers.h"
 #include "../src/screens/deal.h"
 #include "../src/screens/format.h"
 #include "storm_ui/dialogue_state.h"
@@ -3908,7 +3908,7 @@ static void SailEmblem(const std::string &models)
     ScriptGame::Get().Set("TestHero.Money", "12480");
 }
 
-// The one reading of a number in a game caption (screens/amount.h) and the error line when a caption that always
+// The one reading of a number in a game caption (numbers.h) and the error line when a caption that always
 // carries one comes without it.
 static void Amounts(const std::string &models)
 {

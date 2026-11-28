@@ -1,7 +1,5 @@
 #include "deal.h"
 
-#include "amount.h"
-
 #include <algorithm>
 #include <cstdlib>
 

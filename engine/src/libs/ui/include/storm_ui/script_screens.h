@@ -202,8 +202,8 @@ class ScriptCall
     // Something the screen cannot do as designed: the build or event fails with it, and the interface is closed.
     virtual void Error(const std::string &text) = 0;
 
-    // The figures of the game's texts, read by the rules every screen reads them by (screens/amount.h): Amount and
-    // Number throw, naming `what`, when the text holds none; HasAmount: whether it holds a whole number.
+    // The figures of the game's texts, read by the rules every screen reads them by (src/numbers.h ParseAmount): Amount
+    // and Number throw, naming `what`, when the text holds none; HasAmount: whether it holds a whole number.
     virtual int Amount(const std::string &text, const std::string &what) const = 0;
     virtual bool HasAmount(const std::string &text) const = 0;
     virtual double Number(const std::string &text, const std::string &what) const = 0;

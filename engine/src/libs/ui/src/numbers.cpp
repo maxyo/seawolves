@@ -1,9 +1,9 @@
-// ParseAmount (amount.h) alone, with no screen or text library behind it: the script checks read amounts by it too.
-#include "amount.h"
+// ParseAmount (numbers.h): no screen or text library behind it, the script checks read amounts by it too.
+#include "numbers.h"
 
 #include <climits>
 
-namespace storm::ui::screens
+namespace storm::ui
 {
 
 namespace
@@ -62,4 +62,4 @@ std::optional<int> ParseAmount(std::string_view text)
     return static_cast<int>(negative ? -value : value);
 }
 
-} // namespace storm::ui::screens
+} // namespace storm::ui

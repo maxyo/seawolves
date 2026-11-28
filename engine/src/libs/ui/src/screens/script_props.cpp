@@ -1,7 +1,6 @@
 #include "script_props.h"
 
 #include "../numbers.h"
-#include "pictures.h"
 #include "storm_ui/interface_model.h"
 
 #include <algorithm>
@@ -12,6 +11,37 @@ namespace storm::ui::screens
 {
 namespace
 {
+// The unified row image {kind:"item", texture:"atlas:GROUP/Picture"} for a picture the
+// engine names by its pictures.ini group, {kind:"portrait", texture:"INTERFACES/PORTRAITS/
+// 128/face_N"} for a game portrait, {kind:"item", texture:"<name under RESOURCE/Textures>"} for any
+// other game texture; null when the widget carries no such reference.
+Json PictureOf(const ImageRef *image)
+{
+    if (image && image->kind == "portrait" && !image->image.empty())
+        return Json{{"kind", "portrait"}, {"texture", "INTERFACES/PORTRAITS/128/face_" + image->image}};
+    if (image && image->kind == "texture" && !image->image.empty())
+        return Json{{"kind", "item"}, {"texture", image->image}};
+    if (!image || image->kind != "atlas" || image->group.empty() || image->image.empty())
+        return Json();
+    return Json{{"kind", "item"}, {"texture", "atlas:" + image->group + "/" + image->image}};
+}
+
+// {texture, uv} for <ui-game-image> (c-map-view, backdrops): a texture file of the game with
+// the rectangle shown ("interfaces/maps/kayman", "0,0,1,1") or an atlas picture ("atlas:GROUP/
+// Picture", ""); null for any other picture.
+Json TextureOf(const ImageRef *image)
+{
+    if (image && image->kind == "texture" && !image->image.empty())
+    {
+        char uv[96];
+        std::snprintf(uv, sizeof uv, "%g,%g,%g,%g", image->uv[0], image->uv[1], image->uv[2], image->uv[3]);
+        return Json{{"texture", image->image}, {"uv", uv}};
+    }
+    if (image && image->kind == "atlas" && !image->group.empty() && !image->image.empty())
+        return Json{{"texture", "atlas:" + image->group + "/" + image->image}, {"uv", ""}};
+    return Json();
+}
+
 std::runtime_error Mismatch(const std::string &path, const std::string &what)
 {
     return std::runtime_error("view " + path + ": " + what);

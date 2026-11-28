@@ -3,6 +3,7 @@
 // engine actions. See README.md in this directory for how to add one.
 #pragma once
 
+#include "../numbers.h"
 #include "../template.h"
 #include "../requests.h"
 #include "storm_ui/interface_model.h"
@@ -234,6 +235,19 @@ class Bindings
     std::unordered_map<std::string, Handler> handlers_;
     std::optional<Json> handled_; // PredictThis of the running handler
 };
+
+// The number an event of the pack carries (a row index, a slider value, a tab) into `out`: ParseNumber, else an
+// error line naming the event and false, and the handler does nothing.
+template <class T> bool EventNumber(Bindings &bindings, const Event &event, T &out)
+{
+    if (const std::optional<T> value = ParseNumber<T>(event.value))
+    {
+        out = *value;
+        return true;
+    }
+    bindings.Error(event.id + " " + event.verb + ": '" + event.value + "' is not a number, nothing done");
+    return false;
+}
 
 class Screen
 {

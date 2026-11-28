@@ -10,7 +10,7 @@
 #include "save_state.hpp"
 #include "script_libriary.h"
 #include "script_port.hpp"
-#include "screens/amount.h"
+#include "numbers.h"
 #include "screens/script_props.h"
 #include "storm_ui/interface_model.h"
 #include "v_s_stack.h"
@@ -317,16 +317,16 @@ struct Calls final : storm::ui::ScriptCall
     {
         throw std::runtime_error(text);
     }
-    // The production reading (screens/amount.h), so a case sees the amount the engine sees.
+    // The production reading (numbers.h), so a case sees the amount the engine sees.
     int Amount(const std::string &text, const std::string &what) const override
     {
-        if (const std::optional<int> value = storm::ui::screens::ParseAmount(text))
+        if (const std::optional<int> value = storm::ui::ParseAmount(text))
             return *value;
         throw std::runtime_error("no number in " + what + " ('" + text + "')");
     }
     bool HasAmount(const std::string &text) const override
     {
-        return storm::ui::screens::ParseAmount(text).has_value();
+        return storm::ui::ParseAmount(text).has_value();
     }
     double Number(const std::string &text, const std::string &what) const override
     {

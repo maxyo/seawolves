@@ -2,54 +2,45 @@
 
 The engine describes every open game interface as an `InterfaceModel`
 (`include/storm_ui/interface_model.h`): the interface id and its widgets in reading order.
-`Host::SetInterface` routes the model to a *screen*: C++ code here that turns the widgets
-into the props of a pack screen (`<s-…>`, the application's
-`mobile-ui/design/screens/<name>/`) and component events back into engine actions.
-Interfaces without a screen get the generic layout, a script of the touch interface (`universal/generic.c`, the
-script screens of `kAnyInterface`); without it attached such an interface is closed with an error line.
+`Host::SetInterface` routes the model to a *screen* that turns the widgets into the props of a pack screen (`<s-…>`,
+the application's `mobile-ui/design/screens/<name>/`) and component events back into engine actions.
 
-A *script screen* (`script_screen.h`) is the same thing written in the game's script language by the touch
-interface's scripts (`Host::SetScriptScreens`, preferred to a ported screen of the same interface): the router admits
-its nodes as for any screen, its script builds the view through the engine's VM side (`storm_ui/script_screens.h`,
-engine `src/libs/ui_host/README.md`) and binds the events it answers; `script_props.h` converts the view to the pack
-screen's props by their types and, for a `json` prop, by its `shape` in the spec.
+Every game interface is drawn by a *script screen* (`script_screen.h`): the touch interface's scripts
+(`app/mobile-ui/PROGRAM/interface/touch`, its README) attach one per capability (`Host::SetScriptScreens`); the router
+admits its nodes, its script builds the view through the engine's VM side (`storm_ui/script_screens.h`, engine
+`src/libs/ui_host/README.md`) and binds the events it answers; `script_props.h` converts the view to the pack screen's
+props by their types and, for a `json` prop, by its `shape` in the spec. An interface no capability names gets the
+generic layout, a script screen too (`universal/generic.c`, interface `*`); without it attached such an interface is
+closed with an error line. The application's own screens (`app:launcher`, `app:downloads`, `app:about`, routed from
+the platform host's "launcher" channel) are C++ (`launcher.cpp`): they run before any game script exists.
 
 ```text
-engine ──InterfaceModel──▶ Router ──admission──▶ script or ported Screen ─┐
-                                   └─(unknown id)─▶ generic layout ──────────┤─▶ props ─▶ <s-…> in the pack
+engine ──InterfaceModel──▶ Router ──admission──▶ script screen ────────────┐
+                                   └─(no capability)─▶ generic layout ─────┤─▶ props ─▶ <s-…> in the pack
 engine ◀──────Action {screen, opening, node, index, verb, value}──┘◀─ events (id, verb, value)
 ```
 
-## Adding a screen
+| File | What |
+|---|---|
+| `screen.h` | the runtime's types: `Screen`, `Bindings` (events, actions, modals, predictions), `NodeRule`, `Admission`, `StateConsumer`, `EventNumber` |
+| `router.cpp` | the router: admission, extras, the request ledger, predictions, modals, state channels |
+| `registry.cpp` | the C++ screens by id (the `app:` screens) and the state consumers |
+| `script_screen.*`, `script_props.*` | a script screen on the router; its view to props, the game's pictures as the pack draws them |
+| `deal.*` | the amount draft behind the `UiDeal` native |
+| `format.*` | texts of the natives, the HUD and the launcher: a game text on one line, `{1}` filled, decimals, sizes |
+| `app_settings.*` | the application's settings: the options' table (`UiState("appOptions")`), the draft, the consumers of `appSettings` and `renderCaps` |
+| `menu_states.cpp` | the menus' state consumers: the death picture as the `game_over` model, the title's intent note, the load and save failure alerts |
+| `dialogue.cpp` | the dialogue's fixture JSON (`Host::SetDialogue` takes the typed state) |
+| `launcher.cpp` | the application's own screens and the "launcher" channel |
 
-1. **Pack.** `mobile-ui/design/screens/<name>/spec.json` (tag `s-<name>`, one prop per
-   part of the view, plus `"extras": {"type": "json"}`), `template.rml` built only from
-   shared `<c-…>` components and the screen parts (`s-extras`, `s-note`, `s-control`,
-   `s-block`, `s-actions`), `style.rcss` with layout only (flex, sizes in dp or %, colours
-   as tokens). The root is `<c-screen id="header" key="header" … actions="{{ json(extras.actions) }}">`
-   and ends with `<s-extras id="extras" extras="{{ json(extras) }}"/>`; put
-   `<s-note id="extras-note" text="{{extras.note}}"/>` under the main block. Nothing may
-   assume a fixed size: the viewport is the real dp size of the display.
-2. **C++.** A class derived from `Screen` (`screen.h`) in `src/screens/<zone>_<name>.cpp`:
-   - `Component()` → `"s-<name>"`;
-   - `Nodes()` → every node the design draws with the type it expects (`"a|b"` alternatives,
-     `NAME*` prefix); `required = true` marks REQUIRED. REQUIRED names only what the game always
-     sends: a table with no rows comes as one `table` widget, so a table is required as
-     `"choice|table"` and its rows are read with `admitted.Rows(node)`;
-   - `Build(admitted, bindings)` → the props (JSON). Read widgets with `admitted.One/All/Rows/Label`;
-     bind every interactive element by its id: `bindings.Forward(id, widget, "press")`,
-     `bindings.On(id, verb, handler)` and inside a handler `bindings.Send`, `SendLatest` (drags),
-     `Back(exit)`, `EditText` / `AskText`, `Read`, `Rebuild()`, `SendHost(node, value)` (a setting of
-     the application). Declare every modal the view shows with `bindings.Modal(id, cancel)`, topmost
-     last; `cancel` must do what the modal's ✕ / Cancel does, `nullptr` makes it mandatory (scrim
-     tap and back key are refused and logged). Never bind `dismiss` by hand. Something else the back
-     key closes first returns true from `OwnsBack()` and closes it in `Back()`. Mark expected events
-     that need nothing with `bindings.Ignore(id, verb)`.
-   Add the file to `CMakeLists.txt`.
-3. **Registry.** Add `{"<interface id>", Create…}` to `kPorted` in `registry.cpp`.
-4. **Tests.** Add a synthetic model to `tests/models/`, extend `tests/screens_check.cpp`
-   (admission, the props that matter, every action mapping) and add every modal of the screen
-   to the walk in `tests/modals_check.cpp`.
+## A C++ screen
+
+Only an application screen is C++. A class derived from `Screen` (`screen.h`): `Component()` → `"s-<name>"`;
+`Nodes()` → the nodes it draws with their types (`"a|b"` alternatives, `NAME*` prefix, `required`); `Build(admitted,
+bindings)` → the props, reading widgets with `admitted.One/All/Rows/Label` and binding every interactive element by
+its id (`bindings.Forward`, `On`, `Send`, `Back`, `Modal(id, cancel)`, `Ignore`, `SendHost`). Registered in `kPorted`
+(`registry.cpp`) with its `app:` id; checked in `tests/` with a synthetic model. A game interface is a script screen:
+"Adding a screen" in the touch interface's README.
 
 Element ids: an event carries the id of the nearest ancestor that has one. Components
 inside lists report under the list's id with their own verb (`goods row 3`,
@@ -136,7 +127,7 @@ frame of a predicted tap is its feedback and is not judged as a transient state;
 Screens never contain player text of their own. Texts the game sends pass through; everything
 else is a key of the pack's string table (`mobile-ui/design/strings/<lang>.json`):
 
-- C++: `bindings.Text("trade.price")`; a key kept in a table goes through
+- scripts: `UiText("trade.price")`; C++: `bindings.Text("trade.price")`, a key kept in a table goes through
   `StringKey("trade.store")` so the pack build still sees it;
 - templates: `{{ tr('common.next') }}`.
 
@@ -147,11 +138,10 @@ to `Roles` in `tests/screens_check.cpp`.
 
 ## Game pictures in rows
 
-`PictureOf(image)` (pictures.h) turns a `pictures.ini` reference into a row image
-(`atlas:GROUP/Picture`); `TextureOf(image)` gives `{texture, uv}` for
-`<ui-game-image texture uv [fit="contain|cover"]>`; a script's view gives them as its `picture` and `texture` shapes
-(`script_props.cpp`).
-Pictures are resolved from the game root at run time; nothing of the game is bundled.
+A script's view gives a game picture as its `picture` shape (a row image `{kind, texture}`: `atlas:GROUP/Picture` for
+a `pictures.ini` reference, a portrait, a game texture) or its `texture` shape (`{texture, uv}` for
+`<ui-game-image texture uv [fit="contain|cover"]>`), converted in `script_props.cpp`. Pictures are resolved from the
+game root at run time; nothing of the game is bundled.
 
 ## State channels
 
