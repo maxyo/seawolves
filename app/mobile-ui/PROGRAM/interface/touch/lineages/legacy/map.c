@@ -343,7 +343,12 @@ void TouchAdpMap_State(aref ui, aref out)
 	for (k = 0; k < TouchLib_Count(model, "TABLE_MAPS.rows"); k++)
 	{
 		aref listed = TouchLib_Item(model, "TABLE_MAPS.rows", k);
-		object entry = {label = listed.cells.c0.text, selected = listed.value == "1", can = sti(listed.enabled)};
+		// The game's row tr<n> holds the map it lists (mapview.c: the item's index).
+		string tr = "tr" + (sti(listed.index) + 1);
+		if (!CheckAttribute(&GameInterface, "TABLE_MAPS." + tr + ".index"))
+			UiError("map: the maps' row " + tr + " has no map");
+		object entry = {key = GameInterface.TABLE_MAPS.(tr).index, label = listed.cells.c0.text,
+		                selected = listed.value == "1", can = sti(listed.enabled)};
 		aref at = TouchLib_Add(maps, "m");
 		CopyAttributes(at, &entry);
 	}

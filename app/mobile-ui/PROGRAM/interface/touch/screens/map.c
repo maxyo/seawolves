@@ -94,6 +94,7 @@ void TouchMap_Build()
 	{
 		aref listed = TouchLib_Item(&game, "maps", k);
 		aref row = TouchLib_Add(rows, "r");
+		row.id = listed.key;
 		row.cells.c0.text = listed.label;
 		row.cells.c0.icon = "map";
 		row.selected = listed.selected;
@@ -131,5 +132,7 @@ void TouchMap_Tap()
 	}
 	object game;
 	TouchAdpMap_State(ui, &game);
-	TouchAdpMap_Choose(ui, TouchLib_TapIndex(value, TouchLib_Count(&game, "maps"), "map row"));
+	int map = TouchLib_Find(&game, "maps", "key", value);
+	if (map < 0) return; // the map tapped is no longer carried
+	TouchAdpMap_Choose(ui, map);
 }

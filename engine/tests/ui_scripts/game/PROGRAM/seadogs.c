@@ -314,6 +314,12 @@ void TestItems()
 	// The guns' window's rows: the goods of the 3 lb and the 6 lb guns in the hold.
 	GameInterface.CANNONS_TABLE.tr1.index = 10;
 	GameInterface.CANNONS_TABLE.tr2.index = 11;
+	// The maps' window's rows tr2..tr6 (the recorded models number them from 1): the maps' items.
+	GameInterface.TABLE_MAPS.tr2.index = 60;
+	GameInterface.TABLE_MAPS.tr3.index = 61;
+	GameInterface.TABLE_MAPS.tr4.index = 62;
+	GameInterface.TABLE_MAPS.tr5.index = 63;
+	GameInterface.TABLE_MAPS.tr6.index = 64;
 }
 
 // The sail emblem window's price of the work (SailsGerald.c's global there, set by the checks to the recorded state's)

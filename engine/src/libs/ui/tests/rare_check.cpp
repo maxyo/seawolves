@@ -165,7 +165,7 @@ static void Maps(const std::string &models)
     Expect(surface.props["maps"].size() == 5 && surface.props["maps"][1]["selected"] == true &&
                surface.props["maps"][1]["cells"][0]["text"] == "Карта Мартиники" && surface.props["info"].is_null(),
            "the atlas lists the hero's maps, the shown one selected");
-    router.OnEvent({"maps", "row", "2"});
+    router.OnEvent({"maps", "row", Drawn(surface, "/maps", 2)});
     ExpectEqual(surface.Last(), "widget:mapview\tTABLE_MAPS\t3\tselect@7:3", "a map row selects it");
     router.OnEvent({"map", "point", "1024.0,900.5"});
     ExpectEqual(surface.Last(), "widget:mapview\tMAP\t-1\tpoint@7:1024.0,900.5",
