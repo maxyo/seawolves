@@ -42,15 +42,16 @@ inline std::string field(std::string_view value)
     return std::to_string(value.size()) + ":" + std::string(value);
 }
 // Moor is bound to the reload object the script references and its locator, never to a
-// translated caption or a guessed location.
+// translated caption or a guessed location. A locator object (reload.l1) has children and no value
+// of its own: GetValue is read only behind HasValue.
 inline bool locatorIdentity(ATTRIBUTES *attributes, std::string &identity, unsigned depth = 0)
 {
     if (!attributes || depth > 12 || identity.size() > 32768 || attributes->GetAttributesNum() > 256)
         return false;
-    if (std::string_view(attributes->GetThisName()).size() > 128 || attributes->GetValue().size() > 4096)
+    const std::string_view value = attributes->HasValue() ? std::string_view(attributes->GetValue()) : "";
+    if (std::string_view(attributes->GetThisName()).size() > 128 || value.size() > 4096)
         return false;
-    identity +=
-        field(attributes->GetThisName()) + field(attributes->HasValue() ? std::string(attributes->GetValue()) : "");
+    identity += field(attributes->GetThisName()) + field(value);
     for (size_t i = 0; i < attributes->GetAttributesNum(); ++i)
         if (!locatorIdentity(attributes->GetAttributeClass(static_cast<uint32_t>(i)), identity, depth + 1))
             return false;

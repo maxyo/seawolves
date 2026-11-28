@@ -138,6 +138,11 @@ storm_host_check(android_sea_orders.lifecycle SOURCES lifecycle.cpp ${core_fake_
     INCLUDES ${core_fake_android_includes} ${src}/libs/battle_interface/src/sea DEFINES ${core_fake_android_defines}
     OPTIONS -O1 -g -fno-omit-frame-pointer -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(android_sea_quick_action INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
+# _GLIBCXX_ASSERTIONS: reading an attribute's absent value (an empty std::optional) stops the check.
+storm_host_check(android_sea_quick_action.moor SOURCES moor.cpp ${core_fake_sources}
+    ${src}/libs/battle_interface/src/sea/ships_list.cpp
+    INCLUDES ${core_fake_android_includes} ${src}/libs/battle_interface/src DEFINES ${core_fake_android_defines}
+    _GLIBCXX_ASSERTIONS OPTIONS -O1 -g -fno-omit-frame-pointer -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(android_ship_telemetry INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_shortcuts INCLUDES ${util_include} OPTIONS ${asan} CATCH2)
 storm_host_check(android_spyglass INCLUDES ${util_include} OPTIONS ${asan} CATCH2)

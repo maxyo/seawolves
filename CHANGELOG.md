@@ -32,6 +32,8 @@
 - Выход из моря на карту мира или на берег больше не читает освобождённую память корабля: раньше
   после конца морской сцены боевой интерфейс касаний читал данные уже удалённого корабля, что могло закончиться
   вылетом.
+- Кнопка «Причалить» у острова больше не читает несуществующее значение точки причала: раньше её цель
+  собиралась с чтением мимо данных, и кнопка могла пропадать у причала или, реже, приводить к вылету.
 - Строка товара в магазине и трюме, флаг в «Нациях», корабль на верфи, предмет, ячейка и вкладка в «Предметах»,
   отмеченные касанием, остаются отмеченными,
   если список успел измениться до ответа игры: раньше отметка могла перескочить на соседнюю строку, а касание —
@@ -232,6 +234,8 @@
   a pixel softer or sharper.
 - Leaving the sea for the world map or the shore no longer reads a ship's freed memory: the touch HUD
   read the data of a ship already deleted at the end of the sea scene, which could end in a crash.
+- The «Moor» button at an island no longer reads a value the mooring point does not have: its target was
+  built by a read past the data, and the button could be missing at a mooring point or, more rarely, crash.
 - A goods row of the store and of the hold, a flag of the nations screen, a ship of the shipyard and an item, slot
   or category of the items screen marked by a tap
   stay marked when the list changes before the game answers: the mark could jump to a neighbouring row, and the
