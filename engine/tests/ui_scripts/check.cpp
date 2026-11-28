@@ -744,172 +744,10 @@ TEST_CASE("the rest screen's script gives the pack screen the props and actions 
     CHECK(GameState(vm) == before);
 }
 
-// The trade screens' script on recorded models of each trade window (the store's is the reference screen): the props
-// its view gives, and what its events send: a row opened, an amount offered to the game's window, the deal confirmed,
-// the window left.
-TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")
-{
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("trade");
-    for (const std::string capability :
-         {"trade_store", "trade_contraband", "trade_cannons", "trade_items", "trade_loot"})
-    {
-        INFO(capability);
-        const auto &screen = Screen(vm, capability);
-        const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + capability + ".json"));
-        for (const Json &recorded : fixture.at("cases"))
-        {
-            INFO(recorded.at("name").get<std::string>());
-            storm::ui::InterfaceModel model;
-            REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-            Calls calls(*spec);
-            calls.widgets = model.widgets;
-            port.Build(screen, calls.Single(), calls);
-            calls.first = false;
-            CHECK(calls.props == recorded.at("props"));
-            for (const Json &event : recorded.at("events"))
-            {
-                REQUIRE(calls.Binds(event[0], event[1]));
-                port.Event(screen, event[0], event[1], event[2], calls);
-            }
-            CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-        }
-    }
-}
-
-// The nations screen's script on its recorded model over the fixture game's nations: the props its view gives, and
-// what its events send: a flag picked by the game's ›, the game's help read, a section opened, the screen left.
-TEST_CASE("the nations screen's script gives the pack screen the props and actions of the recorded model")
-{
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("nations");
-    const auto &screen = Screen(vm, "nations");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/nations.json"));
-    for (const Json &recorded : fixture.at("cases"))
-    {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        SetGame(recorded);
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        calls.first = false;
-        CHECK(calls.props == recorded.at("props"));
-        // "rebuilds": more builds of the same model, after which the game was asked "asked.before" questions
-        for (int n = 0; n < recorded.value("rebuilds", 0); n++)
-            port.Build(screen, calls.Single(), calls);
-        if (recorded.contains("asked"))
-            CHECK(vm.Integer("TestFlagAsked") == recorded.at("asked").at("before").get<int>());
-        for (const Json &event : recorded.at("events"))
-        {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
-        }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-        if (recorded.contains("after")) // the build of the game's answer to the events
-        {
-            calls.answer = "applied";
-            port.Build(screen, calls.Single(), calls);
-            CHECK(calls.props == recorded.at("after"));
-        }
-        if (recorded.contains("asked"))
-            CHECK(vm.Integer("TestFlagAsked") == recorded.at("asked").at("after").get<int>());
-    }
-}
-
-// The crew hire's script on recorded models of hirecrew: the props its view gives, and what its events send (an
-// amount offered to the game's window, the deal confirmed, another ship, leaving).
-TEST_CASE("the crew hire's script gives the pack screen the props and actions of the recorded models")
-{
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("crew");
-    const auto &screen = Screen(vm, "crew_hire");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/crew_hire.json"));
-    for (const Json &recorded : fixture.at("cases"))
-    {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        CHECK(calls.props == recorded.at("props"));
-        for (const Json &event : recorded.at("events"))
-        {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
-        }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-    }
-}
-
-// The sail emblem's script on recorded models of sailsgerald: the props its view gives, and what its events send (an
-// emblem chosen, the work the game offers, leaving).
-TEST_CASE("the sail emblem's script gives the pack screen the props and actions of the recorded models")
-{
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("sail-emblem");
-    const auto &screen = Screen(vm, "sail_emblem");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/sail_emblem.json"));
-    for (const Json &recorded : fixture.at("cases"))
-    {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        SetGame(recorded);
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        CHECK(calls.props == recorded.at("props"));
-        for (const Json &event : recorded.at("events"))
-        {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
-        }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-    }
-}
-
-// The self repair's script on recorded models of repair: the props its view gives, and what its events send (a part
-// ordered by the game's arrows, the repair, all ships, another ship, leaving).
-TEST_CASE("the self repair's script gives the pack screen the props and actions of the recorded models")
-{
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("repair");
-    const auto &screen = Screen(vm, "self_repair");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/self_repair.json"));
-    for (const Json &recorded : fixture.at("cases"))
-    {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        CHECK(calls.props == recorded.at("props"));
-        for (const Json &event : recorded.at("events"))
-        {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
-        }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-    }
-}
-
-// A script screen of several capabilities on its recorded models (cases/<file>.json, each case naming its
-// capability): the props its view gives, the modals and back key it binds and what its events send.
-void CheckCases(const char *folder, const std::string &file)
+// A script screen on its recorded models (cases/<file>.json; a case of a screen of several capabilities names its own,
+// else it is `capability`, and its modals are checked where it lists them): the props its view gives, the modals and
+// back key it binds and what its events send.
+void CheckCases(const char *folder, const std::string &file, const std::string &capability = "")
 {
     Vm vm;
     vm.Start();
@@ -935,10 +773,11 @@ void CheckCases(const char *folder, const std::string &file)
         for (const auto &[channel, state] : states.items())
             calls.states[channel] = state;
         SetGame(recorded);
-        const auto &screen = Screen(vm, recorded.at("capability"));
+        const auto &screen = Screen(vm, recorded.value("capability", capability));
         port.Build(screen, calls.Single(), calls);
         CHECK(calls.props == recorded.at("props"));
-        CHECK(calls.modals == recorded.at("modals").get<std::vector<std::string>>());
+        if (capability.empty() || recorded.contains("modals"))
+            CHECK(calls.modals == recorded.at("modals").get<std::vector<std::string>>());
         for (const Json &event : recorded.at("events"))
         {
             REQUIRE(calls.Binds(event[0], event[1]));
@@ -953,6 +792,36 @@ void CheckCases(const char *folder, const std::string &file)
             CHECK(calls.props == recorded.at("after"));
         }
     }
+}
+
+TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")
+{
+    for (const std::string capability :
+         {"trade_store", "trade_contraband", "trade_cannons", "trade_items", "trade_loot"})
+    {
+        INFO(capability);
+        CheckCases("trade", capability, capability);
+    }
+}
+
+TEST_CASE("the nations screen's script gives the pack screen the props and actions of the recorded model")
+{
+    CheckCases("nations", "nations", "nations");
+}
+
+TEST_CASE("the crew hire's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("crew", "crew_hire", "crew_hire");
+}
+
+TEST_CASE("the sail emblem's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("sail-emblem", "sail_emblem", "sail_emblem");
+}
+
+TEST_CASE("the self repair's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("repair", "self_repair", "self_repair");
 }
 
 TEST_CASE("the reading screen's script gives the pack screen the props and actions of the recorded models")
@@ -1000,38 +869,9 @@ TEST_CASE("the save list's script gives the pack screen the props and actions of
     CheckCases("saves", "saves");
 }
 
-// The items screen's script on its recorded models over the fixture game's people and items: the props its view
-// gives, and what its events send: a row chosen, the game's action, a slot, a category, another person, the map.
 TEST_CASE("the items screen's script gives the pack screen the props and actions of the recorded models")
 {
-    Vm vm;
-    vm.Start();
-    storm::ui_scripts::VmPort port(vm.attacher);
-    const auto spec = PackScreen("items");
-    const auto &screen = Screen(vm, "items");
-    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/items.json"));
-    for (const Json &recorded : fixture.at("cases"))
-    {
-        INFO(recorded.at("name").get<std::string>());
-        storm::ui::InterfaceModel model;
-        REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
-        Calls calls(*spec);
-        calls.widgets = model.widgets;
-        port.Build(screen, calls.Single(), calls);
-        calls.first = false;
-        CHECK(calls.props == recorded.at("props"));
-        for (const Json &event : recorded.at("events"))
-        {
-            REQUIRE(calls.Binds(event[0], event[1]));
-            port.Event(screen, event[0], event[1], event[2], calls);
-        }
-        CHECK(calls.calls == recorded.at("calls").get<std::vector<std::string>>());
-        if (recorded.contains("after")) // the view of a build once the events have run
-        {
-            port.Build(screen, calls.Single(), calls);
-            CHECK(calls.props == recorded.at("after"));
-        }
-    }
+    CheckCases("items", "items", "items");
 }
 
 TEST_CASE("the shipyard's script gives the pack screen the props and actions of the recorded models")
