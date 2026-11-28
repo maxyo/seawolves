@@ -46,7 +46,9 @@ Android the app's graphics settings decide and the scripts' choices are not appl
   memory (half the system's where the backend cannot tell).
 - Not available, answered as off and logged once when asked for: a TAA or DLSS of their own (the getters never say they
   run), frame generation, other occlusion modes, turning sea reflections off, sea qualities other than the one our sea
-  stands for (refused, so the screen shows that one), a lamp shadow size or a separate switch for characters' shadows.
+  stands for (refused, so the screen shows that one), a lamp shadow size or a separate switch for characters' shadows,
+  FSR upscaling. The island foliage density is kept for the options screen and logged once: the game's island foliage
+  (`foliage.json`) is not drawn.
 
 ## Bench (`src/bench.hpp`)
 

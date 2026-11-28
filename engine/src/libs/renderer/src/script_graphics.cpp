@@ -283,6 +283,35 @@ uint32_t SetFrameGeneration(VS_STACK *stack)
     return IFUNCRESULT_OK;
 }
 
+// Its FSR modes (0..4) are upscaling and anti-aliasing of AMD's library, which this renderer does not have; -1 is off.
+uint32_t SetFSR(VS_STACK *stack)
+{
+    if (IntArg(stack) >= 0)
+        NotAvailable("Graphics_SetFSR", "no FSR upscaling");
+    return IFUNCRESULT_OK;
+}
+
+uint32_t GetFSR(VS_STACK *stack)
+{
+    return Return(stack, int32_t{-1});
+}
+
+// The game's island foliage (Resource/INI/foliage.json) is not drawn by this renderer: the density is kept for the
+// options screen only.
+float islandFoliageDensity = 1.0f;
+
+uint32_t SetIslandFoliageDensity(VS_STACK *stack)
+{
+    islandFoliageDensity = FloatArg(stack);
+    NotAvailable("Graphics_SetIslandFoliageDensity", "island foliage (foliage.json) is not drawn");
+    return IFUNCRESULT_OK;
+}
+
+uint32_t GetIslandFoliageDensity(VS_STACK *stack)
+{
+    return Return(stack, islandFoliageDensity);
+}
+
 uint32_t SetVSync(VS_STACK *stack)
 {
     const bool on = IntArg(stack) != 0;
@@ -494,6 +523,12 @@ constexpr Native kNatives[] = {
     {"Graphics_IsFrameGenerationSupported", 0, "int", GetZero},
     {"Graphics_SetFrameGeneration", 1, nullptr, SetFrameGeneration},
     {"Graphics_GetFrameGeneration", 0, "int", GetZero},
+    {"Graphics_IsFSRSupported", 0, "int", GetZero},
+    {"Graphics_SetFSR", 1, nullptr, SetFSR},
+    {"Graphics_GetFSR", 0, "int", GetFSR},
+    {"Graphics_IsFSRFrameGenerationSupported", 0, "int", GetZero},
+    {"Graphics_SetIslandFoliageDensity", 1, nullptr, SetIslandFoliageDensity},
+    {"Graphics_GetIslandFoliageDensity", 0, "float", GetIslandFoliageDensity},
     {"Graphics_SetVSync", 1, nullptr, SetVSync},
     {"Graphics_GetVSync", 0, "int", GetVSync},
     {"Graphics_SetFXAA", 1, nullptr, SetFXAA},

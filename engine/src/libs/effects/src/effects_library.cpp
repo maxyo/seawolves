@@ -13,6 +13,7 @@
 #include <spdlog/spdlog.h>
 
 #include <set>
+#include <utility>
 
 namespace efk = storm::render::effekseer;
 using storm::effects::EffectEntry;
@@ -132,6 +133,19 @@ uint32_t UnloadAllEffects(VS_STACK *)
     return IFUNCRESULT_OK;
 }
 
+// SetEffectPointLightGroup(handle, group): Caribbean Legend ties an effect (a torch, candle or heater flame) to a
+// group of the location's night lights; this engine draws the effect and the group's lights independently.
+uint32_t SetEffectPointLightGroup(VS_STACK *stack)
+{
+    Pop(stack);
+    Pop(stack);
+    static bool said = false;
+    if (!std::exchange(said, true))
+        spdlog::error("not implemented: SetEffectPointLightGroup; the game continues without tying the flames of "
+                      "torches, candles and heaters to the location's night light groups");
+    return IFUNCRESULT_OK;
+}
+
 void Register(const char *name, uint32_t arguments, const char *result, SIMPORTFUNC function)
 {
     IFUNCINFO info;
@@ -153,6 +167,7 @@ class EFFECTS_LIBRARY final : public SCRIPT_LIBRIARY
         Register("ReloadAllEffects", 0, "void", ReloadAllEffects);
         Register("UnloadEffect", 1, "int", UnloadEffect);
         Register("UnloadAllEffects", 0, "void", UnloadAllEffects);
+        Register("SetEffectPointLightGroup", 2, "void", SetEffectPointLightGroup);
         return true;
     }
 };

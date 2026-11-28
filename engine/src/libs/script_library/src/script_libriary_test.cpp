@@ -9,7 +9,8 @@ CREATE_SCRIPTLIBRIARY(SCRIPT_LIBRIARY_TEST)
 
 namespace
 {
-// Caribbean Legend's developer start modes (safe mode without mods, skipping the intro, a developer quick load):
+// Caribbean Legend's developer start modes (safe mode without mods, skipping the intro, a developer quick load, a
+// developer test location):
 // this engine has none of them, so each is off.
 uint32_t Off(VS_STACK *stack)
 {
@@ -33,7 +34,7 @@ uint32_t NoSave(VS_STACK *stack)
 bool SCRIPT_LIBRIARY_TEST::Init()
 {
     Vano_Init();
-    for (const char *name : {"IsInSafeMode", "IsDevSkipIntro", "IsDevQuickLoad"})
+    for (const char *name : {"IsInSafeMode", "IsDevSkipIntro", "IsDevQuickLoad", "IsDevTestLocation"})
     {
         IFUNCINFO info;
         info.pFuncName = name;
