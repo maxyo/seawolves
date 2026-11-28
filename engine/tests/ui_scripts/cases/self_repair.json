@@ -73,7 +73,7 @@
       "label": "Корабль 2",
       "value": "0",
       "index": 1,
-      "rowId": "ship:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
@@ -564,7 +564,7 @@
     "hold",
     "send REPAIR_ALL_SQUADRON press ",
     "hold",
-    "send SHIPS_SCROLL#1 select ship:1",
+    "send SHIPS_SCROLL#1 select 1:1",
     "hold",
     "back REPAIR_CANCEL"
    ]

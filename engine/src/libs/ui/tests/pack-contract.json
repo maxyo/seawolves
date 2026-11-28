@@ -152,7 +152,7 @@
       "taps": ["c-header#header subject-list", "c-list-row#header-subject-2 click"],
       "frames": [{"answer": true, "model": "flows/hero-people-passenger.json"}],
       "steady": ["c-header .subject > .arrow"], "after": "s-hero"},
-    {"name": "store row select", "interface": "models/store-deal.json", "taps": ["c-trade-list#goods row goods:2:ship:0"],
+    {"name": "store row select", "interface": "models/store-deal.json", "taps": ["c-trade-list#goods row commerce:store:item:2:owner:1:role:0"],
      "frames": [{"answer": true, "model": "flows/store-select-2.json"}, {"model": "flows/store-deal-2.json"}], "after": "s-trade"},
     {"name": "store buy reopen", "interface": "models/store-window.json", "taps": ["c-quantity#goods change #6", "c-button#primary click"],
      "frames": [{"answer": true, "model": "flows/store-bought-0.json"}, {"answer": true, "model": "flows/store-deal-0-bought.json"}], "after": "s-trade"},

@@ -11,7 +11,7 @@
 {"node":"MAIN_CHARACTER_BORDER","type":"image","index":-1,"enabled":false,"images":[{"handle":19,"imageRevision":19,"tintArgb":4286611584}]},
 {"node":"NAME_STR","type":"text","label":"Капитан","value":"1","index":0},
 {"node":"SHIPS_SCROLL","type":"choice","label":"Корабль 1","value":"1","index":0,"rowId":"1:0","actions":["select"]},
-{"node":"SHIPS_SCROLL","type":"choice","label":"Корабль 2","value":"0","index":1,"rowId":"ship:1","actions":["select"]},
+{"node":"SHIPS_SCROLL","type":"choice","label":"Корабль 2","value":"0","index":1,"rowId":"1:1","actions":["select"]},
 {"node":"LOCATION_STR","type":"text","label":"Город","value":"1","index":0},
 {"node":"OTHER_PICTURE","type":"image","index":-1,"enabled":false,"images":[{"handle":20,"imageRevision":20,"tintArgb":4286611584}]},
 {"node":"OTHER_BORDER","type":"image","index":-1,"enabled":false,"images":[{"handle":19,"imageRevision":19,"tintArgb":4286611584}]},

@@ -22,7 +22,7 @@
       "label": "200\t10\t5\tЯдра\t3\t1840\t20\t1",
       "value": "1",
       "index": 0,
-      "rowId": "goods:0:ship:0",
+      "rowId": "commerce:store:item:0:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -83,7 +83,7 @@
       "label": "100\t5\t6\tКартечь\t4\t1260\t20\t1",
       "value": "0",
       "index": 1,
-      "rowId": "goods:1:ship:0",
+      "rowId": "commerce:store:item:1:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -144,7 +144,7 @@
       "label": "60\t3\t8\tКниппели\t5\t940\t20\t1",
       "value": "0",
       "index": 2,
-      "rowId": "goods:2:ship:0",
+      "rowId": "commerce:store:item:2:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -205,7 +205,7 @@
       "label": "0\t0\t14\tБомбы\t9\t520\t20\t1",
       "value": "0",
       "index": 3,
-      "rowId": "goods:3:ship:0",
+      "rowId": "commerce:store:item:3:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -266,7 +266,7 @@
       "label": "0\t0\t31\tПарусина\t22\t380\t10\t1",
       "value": "0",
       "index": 4,
-      "rowId": "goods:4:ship:0",
+      "rowId": "commerce:store:item:5:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -328,7 +328,7 @@
       "label": "40\t4\t12\tДоски\t8\t700\t10\t1",
       "value": "0",
       "index": 5,
-      "rowId": "goods:5:ship:0",
+      "rowId": "commerce:store:item:6:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -390,7 +390,7 @@
       "label": "15\t15\t40\tРом\t28\t300\t1\t1",
       "value": "0",
       "index": 6,
-      "rowId": "goods:6:ship:0",
+      "rowId": "commerce:store:item:26:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -451,7 +451,7 @@
       "label": "320\t32\t3\tПровиант\t2\t2100\t10\t1",
       "value": "0",
       "index": 7,
-      "rowId": "goods:7:ship:0",
+      "rowId": "commerce:store:item:4:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -512,7 +512,7 @@
       "label": "Аделина",
       "value": "1",
       "index": 0,
-      "rowId": "ship:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -523,7 +523,7 @@
       "label": "Морской конь",
       "value": "0",
       "index": 1,
-      "rowId": "ship:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
@@ -653,7 +653,7 @@
          "v": "<trade.per_units> 20"
         }
        ],
-       "id": "goods:0:ship:0",
+       "id": "commerce:store:item:0:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Balls"
@@ -680,7 +680,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:1:ship:0",
+       "id": "commerce:store:item:1:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Grapes"
@@ -707,7 +707,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:2:ship:0",
+       "id": "commerce:store:item:2:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Knippels"
@@ -734,7 +734,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:3:ship:0",
+       "id": "commerce:store:item:3:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Bombs"
@@ -761,7 +761,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:4:ship:0",
+       "id": "commerce:store:item:5:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -788,7 +788,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:5:ship:0",
+       "id": "commerce:store:item:6:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -815,7 +815,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:6:ship:0",
+       "id": "commerce:store:item:26:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Rum"
@@ -842,7 +842,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:7:ship:0",
+       "id": "commerce:store:item:4:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Food"
@@ -882,7 +882,7 @@
     [
      "goods",
      "row",
-     "goods:2:ship:0"
+     "commerce:store:item:2:owner:1:role:0"
     ],
     [
      "header-back",
@@ -891,9 +891,9 @@
     ]
    ],
    "calls": [
-    "send TABLE_LIST#0 activate goods:0:ship:0",
+    "send TABLE_LIST#0 activate commerce:store:item:0:owner:1:role:0",
     "hold",
-    "send TABLE_LIST#2 activate goods:2:ship:0",
+    "send TABLE_LIST#2 activate commerce:store:item:2:owner:1:role:0",
     "hold",
     "back "
    ]
@@ -919,7 +919,7 @@
       "label": "200\t10\t5\tЯдра\t3\t1840\t20\t1",
       "value": "1",
       "index": 0,
-      "rowId": "goods:0:ship:0",
+      "rowId": "commerce:store:item:0:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -980,7 +980,7 @@
       "label": "100\t5\t6\tКартечь\t4\t1260\t20\t1",
       "value": "0",
       "index": 1,
-      "rowId": "goods:1:ship:0",
+      "rowId": "commerce:store:item:1:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1041,7 +1041,7 @@
       "label": "60\t3\t8\tКниппели\t5\t940\t20\t1",
       "value": "0",
       "index": 2,
-      "rowId": "goods:2:ship:0",
+      "rowId": "commerce:store:item:2:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1102,7 +1102,7 @@
       "label": "0\t0\t14\tБомбы\t9\t520\t20\t1",
       "value": "0",
       "index": 3,
-      "rowId": "goods:3:ship:0",
+      "rowId": "commerce:store:item:3:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1163,7 +1163,7 @@
       "label": "0\t0\t31\tПарусина\t22\t380\t10\t1",
       "value": "0",
       "index": 4,
-      "rowId": "goods:4:ship:0",
+      "rowId": "commerce:store:item:5:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1225,7 +1225,7 @@
       "label": "40\t4\t12\tДоски\t8\t700\t10\t1",
       "value": "0",
       "index": 5,
-      "rowId": "goods:5:ship:0",
+      "rowId": "commerce:store:item:6:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1287,7 +1287,7 @@
       "label": "15\t15\t40\tРом\t28\t300\t1\t1",
       "value": "0",
       "index": 6,
-      "rowId": "goods:6:ship:0",
+      "rowId": "commerce:store:item:26:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1348,7 +1348,7 @@
       "label": "320\t32\t3\tПровиант\t2\t2100\t10\t1",
       "value": "0",
       "index": 7,
-      "rowId": "goods:7:ship:0",
+      "rowId": "commerce:store:item:4:owner:1:role:0",
       "actions": [
        "select",
        "activate"
@@ -1409,7 +1409,7 @@
       "label": "Аделина",
       "value": "1",
       "index": 0,
-      "rowId": "ship:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -1420,7 +1420,7 @@
       "label": "Морской конь",
       "value": "0",
       "index": 1,
-      "rowId": "ship:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
@@ -1645,7 +1645,7 @@
          "v": "<trade.per_units> 20"
         }
        ],
-       "id": "goods:0:ship:0",
+       "id": "commerce:store:item:0:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Balls"
@@ -1673,7 +1673,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:1:ship:0",
+       "id": "commerce:store:item:1:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Grapes"
@@ -1700,7 +1700,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:2:ship:0",
+       "id": "commerce:store:item:2:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Knippels"
@@ -1727,7 +1727,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:3:ship:0",
+       "id": "commerce:store:item:3:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Bombs"
@@ -1754,7 +1754,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:4:ship:0",
+       "id": "commerce:store:item:5:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Sailcloth"
@@ -1781,7 +1781,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:5:ship:0",
+       "id": "commerce:store:item:6:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Planks"
@@ -1808,7 +1808,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:6:ship:0",
+       "id": "commerce:store:item:26:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Rum"
@@ -1835,7 +1835,7 @@
         }
        ],
        "disabled": false,
-       "id": "goods:7:ship:0",
+       "id": "commerce:store:item:4:owner:1:role:0",
        "image": {
         "kind": "item",
         "texture": "atlas:GOODS/Food"
@@ -1884,13 +1884,13 @@
     ]
    ],
    "calls": [
-    "deal goods:0:ship:0 0..2040 answer 300",
-    "send QTY_EDIT edit 0 @goods:0:ship:0",
-    "send QTY_EDIT edit -50 @goods:0:ship:0",
+    "deal commerce:store:item:0:owner:1:role:0 0..2040 answer 300",
+    "send QTY_EDIT edit 0 @commerce:store:item:0:owner:1:role:0",
+    "send QTY_EDIT edit -50 @commerce:store:item:0:owner:1:role:0",
     "hold",
-    "send QTY_EDIT edit 0 @goods:0:ship:0",
-    "send QTY_EDIT edit 100 @goods:0:ship:0",
-    "send QTY_OK_BUTTON press  @goods:0:ship:0",
+    "send QTY_EDIT edit 0 @commerce:store:item:0:owner:1:role:0",
+    "send QTY_EDIT edit 100 @commerce:store:item:0:owner:1:role:0",
+    "send QTY_OK_BUTTON press  @commerce:store:item:0:owner:1:role:0",
     "hold"
    ]
   },

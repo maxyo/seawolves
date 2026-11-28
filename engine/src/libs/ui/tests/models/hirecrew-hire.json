@@ -6,8 +6,8 @@
 "screen":"hirecrew",
 "widgets":[
 {"node":"STORECAPTION1","type":"text","label":"Таверна","index":-1},
-{"node":"SHIPS_SCROLL","type":"choice","label":"Аделина","value":"1","index":0,"rowId":"ship:0","actions":["select"]},
-{"node":"SHIPS_SCROLL","type":"choice","label":"Морской конь","value":"0","index":1,"rowId":"ship:1","actions":["select"]},
+{"node":"SHIPS_SCROLL","type":"choice","label":"Аделина","value":"1","index":0,"rowId":"1:0","actions":["select"]},
+{"node":"SHIPS_SCROLL","type":"choice","label":"Морской конь","value":"0","index":1,"rowId":"1:1","actions":["select"]},
 {"node":"OUR_GOLD","type":"text","label":"Наши деньги 500 песо","index":-1},
 {"node":"INFO_SHIP","type":"text","label":"Люггер, класс 6, команда: мин. 9, макс. 75","index":-1},
 {"node":"MONEY_SHIP","type":"text","label":"Содержание корабля:\n160 песо","index":-1},

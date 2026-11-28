@@ -603,7 +603,7 @@ struct StoreRun
                "unknown button → «Прочее» row");
         Expect(surface.logs.size() == 1 && surface.logs[0].find("B_GUILD, GUILD_NOTE") != std::string::npos,
                "extras logged once");
-        ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
+        ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:commerce:store:item:0:owner:1:role:0",
                     "a shop opens the deal of the row the game selected");
         AnswerAll(router, surface, true);
         router.SetInterface(Load(models, "store.json"));
@@ -625,7 +625,7 @@ struct StoreRun
     void RowTaps()
     {
         router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 1)});
-        ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t1\tactivate@7:goods:1:ship:0",
+        ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t1\tactivate@7:commerce:store:item:1:owner:1:role:0",
                     "row tap opens the deal for that row");
         {
             FakeSurface sel_surface;
@@ -683,10 +683,11 @@ struct StoreRun
             AnswerAll(ref, ref_surface, true);
             ref_surface.errors.clear();
             ref.OnEvent({"goods", "row", Drawn(ref_surface, "/list/rows", 3)});
-            ExpectEqual(ref_surface.Last(), "widget:store\tTABLE_LIST\t3\tactivate@7:goods:3:ship:0",
+            ExpectEqual(ref_surface.Last(),
+                        "widget:store\tTABLE_LIST\t3\tactivate@7:commerce:store:item:3:owner:1:role:0",
                         "the tapped row's deal is asked for");
             AnswerAll(ref, ref_surface, false,
-                      "the node did not take it: 'activate@7:goods:3:ship:0' is not for tr4 now");
+                      "the node did not take it: 'activate@7:commerce:store:item:3:owner:1:role:0' is not for tr4 now");
             Expect(ref_surface.props["list"]["rows"][3]["selected"] != true &&
                        ref_surface.props["list"]["rows"][0]["selected"] == true,
                    "refused: the game's selection is shown at once, not the refused row: " +
@@ -699,7 +700,8 @@ struct StoreRun
                        (ref_surface.errors.empty() ? std::string() : ref_surface.errors.back()));
             Expect(ref_surface.actions.size() == sent, "refused: nothing is retried");
             ref.OnEvent({"goods", "row", Drawn(ref_surface, "/list/rows", 2)});
-            ExpectEqual(ref_surface.Last(), "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:0",
+            ExpectEqual(ref_surface.Last(),
+                        "widget:store\tTABLE_LIST\t2\tactivate@7:commerce:store:item:2:owner:1:role:0",
                         "the next tap is not blocked by the refused one");
         }
     }
@@ -749,7 +751,7 @@ struct StoreRun
         surface.commands.clear();
         surface.toasts.clear();
         router.OnEvent({"goods", "change", "0"});
-        const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:goods:0:ship:0|";
+        const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|";
         Expect(surface.commands == std::vector<std::string>{edit + "0", edit + "-200"},
                "all we hold offered for sale: " + Json(surface.commands).dump());
         GameAnswers(router, surface, open_deal, 190, "Деньги 2, вес 1 ц", "Трюм:\n188 / 199");
@@ -771,10 +773,11 @@ struct StoreRun
         router.OnEvent({"primary", "click", ""});
         router.Tick();
         {
-            const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:goods:0:ship:0|";
+            const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|";
             Expect(surface.commands.size() == 3 && surface.commands[0] == edit + "0" &&
                        surface.commands[1] == edit + "100" &&
-                       surface.commands[2] == "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:goods:0:ship:0|press",
+                       surface.commands[2] ==
+                           "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|press",
                    "«Купить 100»: the amount and the game's OK in one flush: " + Json(surface.commands).dump());
             // The game closes its window and keeps the row selected: the row's deal is opened again, so the dock keeps
             // its amount and button for the next deal (before: the row's name with nothing to do until a new tap).
@@ -784,7 +787,7 @@ struct StoreRun
             AnswerAll(router, surface, true);
             router.SetInterface(closed);
             router.Tick();
-            ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
+            ExpectEqual(surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:commerce:store:item:0:owner:1:role:0",
                         "a confirmed deal's row opens its deal again");
             InterfaceModel reopened = open_deal;
             reopened.revision = closed.revision + 1;
@@ -807,13 +810,13 @@ struct StoreRun
         }
         {
             // The store's «Купить / Продать N» is the trade screens' shared flow.
-            const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:goods:0:ship:0|";
+            const std::string edit = "widget:store\tQTY_EDIT\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|";
             FakeSurface draft_surface;
             Router draft_router(draft_surface);
             Scripted(draft_router);
             draft_router.SetInterface(open_deal);
             OfferFlow("store", draft_router, draft_surface, open_deal, 200, 150, 150, "<trade.sell> 50", edit,
-                      "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:goods:0:ship:0|press");
+                      "widget:store\tQTY_OK_BUTTON\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|press");
         }
     }
 
@@ -822,8 +825,10 @@ struct StoreRun
         surface.commands.clear();
         router.OnEvent({"goods", "row", Drawn(surface, "/list/rows", 2)});
         Expect(surface.commands.size() == 2 &&
-                   surface.commands[0] == "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:goods:0:ship:0|press" &&
-                   surface.commands[1] == "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:0",
+                   surface.commands[0] ==
+                       "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:commerce:store:item:0:owner:1:role:0|press" &&
+                   surface.commands[1] ==
+                       "widget:store\tTABLE_LIST\t2\tactivate@7:commerce:store:item:2:owner:1:role:0",
                "another row: cancel the open deal, then open the new one");
         // The game's exit only closes an open amount window (store.c ProcessCancelExit) and the dock always has one
         // open: ← sends the game's exit twice, the first closes the window, the second leaves.
@@ -859,8 +864,9 @@ struct StoreRun
                     if (widget.node == "TABLE_LIST")
                     {
                         widget.value = widget.index == row ? "1" : "0";
-                        widget.row_id = "goods:" + std::to_string(widget.index) +
-                                        ":ship:" + std::to_string(ship); // the engine's row ids name the owner
+                        // the engine's row ids name the good and its owner (InterfaceTableRowId)
+                        widget.row_id = widget.row_id.substr(0, widget.row_id.find(":owner:")) +
+                                        ":owner:" + std::to_string(ship + 1) + ":role:" + std::to_string(ship);
                     }
                     if (widget.node == "SHIPS_SCROLL")
                         widget.value = widget.index == ship ? "1" : "0";
@@ -880,8 +886,8 @@ struct StoreRun
             ship_router.OnEvent({"header", "subject-next", ""});
             Expect(ship_surface.commands.size() == 2 &&
                        ship_surface.commands[0] ==
-                           "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:goods:2:ship:0|press" &&
-                       ship_surface.commands[1] == "widget:store\tSHIPS_SCROLL\t1\tselect@7:ship:1",
+                           "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:commerce:store:item:2:owner:1:role:0|press" &&
+                       ship_surface.commands[1] == "widget:store\tSHIPS_SCROLL\t1\tselect@7:1:1",
                    "› during a deal: the game's cancel of the deal, then the game's select of the next ship: " +
                        Json(ship_surface.commands).dump());
             // The selector moved; the game binds the ship in its next frame (refCharacter, the table, the first row).
@@ -891,7 +897,8 @@ struct StoreRun
             Expect(ship_surface.commands.empty() && ship_surface.errors.empty(),
                    "nothing is asked for before the game has switched the ship");
             ship_router.SetInterface(deal_on(0, 1, 22, false));
-            ExpectEqual(ship_surface.Last(), "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:1",
+            ExpectEqual(ship_surface.Last(),
+                        "widget:store\tTABLE_LIST\t2\tactivate@7:commerce:store:item:2:owner:2:role:1",
                         "the same goods' deal opens for the new ship");
             AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(2, 1, 23, true));
@@ -903,7 +910,7 @@ struct StoreRun
             // The new ship's list without those goods: the row the game selected.
             ship_surface.commands.clear();
             ship_router.OnEvent({"header", "subject-prev", ""});
-            ExpectEqual(ship_surface.Last(), "widget:store\tSHIPS_SCROLL\t0\tselect@7:ship:0", "‹ switches back");
+            ExpectEqual(ship_surface.Last(), "widget:store\tSHIPS_SCROLL\t0\tselect@7:1:0", "‹ switches back");
             AnswerAll(ship_router, ship_surface, true);
             ship_router.SetInterface(deal_on(2, 0, 24, false));
             InterfaceModel without = deal_on(0, 0, 25, false);
@@ -911,7 +918,8 @@ struct StoreRun
                           [](const Widget &widget) { return widget.node == "TABLE_LIST" && widget.index == 2; });
             ship_surface.commands.clear();
             ship_router.SetInterface(without);
-            ExpectEqual(ship_surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:0",
+            ExpectEqual(ship_surface.Last(),
+                        "widget:store\tTABLE_LIST\t0\tactivate@7:commerce:store:item:0:owner:1:role:0",
                         "goods the new ship's list lacks: the game's first row");
 
             // A switch the game answers with no new model (nothing it shows changed): opened after the wait.
@@ -923,7 +931,8 @@ struct StoreRun
             ship_surface.commands.clear();
             ship_surface.now += 3.1;
             ship_router.Tick();
-            ExpectEqual(ship_surface.Last(), "widget:store\tTABLE_LIST\t0\tactivate@7:goods:0:ship:1",
+            ExpectEqual(ship_surface.Last(),
+                        "widget:store\tTABLE_LIST\t0\tactivate@7:commerce:store:item:0:owner:2:role:1",
                         "no newer model within the wait: opened on these rows");
 
             // An arrow tapped while a tapped row's window is on its way: the switch waits for that window, then closes
@@ -939,8 +948,8 @@ struct StoreRun
             ship_router.SetInterface(deal_on(1, 1, 29, true));
             Expect(ship_surface.commands.size() == 2 &&
                        ship_surface.commands[0] ==
-                           "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:goods:1:ship:1|press" &&
-                       ship_surface.commands[1] == "widget:store\tSHIPS_SCROLL\t0\tselect@7:ship:0",
+                           "widget:store\tQTY_CANCEL_BUTTON\t-1\tguard@7:commerce:store:item:1:owner:2:role:1|press" &&
+                       ship_surface.commands[1] == "widget:store\tSHIPS_SCROLL\t0\tselect@7:1:0",
                    "the window came: closed, then the ship switched: " + Json(ship_surface.commands).dump());
             Expect(ship_surface.errors.empty(), "no errors in the ship switch: " + Json(ship_surface.errors).dump());
 
@@ -964,7 +973,8 @@ struct StoreRun
             InterfaceModel moved = deal_on(0, 1, 42, false);
             for (Widget &widget : moved.widgets)
                 if (widget.node == "TABLE_LIST")
-                    widget.row_id = "goods:" + std::to_string(widget.index) + ":ship:0"; // still the old ship's rows
+                    widget.row_id = widget.row_id.substr(0, widget.row_id.find(":owner:")) +
+                                    ":owner:1:role:0"; // still the old ship's rows
             tap_router.SetInterface(moved);
             tap_router.OnEvent(
                 {"goods", "row",
@@ -978,9 +988,13 @@ struct StoreRun
                           [](const Widget &widget) { return widget.node == "TABLE_LIST" && widget.index == 1; });
             for (Widget &widget : bound.widgets)
                 if (widget.node == "TABLE_LIST" && widget.index > 1)
-                    widget.row_id = "goods:" + std::to_string(--widget.index) + ":ship:1";
+                {
+                    --widget.index; // the good keeps its id, its row moves up
+                    widget.row_id = widget.row_id.substr(0, widget.row_id.find(":owner:")) + ":owner:2:role:1";
+                }
             tap_router.SetInterface(bound);
-            ExpectEqual(tap_surface.Last(), "widget:store\tTABLE_LIST\t2\tactivate@7:goods:2:ship:1",
+            ExpectEqual(tap_surface.Last(),
+                        "widget:store\tTABLE_LIST\t2\tactivate@7:commerce:store:item:3:owner:2:role:1",
                         "the tapped goods open from the new ship's list");
             Expect(tap_surface.errors.empty(),
                    "no errors for a tap during the switch: " + Json(tap_surface.errors).dump());
@@ -992,7 +1006,8 @@ struct StoreRun
             AnswerAll(tap_router, tap_surface, false, "the owner list changed");
             tap_surface.commands.clear();
             tap_router.OnEvent({"goods", "row", Drawn(tap_surface, "/list/rows", 4)});
-            ExpectEqual(tap_surface.Last(), "widget:store\tTABLE_LIST\t4\tactivate@7:goods:4:ship:1",
+            ExpectEqual(tap_surface.Last(),
+                        "widget:store\tTABLE_LIST\t4\tactivate@7:commerce:store:item:5:owner:2:role:1",
                         "after a refused switch a tap goes out at once");
         }
     }
@@ -1608,8 +1623,8 @@ static void Crew(const std::string &models)
     surface.commands.clear();
     router.OnEvent({"crew", "commit", "60"});
     router.Tick();
-    Expect(surface.commands.size() == 2 && surface.commands[0] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|0" &&
-               surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|20",
+    Expect(surface.commands.size() == 2 && surface.commands[0] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:1:0|0" &&
+               surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:1:0|20",
            "the amount goes to the game at once, after its reset: " + Json(surface.commands).dump());
     // The game's answer: the purse (500 / 23) stops the hire at 21 men, the cost is its own text.
     const auto answer = [&](int crew, int tavern, const char *result) {
@@ -1630,7 +1645,7 @@ static void Crew(const std::string &models)
     router.OnEvent({"primary", "click", ""});
     router.Tick();
     Expect(!surface.commands.empty() &&
-               surface.commands.back() == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:ship:0|press",
+               surface.commands.back() == "widget:hirecrew\tQTY_OK_BUTTON\t-1\tguard@7:1:0|press",
            "«Нанять 21» is the game's OK, bound to the ship: " + Json(surface.commands).dump());
     // The game took the 21 men on: its backup is the crew it confirmed (the fixture keeps the 40 it started from,
     // so the screen is put back on a fresh window of 40).
@@ -1638,13 +1653,13 @@ static void Crew(const std::string &models)
     surface.commands.clear();
     router.OnEvent({"crew", "commit", "35"});
     router.Tick();
-    Expect(surface.commands.size() == 2 && surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:ship:0|-5",
+    Expect(surface.commands.size() == 2 && surface.commands[1] == "widget:hirecrew\tQTY_EDIT\t-1\tguard@7:1:0|-5",
            "left of the pivot fires: a negative amount: " + Json(surface.commands).dump());
     answer(35, 30, "");
     Expect(surface.props["primary"]["label"] == "<crew.fire> 5" && surface.props["primary"]["sub"] == "",
            "the game fired five, at no cost: " + surface.props["primary"].dump());
     router.OnEvent({"header", "subject-next", ""});
-    ExpectEqual(surface.Last(), "widget:hirecrew\tSHIPS_SCROLL\t1\tselect@7:ship:1", "the next ship");
+    ExpectEqual(surface.Last(), "widget:hirecrew\tSHIPS_SCROLL\t1\tselect@7:1:1", "the next ship");
     answer(35, 30, "");
 
     InterfaceModel broken = Load(models, "hirecrew.json");
@@ -1720,7 +1735,7 @@ static void Repair(const std::string &models)
     AnswerAll(router, surface, true);
     router.SetInterface(model);
     router.OnEvent({"header", "subject-next", ""});
-    ExpectEqual(surface.Last(), prefix + "SHIPS_SCROLL\t1\tselect@13:ship:1", "the next ship");
+    ExpectEqual(surface.Last(), prefix + "SHIPS_SCROLL\t1\tselect@13:1:1", "the next ship");
     AnswerAll(router, surface, true);
     router.SetInterface(model);
     router.OnEvent({"header-back", "click", ""});

@@ -250,7 +250,7 @@
       "label": "Шарль де Мор",
       "value": "1",
       "index": 0,
-      "rowId": "chr:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -261,7 +261,7 @@
       "label": "Жан",
       "value": "0",
       "index": 1,
-      "rowId": "chr:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
@@ -748,7 +748,7 @@
       "label": "Шарль де Мор",
       "value": "1",
       "index": 0,
-      "rowId": "chr:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -759,7 +759,7 @@
       "label": "Жан",
       "value": "0",
       "index": 1,
-      "rowId": "chr:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]

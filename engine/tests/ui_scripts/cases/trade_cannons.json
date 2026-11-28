@@ -229,7 +229,7 @@
       "label": "Аделина",
       "value": "1",
       "index": 0,
-      "rowId": "ship:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -240,7 +240,7 @@
       "label": "Морской конь",
       "value": "0",
       "index": 1,
-      "rowId": "ship:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
@@ -679,7 +679,7 @@
       "label": "Аделина",
       "value": "1",
       "index": 0,
-      "rowId": "ship:0",
+      "rowId": "1:0",
       "actions": [
        "select"
       ]
@@ -690,7 +690,7 @@
       "label": "Морской конь",
       "value": "0",
       "index": 1,
-      "rowId": "ship:1",
+      "rowId": "1:1",
       "actions": [
        "select"
       ]
