@@ -180,6 +180,7 @@ const char *TokenTypeName[] = { // in S_TOKEN_TYPE order
     "STACK_INDEX",
     "LEFTOP_SUBINDEX",
     "AP_FROM_STACK",
+    "OP_IS_TYPE",
 
 };
 
@@ -930,11 +931,23 @@ bool TOKEN::StepBack()
     return true;
 }
 
+// the word before start is 'is' (x is int, x !is aref[]): the type keyword names no variable
+static bool FollowsTypeTest(const char *start, const char *base)
+{
+    const char *p = start;
+    while (p > base && (p[-1] == ' ' || p[-1] == '\t'))
+        p--;
+    const auto word_char = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; };
+    return p - base >= 2 && (p[-2] == 'i' || p[-2] == 'I') && (p[-1] == 's' || p[-1] == 'S') &&
+           (p - base == 2 || !word_char(p[-3]));
+}
+
 S_TOKEN_TYPE TOKEN::ProcessToken(char *&pointer, bool bKeepData)
 {
     bTypeCast = false;
     char sym;
     char *pBase;
+    const char *start = pointer;
 
     pointer += SetTokenData(pointer, bKeepData);
 
@@ -1075,6 +1088,8 @@ S_TOKEN_TYPE TOKEN::ProcessToken(char *&pointer, bool bKeepData)
         if (bKeepData)
             break;
 
+        if (FollowsTypeTest(start, ProgramBase))
+            break; // the data stays the type keyword
         StartArgument(pointer);
         if (*pointer == '(') // function-style cast, e.g. int(x): the data stays the type keyword
         {

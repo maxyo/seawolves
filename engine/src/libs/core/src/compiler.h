@@ -244,6 +244,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     static DATA *Deref(DATA *pV);
     static ATTRIBUTES *AttributesOf(DATA *pV);
     int32_t TypeidOf(DATA *pV);
+    bool IsOfType(DATA *pV, int32_t test);
     bool CastValue(DATA *pV, S_TOKEN_TYPE target);
     static bool ReturnTypesMatch(S_TOKEN_TYPE declared, S_TOKEN_TYPE engine);
     const std::string &CurrentFunctionName() const;
@@ -336,6 +337,9 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     bool CompileBitAnd(SEGMENT_DESC &Segment);
     bool CompileShift(SEGMENT_DESC &Segment);
     bool CompileCast(SEGMENT_DESC &Segment);
+    int32_t TypeKeywordId();
+    bool CompileTypeTest(SEGMENT_DESC &Segment);
+    bool IsAttributeTypeTest();
     bool CompileTypeid(SEGMENT_DESC &Segment);
     bool CompileAttributeDefault(SEGMENT_DESC &Segment);
     bool CompileAttributeRoot(SEGMENT_DESC &Segment);
@@ -372,6 +376,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     // typeid values
     static constexpr int32_t kTypeidInt = 1, kTypeidString = 2, kTypeidFloat = 3, kTypeidAref = 4, kTypeidObject = 5,
                              kTypeidRef = 6, kTypeidBool = 7, kTypeidFref = 8;
+    static constexpr int32_t kTypeTestArray = 0x100; // OP_IS_TYPE: the typeid of the elements of an array
     bool CompileExpression_L0(SEGMENT_DESC &Segment);
     bool CompileExpression_L1(SEGMENT_DESC &Segment);
     bool CompileExpression_L2(SEGMENT_DESC &Segment);

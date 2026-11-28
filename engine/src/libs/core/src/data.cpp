@@ -1129,8 +1129,6 @@ void DATA::SetElementsNum(uint32_t _asize)
         return;
     }
 
-    if (_asize == 0)
-        return;
     if (_asize == Number_of_elements)
         return;
 

@@ -279,7 +279,8 @@ bool COMPILER::CompileExpression_L0(SEGMENT_DESC &Segment)
 // logical compare (>,<,==,>=,<=,!=)
 bool COMPILER::CompileExpression_L1(SEGMENT_DESC &Segment)
 {
-    if (!CompileShift(Segment))
+    // a.b is type: the attribute itself is tested (a null reference when missing), its text is not read
+    if (IsAttributeTypeTest() ? !CompileAttributeRoot(Segment) : !CompileShift(Segment))
         return false; // the failing operand reported the error
 
     for (;;)
@@ -288,29 +289,27 @@ bool COMPILER::CompileExpression_L1(SEGMENT_DESC &Segment)
         const char *word = sttOpType == UNKNOWN && Token.GetData() ? Token.GetData() : "";
         if (sttOpType == OP_BOOL_NEG || storm::iEquals(word, "in") || storm::iEquals(word, "is"))
         {
-            // "key" in object, "key" !in object, x is nullptr
-            bool negate = sttOpType == OP_BOOL_NEG;
+            // "key" in object, "key" !in object, x is nullptr, x !is type
+            const bool negate = sttOpType == OP_BOOL_NEG;
             if (negate)
             {
                 Token.Get();
-                if (!(Token.GetType() == UNKNOWN && storm::iEquals(Token.GetData(), "in")))
+                word = Token.GetType() == UNKNOWN && Token.GetData() ? Token.GetData() : "";
+                if (!storm::iEquals(word, "in") && !storm::iEquals(word, "is"))
                 {
-                    SetError("'in' expected after '!'");
+                    SetError("'in' or 'is' expected after '!'");
                     return false;
                 }
-                word = "in";
             }
             if (storm::iEquals(word, "is"))
             {
-                Token.Get();
-                if (!(Token.GetType() == UNKNOWN && storm::iEquals(Token.GetData(), "nullptr")))
-                {
-                    SetError("'nullptr' expected after 'is'");
+                if (!CompileTypeTest(Segment))
                     return false;
+                if (negate)
+                {
+                    CompileToken(Segment, OP_BOOL_NEG);
+                    CompileToken(Segment, STACK_TOP);
                 }
-                CompileToken(Segment, OP_IS_NULL);
-                CompileToken(Segment, STACK_TOP);
-                CompileAuxiliaryTokens(Segment);
                 continue;
             }
             CompileAuxiliaryTokens(Segment);
@@ -910,6 +909,62 @@ bool COMPILER::CompileCast(SEGMENT_DESC &Segment)
     return true;
 }
 
+// the typeid of the type keyword at Token (typeid(int), x is aref), -1 when Token is no type keyword
+int32_t COMPILER::TypeKeywordId()
+{
+    const char *data = Token.GetData() ? Token.GetData() : "";
+    switch (Token.GetType())
+    {
+    case VAR_INTEGER:
+        return storm::iEquals(data, "bool") ? kTypeidBool : kTypeidInt;
+    case VAR_FLOAT:
+        return kTypeidFloat;
+    case VAR_STRING:
+        return kTypeidString;
+    case VAR_OBJECT:
+        return kTypeidObject;
+    case VAR_REFERENCE:
+        return kTypeidRef;
+    case VAR_AREFERENCE:
+        return kTypeidAref;
+    case VAR_FREF:
+        return kTypeidFref;
+    default:
+        return -1;
+    }
+}
+
+// x is nullptr, x is type, x is type[]: after 'is', compiles the test of the value on the stack top
+bool COMPILER::CompileTypeTest(SEGMENT_DESC &Segment)
+{
+    Token.Get();
+    if (Token.GetType() == UNKNOWN && storm::iEquals(Token.GetData(), "nullptr"))
+    {
+        CompileToken(Segment, OP_IS_NULL);
+        CompileToken(Segment, STACK_TOP);
+        CompileAuxiliaryTokens(Segment);
+        return true;
+    }
+    int32_t test = TypeKeywordId();
+    if (test < 0)
+    {
+        SetError("nullptr or a type expected after 'is'");
+        return false;
+    }
+    if (CompileAuxiliaryTokens(Segment) == SQUARE_OPEN_BRACKET)
+    {
+        if (Token.Get() != SQUARE_CLOSE_BRACKET)
+        {
+            SetError("']' expected after 'is %s['", Token.GetTypeName(Token.GetType()));
+            return false;
+        }
+        test |= kTypeTestArray;
+        CompileAuxiliaryTokens(Segment);
+    }
+    CompileToken(Segment, OP_IS_TYPE, 1, &test, sizeof(int32_t));
+    return true;
+}
+
 // typeid(type) is a constant, typeid(expression) the type of its value (through references)
 bool COMPILER::CompileTypeid(SEGMENT_DESC &Segment)
 {
@@ -918,35 +973,8 @@ bool COMPILER::CompileTypeid(SEGMENT_DESC &Segment)
         SetError("'(' expected after typeid");
         return false;
     }
-    const S_TOKEN_TYPE type = Token.Get();
-    const char *data = Token.GetData() ? Token.GetData() : "";
-    int32_t id = -1;
-    switch (type)
-    {
-    case VAR_INTEGER:
-        id = storm::iEquals(data, "bool") ? kTypeidBool : kTypeidInt;
-        break;
-    case VAR_FLOAT:
-        id = kTypeidFloat;
-        break;
-    case VAR_STRING:
-        id = kTypeidString;
-        break;
-    case VAR_OBJECT:
-        id = kTypeidObject;
-        break;
-    case VAR_REFERENCE:
-        id = kTypeidRef;
-        break;
-    case VAR_AREFERENCE:
-        id = kTypeidAref;
-        break;
-    case VAR_FREF:
-        id = kTypeidFref;
-        break;
-    default:
-        break;
-    }
+    Token.Get();
+    const int32_t id = TypeKeywordId();
     if (id >= 0)
     {
         if (Token.Get() != CLOSE_BRACKET)
@@ -986,8 +1014,8 @@ bool COMPILER::CompileAttributeDefault(SEGMENT_DESC &Segment)
     }
     const char *keyword = Token.GetData() ? Token.GetData() : "";
     uint32_t target = Token.GetType();
-    if (!Token.TypeCast() ||
-        !(target == VAR_INTEGER || target == VAR_FLOAT || target == VAR_STRING || target == VAR_FREF))
+    if (!Token.TypeCast() || !(target == VAR_INTEGER || target == VAR_FLOAT || target == VAR_STRING ||
+                               target == VAR_FREF || target == VAR_REFERENCE))
     {
         SetError("type(default) expected after '$'");
         return false;
@@ -1749,3 +1777,36 @@ bool COMPILER::IsPlainAttributePath()
     Token.Get();
     return plain;
 }
+
+// on a variable: does a plain attribute chain followed by 'is' or '!is' follow (a.b.c is fref)? Kept position.
+bool COMPILER::IsAttributeTypeTest()
+{
+    uint32_t code;
+    if (Token.GetType() != UNKNOWN || !Token.GetData())
+        return false;
+    const S_TOKEN_TYPE var_type = DetectUnknown(code);
+    if (var_type != VARIABLE && var_type != LOCAL_VARIABLE)
+        return false;
+    char *const at = Token.GetProgramControl();
+    const std::string name = Token.GetData();
+    bool chain = false;
+    bool test = false;
+    for (;;)
+    {
+        if (Token.Get() != DOT)
+            break;
+        if (Token.Get() == OPEN_BRACKET || !Token.GetData())
+            break;
+        chain = true;
+    }
+    if (chain)
+    {
+        if (Token.GetType() == OP_BOOL_NEG)
+            Token.Get();
+        test = Token.GetType() == UNKNOWN && storm::iEquals(Token.GetData(), "is");
+    }
+    Token.SetProgramControl(at - name.size());
+    Token.Get();
+    return test;
+}
+

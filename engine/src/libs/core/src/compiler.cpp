@@ -2389,6 +2389,22 @@ int32_t COMPILER::TypeidOf(DATA *pV)
     }
 }
 
+bool COMPILER::IsOfType(DATA *pV, int32_t test)
+{
+    // x is type: a null reference is of no type; an array matches type[] by its elements' type.
+    // Attributes hold text: an attribute is a function reference when its text names a script function (:=).
+    DATA *value = Deref(pV);
+    if (value == nullptr || (!value->IsArray() && value->IsNull()))
+        return false;
+    const bool array = (test & kTypeTestArray) != 0;
+    const int32_t id = test & ~kTypeTestArray;
+    if (array != value->IsArray())
+        return false;
+    if (id == kTypeidFref && value->GetType() == VAR_AREFERENCE)
+        return FuncTab.FindFunc(to_string(value->AttributesClass->GetThisAttr())) != INVALID_FUNC_CODE;
+    return TypeidOf(value) == id;
+}
+
 bool COMPILER::CastValue(DATA *pV, S_TOKEN_TYPE target)
 {
     // replaces *pV (a stack value, possibly a reference) with its value converted to target;
@@ -5906,6 +5922,17 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                 pVDst->SetReference(pVSrc->GetReference());
                 break;
             }
+            if (pVSrc->GetType() == VAR_AREFERENCE && pVDst->GetType() == VAR_REFERENCE && !pVDst->IsArray() &&
+                pVDst->GetReference() == nullptr && nLeftOperandIndex == INVALID_ARRAY_INDEX)
+            {
+                // ref r = attribute reference, r bound to nothing: r refers to the attribute, as a ref argument given
+                // one does (a ref bound to a variable, such as an aref out-parameter, is written through below)
+                ATTRIBUTES *attribute = pVSrc->AttributesClass;
+                pVDst->ClearType();
+                pVDst->SetType(VAR_AREFERENCE);
+                pVDst->SetAReference(attribute);
+                break;
+            }
 
             pVDst = pVDst->GetVarPointer();
             if (!pVDst)
@@ -6223,6 +6250,15 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pV->Set(id);
             break;
         }
+        case OP_IS_TYPE: {
+            int32_t test;
+            memcpy(&test, &pCodeBase[ip], sizeof(int32_t));
+            pV = SStack.Read();
+            const bool match = IsOfType(pV, test);
+            pV->ClearType();
+            pV->Set(static_cast<int32_t>(match));
+            break;
+        }
         case PUSH_AP:
             pV = SStack.Push();
             pV->ClearType();
@@ -6236,6 +6272,16 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             pVV = SStack.Pop(); // default
             pV = SStack.Read(); // attribute reference -> result
             ATTRIBUTES *attribute = pV->AttributesClass; // the attribute reference PUSH_AP made, null if missing
+            if (target == VAR_REFERENCE)
+            {
+                // a.b$ref(x): the attribute reference itself, x when the attribute is missing
+                if (attribute == nullptr)
+                {
+                    pV->ClearType();
+                    pV->Copy(pVV);
+                }
+                break;
+            }
             if (attribute != nullptr)
             {
                 pV->ClearType();
@@ -6321,7 +6367,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
             }
             rBX.Convert(VAR_INTEGER);
             rBX.Get(lvalue);
-            if (lvalue < 1)
+            if (lvalue < 0)
             {
                 SetError("array size %d", lvalue);
                 return false;
