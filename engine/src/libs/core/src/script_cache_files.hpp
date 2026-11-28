@@ -13,11 +13,13 @@
 #include "platform/path_fingerprint.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace storm::script_cache
@@ -31,6 +33,12 @@ struct EntryHeader
     uint64_t payload_size;
     uint64_t payload_hash;
 };
+
+// The system's reason for the last failed write (errno: "No space left on device").
+inline std::string systemReason()
+{
+    return std::generic_category().message(errno);
+}
 
 enum class StateFile
 {
@@ -74,7 +82,7 @@ inline std::string resetFolder(const std::filesystem::path &folder, uint64_t key
     stream.close();
     if (!stream)
     {
-        return "cannot write '" + (folder / kStateFile).string() + "'";
+        return "cannot write '" + (folder / kStateFile).string() + "': " + systemReason();
     }
     return {};
 }
@@ -102,8 +110,9 @@ inline std::string writeEntry(const std::filesystem::path &path, std::string_vie
         stream.close();
         if (stream.fail())
         {
+            const std::string reason = systemReason();
             std::filesystem::remove(pending, ec);
-            return "cannot write '" + pending.string() + "'";
+            return "cannot write '" + pending.string() + "': " + reason;
         }
     }
     std::filesystem::rename(pending, path, ec);

@@ -120,6 +120,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     // Appends the text of a script file and a line break, which keeps the tokens of two files apart. False when the
     // file cannot be read.
     bool AppendFile(std::string &program, const char *file_name);
+    std::string SourcePath(const char *file_name) const;
     void DTrace(const char *data_PTR, ...);
     void SetError(const char *data_PTR, ...);
     void SetWarning(const char *data_PTR, ...);
@@ -295,7 +296,7 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
 #endif
     std::vector<char> SerializeState(); // the script state of a save (save_state.hpp)
     // storm::script::Program
-    bool Attach(const char *segment) override;
+    storm::script::Attached Attach(const char *segment) override;
     bool Executing() const override
     {
         return execute_depth_ != 0;

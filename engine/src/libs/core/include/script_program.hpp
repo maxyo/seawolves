@@ -14,13 +14,20 @@ struct Function
     uint32_t arguments = 0;
 };
 
+// What became of a segment the engine attached: anything but Yes leaves nothing of it loaded.
+enum class Attached
+{
+    Yes,
+    NoFile,      // its source file is not there (and no cache holds it)
+    NotCompiled, // it did not compile: the compile log says why
+};
+
 // The running script program as engine code that attaches script segments of its own to it sees it.
 class Program
 {
   public:
     // Compiles `segment` (a path below the program directory) as an attached segment: its globals never enter a save.
-    // False: it did not compile (the compile log says why) and nothing of it stays loaded.
-    virtual bool Attach(const char *segment) = 0;
+    virtual Attached Attach(const char *segment) = 0;
     // A script is running now: engine code called from inside it must not raise script events.
     virtual bool Executing() const = 0;
     // The file of the segment whose function runs now ("" outside scripts): engine code a script calls learns which

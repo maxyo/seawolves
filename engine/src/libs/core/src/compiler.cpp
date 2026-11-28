@@ -206,26 +206,18 @@ void COMPILER::SetProgramDirectory(const char *dir_name)
     }
 }
 
+std::string COMPILER::SourcePath(const char *file_name) const
+{
+    const std::string engine_dir = "storm-engine\\";
+    if (strncmp(file_name, engine_dir.c_str(), engine_dir.length()) == 0)
+        return fio->_GetExecutableDirectory() + "resource\\shared\\" + (file_name + engine_dir.length());
+    return std::string(ProgramDirectory ? ProgramDirectory : "") + file_name;
+}
+
 bool COMPILER::AppendFile(std::string &program, const char *file_name)
 {
-    char buffer[MAX_PATH];
-    std::string EngineDir = "storm-engine\\";
-    if (strncmp(file_name, EngineDir.c_str(), EngineDir.length()) == 0)
-    {
-        std::string ExePath = fio->_GetExecutableDirectory() + "resource\\shared\\";
-        strcpy_s(buffer, ExePath.c_str());
-        strcat_s(buffer, file_name + EngineDir.length());
-    }
-    else if (ProgramDirectory)
-    {
-        strcpy_s(buffer, ProgramDirectory);
-        strcat_s(buffer, file_name);
-    }
-    else
-    {
-        strcpy_s(buffer, file_name);
-    }
-
+    const std::string path = SourcePath(file_name);
+    const char *buffer = path.c_str();
     const size_t offset = program.size();
     if (const auto *memory = fio->MemoryFile(buffer))
     {
@@ -497,17 +489,22 @@ void COMPILER::AttachEngineSegments()
         attacher->Attach(*this);
 }
 
-bool COMPILER::Attach(const char *segment)
+storm::script::Attached COMPILER::Attach(const char *segment)
 {
+    using storm::script::Attached;
     if (BC_SegmentIsLoaded(segment))
     {
         SetError("Attach: segment %s is loaded already", segment);
-        return false;
+        return Attached::NotCompiled;
     }
     if (!BC_LoadSegment(segment))
-        return false;
+    {
+        const std::string path = SourcePath(segment);
+        return fio->MemoryFile(path.c_str()) || fio->_FileOrDirectoryExists(path.c_str()) ? Attached::NotCompiled
+                                                                                         : Attached::NoFile;
+    }
     SegmentTable.back().attached = true;
-    return true;
+    return Attached::Yes;
 }
 
 std::string COMPILER::RunningSegment() const
@@ -7817,7 +7814,10 @@ void COMPILER::SaveSegmentToCache(const SEGMENT_DESC &segment)
                                                            std::string_view(std::data(data), std::size(data)));
         !error.empty())
     {
-        spdlog::warn("Script cache: {}; the segment is compiled again next start", error);
+        // The storage is full or refuses writes: the scripts run as compiled, and the program's next segments are
+        // not stored (a new program, after a load, tries the cache again).
+        spdlog::error("Script cache: {}; the program's other scripts are compiled without the cache", error);
+        script_cache_mode_ = kCacheDisabled;
     }
 }
 

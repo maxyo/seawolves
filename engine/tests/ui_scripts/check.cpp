@@ -21,12 +21,15 @@
 
 #include <algorithm>
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <optional>
 #include <type_traits>
+
+#include <sys/resource.h>
 
 namespace fs = std::filesystem;
 using storm::ui::Json;
@@ -527,6 +530,69 @@ TEST_CASE("a segment that fails is left out with its screens; the core stops the
         REQUIRE(vm.compiler.CreateProgram("seadogs.c"));
         CHECK_THROWS_WITH(vm.compiler.Run(), Catch::Contains("interface/test/broken.c does not compile"));
     }
+    // The app's files on a phone live in its cache, which the system may empty while the game runs.
+    SECTION("its file is gone: said so, not called a compile error")
+    {
+        Log log;
+        Vm vm(List(R"({"file": "interface/test/gone.c"}, {"file": "interface/test/plain.c"})"));
+        vm.Start();
+        CHECK(vm.Loaded("interface/test/plain.c"));
+        CHECK(log.Has("UI script interface/test/gone.c is off: is missing from the app's files"));
+    }
+    SECTION("the core's file is gone")
+    {
+        Vm vm(R"({"segments": [{"file": "interface/test/gone.c", "core": true}]})");
+        REQUIRE(vm.compiler.CreateProgram("seadogs.c"));
+        CHECK_THROWS_WITH(vm.compiler.Run(), Catch::Contains("interface/test/gone.c is missing from the app's files"));
+    }
+}
+
+// The compiled-script cache is the engine's own: one it cannot write or read whole is never an error of the scripts.
+TEST_CASE("the touch scripts attach with a script cache that refuses writes or holds a cut entry")
+{
+    const fs::path cache = fs::temp_directory_path() / "ui-scripts-cache";
+    fs::remove_all(cache);
+    const auto lines = [](const Log &log, std::string_view text) {
+        const auto all = log.sink->last_formatted();
+        return std::count_if(all.begin(), all.end(),
+                             [&](const std::string &line) { return line.find(text) != std::string::npos; });
+    };
+    SECTION("the storage refuses writes: compiled without the cache, said once with the system's reason")
+    {
+        Log log;
+        Vm vm;
+        vm.compiler.UseScriptCache(cache);
+        rlimit before{};
+        REQUIRE(getrlimit(RLIMIT_FSIZE, &before) == 0);
+        std::signal(SIGXFSZ, SIG_IGN);
+        const rlimit small{64, before.rlim_max}; // the cache's key file fits, no compiled segment does
+        REQUIRE(setrlimit(RLIMIT_FSIZE, &small) == 0);
+        vm.Start();
+        REQUIRE(setrlimit(RLIMIT_FSIZE, &before) == 0);
+        CHECK(vm.Loaded("interface/touch/core/core.c"));
+        CHECK(Screen(vm, "rest").component == "s-rest");
+        CHECK(lines(log, "Script cache: cannot write") == 1);
+        CHECK(log.Has(std::generic_category().message(EFBIG)));
+    }
+    SECTION("an entry cut short is compiled again")
+    {
+        {
+            Vm vm;
+            vm.compiler.UseScriptCache(cache);
+            vm.Start();
+        }
+        const fs::path entry = cache / "interface" / "touch" / "core" / "core.b";
+        REQUIRE(fs::file_size(entry) > 64);
+        fs::resize_file(entry, fs::file_size(entry) / 2);
+        Log log;
+        Vm vm;
+        vm.compiler.UseScriptCache(cache);
+        vm.Start();
+        CHECK(vm.Loaded("interface/touch/core/core.c"));
+        CHECK(Screen(vm, "rest").component == "s-rest");
+        CHECK(log.Has("core.b' is damaged; recompiling"));
+    }
+    fs::remove_all(cache);
 }
 
 TEST_CASE("of the providers of a contract the first that attaches is chosen; its users need one")
