@@ -133,7 +133,13 @@ static std::vector<Case> Cases()
         {"shipyard buy question", file("shipyard-confirm-buy.json"), "sheet", {"sheet-cancel", "click", ""}},
         {"defectors (quantity)", file("transfer-hire.json"), "amount", {}},
         {"prisoners' fate", file("transfer-crew-capture.json"), "modal", {}},
-        {"ship without a captain", file("transfer-fate.json"), "modal", {"answer-1", "click", ""}},
+        {"ship without a captain",
+         [](Router &router) {
+             ScriptGame::Get().Set("sMessageMode", "ShipDeadAsk"); // the window asks about the ship we leave
+             Interface(router, "transfer-fate.json");
+         },
+         "modal",
+         {"answer-1", "click", ""}},
         {"dialogue amount editor (quantity)",
          [](Router &router) {
              std::ifstream state(fs::path(models) / "dialogue-edit.json", std::ios::binary);

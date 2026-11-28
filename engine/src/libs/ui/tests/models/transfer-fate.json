@@ -61,6 +61,5 @@
 {"node":"REMOVE_WINDOW_TEXT","type":"text","label":"На судне нет командира. Пустить его ко дну?","index":-1},
 {"node":"REMOVE_ACCEPT_OFFICER","type":"button","label":"Oк","index":-1},
 {"node":"REMOVE_CANCEL_OFFICER","type":"button","label":"Отмена","index":-1},
-{"node":"REMOVE_EXIT_BTN","type":"button","label":"REMOVE_EXIT_BTN","index":-1},
-{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"mode":"ShipDeadAsk","exchange":"0","captainAlive":"0"}}
+{"node":"REMOVE_EXIT_BTN","type":"button","label":"REMOVE_EXIT_BTN","index":-1}
 ]}

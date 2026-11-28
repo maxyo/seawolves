@@ -6,7 +6,6 @@
 "screen":"transfer_main",
 "widgets":[
 {"node":"MAIN_BACK","type":"image","index":-1,"enabled":false,"images":[{"handle":1,"imageRevision":1,"source":{"image":"interfaces/card_desk","kind":"texture"},"tintArgb":4286611584}]},
-{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"captainAlive":"0","crewMin":"9","crewMin2":"7","exchange":"0","mode":""}},
 {"node":"SHIP_BIG_PICTURE_BORDER","type":"image","index":0,"rowId":"BORDER_UPLEFT","images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPLEFT","kind":"atlas"},"tintArgb":4286611584}],"context":{"x":"9","y":"53"}},
 {"node":"SHIP_BIG_PICTURE_BORDER2","type":"image","index":0,"rowId":"BORDER_UPLEFT","images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPLEFT","kind":"atlas"},"tintArgb":4286611584}],"context":{"x":"582","y":"53"}},
 {"node":"SHIP_BIG_PICTURE_BORDER","type":"image","index":1,"rowId":"BORDER_UPRIGHT","images":[{"source":{"group":"MAIN_ICONS","image":"BORDER_UPRIGHT","kind":"atlas"},"tintArgb":4286611584}],"context":{"x":"210","y":"53"}},

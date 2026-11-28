@@ -136,6 +136,9 @@
   выйти на карту), под кнопкой «Сменить флаг» пишется почему, а не только звучит стук.
 - Экран предметов: под местом пистолета перечисляются только пистолеты, под местом мушкета — только мушкеты, как
   их различает сама игра.
+- Перебежчики после абордажа: окно считает тех, кого игра уже приняла, из всех желающих, и «Принять» берёт столько,
+  сколько выбрано; раньше кнопка показывала желающих, а принимала никого. В карточке корабля компаньона и сдавшегося
+  капитана его имя теперь видно и в окне команды.
 
 **English**
 
@@ -278,6 +281,9 @@
   attack, the squadron unable to go to the map), the «Change flag» button says why, not only with a knock.
 - The items screen: the pistol's place lists only pistols and the musket's place only muskets, as the game tells
   them apart.
+- Defectors after a boarding: the window counts the men the game has already taken out of all who are willing, and
+  «Accept» takes as many as chosen; before, the button showed the willing and took nobody. The card of a companion's
+  or a surrendered captain's ship now names him in the crew window too.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

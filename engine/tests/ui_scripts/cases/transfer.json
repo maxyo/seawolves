@@ -1,9 +1,10 @@
 {
- "$comment": "The ship exchange's script on the recorded models of transfer_main (engine/src/libs/ui/tests/models/transfer-*.json; the surrendered captain's window added to the loot's): the props its view gives the pack screen s-transfer, the modals it binds and the calls its build and events make. The fixture game's goods weigh 1 cwt a pack.",
+ "$comment": "The ship exchange's script on the recorded models of transfer_main (engine/src/libs/ui/tests/models/transfer-*.json; the surrendered captain's window added to the loot's): the props its view gives the pack screen s-transfer, the modals it binds and the calls its build and events make. The fixture game's goods weigh 1 cwt a pack; \"game\": the window's globals in that state (its question mode, an exchange with a companion, whether the other captain lives).",
  "cases": [
   {
    "name": "the loot: cargo, crew and ships tabs, the prize card; the ships tab is ours; take all, the crew window, the captain button, a row, a quick take, leaving",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -57,8 +58,7 @@
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tДедвейт\t735 / 1439\t", "value": "0", "index": 5, "rowId": "Capacity", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Capacity"}}]}, {"text": "Дедвейт"}, {"text": "735 / 1439"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tКоманда\t165 : 21 / 132\t", "value": "0", "index": 6, "rowId": "Crew", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Crew"}}]}, {"text": "Команда"}, {"text": "165 : 21 / 132"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tВооружение\t18 фунт / 14\t", "value": "0", "index": 7, "rowId": "sCannons", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Caliber"}}]}, {"text": "Вооружение"}, {"text": "18 фунт / 14"}, {}]},
-     {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}}
+     {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]}
     ]
    },
    "props": {
@@ -132,6 +132,7 @@
   {
    "name": "a selected cargo row: ours of both in the game's packs; a move presses the arrows a pack a press; the quick take of the selected row takes all of theirs",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -186,7 +187,6 @@
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tКоманда\t165 : 21 / 132\t", "value": "0", "index": 6, "rowId": "Crew", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Crew"}}]}, {"text": "Команда"}, {"text": "165 : 21 / 132"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tВооружение\t18 фунт / 14\t", "value": "0", "index": 7, "rowId": "sCannons", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Caliber"}}]}, {"text": "Вооружение"}, {"text": "18 фунт / 14"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}},
      {"node": "B_LEFT", "type": "button", "label": "B_LEFT", "index": -1},
      {"node": "B_RIGHT", "type": "button", "label": "B_RIGHT", "index": -1}
     ]
@@ -270,6 +270,7 @@
   {
    "name": "a good the other ship no longer can take back: without the take arrow the row still gives",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -324,7 +325,6 @@
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tКоманда\t165 : 21 / 132\t", "value": "0", "index": 6, "rowId": "Crew", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Crew"}}]}, {"text": "Команда"}, {"text": "165 : 21 / 132"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tВооружение\t18 фунт / 14\t", "value": "0", "index": 7, "rowId": "sCannons", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Caliber"}}]}, {"text": "Вооружение"}, {"text": "18 фунт / 14"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}},
      {"node": "B_RIGHT", "type": "button", "label": "B_RIGHT", "index": -1}
     ]
    },
@@ -361,6 +361,7 @@
   {
    "name": "the game hides both arrows (its focus off the table): the selected row is selected again",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -414,8 +415,7 @@
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tДедвейт\t735 / 1439\t", "value": "0", "index": 5, "rowId": "Capacity", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Capacity"}}]}, {"text": "Дедвейт"}, {"text": "735 / 1439"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tКоманда\t165 : 21 / 132\t", "value": "0", "index": 6, "rowId": "Crew", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Crew"}}]}, {"text": "Команда"}, {"text": "165 : 21 / 132"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tВооружение\t18 фунт / 14\t", "value": "0", "index": 7, "rowId": "sCannons", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Caliber"}}]}, {"text": "Вооружение"}, {"text": "18 фунт / 14"}, {}]},
-     {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}}
+     {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]}
     ]
    },
    "props": {
@@ -450,6 +450,7 @@
   {
    "name": "a companion: its captain heads the other ship's card",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 1, "xi_refCharacter.chr_ai.hp": 100},
    "model": {
     "language": "russian",
     "revision": 24,
@@ -458,7 +459,6 @@
     "screenRevision": 7,
     "widgets": [
      {"enabled": false, "images": [{"source": {"image": "interfaces/card_desk", "kind": "texture"}}], "index": -1, "node": "MAIN_BACK", "type": "image"},
-     {"context": {"captainAlive": "1", "crewMin": "26", "crewMin2": "21", "exchange": "1", "mode": "", "captain": "Ги Дабри"}, "enabled": false, "index": -1, "node": "ANDROID_TRANSFER", "type": "transfer"},
      {"context": {"x": "9", "y": "53"}, "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPLEFT", "kind": "atlas"}}], "index": 0, "node": "SHIP_BIG_PICTURE_BORDER", "rowId": "BORDER_UPLEFT", "type": "image"},
      {"context": {"x": "582", "y": "53"}, "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPLEFT", "kind": "atlas"}}], "index": 0, "node": "SHIP_BIG_PICTURE_BORDER2", "rowId": "BORDER_UPLEFT", "type": "image"},
      {"context": {"x": "210", "y": "53"}, "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPRIGHT", "kind": "atlas"}}], "index": 1, "node": "SHIP_BIG_PICTURE_BORDER", "rowId": "BORDER_UPRIGHT", "type": "image"},
@@ -542,7 +542,7 @@
     "list": {"cols": [{"icon": "capacity", "label": "Scenario"}, {"icon": "ship", "label": "Faucon"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["705", "0"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["181", "153"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["65", "96"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["34", "184"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["300", "69"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["200", "0"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sugar"}, "name": "Сахар", "quick": false, "reason": "", "selected": false}, {"cells": ["495", "468"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["162", "46"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["107", "161"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
-    "prize": {"facts": [{"k": "<transfer.captain>", "v": "Ги Дабри"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "126 / 101"}], "image": {"kind": "item", "texture": "interfaces/ships/brig"}, "sub": "Бриг · <yard.class> 4", "title": "Faucon"},
+    "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "126 / 101"}], "image": {"kind": "item", "texture": "interfaces/ships/brig"}, "sub": "Бриг · <yard.class> 4", "title": "Faucon"},
     "sheet": null,
     "ships": null,
     "stats": [{"label": "Scenario", "value": "2149 <transfer.free>"}, {"label": "Faucon", "value": "1293 <transfer.free>"}],
@@ -556,6 +556,7 @@
   {
    "name": "the defectors: the game's number, moved by its arrows; accepted; back refuses them",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 100, "iCrewQty": 0, "xi_refCharacter.Ship.Crew.Hire": 8},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -639,8 +640,7 @@
      {"node": "HIRE_QTY_CANCEL_BUTTON", "type": "button", "label": "Отказаться", "index": -1},
      {"node": "HIRE_FOOD_SHIP", "type": "text", "label": "Провианта на корабле: на 24 дня", "value": "1", "index": 0},
      {"node": "HIRE_RUM_SHIP", "type": "text", "label": "Рому на корабле: на 10 дней", "value": "1", "index": 0},
-     {"node": "HIRE_CREW_CAPACITY", "type": "text", "label": "Команда: мин. 9, опт. 40, макс. 50", "value": "1", "index": 0},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "1"}}
+     {"node": "HIRE_CREW_CAPACITY", "type": "text", "label": "Команда: мин. 9, опт. 40, макс. 50", "value": "1", "index": 0}
     ]
    },
    "props": {
@@ -649,9 +649,9 @@
     "deal": null,
     "dealing": false,
     "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
-    "modal": {"actions": [{"disabled": false, "hold": false, "id": "answer-0", "label": "<transfer.nobody>", "reason": "", "variant": "quiet"}, {"disabled": false, "hold": false, "id": "answer-1", "label": "<transfer.take> 8", "reason": "", "sub": "<transfer.crew> 40 › 48", "variant": "primary"}], "q": {"all": true, "disabled": false, "max": 8, "min": 0, "steps": [1, 10], "unit": "<transfer.men>", "value": 8}, "step": "1/2", "text": "", "title": "Желающих перейти к нам в команду"},
+    "modal": {"actions": [{"disabled": false, "hold": false, "id": "answer-0", "label": "<transfer.nobody>", "reason": "", "variant": "quiet"}, {"disabled": true, "hold": false, "id": "answer-1", "label": "<transfer.take> 0", "reason": "", "sub": "<transfer.crew> 40 › 40", "variant": "primary"}], "q": {"all": true, "disabled": false, "max": 8, "min": 0, "steps": [1, 10], "unit": "<transfer.men>", "value": 0}, "step": "1/2", "text": "", "title": "Желающих перейти к нам в команду"},
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
-    "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
+    "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
     "sheet": null,
     "ships": null,
     "stats": [{"label": "Корабль 1", "value": "383 <transfer.free>"}, {"label": "Корабль 2", "value": "704 <transfer.free>"}],
@@ -679,9 +679,11 @@
     ]
    ],
    "calls": [
-    "send HIRE_QTY_REMOVE_BUTTON press ",
-    "send HIRE_QTY_REMOVE_BUTTON press ",
-    "send HIRE_QTY_REMOVE_BUTTON press ",
+    "send HIRE_QTY_ADD_BUTTON press ",
+    "send HIRE_QTY_ADD_BUTTON press ",
+    "send HIRE_QTY_ADD_BUTTON press ",
+    "send HIRE_QTY_ADD_BUTTON press ",
+    "send HIRE_QTY_ADD_BUTTON press ",
     "hold",
     "send HIRE_QTY_OK_BUTTON press ",
     "hold",
@@ -692,6 +694,7 @@
   {
    "name": "the prisoners' fate: overboard held, every answer decides",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -750,8 +753,7 @@
      {"node": "CAPTURE_TEXT_CREW", "type": "text", "label": "Участь 52 сдавшихся матросов", "index": -1},
      {"node": "CAPTURE_CREW_KILL", "type": "button", "label": "За борт", "index": -1},
      {"node": "CAPTURE_CREW_PRISON", "type": "button", "label": "В трюм рабами", "index": -1},
-     {"node": "CAPTURE_CREW_FREE", "type": "button", "label": "На шлюпках", "index": -1},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}}
+     {"node": "CAPTURE_CREW_FREE", "type": "button", "label": "На шлюпках", "index": -1}
     ]
    },
    "props": {
@@ -793,6 +795,7 @@
   {
    "name": "the surrendered captain: his portrait, overboard held, a tap beside is his cancel",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -847,7 +850,6 @@
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tКоманда\t165 : 21 / 132\t", "value": "0", "index": 6, "rowId": "Crew", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Crew"}}]}, {"text": "Команда"}, {"text": "165 : 21 / 132"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tВооружение\t18 фунт / 14\t", "value": "0", "index": 7, "rowId": "sCannons", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Caliber"}}]}, {"text": "Вооружение"}, {"text": "18 фунт / 14"}, {}]},
      {"node": "TABLE_OTHER2", "type": "choice", "label": "\tПушки\t12 фунт / 14\t", "value": "0", "index": 8, "rowId": "CannonType", "actions": ["select", "activate"], "cells": [{"images": [{"source": {"kind": "atlas", "group": "ICONS_CHAR", "image": "Cannons"}}]}, {"text": "Пушки"}, {"text": "12 фунт / 14"}, {}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "", "exchange": "0", "captainAlive": "0"}},
      {"node": "CAPTURE_CAPTION", "type": "text", "label": "Решение по пленным", "index": -1},
      {"node": "CAPTURE_TEXT", "type": "text", "label": "Выберите участь сдавшегося капитана.", "index": -1},
      {"node": "CAPTURE_CAPTAIN_KILL", "type": "button", "label": "Выкинуть за борт", "index": -1, "actions": ["press"]},
@@ -896,6 +898,7 @@
   {
    "name": "a ship without a captain: sink (held) or keep",
    "capability": "transfer",
+   "game": {"sMessageMode": "ShipDeadAsk", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -954,8 +957,7 @@
      {"node": "REMOVE_WINDOW_TEXT", "type": "text", "label": "На судне нет командира. Пустить его ко дну?", "index": -1},
      {"node": "REMOVE_ACCEPT_OFFICER", "type": "button", "label": "Oк", "index": -1},
      {"node": "REMOVE_CANCEL_OFFICER", "type": "button", "label": "Отмена", "index": -1},
-     {"node": "REMOVE_EXIT_BTN", "type": "button", "label": "REMOVE_EXIT_BTN", "index": -1},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "ShipDeadAsk", "exchange": "0", "captainAlive": "0"}}
+     {"node": "REMOVE_EXIT_BTN", "type": "button", "label": "REMOVE_EXIT_BTN", "index": -1}
     ]
    },
    "props": {
@@ -1004,6 +1006,7 @@
   {
    "name": "the crew window: our crew of both, the MinCrew marks; a move presses the arrows a man a press; the cargo tab and back close it",
    "capability": "transfer",
+   "game": {"sMessageMode": "CREW_WINDOW", "bTransferMode": 1, "xi_refCharacter.chr_ai.hp": 100},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -1069,8 +1072,7 @@
      {"node": "TABLE_CREW", "type": "choice", "label": "\tСолдаты\tНовички\t", "index": 2, "rowId": "row:2", "actions": ["select"], "cells": [{"column": 1, "text": "Солдаты"}, {"column": 2, "text": "Новички"}]},
      {"node": "TABLE_CREW2", "type": "choice", "label": "\tМатросы\tСредние\t", "index": 0, "rowId": "row:0", "actions": ["select"], "cells": [{"column": 1, "text": "Матросы"}, {"column": 2, "text": "Средние"}]},
      {"node": "TABLE_CREW2", "type": "choice", "label": "\tКанониры\tНовички\t", "index": 1, "rowId": "row:1", "actions": ["select"], "cells": [{"column": 1, "text": "Канониры"}, {"column": 2, "text": "Новички"}]},
-     {"node": "TABLE_CREW2", "type": "choice", "label": "\tСолдаты\tНовички\t", "index": 2, "rowId": "row:2", "actions": ["select"], "cells": [{"column": 1, "text": "Солдаты"}, {"column": 2, "text": "Новички"}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"mode": "CREW_WINDOW", "exchange": "1", "captainAlive": "1", "crewMin": "9", "crewMin2": "21"}}
+     {"node": "TABLE_CREW2", "type": "choice", "label": "\tСолдаты\tНовички\t", "index": 2, "rowId": "row:2", "actions": ["select"], "cells": [{"column": 1, "text": "Солдаты"}, {"column": 2, "text": "Новички"}]}
     ]
    },
    "props": {
@@ -1081,7 +1083,7 @@
     "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": null,
-    "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
+    "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
     "sheet": null,
     "ships": null,
     "stats": [{"label": "Корабль 1", "value": "383 <transfer.free>"}, {"label": "Корабль 2", "value": "704 <transfer.free>"}],
@@ -1140,6 +1142,7 @@
   {
    "name": "the captain choice: the passengers, the chosen one's facts and skills; a tap selects, the game's appoint and cancel",
    "capability": "transfer",
+   "game": {"sMessageMode": "", "bTransferMode": 0, "xi_refCharacter.chr_ai.hp": 0},
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -1148,7 +1151,6 @@
     "screen": "transfer_main",
     "widgets": [
      {"node": "MAIN_BACK", "type": "image", "index": -1, "enabled": false, "images": [{"source": {"image": "interfaces/card_desk", "kind": "texture"}}]},
-     {"node": "ANDROID_TRANSFER", "type": "transfer", "index": -1, "enabled": false, "context": {"captainAlive": "0", "crewMin": "9", "crewMin2": "7", "exchange": "0", "mode": ""}},
      {"node": "SHIP_BIG_PICTURE_BORDER", "type": "image", "index": 0, "rowId": "BORDER_UPLEFT", "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPLEFT", "kind": "atlas"}}], "context": {"x": "9", "y": "53"}},
      {"node": "SHIP_BIG_PICTURE_BORDER2", "type": "image", "index": 0, "rowId": "BORDER_UPLEFT", "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPLEFT", "kind": "atlas"}}], "context": {"x": "582", "y": "53"}},
      {"node": "SHIP_BIG_PICTURE_BORDER", "type": "image", "index": 1, "rowId": "BORDER_UPRIGHT", "images": [{"source": {"group": "MAIN_ICONS", "image": "BORDER_UPRIGHT", "kind": "atlas"}}], "context": {"x": "210", "y": "53"}},

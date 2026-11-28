@@ -6,15 +6,6 @@
 // interface already computes are read; no game rules change. The game's #defines are the program's (its
 // main segment is loaded first). Attribute names reach the engine in lower case.
 #event_handler("AndroidInterfaceFacts", "AndroidInterfaceFacts");
-#event_handler("AndroidCharacterName", "AndroidCharacterName");
-
-// The name the stock screens give a character (quests.c GetFullName), for the engine's screen state: the
-// loot / exchange screen names the other ship's captain, an appointed one included (xinterface ANDROID_TRANSFER).
-void AndroidCharacterName()
-{
-	int index = GetEventData();
-	GameInterface.AndroidCharacterName = GetFullName(&Characters[index]);
-}
 
 void AndroidInterfaceFacts()
 {

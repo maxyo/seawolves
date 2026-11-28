@@ -61,6 +61,5 @@
 {"node":"CAPTURE_TEXT_CREW","type":"text","label":"Участь 52 сдавшихся матросов","index":-1},
 {"node":"CAPTURE_CREW_KILL","type":"button","label":"За борт","index":-1},
 {"node":"CAPTURE_CREW_PRISON","type":"button","label":"В трюм рабами","index":-1},
-{"node":"CAPTURE_CREW_FREE","type":"button","label":"На шлюпках","index":-1},
-{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"mode":"","exchange":"0","captainAlive":"0"}}
+{"node":"CAPTURE_CREW_FREE","type":"button","label":"На шлюпках","index":-1}
 ]}

@@ -3,8 +3,9 @@
 // columns of the binding's data and the arrows B_LEFT (take) / B_RIGHT (give) of its selected row, the ships' tables
 // TABLE_OTHER / TABLE_OTHER2, the crew window CREW_*, the defectors HIRE_*, the prisoners' and the captain's fate
 // CAPTURE_*, the one question window REMOVE_* and the captain choice OFFICERS_WINDOW. Which window is open shows by
-// its nodes (a hidden window exports none); the question window's meaning and the other captain come from the
-// engine's ANDROID_TRANSFER (the script's sMessageMode, bTransferMode, xi_refCharacter, each ship's MinCrew).
+// its nodes (a hidden window exports none); the question window's meaning, the other captain and the defectors taken
+// are the window's own globals (sMessageMode, bTransferMode, xi_refCharacter, iCrewQty), the least crew of a ship the
+// game's GetMinCrewQuantity.
 // Implements contracts/transfer.c.
 
 // The step a move is at while the screen waits: "quick" (row `row` was selected for all of their stack to be taken)
@@ -20,10 +21,7 @@ void TouchAdpTransfer_State(aref ui, aref out)
 		TouchLegTransfer.quick = -1;
 		TouchLegTransfer.again = -1;
 	}
-	if (!CheckAttribute(model, "ANDROID_TRANSFER")) UiError("transfer: the engine sent no ANDROID_TRANSFER state");
-	aref facts;
-	makearef(facts, model.ANDROID_TRANSFER.context);
-	if (model.ANDROID_TRANSFER.reason != "") UiError("transfer: " + model.ANDROID_TRANSFER.reason);
+	ref captain = &Characters[UiGameInt("xi_refCharacter.index")];
 	out.title = TouchLib_Trim(UiOneLine(TouchLegLib_Label(model, "TITLE")));
 	aref ours;
 	makearef(ours, out.ours);
@@ -34,10 +32,10 @@ void TouchAdpTransfer_State(aref ui, aref out)
 	aref image;
 	makearef(image, theirs.image);
 	if (!TouchLegLib_NodeImage(model, "SHIP_BIG_PICTURE2", image)) DeleteAttribute(theirs, "image");
-	bool alive = facts.captainAlive == "1";
+	bool alive = !LAi_IsDead(captain);
 	theirs.captain = "";
-	if (alive && CheckAttribute(facts, "captain")) theirs.captain = facts.captain;
-	theirs.vacant = !alive && facts.exchange == "0";
+	if (alive) theirs.captain = GetFullName(captain);
+	theirs.vacant = !alive && !UiGameInt("bTransferMode");
 	TouchLegTransfer_Figures(model, out);
 	aref cargo;
 	makearef(cargo, out.cargo);
@@ -58,8 +56,8 @@ void TouchAdpTransfer_State(aref ui, aref out)
 		out.crewTab.can = crew || UiOffers("CREW_BUTTON", "press");
 		out.crewTab.reason = model.CREW_BUTTON.reason;
 	}
-	if (crew) TouchLegTransfer_Crew(model, facts, out);
-	TouchLegTransfer_Question(model, facts.mode, out);
+	if (crew) TouchLegTransfer_Crew(model, captain, out);
+	TouchLegTransfer_Question(model, out);
 	if (CheckAttribute(model, "ACCEPT_ADD_OFFICER") || CheckAttribute(model, "PASSENGERSLIST.rows"))
 		TouchLegTransfer_Captains(model, out);
 	if (TouchLegTransfer_Follow(ui, out)) UiAwait();
@@ -136,13 +134,11 @@ void TouchLegTransfer_Buttons(aref model, aref out)
 		}
 }
 
-void TouchLegTransfer_Crew(aref model, aref facts, aref out)
+void TouchLegTransfer_Crew(aref model, ref captain, aref out)
 {
-	if (!CheckAttribute(facts, "crewMin") || !CheckAttribute(facts, "crewMin2"))
-		UiError("transfer: ANDROID_TRANSFER has no MinCrew (crewMin, crewMin2)");
 	object crew = {ours = UiAmount(model.CREW_QTY.label, "CREW_QTY"),
 	               theirs = UiAmount(TouchLegLib_Label(model, "CREW_QTY2"), "CREW_QTY2"),
-	               minOurs = UiAmount(facts.crewMin, "crewMin"), minTheirs = UiAmount(facts.crewMin2, "crewMin2"),
+	               minOurs = GetMinCrewQuantity(GetMainCharacter()), minTheirs = GetMinCrewQuantity(captain),
 	               take = TouchLegTransfer_Can(model, "CREW_LEFT"), give = TouchLegTransfer_Can(model, "CREW_RIGHT")};
 	crew.morale.ours = UiOneLine(TouchLegLib_Label(model, "CREW_MORALE_TEXT"));
 	crew.morale.theirs = UiOneLine(TouchLegLib_Label(model, "CREW_MORALE_TEXT2"));
@@ -172,14 +168,16 @@ void TouchLegTransfer_Facts(aref model, string table, aref out)
 
 // The game's window asking now, by its nodes: the defectors, the prisoners, the surrendered captain, the question
 // window (its mode says whether it asks about the ship we leave), a message.
-void TouchLegTransfer_Question(aref model, string mode, aref out)
+void TouchLegTransfer_Question(aref model, aref out)
 {
-	object question = {kind = "", leave = "", title = "", text = "", men = 0, crew = 0, adjust = false};
+	object question = {kind = "", leave = "", title = "", text = "", men = 0, most = 0, crew = 0, adjust = false};
 	if (CheckAttribute(model, "HIRE_QTY_OK_BUTTON"))
 	{
 		question.kind = "hire";
 		question.title = UiOneLine(TouchLegLib_Label(model, "HIRE_QTY_TypeOperation"));
-		question.men = UiAmount(TouchLegLib_Label(model, "HIRED_CREW"), "HIRED_CREW");
+		// iCrewQty: the men taken so far (our crew already counts them); Crew.Hire: the willing still left.
+		question.men = UiGameInt("iCrewQty");
+		question.most = question.men + UiGameInt("xi_refCharacter.Ship.Crew.Hire");
 		question.crew = UiAmount(TouchLegLib_Label(model, "HIRE_CREW_QTY"), "HIRE_CREW_QTY");
 		question.adjust = CheckAttribute(model, "HIRE_QTY_ADD_BUTTON") && CheckAttribute(model, "HIRE_QTY_REMOVE_BUTTON");
 	}
@@ -204,6 +202,7 @@ void TouchLegTransfer_Question(aref model, string mode, aref out)
 				question.text = UiOneLine(TouchLegLib_Label(model, "REMOVE_WINDOW_TEXT"));
 				if (CheckAttribute(model, "REMOVE_ACCEPT_OFFICER"))
 				{
+					string mode = UiGameText("sMessageMode");
 					question.kind = "ask";
 					if (mode == "ShipDeadAsk") question.leave = "sink";
 					if (mode == "ShipGoFreeAsk") question.leave = "release";
@@ -434,16 +433,15 @@ void TouchAdpTransfer_Answer(aref ui, int answer)
 {
 	object state;
 	aref model = TouchLegLib_Model(ui);
-	TouchLegTransfer_Question(model, model.ANDROID_TRANSFER.context.mode, &state);
+	TouchLegTransfer_Question(model, &state);
 	aref at = TouchLib_Item(&state, "question.answers", answer);
 	UiSend(at.node, "press", "");
 }
 
-// The window's arrows move its number by one a press (HIRE_ChangeQTY_EDIT keeps it within the willing).
+// The window's arrows move the men taken by one a press (its handlers keep them within the willing).
 void TouchAdpTransfer_Hire(aref ui, int men)
 {
-	aref model = TouchLegLib_Model(ui);
-	int change = men - UiAmount(TouchLegLib_Label(model, "HIRED_CREW"), "HIRED_CREW");
+	int change = men - UiGameInt("iCrewQty");
 	string arrow = "HIRE_QTY_ADD_BUTTON";
 	if (change < 0) arrow = "HIRE_QTY_REMOVE_BUTTON";
 	for (int i = 0; i < abs(change); i++) UiSend(arrow, "press", "");

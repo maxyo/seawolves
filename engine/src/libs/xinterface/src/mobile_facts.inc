@@ -14,19 +14,6 @@ void XINTERFACE::MobileCollectHero(std::vector<MobileWidget> &widgets)
     for(auto &row:rows){row.enabled=false;row.actions.clear();widgets.push_back(std::move(row));}
 }
 
-// The name the game gives a character (quests.c GetFullName), through the interface adapter android_hero.c (event
-// AndroidCharacterName); nullopt without the adapter.
-std::optional<std::string> XINTERFACE::MobileCharacterName(int index) const
-{
-    {
-        const storm::ScriptStateReads reads;
-        core.Event(storm::app::script_event::AndroidCharacterName, "l", index);
-    }
-    auto *name = core.Entity_GetAttributeClass(g_idInterface, "AndroidCharacterName");
-    const char *text = name ? static_cast<const char *>(name->GetThisAttr()) : nullptr;
-    return text ? std::optional<std::string>(text) : std::nullopt;
-}
-
 // Facts of the authored interface adapters (application mobile-ui/PROGRAM/interface/android_*.c):
 // event AndroidInterfaceFacts(screen, subject) fills GameInterface.AndroidFacts.<list>.<row>.<field>;
 // subject is the index of the character the interface shows (the stock scripts' xi_refCharacter)

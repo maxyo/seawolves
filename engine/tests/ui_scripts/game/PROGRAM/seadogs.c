@@ -570,6 +570,7 @@ void Main()
 	makeref(xi_refCharacter, Characters[3]);
 	iShipQty = 220;
 	TestCharacters();
+	TestTransfer();
 	GameValue = 7;
 	GameName = "kept";
 }
@@ -835,4 +836,31 @@ void TestCharacters()
 	GameInterface.PASSENGERSLIST.pic2.character = 31;
 	TestPassengers.p0 = 2;
 	TestHero.Fellows.Passengers.treasurer = 13;
+}
+
+// The exchange interface of the recorded models (ui/tests/models/transfer*.json, transfer_main.c): its question
+// window's mode, whether it trades with a companion, the defectors taken (iCrewQty) and still willing (the other
+// captain's Ship.Crew.Hire), the game's checks of a death and of a ship's least crew (RealShips[].MinCrew: the hero's
+// 9, the other ship's 21). The other captain is xi_refCharacter, dead (no chr_ai.hp) unless a case gives him one.
+string sMessageMode;
+bool bTransferMode;
+int iCrewQty;
+
+bool LAi_IsDead(aref chr)
+{
+	if (!CheckAttribute(chr, "chr_ai.hp")) return true;
+	return stf(chr.chr_ai.hp) < 1.0;
+}
+
+int GetMinCrewQuantity(ref chr)
+{
+	if (!CheckAttribute(chr, "Ship.Type")) return 0;
+	return sti(RealShips[sti(chr.Ship.Type)].MinCrew);
+}
+
+void TestTransfer()
+{
+	RealShips[0].MinCrew = 21;
+	RealShips[1].MinCrew = 9;
+	Characters[3].Ship.Crew.Hire = 8;
 }

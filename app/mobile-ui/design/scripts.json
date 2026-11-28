@@ -626,7 +626,9 @@
     },
     {
       "file": "interface/touch/lineages/legacy/transfer.c",
-      "requires": ["fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items", "var:Goods"],
+      "requires": ["fn:GetGoodWeightByType/2", "fn:GetGoodQuantityByWeight/2", "var:GameInterface", "var:Items", "var:Goods",
+                   "var:Characters", "fn:GetFullName/1", "fn:LAi_IsDead/1", "fn:GetMinCrewQuantity/1",
+                   "fn:GetMainCharacter/0"],
       "provides": ["adapter:transfer"],
       "binds": [
         {
@@ -634,7 +636,7 @@
           "interface": "transfer_main",
           "nodes": [
             ["TABLE_LIST", "choice|table", true], ["EXIT_BTN", "button"], ["TITLE", "heading|text"],
-            ["ANDROID_TRANSFER", "transfer"], ["TAKE_GOODS", "button"], ["CAPTAN_BUTTON", "button"],
+            ["TAKE_GOODS", "button"], ["CAPTAN_BUTTON", "button"],
             ["SWAP_BUTTON", "button"], ["CREW_BUTTON", "button"], ["B_LEFT", "button"], ["B_RIGHT", "button"],
             ["SHIP_NAME", "text"], ["SHIP_NAME2", "text"], ["SHIP_TYPE", "text"], ["SHIP_TYPE2", "text"],
             ["SHIP_RANK", "text"], ["SHIP_RANK2", "text"], ["TABLE_OTHER", "choice"], ["TABLE_OTHER2", "choice"],

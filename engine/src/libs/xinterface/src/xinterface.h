@@ -365,7 +365,6 @@ class XINTERFACE : public XINTERFACE_BASE
     } mobileModelStats_; // of the opening, logged at the next one
     std::string mobileModelScreen_; // of that opening
     void MobileKeepSaveProfile();
-    std::optional<std::string> MobileCharacterName(int index) const;
     void MobileCollectHero(std::vector<MobileWidget> &widgets);
     void MobileCollectFacts(std::vector<MobileWidget> &widgets);
     storm::mobile::InterfaceLeaving mobileLeaving_;

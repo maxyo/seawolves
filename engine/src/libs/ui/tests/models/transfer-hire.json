@@ -92,6 +92,5 @@
 {"node":"HIRE_QTY_CANCEL_BUTTON","type":"button","label":"Отказаться","index":-1},
 {"node":"HIRE_FOOD_SHIP","type":"text","label":"Провианта на корабле: на 24 дня","value":"1","index":0},
 {"node":"HIRE_RUM_SHIP","type":"text","label":"Рому на корабле: на 10 дней","value":"1","index":0},
-{"node":"HIRE_CREW_CAPACITY","type":"text","label":"Команда: мин. 9, опт. 40, макс. 50","value":"1","index":0},
-{"node":"ANDROID_TRANSFER","type":"transfer","index":-1,"enabled":false,"context":{"mode":"","exchange":"0","captainAlive":"1"}}
+{"node":"HIRE_CREW_CAPACITY","type":"text","label":"Команда: мин. 9, опт. 40, макс. 50","value":"1","index":0}
 ]}

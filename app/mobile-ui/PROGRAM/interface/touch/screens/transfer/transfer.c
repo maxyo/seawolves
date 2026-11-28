@@ -8,8 +8,8 @@
 #event_handler("UiBuild", "TouchTransfer_Build");
 #event_handler("UiTap", "TouchTransfer_Tap");
 
-// The screen's state while its window is open: the ships tab chosen (.ships), the defectors seen (.hired, .hireMost:
-// the most the game's number has shown, everyone willing) and the adapter's state of the last build in .game.
+// The screen's state while its window is open: the ships tab chosen (.ships), the defectors seen (.hired) and the
+// adapter's state of the last build in .game.
 object TouchTransfer;
 object TouchTransfer_View;
 
@@ -22,7 +22,7 @@ void TouchTransfer_Build()
 	if (ui.screen != "transfer") return;
 	if (UiFirst() || !CheckAttribute(&TouchTransfer, "ships"))
 	{
-		object fresh = {ships = false, hired = false, hireMost = 0};
+		object fresh = {ships = false, hired = false};
 		DeleteAttribute(&TouchTransfer, "");
 		CopyAttributes(&TouchTransfer, &fresh);
 	}
@@ -471,21 +471,19 @@ void TouchTransfer_Answer(aref question, aref answer, int k, aref at)
 	UiOn(action.id, "");
 }
 
-// The defectors: the game's number, at first everyone willing; «Взять N» with our crew after it.
+// The defectors: the men the game has taken so far of everyone willing; «Взять N» with our crew before and with them.
 void TouchTransfer_Hire(aref question, aref modal)
 {
 	int men = sti(question.men);
 	int crew = sti(question.crew);
-	if (men > sti(TouchTransfer.hireMost)) TouchTransfer.hireMost = men;
-	int most = sti(TouchTransfer.hireMost);
-	if (most < 1) most = 1;
+	int most = sti(question.most);
 	for (int k = 0; k < TouchLib_Count(modal, "actions"); k++)
 	{
 		aref action = TouchLib_Item(modal, "actions", k);
 		aref answer = TouchLib_Item(question, "answers", k);
 		if (answer.key != "ok") continue;
 		action.label = UiText("transfer.take") + " " + men;
-		action.sub = UiText("transfer.crew") + " " + crew + " › " + (crew + men);
+		action.sub = UiText("transfer.crew") + " " + (crew - men) + " › " + crew;
 		action.disabled = !sti(answer.can) || men == 0;
 	}
 	object q = {value = men, min = 0, max = most, unit = UiText("transfer.men"), all = true,
