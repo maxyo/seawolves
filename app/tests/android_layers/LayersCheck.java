@@ -46,6 +46,12 @@ public final class LayersCheck {
         expect(
                 new File(cache, "layers/script-patches/current/PROGRAM/script-patches.c").isFile(),
                 "restored");
+        // The system removed some files of the cache when the storage ran low: the stamp is still
+        // there.
+        expect(ui.delete(), "a UI file removed");
+        expect(!layers.installed(), "a layer missing a file is seen");
+        layers.install();
+        expect(layers.installed() && ui.isFile(), "the file is back");
         System.out.println(
                 "PASS layers: a cleared cache is seen and the layers come back at the same paths");
     }

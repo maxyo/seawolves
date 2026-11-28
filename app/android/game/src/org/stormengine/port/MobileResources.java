@@ -45,9 +45,28 @@ final class MobileResources {
         for (String layer : NAMES) installLayer(layer);
     }
 
-    /** Every layer is in place (its version stamp is there): a clear of the cache removed none. */
-    boolean installed() {
-        for (String layer : NAMES) if (!new File(current(layer), ".version").isFile()) return false;
+    /**
+     * Every layer is in place, file by file: the system may also remove only some files of the cache when the storage
+     * runs low.
+     */
+    boolean installed() throws Exception {
+        for (String layer : NAMES) {
+            byte[] manifest =
+                    Streams.read(assets.open(layer + "/manifest.json"), Integer.MAX_VALUE);
+            if (!complete(current(layer), manifest)) return false;
+        }
+        return true;
+    }
+
+    /** The installed copy is of this manifest (its version stamp) and has every file the manifest names. */
+    private static boolean complete(File current, byte[] manifest) throws Exception {
+        File stamp = new File(current, ".version");
+        if (!stamp.isFile()
+                || !new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
+                        .equals(hash(manifest))) return false;
+        JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));
+        for (Iterator<String> keys = files.keys(); keys.hasNext(); )
+            if (!new File(current, keys.next()).isFile()) return false;
         return true;
     }
 
@@ -95,10 +114,7 @@ final class MobileResources {
                 previous = new File(root, "previous");
         if (!current.exists() && previous.exists() && !previous.renameTo(current))
             throw new IOException("Cannot recover UI layer");
-        File stamp = new File(current, ".version");
-        if (stamp.isFile()
-                && new String(Files.readAllBytes(stamp.toPath()), StandardCharsets.UTF_8)
-                        .equals(version)) return;
+        if (complete(current, manifest)) return;
         Trees.delete(staging);
         if (!staging.mkdirs()) throw new IOException("Cannot stage UI layer");
         JSONObject files = new JSONObject(new String(manifest, StandardCharsets.UTF_8));

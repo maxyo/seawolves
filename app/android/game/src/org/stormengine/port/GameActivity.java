@@ -404,15 +404,15 @@ public final class GameActivity extends SDLActivity {
         // background; the
         // engine reads them at the same paths, so they are back before it runs another frame.
         MobileResources layers = GameStorage.layers(this);
-        if (cacheRoot != null && !layers.installed()) {
-            Log.w(
-                    "StormCache",
-                    "The APK's layers were removed with the cache: installing them again");
-            try {
+        try {
+            if (cacheRoot != null && !layers.installed()) {
+                Log.w(
+                        "StormCache",
+                        "The APK's layers were removed with the cache: installing them again");
                 layers.install();
-            } catch (Exception error) {
-                throw new IllegalStateException("Cannot install the APK's layers again", error);
             }
+        } catch (Exception error) {
+            throw new IllegalStateException("Cannot install the APK's layers again", error);
         }
         if (!destroying && !isFinishing() && !isDestroyed()) super.resumeNativeThread();
     }
