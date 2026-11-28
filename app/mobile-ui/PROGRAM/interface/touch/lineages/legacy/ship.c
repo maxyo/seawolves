@@ -306,8 +306,12 @@ void TouchLegShip_Calibre(aref model, aref row, aref at)
 		if (heading != "") sub += heading + " ";
 		sub += value;
 	}
-	object calibre = {label = TouchLib_Trim(TouchLegLib_Cell(row, 0)), sub = sub,
-	                  count = TouchLib_Trim(TouchLegLib_Cell(row, 1)), selected = row.value == "1",
+	// The game's row tr<n> of the table holds the good of its guns (ship.c FillCannonsTable).
+	string tr = "tr" + (sti(row.index) + 1);
+	if (!CheckAttribute(&GameInterface, "CANNONS_TABLE." + tr + ".index"))
+		UiError("ship: the guns' row " + tr + " has no good");
+	object calibre = {key = GameInterface.CANNONS_TABLE.(tr).index, label = TouchLib_Trim(TouchLegLib_Cell(row, 0)),
+	                  sub = sub, count = TouchLib_Trim(TouchLegLib_Cell(row, 1)), selected = row.value == "1",
 	                  can = CheckAttribute(row, "offers.select")};
 	CopyAttributes(at, &calibre);
 	aref image;

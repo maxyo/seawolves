@@ -23,9 +23,9 @@
 //     be set), mine (absent: none).{label, can, reason}, ok.{can, reason}}
 //   question (absent: none asked).{kind ("question", "shares"), title, text, lines.l<k>.{text} (the shares' lines),
 //     accept.{label, can, reason}}
-//   cannons (absent: the guns' window closed).{title, fitted, stock.{label, count}, calibres.c<k>.{label, sub, image,
-//     count, selected, can}, sides.s<k>.{key ("bow", "port", "starboard", "stern"), now, most, can},
-//     fit, remove, ok (absent: none).{label, can, reason}}
+//   cannons (absent: the guns' window closed).{title, fitted, stock.{label, count}, calibres.c<k>.{key (the game's
+//     good of the guns), label, sub, image, count, selected, can}, sides.s<k>.{key ("bow", "port", "starboard",
+//     "stern"), now, most, can}, fit, remove, ok (absent: none).{label, can, reason}}
 extern void TouchAdpShip_State(aref ui, aref out);
 extern void TouchAdpShip_Ship(aref ui, int ship);              // ships s<k>
 extern void TouchAdpShip_Rename(aref ui, string title);        // in a tap: the player names the ship in the game's field

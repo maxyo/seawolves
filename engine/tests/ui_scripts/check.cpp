@@ -824,19 +824,19 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
 }
 
 // A row is tapped by its identity: a tap that arrives after the game's list changed (a row above it gone, the rest
-// moved up) acts on the row the player tapped, not on whatever is now at its old place. The first case of `file` is
+// moved up) acts on the row the player tapped, not on whatever is now at its old place. Case `at` of `file` is
 // built, row `gone` of the game's table `node` dropped (`renumber`: the rows after it move up, as the engine's tables
 // do; else they keep their indices) and built again; then `tap` (its value or, for "<prefix>{}", its element
 // id: what the first build drew for row `drawn` of the props list at `list` sends) runs: the calls it made.
 std::vector<std::string> TapAfterRowGone(const char *file, const char *folder, const char *capability, const char *node,
                                          int gone, bool renumber, const char *list, size_t drawn, std::string id,
-                                         const char *verb)
+                                         const char *verb, size_t at = 0)
 {
     Vm vm;
     vm.Start();
     storm::ui_scripts::VmPort port(vm.attacher);
     const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/" + file + ".json"));
-    const Json &recorded = fixture.at("cases").at(0);
+    const Json &recorded = fixture.at("cases").at(at);
     storm::ui::InterfaceModel model;
     REQUIRE(storm::ui::ParseInterfaceModel(recorded.at("model").dump(), model));
     const auto spec = PackScreen(folder);
@@ -876,6 +876,10 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
     const auto person = TapAfterRowGone("character", "hero", "character", "CHARACTERS_SCROLL", 1, false,
                                         "/subject/rows", 2, "header-subject-{}", "click");
     CHECK(person == std::vector<std::string>{"rebuild", "send CHARACTERS_SCROLL#3 select 1:3", "hold"});
+    // The guns' window: the 3 lb guns gone from the hold, the 6 lb tapped are still the ones fitted.
+    const auto guns = TapAfterRowGone("ship", "ship", "ship", "CANNONS_TABLE", 0, false, "/sheet/calibres/rows", 1,
+                                      "cannons-stock", "row", 5);
+    CHECK(guns == std::vector<std::string>{"send CANNONS_TABLE#1 select ", "hold"});
 }
 
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")

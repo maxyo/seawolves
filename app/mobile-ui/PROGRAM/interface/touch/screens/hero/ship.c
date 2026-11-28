@@ -126,7 +126,8 @@ void TouchShip_Overview(aref game, aref view)
 		if (slash >= 0)
 			guns = TouchLib_Trim(TouchLib_Cut(guns, slash + 1, strlen(guns))) + " × " + TouchLib_Trim(TouchLib_Cut(guns, 0, slash));
 		if (sti(game.guns.can)) guns += "  ›";
-		TouchShip_Row(right, "cannon", game.guns.label, guns, UiText("ship.by_sides"));
+		aref gunsRow = TouchShip_Row(right, "cannon", game.guns.label, guns, UiText("ship.by_sides"));
+		gunsRow.id = "guns";
 		UiOn("stats-right", "row");
 	}
 	if (CheckAttribute(game, "guns.caliber"))
@@ -394,6 +395,7 @@ void TouchShip_Sheet(aref game, aref view)
 		aref calibre = TouchLib_Item(cannons, "calibres", k);
 		if (sti(calibre.selected)) picked = calibre.label;
 		aref row = TouchLib_Add(rows, "r");
+		row.id = calibre.key;
 		row.cells.c0.text = calibre.label;
 		row.cells.c0.sub = calibre.sub;
 		TouchLib_Copy(row, "cells.c0.image", calibre, "image");
@@ -601,7 +603,7 @@ void TouchShip_Tap()
 	if (id == "ship-rename") { TouchAdpShip_Rename(ui, UiText("ship.rename")); return; }
 	if (id == "stats-right")
 	{
-		if (value != "0" || !sti(game.guns.can)) return;
+		if (value != "guns" || !sti(game.guns.can)) return;
 		TouchAdpShip_Guns(ui);
 		UiHold();
 		return;
@@ -657,7 +659,8 @@ void TouchShip_Tap()
 	}
 	if (id == "cannons-stock")
 	{
-		int c = TouchLib_TapIndex(value, TouchLib_Count(game, "cannons.calibres"), "the calibre");
+		int c = TouchLib_Find(game, "cannons.calibres", "key", value);
+		if (c < 0) return; // the guns tapped are no longer in the hold
 		aref calibre = TouchLib_Item(game, "cannons.calibres", c);
 		if (sti(calibre.selected) || !sti(calibre.can)) return;
 		TouchAdpShip_Calibre(ui, c);

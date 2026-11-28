@@ -40,7 +40,7 @@
     "sheet": {"type": "json", "default": null,
              "shape": {"$null": {"title": "text", "subtitle": "text",
                                  "calibres": {"label": "text", "count": "text", "empty": "text",
-                                              "rows": [{"cells": [{"$either": ["text", {"text": "text", "sub": "text", "image": "picture"}]}], "selected": "bool"}]},
+                                              "rows": [{"id": "text", "cells": [{"$either": ["text", {"text": "text", "sub": "text", "image": "picture"}]}], "selected": "bool"}]},
                                  "sides": [{"id": "text", "q": {"value": "int", "min": "int", "max": "int", "label": "text", "steps": ["int"], "all": "bool", "dense": "bool", "disabled": "bool"}}],
                                  "actions": [{"id": "text", "label": "text", "sub": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]}}},
     "extras": {"type": "json", "default": {}}

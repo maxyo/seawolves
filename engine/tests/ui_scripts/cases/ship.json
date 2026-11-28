@@ -809,7 +809,7 @@
     [
      "stats-right",
      "row",
-     "0"
+     "guns"
     ],
     [
      "ship-exchange",
@@ -943,7 +943,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -1952,7 +1953,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -3007,7 +3009,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -4059,7 +4062,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -5265,7 +5269,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -6365,7 +6370,7 @@
     [
      "cannons-stock",
      "row",
-     "0"
+     "10"
     ],
     [
      "guns-port",
@@ -6504,7 +6509,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
@@ -6579,6 +6585,7 @@
          },
          "8"
         ],
+        "id": "10",
         "selected": false
        },
        {
@@ -6593,6 +6600,7 @@
          },
          "1"
         ],
+        "id": "11",
         "selected": false
        }
       ]
@@ -7633,7 +7641,8 @@
         "bold": true,
         "text": "12 × 6 lb  ›"
        }
-      ]
+      ],
+      "id": "guns"
      },
      {
       "cells": [
