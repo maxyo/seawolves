@@ -1,0 +1,974 @@
+{
+ "$comment": "The new game of a game whose window is cards of ‹ › choices, pages and several starts (fixture game-cl; hand-made models of its node ids, every text a placeholder): each choice, page, switch and start is the game's own button; its profile window's name is edited in the game's field.",
+ "fixture": "game-cl",
+ "cases": [
+  {
+   "name": "cards, the shown page, switches and the starts; every move presses the game's own button",
+   "capability": "new_game",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "selectcharacter",
+    "widgets": [
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Кнопка выхода",
+      "index": -1
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "Заголовок окна",
+      "index": -1
+     },
+     {
+      "node": "INFO_FRAME_CAPTION",
+      "type": "text",
+      "label": "Подпись героя",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "LEFTCHANGE_CHARACTER",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CHARACTER",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Герой Альфа",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "HEADER_HERO_TYPE",
+      "type": "text",
+      "label": "Занятие",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_HERO_TYPE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_HERO_TYPE",
+      "type": "text",
+      "label": "Первое",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_HERO_TYPE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_HERO_TYPE",
+      "type": "text",
+      "label": "Описание занятия.",
+      "index": -1
+     },
+     {
+      "node": "HEADER_TRAIT",
+      "type": "text",
+      "label": "Черта",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_TRAIT",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_TRAIT",
+      "type": "text",
+      "label": "Вторая",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_TRAIT",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_TRAIT",
+      "type": "text",
+      "label": "Описание черты.",
+      "index": -1
+     },
+     {
+      "node": "FACEPICT",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "source": {
+         "kind": "portrait",
+         "image": "1"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "NATIONS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 4,
+        "imageRevision": 4,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1_STR",
+      "type": "text",
+      "label": "Страница один",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_2_STR",
+      "type": "text",
+      "label": "Страница два",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_3_STR",
+      "type": "text",
+      "label": "Страница три",
+      "index": -1
+     },
+     {
+      "node": "HEADER_COMPLEXITY",
+      "type": "text",
+      "label": "Мир",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_COMPLEXITY",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_COMPLEXITY",
+      "type": "text",
+      "label": "Обычный",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_COMPLEXITY",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_COMPLEXITY",
+      "type": "text",
+      "label": "Описание мира.",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_NAVAL_COMBAT",
+      "type": "text",
+      "label": "Настройка",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_NAVAL_COMBAT",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_NAVAL_COMBAT",
+      "type": "text",
+      "label": "Значение",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_NAVAL_COMBAT",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "Переключатель один",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "CHECK_CASUALMODE",
+      "type": "check",
+      "label": "Переключатель два",
+      "index": 0,
+      "value": "0"
+     },
+     {
+      "node": "TOOLTIP_NOTE",
+      "type": "text",
+      "label": "Подсказка окна",
+      "index": -1
+     },
+     {
+      "node": "BTN_START1",
+      "type": "button",
+      "label": "Начало один",
+      "index": -1
+     },
+     {
+      "node": "BTN_START2",
+      "type": "button",
+      "label": "Начало два",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "page",
+     "change",
+     "0"
+    ],
+    [
+     "TRAIT-right",
+     "click",
+     ""
+    ],
+    [
+     "COMPLEXITY-left",
+     "click",
+     ""
+    ],
+    [
+     "hero-right",
+     "click",
+     ""
+    ],
+    [
+     "SETTING_NAVAL_COMBAT-right",
+     "click",
+     ""
+    ],
+    [
+     "CHECK_CASUALMODE",
+     "change",
+     "1"
+    ],
+    [
+     "start",
+     "click",
+     ""
+    ],
+    [
+     "start-1",
+     "click",
+     ""
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "hero": {
+     "bio": false,
+     "image": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_1"
+     },
+     "name": "Герой Альфа",
+     "nation": "<menu.nation_france>"
+    },
+    "rows": [
+     {
+      "disabled": false,
+      "id": "page",
+      "kind": "segment",
+      "label": "",
+      "options": [
+       "Страница один",
+       "Страница два",
+       "Страница три"
+      ],
+      "selected": 2
+     },
+     {
+      "id": "COMPLEXITY",
+      "kind": "stepper",
+      "label": "Мир",
+      "left": true,
+      "right": true,
+      "text": "Обычный"
+     },
+     {
+      "id": "SETTING_NAVAL_COMBAT",
+      "kind": "stepper",
+      "label": "Настройка",
+      "left": true,
+      "right": true,
+      "text": "Значение"
+     }
+    ],
+    "setup": {
+     "id": "hero",
+     "kind": "stepper",
+     "label": "",
+     "left": true,
+     "note": "",
+     "right": true,
+     "text": "Герой Альфа"
+    },
+    "start": {
+     "busy": false,
+     "disabled": false,
+     "label": "Начало один",
+     "reason": ""
+    },
+    "starts": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "start-1",
+      "label": "Начало два",
+      "reason": ""
+     }
+    ],
+    "title": "<menu.new_game_title>",
+    "toggles": [
+     {
+      "disabled": false,
+      "id": "CHECK_PISTOL",
+      "kind": "toggle",
+      "label": "Переключатель один",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_CASUALMODE",
+      "kind": "toggle",
+      "label": "Переключатель два",
+      "on": false,
+      "reason": ""
+     }
+    ],
+    "traits": [
+     {
+      "id": "HERO_TYPE",
+      "kind": "stepper",
+      "label": "Занятие",
+      "left": true,
+      "note": "Описание занятия.",
+      "right": true,
+      "text": "Первое"
+     },
+     {
+      "id": "TRAIT",
+      "kind": "stepper",
+      "label": "Черта",
+      "left": true,
+      "note": "Описание черты.",
+      "right": true,
+      "text": "Вторая"
+     }
+    ]
+   },
+   "modals": [],
+   "calls": [
+    "send TABBTN_1 press ",
+    "send BUTTON_R_TRAIT press ",
+    "send BUTTON_L_COMPLEXITY press ",
+    "send RIGHTCHANGE_CHARACTER press ",
+    "send BUTTON_R_SETTING_NAVAL_COMBAT press ",
+    "send CHECK_CASUALMODE#0 toggle 1",
+    "send BTN_START1 press ",
+    "send BTN_START2 press ",
+    "back BTN_EXIT"
+   ]
+  },
+  {
+   "name": "the profile window: its question, its answers and the name edited in its field",
+   "capability": "new_game",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "selectcharacter",
+    "widgets": [
+     {
+      "node": "BTN_EXIT",
+      "type": "button",
+      "label": "Кнопка выхода",
+      "index": -1
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "Заголовок окна",
+      "index": -1
+     },
+     {
+      "node": "INFO_FRAME_CAPTION",
+      "type": "text",
+      "label": "Подпись героя",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "LEFTCHANGE_CHARACTER",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "RIGHTCHANGE_CHARACTER",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "HERO_NAME",
+      "type": "text",
+      "label": "Герой Альфа",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "HEADER_HERO_TYPE",
+      "type": "text",
+      "label": "Занятие",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_HERO_TYPE",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_HERO_TYPE",
+      "type": "text",
+      "label": "Первое",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_HERO_TYPE",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_HERO_TYPE",
+      "type": "text",
+      "label": "Описание занятия.",
+      "index": -1
+     },
+     {
+      "node": "HEADER_TRAIT",
+      "type": "text",
+      "label": "Черта",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_TRAIT",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_TRAIT",
+      "type": "text",
+      "label": "Вторая",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_TRAIT",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_TRAIT",
+      "type": "text",
+      "label": "Описание черты.",
+      "index": -1
+     },
+     {
+      "node": "FACEPICT",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 3,
+        "imageRevision": 3,
+        "source": {
+         "kind": "portrait",
+         "image": "1"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "NATIONS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 4,
+        "imageRevision": 4,
+        "source": {
+         "kind": "atlas",
+         "group": "NATIONS",
+         "image": "France"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_1_STR",
+      "type": "text",
+      "label": "Страница один",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_2",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabDeSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_2_STR",
+      "type": "text",
+      "label": "Страница два",
+      "index": -1
+     },
+     {
+      "node": "TABBTN_3",
+      "type": "image",
+      "index": -1,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "kind": "atlas",
+         "group": "TABS4",
+         "image": "TabSelected"
+        }
+       }
+      ],
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABBTN_3_STR",
+      "type": "text",
+      "label": "Страница три",
+      "index": -1
+     },
+     {
+      "node": "HEADER_COMPLEXITY",
+      "type": "text",
+      "label": "Мир",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_COMPLEXITY",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_COMPLEXITY",
+      "type": "text",
+      "label": "Обычный",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_COMPLEXITY",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "TEXT_COMPLEXITY",
+      "type": "text",
+      "label": "Описание мира.",
+      "index": -1
+     },
+     {
+      "node": "HEADER_SETTING_NAVAL_COMBAT",
+      "type": "text",
+      "label": "Настройка",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_L_SETTING_NAVAL_COMBAT",
+      "type": "button",
+      "label": "‹",
+      "index": -1
+     },
+     {
+      "node": "VALUE_SETTING_NAVAL_COMBAT",
+      "type": "text",
+      "label": "Значение",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_R_SETTING_NAVAL_COMBAT",
+      "type": "button",
+      "label": "›",
+      "index": -1
+     },
+     {
+      "node": "CHECK_PISTOL",
+      "type": "check",
+      "label": "Переключатель один",
+      "index": 0,
+      "value": "1"
+     },
+     {
+      "node": "CHECK_CASUALMODE",
+      "type": "check",
+      "label": "Переключатель два",
+      "index": 0,
+      "value": "0"
+     },
+     {
+      "node": "TOOLTIP_NOTE",
+      "type": "text",
+      "label": "Подсказка окна",
+      "index": -1
+     },
+     {
+      "node": "BTN_START1",
+      "type": "button",
+      "label": "Начало один",
+      "index": -1
+     },
+     {
+      "node": "BTN_START2",
+      "type": "button",
+      "label": "Начало два",
+      "index": -1
+     },
+     {
+      "node": "PROFILE_STR",
+      "type": "text",
+      "label": "Подпись поля",
+      "index": 0,
+      "value": "1",
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "PROFILE_NAME",
+      "type": "edit",
+      "index": -1,
+      "value": "Герой-Первое"
+     },
+     {
+      "node": "TEXT_CONFIRM_WINDOW",
+      "type": "text",
+      "label": "Вопрос окна?",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_WINDOW_MB_YES",
+      "type": "button",
+      "label": "Ответ один",
+      "index": -1
+     },
+     {
+      "node": "CONFIRM_WINDOW_MB_NO",
+      "type": "button",
+      "label": "Ответ два",
+      "index": -1
+     }
+    ]
+   },
+   "events": [
+    [
+     "modal-name",
+     "click",
+     ""
+    ],
+    [
+     "modal-1",
+     "click",
+     ""
+    ],
+    [
+     "modal-0",
+     "click",
+     ""
+    ]
+   ],
+   "props": {
+    "hero": {
+     "bio": false,
+     "image": {
+      "kind": "portrait",
+      "texture": "INTERFACES/PORTRAITS/128/face_1"
+     },
+     "name": "Герой Альфа",
+     "nation": "<menu.nation_france>"
+    },
+    "modal": {
+     "actions": [
+      {
+       "disabled": false,
+       "id": "modal-0",
+       "label": "Ответ один",
+       "variant": "primary"
+      },
+      {
+       "disabled": false,
+       "id": "modal-1",
+       "label": "Ответ два",
+       "variant": "secondary"
+      },
+      {
+       "disabled": false,
+       "id": "modal-name",
+       "label": "<ship.rename>",
+       "variant": "secondary"
+      }
+     ],
+     "text": "Подпись поля: Герой-Первое",
+     "title": "Вопрос окна?"
+    },
+    "rows": [
+     {
+      "disabled": false,
+      "id": "page",
+      "kind": "segment",
+      "label": "",
+      "options": [
+       "Страница один",
+       "Страница два",
+       "Страница три"
+      ],
+      "selected": 2
+     },
+     {
+      "id": "COMPLEXITY",
+      "kind": "stepper",
+      "label": "Мир",
+      "left": true,
+      "right": true,
+      "text": "Обычный"
+     },
+     {
+      "id": "SETTING_NAVAL_COMBAT",
+      "kind": "stepper",
+      "label": "Настройка",
+      "left": true,
+      "right": true,
+      "text": "Значение"
+     }
+    ],
+    "setup": {
+     "id": "hero",
+     "kind": "stepper",
+     "label": "",
+     "left": true,
+     "note": "",
+     "right": true,
+     "text": "Герой Альфа"
+    },
+    "start": {
+     "busy": false,
+     "disabled": false,
+     "label": "Начало один",
+     "reason": ""
+    },
+    "starts": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "start-1",
+      "label": "Начало два",
+      "reason": ""
+     }
+    ],
+    "title": "<menu.new_game_title>",
+    "toggles": [
+     {
+      "disabled": false,
+      "id": "CHECK_PISTOL",
+      "kind": "toggle",
+      "label": "Переключатель один",
+      "on": true,
+      "reason": ""
+     },
+     {
+      "disabled": false,
+      "id": "CHECK_CASUALMODE",
+      "kind": "toggle",
+      "label": "Переключатель два",
+      "on": false,
+      "reason": ""
+     }
+    ],
+    "traits": [
+     {
+      "id": "HERO_TYPE",
+      "kind": "stepper",
+      "label": "Занятие",
+      "left": true,
+      "note": "Описание занятия.",
+      "right": true,
+      "text": "Первое"
+     },
+     {
+      "id": "TRAIT",
+      "kind": "stepper",
+      "label": "Черта",
+      "left": true,
+      "note": "Описание черты.",
+      "right": true,
+      "text": "Вторая"
+     }
+    ]
+   },
+   "modals": [
+    "modal "
+   ],
+   "calls": [
+    "edit-text PROFILE_NAME Подпись поля",
+    "send CONFIRM_WINDOW_MB_NO press ",
+    "send CONFIRM_WINDOW_MB_YES press "
+   ]
+  }
+ ]
+}

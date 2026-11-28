@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The new game of this lineage (selectcharacter): COMPLEX_TYPE and SETUP_FRAME_CAPTION between their ‹ › buttons,
 // the CHECK_ARCADESAIL pair, the CHECK_* switches, the hero's HERO_NAME, FACEPICT, NATIONS_PICTURE and INFO_TEXT,
-// OK_BUTTON / CANCEL_BUTTON, and the game's windows CONFIRM_WINDOW_* / NOTE_WINDOW_*. The engine adds
+// OK_BUTTON (the one start) / CANCEL_BUTTON, and the game's windows CONFIRM_WINDOW_* / NOTE_WINDOW_*. The engine adds
 // ANDROID_TUTORIAL_SKIP and ANDROID_HERO_TYPE (the occupation's key). Implements
 // contracts/new_game.c.
 
 string TouchLegNewGame_Toggles[5] = {"CHECK_HARDCORE", "CHECK_PISTOL", "CHECK_PARTITION", "CHECK_SEABATTLESAVE",
                                      "CHECK_RAINS"};
 
-void TouchLegNewGame_Step(aref model, aref out, string id, string text, string left, string right)
+bool TouchLegNewGame_Step(aref model, aref rows, string key, string label, string text, string left, string right)
 {
-	if (!CheckAttribute(model, text)) return;
-	aref at;
-	makearef(at, out.(id));
+	if (!CheckAttribute(model, text)) return false;
+	aref at = TouchLib_Add(rows, "r");
+	at.kind = "step";
+	at.key = key;
+	at.label = label;
 	at.text = TouchLib_Trim(model.(text).label);
+	at.note = "";
+	at.hero = false;
 	at.left = CheckAttribute(model, left) && UiOffers(left, "press");
 	at.right = CheckAttribute(model, right) && UiOffers(right, "press");
+	return true;
 }
 
 void TouchLegNewGame_Toggle(aref list, string key, string label, aref check)
@@ -31,27 +36,33 @@ void TouchLegNewGame_Toggle(aref list, string key, string label, aref check)
 void TouchAdpNewGame_State(aref ui, aref out)
 {
 	aref model = TouchLegLib_Model(ui);
-	TouchLegNewGame_Step(model, out, "difficulty", "COMPLEX_TYPE", "LEFTCHANGE_COMPLEX", "RIGHTCHANGE_COMPLEX");
-	TouchLegNewGame_Step(model, out, "setup", "SETUP_FRAME_CAPTION", "LEFTCHANGE_SETUP", "RIGHTCHANGE_SETUP");
-	if (CheckAttribute(out, "setup"))
-	{
-		out.setup.note = TouchLegLib_Label(model, "SETUP_TEXT");
-		out.setup.occupation = TouchLegLib_Label(model, "ANDROID_HERO_TYPE");
-	}
+	aref rows;
+	makearef(rows, out.rows);
+	TouchLegNewGame_Step(model, rows, "difficulty", UiText("menu.difficulty"), "COMPLEX_TYPE", "LEFTCHANGE_COMPLEX",
+	                     "RIGHTCHANGE_COMPLEX");
 	aref at;
+	if (TouchLegNewGame_Step(model, rows, "setup", "", "SETUP_FRAME_CAPTION", "LEFTCHANGE_SETUP", "RIGHTCHANGE_SETUP"))
+	{
+		at = TouchLib_Item(out, "rows", TouchLib_Count(out, "rows") - 1);
+		at.hero = true;
+		at.note = TouchLegLib_Label(model, "SETUP_TEXT");
+		at.occupation = TouchLegLib_Label(model, "ANDROID_HERO_TYPE");
+	}
 	if (CheckAttribute(model, "CHECK_ARCADESAIL.rows"))
 	{
-		makearef(at, out.battle);
+		at = TouchLib_Add(rows, "r");
+		at.kind = "choice";
+		at.key = "battle";
 		at.label = TouchLib_Trim(TouchLegLib_Label(model, "CHECK_ARCADESAIL_NAME"));
 		at.selected = 0;
 		at.can = false;
-		aref rows;
 		aref options;
-		makearef(rows, model.CHECK_ARCADESAIL.rows);
+		aref choices;
+		makearef(choices, model.CHECK_ARCADESAIL.rows);
 		makearef(options, at.options);
-		for (int k = 0; k < GetAttributesNum(rows); k++)
+		for (int k = 0; k < GetAttributesNum(choices); k++)
 		{
-			aref row = GetAttributeN(rows, k);
+			aref row = GetAttributeN(choices, k);
 			aref option = TouchLib_Add(options, "o");
 			option.label = row.label;
 			if (row.value == "1") at.selected = k;
@@ -82,8 +93,9 @@ void TouchAdpNewGame_State(aref ui, aref out)
 	out.hero.name = TouchLib_Trim(TouchLegLib_Label(model, "HERO_NAME"));
 	out.hero.bio = TouchLegLib_Label(model, "INFO_TEXT");
 	out.hero.bioTitle = TouchLib_Trim(TouchLegLib_Label(model, "INFO_FRAME_CAPTION"));
-	out.start.can = UiOffers("OK_BUTTON", "press");
-	out.start.reason = model.OK_BUTTON.reason;
+	object start = {key = "start", label = "", can = UiOffers("OK_BUTTON", "press"), reason = model.OK_BUTTON.reason};
+	makearef(at, out.starts.s0);
+	CopyAttributes(at, &start);
 	out.profile = CheckAttribute(model, "CONFIRM_WINDOW_MB_YES") && UiOffers("CONFIRM_WINDOW_MB_YES", "press");
 	if (sti(out.profile)) return;
 	object lines;
@@ -116,17 +128,18 @@ void TouchAdpNewGame_State(aref ui, aref out)
 	if (text == "" && GetAttributesNum(buttons) == 0) DeleteAttribute(out, "window");
 }
 
-void TouchAdpNewGame_Step(aref ui, string id, bool right)
+void TouchAdpNewGame_Step(aref ui, string key, bool right)
 {
 	string node = "LEFTCHANGE_";
 	if (right) node = "RIGHTCHANGE_";
-	if (id == "difficulty") node += "COMPLEX";
+	if (key == "difficulty") node += "COMPLEX";
 	else node += "SETUP";
 	if (CheckAttribute(ui, "model." + node) && UiOffers(node, "press")) UiSend(node, "press", "");
 }
 
-void TouchAdpNewGame_Battle(aref ui, int k)
+void TouchAdpNewGame_Choose(aref ui, string key, int k)
 {
+	if (key != "battle") UiError("new game: the game has no choice " + key);
 	if (!CheckAttribute(ui, "model.CHECK_ARCADESAIL.rows.r" + k + ".offers.toggle")) return;
 	object action = {node = "CHECK_ARCADESAIL", verb = "toggle", value = "1", row = k};
 	UiSendTo(&action);
@@ -142,7 +155,7 @@ void TouchAdpNewGame_Toggle(aref ui, string key, bool on)
 	UiSendTo(&action);
 }
 
-void TouchAdpNewGame_Start(aref ui)
+void TouchAdpNewGame_Start(aref ui, string key)
 {
 	if (UiOffers("OK_BUTTON", "press")) UiSend("OK_BUTTON", "press", "");
 }
@@ -165,4 +178,9 @@ void TouchAdpNewGame_Window(aref ui, int k)
 	aref button;
 	makearef(button, state.window.buttons.("b" + k));
 	if (sti(button.can)) UiSend(button.node, "press", "");
+}
+
+void TouchAdpNewGame_Name(aref ui, string title)
+{
+	UiError("new game: the game's window has no name field");
 }

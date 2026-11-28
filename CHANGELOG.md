@@ -252,6 +252,10 @@
   четырёх кандидатах; раньше при двух кандидатах был виден один ряд навыков, остальные приходилось прокручивать.
 - Абордаж: полоски обеих команд остаются на экране, когда герой убирает оружие на палубе, как и полоска капитана в
   каюте: бой продолжается; раньше они пропадали, пока герой снова не обнажит оружие.
+- Caribbean Legend: новая игра на сенсорном экране — карточки героя и мира переключаются стрелками, страницы окна —
+  вкладками, настройки и переключатели игры видны на её странице, оба начала игры — кнопками, окно имени профиля —
+  с ответами игры и правкой имени. Подписи и тексты из текстовых полей игры видны без её разметки; стрелки,
+  нарисованные картинкой, работают как кнопки.
 
 **English**
 
@@ -507,6 +511,10 @@
   one to four candidates; with two candidates only one row of skills showed and the rest had to be scrolled.
 - Boarding: the bars of both crews stay on the screen when the hero sheathes his weapon on the deck, and the cabin
   captain's bar likewise: the fight goes on; they used to vanish until the weapon was drawn again.
+- Caribbean Legend: a new game on the touch screen — the hero's and the world's cards are switched by arrows, the
+  window's pages by tabs, the game's settings and switches show on its page, both ways to start are buttons, and the
+  profile name window has the game's answers and a way to edit the name. Captions and texts of the game's text
+  fields show without its markup; arrows drawn as a picture work as buttons.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

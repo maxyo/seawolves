@@ -232,6 +232,8 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
   list (`People`, `PickPerson`; `ListCharacter`: the character a row of a portrait list shows), `ShipSkills`,
   `Facts` (a two-column table's rows), `Officers` (the game's captain choice, for `TouchLib_Captains`).
+- `lineages/cl/lib.c` (Caribbean Legend's set, beside the common readers): `TouchClLib_Pages` (a window's pages
+  `TABBTN_<n>` with their captions and the one shown).
 
 ## The steps of a move
 

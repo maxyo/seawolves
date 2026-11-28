@@ -14,6 +14,7 @@ void GameTick()
 void Main()
 {
 	Interfaces[0].IniFile = "RESOURCE\INI\INTERFACES\mainmenu.ini";
+	Interfaces[1].IniFile = "RESOURCE\INI\INTERFACES\selectCharacter.ini";
 }
 
 ref GetCharacter(int index)

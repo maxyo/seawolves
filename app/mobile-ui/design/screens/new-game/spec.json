@@ -7,7 +7,9 @@
     "toggles": {"type": "json", "default": [], "shape": [{"$of": "s-control.row"}]},
     "hero": {"type": "json", "default": {}, "shape": {"name": "text", "nation": "text", "image": {"$of": "c-object-header.image"}, "bio": "bool"}},
     "setup": {"type": "json", "default": null, "shape": {"$of": "s-control.row"}},
+    "traits": {"type": "json", "default": [], "shape": [{"$of": "s-control.row"}]},
     "start": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
+    "starts": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]},
     "modal": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "text": "text", "actions": {"$of": "c-dialog.actions"}}}},
     "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }

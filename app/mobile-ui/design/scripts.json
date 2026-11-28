@@ -726,6 +726,7 @@
       "provides": ["adapter:title"],
       "binds": [{"capability": "menu_title", "interface": "mainmenu", "nodes": [["ANDROID_CONTINUE", "text"]]}]
     },
+    {"file": "interface/touch/lineages/cl/lib.c", "set": "caribbean_legend"},
     {
       "file": "interface/touch/lineages/cl/title.c",
       "set": "caribbean_legend",
@@ -810,6 +811,27 @@
             ["CHECK_RAINS", "check"], ["CONFIRM_WINDOW_*", "text|button|image"], ["NOTE_WINDOW_*", "text|button|image"],
             ["PROFILE_*", "*"], ["MAIN_BACK", "image"], ["EXIT_BTN", "button"]
           ]
+        }
+      ]
+    },
+    {
+      "file": "interface/touch/lineages/cl/new_game.c",
+      "set": "caribbean_legend",
+      "replaces": "interface/touch/lineages/legacy/new_game.c",
+      "provides": ["adapter:new_game"],
+      "binds": [
+        {
+          "capability": "new_game", "interface": "selectcharacter",
+          "nodes": [
+            ["BTN_EXIT", "button", true], ["BTN_START*", "button"], ["TITLE", "heading|text"], ["HERO_NAME", "text"],
+            ["LEFTCHANGE_CHARACTER", "button"], ["RIGHTCHANGE_CHARACTER", "button"], ["FACEPICT", "image"],
+            ["NATIONS_PICTURE", "image"], ["INFO_FRAME_CAPTION", "text"], ["INFO_TEXT", "text"],
+            ["TOOLTIP_NOTE", "text"], ["HEADER_*", "text"], ["VALUE_*", "text"], ["TEXT_*", "text"],
+            ["PICTURE_*", "image"], ["BUTTON_L_*", "button"], ["BUTTON_R_*", "button"], ["TABBTN_*", "image|text"],
+            ["CHECK_*", "check"], ["CONFIRM_WINDOW_*", "button"], ["PROFILE_*", "*"], ["ANDROID_HERO_TYPE", "text"],
+            ["MAIN_BACK", "image"], ["16x9_BACKGROUND", "image"]
+          ],
+          "data": {"hero": "HERO_TYPE TRAIT HOBBY START_ITEM HONOR"}
         }
       ]
     },

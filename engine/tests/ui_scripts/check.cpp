@@ -1218,6 +1218,7 @@ TEST_CASE("the journal's script gives the pack screen the props and actions of t
 TEST_CASE("the new game's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("new-game", "new_game");
+    CheckCases("new-game", "new_game_cl");
 }
 
 TEST_CASE("the save list's script gives the pack screen the props and actions of the recorded models")
