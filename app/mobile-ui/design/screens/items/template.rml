@@ -13,7 +13,7 @@
 <c-object-header image="{{ json(detail.image) }}" title="{{detail.title}}" sub="{{detail.sub}}" surface="parchment" style="width: 100%"/>
 <t-if test="len(detail.facts) > 0"><c-kv items="{{ json(detail.facts) }}" surface="parchment" style="width: 100%"/></t-if>
 <div class="it-scroll"><div class="it-text ink">{{detail.text}}</div></div>
-<t-if test="detail.action"><t-if test="opt(detail.action.sub)"><div id="item-removal-warning" class="it-text ink">{{opt(detail.action.sub)}}</div></t-if><div class="it-actions"><c-button id="{{detail.action.id}}" label="{{detail.action.label}}" variant="{{ detail.action.variant }}" hold="{{ detail.action.hold ? 1 : 0 }}" surface="parchment" disabled="{{ detail.action.disabled ? 1 : 0 }}" reason="{{detail.action.reason}}" busy="{{ detail.action.busy ? 1 : 0 }}"/></div></t-if>
+<t-if test="detail.action"><div class="it-actions"><c-button id="{{detail.action.id}}" label="{{detail.action.label}}" variant="{{ detail.action.variant }}" hold="{{ detail.action.hold ? 1 : 0 }}" surface="parchment" disabled="{{ detail.action.disabled ? 1 : 0 }}" reason="{{detail.action.reason}}" busy="{{ detail.action.busy ? 1 : 0 }}"/></div></t-if>
 </t-if></c-panel></div>
 </div></t-if>
 <s-extras id="extras" extras="{{ json(extras) }}"/>

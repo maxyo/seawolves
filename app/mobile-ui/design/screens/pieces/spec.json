@@ -5,7 +5,6 @@
     "pieces": {"type": "json", "default": []},
     "label": {"type": "text", "default": ""},
     "size": {"type": "int", "default": 60},
-    "costs": {"type": "bool", "default": false, "class": false},
     "below": {"type": "bool", "default": false, "class": false}
   },
   "behaviors": ["press"],
