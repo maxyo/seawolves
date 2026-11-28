@@ -1,0 +1,20 @@
+A face's size is set only when it changes, for RmlUi 6.3: every glyph a font face handle loads set the shared FreeType
+face's character size again (handles of other sizes share the face), and FreeType runs a TrueType face's prep program
+again after each size request, before the next glyph: most of what a handle's first glyphs cost (the Noto faces'
+prep is long). Our own; upstream sets the size before every glyph.
+
+--- a/Source/Core/FontEngineDefault/FreeTypeInterface.cpp
++++ b/Source/Core/FontEngineDefault/FreeTypeInterface.cpp
+@@ -474,6 +474,12 @@
+ 
+ 	FT_Error error = 0;
+ 
++	// Already at this size (an outline face at 72 dpi has the requested pixel size as its ppem): setting it again would
++	// make FreeType run the face's TrueType prep program once more at the next glyph, for every glyph a handle loads.
++	if (FT_IS_SCALABLE(ft_face) && ft_face->size && ft_face->size->metrics.x_ppem == font_size &&
++		ft_face->size->metrics.y_ppem == font_size)
++		return true;
++
+ 	// Set the character size on the font face.
+ 	error = FT_Set_Char_Size(ft_face, 0, font_size << 6, 0, 0);
+ 
