@@ -169,6 +169,8 @@
   выполненной логикой, и это состояние попадало в автосохранение. Предел считается в выполненных инструкциях
   скрипта, а не в секундах: медленный диск, пауза в фоне и долгая загрузка его не задевают. Настройка
   `call_time_limit` в engine.ini больше не читается.
+- Описание сохранения с повреждённым байтом больше не превращается в строку вопросительных знаков: заменяется только
+  сам повреждённый байт (знаком «�»), остальной текст, в том числе кириллица, остаётся как был.
 
 **English**
 
@@ -344,6 +346,8 @@
   after it. Such a call used to be cut midway after 60 seconds, the game went on with half-run logic, and that state
   reached the autosave. The limit is counted in executed script instructions, not in seconds: a slow disk, a pause
   in the background or a long load do not touch it. The engine.ini setting `call_time_limit` is no longer read.
+- A save description with a damaged byte no longer turns into a row of question marks: only the damaged byte is
+  replaced (with «�»), the rest of the text, Cyrillic included, stays as it was.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

@@ -1,5 +1,7 @@
 #include "utf8.h"
 
+#include "platform/jni_text.hpp"
+
 #include <cstdio>
 #include <ctime>
 #include <cstring>
@@ -63,4 +65,36 @@ TEST_CASE("utf8")
     REQUIRE((sum == static_cast<long long>(repetitions) * (0x416 + 0x20AC + 0x1F600) && ms < 5000));
     std::printf("utf8: decode/surrogates/bounds PASS (%zu bytes walked in %.0f ms of CPU under ASan)\n", text.size(),
                 ms);
+}
+
+// The one validation and repair of UTF-8 text (jni_text IsUtf8, RepairUtf8).
+TEST_CASE("utf8.repair")
+{
+    using storm::jni_text::IsUtf8;
+    const auto repaired = [](std::string text) {
+        const size_t replaced = storm::jni_text::RepairUtf8(text);
+        REQUIRE(IsUtf8(text));
+        return std::pair(text, replaced);
+    };
+    const std::string mark = "\xEF\xBF\xBD"; // U+FFFD
+
+    for (const char *valid : {"", "Port Royal", "Сен-Пьер", "\xE2\x82\xAC", "\xF0\x9F\x98\x80", "\xF4\x8F\xBF\xBF"})
+    {
+        CHECK(IsUtf8(valid));
+        CHECK(repaired(valid) == std::pair(std::string(valid), size_t{0}));
+    }
+    // Not UTF-8: a stray lead or continuation byte, overlong forms, an encoded surrogate, a value above U+10FFFF,
+    // the lead bytes of five and six byte forms, a sequence cut by the end of the text.
+    for (const char *invalid :
+         {"\xFF", "\x80", "\xC0\xAF", "\xC1\xBF", "\xE0\x80\xAF", "\xF0\x80\x80\xAF", "\xED\xA0\x80",
+          "\xF4\x90\x80\x80", "\xF5\x80\x80\x80", "\xF8\x88\x80\x80\x80", "\xD0", "\xE2\x82", "\xF0\x9F\x98"})
+    {
+        INFO(invalid);
+        CHECK(!IsUtf8(invalid));
+        CHECK(repaired(invalid).second == std::strlen(invalid));
+    }
+    // Every valid character around the bad bytes is kept.
+    CHECK(repaired("Сен-\xFFПьер") == std::pair("Сен-" + mark + "Пьер", size_t{1}));
+    CHECK(repaired("\xC0\xAFМартиника\xD0") == std::pair(mark + mark + "Мартиника" + mark, size_t{3}));
+    CHECK(repaired("\xD0\xD0\x96") == std::pair(mark + "Ж", size_t{1})); // a lead byte before a whole character
 }

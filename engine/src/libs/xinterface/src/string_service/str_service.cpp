@@ -665,7 +665,7 @@ bool STRSERVICE::GetNextUsersString(char *src, int32_t &idx, std::optional<std::
     if (strData != nullptr && dataBeg <= dataEnd)
     {
         *strData = part(dataBeg, dataEnd);
-        Assert(utf8::IsValidUtf8(strData->c_str()));
+        Assert(storm::jni_text::IsUtf8(*strData));
     }
 
     return true;

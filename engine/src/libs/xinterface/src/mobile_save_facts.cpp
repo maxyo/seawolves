@@ -6,8 +6,8 @@
 
 #include "mobile_save_facts.hpp"
 #include "save_autosave.hpp"
+#include "save_record.hpp"
 #include "save_thumbnail.hpp"
-#include "utf8.h"
 
 #include <spdlog/spdlog.h>
 
@@ -91,13 +91,7 @@ const SaveFactsCache::Entry &SaveFactsCache::get(const std::string &path)
             if (extension.valid)
             {
                 entry.readable = true;
-                std::string description(extension.description);
-                if (!utf8::IsValidUtf8(description.c_str()))
-                {
-                    utf8::FixInvalidUtf8(description.data());
-                    description.resize(std::strlen(description.c_str()));
-                }
-                entry.facts = ParseSaveDescription(description);
+                entry.facts = ParseSaveDescription(SaveDescriptionText(extension, path));
                 entry.thumbnail = !extension.pixels.empty();
                 if (extension.picture_problem)
                     spdlog::error("Save '{}': {}: listed without its picture, still loadable", path,

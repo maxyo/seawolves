@@ -357,10 +357,11 @@ TEST_CASE("a record's description for the script: valid UTF-8, cut at a code poi
     fake.saveData[legacy] = extension("Сен-Пьер@*@12:00  01.10.1654@1 hours 0 min.@russian", false);
     CHECK(storm::ReadSaveDescription(legacy.c_str(), sizeof(output), output));
     CHECK(std::string(output).starts_with("Сен-Пьер"));
-    const auto invalid = extension(std::string("a") + char(255) + "b");
+    // One byte that is not UTF-8 costs the description that byte only.
+    const auto invalid = extension(std::string("Сен-") + char(255) + "Пьер@*@12:00  01.10.1654");
     fake.saveData[legacy] = invalid;
     CHECK(storm::ReadSaveDescription(legacy.c_str(), sizeof(output), output));
-    CHECK(utf8::IsValidUtf8(output));
+    CHECK(std::string(output) == "Сен-\xEF\xBF\xBDПьер@*@12:00  01.10.1654");
     CHECK(fake.saveData[legacy] == invalid);
     for (int kind = 0; kind < 4; ++kind)
     {

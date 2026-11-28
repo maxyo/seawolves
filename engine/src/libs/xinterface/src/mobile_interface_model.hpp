@@ -5,7 +5,7 @@
 // only when the collected widgets differ from the last ones (MobileWidget::operator==).
 #include "mobile_widget.hpp"
 #include "storm_ui/interface_model.h"
-#include "utf8.h"
+#include "platform/jni_text.hpp"
 
 #include <string>
 #include <utility>
@@ -13,36 +13,6 @@
 
 namespace storm::mobile
 {
-// Text the game gave in a broken UTF-8 encoding: every byte that does not start a valid sequence
-// becomes U+FFFD. True when it changed something (the caller reports it: never a quiet repair).
-inline bool RepairUtf8(std::string &text)
-{
-    if (utf8::IsValidUtf8(text))
-        return false;
-    std::string out;
-    out.reserve(text.size() + 8);
-    for (size_t i = 0; i < text.size();)
-    {
-        const auto c = static_cast<unsigned char>(text[i]);
-        const size_t length = c < 0x80             ? 1
-                              : (c & 0xE0) == 0xC0 ? 2
-                              : (c & 0xF0) == 0xE0 ? 3
-                              : (c & 0xF8) == 0xF0 ? 4
-                                                   : 0;
-        if (length && i + length <= text.size() && utf8::IsValidUtf8(text.substr(i, length)))
-        {
-            out.append(text, i, length);
-            i += length;
-        }
-        else
-        {
-            out += "\xEF\xBF\xBD";
-            ++i;
-        }
-    }
-    text = std::move(out);
-    return true;
-}
 
 // The UI's image reference. A source whose kind lacks what that kind needs (an atlas cell
 // without group or name, a battle icon without its atlas, ...) is not a source: the image is then
@@ -105,7 +75,7 @@ inline std::vector<storm::ui::Cell> MobileModelCells(std::vector<MobileCell> &&c
 // The model of the open interface `screen` (opening `opening`) from its collected widgets in
 // reading order: `order` is the position. Slider bounds belong to sliders and `exclusive` to
 // checks only (other types keep the defaults). Nodes with text in a broken encoding are added to
-// `repaired` (their text repaired, see RepairUtf8).
+// `repaired` (their text repaired: jni_text RepairUtf8, never a quiet repair).
 inline storm::ui::InterfaceModel MobileInterfaceModel(std::string screen, std::string language, uint64_t opening,
                                                       uint64_t revision, std::vector<MobileWidget> widgets,
                                                       std::vector<std::string> *repaired = nullptr)
@@ -145,7 +115,7 @@ inline storm::ui::InterfaceModel MobileInterfaceModel(std::string screen, std::s
         to.context = std::move(from.context);
         to.text_color_argb = from.textColorArgb;
         bool broken = false;
-        const auto repair = [&broken](std::string &text) { broken = RepairUtf8(text) || broken; };
+        const auto repair = [&broken](std::string &text) { broken = jni_text::RepairUtf8(text) || broken; };
         for (std::string *text : {&to.label, &to.value, &to.row_id, &to.unavailable_reason})
             repair(*text);
         for (std::string &header : to.column_headers)

@@ -34,7 +34,7 @@
 #include "data.h"
 #include "s_vartab.h"
 #include "save_references.hpp"
-#include "utf8.h"
+#include "platform/jni_text.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -210,7 +210,7 @@ inline bool readAttribute(StateReader &in, ATTRIBUTES *self, ATTRIBUTES *parent,
     std::optional<std::string> value;
     if (!in.VDword(children) || !in.VDword(code) || !in.String(value))
         return fail(error, "truncated attribute", in);
-    if (value && !utf8::IsValidUtf8(value->c_str()))
+    if (value && !jni_text::IsUtf8(*value))
         spdlog::warn("Deserializing invalid utf8 string: {}", *value);
     // Every child takes at least three bytes.
     if (children > in.Remaining() / 3)
@@ -263,7 +263,7 @@ template <typename Sink> bool readValue(StateReader &in, uint32_t type, Sink &si
         std::optional<std::string> value;
         if (!in.String(value))
             return detail::fail(error, "truncated string", in);
-        if (value && !utf8::IsValidUtf8(value->c_str()))
+        if (value && !jni_text::IsUtf8(*value))
             spdlog::warn("Deserializing invalid utf8 string: {}", *value);
         sink.String(value);
         return true;

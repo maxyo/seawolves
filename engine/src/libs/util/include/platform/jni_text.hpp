@@ -11,8 +11,9 @@
 //   UTF-8 a stray or missing continuation byte, an overlong form, an encoded surrogate, a value above U+10FFFF.
 // - U+0000 is rejected: the engine passes text on as C strings, where it would silently cut the text.
 // - The empty string is valid.
-// The one lenient conversion (ToUtf16Replacing, ToJavaReplacing) is for text whose bytes come from outside (names
-// inside a player's archive or torrent): it counts what it replaced, for the caller to report.
+// The lenient conversions (RepairUtf8, ToUtf16Replacing, ToJavaReplacing) are for text whose bytes come from outside
+// (a save's description, names inside a player's archive or torrent): they count what they replaced, for the caller
+// to report.
 //
 // C++17: the torrent library builds with it.
 #include <cstddef>
@@ -65,6 +66,30 @@ inline bool IsUtf8(std::string_view text)
         at += length;
     }
     return true;
+}
+
+// Makes `text` valid UTF-8 and keeps every valid character of it: each byte that does not start a valid sequence
+// becomes U+FFFD. Returns how many bytes were replaced, for the caller to report (0: the text is unchanged).
+inline size_t RepairUtf8(std::string &text)
+{
+    if (IsUtf8(text))
+        return 0;
+    size_t replaced = 0;
+    std::string out;
+    for (size_t at = 0; at < text.size();)
+    {
+        const size_t length = DecodeUtf8(text, at).second;
+        if (length)
+            out.append(text, at, length);
+        else
+        {
+            out += "\xEF\xBF\xBD";
+            ++replaced;
+        }
+        at += length ? length : 1;
+    }
+    text = std::move(out);
+    return replaced;
 }
 
 namespace detail
