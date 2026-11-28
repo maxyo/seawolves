@@ -7,6 +7,7 @@
 #include "platform/storage.hpp"
 
 #include <SDL2/SDL.h>
+#include <optional>
 
 namespace storm::android::ui
 {
@@ -28,10 +29,75 @@ std::pair<float, float> SurfacePixels(uint32_t window_id, float x, float y)
     return {x * float(surface.width_px) / float(width), y * float(surface.height_px) / float(height)};
 }
 
+// The text field being typed into (ShowTextEditor): the keyboard is its editor until Enter or Escape. The host asks
+// for it in the engine frame and SDL filters events in the same thread's pump, so it needs no lock.
+struct Editing
+{
+    std::string token, text, original;
+    bool numeric = false;
+    bool typed = false;     // the first key replaces the field's text, as a phone's editor opens with it selected
+    bool textInput = false; // SDL's text input as it was before (SDL starts with it on)
+};
+std::optional<Editing> editing;
+
+void FinishEditing(bool accepted)
+{
+    if (!editing->textInput)
+        SDL_StopTextInput();
+    Log().info("text field {}: {}", accepted ? "submitted" : "cancelled", accepted ? editing->text : editing->original);
+    EngineUi::Get().Post([token = editing->token, text = accepted ? editing->text : editing->original,
+                          accepted](storm::ui::Host &host) { host.SubmitText(token, text, accepted); });
+    editing.reset();
+}
+
+// Keys while a field is edited: the typed text goes to the field, never to the game.
+int EditText(const SDL_Event &event)
+{
+    const auto start = [] {
+        if (!editing->typed)
+            editing->text.clear();
+        editing->typed = true;
+    };
+    if (event.type == SDL_TEXTINPUT)
+    {
+        start();
+        for (const char *c = event.text.text; *c; ++c)
+            if (!editing->numeric || (*c >= '0' && *c <= '9'))
+                editing->text += *c;
+        return 0;
+    }
+    if (event.type != SDL_KEYDOWN)
+        return event.type == SDL_KEYUP || event.type == SDL_TEXTEDITING ? 0 : 1;
+    switch (event.key.keysym.sym)
+    {
+    case SDLK_RETURN:
+    case SDLK_KP_ENTER:
+        FinishEditing(true);
+        break;
+    case SDLK_ESCAPE:
+        FinishEditing(false);
+        break;
+    case SDLK_BACKSPACE:
+        start();
+        // One UTF-8 character: drop its continuation bytes, then its lead byte.
+        while (!editing->text.empty() && (static_cast<unsigned char>(editing->text.back()) & 0xC0) == 0x80)
+            editing->text.pop_back();
+        if (!editing->text.empty())
+            editing->text.pop_back();
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
 // Runs where SDL takes the event in (the game thread's pump): the mouse and Escape go to the touch interface only, as
 // a phone's touches and its Back button never reach the game's own controls.
 int Filter(void *, SDL_Event *event)
 {
+    if (editing && (event->type == SDL_TEXTINPUT || event->type == SDL_TEXTEDITING || event->type == SDL_KEYDOWN ||
+                    event->type == SDL_KEYUP))
+        return EditText(*event);
     EngineUi &ui = EngineUi::Get();
     const double now = MonotonicMs();
     switch (event->type)
@@ -114,9 +180,14 @@ void ClosePack()
 
 void ShowTextEditor(const storm::ui::TextRequest &request)
 {
-    Log().error("text input is not available on the desktop: the field «{}» keeps its text", request.title);
-    EngineUi::Get().Post(
-        [token = request.token, text = request.text](storm::ui::Host &host) { host.SubmitText(token, text, false); });
+    // No editor is drawn: the field shows its text once submitted. A request over an open one cancels the open one.
+    if (editing)
+        FinishEditing(false);
+    editing =
+        Editing{request.token, request.text, request.text, request.numeric, false, SDL_IsTextInputActive() == SDL_TRUE};
+    SDL_StartTextInput();
+    Log().info("text field «{}» ({}): type on the keyboard, Enter submits, Escape cancels; starts with «{}»",
+               request.title, request.numeric ? "numbers" : "text", request.text);
 }
 
 void UiFailed(const std::string &reason)
