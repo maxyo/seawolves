@@ -5,6 +5,8 @@
 #include <numbers>
 #include <stdexcept>
 
+#include "half_float.hpp"
+
 namespace storm::sea::ocean
 {
 namespace
@@ -14,11 +16,65 @@ constexpr int kInversionSteps = 4;
 // Below this Jacobian determinant the displaced grid folds (whitecaps): no unique point lands there, and a Newton
 // step would jump; the plain step p = x - D(p) is taken instead.
 constexpr float kFoldDeterminant = 0.1f;
+// A crest the choppy displacement squeezes (1 + dxx towards 0) steepens by 1 / (1 + dxx); past a fold it would turn
+// over. The shading keeps at most this steepening and leaves the fold itself to the whitecaps.
+constexpr float kMinStretch = 0.25f;
+
 } // namespace
+
+int SlopeLevels(int size)
+{
+    int levels = 1;
+    while ((size >> (levels - 1)) > 1)
+        levels++;
+    return levels;
+}
+
+size_t SlopeLevelOffset(int size, int level)
+{
+    size_t offset = 0;
+    for (int l = 0; l < level; l++)
+        offset += static_cast<size_t>(size >> l) * static_cast<size_t>(size >> l);
+    return offset;
+}
+
+void PackSlopeMoments(const std::vector<Slope> &slopes, int size, std::vector<uint64_t> &out)
+{
+    const int levels = SlopeLevels(size);
+    std::vector<glm::vec4> level(slopes.size()), next;
+    for (size_t i = 0; i < slopes.size(); i++)
+    {
+        const Slope &s = slopes[i];
+        const float x = s.hx / std::max(1.0f + s.dxx, kMinStretch);
+        const float z = s.hz / std::max(1.0f + s.dzz, kMinStretch);
+        level[i] = {x, z, x * x, z * z};
+    }
+    out.resize(SlopeLevelOffset(size, levels));
+    for (int l = 0; l < levels; l++)
+    {
+        const int n = size >> l;
+        uint64_t *packed = out.data() + SlopeLevelOffset(size, l);
+        for (size_t i = 0; i < level.size(); i++)
+            packed[i] = storm::PackHalves(level[i].x, level[i].y, level[i].z, level[i].w);
+        if (n == 1)
+            break;
+        const int half = n / 2;
+        next.assign(static_cast<size_t>(half) * half, glm::vec4(0.0f));
+        for (int y = 0; y < half; y++)
+            for (int x = 0; x < half; x++)
+            {
+                const size_t i = static_cast<size_t>(2 * y) * n + 2 * x;
+                next[static_cast<size_t>(y) * half + x] =
+                    0.25f * (level[i] + level[i + 1] + level[i + n] + level[i + n + 1]);
+            }
+        level.swap(next);
+    }
+}
 
 Field::Field(std::vector<Cascade> layout) : layout_(std::move(layout))
 {
     samples_.resize(layout_.size());
+    sample_halves_.resize(layout_.size());
     slopes_.resize(layout_.size());
     work_.resize(layout_.size());
     cascade_low_.assign(layout_.size(), 0.0f);
@@ -27,6 +83,7 @@ Field::Field(std::vector<Cascade> layout) : layout_(std::move(layout))
     {
         const size_t count = static_cast<size_t>(layout_[c].size) * layout_[c].size;
         samples_[c].assign(count, {});
+        sample_halves_[c].assign(count, 0);
         slopes_[c].assign(count, {});
         work_[c][0].assign(count, {});
         work_[c][1].assign(count, {});
@@ -121,10 +178,15 @@ void Field::UpdateCascade(size_t cascade, double time, InverseFft2d &transform)
     transform.Run(hx.data());
     transform.Run(z.data());
     std::vector<Displacement> &out = samples_[cascade];
+    std::vector<uint64_t> &halves = sample_halves_[cascade];
     float low = 0.0f, high = 0.0f;
     for (size_t i = 0; i < out.size(); i++)
     {
-        out[i] = {hx[i].imag(), hx[i].real(), z[i].real(), 0.0f};
+        // Rounded to the half floats of the vertex shader's texture: the CPU reads what the GPU draws.
+        const uint16_t dx = storm::HalfFromFloat(hx[i].imag()), h = storm::HalfFromFloat(hx[i].real()),
+                       dz = storm::HalfFromFloat(z[i].real());
+        halves[i] = dx | static_cast<uint64_t>(h) << 16 | static_cast<uint64_t>(dz) << 32;
+        out[i] = {storm::FloatFromHalf(dx), storm::FloatFromHalf(h), storm::FloatFromHalf(dz), 0.0f};
         low = std::min(low, out[i].h);
         high = std::max(high, out[i].h);
     }

@@ -7,7 +7,7 @@
 // foam's strands): its texture and what sea_surface.sh needs to read it (sea_surface_gpu.hpp).
 struct SeaHeightField
 {
-    int32_t texture = -1; // renderer texture id: the cascades' samples, RGBA32F, cascade c in rows c * size..
+    int32_t texture = -1; // renderer texture id: the cascades' samples, RGBA16F, cascade c in rows c * size..
     int32_t size = 0;     // samples a side of each cascade
     int32_t cascades = 0;
     float patch[3]{};                    // metres each cascade repeats over

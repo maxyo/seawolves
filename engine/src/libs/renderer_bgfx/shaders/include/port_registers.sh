@@ -4,5 +4,5 @@
 #define PORT_VSC_COASTFOAM 73 // CoastFoam foam_gpu::kRegisters (kFoamsPerDraw = 64)
 #define PORT_VSC_GRASS 82
 #define PORT_VSC_PARTICLES 14
-#define PORT_VSC_SEA 59 // Sea2
+#define PORT_VSC_SEA 14 // Sea2 (src/libs/sea/src/sea.cpp)
 #define PORT_VSC_WORLDMAP 7

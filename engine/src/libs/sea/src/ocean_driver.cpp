@@ -5,8 +5,6 @@
 #include <cstring>
 #include <utility>
 
-#include <glm/gtc/packing.hpp>
-
 namespace storm::sea::ocean
 {
 namespace
@@ -16,14 +14,6 @@ bool Same(const Sea2Keys &a, const Sea2Keys &b)
     return std::memcmp(&a, &b, sizeof(Sea2Keys)) == 0;
 }
 } // namespace
-
-void Driver::Pack(const Field &field, size_t cascade, std::vector<uint64_t> &out)
-{
-    const std::vector<Slope> &slopes = field.Slopes(cascade);
-    out.resize(slopes.size());
-    for (size_t i = 0; i < slopes.size(); i++)
-        out[i] = glm::packHalf4x16(glm::vec4(slopes[i].hx, slopes[i].hz, slopes[i].dxx, slopes[i].dzz));
-}
 
 void Driver::Layout(int cascades, int size, const Sea2Keys &keys)
 {
@@ -44,26 +34,26 @@ void Driver::Layout(int cascades, int size, const Sea2Keys &keys)
     keys_ = keys;
     ease_ = 1.0;
     built_state_.reset();
-    for (auto &halves : halves_)
-        halves.assign(layout.size(), {});
+    for (auto &moments : moments_)
+        moments.assign(layout.size(), {});
     // The first frame reads a field made now.
     fields_[current_]->Update(clock_);
     for (size_t c = 0; c < layout.size(); c++)
-        Pack(*fields_[current_], c, halves_[current_][c]);
+        PackSlopeMoments(fields_[current_]->Slopes(c), layout[c].size, moments_[current_][c]);
 }
 
 void Driver::Run(std::optional<SeaState> build)
 {
     Field &next = *fields_[1 - current_];
-    std::vector<std::vector<uint64_t>> &halves = halves_[1 - current_];
+    std::vector<std::vector<uint64_t>> &moments = moments_[1 - current_];
     const double time = clock_;
-    worker_.Start([this, &next, &halves, time, build = std::move(build)] {
+    worker_.Start([this, &next, &moments, time, build = std::move(build)] {
         const auto start = std::chrono::steady_clock::now();
         try
         {
             worker_.Parallel(transforms_.size(), [&](size_t c) {
                 next.UpdateCascade(c, time, *transforms_[c]);
-                Pack(next, c, halves[c]);
+                PackSlopeMoments(next.Slopes(c), next.Layout()[c].size, moments[c]);
             });
             if (build)
             {

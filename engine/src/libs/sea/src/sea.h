@@ -2,12 +2,14 @@
 #pragma once
 
 #include "sea_base.h"
+#include <array>
 #include <chrono>
 #include "renderer.h"
 #include "vma.hpp"
 #include "cube_schedule.hpp"
 #include "ocean_driver.hpp"
 #include "parallel_for.hpp"
+#include "sea_surface_gpu.hpp"
 #include "sea_tree.hpp"
 #include "wave_focus.hpp"
 
@@ -91,13 +93,13 @@ class SEA : public SEA_BASE, private SeaBlockTree
     float fMeshGridStep = 0.0f;
     bool bMeshBuilt = false;
     // The wave field (ocean_driver.hpp: made on the worker) and what the GPU reads of it this frame: the samples for
-    // the vertex shader (sea_surface_gpu.hpp, D3DVERTEXTEXTURESAMPLER0) and the slopes for the pixel shader (a volume,
-    // a slice per cascade, stage 0), made for `textureCascades_` x `textureSize_`.
+    // the vertex shader (sea_surface_gpu.hpp, D3DVERTEXTEXTURESAMPLER0) and the slope moments for the pixel shader
+    // (one mipmapped texture per cascade, stages kSlopeStage..), made for `textureCascades_` x `textureSize_`.
     storm::sea::ocean::Driver driver_;
     storm::sea::ocean::Sea2Keys keys_{};
-    int32_t fieldTexture_ = -1, slopeTexture_ = -1;
+    int32_t fieldTexture_ = -1;
+    std::array<int32_t, sea_gpu::kMaxCascades> slopeTextures_{-1, -1, -1};
     int textureCascades_ = 0, textureSize_ = 0;
-    std::vector<uint16_t> slopeHalves_;
     void UpdateField(float dt);
     void UploadField();
     float WindDirection() const;

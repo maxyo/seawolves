@@ -33,11 +33,10 @@ class Driver
     {
         return *fields_[current_];
     }
-    // The current field's slopes of `cascade` as the pixel shader's texture holds them: four half floats a sample
-    // (hx, hz, dxx, dzz), packed by the worker.
-    const std::vector<uint64_t> &SlopeHalves(size_t cascade) const
+    // The current field's slope texture of `cascade` with all its levels (PackSlopeMoments), made by the worker.
+    const std::vector<uint64_t> &SlopeMoments(size_t cascade) const
     {
-        return halves_[current_][cascade];
+        return moments_[current_][cascade];
     }
     bool Ready() const
     {
@@ -57,11 +56,10 @@ class Driver
   private:
     void Layout(int cascades, int size, const Sea2Keys &keys);
     void Run(std::optional<SeaState> build);
-    static void Pack(const Field &field, size_t cascade, std::vector<uint64_t> &out);
 
     Worker worker_;
     std::unique_ptr<Field> fields_[2];
-    std::vector<std::vector<uint64_t>> halves_[2];          // per field, per cascade
+    std::vector<std::vector<uint64_t>> moments_[2];         // per field, per cascade
     std::vector<std::unique_ptr<InverseFft2d>> transforms_; // per cascade: one per helper thread
     int current_ = 0;
     int cascades_ = 0, size_ = 0;

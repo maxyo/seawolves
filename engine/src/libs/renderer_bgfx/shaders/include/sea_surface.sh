@@ -6,7 +6,7 @@
 #ifndef SEA_SURFACE_SH
 #define SEA_SURFACE_SH
 
-// The field: the cascades' samples stacked in one RGBA32F texture (dx, h, dz per texel), read texel by texel at the
+// The field: the cascades' samples stacked in one RGBA16F texture (dx, h, dz per texel), read texel by texel at the
 // vertex texture unit, as the skinned draws read their bone palettes (ff_skin.sh). D3DVERTEXTEXTURESAMPLER0.
 SAMPLER2D(s_vtex, 13);
 

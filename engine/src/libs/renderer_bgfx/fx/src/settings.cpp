@@ -16,7 +16,8 @@ Settings Settings::FromPreset(QualityPreset preset)
     // current phones), EASU up to the display, RCAS after it; the interfaces at the display size. A height instead
     // of a factor: a display no taller is not scaled for nothing. «Низкая» stays the original look otherwise.
     s.sharpen = true;
-    s.sharpness = 0.75f; // 0.5 stops below the reference's maximum
+    s.sharpness = 0.75f;   // 0.5 stops below the reference's maximum
+    s.sea_specular = true; // the sun's glint is the sea's sun road (the game's own) on every preset
     if (preset == QualityPreset::Low)
     {
         s.render_height = kLowRenderHeight;
@@ -60,7 +61,6 @@ Settings Settings::FromPreset(QualityPreset preset)
         s.sea_cascades = 3;
         s.sea_wakes = true;
         s.anisotropy = 4;
-        s.sea_specular = true; // the sun's glint over the game's sun road: one uniform branch of the sea shader
         s.lighting_flags = kLightingPerPixel | kLightingHemisphere | kLightingTranslucent | kLightingPoint |
                            kLightingNormalMap | kLightingRim | kLightingAerial;
         s.point_lights = 4;
@@ -102,7 +102,6 @@ Settings Settings::FromPreset(QualityPreset preset)
     s.sea_cascade_size = 128;
     s.sea_soft_edges = true;
     s.sea_wakes = true;
-    s.sea_specular = true;
     s.lighting_flags = kLightingPerPixel | kLightingHemisphere | kLightingSpecular | kLightingTranslucent |
                        kLightingPoint | kLightingNormalMap | kLightingRim | kLightingAerial;
     s.point_lights = 8;

@@ -39,13 +39,18 @@ The frame-work line of the renderer's log carries the worker's milliseconds per 
 
 ## On the GPU
 
-- The samples, the cascades stacked in one RGBA32F texture (`include/sea_surface_gpu.hpp`), read with texelFetch in
+- The samples, the cascades stacked in one RGBA16F texture (`include/sea_surface_gpu.hpp`), read with texelFetch in
   the vertex shader (`shaders/include/sea_surface.sh` of the renderer): a mesh point of the still water is moved by
-  the sum of the cascades' bilinear samples and takes the normal of their derivatives, as `Field::Point`. RGBA32F
-  sampled without filtering is core in OpenGL ES 3.0 and mandatory in Vulkan, the format the skinned draws' bone
-  palettes use.
-- The slopes, one slice per cascade of an RGBA16F volume, filtered in the pixel shader (RGBA16F is filterable in
-  OpenGL ES 3.0 and Vulkan); each cascade's slopes fade as a pixel covers more of its samples.
+  the sum of the cascades' bilinear samples and takes the normal of their derivatives, as `Field::Point`. The field
+  rounds its samples to half floats, so `WaveXZ` reads exactly what is drawn (1.6 cm steps at 16-32 m, the storms'
+  crests). RGBA16F is sampled by any shader stage in OpenGL ES 3.0 and Vulkan; a device where the vertex stage
+  cannot fails the self-check below and the CPU displaces the sea.
+- The slopes for shading (LEAN mapping, Olano and Baker 2010): per cascade one RGBA16F texture of the displaced
+  surface's mean slopes along x and z and their mean squares, with every level of 2 x 2 averages made by the worker
+  (`PackSlopeMoments`), sampled with trilinear filtering (RGBA16F is filterable in OpenGL ES 3.0 and Vulkan). A
+  level's mean square less its squared mean is the slope variance a pixel hides; the pixel shader
+  (`fs_port_sea2.sc`) adds the cascades' means for the normal and their variances for the roughness of the sun's
+  glint (Bruneton et al. 2010), so detail finer than a pixel shades as roughness instead of flickering.
 - Before the vertex shader displaces the sea on a device, the sea checks it there (`storm/render/sea_surface_check`
   of the renderer): a fixed field of the same layout through the same shader code, read back and compared with
   `Field::Point`. Until it passed, and for good when it failed (an error in the log), the CPU displaces the

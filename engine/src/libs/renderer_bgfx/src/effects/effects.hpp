@@ -174,7 +174,7 @@ class Host
     // World passes (world.cpp): drawn into the shim's current game view, in submission order.
     render::EffectsWorld world() const;
     render::EffectsSea sea() const;
-    // Before each draw with the game's Sea2 pixel shader (shaders/ports/fs_port_sea2.sc): sets its u_seaFx and,
+    // Before each draw with the sea's pixel program (shaders/ports/fs_port_sea2.sc): sets its u_seaFx and,
     // for the soft edges, captures the scene distance behind the sea once per frame and target and binds it.
     // And the hulls' wakes (sea_wakes.sh): draws them once per frame (a view of their own) and binds their target.
     void prepare_sea(shim::Device &device);
@@ -285,7 +285,7 @@ class Host
     float camera_height_ = 0.0f; // of the last world pass
     bgfx::UniformHandle u_sea_fx_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle s_sea_depth_ = BGFX_INVALID_HANDLE;
-    // The Sea2 port's sun road cube (stage 2, unit 7): a draw without one gets this black cube, so the sampler never
+    // The sea's sun road cube (stage 2, unit 7): a draw without one gets this black cube, so the sampler never
     // meets a 2D texture another program left on the unit (GL: a type mismatch drops the draw). Black: no sun, no
     // glint.
     bgfx::UniformHandle s_sea_sun_road_ = BGFX_INVALID_HANDLE;

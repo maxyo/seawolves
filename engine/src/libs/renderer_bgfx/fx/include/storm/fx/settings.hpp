@@ -176,9 +176,8 @@ struct Settings
     // The game's sea (the ported Sea2 technique, fs_port_sea2.sc); its reflected ray is always clamped to the horizon.
     bool sea_soft_edges = false; // the sea fades out where shallow in front of the scene (needs the scene depth)
     bool sea_turbidity = false;  // depth-dependent transmission and water-colour scattering
-    bool sea_specular = false;   // the sun's glint from the bumped normal along the game's sun road
+    bool sea_specular = false;   // the sun's or moon's glint on the sea (fs_port_sea2.sc)
     float sea_edge_depth = 1.5f; // metres of water over which a soft edge fades in
-    float sea_specular_power = 400.0f;
     float sea_specular_strength = 0.6f;
     // The wakes of the hulls (sea_wakes.hpp): foam astern and at the bow.
     bool sea_wakes = false;

@@ -114,7 +114,7 @@ void CheckSettings()
 {
     const Settings original = Settings::FromPreset(QualityPreset::Low);
     CHECK(original.PostIsIdentity());
-    CHECK(!original.sea_soft_edges && !original.sea_specular);
+    CHECK(!original.sea_soft_edges && original.sea_specular); // the glint is the sea's sun road
     CHECK(original.lighting_flags == kLightingNone);
     const Settings medium = Settings::FromPreset(QualityPreset::Medium);
     const Settings high = Settings::FromPreset(QualityPreset::High);
@@ -142,7 +142,6 @@ void CheckSettings()
     CHECK(original.sea_cascades == 2 && original.sea_cascade_size == 64);
     CHECK(medium.sea_cascades == 3 && medium.sea_cascade_size == 64);
     CHECK(high.sea_cascades == 3 && high.sea_cascade_size == 128);
-    CHECK(medium.sea_specular && high.sea_specular);
     // The sky / ground ambient from «Средняя»; linear light in no preset (the game's lights and bakes add in gamma).
     CHECK((medium.lighting_flags & kLightingHemisphere) && (high.lighting_flags & kLightingHemisphere));
     CHECK(!(medium.lighting_flags & kLightingLinear) && !(high.lighting_flags & kLightingLinear));

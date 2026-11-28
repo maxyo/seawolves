@@ -27,6 +27,7 @@
 
 #include <SDL2/SDL.h>
 #include <bgfx/storm_vk_traffic.h>
+#include <glm/gtc/packing.hpp>
 #include "storm/render/effects.hpp"
 #include "storm/render/perf_stats.hpp"
 #include "storm/render/pipelines.hpp"
@@ -99,29 +100,17 @@ class Scene
         const std::vector<DWORD> vs = shader_ref("sea_sea2_vertex_shader"), ps = shader_ref("sea_sea2_pixel_shader");
         check(d_.CreateVertexShader(vs.data(), &vs_), "CreateVertexShader(sea2)");
         check(d_.CreatePixelShader(ps.data(), &ps_), "CreatePixelShader(sea2)");
-        // The field's slopes (stage 0, a slice per cascade): none, a flat normal everywhere.
-        check(d_.CreateVolumeTexture(4, 4, 3, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &bump_, nullptr),
-              "CreateVolumeTexture");
-        D3DLOCKED_BOX box;
-        check(bump_->LockBox(0, &box, nullptr, 0), "LockBox");
-        for (int z = 0; z < 3; ++z)
-            for (int y = 0; y < 4; ++y)
-                std::memset(static_cast<uint8_t *>(box.pBits) + z * box.SlicePitch + y * box.RowPitch, 0, 4 * 8);
-        bump_->UnlockBox(0);
-        // The wave field (sea_surface_gpu.hpp: one cascade of 4 x 4 samples, RGBA32F dx, h, dz): every sample 3 m
+        // The wave field (sea_surface_gpu.hpp: one cascade of 4 x 4 samples, RGBA16F dx, h, dz): every sample 3 m
         // below the still level, no displacement across.
         constexpr uint32_t kField = 4;
-        check(d_.CreateTexture(kField, kField, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &field_, nullptr),
+        check(d_.CreateTexture(kField, kField, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &field_, nullptr),
               "CreateTexture(field)");
         D3DLOCKED_RECT field;
         check(field_->LockRect(0, &field, nullptr, 0), "LockRect(field)");
         for (uint32_t y = 0; y < kField; ++y)
             for (uint32_t x = 0; x < kField; ++x)
-            {
-                float *texel = reinterpret_cast<float *>(static_cast<uint8_t *>(field.pBits) + y * field.Pitch) + x * 4;
-                texel[0] = texel[2] = texel[3] = 0.0f;
-                texel[1] = -3.0f;
-            }
+                reinterpret_cast<uint64_t *>(static_cast<uint8_t *>(field.pBits) + y * field.Pitch)[x] =
+                    glm::packHalf4x16(glm::vec4(0.0f, -3.0f, 0.0f, 0.0f));
         field_->UnlockRect(0);
         // The reflected scene: one sky colour.
         check(d_.CreateCubeTexture(4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &env_, nullptr), "CreateCubeTexture");
@@ -142,7 +131,6 @@ class Scene
         back_->Release();
         vs_->Release();
         ps_->Release();
-        bump_->Release();
         field_->Release();
         env_->Release();
     }
@@ -194,17 +182,14 @@ class Scene
         d_.SetRenderState(D3DRS_DESTBLEND, D3DBLEND_SRCALPHA);
         d_.SetVertexShader(vs_);
         d_.SetPixelShader(ps_);
-        d_.SetTexture(0, bump_);
         d_.SetTexture(3, env_);
         d_.SetTexture(D3DVERTEXTEXTURESAMPLER0, field_);
-        float c[59][4] = {};
+        float c[14][4] = {};
         const auto set = [&](int r, float x, float y, float z, float w) {
             c[r][0] = x, c[r][1] = y, c[r][2] = z, c[r][3] = w;
         };
-        set(0, 0.0f, 1.0f, 0.5f, -0.04f);
-        set(1, 2.0f, -1.0f, 0.00036621652552071f, 0.0f); // no fog
-        set(2, 0.0f, 0.0f, 0.0f, 0.0f);
-        set(23, 0.0f, 0.0f, 0.0f, 1.0f); // camera
+        set(0, 0.0f, 3.0f, 0.0f, 0.0f);  // no fog, no foam
+        set(13, 0.0f, 0.0f, 0.0f, 1.0f); // camera
         if (gpu_surface)
         {
             // One cascade 3 m below the still level at 0: 3 m below the camera; the other two absent.
@@ -214,19 +199,15 @@ class Scene
             set(7, 0.0f, 0.0f, 0.0f, 0.0f);
             set(8, 0.0f, 0.0f, 1.0e12f, 1.0f);
         }
-        // World-view-projection as the vertex shader reads it (m4x4 with c24..c27: the columns of the D3D matrix).
+        // World-view-projection as the vertex shader reads it (c9..c12: the columns of the D3D matrix).
         for (int r = 0; r < 4; ++r)
-            set(24 + r, projection.m[0][r], projection.m[1][r], projection.m[2][r], projection.m[3][r]);
-        set(28, 0.2f, 0.7f, 0.6f, 0.0f);    // Sea2 attenuation, reflection, transparency
-        set(29, 0.04f, 0.22f, 0.39f, 1.0f); // water colour
-        set(30, 1.0f, 1.0f, 1.0f, 1.0f);    // sky colour
-        set(33, 1.0f, 0.0f, 0.0f, 1.0f);
-        set(34, 0.5f, 1.0f, 0.5f, 1.0f); // Frenel
-        set(36, 1.0f, 0.0f, 0.0f, 0.0f);
-        set(37, 0.0f, 1.0f, 0.0f, 0.0f);
-        set(38, 0.0f, 0.0f, 1.0f, 0.0f);
-        set(58, 0.0f, 1.0f, 0.0f, 1.0f);
-        d_.SetVertexShaderConstantF(0, &c[0][0], 59);
+            set(9 + r, projection.m[0][r], projection.m[1][r], projection.m[2][r], projection.m[3][r]);
+        d_.SetVertexShaderConstantF(0, &c[0][0], 14);
+        // No slope textures (flat), the water and sky colours, Sea2 reflection, transparency, attenuation, Fresnel.
+        const float p[8][4] = {{0.0f, 0.0f, 0.0f, 0.0f},  {0.0f, 0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 0.0f, -1.0f},
+                               {0.0f, 0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 0.0f, 0.0f},  {0.04f, 0.22f, 0.39f, 0.7f},
+                               {1.0f, 1.0f, 1.0f, 0.6f},  {0.2f, 0.02f, 0.0f, 0.0f}};
+        d_.SetPixelShaderConstantF(0, &p[0][0], 8);
         // A calm sea 3 m below the camera, from 1 m ahead to the far plane.
         const float y = gpu_surface ? 0.0f : -3.0f;
         const SeaVertex sea[6] = {{-400, y, 1, 0, 1, 0, 0, 0},   {400, y, 1, 0, 1, 0, 1, 0},
@@ -236,7 +217,6 @@ class Scene
         check(d_.DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, sea, sizeof(SeaVertex)), "draw (sea)");
         d_.SetVertexShader(nullptr);
         d_.SetPixelShader(nullptr);
-        d_.SetTexture(0, nullptr);
         d_.SetTexture(3, nullptr);
         d_.SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
         render::EffectsSceneComplete();
@@ -272,7 +252,6 @@ class Scene
     shim::Surface *readback_ = nullptr, *back_ = nullptr;
     shim::VertexShader *vs_ = nullptr;
     shim::PixelShader *ps_ = nullptr;
-    shim::VolumeTexture *bump_ = nullptr;
     shim::Texture2D *field_ = nullptr;
     shim::CubeTexture *env_ = nullptr;
 };

@@ -3,10 +3,9 @@
 //
 // The mesh is a flat grid of points of the still water (SEA rebuilds it only when its blocks change); the vertex shader
 // moves each point by the wave field's displacement, the sum over the cascades of the bilinear sample of each, and
-// takes the displaced surface's normal from the same samples' derivatives. The field is one 2D RGBA32F texture read
-// with texelFetch, the format and binding of the skinned draws' bone palettes (the vertex texture fetch proven on every
-// device): the cascades stacked, cascade c in rows c * size .. (c + 1) * size - 1, a texel the sample's (dx, h, dz, 0)
-// as Field::Samples holds it.
+// takes the displaced surface's normal from the same samples' derivatives. The field is one 2D RGBA16F texture read
+// with texelFetch at the vertex texture unit of the skinned draws' bone palettes: the cascades stacked, cascade c in
+// rows c * size .. (c + 1) * size - 1, a texel the sample's (dx, h, dz, 0) as Field::SampleHalves holds it.
 #pragma once
 
 #include <cmath>
@@ -15,6 +14,8 @@
 namespace sea_gpu
 {
 inline constexpr int32_t kMaxCascades = 3;
+// The pixel stages of the cascades' slope moments (one 2D texture each, mipmapped: ocean_field.hpp PackSlopeMoments).
+inline constexpr uint32_t kSlopeStage = 4;
 
 // Vertex constant registers of the surface (c4..c8: free in every sea vertex port).
 inline constexpr uint32_t kFirstRegister = 4;

@@ -6,6 +6,7 @@
 #include "storm_glm.h"
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -24,6 +25,14 @@ struct Slope
 {
     float hx = 0.0f, hz = 0.0f, dxx = 0.0f, dzz = 0.0f;
 };
+
+// The pixel stage's slope texture of a cascade (LEAN mapping, Olano and Baker 2010): per texel the displaced surface's
+// slopes along x and z and their squares, as four half floats, followed by every level of 2 x 2 averages down to one
+// texel. A level so holds the mean slope and the mean square slope of the samples it covers; their difference is the
+// slope variance it hides, which the shading turns into roughness (Bruneton et al. 2010).
+int SlopeLevels(int size);
+size_t SlopeLevelOffset(int size, int level); // in texels, into PackSlopeMoments' output
+void PackSlopeMoments(const std::vector<Slope> &slopes, int size, std::vector<uint64_t> &out);
 
 // The surface at a point of the still water: its displacement and that displacement's derivatives per metre along
 // x and z, of the bilinear interpolation between samples (what the vertex shader computes from the same samples).
@@ -67,6 +76,12 @@ class Field
     {
         return samples_[cascade];
     }
+    // The samples as the vertex shader's texture holds them: four half floats a sample (dx, h, dz, 0), exactly the
+    // values Samples() holds (UpdateCascade rounds them so).
+    const std::vector<uint64_t> &SampleHalves(size_t cascade) const
+    {
+        return sample_halves_[cascade];
+    }
     const std::vector<Slope> &Slopes(size_t cascade) const
     {
         return slopes_[cascade];
@@ -100,6 +115,7 @@ class Field
     float target_choppiness_ = 0.0f, target_mean_level_ = 0.0f, weight_ = 0.0f;
     std::vector<float> cascade_low_, cascade_high_; // per cascade, of the last update
     std::vector<std::vector<Displacement>> samples_;
+    std::vector<std::vector<uint64_t>> sample_halves_;
     std::vector<std::vector<Slope>> slopes_;
     // Per cascade: h + i dx and dz in frequency, transformed in place.
     std::vector<std::array<FftBuffer, 2>> work_;

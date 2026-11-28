@@ -167,7 +167,7 @@ void Host::prepare_sea(shim::Device &device)
 {
     if (!bgfx::isValid(u_sea_fx_))
     {
-        u_sea_fx_ = bgfx::createUniform("u_seaFx", bgfx::UniformType::Vec4, 5);
+        u_sea_fx_ = bgfx::createUniform("u_seaFx", bgfx::UniformType::Vec4, 6);
         s_sea_depth_ = bgfx::createUniform("s_seaDepth", bgfx::UniformType::Sampler);
     }
     float near_plane = 0.1f, far_plane = 4000.0f;
@@ -250,19 +250,24 @@ void Host::prepare_sea(shim::Device &device)
     const bool specular = device_ready_ && settings_.sea_specular && has_weather();
     const auto &sun = env_.light_dir;
     const float strength = settings_.sea_specular_strength;
-    // Sea2 vertex constant29 is the current weather/game water colour, not a new global tint.
-    const auto &water_color = device.s.vs_const[29];
+    // The sea's pixel constant 5: the game's current water colour (Sea2.WaterColor), not a new global tint.
+    const auto &water_color = device.s.ps_const[5];
     // clang-format off
-    const float sea_fx[20] = {
+    // The glint's light: the sun's colour as the scene shows it, none behind a storm's clouds; the moon's comes from
+    // the game's sun road cube (the moon it draws there).
+    const bool sun_lit = has_weather() && env_.light_is_sun;
+    const float clear_sky = sun_lit ? 1.0f - std::clamp(env_.overcast, 0.0f, 1.0f) : 0.0f;
+    const float sea_fx[24] = {
         0.0f, soft_edges ? 1.0f : 0.0f, specular ? 1.0f : 0.0f, far_plane,
-        sun[0], sun[1], sun[2], settings_.sea_specular_power,
+        sun[0], sun[1], sun[2], 0.0f,
         strength, 0.0f, 0.0f,
         1.0f / std::max(settings_.sea_edge_depth, 0.01f),
         water_color[0], water_color[1], water_color[2], turbidity ? 1.0f / 12.0f : 0.0f,
         device.s.view.m[0][2], device.s.view.m[1][2], device.s.view.m[2][2], 0.0f,
+        sun_display_[0] * clear_sky, sun_display_[1] * clear_sky, sun_display_[2] * clear_sky, sun_lit ? 1.0f : 0.0f,
     };
     // clang-format on
-    bgfx::setUniform(u_sea_fx_, sea_fx, 5);
+    bgfx::setUniform(u_sea_fx_, sea_fx, 6);
     if (depth_ready) // otherwise neither optical feature reads the unit
     {
         bgfx::setTexture(fx::kNormalMapStage, s_sea_depth_, sea_depth_.Texture(),
@@ -271,8 +276,8 @@ void Host::prepare_sea(shim::Device &device)
     }
 }
 
-// The Sea2 port's sun road cube (fs_port_sea2.sc s_cube2, stage 2 -> unit 7): the game binds its sun road there
-// (sea.cpp); a draw without one gets a black cube (no sun, no glint) instead of whatever 2D texture another program
+// The sea's sun road cube (fs_port_sea2.sc s_cube2, stage 2 -> unit 7): the game binds its sun road there
+// (sea.cpp); a draw without one gets a black cube (no moon glint) instead of whatever 2D texture another program
 // left on the unit.
 void Host::bind_sea_sun_road(shim::Device &device)
 {
@@ -289,7 +294,7 @@ void Host::bind_sea_sun_road(shim::Device &device)
         }
         if (specular && render::Once(sea_no_sun_road_logged_))
             render::Log().info(
-                "effects: the sea is drawn without the game's sun road cube (stage 2): no sun glint on it");
+                "effects: the sea is drawn without the game's sun road cube (stage 2): no moon glint on it");
         bgfx::setTexture(7, s_sea_sun_road_, sea_no_sun_road_);
     }
 }

@@ -75,13 +75,13 @@ int main()
         wave.Update(moment);
         const int n = wave.Layout()[0].size;
         shim::Texture2D *field = nullptr;
-        check(d->CreateTexture(n, 3 * n, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &field, nullptr));
+        check(d->CreateTexture(n, 3 * n, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &field, nullptr));
         D3DLOCKED_RECT fieldRect{};
         check(field->LockRect(0, &fieldRect, nullptr, 0));
         for (int c = 0; c < 3; ++c)
             for (int y = 0; y < n; ++y)
                 std::memcpy(static_cast<uint8_t *>(fieldRect.pBits) + (c * n + y) * fieldRect.Pitch,
-                            wave.Samples(c).data() + static_cast<size_t>(y) * n, n * 16);
+                            wave.SampleHalves(c).data() + static_cast<size_t>(y) * n, n * 8);
         check(field->UnlockRect(0));
         const float patches[3] = {wave.Layout()[0].patch, wave.Layout()[1].patch, wave.Layout()[2].patch};
         shim::Texture2D *white = nullptr;

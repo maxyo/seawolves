@@ -89,24 +89,16 @@ int main()
         wave.Update(17.25);
         const int n = wave.Layout()[0].size;
         shim::Texture2D *field = nullptr;
-        check(d->CreateTexture(n, 3 * n, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &field, nullptr));
+        check(d->CreateTexture(n, 3 * n, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &field, nullptr));
         D3DLOCKED_RECT fieldRect{};
         check(field->LockRect(0, &fieldRect, nullptr, 0));
         for (int c = 0; c < 3; ++c)
             for (int y = 0; y < n; ++y)
                 std::memcpy(static_cast<uint8_t *>(fieldRect.pBits) + (c * n + y) * fieldRect.Pitch,
-                            wave.Samples(c).data() + static_cast<size_t>(y) * n, n * 16);
+                            wave.SampleHalves(c).data() + static_cast<size_t>(y) * n, n * 8);
         check(field->UnlockRect(0));
-        // The pixel port's inputs: no slopes (stage 0), and the cubes (stage 2: the sun road, added to everything the
-        // port draws; stage 3: the reflection, times black water) green: the quad is green, the rest black.
-        shim::VolumeTexture *slopes = nullptr;
-        check(d->CreateVolumeTexture(4, 4, 3, 1, 0, D3DFMT_A16B16G16R16F, D3DPOOL_MANAGED, &slopes, nullptr));
-        D3DLOCKED_BOX box{};
-        check(slopes->LockBox(0, &box, nullptr, 0));
-        for (int z = 0; z < 3; ++z)
-            for (int y = 0; y < 4; ++y)
-                std::memset(static_cast<uint8_t *>(box.pBits) + z * box.SlicePitch + y * box.RowPitch, 0, 4 * 8);
-        check(slopes->UnlockBox(0));
+        // The pixel port's cubes (stage 2: the light's colour, stage 3: the reflection): green, unread with the
+        // constants below, which make the whole quad the water's green (opaque, nothing reflected) and the rest black.
         shim::CubeTexture *green = nullptr;
         check(d->CreateCubeTexture(4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &green, nullptr));
         for (int face = 0; face < 6; ++face)
@@ -153,7 +145,7 @@ int main()
         constexpr float sx = 0.75f, cx = 2.3f, sz = 0.35f, sy = 0.2f, cz = 0.3f;
         for (const Case &test : cases)
         {
-            std::array<std::array<float, 4>, 59> c{};
+            std::array<std::array<float, 4>, 14> c{};
             float surface[sea_gpu::kRegisters][4]{};
             registers(wave, test.cascades, test.originX, test.originZ, surface);
             surface[4][0] = 2.3f + test.cameraDistance; // the camera minus the mesh's origin
@@ -182,18 +174,17 @@ int main()
                 px[i] = (clipX[i] + 1.0f) * 0.5f * size;
                 py[i] = (1.0f - (clipY[i] - centre)) * 0.5f * size;
             }
-            // The rest of the port's registers as SEA sets them (no NaN from a zero register on any backend), the
-            // water and sky colours black: the port draws only the sun road's green.
-            c[0] = {0.0f, 1.0f, 0.5f, -0.04f};
-            c[1] = {2.0f, -1.0f, 0.00036621652552071f, 0.0f};
-            c[23] = {2.3f, 50.0f, 0.3f, 1.0f};
-            c[28] = {0.2f, 0.7f, 0.6f, 0.0f};
-            c[33] = {1.0f, 0.0f, 0.0f, 1.0f};
-            c[34] = {0.5f, 1.0f, 0.5f, 1.0f};
-            c[24] = {sx, 0, 0, -cx * sx};
-            c[25] = {0, sy, sz, -cz * sz - centre};
-            c[26] = {0, 0, 0, 0.5f};
-            c[27] = {0, 0, 0, 1};
+            // The rest of the port's registers as SEA sets them: no fog, no foam, the camera, the projection.
+            c[0] = {0.0f, 1000.0f, 0.0f, 0.0f};
+            c[13] = {2.3f, 50.0f, 0.3f, 1.0f};
+            c[9] = {sx, 0, 0, -cx * sx};
+            c[10] = {0, sy, sz, -cz * sz - centre};
+            c[11] = {0, 0, 0, 0.5f};
+            c[12] = {0, 0, 0, 1};
+            const float p[8][4] = {{0.0f, 0.0f, 0.0f, 0.0f},  {0.0f, 0.0f, 0.0f, -1.0f},  {0.0f, 0.0f, 0.0f, -1.0f},
+                                   {0.0f, 0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 0.0f, 0.0f},   {0.0f, 1.0f, 0.0f, 0.0f},
+                                   {0.0f, 0.0f, 0.0f, 0.0f},  {1000.0f, 0.0f, 0.0f, 0.0f}};
+            check(d->SetPixelShaderConstantF(0, &p[0][0], 8));
             check(d->SetVertexShaderConstantF(0, c[0].data(), static_cast<UINT>(c.size())));
 
             check(d->BeginScene());
@@ -206,9 +197,8 @@ int main()
             d->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
             d->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
             d->SetRenderState(D3DRS_FOGENABLE, FALSE);
-            d->SetTexture(0, slopes);
             d->SetTexture(2, green);
-            d->SetTexture(3, green); // the reflection's cube, times the port's black water: nothing
+            d->SetTexture(3, green);
             d->SetTexture(D3DVERTEXTEXTURESAMPLER0, field);
             d->SetVertexShader(vs);
             d->SetPixelShader(ps);
@@ -338,7 +328,6 @@ int main()
         ib->Release();
         field->Release();
         green->Release();
-        slopes->Release();
         target->Release();
         readback->Release();
         back->Release();

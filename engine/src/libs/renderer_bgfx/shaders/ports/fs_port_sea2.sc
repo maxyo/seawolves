@@ -1,92 +1,108 @@
-$input v_color0, v_color1, v_texcoord0, v_texcoord1, v_texcoord2, v_texcoord3, v_texcoord4, v_fog, v_foam
-// Port of the technique shader sea_sea2_pixel_shader (ps_1_1) of src/techniques/weather/sea.fx, on the wave field.
-// Stage 0: the field's slopes (a volume, one slice per cascade: SEA, src/libs/sea), stage 1: the game's foam texture
-// (weather\\sea\\pena\\pena.tga), stage 3: environment cube map.
-//
-// Instead of the original's animated bump texture in the vertex normal's frame, the normal is the field's, per pixel:
-// the slopes of every cascade summed, each fading out as one pixel covers more of its samples (the detail a pixel
-// cannot resolve would alias at the horizon).
-// On top of the original (effects/sea.hpp sets u_seaFx):
-// - the reflected ray never points below the horizon: the cube's -Y face is never rendered above water, and the
-//   original sampled its black there (dark specks near the horizon); a ray reflected downwards meets the sea again,
-//   whose colour at the horizon the side faces hold;
-// - soft edges: the water fades out where it is shallower than the edge depth in front of the scene behind it
-//   (s_seaDepth, the scene's view distance per pixel packed into RGB8 by fs_fx_sea_depth). Where that distance is
-//   nearer than the water itself, the pixel belongs to an object in front of the sea (its edge: a rope, a sail, a
-//   hull, partly covering a multisampled pixel) and the water is not faded: fading it there showed what lies under
-//   the sea as bright fringes along every edge over the water;
-// - specular: the sun's glint from the bumped normal: the same reflected ray as the game's sun road, so it lies on it;
-// - ship wakes (sea_wakes.sh): the churned water behind and beside the hulls: its small waves are damped (the bump
-//   detail fades), pale aerated water and a lace of the game's foam texture lie on it, lit by the sky and the sun.
+$input v_texcoord0, v_texcoord1, v_texcoord4, v_fog, v_foam
+// The sea's pixel program (technique Sea2 of src/techniques/weather/sea.fx, blended source + destination * alpha: the
+// alpha is how much of the scene behind the water shows through). Lit from the wave field's slopes per pixel:
+// - filtered slopes (LEAN mapping, Olano and Baker 2010): each cascade's texture holds the mean slope and mean square
+//   slope per level (src/libs/sea, PackSlopeMoments); the normal follows the mean of what the pixel covers and the
+//   variance it hides widens the sun's highlight (Bruneton, Neyret and Holzschuch 2010), so detail too fine for a
+//   pixel becomes roughness instead of flicker;
+// - Schlick's Fresnel term with the game's Sea.Frenel; reflection of the scene's cube (s_cube3) along the mean normal,
+//   never below the horizon (the cube's lower face is never drawn above water; a ray reflected downwards meets the
+//   sea again, whose colour at the horizon the side faces hold);
+// - the body of the water in the game's colour (Sea2.WaterColor), its transparency by the view's slant
+//   (Sea2.Attenuation, Transparency) and by the depth behind it (the scene distance capture, s_seaDepth);
+// - the sun's or moon's glint: a GGX microfacet lobe (Walter et al. 2007) whose roughness is the hidden slope
+//   variance, in the sun's colour, or the moon's as the game draws it into its sun road cube (s_cube2);
+// - soft edges, the hulls' wakes (sea_wakes.sh) and the game's height foam (technique Sea2_Foam, folded in).
 #include "port_ps.sh"
 #include "sea_wakes.sh"
 #include "sea_optics.sh"
-SAMPLER3D(s_vol0, 8); // the field's slopes per cascade: hx, hz, dxx, dzz (storm::sea::ocean::Slope)
-SAMPLER2D(s_tex1, 1);
-SAMPLERCUBE(s_cube2, 7); // the game's sun road cube (sea.cpp, stage 2): the glint's colour
-SAMPLERCUBE(s_cube3, 11);
+SAMPLER2D(s_tex1, 1);     // the game's foam texture (weather\\sea\\pena\\pena.tga)
+SAMPLER2D(s_tex4, 4);     // cascade 0's slope moments (stage 4; the shim names units by their usual stage kind)
+SAMPLER2D(s_cube0, 5);    // cascade 1's (stage 5)
+SAMPLER2D(s_cube1, 6);    // cascade 2's (stage 6)
+SAMPLERCUBE(s_cube2, 7);  // the game's sun road cube (stage 2): the moon's colour
+SAMPLERCUBE(s_cube3, 11); // the scene reflected (stage 3)
 SAMPLER2D(s_seaDepth, 14);
-// [0] y: soft edges, z: specular (each 0 or 1), w: far plane of the packed scene distance
-// [1] xyz: towards the sun (world), w: specular power   [2] x: specular strength, w: 1 / edge depth (metres)
+// [0] y: soft edges, z: glint (each 0 or 1), w: far plane of the packed scene distance
+// [1] xyz: towards the sun or moon (world)   [2] x: glint strength, w: 1 / edge depth (metres)
 // [3] rgb: current game water colour, w: extinction per metre (0 disables turbidity).
 // [4] xyz: actual shim camera forward (row-vector view third column).
-uniform vec4 u_seaFx[5];
-// u_psc (SEA): [0] x the game's foam layer drawn; [1..3] cascade 0..2: xy the slope coordinate of the mesh's origin,
-// z the slope coordinates per metre (1 / patch), w the cascade's slice coordinate (< 0: no such cascade);
-// [4] x samples per cascade side, y the foam texture's coordinates per metre, zw its coordinate of the mesh's origin.
+// [5] rgb: the sun's light, w: 1 when the light is the sun (else the moon, in the colour of the sun road cube).
+uniform vec4 u_seaFx[6];
+// u_psc (src/libs/sea/src/sea.cpp): [0] x the game's foam layer drawn; [1..3] cascade 0..2: xy the slope coordinate
+// of the mesh's origin, z the slope coordinates per metre (1 / patch), w < 0: no such cascade; [4] y the foam
+// texture's coordinates per metre, zw its coordinate of the mesh's origin; [5] rgb Sea2.WaterColor, w Reflection;
+// [6] rgb Sea2.SkyColor, w Transparency; [7] x Sea2.Attenuation, y Fresnel reflectance at normal incidence.
 
-// The slopes of the cascades at the still point `still` (metres from the mesh's origin): `filtered` fades each cascade
-// with the samples one pixel covers, `sharp` does not.
-void seaSlopes(vec2 still, out vec4 filtered, out vec4 sharp)
+// Slope variance (per axis) of the ripples finer than the last cascade's samples, which no texture holds: keeps the
+// glint of a calm sea from shrinking to a mirror's point.
+#define SEA_RIPPLE_VARIANCE 0.0008
+#define SEA_PI 3.14159265
+// The fixed-function finish (fog, alpha test); the technique has no vertex specular to add.
+#define seaFinish(color) ffFinishWith(color, v_fog, v_texcoord0.xy, vec3_splat(0.0))
+
+// Adds one cascade's moments: x, y the mean slope; z, w the variance of the slope along x and z.
+void seaAddMoments(vec4 moments, inout vec4 sum)
 {
-    filtered = vec4_splat(0.0);
-    sharp = vec4_splat(0.0);
-    for (int c = 1; c <= 3; c++)
-    {
-        vec4 cascade = u_psc[c];
-        if (cascade.w < 0.0)
-            continue;
-        vec2 uv = still * cascade.z + cascade.xy;
-        vec4 slope = texture3D(s_vol0, vec3(uv, cascade.w));
-        vec2 footprint = fwidth(uv) * u_psc[4].x;
-        float keep = 1.0 - clamp(log2(max(max(footprint.x, footprint.y), 1.0)) / 3.0, 0.0, 1.0);
-        filtered += slope * keep;
-        sharp += slope;
-    }
+    sum += vec4(moments.xy, max(moments.zw - moments.xy * moments.xy, 0.0));
 }
 
-// The displaced surface's normal from summed slopes (storm::sea::ocean::SurfacePoint::Normal without the cross terms).
-vec3 seaNormal(vec4 slope)
+float seaSchlick(float f0, float cosine)
 {
-    float x = max(1.0 + slope.z, 0.1);
-    float z = max(1.0 + slope.w, 0.1);
-    return normalize(vec3(-slope.x * z, x * z, -slope.y * x));
+    float m = 1.0 - clamp(cosine, 0.0, 1.0);
+    float m2 = m * m;
+    return f0 + (1.0 - f0) * m2 * m2 * m;
+}
+
+// Smith's masking of the GGX distribution (alpha2 its roughness squared) for one direction.
+float seaSmithG1(float cosine, float alpha2)
+{
+    return 2.0 * cosine / (cosine + sqrt(alpha2 + (1.0 - alpha2) * cosine * cosine));
 }
 
 void main()
 {
-    vec4 v0 = v_color0;
-    vec4 v1 = v_color1;
-    vec4 r0 = vec4_splat(0.0);
-
-    vec4 filtered, sharp;
-    seaSlopes(v_texcoord0.xy, filtered, sharp);
+    vec2 still = v_texcoord0.xy;
+    vec4 slope = vec4(0.0, 0.0, SEA_RIPPLE_VARIANCE, SEA_RIPPLE_VARIANCE);
+    if (u_psc[1].w > 0.0)
+        seaAddMoments(texture2D(s_tex4, still * u_psc[1].z + u_psc[1].xy), slope);
+    if (u_psc[2].w > 0.0)
+        seaAddMoments(texture2D(s_cube0, still * u_psc[2].z + u_psc[2].xy), slope);
+    if (u_psc[3].w > 0.0)
+        seaAddMoments(texture2D(s_cube1, still * u_psc[3].z + u_psc[3].xy), slope);
     vec2 wake = seaWake(v_texcoord4.zw); // x foam, y calm
-    // The wake's churned water damps the small waves: the field's detail fades.
-    vec3 n0 = normalize(mix(vec3(0.0, 1.0, 0.0), seaNormal(filtered), 1.0 - 0.6 * wake.y));
-    vec3 eye = vec3(v_texcoord1.w, v_texcoord2.w, v_texcoord3.w); // the eye vector from the w components
-    vec3 R = portReflect(n0, eye);
-    vec3 e = normalize(eye);
-    R.y = max(R.y, 0.0);
-    vec4 t3 = textureCube(s_cube3, R);
-    r0.rgb = PS11(v0.rgb * t3.rgb + v1.rgb);                                // mad r0.xyz, v0, t3, v1
-    r0.a = v0.a;                                                            // mov r0.w, v0.wwww
+    // The wake's churned water damps the waves' slopes.
+    slope *= vec4(vec2_splat(1.0 - 0.6 * wake.y), vec2_splat(1.0 - 0.8 * wake.y));
+
+    vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
+    vec3 e = normalize(v_texcoord1.xyz);
+    float nv = max(dot(n, e), 0.001);
+    float f0 = u_psc[7].y;
+    float fresnel = seaSchlick(f0, nv);
+    vec3 r = reflect(-e, n);
+    r.y = max(r.y, 0.0);
+    vec3 sky = textureCube(s_cube3, r).rgb;
+    // The slant's transparency: the game's 2^(-Attenuation / |view y|).
+    float clear = exp2(-u_psc[7].x / max(abs(e.y), 0.01));
+    vec3 water = u_psc[5].rgb * (1.0 - fresnel) * (1.0 - clear);
+    vec4 r0 = vec4(fresnel * u_psc[5].w * u_psc[6].rgb * sky + water, (1.0 - fresnel) * clear * u_psc[6].w);
+
     if (u_seaFx[0].z > 0.5)
     {
-        // The sun's glint: the same reflected ray as the game's sun road, so it lies on it, in the colour of the sun
-        // the game draws into that road's cube (warm at dawn and dusk, none where the game shows no sun).
-        vec3 sun = textureCube(s_cube2, u_seaFx[1].xyz).rgb;
-        r0.rgb += pow(max(dot(normalize(R), u_seaFx[1].xyz), 0.0), u_seaFx[1].w) * u_seaFx[2].x * sun;
+        vec3 l = u_seaFx[1].xyz;
+        float nl = dot(n, l);
+        if (nl > 0.0)
+        {
+            vec3 h = normalize(l + e);
+            float nh = max(dot(n, h), 0.0);
+            float alpha2 = slope.z + slope.w;
+            float d = nh * nh * (alpha2 - 1.0) + 1.0;
+            float ggx = alpha2 / (SEA_PI * d * d);
+            float g = seaSmithG1(nl, alpha2) * seaSmithG1(nv, alpha2);
+            float glint = ggx * g * seaSchlick(f0, dot(e, h)) / (4.0 * nv);
+            vec3 light = u_seaFx[5].w > 0.5 ? u_seaFx[5].rgb : textureCube(s_cube2, l).rgb;
+            r0.rgb += glint * u_seaFx[2].x * light;
+        }
     }
     float gap = -1.0;
     if (u_seaFx[0].y > 0.5 || u_seaFx[3].w > 0.0)
@@ -100,8 +116,7 @@ void main()
         // View-z distance to ray distance; neither surface normal nor wave strength changes.
         float rayCos = seaViewRayCos(e, u_seaFx[4].xyz);
         float transmission = seaOpticalTransmission(gap, rayCos, u_seaFx[3].w);
-        // Sea2 blends source + destination*alpha. Only the transmitted fraction
-        // becomes water-colour scattering; reflection/Fresnel remain as calculated.
+        // Only the transmitted fraction becomes water-colour scattering; reflection stays as calculated.
         float scattered = r0.a * (1.0 - transmission);
         r0.rgb += clamp(u_seaFx[3].rgb, 0.0, 1.0) * scattered;
         r0.a *= transmission;
@@ -118,40 +133,32 @@ void main()
         streak = clamp((0.55 * streak + 0.45 * fine - 0.15) / 0.6, 0.0, 1.0);
         float lace = seaWakeLace(streak, wake.x);
         float aerated = seaWakeAerated(wake.x);
-        vec3 sky = textureCube(s_cube3, vec3(0.0, 1.0, 0.0)).rgb;
-        float sky_grey = dot(sky, vec3(0.3, 0.5, 0.2));
+        vec3 above = textureCube(s_cube3, vec3(0.0, 1.0, 0.0)).rgb;
+        float above_grey = dot(above, vec3(0.3, 0.5, 0.2));
         vec3 sun = u_seaWake[2].rgb;
-        vec3 white = vec3(seaFoamLight(sky.r, sky_grey, sun.r), seaFoamLight(sky.g, sky_grey, sun.g),
-                          seaFoamLight(sky.b, sky_grey, sun.b));
+        vec3 white = vec3(seaFoamLight(above.r, above_grey, sun.r), seaFoamLight(above.g, above_grey, sun.g),
+                          seaFoamLight(above.b, above_grey, sun.b));
         // The aerated water: the water's own colour, paler, never brighter than the foam on it.
-        r0.rgb = mix(r0.rgb, min(mix(v1.rgb * 1.6 + 0.25 * white, white, 0.25), white), aerated);
+        r0.rgb = mix(r0.rgb, min(mix(water * 1.6 + 0.25 * white, white, 0.25), white), aerated);
         r0.rgb = mix(r0.rgb, white * (0.8 + 0.2 * streak), lace);
         r0.a *= (1.0 - aerated) * (1.0 - lace);
     }
 
-    gl_FragColor = ffFinish(clamp(r0, 0.0, 1.0));
+    gl_FragColor = seaFinish(clamp(r0, 0.0, 1.0));
     if (u_seaFx[0].y > 0.5)
     {
-        // Blended as Sea2: source + destination * alpha; fading to the scene keeps destination * 1.
+        // Fading to the scene keeps destination * 1.
         float edge = gap < 0.0 ? 1.0 : clamp(gap * u_seaFx[2].w, 0.0, 1.0);
         gl_FragColor.rgb *= edge;
         gl_FragColor.a = 1.0 - edge * (1.0 - gl_FragColor.a);
     }
 
-    // The game's two layers over the sea, drawn by its technique as two more passes over the whole sea and folded in
-    // here: both add to what this draw leaves (Sea2_Foam: source * source alpha + destination; Sea2_SunRoad:
-    // source + destination), so their colours add to this draw's source, which the destination * alpha keeps. Each is
-    // saturated as its own pass's output was; the sum saturates in the target as the passes' blends did. Not faded by
-    // the soft edges (they never were). The target's alpha is no longer their sum: nothing reads the scene's alpha.
+    // The game's foam layer (its technique Sea2_Foam, source * source alpha + destination), folded in: the foam
+    // texture, its alpha from the height (v_foam), fogged as this draw.
     if (u_psc[0].x > 0.5)
     {
-        // Sea2_Foam (sea_sea2foam_pixel_shader): the foam texture (stage 1 here) at the vertex shader's uv, the
-        // layer's alpha from the height (v_foam), fogged as this draw (both techniques leave the fog to the state).
         vec2 foam_uv = v_texcoord0.xy * u_psc[4].y + u_psc[4].zw;
-        vec4 lace = ffFinish(clamp(vec4(texture2D(s_tex1, foam_uv).rgb, v_foam.z), 0.0, 1.0));
+        vec4 lace = seaFinish(clamp(vec4(texture2D(s_tex1, foam_uv).rgb, v_foam.z), 0.0, 1.0));
         gl_FragColor.rgb += lace.rgb * lace.a;
     }
-    // Sea2_SunRoad (sea_sea2sunroad_pixel_shader, no fog): the sun road cube (stage 2 here) in the ray reflected
-    // about the unfiltered normal.
-    gl_FragColor.rgb += clamp(textureCube(s_cube2, portReflect(seaNormal(sharp), eye)).rgb, 0.0, 1.0);
 }

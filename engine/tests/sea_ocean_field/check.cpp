@@ -9,6 +9,9 @@
 #include <cstdint>
 #include <stdexcept>
 #include <cstring>
+#include <vector>
+
+#include <glm/gtc/packing.hpp>
 #include <numbers>
 
 using namespace storm::sea::ocean;
@@ -198,6 +201,57 @@ TEST_CASE("equal inputs make the same field")
     calm.SetState(Weather(0.0f, 0.5f, 0.0f, 2.0f, 1.0f));
     calm.Update(5.0);
     CHECK(calm.Height(10.0f, 20.0f, 2) == 0.0f);
+}
+
+TEST_CASE("the vertex texture holds exactly the samples the CPU reads")
+{
+    Field field(CascadeLayout(3, 64));
+    field.SetState(Weather(17.0f, 0.3f, 1.0f, 2.0f, 1.8f));
+    field.Update(77.7);
+    for (size_t c = 0; c < 3; c++)
+    {
+        const std::vector<uint64_t> &halves = field.SampleHalves(c);
+        REQUIRE(halves.size() == field.Samples(c).size());
+        for (size_t i = 0; i < halves.size(); i++)
+        {
+            const glm::vec4 texel = glm::unpackHalf4x16(halves[i]);
+            const Displacement &d = field.Samples(c)[i];
+            REQUIRE((texel.x == d.dx && texel.y == d.h && texel.z == d.dz));
+        }
+    }
+}
+
+TEST_CASE("a slope level holds the mean slope and mean square slope of the samples it covers")
+{
+    // 4 x 4 samples: along x the slope alternates +1 / -1 column by column; along z it is 0.5 everywhere, with the
+    // choppy displacement squeezing x by half in the first row (twice as steep) and past a fold in the second
+    // (steepening capped at four times).
+    constexpr int n = 4;
+    std::vector<Slope> slopes(n * n);
+    for (int y = 0; y < n; y++)
+        for (int x = 0; x < n; x++)
+            slopes[y * n + x] = {(x % 2) ? -1.0f : 1.0f, 0.5f, y == 0 ? -0.5f : y == 1 ? -2.0f : 0.0f, 0.0f};
+    std::vector<uint64_t> moments;
+    PackSlopeMoments(slopes, n, moments);
+    REQUIRE(SlopeLevels(n) == 3);
+    REQUIRE(moments.size() == SlopeLevelOffset(n, 3));
+    REQUIRE(moments.size() == 16 + 4 + 1);
+    const auto texel = [&](int level, int x, int y) {
+        return glm::unpackHalf4x16(moments[SlopeLevelOffset(n, level) + y * (n >> level) + x]);
+    };
+    CHECK(texel(0, 0, 0).x == Approx(2.0f));
+    CHECK(texel(0, 1, 1).x == Approx(-4.0f));
+    CHECK(texel(0, 1, 1).z == Approx(16.0f));
+    CHECK(texel(0, 2, 3).y == Approx(0.5f));
+    CHECK(texel(0, 2, 3).w == Approx(0.25f));
+    // Level 1, texel (0, 0): rows 0 and 1, columns 0 and 1: slopes 2, -2, 4, -4.
+    CHECK(texel(1, 0, 0).x == Approx(0.0f).margin(1e-3));
+    CHECK(texel(1, 0, 0).z == Approx((4.0f + 4.0f + 16.0f + 16.0f) / 4.0f));
+    // The single top texel: the mean slope 0 along x, 0.5 along z; along z no variance hides.
+    const glm::vec4 top = texel(2, 0, 0);
+    CHECK(top.x == Approx(0.0f).margin(1e-3));
+    CHECK(top.z == Approx((4 * 4.0f + 4 * 16.0f + 8 * 1.0f) / 16.0f));
+    CHECK(top.w - top.y * top.y == Approx(0.0f).margin(1e-3));
 }
 
 TEST_CASE("the transform runs only on buffers aligned for av_tx's vector code")
