@@ -18,6 +18,7 @@
   {"effect":"shadow(0dp 1dp rgba(0,0,0,204))","family":"noto serif","size":13.0,"weight":400},
   {"family":"noto serif","size":13.333,"weight":400},
   {"family":"noto serif","size":14.0,"weight":400},
+  {"family":"noto serif","min":13.333,"size":14.0,"weight":400},
   {"family":"noto serif","min":14.0,"size":14.0,"weight":400},
   {"family":"noto serif","size":15.0,"weight":400},
   {"family":"noto serif","min":13.333,"size":15.0,"weight":400},
