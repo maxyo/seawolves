@@ -283,7 +283,6 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     std::string language_ = "en";
     // Prewarm: the pack's font uses, made for this language and dp ratio.
     std::vector<FontUse> font_uses_;
-    std::vector<IconUse> icon_uses_;
     double prewarm_width_ = 0.0; // dp: the layout width the list was recorded at
     Warmer warmer_;
     std::string prewarm_language_;
@@ -291,7 +290,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     bool prewarm_reported_ = false;
     struct
     {
-        double ms = 0.0, slowest_ms = 0.0, slowest_icons_ms = 0.0;
+        double ms = 0.0, slowest_ms = 0.0;
         int textures = 0;
         size_t bytes = 0;
     } prewarm_;

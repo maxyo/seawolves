@@ -8,8 +8,11 @@ touch delivery. The pack and the design rules live with the application
 
 Build option `STORM_ENABLE_UI` (off in the main engine build; the directory is also a
 stand-alone CMake project for host checks and captures). Dependencies are SHA256-pinned release
-archives fetched at configure time: RmlUi 6.3 (MIT), FreeType 2.14.3 (FTL), lunasvg 3.5.0 with plutovg
-(MIT), nlohmann/json 3.12.0 (MIT). Local fixes on top of the RmlUi pin live in `patches/rmlui-*.patch`.
+archives fetched at configure time: RmlUi 6.3 (MIT), FreeType 2.14.3 (FTL), nlohmann/json 3.12.0 (MIT), and
+bimg's bundled stb_image (the pack's PNG and JPEG pictures, decoded when the pack loads). The stand-alone host build
+also fetches lunasvg 3.5.0 with plutovg (MIT) for its tools: `storm_ui_icon_bake` rasterises the pack's icon atlas
+on the developer's machine (the application's `mobile-ui/design/bake_icons.py`), `storm_ui_shot` writes PNGs; neither
+is part of the runtime. Icons are drawn from that atlas, tinted (`src/icons.cpp`). Local fixes on top of the RmlUi pin live in `patches/rmlui-*.patch`.
 The build pulls in `src/libs/renderer_bgfx` for bgfx (offline:
 `-DFETCHCONTENT_SOURCE_DIR_STORM_{BGFX,BX,BIMG,BGFX_CMAKE}=<checkouts>`, bgfx patched).
 No game data is involved in building or testing.
@@ -38,7 +41,7 @@ on the engine's script VM (`tests/script_vm`, built into this project), and the 
 screens it attaches to their hosts and routers. A screen that needs more of the game than the fixture game offers
 gets it there (functions with fixed results, interface rows). It is the
 ctest `ui_pack_contract` when configured with `-DSTORM_UI_PACK=<built pack>`, and the application runs it
-in `tests/ui_pack_contract`. It also checks the pack's prewarm list (pack.json `prewarm`: the font uses and icons
+in `tests/ui_pack_contract`. It also checks the pack's prewarm list (pack.json `prewarm`: the font uses
 every state draws, which `Host::Prewarm` makes ahead of a screen's first opening, `src/prewarm.h`) against what the
 states drew; `--prewarm FILE` writes the list for the application's `mobile-ui/design/prewarm.json`.
 
@@ -109,8 +112,8 @@ Debuggable Android builds log frame costs every 5 s (logcat tag `StormUiFrames`)
 - A screen that throws closes its interface with an error line; a HUD scene that throws is off until the
   game mode changes. Error lines are toasts only with `Config::show_errors` (debug builds); release builds
   only log them.
-- `icon-shadow: <colour> <x> <y> <sigma>` bakes a drop shadow into an icon; use it instead of
-  `filter: drop-shadow` on icons.
+- `icon-shadow: <colour> <x> <y> <sigma>` draws a drop shadow under an icon from the atlas's blurred coverage
+  (the baked blur nearest to sigma at the icon's size); use it instead of `filter: drop-shadow` on icons.
 - The host draws only when `Host::Prepare` reports the frame out of date; a frame is shown only when its
   textures are ready. `tests/frame_cost_check.cpp` holds the frame-cost rules.
 - Nothing delays a present: the host never keeps a frame on the screen for the game's answer, and no timer

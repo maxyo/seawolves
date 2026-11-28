@@ -35,7 +35,9 @@ endif()
 
 # Pinned release archives (engine/pins.json).
 storm_fetch_pin(storm_ui_freetype freetype)
-storm_fetch_pin(storm_ui_lunasvg lunasvg)
+# bimg's sources only: the runtime decodes the pack's PNG and JPEG pictures with the stb_image bimg bundles (the engine
+# build has populated it already; a stand-alone build fetches it here).
+storm_fetch_pin(storm_bimg bimg STORM_POPULATE_ONLY)
 # Local fixes on top of the RmlUi pin: patches/rmlui-*.patch, applied in the build directory's own patched view of
 # the shared source copy (storm_patched_view): a changed patch recompiles only what the changed files reach.
 file(GLOB storm_ui_rmlui_patches CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/patches/rmlui-*.patch")
@@ -47,11 +49,7 @@ storm_fetch_pin(storm_ui_rmlui rmlui
 foreach(codec ZLIB BZIP2 PNG HARFBUZZ BROTLI)
     set(FT_DISABLE_${codec} TRUE CACHE BOOL "" FORCE)
 endforeach()
-set(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(PLUTOVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(LUNASVG_DISABLE_LOAD_SYSTEM_FONTS ON CACHE BOOL "" FORCE)
-set(PLUTOVG_DISABLE_FONT_FACE_CACHE_LOAD ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(storm_ui_freetype storm_ui_lunasvg)
+FetchContent_MakeAvailable(storm_ui_freetype storm_bimg)
 include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/nlohmann_json.cmake")
 if(NOT TARGET Freetype::Freetype)
     add_library(Freetype::Freetype ALIAS freetype)
@@ -78,13 +76,11 @@ function(storm_ui_line_tables)
         endforeach()
     endif()
 endfunction()
-storm_ui_line_tables(rmlui_core freetype lunasvg plutovg)
+storm_ui_line_tables(rmlui_core freetype)
 # Licence texts of the pinned dependencies (<build>/licenses), packaged with libstorm_ui.so.
 foreach(notice
         "${storm_ui_rmlui_SOURCE_DIR}/LICENSE.txt|RmlUi-MIT.txt"
         "${storm_ui_freetype_SOURCE_DIR}/docs/FTL.TXT|FreeType-FTL.txt"
-        "${storm_ui_lunasvg_SOURCE_DIR}/LICENSE|lunasvg-MIT.txt"
-        "${storm_ui_lunasvg_SOURCE_DIR}/plutovg/LICENSE|plutovg-MIT.txt"
         "${storm_json_SOURCE_DIR}/LICENSE.MIT|nlohmann-json-MIT.txt")
     string(REPLACE "|" ";" notice "${notice}")
     list(GET notice 0 from)
@@ -151,7 +147,8 @@ target_include_directories(storm_ui PUBLIC include PRIVATE src "${CMAKE_CURRENT_
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/StormAppContract.cmake")
 storm_app_contract_headers()
 target_include_directories(storm_ui PRIVATE "${STORM_APP_CONTRACT_INCLUDE}")
-target_link_libraries(storm_ui PUBLIC RmlUi::Core nlohmann_json::nlohmann_json PRIVATE lunasvg::lunasvg plutovg::plutovg)
+target_link_libraries(storm_ui PUBLIC RmlUi::Core nlohmann_json::nlohmann_json)
+target_include_directories(storm_ui SYSTEM PRIVATE "${storm_bimg_SOURCE_DIR}/3rdparty") # stb/stb_image.h
 if(ANDROID)
     target_sources(storm_ui PRIVATE src/asset_files.cpp) # the pack in the APK assets
     target_link_libraries(storm_ui PRIVATE android)
@@ -190,6 +187,17 @@ if(ANDROID)
     storm_ui_line_tables(storm_ui storm_ui_bgfx storm_ui_runtime)
 elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     # The stand-alone host build: its tools and checks (the desktop engine's touch build links only the runtime).
+    # lunasvg (with plutovg) only here: the icon atlas is rasterised on the developer's machine (tools/icon_bake.cpp,
+    # run by app/mobile-ui/design/bake_icons.py), and storm_ui_shot writes its PNGs with plutovg.
+    storm_fetch_pin(storm_ui_lunasvg lunasvg)
+    set(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(PLUTOVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(LUNASVG_DISABLE_LOAD_SYSTEM_FONTS ON CACHE BOOL "" FORCE)
+    set(PLUTOVG_DISABLE_FONT_FACE_CACHE_LOAD ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(storm_ui_lunasvg)
+    add_executable(storm_ui_icon_bake tools/icon_bake.cpp)
+    target_include_directories(storm_ui_icon_bake PRIVATE "${storm_ui_lunasvg_SOURCE_DIR}/plutovg/source")
+    target_link_libraries(storm_ui_icon_bake PRIVATE lunasvg::lunasvg nlohmann_json::nlohmann_json)
     if(STORM_UI_RENDER_BACKEND)
         # Headless captures for design checks: bgfx GLES 3.0 on a surfaceless EGL display, PNG output. The game's
         # pictures are read from .tx files by the renderer's texture core (the game takes them from the renderer).

@@ -128,19 +128,22 @@ struct Geometry
     }
 };
 
+bgfx::TextureHandle CreatePackTexture(const PackImage &image);
+
 struct Texture
 {
     enum class Kind
     {
-        Pixels,  // RGBA8 premultiplied from RmlUi
+        Pixels,  // RGBA8 premultiplied from RmlUi, or a picture of the pack (PackImage)
         Target,  // SaveLayerAsTexture output, filled by a blit
         Picture, // game picture owned by the frame owner (straight alpha)
     };
     Kind kind = Kind::Pixels;
     int width = 0;
     int height = 0;
-    std::vector<Rml::byte> pixels; // Pixels: until uploaded
-    std::string picture;           // Picture: path for FrameOwner
+    std::vector<Rml::byte> pixels;          // Pixels: until uploaded
+    std::shared_ptr<const PackImage> image; // Pixels of the pack: kept, a lost device uploads it again
+    std::string picture;                    // Picture: path for FrameOwner
     bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
     uint32_t epoch = 0;
     bool filled = false;   // Target: the blit was submitted
@@ -158,7 +161,9 @@ struct Texture
     {
         if (Current())
             return true;
-        if (kind == Kind::Pixels)
+        if (kind == Kind::Pixels && image)
+            handle = CreatePackTexture(*image);
+        else if (kind == Kind::Pixels)
         {
             if (pixels.empty())
                 return false;
@@ -180,6 +185,32 @@ struct Texture
         return bgfx::isValid(handle);
     }
 };
+
+// The icon atlas's coverage page is RG8 where the device samples it, else RGBA8 with the same two channels first (the
+// coverage shader reads only R and G): GLES 3.0 and Vulkan require RG8, so the second is a device outside both.
+bgfx::TextureHandle CreatePackTexture(const PackImage &image)
+{
+    const auto w = uint16_t(image.width), h = uint16_t(image.height);
+    if (!image.coverage)
+        return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RGBA8, BGFX_SAMPLER_NONE,
+                                     bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
+    if (bgfx::getCaps()->formats[bgfx::TextureFormat::RG8] & BGFX_CAPS_FORMAT_TEXTURE_2D)
+        return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RG8, BGFX_SAMPLER_NONE,
+                                     bgfx::copy(image.pixels.data(), uint32_t(image.pixels.size())));
+    static bool said = false;
+    if (!std::exchange(said, true))
+        Rml::Log::Message(Rml::Log::LT_WARNING,
+                          "UI: the device has no RG8 textures: the icon atlas takes RGBA8 (%d KB)",
+                          image.width * image.height * 4 / 1024);
+    const bgfx::Memory *memory = bgfx::alloc(uint32_t(image.width) * image.height * 4);
+    for (size_t i = 0, n = size_t(image.width) * image.height; i < n; ++i)
+    {
+        memory->data[i * 4] = image.pixels[i * 2];
+        memory->data[i * 4 + 1] = image.pixels[i * 2 + 1];
+        memory->data[i * 4 + 2] = memory->data[i * 4 + 3] = 0;
+    }
+    return bgfx::createTexture2D(w, h, false, 1, bgfx::TextureFormat::RGBA8, BGFX_SAMPLER_NONE, memory);
+}
 
 enum class FilterType
 {
@@ -297,6 +328,7 @@ enum class ProgramId
     Color,
     Texture,
     TextureStraight,
+    TextureCoverage,
     Gradient,
     QuadColor,
     Passthrough,
@@ -968,10 +1000,15 @@ class BgfxBackendImpl final : public BgfxBackend, public Rml::RenderInterface
         const std::string scheme = GamePictureSource("");
         if (source.compare(0, scheme.size(), scheme) == 0)
             return LoadPicture(dimensions, source.substr(scheme.size()));
-        std::vector<unsigned char> rgba;
-        if (!DecodePackImage(source, dimensions.x, dimensions.y, rgba))
+        std::shared_ptr<const PackImage> image = FindPackImage(source);
+        if (!image)
             return 0;
-        return GenerateTexture({rgba.data(), rgba.size()}, dimensions);
+        dimensions = {image->width, image->height};
+        auto texture = std::make_shared<Texture>();
+        texture->width = image->width;
+        texture->height = image->height;
+        texture->image = std::move(image);
+        return ToHandle(std::move(texture));
     }
     Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> source, Rml::Vector2i dimensions) override
     {
@@ -1237,6 +1274,7 @@ bool BgfxBackendImpl::CreateGpu()
     STORM_UI_LINK(ProgramId::Color, vs, vs_ui, fs_ui_color);
     STORM_UI_LINK(ProgramId::Texture, vs, vs_ui, fs_ui_texture);
     STORM_UI_LINK(ProgramId::TextureStraight, vs, vs_ui, fs_ui_texture_straight);
+    STORM_UI_LINK(ProgramId::TextureCoverage, vs, vs_ui, fs_ui_texture_coverage);
     STORM_UI_LINK(ProgramId::Gradient, vs, vs_ui, fs_ui_gradient);
     STORM_UI_LINK(ProgramId::QuadColor, vs_quad, vs_ui_quad, fs_ui_color);
     STORM_UI_LINK(ProgramId::Passthrough, vs_quad, vs_ui_quad, fs_ui_passthrough);
@@ -2510,12 +2548,14 @@ void Executor::Run(const Command &command, bool degraded)
             switch (texture.kind)
             {
             case Texture::Kind::Pixels:
-                if (texture.pixels.empty() && !texture.Current())
+                if (texture.pixels.empty() && !texture.image && !texture.Current())
                 {
                     if (live_)
                         b_->Skipped(Skip::TextureLost);
                     return;
                 }
+                if (texture.image && texture.image->coverage)
+                    program = ProgramId::TextureCoverage;
                 break;
             case Texture::Kind::Target:
                 if (!filled_.count(&texture) && !(texture.filled && texture.Current()))

@@ -57,8 +57,18 @@ inline std::string GamePictureSource(const std::string &texture)
     return "storm-game-picture:" + texture;
 }
 
-// For backend authors: decodes a PNG/JPEG of the UI pack (through Rml::GetFileInterface)
-// to premultiplied RGBA8. Game pictures do not come this way; see game_image.cpp.
-bool DecodePackImage(const std::string &source, int &width, int &height, std::vector<unsigned char> &rgba);
+// A picture of the UI pack, decoded when the pack loads (pack.json "images" and the icon atlas's pages), never when
+// first drawn. Premultiplied RGBA8; the icon atlas's coverage page is two channels (RG8: how much of the vertex colour
+// shows, coverage), drawn by the backend's coverage shader as (colour.rgb * R, colour.a * G).
+struct PackImage
+{
+    int width = 0, height = 0;
+    bool coverage = false;
+    std::vector<unsigned char> pixels;
+};
+
+// For backend authors: the picture an RmlUi texture source of the pack names ("textures/oak.jpg"), null when the
+// pack's list lacks it (logged). Game pictures do not come this way; see game_image.cpp.
+std::shared_ptr<const PackImage> FindPackImage(const std::string &source);
 
 } // namespace storm::ui

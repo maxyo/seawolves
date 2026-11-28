@@ -1,19 +1,18 @@
-// What the first opening of a screen would make, made ahead (Host::Prewarm).
+// The fonts the first opening of a screen would make, made ahead (Host::Prewarm).
 //
-// Without it a screen's first frame pays for its fonts and icons: RmlUi makes a font face handle for every family,
-// style, weight and pixel size the first time an element needs it, loads its glyphs (rmlui-glyph-blocks.patch) and
-// draws its layer textures, the font effects on the CPU; an icon is rasterised from its SVG symbol, its shadow blurred.
+// Without it a screen's first frame pays for its fonts: RmlUi makes a font face handle for every family, style, weight
+// and pixel size the first time an element needs it, loads its glyphs (rmlui-glyph-blocks.patch) and draws its layer
+// textures, the font effects on the CPU. (Icons cost nothing at first draw: they come from the pack's baked atlas.)
 //
-// The pack lists what its screens and HUD draw (pack.json "prewarm": {layoutWidth, fonts: [FontUse], icons: [IconUse]},
-// written and checked by storm_ui_pack_check over every recorded model and the states its taps reach). Warmer makes
-// them one step at a time for the game language: each font use's handle at the layout's dp ratio with the glyph blocks
-// of the language's UI strings, its font effects and layer textures, then the icons' textures, so a later text or icon
-// of that use costs what it costs on a second opening.
+// The pack lists what its screens and HUD draw (pack.json "prewarm": {layoutWidth, fonts: [FontUse]}, written and
+// checked by storm_ui_pack_check over every recorded model and the states its taps reach). Warmer makes them one step
+// at a time for the game language: each font use's handle at the layout's dp ratio with the glyph blocks of the
+// language's UI strings, its font effects and layer textures, so a later text of that use costs what it costs on a
+// second opening.
 #pragma once
 
 #include <nlohmann/json.hpp>
 
-#include <cstdint>
 #include <set>
 #include <string>
 #include <tuple>
@@ -63,31 +62,6 @@ struct FontUse
     }
 };
 
-// One icon texture a <ui-icon> of the pack is drawn with (icons.cpp): the symbol, its colour, its size in dp and its
-// baked drop shadow (colour, offset and blur in dp, the faded opacity it is cast with). Colours are 0xRRGGBBAA.
-struct IconUse
-{
-    std::string id;
-    bool plain = false;
-    uint32_t colour = 0;
-    double size = 0.0;
-    uint32_t shadow = 0;
-    double x = 0.0, y = 0.0, sigma = 0.0, fade = 1.0;
-
-    bool operator<(const IconUse &other) const
-    {
-        return std::tie(id, plain, colour, size, shadow, x, y, sigma, fade) <
-               std::tie(other.id, other.plain, other.colour, other.size, other.shadow, other.x, other.y, other.sigma,
-                        other.fade);
-    }
-};
-Json IconUseJson(const IconUse &use);
-bool ParseIconUse(const Json &entry, IconUse &use, std::string &why);
-// The icons drawn under `root` (icons.cpp).
-void CollectIconUses(Rml::Element *root, float dp_ratio, std::set<IconUse> &out);
-// Makes the icon's texture now, through `render` (icons.cpp; a symbol the pack lacks is logged as when drawn).
-void MakeIcon(const IconUse &use, float dp_ratio, bool mark, Rml::RenderManager &render);
-
 Json FontUseJson(const FontUse &use);
 // False (and `why`) for an entry that is not a font use.
 bool ParseFontUse(const Json &entry, FontUse &use, std::string &why);
@@ -109,30 +83,18 @@ class Warmer
     // A new list, a new language or a new dp ratio starts over (handles made already cost nothing again).
     // `narrower`: the layout's width over the width the list was recorded at, at most 1: a step-down fits its text in
     // a narrower layout at a smaller size, so the measured sizes reach that much further down.
-    void Reset(std::vector<FontUse> uses, std::vector<IconUse> icons, std::string sample, float dp_ratio,
-               double narrower, bool mark);
+    void Reset(std::vector<FontUse> uses, std::string sample, float dp_ratio, double narrower);
     // Makes the next font use: handle, glyph blocks, effects, layer textures (through `render`); a step-down's handles
-    // with their glyph blocks. After the fonts, the next icon textures, kIconsPerStep at a time. False when everything
-    // is made. `made_ms` is what it took.
+    // with their glyph blocks. False when everything is made. `made_ms` is what it took.
     bool Step(Rml::RenderManager &render, double &made_ms, std::string &error);
     bool Done() const
     {
-        return next_ >= uses_.size() && next_icon_ >= icons_.size();
+        return next_ >= uses_.size();
     }
     size_t Count() const
     {
         return uses_.size();
     }
-    size_t Icons() const
-    {
-        return icons_.size();
-    }
-    // The next step makes icons (a few milliseconds), not a font use (up to tens on a phone).
-    bool NextIsIcons() const
-    {
-        return next_ >= uses_.size();
-    }
-    static constexpr size_t kIconsPerStep = 8;
     size_t Made() const
     {
         return next_;
@@ -140,9 +102,6 @@ class Warmer
 
   private:
     std::vector<FontUse> uses_;
-    std::vector<IconUse> icons_;
-    size_t next_icon_ = 0;
-    bool mark_ = false;
     std::string sample_;
     float dp_ratio_ = 1.0f;
     double narrower_ = 1.0;

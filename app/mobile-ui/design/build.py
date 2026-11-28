@@ -14,7 +14,8 @@
 
 Sources:  tokens.json, icons.json, capabilities.json, scripts.json, components/*/{spec.json,template.rml,style.rcss},
           screens/<name>/{spec.json,template.rml,style.rcss}, base.rcss, overlay.rml, screen.rml, hud.rml, hud-layout.json,
-          gallery/*.rml, fonts/, textures/ (baked from textures-src/ by bake_textures.py), images/
+          gallery/*.rml, fonts/, textures/ (baked from textures-src/ by bake_textures.py), images/,
+          icon-atlas/ (baked from icons.json by bake_icons.py)
 Outputs:  <repo>/build/ui-pack/        the runtime pack the application ships as assets/ui
 """
 import argparse
@@ -180,6 +181,27 @@ def build_icons():
             entry["acc"] = True
         pack["symbols"][ident] = entry
     return pack
+
+
+ICON_BAKE_TOOL = "src/libs/ui/tools/icon_bake.cpp"
+
+
+def icon_digest(icon_pack, engine_root):
+    """What the icon atlas is made of: the symbols and the bake tool (its sizes, its rasteriser's use)."""
+    digest = hashlib.sha256(json.dumps(icon_pack, sort_keys=True).encode())
+    digest.update((engine_root / ICON_BAKE_TOOL).read_bytes())
+    return digest.hexdigest()
+
+
+def load_icon_atlas(icon_pack, engine_root):
+    """icon-atlas/ holds the icons rasterised by bake_icons.py; fail when it is stale. Returns the ids it holds."""
+    atlas = json.loads((HERE / "icon-atlas" / "atlas.json").read_text(encoding="utf-8"))
+    if atlas.get("digest") != icon_digest(icon_pack, engine_root):
+        raise DesignError("icon-atlas/ is stale (icons.json or the bake tool changed): run mobile-ui/design/bake_icons.py")
+    for page in atlas["pages"]:
+        if not (HERE / "icon-atlas" / page["file"]).exists():
+            raise DesignError(f"icon-atlas/{page['file']} is missing: run mobile-ui/design/bake_icons.py")
+    return set(atlas["icons"])
 
 
 # ------------------------------------------------------------------------- strings
@@ -1165,7 +1187,6 @@ def build_pack(tokens, components, icon_pack, strings, only=None):
             prop.pop("doc", None)
     files["kit.rcss"] = "\n".join(styles)
     files["components.json"] = json.dumps({"components": entries}, ensure_ascii=False, indent=1)
-    files["icons.json"] = json.dumps(icon_pack, ensure_ascii=False)
     files["scripts.json"] = (HERE / "scripts.json").read_text(encoding="utf-8")
     files["hud-layout.json"], hud_pages = build_hud(tokens)
     for document in ("overlay.rml", "screen.rml", "hud.rml"):
@@ -1180,21 +1201,26 @@ def build_pack(tokens, components, icon_pack, strings, only=None):
         files.update(hud_pages)
         documents += sorted(hud_pages)
     fonts = tokens["font"]["bodyFiles"] + tokens["font"]["scriptFiles"]
-    # What the screens and the HUD draw, made ahead by the runtime (engine src/libs/ui/src/prewarm.h, Host::Prewarm):
-    # written and checked by the engine's storm_ui_pack_check --prewarm over the recorded models.
+    # The fonts the screens and the HUD draw, made ahead by the runtime (engine src/libs/ui/src/prewarm.h,
+    # Host::Prewarm): written and checked by the engine's storm_ui_pack_check --prewarm over the recorded models.
     prewarm = None
     if not only:
         text = (HERE / "prewarm.json").read_text(encoding="utf-8")
         listed = json.loads(text)
         if not isinstance(listed, dict) or not isinstance(listed.get("layoutWidth"), (int, float)) or \
-                not isinstance(listed.get("fonts"), list) or not isinstance(listed.get("icons"), list):
-            raise DesignError("prewarm.json: expected {layoutWidth, fonts: [font uses], icons: [icon uses]}")
+                not isinstance(listed.get("fonts"), list) or set(listed) != {"layoutWidth", "fonts"}:
+            raise DesignError("prewarm.json: expected {layoutWidth, fonts: [font uses]}")
         files["prewarm.json"] = text
         prewarm = "prewarm.json"
+    pictures = [folder for folder, shipped in (("textures", not only or {"screen", "header"} & only), ("images", not only))
+                if shipped]  # as main() copies them
     files["pack.json"] = json.dumps({
         "fonts": [f"fonts/{name}" for name in fonts],
         "components": "components.json",
-        "icons": "icons.json",
+        "icons": "icon-atlas/atlas.json",
+        # Decoded when the pack loads, not when first drawn.
+        "images": [f"{folder}/{path.name}" for folder in pictures
+                   for path in sorted((HERE / folder).iterdir()) if path.suffix in (".png", ".jpg")],
         "scripts": "scripts.json",
         "overlay": "overlay.rml",
         "screen": "screen.rml",
@@ -1252,9 +1278,10 @@ def main():
         if not only:
             check_scripts(load_capabilities(), screens)
             check_script_names(args.game)
+        baked = load_icon_atlas(icon_pack, args.engine_root)
         if not only:
-            names = {ident[2:] if ident.startswith("i-") else ident for ident in icon_pack["symbols"] if not ident.endswith("-acc")}
-            check_references(components + screens, names)
+            # Against the atlas: an icon a template names but the atlas lacks fails here, not as a blank on a screen.
+            check_references(components + screens, {ident[2:] if ident.startswith("i-") else ident for ident in baked})
         if not only:
             check_unused_icons([ident for ident in icon_pack["symbols"] if not ident.endswith("-acc")],
                                args.engine_root, not args.no_engine_check)
@@ -1276,7 +1303,8 @@ def main():
         shutil.copytree(HERE / "textures", args.pack / "textures", ignore=shutil.ignore_patterns("baked.json"))
     if not only:
         shutil.copytree(HERE / "images", args.pack / "images")
-    print(f"pack: {len(pack)} files, {len(components)} components, {len(icon_pack['symbols'])} icon symbols -> {args.pack}")
+    shutil.copytree(HERE / "icon-atlas", args.pack / "icon-atlas")
+    print(f"pack: {len(pack)} files, {len(components)} components, {len(baked)} icons -> {args.pack}")
     return 0
 
 

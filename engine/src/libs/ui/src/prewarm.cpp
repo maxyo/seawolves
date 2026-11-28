@@ -9,7 +9,6 @@
 #include <RmlUi/Core/TextShapingContext.h>
 
 #include <algorithm>
-#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -30,65 +29,6 @@ Json FontUseJson(const FontUse &use)
     if (use.handle)
         entry["handle"] = true;
     return entry;
-}
-
-namespace
-{
-
-std::string Hex(uint32_t rgba)
-{
-    char text[16];
-    std::snprintf(text, sizeof text, "%08x", rgba);
-    return text;
-}
-
-bool ParseHex(const Json &value, uint32_t &out)
-{
-    if (!value.is_string() || value.get<std::string>().size() != 8)
-        return false;
-    const std::string &text = value.get_ref<const std::string &>();
-    const char *end = text.data() + text.size();
-    const auto [at, error] = std::from_chars(text.data(), end, out, 16);
-    return error == std::errc() && at == end;
-}
-
-} // namespace
-
-Json IconUseJson(const IconUse &use)
-{
-    Json entry = {{"icon", use.id}, {"colour", Hex(use.colour)}, {"size", use.size}};
-    if (use.plain)
-        entry["plain"] = true;
-    if (use.shadow)
-        entry["shadow"] = {Hex(use.shadow), use.x, use.y, use.sigma, use.fade};
-    return entry;
-}
-
-bool ParseIconUse(const Json &entry, IconUse &use, std::string &why)
-{
-    const Json shadow = entry.is_object() ? entry.value("shadow", Json()) : Json();
-    if (!entry.is_object() || !entry.value("icon", Json()).is_string() ||
-        !ParseHex(entry.value("colour", Json()), use.colour) || !entry.value("size", Json()).is_number() ||
-        entry["size"].get<double>() <= 0.0 ||
-        !(shadow.is_null() ||
-          (shadow.is_array() && shadow.size() == 5 && ParseHex(shadow[0], use.shadow) && shadow[1].is_number() &&
-           shadow[2].is_number() && shadow[3].is_number() && shadow[4].is_number())))
-    {
-        why = "expected {icon, colour: RRGGBBAA, size[, plain][, shadow: [RRGGBBAA, x, y, sigma, fade]]}: " +
-              entry.dump();
-        return false;
-    }
-    use.id = entry["icon"].get<std::string>();
-    use.plain = entry.value("plain", false);
-    use.size = entry["size"].get<double>();
-    if (shadow.is_array())
-    {
-        use.x = shadow[1].get<double>();
-        use.y = shadow[2].get<double>();
-        use.sigma = shadow[3].get<double>();
-        use.fade = shadow[4].get<double>();
-    }
-    return true;
 }
 
 bool ParseFontUse(const Json &entry, FontUse &use, std::string &why)
@@ -199,13 +139,9 @@ std::string BlockSample(const std::string &utf8)
     return sample;
 }
 
-void Warmer::Reset(std::vector<FontUse> uses, std::vector<IconUse> icons, std::string sample, float dp_ratio,
-                   double narrower, bool mark)
+void Warmer::Reset(std::vector<FontUse> uses, std::string sample, float dp_ratio, double narrower)
 {
     uses_ = std::move(uses);
-    icons_ = std::move(icons);
-    next_icon_ = 0;
-    mark_ = mark;
     sample_ = std::move(sample);
     dp_ratio_ = dp_ratio;
     narrower_ = std::clamp(narrower, 0.0, 1.0);
@@ -218,13 +154,6 @@ bool Warmer::Step(Rml::RenderManager &render, double &made_ms, std::string &erro
     if (Done())
         return false;
     const auto started = std::chrono::steady_clock::now();
-    if (next_ >= uses_.size())
-    {
-        for (size_t end = std::min(icons_.size(), next_icon_ + kIconsPerStep); next_icon_ < end; ++next_icon_)
-            MakeIcon(icons_[next_icon_], dp_ratio_, mark_, render);
-        made_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
-        return !Done();
-    }
     const FontUse &use = uses_[next_++];
     Rml::FontEngineInterface *fonts = Rml::GetFontEngineInterface();
     const Rml::Style::FontStyle style = use.italic ? Rml::Style::FontStyle::Italic : Rml::Style::FontStyle::Normal;

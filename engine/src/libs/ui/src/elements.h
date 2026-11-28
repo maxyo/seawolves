@@ -32,13 +32,12 @@ int ClampedTextIn(Rml::Element *root);
 bool ClampSteps(Rml::Element *element, float &base_px, float &low_px);
 void ReleaseDrawTextures();
 
-// icons.json of the UI pack: shared defs plus one SVG symbol per icon id.
-void LoadIconPack(const Json &pack);
+// The icon atlas's table (icon-atlas/atlas.json of the UI pack); its pages are pack pictures under `dir`.
+void LoadIconPack(const Json &table, const std::string &dir);
 void RegisterIconElement();
 // Symbol id of an icon name ("ship" → "i-ship"; c-* and nation-* are full colour).
 std::string IconSymbolId(std::string name, bool &plain);
 bool HasIcon(const std::string &name);
-void ReleaseIconTextures();
 
 void RegisterGameImageElement();
 // UVs (u0, v0, u1, v1) of atlas cell 1…grid² (0 = the whole texture); false when the cell

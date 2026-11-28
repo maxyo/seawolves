@@ -117,6 +117,13 @@ static void WriteRowDocuments(const fs::path &pack)
           "<rml><head><style>body { width: 100%; height: 100%; } .ui-unknown { display: block; }"
           " .ui-debug .ui-error { min-width: 24dp; min-height: 24dp; }</style></head>"
           "<body><c-nope id=\"broken\"/><ui-icon id=\"lost\" name=\"nothing-here\" size=\"24\"/></body></rml>");
+    // Icons of colours, sizes, fades and shadows never drawn before, one-colour, with an accent and full-colour.
+    Write(pack / "icons.rml",
+          "<rml><head><style>body { width: 100%; height: 100%; } ui-icon { display: block; }</style></head><body>"
+          "<ui-icon name=\"close\" size=\"24\" style=\"color: #ff0000;\"/>"
+          "<ui-icon name=\"close\" size=\"31\" style=\"color: #00ff00; opacity: 0.4;\"/>"
+          "<ui-icon name=\"back\" size=\"17\" style=\"color: #0000ff; opacity: 0.7; icon-shadow: #000000 0dp 1dp "
+          "1dp;\"/><ui-icon name=\"potion\" size=\"40\"/><ui-icon name=\"c-ruby\" size=\"20\"/></body></rml>");
     Write(pack / "overlay.rml",
           "<rml><head><style>body { font-family: LatoLatin; width: 100%; height: 100%; pointer-events: none; z-index: "
           "1000; } #tooltip { display: none; } #tooltip.open { display: block; position: absolute; } #toasts { "
@@ -1452,7 +1459,7 @@ struct PressRun
             // The inline marks of a broken component: logged in both, drawn in debug builds only (the
             // document root's ui-debug class; release draws nothing in their place).
             logged.clear();
-            const int markers = backend.Renderer().marker_textures;
+            const int markers = backend.Renderer().marker_meshes;
             Expect(host->LoadDocument("marks.rml"), mode + "the document with a broken component loads");
             Frames(0.1);
             Rml::Context *context = Rml::GetContext("storm-ui");
@@ -1482,8 +1489,22 @@ struct PressRun
                                               std::string::npos;
                                }),
                    mode + "the missing icon is logged");
-            Expect((backend.Renderer().marker_textures > markers) == debug,
+            Expect((backend.Renderer().marker_meshes > markers) == debug,
                    mode + (debug ? "the crossed icon is drawn" : "no crossed icon is drawn"));
+
+            // Icons are quads of the pack's atlas, tinted: opening icons never seen before makes no texture, and
+            // every icon, whatever its colour, size, fade or shadow, draws from the atlas's two pages.
+            NoRenderer &renderer = backend.Renderer();
+            const int generated = renderer.generated;
+            renderer.loaded.clear();
+            renderer.drawn_textures.clear();
+            Expect(host->LoadDocument("icons.rml"), mode + "the icon document loads");
+            Frames(0.1);
+            Expect(renderer.generated == generated, mode + "icons make no texture");
+            Expect(std::all_of(renderer.loaded.begin(), renderer.loaded.end(),
+                               [](const std::string &source) { return source.find("icon-atlas/") == 0; }) &&
+                       renderer.drawn_textures.size() == 2,
+                   mode + "every icon draws from the atlas's pages");
         }
         return true;
     }

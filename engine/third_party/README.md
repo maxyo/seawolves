@@ -49,8 +49,7 @@ Texts kept in this repository: [licenses/](licenses) and [../android/archive/lic
 | PBRify 4x upscaler model | PBRify_Remix v1.7.2 | CC0-1.0 | vendored, converted: `src/libs/relief/model/pbrify-upscale.ncnn.{param,bin}` | `PBRify-CC0-1.0.txt`, `PBRify-PROVENANCE.txt` |
 | RmlUi | 6.3, pin `rmlui` | MIT | fetched: `src/libs/ui/CMakeLists.txt`; `libstorm_ui.so` | `ui-RmlUi-MIT.txt` |
 | FreeType | 2.14.3, pin `freetype` | FTL | fetched: `src/libs/ui/CMakeLists.txt`; `libstorm_ui.so` | `ui-FreeType-FTL.txt` |
-| lunasvg | 3.5.0, pin `lunasvg` | MIT | fetched: `src/libs/ui/CMakeLists.txt`; `libstorm_ui.so` | `ui-lunasvg-MIT.txt` |
-| plutovg, inside lunasvg | as lunasvg | MIT | `libstorm_ui.so` | `ui-plutovg-MIT.txt` |
+| stb_image, inside bimg (its bundled copy) | as bimg | MIT OR Unlicense | `libstorm_ui.so`: decodes the UI pack's PNG and JPEG pictures | `bimg-stb-MIT-or-Unlicense.txt` |
 | nlohmann/json | 3.12.0, pin `nlohmann-json` | MIT | fetched: `src/libs/ui/CMakeLists.txt` | `ui-nlohmann-json-MIT.txt` |
 | libtorrent | 2.0.15, pin `libtorrent` | BSD-3-Clause | fetched: `android/torrent/sources/CMakeLists.txt` | `libtorrent-BSD-3-Clause.txt` |
 | try_signal | pin `try_signal` | BSD-3-Clause | fetched: `android/torrent/sources/CMakeLists.txt` | `try_signal-license.txt` |
@@ -78,6 +77,7 @@ reserved.
 | pnnx, PyTorch, spandrel, ONNX and their Python dependencies | `src/libs/relief/model/requirements-ncnn.txt`, `upscale-requirements.txt` | their own (BSD-3-Clause, MIT, Apache-2.0) | fetched with pip | converting the PBRify models on the build host |
 | Android NDK and SDK tools | pins `ndk`, `android-platform`, `android-build-tools`, `android-cmdline-tools` (fetched by `tools/android/ci_dependencies.sh`, `app/tools/android/prepare_sdk.sh`) | Apache-2.0 and others | fetched | building, signing and Android Lint |
 | CMake, Ninja | 3.28.4, 1.13.0 (pip) | BSD-3-Clause, Apache-2.0 | fetched: `tools/android/ci_dependencies.sh` | building |
+| lunasvg, with plutovg inside | 3.5.0, pin `lunasvg` | MIT | fetched: `src/libs/ui/CMakeLists.txt` (the stand-alone host build) | rasterising the UI pack's icon atlas (`storm_ui_icon_bake`) and writing captures' PNGs (`storm_ui_shot`) |
 | google-java-format | 1.28.0 | Apache-2.0 | fetched: `app/tools/android/java_format.py` | formatting the Java sources |
 | AOSP org.json (`com.vaadin.external.google:android-json`) | 0.0.20131108.vaadin1 | Apache-2.0 | fetched: `app/tests/java_check.py` | Android's own `org.json` on the classpath of the app's Java host checks; never packaged |
 | the host's SDL2 and zlib | the distribution's | Zlib | system packages (`cmake/host.cmake`) | the Linux host engine; zlib also the audio import tool |

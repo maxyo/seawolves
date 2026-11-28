@@ -4,7 +4,12 @@
 #include "elements.h"
 #include "text_utf8.h"
 
-#include <plutovg.h>
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#define STBI_ONLY_JPEG
+#define STBI_NO_STDIO
+#include <stb/stb_image.h>
 
 #if defined(__ANDROID__)
 #include <android/log.h>
@@ -147,7 +152,19 @@ class PackFiles final : public Rml::FileInterface
 
     // Collapses "a/../b" so that documents can link styles relative to themselves; nothing for a path that
     // leaves the pack.
-    static std::optional<std::string> Normalise(const std::string &path)
+    static std::optional<std::string> Normalise(const std::string &path);
+
+  private:
+    struct Opened
+    {
+        std::vector<uint8_t> bytes;
+        size_t position = 0;
+    };
+    FileSource &source_;
+};
+
+std::optional<std::string> PackFiles::Normalise(const std::string &path)
+{
     {
         std::vector<std::string> parts;
         size_t at = 0;
@@ -172,15 +189,51 @@ class PackFiles final : public Rml::FileInterface
             out += (out.empty() ? "" : "/") + part;
         return out;
     }
+}
 
-  private:
-    struct Opened
+namespace
+{
+
+// The pack's decoded pictures by path (one host per process).
+std::map<std::string, std::shared_ptr<const PackImage>> g_pack_images;
+
+// Decodes a picture of the pack into g_pack_images: `channels` 2 for the icon atlas's coverage page, else premultiplied
+// RGBA8.
+bool DecodePackImage(FileSource &files, const std::string &path, int channels, std::string *error)
+{
+    std::vector<uint8_t> bytes;
+    if (!files.Read(path, bytes))
     {
-        std::vector<uint8_t> bytes;
-        size_t position = 0;
-    };
-    FileSource &source_;
-};
+        if (error)
+            *error = "UI pack lacks " + path;
+        return false;
+    }
+    auto image = std::make_shared<PackImage>();
+    int stored = 0;
+    stbi_uc *data = stbi_load_from_memory(bytes.data(), static_cast<int>(bytes.size()), &image->width, &image->height,
+                                          &stored, channels);
+    if (!data)
+    {
+        if (error)
+            *error = "UI pack: " + path + " does not decode (" + stbi_failure_reason() + ")";
+        return false;
+    }
+    const size_t count = static_cast<size_t>(image->width) * static_cast<size_t>(image->height);
+    image->coverage = channels == 2;
+    image->pixels.assign(data, data + count * static_cast<size_t>(channels));
+    stbi_image_free(data);
+    if (!image->coverage)
+        for (size_t i = 0; i < count; ++i)
+        {
+            unsigned char *pixel = &image->pixels[i * 4];
+            for (int c = 0; c < 3; ++c)
+                pixel[c] = static_cast<unsigned char>((pixel[c] * pixel[3] + 127) / 255);
+        }
+    g_pack_images[path] = std::move(image);
+    return true;
+}
+
+} // namespace
 
 double System::GetElapsedTime()
 {
@@ -241,8 +294,8 @@ HostImpl::~HostImpl()
     }
     ShutdownGameImages();
     SetGameImageRenderer(nullptr);
-    ReleaseIconTextures();
     ReleaseDrawTextures();
+    g_pack_images.clear();
     if (initialised_)
         Rml::Shutdown();
     registry_.reset();
@@ -284,16 +337,29 @@ bool HostImpl::Start(const Config &config, std::string *error)
     Rml::Factory::RegisterElementInstancer("body", document_instancer_.get());
 
     Json pack, components, icons;
-    if (!ReadJson(*config.files, "pack.json", pack, error) ||
-        !ReadJson(*config.files, pack.value("components", std::string("components.json")), components, error) ||
-        !ReadJson(*config.files, pack.value("icons", std::string("icons.json")), icons, error))
+    if (!ReadJson(*config.files, "pack.json", pack, error))
         return false;
+    const std::string icons_path = pack.value("icons", std::string("icon-atlas/atlas.json"));
+    if (!ReadJson(*config.files, pack.value("components", std::string("components.json")), components, error) ||
+        !ReadJson(*config.files, icons_path, icons, error))
+        return false;
+    // The pack's pictures and the icon atlas's pages, decoded now: a first draw only uploads them.
+    for (const Json &image : pack.value("images", Json::array()))
+        if (!DecodePackImage(*config.files, image.get<std::string>(), 4, error))
+            return false;
+    const std::string icon_dir = icons_path.substr(0, icons_path.rfind('/') + 1);
+    for (const Json &page : icons.value("pages", Json::array()))
+    {
+        const std::string file = icon_dir + page.at("file").get<std::string>();
+        if (!DecodePackImage(*config.files, file, page.at("channels").get<int>(), error))
+            return false;
+    }
     settings_ = pack.value("settings", Json::object());
     RegisterBuiltinBehaviors();
     RegisterDrawElements();
     RegisterIconElement();
     RegisterGameImageElement();
-    LoadIconPack(icons);
+    LoadIconPack(icons, icon_dir);
     registry_ = std::make_unique<ComponentRegistry>(*this);
     if (!registry_->Load(components, error))
         return false;
@@ -359,11 +425,11 @@ bool HostImpl::Start(const Config &config, std::string *error)
         Json list;
         if (!ReadJson(*config.files, list_path, list, error))
             return false;
-        if (!list.is_object() || !list.value("fonts", Json()).is_array() || !list.value("icons", Json()).is_array() ||
+        if (!list.is_object() || !list.value("fonts", Json()).is_array() ||
             !list.value("layoutWidth", Json()).is_number() || list["layoutWidth"].get<double>() <= 0.0)
         {
             if (error)
-                *error = list_path + ": expected {layoutWidth, fonts: [font uses], icons: [icon uses]}";
+                *error = list_path + ": expected {layoutWidth, fonts: [font uses]}";
             return false;
         }
         prewarm_width_ = list["layoutWidth"].get<double>();
@@ -379,24 +445,13 @@ bool HostImpl::Start(const Config &config, std::string *error)
             }
             font_uses_.push_back(std::move(use));
         }
-        for (const Json &entry : list["icons"])
-        {
-            IconUse use;
-            if (!ParseIconUse(entry, use, why))
-            {
-                if (error)
-                    *error = list_path + ": " + why;
-                return false;
-            }
-            icon_uses_.push_back(std::move(use));
-        }
     }
     return true;
 }
 
 bool HostImpl::Prewarm(double budget_ms, bool hidden)
 {
-    if (font_uses_.empty() && icon_uses_.empty())
+    if (font_uses_.empty())
     {
         if (!prewarm_reported_)
             Error("UI prewarm: the pack lists nothing to make ahead (pack.json prewarm)");
@@ -413,8 +468,8 @@ bool HostImpl::Prewarm(double budget_ms, bool hidden)
             for (const auto &entry : table->second.items())
                 if (entry.value().is_string())
                     strings += entry.value().get<std::string>();
-        warmer_.Reset(font_uses_, icon_uses_, BlockSample(strings), ratio,
-                      static_cast<double>(config_.width) / ratio / prewarm_width_, config_.show_errors);
+        warmer_.Reset(font_uses_, BlockSample(strings), ratio,
+                      static_cast<double>(config_.width) / ratio / prewarm_width_);
         prewarm_ = {};
         prewarm_reported_ = false;
     }
@@ -429,9 +484,8 @@ bool HostImpl::Prewarm(double budget_ms, bool hidden)
     while (!warmer_.Done())
     {
         // Behind a loading screen the first step of a call runs whatever it costs; in play a step runs only once
-        // one of its kind (a font use, a batch of icons) was measured and the slowest of them fits what is left.
-        const bool icons = warmer_.NextIsIcons();
-        double &slowest = icons ? prewarm_.slowest_icons_ms : prewarm_.slowest_ms;
+        // one was measured and the slowest of them fits what is left.
+        double &slowest = prewarm_.slowest_ms;
         const bool unseen = hidden && spent == 0.0;
         if (!unseen && (slowest == 0.0 || spent + slowest > budget_ms))
             break;
@@ -455,11 +509,10 @@ bool HostImpl::Prewarm(double budget_ms, bool hidden)
         prewarm_reported_ = true;
         char line[256];
         std::snprintf(line, sizeof line,
-                      "UI prewarm: %zu font uses and %zu icons made for '%s' at %.3f px/dp in %.0f ms (slowest "
-                      "font use %.1f ms, icon batch %.1f ms); %d textures, %zu KB",
-                      warmer_.Count(), warmer_.Icons(), language_.c_str(), static_cast<double>(prewarm_ratio_),
-                      prewarm_.ms, prewarm_.slowest_ms, prewarm_.slowest_icons_ms, prewarm_.textures,
-                      prewarm_.bytes / 1024);
+                      "UI prewarm: %zu font uses made for '%s' at %.3f px/dp in %.0f ms (slowest %.1f ms); %d "
+                      "textures, %zu KB",
+                      warmer_.Count(), language_.c_str(), static_cast<double>(prewarm_ratio_), prewarm_.ms,
+                      prewarm_.slowest_ms, prewarm_.textures, prewarm_.bytes / 1024);
         Log(line);
     }
     return !warmer_.Done();
@@ -973,39 +1026,14 @@ std::string HostImpl::Shown() const
     return opening_ == Opening::None ? shown : shown + " +opening";
 }
 
-bool DecodePackImage(const std::string &source, int &width, int &height, std::vector<unsigned char> &rgba)
+std::shared_ptr<const PackImage> FindPackImage(const std::string &source)
 {
-    Rml::FileInterface *files = Rml::GetFileInterface();
-    const Rml::FileHandle handle = files->Open(source);
-    if (!handle)
-        return false;
-    std::vector<uint8_t> bytes(files->Length(handle));
-    files->Read(bytes.data(), bytes.size(), handle);
-    files->Close(handle);
-    plutovg_surface_t *surface = plutovg_surface_load_from_image_data(bytes.data(), static_cast<int>(bytes.size()));
-    if (!surface)
-        return false;
-    width = plutovg_surface_get_width(surface);
-    height = plutovg_surface_get_height(surface);
-    const int stride = plutovg_surface_get_stride(surface);
-    const unsigned char *data = plutovg_surface_get_data(surface);
-    rgba.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
-    for (int y = 0; y < height; ++y)
-    {
-        const auto *row =
-            reinterpret_cast<const uint32_t *>(data + static_cast<size_t>(y) * static_cast<size_t>(stride));
-        for (int x = 0; x < width; ++x)
-        {
-            const uint32_t argb = row[x]; // premultiplied
-            unsigned char *pixel = &rgba[(static_cast<size_t>(y) * width + x) * 4];
-            pixel[0] = static_cast<unsigned char>(argb >> 16);
-            pixel[1] = static_cast<unsigned char>(argb >> 8);
-            pixel[2] = static_cast<unsigned char>(argb);
-            pixel[3] = static_cast<unsigned char>(argb >> 24);
-        }
-    }
-    plutovg_surface_destroy(surface);
-    return true;
+    const std::optional<std::string> path = PackFiles::Normalise(source);
+    const auto found = path ? g_pack_images.find(*path) : g_pack_images.end();
+    if (found != g_pack_images.end())
+        return found->second;
+    Rml::Log::Message(Rml::Log::LT_ERROR, "UI pack picture %s is not in pack.json images", source.c_str());
+    return nullptr;
 }
 
 std::unique_ptr<FileSource> DirectoryFiles(std::string root)

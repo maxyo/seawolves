@@ -6,40 +6,44 @@
 
 #include <RmlUi/Core/RenderInterface.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <set>
 #include <string>
 
 class NoRenderer final : public Rml::RenderInterface
 {
   public:
-    Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex>, Rml::Span<const int>) override
+    // Counts the meshes in the runtime's danger red (the crossed "missing icon" marker).
+    Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> vertices, Rml::Span<const int>) override
     {
+        if (std::any_of(vertices.begin(), vertices.end(), [](const Rml::Vertex &vertex) {
+                return vertex.colour == Rml::ColourbPremultiplied(0xc4, 0x47, 0x3a, 0xff);
+            }))
+            ++marker_meshes;
         return 1;
     }
-    void RenderGeometry(Rml::CompiledGeometryHandle, Rml::Vector2f, Rml::TextureHandle) override
+    void RenderGeometry(Rml::CompiledGeometryHandle, Rml::Vector2f, Rml::TextureHandle texture) override
     {
+        if (texture)
+            drawn_textures.insert(texture);
     }
     void ReleaseGeometry(Rml::CompiledGeometryHandle) override
     {
     }
-    // Every pack image "loads" as a pixel: what is drawn does not matter, only that it exists.
-    Rml::TextureHandle LoadTexture(Rml::Vector2i &dimensions, const Rml::String &) override
+    // Every pack image "loads" as a pixel: what is drawn does not matter, only that it exists and which it is.
+    Rml::TextureHandle LoadTexture(Rml::Vector2i &dimensions, const Rml::String &source) override
     {
         dimensions = {1, 1};
-        return 1;
+        loaded.push_back(source);
+        return ++next_texture_;
     }
-    // Counts the textures holding the runtime's danger red (the crossed "missing icon" marker).
-    Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> data, Rml::Vector2i) override
+    Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte>, Rml::Vector2i) override
     {
-        for (size_t i = 0; i + 3 < data.size(); i += 4)
-            if (data[i] == 0xc4 && data[i + 1] == 0x47 && data[i + 2] == 0x3a && data[i + 3] == 0xff)
-            {
-                ++marker_textures;
-                break;
-            }
-        return 1;
+        ++generated;
+        return ++next_texture_;
     }
     void ReleaseTexture(Rml::TextureHandle) override
     {
@@ -77,9 +81,13 @@ class NoRenderer final : public Rml::RenderInterface
         return 1;
     }
 
-    int marker_textures = 0;
+    int marker_meshes = 0;
+    int generated = 0;               // textures made from pixels (fonts, layers)
+    std::vector<std::string> loaded; // texture sources loaded
+    std::set<Rml::TextureHandle> drawn_textures;
 
   private:
+    Rml::TextureHandle next_texture_ = 0;
     Rml::LayerHandle layers_ = 0;
 };
 

@@ -289,8 +289,8 @@ static void Specs(const Json &scope)
     Expect(storm::ui::IsGenericAttribute("id") && storm::ui::IsGenericAttribute("data-action") &&
                !storm::ui::IsGenericAttribute("colour"),
            "generic attributes");
-    storm::ui::LoadIconPack(Json::parse(
-        R"({"defs":"","symbols":{"i-ship":{"svg":"<symbol id=\"i-ship\"/>"},"c-rum":{"svg":"<symbol id=\"c-rum\"/>"}}})"));
+    storm::ui::LoadIconPack(
+        Json::parse(R"({"levels":[24],"icons":{"i-ship":{"glyph":[[1,1]]},"c-rum":{"colour":[[1,1]]}}})"), "");
     Expect(storm::ui::HasIcon("ship") && storm::ui::HasIcon("c-rum") && !storm::ui::HasIcon("anchor"), "icon lookup");
     float uv[4];
     Expect(storm::ui::AtlasCell(0, 4, uv) && uv[2] == 1.0f, "cell 0 is the whole texture");

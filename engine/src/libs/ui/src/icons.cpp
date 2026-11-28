@@ -1,22 +1,24 @@
-// <ui-icon name="ship">: one symbol of the icon pack, rasterised at the exact pixel size
-// in the element's `color`. Full-colour symbols (nation-*, c-*, or the `plain` attribute)
-// keep their own fills. The accent layer of a symbol, when it has one, is drawn on top.
+// <ui-icon name="ship">: one icon of the pack's atlas (app/mobile-ui/design/icon-atlas, baked from the SVG symbols by
+// tools/icon_bake.cpp), drawn as quads tinted by their vertex colour: one texture for every icon, colour, size and
+// fade, nothing rasterised on the device. One-colour symbols take the element's `color`; full-colour symbols
+// (nation-*, c-*) keep their own; `plain` draws a one-colour symbol in its own fills (black). The accent layer of a
+// symbol, when it has one, is drawn on top, untinted.
 //
-// `icon-shadow: <colour> <x> <y> <sigma>` bakes a drop shadow into the raster (the same
-// shadow as `filter: drop-shadow(...)` on the icon: Gaussian blur of the glyph's alpha,
-// offset, under the glyph). The filter costs an offscreen layer, blur passes and a
-// composite on every frame the icon is drawn uncached (a moved or changed icon); the baked
-// one is part of the cached icon texture.
+// A one-colour glyph is fill * T + W (icon_bake.cpp): the glyph cell (T, coverage) tinted by the colour, then where
+// the symbol has white shading its light cell (W, 0) added untinted. The atlas holds each icon at a chain of sizes; an
+// icon draws the smallest at least as large as itself, scaled down (above the largest it is scaled up).
+//
+// `icon-shadow: <colour> <x> <y> <sigma>`: a drop shadow under the glyph (as `filter: drop-shadow(...)` without its
+// offscreen layer): the atlas's blurred coverage whose blur at this size is nearest to sigma, offset and tinted; a
+// sigma below half the finest blur draws the glyph cell itself: exact for a black shadow; a coloured one (the light
+// engraving on parchment) shows the glyph's dark shading where it reaches the outline. Full-colour icons always take a
+// blurred cell (no style gives them a hard one).
 #include "elements.h"
-#include "prewarm.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
-
-#include <lunasvg.h>
-#include <memory>
-#include <unordered_map>
+#include <map>
+#include <unordered_set>
 
 namespace storm::ui
 {
@@ -24,37 +26,40 @@ namespace storm::ui
 namespace
 {
 
-struct Symbol
+struct Point
 {
-    std::string svg;
-    std::vector<std::string> deps;
-    bool accent = false;
+    int x = 0, y = 0;
 };
 
-struct IconPack
+struct Atlas
 {
-    std::string defs;
-    std::unordered_map<std::string, Symbol> symbols;
+    std::vector<int> levels; // px, largest first
+    std::vector<int> shadow_levels;
+    float shadow_sigma = 1.0f; // texels
+    int shadow_margin = 0;     // texels around a shadow cell's glyph
+    std::string coverage_source, colour_source;
+    Rml::Vector2f coverage_size, colour_size;
+    struct Icon
+    {
+        std::vector<Point> glyph, light, accent, colour, shadow; // a cell per level
+    };
+    std::map<std::string, Icon, std::less<>> icons;
+    std::unordered_set<std::string> reported; // missing icons logged
 };
 
-IconPack &Pack()
+Atlas &TheAtlas()
 {
-    static IconPack pack;
-    return pack;
+    static Atlas atlas;
+    return atlas;
 }
 
 struct Shadow
 {
     Rml::Colourb colour{0, 0, 0, 0};
     float x = 0, y = 0, sigma = 0; // pixels
-    float fade = 1.0f;             // the element's opacity, applied to the glyph raster before the shadow is cast
     bool On() const
     {
         return colour.alpha > 0;
-    }
-    int Margin() const // pixels the shadow reaches past the glyph square
-    {
-        return On() ? static_cast<int>(std::ceil(std::max(std::fabs(x), std::fabs(y)) + 3.0f * sigma)) + 1 : 0;
     }
 };
 
@@ -63,251 +68,29 @@ struct ShadowProperties
     Rml::PropertyId colour, x, y, sigma;
 } shadow_ids;
 
-std::unordered_map<std::string, std::unique_ptr<Rml::CallbackTextureSource>> &Cache()
+// Appends the quad showing `cell` (side `texels` of a page of `page` size) at `origin`, `side` px.
+void Quad(Rml::Mesh &mesh, Point cell, int texels, Rml::Vector2f page, Rml::Vector2f origin, float side,
+          Rml::ColourbPremultiplied colour)
 {
-    static std::unordered_map<std::string, std::unique_ptr<Rml::CallbackTextureSource>> cache;
-    return cache;
+    const Rml::Vector2f from = {cell.x / page.x, cell.y / page.y};
+    const Rml::Vector2f to = {(cell.x + texels) / page.x, (cell.y + texels) / page.y};
+    Rml::MeshUtilities::GenerateQuad(mesh, origin, {side, side}, colour, from, to);
 }
 
-void Collect(const std::string &id, std::vector<std::string> &order)
+// The debug builds' mark of an icon the atlas lacks: a red frame with a cross, untextured.
+void MissingIconMarker(Rml::Mesh &mesh, Rml::Vector2f origin, float side)
 {
-    for (const std::string &seen : order)
-        if (seen == id)
-            return;
-    const auto found = Pack().symbols.find(id);
-    if (found == Pack().symbols.end())
-        return;
-    order.push_back(id);
-    for (const std::string &dep : found->second.deps)
-        Collect(dep, order);
-}
-
-bool Rasterise(const std::string &id, bool plain, Rml::Colourb colour, int pixels, std::vector<Rml::byte> &out)
-{
-    const auto found = Pack().symbols.find(id);
-    if (found == Pack().symbols.end())
-        return false;
-    std::vector<std::string> order;
-    Collect(id, order);
-    const bool accent = found->second.accent && !plain;
-    if (accent)
-        Collect(id + "-acc", order);
-
-    std::string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" "
-                      "viewBox=\"0 0 48 48\"><defs>";
-    svg += Pack().defs;
-    for (const std::string &part : order)
-        svg += Pack().symbols[part].svg;
-    svg += "</defs><use href=\"#" + id + "\"";
-    if (!plain)
+    const Rml::ColourbPremultiplied red = Rml::Colourb(0xc4, 0x47, 0x3a, 0xff).ToPremultiplied(); // dangerFill
+    const float line = std::max(1.0f, std::round(side / 12.0f));
+    Rml::MeshUtilities::GenerateQuad(mesh, origin, {side, line}, red);
+    Rml::MeshUtilities::GenerateQuad(mesh, origin + Rml::Vector2f(0, side - line), {side, line}, red);
+    Rml::MeshUtilities::GenerateQuad(mesh, origin, {line, side}, red);
+    Rml::MeshUtilities::GenerateQuad(mesh, origin + Rml::Vector2f(side - line, 0), {line, side}, red);
+    for (float at = 0.0f; at < side; at += line) // the cross, in steps
     {
-        char fill[64];
-        std::snprintf(fill, sizeof(fill), " fill=\"#%02x%02x%02x\" fill-opacity=\"%.3f\"", colour.red, colour.green,
-                      colour.blue, colour.alpha / 255.0f);
-        svg += fill;
+        Rml::MeshUtilities::GenerateQuad(mesh, origin + Rml::Vector2f(at, at), {line, line}, red);
+        Rml::MeshUtilities::GenerateQuad(mesh, origin + Rml::Vector2f(side - line - at, at), {line, line}, red);
     }
-    svg += "/>";
-    if (accent)
-        svg += "<use href=\"#" + id + "-acc\"/>";
-    svg += "</svg>";
-
-    const auto document = lunasvg::Document::loadFromData(svg);
-    if (!document)
-        return false;
-    const lunasvg::Bitmap bitmap = document->renderToBitmap(pixels, pixels);
-    if (bitmap.isNull())
-        return false;
-    out.resize(static_cast<size_t>(pixels) * static_cast<size_t>(pixels) * 4);
-    for (int y = 0; y < pixels; ++y)
-    {
-        // ARGB32 premultiplied, native byte order.
-        const auto *row = reinterpret_cast<const uint32_t *>(bitmap.data() + static_cast<size_t>(y) *
-                                                                                 static_cast<size_t>(bitmap.stride()));
-        Rml::byte *target = &out[static_cast<size_t>(y) * static_cast<size_t>(pixels) * 4];
-        for (int x = 0; x < pixels; ++x)
-        {
-            const uint32_t argb = row[x];
-            target[x * 4 + 0] = static_cast<Rml::byte>(argb >> 16);
-            target[x * 4 + 1] = static_cast<Rml::byte>(argb >> 8);
-            target[x * 4 + 2] = static_cast<Rml::byte>(argb);
-            target[x * 4 + 3] = static_cast<Rml::byte>(argb >> 24);
-        }
-    }
-    return true;
-}
-
-// The opacity an icon with a baked shadow is faded with goes into its raster (OnRender), so every opacity of a
-// fade is a texture of its own. In steps of 1/kFadeSteps: a fade's frames share them, a later fade finds them made,
-// and an icon holds at most kFadeSteps + 1 textures (the exact opacity of every frame was a new SVG render, a new
-// blur and a new texture kept for good: 30-77 ms frames on a phone whenever the HUD or a toast faded in).
-constexpr int kFadeSteps = 32;
-float QuantisedFade(float opacity)
-{
-    return std::round(std::clamp(opacity, 0.0f, 1.0f) * kFadeSteps) / kFadeSteps;
-}
-
-// The glyph rasters (lunasvg) and their blurred alphas (the shadow before its colour, offset and fade), each made
-// once: the costly parts of an icon texture. A texture of another opacity is composed from them.
-struct Raster
-{
-    bool ok = false;
-    std::vector<Rml::byte> glyph;
-    std::unordered_map<std::string, std::vector<float>> blurred; // by "margin|sigma"
-};
-std::unordered_map<std::string, Raster> &Rasters()
-{
-    static std::unordered_map<std::string, Raster> rasters;
-    return rasters;
-}
-
-// The glyph's alpha (opaque = 1) on the canvas of side pixels + 2 * margin, blurred (separable Gaussian, as RmlUi's
-// filter). Linear in the glyph's opacity: a faded glyph's shadow is this times the fade.
-std::vector<float> BlurredAlpha(const std::vector<Rml::byte> &glyph, int pixels, int margin, float sigma)
-{
-    const int side = pixels + 2 * margin;
-    std::vector<float> alpha(static_cast<size_t>(side) * side, 0.0f), scratch(alpha.size(), 0.0f);
-    for (int y = 0; y < pixels; ++y)
-        for (int x = 0; x < pixels; ++x)
-            alpha[static_cast<size_t>(y + margin) * side + x + margin] =
-                glyph[(static_cast<size_t>(y) * pixels + x) * 4 + 3] / 255.0f;
-    if (sigma > 0.0f)
-    {
-        const int radius = static_cast<int>(std::ceil(3.0f * sigma));
-        std::vector<float> kernel(static_cast<size_t>(2 * radius + 1));
-        float sum = 0.0f;
-        for (int i = -radius; i <= radius; ++i)
-            sum += kernel[static_cast<size_t>(i + radius)] =
-                std::exp(-0.5f * static_cast<float>(i * i) / (sigma * sigma));
-        for (float &k : kernel)
-            k /= sum;
-        // Along one axis: `step` between neighbours, `count` texels in a line; taps outside the canvas are zero.
-        const auto pass = [&](const std::vector<float> &from, std::vector<float> &to, bool vertical) {
-            const size_t step = vertical ? static_cast<size_t>(side) : 1;
-            for (int line = 0; line < side; ++line)
-            {
-                const size_t start = vertical ? static_cast<size_t>(line) : static_cast<size_t>(line) * side;
-                for (int at = 0; at < side; ++at)
-                {
-                    const int first = std::max(-radius, -at), last = std::min(radius, side - 1 - at);
-                    const float *source = from.data() + start + static_cast<size_t>(at + first) * step;
-                    const float *weight = kernel.data() + (first + radius);
-                    float value = 0.0f;
-                    for (int i = first; i <= last; ++i, source += step, ++weight)
-                        value += *weight * *source;
-                    to[start + static_cast<size_t>(at) * step] = value;
-                }
-            }
-        };
-        pass(alpha, scratch, false);
-        pass(scratch, alpha, true);
-    }
-    return alpha;
-}
-
-// Puts `shadow` under the premultiplied glyph raster (side `pixels`): returns a raster of side pixels + 2 * margin
-// with the glyph in the middle. `blurred`: BlurredAlpha of the glyph for the shadow's margin and sigma.
-std::vector<Rml::byte> AddShadow(const std::vector<Rml::byte> &glyph, const std::vector<float> &blurred, int pixels,
-                                 const Shadow &shadow)
-{
-    const int margin = shadow.Margin(), side = pixels + 2 * margin;
-    // Shadow alpha at a fractional offset (bilinear, as the filter samples its layer); the faded glyph casts a
-    // faded shadow.
-    const auto sample = [&](float fx, float fy) {
-        const int x0 = static_cast<int>(std::floor(fx)), y0 = static_cast<int>(std::floor(fy));
-        const float tx = fx - static_cast<float>(x0), ty = fy - static_cast<float>(y0);
-        const auto at = [&](int x, int y) {
-            return x >= 0 && y >= 0 && x < side && y < side ? blurred[static_cast<size_t>(y) * side + x] : 0.0f;
-        };
-        return shadow.fade * ((at(x0, y0) * (1 - tx) + at(x0 + 1, y0) * tx) * (1 - ty) +
-                              (at(x0, y0 + 1) * (1 - tx) + at(x0 + 1, y0 + 1) * tx) * ty);
-    };
-    const Rml::ColourbPremultiplied colour = shadow.colour.ToPremultiplied();
-    std::vector<Rml::byte> out(static_cast<size_t>(side) * side * 4, 0);
-    for (int y = 0; y < side; ++y)
-        for (int x = 0; x < side; ++x)
-        {
-            const float a = sample(static_cast<float>(x) - shadow.x, static_cast<float>(y) - shadow.y);
-            float front[4] = {0, 0, 0, 0};
-            const int gx = x - margin, gy = y - margin;
-            if (gx >= 0 && gy >= 0 && gx < pixels && gy < pixels)
-                for (int c = 0; c < 4; ++c)
-                    front[c] = shadow.fade * glyph[(static_cast<size_t>(gy) * pixels + gx) * 4 + c];
-            const float behind[4] = {colour.red * a, colour.green * a, colour.blue * a, colour.alpha * a};
-            Rml::byte *pixel = &out[(static_cast<size_t>(y) * side + x) * 4];
-            for (int c = 0; c < 4; ++c) // premultiplied source-over: glyph over shadow
-                pixel[c] = static_cast<Rml::byte>(
-                    std::lround(std::min(255.0f, front[c] + behind[c] * (1.0f - front[3] / 255.0f))));
-        }
-    return out;
-}
-
-// Premultiplied RGBA of the "missing icon" marker: a red frame with a cross.
-std::vector<Rml::byte> MissingIconMarker(int pixels)
-{
-    std::vector<Rml::byte> data(static_cast<size_t>(pixels) * pixels * 4, 0);
-    const int line = std::max(1, pixels / 12);
-    for (int y = 0; y < pixels; ++y)
-        for (int x = 0; x < pixels; ++x)
-        {
-            const bool frame = x < line || y < line || x >= pixels - line || y >= pixels - line;
-            const bool cross = std::abs(x - y) < line || std::abs(x + y - (pixels - 1)) < line;
-            if (!frame && !cross)
-                continue;
-            Rml::byte *pixel = &data[(static_cast<size_t>(y) * pixels + x) * 4];
-            pixel[0] = 0xc4, pixel[1] = 0x47, pixel[2] = 0x3a, pixel[3] = 0xff; // dangerFill
-        }
-    return data;
-}
-
-// `mark`: a symbol that is missing or does not rasterise is drawn as the crossed red box (debug
-// builds); without it nothing is drawn. It is logged either way.
-Rml::CallbackTextureSource &Source(const std::string &id, bool plain, Rml::Colourb colour, int pixels,
-                                   const Shadow &shadow, bool mark)
-{
-    char suffix[128];
-    std::snprintf(suffix, sizeof(suffix), "|%d|%02x%02x%02x%02x|%d|%d", plain ? 1 : 0, colour.red, colour.green,
-                  colour.blue, colour.alpha, pixels, mark ? 1 : 0);
-    std::string key = id + suffix;
-    const std::string raster_key = key;
-    if (shadow.On())
-    {
-        std::snprintf(suffix, sizeof(suffix), "|s%02x%02x%02x%02x|%.2f|%.2f|%.2f|%.3f", shadow.colour.red,
-                      shadow.colour.green, shadow.colour.blue, shadow.colour.alpha, shadow.x, shadow.y, shadow.sigma,
-                      shadow.fade);
-        key += suffix;
-    }
-    auto &entry = Cache()[key];
-    if (!entry)
-    {
-        entry = std::make_unique<Rml::CallbackTextureSource>(
-            [id, plain, colour, pixels, shadow, mark, raster_key](const Rml::CallbackTextureInterface &texture) {
-                Raster &raster = Rasters()[raster_key];
-                if (raster.glyph.empty())
-                {
-                    raster.ok = Rasterise(id, plain, colour, pixels, raster.glyph);
-                    if (!raster.ok)
-                    {
-                        // No silent blank: a missing or broken symbol is logged, and in debug builds
-                        // drawn as a crossed red box so it is seen on the screen.
-                        Rml::Log::Message(Rml::Log::LT_ERROR,
-                                          "Icon '%s' is not in the icon pack (or does not rasterise)", id.c_str());
-                        raster.glyph = mark ? MissingIconMarker(pixels)
-                                            : std::vector<Rml::byte>(static_cast<size_t>(pixels) * pixels * 4, 0);
-                    }
-                }
-                const int margin = shadow.Margin(), side = pixels + 2 * margin;
-                if (!shadow.On())
-                    return texture.GenerateTexture({raster.glyph.data(), raster.glyph.size()}, {side, side});
-                char blur_key[48];
-                std::snprintf(blur_key, sizeof(blur_key), "%d|%.3f", margin, shadow.sigma);
-                std::vector<float> &blurred = raster.blurred[blur_key];
-                if (blurred.empty())
-                    blurred = BlurredAlpha(raster.glyph, pixels, margin, shadow.sigma);
-                const std::vector<Rml::byte> data = AddShadow(raster.glyph, blurred, pixels, shadow);
-                return texture.GenerateTexture({data.data(), data.size()}, {side, side});
-            });
-    }
-    return *entry;
 }
 
 class IconElement final : public Rml::Element
@@ -340,143 +123,131 @@ class IconElement final : public Rml::Element
     {
         Rml::RenderManager *manager = GetRenderManager();
         const Rml::Vector2f size = GetBox().GetSize(Rml::BoxArea::Content);
-        if (!manager || size.x < 1.0f || size.y < 1.0f)
+        const std::string name = GetAttribute<Rml::String>("name", "");
+        if (!manager || size.x < 1.0f || size.y < 1.0f || name.empty())
             return;
         Drawn drawn;
-        if (!Resolve(size, drawn))
-            return;
-        const int pixels = drawn.pixels, margin = drawn.shadow.Margin();
-        if (size != built_size_ || drawn.opacity != built_opacity_ || margin != built_margin_)
+        drawn.plain = HasAttribute("plain");
+        drawn.id = IconSymbolId(name, drawn.plain);
+        drawn.colour = GetComputedValues().color();
+        drawn.opacity = GetComputedValues().opacity();
+        drawn.pixels = std::max(1, static_cast<int>(std::lround(std::min(size.x, size.y))));
+        if (const Rml::Property *shadow_colour = GetProperty(shadow_ids.colour))
+            drawn.shadow.colour = shadow_colour->Get<Rml::Colourb>();
+        if (drawn.shadow.On())
         {
-            Rml::Mesh mesh = geometry_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
-            const float extent = static_cast<float>(pixels + 2 * margin);
-            const Rml::Vector2f side = {extent, extent};
-            const Rml::Vector2f origin = {
-                std::round((size.x - static_cast<float>(pixels)) * 0.5f) - static_cast<float>(margin),
-                std::round((size.y - static_cast<float>(pixels)) * 0.5f) - static_cast<float>(margin)};
-            Rml::MeshUtilities::GenerateQuad(
-                mesh, origin, side, Rml::Colourb(255, 255, 255, 255).ToPremultiplied(drawn.opacity), {0, 0}, {1, 1});
-            geometry_ = manager->MakeGeometry(std::move(mesh));
-            built_size_ = size;
-            built_opacity_ = drawn.opacity;
-            built_margin_ = margin;
+            drawn.shadow.x = ResolveLength(GetProperty(shadow_ids.x)->GetNumericValue());
+            drawn.shadow.y = ResolveLength(GetProperty(shadow_ids.y)->GetNumericValue());
+            drawn.shadow.sigma = std::max(0.0f, ResolveLength(GetProperty(shadow_ids.sigma)->GetNumericValue()));
         }
-        const Rml::ElementDocument *document = GetOwnerDocument();
-        const bool mark = document && document->IsClassSet(kDebugMarksClass);
+        if (!(drawn == built_))
+            Build(*manager, size, drawn);
         const Rml::Vector2f offset = GetAbsoluteOffset(Rml::BoxArea::Content);
-        geometry_.Render({std::round(offset.x), std::round(offset.y)},
-                         Source(drawn.id, drawn.plain, drawn.colour, pixels, drawn.shadow, mark).GetTexture(*manager));
+        const Rml::Vector2f at = {std::round(offset.x), std::round(offset.y)};
+        if (coverage_)
+            coverage_.Render(at, manager->LoadTexture(TheAtlas().coverage_source));
+        if (colour_)
+            colour_.Render(at, manager->LoadTexture(TheAtlas().colour_source));
+        if (marker_)
+            marker_.Render(at);
     }
 
-  public:
-    // What the icon's texture is made from (Source), for a content box of `size` px; false without an icon name.
+  private:
     struct Drawn
     {
         std::string id;
         bool plain = false;
         Rml::Colourb colour;
+        float opacity = 1.0f;
         int pixels = 0;
         Shadow shadow;
-        float opacity = 1.0f; // of the quad (the shadowed raster takes it instead)
-    };
-    bool Resolve(Rml::Vector2f size, Drawn &out)
-    {
-        std::string name = GetAttribute<Rml::String>("name", "");
-        if (name.empty())
-            return false;
-        out.plain = HasAttribute("plain");
-        out.id = IconSymbolId(name, out.plain);
-        out.colour = GetComputedValues().color();
-        out.opacity = GetComputedValues().opacity();
-        out.pixels = std::max(1, static_cast<int>(std::lround(std::min(size.x, size.y))));
-        if (const Rml::Property *shadow_colour = GetProperty(shadow_ids.colour))
-            out.shadow.colour = shadow_colour->Get<Rml::Colourb>();
-        if (out.shadow.On())
+        bool operator==(const Drawn &other) const
         {
-            out.shadow.x = ResolveLength(GetProperty(shadow_ids.x)->GetNumericValue());
-            out.shadow.y = ResolveLength(GetProperty(shadow_ids.y)->GetNumericValue());
-            out.shadow.sigma = std::max(0.0f, ResolveLength(GetProperty(shadow_ids.sigma)->GetNumericValue()));
-            // As under the filter: the faded glyph casts a faded shadow and shows it through
-            // itself, so the opacity goes into the raster, not onto the finished quad.
-            out.shadow.fade = QuantisedFade(out.opacity);
-            out.opacity = 1.0f;
+            return id == other.id && plain == other.plain && colour == other.colour && opacity == other.opacity &&
+                   pixels == other.pixels && shadow.colour == other.shadow.colour && shadow.x == other.shadow.x &&
+                   shadow.y == other.shadow.y && shadow.sigma == other.shadow.sigma;
         }
-        return true;
+    };
+
+    void Build(Rml::RenderManager &manager, Rml::Vector2f size, const Drawn &drawn)
+    {
+        built_ = drawn;
+        const Atlas &atlas = TheAtlas();
+        Rml::Mesh coverage = coverage_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+        Rml::Mesh colour = colour_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+        Rml::Mesh marker = marker_.Release(Rml::Geometry::ReleaseMode::ClearMesh);
+        const float px = static_cast<float>(drawn.pixels);
+        const Rml::Vector2f origin = {std::round((size.x - px) * 0.5f), std::round((size.y - px) * 0.5f)};
+        const auto found = atlas.icons.find(drawn.id);
+        if (found == atlas.icons.end())
+        {
+            // No silent blank: logged once per icon, and in debug builds drawn as a crossed red box.
+            if (TheAtlas().reported.insert(drawn.id).second)
+                Rml::Log::Message(Rml::Log::LT_ERROR, "Icon '%s' is not in the icon pack", drawn.id.c_str());
+            const Rml::ElementDocument *document = GetOwnerDocument();
+            if (document && document->IsClassSet(kDebugMarksClass))
+                MissingIconMarker(marker, origin, px);
+            Make(manager, marker_, std::move(marker));
+            return;
+        }
+        const Atlas::Icon &icon = found->second;
+        // The smallest level at least as large as the icon.
+        size_t level = 0;
+        while (level + 1 < atlas.levels.size() && atlas.levels[level + 1] >= drawn.pixels)
+            ++level;
+        const int texels = atlas.levels[level];
+        const auto tint = [&](Rml::Colourb c) { return c.ToPremultiplied(drawn.opacity); };
+        const Rml::ColourbPremultiplied white = tint(Rml::Colourb(255, 255, 255, 255));
+        const bool full_colour = !icon.colour.empty();
+        if (drawn.shadow.On())
+        {
+            // The shadow level whose blur at this size (px / level * sigma texels) is nearest to the asked one.
+            const float wanted = drawn.shadow.sigma;
+            size_t best = 0;
+            for (size_t i = 1; i < atlas.shadow_levels.size(); ++i)
+                if (std::fabs(std::log(wanted * atlas.shadow_levels[i] / (px * atlas.shadow_sigma))) <
+                    std::fabs(std::log(wanted * atlas.shadow_levels[best] / (px * atlas.shadow_sigma))))
+                    best = i;
+            const float finest = px * atlas.shadow_sigma / static_cast<float>(atlas.shadow_levels.front());
+            const Rml::Vector2f shift = {drawn.shadow.x, drawn.shadow.y};
+            if (wanted < 0.5f * finest && !full_colour)
+                Quad(coverage, icon.glyph[level], texels, atlas.coverage_size, origin + shift, px,
+                     tint(drawn.shadow.colour));
+            else
+            {
+                const int glyph = atlas.shadow_levels[best], margin = atlas.shadow_margin;
+                const float scale = px / static_cast<float>(glyph);
+                Quad(coverage, icon.shadow[best], glyph + 2 * margin, atlas.coverage_size,
+                     origin + shift - Rml::Vector2f(margin * scale), (glyph + 2 * margin) * scale,
+                     tint(drawn.shadow.colour));
+            }
+        }
+        if (full_colour)
+            Quad(colour, icon.colour[level], texels, atlas.colour_size, origin, px, white);
+        else
+        {
+            Quad(coverage, icon.glyph[level], texels, atlas.coverage_size, origin, px,
+                 tint(drawn.plain ? Rml::Colourb(0, 0, 0, 255) : drawn.colour));
+            if (!icon.light.empty())
+                Quad(coverage, icon.light[level], texels, atlas.coverage_size, origin, px, white);
+            if (!icon.accent.empty() && !drawn.plain)
+                Quad(colour, icon.accent[level], texels, atlas.colour_size, origin, px, white);
+        }
+        Make(manager, coverage_, std::move(coverage));
+        Make(manager, colour_, std::move(colour));
     }
 
-  private:
-    Rml::Geometry geometry_;
-    Rml::Vector2f built_size_;
-    float built_opacity_ = -1.0f;
-    int built_margin_ = -1;
+    static void Make(Rml::RenderManager &manager, Rml::Geometry &geometry, Rml::Mesh mesh)
+    {
+        if (!mesh.indices.empty())
+            geometry = manager.MakeGeometry(std::move(mesh));
+    }
+
+    Rml::Geometry coverage_, colour_, marker_;
+    Drawn built_;
 };
 
 } // namespace
-
-namespace
-{
-
-uint32_t Rgba(Rml::Colourb colour)
-{
-    return uint32_t(colour.red) << 24 | uint32_t(colour.green) << 16 | uint32_t(colour.blue) << 8 | colour.alpha;
-}
-
-Rml::Colourb Colour(uint32_t rgba)
-{
-    return Rml::Colourb(Rml::byte(rgba >> 24), Rml::byte(rgba >> 16), Rml::byte(rgba >> 8), Rml::byte(rgba));
-}
-
-double Dp(float px, float dp_ratio)
-{
-    return std::round(static_cast<double>(px) / dp_ratio * 1000.0) / 1000.0;
-}
-
-} // namespace
-
-void CollectIconUses(Rml::Element *root, float dp_ratio, std::set<IconUse> &out)
-{
-    if (!root || dp_ratio <= 0.0f)
-        return;
-    if (auto *icon = dynamic_cast<IconElement *>(root))
-    {
-        const Rml::Vector2f size = icon->GetBox().GetSize(Rml::BoxArea::Content);
-        IconElement::Drawn drawn;
-        if (size.x >= 1.0f && size.y >= 1.0f && icon->Resolve(size, drawn))
-        {
-            IconUse use;
-            use.id = drawn.id;
-            use.plain = drawn.plain;
-            use.colour = Rgba(drawn.colour);
-            use.size = Dp(static_cast<float>(drawn.pixels), dp_ratio);
-            if (drawn.shadow.On())
-            {
-                use.shadow = Rgba(drawn.shadow.colour);
-                use.x = Dp(drawn.shadow.x, dp_ratio);
-                use.y = Dp(drawn.shadow.y, dp_ratio);
-                use.sigma = Dp(drawn.shadow.sigma, dp_ratio);
-                use.fade = drawn.shadow.fade;
-            }
-            out.insert(std::move(use));
-        }
-    }
-    for (int i = 0; i < root->GetNumChildren(true); ++i)
-        CollectIconUses(root->GetChild(i), dp_ratio, out);
-}
-
-void MakeIcon(const IconUse &use, float dp_ratio, bool mark, Rml::RenderManager &render)
-{
-    Shadow shadow;
-    if (use.shadow)
-    {
-        shadow.colour = Colour(use.shadow);
-        shadow.x = static_cast<float>(use.x * dp_ratio);
-        shadow.y = static_cast<float>(use.y * dp_ratio);
-        shadow.sigma = static_cast<float>(use.sigma * dp_ratio);
-        shadow.fade = static_cast<float>(use.fade);
-    }
-    const int pixels = std::max(1, static_cast<int>(std::lround(use.size * dp_ratio)));
-    Source(use.id, use.plain, Colour(use.colour), pixels, shadow, mark).GetTexture(render).GetDimensions();
-}
 
 std::string IconSymbolId(std::string name, bool &plain)
 {
@@ -492,32 +263,42 @@ std::string IconSymbolId(std::string name, bool &plain)
 bool HasIcon(const std::string &name)
 {
     bool plain = false;
-    return Pack().symbols.count(IconSymbolId(name, plain)) > 0;
+    return TheAtlas().icons.count(IconSymbolId(name, plain)) > 0;
 }
 
-void LoadIconPack(const Json &pack)
+void LoadIconPack(const Json &table, const std::string &dir)
 {
-    IconPack &target = Pack();
-    target.defs = pack.value("defs", std::string());
-    target.symbols.clear();
-    for (const auto &item : pack.at("symbols").items())
+    Atlas atlas;
+    for (const Json &level : table.value("levels", Json::array()))
+        atlas.levels.push_back(level.get<int>());
+    if (const Json shadow = table.value("shadow", Json::object()); !shadow.empty())
     {
-        Symbol symbol;
-        symbol.svg = item.value().at("svg").get<std::string>();
-        symbol.accent = item.value().value("acc", false);
-        const Json deps = item.value().value("deps", Json::array());
-        for (const Json &dep : deps)
-            symbol.deps.push_back(dep.get<std::string>());
-        target.symbols[item.key()] = std::move(symbol);
+        for (const Json &level : shadow.at("levels"))
+            atlas.shadow_levels.push_back(level.get<int>());
+        atlas.shadow_sigma = shadow.at("sigma").get<float>();
+        atlas.shadow_margin = shadow.at("margin").get<int>();
     }
-    Cache().clear();
-    Rasters().clear();
-}
-
-void ReleaseIconTextures()
-{
-    Cache().clear();
-    Rasters().clear();
+    for (const Json &page : table.value("pages", Json::array()))
+    {
+        const Rml::Vector2f size = {page.at("size")[0].get<float>(), page.at("size")[1].get<float>()};
+        const bool coverage = page.at("channels").get<int>() == 2;
+        (coverage ? atlas.coverage_source : atlas.colour_source) = dir + page.at("file").get<std::string>();
+        (coverage ? atlas.coverage_size : atlas.colour_size) = size;
+    }
+    const Json icons = table.value("icons", Json::object());
+    for (const auto &item : icons.items())
+    {
+        Atlas::Icon &icon = atlas.icons[item.key()];
+        const std::pair<const char *, std::vector<Point> *> parts[] = {{"glyph", &icon.glyph},
+                                                                       {"light", &icon.light},
+                                                                       {"accent", &icon.accent},
+                                                                       {"colour", &icon.colour},
+                                                                       {"shadow", &icon.shadow}};
+        for (const auto &[part, cells] : parts)
+            for (const Json &cell : item.value().value(part, Json::array()))
+                cells->push_back({cell[0].get<int>(), cell[1].get<int>()});
+    }
+    TheAtlas() = std::move(atlas);
 }
 
 void RegisterIconElement()

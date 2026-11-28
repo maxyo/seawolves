@@ -51,11 +51,10 @@ struct Case
     std::string language;                        // the game language its states name instead of theirs
 };
 
-// The font uses of every document and the icons of every shown one now (src/prewarm.h), for the pack's prewarm list,
+// The font uses of every document now (src/prewarm.h), for the pack's prewarm list,
 // and the layout width (dp) they were laid out at. The list is made for the common phone: a case of another size
 // (Case::width, height) adds nothing to it.
 std::set<FontUse> g_font_uses;
-std::set<IconUse> g_icon_uses;
 double g_layout_width = 0.0;
 bool g_common_size = true;
 
@@ -69,11 +68,7 @@ void NoteFontUses()
             const float ratio = context->GetDensityIndependentPixelRatio();
             g_layout_width = std::round(context->GetDimensions().x / ratio * 1000.0) / 1000.0;
             for (int d = 0; d < context->GetNumDocuments(); ++d)
-            {
                 CollectFontUses(context->GetDocument(d), ratio, g_font_uses);
-                if (context->GetDocument(d)->IsVisible())
-                    CollectIconUses(context->GetDocument(d), ratio, g_icon_uses);
-            }
         }
 }
 
@@ -1633,10 +1628,9 @@ int CheckPrewarm(const fs::path &pack, bool whole_run)
     const Json pack_json = Json::parse(Read(pack / "pack.json"), nullptr, false);
     const std::string listed_path = pack_json.is_object() ? pack_json.value("prewarm", std::string()) : std::string();
     const Json list = listed_path.empty() ? Json() : Json::parse(Read(pack / listed_path), nullptr, false);
-    if (!list.is_object() || !list.value("fonts", Json()).is_array() || !list.value("icons", Json()).is_array() ||
-        !list.value("layoutWidth", Json()).is_number())
+    if (!list.is_object() || !list.value("fonts", Json()).is_array() || !list.value("layoutWidth", Json()).is_number())
     {
-        std::printf("FAIL prewarm: the pack has no list (pack.json prewarm: {layoutWidth, fonts, icons}): "
+        std::printf("FAIL prewarm: the pack has no list (pack.json prewarm: {layoutWidth, fonts}): "
                     "Host::Prewarm makes nothing ahead\n");
         ++problems;
     }
@@ -1650,7 +1644,6 @@ int CheckPrewarm(const fs::path &pack, bool whole_run)
             fail(listed_path + " was recorded at a layout " + Json(list["layoutWidth"]).dump() +
                  " dp wide, the cases are laid out " + Json(g_layout_width).dump() + " dp wide");
         std::set<FontUse> fonts;
-        std::set<IconUse> icons;
         std::string why;
         for (const Json &entry : list["fonts"])
         {
@@ -1660,28 +1653,14 @@ int CheckPrewarm(const fs::path &pack, bool whole_run)
             else
                 fail(listed_path + ": " + why);
         }
-        for (const Json &entry : list["icons"])
-        {
-            IconUse use;
-            if (ParseIconUse(entry, use, why))
-                icons.insert(use);
-            else
-                fail(listed_path + ": " + why);
-        }
         for (const FontUse &use : g_font_uses)
             if (!Covers(fonts, use))
                 fail("a font use drawn but not listed: " + FontUseJson(use).dump());
-        for (const IconUse &use : g_icon_uses)
-            if (!icons.count(use))
-                fail("an icon drawn but not listed: " + IconUseJson(use).dump());
         if (whole_run)
         {
             for (const FontUse &use : fonts)
                 if (!g_font_uses.count(use))
                     fail("a font use listed but drawn by no state: " + FontUseJson(use).dump());
-            for (const IconUse &use : icons)
-                if (!g_icon_uses.count(use))
-                    fail("an icon listed but drawn by no state: " + IconUseJson(use).dump());
         }
     }
     return problems;
@@ -1696,10 +1675,6 @@ bool WritePrewarm(const fs::path &path)
     const std::set<FontUse> fonts = WithoutCoveredHandles(g_font_uses);
     for (const FontUse &use : fonts)
         out << "  " << FontUseJson(use).dump() << (++i < fonts.size() ? ",\n" : "\n");
-    out << " ],\n \"icons\": [\n";
-    i = 0;
-    for (const IconUse &use : g_icon_uses)
-        out << "  " << IconUseJson(use).dump() << (++i < g_icon_uses.size() ? ",\n" : "\n");
     out << " ]\n}\n";
     if (!out)
     {

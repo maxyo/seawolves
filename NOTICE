@@ -112,7 +112,8 @@ taken from, traced from or derived from game assets):
   app/android/game/res/drawable/ic_notification_download.xml,
   ic_notification_pause.xml
       the notification icons, drawn as vector drawables
-  app/mobile-ui/design/icons.json
+  app/mobile-ui/design/icons.json and the atlas baked from it in
+  app/mobile-ui/design/icon-atlas/
       the interface icon set, drawn as SVG paths
   app/mobile-ui/design/textures-src/oak.jpg, lapis.jpg and the files baked from
   them in app/mobile-ui/design/textures/

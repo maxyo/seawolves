@@ -4,6 +4,9 @@
 
 **Русский**
 
+- Значки интерфейса больше не рисуются на телефоне при первом показе: они заранее собраны в одну текстуру и
+  окрашиваются при выводе. Первое открытие экрана с новыми значками не подтормаживает; края значков могут быть на
+  долю пикселя мягче или резче.
 - Строка товара в магазине и трюме, флаг в «Нациях», корабль на верфи, предмет, ячейка и вкладка в «Предметах»,
   отмеченные касанием, остаются отмеченными,
   если список успел измениться до ответа игры: раньше отметка могла перескочить на соседнюю строку, а касание —
@@ -157,6 +160,9 @@
 
 **English**
 
+- Interface icons are no longer drawn on the phone the first time they appear: they are baked into one texture and
+  coloured as they are drawn. A screen's first opening with new icons no longer stalls; icon edges may be a fraction of
+  a pixel softer or sharper.
 - A goods row of the store and of the hold, a flag of the nations screen, a ship of the shipyard and an item, slot
   or category of the items screen marked by a tap
   stay marked when the list changes before the game answers: the mark could jump to a neighbouring row, and the
