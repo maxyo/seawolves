@@ -47,7 +47,7 @@
     <c-notice variant="toast" compact="1" tone="ok" text="Сохранено"/>
   </div>
   <div class="g-wood col" style="width: 400dp; gap: 8dp;">
-    <c-notice variant="log" lines='[{"text": "Взято: ром 60 шт.", "leaving": false, "open": false, "tone": "info"}, {"text": "Корабль «Аделина» получил пробоину", "tone": "danger", "leaving": false, "open": false}, {"text": "Сохранено", "tone": "ok", "leaving": false, "open": false}, {"text": "четвёртая строка не рисуется", "leaving": false, "open": false, "tone": "info"}]'/>
+    <c-notice variant="log" lines='[{"key": "1", "text": "Взято: ром 60 шт.", "leaving": false, "open": false, "tone": "info"}, {"key": "2", "text": "Корабль «Аделина» получил пробоину", "tone": "danger", "leaving": false, "open": false}, {"key": "3", "text": "Сохранено", "tone": "ok", "leaving": false, "open": false}, {"key": "4", "text": "четвёртая строка не рисуется", "leaving": false, "open": false, "tone": "info"}]'/>
     <c-notice variant="toast" text="Флейт «Аделина» отходит от причала, пассажиры на борту, груз принят полностью, капитан ждёт приказа об отплытии до заката"/>
   </div>
 </div>
@@ -55,7 +55,7 @@
 <div class="g-row">
   <div class="g-scene" style="position: relative; height: 240dp; padding: 0;">
     <c-notice place="hud" tone="ok" text="Взято: ром 60 шт."/>
-    <c-notice variant="log" place="hud" scene="land" offset="48" lines='[{"text": "Взято: ром 60 шт.", "leaving": false, "open": false, "tone": "info"}, {"text": "Корабль «Аделина» получил пробоину", "tone": "danger", "leaving": false, "open": false}]'/>
+    <c-notice variant="log" place="hud" scene="land" offset="48" lines='[{"key": "1", "text": "Взято: ром 60 шт.", "leaving": false, "open": false, "tone": "info"}, {"key": "2", "text": "Корабль «Аделина» получил пробоину", "tone": "danger", "leaving": false, "open": false}]'/>
     <c-notice variant="hint" icon="door" text="Таверна" style="position: absolute; left: 0; right: 0; bottom: 16dp; height: 32dp;"/>
   </div>
 </div>

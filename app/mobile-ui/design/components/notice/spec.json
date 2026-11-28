@@ -14,7 +14,7 @@
     "safeRight": {"type": "int", "default": null},
     "action": {"type": "text", "default": ""},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood", "class": false},
-    "lines": {"type": "json", "default": [], "shape": [{"key": "text", "leaving": "bool", "tone": "text", "open": "bool", "icon": "text", "text": "text"}]},
+    "lines": {"type": "json", "default": [], "shape": [{"key": "text", "leaving": "bool", "tone": "text", "open": "bool", "text": "text"}]},
     "leaving": {"type": "bool", "default": false}
   },
   "behaviors": ["toast"],
