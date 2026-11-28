@@ -11,6 +11,7 @@ Fixtures are generated in temporary directories; 7z is needed for 7z/split/encry
 
 import argparse
 import binascii
+import contextlib
 import ctypes as C
 import hashlib
 import io
@@ -112,23 +113,25 @@ class Discovery(unittest.TestCase):
         return Limits(**defaults)
 
     def discover(self, password=None, limits=None, progress=None, source=None, layer=None):
-        data, error = C.c_void_p(), C.create_string_buffer(2048)
-        cb = Progress(progress) if progress else Progress()
-        code = lib.storm_archive_discover(
-            str(source or self.source).encode(),
-            str(self.scratch).encode(),
-            password.encode() if password else None,
-            str(layer).encode() if layer is not None else None,
-            C.byref(limits or self.limits()),
-            cb,
-            None,
-            C.byref(data),
-            error,
-            len(error),
-        )
-        document = json.loads(C.string_at(data).decode()) if data.value else None
-        lib.storm_archive_free(data)
-        return code, document, error.value.decode(errors='replace')
+        """`layer`: the directory of a script patch layer."""
+        with reader.patch_layer(lib, layer) if layer is not None else contextlib.nullcontext() as handle:
+            data, error = C.c_void_p(), C.create_string_buffer(2048)
+            cb = Progress(progress) if progress else Progress()
+            code = lib.storm_archive_discover(
+                str(source or self.source).encode(),
+                str(self.scratch).encode(),
+                password.encode() if password else None,
+                handle,
+                C.byref(limits or self.limits()),
+                cb,
+                None,
+                C.byref(data),
+                error,
+                len(error),
+            )
+            document = json.loads(C.string_at(data).decode()) if data.value else None
+            lib.storm_archive_free(data)
+            return code, document, error.value.decode(errors='replace')
 
     def found(self, **kwargs):
         code, document, error = self.discover(**kwargs)
@@ -197,6 +200,9 @@ class Discovery(unittest.TestCase):
                 f'identify\tPROGRAM/_LSC_on_off.h\t{hashlib.sha256(header).hexdigest()}\n'
             )
         layer.mkdir(exist_ok=True)
+        # The packager's listing (script_patch_assets.py): every file of the layer.
+        files = {p.relative_to(layer).as_posix(): '' for p in layer.rglob('*') if p.is_file()}
+        (layer / 'manifest.json').write_text(json.dumps(files))
         return layer
 
     def test_copies_are_identified_with_the_engine_rule(self):
@@ -273,9 +279,8 @@ class Discovery(unittest.TestCase):
 
     def test_patch_layer_errors_are_loud(self):
         write_zip(self.source / 'game.zip', game('Game/'))
-        code, _, error = self.discover(layer=self.work / 'absent')
-        self.assertEqual(code, 1, error)
-        self.assertIn('No script patch layer', error)
+        with self.assertRaisesRegex(OSError, 'no manifest'):
+            self.discover(layer=self.work / 'absent')
         layer = self.patch_layer(('one', '1', VERSION_HEADER), ('two', '2', VERSION_HEADER))
         code, _, error = self.discover(layer=layer)
         self.assertEqual(code, 5, error)
@@ -287,11 +292,12 @@ class Discovery(unittest.TestCase):
 
     def test_patch_layer_listing(self):
         def listing(path):
-            data, error = C.c_void_p(), C.create_string_buffer(2048)
-            code = lib.storm_archive_patch_layer(str(path).encode(), C.byref(data), error, len(error))
-            document = json.loads(C.string_at(data).decode()) if data.value else None
-            lib.storm_archive_free(data)
-            return code, document, error.value.decode()
+            with reader.patch_layer(lib, path) as handle:
+                data, error = C.c_void_p(), C.create_string_buffer(2048)
+                code = lib.storm_archive_patch_layer(handle, C.byref(data), error, len(error))
+                document = json.loads(C.string_at(data).decode()) if data.value else None
+                lib.storm_archive_free(data)
+                return code, document, error.value.decode()
 
         layer = self.patch_layer(('b-set', '2', b'b'), ('a-set', '1', b'a'))
         code, document, error = listing(layer)
@@ -302,8 +308,10 @@ class Discovery(unittest.TestCase):
         )
         empty = self.work / 'empty-layer'
         empty.mkdir()
+        (empty / 'manifest.json').write_text('{}')
         self.assertEqual(listing(empty)[:2], (0, {'patch_sets': []}))
-        self.assertEqual(listing(self.work / 'absent')[0], 1)
+        with self.assertRaisesRegex(OSError, 'no manifest'):
+            listing(self.work / 'absent')
 
     def test_two_copies_in_one_archive(self):
         files = game('Original/', 'o')

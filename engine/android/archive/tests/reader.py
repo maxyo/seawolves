@@ -1,5 +1,6 @@
 """The reader's C API (storm_archive.h) for the host checks, through ctypes."""
 
+import contextlib
 import ctypes as C
 import json
 import os
@@ -31,7 +32,7 @@ def load(library):
         C.c_char_p,
         C.c_char_p,
         C.c_char_p,
-        C.c_char_p,
+        C.c_void_p,
         C.POINTER(Limits),
         Progress,
         C.c_void_p,
@@ -52,7 +53,10 @@ def load(library):
         C.c_char_p,
         C.c_size_t,
     ]
-    lib.storm_archive_patch_layer.argtypes = [C.c_char_p, C.POINTER(C.c_void_p), C.c_char_p, C.c_size_t]
+    lib.storm_archive_patch_layer.argtypes = [C.c_void_p, C.POINTER(C.c_void_p), C.c_char_p, C.c_size_t]
+    lib.storm_archive_layer_directory.argtypes = [C.c_char_p, C.c_char_p, C.c_size_t]
+    lib.storm_archive_layer_directory.restype = C.c_void_p
+    lib.storm_archive_layer_free.argtypes = [C.c_void_p]
     lib.storm_archive_free.argtypes = [C.c_void_p]
     lib.storm_archive_remove_tree.argtypes = [C.c_char_p, C.c_char_p, C.c_size_t]
     return lib
@@ -64,14 +68,27 @@ def _document(lib, data):
     return document
 
 
+@contextlib.contextmanager
+def patch_layer(lib, path):
+    """The script patch layer in the directory `path` (storm_archive_layer_directory); OSError when it holds none."""
+    error = C.create_string_buffer(2048)
+    handle = lib.storm_archive_layer_directory(os.fsencode(path), error, len(error))
+    if not handle:
+        raise OSError(error.value.decode(errors='replace'))
+    try:
+        yield handle
+    finally:
+        lib.storm_archive_layer_free(handle)
+
+
 def discover(lib, source, scratch, password=None, bounds=None, progress=None, layer=None):
-    """(status, document, error) of storm_archive_discover."""
+    """(status, document, error) of storm_archive_discover; `layer` from patch_layer."""
     data, error = C.c_void_p(), C.create_string_buffer(2048)
     code = lib.storm_archive_discover(
         os.fsencode(source),
         os.fsencode(scratch),
         password.encode() if password else None,
-        os.fsencode(layer) if layer is not None else None,
+        layer,
         C.byref(bounds or limits()),
         Progress(progress) if progress else Progress(),
         None,

@@ -106,8 +106,9 @@ levels (members written to `scratch/<n>/`). Each root is a separate candidate; r
 `kind` is `folder`, `archive` or `inno`; an Inno root with missing volumes is `ready:false` and names them.
 `file_count`/`unpacked_bytes` are exactly what `extractRoot` writes.
 
-**Script patch identification.** `patchLayer` is the engine's script patch layer directory (Android:
-`<cache root>/layers/script-patches/current`, engine `src/libs/util/include/platform/script_patches.hpp`,
+**Script patch identification.** The layer is the engine's script patch layer (`storm_archive_layer`; the
+app's is the APK's `assets/script-patches`, read through the AssetManager it passes; host checks read a
+directory with `storm_archive_layer_directory`; engine `src/libs/util/include/platform/layer_files.hpp`,
 `tools/script_patches/README.md`). Discovery loads it as the engine does and identifies every copy with the
 engine's own rule, `script_patches::identify`, over the copy's identify files (whole files up to 1 MiB, keyed
 as the engine's resource index keys the installed file): the launcher's verdict and the set the engine

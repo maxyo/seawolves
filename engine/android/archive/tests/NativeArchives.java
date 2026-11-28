@@ -7,8 +7,7 @@ import java.io.*;
 public final class NativeArchives {
  static {System.loadLibrary("storm_archive");}
  interface Progress {boolean onProgress(int stage,String path,long bytes,long total,long files);}
- static native String[] discover(String source,String scratch,String password,String layer,long[] limits,Progress progress);
- static native String[] patchLayer(String layer);
+ static native String[] discover(String source,String scratch,String password,Object assets,long[] limits,Progress progress);
  static native String[] extractRoot(String source,String scratch,String password,String id,String staging,long[] limits,Progress progress);
  static native String[] removeTree(String path);
  static native String checkSave(String path);
@@ -34,15 +33,7 @@ public final class NativeArchives {
    require(info[0].equals("0"),"discover: "+info[1]);require(reading[0],"Reading stage reported");
    require(info[2].contains("\"root\":\"Корсары/\"")&&info[2].contains("игра-🚢.zip"),"Discovery UTF-16 round trip: "+info[2]);
    require(info[2].contains("\"identified\":false,\"patch_set\":null")&&info[2].contains("\"patch_sets\":null"),"No layer: nothing identified: "+info[2]);
-   // A layer path (UTF-16 round trip): the set's identify file is missing from this copy, so no set identifies it.
-   Path layer=root.resolve("слой-🚢"),set=layer.resolve("sets/s-1");Files.createDirectories(set);
-   Files.writeString(set.resolve("index.txt"),"storm-script-patches\t1\nset\ts-1\tИгра 🚢\t1.0\nidentify\tPROGRAM/v.h\t"+"0".repeat(64)+"\n");
-   String[] sets=patchLayer(layer.toString());
-   require(sets[0].equals("0")&&sets[2].contains("\"game\":\"Игра 🚢\"")&&sets[2].contains("\"identify\":[\"program/v.h\"]"),"patchLayer: "+String.join("|",sets));
    try(var files=Files.list(scratch)){require(files.count()==0,"Scratch empty after a plain archive");}
-   info=discover(source.toString(),scratch.toString(),null,layer.toString(),LIMITS,null);
-   require(info[0].equals("0")&&info[2].contains("\"identified\":true,\"patch_set\":null")&&info[2].contains("\"version\":\"1.0\""),"Identified without a match: "+info[2]);
-   require(discover(source.toString(),scratch.toString(),null,root.resolve("absent").toString(),LIMITS,null)[0].equals("1"),"Absent layer is an IO failure");
    String id=field(info[2],"id");
    info=extractRoot(source.toString(),scratch.toString(),null,id,out.toString(),LIMITS,(stage,path,bytes,total,files)->files>=1);
    require(info[0].equals("7"),"Callback true cancels: "+info[0]);

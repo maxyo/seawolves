@@ -109,7 +109,7 @@ final class DiagnosticsExport {
                     ArchiveInstaller.describeInstalled(
                             new File(path),
                             new File(context.getCacheDir(), "diagnostics-game-scan"),
-                            GameStorage.layers(context).scriptPatches());
+                            context.getAssets());
             ArchiveInstaller.Identification identity = root.identification;
             report.fact(
                             "installed",

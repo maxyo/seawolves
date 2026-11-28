@@ -2,6 +2,7 @@ package org.stormengine.port;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
@@ -334,22 +335,17 @@ final class ImportCoordinator {
         try {
             game = GameStorage.imported(context);
             // The found copies are identified against the script patch layer the engine will apply
-            // (the choice marks a copy that is not the tested version): installed from the APK
-            // before any discovery.
-            File patchLayer = GameStorage.layers(context).scriptPatches();
+            // (the choice marks a copy that is not the tested version), the APK's.
+            AssetManager assets = context.getAssets();
             if (directory != null) {
                 Log.i("StormImport", "Importing the finished download " + directory);
-                ArchiveInstaller.installDirectory(directory, game, patchLayer, monitor, bridge);
+                ArchiveInstaller.installDirectory(directory, game, assets, monitor, bridge);
             } else if (tree)
-                importTree(
-                        new TreeImporter(resolver, uris.get(0), patchLayer),
-                        game,
-                        patchLayer,
-                        monitor);
+                importTree(new TreeImporter(resolver, uris.get(0), assets), game, assets, monitor);
             else {
                 List<PickedDocument> documents = new ArrayList<>();
                 for (Uri uri : uris) documents.add(PickedDocument.query(resolver, uri));
-                ArchiveInstaller.installDocuments(documents, game, patchLayer, monitor, bridge);
+                ArchiveInstaller.installDocuments(documents, game, assets, monitor, bridge);
             }
             key = "import_finished";
         } catch (ResourceImporter.CancelledException e) {
@@ -392,7 +388,7 @@ final class ImportCoordinator {
 
     /** Unpacked roots in the folder are offered; a folder without one is read for archives and installers. */
     private void importTree(
-            TreeImporter folder, File game, File patchLayer, ResourceImporter.Monitor monitor)
+            TreeImporter folder, File game, AssetManager assets, ResourceImporter.Monitor monitor)
             throws IOException {
         monitor.stage(ResourceImporter.Stage.READING, 0);
         TreeImporter.Scan scan = folder.scan(monitor);
@@ -406,7 +402,7 @@ final class ImportCoordinator {
                     "No unpacked game in the folder; reading "
                             + scan.containers.size()
                             + " archive/installer files");
-            ArchiveInstaller.installDocuments(scan.containers, game, patchLayer, monitor, bridge);
+            ArchiveInstaller.installDocuments(scan.containers, game, assets, monitor, bridge);
             return;
         }
         if (!scan.containers.isEmpty())

@@ -334,22 +334,15 @@ bool known_unsupported_archive(const std::string &name)
 }
 
 // The script patch layer (engine platform/script_patches.hpp), loaded as the engine loads it.
-std::vector<storm::script_patches::Set> load_patch_layer(const char *layer)
+std::vector<storm::script_patches::Set> load_patch_layer(const storm::layers::Layer &layer)
 {
-    struct stat st{};
-    if (!*layer || stat(layer, &st) < 0 || !S_ISDIR(st.st_mode))
-        throw Failure(STORM_ARCHIVE_IO, std::string("No script patch layer at ") + layer);
     try
     {
-        return storm::script_patches::loadLayer(*storm::layers::directory("script-patches", layer));
+        return storm::script_patches::loadLayer(layer);
     }
     catch (const storm::script_patches::LayerError &e)
     {
         throw Failure(STORM_ARCHIVE_INVALID, std::string("Damaged script patch layer: ") + e.what());
-    }
-    catch (const std::runtime_error &e) // the layer's manifest
-    {
-        throw Failure(STORM_ARCHIVE_IO, e.what());
     }
 }
 // [{"id","game","version","identify":[resource keys]}], in the layer's order.
@@ -452,12 +445,12 @@ struct Session
     {
         return base == 's' ? source : scratch;
     }
-    // NULL: the caller does not identify copies. Otherwise the layer directory must exist.
-    void load_layer(const char *layer)
+    // NULL: the caller does not identify copies.
+    void load_layer(const storm_archive_layer *layer)
     {
         if (!layer)
             return;
-        sets = load_patch_layer(layer);
+        sets = load_patch_layer(*layer->layer);
         for (const auto &key : storm::script_patches::identifyKeys(sets))
             identify_keys.insert(key);
         identifying = true;
@@ -1298,7 +1291,7 @@ struct Session
 } // namespace
 } // namespace storm_archive
 extern "C" int storm_archive_discover(const char *source, const char *scratch, const char *password,
-                                      const char *patch_layer, const storm_archive_source_limits *limits,
+                                      const storm_archive_layer *patch_layer, const storm_archive_source_limits *limits,
                                       storm_archive_stage_progress progress, void *userdata, char **json, char *error,
                                       size_t cap)
 {
@@ -1352,7 +1345,7 @@ extern "C" int storm_archive_extract_root(const char *source, const char *scratc
         }
     });
 }
-extern "C" int storm_archive_patch_layer(const char *layer, char **json, char *error, size_t cap)
+extern "C" int storm_archive_patch_layer(const storm_archive_layer *layer, char **json, char *error, size_t cap)
 {
     return storm_archive::boundary(json, error, cap, [&](std::string &) {
         if (!json)
@@ -1360,8 +1353,29 @@ extern "C" int storm_archive_patch_layer(const char *layer, char **json, char *e
         if (!layer)
             throw storm_archive::Failure(STORM_ARCHIVE_IO, "Missing script patch layer");
         *json = storm_archive::result_json(
-            "{\"patch_sets\":" + storm_archive::patch_sets_json(storm_archive::load_patch_layer(layer)) + "}");
+            "{\"patch_sets\":" + storm_archive::patch_sets_json(storm_archive::load_patch_layer(*layer->layer)) + "}");
     });
+}
+extern "C" storm_archive_layer *storm_archive_layer_directory(const char *path, char *error, size_t cap)
+{
+    std::unique_ptr<storm_archive_layer> layer;
+    storm_archive::boundary(nullptr, error, cap, [&](std::string &) {
+        if (!path)
+            throw storm_archive::Failure(STORM_ARCHIVE_IO, "Missing script patch layer");
+        try
+        {
+            layer.reset(new storm_archive_layer{storm::layers::directory("script-patches", path)});
+        }
+        catch (const std::runtime_error &e) // its manifest
+        {
+            throw storm_archive::Failure(STORM_ARCHIVE_IO, e.what());
+        }
+    });
+    return layer.release();
+}
+extern "C" void storm_archive_layer_free(storm_archive_layer *layer)
+{
+    delete layer;
 }
 extern "C" void storm_archive_free(char *json)
 {

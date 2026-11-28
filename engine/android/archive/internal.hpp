@@ -2,13 +2,19 @@
 #include "failure.hpp"
 #include "storm_archive.h"
 #include "volume_names.hpp"
+#include "platform/layer_files.hpp"
 #include <chrono>
+#include <memory>
 #include <functional>
 #include <string>
 #include <set>
 #include <cstdint>
 #include <vector>
 #include <utility>
+struct storm_archive_layer
+{
+    std::shared_ptr<const storm::layers::Layer> layer;
+};
 namespace storm_archive
 {
 bool allocation_failed();

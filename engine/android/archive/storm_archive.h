@@ -40,22 +40,26 @@ extern "C"
         uint64_t max_ratio;         /* Decoded:compressed bound per container. */
         uint64_t reserve_bytes;     /* Free space kept on the device. */
     };
+    /* The engine's script patch layer (platform/layer_files.hpp): the app's is read from the APK's assets
+     * (jni.cpp); storm_archive_layer_directory reads one from a directory (host checks). */
+    struct storm_archive_layer;
+    /* NULL with the reason in error when the directory holds no layer (no readable manifest.json). */
+    struct storm_archive_layer *storm_archive_layer_directory(const char *path, char *error, size_t error_capacity);
+    void storm_archive_layer_free(struct storm_archive_layer *layer);
     /* *json (free with storm_archive_free) is the discovery document on success.
      * On ENCRYPTED, NO_SPACE or LIMIT it describes the failure; see README.
      * password may be NULL; it is applied to every container that needs one.
-     * patch_layer is the engine's script patch layer directory (Android:
-     * <cache root>/layers/script-patches/current): every copy whose identify files can be
-     * read is identified with the engine's own rule (script_patches::identify).
-     * NULL means the caller does not identify copies (every candidate is then
-     * "identified":false and "patch_sets" is null); a path that is not a
-     * directory is an IO failure and a damaged layer INVALID, never "no set". */
+     * Every copy whose identify files can be read is identified against patch_layer with the engine's own rule
+     * (script_patches::identify). NULL means the caller does not identify copies (every candidate is then
+     * "identified":false and "patch_sets" is null); a damaged layer is INVALID, never "no set". */
     int storm_archive_discover(const char *source, const char *scratch_dir, const char *password,
-                               const char *patch_layer, const struct storm_archive_source_limits *limits,
-                               storm_archive_stage_progress progress, void *userdata, char **json, char *error,
-                               size_t error_capacity);
+                               const struct storm_archive_layer *patch_layer,
+                               const struct storm_archive_source_limits *limits, storm_archive_stage_progress progress,
+                               void *userdata, char **json, char *error, size_t error_capacity);
     /* {"patch_sets":[{"id","game","version","identify":[<resource key>]}]} of a
-     * script patch layer directory: the files a caller copies for discovery. */
-    int storm_archive_patch_layer(const char *patch_layer, char **json, char *error, size_t error_capacity);
+     * script patch layer: the files a caller copies for discovery. */
+    int storm_archive_patch_layer(const struct storm_archive_layer *patch_layer, char **json, char *error,
+                                  size_t error_capacity);
     /* Extracts exactly one discovered root (its opaque id) into empty_staging.
      * Source and scratch must be unchanged since discovery. */
     int storm_archive_extract_root(const char *source, const char *scratch_dir, const char *password,

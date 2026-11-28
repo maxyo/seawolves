@@ -1,5 +1,7 @@
 package org.stormengine.port;
 
+import android.content.res.AssetManager;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -48,8 +50,8 @@ public final class ArchiveInstallerCheck {
     static final String PATCH_SETS =
             "[{\"id\":\"teho-1.7.3-x64\",\"game\":\"G\",\"version\":\"ver. 1.7.3 (26.11.21) x64\",\"identify\":[\"program/_lsc_on_off.h\"]}]";
 
-    /** The installed script patch layer every identifying discovery is given (MobileResources.scriptPatches). */
-    static File layer;
+    /** The APK's assets every identifying discovery is given: the reader takes the script patch layer from them. */
+    static final AssetManager assets = new AssetManager();
 
     static String[] ok(String json) {
         return new String[] {"0", "", json};
@@ -182,15 +184,13 @@ public final class ArchiveInstallerCheck {
     static int install(Answers answers, ResourceImporter.Monitor monitor, Doc... docs)
             throws IOException {
         return ArchiveInstaller.installDocuments(
-                Arrays.asList(docs), game, layer, monitor, answers);
+                Arrays.asList(docs), game, assets, monitor, answers);
     }
 
     public static void main(String[] args) throws Exception {
         root = new File(args[0]);
         root.mkdirs();
         game = new File(root, "game");
-        layer = new File(root, "script-patches/current");
-        layer.mkdirs();
         ResourceImporter.importExtracted(
                 (stage, monitor) -> {
                     new File(stage, "PROGRAM").mkdirs();
@@ -276,7 +276,7 @@ public final class ArchiveInstallerCheck {
                 || !second.testedVersions.equals(Arrays.asList("ver. 1.7.3 (26.11.21) x64")))
             throw new AssertionError(
                     "Identification lost: " + second.setId + " " + second.testedVersions);
-        if (!NativeArchives.layers.equals(Arrays.asList(layer.getPath())))
+        if (!NativeArchives.layers.equals(Arrays.asList(assets)))
             throw new AssertionError("The reader did not get the layer: " + NativeArchives.layers);
         if (!stages.seen.contains(ResourceImporter.Stage.CHOOSING))
             throw new AssertionError("No choosing stage");
@@ -636,7 +636,7 @@ public final class ArchiveInstallerCheck {
                                 "")));
         Answers chooseSecond = new Answers();
         chooseSecond.choices.add(1);
-        if (ArchiveInstaller.installDirectory(set, game, layer, null, chooseSecond) != 3
+        if (ArchiveInstaller.installDirectory(set, game, assets, null, chooseSecond) != 3
                 || !NativeArchives.sources.get(0).equals(set.getCanonicalPath()))
             throw new AssertionError("Download set source " + NativeArchives.sources);
         if (chooseSecond.offered.size() != 2
@@ -649,17 +649,14 @@ public final class ArchiveInstallerCheck {
         rejected(
                 () ->
                         ArchiveInstaller.installDirectory(
-                                overlapping, game, layer, null, new Answers()));
+                                overlapping, game, assets, null, new Answers()));
         rejected(
                 () ->
                         ArchiveInstaller.installDirectory(
-                                new File(root, "missing-set"), game, layer, null, new Answers()));
-        // Copies are never identified without the installed layer.
+                                new File(root, "missing-set"), game, assets, null, new Answers()));
+        // Copies are never identified without the APK's layer.
         NativeArchives.reset();
-        rejected(
-                () ->
-                        ArchiveInstaller.installDirectory(
-                                set, game, new File(root, "no-layer"), null, new Answers()));
+        rejected(() -> ArchiveInstaller.installDirectory(set, game, null, null, new Answers()));
         rejected(
                 () ->
                         ArchiveInstaller.installDocuments(
@@ -726,14 +723,14 @@ public final class ArchiveInstallerCheck {
         rejected(
                 () ->
                         ArchiveInstaller.installDirectory(
-                                loose, game, layer, cancelAfterMove, new Answers()));
+                                loose, game, assets, cancelAfterMove, new Answers()));
         if (!new File(looseGame, "Resource/x.txt").isFile()
                 || !new File(looseGame, "Engine.ini").isFile()
                 || new File(looseGame, "Resource/bad.dll").exists())
             throw new AssertionError("A cancelled move gives the parts back (programs left out)");
         NativeArchives.reset();
         NativeArchives.discoveries.add(ok(discovery(folder, "", "")));
-        if (ArchiveInstaller.installDirectory(loose, game, layer, null, new Answers()) != 3)
+        if (ArchiveInstaller.installDirectory(loose, game, assets, null, new Answers()) != 3)
             throw new AssertionError("Moved file count");
         if (!Files.readString(new File(game, "RESOURCE/x.txt").toPath()).equals("moved")
                 || !new File(game, "engine.ini").isFile()
@@ -799,7 +796,7 @@ final class NativeArchives {
         limits = null;
     }
 
-    static final List<String> layers = new ArrayList<>();
+    static final List<AssetManager> layers = new ArrayList<>();
 
     static String[] removeTree(String path) {
         return HostTreeRemoval.removeTree(path);
@@ -809,7 +806,7 @@ final class NativeArchives {
             String source,
             String scratch,
             String password,
-            String layer,
+            AssetManager layer,
             long[] bounds,
             Progress progress) {
         sources.add(source);

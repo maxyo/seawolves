@@ -19,9 +19,9 @@ release. Commands run from the repository root.
 
 Where things are on the device: the game in `getExternalFilesDir()/game`; the download library in
 `getExternalFilesDir()/game-downloads` (its own `:downloads` process); saves, logs and screenshots in
-the app's internal `files/storm`; everything the app can make again (the engine's caches and the UI, shader and
-script layers copied from the APK, `layers/`) under one cache root, `(getExternalCacheDir() ?: getCacheDir())/engine`,
-which the system's «Очистить кэш» empties. Uninstalling the app or installing a build signed with another key deletes all
+the app's internal `files/storm`; everything the app can make again (the engine's caches) under one cache root,
+`(getExternalCacheDir() ?: getCacheDir())/engine`, which the system's «Очистить кэш» empties. The UI, shader and
+script layers are read from the APK in place. Uninstalling the app or installing a build signed with another key deletes all
 of it: send the saves out first (About → Send a save → All saves; Restore a save
 brings the archive back).
 

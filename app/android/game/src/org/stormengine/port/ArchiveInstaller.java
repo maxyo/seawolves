@@ -1,5 +1,7 @@
 package org.stormengine.port;
 
+import android.content.res.AssetManager;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -218,12 +220,12 @@ public final class ArchiveInstaller {
     public static int installDirectory(
             File directory,
             File game,
-            File patchLayer,
+            AssetManager assets,
             ResourceImporter.Monitor monitor,
             Choices choices)
             throws IOException {
         checkCancelled(monitor);
-        requireLayer(patchLayer);
+        requireLayer(assets);
         if (directory == null || game == null)
             throw new Failure(
                     Failure.SELECTION, "A downloaded set and the game directory are required");
@@ -233,8 +235,7 @@ public final class ArchiveInstaller {
         requireSeparateSource(source, destination);
         return ResourceImporter.importExtracted(
                 (stage, progress) ->
-                        installFrom(
-                                source, destination, patchLayer, stage, progress, choices, true),
+                        installFrom(source, destination, assets, stage, progress, choices, true),
                 destination,
                 monitor);
     }
@@ -301,10 +302,11 @@ public final class ArchiveInstaller {
 
     /**
      * The installed game as the import describes a found copy (title, version, languages, size, patches) and the
-     * script patch set the engine applies to it (identified against `patchLayer`, the installed layer).
+     * script patch set the engine applies to it (identified against the APK's script patch layer, read through `assets`).
      */
-    static GameRoot describeInstalled(File game, File scratch, File patchLayer) throws IOException {
-        requireLayer(patchLayer);
+    static GameRoot describeInstalled(File game, File scratch, AssetManager assets)
+            throws IOException {
+        requireLayer(assets);
         try {
             GameRoot[] found = {null};
             guarded(
@@ -317,7 +319,7 @@ public final class ArchiveInstaller {
                                         game.getCanonicalPath(),
                                         scratch.getPath(),
                                         null,
-                                        patchLayer.getPath(),
+                                        assets,
                                         limits(),
                                         null);
                         JSONObject json = json(result);
@@ -345,12 +347,12 @@ public final class ArchiveInstaller {
     public static int installDocuments(
             List<? extends Document> documents,
             File game,
-            File patchLayer,
+            AssetManager assets,
             ResourceImporter.Monitor monitor,
             Choices choices)
             throws IOException {
         checkCancelled(monitor);
-        requireLayer(patchLayer);
+        requireLayer(assets);
         if (documents == null || documents.isEmpty() || game == null)
             throw new Failure(Failure.SELECTION, "Choose files to import first");
         if (documents.size() > MAX_DOCUMENTS)
@@ -389,7 +391,7 @@ public final class ArchiveInstaller {
                         for (Document document : documents)
                             copy(document, input, copied, declared, progress);
                         return installFrom(
-                                input, destination, patchLayer, stage, progress, choices, false);
+                                input, destination, assets, stage, progress, choices, false);
                     } finally {
                         ResourceImporter.deleteTree(
                                 input); // Free the copies before publication needs the space.
@@ -406,7 +408,7 @@ public final class ArchiveInstaller {
     static int installFrom(
             File source,
             File game,
-            File patchLayer,
+            AssetManager assets,
             File stage,
             ResourceImporter.Monitor monitor,
             Choices choices,
@@ -418,7 +420,7 @@ public final class ArchiveInstaller {
                     () -> {
                         String[] password = {null};
                         JSONObject document =
-                                discover(source, scratch, patchLayer, password, monitor, choices);
+                                discover(source, scratch, assets, password, monitor, choices);
                         List<GameRoot> roots = roots(document);
                         GameRoot chosen = choose(roots, document, monitor, choices);
                         if (move && chosen.kind.equals("folder") && chosen.location.isEmpty())
@@ -434,7 +436,7 @@ public final class ArchiveInstaller {
     private static JSONObject discover(
             File source,
             File scratch,
-            File patchLayer,
+            AssetManager assets,
             String[] password,
             ResourceImporter.Monitor monitor,
             Choices choices)
@@ -449,7 +451,7 @@ public final class ArchiveInstaller {
                             source.getPath(),
                             scratch.getPath(),
                             password[0],
-                            patchLayer.getPath(),
+                            assets,
                             limits(),
                             progress(monitor, 0));
             int status = status(result);
@@ -821,10 +823,10 @@ public final class ArchiveInstaller {
         for (String part : path.split("/", -1)) requireName(part);
     }
 
-    /** The installed script patch layer (MobileResources.scriptPatches): copies are identified against it, never without it. */
-    private static void requireLayer(File patchLayer) throws IOException {
-        if (patchLayer == null || !patchLayer.isDirectory())
-            throw new IOException("The script patch layer is not installed: " + patchLayer);
+    /** The APK's script patch layer (`assets`): copies are identified against it, never without it. */
+    private static void requireLayer(AssetManager assets) throws IOException {
+        if (assets == null)
+            throw new IOException("No script patch layer: the APK's assets are required");
     }
 
     private static void requireSeparateSource(File source, File game) throws IOException {

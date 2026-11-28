@@ -1,4 +1,8 @@
 #include "storm_archive.h"
+#include "internal.hpp"
+#include "platform/apk_assets.hpp"
+#include <android/asset_manager_jni.h>
+#include <optional>
 #include "app_upcalls.hpp"
 #include "platform/jni_text.hpp"
 #include "save_file.hpp"
@@ -123,15 +127,22 @@ template <class F> jobjectArray boundary(JNIEnv *env, F f)
     }
     return nullptr;
 }
+// The script patch layer the APK carries, read through the app's AssetManager `assets`; none for null.
+std::optional<storm_archive_layer> apk_layer(JNIEnv *env, jobject assets)
+{
+    if (!assets)
+        return std::nullopt;
+    return storm_archive_layer{storm::apk::layer(AAssetManager_fromJava(env, assets), "script-patches")};
+}
 } // namespace
 // Results are [status, error, json]; json is the discovery document or a
 // failure description (encrypted, no space, missing volumes), or empty.
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_org_stormengine_port_NativeArchives_discover(JNIEnv *env, jclass, jstring source, jstring scratch,
-                                                  jstring password, jstring layer, jlongArray bounds, jobject cb)
+                                                  jstring password, jobject assets, jlongArray bounds, jobject cb)
 {
     return boundary(env, [&]() -> jobjectArray {
-        Text src(env, source), tmp(env, scratch), secret(env, password), patches(env, layer);
+        Text src(env, source), tmp(env, scratch), secret(env, password);
         storm_archive_source_limits limits{};
         if (!bounds || !source_limits(env, bounds, limits))
             return env->ExceptionCheck()
@@ -140,11 +151,12 @@ Java_org_stormengine_port_NativeArchives_discover(JNIEnv *env, jclass, jstring s
         Callback progress_callback;
         if (!callback(env, cb, progress_callback))
             return nullptr;
+        const auto layer = apk_layer(env, assets);
         char error[2048]{};
         char *raw = nullptr;
         int code = storm_archive_discover(src.data(), tmp.data(), password ? secret.data() : nullptr,
-                                          layer ? patches.data() : nullptr, &limits, progress, &progress_callback, &raw,
-                                          error, sizeof(error));
+                                          layer ? &*layer : nullptr, &limits, progress, &progress_callback, &raw, error,
+                                          sizeof(error));
         std::unique_ptr<char, decltype(&storm_archive_free)> json(raw, storm_archive_free);
         if (env->ExceptionCheck())
             return nullptr;
@@ -176,15 +188,15 @@ extern "C" JNIEXPORT jobjectArray JNICALL Java_org_stormengine_port_NativeArchiv
         return result(env, code, error, json ? json.get() : "");
     });
 }
-// [status, error, json]: the sets of a script patch layer (storm_archive_patch_layer).
+// [status, error, json]: the sets of the APK's script patch layer (storm_archive_patch_layer).
 extern "C" JNIEXPORT jobjectArray JNICALL Java_org_stormengine_port_NativeArchives_patchLayer(JNIEnv *env, jclass,
-                                                                                              jstring layer)
+                                                                                              jobject assets)
 {
     return boundary(env, [&]() -> jobjectArray {
-        Text path(env, layer);
+        const auto layer = apk_layer(env, assets);
         char error[2048]{};
         char *raw = nullptr;
-        int code = storm_archive_patch_layer(layer ? path.data() : nullptr, &raw, error, sizeof(error));
+        int code = storm_archive_patch_layer(layer ? &*layer : nullptr, &raw, error, sizeof(error));
         std::unique_ptr<char, decltype(&storm_archive_free)> json(raw, storm_archive_free);
         return result(env, code, error, json ? json.get() : "");
     });

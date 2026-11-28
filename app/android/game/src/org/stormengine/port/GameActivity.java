@@ -175,13 +175,6 @@ public final class GameActivity extends SDLActivity {
         }
         if (!root.isDirectory() && !root.mkdirs())
             throw new IllegalStateException("Cannot create the engine cache " + root);
-        // The layers the engine reads at start: a clear of the cache (the system's or the one
-        // above) removed them.
-        try {
-            GameStorage.layers(this).install();
-        } catch (Exception error) {
-            throw new IllegalStateException("Cannot install the APK's layers into " + root, error);
-        }
         ExitDiagnostics.writePreviousGameExit(
                 this, root); // before the engine's GPU crash guards read it
         cacheRoot = root;
@@ -400,15 +393,6 @@ public final class GameActivity extends SDLActivity {
         if (ResourceImporter.importing(GameStorage.imported(this)) && !isEngineAlive(this)) {
             finish();
             return;
-        }
-        // The system's «Очистить кэш» may have removed the APK's layers while the game was in the
-        // background; the engine reads them at the same paths, so they are back before it runs
-        // another
-        // frame.
-        try {
-            if (cacheRoot != null) GameStorage.layers(this).install();
-        } catch (Exception error) {
-            throw new IllegalStateException("Cannot install the APK's layers again", error);
         }
         if (!destroying && !isFinishing() && !isDestroyed()) super.resumeNativeThread();
     }

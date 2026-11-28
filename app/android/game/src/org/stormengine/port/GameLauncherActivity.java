@@ -341,9 +341,7 @@ public final class GameLauncherActivity extends UiScreenActivity {
                             try {
                                 ArchiveInstaller.GameRoot root =
                                         ArchiveInstaller.describeInstalled(
-                                                game,
-                                                scratch,
-                                                GameStorage.layers(this).scriptPatches());
+                                                game, scratch, getAssets());
                                 found = copyState(root);
                             } catch (Exception error) {
                                 Log.e("StormLauncher", "Cannot describe the installed game", error);
@@ -579,7 +577,6 @@ public final class GameLauncherActivity extends UiScreenActivity {
                             Exception failure = null;
                             try {
                                 GameStorage.readyPath(this);
-                                GameStorage.layers(this).install();
                                 removeOldCaches();
                             } catch (Exception error) {
                                 failure = error;
@@ -589,7 +586,7 @@ public final class GameLauncherActivity extends UiScreenActivity {
                                     () -> {
                                         Log.i(
                                                 "StormLauncher",
-                                                "Game files checked and layers installed in "
+                                                "Game files checked in "
                                                         + (SystemClock.elapsedRealtime() - started)
                                                         + " ms");
                                         if (failed == null && !isFinishing()) {

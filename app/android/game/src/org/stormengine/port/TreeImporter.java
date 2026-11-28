@@ -1,6 +1,7 @@
 package org.stormengine.port;
 
 import android.content.ContentResolver;
+import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
@@ -64,13 +65,13 @@ final class TreeImporter {
     private final ContentResolver resolver;
     private final Uri tree;
 
-    /** The installed script patch layer the roots are identified against (MobileResources.scriptPatches). */
-    private final File patchLayer;
+    /** The APK's assets: the roots are identified against its script patch layer. */
+    private final AssetManager assets;
 
-    TreeImporter(ContentResolver resolver, Uri tree, File patchLayer) {
+    TreeImporter(ContentResolver resolver, Uri tree, AssetManager assets) {
         this.resolver = resolver;
         this.tree = tree;
-        this.patchLayer = patchLayer;
+        this.assets = assets;
     }
 
     Scan scan(ResourceImporter.Monitor monitor) throws IOException {
@@ -154,7 +155,7 @@ final class TreeImporter {
 
     /** The resource keys (lower case, as installed) the layer's script patch sets identify a game by. */
     private TreeSet<String> identifyFiles() throws IOException {
-        String[] result = NativeArchives.patchLayer(patchLayer.getPath());
+        String[] result = NativeArchives.patchLayer(assets);
         if (Integer.parseInt(result[0]) != ArchiveStatus.OK)
             throw new IOException("Cannot read the script patch layer: " + result[1]);
         TreeSet<String> keys = new TreeSet<>();
@@ -216,7 +217,7 @@ final class TreeImporter {
                             source.getPath(),
                             work.getPath(),
                             null,
-                            patchLayer.getPath(),
+                            assets,
                             ArchiveInstaller.limits(),
                             null);
             if (!"0".equals(result[0]))
