@@ -48,6 +48,13 @@
   вылетом.
 - Кнопка «Причалить» у острова больше не читает несуществующее значение точки причала: раньше её цель
   собиралась с чтением мимо данных, и кнопка могла пропадать у причала или, реже, приводить к вылету.
+- Корабль на карте мира в первом кадре после появления рисуется моделью: раньше признак следа за ним был не задан,
+  и вместо корабля мог мелькнуть след из незаполненных точек.
+- Пена у борта корабля, у которого верхняя точка левого борта уже под водой (сильный крен, тонущий корабль), больше
+  не читает память перед массивом точек корпуса.
+- Паруса упавшей мачты начинают с заданных значений: раньше признаки спуска парусов были не заданы, и могло
+  прозвучать лишнее движение парусов.
+- Картинка интерфейса, которой скрипт передал «нет текстуры» (-1), больше не портит память отрисовщика.
 - Строка товара в магазине и трюме, флаг в «Нациях», корабль на верфи, предмет, ячейка и вкладка в «Предметах»,
   отмеченные касанием, остаются отмеченными,
   если список успел измениться до ответа игры: раньше отметка могла перескочить на соседнюю строку, а касание —
@@ -268,6 +275,13 @@
   read the data of a ship already deleted at the end of the sea scene, which could end in a crash.
 - The «Moor» button at an island no longer reads a value the mooring point does not have: its target was
   built by a read past the data, and the button could be missing at a mooring point or, more rarely, crash.
+- A ship on the world map is drawn as its model in its first frame: its trail flag was unset, and a trail of unfilled
+  points could flash instead of the ship.
+- The foam at a ship's side whose top left-side point is already under water (a heavy roll, a sinking ship) no
+  longer reads memory before the hull's point array.
+- The sails of a fallen mast start from set values: their lowering flags were unset, and a stray sail sound could
+  play.
+- An interface picture a script sets to «no texture» (-1) no longer corrupts the renderer's memory.
 - A goods row of the store and of the hold, a flag of the nations screen, a ship of the shipyard and an item, slot
   or category of the items screen marked by a tap
   stay marked when the list changes before the game answers: the mark could jump to a neighbouring row, and the
