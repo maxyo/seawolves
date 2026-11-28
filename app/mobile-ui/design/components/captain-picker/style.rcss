@@ -1,12 +1,13 @@
 /* C-CaptainPicker: the candidates and the selected one's facts side by side. It shrinks with its dialog's body
    (c-dialog keeps the title and the actions on the screen; overflow hidden lets RmlUi shrink it below its content):
-   each column scrolls on its own. */
+   each column scrolls on its own. The detail is sized by its content, so a short list of candidates still leaves the
+   chosen one's skills in view; only the screen's limit on the dialog shrinks it. */
 c-captain-picker { display: flex; flex-direction: row; gap: @{space.lg}dp; box-sizing: border-box; width: 100%; flex: 0 1 auto; min-height: 0; overflow: hidden; }
 c-captain-picker > .cp-list { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
 c-captain-picker > .cp-list > .cp-empty { font-size: @{type.body}dp; color: @{color.textMuted}; padding: @{space.sm}dp 0; }
 c-captain-picker > .cp-side { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; overflow: hidden; }
 c-captain-picker > .cp-list + .cp-side { padding-left: @{space.lg}dp; border-left: 1dp @{color.brassLine/.14}; }
-c-captain-picker .cp-detail { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; overflow-y: auto; }
+c-captain-picker .cp-detail { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: @{space.sm}dp; overflow-y: auto; }
 c-captain-picker .cp-actions { flex: 0 0 auto; margin-top: auto; display: flex; flex-direction: row; justify-content: flex-end; gap: @{space.sm}dp; }
 c-captain-picker .cp-detail > .cp-name { flex: 0 0 auto; font-size: @{type.body}dp; font-weight: bold; color: @{color.textSecond}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 c-captain-picker .cp-skills { flex: 0 0 auto; display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; }

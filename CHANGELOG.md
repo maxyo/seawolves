@@ -248,6 +248,8 @@
   отвечала, пока лист не закрыть крестиком.
 - Диалог: реплика, которую игрок вводит сам (сумма, ставка, имя корабля), выглядит как поле: её отмечает перо,
   предложение игры написано текстом, под ним — «Введите ответ»; раньше она выглядела как обычная реплика.
+- Выбор капитана корабля (верфь, обмен с кораблём, грабёж): навыки выбранного кандидата видны целиком при одном–
+  четырёх кандидатах; раньше при двух кандидатах был виден один ряд навыков, остальные приходилось прокручивать.
 
 **English**
 
@@ -499,6 +501,8 @@
   the map used to ignore it until the sheet was closed with its cross.
 - Dialogue: a reply the player types (a sum, a bet, a ship's name) looks like a field: the quill marks it, the game's
   proposal is its text with «Enter your answer» under it; it used to look like any other reply.
+- Choosing a ship's captain (shipyard, ship exchange, plunder): the chosen candidate's skills are all in view with
+  one to four candidates; with two candidates only one row of skills showed and the rest had to be scrolled.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
