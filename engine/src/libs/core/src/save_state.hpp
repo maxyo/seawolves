@@ -392,15 +392,18 @@ inline bool parseAttributeReferences(StateReader &in, std::vector<SavedAttribute
         return true;
     const size_t trailing = in.Remaining();
     uint32_t count;
-    // An entry takes at least five bytes (two places of two vdwords, a path).
-    if (!in.VDword(count) || count == 0 || count > in.Remaining() / 5)
+    if (!in.VDword(count) || count == 0)
         return detail::fail(error, std::to_string(trailing) + " bytes after the last variable", in);
-    references.resize(count);
-    for (auto &reference : references)
+    // Entries are kept as they are read, never counted ahead: what is held is what the file's bytes hold.
+    for (uint32_t n = 0; n < count; ++n)
+    {
+        SavedAttributeReference reference;
         if (!in.VDword(reference.variable) || reference.variable == kNoIndex || !in.VDword(reference.element) ||
             !in.String(reference.path) || !in.VDword(reference.targetVariable) ||
             (reference.targetVariable != kNoIndex && !in.VDword(reference.targetElement)))
             return detail::fail(error, "truncated attribute reference", in);
+        references.push_back(std::move(reference));
+    }
     return true;
 }
 
@@ -727,11 +730,18 @@ class StateWriter
         for (uint32_t n = 0; n < root->GetAttributesNum(); n++)
         {
             const size_t length = path_.size();
+            const bool unnamed = pathUnnamed_;
+            const char *raw = root->GetAttributeClass(n)->GetThisName();
+            const std::string_view name = raw != nullptr ? raw : "";
+            // A path names an attribute only when no step on it is empty or holds a dot (the load splits at dots, and
+            // an empty path is the root).
+            pathUnnamed_ = unnamed || name.empty() || name.find('.') != std::string_view::npos;
             if (!path_.empty())
                 path_ += '.';
-            path_ += root->GetAttributeClass(n)->GetThisName();
+            path_ += name;
             attributes(root->GetAttributeClass(n));
             path_.resize(length);
+            pathUnnamed_ = unnamed;
         }
     }
     // The attribute references section (layout above), after the last variable; nothing when there is none.
@@ -839,6 +849,7 @@ class StateWriter
             data(&id, sizeof(id));
             object_ = pV;
             path_.clear();
+            pathUnnamed_ = false;
             attributes(pV->AttributesClass);
             break;
         }
@@ -910,6 +921,13 @@ class StateWriter
         const auto owner = references_ == nullptr ? std::nullopt : references_->Place(object_);
         if (!owner)
             return; // an object no global variable is (an element saved converted): nothing can name the attribute
+        if (pathUnnamed_)
+        {
+            compiler_.SetError("Save: attribute '%s.%s' holds a script reference, but its path has an empty or dotted "
+                               "name a load cannot find again; the reference is not saved",
+                               name_, path_.c_str());
+            return;
+        }
         SavedAttributeReference reference{owner->variable, owner->element,
                                           path_.empty() ? std::nullopt : std::optional(path_), kNoIndex, 0};
         if (const auto place = references_->Place(target))
@@ -925,8 +943,9 @@ class StateWriter
 
     VIRTUAL_COMPILER &compiler_;
     std::vector<char> bytes_;
-    DATA *object_ = nullptr; // the object whose attributes are being written
-    std::string path_;       // of the attribute being written, below object_'s root
+    DATA *object_ = nullptr;   // the object whose attributes are being written
+    std::string path_;         // of the attribute being written, below object_'s root
+    bool pathUnnamed_ = false; // a step of path_ is empty or holds a dot
     std::vector<SavedAttributeReference> attributeReferences_;
     const ReferenceIndex *references_ = nullptr;
     const char *name_ = "";

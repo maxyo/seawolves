@@ -357,6 +357,9 @@ foreach(check load dangling_references loaded_object_handles)
     storm_host_check(save_state.${check} SOURCES ${sources} INCLUDES ${core_fake_includes} DEFINES ${core_fake_defines}
         OPTIONS -g -Wno-deprecated-declarations ${asan_strict} -fno-omit-frame-pointer)
 endforeach()
+# An attribute that holds a script reference: text writes make it plain, a move keeps it.
+storm_host_check(attribute_references SOURCES check.cpp ${core_fake_sources} INCLUDES ${core_fake_includes}
+    DEFINES ${core_fake_defines} OPTIONS -g -Wno-deprecated-declarations ${asan_strict} CATCH2)
 storm_host_check(save_check INCLUDES ${src}/libs/core/src OPTIONS ${warnings} ${asan_strict} LIBS -lz CATCH2)
 # A real save of the game: $STORM_BOOT_SAVE (Not Run without it).
 storm_host_check(save_check.real SOURCES real.cpp INCLUDES ${src}/libs/core/src OPTIONS ${warnings} ${asan_strict}

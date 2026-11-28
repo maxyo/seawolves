@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <functional>
 #include <vector>
 
 #include <spdlog/spdlog.h>
@@ -413,6 +414,42 @@ void attributeReferences()
         // the last variable and refuses the state.
         require(image.size() > plain.size() && std::equal(plain.begin(), plain.end(), image.begin()),
                 "the attribute reference changed the state's layout before its section");
+        // A damaged section is refused whole: a count its bytes cannot hold (not allocated first), an entry naming no
+        // attribute owner.
+        const auto withSection = [&](const std::function<void(storm::save::StateWriter &)> &write) {
+            storm::save::StateWriter out(game);
+            write(out);
+            std::vector<char> damaged = plain;
+            const std::vector<char> section = out.take();
+            damaged.insert(damaged.end(), section.begin(), section.end());
+            storm::save::ParsedState parsed;
+            std::string why;
+            return storm::save::parseState(damaged.data(), damaged.size(), parsed, why);
+        };
+        require(!withSection([](storm::save::StateWriter &out) {
+            out.vdword(0x0fffffff);
+            for (int n = 0; n < 10; ++n)
+                out.vdword(0);
+        }),
+                "a section counting more entries than its bytes hold was accepted");
+        require(!withSection([](storm::save::StateWriter &out) {
+            out.vdword(1);
+            out.vdword(0xffffffff); // no owner
+            out.vdword(0);
+            out.string("actor");
+            out.vdword(0);
+            out.vdword(0xffffffff);
+        }),
+                "an attribute reference without an owner was accepted");
+        require(withSection([](storm::save::StateWriter &out) {
+                    out.vdword(1);
+                    out.vdword(2); // Sessions
+                    out.vdword(0xffffffff);
+                    out.string("Bartender.actor");
+                    out.vdword(0);
+                    out.vdword(2);
+                }),
+                "the intact form of the entries above was refused");
         DATA ghost(VAR_OBJECT);
         session->GetAttributeClass("actor")->SetReference(&ghost);
         game.save();

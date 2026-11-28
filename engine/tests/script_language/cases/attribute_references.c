@@ -3,6 +3,7 @@
 #libriary "script_check_test_library"
 
 native void ScriptCheckSetReference(ref holder, ref target);
+native void AppendAttributes(ref destination, ref source);
 
 object attrref_characters[3];
 object attrref_session;
@@ -34,4 +35,14 @@ int test_text_makes_the_attribute_plain()
 	ScriptCheckSetReference(&attrref_session, &attrref_characters[1]);
 	attrref_session.target = "plain";
 	return attrref_session.target == "plain";
+}
+
+int test_append_keeps_the_reference()
+{
+	attrref_characters[0].id = "Smith";
+	ScriptCheckSetReference(&attrref_session, &attrref_characters[0]);
+	object appended;
+	AppendAttributes(&appended, &attrref_session);
+	ref actor = appended.target;
+	return actor.id == "Smith";
 }

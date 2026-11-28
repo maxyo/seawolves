@@ -149,6 +149,33 @@ int CheckAttributeReferences()
 	return found;
 }
 
+object gOdd;
+ref gObjs;
+
+int MakeOddNamesAndNewOwner()
+{
+	gOdd.a.b = "text";
+	SetAttributeReference(&gOdd, "", &gSeatChars[0]);
+	SetAttributeReference(&gOdd, "a.b", &gSeatChars[0]);
+	ref objs = new object[2];
+	gObjs = objs;
+	ref owner = objs[1];
+	SetAttributeReference(owner, "actor", &gSeatChars[1]);
+	gSeatChars[1].id = "Mate";
+	return 1;
+}
+
+int CheckOddNamesAndNewOwner()
+{
+	int found = 0;
+	if (gOdd.a.b == "text") found = found + 1;
+	ref objs = gObjs;
+	ref owner = objs[1];
+	ref actor = owner.actor;
+	if (actor.id == "Mate") found = found + 2;
+	return found;
+}
+
 int Spin()
 {
 	while (true)
@@ -177,14 +204,17 @@ void ChooseGame()
     fio->ScanResourcePaths();
 }
 
-// SetAttributeReference(ref holder, string name, ref target): holder.<name> holds a script reference to target, as
-// Caribbean Legend's DynamicObject_SetActorNative makes one.
+// SetAttributeReference(ref holder, string name, ref target): holder's child attribute named exactly `name` (a dot or
+// nothing included, as a native can make one) holds a script reference to target, as Caribbean Legend's
+// DynamicObject_SetActorNative makes one.
 uint32_t SetAttributeReference(VS_STACK *stack)
 {
     auto *target = static_cast<VDATA *>(stack->Pop());
     auto *name = static_cast<VDATA *>(stack->Pop());
     auto *holder = static_cast<VDATA *>(stack->Pop());
-    holder->GetAClass()->VerifyAttributeClass(name->GetString())->SetReference(target->GetVarPointer());
+    ATTRIBUTES *owner = holder->GetAClass();
+    ATTRIBUTES *attribute = owner->GetAttributeClass(name->GetString());
+    (attribute ? *attribute : owner->CreateAttribute(name->GetString())).SetReference(target->GetVarPointer());
     return IFUNCRESULT_OK;
 }
 
@@ -579,6 +609,23 @@ TEST_CASE("an attribute that holds a script reference comes back from a save, al
         CHECK(game.Run("CheckAttributeReferences") == 15);
         CHECK(game.diagnostics.empty());
     }
+}
+
+TEST_CASE("a reference on an attribute a path cannot name is not saved; one inside a new array is")
+{
+    Game game;
+    REQUIRE(game.Run("MakeOddNamesAndNewOwner") == 1);
+    REQUIRE(Save(Description(17)));
+    // the empty and the dotted name: each reported, neither saved
+    CHECK(game.diagnostics.size() == 2);
+    game.diagnostics.clear();
+    REQUIRE(Load());
+    // the object's root and the nested a.b are not given the reference, a.b keeps its text
+    auto *odd = static_cast<VDATA *>(core_internal.GetScriptVariable("gOdd"));
+    REQUIRE(odd != nullptr);
+    CHECK(odd->GetAClass()->GetReference() == nullptr);
+    CHECK(game.Run("CheckOddNamesAndNewOwner") == 3);
+    CHECK(game.diagnostics.empty());
 }
 
 TEST_CASE("a save the running program cannot take is refused with the game still running")
