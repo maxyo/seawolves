@@ -2483,7 +2483,13 @@ void Character::Update(float dltTime)
     MODEL *m = Model();
     if (!m)
         return;
-    if (!isJump)
+    if (const auto held = interaction_.HeldHeight(); held && !isJump)
+    {
+        // Held on a seat: no fall and no floor under it (the seat is above the walking patch).
+        curPos.y = oldPos.y = *held;
+        vy = 0.0f;
+    }
+    else if (!isJump)
     {
         // Falling speed
         vy -= 9.8f * dltTime;
@@ -3700,6 +3706,8 @@ uint32_t Character::zExMessage(MESSAGE &message)
             return 0;
         }
         if (const auto handled = zExMessageCaribbeanLegend(msg, message))
+            return *handled;
+        if (const auto handled = zExMessageInteraction(msg, message))
             return *handled;
         storm::location::ReportUnknownCommand("character", msg);
     }

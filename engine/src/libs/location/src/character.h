@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include "animation.h"
+#include "character_interaction.hpp"
 #include "locomotion.hpp"
 #include "storm_glm.h"
 #include "model.h"
@@ -390,6 +391,8 @@ class Character : public Entity
     {
         return false;
     }
+    // Under one of Caribbean Legend's interaction sessions (a seat's script holds the character).
+    [[nodiscard]] bool IsInInteractionSession() const;
 
   protected:
     // Find a character for dialogue
@@ -420,6 +423,9 @@ class Character : public Entity
     uint32_t zExMessage(MESSAGE &message);
     // Caribbean Legend's commands that a dead character refuses; nullopt: not one of them
     std::optional<uint32_t> zExMessageCaribbeanLegend(const std::string &msg, MESSAGE &message);
+    // The interaction session commands (character_interaction_commands.cpp); nullopt: not one of them
+    std::optional<uint32_t> zExMessageInteraction(const std::string &msg, MESSAGE &message);
+    storm::location::InteractionState interaction_;
     uint64_t ProcessPositionMessage(int32_t messageID, MESSAGE &message);
     const ActionCharacter *ChooseSpecialAttack(Character *enemy, const char *type);
     // A shot that hit `victim` pushes it away as far as the scripts say
