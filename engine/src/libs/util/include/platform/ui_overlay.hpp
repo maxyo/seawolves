@@ -23,6 +23,9 @@ struct OverlayReport
 inline OverlayReport applyUiOverlay(const fs::path &layer, std::unordered_map<std::string, std::string> &paths)
 {
     OverlayReport report;
+    // No layer (the desktop build without the touch interface): no SOURCE.json of the working directory either.
+    if (layer.empty())
+        return report;
     std::unordered_map<std::string, std::string> files;
     overlay::indexUiOverlay(layer, files);
     std::map<std::string, std::string> written; // key -> sha256 of the game's file it replaces
