@@ -418,7 +418,7 @@ void TouchTrade_Primary(aref game, aref deal, aref view)
 		if (!TouchTrade_AnyThere(game)) return;
 		all.label = UiText("trade.take_all");
 		all.busy = false;
-		DeleteAttribute(&all, "reason");
+		all.reason = "";
 	}
 	CopyAttributes(primary, &all);
 	UiOn("primary", "");

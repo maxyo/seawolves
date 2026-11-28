@@ -7,9 +7,9 @@
 </div>
 </c-panel></div>
 <div class="ng-side"><c-panel gap="10">
-<div class="ng-info"><c-object-header title="{{hero.name}}" sub="{{hero.nation}}" image="{{ json(hero.image) }}" size="56" title-size="20" sub-size="13"><t-if test="hero.bio"><c-icon-button id="bio" icon="info" label="{{ tr('menu.biography') }}"/></t-if></c-object-header>
+<div class="ng-info"><c-object-header title="{{hero.name}}" sub="{{hero.nation}}" image="{{ json(opt(hero.image)) }}" size="56" title-size="20" sub-size="13"><t-if test="hero.bio"><c-icon-button id="bio" icon="info" label="{{ tr('menu.biography') }}"/></t-if></c-object-header>
 <t-if test="setup"><s-control row="{{ json(setup) }}"/></t-if>
-<t-if test="setup.note"><div class="ng-desc">{{setup.note}}</div></t-if></div>
+<t-if test="setup && setup.note"><div class="ng-desc">{{setup.note}}</div></t-if></div>
 <t-if test="start"><c-button id="start" variant="primary" size="lg" icon="play" label="{{start.label}}" disabled="{{ start.disabled ? 1 : 0 }}" reason="{{start.reason}}" busy="{{ start.busy ? 1 : 0 }}"/></t-if>
 </c-panel></div>
 <t-if test="modal"><c-dialog id="modal" key="modal" title="{{modal.title}}" text="{{modal.text}}" actions="{{ json(modal.actions) }}" width="470"/></t-if>
