@@ -830,7 +830,8 @@ void Router::SetState(const std::string &channel, const Json &state)
     if (std::none_of(consumers_.begin(), consumers_.end(),
                      [&](const auto &consumer) { return channel == consumer->Channel(); }))
     {
-        surface_.Error("state channel " + channel + " has no consumer");
+        if (unconsumed_.insert(channel).second) // a writer repeats it with every change of its state
+            surface_.Error("state channel " + channel + " has no consumer");
         return;
     }
     // Before the consumers: a screen one of them builds again reads it (Bindings::State).

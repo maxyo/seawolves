@@ -2028,9 +2028,10 @@ static void DialogueChannel(const std::string &models)
     router.SetState("dialogue", Json{{"active", false}});
     Expect(surface.tag.empty(), "inactive dialogue unmounts");
     router.SetState("weather", Json::object());
+    router.SetState("weather", Json{{"rain", 1}});
     Expect(surface.tag.empty() && surface.errors.size() == 1 &&
                surface.errors[0] == "state channel weather has no consumer",
-           "a channel without a consumer is an error");
+           "a channel without a consumer is an error, said once: " + std::to_string(surface.errors.size()));
 
     // Texts with the game's escaped line breaks, and an empty reply.
     router.SetState("dialogue",

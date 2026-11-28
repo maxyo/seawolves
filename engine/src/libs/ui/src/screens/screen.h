@@ -555,6 +555,7 @@ class Router
     std::map<uint64_t, Request> outstanding_; // by request number, until it is answered
     SharedState shared_;
     std::unordered_map<std::string, Json> states_; // the last state of each channel (Bindings::State)
+    std::set<std::string> unconsumed_;             // state channels written that no consumer reads, said once each
     std::set<std::string> logged_; // once per (screen, node set): extras, generic use, rejection lines; ErrorOnce keys
     // The notices (Bindings::Notice) of the view on the screen and of the one being built: a notice is logged when
     // it appears, not again at every build while it stays.
