@@ -202,6 +202,10 @@ bool DeferredGeometry::HasFarLods() const
 {
     return built_ && built_->HasFarLods();
 }
+bool DeferredGeometry::HasMeshLods() const
+{
+    return built_ && built_->HasMeshLods();
+}
 float DeferredGeometry::Trace(VERTEX &src, VERTEX &dst)
 {
     return built_ ? built_->Trace(src, dst) : 2.0f;

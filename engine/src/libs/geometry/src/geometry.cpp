@@ -409,6 +409,34 @@ std::string GEOM_SERVICE_R::ReadMaterialFile(const char *model)
     return stream.is_open() ? std::string(std::istreambuf_iterator<char>(stream), {}) : std::string();
 }
 
+const storm::scene_data::MeshLodProfile *GEOM_SERVICE_R::MeshLodProfile(const std::string &name)
+{
+    constexpr const char *kFile = "resource\\ini\\mesh_lod_profiles.json";
+    if (!lod_profiles_)
+    {
+        lod_profiles_.emplace();
+        std::ifstream stream(std::filesystem::u8path(fio->ConvertPathResource(kFile)), std::ios::binary);
+        if (stream.is_open())
+        {
+            storm::scene_data::Report report;
+            *lod_profiles_ = storm::scene_data::ParseMeshLodProfiles(
+                std::string(std::istreambuf_iterator<char>(stream), {}), report);
+            for (const std::string &error : report.errors)
+                spdlog::error("mesh LODs: {}: {}", kFile, error);
+            for (const std::string &key : report.unknown_keys)
+                spdlog::warn("mesh LODs: {}: {} is not read", kFile, key);
+            if (std::ranges::any_of(lod_profiles_->profiles, [](const auto &p) { return p.second.transition_ms > 0; }))
+                spdlog::warn("mesh LODs: the cross-fade between levels (transition_ms) is not drawn: they switch at once");
+        }
+    }
+    const auto found = lod_profiles_->profiles.find(name);
+    if (found != lod_profiles_->profiles.end())
+        return &found->second;
+    if (lod_missing_.insert(name).second)
+        spdlog::error("mesh LODs: {} has no profile '{}': models with LOD objects draw their finest level", kFile, name);
+    return nullptr;
+}
+
 GEOS::ID GEOM_SERVICE_R::CreateMaterialTexture(const char *name, bool map, const char *requester)
 {
     if (!RenderService)

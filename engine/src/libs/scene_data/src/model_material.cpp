@@ -97,6 +97,17 @@ ModelSidecar ParseModelSidecar(std::string_view json, Report &report)
     if (!reader.Parse(json, root))
         return sidecar;
     reader.Object(root, "$", [&](const std::string &key, const Json &value, const std::string &path) {
+        if (key == "lod")
+        {
+            if (!value.is_null())
+                reader.Object(value, path, [&](const std::string &field, const Json &name, const std::string &child) {
+                    if (field != "profile")
+                        return false;
+                    reader.String(name, child, sidecar.lod_profile);
+                    return true;
+                });
+            return true;
+        }
         if (key != "models")
             return false;
         reader.Object(value, path, [&](const std::string &name, const Json &material, const std::string &child) {

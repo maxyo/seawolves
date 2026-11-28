@@ -50,11 +50,13 @@ TEST_CASE("model materials")
                    "r_albedo_texture": "a.dds", "r_normal_texture": "an.dds", "r_rma_texture": "ar.dds", "r_tiling": 8,
                    "g_albedo_texture": "b.dds", "g_tiling": 2.5, "b_rma_texture": "cr.dds", "x_tiling": 3}
       },
-      "walkCutout": {"Radius": 1.0}
+      "walkCutout": {"Radius": 1.0},
+      "lod": {"profile": "SmallProps"}
     })";
     Report report;
     const ModelSidecar sidecar = ParseModelSidecar(json, report);
     REQUIRE(report.ok());
+    CHECK(sidecar.lod_profile == "SmallProps");
     REQUIRE(sidecar.models.size() == 2);
     const ModelMaterial &crate = sidecar.models.at("Crate");
     CHECK((crate.reflection && !crate.alpha && crate.path_preset == "Props"));
@@ -74,6 +76,29 @@ TEST_CASE("model materials")
     Report broken;
     ParseModelSidecar("{\"models\": ", broken);
     CHECK(broken.errors.size() == 1);
+}
+
+TEST_CASE("mesh LOD profiles")
+{
+    Report report;
+    const MeshLodProfiles file = ParseMeshLodProfiles(R"({
+      "profiles": {
+        "Default": {"hysteresis": 0.1, "screen_size": [0.12, 0.06, 0.03], "transition_ms": 256.0},
+        "Rising": {"screen_size": [0.1, 0.2]},
+        "Empty": {"screen_size": []}
+      },
+      "schema_version": 1
+    })",
+                                                      report);
+    const MeshLodProfile &profile = file.profiles.at("Default");
+    CHECK((profile.screen_size == std::vector<float>{0.12f, 0.06f, 0.03f} && profile.hysteresis == 0.1f &&
+           profile.transition_ms == 256.0f));
+    // A list that does not fall, or holds no level, is refused with an error rather than half used.
+    CHECK((file.profiles.size() == 1 && report.errors.size() == 2));
+
+    Report none;
+    const ModelSidecar sidecar = ParseModelSidecar(R"({"lod": null, "models": {}})", none);
+    CHECK((none.ok() && none.unknown_keys.empty() && sidecar.lod_profile.empty()));
 }
 
 TEST_CASE("model material textures and the keys the renderer does not draw")

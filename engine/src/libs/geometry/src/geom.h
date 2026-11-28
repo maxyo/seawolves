@@ -12,7 +12,9 @@ Import library class
 #include "rdf.h"
 #include "geos.h"
 #include "geom_far_lod.hpp"
+#include "mesh_lods.hpp"
 
+#include <storm/render/far_lod.hpp>
 #include <storm/render/sway.hpp>
 
 #include <functional>
@@ -24,6 +26,7 @@ Import library class
 namespace storm::scene_data
 {
 struct ModelMaterial;
+struct MeshLodProfile;
 }
 
 #define EPSILON 4e-7
@@ -83,6 +86,14 @@ class GEOM : public GEOS
     // plant told by its material's textures (`plants`, VegetationTexture), bent by height over `heights` (each
     // object's lowest and highest vertex y).
     std::vector<std::optional<storm::render::EffectsSway>> sway_;
+    // The mesh LOD chains (empty: none), their profile (null: each draws its level 0), and per chain the level chosen
+    // last in each pass and the one this draw shows.
+    storm::geometry::MeshLods mesh_lods_;
+    std::string lod_profile_name_; // the material file's "lod" profile
+    const storm::scene_data::MeshLodProfile *lod_profile_ = nullptr;
+    mutable std::vector<std::array<int8_t, storm::render::far_lod::kPasses>> lod_chosen_;
+    mutable std::vector<uint8_t> lod_drawn_;
+    void ChooseMeshLods() const;
     void GuessSway(const std::vector<glm::vec2> &heights, const std::vector<bool> &plants);
     void LoadSurfaces(const char *fname);
     void LoadLayers(const storm::scene_data::ModelMaterial &entry, SURFACE &surface,
@@ -96,6 +107,10 @@ class GEOM : public GEOS
     bool HasFarLods() const override
     {
         return far_lod_ != nullptr;
+    }
+    bool HasMeshLods() const override
+    {
+        return !mesh_lods_.measured.empty();
     }
 
     virtual int32_t FindLabelN(int32_t start_index, int32_t name_id);

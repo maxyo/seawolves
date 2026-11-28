@@ -5,6 +5,10 @@
 #include "vma.hpp"
 #include <geometry.h>
 
+#include <storm/scene_data/scene_data.hpp>
+
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -58,6 +62,9 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     uint32_t CurentVertexBufferSize;
     bool bCaustic;
     storm::render::EffectsSurfaceMaterial surface_{}; // SetSurface's, for the renderer
+    // The game's mesh LOD profiles, read at the first model with LOD chains; the names reported missing.
+    std::optional<storm::scene_data::MeshLodProfiles> lod_profiles_;
+    std::set<std::string> lod_missing_;
 
   public:
     void SetRenderService(VRenderer *render_service);
@@ -74,6 +81,7 @@ class GEOM_SERVICE_R final : public GEOM_SERVICE
     void SetMaterial(const GEOS::MATERIAL &mt);
     bool ModelMaterials() const override;
     std::string ReadMaterialFile(const char *model) override;
+    const storm::scene_data::MeshLodProfile *MeshLodProfile(const std::string &name) override;
     GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) override;
     std::shared_ptr<storm::render::EffectsLayerSet> CreateLayerSet(const std::array<std::array<std::string, 3>, 3> &names,
                                                                    const char *requester) override;

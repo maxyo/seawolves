@@ -453,8 +453,8 @@ void NODER::Draw()
             }
 
             // draw geos
-            if (geo->HasFarLods())
-                SetFarLodView();
+            if (geo->HasFarLods() || geo->HasMeshLods())
+                SetLodView();
             geo->Draw(&TViewPlane[0], 4, geoMaterialFunc);
             storm::render::far_lod::view.valid = false;
         }
@@ -466,15 +466,13 @@ void NODER::Draw()
             static_cast<NODER *>(child.get())->Draw();
 }
 
-// What the far LODs of this node's geometry see (storm/render/far_lod.hpp): the camera and its view direction in the
-// node's space, the scale, and the pixels of the target being drawn.
-void NODER::SetFarLodView() const
+// What the LODs of this node's geometry see (storm/render/far_lod.hpp): the camera and its view direction in the
+// node's space, the scale, and the projection and pixels of the target being drawn.
+void NODER::SetLodView() const
 {
     namespace far_lod = storm::render::far_lod;
     far_lod::View &view = far_lod::view;
     view.valid = false;
-    if (far_lod::pixels <= 0.f)
-        return;
     D3DVIEWPORT9 viewport;
     if (rs->GetViewport(&viewport) != D3D_OK || viewport.Height == 0)
         return;
@@ -494,6 +492,7 @@ void NODER::SetFarLodView() const
     view.forward = local_forward * view.scale;
     const glm::mat4 &projection = rs->GetProjection();
     view.ortho = projection[3][3] == 1.f;
+    view.screen_scale = projection[1][1];
     const float half_height = 0.5f * static_cast<float>(viewport.Height);
     if (view.ortho)
         view.pixels_per_unit = half_height * projection[1][1];

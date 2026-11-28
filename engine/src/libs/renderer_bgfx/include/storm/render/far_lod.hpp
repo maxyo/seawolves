@@ -24,7 +24,8 @@ inline float pixels = 0.f;
 // The pass being drawn: set by the sea's reflection and cube-face renders.
 inline Pass pass = Main;
 
-// What the next GEOM draw is seen from, in the model's own space (set by NODER::Draw; invalid: drawn whole).
+// What the next GEOM draw is seen from, in the model's own space (set by NODER::Draw; invalid: drawn whole). The far
+// LODs and the mesh LOD chains (geometry/src/mesh_lods.hpp) choose their levels by it.
 struct View
 {
     bool valid = false;
@@ -35,6 +36,9 @@ struct View
     // the widening from the screen's centre to its corner (a level is chosen by distance, not depth). Orthographic:
     // pixels per metre, `ortho` set.
     float pixels_per_unit = 0.f;
+    // The projection's y scale: a sphere of radius r at distance d takes r * screen_scale / d of the screen's height
+    // (orthographic: r * screen_scale).
+    float screen_scale = 0.f;
     bool ortho = false;
     float near_plane = 0.f, far_plane = 0.f;
 };

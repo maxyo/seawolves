@@ -23,6 +23,10 @@ namespace storm::render
 class EffectsLayerSet;
 struct EffectsSway;
 }
+namespace storm::scene_data
+{
+struct MeshLodProfile;
+}
 
 class GEOS
 {
@@ -253,6 +257,11 @@ class GEOS
     {
         return false;
     }
+    // Whether it has mesh LOD chains (objects <name>_lodN, src/mesh_lods.hpp), chosen by the same view.
+    virtual bool HasMeshLods() const
+    {
+        return false;
+    }
 
     // collision, ray shooting
     struct TRACE_INFO
@@ -376,6 +385,9 @@ class GEOM_SERVICE
     virtual bool ModelMaterials() const = 0;
     // The text of the material file beside the model `model` (its .gm name with .json); empty when there is none.
     virtual std::string ReadMaterialFile(const char *model) = 0;
+    // The game's mesh LOD profile `name` (resource\ini\mesh_lod_profiles.json); null when the game has none of that
+    // name (logged once): the model's chains then draw their finest level.
+    virtual const storm::scene_data::MeshLodProfile *MeshLodProfile(const std::string &name) = 0;
     // A texture a material file names, relative to resource\textures (without the model's texture path); `map`: a
     // normal or rma map, whose texels are numbers. -1 when it cannot be created (named in the log).
     virtual GEOS::ID CreateMaterialTexture(const char *name, bool map, const char *requester) = 0;

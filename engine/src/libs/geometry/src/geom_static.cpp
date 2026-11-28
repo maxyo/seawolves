@@ -169,6 +169,12 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
         atriangles[o] = obj[o].atriangles;
     }
     srv.free(obj);
+    {
+        std::vector<std::string_view> object_names;
+        for (int32_t o = 0; o < rhead.nobjects; o++)
+            object_names.emplace_back(object[o].name);
+        mesh_lods_ = storm::geometry::FindMeshLods(object_names);
+    }
 
     // read triangles
     idx_buff = srv.CreateIndexBuffer(rhead.ntriangles * sizeof(RDF_TRIANGLE));
@@ -417,6 +423,14 @@ GEOM::GEOM(const char *fname, const char *lightname, GEOM_SERVICE &_srv, int32_t
     LoadSurfaces(fname);
     if (!srv.ModelMaterials())
         GuessSway(heights, plants);
+    if (HasMeshLods())
+    {
+        lod_profile_ = srv.MeshLodProfile(lod_profile_name_.empty() ? "Default" : lod_profile_name_);
+        lod_chosen_.assign(mesh_lods_.measured.size(), {});
+        for (auto &passes : lod_chosen_)
+            passes.fill(-1);
+        lod_drawn_.assign(mesh_lods_.measured.size(), 0);
+    }
 }
 
 // A game without wind marks: an object whose textures are a plant's bends by its height (with the renderer's guess
@@ -446,6 +460,7 @@ void GEOM::LoadSurfaces(const char *fname)
     scene::Report report;
     const std::string text = srv.ReadMaterialFile(fname);
     const scene::ModelSidecar file = text.empty() ? scene::ModelSidecar{} : scene::ParseModelSidecar(text, report);
+    lod_profile_name_ = file.lod_profile;
     for (const std::string &error : report.errors)
         spdlog::error("materials: {}: {}", fname, error);
     static std::set<std::string> reported;
@@ -573,13 +588,40 @@ GEOM::~GEOM()
 }
 
 // visible analyze and draw all objects
+// Each chain's level for this draw, by the size its level 0 takes on screen; without a view or a profile, level 0.
+void GEOM::ChooseMeshLods() const
+{
+    namespace render_lod = storm::render::far_lod;
+    const render_lod::View &view = render_lod::view;
+    for (size_t c = 0; c < mesh_lods_.measured.size(); ++c)
+    {
+        if (!view.valid || !lod_profile_)
+        {
+            lod_drawn_[c] = 0;
+            continue;
+        }
+        const OBJECT &measured = object[mesh_lods_.measured[c]];
+        const glm::vec3 center{measured.center.x, measured.center.y, measured.center.z};
+        float screen = measured.radius * view.scale * view.screen_scale;
+        if (!view.ortho)
+            screen /= std::max(glm::distance(center, view.camera) * view.scale, 0.01f);
+        int8_t &chosen = lod_chosen_[c][render_lod::pass];
+        chosen = int8_t(storm::geometry::MeshLodLevel(screen, chosen, lod_profile_->screen_size, lod_profile_->hysteresis));
+        lod_drawn_[c] = uint8_t(storm::geometry::MeshLodDrawn(chosen, mesh_lods_.levels[c]));
+    }
+}
+
 void GEOM::Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const
 {
     srv.SetIndexBuffer(idx_buff);
     const bool lods = far_lod_ && far_lod_->Ready();
+    if (HasMeshLods())
+        ChooseMeshLods();
     for (int32_t o = 0; o < rhead.nobjects; o++)
     {
         if (!(object[o].flags & VISIBLE))
+            continue;
+        if (const int32_t chain = mesh_lods_.chain[o]; chain >= 0 && mesh_lods_.level[o] != lod_drawn_[size_t(chain)])
             continue;
         // clip by external planes
         int32_t cp;
@@ -860,7 +902,8 @@ bool GEOM::AppendTriangles(std::vector<glm::vec3> &positions, std::vector<uint32
         srv.UnlockVertexBuffer(vbuff[v].dev_buff);
         for (int32_t o = 0; o < rhead.nobjects; ++o)
         {
-            if (object[o].vertex_buff != v || !(object[o].flags & VISIBLE))
+            // The still geometry (shadow casters, occlusion) is a chain's finest level.
+            if (object[o].vertex_buff != v || !(object[o].flags & VISIBLE) || mesh_lods_.level[o] != 0)
                 continue;
             const size_t run_first = indices.size();
             for (int32_t t = 0; t < object[o].ntriangles; ++t)

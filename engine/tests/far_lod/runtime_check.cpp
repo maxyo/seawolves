@@ -6,6 +6,7 @@
 #include <storm/render/far_lod.hpp>
 #include <storm/render/shadow_casters.hpp>
 #include <storm/render/texture_cache.hpp>
+#include <storm/scene_data/scene_data.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
 #include <mutex>
@@ -19,6 +20,7 @@
 #include <iterator>
 #include <map>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -262,6 +264,11 @@ class Service final : public GEOM_SERVICE
     {
         return {};
     }
+    std::optional<storm::scene_data::MeshLodProfile> lod_profile; // the game's only profile
+    const storm::scene_data::MeshLodProfile *MeshLodProfile(const std::string &) override
+    {
+        return lod_profile ? &*lod_profile : nullptr;
+    }
     GEOS::ID CreateMaterialTexture(const char *, bool, const char *) override
     {
         return -1;
@@ -290,12 +297,13 @@ class Service final : public GEOM_SERVICE
     {
         return vertices.at(size_t(id)).data();
     }
-    const void *ReadIndexBuffer(GEOS::ID) override
+    bool serve_indices = false; // ReadIndexBuffer gives the buffer (AppendTriangles); else nothing
+    const void *ReadIndexBuffer(GEOS::ID id) override
     {
         ++readbacks;
         if (throw_readback)
             throw std::runtime_error("readback forbidden");
-        return nullptr;
+        return serve_indices ? indices.at(size_t(id)).data() : nullptr;
     }
     void UnlockVertexBuffer(GEOS::ID) override
     {
@@ -331,10 +339,14 @@ class Service final : public GEOM_SERVICE
     void SetVertexBuffer(int32_t, GEOS::ID) override
     {
     }
+    bool record_draws = false; // keep the triangle counts of the draws in `drawn` (allocates)
+    std::vector<int32_t> drawn;
     void DrawIndexedPrimitive(int32_t, int32_t, int32_t, int32_t, int32_t triangles) override
     {
         ++draws;
         drawn_triangles = triangles;
+        if (record_draws)
+            drawn.push_back(triangles);
     }
     GEOS::ID CreateLight(GEOS::LIGHT) override
     {
@@ -991,6 +1003,25 @@ void writeChainModel(const std::filesystem::path &path)
     for (int v = 0; v < 3; ++v)
         fixture::append(out, RDF_VERTEX0{});
 }
+
+// The triangle counts drawn by one Draw seen from `distance` in front of the objects (one screen height per unit of
+// tangent: an object of radius 1 there takes 1 / distance of the screen).
+std::vector<int32_t> drawnFrom(const GEOM &geom, fixture::Service &srv, float distance)
+{
+    auto &view = storm::render::far_lod::view;
+    view.valid = distance > 0.f;
+    view.camera = {0.f, 0.f, -distance};
+    view.forward = {0.f, 0.f, 1.f};
+    view.scale = 1.f;
+    view.screen_scale = 1.f;
+    view.ortho = false;
+    srv.drawn.clear();
+    geom.Draw(nullptr, 0, nullptr);
+    view.valid = false;
+    std::vector<int32_t> drawn = srv.drawn;
+    std::ranges::sort(drawn);
+    return drawn;
+}
 } // namespace
 
 // A model loads the textures its materials use; a bare name loads the model's slot of that texture with a folder. The
@@ -1009,4 +1040,48 @@ TEST_CASE("model textures")
     const std::vector<char> bytes{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
     CHECK(storm::geometry::TextureNames(bytes) == std::vector<std::string>{"Props\\crate.dds"});
     std::filesystem::remove(file);
+}
+
+// A model's objects <name>_lodN draw one at a time by the size of <name> on screen; the still geometry is level 0.
+TEST_CASE("mesh LOD chains")
+{
+    using Drawn = std::vector<int32_t>;
+    const auto file = std::filesystem::temp_directory_path() / "mesh-lod-fixture.gm";
+    writeChainModel(file);
+    storm::render::far_lod::pixels = 0;
+    fixture::Service srv;
+    srv.file = file;
+    srv.record_draws = true;
+    srv.lod_profile = storm::scene_data::MeshLodProfile{.screen_size = {0.12f, 0.06f, 0.03f}, .hysteresis = 0.1f};
+    {
+        GEOM geom("resource\\models\\object\\crate.gm", nullptr, srv, LOAD_VISIBLE);
+
+        REQUIRE(geom.HasMeshLods());
+        // Without a view the finest level; "Other_lod1" has no "Other" and is an ordinary object.
+        CHECK(drawnFrom(geom, srv, 0.f) == Drawn{1, 4});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.2f) == Drawn{1, 4});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.09f) == Drawn{1, 3});
+        // Level 2 is missing: the finer level 1 stands in; level 3 below the last threshold.
+        CHECK(drawnFrom(geom, srv, 1.f / 0.04f) == Drawn{1, 3});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.01f) == Drawn{1, 2});
+        // Hysteresis: back above a threshold by less than a tenth keeps the level, past it changes it.
+        CHECK(drawnFrom(geom, srv, 1.f / 0.031f) == Drawn{1, 2});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.034f) == Drawn{1, 3});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.125f) == Drawn{1, 3});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.14f) == Drawn{1, 4});
+        CHECK(drawnFrom(geom, srv, 1.f / 0.115f) == Drawn{1, 4});
+        // The still geometry the lights and the occlusion take: level 0 and the ordinary object, 5 triangles.
+        srv.serve_indices = true;
+        std::vector<glm::vec3> positions;
+        std::vector<uint32_t> indices;
+        REQUIRE(geom.AppendTriangles(positions, indices, nullptr));
+        CHECK(indices.size() == 3 * 5);
+    }
+    srv.lod_profile.reset();
+    {
+        GEOM geom("resource\\models\\object\\crate.gm", nullptr, srv, LOAD_VISIBLE);
+        CHECK(drawnFrom(geom, srv, 1.f / 0.01f) == Drawn{1, 4}); // no profile: the finest level
+    }
+    std::filesystem::remove(file);
+    storm::render::far_lod::pixels = 2;
 }

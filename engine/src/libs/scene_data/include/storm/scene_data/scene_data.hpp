@@ -6,6 +6,7 @@
 //  * horizon haze, height fog, clouds     INI/atmosphere.json                {horizon_haze, height_fog,
 //  textured_clouds}
 //  * the cloud layers' textures           texture_library.json               {cloud_preset: {<variant>: ...}}
+//  * when a model's LOD objects draw      INI/mesh_lod_profiles.json         {profiles: {<name>: ...}}
 // Every parser returns its result with a Report: `errors` are malformed JSON or values of the wrong type (the entry
 // is skipped), `unknown_keys` the keys it does not model (JSON-path style), so nothing in a file is dropped unsaid.
 #pragma once
@@ -67,6 +68,7 @@ struct ModelMaterial
 struct ModelSidecar
 {
     std::map<std::string, ModelMaterial> models; // keyed by the .gm object name
+    std::string lod_profile;                     // "lod": {"profile": <name>}; empty: none named
 };
 
 ModelSidecar ParseModelSidecar(std::string_view json, Report &report);
@@ -75,6 +77,25 @@ ModelSidecar ParseModelSidecar(std::string_view json, Report &report);
 std::optional<std::string> MaterialTextureName(std::string_view path);
 // The keys of a material that the renderer's material programs do not draw (renderer_bgfx README, "Materials").
 std::vector<std::string> UndrawnMaterialKeys(const ModelMaterial &material);
+
+// ---- mesh LOD profiles ------------------------------------------------------------------------
+
+// The objects <name>_lod1.._lodN of a model stand in for <name> as it gets smaller on screen.
+struct MeshLodProfile
+{
+    // Level i + 1 takes over below screen_size[i]: the object's bounding sphere's diameter over the screen's height.
+    std::vector<float> screen_size;
+    float hysteresis = 0.0f;    // a level changes only this fraction past its threshold
+    float transition_ms = 0.0f; // the cross-fade between two levels
+};
+
+struct MeshLodProfiles
+{
+    int schema_version = 0;
+    std::map<std::string, MeshLodProfile> profiles;
+};
+
+MeshLodProfiles ParseMeshLodProfiles(std::string_view json, Report &report);
 
 // ---- lighting preset --------------------------------------------------------------------------
 

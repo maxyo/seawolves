@@ -62,6 +62,7 @@ class DeferredGeometry final : public GEOS
     void SetLight(int32_t l, const LIGHT &lt) override;
     void Draw(const PLANE *pl, int32_t np, MATERIAL_FUNC mtf) const override;
     bool HasFarLods() const override;
+    bool HasMeshLods() const override;
     float Trace(VERTEX &src, VERTEX &dst) override;
     bool Clip(const PLANE *planes, int32_t nplanes, const VERTEX &center, float radius,
               ADD_POLYGON_FUNC addpoly) override;
