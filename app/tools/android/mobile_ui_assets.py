@@ -43,9 +43,9 @@ def _design_build(root: Path):
 def collect_ui_pack(repo: Path, engine: Path, gallery: bool):
     """Generate the UI pack from mobile-ui/design and return its files (path -> bytes).
 
-    Only generated text, the icon pack, the OFL fonts, our own material textures
-    (mobile-ui/design/textures) and our own pictures (mobile-ui/design/images): the generator has no game data. The debug gallery pages
-    only go with the gallery activity (gallery=True).
+    Only generated text, the OFL fonts and the pictures pack.json names: our own material textures and pictures
+    (its "images") and the icon atlas's pages (its "icons" table): the generator has no game data. The debug gallery
+    pages only go with the gallery activity (gallery=True).
     """
     import subprocess
     import sys
@@ -53,6 +53,11 @@ def collect_ui_pack(repo: Path, engine: Path, gallery: bool):
     # The engine sources let the design build check the UI string keys its screens use.
     subprocess.run([sys.executable, str(repo / 'mobile-ui/design/build.py'), '--pack', str(pack),
                     '--engine-root', str(engine)], check=True)
+    index = json.loads((pack / 'pack.json').read_text(encoding='utf-8'))
+    icons = index['icons']
+    icon_dir = icons.rpartition('/')[0]
+    pictures = set(index.get('images', [])) | {
+        f'{icon_dir}/{page["file"]}' for page in json.loads((pack / icons).read_text(encoding='utf-8'))['pages']}
     files = {}
     for path in sorted(pack.rglob('*')):
         if not path.is_file():
@@ -60,9 +65,7 @@ def collect_ui_pack(repo: Path, engine: Path, gallery: bool):
         name = path.relative_to(pack).as_posix()
         if name.startswith('gallery/') and not gallery:
             continue
-        picture = (name.startswith('textures/') and path.suffix.lower() == '.jpg' or
-                   name.startswith('images/') and path.suffix.lower() == '.png')
-        if path.is_symlink() or not (picture or path.suffix.lower() in ('.json', '.rml', '.rcss', '.ttf')):
+        if path.is_symlink() or not (name in pictures or path.suffix.lower() in ('.json', '.rml', '.rcss', '.ttf')):
             raise ValueError('Ineligible UI pack file: ' + str(path))
         files[name] = path.read_bytes()
     if not gallery:
