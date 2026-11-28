@@ -543,6 +543,20 @@ struct SettingsRun
                    "a display without room for a larger UI shows the size row disabled with its reason: " +
                        size.dump());
         }
+        {
+            // A host that reports no cache (the desktop) is not asked to measure one, and the page has no cache row.
+            FakeSurface bare_surface;
+            Router bare(bare_surface);
+            Scripted(bare);
+            Json reported = Json::parse(std::ifstream(models + "/app-settings.json", std::ios::binary));
+            reported.erase("cache_bytes");
+            reported.erase("cache_clear_pending");
+            bare.SetState("appSettings", reported);
+            bare.SetInterface(Load(models, "settings.json"));
+            Expect(bare_surface.errors.empty() && std::count(bare_surface.commands.begin(), bare_surface.commands.end(),
+                                                             "host app-cache-measure ") == 0,
+                   "a host without a cache report is not asked to measure it");
+        }
     }
 
     void DebugOverrides()

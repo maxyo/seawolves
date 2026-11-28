@@ -397,7 +397,9 @@ void OpenAppSettings(Bindings &bindings)
 {
     bindings.Shared().settings_draft = Json();
     bindings.Shared().settings_sent = Json();
-    bindings.SendHost(app::host_action::app_cache_measure, ""); // the cache grows while the game runs
+    // The cache grows while the game runs: measured again at each opening, by a host that reports a cache at all.
+    if (Stored(bindings).contains(app::host_fact::cache_bytes))
+        bindings.SendHost(app::host_action::app_cache_measure, "");
 }
 
 void SetAppSetting(Bindings &bindings, const std::string &key, int value)
