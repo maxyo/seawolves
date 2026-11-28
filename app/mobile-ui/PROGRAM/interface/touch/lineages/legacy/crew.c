@@ -15,13 +15,10 @@ ref TouchLegCrew_Town()
 // The ship's crew whose window is open, by its scroll row: what every amount is bound to.
 string TouchLegCrew_Owner(aref model)
 {
-	for (int k = 0; k < TouchLib_Count(model, "SHIPS_SCROLL.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "SHIPS_SCROLL.rows", k);
-		if (row.value == "1") return row.id;
-	}
-	UiError("crew: no ship of the scroll is the current one");
-	return "";
+	int k = TouchLegLib_Selected(model, "SHIPS_SCROLL");
+	if (k < 0) UiError("crew: no ship of the scroll is the current one");
+	aref row = TouchLib_Item(model, "SHIPS_SCROLL.rows", k);
+	return row.id;
 }
 
 // The ship's other lines: its upkeep and its food.

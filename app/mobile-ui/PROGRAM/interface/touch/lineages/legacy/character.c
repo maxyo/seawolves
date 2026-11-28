@@ -428,12 +428,10 @@ void TouchLegCharacter_Posts(aref ui, aref out)
 // The selected post of the list (its slot), -1 none.
 int TouchLegCharacter_PostShown(aref model)
 {
-	for (int k = 0; k < TouchLib_Count(model, "CHARACTERS_SCROLL.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "CHARACTERS_SCROLL.rows", k);
-		if (row.value == "1") return sti(row.index);
-	}
-	return -1;
+	int k = TouchLegLib_Selected(model, "CHARACTERS_SCROLL");
+	if (k < 0) return -1;
+	aref row = TouchLib_Item(model, "CHARACTERS_SCROLL.rows", k);
+	return sti(row.index);
 }
 
 void TouchLegCharacter_Windows(aref ui, aref out)

@@ -321,12 +321,10 @@ void TouchAdpItems_Select(aref ui, int row)
 void TouchAdpItems_Act(aref ui)
 {
 	aref model = TouchLegLib_Model(ui);
-	for (int k = 0; k < TouchLib_Count(model, "TABLE_ITEMS.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "TABLE_ITEMS.rows", k);
-		if (row.value == "1") { UiSend("EQUIP_BUTTON", "press", row.id); return; }
-	}
-	UiError("items: the game's action without a row chosen");
+	int k = TouchLegLib_Selected(model, "TABLE_ITEMS");
+	if (k < 0) UiError("items: the game's action without a row chosen");
+	aref row = TouchLib_Item(model, "TABLE_ITEMS.rows", k);
+	UiSend("EQUIP_BUTTON", "press", row.id);
 }
 
 void TouchAdpItems_Tab(aref ui, int tab)

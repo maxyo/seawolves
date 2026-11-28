@@ -137,9 +137,38 @@ void TouchLegLib_Choices(aref model, string node, aref out)
 
 void TouchLegLib_Choose(aref model, string node, int k)
 {
+	TouchLegLib_Act(model, node, k, "select");
+}
+
+// `verb` sent to row k of `node`, guarded by the row's id; returns that id.
+string TouchLegLib_Act(aref model, string node, int k, string verb)
+{
 	aref row = TouchLib_Item(model, node + ".rows", k);
-	object action = {node = node, row = row.index, verb = "select", value = row.id};
+	object action = {node = node, row = row.index, verb = verb, value = row.id};
 	UiSendTo(&action);
+	return row.id;
+}
+
+// k of the row of `node` the game marks selected, -1 none: what none means is the caller's.
+int TouchLegLib_Selected(aref model, string node)
+{
+	for (int k = 0; k < TouchLib_Count(model, node + ".rows"); k++)
+	{
+		aref row = TouchLib_Item(model, node + ".rows", k);
+		if (row.value == "1") return k;
+	}
+	return -1;
+}
+
+// k of the row of `node` whose id is `id`, -1 none.
+int TouchLegLib_RowOf(aref model, string node, string id)
+{
+	for (int k = 0; k < TouchLib_Count(model, node + ".rows"); k++)
+	{
+		aref row = TouchLib_Item(model, node + ".rows", k);
+		if (row.id == id) return k;
+	}
+	return -1;
 }
 
 // The game's amount window QTY_*: its field (QTY_EDIT, or QTY_EDITBOX in the windows that name it so), and k of
@@ -154,24 +183,20 @@ int TouchLegLib_Window(aref model)
 {
 	if (!CheckAttribute(model, TouchLegLib_Edit(model))) return -1;
 	if (!CheckAttribute(model, "QTY_OK_BUTTON") && !CheckAttribute(model, "QTY_CANCEL_BUTTON")) return -1;
-	for (int k = 0; k < TouchLib_Count(model, "TABLE_LIST.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "TABLE_LIST.rows", k);
-		if (row.value == "1") return k;
-	}
+	int k = TouchLegLib_Selected(model, "TABLE_LIST");
 	// The game opens the window on the table's selected row and keeps it selected while it is open.
-	UiError("the amount window is open on no row of TABLE_LIST");
-	return -1;
+	if (k < 0) UiError("the amount window is open on no row of TABLE_LIST");
+	return k;
 }
 
 // Row k as the player's tap opens it: activated where it offers it, else selected; true when a window comes.
 bool TouchLegLib_Open(aref model, int k)
 {
 	aref row = TouchLib_Item(model, "TABLE_LIST.rows", k);
-	object action = {node = "TABLE_LIST", row = row.index, verb = "select", value = row.id};
-	if (CheckAttribute(row, "offers.activate")) action.verb = "activate";
-	UiSendTo(&action);
-	return action.verb == "activate";
+	string verb = "select";
+	if (CheckAttribute(row, "offers.activate")) verb = "activate";
+	TouchLegLib_Act(model, "TABLE_LIST", k, verb);
+	return verb == "activate";
 }
 
 // The open window closed with its cancel, guarded by its row; k of that row, -1 none open.
@@ -421,8 +446,7 @@ void TouchLegLib_PickPerson(aref model, aref people, int k)
 		if (sti(row.index) == sti(person.row))
 		{
 			if (!CheckAttribute(row, "offers.select")) UiError("the character list does not offer the slot " + row.index);
-			object action = {node = node, row = row.index, verb = "select", value = row.id};
-			UiSendTo(&action);
+			TouchLegLib_Act(model, node, n, "select");
 			return;
 		}
 	}

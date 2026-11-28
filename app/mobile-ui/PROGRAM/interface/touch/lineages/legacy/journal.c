@@ -107,19 +107,13 @@ bool TouchLegJournal_Step(aref ui, aref model, string active, bool text)
 		TouchLegJournal_Waits();
 		return true;
 	}
-	int k;
-	for (k = 0; k < TouchLib_Count(model, "QUEST_TITLE.rows"); k++)
+	int k = TouchLegLib_RowOf(model, "QUEST_TITLE", asked);
+	if (k >= 0)
 	{
-		aref row = TouchLib_Item(model, "QUEST_TITLE.rows", k);
-		if (row.id == asked)
-		{
-			object action = {node = "QUEST_TITLE", row = row.index, verb = "open", value = row.id};
-			UiSendTo(&action);
-			TouchLegJournal.pending = row.id;
-			TouchLegJournal.asked = "";
-			TouchLegJournal_Waits();
-			return true;
-		}
+		TouchLegJournal.pending = TouchLegLib_Act(model, "QUEST_TITLE", k, "open");
+		TouchLegJournal.asked = "";
+		TouchLegJournal_Waits();
+		return true;
 	}
 	// A quest's record names its quest, not the page: the record that closes a quest moves it to the completed ones,
 	// a document's is on the documents. Look there.
@@ -288,10 +282,7 @@ void TouchAdpJournal_Open(aref ui, int entry)
 	TouchLegJournal.asked = title.id;
 	DeleteAttribute(&TouchLegJournal, "looked");
 	if (CheckAttribute(model, "QUEST_TEXT")) { UiBack(""); return; }
-	aref row = TouchLib_Item(model, "QUEST_TITLE.rows", entry);
-	object action = {node = "QUEST_TITLE", row = row.index, verb = "open", value = row.id};
-	UiSendTo(&action);
-	TouchLegJournal.pending = row.id;
+	TouchLegJournal.pending = TouchLegLib_Act(model, "QUEST_TITLE", entry, "open");
 	TouchLegJournal.asked = "";
 }
 

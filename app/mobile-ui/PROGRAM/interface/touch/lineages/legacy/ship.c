@@ -331,25 +331,15 @@ void TouchAdpShip_Exchange(aref ui)
 	aref model = TouchLegLib_Model(ui);
 	int k = TouchLegShip_Current(model);
 	if (k < 0) UiError("ship: the ship shown offers no exchange");
-	aref row = TouchLib_Item(model, "SHIPS_SCROLL.rows", k);
-	object action = {node = "SHIPS_SCROLL", row = row.index, verb = "activate", value = row.id};
-	UiSendTo(&action);
+	TouchLegLib_Act(model, "SHIPS_SCROLL", k, "activate");
 }
 
 void TouchAdpShip_Guns(aref ui)
 {
 	aref model = TouchLegLib_Model(ui);
-	for (int k = 0; k < TouchLib_Count(model, "TABLE_OTHER.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "TABLE_OTHER.rows", k);
-		if (row.id == "CannonType")
-		{
-			object action = {node = "TABLE_OTHER", row = row.index, verb = "activate", value = row.id};
-			UiSendTo(&action);
-			return;
-		}
-	}
-	UiError("ship: no guns row to open");
+	int k = TouchLegLib_RowOf(model, "TABLE_OTHER", "CannonType");
+	if (k < 0) UiError("ship: no guns row to open");
+	TouchLegLib_Act(model, "TABLE_OTHER", k, "activate");
 }
 
 void TouchAdpShip_Morale(aref ui)
@@ -386,9 +376,7 @@ void TouchAdpShip_Close(aref ui)
 
 void TouchAdpShip_Good(aref ui, int good)
 {
-	aref row = TouchLib_Item(TouchLegLib_Model(ui), "TABLE_LIST.rows", good);
-	object action = {node = "TABLE_LIST", row = row.index, verb = "activate", value = row.id};
-	UiSendTo(&action);
+	TouchLegLib_Act(TouchLegLib_Model(ui), "TABLE_LIST", good, "activate");
 }
 
 void TouchAdpShip_Drop(aref ui, int amount)

@@ -523,13 +523,9 @@ bool TouchLegTrade_Switch(aref ui, int side)
 {
 	string name = TouchLegTrade_Cancel(ui);
 	aref model = TouchLegLib_Model(ui);
-	aref rows;
-	makearef(rows, model.TABLE_LIST.rows);
-	for (int k = 0; k < GetAttributesNum(rows); k++)
-	{
-		aref row = GetAttributeN(rows, k);
-		if (name == "" && sti(ui.data.buy) >= 0 && row.value == "1") name = TouchLegLib_Cell(row, sti(ui.data.name));
-	}
+	int k = TouchLegLib_Selected(model, "TABLE_LIST");
+	if (name == "" && sti(ui.data.buy) >= 0 && k >= 0)
+		name = TouchLegLib_Cell(TouchLib_Item(model, "TABLE_LIST.rows", k), sti(ui.data.name));
 	TouchLegLib_Choose(model, ui.data.owners, side);
 	TouchLegTrade_Step("side", "", name, side);
 	return true;

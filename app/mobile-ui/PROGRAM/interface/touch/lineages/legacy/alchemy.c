@@ -87,10 +87,7 @@ void TouchAdpAlchemy_State(aref ui, aref out)
 
 void TouchAdpAlchemy_Choose(aref ui, int recipe)
 {
-	aref model = TouchLegLib_Model(ui);
-	aref row = TouchLib_Item(model, "ANDROID_ALCHEMY_RECIPE.rows", recipe);
-	object action = {node = "ANDROID_ALCHEMY_RECIPE", row = row.index, verb = "choose", value = row.id};
-	UiSendTo(&action);
+	TouchLegLib_Act(TouchLegLib_Model(ui), "ANDROID_ALCHEMY_RECIPE", recipe, "choose");
 }
 
 int TouchAdpAlchemy_Minutes(aref ui, int batches)
@@ -101,13 +98,10 @@ int TouchAdpAlchemy_Minutes(aref ui, int batches)
 bool TouchAdpAlchemy_Make(aref ui, int batches)
 {
 	aref model = TouchLegLib_Model(ui);
-	for (int k = 0; k < TouchLib_Count(model, "ANDROID_ALCHEMY_RECIPE.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "ANDROID_ALCHEMY_RECIPE.rows", k);
-		if (row.value == "1") return AlchemyMake(row.id, batches);
-	}
-	UiError("alchemy: no recipe is shown");
-	return false;
+	int k = TouchLegLib_Selected(model, "ANDROID_ALCHEMY_RECIPE");
+	if (k < 0) UiError("alchemy: no recipe is shown");
+	aref row = TouchLib_Item(model, "ANDROID_ALCHEMY_RECIPE.rows", k);
+	return AlchemyMake(row.id, batches);
 }
 
 void TouchAdpAlchemy_Leave(aref ui)

@@ -155,8 +155,8 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   `Command`.
 - `lineages/legacy/lib.c`: `TouchLegLib_Model`, `Exit` (the window's exit button of candidates), `Button` (a button as
   the game offers it), captions (`Label`, `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`,
-  `Image`), choices (`Choices`, `Choose`), the amount window (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`),
-  `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
+  `Image`), rows (`Choices`, `Choose`, `Act`: a verb to row k, `RowOf`: by id, `Selected`), the amount window
+  (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`), `Tabs`, hero sections (`Sections`, `Section`), `StockText`, `Crew`, `ScrollCaptain`, `Flag`, `FlagOf`, the character
   list (`People`, `PickPerson`), `ShipSkills`.
 
 ## The steps of a move

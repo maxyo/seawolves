@@ -10,15 +10,11 @@ void TouchAdpTradebook_State(aref ui, aref out)
 	out.title = TouchLib_Trim(UiOneLine(TouchLegLib_Label(model, "TITLE")));
 	out.sections = TouchLegLib_Sections(model);
 	// Before the player picks a town the game shows the first one's prices without marking its row.
-	int shown = 0;
+	int shown = TouchLegLib_Selected(model, "TABLE_CITY");
+	if (shown < 0) shown = 0;
 	int count = TouchLib_Count(model, "TABLE_CITY.rows");
 	int k;
 	aref row;
-	for (k = 0; k < count; k++)
-	{
-		row = TouchLib_Item(model, "TABLE_CITY.rows", k);
-		if (row.value == "1") shown = k;
-	}
 	aref places;
 	makearef(places, out.places);
 	for (k = 0; k < count; k++)

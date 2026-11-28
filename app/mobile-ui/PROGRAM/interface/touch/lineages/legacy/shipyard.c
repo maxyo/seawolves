@@ -158,24 +158,13 @@ void TouchLegShipyard_Button(aref model, string key, string node, string sub, ar
 // The guns: the figures' row CannonType, which opens the guns' window (ShowOtherClick).
 void TouchLegShipyard_Guns(aref model, aref deals)
 {
-	int k = TouchLegShipyard_GunsRow(model);
+	int k = TouchLegLib_RowOf(model, "TABLE_OTHER", "CannonType");
 	if (k < 0) return;
 	aref row = TouchLib_Item(model, "TABLE_OTHER.rows", k);
 	object deal = {key = "guns", label = TouchLegLib_Cell(row, 1), sub = TouchLegLib_Cell(row, 2),
 	               can = CheckAttribute(row, "offers.activate"), reason = row.reason};
 	aref at = TouchLib_Add(deals, "d");
 	CopyAttributes(at, &deal);
-}
-
-// k of the figures' row CannonType, -1 none.
-int TouchLegShipyard_GunsRow(aref model)
-{
-	for (int k = 0; k < TouchLib_Count(model, "TABLE_OTHER.rows"); k++)
-	{
-		aref row = TouchLib_Item(model, "TABLE_OTHER.rows", k);
-		if (row.id == "CannonType") return k;
-	}
-	return -1;
 }
 
 // The window of the game open over the shipyard, by its nodes, with its ok and cancel.
@@ -319,11 +308,9 @@ void TouchAdpShipyard_Deal(aref ui, string key)
 	aref model = TouchLegLib_Model(ui);
 	if (key == "guns")
 	{
-		int k = TouchLegShipyard_GunsRow(model);
+		int k = TouchLegLib_RowOf(model, "TABLE_OTHER", "CannonType");
 		if (k < 0) UiError("shipyard: no guns' row to open");
-		aref row = TouchLib_Item(model, "TABLE_OTHER.rows", k);
-		object action = {node = "TABLE_OTHER", row = row.index, verb = "activate", value = row.id};
-		UiSendTo(&action);
+		TouchLegLib_Act(model, "TABLE_OTHER", k, "activate");
 		return;
 	}
 	object nodes = {buy = "BUTTON_BUY", sell = "BUTTON_SELL", repair = "BUTTON_REPAIR"};
