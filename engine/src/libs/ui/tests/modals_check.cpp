@@ -430,6 +430,25 @@ static void Runtime(const fs::path &base, const fs::path &font)
     tap(100, 30);
     Expect(actions.size() == 1 && actions[0] == "CONFIRM_NO press",
            "a tap beside the question is its «нет», nothing under the scrim: " + List(actions));
+    // A view is the screen's whole state: the question the game closed leaves with it, in the same opening and when
+    // the interface ends under the question and comes back (a save that failed brings the list back).
+    const auto dialog = [] {
+        return Rml::GetContext(0) && Rml::GetContext(0)->GetRootElement()->QuerySelector("#confirm") != nullptr;
+    };
+    InterfaceModel answered = Load("saves-load.json");
+    answered.revision = 3;
+    host->SetInterface(answered);
+    frames(0.1);
+    Expect(!dialog() && !host->WantsBack(), "the question the game closed is gone from the list");
+    open("saves-confirm.json");
+    host->InterfaceLeft();
+    frames(0.05);
+    InterfaceModel back = Load("saves-load.json");
+    back.opening += 1;
+    host->ExpectInterface();
+    host->SetInterface(back);
+    frames(0.1);
+    Expect(!dialog() && !host->WantsBack(), "the list that comes back after its interface ended has no question");
     host->CloseInterface();
     frames(0.05);
 

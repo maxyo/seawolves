@@ -143,6 +143,8 @@ class ComponentElement final : public ShadowedElement
     }
     // Merges the given props; the template's parts that read the changed ones follow on the next update.
     void SetProps(const Json &props);
+    // The given props are the whole state: every prop they leave out goes back to its default (a screen's view).
+    void ReplaceProps(const Json &props);
     // One prop (null: its default), as a parent template passes it.
     void SetProp(const PropSpec &prop, Json value);
     // Live state classes ("pressed", "active", "done") owned by behaviours.

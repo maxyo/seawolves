@@ -810,6 +810,16 @@ void ComponentElement::SetProps(const Json &props)
     }
 }
 
+void ComponentElement::ReplaceProps(const Json &props)
+{
+    SetProps(props);
+    if (!props.is_object())
+        return;
+    for (const PropSpec &prop : spec_.props)
+        if (!props.contains(prop.name))
+            SetProp(prop, Json());
+}
+
 void ComponentElement::SetProp(const PropSpec &prop, Json value)
 {
     const auto found = props_.find(prop.name);

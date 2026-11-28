@@ -4,6 +4,10 @@
 
 **Русский**
 
+- Экран сохранений после неудачного сохранения (например, когда память телефона заполнена) возвращается к списку
+  с сообщением о причине, прежняя запись цела и выбирается: раньше на нём оставался вопрос «Перезаписать?», кнопки
+  которого не отвечали, и выйти можно было только кнопкой «Назад». Закрытый игрой вопрос (в том числе после «Отмены»)
+  больше не остаётся на экране.
 - Обмен с другим кораблём: ползунок груза и команды только выставляет количество, а перегружает кнопка «Взять N» /
   «Отдать N» — случайное касание больше не перекладывает груз; столбцы товаров снова сортируются касанием по
   заголовку.
@@ -195,6 +199,10 @@
 
 **English**
 
+- After a save fails (for instance, the phone's storage is full) the save screen comes back to the list with the
+  reason shown, and the previous record is intact and selectable: the "Overwrite?" question used to stay on it with
+  buttons that did nothing, and only the Back key got out. A question the game closed (also after «Cancel») no longer
+  stays on the screen.
 - Ship exchange: the cargo and crew sliders only set the amount and the «Take N» / «Give N» button moves it, so a
   stray touch no longer moves cargo; the goods columns sort again by a tap on their head.
 - Shipyard: buying and selling a ship is again a hold of its button, which answers the game's price question with

@@ -240,7 +240,7 @@ void HostImpl::Show(const std::string &tag, const Json &props)
         mounted = document_->AppendChild(std::move(created));
     }
     if (auto *component = dynamic_cast<ComponentElement *>(mounted))
-        component->SetProps(props);
+        component->ReplaceProps(props);
     else
         Error("UI pack has no screen " + tag);
     if (video_)
