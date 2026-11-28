@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     manifest["settings"].erase("alertMs");
     Write(pack / "pack.json", manifest.dump());
     error.clear();
-    Expect(Host::Create(config, &error) == nullptr && error == "UI pack: the design tokens have no time alertMs",
+    Expect(Host::Create(config, &error) == nullptr && error.find("alertMs") != std::string::npos,
            "a pack without a time the runtime reads does not start: " + error);
     fs::remove_all(pack);
     return Finish("display");

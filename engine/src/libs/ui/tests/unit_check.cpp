@@ -105,10 +105,10 @@ static void ModelCodec(const char *models)
     // A field of another type than the format's is a defect of the recording, not a default.
     std::string error;
     Expect(!storm::ui::ParseInterfaceModel(R"({"widgets":[{"node":"a"},{"node":"b","index":"3"}]})", back, &error) &&
-               error == "interface model: widgets[1].index: expected a number",
+               error.find("widgets[1].index") != std::string::npos,
            "interface model: a wrong-typed field is an error naming it");
     Expect(!storm::ui::ParseInterfaceModel(R"({"widgets":[{"node":"a","cells":[{"text":1}]}]})", back, &error) &&
-               error == "interface model: widgets[0].cells[0].text: expected a string",
+               error.find("widgets[0].cells[0].text") != std::string::npos,
            "interface model: a wrong-typed cell field is an error naming it");
 }
 

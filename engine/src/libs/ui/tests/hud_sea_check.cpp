@@ -5,7 +5,6 @@
 #include "hud_scripts.h"
 
 #include <algorithm>
-#include <chrono>
 #include <RmlUi/Core.h>
 
 constexpr double kRaiseWait = 3.5; // longer than the sea HUD waits for the game to raise a held spyglass
@@ -1450,33 +1449,6 @@ static void CheckCameraSwitch(const std::string &pack)
     }
 }
 
-// What a state change costs the scene (the host Release build is the measure): the ship publishes up to ten times a
-// second while sailing; its speed, the date and the guns' reload only move readings, a hit asks the script for a build.
-static void PrintCost()
-{
-    SeaBench bench;
-    Sail(bench);
-    const auto cost = [&](auto change) {
-        Json state = State("ship");
-        constexpr int kRounds = 200;
-        const auto start = std::chrono::steady_clock::now();
-        for (int i = 0; i < kRounds; ++i)
-        {
-            change(state, i);
-            state["sequence"] = 1000 + i;
-            bench.Set("ship", state);
-        }
-        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
-    };
-    const double readings = cost([](Json &state, int i) {
-        state["shipSpeedKnots"] = 4.0 + (i % 50) * 0.1;
-        state["cannonCharge"] = (i % 50) * 0.01;
-    });
-    const double builds = cost([](Json &state, int i) { state["hull"] = 2400 - i; });
-    std::printf("sea scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
-                builds);
-}
-
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
@@ -1496,6 +1468,5 @@ int main(int argc, char **argv)
     CheckTouches(pack);
     CheckDeckTouches(pack);
     CheckCameraSwitch(pack);
-    PrintCost();
     return Finish("sea HUD");
 }

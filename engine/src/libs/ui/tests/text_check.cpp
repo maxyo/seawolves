@@ -49,7 +49,5 @@ int main()
     ExpectEqual(std::string(Utf8Prefix("я", 1)), "", "nothing fits");
     ExpectEqual(std::string(Utf8Prefix("€x", 2)), "", "three-byte character");
 
-    if (failures == 0)
-        std::printf("text checks passed\n");
-    return failures != 0;
+    return Finish("text");
 }

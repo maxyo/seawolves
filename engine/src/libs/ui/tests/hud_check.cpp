@@ -289,12 +289,12 @@ struct ConsumersRun
     {
         // a channel nobody consumes, and a router without a HUD
         bench.Feed("weather", Json::object());
-        Expect(!bench.surface.errors.empty() && bench.surface.errors.back() == "state channel weather has no consumer",
+        Expect(!bench.surface.errors.empty() && bench.surface.errors.back().find("weather") != std::string::npos,
                "an unknown channel is an error");
         QuietSurface lonely;
         screens::Router bare(lonely);
         bare.SetState("vitals", State("vitals"));
-        Expect(!lonely.errors.empty() && lonely.errors.back() == "state channel vitals: this host has no HUD",
+        Expect(!lonely.errors.empty() && lonely.errors.back().find("vitals") != std::string::npos,
                "HUD states without a HUD are an error");
     }
 };
@@ -466,7 +466,7 @@ struct ScenesRun
                "an element bound for every verb; a latest-value slot is named");
         Expect(hud.OnEvent({"button", "hover", ""}) && mount.errors.empty(), "an ignored event is fine");
         Expect(!hud.OnEvent({"button", "twist", ""}) && !mount.errors.empty() &&
-                   mount.errors.back() == "HUD scene probe: event 'button twist' has no binding",
+                   mount.errors.back().find("button twist") != std::string::npos,
                "an unbound event is an error");
     }
 

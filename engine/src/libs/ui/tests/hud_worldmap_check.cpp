@@ -3,8 +3,6 @@
 // what waits to be drawn.
 #include "hud_scripts.h"
 
-#include <chrono>
-
 static const ScriptPack *pack = nullptr;
 
 // A bench whose HUD draws the scripts' scenes with the application's pack.
@@ -268,29 +266,6 @@ static void CheckLabelArea()
     Expect(Sent(bench.mount.commands, "worldmap:41\tlabelarea\tnone"), "hiding the HUD clears its reservation too");
 }
 
-// What a state change costs the scene (printed, not judged: the host is not the phone): one whose structure changes
-// runs the script; one that moves only readings (the clock, every frame on the map) does not.
-static void PrintCost()
-{
-    MapBench bench;
-    bench.Feed("gameplay", "gameplay-worldmap");
-    const auto cost = [&](const char *field, auto value) {
-        Json state = State("world-map");
-        constexpr int kRounds = 200;
-        const auto start = std::chrono::steady_clock::now();
-        for (int i = 0; i < kRounds; ++i)
-        {
-            state[field] = value(i);
-            bench.Set("worldMap", state);
-        }
-        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
-    };
-    const double readings = cost("hour", [](int i) { return 6.0 + i * 0.05; });
-    const double builds = cost("date", [](int i) { return std::to_string(i) + " October"; });
-    std::printf("world-map scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
-                builds);
-}
-
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
@@ -301,6 +276,5 @@ int main(int argc, char **argv)
     CheckSky();
     CheckTime();
     CheckLabelArea();
-    PrintCost();
     return Finish("world-map HUD");
 }

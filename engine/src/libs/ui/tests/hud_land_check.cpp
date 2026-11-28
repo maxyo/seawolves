@@ -6,7 +6,6 @@
 #include "hud_scripts.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -1585,31 +1584,6 @@ static void CheckRush()
     Expect(mount.errors.size() > errors, "an unnamed ability in the land vitals is rejected aloud");
 }
 
-// What a state change costs the scene (the host Release build is the measure): the vitals of a fight change several
-// times a second and only move readings; a changed effect asks the script for a build.
-static void PrintCost()
-{
-    LandBench bench;
-    bench.Melee();
-    const auto cost = [&](auto change) {
-        Json state = State("vitals-status");
-        constexpr int kRounds = 200;
-        const auto start = std::chrono::steady_clock::now();
-        for (int i = 0; i < kRounds; ++i)
-        {
-            change(state, i);
-            bench.Set("vitals", state);
-        }
-        return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / kRounds;
-    };
-    const double readings = cost([](Json &state, int i) { state["health"] = 0.2 + (i % 50) * 0.01; });
-    const double builds = cost([](Json &state, int i) {
-        state["effects"] = i % 2 ? Json::array({"poison"}) : Json::array({"poison", "healing"});
-    });
-    std::printf("land scene per state change: %.0f us with readings only, %.0f us with a script build\n", readings,
-                builds);
-}
-
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
@@ -1627,6 +1601,5 @@ int main(int argc, char **argv)
     CheckTransitionFlash();
     CheckTouches(pack);
     CheckOneHostPerProcess(pack);
-    PrintCost();
     return Finish("land HUD");
 }
