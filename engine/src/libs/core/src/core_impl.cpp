@@ -21,6 +21,7 @@
 #include "save_state.hpp"
 #include "save_trash.hpp"
 
+#include <chrono>
 #include <fstream>
 #ifdef STORM_TRACY
 #include <cxxabi.h>
@@ -776,6 +777,7 @@ bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_s
     {
         std::filesystem::create_directories(path.parent_path(), ec);
     }
+    const auto writing = std::chrono::steady_clock::now();
     if (!storm::save::writeAtomic(path, save->image, storm::save::checkImage, error))
     {
         spdlog::error("Cannot save '{}' (resolved '{}'): {}; the previous save, if any, is unchanged", save->record,
@@ -791,6 +793,8 @@ bool CoreImpl::SetSaveData(const char *file_name, void *data_ptr, int32_t data_s
 
     // The new save is durable: the delete of the save it replaced under this name is final.
     storm::save::trash().commit(path);
+    spdlog::info("Saved '{}': {} bytes written in {} ms", save->record, save->image.size(),
+                 std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - writing).count());
     return true;
 }
 
