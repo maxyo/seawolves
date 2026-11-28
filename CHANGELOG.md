@@ -246,6 +246,8 @@
   грабежу; раньше она называлась «Забрать корабль», хотя корабль без капитана так не забирается.
 - Отличная карта: касание другой колонии, пока открыт лист одной, сразу открывает лист новой; раньше карта не
   отвечала, пока лист не закрыть крестиком.
+- Диалог: реплика, которую игрок вводит сам (сумма, ставка, имя корабля), выглядит как поле: её отмечает перо,
+  предложение игры написано текстом, под ним — «Введите ответ»; раньше она выглядела как обычная реплика.
 
 **English**
 
@@ -495,6 +497,8 @@
   ship», though a ship left without a captain is not kept that way.
 - The excellent map: a tap on another colony while one colony's sheet is open opens the new colony's sheet at once;
   the map used to ignore it until the sheet was closed with its cross.
+- Dialogue: a reply the player types (a sum, a bet, a ship's name) looks like a field: the quill marks it, the game's
+  proposal is its text with «Enter your answer» under it; it used to look like any other reply.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

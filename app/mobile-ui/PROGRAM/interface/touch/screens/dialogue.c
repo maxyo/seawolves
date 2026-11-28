@@ -40,10 +40,22 @@ void TouchDialogue_Build()
 		id = "reply-" + reply.link;
 		at.id = id;
 		at.title = reply.text;
-		if (TouchLib_Trim(reply.text) == "")
+		bool proposed = TouchLib_Trim(reply.text) != "";
+		if (sti(reply.typed))
 		{
-			if (sti(reply.typed)) at.title = UiText("dialogue.input");
-			else at.title = UiText("dialogue.continue");
+			// A field, not a reply: the quill marks it, the game's proposal is its text, «enter» says it is typed.
+			at.icon = "quill";
+			at.meta = UiText("dialogue.input");
+			at.metaTone = "dim";
+			if (!proposed)
+			{
+				at.title = UiText("dialogue.input");
+				at.meta = "";
+			}
+		}
+		else
+		{
+			if (!proposed) at.title = UiText("dialogue.continue");
 		}
 		at.pressed = UiPending(id);
 		if (reply.refused != "")

@@ -261,7 +261,10 @@
      {
       "id": "reply-0",
       "pressed": false,
-      "title": "Аделина"
+      "title": "Аделина",
+      "icon": "quill",
+      "meta": "<dialogue.input>",
+      "metaTone": "dim"
      },
      {
       "id": "reply-1",
@@ -362,7 +365,8 @@
       "pressed": false,
       "title": "Аделина",
       "meta": "<dialogue.too_long>",
-      "metaTone": "danger"
+      "metaTone": "danger",
+      "icon": "quill"
      },
      {
       "id": "reply-1",
@@ -437,7 +441,10 @@
      {
       "id": "reply-0",
       "pressed": false,
-      "title": "100"
+      "title": "100",
+      "icon": "quill",
+      "meta": "<dialogue.input>",
+      "metaTone": "dim"
      },
      {
       "id": "reply-2",
