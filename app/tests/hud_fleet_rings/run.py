@@ -4,7 +4,7 @@ picture sits exactly in the middle of its rings and the members stand in straigh
 even step (a short screen wraps the column and must not shift the pictures). The UI ignores the display cutout, so nothing moves the rings apart from their picture.
 
 Real pack, real HUD documents and the engine's recorded states, captured by storm_ui_shot
-(software GLES, no GPU). Phones of 780x360, 853x384 (densities 2.34 and 3.75) and 915x412 dp.
+(software GLES, no GPU), which draws the HUD scenes written in script with the touch interface's scripts. Phones of 780x360, 853x384 (densities 2.34 and 3.75) and 915x412 dp.
 """
 import argparse
 import json

@@ -49,7 +49,7 @@ Every `models/*.json` interface model is a case; `pack-contract.json` adds the c
 the game's answer to what a screen asks for on opening (`answer`), and lists the ported screens without a case,
 each with its reason (a listed screen that a case draws fails too: the entry is stale). A case feeds `states`
 (channel=file, in order), then its `interface`, then `answer`; `covers` names the screens it draws that its interface
-does not; `taps` are element ids (or selectors) tapped after all that (a HUD state a tap opens, a sheet). A case is laid out on a 914 × 411 dp
+does not (a HUD scene of the scripts by its capability, `hud_world_map`); `taps` are element ids (or selectors) tapped after all that (a HUD state a tap opens, a sheet). A case is laid out on a 914 × 411 dp
 phone, or at its `size` ("780x360", dp; such a case adds nothing to the prewarm list), and `language` (a game
 language name) replaces the one its states name; `whole` lists selectors of what
 the recorded state must show whole: every element found, scrolled into view, lies on the screen and inside every box

@@ -202,7 +202,8 @@ elseif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         # Headless captures for design checks: bgfx GLES 3.0 on a surfaceless EGL display, PNG output. The game's
         # pictures are read from .tx files by the renderer's texture core (the game takes them from the renderer).
         add_executable(storm_ui_shot tools/ui_shot.cpp)
-        target_link_libraries(storm_ui_shot PRIVATE storm_ui_bgfx storm_texture_core plutovg::plutovg ${CMAKE_DL_LIBS})
+        target_link_libraries(storm_ui_shot PRIVATE storm_ui_bgfx storm_texture_core plutovg::plutovg storm_ui_script_game
+                              ${CMAKE_DL_LIBS})
     endif()
     # The pack contract check (tools/pack_check.cpp): a real pack with the real adapters on the
     # recorded fixtures. The application's host checks run it on its pack (tests/ui_pack_contract);

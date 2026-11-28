@@ -44,9 +44,13 @@
 // scroll; a following "bench" measures the fling). Where bgfx's GPU timer works it also
 // prints the GPU time per drawn frame, every layer and filter pass included.
 //
+// The touch interface's scripts are attached over the fixture game (tools/script_game.h), as a phone attaches them
+// over the game's program: the script screens and the HUD scenes are drawn by their scripts.
+//
 // Sizes and script coordinates are in dp. The clock is simulated (60 frames a second),
 // so captures are repeatable. Reported actions go to stdout as "action id verb value".
 #include "../src/numbers.h"
+#include "script_game.h"
 #include "storm_ui/backend_bgfx.h"
 #include "storm_ui/host_tools.h"
 #include "storm_ui/interface_model.h"
@@ -1092,6 +1096,8 @@ int main(int argc, char **argv)
         return 4;
     }
     capture->Attach(*host);
+    // The touch interface's scripts, attached as on a phone: the script screens and the HUD scenes they write.
+    host->SetScriptScreens(storm::ui::ScriptGame::Get().Screens(), &storm::ui::ScriptGame::Get().Port());
     host->SetSafeArea(options.safe[0], options.safe[1], options.safe[2], options.safe[3]);
     storm::ui::InterfaceModel first;
     if (!options.doc.empty() ? !host->LoadDocument(options.doc)

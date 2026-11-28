@@ -1503,8 +1503,9 @@ int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shar
     {
         for (const screens::ScreenEntry &entry : screens::PortedScreens())
             screens.push_back(entry.id);
+        // A HUD scene has no interface of the game: each is covered by its capability (a case of its states).
         for (const ScriptScreen &screen : ScriptGame::Get().Screens())
-            screens.push_back(screen.interface);
+            screens.push_back(screen.interface == kHudInterface ? screen.capability : screen.interface);
     }
     for (const std::string &id : screens)
     {
