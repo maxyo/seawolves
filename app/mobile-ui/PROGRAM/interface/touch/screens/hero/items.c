@@ -146,6 +146,7 @@ void TouchItems_Detail(aref game, aref view)
 		TouchItems_Fact(facts, UiText("items.term"), term);
 	}
 	at.text = detail.text;
+	at.action = ""; // none: the game offers no action for this item
 	if (detail.action.label == "") return;
 	string reason = detail.action.reason;
 	if (reason == "") reason = UiText("items.unavailable");

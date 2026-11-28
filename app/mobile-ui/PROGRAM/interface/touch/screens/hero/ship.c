@@ -53,9 +53,14 @@ void TouchShip_Card(aref game, aref view)
 {
 	aref card;
 	makearef(card, view.card);
+	// An empty picture is none; the adapter gives one only when the game draws the ship.
+	card.image = "";
 	if (!CheckAttribute(game, "ship"))
 	{
 		card.title = "";
+		card.sub = "";
+		card.captain = "";
+		card.rename = false;
 		view.empty = UiText("ship.no_ship");
 		return;
 	}
@@ -190,6 +195,7 @@ void TouchShip_Open(aref game, aref rows)
 	row.id = "open";
 	row.name = held.label;
 	row.meta = held.meta;
+	row.image = "";
 	TouchLib_Copy(row, "image", held, "image");
 	row.cells.c0 = total;
 	row.cells.c1 = held.weight;
@@ -256,6 +262,7 @@ void TouchShip_Cargo(aref game, aref view)
 		row.id = good.key;
 		row.name = good.label;
 		row.meta = TouchShip_Pack(game, good);
+		row.image = "";
 		TouchLib_Copy(row, "image", good, "image");
 		row.cells.c0 = good.count;
 		row.cells.c1 = good.weight;
@@ -275,7 +282,8 @@ void TouchShip_Cargo(aref game, aref view)
 	if (CheckAttribute(game, "drop.mine"))
 	{
 		makearef(from2, game.drop.mine);
-		TouchLib_Button(actions, "goods-mine", from2.label, "secondary", from2);
+		aref mine = TouchLib_Button(actions, "goods-mine", from2.label, "secondary", from2);
+		mine.hold = false;
 	}
 	int dropping = sti(game.drop.dropping);
 	string label = UiText("ship.overboard");
@@ -291,6 +299,7 @@ void TouchShip_Cargo(aref game, aref view)
 // The deadweight, with what the hold had when the open good's window opened.
 void TouchShip_Load(aref game, aref view)
 {
+	view.load.text = ""; // no bar: a captain without a ship has no capacity
 	aref capacity = TouchShip_Figure(game, "capacity");
 	if (!CheckAttribute(capacity, "now")) return;
 	int now = sti(capacity.now);
@@ -304,7 +313,6 @@ void TouchShip_Load(aref game, aref view)
 		view.load.after = TouchShip_Percent(now, most);
 		text = before + " › " + text;
 	}
-	view.load.text = "";
 	if (most > 0) view.load.text = text;
 }
 
