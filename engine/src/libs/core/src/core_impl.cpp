@@ -17,6 +17,7 @@
 #include "script_state.hpp"
 #include "platform/host_hooks.hpp"
 #include "profiler.hpp"
+#include "save_autosave.hpp"
 #include "save_file.hpp"
 #include "save_state.hpp"
 #include "save_trash.hpp"
@@ -929,7 +930,7 @@ void CoreImpl::ReportFailedLoad()
 
 // Said in the log, the scripts told (AndroidSaveFailed(record, reason): app script
 // interface/android_save_failure.c brings the save screen back after a save of the player) and
-// the UI tells the player (channel "saveFailure" {record, reason, space}, once: null follows).
+// the UI tells the player (channel "saveFailure" {record, reason, space, autosave}, once: null follows).
 void CoreImpl::ReportFailedSave()
 {
     if (!save_failure_)
@@ -941,9 +942,13 @@ void CoreImpl::ReportFailedSave()
         spdlog::error("SAVE FAILED: no script handles AndroidSaveFailed");
     Core::Event(storm::app::script_event::AndroidSaveFailed, "ss", failure.record.c_str(), failure.reason.c_str());
 #ifdef STORM_TOUCH_UI
+    const size_t slash = failure.record.find_last_of("\\/");
+    const bool autosave =
+        storm::save::IsAutosaveRecord(slash == std::string::npos ? failure.record : failure.record.substr(slash + 1));
     storm::android::ui::state("saveFailure", storm::android::uiJson({{"record", failure.record},
                                                                      {"reason", failure.reason},
-                                                                     {"space", failure.space}}));
+                                                                     {"space", failure.space},
+                                                                     {"autosave", autosave}}));
     storm::android::ui::state("saveFailure", "null");
 #endif
 }

@@ -1,4 +1,4 @@
-// The autosave rotation (xinterface save_autosave.hpp): three records, the oldest replaced,
+// The autosave rotation (core save_autosave.hpp): three records, the oldest replaced,
 // the player's records never.
 #include "save_autosave.hpp"
 
@@ -119,6 +119,9 @@ TEST_CASE("save_autosave")
     rotation();
     reservedNames();
     earlierBuilds();
+    // The records no player wrote, as the save list and the save failure name them.
+    REQUIRE((IsAutosaveRecord("Автосохранение 2") && IsAutosaveRecord("Player AutoSave") &&
+             !IsAutosaveRecord("Автосохранение 7") && !IsAutosaveRecord("Ле Франсуа")));
     std::cout
         << "PASS: three autosave records in rotation, the oldest replaced; the player's records keep their files\n";
 }

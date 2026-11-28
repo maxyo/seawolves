@@ -67,7 +67,7 @@
 // (Caribbean Legend: the news it has shown); the player's copy is in the settings folder.
 #define MSG_INTERFACE_SAVE_STRINGS_TO_FILE 45402
 #define MSG_INTERFACE_READ_STRINGS_FROM_FILE 45403
-// "lse": profile, out record name. The autosave record to write next (xinterface save_autosave.hpp).
+// "lse": profile, out record name. The autosave record to write next (core save_autosave.hpp).
 #define MSG_INTERFACE_AUTOSAVE_RECORD 45301
 
 #define INTERFACE_CHANGE_INTERMEDIA 0

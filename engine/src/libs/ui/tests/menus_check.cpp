@@ -996,19 +996,23 @@ static void SaveFailure()
     Router router(surface);
     router.SetState("saveFailure", Json{{"record", "SAVE\\player\\Ле Франсуа"},
                                         {"reason", "write temporary save: No space left on device"},
-                                        {"space", true}});
+                                        {"space", true},
+                                        {"autosave", false}});
     Expect(surface.alerts.size() == 1 && surface.alerts.front() == "<save.save_failed_space>" && surface.errors.empty(),
            "a save of the player on a full storage: the alert says the storage is full");
     router.SetState("saveFailure", nullptr);
     Expect(surface.alerts.size() == 1 && surface.errors.empty(), "null says nothing");
-    router.SetState(
-        "saveFailure",
-        Json{{"record", "SAVE\\player\\Ле Франсуа"}, {"reason", "replace save: Permission denied"}, {"space", false}});
+    router.SetState("saveFailure", Json{{"record", "SAVE\\player\\Ле Франсуа"},
+                                        {"reason", "replace save: Permission denied"},
+                                        {"space", false},
+                                        {"autosave", false}});
     Expect(surface.alerts.size() == 2 && surface.alerts.back() == "<save.save_failed>: Ле Франсуа",
            "another failure names the record");
-    router.SetState("saveFailure", Json{{"record", "SAVE\\player\\Автосохранение 2"},
+    // The engine says which record is an autosave; the screen does not read it from the name.
+    router.SetState("saveFailure", Json{{"record", "SAVE\\player\\Ле Франсуа"},
                                         {"reason", "write temporary save: No space left on device"},
-                                        {"space", true}});
+                                        {"space", true},
+                                        {"autosave", true}});
     Expect(surface.alerts.size() == 3 && surface.alerts.back() == "<save.autosave_failed_space>",
            "an autosave says it is the autosave");
     router.SetState("saveFailure", Json{{"record", "SAVE\\player\\x"}, {"reason", "?"}});

@@ -82,17 +82,6 @@ class GameOverConsumer final : public StateConsumer
     uint64_t opening_ = 0;
 };
 
-// The records the save failure names as an autosave: the rotation's (xinterface save_autosave.hpp names their files)
-// and the one a game writes itself before a boarding ("<profile> AutoSave", interface.c AutoSaveContinue).
-bool IsAutosave(const std::string &label)
-{
-    static const std::string prefix = "Автосохранение ", own = " AutoSave";
-    if (label.size() > own.size() && label.compare(label.size() - own.size(), own.size(), own) == 0)
-        return true;
-    return label.size() > prefix.size() && label.compare(0, prefix.size(), prefix) == 0 &&
-           label.find_first_not_of("0123456789", prefix.size()) == std::string::npos;
-}
-
 // Channel "loadFailure" {record, reason}: a load the player asked for was refused or never
 // started (the engine's load watchdog, core load_watch.hpp). The engine has logged the reason
 // and its scripts bring the menu back; the player is told which record did not load.
@@ -120,7 +109,7 @@ class LoadFailureConsumer final : public StateConsumer
     }
 };
 
-// Channel "saveFailure" {record, reason, space}: a save could not be written (core
+// Channel "saveFailure" {record, reason, space, autosave}: a save could not be written (core
 // CoreImpl::ReportFailedSave, one frame after it: a background autosave is told back in the
 // foreground). The previous record is unchanged. The scripts bring the save screen back after a
 // save of the player; the player is told here, the full storage said as such.
@@ -137,16 +126,17 @@ class SaveFailureConsumer final : public StateConsumer
             return;
         if (!state.is_object() || !state.contains("record") || !state["record"].is_string() ||
             !state.contains("reason") || !state["reason"].is_string() || !state.contains("space") ||
-            !state["space"].is_boolean())
+            !state["space"].is_boolean() || !state.contains("autosave") || !state["autosave"].is_boolean())
         {
-            router.ReportError("state channel saveFailure: expected {record, reason, space}, got " + state.dump());
+            router.ReportError("state channel saveFailure: expected {record, reason, space, autosave}, got " +
+                               state.dump());
             return;
         }
         const std::string record = state["record"].get<std::string>();
         const size_t slash = record.find_last_of("\\/");
         const std::string file = slash == std::string::npos ? record : record.substr(slash + 1);
         const bool space = state["space"].get<bool>();
-        if (IsAutosave(file))
+        if (state["autosave"].get<bool>())
             router.Alert(space ? StringKey("save.autosave_failed_space") : StringKey("save.autosave_failed"), "");
         else
             router.Alert(space ? StringKey("save.save_failed_space") : StringKey("save.save_failed"),

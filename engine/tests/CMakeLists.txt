@@ -335,7 +335,7 @@ storm_host_check(resource_index INCLUDES ${util_include} OPTIONS -O2 ${warnings}
 storm_host_check(resource_overlay INCLUDES ${util_include}
     OPTIONS -O1 -g -Wall -Wextra ${asan_strict} TIMEOUT 120 CATCH2)
 storm_host_check(sail_limit_point INCLUDES ${glm_headers} OPTIONS -O1 ${warnings} ${asan} CATCH2)
-storm_host_check(save_autosave INCLUDES ${src}/libs/xinterface/src OPTIONS -O1 ${warnings} ${asan_strict} CATCH2)
+storm_host_check(save_autosave INCLUDES ${src}/libs/core/include OPTIONS -O1 ${warnings} ${asan_strict} CATCH2)
 foreach(check load dangling_references loaded_object_handles)
     set(sources ${check}.cpp ${core_fake_sources} ${src}/libs/core/src/s_vartab.cpp)
     if(check STREQUAL loaded_object_handles)

@@ -172,10 +172,8 @@ std::map<std::string, std::string> SaveRowContext(const SaveListSnapshot &state,
             context[key] = value;
     if (!facts.created.empty())
         context["createdWhen"] = CreatedWhen(facts.created);
-    // The autosave rotation's records and the record a game writes itself before a boarding ("<profile> AutoSave",
-    // interface.c AutoSaveContinue): listed as their own group, never deleted or overwritten by the player.
-    const std::string &file = state.records[index].file;
-    if (storm::save::AutosaveRecordNumber(file) != 0 || file.ends_with(" AutoSave"))
+    // The autosave records: listed as their own group, never deleted or overwritten by the player.
+    if (storm::save::IsAutosaveRecord(state.records[index].file))
         context["autosave"] = "1";
     if (entry.thumbnail)
         context["preview"] = save::thumbnail::Source(path, state.revision, entry.written);

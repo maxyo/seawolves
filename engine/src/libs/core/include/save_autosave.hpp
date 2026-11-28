@@ -8,8 +8,7 @@
 // record of the player can take one of these names (XINTERFACE::NewSaveFileName refuses it),
 // so an autosave cannot replace a save the player made.
 //
-// The name is matching data shared with the save list (ui menu_saves.cpp shows these records
-// as the autosave group) and with files written by earlier builds; it is not UI text.
+// The name is matching data shared with files written by earlier builds; it is not UI text.
 #include <array>
 #include <cstdlib>
 #include <optional>
@@ -31,6 +30,13 @@ inline int AutosaveRecordNumber(const std::string &file)
         return 0;
     const int value = std::atoi(number.c_str());
     return value >= 1 && value <= kAutosaveRecords ? value : 0;
+}
+
+// A record no player wrote: the rotation's, or the one a game writes itself before a boarding ("<profile> AutoSave",
+// interface.c AutoSaveContinue). The save list groups them and the save failure names them so.
+inline bool IsAutosaveRecord(const std::string &file)
+{
+    return AutosaveRecordNumber(file) != 0 || file.ends_with(" AutoSave");
 }
 
 inline std::string AutosaveRecordName(int number)
