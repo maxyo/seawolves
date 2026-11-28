@@ -332,8 +332,7 @@ HostImpl::~HostImpl()
         Rml::RemoveContext(context_->GetName());
     }
     ShutdownGameImages();
-    SetGameImageRenderer(nullptr);
-    ReleaseDrawTextures();
+    ResetDrawElements();
     g_pack = {};
     if (initialised_)
         Rml::Shutdown();
@@ -413,8 +412,7 @@ bool HostImpl::Start(const Config &config, std::string *error)
     registry_ = std::make_unique<ComponentRegistry>(*this);
     if (!registry_->Load(components, error))
         return false;
-    SetGameImageRenderer(backend_);
-    SetGameImageRoot(config.game_root);
+    StartGameImages(config.game_root, backend_);
 
     bool fallback = true;
     const Json fonts = pack.value("fonts", Json::array());

@@ -30,7 +30,8 @@ int ClampedTextIn(Rml::Element *root);
 // A <ui-clamp> that may step its text down (min-size): its style sheet's font size and the size it shows, in px; its
 // last fit measured the text at sizes between them (prewarm.h). False for another element or a clamp without min-size.
 bool ClampSteps(Rml::Element *element, float &base_px, float &low_px);
-void ReleaseDrawTextures();
+// Ends what the drawn elements keep between frames (the paper's fibre texture, the clamps' layout notes) with the host.
+void ResetDrawElements();
 
 // The icon atlas's table (icon-atlas/atlas.json of the UI pack); its pages are pack pictures under `dir`.
 void LoadIconPack(const Json &table, const std::string &dir);
@@ -43,9 +44,9 @@ void RegisterGameImageElement();
 // UVs (u0, v0, u1, v1) of atlas cell 1…grid² (0 = the whole texture); false when the cell
 // does not exist. `uv` may be null to only check.
 bool AtlasCell(int cell, int grid, float uv[4]);
-void SetGameImageRoot(const std::string &game_root);
-// The renderer that supplies game pictures (RenderBackend::AcquireGamePicture).
-void SetGameImageRenderer(RenderBackend *renderer);
+// The game pictures of a host's life: those under `game_root`, supplied by `renderer`
+// (RenderBackend::AcquireGamePicture); ShutdownGameImages ends them.
+void StartGameImages(const std::string &game_root, RenderBackend *renderer);
 // True once after a picture changed state: the host draws another frame.
 bool GameImagesChanged();
 // True while a picture changed state and that is not yet taken: the host must keep drawing

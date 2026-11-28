@@ -24,6 +24,8 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace storm::ui
@@ -84,23 +86,24 @@ bool ResolvePath(const std::filesystem::path &root, const std::string &relative,
     return true;
 }
 
-// Main thread only: the pictures the renderer was asked for, by texture name.
+// Main thread only: the pictures the renderer was asked for, by texture name. One lives from a host's start to its
+// end (StartGameImages, ShutdownGameImages): the next host reads its own game's pictures.ini, nothing is kept.
 class Store
 {
   public:
-    static Store &Get()
+    Store(std::string root, RenderBackend *renderer) : root_(std::move(root)), renderer_(renderer)
     {
-        static Store store;
+    }
+    static std::optional<Store> &Instance()
+    {
+        static std::optional<Store> store;
         return store;
     }
-
-    void SetRoot(const std::string &root)
+    static Store &Get()
     {
-        if (root == root_)
-            return;
-        root_ = root;
-        atlas_.reset();
-        atlas_missing_.clear();
+        if (!Instance())
+            throw std::logic_error("a game picture is drawn with no UI host running");
+        return *Instance();
     }
 
     // Resolves "GROUP/Picture" through the game's pictures.ini. False with a reason when
@@ -138,11 +141,6 @@ class Store
     bool HasRoot() const
     {
         return !root_.empty();
-    }
-
-    void SetRenderer(RenderBackend *renderer)
-    {
-        renderer_ = renderer;
     }
 
     // Each update while the renderer reports the picture as pending.
@@ -203,9 +201,10 @@ class Store
         return changed_;
     }
 
-    void Shutdown()
+    // The host gave no picture source: said once for its life.
+    bool FirstUnavailable()
     {
-        entries_.clear();
+        return !std::exchange(unavailable_logged_, true);
     }
 
   private:
@@ -217,6 +216,7 @@ class Store
     std::string root_;
     RenderBackend *renderer_ = nullptr;
     bool changed_ = false;
+    bool unavailable_logged_ = false;
 };
 
 // "left,top,right,bottom" in 0…1 with a non-empty rectangle; false for anything else.
@@ -289,9 +289,8 @@ class GameImageElement final : public ShadowedElement
                  !AtlasCell(GetAttribute<int>("cell", 0), GetAttribute<int>("grid", 4), nullptr))
             reason = "cell outside the " + std::to_string(GetAttribute<int>("grid", 4)) + "x" +
                      std::to_string(GetAttribute<int>("grid", 4)) + " atlas";
-        else if (state == State::Unavailable && !unavailable_logged_)
+        else if (state == State::Unavailable && Store::Get().FirstUnavailable())
         {
-            unavailable_logged_ = true; // once per process: the host gave no source at all
             Rml::Log::Message(Rml::Log::LT_INFO,
                               "Game pictures unavailable (no picture source or game root): placeholders stay");
         }
@@ -385,7 +384,6 @@ class GameImageElement final : public ShadowedElement
     float built_opacity_ = -1.0f;
     bool shown_ = false;
     bool logged_ = false;
-    static inline bool unavailable_logged_ = false;
 };
 
 } // namespace
@@ -414,14 +412,9 @@ void RegisterGameImageElement()
     Rml::Factory::RegisterElementInstancer("ui-game-image", &instancer);
 }
 
-void SetGameImageRoot(const std::string &game_root)
+void StartGameImages(const std::string &game_root, RenderBackend *renderer)
 {
-    Store::Get().SetRoot(game_root);
-}
-
-void SetGameImageRenderer(RenderBackend *renderer)
-{
-    Store::Get().SetRenderer(renderer);
+    Store::Instance().emplace(game_root, renderer);
 }
 
 bool GameImagesChanged()
@@ -441,7 +434,7 @@ bool GameImagesPending()
 
 void ShutdownGameImages()
 {
-    Store::Get().Shutdown();
+    Store::Instance().reset();
 }
 
 } // namespace storm::ui

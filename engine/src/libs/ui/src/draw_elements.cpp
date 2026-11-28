@@ -664,11 +664,6 @@ class PaperElement final : public DrawElement
 
 } // namespace
 
-void ReleaseDrawTextures()
-{
-    PaperElement::FibreSlot().reset();
-}
-
 namespace
 {
 
@@ -1270,6 +1265,13 @@ int ClampedTextIn(Rml::Element *root)
         if (auto *clamp = dynamic_cast<ClampElement *>(element); clamp && clamp->Cut())
             return 1;
     return 0;
+}
+
+void ResetDrawElements()
+{
+    PaperElement::FibreSlot().reset();
+    clamps_changed = false;
+    laid_out_fits.clear();
 }
 
 bool TextClampsChanged()
