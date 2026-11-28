@@ -128,7 +128,7 @@ void RegisterBuiltinBehaviors();
 class ComponentElement final : public Rml::Element
 {
   public:
-    ComponentElement(const Rml::String &tag, const ComponentSpec &spec, Services &services);
+    ComponentElement(const Rml::String &tag, const CompiledComponent &component, Services &services);
     ~ComponentElement() override;
 
     const Json &Props() const
@@ -204,6 +204,7 @@ class ComponentElement final : public Rml::Element
     void NoteLaidOut();
 
     const ComponentSpec &spec_;
+    const CompiledComponent &compiled_;
     Services &services_;
     Json props_ = Json::object();
     std::vector<std::unique_ptr<Behavior>> behaviors_;
@@ -241,6 +242,7 @@ class ComponentRegistry
     class Instancer;
     Services &services_;
     std::unordered_map<std::string, std::unique_ptr<ComponentSpec>> specs_;
+    std::unordered_map<std::string, CompiledComponent> compiled_;
     std::vector<std::unique_ptr<Rml::ElementInstancer>> instancers_;
 };
 

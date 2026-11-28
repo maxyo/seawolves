@@ -1463,4 +1463,26 @@ CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
     return TemplateParser(source, names, component).Run();
 }
 
+CompiledComponent CompileComponent(const ComponentSpec &spec,
+                                   const std::function<const ComponentSpec *(const std::string &tag)> &component)
+{
+    CompiledComponent out;
+    out.spec = &spec;
+    for (const PropSpec &prop : spec.props)
+        out.names.Add(prop.name);
+    for (const char *name : {"spec", "children", "dp", "safe"})
+        out.names.Add(name);
+    try
+    {
+        out.compiled = CompileTemplate(spec.body, out.names, component);
+        for (const auto &[name, rule] : spec.class_rules)
+            out.classes.emplace_back(name, Expression::Compile(rule, out.names, {}));
+    }
+    catch (const std::runtime_error &error)
+    {
+        throw std::runtime_error("template of <" + spec.tag + ">: " + error.what());
+    }
+    return out;
+}
+
 } // namespace storm::ui

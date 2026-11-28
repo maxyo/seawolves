@@ -760,10 +760,10 @@ void RegisterBehavior(const std::string &name, BehaviorFactory factory)
     Factories()[name] = factory;
 }
 
-ComponentElement::ComponentElement(const Rml::String &tag, const ComponentSpec &spec, Services &services)
-    : Rml::Element(tag), spec_(spec), services_(services)
+ComponentElement::ComponentElement(const Rml::String &tag, const CompiledComponent &component, Services &services)
+    : Rml::Element(tag), spec_(*component.spec), compiled_(component), services_(services)
 {
-    for (const std::string &name : spec.behaviors)
+    for (const std::string &name : spec_.behaviors)
     {
         const auto factory = Factories().find(name);
         if (factory == Factories().end())
@@ -800,7 +800,7 @@ void ComponentElement::SetProps(const Json &props)
     }
     for (const auto &item : props.items())
     {
-        const int index = spec_.names.Find(item.key());
+        const int index = compiled_.names.Find(item.key());
         if (index < 0 || static_cast<size_t>(index) >= spec_.props.size())
         {
             ReportError("unknown prop '" + item.key() + "'");
@@ -947,7 +947,7 @@ void ComponentElement::RebuildNow()
 void ComponentElement::BindNames()
 {
     const size_t props = spec_.props.size();
-    names_.assign(spec_.names.All().size(), nullptr);
+    names_.assign(compiled_.names.All().size(), nullptr);
     for (size_t i = 0; i < props; ++i)
     {
         const auto found = props_.find(spec_.props[i].name);
@@ -1017,7 +1017,7 @@ void ComponentElement::Update()
             prop_classes_.push_back(prop.attribute + "-" + ToText(value));
     }
     const std::vector<LoopFrame> no_loops;
-    for (const auto &[name, rule] : spec_.classes)
+    for (const auto &[name, rule] : compiled_.classes)
     {
         try
         {
@@ -1035,7 +1035,7 @@ void ComponentElement::Update()
         if (first)
         {
             bound_ = std::make_unique<BoundTemplate>();
-            binder.CreateAll(spec_.compiled.nodes, bound_->nodes, this, nullptr);
+            binder.CreateAll(compiled_.compiled.nodes, bound_->nodes, this, nullptr);
         }
         else
             binder.UpdateAll(bound_->nodes, changed_, this, nullptr);
@@ -1113,7 +1113,7 @@ void ComponentElement::ApplyBoxSize()
     const auto prop = spec_.constants.find("boxSize");
     if (prop == spec_.constants.end() || !prop->is_string())
         return;
-    const int index = spec_.names.Find(prop->get<std::string>());
+    const int index = compiled_.names.Find(prop->get<std::string>());
     const Json *value = index >= 0 && static_cast<size_t>(index) < spec_.props.size() ? names_[index] : nullptr;
     const float size = value && value->is_number() ? value->get<float>() : -1.0f;
     if (size == box_size_)
@@ -1219,12 +1219,12 @@ void ComponentElement::Tick(double now)
 class ComponentRegistry::Instancer final : public Rml::ElementInstancer
 {
   public:
-    Instancer(const ComponentSpec &spec, Services &services) : spec_(spec), services_(services)
+    Instancer(const CompiledComponent &component, Services &services) : component_(component), services_(services)
     {
     }
     Rml::ElementPtr InstanceElement(Rml::Element *, const Rml::String &tag, const Rml::XMLAttributes &) override
     {
-        return Rml::ElementPtr(new ComponentElement(tag, spec_, services_));
+        return Rml::ElementPtr(new ComponentElement(tag, component_, services_));
     }
     void ReleaseElement(Rml::Element *element) override
     {
@@ -1232,7 +1232,7 @@ class ComponentRegistry::Instancer final : public Rml::ElementInstancer
     }
 
   private:
-    const ComponentSpec &spec_;
+    const CompiledComponent &component_;
     Services &services_;
 };
 
@@ -1247,8 +1247,8 @@ bool ComponentRegistry::Load(const Json &pack, std::string *error)
             specs_[tag] = std::move(spec);
         }
         // Every template at once, at load: a broken one stops the start instead of failing when a screen reaches it.
-        for (auto &[tag, spec] : specs_)
-            CompileComponentSpec(*spec, [this](const std::string &nested) { return Find(nested); });
+        for (const auto &[tag, spec] : specs_)
+            compiled_.emplace(tag, CompileComponent(*spec, [this](const std::string &nested) { return Find(nested); }));
     }
     catch (const std::exception &failure)
     {
@@ -1256,9 +1256,9 @@ bool ComponentRegistry::Load(const Json &pack, std::string *error)
             *error = std::string("UI pack: ") + failure.what();
         return false;
     }
-    for (auto &[tag, spec] : specs_)
+    for (const auto &[tag, component] : compiled_)
     {
-        auto instancer = std::make_unique<Instancer>(*spec, services_);
+        auto instancer = std::make_unique<Instancer>(component, services_);
         Rml::Factory::RegisterElementInstancer(tag, instancer.get());
         instancers_.push_back(std::move(instancer));
     }

@@ -63,25 +63,6 @@ std::unique_ptr<ComponentSpec> ParseComponentSpec(const Json &entry)
     return spec;
 }
 
-void CompileComponentSpec(ComponentSpec &spec,
-                          const std::function<const ComponentSpec *(const std::string &tag)> &component)
-{
-    for (const PropSpec &prop : spec.props)
-        spec.names.Add(prop.name);
-    for (const char *name : {"spec", "children", "dp", "safe"})
-        spec.names.Add(name);
-    try
-    {
-        spec.compiled = CompileTemplate(spec.body, spec.names, component);
-        for (const auto &[name, rule] : spec.class_rules)
-            spec.classes.emplace_back(name, Expression::Compile(rule, spec.names, {}));
-    }
-    catch (const std::runtime_error &error)
-    {
-        throw std::runtime_error("template of <" + spec.tag + ">: " + error.what());
-    }
-}
-
 bool IsGenericAttribute(const std::string &attribute)
 {
     return attribute == "id" || attribute == "class" || attribute == "style" || attribute == "props" ||

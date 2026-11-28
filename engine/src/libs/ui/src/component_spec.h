@@ -1,8 +1,7 @@
 // The spec of a component: one entry of the UI pack's components.json (its props and their types, template,
-// behaviours).
+// behaviours), as read. Its template is compiled by the runtime (template.h CompileComponent), so the conversion of
+// a script's view to props reads the shapes without the UI library.
 #pragma once
-
-#include "template.h"
 
 #include <nlohmann/json.hpp>
 
@@ -44,30 +43,11 @@ struct ComponentSpec
     Json constants; // sizes and other numbers of the component ("spec" in templates)
     // Root classes computed from props: class name -> template expression.
     std::vector<std::pair<std::string, std::string>> class_rules;
-    // Compiled by CompileComponentSpec: the names its template and class rules read (the props first, in order,
-    // then spec, children, dp, safe), the template and the class rules.
-    TemplateNames names;
-    CompiledTemplate compiled;
-    std::vector<std::pair<std::string, Expression>> classes;
     const PropSpec *FindAttribute(const std::string &attribute) const;
-};
-
-// The host's facts every template reads besides the props (TemplateNames: right after the props).
-enum class SpecName
-{
-    Spec,
-    Children,
-    Dp,
-    Safe,
-    Count
 };
 
 // One entry of components.json.
 std::unique_ptr<ComponentSpec> ParseComponentSpec(const Json &entry);
-// Compiles the template and class rules of a parsed spec; `component` finds the spec of a nested tag. Throws
-// std::runtime_error naming the component and the line.
-void CompileComponentSpec(ComponentSpec &spec,
-                          const std::function<const ComponentSpec *(const std::string &tag)> &component);
 // Attributes every component accepts besides its props: id, class, style, props, slot, data-*.
 bool IsGenericAttribute(const std::string &attribute);
 } // namespace storm::ui

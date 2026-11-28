@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace storm::ui
@@ -157,6 +158,29 @@ struct CompiledTemplate
 // `component`: the spec of a <c-…>/<s-…> tag, null for any other tag. Throws std::runtime_error with the line.
 CompiledTemplate CompileTemplate(std::string_view source, TemplateNames &names,
                                  const std::function<const ComponentSpec *(const std::string &tag)> &component);
+
+// The host's facts every template reads besides the props (TemplateNames: right after the props).
+enum class SpecName
+{
+    Spec,
+    Children,
+    Dp,
+    Safe,
+    Count
+};
+
+// A component's template and class rules, compiled: the names they read (the props first, in the spec's order,
+// then spec, children, dp, safe), the template and the class rules.
+struct CompiledComponent
+{
+    const ComponentSpec *spec = nullptr;
+    TemplateNames names;
+    CompiledTemplate compiled;
+    std::vector<std::pair<std::string, Expression>> classes;
+};
+// `component` finds the spec of a nested tag. Throws std::runtime_error naming the component and the line.
+CompiledComponent CompileComponent(const ComponentSpec &spec,
+                                   const std::function<const ComponentSpec *(const std::string &tag)> &component);
 
 // The lookup behind the template helper tr('key'): the UI string of the current language
 // (pack strings/<lang>.json). The host installs it; without one tr() is a template error.
