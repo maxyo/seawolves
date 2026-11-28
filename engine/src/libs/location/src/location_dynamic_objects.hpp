@@ -12,7 +12,7 @@ class Location::DynamicObjectsLink final : public storm::location::DynamicObject
     std::optional<std::string> ReadPrefab(const std::string &model) override;
     bool ModelAlive(entid_t model) override;
     std::optional<storm::location::DynamicObjectActor> Player() override;
-    std::optional<glm::vec3> ActorPosition(DATA *actor) override;
+    std::optional<storm::location::DynamicObjectActor> Actor(DATA *actor) override;
     std::vector<storm::location::ContainerLocator> ModelLocators(entid_t model) override;
     std::optional<float> ModelFloor(entid_t model) override;
     bool Reachable(const storm::location::DynamicObjectActor &actor, glm::vec3 &point) override;

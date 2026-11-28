@@ -47,9 +47,9 @@ struct Host final : storm::location::DynamicObjectsHost
     std::vector<std::string> checkedSeats;
     std::map<entid_t, std::vector<storm::location::ContainerLocator>> locators;
 
-    std::optional<glm::vec3> ActorPosition(DATA *actor) override
+    std::optional<DynamicObjectActor> Actor(DATA *actor) override
     {
-        return actor == &hero ? std::optional(heroAt) : std::nullopt;
+        return actor == &hero ? std::optional(DynamicObjectActor{&hero, heroAt, 1.7f}) : std::nullopt;
     }
     std::vector<storm::location::ContainerLocator> ModelLocators(entid_t model) override
     {
@@ -325,6 +325,7 @@ TEST_CASE("a bench offers its nearest free seat the hero can walk to")
     CHECK(Text(context, "approach.position.z") == "0.8");
     CHECK(Text(context, "sitStart.position.z") == "0.25");
     CHECK(Text(context, "approach.reachable") == "1");
+    CHECK(Text(context, "approach.heightTolerance") == "1.7"); // the sitting character's height
     CHECK(Text(context, "sit") == "Bench_Sit");
     CHECK(Text(context, "animations.0") == "Sit_Bench_Idle01");
     CHECK(context.GetAttributeClass("actor")->GetReference() == &host.hero);

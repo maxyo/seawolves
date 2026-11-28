@@ -85,10 +85,10 @@ std::optional<storm::location::DynamicObjectActor> Location::DynamicObjectsLink:
         return std::nullopt;
     glm::vec3 position;
     player->GetPosition(position);
-    return storm::location::DynamicObjectActor{variable, position};
+    return storm::location::DynamicObjectActor{variable, position, player->GetHeight()};
 }
 
-std::optional<glm::vec3> Location::DynamicObjectsLink::ActorPosition(DATA *actor)
+std::optional<storm::location::DynamicObjectActor> Location::DynamicObjectsLink::Actor(DATA *actor)
 {
     const ATTRIBUTES *attributes = reinterpret_cast<VDATA *>(actor)->GetAClass();
     for (const auto &entry : location.supervisor.character)
@@ -96,7 +96,7 @@ std::optional<glm::vec3> Location::DynamicObjectsLink::ActorPosition(DATA *actor
         {
             glm::vec3 position;
             entry.c->GetPosition(position);
-            return position;
+            return storm::location::DynamicObjectActor{actor, position, entry.c->GetHeight()};
         }
     return std::nullopt;
 }

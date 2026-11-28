@@ -42,6 +42,9 @@ struct DynamicObjectActor
 {
     DATA *variable = nullptr;
     glm::vec3 position{};
+    // The character's height: how far above or below a point it may stand and still be there (Caribbean Legend's
+    // approach.heightTolerance is this character field).
+    float height = 1.8f;
 };
 
 // DynamicObject_SetActorNative: context.actor becomes a script reference to `actor`, a character (an object variable);
@@ -57,8 +60,8 @@ class DynamicObjectsHost
     virtual std::optional<std::string> ReadPrefab(const std::string &model) = 0;
     virtual bool ModelAlive(entid_t model) = 0;
     virtual std::optional<DynamicObjectActor> Player() = 0;
-    // Where a character the scripts name stands, when it is in this location.
-    virtual std::optional<glm::vec3> ActorPosition(DATA *actor) = 0;
+    // A character the scripts name, when it is in this location.
+    virtual std::optional<DynamicObjectActor> Actor(DATA *actor) = 0;
     // The locators of a prop's model (a seat is the locator named by its id), in the model's own space.
     virtual std::vector<ContainerLocator> ModelLocators(entid_t model) = 0;
     // The lowest world height of the prop's bounding box: the floor under the furniture.

@@ -20,10 +20,6 @@ namespace
 {
 using json = nlohmann::json;
 
-// How far above or below the approach point a sitting character may stand when it arrives: the height tolerance of
-// the reachability test of the walking patch.
-constexpr float kSeatHeightTolerance = 0.25f;
-
 // The base types of DynamicObject_ConfigureComponentsNative and the lifetime modes they choose.
 constexpr std::array<std::pair<int32_t, const char *>, 4> kLifetimeModes{
     {{0, "permanent"}, {1, "days"}, {2, "visit"}, {4, "load"}}};
@@ -604,7 +600,7 @@ bool DynamicObjects::Approach(Instance &instance, const json &config, const glm:
     ATTRIBUTES &way = Child(context, "approach");
     way.SetAttributeUseFloat("time", host_.Time());
     way.SetAttributeUseFloat("stopRadius", 0.3f);
-    way.SetAttributeUseFloat("heightTolerance", kSeatHeightTolerance);
+    way.SetAttributeUseFloat("heightTolerance", actor.height);
     SetText(way, "reachable", reachable ? "1" : "0");
     SetVector(way, "position", *approach);
     const auto start = InFrontOfSeat(world, config.value("sitStartDistance", 0.25f), floor);
@@ -652,8 +648,8 @@ bool DynamicObjects::ChooseSeat(Instance &instance, ATTRIBUTES &data, bool stand
     }
     const ATTRIBUTES *actorAttribute = data.GetAttributeClass("actor");
     DATA *variable = actorAttribute ? actorAttribute->GetReference() : nullptr;
-    const auto position = variable ? host_.ActorPosition(variable) : std::nullopt;
-    if (!position)
+    const auto found = variable ? host_.Actor(variable) : std::nullopt;
+    if (!found)
     {
         Fail(data, "actor_unavailable");
         return false;
@@ -694,7 +690,7 @@ bool DynamicObjects::ChooseSeat(Instance &instance, ATTRIBUTES &data, bool stand
 
     const float radius = !stand && !Flag(&data, "initialPlacement", false) ? config->value("distance", 2.0f)
                                                                            : std::numeric_limits<float>::max();
-    const DynamicObjectActor actor{variable, *position};
+    const DynamicObjectActor &actor = *found;
     std::optional<ATTRIBUTES> best;
     std::string bestSeat;
     float bestDistance = 0.0f;
@@ -709,7 +705,7 @@ bool DynamicObjects::ChooseSeat(Instance &instance, ATTRIBUTES &data, bool stand
                                         fmt::format("components.hasseats.state.seats.{}.offset", seat).c_str()))
             ReportNotImplemented("seat offsets of dynamic objects", kWithoutDynamicObjects);
         const glm::mat4 world = instance.transform * locator->second;
-        const glm::vec3 offset = glm::vec3(world[3]) - *position;
+        const glm::vec3 offset = glm::vec3(world[3]) - actor.position;
         const float distance = glm::dot(offset, offset);
         if (distance > radius * radius ||
             (best && (distance > bestDistance || (distance == bestDistance && seat > bestSeat))))
