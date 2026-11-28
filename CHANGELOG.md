@@ -242,6 +242,10 @@
 - Карта колонии показывает флаг её нации так, как его рисует игра: колония, чей флаг интерфейс не прочёл, больше не
   выдаётся за пиратскую. Строка товара, предмет или корабль без картинки показывают пустую рамку, а не сундук или
   люггер.
+- Грабёж: на вопрос «Потопить корабль?» вторая кнопка называется «Вернуться к грабежу» — она и возвращает к
+  грабежу; раньше она называлась «Забрать корабль», хотя корабль без капитана так не забирается.
+- Отличная карта: касание другой колонии, пока открыт лист одной, сразу открывает лист новой; раньше карта не
+  отвечала, пока лист не закрыть крестиком.
 
 **English**
 
@@ -487,6 +491,10 @@
   fight starts closed.
 - A colony on the map shows the flag the game draws for it: a colony whose flag the interface could not read is no
   longer shown as pirate. A good, item or ship without a picture shows an empty frame instead of a chest or a lugger.
+- Plunder: the second answer to «Sink the ship?» reads «Back to the plunder», which is what it does; it read «Keep the
+  ship», though a ship left without a captain is not kept that way.
+- The excellent map: a tap on another colony while one colony's sheet is open opens the new colony's sheet at once;
+  the map used to ignore it until the sheet was closed with its cross.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 
