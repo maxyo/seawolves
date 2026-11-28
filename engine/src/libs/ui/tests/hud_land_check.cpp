@@ -653,6 +653,19 @@ static void CheckCombat()
     bench.Set("combat", next);
     bench.Press("weapon");
     ExpectEqual(mount.Last(), "combat:9\t11\tweapon\ttap", "a new activity generation counts from one");
+
+    // The fight ends under a finger on the strike (the deck cleared): the wheel's control leaves the view and the
+    // finger lifts after; the lift is no error and sends the game nothing.
+    bench.Press("strike", "open", "fast");
+    bench.Explore();
+    const size_t ended = mount.commands.size();
+    const size_t errors = mount.errors.size();
+    bench.Press("strike", "commit", "fast");
+    bench.Press("strike", "cancel");
+    Expect(mount.errors.size() == errors && mount.commands.size() == ended && !mount.Has("moves"),
+           "a strike lifted after the fight ended: no error, nothing sent");
+    bench.Melee();
+    Expect(!mount.Has("moves"), "the next fight starts with the wheel closed");
 }
 
 // The hero's status from the vitals channel: effects row, potion count, officers, dash.

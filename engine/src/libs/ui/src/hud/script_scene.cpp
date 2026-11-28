@@ -374,6 +374,8 @@ class ScriptScene final : public Scene, private ScriptCall
         holds_view_ = Flag(view, "holds");
         elements_ = Json::object();
         slots_.clear();
+        for (auto &[id, control] : controls_)
+            gone_.insert_or_assign(id, std::move(control));
         controls_.clear();
         covers_.clear();
         sheet_part_.clear();
@@ -389,6 +391,8 @@ class ScriptScene final : public Scene, private ScriptCall
         if (const ViewTree *controls = Child(view, "controls"))
             for (const ViewTree &control : controls->children)
                 ParseControl(control);
+        for (const auto &[id, control] : controls_)
+            gone_.erase(id);
         std::set<std::string> lingering;
         if (const ViewTree *lingers = Child(view, "lingers"))
             for (const ViewTree &linger : lingers->children)
@@ -560,6 +564,8 @@ class ScriptScene final : public Scene, private ScriptCall
         }
         for (const auto &[id, control] : controls_)
             BindControl(id, control, view, input);
+        for (const auto &[id, control] : gone_)
+            BindGone(id, control, input);
         Lingering(view);
         if (!sheet_part_.empty())
         {
@@ -650,8 +656,7 @@ class ScriptScene final : public Scene, private ScriptCall
     void BindControl(const std::string &id, const Control &control, View &view, Input &input)
     {
         if (control.kind == "stick")
-            // Bound whether or not the view shows the stick: a finger that was on it when a sheet opened lifts later,
-            // and that release must stop the hero.
+            // Bound whether or not the view shows the stick: a finger on it when a sheet opened lifts later.
             input.On(id, "change", [this](const Event &event) { stick_.Set(event.value); });
         else if (control.kind == "wheel")
             Wheel(id, control, view, input);
@@ -677,6 +682,31 @@ class ScriptScene final : public Scene, private ScriptCall
                     holds_.Hold(up ? control.a : control.b, true);
                 else
                     holds_.Hold(control.b, false);
+            });
+    }
+
+    // A control the script no longer declares (the fight ended, a sheet opened) while a finger holds it: that finger
+    // lifts later. Its release still ends what it held in the game (the stick's walk, a held control); the wheel only
+    // closes, since nothing reaches the game before its commit and a commit of a control gone acts on nothing.
+    void BindGone(const std::string &id, const Control &control, Input &input)
+    {
+        if (control.kind == "stick")
+            input.On(id, "change", [this](const Event &) { stick_.Release(hud_.Current().gameplay); });
+        else if (control.kind == "wheel")
+            for (const char *verb : {"open", "preview", "cancel", "commit", "click"})
+                input.On(id, verb, [this](const Event &) { Turn(false, {}); });
+        else if (control.kind == "hold")
+        {
+            input.On(id, "up", [this, name = control.a](const Event &) { holds_.Hold(name, false); });
+            input.Ignore(id, "down");
+            input.Ignore(id, "click");
+        }
+        else if (control.kind == "helm")
+            input.On(id, "change", [this, control](const Event &) { holds_.Helm("", control.a, control.b); });
+        else if (control.kind == "lever")
+            input.On(id, "hold", [this, control](const Event &) {
+                holds_.Hold(control.a, false);
+                holds_.Hold(control.b, false);
             });
     }
 
@@ -1427,6 +1457,7 @@ class ScriptScene final : public Scene, private ScriptCall
     Json elements_ = Json::object();
     std::vector<Slot> slots_;
     std::map<std::string, Control> controls_;
+    std::map<std::string, Control> gone_; // declared before, not now: a finger on one still lifts (BindGone)
     std::map<std::string, std::string> covers_;
     std::set<std::string> bound_; // "<id>\n<verb>"
     std::string back_;
