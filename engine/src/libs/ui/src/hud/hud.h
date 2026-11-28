@@ -289,6 +289,9 @@ class Hud
     }
     // The new state of one channel (states.cpp).
     void Set(const HudState &state);
+    // The components of the shown scene could not draw its view (`what`: the first error): the scene is off, as one
+    // that threw (Disable).
+    void DrawFailed(const std::string &what);
     // A fixture of a channel does not have its shape: logged once per distinct text, shown in debug hosts.
     void Reject(const std::string &channel, const std::string &why);
 

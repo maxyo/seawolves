@@ -184,8 +184,8 @@ class Session
     {
         files_ = DirectoryFiles(pack.string());
         Config config;
-        config.strict_templates = true; // a template path that names nothing, a drawn tap that maps to nothing: errors
-        config.trace_actions = true;    // the flicker check: every tap's frames until they settle (ActionTrace)
+        config.check_taps = true;    // a drawn tap that maps to nothing is an error
+        config.trace_actions = true; // the flicker check: every tap's frames until they settle (ActionTrace)
         config.files = files_.get();
         config.backend = &backend_;
         config.density = 2.625f;

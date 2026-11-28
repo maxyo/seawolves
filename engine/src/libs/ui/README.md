@@ -103,14 +103,13 @@ Debuggable Android builds log frame costs every 5 s (logcat tag `StormUiFrames`)
 
 - Errors are loud: a template that does not compile (an unknown `<c-…>` tag or function, an attribute a
   component does not have, a raw `{{{ }}}` insertion) names the template and line and stops the host's start;
-  an enum value outside its options, an expression that fails and an icon missing from the pack are logged with the
-  element and, in debug builds, drawn as the striped `ui-error` marker or a crossed red icon (the pack styles
-  `.ui-debug .ui-error`; `ui-debug` is the class of every pack document's root with `Config::show_errors`).
-  Release builds only log them and draw nothing in their place. With
-  `Config::strict_templates` (host checks, captures) a template path that names nothing is an error too;
-  mark optional data in the template with `opt(r.reason)` or `or(r.id, r_i)` (`src/template.h`).
-- A screen that throws closes its interface with an error line; a HUD scene that throws is off until the
-  game mode changes. Error lines are toasts only with `Config::show_errors` (debug builds); release builds
+  a prop value of another type or outside its options, an expression that fails (a template path that names
+  nothing among them: mark optional data with `opt(r.reason)` or `or(r.id, r_i)`, `src/template.h`) are logged once
+  per component and text and mark the element `ui-error` (striped under a `ui-debug` root, `Config::show_errors`);
+  an icon missing from the pack is logged once and drawn as a crossed red box in debug builds.
+- A screen that throws, or whose components cannot draw its view (the errors above), gives its opening to the generic
+  layout with an error line (an engine-made screen's interface closes); a HUD scene that throws or cannot be drawn is
+  off until the game mode changes. Error lines are toasts only with `Config::show_errors` (debug builds); release builds
   only log them.
 - `icon-shadow: <colour> <x> <y> <sigma>` draws a drop shadow under an icon from the atlas's blurred coverage
   (the baked blur nearest to sigma at the icon's size); use it instead of `filter: drop-shadow` on icons.

@@ -13,7 +13,6 @@ static void ChangeScene(const std::string &pack, bool combat)
     std::vector<std::string> errors, commands;
     double clock = 0.0;
     Config config;
-    config.strict_templates = true; // a template path that names nothing is an error
     config.files = files.get();
     config.backend = &backend;
     config.width = 800;
@@ -86,7 +85,6 @@ static void LeftHanded(const std::string &pack)
     std::vector<std::string> errors;
     double clock = 0.0;
     Config config;
-    config.strict_templates = true; // a template path that names nothing is an error
     config.files = files.get();
     config.backend = &backend;
     config.width = 800;
@@ -141,7 +139,6 @@ static void TapAsTheAppLeaves(const std::string &pack)
     std::vector<std::string> lines;
     double clock = 0.0;
     Config config;
-    config.strict_templates = true;
     config.files = files.get();
     config.backend = &backend;
     config.width = 800;

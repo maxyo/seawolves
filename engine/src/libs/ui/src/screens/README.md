@@ -45,7 +45,7 @@ Element ids: an event carries the id of the nearest ancestor that has one. Compo
 inside lists report under the list's id with their own verb (`goods row 3`,
 `goods change 150`); header parts report under `header` (`section ship`, `subject-next`),
 its buttons as `header-back`, `header-close`; the subject sheet's rows report as `header-subject-<id>` (the row's id, its place without one).
-Debug and contract hosts (`Config::show_errors`, `strict_templates`) check every tap the drawn
+Debug and contract hosts (`Config::show_errors`, `check_taps`) check every tap the drawn
 screen offers (`Behavior::Taps`: each press part's `data-action`, `click` for the component) against
 the bindings when it is drawn: one that maps to nothing is an error then, not first when tapped
 (`tests/taps_check.cpp`; the pack contract reports it for every recorded model). The pack contract also crawls:

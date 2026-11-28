@@ -255,6 +255,12 @@ void Hud::Disable(const std::string &component, const char *where, const std::st
     changed_ = true;
 }
 
+void Hud::DrawFailed(const std::string &what)
+{
+    if (entry_)
+        Disable(entry_->name, "its view", what);
+}
+
 Hud::~Hud() = default;
 
 const ComponentSpec *Hud::Component(const std::string &layout, const std::string &element) const

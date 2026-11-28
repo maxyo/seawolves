@@ -350,7 +350,6 @@ struct PressRun
         tests_ = tests;
         pack = MakePack(tests, font);
         files = DirectoryFiles(pack.string());
-        config.strict_templates = true; // a template path that names nothing is an error
         config.files = files.get();
         config.backend = &backend;
         config.width = 800;

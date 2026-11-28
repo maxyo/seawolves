@@ -198,12 +198,10 @@ static void Expressions(const Json &scope)
                 scope, "y");
     ExpectValue("'1 25' * 1", scope, "1");
     ExpectValue("spec.h[size] + 4", scope, "48");
-    ExpectValue("str(missing) + '|' + or(missing, 'x') + '|' + len(items)", scope, "|x|2");
+    ExpectValue("str(opt(missing)) + '|' + or(missing, 'x') + '|' + len(items)", scope, "|x|2");
     // Literals of structures, for a nested component's json props.
     ExpectValue("[1, 'a', {k: on, 'q': [ ]}]", scope, R"([1.0,"a",{"k":true,"q":[]}])");
-    // Strict mode (host checks): a path that names nothing is an error unless marked optional;
-    // a branch not taken is not evaluated.
-    storm::ui::SetTemplateStrict(true);
+    // A path that names nothing is an error unless marked optional; a branch not taken is not evaluated.
     ExpectValue(
         "missing", scope,
         "<<template expression: 'missing' is not defined in 'missing' (opt() marks a path that may be missing)>>");
@@ -217,7 +215,6 @@ static void Expressions(const Json &scope)
                 "items[0].count",
                 scope, "|0||2");
     ExpectValue("off ? missing.x : 'ok'", scope, "ok");
-    storm::ui::SetTemplateStrict(false);
     ExpectValue("variant == 'primary' ? 'ink' : 'duo'", scope, "ink");
 }
 
@@ -238,7 +235,8 @@ static void LazyCalls(const Json &scope)
         asked.push_back(key);
         return "[" + key + "]";
     });
-    ExpectValue("(missing ? tr(missing) : 'plain') + '|' + (variant ? tr('a.b') : tr(missing))", scope, "plain|[a.b]");
+    ExpectValue("(opt(missing) ? tr(missing) : 'plain') + '|' + (variant ? tr('a.b') : tr(missing))", scope,
+                "plain|[a.b]");
     Expect(asked == std::vector<std::string>({"a.b"}), "template: calls only in the branch taken");
     storm::ui::SetTemplateStrings(nullptr);
 }
@@ -256,7 +254,7 @@ static void Helpers(const Json &scope)
         Json::parse(R"({"tok":{"icon":"ship","enamel":"red"},"pic":{"texture":"INTERFACES/items6","cell":3},
         "face":{"kind":"portrait","texture":"x"},"bare":{"icon":"anchor"}})");
     ExpectValue("image_kind(tok, '') + '|' + image_kind(pic, '') + '|' + image_kind(face, 'a') + '|' + "
-                "image_kind(bare, '') + '|' + image_kind(none, 'anchor') + '|' + image_kind(none, '')",
+                "image_kind(bare, '') + '|' + image_kind(opt(none), 'anchor') + '|' + image_kind(opt(none), '')",
                 images, "token|item|portrait|icon|icon|");
     ExpectValue("digits('1\xE2\x80\xAF"
                 "500') + 1",

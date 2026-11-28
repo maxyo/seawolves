@@ -833,10 +833,9 @@ void ComponentElement::SetProp(const PropSpec &prop, Json value)
 
 void ComponentElement::ReportError(const std::string &what)
 {
-    Rml::Log::Message(Rml::Log::LT_ERROR, "Component <%s> (%s): %s", GetTagName().c_str(), GetAddress().c_str(),
-                      what.c_str());
     error_ = true;
     ApplyClasses();
+    services_.ComponentError(*this, what);
 }
 
 void ComponentElement::SetLive(const std::string &name, bool on)

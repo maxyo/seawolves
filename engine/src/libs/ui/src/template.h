@@ -3,10 +3,9 @@
 // inputs changed. The syntax is described in app/mobile-ui/design/README.md.
 //
 // Expressions: literals ('text', 12, true, null, [a, b], {k: v}), paths (a.b[0].c), ! - + * / % comparisons
-// && || ?: and calls (see template.cpp for the helper list). Missing values are null; null prints nothing.
-// Strict mode (SetTemplateStrict; Config::strict_templates in host checks): a path that names nothing (an
-// unknown name, a missing key, an index past the end) is an error. A key present with null is defined. A path
-// that may be missing is marked: opt(path), or the arguments of or(path, fallback).
+// && || ?: and calls (see template.cpp for the helper list). Null prints nothing. A path that names nothing (an
+// unknown name, a missing key, an index past the end) is an error; a key present with null is defined. A path
+// that may be missing is marked: opt(path), or the arguments of or(path, fallback), and is null when missing.
 #pragma once
 
 #include <bitset>
@@ -188,8 +187,6 @@ void SetTemplateStrings(std::function<std::string(const std::string &key)> looku
 // Counts changes of the language: a component runs the programs that call tr() again when it changed.
 void TemplateStringsChanged();
 unsigned TemplateStringsRevision();
-// Strict mode for paths (see the top). The host sets it from Config::strict_templates.
-void SetTemplateStrict(bool strict);
 // One expression over a scope object (its keys are the names).
 Json EvaluateExpression(std::string_view expression, const Json &scope);
 bool Truthy(const Json &value);

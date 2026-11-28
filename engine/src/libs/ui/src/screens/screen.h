@@ -390,6 +390,9 @@ class Router
     void LeaveInterface();
     void SetState(const std::string &channel, const Json &state);
     void SetDialogue(const Dialogue &dialogue);
+    // The components of the mounted screen could not draw its view (`what`: the first error): Failed, as a throw in its
+    // build.
+    void DrawFailed(const std::string &what);
     // Builds the screen in use again now (a state consumer whose state the screen reads, e.g. titleIntent).
     void RebuildActive();
     // False when no screen is mounted or the event belongs to nothing bound.

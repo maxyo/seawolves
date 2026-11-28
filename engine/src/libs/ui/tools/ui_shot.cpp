@@ -1123,7 +1123,7 @@ int main(int argc, char **argv)
     const auto files = storm::ui::DirectoryFiles(options.pack);
     std::string error;
     storm::ui::Config config;
-    config.strict_templates = true; // a template path that names nothing is an error
+    config.check_taps = true; // a drawn tap that maps to nothing is an error
     config.files = files.get();
     config.backend = capture->Backend();
     config.show_errors = true;

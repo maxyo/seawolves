@@ -41,6 +41,9 @@ class Services
     virtual void Toast(const std::string &text, const std::string &tone) = 0;
     // Shows the long-press tooltip next to `anchor`; an empty text hides it.
     virtual void Tooltip(Rml::Element *anchor, const std::string &text, bool below) = 0;
+    // What `component`'s template, props or attributes could not do: logged once per component and text; the screen or
+    // HUD scene that shows it is wrong and is replaced by the host.
+    virtual void ComponentError(ComponentElement &component, const std::string &what) = 0;
     // Keeps Tick() coming to this component until it asks to stop.
     virtual void RequestTicks(ComponentElement &component, bool enable) = 0;
     virtual void Forget(ComponentElement &component) = 0;

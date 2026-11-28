@@ -557,6 +557,12 @@ bool Router::Consume(const std::string &channel, const char *what, const std::fu
     return !error;
 }
 
+void Router::DrawFailed(const std::string &what)
+{
+    if (screen_)
+        Failed("its view", what);
+}
+
 void Router::Failed(const std::string &where, const std::string &what)
 {
     const std::string failed = using_.empty() ? model_.screen : using_;

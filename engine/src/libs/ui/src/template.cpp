@@ -22,7 +22,6 @@ std::function<std::string(const std::string &)> &Strings()
     static std::function<std::string(const std::string &)> lookup;
     return lookup;
 }
-bool strict_paths = false;
 unsigned strings_revision = 0;
 } // namespace
 
@@ -40,11 +39,6 @@ void TemplateStringsChanged()
 unsigned TemplateStringsRevision()
 {
     return strings_revision;
-}
-
-void SetTemplateStrict(bool strict)
-{
-    strict_paths = strict;
 }
 
 bool Truthy(const Json &value)
@@ -868,11 +862,10 @@ class Evaluator
         return nullptr;
     }
 
-    // A path that names nothing: null, or in strict mode (SetTemplateStrict) an error unless the expression marks
-    // it optional (opt(), or()).
+    // A path that names nothing: an error unless the expression marks it optional (opt(), or()), then null.
     const Json *Undefined(const ExpressionNode &node) const
     {
-        if (!strict_paths || node.optional)
+        if (node.optional)
             return &None();
         throw std::runtime_error("template expression: '" + node.path + "' is not defined in '" + text_ +
                                  "' (opt() marks a path that may be missing)");

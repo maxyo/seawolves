@@ -227,7 +227,6 @@ struct Runtime
     {
         files = DirectoryFiles(pack);
         Config config;
-        config.strict_templates = true; // a template path that names nothing is an error
         config.files = files.get();
         config.backend = &backend;
         config.width = 800; // density 1: pixels are dp

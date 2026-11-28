@@ -212,6 +212,10 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     void Tooltip(Rml::Element *anchor, const std::string &text, bool below) override;
     void RequestTicks(ComponentElement &component, bool enable) override;
     void PressStarted(ComponentElement &component) override;
+    void ComponentError(ComponentElement &component, const std::string &what) override;
+    // A component error of the screen or the HUD since the last call (ComponentError) goes to the router's or the
+    // HUD's failure path; true when one did (what they mount instead is laid out next).
+    bool TakeComponentFailures();
     FrameStats &Counters() override;
     void Forget(ComponentElement &component) override;
 
@@ -297,7 +301,9 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
         size_t bytes = 0;
     } prewarm_;
     std::set<std::string> unknown_languages_, missing_strings_;
-    std::string logged_taps_; // LogTaps: the last block logged
+    std::set<std::string> component_errors_;   // "<tag>: what" logged (ComponentError)
+    std::string screen_failure_, hud_failure_; // the first component error of each since TakeComponentFailures
+    std::string logged_taps_;                  // LogTaps: the last block logged
     int taps_block_ = 0;
     std::set<std::string>
         unmapped_taps_; // said once each: screen, element id and verb drawn with no mapping (CheckTaps)

@@ -434,7 +434,6 @@ bool HostImpl::Start(const Config &config, std::string *error)
         strings_[entry.key()] = std::move(table);
     }
     SetTemplateStrings([this](const std::string &key) { return Text(key); });
-    SetTemplateStrict(config.strict_templates);
     screen_path_ = pack.value("screen", std::string());
     // The HUD: its document and where the elements of every scene sit. A pack that
     // names a layout must hold a readable one; a pack without a HUD (none shipped
@@ -706,6 +705,10 @@ bool HostImpl::Prepare(double &delay)
     // which the context asks for no further update).
     const bool animated = context_->GetNextUpdateDelay() <= 0.0;
     UpdateContext();
+    // A screen or scene its components cannot draw is replaced before this frame shows it half bound; what replaces
+    // it failing too closes the interface or turns the scene off (no third pass is needed).
+    for (int pass = 0; pass < 2 && TakeComponentFailures(); ++pass)
+        UpdateContext();
     // Scroll edges move only with a layout, a touch or a scroll in motion: the walk over
     // every element is skipped on frames without any of them.
     const bool moved = changed_ || counters_.laid_out > 0 || context_->GetNextUpdateDelay() <= 0.0;
@@ -736,7 +739,7 @@ bool HostImpl::Prepare(double &delay)
             UpdateContext();
     // Debug and contract hosts: what a game interface's screen draws for a tap is mapped (else the tap would be
     // reported only when the player makes it, and do nothing).
-    if (screen_root_ && counters_.touched > 0 && (config_.show_errors || config_.strict_templates))
+    if (screen_root_ && counters_.touched > 0 && (config_.show_errors || config_.check_taps))
         CheckTaps(screen_root_);
     if (config_.log_taps && (moved || counters_.touched > 0))
         LogTaps();
@@ -1005,6 +1008,29 @@ void HostImpl::RequestTicks(ComponentElement &component, bool enable)
         ticking_.push_back(component.GetObserverPtr());
     else if (!enable && found != ticking_.end())
         ticking_.erase(found);
+}
+
+void HostImpl::ComponentError(ComponentElement &component, const std::string &what)
+{
+    const std::string line = "Component <" + component.GetTagName() + "> (" + component.GetAddress() + "): " + what;
+    // Once per component and text: a list's rows repeat their template's error, a changing value repeats it per update.
+    if (component_errors_.insert("<" + component.GetTagName() + ">: " + what).second)
+        Error(line);
+    const Rml::ElementDocument *document = component.GetOwnerDocument();
+    if (document && document == screen_root_ && screen_failure_.empty())
+        screen_failure_ = line;
+    else if (document && document == hud_document_ && hud_failure_.empty())
+        hud_failure_ = line;
+}
+
+bool HostImpl::TakeComponentFailures()
+{
+    const std::string screen = std::exchange(screen_failure_, {}), hud = std::exchange(hud_failure_, {});
+    if (!screen.empty())
+        router_->DrawFailed(screen);
+    if (!hud.empty())
+        hud_->DrawFailed(hud);
+    return !screen.empty() || !hud.empty();
 }
 
 void HostImpl::PressStarted(ComponentElement &component)

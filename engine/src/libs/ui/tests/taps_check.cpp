@@ -66,7 +66,7 @@ struct Result
 
 // Opens the captain picker with rows drawn as `row`, then taps the second candidate.
 static Result Run(const fs::path &base, const fs::path &font, const fs::path &models, const fs::path &app_spec,
-                  const std::string &row)
+                  const std::string &row, bool drawn = true)
 {
     Result result;
     const fs::path pack = MakePack(base, font, app_spec, row);
@@ -74,8 +74,7 @@ static Result Run(const fs::path &base, const fs::path &font, const fs::path &mo
     NoBackend backend;
     double clock = 0.0;
     Config config;
-    config.strict_templates =
-        true; // the contract checks: a template path that names nothing, a tap that maps to nothing
+    config.check_taps = true; // the contract checks: a tap that maps to nothing
     config.files = files.get();
     config.backend = &backend;
     config.width = 800;
@@ -111,7 +110,8 @@ static Result Run(const fs::path &base, const fs::path &font, const fs::path &mo
     Rml::ElementList rows;
     if (Rml::Context *context = Rml::GetContext(0))
         context->GetRootElement()->QuerySelectorAll(rows, "c-row[id]");
-    Expect(rows.size() == 3, "three candidates are drawn: " + std::to_string(rows.size()));
+    if (drawn)
+        Expect(rows.size() == 3, "three candidates are drawn: " + std::to_string(rows.size()));
     if (rows.size() >= 2)
     {
         const Rml::Vector2f at = rows[1]->GetAbsoluteOffset(Rml::BoxArea::Border) + Rml::Vector2f(100.0f, 20.0f);
@@ -164,12 +164,20 @@ int main(int argc, char **argv)
     }
     Expect(begins >= 1 && rows == 3, "the tap map lists the three candidate rows, reachable: " + List(bound.taps));
 
+    // A row its template cannot draw (a path the view does not have): the screen's opening is failed once, as a throw
+    // in its build, not drawn half bound.
+    const Result unbound = Run(base, font, models, app_spec, "id=\"{{o.id}}\" action=\"{{o.nope}}\"", false);
+    Expect(unbound.errors.size() == 1 &&
+               unbound.errors[0].find("threw in its view: Component <s-shipyard>") != std::string::npos &&
+               unbound.errors[0].find("'o.nope' is not defined") != std::string::npos,
+           "a screen its components cannot draw fails its opening, once: " + List(unbound.errors));
+
     if (failures)
     {
         std::fprintf(stderr, "%d tap check(s) failed\n", failures);
         return 1;
     }
     std::printf("taps: a screen's drawn tap with no mapping is reported when drawn; the captain picker's rows select "
-                "their candidate\n");
+                "their candidate; a screen its components cannot draw fails its opening\n");
     return 0;
 }
