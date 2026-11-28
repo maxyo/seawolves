@@ -3,6 +3,8 @@
 // synthetic states, no graphics context or game files.
 #include "hud_scripts.h"
 
+#include <fstream>
+
 #include <filesystem>
 #include <unistd.h>
 
@@ -214,6 +216,63 @@ static void TapAsTheAppLeaves(const std::string &pack)
     feed("presentation", "presentation-game");
 }
 
+// A scene whose components cannot draw its view (here the pack's buttons know none of the variants the land scene
+// gives them) is off until the game mode changes, said once: not drawn half bound.
+static void Undrawable(const std::string &app_pack)
+{
+    namespace fs = std::filesystem;
+    const fs::path pack = fs::temp_directory_path() / ("storm-ui-hud-undrawable-" + std::to_string(::getpid()));
+    fs::remove_all(pack);
+    fs::copy(app_pack, pack, fs::copy_options::recursive);
+    Json components = Json::parse(std::ifstream(pack / "components.json"));
+    for (Json &component : components["components"])
+        if (component["tag"] == "c-hud-button")
+            component["props"]["variant"]["options"] = Json::array({"none-of-them"});
+    std::ofstream(pack / "components.json") << components.dump();
+    auto files = DirectoryFiles(pack.string());
+    NoBackend backend;
+    std::vector<std::string> errors;
+    double clock = 0.0;
+    Config config;
+    config.files = files.get();
+    config.backend = &backend;
+    config.width = 800;
+    config.height = 400;
+    config.clock = [&] { return clock; };
+    config.on_log = [&](LogLevel level, const std::string &line) {
+        if (level == LogLevel::Error && line.rfind("HUD ", 0) == 0)
+            errors.push_back(line);
+    };
+    std::string error;
+    auto host = Host::Create(config, &error);
+    Expect(host != nullptr, "runtime starts: " + error);
+    if (host)
+    {
+        host->SetScriptScreens(ScriptGame::Get().Screens(), &ScriptGame::Get().Port());
+        const auto feed = [&](const char *channel, const char *file) { host->SetState(channel, Text(file)); };
+        feed("presentation", "presentation-game");
+        feed("gameplay", "gameplay-explore");
+        feed("combat", "combat-explore");
+        feed("vitals", "vitals");
+        feed("worldInfo", "world-info");
+        feed("contextAction", "context-door");
+        feed("landCommands", "land-commands-idle");
+        for (int i = 0; i < 4; ++i)
+        {
+            clock += 1.0 / 60.0;
+            host->Frame();
+        }
+        Expect(errors.size() == 1 &&
+                   errors[0].find("threw in its view: Component <c-hud-button>") != std::string::npos &&
+                   errors[0].find("it is off until the game mode changes") != std::string::npos,
+               "a scene its components cannot draw is off, said once: " +
+                   (errors.empty() ? std::string("none") : errors[0] + " (" + std::to_string(errors.size()) + ")"));
+        Expect(!host->WantsTouch(90, 320), "and its controls take no touch");
+    }
+    host.reset();
+    fs::remove_all(pack);
+}
+
 int main(int argc, char **argv)
 {
     states_directory = argc > 1 ? argv[1] : "tests/states";
@@ -222,6 +281,7 @@ int main(int argc, char **argv)
     TapAsTheAppLeaves(pack);
     ChangeScene(pack, false);
     ChangeScene(pack, true);
+    Undrawable(pack);
     if (!failures)
         std::printf("HUD lifecycle checks passed\n");
     return failures ? 1 : 0;
