@@ -244,9 +244,12 @@ void TouchLegMap_Colony(aref model, aref data, aref out)
 	aref colony;
 	makearef(colony, out.colony);
 	colony.title = caption;
-	colony.nation = "";
+	// The game draws every colony it describes under a nation's flag (mapview/MapBest: the colony's nation,
+	// papermap: its mark's nation); a flag we cannot name is our read gone wrong, never a colony without one.
 	object flag;
+	colony.nation = "";
 	if (TouchLegLib_NodeImage(model, "INFO_NATION_PICTURE", &flag)) colony.nation = TouchLegLib_FlagOf(&flag);
+	if (colony.nation == "") UiError("map: the colony " + caption + " has no nation flag the interface knows");
 	object travel;
 	TouchLegLib_Lines(model, "COLONY_TRAVEL_INFO", &travel, "l");
 	TouchLegLib_Lines(model, "COLONY_TIME_INFO", &travel, "l");

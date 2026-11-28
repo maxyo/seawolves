@@ -8,7 +8,7 @@
 //   title ("" none); map.{image, base, view ("x,y" and "x0,y0,x1,y1" in the map's own units)}
 //   markers.m<k>.{image, id, x, y, w, h} (centre and size in the map's units)
 //   maps.m<k>.{key (the game's map), label, selected, can} (absent: one map); mapsTitle
-//   colony (absent: none pointed at).{title, nation (our flag icon, "" none), sub, factsTitle, facts.f<k>.{k, v},
+//   colony (absent: none pointed at).{title, nation (our flag icon), sub, factsTitle, facts.f<k>.{k, v},
 //     notes.n<k>.{text}, sections.s<k>.{title, page ("trade", "assistant"), goods.g<k>.{image, label, value (absent:
 //     none)}, lines.l<k>.{text}}}
 extern void TouchAdpMap_State(aref ui, aref out);
