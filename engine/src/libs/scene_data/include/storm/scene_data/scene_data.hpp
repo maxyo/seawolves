@@ -144,6 +144,12 @@ struct GodRays
     int quality = 0;
 };
 
+// An hour range [from, to) a point light group is lit in; from > to runs over midnight.
+struct LitHours
+{
+    float from = 0.0f, to = 24.0f;
+};
+
 struct LightingPreset
 {
     int schema_version = 0;
@@ -154,9 +160,14 @@ struct LightingPreset
     std::optional<float> sun_azimuth, sun_height;
     std::optional<GodRays> god_rays;
     std::array<std::optional<LightingHour>, 24> hours;
+    // The hours each point light group (a light type: "torchlight", "candle") is lit in, by its lower-case name.
+    std::map<std::string, std::vector<LitHours>, std::less<>> point_light_hours;
 };
 
 LightingPreset ParseLightingPreset(std::string_view json, Report &report);
+// Whether the point light group `group` (any case) is lit at `hour` (0..24): a group `hours` does not list always is.
+bool PointLightGroupLit(const std::map<std::string, std::vector<LitHours>, std::less<>> &hours, std::string_view group,
+                        float hour);
 
 // ---- tone mapping -----------------------------------------------------------------------------
 

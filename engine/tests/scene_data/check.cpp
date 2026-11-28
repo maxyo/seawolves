@@ -162,6 +162,28 @@ TEST_CASE("lighting presets")
     CHECK((preset.hours[13]->exposure == 2 && !preset.hours[13]->fog));
 }
 
+TEST_CASE("point light groups lit by the hour")
+{
+    Report report;
+    const LightingPreset preset =
+        ParseLightingPreset(R"({"point_lights": {"Candle": [], "torchlight": [{"from": 0, "to": 24}],
+        "lantern": [{"from": 19.3, "to": 6}], "lamp": [{"from": 8, "to": 10}, {"from": 20, "to": 22}]}})",
+                            report);
+    CHECK(report.errors.empty());
+    const auto &lit = preset.point_light_hours;
+    CHECK_FALSE(PointLightGroupLit(lit, "candle", 12.0f)); // listed without hours: never lit
+    CHECK(PointLightGroupLit(lit, "TORCHLIGHT", 23.9f));
+    CHECK(PointLightGroupLit(lit, "lantern", 2.0f)); // over midnight
+    CHECK_FALSE(PointLightGroupLit(lit, "lantern", 19.2f));
+    CHECK_FALSE(PointLightGroupLit(lit, "lantern", 12.0f));
+    CHECK(PointLightGroupLit(lit, "lamp", 21.0f));
+    CHECK_FALSE(PointLightGroupLit(lit, "lamp", 10.0f)); // the end hour is out
+    CHECK(PointLightGroupLit(lit, "heater", 12.0f));     // a group the preset does not list
+    Report wrong;
+    ParseLightingPreset(R"({"point_lights": {"a": [{"from": 30, "to": 2}], "b": 5}})", wrong);
+    CHECK(wrong.errors.size() == 2);
+}
+
 TEST_CASE("tone mapping")
 {
     Report report;

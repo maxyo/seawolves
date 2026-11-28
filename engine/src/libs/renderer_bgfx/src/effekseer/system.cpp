@@ -429,6 +429,12 @@ void SetPaused(InstanceId instance, bool paused)
         m->SetPaused(instance, paused);
 }
 
+void SetShown(InstanceId instance, bool shown)
+{
+    if (Effekseer::Manager *m = live(instance))
+        m->SetShown(instance, shown);
+}
+
 void SetPausedAll(bool paused)
 {
     if (sys().manager != nullptr)

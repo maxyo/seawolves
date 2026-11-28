@@ -216,6 +216,7 @@ void WEATHER::ApplyEnvironment()
     storm::environment::ApplyFlash(state_, flash_now_);
     state_.wind_gust = gust_now_;
     storm::render::SetSceneEnvironment(state_);
+    storm::environment::SetPointLightHours(place_ ? &place_->point_light_hours : nullptr, state_.hour);
     // The sun glow and the others that ask WEATHER where the light stands.
     vVectors[whv_sun_pos] = state_.light_dir * 5000.0f;
     fFloats[whf_sun_height_angle] = std::asin(std::clamp(state_.light_dir.y, -1.0f, 1.0f));

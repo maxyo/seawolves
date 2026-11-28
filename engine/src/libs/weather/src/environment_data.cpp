@@ -72,6 +72,7 @@ void LoadPresets(EnvironmentData &data, const char *folder)
         place.name = preset.preset_name;
         place.locations = preset.location_ids;
         place.hours = std::move(*hours);
+        place.point_light_hours = preset.point_light_hours;
         if (preset.sun_height && preset.sun_azimuth)
         {
             place.noon_elevation_deg = *preset.sun_height;

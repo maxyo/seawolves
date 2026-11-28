@@ -8,6 +8,7 @@
 #include "shared/layers.h"
 #include "shared/messages.h"
 #include "storm_glm.h"
+#include "storm/environment/point_lights.hpp"
 #include "v_data.h"
 #include "v_file_service.h"
 
@@ -16,6 +17,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace efk = storm::render::effekseer;
 
@@ -100,10 +102,69 @@ bool Effects::Init()
     return true;
 }
 
+namespace storm::effects
+{
+namespace
+{
+struct LightGroupTie
+{
+    std::string group;
+    bool lit = true;
+};
+std::unordered_map<efk::InstanceId, LightGroupTie> g_ties;
+
+void ShowLit(efk::InstanceId instance, bool lit)
+{
+    efk::SetShown(instance, lit);
+    efk::SetPaused(instance, !lit);
+}
+
+// Once a frame: the tied effects follow their groups; a finished effect's tie goes.
+void FollowLightGroups()
+{
+    for (auto it = g_ties.begin(); it != g_ties.end();)
+    {
+        if (!efk::Exists(it->first))
+        {
+            it = g_ties.erase(it);
+            continue;
+        }
+        if (const bool lit = environment::PointLightGroupLit(it->second.group); lit != it->second.lit)
+        {
+            it->second.lit = lit;
+            ShowLit(it->first, lit);
+        }
+        ++it;
+    }
+}
+} // namespace
+
+void TieToLightGroup(efk::InstanceId instance, std::string group)
+{
+    if (!efk::Exists(instance))
+    {
+        spdlog::error("SetEffectPointLightGroup: effect {} is not playing", instance);
+        return;
+    }
+    if (group.empty())
+    {
+        g_ties.erase(instance);
+        ShowLit(instance, true);
+        return;
+    }
+    const bool lit = environment::PointLightGroupLit(group);
+    g_ties[instance] = {std::move(group), lit};
+    ShowLit(instance, lit);
+}
+} // namespace storm::effects
+
 void Effects::ProcessStage(Stage stage, uint32_t delta)
 {
     if (stage == Stage::execute)
+    {
+        storm::effects::FollowLightGroups();
         efk::Update(static_cast<float>(delta) * 0.001f);
+    }
     else if (stage == Stage::realize)
     {
         glm::mat4 view, projection;

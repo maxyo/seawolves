@@ -52,6 +52,7 @@ void SetTargetLocation(InstanceId instance, const Vec3 &target);
 void SetSpeed(InstanceId instance, float speed);
 float GetSpeed(InstanceId instance);
 void SetPaused(InstanceId instance, bool paused);
+void SetShown(InstanceId instance, bool shown);
 void SetPausedAll(bool paused);
 void SetColor(InstanceId instance, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void SetDynamicInput(InstanceId instance, int32_t index, float value);

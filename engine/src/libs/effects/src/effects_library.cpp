@@ -133,16 +133,12 @@ uint32_t UnloadAllEffects(VS_STACK *)
     return IFUNCRESULT_OK;
 }
 
-// SetEffectPointLightGroup(handle, group): Caribbean Legend ties an effect (a torch, candle or heater flame) to a
-// group of the location's night lights; this engine draws the effect and the group's lights independently.
+// SetEffectPointLightGroup(handle, group): the effect follows the point light group (TieToLightGroup).
 uint32_t SetEffectPointLightGroup(VS_STACK *stack)
 {
-    Pop(stack);
-    Pop(stack);
-    static bool said = false;
-    if (!std::exchange(said, true))
-        spdlog::error("not implemented: SetEffectPointLightGroup; the game continues without tying the flames of "
-                      "torches, candles and heaters to the location's night light groups");
+    std::string group = Pop(stack)->GetString();
+    const int32_t handle = Pop(stack)->GetInt();
+    storm::effects::TieToLightGroup(handle, std::move(group));
     return IFUNCRESULT_OK;
 }
 

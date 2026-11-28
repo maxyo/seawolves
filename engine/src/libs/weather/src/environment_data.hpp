@@ -2,6 +2,7 @@
 // presets, read once per process.
 #pragma once
 
+#include "storm/environment/point_lights.hpp"
 #include "storm/environment/evaluate.hpp"
 
 #include <map>
@@ -18,6 +19,7 @@ struct PlacePreset
     std::vector<std::string> locations;
     environment::Hours hours;
     float noon_elevation_deg = 90.0f, azimuth_deg = 0.0f; // the sun's arc
+    environment::LitHoursByGroup point_light_hours;
 };
 
 struct EnvironmentData

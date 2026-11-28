@@ -19,6 +19,7 @@ and left out (`effect_table.hpp`).
 | `void ReloadAllEffects()` | reads every loaded effect of the table again |
 | `int UnloadEffect(id)` | releases a loaded effect: 1, or 0 when it was not loaded |
 | `void UnloadAllEffects()` | releases every effect |
+| `void SetEffectPointLightGroup(handle, group)` | the effect follows a point light group (a light type such as `torchlight`): shown and running only in the hours the place's lighting preset lists for the group (`point_lights`, scene_data `PointLightGroupLit`; a group it does not list is always lit); an empty group unties it. A torch's flame goes out by day where its lights do. |
 
 ## Messages (`MSG_EFFECT_*`, the values of the game's `Resource/shared/messages.h`)
 

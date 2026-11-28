@@ -1,6 +1,9 @@
 // Lighting presets: Resource/Lighting/*.json, one set of values per hour 0..23.
 #include "json_reader.hpp"
 
+#include "istring.hpp"
+
+#include <algorithm>
 #include <charconv>
 
 namespace storm::scene_data
@@ -157,6 +160,34 @@ LightingPreset ParseLightingPreset(std::string_view json, Report &report)
             });
             preset.god_rays = rays;
         }
+        else if (key == "point_lights")
+            reader.Object(value, path, [&](const std::string &group, const Json &v, const std::string &p) {
+                std::vector<LitHours> &lit = preset.point_light_hours[storm::AsciiLower(group)];
+                if (!v.is_array())
+                {
+                    reader.Error(p, "must be a list of hour ranges");
+                    return true;
+                }
+                for (size_t i = 0; i < v.size(); ++i)
+                {
+                    LitHours range;
+                    const std::string at = p + "[" + std::to_string(i) + "]";
+                    reader.Object(v[i], at, [&](const std::string &k, const Json &x, const std::string &q) {
+                        if (k == "from")
+                            reader.Float(x, q, range.from);
+                        else if (k == "to")
+                            reader.Float(x, q, range.to);
+                        else
+                            return false;
+                        return true;
+                    });
+                    if (range.from < 0.0f || range.from > 24.0f || range.to < 0.0f || range.to > 24.0f)
+                        reader.Error(at, "hours must be 0..24");
+                    else
+                        lit.push_back(range);
+                }
+                return true;
+            });
         else if (key == "hours")
             reader.Object(value, path, [&](const std::string &k, const Json &v, const std::string &p) {
                 int hour = -1;
@@ -176,6 +207,17 @@ LightingPreset ParseLightingPreset(std::string_view json, Report &report)
         return true;
     });
     return preset;
+}
+
+bool PointLightGroupLit(const std::map<std::string, std::vector<LitHours>, std::less<>> &hours, std::string_view group,
+                        float hour)
+{
+    const auto found = hours.find(storm::AsciiLower(std::string(group)));
+    if (found == hours.end())
+        return true;
+    return std::ranges::any_of(found->second, [hour](const LitHours &range) {
+        return range.from <= range.to ? hour >= range.from && hour < range.to : hour >= range.from || hour < range.to;
+    });
 }
 
 } // namespace storm::scene_data

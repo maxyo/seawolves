@@ -194,6 +194,7 @@ void WEATHER::PushLegacyEnvironment()
 void WEATHER::CleanUP()
 {
     storm::render::SetSkyClouds({});
+    storm::environment::SetPointLightHours(nullptr, 0.0f);
     for (const int32_t texture : cloud_textures_)
         pRS->TextureRelease(texture);
     cloud_textures_.clear();

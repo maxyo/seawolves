@@ -18,6 +18,10 @@ const EffectTable &Table();
 render::effekseer::InstanceId PlayEntry(const EffectEntry &entry, const render::effekseer::Vec3 &position,
                                         const render::effekseer::Vec3 &angles = {},
                                         const render::effekseer::Vec3 &scale = {1, 1, 1}, int32_t start_frame = 0);
+
+// Ties a played effect to a point light group (a light type: "torchlight"): it is shown and runs only while the
+// place's lighting preset has the group lit (environment::PointLightGroupLit); an empty group unties it.
+void TieToLightGroup(render::effekseer::InstanceId instance, std::string group);
 } // namespace storm::effects
 
 class Effects final : public Entity
