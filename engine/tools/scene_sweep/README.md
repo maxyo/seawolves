@@ -18,6 +18,12 @@ the caches, the logs, at the places `engine --folders` names). The engine runs a
 layers installed beside it (its techniques, the desktop script fixes; `../../README.md`, "Where files live"),
 nothing written into the game.
 
+The calls that differ between the games' scripts are in small files `run.py` joins into `scene_sweep_game.c`,
+chosen by what the game's scripts define: the main menu's new game (`menu_by_command.c`: `ProcCommand` takes
+"New"; `menu_by_node.c`: the `NEW_GAME` node) and the weather of an hour (`weather_by_name.c`: `SetNextWeather`;
+`weather_by_hour.c`: the weather follows the time, `Whr_IsStorm`). A game that begins at sea gets its first
+window closed and takes the first location the sweep enters as the place the sea scenes return to.
+
 ## Running
 
 Needs a Linux host engine configured with `-DSTORM_SCENE_SWEEP=ON`, Xvfb, Pillow, a GPU driver and VirtualGL

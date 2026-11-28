@@ -644,12 +644,15 @@ class Shard(threading.Thread):
             """A file of the copy the sweep writes: unlinked first, so the write lands in the copy."""
             return own_file(game, game / relative)
 
+        program = inventory.program_directory(game)
+        sweep_script = own(f'{program.relative_to(game)}/scene_sweep.c')
         # copy2: its modification time stays, so the scripts' cache key (path, size, time of every file) holds.
-        shutil.copy2(HERE / 'scene_sweep.c', own('PROGRAM/scene_sweep.c'))
+        shutil.copy2(HERE / 'scene_sweep.c', sweep_script)
+        game_calls = own(f'{program.relative_to(game)}/scene_sweep_game.c')
+        game_calls.write_text(''.join((HERE / name).read_text() + '\n' for name in inventory.game_calls(game)))
         if self.arguments.scenario:
             # The game's migration hook runs it while the save loads (scenarios.py): files of the copy only.
-            existing = os.listdir(inside(game, inventory.find_case_insensitive(game, 'PROGRAM/migrations')))
-            program = inventory.find_case_insensitive(game, 'PROGRAM')
+            existing = os.listdir(inside(game, inventory.find_case_insensitive(program, 'migrations')))
             for relative, text in scenarios.install(self.arguments.scenario, existing, trigger=False).items():
                 target = inside(game, program / relative)
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -658,7 +661,7 @@ class Shard(threading.Thread):
             shutil.copyfile(
                 self.context['save_identity'], own(f'{program.relative_to(game)}/interface/android_save_identity.c')
             )
-        check_own_file(game / 'PROGRAM/scene_sweep.c')
+        check_own_file(sweep_script)
         control = run / 'control'
         control.mkdir()
         (control / 'scenes.txt').write_text(''.join(scene + '\n' for scene in self.queue))

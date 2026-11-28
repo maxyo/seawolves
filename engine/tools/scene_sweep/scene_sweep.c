@@ -19,12 +19,12 @@
 //   combat:<id>    location <id> with a sword fight against a spawned enemy
 //   surface:<id>   underwater location <id> at noon, the camera looking up at the sea surface
 //   sea:<island>   sea around <island> ("sea:" is open sea)
-//   dusk:open      the open sea at sunset (19:00, the "19 Hour" weather: its sunset sky), heading towards the sun
-//   dawn:open      the open sea at sunrise (7:00, the "7 Hour" weather), heading into the low sun (in view)
-//   moon:open      the open sea at 0:30 of the 14th (the "0 Hours" weather), heading into the moon (in view)
+//   dusk:open      the open sea at sunset (19:00 and its weather: the sunset sky), heading towards the sun
+//   dawn:open      the open sea at sunrise (7:00 and its weather), heading into the low sun (in view)
+//   moon:open      the open sea at 0:30 of the 14th, heading into the moon (in view)
 //   skynight:open  clear night at 0:30 on the 14th, camera up at the moon and stars
 //   skyday:open    clear noon, camera up at the sun
-//   ship:night     the open sea at 0:00 (the "0 Hours" weather), the ship camera close and looking down at the hero's
+//   ship:night     the open sea at 0:00, the ship camera close and looking down at the hero's
 //                  ship: rigging against the water, the bow wave and the hull at the waterline
 //   battle:<island> sea around <island> with an attacking enemy ship, captured once it has fired
 //   boarding:<island> boarding of that enemy ship (deck fight)
@@ -55,6 +55,9 @@ native int SceneSweepWindowComplete();
 native string SceneSweepSave();
 native int SceneSweepLoads();
 #libriary "SceneSweepLibrary"
+
+// The calls that differ between the games' scripts: run.py joins the menu_*.c and weather_*.c that fit this game.
+#include "scene_sweep_game.c"
 
 #event_handler("frame", "SceneSweep_Frame");
 
@@ -209,6 +212,7 @@ void SceneSweep_Frame()
 		}
 		break;
 	case SS_LOAD:
+		if(ssKind == "newgame") SceneSweep_SkipVideo();	// the new game's opening video
 		if(SceneSweep_Loaded())
 		{
 			SceneSweepEvent("loaded " + ssScene);
@@ -318,8 +322,9 @@ void SceneSweep_Frame()
 	}
 }
 
-// The videos before the main menu (seadogs.c Main_LogoVideo: 80 s) are broken off the game's own way, as the phone
-// does when it starts at the main menu (CAviPlayer::SkipForMainMenuStart): ICancel, once per video.
+// The videos before the main menu (seadogs.c Main_LogoVideo: 80 s) and the new game's opening video are broken off the
+// game's own way, as the phone does when it starts at the main menu (CAviPlayer::SkipForMainMenuStart): ICancel, once
+// per video.
 int ssVideosSkipped = 0;
 int ssVideoFrames = 0;
 void SceneSweep_SkipVideo()
@@ -349,12 +354,20 @@ void SceneSweep_Finish()
 			SceneSweep_LoadSave();
 			return;
 		}
-		Event("backgroundcommand", "s", "New");
+		SceneSweep_NewGame();
 		SceneSweep_SetState(SS_NEWGAME);
 		return;
 		break;
 	case "newgame":
 		SceneSweep_PreparePlayer();
+		break;
+	case "loc":
+		if(ssHome == "")
+		{
+			ssHome = pchar.location;
+			ssHomeGroup = ssGroup;
+			ssHomeLocator = ssLocator;
+		}
 		break;
 	case "save":
 		SceneSweep_PrepareSavedPlayer();
@@ -406,14 +419,14 @@ void SceneSweep_PrepareSavedPlayer()
 void SceneSweep_PreparePlayer()
 {
 	DialogExit();
-	// A new game leaves its opening weather ("11 Hour", seadogs.c startGameWeather) pending until the next
-	// CreateWeatherEnvironment, which applies it over the location's QuestlockWeather and then clears it. The
-	// intro did not use it up, so the first scene of the sweep got it (UnderWater with day lighting instead of
-	// its "Underwater" weather). Every scene sets its own time and weather.
-	startGameWeather = false;
-	ssHome = pchar.location;
-	ssHomeGroup = pchar.location.group;
-	ssHomeLocator = pchar.location.locator;
+	SceneSweep_DropOpeningWeather();
+	// A game that begins at sea gets its home from the first location the sweep enters (SceneSweep_Finish).
+	if(!bSeaActive)
+	{
+		ssHome = pchar.location;
+		ssHomeGroup = pchar.location.group;
+		ssHomeLocator = pchar.location.locator;
+	}
 	chrDisableReloadToLocation = false;
 	LAi_SetPlayerType(pchar);
 	LAi_SetImmortal(pchar, true);
@@ -480,6 +493,11 @@ void SceneSweep_Start()
 	{
 		if(SceneSweep_NeedsLand())
 		{
+			if(ssHome == "")
+			{
+				SceneSweep_Fail("the game began at sea and no location was entered yet to return to");
+				return;
+			}
 			ssViaHome = true;
 			chrDisableReloadToLocation = false;
 			sQuestNameAfterReload = "_";
@@ -577,8 +595,15 @@ bool SceneSweep_Loaded()
 	{
 	case "menu":	return true;	break;
 	case "newgame":
-		if(FindLoadedLocation() < 0) return false;
-		return DialogRun;
+		if(FindLoadedLocation() >= 0) return DialogRun;
+		// A new game that opens at sea: its first window (a tutorial) is closed as the player's Escape closes it.
+		if(!SceneSweep_AtSea()) return false;
+		if(sti(InterfaceStates.Launched))
+		{
+			Event("exitCancel");
+			return false;
+		}
+		return true;
 		break;
 	case "save":
 		if(SceneSweepLoads() < 2) return false;	// the game refused the save: the load timeout fails the boot
@@ -671,7 +696,7 @@ bool SceneSweep_Loaded()
 			return false;
 		}
 		if(!SceneSweep_AtSea()) return false;
-		return bStorm;
+		return SceneSweep_Storm();
 		break;
 	}
 	return false;
@@ -759,8 +784,7 @@ void SceneSweep_StartLocation(int hour)
 	AddDataToCurrent(0, 0, 1);
 	SetCharacterGoods(pchar, GOOD_FOOD, 500);	// and the hero restocks, or the crew starves on the way
 	SetCurrentTime(hour, 0);
-	if(hour == 0) SetNextWeather("0 Hours");
-	else SetNextWeather("12 Hour");
+	SceneSweep_Weather(hour);
 	chrDisableReloadToLocation = false;
 	sQuestNameAfterReload = "_";
 	if(!DoQuestReloadToLocation(ssId, group, locator, "")) SceneSweep_Fail("the game refused the reload to " + group + ":" + locator);
@@ -793,17 +817,17 @@ void SceneSweep_StartSea(bool withEnemy)
 	if(ssKind == "dusk")
 	{
 		SetCurrentTime(19, 0);
-		SetNextWeather("19 Hour");
+		SceneSweep_Weather(19);
 	}
 	if(ssKind == "dawn")
 	{
 		SetCurrentTime(7, 0);
-		SetNextWeather("7 Hour");
+		SceneSweep_Weather(7);
 	}
 	if(ssKind == "ship")
 	{
 		SetCurrentTime(0, 0);
-		SetNextWeather("0 Hours");
+		SceneSweep_Weather(0);
 	}
 	if(ssKind == "wake")
 	{
@@ -817,31 +841,32 @@ void SceneSweep_StartSea(bool withEnemy)
 		Environment.date.day = 14;
 		worldMap.date.day = 14;
 		SetCurrentTime(0, 30);
-		SetNextWeather("0 Hours");
+		SceneSweep_Weather(0);
 	}
 	if(ssKind == "skynight")
 	{
 		Environment.date.day = 14;
 		worldMap.date.day = 14;
 		SetCurrentTime(0, 30);
-		SetNextWeather("0 Hours");
+		SceneSweep_Weather(0);
 	}
 	if(ssKind == "skyday")
 	{
 		SetCurrentTime(12, 0);
-		SetNextWeather("12 Hour");
+		SceneSweep_Weather(12);
 	}
 	if(ssKind != "dusk" && ssKind != "dawn" && ssKind != "skynight" && ssKind != "skyday" && ssKind != "moon" && ssKind != "ship")
 	{
 		SetCurrentTime(12, 0);
-		SetNextWeather("12 Hour");
+		SceneSweep_Weather(12);
 	}
 	string island = ssId;
 	if(ssKind == "map" || ssKind == "storm" || ssKind == "dusk" || ssKind == "dawn" || ssKind == "moon" || ssKind == "skynight" || ssKind == "skyday" || ssKind == "ship" || ssKind == "wake") island = "";
 	DeleteAttribute(&questToSeaLoginer, "");
 	QuestToSeaLogin_Prepare(0.0, 0.0, island);
 	// The open sea, the ship (and its camera) heading into the sun: sun glare, shafts, the sun road.
-	// "19 Hour": 337 degrees; "7 Hour": 160; "0 Hours": the moon at 90, 17 degrees up; "12 Hour": 150.
+	// The named weathers (weather_by_name.c) put the light at: 19:00 337 degrees; 7:00 160; 0:00 the moon at 90, 17
+	// degrees up; 12:00 150. Hourly weathers put it elsewhere: the sun may then be out of view.
 	if(ssKind == "dusk") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(337.0), 0.3);
 	if(ssKind == "dawn") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(160.0), 0.45);
 	if(ssKind == "moon") questToSeaLoginer.PlayerGroup.ay = SceneSweep_HeadingAt(Degree2Radian(90.0), 0.3);

@@ -111,8 +111,44 @@ def fingerprint(game, block, models):
     return digest.hexdigest()
 
 
+def program_directory(game):
+    """The game's script folder (PROGRAM or Program)."""
+    program = find_case_insensitive(game, 'PROGRAM')
+    if program is None:
+        raise SystemExit(f'{game} has no PROGRAM folder: not a game directory')
+    return program
+
+
+def defines(scripts, kind, name):
+    return re.search(rf'^\s*{kind}\s+{name}\s*\(', scripts, flags=re.M) is not None
+
+
+def game_calls(game):
+    """The sweep's files for the calls that differ between games, chosen by what the game's scripts define:
+    the main menu (commands by name or interface nodes) and the weather (named per hour, or made from the hour)."""
+    program = program_directory(game)
+
+    menu_script = find_case_insensitive(program, 'interface/mainmenu.c')
+    interface = strip_comments(read_script(menu_script)) if menu_script else ''
+    folder = find_case_insensitive(program, 'weather')
+    weather = ''.join(strip_comments(read_script(path)) for path in sorted(folder.glob('*.c'))) if folder else ''
+    if defines(interface, 'void', 'ProcCommand'):
+        menu = 'menu_by_command.c'
+    elif defines(interface, 'void', 'ProcessCommandExecute') and '"NEW_GAME"' in interface:
+        menu = 'menu_by_node.c'
+    else:
+        raise SystemExit(f'{game}: interface/mainmenu.c has no main menu command handler the sweep knows (ProcCommand, ProcessCommandExecute)')
+    if defines(weather, 'void', 'SetNextWeather'):
+        hours = 'weather_by_name.c'
+    elif defines(weather, 'bool', 'Whr_IsStorm'):
+        hours = 'weather_by_hour.c'
+    else:
+        raise SystemExit(f'{game}: the weather scripts define neither SetNextWeather nor Whr_IsStorm')
+    return [menu, hours]
+
+
 def locations(game):
-    program = game / 'PROGRAM'
+    program = program_directory(game)
     init = find_case_insensitive(program, 'locations/locations_init.c')
     if init is None:
         raise SystemExit(f'{program}/locations/locations_init.c not found: not a game directory')
@@ -151,9 +187,10 @@ def locations(game):
 
 
 def islands(game):
-    path = find_case_insensitive(game / 'PROGRAM', 'islands/islands_init.c')
+    program = program_directory(game)
+    path = find_case_insensitive(program, 'islands/islands_init.c')
     if path is None:
-        raise SystemExit(f'{game}/PROGRAM/islands/islands_init.c not found: not a game directory')
+        raise SystemExit(f'{program}/islands/islands_init.c not found: not a game directory')
     result = []
     for name, block in table_blocks(strip_comments(read_script(path)), 'Islands'):
         if name and name not in result:
