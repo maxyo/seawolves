@@ -309,6 +309,13 @@ class Hud
     // A command for the engine (storm_ui/hud_command.h). A `slot` marks a latest-value input (a stick position, a
     // geometry): only the newest one of a slot matters.
     void Send(Command command, const std::string &slot = {});
+    // A command the engine answers (a menu step, a map command, the sails: their `request`), numbered in the
+    // router's request ledger and sent. The scene holds what the tap shows while Answered() is Waiting or Applied.
+    template <class T> uint64_t Request(T command);
+    RequestLedger::Status Answered(uint64_t request) const
+    {
+        return router_ ? router_->Requests().Of(request) : RequestLedger::Status::None;
+    }
     void Rebuild()
     {
         changed_ = true;

@@ -366,9 +366,15 @@ class Router
     void Back();
     // The modals the view shows now, the topmost last (Bindings::Modal), and whether each has a cancel.
     std::vector<std::pair<std::string, bool>> Modals() const;
-    // The engine's answer to the widget action `request` (Host::Answer): a refusal ends the busy mark
-    // of the press at once (logged); applied, the mark ends with the model that follows.
-    void Answer(uint64_t request, bool applied, const std::string &reason);
+    // The engine's answer to the widget action or HUD command `request` (Host::Answer): a refusal ends the busy
+    // mark of the press at once (logged); applied, the mark ends with the model that follows. A HUD command's
+    // `revision` is that of its state channel that shows it.
+    void Answer(uint64_t request, bool applied, const std::string &reason, uint64_t revision = 0);
+    // What the UI asked the game and how far each request got; the HUD numbers its commands here.
+    RequestLedger &Requests()
+    {
+        return requests_;
+    }
     // Flushes throttled sends and expired pending marks; returns seconds until it must be
     // called again (a large number when idle).
     double Tick();

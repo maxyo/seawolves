@@ -72,6 +72,8 @@ class SeaOrdersState
     {
         ++revision_;
         covered_ = false;
+        for (const auto &request : pending_)
+            hudAnswers.refused(request.request, "the menu changed before the step ran");
         pending_.clear();
     }
     void update(std::string sceneKey, SeaOrdersFrame frame)
@@ -104,7 +106,7 @@ class SeaOrdersState
     {
         if (step.revision != revision_ || !frame_.available)
             return false;
-        const HudMenuRequest request{scene_, revision_, step.verb, step.id};
+        const HudMenuRequest request{scene_, revision_, step.verb, step.id, step.request};
         if (request.verb == "shown")
         {
             if (request.id != "0" && request.id != "1")

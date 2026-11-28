@@ -53,10 +53,10 @@ struct HudCommands
     }
     void operator()(const storm::ui::hud::MenuStep &step) const
     {
-        if (step.menu == storm::ui::hud::MenuStep::Menu::Land)
-            storm::android::landCommands.offer(step);
-        else
-            storm::android::seaOrders.offer(step);
+        const bool queued = step.menu == storm::ui::hud::MenuStep::Menu::Land ? storm::android::landCommands.offer(step)
+                                                                              : storm::android::seaOrders.offer(step);
+        if (!queued)
+            storm::android::hudAnswers.refused(step.request, "the menu does not take this step now");
     }
     void operator()(const storm::ui::hud::SeaQuickTap &tap) const
     {
@@ -67,7 +67,10 @@ struct HudCommands
     void operator()(const storm::ui::hud::MapCommand &command) const
     {
         if (!storm::android::worldMapHud.offer(command))
+        {
             storm::android::traceContextAction("worldmap", "rejected", storm::ui::hud::to_string(command));
+            storm::android::hudAnswers.refused(command.request, "the map does not take this command now");
+        }
     }
     void operator()(const storm::ui::hud::MapLabelArea &area) const
     {
@@ -76,7 +79,8 @@ struct HudCommands
     }
     void operator()(const storm::ui::hud::Sails &sails) const
     {
-        storm::android::shipTelemetry.offerSails(sails);
+        if (!storm::android::shipTelemetry.offerSails(sails))
+            storm::android::hudAnswers.refused(sails.request, "the sails cannot be set now");
     }
     void operator()(const storm::ui::hud::Navigator &command) const
     {

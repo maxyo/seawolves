@@ -915,12 +915,14 @@ struct SheetRun
 
     void Closing()
     {
-        // a tap that the engine never answers ends by itself
+        // a tap waits for the engine's answer, however long, and a refusal ends it at once
         bench.Frame();
         bench.Press("item-p1");
         Expect(mount.shown.sheet_props["rows"][0]["pressed"] == true, "pressed while waiting");
-        bench.Frame(1.6);
-        Expect(mount.shown.sheet_props["rows"][0]["pressed"] == false, "the wait ends after 1.5 s");
+        bench.Frame(2.0);
+        Expect(mount.shown.sheet_props["rows"][0]["pressed"] == true, "still pressed while unanswered");
+        bench.Answer(false);
+        Expect(mount.shown.sheet_props["rows"][0]["pressed"] == false, "the refusal ends the wait");
 
         // the root stage closes on the back key
         bench.Set("landCommands", Json(nullptr));
@@ -1399,6 +1401,7 @@ static void CheckTransitionFlash()
     bench.Frame();
     Expect(mount.visible && mount.errors.back().find("candidates-changed-on-refresh") != std::string::npos,
            "exact refusal releases the HUD with the native cause");
+    bench.Answer(false); // the same refusal, answering the tapped row's request
     bench.Frame(hud::Hud::kTransitionWait + 0.1);
     const size_t refusedErrors = mount.errors.size();
     receipt["serial"] = 2;

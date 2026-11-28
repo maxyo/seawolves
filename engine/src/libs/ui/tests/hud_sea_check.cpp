@@ -280,12 +280,13 @@ struct SailingRun
     {
         // the sail lever
         bench.Press("sail", "change", "1");
-        Expect(mount.Last() == "sails:9\t1" && mount.slots.back() == "sails" &&
-                   mount.shown.elements["sail"]["value"] == 1,
+        Expect(mount.Last() == "sails:9\t1" && mount.shown.elements["sail"]["value"] == 1,
                "sails to half: " + mount.Last());
         bench.Frame(2.0);
+        Expect(mount.shown.elements["sail"]["value"] == 1, "the lever holds the position until the game answers");
+        bench.Answer(false);
         Expect(mount.shown.elements["sail"]["value"] == 2,
-               "sails that did not follow: the lever returns to what the ship has");
+               "sails the game refused: the lever returns to what the ship has at once");
         bench.Press("sail", "change", "5");
         Expect(mount.Last() == "sails:9\t1", "a position the lever does not have is not sent");
     }
@@ -905,6 +906,36 @@ static void CheckOrders()
 
 // Selection and activation are separate replies. A recipient switch must cancel the
 // pending tap, even if the next ship reuses the same item id and menu stage.
+// A tapped order is drawn until the game answers it, not for a time: unanswered it holds, refused it ends at
+// once, applied it ends with the menu revision that shows it.
+static void CheckOrderAnswers()
+{
+    Bench bench;
+    FakeMount &mount = bench.mount;
+    Sail(bench);
+    bench.Feed("seaOrders", "sea-orders-root");
+    bench.Feed("gameplay", "gameplay-orders");
+    bench.Feed("ship", "ship-orders");
+    bench.Frame();
+    const auto pressed = [&] { return mount.shown.sheet_props["tiles"][1]["pressed"] == true; };
+    bench.Press("item-i1");
+    bench.Frame(2.0);
+    Expect(pressed(), "unanswered, a tapped order stays pressed however long the game takes");
+    bench.Answer(false);
+    Expect(!pressed(), "a refusal ends it at once");
+    bench.Press("item-i1");
+    Expect(mount.Last() == "orders:15\tselectItem\ti1" && pressed(), "tapped again: " + mount.Last());
+    bench.Answer(true, 16);
+    Expect(pressed(), "applied: pressed until the menu revision that shows it arrives");
+    bench.Feed("seaOrders", "sea-orders-root-selected");
+    bench.Frame();
+    Expect(mount.Last() == "orders:16\tactivateItem\ti1" && pressed(),
+           "the revision shows it selected: it is activated, still pressed: " + mount.Last());
+    const double now = mount.now;
+    bench.Answer(true, 16);
+    Expect(!pressed() && mount.now == now, "activated and shown by the menu as drawn: it ends, with no clock");
+}
+
 static void CheckOrderRecipientChange()
 {
     for (const bool explicit_switch : {false, true})
@@ -1398,6 +1429,7 @@ int main(int argc, char **argv)
     CheckBattle();
     CheckEmptyAmmo();
     CheckOrders();
+    CheckOrderAnswers();
     CheckOrderRecipientChange();
     CheckOrderNavigationCancel();
     CheckEmptyCategory();

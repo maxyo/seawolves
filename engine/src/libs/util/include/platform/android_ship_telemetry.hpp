@@ -231,8 +231,16 @@ class ShipTelemetryState
     {
         uint64_t revision;
         int detent;
+        uint64_t request; // the UI's number of the command
     };
     std::optional<SailTarget> target_;
+    // The asked position will not be set.
+    void dropTarget(const char *reason)
+    {
+        if (target_)
+            hudAnswers.refused(target_->request, reason);
+        target_.reset();
+    }
     // current / maximum as a share (to the millionth of each, as the game prints them); negative = unknown.
     static double share(const std::optional<ShipMetric> &metric)
     {
@@ -258,7 +266,7 @@ class ShipTelemetryState
         {
             revision_ = revision;
             ++hudRevision_;
-            target_.reset();
+            dropTarget("a new gameplay revision");
             forcePublish_ = true;
         }
         if (frame_ != frame)
@@ -283,14 +291,14 @@ class ShipTelemetryState
                 forcePublish_ = true;
             }
             if (!sameMain)
-                target_.reset();
+                dropTarget("another main ship");
             if (frame_.valid != frame.valid)
                 forcePublish_ = true;
             frame_ = std::move(frame);
             ++sequence_;
         }
         if (!frame_.valid)
-            target_.reset();
+            dropTarget("no ship");
     }
     const ShipTelemetryFrame &frame() const
     {
@@ -304,22 +312,38 @@ class ShipTelemetryState
     {
         return hudRevision_;
     }
+    // What the HUD's ship state counts its changes by (Ship::sequence): a sail command is answered with it.
+    uint64_t sequence() const
+    {
+        return sequence_;
+    }
     bool offerSails(const storm::ui::hud::Sails &sails)
     {
         if (sails.revision != revision_ || sails.position < 0 || sails.position > 2 || !frame_.valid ||
             !frame_.canSetSails)
             return false;
-        target_ = SailTarget{revision_, sails.position};
+        dropTarget("a newer position was asked");
+        target_ = SailTarget{revision_, sails.position, sails.request};
         return true;
     }
-    // The sail position asked for this gameplay revision; a new revision or main ship drops it (update).
-    std::optional<int> takeSails()
+    struct TakenSails
     {
-        const auto pending = target_;
+        int detent = 0;
+        uint64_t request = 0;
+    };
+    // The sail position asked for this gameplay revision; a new revision or main ship drops it (update).
+    std::optional<TakenSails> takeSails()
+    {
+        if (!target_)
+            return {};
+        if (!frame_.valid || !frame_.canSetSails)
+        {
+            dropTarget("the sails cannot be set now");
+            return {};
+        }
+        const TakenSails taken{target_->detent, target_->request};
         target_.reset();
-        if (pending && frame_.valid && frame_.canSetSails)
-            return pending->detent;
-        return {};
+        return taken;
     }
     storm::ui::hud::Ship hud() const
     {

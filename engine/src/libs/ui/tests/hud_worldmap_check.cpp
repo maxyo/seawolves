@@ -135,9 +135,21 @@ static void CheckScene()
     const size_t sent = mount.commands.size();
     bench.Press("context");
     Expect(mount.commands.size() == sent, "a second tap waits for the engine");
+    bench.Frame(2.0);
+    bench.Press("context");
+    Expect(mount.commands.size() == sent && shown["context"]["pressed"] == true,
+           "and keeps waiting while the engine has not answered, however long");
+    bench.Answer(false);
+    Expect(shown["context"]["pressed"] == false, "a refusal ends the wait at once");
+    bench.Press("context");
+    Expect(mount.commands.size() == sent + 1 && mount.Last() == "worldmap:41\tactivate\tEnterToSea",
+           "the next tap acts: " + mount.Last());
+    bench.Answer(true, 44);
+    Expect(shown["context"]["pressed"] == true, "applied: drawn until the map's revision that shows it");
 
     // an encounter: three commands in their places
     bench.Feed("worldMap", "world-map-encounter");
+    Expect(!shown["context"].value("pressed", false), "the revision that shows it ends the wait");
     Expect(mount.Has("attack") && mount.Has("storm") && shown["attack"]["variant"] == "combat" &&
                shown["storm"]["icon"] == "wind",
            "the encounter's buttons");

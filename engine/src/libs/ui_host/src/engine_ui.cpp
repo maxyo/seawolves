@@ -67,10 +67,19 @@ void EngineUi::Tick(uint64_t input_epoch)
         presentation_.live_known = true;
         PublishPresentation();
     }
+    // The HUD's requests the engine answered since the last iteration (their numbers are this host's).
+    const auto hud_answers = storm::android::hudAnswers.take();
     if (!host_)
         return; // nothing of it applies to a host that is not there (touches of no UI)
     for (auto &[request, applied, reason] : std::exchange(answers_, {}))
         host_->Answer(request, applied, reason);
+    for (const auto &answer : hud_answers)
+    {
+        TraceInput("answer", "HUD " + std::to_string(answer.request) +
+                                 (answer.applied ? " applied at " + std::to_string(answer.revision)
+                                                 : " refused: " + answer.reason));
+        host_->Answer(answer.request, answer.applied, answer.reason, answer.revision);
+    }
     const double now_ms = MonotonicMs();
     for (Step &step : work)
     {

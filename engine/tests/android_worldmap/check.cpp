@@ -200,7 +200,7 @@ int main()
     assert(!h.offer(request("EnterToEnemy")));
     assert(h.offer(request("EnterToIsland")));
     assert(!h.offer(request("EnterToIsland")));
-    assert(h.take() == "EnterToIsland");
+    assert(h.take().value().id == "EnterToIsland");
     assert(!h.take());
     auto rev = h.revision();
     f.instruments.hour = 14;
@@ -215,7 +215,7 @@ int main()
     f = complete();
     h.update(f);
     assert(h.offer(request("EnterToIsland")));
-    assert(h.take() == "EnterToIsland");
+    assert(h.take().value().id == "EnterToIsland");
     assert(h.offer(request("EnterToIsland")));
     const auto staleActivity = request("EnterToIsland");
     h.resetActivity();
@@ -224,7 +224,7 @@ int main()
     assert(!h.offer(staleActivity));
     assert(!h.take());
     h.update(complete());
-    assert(h.offer(request("EnterToIsland")) && h.take() == "EnterToIsland");
+    assert(h.offer(request("EnterToIsland")) && h.take().value().id == "EnterToIsland");
     auto before = h.revision();
     auto changed = complete();
     changed.instruments.flag.reset();

@@ -19,7 +19,6 @@ namespace storm::ui::hud
 namespace
 {
 
-constexpr double kChoiceSeconds = 1.5; // a tapped row waits this long for the engine to select it
 // The bottom hint (hud-layout.json "hint"): once what it names is gone it stays kHintHold more
 // (a source that comes straight back, a reload locator re-entered at its edge, does not make it
 // blink), then fades out for kHintLeave (pack time.toastLeave) and goes.
@@ -287,13 +286,13 @@ class LandScene final : public Scene
         if (moving_ || x_ != 0 || y_ != 0)
             SyncMove(states.gameplay);
         abilities_.Expire(now, next);
-        if (!choice_.empty() && now >= choice_until_)
+        // A tapped row stays drawn until the game answers its step: refused, or applied and its menu revision
+        // drawn (activated, or not selected after all).
+        if (!choice_.empty() && ChoiceEnded(states.land_commands))
         {
             choice_.clear();
             hud_.Rebuild();
         }
-        else if (!choice_.empty())
-            next = std::min(next, choice_until_ - now);
         if (hint_ && hint_lost_ >= 0.0)
         {
             // the lost hint's two steps: it starts to fade, then it goes
@@ -713,19 +712,32 @@ class LandScene final : public Scene
 
     // --- action sheet ---
 
-    void Commands(const std::string &verb, const std::string &id)
+    // The number of the request when the step is one of a tapped row's (Hud::Request), else 0.
+    uint64_t Commands(const std::string &verb, const std::string &id)
     {
         const LandCommands &commands = hud_.Current().land_commands;
         if (!hud_.Interactive() || !commands.known)
-            return;
+            return 0;
         if (verb == "open" ? !commands.available || commands.active : !commands.active)
-            return;
+            return 0;
         if (verb == "open" && !id.empty() &&
             std::find(commands.offered.begin(), commands.offered.end(), id) == commands.offered.end())
-            return;
+            return 0;
         if ((verb == "back" && !commands.can_back) || (verb == "close" && !commands.can_close))
-            return;
-        hud_.Send(MenuStep{MenuStep::Menu::Land, commands.revision, verb, id});
+            return 0;
+        const MenuStep step{MenuStep::Menu::Land, commands.revision, verb, id};
+        if (verb == "selectItem" || verb == "activateItem")
+            return hud_.Request(step);
+        hud_.Send(step);
+        return 0;
+    }
+
+    bool ChoiceEnded(const LandCommands &commands) const
+    {
+        const RequestLedger::Status status = hud_.Answered(choice_request_);
+        if (status == RequestLedger::Status::Shown)
+            return choice_activated_ || commands.selected != choice_;
+        return status == RequestLedger::Status::Refused || status == RequestLedger::Status::None;
     }
 
     // A tap acts at once. The engine wants the row selected first and activated second,
@@ -743,7 +755,7 @@ class LandScene final : public Scene
             return;
         choice_ = id;
         choice_stage_ = commands.stage;
-        choice_until_ = hud_.Now() + kChoiceSeconds;
+        choice_request_ = 0;
         choice_revision_ = 0;
         choice_activated_ = false;
         hud_.Rebuild();
@@ -774,7 +786,12 @@ class LandScene final : public Scene
         choice_activated_ = commands.selected == choice_;
         if (choice_activated_ && item->kind == "travel")
             hud_.ExpectLandTransition("the travel place '" + item->label + "'", commands, choice_);
-        Commands(choice_activated_ ? "activateItem" : "selectItem", choice_);
+        choice_request_ = Commands(choice_activated_ ? "activateItem" : "selectItem", choice_);
+        if (!choice_request_)
+        {
+            choice_.clear(); // not sent: nothing is on its way
+            hud_.Rebuild();
+        }
     }
 
     const char *RowIcon(const LandCommands::Item &item)
@@ -907,8 +924,8 @@ class LandScene final : public Scene
     std::optional<Hint> hint_; // the bottom hint shown
     double hint_lost_ = -1.0;  // when what it names went away (-1 = it still applies)
     bool hint_leaving_ = false;
-    std::string choice_; // tapped row on its way through select → activate
-    double choice_until_ = 0.0;
+    std::string choice_;          // tapped row on its way through select → activate
+    uint64_t choice_request_ = 0; // its step on the way (Hud::Request); 0 before the first is sent
     uint64_t choice_revision_ = 0;
     bool choice_activated_ = false;
     std::string choice_stage_;             // the menu stage the tapped row belongs to

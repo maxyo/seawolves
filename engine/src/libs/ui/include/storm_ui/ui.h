@@ -273,8 +273,9 @@ class Host
     virtual void SetDialogue(const Dialogue &dialogue) = 0;
     // The engine's answer to a widget action (Action::request): applied (its result is in the next
     // interface model) or refused, with the reason (logged). The screen's busy marks and amount
-    // drafts follow it.
-    virtual void Answer(uint64_t request, bool applied, const std::string &reason) = 0;
+    // drafts follow it. For a HUD command (hud_command.h `request`) `revision` is the revision of its
+    // state channel that shows it.
+    virtual void Answer(uint64_t request, bool applied, const std::string &reason, uint64_t revision = 0) = 0;
     // Answer to Config::on_text_request; `accepted` false = the editor was dismissed.
     virtual void SubmitText(const std::string &token, const std::string &text, bool accepted) = 0;
     // True while a game interface or a plain document covers the game.

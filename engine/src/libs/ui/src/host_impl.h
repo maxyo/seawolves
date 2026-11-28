@@ -152,7 +152,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
 
     // --- game interfaces -----------------------------------------------------------
 
-    void Answer(uint64_t request, bool applied, const std::string &reason) override;
+    void Answer(uint64_t request, bool applied, const std::string &reason, uint64_t revision) override;
     void SetInterface(const InterfaceModel &model) override;
     void SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port) override;
     void CloseInterface() override;

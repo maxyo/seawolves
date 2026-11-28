@@ -667,10 +667,18 @@ bool Router::MarkOpen(const std::string &id, const std::string &value) const
     return false;
 }
 
-void Router::Answer(uint64_t request, bool applied, const std::string &reason)
+void Router::Answer(uint64_t request, bool applied, const std::string &reason, uint64_t revision)
 {
     const auto found = outstanding_.find(request);
-    if (!requests_.Answer(request, applied) || found == outstanding_.end())
+    if (found == outstanding_.end() && hud_ && requests_.Answer(request, applied, revision))
+    {
+        // A HUD command: its scene reads the answer from the ledger.
+        if (!applied)
+            surface_.Log("HUD: the game refused request " + std::to_string(request) + ": " + reason);
+        hud_->Rebuild();
+        return;
+    }
+    if (found == outstanding_.end() || !requests_.Answer(request, applied))
     {
         // An action of an opening that is gone (its marks went with it).
         surface_.Log("answer to request " + std::to_string(request) +

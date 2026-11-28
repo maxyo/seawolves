@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "jni_text.hpp"
@@ -35,12 +36,46 @@ inline bool hudTextValid(std::string_view value)
     return true;
 }
 // A step in a HUD menu (land commands, sea orders) as the menu takes it: the HUD's command (MenuStep) with the
-// menu's scene it was taken in.
+// menu's scene it was taken in, and its number in the UI's request ledger (0: no answer wanted).
 struct HudMenuRequest
 {
     uint64_t scene = 0, revision = 0;
     std::string verb, id;
+    uint64_t request = 0;
 };
+// The engine's answers to the HUD's requests (storm_ui/hud_command.h `request`), on the game thread, until the UI
+// host takes them (engine_ui.cpp): applied with the revision of the state channel that shows it, or refused. Every
+// numbered command gets exactly one, from whoever ends it: the offer that refuses it, the step that runs it, or the
+// new revision that drops it. Request 0 wants none.
+struct HudAnswer
+{
+    uint64_t request = 0;
+    bool applied = false;
+    uint64_t revision = 0;
+    std::string reason;
+    bool operator==(const HudAnswer &) const = default;
+};
+class HudAnswers
+{
+    std::vector<HudAnswer> answers_;
+
+  public:
+    void applied(uint64_t request, uint64_t revision)
+    {
+        if (request)
+            answers_.push_back({request, true, revision, {}});
+    }
+    void refused(uint64_t request, std::string reason)
+    {
+        if (request)
+            answers_.push_back({request, false, 0, std::move(reason)});
+    }
+    std::vector<HudAnswer> take()
+    {
+        return std::exchange(answers_, {});
+    }
+};
+inline HudAnswers hudAnswers;
 // Text of the game's scripts for a HUD channel: the UI renders UTF-8 only. Text that is not is left out ("") and
 // `defect` says so (the caller logs it).
 inline std::string hudScriptText(std::string_view text, const char *&defect)

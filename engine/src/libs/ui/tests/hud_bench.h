@@ -110,6 +110,13 @@ struct Bench
         hud.OnEvent({id, verb, value});
         hud.Tick();
     }
+    // The engine's answer to the HUD's last request (Hud::Request): applied and shown by `revision` of its
+    // channel, or refused.
+    void Answer(bool applied, uint64_t revision = 0)
+    {
+        router.Answer(router.Requests().Next() - 1, applied, applied ? "" : "refused in the check", revision);
+        hud.Tick();
+    }
 };
 
 // --- the whole runtime ------------------------------------------------------------------

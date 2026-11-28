@@ -178,8 +178,8 @@ TEST_CASE("android_ship_telemetry")
     frame.ship.hull = shipMetric(49, 100);
     state.update(epoch, frame);
     REQUIRE(state.hudRevision() == stableHud);
-    REQUIRE(gameplay.revision() == epoch); // HP updates cannot cancel held inputs/action epoch
-    REQUIRE(state.takeSails() == 2);       // latest slider value wins; HP changes do not cancel it
+    REQUIRE(gameplay.revision() == epoch);          // HP updates cannot cancel held inputs/action epoch
+    REQUIRE(state.takeSails().value().detent == 2); // latest slider value wins; HP changes do not cancel it
     REQUIRE(!state.takeSails());
     REQUIRE(!state.publication(99));
     REQUIRE(state.publication(100));
@@ -202,7 +202,7 @@ TEST_CASE("android_ship_telemetry")
     frame.canSetSails = true;
     state.update(epoch, frame);
     REQUIRE(state.offerSails(request(1)));
-    REQUIRE(state.takeSails() == 1);
+    REQUIRE(state.takeSails().value().detent == 1);
     REQUIRE(state.offerSails({epoch - 1, 1}) == false); // a lever pulled on the gameplay before does not act
     state.update(epoch + 1, frame);
     REQUIRE(state.publication(42));

@@ -19,9 +19,7 @@ namespace storm::ui::hud
 namespace
 {
 
-constexpr double kChoiceSeconds = 1.5; // a tapped order waits this long for the engine to select it
-constexpr double kSailSeconds = 1.5;   // the lever shows the position asked for until the sails follow
-constexpr double kRaiseSeconds = 3.0;  // a spyglass the game has not raised / lowered by then is reported
+constexpr double kRaiseSeconds = 3.0; // a spyglass the game has not raised / lowered by then is reported
 
 using screens::StringKey;
 
@@ -291,8 +289,18 @@ class SeaScene final : public Scene
             else
                 next = std::min(next, until - now);
         };
-        expire(!choice_.empty(), choice_until_, [this] { choice_.clear(); });
-        expire(sail_target_ >= 0, sail_until_, [this] { sail_target_ = -1; });
+        // A tapped order and the asked sail position stay drawn until the game answers them: refused, or applied
+        // and shown by the state of the revision it named.
+        if (!choice_.empty() && ChoiceEnded(states.sea_orders))
+        {
+            choice_.clear();
+            hud_.Rebuild();
+        }
+        if (sail_target_ >= 0 && Answered(sail_request_))
+        {
+            sail_target_ = -1;
+            hud_.Rebuild();
+        }
         ammo_.Expire(now, next);
         abilities_.Expire(now, next);
         expire(asked_.has_value(), asked_until_, [this] {
@@ -730,9 +738,8 @@ class SeaScene final : public Scene
         if (!hud_.Interactive() || !ship || !ship->can_set_sails || position < 0 || position > 2)
             return;
         sail_target_ = position;
-        sail_until_ = hud_.Now() + kSailSeconds;
         hud_.Rebuild();
-        hud_.Send(hud::Sails{states.gameplay.revision, position}, "sails");
+        sail_request_ = hud_.Request(hud::Sails{states.gameplay.revision, position});
     }
 
     // --- minimap ---
@@ -815,15 +822,16 @@ class SeaScene final : public Scene
 
     // --- orders panel ---
 
-    void Order(const std::string &verb, const std::string &id)
+    // The number of the request when the step is one of a tapped item's (Hud::Request), else 0.
+    uint64_t Order(const std::string &verb, const std::string &id)
     {
         const SeaOrders &orders = hud_.Current().sea_orders;
         if (!hud_.Interactive() || !orders.known)
-            return;
+            return 0;
         if (verb == "open" ? !orders.available || orders.active : !orders.active)
-            return;
+            return 0;
         if ((verb == "back" && !orders.can_back) || (verb == "close" && !orders.can_close))
-            return;
+            return 0;
         if (verb == "open")
             Released(hud_.Current()); // the panel takes the screen: the helm is let go first
         if (verb == "selectRecipient" || verb == "back" || verb == "close")
@@ -833,7 +841,26 @@ class SeaScene final : public Scene
             choice_.clear();
             hud_.Rebuild();
         }
-        hud_.Send(MenuStep{MenuStep::Menu::Sea, orders.revision, verb, id});
+        const MenuStep step{MenuStep::Menu::Sea, orders.revision, verb, id};
+        if (verb == "selectItem" || verb == "activateItem")
+            return hud_.Request(step);
+        hud_.Send(step);
+        return 0;
+    }
+
+    // The game refused the tapped item's step, or applied it and its menu revision is drawn: activated, or not
+    // selected after all.
+    bool ChoiceEnded(const SeaOrders &orders) const
+    {
+        const RequestLedger::Status status = hud_.Answered(choice_request_);
+        if (status == RequestLedger::Status::Shown)
+            return choice_activated_ || orders.selected != choice_;
+        return status == RequestLedger::Status::Refused || status == RequestLedger::Status::None;
+    }
+    bool Answered(uint64_t request) const
+    {
+        const RequestLedger::Status status = hud_.Answered(request);
+        return status != RequestLedger::Status::Waiting && status != RequestLedger::Status::Applied;
     }
 
     bool SameChoiceContext(const SeaOrders &orders) const
@@ -857,7 +884,7 @@ class SeaScene final : public Scene
         choice_stage_ = orders.stage;
         choice_recipient_ = orders.recipient;
         choice_scene_ = orders.scene;
-        choice_until_ = hud_.Now() + kChoiceSeconds;
+        choice_request_ = 0;
         choice_revision_ = 0;
         choice_activated_ = false;
         hud_.Rebuild();
@@ -885,7 +912,12 @@ class SeaScene final : public Scene
         }
         choice_revision_ = orders.revision;
         choice_activated_ = orders.selected == choice_;
-        Order(choice_activated_ ? "activateItem" : "selectItem", choice_);
+        choice_request_ = Order(choice_activated_ ? "activateItem" : "selectItem", choice_);
+        if (!choice_request_)
+        {
+            choice_.clear(); // not sent: nothing is on its way
+            hud_.Rebuild();
+        }
     }
 
     const char *ItemIcon(const SeaOrders::Item &item)
@@ -1024,8 +1056,8 @@ class SeaScene final : public Scene
     };
     Step walk_;
     // sails
-    int sail_target_ = -1;
-    double sail_until_ = 0.0;
+    int sail_target_ = -1; // the position asked for, drawn until the game answers
+    uint64_t sail_request_ = 0;
     Fan ammo_{hud_, "ammo"}; // the ammunition fan
     AbilityControls abilities_{hud_};
     // the spyglass (BuildSpyglass)
@@ -1046,7 +1078,7 @@ class SeaScene final : public Scene
     // orders panel
     std::string orders_covered_;
     std::string choice_;
-    double choice_until_ = 0.0;
+    uint64_t choice_request_ = 0; // its step on the way (Hud::Request); 0 before the first is sent
     uint64_t choice_revision_ = 0;
     bool choice_activated_ = false;
     std::string choice_stage_, choice_recipient_;

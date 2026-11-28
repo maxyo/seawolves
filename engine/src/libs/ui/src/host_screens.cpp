@@ -6,10 +6,10 @@
 namespace storm::ui
 {
 
-void HostImpl::Answer(uint64_t request, bool applied, const std::string &reason)
+void HostImpl::Answer(uint64_t request, bool applied, const std::string &reason, uint64_t revision)
 {
     const auto started = std::chrono::steady_clock::now();
-    router_->Answer(request, applied, reason);
+    router_->Answer(request, applied, reason, revision);
     counters_.apply_ms += Milliseconds(started, std::chrono::steady_clock::now());
 }
 

@@ -115,7 +115,10 @@ class LandCommandsState
     {
         ++revision_;
         for (const auto &request : pending_)
+        {
             result(request, false, "invalidated-before-dispatch");
+            hudAnswers.refused(request.request, "the menu changed before the step ran");
+        }
         pending_.clear();
     }
     void update(std::string sceneKey, LandCommandsFrame frame)
@@ -157,7 +160,7 @@ class LandCommandsState
     }
     bool offer(const storm::ui::hud::MenuStep &step)
     {
-        const HudMenuRequest request{scene_, step.revision, step.verb, step.id};
+        const HudMenuRequest request{scene_, step.revision, step.verb, step.id, step.request};
         // Every refused activation gets its receipt.
         const auto refuse = [&](const char *reason) {
             result(request, false, reason);

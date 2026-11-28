@@ -325,6 +325,43 @@ void Hud::Send(Command command, const std::string &slot)
     mount_.Send(action);
 }
 
+namespace
+{
+// The state channel whose revision shows what a request did (the engine answers with that revision).
+template <class State> std::string ChannelOf()
+{
+    return HudChannel(HudState(std::in_place_type<State>));
+}
+std::string ShowingChannel(const MenuStep &step)
+{
+    return step.menu == MenuStep::Menu::Land ? ChannelOf<LandCommands>() : ChannelOf<SeaOrders>();
+}
+std::string ShowingChannel(const MapCommand &)
+{
+    return ChannelOf<WorldMap>();
+}
+std::string ShowingChannel(const hud::Sails &)
+{
+    return ChannelOf<Ship>();
+}
+} // namespace
+
+template <class T> uint64_t Hud::Request(T command)
+{
+    if (!router_)
+    {
+        Error("HUD: " + to_string(Command(command)) + " is not sent: this host has no request ledger");
+        return 0;
+    }
+    command.request = router_->Requests().Open(ShowingChannel(command));
+    const uint64_t request = command.request;
+    Send(std::move(command));
+    return request;
+}
+template uint64_t Hud::Request(MenuStep);
+template uint64_t Hud::Request(MapCommand);
+template uint64_t Hud::Request(hud::Sails);
+
 Json Hud::LogLines() const
 {
     Json lines = Json::array();

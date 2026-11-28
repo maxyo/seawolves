@@ -19,7 +19,6 @@ namespace storm::ui::hud
 namespace
 {
 
-constexpr double kTapSeconds = 1.5; // a tapped command waits this long for the engine to act
 constexpr double kPi = 3.14159265358979323846;
 // The game's day: its hourly weathers 6…20 are day, 21…5 night (weather/Init: Weathers[].Night).
 
@@ -158,19 +157,17 @@ class WorldMapScene final : public Scene
         Uncover(states);
     }
 
-    double Tick(const States &states, double now) override
+    double Tick(const States &states, double) override
     {
         double next = kIdle;
         holds_.Forget(states);
-        if (!tapped_.empty())
+        // A tapped command stays drawn until the game answers it: refused, or applied and the map's revision that
+        // shows it arrived.
+        const RequestLedger::Status answer = hud_.Answered(tapped_request_);
+        if (!tapped_.empty() && answer != RequestLedger::Status::Waiting && answer != RequestLedger::Status::Applied)
         {
-            if (now >= tapped_until_)
-            {
-                tapped_.clear();
-                hud_.Rebuild();
-            }
-            else
-                next = std::min(next, tapped_until_ - now);
+            tapped_.clear();
+            hud_.Rebuild();
         }
         return next;
     }
@@ -346,14 +343,12 @@ class WorldMapScene final : public Scene
             !(drawn_ & kCommands))
             return;
         tapped_ = id;
-        tapped_until_ = hud_.Now() + kTapSeconds;
         Released(hud_.Current());
-        hud_.Send(MapCommand{map->revision, id});
+        tapped_request_ = hud_.Request(MapCommand{map->revision, id});
         hud_.Rebuild();
     }
 
-    // What the drawn frame shows of the map's revision: a command can be tapped once it is drawn,
-    // and a new revision means the engine acted on the tapped one.
+    // What the drawn frame shows of the map's revision: a command can be tapped once it is drawn.
     void Follow(const WorldMap &map, unsigned mask)
     {
         if (!map.known || !map.available)
@@ -362,18 +357,8 @@ class WorldMapScene final : public Scene
             drawn_owner_.clear();
             return;
         }
-        const std::string owner = Owner(map);
         drawn_ = mask;
-        drawn_owner_ = owner;
-        if (owner != tapped_owner_)
-        {
-            tapped_owner_ = owner;
-            if (!tapped_.empty()) // the engine acted: a new revision
-            {
-                tapped_.clear();
-                hud_.Rebuild();
-            }
-        }
+        drawn_owner_ = Owner(map);
     }
 
     void Uncover(const States &states)
@@ -429,11 +414,11 @@ class WorldMapScene final : public Scene
     HoldSet holds_{hud_};
     bool details_ = false;
     unsigned drawn_ = 0;
-    std::string drawn_owner_, tapped_owner_;
+    std::string drawn_owner_;
     std::string label_owner_, label_geometry_;
     uint64_t label_revision_ = 0;
     std::string tapped_;
-    double tapped_until_ = 0.0;
+    uint64_t tapped_request_ = 0; // its command (Hud::Request)
 };
 
 } // namespace

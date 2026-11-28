@@ -135,6 +135,14 @@ class WorldMapHud
     WorldMapFrame frame_;
     uint64_t revision_ = 0, activity_ = 0;
     std::string pending_;
+    uint64_t pendingRequest_ = 0; // the UI's number of the pending command
+    // The pending command will not run.
+    void drop(const char *reason)
+    {
+        hudAnswers.refused(pendingRequest_, reason);
+        pending_.clear();
+        pendingRequest_ = 0;
+    }
     // What the HUD moves every frame, at the resolution it draws: the sail lever's knob is the speed
     // share (already in hundredths), the compass turns with the course and the wind arrow with the
     // wind in whole degrees, the wind force reads in hundredths, and the clock's minute moves the
@@ -191,18 +199,18 @@ class WorldMapHud
             frame.gameplayRevision != frame_.gameplayRevision || frame.availableMask() != frame_.availableMask())
         {
             ++revision_;
-            pending_.clear();
+            drop("the map changed before the command ran");
         }
         frame_ = std::move(frame);
         if (!frame_.available)
-            pending_.clear();
+            drop("the map is gone");
     }
     // A new UI host: what the old one drew or tapped does not count.
     void resetActivity()
     {
         ++activity_;
         ++revision_;
-        pending_.clear();
+        drop("a new UI host");
     } // revision_ >= 1 once available
     const WorldMapFrame &frame() const
     {
@@ -243,19 +251,29 @@ class WorldMapHud
             if (offered.id == command.id)
             {
                 pending_ = offered.id;
+                pendingRequest_ = command.request;
                 return true;
             }
         return false;
     }
-    std::optional<std::string> take()
+    struct Taken
     {
-        auto result = std::move(pending_);
-        pending_.clear();
-        if (result.empty() || !frame_.available || !frame_.commandsReady)
+        std::string id;
+        uint64_t request = 0;
+    };
+    std::optional<Taken> take()
+    {
+        if (pending_.empty())
             return {};
+        if (!frame_.available || !frame_.commandsReady)
+        {
+            drop("the map's commands are not ready");
+            return {};
+        }
+        Taken taken{std::exchange(pending_, {}), std::exchange(pendingRequest_, 0)};
         // Consume the lease before native callbacks can change or destroy a scene.
         ++revision_;
-        return result;
+        return taken;
     }
     storm::ui::hud::WorldMap hud() const
     {

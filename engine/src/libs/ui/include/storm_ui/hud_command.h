@@ -1,6 +1,9 @@
 // What the HUD asks of the engine: one struct per command, handed to the engine in the same process with the
 // action that produced it (Action::command). The revisions in them are those of the state the HUD drew the
-// control from (hud_state.h): a tap on a HUD the engine has changed since does not act.
+// control from (hud_state.h): a tap on a HUD the engine has changed since does not act. A command with a
+// `request` number (the UI's request ledger, src/requests.h) is answered by the engine: applied with the revision
+// of the state that shows it, or refused; the HUD holds the tapped choice until then. Continuous controls (sticks,
+// held buttons) are not requests.
 //
 // to_string gives each one line of text for logs, captures and checks ("hold:9\tShip_TurnLeft\t1\t40").
 #pragma once
@@ -72,6 +75,7 @@ struct MenuStep
     Menu menu = Menu::Land;
     uint64_t revision = 0;
     std::string verb, id;
+    uint64_t request = 0;
     bool operator==(const MenuStep &) const = default;
 };
 
@@ -88,6 +92,7 @@ struct MapCommand
 {
     uint64_t revision = 0;
     std::string id;
+    uint64_t request = 0;
     bool operator==(const MapCommand &) const = default;
 };
 
@@ -105,6 +110,7 @@ struct Sails
 {
     uint64_t revision = 0;
     int position = 0;
+    uint64_t request = 0;
     bool operator==(const Sails &) const = default;
 };
 

@@ -49,6 +49,17 @@ void Hud::Set(const HudState &state)
                 states.spyglass = value;
         },
         state);
+    // The revisions the engine answers the HUD's requests with (Hud::Request).
+    if (!router_)
+        return;
+    if (const auto *orders = std::get_if<SeaOrders>(&state))
+        router_->Requests().Arrived(HudChannel(state), orders->revision);
+    else if (const auto *commands = std::get_if<LandCommands>(&state))
+        router_->Requests().Arrived(HudChannel(state), commands->revision);
+    else if (const auto *map = std::get_if<WorldMap>(&state))
+        router_->Requests().Arrived(HudChannel(state), map->revision);
+    else if (const auto *ship = std::get_if<Ship>(&state))
+        router_->Requests().Arrived(HudChannel(state), ship->sequence);
 }
 
 namespace

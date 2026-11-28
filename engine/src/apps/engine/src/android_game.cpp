@@ -218,6 +218,18 @@ void AndroidGame::BeforeFrame()
     }
 }
 
+namespace
+{
+// A HUD request the frame ran: applied, shown by `revision` of its channel (the state just published), or refused.
+void Answer(uint64_t request, bool applied, uint64_t revision)
+{
+    if (applied)
+        android::hudAnswers.applied(request, revision);
+    else
+        android::hudAnswers.refused(request, "the game did not carry it out");
+}
+} // namespace
+
 void AndroidGame::AfterFrame()
 {
     const bool gameplayReady = Live();
@@ -230,9 +242,10 @@ void AndroidGame::AfterFrame()
         android::publishSeaOrders();
         if (const auto request = android::seaOrders.take())
         {
-            android::executeSeaOrder(*request);
+            const bool executed = android::executeSeaOrder(*request);
             android::refreshSeaOrders(android::seaOrdersReady(gameplayReady));
             android::publishSeaOrders();
+            Answer(request->request, executed, android::seaOrders.revision());
         }
     }
     {
@@ -243,9 +256,10 @@ void AndroidGame::AfterFrame()
         android::publishLandCommands();
         if (const auto request = android::landCommands.take())
         {
-            android::executeLandCommand(*request);
+            const bool executed = android::executeLandCommand(*request);
             android::refreshLandCommands(android::landCommandsReady(gameplayReady));
             android::publishLandCommands();
+            Answer(request->request, executed, android::landCommands.revision());
         }
     }
     STORM_PROFILE_ZONE("HUD adapter: gameplay, combat, map, ship");
@@ -269,20 +283,25 @@ void AndroidGame::AfterFrame()
     android::publishWorldMapHud();
     if (const auto command = android::worldMapHud.take())
     {
-        android::executeWorldMapCommand(*command);
+        const bool executed = android::executeWorldMapCommand(command->id);
         android::worldMapHud.update(android::readWorldMapFrame(gameplay_, gameplayReady));
         android::publishWorldMapHud();
+        Answer(command->request, executed, android::worldMapHud.revision());
     }
     android::shipTelemetry.update(gameplay_.revision(),
                                   android::readShipFrame(gameplay_, android::seaOrders.frame().active));
     android::publishShipTelemetry();
-    if (const auto detent = android::shipTelemetry.takeSails())
-        if (android::applyShipSailTarget(gameplay_, *detent))
+    if (const auto sails = android::shipTelemetry.takeSails())
+    {
+        const bool set = android::applyShipSailTarget(gameplay_, sails->detent);
+        if (set)
         {
             android::shipTelemetry.update(gameplay_.revision(),
                                           android::readShipFrame(gameplay_, android::seaOrders.frame().active));
             android::publishShipTelemetry();
         }
+        Answer(sails->request, set, android::shipTelemetry.sequence());
+    }
     if (core_private->initialized() && SDL_GetTicks() - lastCinematicCheck_ >= 200)
     {
         lastCinematicCheck_ = SDL_GetTicks();
