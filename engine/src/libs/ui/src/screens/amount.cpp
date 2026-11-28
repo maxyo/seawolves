@@ -7,15 +7,6 @@
 namespace storm::ui::screens
 {
 
-int Amount(Bindings &bindings, std::string_view text, const char *what, int none)
-{
-    if (const std::optional<int> value = ParseAmount(text))
-        return *value;
-    bindings.ErrorOnce(std::string("amount:") + what, std::string("no number in ") + what + " ('" + std::string(text) +
-                                                          "'): shown as " + std::to_string(none));
-    return none;
-}
-
 namespace
 {
 

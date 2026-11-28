@@ -1,0 +1,861 @@
+{
+ "$comment": "The purchase list's script on recorded models: the props its view gives the pack screen and the calls its events make; \"game\": the globals of the game's interface in that state (the fixture game holds the orders and holds of the recorded ships).",
+ "cases": [
+  {
+   "name": "list",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 5,
+    "screen": "goodstransfer",
+    "widgets": [
+     {
+      "node": "EXIT_BTN",
+      "type": "button",
+      "label": "EXIT_BTN",
+      "index": -1,
+      "order": 1
+     },
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "order": 0,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Ядра",
+      "index": 0,
+      "order": 1000,
+      "rowId": "Balls",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Balls"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Провиант",
+      "index": 1,
+      "order": 1001,
+      "rowId": "Food",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Food"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Ром",
+      "index": 2,
+      "order": 1002,
+      "rowId": "Rum",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Rum"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Порох",
+      "index": 3,
+      "order": 1003,
+      "rowId": "Powder",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Powder"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Доски",
+      "index": 4,
+      "order": 1004,
+      "rowId": "Planks",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Planks"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Парусина",
+      "index": 5,
+      "order": 1005,
+      "rowId": "Sailcloth",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Sailcloth"
+        }
+       }
+      ],
+      "actions": [
+       "order"
+      ]
+     },
+     {
+      "node": "CHECK_BUYCONTRABAND",
+      "type": "check",
+      "label": "Закупать контрабанду",
+      "value": "0",
+      "index": 0,
+      "order": 5000
+     },
+     {
+      "node": "BTN_CHOOSESHIP_LEFT",
+      "type": "button",
+      "label": "BTN_CHOOSESHIP_LEFT",
+      "index": -1,
+      "order": 6000
+     },
+     {
+      "node": "BTN_CHOOSESHIP_RIGHT",
+      "type": "button",
+      "label": "BTN_CHOOSESHIP_RIGHT",
+      "index": -1,
+      "order": 6001
+     }
+    ]
+   },
+   "props": {
+    "actions": [],
+    "contraband": {
+     "disabled": false,
+     "label": "Закупать контрабанду",
+     "on": false,
+     "reason": ""
+    },
+    "list": {
+     "cols": [
+      {
+       "icon": "capacity",
+       "label": "<goods.hold>"
+      },
+      {
+       "icon": "scroll",
+       "label": "<goods.order>"
+      }
+     ],
+     "label": "<goods.good>",
+     "rows": [
+      {
+       "cells": [
+        "400",
+        "600"
+       ],
+       "disabled": false,
+       "id": "Balls",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Balls"
+       },
+       "name": "Ядра",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "160",
+        "200"
+       ],
+       "disabled": false,
+       "id": "Food",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Food"
+       },
+       "name": "Провиант",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "60",
+        "100"
+       ],
+       "disabled": false,
+       "id": "Rum",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Rum"
+       },
+       "name": "Ром",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "300",
+        "400"
+       ],
+       "disabled": false,
+       "id": "Powder",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Powder"
+       },
+       "name": "Порох",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "—",
+        "0"
+       ],
+       "disabled": false,
+       "id": "Planks",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Planks"
+       },
+       "name": "Доски",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "12",
+        "0"
+       ],
+       "disabled": false,
+       "id": "Sailcloth",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Sailcloth"
+       },
+       "name": "Парусина",
+       "reason": "",
+       "selected": false
+      }
+     ]
+    },
+    "primary": null,
+    "subject": {
+     "label": "Люггер 'Ласточка'",
+     "list": false,
+     "next": true,
+     "prev": false,
+     "sub": "1 <common.of> 2"
+    },
+    "title": "<goods.title>"
+   },
+   "events": [
+    [
+     "contraband",
+     "change",
+     "1"
+    ],
+    [
+     "header",
+     "subject-next",
+     ""
+    ],
+    [
+     "header-back",
+     "click",
+     ""
+    ],
+    [
+     "goods",
+     "row",
+     "Powder"
+    ],
+    [
+     "goods",
+     "change",
+     "520"
+    ]
+   ],
+   "calls": [
+    "send CHECK_BUYCONTRABAND#0 toggle 1",
+    "hold",
+    "send BTN_CHOOSESHIP_RIGHT press ",
+    "hold",
+    "back EXIT_BTN",
+    "rebuild",
+    "rebuild"
+   ],
+   "after": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "deal-cancel",
+      "label": "<common.cancel>",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "contraband": {
+     "disabled": false,
+     "label": "Закупать контрабанду",
+     "on": false,
+     "reason": ""
+    },
+    "list": {
+     "cols": [
+      {
+       "icon": "capacity",
+       "label": "<goods.hold>"
+      },
+      {
+       "icon": "scroll",
+       "label": "<goods.order>"
+      }
+     ],
+     "label": "<goods.good>",
+     "rows": [
+      {
+       "cells": [
+        "400",
+        "600"
+       ],
+       "disabled": false,
+       "id": "Balls",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Balls"
+       },
+       "name": "Ядра",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "160",
+        "200"
+       ],
+       "disabled": false,
+       "id": "Food",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Food"
+       },
+       "name": "Провиант",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "60",
+        "100"
+       ],
+       "disabled": false,
+       "id": "Rum",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Rum"
+       },
+       "name": "Ром",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "300",
+        "520"
+       ],
+       "disabled": false,
+       "id": "Powder",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Powder"
+       },
+       "name": "Порох",
+       "reason": "",
+       "selected": true,
+       "q": {
+        "all": false,
+        "disabled": false,
+        "label": "<goods.order>",
+        "max": 1000,
+        "min": 0,
+        "reason": "",
+        "summary": "-",
+        "unit": "<goods.pieces>",
+        "value": 520
+       }
+      },
+      {
+       "cells": [
+        "—",
+        "0"
+       ],
+       "disabled": false,
+       "id": "Planks",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Planks"
+       },
+       "name": "Доски",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "12",
+        "0"
+       ],
+       "disabled": false,
+       "id": "Sailcloth",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Sailcloth"
+       },
+       "name": "Парусина",
+       "reason": "",
+       "selected": false
+      }
+     ]
+    },
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "label": "<goods.save> 520",
+     "reason": "",
+     "sub": ""
+    },
+    "subject": {
+     "label": "Люггер 'Ласточка'",
+     "list": false,
+     "next": true,
+     "prev": false,
+     "sub": "1 <common.of> 2"
+    },
+    "title": "<goods.title>"
+   }
+  },
+  {
+   "name": "game-window",
+   "game": {
+    "iCurGoodIndex": 33
+   },
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 2,
+    "screenRevision": 5,
+    "screen": "goodstransfer",
+    "widgets": [
+     {
+      "node": "EXIT_BTN",
+      "type": "button",
+      "label": "EXIT_BTN",
+      "index": -1,
+      "order": 1
+     },
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "order": 0,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Ядра",
+      "index": 0,
+      "order": 1000,
+      "enabled": false,
+      "rowId": "Balls",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Balls"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Провиант",
+      "index": 1,
+      "order": 1001,
+      "enabled": false,
+      "rowId": "Food",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Food"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Ром",
+      "index": 2,
+      "order": 1002,
+      "enabled": false,
+      "rowId": "Rum",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Rum"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Порох",
+      "index": 3,
+      "order": 1003,
+      "enabled": false,
+      "rowId": "Powder",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Powder"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Доски",
+      "index": 4,
+      "order": 1004,
+      "enabled": false,
+      "rowId": "Planks",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Planks"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_GOODS_ORDER",
+      "type": "choice",
+      "label": "Парусина",
+      "index": 5,
+      "order": 1005,
+      "enabled": false,
+      "rowId": "Sailcloth",
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Sailcloth"
+        }
+       }
+      ]
+     },
+     {
+      "node": "CHECK_BUYCONTRABAND",
+      "type": "check",
+      "label": "Закупать контрабанду",
+      "value": "0",
+      "index": 0,
+      "order": 5000
+     },
+     {
+      "node": "BTN_CHOOSESHIP_LEFT",
+      "type": "button",
+      "label": "BTN_CHOOSESHIP_LEFT",
+      "index": -1,
+      "order": 6000
+     },
+     {
+      "node": "BTN_CHOOSESHIP_RIGHT",
+      "type": "button",
+      "label": "BTN_CHOOSESHIP_RIGHT",
+      "index": -1,
+      "order": 6001
+     },
+     {
+      "node": "TG_GOODS_CAPTION",
+      "type": "text",
+      "label": "Закупка товаров",
+      "index": -1,
+      "order": 7000
+     },
+     {
+      "node": "TG_GOODS_INFO",
+      "type": "text",
+      "label": "Порох.",
+      "index": -1,
+      "order": 7001
+     },
+     {
+      "node": "TG_EDIT",
+      "type": "edit",
+      "value": "400",
+      "index": -1,
+      "order": 7002
+     },
+     {
+      "node": "TG_ADD_BUTTON",
+      "type": "button",
+      "label": "TG_ADD_BUTTON",
+      "index": -1,
+      "order": 7003
+     },
+     {
+      "node": "TG_REMOVE_BUTTON",
+      "type": "button",
+      "label": "TG_REMOVE_BUTTON",
+      "index": -1,
+      "order": 7004
+     },
+     {
+      "node": "TG_OK_BUTTON",
+      "type": "button",
+      "label": "Ok",
+      "index": -1,
+      "order": 7005
+     },
+     {
+      "node": "TG_CANCEL_BUTTON",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1,
+      "order": 7006
+     },
+     {
+      "node": "TG_GOODS_PICTURE",
+      "type": "image",
+      "index": -1,
+      "order": 7007,
+      "images": [
+       {
+        "source": {
+         "kind": "atlas",
+         "group": "GOODS",
+         "image": "Powder"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "props": {
+    "actions": [],
+    "contraband": {
+     "disabled": false,
+     "label": "Закупать контрабанду",
+     "on": false,
+     "reason": ""
+    },
+    "list": {
+     "cols": [
+      {
+       "icon": "capacity",
+       "label": "<goods.hold>"
+      },
+      {
+       "icon": "scroll",
+       "label": "<goods.order>"
+      }
+     ],
+     "label": "<goods.good>",
+     "rows": [
+      {
+       "cells": [
+        "400",
+        "600"
+       ],
+       "disabled": true,
+       "id": "Balls",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Balls"
+       },
+       "name": "Ядра",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "160",
+        "200"
+       ],
+       "disabled": true,
+       "id": "Food",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Food"
+       },
+       "name": "Провиант",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "60",
+        "100"
+       ],
+       "disabled": true,
+       "id": "Rum",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Rum"
+       },
+       "name": "Ром",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "300",
+        "400"
+       ],
+       "disabled": true,
+       "id": "Powder",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Powder"
+       },
+       "name": "Порох",
+       "reason": "",
+       "selected": true,
+       "q": {
+        "all": false,
+        "disabled": true,
+        "label": "<goods.order>",
+        "max": 1000,
+        "min": 0,
+        "reason": "",
+        "summary": "-",
+        "unit": "<goods.pieces>",
+        "value": 400
+       }
+      },
+      {
+       "cells": [
+        "—",
+        "0"
+       ],
+       "disabled": true,
+       "id": "Planks",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Planks"
+       },
+       "name": "Доски",
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "12",
+        "0"
+       ],
+       "disabled": true,
+       "id": "Sailcloth",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Sailcloth"
+       },
+       "name": "Парусина",
+       "reason": "",
+       "selected": false
+      }
+     ]
+    },
+    "primary": null,
+    "subject": {
+     "label": "Люггер 'Ласточка'",
+     "list": false,
+     "next": true,
+     "prev": false,
+     "sub": "1 <common.of> 2"
+    },
+    "title": "<goods.title>"
+   },
+   "events": [
+    [
+     "header-back",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "send TG_CANCEL_BUTTON press ",
+    "hold"
+   ]
+  }
+ ]
+}

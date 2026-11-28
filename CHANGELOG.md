@@ -24,6 +24,8 @@
   заголовку.
 - Верфь: покупка и продажа корабля снова делаются удержанием кнопки — удержание отвечает «да» на вопрос игры о цене
   одним жестом; любой другой вопрос игры показывается как раньше.
+- Закупка товаров казначеем рисуется скриптом интерфейса: заказ, трюм и корабль берутся из самой игры, а меню «⋯»
+  больше не перечисляет картинки товаров.
 - Окно игры без своего экрана (раскладка по умолчанию) теперь рисуется скриптом интерфейса: кнопки «‹ ›»
   листают, а не занимают место кнопок окна (на выборе героя кнопки начала игры больше не прячутся под «⋯»),
   вкладки-картинки нажимаются, таблица рядом с другими блоками не теряет строк после касания, а пустое окно
@@ -233,6 +235,8 @@
   stray touch no longer moves cargo; the goods columns sort again by a tap on their head.
 - Shipyard: buying and selling a ship is again a hold of its button, which answers the game's price question with
   yes in one gesture; any other question of the game is shown as before.
+- The treasurer's purchase list is drawn by the interface's script: the orders, the hold and the ship come from the
+  game itself, and the «⋯» menu no longer lists the goods' pictures.
 - A game window without a screen of its own (the default layout) is drawn by the interface's script now: its ‹ ›
   buttons switch rather than take the window's buttons' places (the hero choice's start buttons no longer hide under
   «⋯»), picture tabs can be pressed, a table beside other blocks keeps its rows after a tap, and an empty window says

@@ -4,15 +4,11 @@
 // from the mouse position over that picture. This exports the list as rows and lets the UI open
 // a good's window the way the script expects:
 //   choice ANDROID_GOODS_ORDER  one row per good: label = the good's name (the collection's own
-//          text), rowId = the good id, value "1" = its amount window is open, images[0] = the atlas
-//          cell GOODS/<id>, context: order (amount to buy, PChar.TransferGoods), hold (in the
-//          selected ship's hold, absent when the script has no cargo record); actions ["order"]
+//          text), rowId = the good id, images[0] = the atlas cell GOODS/<id>; actions ["order"]
 //          while the list window is active.
-//   text   ANDROID_GOODS_SHIP  label = the selected ship (the script's CurCompanion string),
-//          context: index (iCurCompanion, 0-based), count (ships that can take part).
-// The collection's own GOODS_NAMES texts are dropped: the rows carry them. A fact the script does
-// not have is named in the ship widget's unavailableReason (goods-transfer:missing=...).
-// an order of `<good id>=<amount>` sets a good's standing order the way a player does
+// The collection's own GOODS_NAMES texts are dropped: the rows carry them. Everything else the touch
+// interface reads from the game's scripts itself (the orders, the ship, the open window).
+// An order of `<good id>=<amount>` sets a good's standing order the way a player does
 // it: the engine places the interface's mouse position over the good's icon (GoodsIconClick),
 // raises the script's ShowItemsWindow, enters the amount in TG_EDIT and presses TG_OK_BUTTON.
 #include "mobile_widget.hpp"
@@ -25,53 +21,28 @@ namespace storm::mobile
 struct GoodsTransferGood
 {
     std::string id, name;
-    int order = 0;
-    std::optional<int> hold;
 };
 
-struct GoodsTransferSource
-{
-    std::vector<GoodsTransferGood> goods; // in the script's order
-    std::string open;                     // id of the good whose window is open, "" = none
-    bool listActive = false;              // the list window takes input (no amount window)
-    std::string ship;
-    std::optional<int> shipIndex, shipCount;
-    std::vector<std::string> missing;
-};
-
-inline void CollectGoodsTransfer(const GoodsTransferSource &source, std::vector<MobileWidget> &widgets)
+// The goods in the script's order; listActive: the list window takes input (no amount window).
+inline void CollectGoodsTransfer(const std::vector<GoodsTransferGood> &goods, bool listActive,
+                                 std::vector<MobileWidget> &widgets)
 {
     widgets.erase(
         std::remove_if(widgets.begin(), widgets.end(), [](const MobileWidget &w) { return w.node == "GOODS_NAMES"; }),
         widgets.end());
     int index = 0;
-    for (const auto &good : source.goods)
+    for (const auto &good : goods)
     {
-        MobileWidget row{"ANDROID_GOODS_ORDER", "choice",         good.name, good.id == source.open ? "1" : "0", index,
-                         1000 + index,          source.listActive};
+        MobileWidget row{"ANDROID_GOODS_ORDER", "choice", good.name, "", index, 1000 + index, listActive};
         row.rowId = good.id;
         ImageRef image;
         image.source = {"atlas", "GOODS", good.id, {}, {}, -1};
         row.images.push_back(image);
-        row.context["order"] = std::to_string(good.order);
-        if (good.hold)
-            row.context["hold"] = std::to_string(*good.hold);
-        if (source.listActive)
+        if (listActive)
             row.actions.push_back("order");
         widgets.push_back(std::move(row));
         ++index;
     }
-    MobileWidget ship{"ANDROID_GOODS_SHIP", "text", source.ship, "", -1, 999, true};
-    if (source.shipIndex)
-        ship.context["index"] = std::to_string(*source.shipIndex);
-    if (source.shipCount)
-        ship.context["count"] = std::to_string(*source.shipCount);
-    std::string missing;
-    for (const auto &fact : source.missing)
-        missing += (missing.empty() ? "" : ",") + fact;
-    if (!missing.empty())
-        ship.unavailableReason = "goods-transfer:missing=" + missing;
-    widgets.push_back(std::move(ship));
 }
 
 // The good and amount of an order action's value `<id>=<amount>`.

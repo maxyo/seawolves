@@ -21,11 +21,6 @@ struct Event;
 // "100%" → 100). nullopt when the text holds no digit ("", "-", "—") or the number does not fit an int.
 std::optional<int> ParseAmount(std::string_view text);
 
-// The number of a caption or cell the game always writes with one: ParseAmount, else `none` and an error line,
-// once per screen and `what` (the caption's widget or column), since the screen then shows a figure it made up.
-// A text that may hold no number by design reads ParseAmount itself and says what its absence means.
-int Amount(Bindings &bindings, std::string_view text, const char *what, int none = 0);
-
 // The number an event of the pack carries (a row index, a slider value, a tab) into `out`: ParseNumber, else an
 // error line naming the event and false, and the handler does nothing.
 bool EventNumber(Bindings &bindings, const Event &event, int &out);

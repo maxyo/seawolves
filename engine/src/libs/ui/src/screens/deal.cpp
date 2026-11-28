@@ -90,8 +90,8 @@ Json AmountDraft::Buttons(Bindings &bindings, int low, int high, Labels labels, 
     const int delta = value - origin_;
     if (!open_ || (!sent_ && delta == 0))
         return Json();
-    const std::string label = bindings.Text(delta > 0 ? labels.more : labels.less) + " " +
-                              std::to_string(labels.absolute ? value : std::abs(delta));
+    const std::string label =
+        bindings.Text(delta > 0 ? labels.more : labels.less) + " " + std::to_string(std::abs(delta));
     if (sent_)
     {
         // Sent, the game's answer not here yet: the same button waits, and a second press sends nothing (nor
@@ -113,36 +113,12 @@ Json AmountDraft::Buttons(Bindings &bindings, int low, int high, Labels labels, 
                 {"busy", bindings.Pending("primary")}};
 }
 
-void AmountDraft::CancelAction(Bindings &bindings, Json &actions)
-{
-    if (!open_ || sent_ || target_ == origin_)
-        return;
-    actions.push_back(Json{{"id", "deal-cancel"},
-                           {"label", bindings.Text("common.cancel")},
-                           {"variant", "secondary"},
-                           {"disabled", false},
-                           {"reason", ""},
-                           {"busy", false}});
-    bindings.On("deal-cancel", "", [this, &bindings](const Event &) {
-        target_ = origin_;
-        bindings.Rebuild();
-    });
-}
-
 void AmountDraft::Sent(int value, Bindings &bindings)
 {
     target_ = value;
     sent_ = true;
     sent_at_ = bindings.Now();
     floor_ = bindings.RequestFloor();
-}
-
-bool AmountDraft::Drop()
-{
-    if (!open_ || sent_ || target_ == origin_)
-        return false;
-    target_ = origin_;
-    return true;
 }
 
 } // namespace storm::ui::screens

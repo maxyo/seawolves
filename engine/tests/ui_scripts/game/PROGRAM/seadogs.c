@@ -1,6 +1,6 @@
 // A game's program as the touch interface's scripts meet one: an interface table filled by Main, globals, functions
 // and an event handler.
-object Interfaces[40];
+object Interfaces[41];
 object GameInterface;
 int GameValue;
 string GameName;
@@ -39,7 +39,7 @@ int GetGoodQuantityByWeight(int good, int weight)
 
 // The goods of a trade window's rows by name, and the open store's trade type of each (store.c's refStore, a global
 // of that interface in the game): good 4 is imported here, good 5 exported, the others plain.
-object Goods[30];
+object Goods[40];
 object TestStore;
 ref refStore;
 
@@ -475,6 +475,7 @@ void Main()
 	Interfaces[37].IniFile = "RESOURCE\INI\INTERFACES\selectCharacter.ini";
 	Interfaces[38].IniFile = "RESOURCE\INI\INTERFACES\save_load.ini";
 	Interfaces[39].IniFile = "RESOURCE\INI\INTERFACES\option_screen.ini";
+	Interfaces[40].IniFile = "RESOURCE\INI\INTERFACES\GoodsTransfer.ini";
 	// The goods of a trade window's rows: row n shows good n - 1.
 	string row;
 	for (int n = 1; n <= 30; n++)
@@ -583,6 +584,7 @@ void Main()
 	TestTransfer();
 	TestTable();
 	TestGoodsPictures();
+	TestGoodsOrder();
 	GameValue = 7;
 	GameName = "kept";
 }
@@ -927,3 +929,42 @@ void TestGoodsPictures()
 
 // The land HUD entity of the games of this engine (its HUD adapter attaches to a game that has it).
 object objLandInterface;
+
+// What the purchase list adapter reads of the game: the window's companion slot and open good (globals of
+// GoodsTransfer.c), the squadron's slots TestHero.TestCompanions.c<slot> (the Characters index; absent: none) and their
+// count; the cases give the orders (TestHero.TransferGoods.<ship>.<good>), the holds and the CurCompanion string.
+int iCurCompanion;
+int iCurGoodIndex;
+
+int GetCompanionIndex(ref chr, int slot)
+{
+	string at = "c" + slot;
+	if (!CheckAttribute(chr, "TestCompanions." + at)) return -1;
+	return sti(chr.TestCompanions.(at));
+}
+
+int GetCompanionQuantity(ref chr)
+{
+	aref slots;
+	makearef(slots, chr.TestCompanions);
+	return GetAttributesNum(slots);
+}
+
+// The recorded models' ships (ui/tests/models/goodstransfer*.json): the flagship Characters[3] and a brig; their
+// holds; the good the window opens, Goods[33].
+void TestGoodsOrder()
+{
+	TestHero.TestCompanions.c0 = 3;
+	TestHero.TestCompanions.c1 = 20;
+	Characters[3].Ship.Cargo.Goods.Balls = 400;
+	Characters[3].Ship.Cargo.Goods.Food = 160;
+	Characters[3].Ship.Cargo.Goods.Rum = 60;
+	Characters[3].Ship.Cargo.Goods.Powder = 300;
+	Characters[3].Ship.Cargo.Goods.Sailcloth = 12;
+	TestHero.TransferGoods.Marsh.Balls = 600;
+	TestHero.TransferGoods.Marsh.Food = 200;
+	TestHero.TransferGoods.Marsh.Rum = 100;
+	TestHero.TransferGoods.Marsh.Powder = 400;
+	GameInterface.Strings.CurCompanion = "Люггер 'Ласточка'";
+	Goods[33].name = "Powder";
+}

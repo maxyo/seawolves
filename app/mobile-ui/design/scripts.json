@@ -71,6 +71,7 @@
     {"file": "interface/touch/contracts/settings.c"},
     {"file": "interface/touch/contracts/hud.c"},
     {"file": "interface/touch/contracts/dialogue.c"},
+    {"file": "interface/touch/contracts/goods_order.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -847,6 +848,25 @@
       "provides": ["adapter:hud"]
     },
     {
+      "file": "interface/touch/lineages/legacy/goods_order.c",
+      "requires": [
+        "fn:GetMainCharacter/0", "fn:GetCompanionIndex/2", "fn:GetCompanionQuantity/1", "var:Characters", "var:Goods",
+        "var:GameInterface"
+      ],
+      "provides": ["adapter:goods_order"],
+      "binds": [
+        {
+          "capability": "goods_order",
+          "interface": "goodstransfer",
+          "nodes": [
+            ["EXIT_BTN", "button", true], ["ANDROID_GOODS_ORDER", "choice"], ["BTN_CHOOSESHIP_LEFT", "button"],
+            ["BTN_CHOOSESHIP_RIGHT", "button"], ["CHECK_BUYCONTRABAND", "check"], ["MAIN_BACK", "image"],
+            ["TG_*", "text|edit|button|image"], ["GOODS_ICONS", "map|map_marker"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -1058,6 +1078,11 @@
       "file": "interface/touch/screens/dialogue.c",
       "uses": ["adapter:dialogue"],
       "screens": [{"capability": "dialogue", "component": "s-dialogue"}]
+    },
+    {
+      "file": "interface/touch/screens/goods_order.c",
+      "uses": ["adapter:goods_order"],
+      "screens": [{"capability": "goods_order", "component": "s-goods-order"}]
     },
     {
       "file": "interface/touch/hud/land.c",

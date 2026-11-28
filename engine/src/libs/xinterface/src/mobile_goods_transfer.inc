@@ -12,52 +12,23 @@ std::optional<int> GoodsInteger(const char *name){
 const char *GoodsAttr(ATTRIBUTES *root,const std::string &path){
     auto *a=root?root->FindAClass(root,path.c_str()):nullptr;return a?a->GetThisAttr():nullptr;
 }
-// Characters index of companion slot `slot` (GetCompanionIndex): 0 is the hero.
-std::optional<int> GoodsCompanion(ATTRIBUTES *hero,int slot){
-    const char *v=slot==0?GoodsAttr(hero,"index"):GoodsAttr(hero,"Fellows.Companions.id"+std::to_string(slot));
-    if(!v||!*v)return std::nullopt;const int index=std::atoi(v);return index>=0?std::optional<int>(index):std::nullopt;
-}
 }
 
 void XINTERFACE::MobileCollectGoodsTransfer(std::vector<MobileWidget> &widgets)
 {
-    storm::mobile::GoodsTransferSource source;
     auto *list=FindNode("MAIN_WINDOW",nullptr);
     auto *amount=FindNode("GOODS_TRANSFER_WINDOW",nullptr);
     const bool amountShown=amount&&amount->m_nNodeType==NODETYPE_WINDOW&&static_cast<CXI_WINDOW*>(amount)->GetShow();
-    source.listActive=list&&list->m_nNodeType==NODETYPE_WINDOW&&static_cast<CXI_WINDOW*>(list)->GetActive()&&!amountShown;
-    auto *hero=GoodsScriptObject("pchar");
-    const auto slot=GoodsInteger("iCurCompanion");
-    std::optional<int> ship=slot&&hero?GoodsCompanion(hero,*slot):std::nullopt;
-    ATTRIBUTES *shipCharacter=ship?GoodsScriptObject("Characters",static_cast<uint32_t>(*ship)):nullptr;
-    const char *shipId=GoodsAttr(shipCharacter,"id");
-    if(!hero)source.missing.push_back("pchar");
-    if(!slot)source.missing.push_back("iCurCompanion");
-    if(!shipId)source.missing.push_back("companion");
-    source.shipIndex=slot;
-    if(hero){int count=0;for(int i=0;i<8;++i)if(GoodsCompanion(hero,i))++count;source.shipCount=count;}
-    if(auto *strings=core.Entity_GetAttributeClass(g_idInterface,"strings"))
-        if(const char *name=strings->GetAttribute("CurCompanion"))source.ship=name;
+    const bool listActive=list&&list->m_nNodeType==NODETYPE_WINDOW&&static_cast<CXI_WINDOW*>(list)->GetActive()&&!amountShown;
     // The list: the collection's name strings (id = good) that have their "Transfer<good>" partner.
     std::map<std::string,std::string> names;std::vector<std::string> order;std::set<std::string> partners;
     for(const auto &w:widgets)if(w.node=="GOODS_NAMES"&&!w.rowId.empty()){
         if(w.rowId.rfind("Transfer",0)==0)partners.insert(w.rowId.substr(8));
         else if(names.emplace(w.rowId,w.label).second)order.push_back(w.rowId);
     }
-    for(const auto &id:order){
-        if(!partners.count(id))continue;
-        storm::mobile::GoodsTransferGood good{id,names[id]};
-        if(shipId)if(const char *n=GoodsAttr(hero,"TransferGoods."+std::string(shipId)+"."+id))good.order=std::atoi(n);
-        if(const char *n=GoodsAttr(shipCharacter,"Ship.Cargo.Goods."+id))good.hold=std::atoi(n);
-        source.goods.push_back(std::move(good));
-    }
-    if(source.goods.empty())source.missing.push_back("goods");
-    if(amountShown){
-        const auto current=GoodsInteger("iCurGoodIndex");
-        const char *id=current&&*current>=0?GoodsAttr(GoodsScriptObject("Goods",static_cast<uint32_t>(*current)),"name"):nullptr;
-        if(id)source.open=id;else source.missing.push_back("iCurGoodIndex");
-    }
-    storm::mobile::CollectGoodsTransfer(source,widgets);
+    std::vector<storm::mobile::GoodsTransferGood> goods;
+    for(const auto &id:order)if(partners.count(id))goods.push_back({id,names[id]});
+    storm::mobile::CollectGoodsTransfer(goods,listActive,widgets);
 }
 
 bool XINTERFACE::MobileApplyGoodsTransfer(const storm::ui::Action &action)

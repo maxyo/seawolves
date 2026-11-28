@@ -1340,3 +1340,8 @@ TEST_CASE("the dialogue's script gives the pack screen the props and actions of 
 {
     CheckCases("dialogue", "dialogue");
 }
+
+TEST_CASE("the purchase list's script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("goods-order", "goods_order", "goods_order");
+}

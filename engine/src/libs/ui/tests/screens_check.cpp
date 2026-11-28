@@ -3784,40 +3784,41 @@ static void Games(const std::string &models)
            "another round");
 }
 
+// The purchase list's script screen (screens/goods_order.c) over the fixture game's orders and holds.
 static void GoodsOrder(const std::string &models)
 {
     FakeSurface surface;
     Router router(surface);
+    Scripted(router);
     InterfaceModel list = Load(models, "goodstransfer.json");
     router.SetInterface(list);
     Expect(router.Using() == "goodstransfer" && surface.tag == "s-goods-order" && router.Rejection().empty() &&
                surface.errors.empty(),
-           "goodstransfer is drawn by the purchase list");
+           "goodstransfer is drawn by the purchase list: " + Json(surface.errors).dump());
     Expect(surface.props["extras"]["rows"].empty(), "every exported node is known");
     const Json rows = surface.props["list"]["rows"];
     Expect(rows.size() == 6 && rows[0]["name"] == "Ядра" && rows[0]["image"]["texture"] == "atlas:GOODS/Balls" &&
                rows[0]["cells"][0] == "400" && rows[0]["cells"][1] == "600" && rows[4]["cells"][0] == "—",
-           "one row per good: picture, in the hold, the order");
+           "one row per good: picture, in the hold, the order: " + rows.dump());
     Expect(rows[0].count("q") == 0, "no quantity until a good is opened");
     Expect(surface.props["subject"]["label"] == "Люггер 'Ласточка'" &&
                surface.props["subject"]["sub"] == "1 <common.of> 2" && surface.props["subject"]["prev"] == false &&
                surface.props["subject"]["next"] == true,
-           "the ship the list is for, 1 of 2");
+           "the ship the list is for, 1 of 2: " + surface.props["subject"].dump());
     Expect(surface.props["contraband"]["label"] == "Закупать контрабанду" && surface.props["contraband"]["on"] == false,
            "contraband switch");
 
-    router.OnEvent({"goods", "row", "3"});
+    router.OnEvent({"goods", "row", "Powder"});
     const Json open = surface.props["list"]["rows"][3];
     Expect(open["selected"] == true && open["q"]["value"] == 400 && open["q"]["min"] == 0 && open["q"]["max"] == 1000 &&
                open["q"]["label"] == "<goods.order>" && open["q"]["all"] == false,
-           "a tap opens the good's order as a quantity");
+           "a tap opens the good's order as a quantity: " + open.dump());
     Expect(surface.commands.empty() && surface.props["primary"].is_null(),
            "opening a row sends nothing and offers nothing to save");
     router.OnEvent({"goods", "change", "500"});
     Expect(surface.props["list"]["rows"][3]["cells"][1] == "500", "the amount shows at once");
     {
-        // The treasurer's screen gets the button too: the standing order is the same draft flow, saved by «Сохранить
-        // N».
+        // The standing order is a draft, saved by «Сохранить N», dropped by «Отмена».
         const std::string order = "widget:goodstransfer\tANDROID_GOODS_ORDER\t3\torder@5:Powder=";
         DraftFlow(
             "goodstransfer", router, surface, "goods", 520, "<goods.save> 520",
@@ -3828,10 +3829,9 @@ static void GoodsOrder(const std::string &models)
             [] {});
         Expect(surface.props["list"]["rows"][3]["cells"][1] == "520",
                "the saved amount shows until the game's order catches up");
+        AnswerAll(router, surface, true);
+        ScriptGame::Get().Set("TestHero.TransferGoods.Marsh.Powder", "520");
         InterfaceModel saved = list;
-        for (Widget &widget : saved.widgets)
-            if (widget.node == "ANDROID_GOODS_ORDER" && widget.row_id == "Powder")
-                widget.context["order"] = "520";
         saved.revision += 5;
         router.SetInterface(saved);
         Expect(surface.props["list"]["rows"][3]["q"]["value"] == 520 && surface.props["primary"].is_null(),
@@ -3841,6 +3841,7 @@ static void GoodsOrder(const std::string &models)
         router.OnEvent({"header-back", "click", ""});
         Expect(surface.commands.empty() && surface.props["list"]["rows"][3]["q"]["value"] == 520,
                "← first drops a changed order, saving nothing");
+        ScriptGame::Get().Set("TestHero.TransferGoods.Marsh.Powder", "400");
         router.SetInterface(list);
     }
     router.OnEvent({"contraband", "change", "1"});
@@ -3854,11 +3855,13 @@ static void GoodsOrder(const std::string &models)
     // The game's own amount window: that good is open, the list takes no orders, ← closes the window.
     FakeSurface surface2;
     Router window(surface2);
+    Scripted(window);
+    ScriptGame::Get().Set("iCurGoodIndex", "33");
     window.SetInterface(Load(models, "goodstransfer-window.json"));
     const Json powder = surface2.props["list"]["rows"][3];
     Expect(window.Using() == "goodstransfer" && powder["selected"] == true && powder["q"]["disabled"] == true &&
                surface2.props["list"]["rows"][0]["disabled"] == true,
-           "the game's window marks its good and locks the list");
+           "the game's window marks its good and locks the list: " + Json(surface2.errors).dump());
     window.OnEvent({"header-back", "click", ""});
     ExpectEqual(surface2.Last(), "widget:goodstransfer\tTG_CANCEL_BUTTON\t-1\tpress",
                 "← closes the game's amount window first");
@@ -3946,15 +3949,6 @@ static void Amounts(const std::string &models)
                !ParseNumber<int>("2147483648") && !ParseNumber<size_t>("-1") && !ParseNumber<double>("inf") &&
                !ParseNumber<int>("1.5"),
            "anything else is no number");
-
-    // A row event whose value is no number: an error line naming it, and nothing done (atoi made it row 0).
-    FakeSurface goods;
-    Router list(goods);
-    list.SetInterface(Load(models, "goodstransfer.json"));
-    list.OnEvent({"goods", "row", "x"});
-    Expect(goods.errors.size() == 1 && goods.errors[0].find("goods row: 'x'") != std::string::npos &&
-               goods.props["list"]["rows"][0]["selected"] != true && goods.commands.empty(),
-           "a row event without a number opens no row: " + Json(goods.errors).dump());
 }
 
 // A disabled control's tap reports "refused": a handler bound to every verb of its id (its action) does not run
