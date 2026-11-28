@@ -5407,6 +5407,14 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                         pV->Convert(frame.return_type);
                         return true;
                     }
+                    // nullptr from a function returning an aref or fref: its empty value
+                    if (pV->GetType() == VAR_REFERENCE && pV->IsNull() &&
+                        (frame.return_type == VAR_AREFERENCE || frame.return_type == VAR_FREF))
+                    {
+                        pV->ClearType();
+                        pV->SetType(frame.return_type);
+                        return true;
+                    }
 
                     SetError("%s function return %s value", Token.GetTypeName(frame.return_type),
                              Token.GetTypeName(pV->GetType()));
@@ -5969,8 +5977,21 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
 
             DATA *pVTTSrc;
             DATA *pVTTDst;
-            pVTTSrc = pVSrc->GetVarPointer();
             pVTTDst = pVDst->GetVarPointer();
+            if (pVSrc->GetType() == VAR_REFERENCE && pVSrc->IsNull())
+            {
+                // nullptr, a reference to nothing: an aref or fref holds it as empty, no other variable can
+                const S_TOKEN_TYPE type = pVTTDst->GetType();
+                if (type != VAR_AREFERENCE && type != VAR_FREF)
+                {
+                    SetError("nullptr assigned to a %s variable", Token.GetTypeName(type));
+                    return false;
+                }
+                pVTTDst->ClearType();
+                pVTTDst->SetType(type);
+                break;
+            }
+            pVTTSrc = pVSrc->GetVarPointer();
 
             if (pVTTSrc->GetType() != pVTTDst->GetType())
             {
