@@ -37,7 +37,8 @@ function(storm_script_vm target)
     target_include_directories(${target} PUBLIC ${src}/libs/core/src ${src}/libs/diagnostics/src ${src}/libs/window/src
         ${library_includes} ${src}/libs/util/include ${src}/libs/ui/include ${STORM_APP_CONTRACT_INCLUDE}
         ${src}/libs/math/include ${storm_glm_SOURCE_DIR} ${storm_fmt_SOURCE_DIR}/include
-        ${storm_spdlog_SOURCE_DIR}/include ${storm_fast_float_SOURCE_DIR}/include ${generated} ${generated}/SDL2)
+        ${storm_spdlog_SOURCE_DIR}/include ${storm_fast_float_SOURCE_DIR}/include ${storm_json_SOURCE_DIR}/include
+        ${generated} ${generated}/SDL2)
     target_compile_definitions(${target} PUBLIC SPDLOG_FMT_EXTERNAL)
     target_compile_features(${target} PUBLIC cxx_std_20)
     # The VM reads chars as signed and type-puns its stack values, as the engine builds it.

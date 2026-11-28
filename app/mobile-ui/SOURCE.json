@@ -8,6 +8,7 @@
       "upstream": "program/interface/mainmenu.c",
       "upstream_sha256": "a01b8df859e965aee5c985e53c88a1b17f5bbe2debf25c9171e23b068522be5a",
       "adapted": "PROGRAM/interface/mainmenu.c",
+      "game_sha256": "34640ccd1d351acf9aebcfdc003e651c0a56fbf0f8d5c34f44be4358ce59f4e1",
       "changes": "Adapted for Android by the Seawolves contributors: the title scene and its events are kept; the 3D menu labels are replaced by the touch title screen, «Продолжить» loads the newest record (AndroidContinue), the store client's update check, commented-out code and functions nothing calls are removed."
     }
   ]

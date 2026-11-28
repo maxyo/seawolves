@@ -3,6 +3,7 @@
 #include "platform/path_fingerprint.hpp"
 #include "platform/resource_overlay.hpp"
 #include "platform/script_patches.hpp"
+#include "platform/ui_overlay.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -400,6 +401,44 @@ void checkOverlaidTarget(const fs::path &root)
     REQUIRE(throwsLayerError([&] { applyLayer(g.layer, g.paths, g.derived, {"program/sea_ai/s.c"}); },
                              "replaced by the UI overlay"));
 }
+// A file of the UI overlay that the game has too replaces the game's only over the version it was written for (the
+// layer's SOURCE.json): for another game its own file stays, said once; files the game lacks are added either way.
+void checkUiOverlay(const fs::path &root)
+{
+    const fs::path layer = root / "ui-overlay/layer", game = root / "ui-overlay/game";
+    fs::remove_all(root / "ui-overlay");
+    write(layer / "PROGRAM/interface/mainmenu.c", "// ours");
+    write(layer / "PROGRAM/interface/save_load.c", "// ours, named nowhere");
+    write(layer / "PROGRAM/interface/touch/added.c", "// ours only");
+    write(layer / "SOURCE.json", R"({"files": [{"adapted": "PROGRAM/interface/mainmenu.c", "game_sha256": ")" +
+                                     sha256("the first game's menu") + R"("}]})");
+    const auto over = [&](const std::string &menu) {
+        write(game / "mainmenu.c", menu);
+        write(game / "save_load.c", "the game's saves");
+        Paths paths{{"program/interface/mainmenu.c", (game / "mainmenu.c").string()},
+                    {"program/interface/save_load.c", (game / "save_load.c").string()}};
+        const auto report = applyUiOverlay(layer, paths);
+        REQUIRE(paths.at("program/interface/touch/added.c") == (layer / "PROGRAM/interface/touch/added.c").string());
+        REQUIRE(paths.at("program/interface/save_load.c") == (game / "save_load.c").string());
+        return std::pair(paths.at("program/interface/mainmenu.c"), report);
+    };
+    const auto [first, written] = over("the first game's menu");
+    REQUIRE(first == (layer / "PROGRAM/interface/mainmenu.c").string());
+    REQUIRE(written.overlaid ==
+            std::set<std::string>{"program/interface/mainmenu.c", "program/interface/touch/added.c"});
+    REQUIRE(written.skipped.size() == 1);
+    REQUIRE(written.skipped[0].find("program/interface/save_load.c is not used") != std::string::npos);
+    const auto [other, skipped] = over("another game's menu");
+    REQUIRE(other == (game / "mainmenu.c").string());
+    REQUIRE(skipped.overlaid == std::set<std::string>{"program/interface/touch/added.c"});
+    REQUIRE(skipped.skipped.size() == 2);
+    REQUIRE(skipped.skipped[0].find("program/interface/mainmenu.c is not used, the game's own file is: it was written "
+                                    "for the game's file of sha256 " +
+                                    sha256("the first game's menu") + ", this game's is " +
+                                    sha256("another game's menu")) != std::string::npos);
+    write(layer / "SOURCE.json", "{");
+    REQUIRE(throwsLayerError([&] { (void)over("the first game's menu"); }, "SOURCE.json"));
+}
 } // namespace
 
 TEST_CASE("script_patches")
@@ -416,5 +455,6 @@ TEST_CASE("script_patches")
     checkDamagedLayer(root);
     checkCacheInvalidation(root);
     checkOverlaidTarget(root);
+    checkUiOverlay(root);
     std::puts("script patches: all checks passed");
 }

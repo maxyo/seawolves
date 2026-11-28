@@ -45,6 +45,9 @@ stays closed), `.c`/`.h` only; the list grows only when a real fix needs another
 directory.
 `program/interface/` is also the UI overlay's directory: a file is never both replaced
 and patched, so a target the overlay replaces is a damaged layer (`applyLayer` throws).
+A file of the overlay that the game has too is bound to that file's version like a patch to its base
+(`platform/ui_overlay.hpp`): the layer's `SOURCE.json` gives the sha256 of the game's file it was written for
+(`game_sha256`), and over any other version, or unnamed, the game's own file is used and the start log says which.
 `program/controls` stays excluded.
 
 ## Behaviour

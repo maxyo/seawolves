@@ -366,7 +366,7 @@ endforeach()
 storm_host_check(script_event_handlers SOURCES check.cpp ${src}/libs/core/src/s_eventtab.cpp
     INCLUDES ${src}/libs/core/src ${src}/libs/core/include ${util_include} ${fmt_headers} DEFINES FMT_HEADER_ONLY
     OPTIONS -Wall -Werror ${asan_strict})
-storm_host_check(script_patches INCLUDES ${util_include} OPTIONS ${warnings} ${asan_strict} CATCH2)
+storm_host_check(script_patches INCLUDES ${util_include} ${storm_json_SOURCE_DIR}/include OPTIONS ${warnings} ${asan_strict} CATCH2)
 # The script patch tool compiles (a build error otherwise).
 add_library(script_patch_tool_syntax OBJECT "${STORM_ROOT}/tools/script_patches/script_patch_tool.cpp")
 target_include_directories(script_patch_tool_syntax PRIVATE ${util_include})

@@ -13,6 +13,7 @@
 
 #include "platform/resource_overlay.hpp"
 #include "platform/script_patches.hpp"
+#include "platform/ui_overlay.hpp"
 #include "platform/storage.hpp"
 
 #include <exception>
@@ -537,19 +538,14 @@ void FILE_SERVICE::ScanResourcePaths()
     storm::resource_index::scan(ResourcePaths, fio->_GetExecutableDirectory());
     // The layers over the game's files; a platform without one has an empty path, which indexes nothing.
     const auto &layers = storm::storage::folders().layers;
-    std::unordered_map<std::string, std::string> uiOverlay;
-    storm::overlay::indexUiOverlay(layers.mobileUi, uiOverlay);
-    std::set<std::string> overlaid;
-    for (auto &[key, path] : uiOverlay)
-    {
-        overlaid.insert(key);
-        ResourcePaths[key] = std::move(path);
-    }
+    // A layer file that replaces one of the game's is used only over the version it was written for.
+    auto overlay = storm::script_patches::applyUiOverlay(layers.mobileUi, ResourcePaths);
     const auto techniques = storm::overlay::indexUiOverlay(layers.engineShaders, ResourcePaths, true);
     spdlog::info("Engine techniques: {} files from {}", techniques, layers.engineShaders.string());
     // Fixes to the player's own scripts, held in memory (MemoryFile); throws LayerError if the layer is damaged.
-    storm::script_patches::lastReport() =
-        storm::script_patches::applyLayer(layers.scriptPatches, ResourcePaths, PatchedScripts, overlaid);
+    auto &report = storm::script_patches::lastReport();
+    report = storm::script_patches::applyLayer(layers.scriptPatches, ResourcePaths, PatchedScripts, overlay.overlaid);
+    report.info.insert(report.info.end(), overlay.skipped.begin(), overlay.skipped.end());
     ResourcePathsFirstScan = false;
 }
 
