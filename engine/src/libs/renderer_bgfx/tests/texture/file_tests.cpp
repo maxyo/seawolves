@@ -219,6 +219,11 @@ void test_names()
     CHECK(resolved("Props\\Crate.png") == "none");
     // Both under other extensions: the .dds, which the game's own engine tries first.
     CHECK(resolved("wall.png") == "resource\\textures\\wall.dds");
+    // Not in its folder: the folders above it, up to resource\textures, the nearest first.
+    CHECK(resolved("buildings\\Wall.dds") == "resource\\textures\\Wall.dds");
+    CHECK(resolved("Props\\old\\box.tga") == "resource\\textures\\Props\\box.dds");
+    CHECK(resolved("resource\\textures\\buildings\\wall.png") == "resource\\textures\\wall.dds");
+    CHECK(resolved("buildings\\Crate.png") == "none");
 }
 
 int corpus()

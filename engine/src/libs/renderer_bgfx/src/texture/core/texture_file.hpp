@@ -30,7 +30,8 @@ TextureContainer DetectTextureContainer(std::span<const uint8_t> head);
 std::string TextureFilePath(std::string_view name);
 // The file of a texture name among the files that exist (`exists`: a path as TextureFilePath gives it): the named file,
 // else the same base name (without its .png, .tga, .bmp, .jpg, .dds, .txx, .tx) as .dds, .tga.tx, .tx or .txx, the
-// first that exists: a game's models may name x.png or x.tga where it ships x.tga.tx or x.dds. nullopt: none exists.
+// first that exists: a game's models may name x.png or x.tga where it ships x.tga.tx or x.dds; then the same in each
+// folder above, up to resource\textures ("buildings\x_AO.dds" shipped as x_AO.tga.tx). nullopt: none exists.
 std::optional<std::string> ResolveTextureFile(std::string_view name,
                                               const std::function<bool(const std::string &)> &exists);
 

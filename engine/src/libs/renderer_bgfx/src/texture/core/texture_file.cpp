@@ -45,8 +45,10 @@ std::string TextureFilePath(std::string_view name)
     return file;
 }
 
-std::optional<std::string> ResolveTextureFile(std::string_view name,
-                                              const std::function<bool(const std::string &)> &exists)
+namespace
+{
+std::optional<std::string> ResolveInFolder(std::string_view name,
+                                           const std::function<bool(const std::string &)> &exists)
 {
     std::string file = TextureFilePath(name);
     if (exists(file))
@@ -70,6 +72,31 @@ std::optional<std::string> ResolveTextureFile(std::string_view name,
         if (file = TextureFilePath(base + std::string(extension)); exists(file))
             return file;
     return std::nullopt;
+}
+} // namespace
+
+std::optional<std::string> ResolveTextureFile(std::string_view name,
+                                              const std::function<bool(const std::string &)> &exists)
+{
+    // Caribbean Legend's models name maps in folders that it ships in a folder above ("buildings\x_AO.dds" for the
+    // root's x_AO.tga.tx): each folder up to resource\textures is tried in turn.
+    std::string path(name);
+    while (true)
+    {
+        if (std::optional<std::string> file = ResolveInFolder(path, exists))
+            return file;
+        const size_t file_start = path.find_last_of("\\/");
+        if (file_start == std::string::npos)
+            return std::nullopt;
+        std::string folder = path.substr(0, file_start);
+        std::ranges::transform(folder, folder.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (folder == "resource\\textures" || folder == "resource/textures")
+            return std::nullopt;
+        const size_t folder_start = folder.find_last_of("\\/");
+        path =
+            (folder_start == std::string::npos ? "" : path.substr(0, folder_start + 1)) + path.substr(file_start + 1);
+    }
 }
 
 std::span<const uint8_t> TextureFile::level(uint32_t face, uint32_t level) const
