@@ -2,7 +2,7 @@
   "tag": "s-actions",
   "doc": "Screen part: the fixed action bar of a generic screen — danger on the left, secondary buttons, the primary on the right.",
   "props": {
-    "actions": {"type": "json", "default": []},
-    "danger": {"type": "json", "default": null}
+    "actions": {"type": "json", "default": [], "shape": [{"busy": "bool", "disabled": "bool", "id": "text", "label": "text", "reason": "text", "surface": "text", "variant": "text"}]},
+    "danger": {"type": "json", "default": null, "shape": {"$null": {"busy": "bool", "disabled": "bool", "id": "text", "label": "text", "reason": "text", "surface": "text", "variant": "text"}}}
   }
 }

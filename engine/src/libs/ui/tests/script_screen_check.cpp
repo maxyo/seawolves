@@ -19,11 +19,10 @@ std::unique_ptr<ComponentSpec> DemoSpec()
         "title": {"type": "text"}, "count": {"type": "int"}, "open": {"type": "bool"},
         "look": {"type": "enum", "options": ["a", "b"]},
         "items": {"type": "json", "shape": [{"id": "text", "on": "bool", "n": "number"}]},
-        "free": {"type": "json"},
         "deal": {"type": "json", "shape": {"$null": {"value": "int"}}},
         "note": {"type": "json", "shape": {"$null": "text"}},
         "cells": {"type": "json", "shape": [{"$either": ["text", {"text": "text", "bold": "bool"}]}]},
-        "extras": {"type": "json"}}})"));
+        "extras": {"type": "json", "shape": {}}}})"));
 }
 
 ViewTree Leaf(std::string name, std::string value)
@@ -436,8 +435,16 @@ void Failures()
     };
     ExpectEqual(convert({"v", "", {Leaf("open", "2")}}), "view open: '2' is not a bool (0 or 1)", "bool is 0 or 1");
     ExpectEqual(convert({"v", "", {Leaf("count", "3x")}}), "view count: '3x' is not a number", "int reads whole");
-    ExpectEqual(convert({"v", "", {Leaf("free", "x")}}), "view free: the spec of s-demo gives this json prop no shape",
-                "a json prop needs a shape");
+    bool unshaped = false;
+    try
+    {
+        ParseComponentSpec(Json::parse(R"({"tag": "s-x", "props": {"free": {"type": "json"}}})"));
+    }
+    catch (const std::runtime_error &)
+    {
+        unshaped = true;
+    }
+    Expect(unshaped, "a json prop needs a shape");
     ExpectEqual(convert({"v", "", {{"items", "", {{"0", "", {Leaf("other", "")}}}}}}),
                 "view items/0/other: is not a field of the spec's shape", "an item field outside the shape");
     ExpectEqual(convert({"v", "", {{"title", "", {Leaf("x", "")}}}}), "view title: has children, the spec says text",

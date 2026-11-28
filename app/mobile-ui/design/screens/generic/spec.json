@@ -4,20 +4,10 @@
   "props": {
     "title": {"type": "text", "default": ""},
     "layout": {"type": "enum", "options": ["reading", "split", "settings", "settings-wide", "list", "fallback"], "default": "fallback", "class": false},
-    "left": {"type": "json", "default": [], "shape": [{"id": "text", "kind": "text", "surface": "text", "scroll": "bool", "head": "bool", "interactive": "bool", "text": "text",
-                    "columns": [{"label": "text", "align": "text", "w": "text"}],
-                    "rows": [{"id": "text", "cells": [{"text": "text", "bold": "bool"}], "selected": "int", "disabled": "bool", "reason": "text",
-                              "kind": "text", "title": "text", "label": "text", "muted": "bool", "busy": "bool", "on": "bool", "options": ["text"],
-                              "value": "text", "text": "text", "left": "bool", "right": "bool"}],
-                    "items": [{"label": "text", "selected": "bool", "disabled": "bool"}], "paragraphs": ["text"]}]},
-    "right": {"type": "json", "default": [], "shape": [{"id": "text", "kind": "text", "surface": "text", "scroll": "bool", "head": "bool", "interactive": "bool", "text": "text",
-                    "columns": [{"label": "text", "align": "text", "w": "text"}],
-                    "rows": [{"id": "text", "cells": [{"text": "text", "bold": "bool"}], "selected": "int", "disabled": "bool", "reason": "text",
-                              "kind": "text", "title": "text", "label": "text", "muted": "bool", "busy": "bool", "on": "bool", "options": ["text"],
-                              "value": "text", "text": "text", "left": "bool", "right": "bool"}],
-                    "items": [{"label": "text", "selected": "bool", "disabled": "bool"}], "paragraphs": ["text"]}]},
-    "actions": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "surface": "text"}]},
-    "danger": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "surface": "text"}}},
-    "extras": {"type": "json", "default": {}, "shape": {"rows": [{"kind": "text", "id": "text", "title": "text", "label": "text", "disabled": "bool", "reason": "text", "selected": "int", "muted": "bool", "busy": "bool", "on": "bool", "options": ["text"], "value": "text", "text": "text", "left": "bool", "right": "bool"}], "note": "text"}}
+    "left": {"type": "json", "default": [], "shape": [{"$of": "s-block.block"}]},
+    "right": {"type": "json", "default": [], "shape": [{"$of": "s-block.block"}]},
+    "actions": {"type": "json", "default": [], "shape": {"$of": "s-actions.actions"}},
+    "danger": {"type": "json", "default": null, "shape": {"$of": "s-actions.danger"}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

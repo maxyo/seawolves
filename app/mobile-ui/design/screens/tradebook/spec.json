@@ -10,84 +10,10 @@
       "type": "text",
       "default": ""
     },
-    "towns": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "id": "text",
-          "cells": [
-            {
-              "$either": [
-                "text",
-                {
-                  "text": "text",
-                  "sub": "text",
-                  "icon": "text",
-                  "iconTone": "text",
-                  "iconSize": "int",
-                  "tone": "text",
-                  "image": "picture",
-                  "tag": "text"
-                }
-              ]
-            }
-          ],
-          "selected": "bool",
-          "disabled": "bool"
-        }
-      ]
-    },
-    "townColumns": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "label": "text",
-          "w": "text",
-          "align": "text"
-        }
-      ]
-    },
-    "columns": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "label": "text",
-          "w": "text",
-          "align": "text"
-        }
-      ]
-    },
-    "prices": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "cells": [
-            {
-              "$either": [
-                "text",
-                {
-                  "text": "text",
-                  "sub": "text",
-                  "icon": "text",
-                  "iconTone": "text",
-                  "iconSize": "int",
-                  "tone": "text",
-                  "image": "picture",
-                  "tag": "text"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "extras": {
-      "type": "json",
-      "default": {}
-    }
+    "towns": {"type": "json", "default": [], "shape": {"$of": "c-table.rows"}},
+    "townColumns": {"type": "json", "default": [], "shape": {"$of": "c-table.columns"}},
+    "columns": {"type": "json", "default": [], "shape": {"$of": "c-table.columns"}},
+    "prices": {"type": "json", "default": [], "shape": {"$of": "c-table.rows"}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

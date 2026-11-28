@@ -9,7 +9,7 @@
     "empty": {"type": "bool", "default": false},
     "layout": {"type": "enum", "options": ["row", "column"], "default": "row"},
     "size": {"type": "int", "default": 32},
-    "image": {"type": "json", "default": null},
+    "image": {"type": "json", "default": null, "shape": {"$of": "c-row-image.image"}},
     "reason": {"type": "text", "default": ""},
     "pressed": {"type": "bool", "default": false, "class": false}
   },

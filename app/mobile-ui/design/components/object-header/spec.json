@@ -3,7 +3,7 @@
   "props": {
     "title": {"type": "text", "default": ""},
     "sub": {"type": "text", "default": ""},
-    "image": {"type": "json", "default": null},
+    "image": {"type": "json", "default": null, "shape": {"$of": "c-row-image.image"}},
     "icon": {"type": "text", "default": ""},
     "size": {"type": "int", "default": @{size.tokenLg}},
     "titleSize": {"type": "int", "default": @{type.title}},

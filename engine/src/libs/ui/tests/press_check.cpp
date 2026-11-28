@@ -79,14 +79,14 @@ static void AddRowComponents(Json &components)
         "template": "<div data-toast=\"toast\" style=\"height: 30dp;\">{{text}}</div>"})"));
     components["components"].push_back(Json::parse(R"({
         "tag": "c-pz", "behaviors": ["panzoom"],
-        "props": {"base": {"type": "json", "default": [1000, 500]}, "view": {"type": "json", "default": []}},
+        "props": {"base": {"type": "json", "default": [1000, 500], "shape": ["number"]}, "view": {"type": "json", "default": [], "shape": ["number"]}},
         "template": "<div data-panzoom=\"1\" style=\"position: absolute; left: 0; top: 0; right: 0; bottom: 0;\"><div data-plane=\"1\" style=\"position: absolute;\"></div><div data-zoom=\"in\" style=\"position: absolute; right: 0; top: 0; width: 40dp; height: 40dp;\"></div></div>"})"));
     // The pause menu's screen component, reduced to its «Продолжить» (id "resume") as a row.
     components["components"].push_back(Json::parse(R"({
         "tag": "s-game-menu",
         "props": {"line": {"type": "text", "default": ""}, "resume": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
                   "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "hold": "bool"}]},
-                  "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}}, "extras": {"type": "json", "default": []}},
+                  "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}}, "extras": {"type": "json", "default": [], "shape": {}}},
         "template": "<div style=\"font-family: LatoLatin;\"><c-row id=\"resume\" style=\"display: block; position: absolute; left: 0; top: 0; width: 200dp; height: 48dp;\" title=\"Resume\"/></div>"})"));
     // Icon-only table headers: tap sorts, long press explains without sorting.
     components["components"].push_back(Json::parse(R"({
@@ -169,17 +169,17 @@ static void AddStoreComponents(Json &components)
     // A store-like component: a list of 20 rows, the deal's amount, its total and the buy button.
     components["components"].push_back(Json::parse(R"({
         "tag": "c-store",
-        "props": {"rows": {"type": "json", "default": []}, "amount": {"type": "int", "default": 0}, "total": {"type": "text", "default": ""}},
+        "props": {"rows": {"type": "json", "default": [], "shape": [{"id": "text", "name": "text", "held": "int", "sel": "bool"}]}, "amount": {"type": "int", "default": 0}, "total": {"type": "text", "default": ""}},
         "template": "<div id=\"list\"><t-for each=\"rows\" as=\"r\"><div class=\"row{{ r.sel ? ' sel' : '' }}\" data-value=\"{{r.id}}\"><span class=\"name\">{{r.name}}</span><span class=\"held\">{{r.held}}</span></div></t-for></div><div id=\"amount\">{{amount}}</div><div id=\"total\">{{total}}</div><c-row id=\"buy\" title=\"{{total}}\" style=\"display: block; width: 200dp; height: 48dp;\"/>"})"));
     // A screen that passes its deal on: the amount goes to the store whole, the label is its own text.
     components["components"].push_back(Json::parse(R"({
         "tag": "c-outer",
-        "props": {"deal": {"type": "json", "default": null}, "rows": {"type": "json", "default": []}, "label": {"type": "text", "default": ""}},
+        "props": {"deal": {"type": "json", "default": null, "shape": {"$null": {"amount": "int", "total": "text"}}}, "rows": {"type": "json", "default": [], "shape": [{"id": "text", "name": "text", "held": "int", "sel": "bool"}]}, "label": {"type": "text", "default": ""}},
         "template": "<div class=\"label\">{{label}}</div><t-if test=\"deal\"><c-store id=\"inner\" rows=\"{{ json(rows) }}\" props=\"{{ json(deal) }}\"/></t-if>"})"));
     // Rows with identity: each row's element lives while its key does; a scrolling box inside it.
     components["components"].push_back(Json::parse(R"({
         "tag": "c-keyed", "behaviors": ["press"],
-        "props": {"rows": {"type": "json", "default": []}},
+        "props": {"rows": {"type": "json", "default": [], "shape": [{"key": "text", "name": "text"}]}},
         "template": "<div id=\"keyed\"><t-for each=\"rows\" as=\"r\" key=\"r.key\"><div class=\"krow\" data-action=\"row\" data-value=\"{{r.key}}\" style=\"display: block; height: 40dp;\"><div class=\"kbox\" style=\"display: block; height: 30dp; overflow-y: scroll;\"><div style=\"display: block; height: 200dp;\">{{r.name}}</div></div></div></t-for></div>"})"));
     // constants.boxSize: the size prop is the box (an icon measured without formatting its content).
     components["components"].push_back(Json::parse(R"({

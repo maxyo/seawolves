@@ -2,10 +2,7 @@
   "tag": "s-perk-tree",
   "doc": "Screen part of s-hero: one perk group as a vertical tree of perk icons (laid out by the script native UiTreeLayout) on the parchment, scrolling vertically only: a row per tier, the root at the top, curved links down to each dependent (one <ui-links> drawing: each link its own arrival point and arrowhead, a lane of its own past a row of icons; the selected perk's links in gold, links from learned perks darker sepia, the others faint sepia). No names and no cards: an icon in an invisible 62 x 56 dp touch box, the state as a ring, a glow and a mark on the icon (check learned, lock locked), the other group's glyph on its corner. A tap reports `row <perk id>`; a long press shows the name (tooltip); the selected node jumps into view with a margin (snapping reveal of .pt-reveal).",
   "props": {
-    "tree": {
-      "type": "json",
-      "default": null
-    },
+    "tree": {"type": "json", "default": null, "shape": {"$null": {"height": "int", "links": "text", "nodes": [{"groupIcon": "text", "id": "text", "image": {"$of": "c-row-image.image"}, "left": "int", "name": "text", "other": "bool", "reveal": "text", "revealTop": "int", "selected": "bool", "state": "text", "top": "int"}], "width": "int"}}},
     "empty": {
       "type": "text",
       "default": ""

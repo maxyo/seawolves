@@ -3,10 +3,10 @@
   "doc": "Saves (interface `save_load`), filled by the script interface/touch/screens/saves.c.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "columns": {"type": "json", "default": [], "shape": [{"label": "text", "w": "text", "align": "text"}]},
-    "rows": {"type": "json", "default": [], "shape": [{"id": "text", "cells": [{"$either": ["text", {"text": "text", "sub": "text", "icon": "text", "iconTone": "text", "tone": "text", "iconOnly": "bool"}]}], "selected": "bool", "disabled": "bool"}]},
-    "detail": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "preview": "text", "sub": "text", "facts": [{"k": "text", "v": "text"}], "primary": "text", "disabled": "bool", "reason": "text", "delete": "bool", "busy": "bool"}}},
+    "columns": {"type": "json", "default": [], "shape": {"$of": "c-table.columns"}},
+    "rows": {"type": "json", "default": [], "shape": {"$of": "c-table.rows"}},
+    "detail": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "preview": "text", "sub": "text", "facts": {"$of": "c-kv.items"}, "primary": "text", "disabled": "bool", "reason": "text", "delete": "bool", "busy": "bool"}}},
     "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "subject": "text", "text": "text", "yes": "text", "no": "text"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

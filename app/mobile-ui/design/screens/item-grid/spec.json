@@ -2,7 +2,7 @@
   "tag": "s-item-grid",
   "doc": "Screen part of s-items: the character's items as compact rows in as many columns as fit (picture, the name in up to two lines, the worn / quest mark, the count); a tap reports `row` with the row's id (its index for a row without one); the selected row is scrolled into view when the selection changes (reveal).",
   "props": {
-    "rows": {"type": "json", "default": []},
+    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"badge": "text", "image": {"$of": "c-row-image.image"}, "text": "text"}]}], "id": "text", "selected": "bool"}]},
     "empty": {"type": "text", "default": ""}
   },
   "behaviors": ["press", "reveal"],

@@ -31,7 +31,7 @@ struct PropSpec
     Json fallback;
     bool as_class = false;     // bool → "name", enum → "name-value" on the root element
     std::vector<Json> options; // enum values
-    Json shape;                // json: the structure a script's view gives it (screens/script_screen.h)
+    Json shape;                // json: its structure (every json prop has one), by which a script's view is converted
 };
 
 struct ComponentSpec

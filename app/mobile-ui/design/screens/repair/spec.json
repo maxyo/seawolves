@@ -3,16 +3,14 @@
   "doc": "Self repair (interface `repair`): hull, masts and sails as amount rows with the materials they take, the ship selector in the header, filled by the script interface/touch/screens/repair.c through the shapes of its json props.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "subject": {"type": "json", "default": null,
-               "shape": {"$null": {"label": "text", "sub": "text", "prev": "bool", "next": "bool", "list": "bool"}}},
-    "parts": {"type": "json", "default": [],
-             "shape": [{"id": "text", "icon": "text", "label": "text", "now": "text", "need": "text", "short": "bool", "disabled": "bool", "q": {"value": "int", "min": "int", "max": "int", "floor": "int", "unit": "text", "summary": "text", "steps": ["int"], "all": "bool", "allLabel": "text", "disabled": "bool"}}]},
+    "subject": {"type": "json", "default": null, "shape": {"$of": "c-screen.subject"}},
+    "parts": {"type": "json", "default": [], "shape": [{"id": "text", "icon": "text", "label": "text", "now": "text", "need": "text", "short": "bool", "disabled": "bool", "q": {"value": "int", "min": "int", "max": "int", "floor": {"$of": "c-quantity.floor"}, "unit": "text", "summary": "text", "steps": {"$of": "c-quantity.steps"}, "all": "bool", "allLabel": "text", "disabled": "bool"}}]},
     "stock": {"type": "json", "default": [],
              "shape": [{"icon": "text", "label": "text", "value": "text"}]},
     "actions": {"type": "json", "default": [],
                "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]},
     "primary": {"type": "json", "default": null,
                "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

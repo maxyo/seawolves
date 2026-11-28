@@ -29,20 +29,8 @@
       "default": [],
       "shape": [{"icon": "text", "word": "text", "tone": "text"}]
     },
-    "actions": {
-      "type": "json",
-      "default": [],
-      "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool",
-                 "sub": "text"}]
-    },
-    "extras": {
-      "type": "json",
-      "default": {}
-    },
-    "picture": {
-      "type": "json",
-      "default": null,
-      "shape": "texture"
-    }
+    "actions": {"type": "json", "default": [], "shape": {"$of": "c-dialog.actions"}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}},
+    "picture": {"type": "json", "default": null, "shape": {"$of": "s-interlude.picture"}}
   }
 }

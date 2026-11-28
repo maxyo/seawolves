@@ -11,10 +11,10 @@
     "backDisabled": {"type": "bool", "default": false, "class": false},
     "script": {"type": "bool", "default": true, "class": false},
     "sections": {"type": "enum", "options": ["", "hero", "ship", "journal", "tradebook", "nations", "items"], "default": "", "class": false},
-    "subject": {"type": "json", "default": null},
-    "tabs": {"type": "json", "default": []},
-    "stats": {"type": "json", "default": []},
-    "actions": {"type": "json", "default": []},
+    "subject": {"type": "json", "default": null, "shape": {"$of": "c-header.subject"}},
+    "tabs": {"type": "json", "default": [], "shape": {"$of": "c-header.tabs"}},
+    "stats": {"type": "json", "default": [], "shape": {"$of": "c-header.stats"}},
+    "actions": {"type": "json", "default": [], "shape": {"$of": "c-header.actions"}},
     "key": {"type": "text", "default": "header"}
   },
   "classes": {

@@ -5,10 +5,10 @@
     "sub": {"type": "text", "default": ""},
     "roles": {"type": "text", "default": ""},
     "portrait": {"type": "text", "default": ""},
-    "health": {"type": "json", "default": null},
-    "energy": {"type": "json", "default": null},
+    "health": {"type": "json", "default": null, "shape": {"$null": {"text": "text", "value": "int"}}},
+    "energy": {"type": "json", "default": null, "shape": {"$null": {"text": "text", "value": "int"}}},
     "free": {"type": "text", "default": ""},
-    "lines": {"type": "json", "default": []},
+    "lines": {"type": "json", "default": [], "shape": [{"after": "text", "casing": "text", "k": "text", "tone": "text", "v": "text"}]},
     "freeLabel": {"type": "text", "default": "", "defaultKey": "common.free"}
   },
   "behaviors": ["press", "fit"],

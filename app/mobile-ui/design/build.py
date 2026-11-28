@@ -503,6 +503,42 @@ def load_components(tokens, only=None, root="components"):
     return components
 
 
+def resolve_shapes(specs, tokens):
+    """{"$of": "c-tag.prop"} in a shape is that prop's shape: a structure passed on to a component is declared once,
+    by the component."""
+    by_tag = {spec["tag"]: spec for spec in specs}
+
+    def target(ref, stack):
+        tag, _, prop = ref.partition(".")
+        if ref in stack:
+            raise DesignError(f"shape {ref}: refers to itself through {' -> '.join(stack)}")
+        spec = by_tag.get(tag)
+        if spec is None:
+            folder = HERE / ("components" if tag.startswith("c-") else "screens") / tag[2:]
+            if not (folder / "spec.json").exists():
+                raise DesignError(f"shape {{$of: {ref}}}: no component {tag}")
+            spec = by_tag[tag] = json.loads(substitute((folder / "spec.json").read_text(encoding="utf-8"), tokens,
+                                                       "rcss", f"{folder.name}/spec.json"))
+        shape = spec["props"].get(prop, {}).get("shape")
+        if shape is None:
+            raise DesignError(f"shape {{$of: {ref}}}: {tag} has no json prop {prop} with a shape")
+        return resolve(shape, stack + [ref])
+
+    def resolve(shape, stack):
+        if isinstance(shape, dict) and list(shape) == ["$of"]:
+            return target(shape["$of"], stack)
+        if isinstance(shape, dict):
+            return {key: resolve(value, stack) for key, value in shape.items()}
+        if isinstance(shape, list):
+            return [resolve(value, stack) for value in shape]
+        return shape
+
+    for spec in specs:
+        for name, prop in spec["props"].items():
+            if "shape" in prop:
+                prop["shape"] = resolve(prop["shape"], [f"{spec['tag']}.{name}"])
+
+
 # ------------------------------------------------------------------------ interface scripts
 
 CAPABILITY_ID = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -1294,6 +1330,7 @@ def main():
         components = load_components(tokens, only)
         icon_pack = build_icons()
         screens = [] if only else load_components(tokens, root="screens")
+        resolve_shapes(components + screens, tokens)
         if not only:
             check_scripts(load_capabilities(), screens)
             check_script_names(args.game)

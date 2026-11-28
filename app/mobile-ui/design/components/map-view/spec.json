@@ -10,21 +10,9 @@
       "type": "text",
       "default": ""
     },
-    "base": {
-      "type": "json",
-      "default": [
-        1000,
-        1000
-      ]
-    },
-    "view": {
-      "type": "json",
-      "default": []
-    },
-    "markers": {
-      "type": "json",
-      "default": []
-    },
+    "base": {"type": "json", "default": [1000, 1000], "shape": "numbers"},
+    "view": {"type": "json", "default": [], "shape": "numbers"},
+    "markers": {"type": "json", "default": [], "shape": [{"$texture": {"h": "number", "id": "text", "w": "number", "x": "number", "y": "number"}}]},
     "zoom": {
       "type": "bool",
       "default": true,

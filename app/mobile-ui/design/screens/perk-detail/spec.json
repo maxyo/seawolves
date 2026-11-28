@@ -2,10 +2,7 @@
   "tag": "s-perk-detail",
   "doc": "Screen part of s-hero: the selected perk beside the tree (screens/hero/character.c `detail`). The perk (icon, stock caption; the group under it when it is not this tab's), then its stock description with what it needs at its start («Требует» and small round icons in the text's flow) and what it opens at its end («Открывает» and icons), in the tree's state style (brass ring and check learned, warm glow open, faded with a lock locked; the other group's glyph on the corner); each icon's invisible 48 dp touch box reports `go <perk id>` and selects that perk (also in the other group), its name on a long press. Below, «Изучить», learned by a hold (an early release shakes, no caption); disabled when the perk cannot be learned, a tap shakes it and makes the missing prerequisites pulse (a prerequisite not learned yet is faded with a lock and a dim red ring). For a perk of the other group the button to its tab. A new perk scrolls the panel back to its top (reveal).",
   "props": {
-    "detail": {
-      "type": "json",
-      "default": null
-    }
+    "detail": {"type": "json", "default": null, "shape": {"$null": {"go": {"$null": {"id": "text", "label": "text"}}, "group": "text", "groupIcon": "text", "id": "text", "image": {"$of": "c-row-image.image"}, "learn": {"$null": {"busy": "bool", "disabled": "bool", "id": "text", "label": "text"}}, "note": "text", "opens": [{"groupIcon": "text", "image": {"$of": "c-row-image.image"}, "met": "bool", "name": "text", "nudge": "bool", "other": "bool", "perk": "text", "state": "text"}], "requires": [{"groupIcon": "text", "image": {"$of": "c-row-image.image"}, "met": "bool", "name": "text", "nudge": "bool", "other": "bool", "perk": "text", "state": "text"}], "text": "text", "title": "text"}}}
   },
   "behaviors": [
     "press",

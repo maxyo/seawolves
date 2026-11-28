@@ -3,23 +3,18 @@
   "doc": "Commerce: the one buy / sell / transfer layout of store, contraband, cannons, items trade, storage and chests: the goods list (filter chips, sortable columns, a quick take for free transfers) and the dock on the right with the open deal and the place's buttons. Filled by the script interface/touch/screens/trade/trade.c through the shapes of its json props.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "subject": {"type": "json", "default": null,
-               "shape": {"$null": {"label": "text", "sub": "text", "prev": "bool", "next": "bool", "list": "bool"}}},
-    "stats": {"type": "json", "default": [],
-             "shape": [{"label": "text", "value": "text", "icon": "text", "preview": "text", "previewTone": "text", "tone": "text"}]},
-    "list": {"type": "json", "default": {},
-            "shape": {"label": "text", "quick": "text", "cols": [{"label": "text", "icon": "text", "iconTone": "text", "sortable": "bool", "sort": "text"}], "rows": [{"id": "text", "name": "text", "image": "picture", "meta": "text", "sub": "text", "quick": "bool", "metaTone": "text", "cells": [{"$either": ["text", {"text": "text", "bold": "bool"}]}], "selected": "bool", "disabled": "bool", "reason": "text", "facts": [{"icon": "text", "iconTone": "text", "k": "text", "v": "text", "tone": "text"}], "text": "text"}], "filters": [{"id": "text", "label": "text", "selected": "bool", "disabled": "bool"}]}},
-    "deal": {"type": "json", "default": null,
-            "shape": {"$null": {"value": "int", "min": "int", "max": "int", "zones": "bool", "origin": "int", "lessLabel": "text", "moreLabel": "text", "label": "text", "allLabel": "text", "summary": "text", "moreReason": "text", "reason": "text", "disabled": "bool", "steps": ["int"], "all": "bool", "stack": "bool", "surface": "text"}}},
+    "subject": {"type": "json", "default": null, "shape": {"$of": "c-screen.subject"}},
+    "stats": {"type": "json", "default": [], "shape": {"$of": "c-screen.stats"}},
+    "list": {"type": "json", "default": {}, "shape": {"label": "text", "quick": "text", "cols": {"$of": "c-trade-list.cols"}, "rows": {"$of": "c-trade-list.rows"}, "filters": {"$of": "c-trade-list.filters"}}},
+    "deal": {"type": "json", "default": null, "shape": {"$of": "c-trade-list.deal"}},
     "info": {"type": "bool", "default": false, "class": false},
     "dealing": {"type": "bool", "default": false, "class": false},
     "infoLabel": {"type": "text", "default": ""},
-    "place": {"type": "json", "default": null,
-             "shape": {"$null": {"title": "text", "facts": [{"k": "text", "v": "text"}]}}},
+    "place": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "facts": {"$of": "c-kv.items"}}}},
     "primary": {"type": "json", "default": null,
                "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "actions": {"type": "json", "default": [],
                "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}]},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

@@ -1,8 +1,8 @@
 {
   "tag": "c-table",
   "props": {
-    "columns": {"type": "json", "default": []},
-    "rows": {"type": "json", "default": []},
+    "columns": {"type": "json", "default": [], "shape": [{"align": "text", "label": "text", "w": "text"}]},
+    "rows": {"type": "json", "default": [], "shape": [{"cells": [{"$either": ["text", {"arrows": "bool", "bar": "int", "barKind": "text", "bold": "bool", "icon": "text", "iconSize": "int", "lines": "int", "noLeft": "bool", "text": "text", "tone": "text", "image": {"$of": "c-row-image.image"}, "iconOnly": "bool", "iconTone": "text", "sub": "text", "tag": {"$either": ["text", {"text": "text", "tone": "text"}]}, "badge": "text", "delta": {"from": "number", "to": "number", "tone": "text"}, "flag": "text", "imageSize": "int", "noRight": "bool", "tokenSize": "int"}]}], "id": "text", "selected": "bool", "disabled": "bool", "fit": "bool", "reason": "text", "showReason": "bool"}]},
     "rowHeight": {"type": "int", "default": 0},
     "head": {"type": "bool", "default": false, "class": false},
     "caps": {"type": "bool", "default": false},
@@ -16,7 +16,7 @@
     "emptyIcon": {"type": "text", "default": "chest"},
     "preset": {"type": "enum", "options": ["", "picker"], "default": "", "class": false},
     "path": {"type": "text", "default": ""},
-    "primary": {"type": "json", "default": null},
+    "primary": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text"}}},
     "showReason": {"type": "bool", "default": false, "class": false}
   },
   "behaviors": ["press"],

@@ -2,7 +2,7 @@
   "tag": "s-pieces",
   "doc": "Screen part of the tavern mini-games: one row of dice, cards, the cup or the deck on the felt, drawn by our own shapes (no game pictures). A piece with `action` is tappable (data-action, data-value).",
   "props": {
-    "pieces": {"type": "json", "default": []},
+    "pieces": {"type": "json", "default": [], "shape": [{"action": "text", "disabled": "bool", "kind": "text", "lift": "bool", "pips": ["numbers"], "rank": "text", "reason": "text", "red": "bool", "rot": "int", "suit": "text", "value": "text"}]},
     "label": {"type": "text", "default": ""},
     "size": {"type": "int", "default": 60},
     "below": {"type": "bool", "default": false, "class": false}

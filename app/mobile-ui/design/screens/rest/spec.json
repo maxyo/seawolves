@@ -3,10 +3,8 @@
   "doc": "Rest for some hours over the paused scene (interface `tavernwait`), filled by the script interface/touch/screens/rest.c through the shapes of its json props.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "hours": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool"}]},
-    "actions": {"type": "json", "default": [],
-                "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text",
-                           "busy": "bool", "sub": "text"}]},
-    "extras": {"type": "json", "default": {}}
+    "hours": {"type": "json", "default": [], "shape": {"$of": "c-tabs.items"}},
+    "actions": {"type": "json", "default": [], "shape": {"$of": "c-dialog.actions"}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

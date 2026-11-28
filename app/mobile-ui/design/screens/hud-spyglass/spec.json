@@ -8,9 +8,9 @@
     "name": {"type": "text", "default": ""},
     "nation": {"type": "text", "default": ""},
     "sub": {"type": "text", "default": ""},
-    "bars": {"type": "json", "default": []},
-    "facts": {"type": "json", "default": []},
-    "captain": {"type": "json", "default": null},
+    "bars": {"type": "json", "default": [], "shape": [{"icon": "text", "label": "text", "value": "int", "tone": "text"}]},
+    "facts": {"type": "json", "default": [], "shape": [{"k": "text", "v": "text"}]},
+    "captain": {"type": "json", "default": null, "shape": {"$null": {"portrait": "text", "name": "text", "role": "text", "skills": [{"icon": "text", "label": "text", "value": "text"}]}}},
     "unknown": {"type": "text", "default": ""}
   },
   "constants": {"width": 300, "left": 84, "top": 10, "token": 56, "portrait": 40, "flag": 20}

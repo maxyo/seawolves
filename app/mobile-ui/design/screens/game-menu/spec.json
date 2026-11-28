@@ -6,6 +6,6 @@
     "resume": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
     "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool", "hold": "bool"}]},
     "confirm": {"type": "json", "default": null, "shape": {"$null": {"preset": "text", "title": "text", "text": "text", "yes": "text", "no": "text"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

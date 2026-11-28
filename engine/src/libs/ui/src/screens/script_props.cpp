@@ -288,8 +288,6 @@ Json ScriptProps(const ViewNode &view, const ComponentSpec &spec, const Readings
             shape = "number";
             break;
         case PropSpec::Type::Json:
-            if (prop->shape.is_null())
-                throw Mismatch(prop->name, "the spec of " + spec.tag + " gives this json prop no shape");
             break;
         }
         if (std::optional<Json> value = Place(child, shape.is_null() ? prop->shape : shape, prop->name, readings))

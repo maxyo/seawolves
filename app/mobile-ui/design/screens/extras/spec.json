@@ -2,7 +2,7 @@
   "tag": "s-extras",
   "doc": "Screen part shared by every screen: the «Прочее» sheet under the header «⋯» (widgets the screen does not know, its rows and note made by interface/touch/universal/generic.c) and the reading sheet for long texts. The rest is Router::ExtrasView's.",
   "props": {
-    "extras": {"type": "json", "default": {}, "shape": {"rows": [{"kind": "text", "id": "text", "title": "text", "label": "text", "disabled": "bool", "reason": "text", "selected": "int", "muted": "bool", "busy": "bool", "on": "bool", "options": ["text"], "value": "text", "text": "text", "left": "bool", "right": "bool"}], "note": "text"}}
+    "extras": {"type": "json", "default": {}, "shape": {"rows": [{"$of": "s-control.row"}], "note": "text", "open": "bool", "title": "text", "actions": [{"id": "text", "icon": "text", "label": "text"}], "reading": "bool", "readingTitle": "text", "readingText": "text"}}
   },
   "classes": {
     "shown": "extras.open || extras.reading"

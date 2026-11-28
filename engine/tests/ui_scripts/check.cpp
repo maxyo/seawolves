@@ -409,8 +409,11 @@ struct Calls final : storm::ui::ScriptCall
 
 std::unique_ptr<storm::ui::ComponentSpec> PackScreen(const char *folder)
 {
-    return storm::ui::ParseComponentSpec(
-        Json::parse(ReadText(Environment("STORM_MOBILE_UI") + "/design/screens/" + folder + "/spec.json")));
+    const Json pack = Json::parse(ReadText(Environment("STORM_UI_PACK") + "/components.json"));
+    for (const Json &entry : pack.at("components"))
+        if (entry.at("tag") == std::string("s-") + folder)
+            return storm::ui::ParseComponentSpec(entry);
+    throw std::runtime_error(std::string("the pack has no s-") + folder);
 }
 
 // The capabilities of the screens the pack's list declares, in its order: on the fixture game every one attaches.

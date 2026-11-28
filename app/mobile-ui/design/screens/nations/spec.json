@@ -4,24 +4,19 @@
   "props": {
     "title": {"type": "text", "default": ""},
     "headerSection": {"type": "text", "default": ""},
-    "columns": {"type": "json", "default": [], "shape": [{"label": "text", "icon": "text", "image": "picture"}]},
-    "rows": {"type": "json", "default": [],
-             "shape": [{"label": "text", "icon": "text", "image": "picture",
-                        "cells": [{"self": "bool", "label": "text", "icon": "text", "image": "picture"}]}]},
+    "columns": {"type": "json", "default": [], "shape": [{"label": "text", "icon": "text", "image": {"$of": "c-row-image.image"}}]},
+    "rows": {"type": "json", "default": [], "shape": [{"label": "text", "icon": "text", "image": {"$of": "c-row-image.image"}, "cells": [{"self": "bool", "label": "text", "icon": "text", "image": {"$of": "c-row-image.image"}}]}]},
     "legend": {"type": "json", "default": [], "shape": [{"icon": "text", "label": "text"}]},
     "reputationTitle": {"type": "text", "default": ""},
-    "reputation": {"type": "json", "default": [],
-                   "shape": [{"label": "text", "value": "text", "icon": "text", "image": "picture", "bar": "int",
-                              "tone": "text"}]},
+    "reputation": {"type": "json", "default": [], "shape": [{"label": "text", "value": "text", "icon": "text", "image": {"$of": "c-row-image.image"}, "bar": "int", "tone": "text"}]},
     "helpReputation": {"type": "bool", "default": false, "class": false},
     "helpFlag": {"type": "bool", "default": false, "class": false},
     "flagTitle": {"type": "text", "default": ""},
     "flag": {"type": "json", "default": null, "shape": {"$null": {"label": "text"}}},
-    "flags": {"type": "json", "default": [],
-              "shape": [{"id": "text", "icon": "text", "label": "text", "selected": "bool", "disabled": "bool"}]},
+    "flags": {"type": "json", "default": [], "shape": {"$of": "s-flags.flags"}},
     "flagsDisabled": {"type": "bool", "default": false, "class": false},
     "apply": {"type": "json", "default": null,
               "shape": {"$null": {"id": "text", "label": "text", "variant": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

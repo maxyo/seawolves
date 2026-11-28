@@ -5,16 +5,16 @@
     "view": {"type": "text", "default": "setup"},
     "title": {"type": "text", "default": ""},
     "back": {"type": "bool", "default": false},
-    "actions": {"type": "json", "default": []},
-    "notices": {"type": "json", "default": []},
-    "setup": {"type": "json", "default": null},
-    "installed": {"type": "json", "default": null},
-    "play": {"type": "json", "default": null},
+    "actions": {"type": "json", "default": [], "shape": {"$of": "c-screen.actions"}},
+    "notices": {"type": "json", "default": [], "shape": [{"dismiss": "text", "tone": "text", "text": "text", "lead": "text"}]},
+    "setup": {"type": "json", "default": null, "shape": {"$null": {"prompt": "text", "folder": "text", "archive": "text", "archiveMeta": "text", "help": "text", "library": "text"}}},
+    "installed": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "meta": "text", "delete": "text", "untested": "text"}}},
+    "play": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "busy": "bool"}}},
     "files": {"type": "text", "default": ""},
-    "busy": {"type": "json", "default": null},
-    "cancel": {"type": "json", "default": null},
-    "choose": {"type": "json", "default": null},
-    "password": {"type": "json", "default": null},
-    "extras": {"type": "json", "default": {}}
+    "busy": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "status": "text", "percent": "number"}}},
+    "cancel": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "disabled": "bool", "busy": "bool"}}},
+    "choose": {"type": "json", "default": null, "shape": {"$null": {"untested": "text", "columns": {"$of": "c-table.columns"}, "rows": {"$of": "c-table.rows"}, "primary": {"$of": "c-table.primary"}}}},
+    "password": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "subtitle": "text", "confirm": "text", "label": "text"}}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

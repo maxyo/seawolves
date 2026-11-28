@@ -5,7 +5,7 @@
     "compact": {"type": "bool", "default": false},
     "stretch": {"type": "bool", "default": false},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
-    "items": {"type": "json", "default": []}
+    "items": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "selected": "bool", "badge": "text", "disabled": "bool", "reason": "text", "count": "int", "divider": "bool", "icon": "text"}]}
   },
   "classes": {
     "single": "len(items) < 2"

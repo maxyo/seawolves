@@ -6,6 +6,6 @@
     "buttons": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "busy": "bool"}]},
     "exit": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text", "busy": "bool"}}},
     "about": {"type": "json", "default": null, "shape": {"$null": {"id": "text", "label": "text"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

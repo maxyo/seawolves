@@ -13,15 +13,43 @@
     },
     "lines": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "key": "text",
+       "leaving": "bool",
+       "tone": "text",
+       "open": "bool",
+       "icon": "text",
+       "text": "text"
+      }
+     ]
     },
     "states": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "icon": "text",
+       "fill": "int",
+       "fillTone": "text",
+       "label": "text",
+       "badge": "text",
+       "tone": "text"
+      }
+     ]
     },
     "moves": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "id": "text",
+       "icon": "text",
+       "sector": "text",
+       "disabled": "bool"
+      }
+     ]
     },
     "selected": {
      "type": "text",
@@ -149,7 +177,20 @@
     },
     "rows": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "id": "text",
+       "title": "text",
+       "icon": "text",
+       "disabled": "bool",
+       "pressed": "bool",
+       "chevron": "bool",
+       "cooldown": "int",
+       "heading": "text",
+       "here": "bool"
+      }
+     ]
     },
     "headings": {
      "type": "number",
@@ -174,7 +215,21 @@
    "props": {
     "ships": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "name": "text",
+       "texture": "text",
+       "uv": "text",
+       "bars": [
+        {
+         "kind": "text",
+         "value": "int"
+        }
+       ],
+       "tap": "bool"
+      }
+     ]
     }
    },
    "behaviors": [
@@ -305,15 +360,59 @@
     },
     "recipients": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "id": "text",
+       "title": "text",
+       "meta": "text",
+       "image": {
+        "icon": "text",
+        "enamel": "text"
+       },
+       "value": "text",
+       "selected": "bool",
+       "bars": {
+        "hull": "int",
+        "crew": "int",
+        "sails": "int"
+       }
+      }
+     ]
     },
     "tiles": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "id": "text",
+       "title": "text",
+       "image": {
+        "icon": "text",
+        "enamel": "text"
+       },
+       "disabled": "bool",
+       "pressed": "bool",
+       "cooldown": "int"
+      }
+     ]
     },
     "rows": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "id": "text",
+       "title": "text",
+       "image": {
+        "icon": "text",
+        "enamel": "text"
+       },
+       "disabled": "bool",
+       "pressed": "bool",
+       "cooldown": "int"
+      }
+     ]
     }
    },
    "behaviors": [
@@ -329,7 +428,21 @@
    "props": {
     "officers": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      {
+       "name": "text",
+       "texture": "text",
+       "uv": "text",
+       "bars": [
+        {
+         "kind": "text",
+         "value": "int"
+        }
+       ],
+       "tap": "bool"
+      }
+     ]
     }
    },
    "behaviors": [
@@ -345,7 +458,10 @@
    "props": {
     "sizes": {
      "type": "json",
-     "default": []
+     "default": [],
+     "shape": [
+      "number"
+     ]
     }
    },
    "template": "<t-for each=\"sizes\" as=\"w\"><div class=\"panel\" style=\"left: {{ 20 + w_i * 70 }}dp; width: {{w}}dp; height: {{ w + 30 }}dp;\"></div></t-for>"

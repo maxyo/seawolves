@@ -2,7 +2,7 @@
   "tag": "s-control",
   "doc": "Screen part: one row of the generic layout or the Other sheet (interface/touch/universal/generic.c) — action, toggle, radio, segment, slider, stepper or field.",
   "props": {
-    "row": {"type": "json", "default": {}},
+    "row": {"type": "json", "default": {}, "shape": {"$null": {"busy": "bool", "disabled": "bool", "id": "text", "kind": "text", "label": "text", "left": "bool", "muted": "bool", "on": "bool", "options": {"$of": "c-setting.options"}, "reason": "text", "right": "bool", "selected": "int", "text": "text", "title": "text", "value": "text", "note": "text"}}},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"}
   }
 }

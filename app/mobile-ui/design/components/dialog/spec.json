@@ -13,7 +13,7 @@
     "step": {"type": "text", "default": ""},
     "tone": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
     "width": {"type": "int", "default": 0},
-    "actions": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": [], "shape": [{"busy": "bool", "disabled": "bool", "id": "text", "label": "text", "variant": "text", "reason": "text", "sub": "text", "hold": "bool", "holdProgress": "number", "icon": "text", "size": "text", "surface": "text"}]},
     "scrim": {"type": "bool", "default": true, "class": false},
     "subtitle": {"type": "text", "default": ""},
     "closable": {"type": "bool", "default": false, "class": false},

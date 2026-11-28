@@ -58,6 +58,8 @@ std::unique_ptr<ComponentSpec> ParseComponentSpec(const Json &entry)
         for (const Json &option : options)
             prop.options.push_back(option);
         prop.shape = item.value().value("shape", Json());
+        if (prop.type == PropSpec::Type::Json && prop.shape.is_null())
+            throw std::runtime_error(spec->tag + ": json prop " + prop.name + " has no shape");
         spec->props.push_back(std::move(prop));
     }
     return spec;

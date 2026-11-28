@@ -5,8 +5,7 @@
     "speaker": {"type": "text", "default": ""},
     "text": {"type": "text", "default": ""},
     "page": {"type": "int", "default": 0},
-    "replies": {"type": "json", "default": [],
-                "shape": [{"id": "text", "title": "text", "pressed": "bool", "meta": "text", "metaTone": "text"}]},
-    "extras": {"type": "json", "default": {}}
+    "replies": {"type": "json", "default": [], "shape": {"$of": "c-dialogue-panel.replies"}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

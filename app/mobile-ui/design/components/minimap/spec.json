@@ -5,7 +5,7 @@
     "speed": {"type": "text", "default": ""},
     "date": {"type": "text", "default": ""},
     "heading": {"type": "number", "default": 0},
-    "markers": {"type": "json", "default": []},
+    "markers": {"type": "json", "default": [], "shape": [{"tone": "text", "x": "number", "y": "number"}]},
     "native": {"type": "bool", "default": false},
     "readout": {"type": "bool", "default": true, "class": false},
     "zoomLabel": {"type": "text", "default": "", "defaultKey": "minimap.zoom"},

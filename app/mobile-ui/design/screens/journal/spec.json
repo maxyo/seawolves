@@ -30,32 +30,8 @@
         }
       ]
     },
-    "subtabs": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "id": "text",
-          "label": "text",
-          "selected": "bool"
-        }
-      ]
-    },
-    "list": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "id": "text",
-          "cells": [
-            {
-              "text": "text"
-            }
-          ],
-          "selected": "bool"
-        }
-      ]
-    },
+    "subtabs": {"type": "json", "default": [], "shape": {"$of": "c-tabs.items"}},
+    "list": {"type": "json", "default": [], "shape": {"$of": "c-table.rows"}},
     "empty": {
       "type": "text",
       "default": ""
@@ -75,43 +51,11 @@
         }
       }
     },
-    "tables": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "id": "text",
-          "interactive": "bool",
-          "height": "int",
-          "columns": [
-            {
-              "label": "text",
-              "w": "text",
-              "align": "text"
-            }
-          ],
-          "rows": [
-            {
-              "id": "text",
-              "selected": "bool",
-              "cells": [
-                {
-                  "text": "text",
-                  "image": "picture"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
+    "tables": {"type": "json", "default": [], "shape": [{"id": "text", "interactive": "bool", "height": "int", "columns": {"$of": "c-table.columns"}, "rows": {"$of": "c-table.rows"}}]},
     "noTables": {
       "type": "text",
       "default": ""
     },
-    "extras": {
-      "type": "json",
-      "default": {}
-    }
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

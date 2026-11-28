@@ -2,7 +2,7 @@
   "tag": "s-block",
   "doc": "Screen part: one block of the generic layout (interface/touch/universal/generic.c) — table, list, tabs, controls, text or label.",
   "props": {
-    "block": {"type": "json", "default": {}}
+    "block": {"type": "json", "default": {}, "shape": {"columns": {"$of": "c-table.columns"}, "head": "bool", "id": "text", "interactive": "bool", "items": {"$of": "c-tabs.items"}, "kind": "text", "paragraphs": ["text"], "rows": [{"busy": "bool", "cells": [{"bold": "bool", "text": "text"}], "disabled": "bool", "id": "text", "kind": "text", "label": "text", "left": "bool", "muted": "bool", "on": "bool", "options": ["text"], "reason": "text", "right": "bool", "selected": "int", "text": "text", "title": "text", "value": "text"}], "scroll": "bool", "surface": "text", "text": "text"}}
   },
   "classes": {
     "scroll": "block.scroll",

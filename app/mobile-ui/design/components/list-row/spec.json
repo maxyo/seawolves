@@ -2,7 +2,7 @@
   "tag": "c-list-row",
   "props": {
     "icon": {"type": "text", "default": ""},
-    "image": {"type": "json", "default": null},
+    "image": {"type": "json", "default": null, "shape": {"$of": "c-row-image.image"}},
     "surface": {"type": "enum", "options": ["wood", "parchment"], "default": "wood"},
     "title": {"type": "text", "default": ""},
     "meta": {"type": "text", "default": ""},

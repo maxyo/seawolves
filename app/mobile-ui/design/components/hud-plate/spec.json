@@ -16,7 +16,7 @@
     "max": {"type": "int"},
     "maxHeight": {"type": "int", "default": 248},
     "maxWidth": {"type": "int", "default": 360},
-    "states": {"type": "json", "default": [], "shape": [{"icon": "text", "fill": "int", "fillTone": "text", "label": "text"}]},
+    "states": {"type": "json", "default": [], "shape": [{"icon": "text", "fill": "int", "fillTone": "text", "label": "text", "badge": "text", "tone": "text"}]},
     "stateSize": {"type": "int", "default": @{size.hudState}},
     "ours": {"type": "int", "default": 0},
     "theirs": {"type": "int", "default": 0},

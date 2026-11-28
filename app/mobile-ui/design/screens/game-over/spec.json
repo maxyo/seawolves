@@ -4,6 +4,6 @@
   "props": {
     "title": {"type": "text", "default": ""},
     "actions": {"type": "json", "default": [], "shape": [{"id": "text", "label": "text", "busy": "bool"}]},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

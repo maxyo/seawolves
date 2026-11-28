@@ -14,16 +14,7 @@
       "type": "text",
       "default": ""
     },
-    "stats": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "label": "text",
-          "value": "text"
-        }
-      ]
-    },
+    "stats": {"type": "json", "default": [], "shape": {"$of": "c-screen.stats"}},
     "locked": {
       "type": "bool",
       "default": false,
@@ -40,70 +31,9 @@
         "coins": "text"
       }
     },
-    "top": {
-      "type": "json",
-      "default": {},
-      "shape": {
-        "pieces": [
-          {
-            "kind": "text",
-            "rot": "int",
-            "pips": [
-              "numbers"
-            ],
-            "lift": "bool",
-            "action": "text",
-            "value": "text",
-            "disabled": "bool",
-            "reason": "text",
-            "suit": "text",
-            "red": "bool",
-            "rank": "text"
-          }
-        ],
-        "label": "text",
-        "size": "int",
-        "below": "bool"
-      }
-    },
-    "bottom": {
-      "type": "json",
-      "default": {},
-      "shape": {
-        "pieces": [
-          {
-            "kind": "text",
-            "rot": "int",
-            "pips": [
-              "numbers"
-            ],
-            "lift": "bool",
-            "action": "text",
-            "value": "text",
-            "disabled": "bool",
-            "reason": "text",
-            "suit": "text",
-            "red": "bool",
-            "rank": "text"
-          }
-        ],
-        "label": "text",
-        "size": "int"
-      }
-    },
-    "pack": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "kind": "text",
-          "action": "text",
-          "value": "text",
-          "disabled": "bool",
-          "reason": "text"
-        }
-      ]
-    },
+    "top": {"type": "json", "default": {}, "shape": {"pieces": {"$of": "s-pieces.pieces"}, "label": "text", "size": "int", "below": "bool"}},
+    "bottom": {"type": "json", "default": {}, "shape": {"pieces": {"$of": "s-pieces.pieces"}, "label": "text", "size": "int"}},
+    "pack": {"type": "json", "default": [], "shape": {"$of": "s-pieces.pieces"}},
     "buttons": {
       "type": "json",
       "default": [],
@@ -119,9 +49,6 @@
         }
       ]
     },
-    "extras": {
-      "type": "json",
-      "default": {}
-    }
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

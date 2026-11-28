@@ -29,7 +29,7 @@ static std::string List(const std::vector<std::string> &lines)
 
 // The test pack plus a list row (press, as C-ListRow: the whole row, an action part when `action` names an
 // icon) and the shipyard screen drawing its sheet's candidates with `row` as each row's attributes.
-static fs::path MakePack(const fs::path &base, const fs::path &font, const fs::path &app_spec, const std::string &row)
+static fs::path MakePack(const fs::path &base, const fs::path &font, const fs::path &app_pack, const std::string &row)
 {
     const fs::path pack = fs::temp_directory_path() / ("storm-ui-taps-" + std::to_string(::getpid()));
     fs::remove_all(pack);
@@ -53,7 +53,10 @@ static fs::path MakePack(const fs::path &base, const fs::path &font, const fs::p
                          // A row that only shows something (pointer-events: none) offers no tap.
                          "<c-row title=\"fact\" style=\"display: block; pointer-events: none;\"/></div>"}};
     // The props of the application's s-shipyard, whose shapes its script screen's view is read by.
-    screen["props"] = Json::parse(Read(app_spec))["props"];
+    const Json app = Json::parse(Read(app_pack / "components.json"));
+    for (const Json &component : app.at("components"))
+        if (component.at("tag") == "s-shipyard")
+            screen["props"] = component.at("props");
     components["components"].push_back(screen);
     std::ofstream(pack / "components.json") << components.dump();
     return pack;
@@ -65,11 +68,11 @@ struct Result
 };
 
 // Opens the captain picker with rows drawn as `row`, then taps the second candidate.
-static Result Run(const fs::path &base, const fs::path &font, const fs::path &models, const fs::path &app_spec,
+static Result Run(const fs::path &base, const fs::path &font, const fs::path &models, const fs::path &app_pack,
                   const std::string &row, bool drawn = true)
 {
     Result result;
-    const fs::path pack = MakePack(base, font, app_spec, row);
+    const fs::path pack = MakePack(base, font, app_pack, row);
     std::unique_ptr<FileSource> files = DirectoryFiles(pack.string());
     NoBackend backend;
     double clock = 0.0;
@@ -133,10 +136,10 @@ int main(int argc, char **argv)
         return 2;
     }
     const fs::path models = argv[1], base = argv[2], font = argv[3];
-    const fs::path app_spec = fs::path(argv[4]) / "screens" / "shipyard" / "spec.json";
+    const fs::path app_pack = argv[4];
 
     // The rows as the pack drew them: one id for all, the index as the action icon.
-    const Result broken = Run(base, font, models, app_spec, "id=\"candidates\" action=\"{{o_i}}\"");
+    const Result broken = Run(base, font, models, app_pack, "id=\"candidates\" action=\"{{o_i}}\"");
     const std::vector<std::string> expected = {
         "screen shipyard: c-row candidates action is drawn with no mapping: a tap on it does nothing",
         "screen shipyard: c-row candidates click is drawn with no mapping: a tap on it does nothing",
@@ -146,7 +149,7 @@ int main(int argc, char **argv)
     Expect(broken.actions.empty(), "and its tap reaches nothing: " + List(broken.actions));
 
     // Each row with the id the screen binds (candidate-N): drawn without an error, the tap selects that candidate.
-    const Result bound = Run(base, font, models, app_spec, "id=\"{{o.id}}\"");
+    const Result bound = Run(base, font, models, app_pack, "id=\"{{o.id}}\"");
     Expect(bound.errors.empty(), "rows whose taps are mapped: no errors: " + List(bound.errors));
     Expect(bound.actions == std::vector<std::string>{"PASSENGERSLIST 1 select"},
            "a tap on the second candidate selects it in the game's list: " + List(bound.actions));
@@ -166,7 +169,7 @@ int main(int argc, char **argv)
 
     // A row its template cannot draw (a path the view does not have): the screen's opening is failed once, as a throw
     // in its build, not drawn half bound.
-    const Result unbound = Run(base, font, models, app_spec, "id=\"{{o.id}}\" action=\"{{o.nope}}\"", false);
+    const Result unbound = Run(base, font, models, app_pack, "id=\"{{o.id}}\" action=\"{{o.nope}}\"", false);
     Expect(unbound.errors.size() == 1 &&
                unbound.errors[0].find("threw in its view: Component <s-shipyard>") != std::string::npos &&
                unbound.errors[0].find("'o.nope' is not defined") != std::string::npos,

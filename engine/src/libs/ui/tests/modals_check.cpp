@@ -355,14 +355,14 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
     {
         Json screen = {{"tag", tag},
                        {"props",
-                        {{"records", {{"type", "json"}, {"default", Json::array()}}},
-                         {"confirm", {{"type", "json"}, {"default", nullptr}}},
+                        {{"records", {{"type", "json"}, {"default", Json::array()}, {"shape", Json::array({{}})}}},
+                         {"confirm", {{"type", "json"}, {"default", nullptr}, {"shape", {{"$null", Json::object()}}}}},
                          {"mode", {{"type", "text"}, {"default", ""}}},
                          {"title", {{"type", "text"}, {"default", ""}}},
                          {"icon", {{"type", "text"}, {"default", ""}}},
                          {"text", {{"type", "text"}, {"default", ""}}},
                          {"actions", reading_actions},
-                         {"extras", {{"type", "json"}, {"default", Json::object()}}}}},
+                         {"extras", {{"type", "json"}, {"default", Json::object()}, {"shape", Json::object()}}}}},
                        {"template", std::string("<div style=\"") + screen_style +
                                         "\"><c-line id=\"under\" title=\"under\" style=\"display: block; position: "
                                         "absolute; left: 0; top: 0; width: 800dp; height: 60dp;\"/><t-if test=\"" +

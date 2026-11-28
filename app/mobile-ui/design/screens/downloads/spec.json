@@ -3,14 +3,14 @@
   "doc": "Download library: one row per set with its main action inline and the rare ones under «⋯», no side panel. Filled by the engine's launcher.cpp.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "actions": {"type": "json", "default": []},
-    "sets": {"type": "json", "default": []},
+    "actions": {"type": "json", "default": [], "shape": {"$of": "c-screen.actions"}},
+    "sets": {"type": "json", "default": [], "shape": [{"id": "text", "icon": "text", "title": "text", "meta": "text", "metaTone": "text", "progress": "number", "action": "text", "actionLabel": "text", "menu": "text", "busy": "bool", "button": {"id": "text", "label": "text", "variant": "text"}}]},
     "empty": {"type": "bool", "default": false},
     "emptyText": {"type": "text", "default": ""},
-    "sources": {"type": "json", "default": []},
+    "sources": {"type": "json", "default": [], "shape": [{"id": "text", "icon": "text", "title": "text", "meta": "text"}]},
     "error": {"type": "text", "default": ""},
-    "sheet": {"type": "json", "default": null},
-    "dialog": {"type": "json", "default": null},
-    "extras": {"type": "json", "default": {}}
+    "sheet": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "actions": {"$of": "c-dialog.actions"}}}},
+    "dialog": {"type": "json", "default": null, "shape": {"$null": {"kind": "text", "title": "text", "confirm": "text", "cancel": "text", "label": "text", "value": "text", "placeholder": "text", "rows": [{"id": "text", "icon": "text", "title": "text", "meta": "text"}], "text": "text", "actions": {"$of": "c-dialog.actions"}}}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

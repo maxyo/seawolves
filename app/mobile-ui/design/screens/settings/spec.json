@@ -3,10 +3,10 @@
   "doc": "Settings (interface `option_screen`), filled by the script interface/touch/screens/settings.c. A page is a list of sections, each with columns of setting rows.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "tabs": {"type": "json", "default": [], "shape": [{"label": "text", "selected": "bool"}]},
-    "sections": {"type": "json", "default": [], "shape": [{"title": "text", "columns": [{"title": "text", "rows": [{"kind": "text", "id": "text", "key": "text", "label": "text", "options": ["text"], "selected": "int", "on": "bool", "value": "int", "stack": "bool", "restart": "bool", "disabled": "bool", "reason": "text", "hint": "text", "display": "text"}]}]}]},
+    "tabs": {"type": "json", "default": [], "shape": {"$of": "c-tabs.items"}},
+    "sections": {"type": "json", "default": [], "shape": [{"title": "text", "columns": [{"title": "text", "rows": [{"kind": "text", "id": "text", "key": "text", "label": "text", "options": {"$of": "c-setting.options"}, "selected": "int", "on": "bool", "value": "int", "stack": "bool", "restart": "bool", "disabled": "bool", "reason": "text", "hint": "text", "display": "text"}]}]}]},
     "done": {"type": "json", "default": null, "shape": {"$null": {"label": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   },
   "constants": {
     "colMin": 250

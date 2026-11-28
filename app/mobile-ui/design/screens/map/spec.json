@@ -27,89 +27,13 @@
         }
       }
     },
-    "maps": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "id": "text",
-          "cells": [
-            {
-              "text": "text",
-              "icon": "text"
-            }
-          ],
-          "selected": "bool",
-          "disabled": "bool"
-        }
-      ]
-    },
+    "maps": {"type": "json", "default": [], "shape": {"$of": "c-table.rows"}},
     "mapsTitle": {
       "type": "text",
       "default": ""
     },
-    "mapColumns": {
-      "type": "json",
-      "default": [],
-      "shape": [
-        {
-          "w": "text"
-        }
-      ]
-    },
-    "info": {
-      "type": "json",
-      "default": null,
-      "shape": {
-        "$null": {
-          "title": "text",
-          "nation": "text",
-          "sub": "text",
-          "factsTitle": "text",
-          "facts": [
-            {
-              "k": "text",
-              "v": "text"
-            }
-          ],
-          "notes": [
-            {
-              "text": "text"
-            }
-          ],
-          "sections": [
-            {
-              "title": "text",
-              "page": "text",
-              "goods": [
-                {
-                  "$texture": {
-                    "label": "text",
-                    "value": "text"
-                  }
-                }
-              ],
-              "lines": [
-                {
-                  "text": "text"
-                }
-              ]
-            }
-          ],
-          "page": "text",
-          "tabs": [
-            {
-              "id": "text",
-              "label": "text",
-              "selected": "bool"
-            }
-          ]
-        }
-      }
-    },
-    "extras": {
-      "type": "json",
-      "default": {}
-    }
+    "mapColumns": {"type": "json", "default": [], "shape": {"$of": "c-table.columns"}},
+    "info": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "nation": "text", "sub": "text", "factsTitle": "text", "facts": {"$of": "c-kv.items"}, "notes": [{"text": "text"}], "sections": [{"title": "text", "page": "text", "goods": [{"$texture": {"label": "text", "value": "text"}}], "lines": [{"text": "text"}]}], "page": "text", "tabs": {"$of": "c-colony-sheet.tabs"}}}},
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }

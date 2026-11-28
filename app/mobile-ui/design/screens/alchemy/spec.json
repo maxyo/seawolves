@@ -3,17 +3,12 @@
   "doc": "Alchemy (interface `alchemy`), filled by the script interface/touch/screens/alchemy.c through the shapes of its json props: the known recipes on the left, the shown recipe's components and the number of batches on the right.",
   "props": {
     "title": {"type": "text", "default": ""},
-    "recipes": {"type": "json", "default": {},
-               "shape": {"label": "text", "rows": [{"id": "text", "name": "text", "image": "picture", "meta": "text", "selected": "bool", "disabled": "bool", "reason": "text", "cells": ["text"]}]}},
-    "recipe": {"type": "json", "default": null,
-              "shape": {"$null": {"title": "text", "sub": "text", "image": "picture", "info": "bool"}}},
-    "parts": {"type": "json", "default": {},
-             "shape": {"label": "text", "cols": [{"label": "text", "icon": "text"}],
-                       "rows": [{"id": "text", "name": "text", "image": "picture", "meta": "text", "cells": [{"$either": ["text", {"text": "text", "tone": "text"}]}]}]}},
-    "q": {"type": "json", "default": null,
-         "shape": {"$null": {"value": "int", "min": "int", "max": "int", "label": "text", "summary": "text", "steps": ["int"], "all": "bool", "allLabel": "text", "disabled": "bool"}}},
+    "recipes": {"type": "json", "default": {}, "shape": {"label": "text", "rows": {"$of": "c-trade-list.rows"}}},
+    "recipe": {"type": "json", "default": null, "shape": {"$null": {"title": "text", "sub": "text", "image": {"$of": "c-object-header.image"}, "info": "bool"}}},
+    "parts": {"type": "json", "default": {}, "shape": {"label": "text", "cols": {"$of": "c-trade-list.cols"}, "rows": {"$of": "c-trade-list.rows"}}},
+    "q": {"type": "json", "default": null, "shape": {"$null": {"value": "int", "min": "int", "max": "int", "label": "text", "summary": "text", "steps": {"$of": "c-quantity.steps"}, "all": "bool", "allLabel": "text", "disabled": "bool"}}},
     "primary": {"type": "json", "default": null,
                "shape": {"$null": {"label": "text", "sub": "text", "disabled": "bool", "reason": "text", "busy": "bool"}}},
-    "extras": {"type": "json", "default": {}}
+    "extras": {"type": "json", "default": {}, "shape": {"$of": "s-extras.extras"}}
   }
 }
