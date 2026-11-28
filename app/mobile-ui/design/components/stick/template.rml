@@ -1,5 +1,5 @@
 <t-if test="kind != 'look' || onboarding">
-<div class="wrap" style="{{ (active || onboarding || running) ? '' : 'filter: opacity(' + clamp(or(restOpacity, 0.3), 0.3, 1) + ');' }}{{ floating ? (active && !fixed ? ' left: ' + atX + 'dp; top: ' + atY + 'dp;' : (mirrored ? ' right: ' : ' left: ') + restLeft + 'dp; bottom: ' + restBottom + 'dp;') : '' }}">
+<div class="wrap" style="{{ (active || onboarding || running) ? '' : 'filter: opacity(' + clamp(restOpacity, 0.3, 1) + ');' }}{{ floating ? (active && !fixed ? ' left: ' + atX + 'dp; top: ' + atY + 'dp;' : (mirrored ? ' right: ' : ' left: ') + restLeft + 'dp; bottom: ' + restBottom + 'dp;') : '' }}">
 <t-if test="kind == 'helm'">
 <div class="track" data-stick="x" data-knob-size="{{ spec.helmKnob + 2 * spec.helmInset }}" style="width: {{ or(size, spec.size.helm) }}dp;">
 <t-if test="(active || onboarding) && value != 0"><div class="helm-fill" style="{{ value >= 0 ? 'left: 50%' : 'right: 50%' }}; width: {{ abs(clamp(value, -100, 100)) / 100 * (or(size, spec.size.helm) / 2 - spec.helmKnob / 2 - spec.helmInset) }}dp;"></div></t-if>
