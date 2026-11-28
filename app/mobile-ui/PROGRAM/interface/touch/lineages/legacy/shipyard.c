@@ -213,6 +213,11 @@ void TouchLegShipyard_Window(aref model, aref out)
 	{
 		window.title = TouchLib_Trim(TouchLegLib_Label(model, "MSG_WINDOW_CAPTION"));
 		window.text = TouchLib_Trim(TouchLegLib_Label(model, "MSG_WINDOW_TEXT"));
+		// what MessageOk will do (shipyard.c ShowMessageInfo sets it with the question)
+		object deals = {ShipBuy = "buy", ShipSell = "sell"};
+		string mode = UiGameText("sMessageMode");
+		window.deal = "";
+		if (mode != "" && CheckAttribute(&deals, mode)) window.deal = deals.(mode);
 	}
 	if (kind == "repair")
 	{

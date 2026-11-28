@@ -15,7 +15,8 @@
 //   deals.d<k>.{key ("repair", "guns", "sell", "buy"), label, sub (its price, "" none), can, reason}: what can be done
 //     with the card's ship
 //   window (absent: none of the game's is open).{kind, title, text, ok.{label, can, reason}, cancel.{label, can}}:
-//     "confirm" (the game asks before a deal, `text` its question with what it costs);
+//     "confirm" (the game asks before a deal, `text` its question with what it costs; deal: the deal it asks about,
+//       "buy" or "sell", "" another question);
 //     "repair" (parts.p<k>.{key, label, amount (as the order leaves it)}, price (the order's), all.{label, can,
 //       reason} the game's whole repair);
 //     "captain" (candidates.c<k>.{key, label, image, selected, can, reason}, name, facts.f<k>.{label, value},

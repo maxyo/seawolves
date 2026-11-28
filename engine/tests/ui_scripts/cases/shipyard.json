@@ -890,7 +890,7 @@
       {
        "busy": false,
        "disabled": false,
-       "hold": false,
+       "hold": true,
        "id": "sell",
        "label": "Продать",
        "reason": "",
@@ -1932,7 +1932,7 @@
       {
        "busy": false,
        "disabled": false,
-       "hold": false,
+       "hold": true,
        "id": "primary",
        "label": "Купить",
        "reason": "",
@@ -2081,6 +2081,9 @@
   {
    "name": "the game asks before buying: its question with the trade-in's price, ok and cancel",
    "capability": "shipyard",
+   "game": {
+    "sMessageMode": "ShipBuy"
+   },
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -2982,7 +2985,7 @@
       {
        "busy": false,
        "disabled": true,
-       "hold": false,
+       "hold": true,
        "id": "primary",
        "label": "Купить",
        "reason": "",
@@ -3166,6 +3169,9 @@
   {
    "name": "the game asks before selling",
    "capability": "shipyard",
+   "game": {
+    "sMessageMode": "ShipSell"
+   },
    "model": {
     "schemaVersion": 2,
     "language": "russian",
@@ -4087,7 +4093,7 @@
       {
        "busy": false,
        "disabled": true,
-       "hold": false,
+       "hold": true,
        "id": "sell",
        "label": "Продать",
        "reason": "",
@@ -5154,7 +5160,7 @@
       {
        "busy": false,
        "disabled": true,
-       "hold": false,
+       "hold": true,
        "id": "sell",
        "label": "Продать",
        "reason": "",
@@ -6958,7 +6964,7 @@
       {
        "busy": false,
        "disabled": true,
-       "hold": false,
+       "hold": true,
        "id": "sell",
        "label": "Продать",
        "reason": "",
@@ -8210,7 +8216,7 @@
       {
        "busy": false,
        "disabled": true,
-       "hold": false,
+       "hold": true,
        "id": "sell",
        "label": "Продать",
        "reason": "",

@@ -923,6 +923,38 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
     CHECK(map == std::vector<std::string>{"send TABLE_MAPS#3 select 3"});
 }
 
+TEST_CASE("a deal held at the shipyard answers the game's question about it with the game's ok, another is shown")
+{
+    Vm vm;
+    vm.Start();
+    storm::ui_scripts::VmPort port(vm.attacher);
+    const Json fixture = Json::parse(ReadText(Environment("STORM_UI_TESTS") + "/cases/shipyard.json"));
+    const auto spec = PackScreen("shipyard");
+    const auto &screen = Screen(vm, "shipyard");
+    // Case 1: an offer on the card, its buy button held; case 2: the game's question that follows.
+    const auto asked = [&](const std::string &mode) {
+        Calls calls(*spec);
+        storm::ui::InterfaceModel model;
+        REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases").at(1).at("model").dump(), model));
+        calls.widgets = model.widgets;
+        port.Build(screen, calls.Single(), calls);
+        port.Event(screen, "primary", "click", "", calls);
+        REQUIRE(storm::ui::ParseInterfaceModel(fixture.at("cases").at(2).at("model").dump(), model));
+        calls.widgets = model.widgets;
+        calls.first = false;
+        calls.calls.clear();
+        SetGame(Json{{"game", {{"sMessageMode", mode}}}});
+        port.Build(screen, calls.Single(), calls);
+        return std::pair{calls.calls, calls.props.at("sheet")};
+    };
+    const auto [answered, none] = asked("ShipBuy");
+    CHECK(answered == std::vector<std::string>{"send MSG_OK press ", "await"});
+    CHECK(none.is_null());
+    const auto [shown, sheet] = asked("RPG_Hint");
+    CHECK(shown.empty());
+    CHECK(sheet.at("kind") == "confirm");
+}
+
 TEST_CASE("the trade screens' script gives the pack screen the props and actions of the recorded models")
 {
     for (const std::string capability :

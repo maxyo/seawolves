@@ -2,13 +2,15 @@
 // Shipyard: one list on the left, our ships (each with what the yard pays for it, one free place) over the yard's
 // offers; on the right the ship being looked at, its figures (an offer's beside those our chosen ship had) and what
 // can be done with it; the game's windows (its question before a deal, the repair, the captain, the guns) as sheets
-// (pack screen s-shipyard). A deal is the game's button: the game asks its question with the price, the sheet shows it.
+// (pack screen s-shipyard). A deal is the game's button, held: the game asks its question with the price and the hold
+// has answered it with the game's own ok; any other question is shown.
 
 #event_handler("UiBuild", "TouchShipyard_Build");
 #event_handler("UiTap", "TouchShipyard_Tap");
 
 // The adapter's state of the last build, the figures our ships had when they were on the card (own.<place>), the
-// repair window's parts as it opened (floor.<part>) and the view.
+// repair window's parts as it opened (floor.<part>), the deal held and not yet asked about (held: "buy", "sell") and
+// the view.
 object TouchShipyard;
 object TouchShipyard_View;
 
@@ -50,10 +52,29 @@ void TouchShipyard_Build()
 		}
 	}
 	view.sheet = "";
-	if (CheckAttribute(game, "window")) TouchShipyard_Sheet(game, view);
+	bool answered = TouchShipyard_Held(ui, game);
+	if (!answered && CheckAttribute(game, "window")) TouchShipyard_Sheet(game, view);
 	else DeleteAttribute(&TouchShipyard, "floor");
 	UiOn("header-back", "");
 	UiShow(view);
+}
+
+// The game's question about the deal just held: answered with its ok in this build (true), not shown. The hold lapses
+// once its press is answered without that question.
+bool TouchShipyard_Held(aref ui, aref game)
+{
+	if (!CheckAttribute(&TouchShipyard, "held")) return false;
+	string held = TouchShipyard.held;
+	bool asked = CheckAttribute(game, "window") && game.window.kind == "confirm";
+	if (asked && game.window.deal == held && sti(game.window.ok.can))
+	{
+		DeleteAttribute(&TouchShipyard, "held");
+		TouchAdpShipyard_Ok(ui);
+		UiAwait();
+		return true;
+	}
+	if (asked || UiAnswer() != "waiting") DeleteAttribute(&TouchShipyard, "held");
+	return false;
 }
 
 int TouchShipyard_Chosen(aref game)
@@ -206,7 +227,7 @@ void TouchShipyard_Deals(aref game, aref detail)
 		aref deal = TouchLib_Item(game, "deals", k);
 		string id = deal.key;
 		object action = {id = id, label = deal.label, sub = TouchShipyard_Price(deal.sub), variant = "secondary",
-		                 hold = false, disabled = !sti(deal.can) || CheckAttribute(game, "window"),
+		                 hold = id == "buy" || id == "sell", disabled = !sti(deal.can) || CheckAttribute(game, "window"),
 		                 reason = deal.reason, busy = UiPending(id)};
 		if (id == "sell") action.variant = "danger";
 		if (id == "buy")
@@ -391,13 +412,22 @@ void TouchShipyard_Tap()
 	if (id == "sheet-ok") { TouchAdpShipyard_Ok(ui); UiHold(); return; }
 	if (id == "sheet-cancel" || id == "sheet-close") { TouchAdpShipyard_Close(ui); UiHold(); return; }
 	if (id == "sheet-all") { TouchAdpShipyard_RepairAll(ui); UiHold(); return; }
-	if (id == "repair" || id == "guns" || id == "sell")
+	if (id == "repair" || id == "guns")
 	{
 		TouchAdpShipyard_Deal(ui, id);
 		UiHold();
 		return;
 	}
-	if (id == "primary") { TouchAdpShipyard_Deal(ui, "buy"); UiHold(); return; }
+	// A held deal: the game asks its question, which the next build answers with the game's ok.
+	string deal = id;
+	if (id == "primary") deal = "buy";
+	if (deal == "buy" || deal == "sell")
+	{
+		TouchAdpShipyard_Deal(ui, deal);
+		TouchShipyard.held = deal;
+		UiHold();
+		return;
+	}
 	// A part of the repair window by its key: the window's parts are the adapter's, in its order.
 	int part = TouchLib_Find(game, "window.parts", "key", id);
 	if (part >= 0)
