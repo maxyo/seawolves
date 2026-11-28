@@ -1064,7 +1064,7 @@
    ]
   },
   {
-   "name": "an offer on the card beside our ketch: the trade-in names both prices; buying",
+   "name": "an offer on the card beside our ketch: the trade-in names both prices; buying; our ketch again",
    "capability": "shipyard",
    "model": {
     "schemaVersion": 2,
@@ -1999,7 +1999,7 @@
        "texture": "atlas:SHIPS_Lugger/ship"
       },
       "meta": "Класс 5",
-      "selected": true,
+      "selected": false,
       "title": "Марта",
       "value": "11 575"
      },
@@ -2064,10 +2064,17 @@
      "primary",
      "click",
      ""
+    ],
+    [
+     "fleet-1:0",
+     "click",
+     ""
     ]
    ],
    "calls": [
     "send BUTTON_BUY press ",
+    "hold",
+    "send SHIPS_SCROLL#0 select 1:0",
     "hold"
    ]
   },
@@ -3042,7 +3049,7 @@
        "texture": "atlas:SHIPS_Lugger/ship"
       },
       "meta": "Класс 5",
-      "selected": true,
+      "selected": false,
       "title": "Марта",
       "value": "11 575"
      },

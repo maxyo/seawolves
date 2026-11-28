@@ -61,9 +61,11 @@ int TouchShipyard_Chosen(aref game)
 	return TouchLib_Current(game, "fleet", "shipyard: our ships");
 }
 
-// Our ships and one free place: the chosen one where it is free, else the first.
+// Our ships and one free place: the chosen one where it is free, else the first. While the card shows an offer our
+// chosen ship is not the one looked at (the game's yard is on top): only the offer is marked.
 void TouchShipyard_Fleet(aref game, aref view)
 {
+	bool onOffer = CheckAttribute(game, "card") && sti(game.card.offer);
 	int chosen = TouchShipyard_Chosen(game);
 	int place = -1;
 	for (int k = 0; k < TouchLib_Count(game, "fleet"); k++)
@@ -80,7 +82,8 @@ void TouchShipyard_Fleet(aref game, aref view)
 		if (free && k != place) continue;
 		string id = "fleet-" + ship.key;
 		object row = {id = id, title = ship.label, meta = ship.meta, value = ship.value, image = "", icon = "ship",
-		              selected = ship.selected, disabled = !sti(ship.can) || CheckAttribute(game, "window")};
+		              selected = sti(ship.selected) && !onOffer,
+		              disabled = !sti(ship.can) || CheckAttribute(game, "window")};
 		if (free)
 		{
 			row.title = UiText("yard.empty_slot");
@@ -413,7 +416,9 @@ void TouchShipyard_Tap()
 		k = TouchLib_Find(game, "fleet", "key", TouchLib_Cut(id, 6, strlen(id)));
 		if (k < 0) return;
 		aref ship = TouchLib_Item(game, "fleet", k);
-		if (sti(ship.selected)) return;
+		// Our chosen ship again while an offer is shown: the game's ProcessFrame takes the card back from the yard
+		// when its scroll is chosen, so the same select is sent.
+		if (sti(ship.selected) && !(CheckAttribute(game, "card") && sti(game.card.offer))) return;
 		TouchAdpShipyard_Fleet(ui, k);
 		UiHold();
 		return;

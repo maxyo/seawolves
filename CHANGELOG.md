@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Верфь: при показанном предложении верфи свой корабль снова выбирается касанием — карточка возвращается к нему и к
+  «Ремонту», а отмеченной остаётся одна строка; раньше касание ничего не делало, и отмеченными выглядели две строки.
 - Значки интерфейса больше не рисуются на телефоне при первом показе: они заранее собраны в одну текстуру и
   окрашиваются при выводе. Первое открытие экрана с новыми значками не подтормаживает; края значков могут быть на
   долю пикселя мягче или резче.
@@ -181,6 +183,8 @@
 
 **English**
 
+- Shipyard: with a yard offer shown, tapping your own ship again returns the card to it and to «Repair», and only
+  one row is marked; the tap used to do nothing and two rows looked selected.
 - Interface icons are no longer drawn on the phone the first time they appear: they are baked into one texture and
   coloured as they are drawn. A screen's first opening with new icons no longer stalls; icon edges may be a fraction of
   a pixel softer or sharper.
