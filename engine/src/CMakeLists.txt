@@ -1,15 +1,15 @@
-# The build stamp's directory (cmake/build_stamp.cmake); dropping it would change every compile command once.
-include_directories("${STORM_BUILD_STAMP_DIR}")
-# The names shared with the Android application (cmake/StormAppContract.cmake).
-include_directories("${STORM_APP_CONTRACT_INCLUDE}")
-
+# The definitions and include paths of the engine's own code (storm_project_flags below).
+set(storm_project_definitions "")
+if(STORM_TOUCH_UI)
+  list(APPEND storm_project_definitions STORM_TOUCH_UI=1)
+endif()
 if(STORM_ENABLE_SAFE_MODE)
-  add_definitions(-DSTORM_ENABLE_SAFE_MODE=1)
+  list(APPEND storm_project_definitions STORM_ENABLE_SAFE_MODE=1)
 endif()
 
 option(STORM_SCENE_SWEEP "Build the script hook used by tools/scene_sweep (never for shipped builds)" OFF)
 if(STORM_SCENE_SWEEP)
-  add_definitions(-DSTORM_SCENE_SWEEP=1)
+  list(APPEND storm_project_definitions STORM_SCENE_SWEEP=1)
 endif()
 option(STORM_VM_VERIFY "Script VM: check every fast path against its plain computation (tools/vm_verify; never for shipped builds)" OFF)
 
@@ -18,8 +18,6 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
 # Matrices, vertex data and D3D structures are viewed through differently
 # typed pointers throughout the engine (storm_glm.h accessors, vertex locks).
 add_compile_options(-fno-strict-aliasing)
-# Narrowing in braced initializers is ill-formed C++: clang (the NDK, the host) rejects it, GCC only warns.
-add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror=narrowing>)
 
 if(ANDROID)
     # Same optimization level as the RelWithDebInfo builds that were tested on
@@ -39,6 +37,13 @@ include(tracy)
 # this is crucial to include libs first
 add_subdirectory(libs)
 add_subdirectory(apps)
+
+# The names shared with the Android application (cmake/StormAppContract.cmake). Narrowing in braced initializers is
+# ill-formed C++: clang (the NDK, the host) rejects it, GCC only warns.
+storm_project_flags("${CMAKE_CURRENT_SOURCE_DIR}"
+  DEFINITIONS ${storm_project_definitions}
+  INCLUDES "${STORM_APP_CONTRACT_INCLUDE}"
+  OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-Werror=narrowing>)
 
 # The sources that record Tracy zones (src/libs/util/include/profiler.hpp); nothing changes without STORM_TRACY.
 storm_tracy_sources(engine "${CMAKE_CURRENT_SOURCE_DIR}/apps/engine/src/main.cpp")

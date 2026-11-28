@@ -31,7 +31,6 @@ if(ANDROID AND NOT STORM_TOUCH_UI)
 endif()
 if(STORM_TOUCH_UI)
     set(STORM_ENABLE_UI ON)
-    add_compile_definitions(STORM_TOUCH_UI=1)
 endif()
 
 ### Set up build scripts

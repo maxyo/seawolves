@@ -11,6 +11,33 @@ if(NOT _storm_modules_started)
   set(global_modules_list "" CACHE INTERNAL "global_modules_list")
 endif()
 
+# storm_project_flags(<dir> [DEFINITIONS ...] [INCLUDES ...] [OPTIONS ...]) gives the flags to every target defined
+# in <dir> and its subdirectories inside it, not to the projects fetched into the build (their sources lie outside):
+# a project flag on third-party objects makes every change of it miss their compiler cache entries.
+function(storm_project_flags dir)
+  cmake_parse_arguments(PARSE_ARGV 1 arg "" "" "DEFINITIONS;INCLUDES;OPTIONS")
+  set(dirs "${dir}")
+  while(dirs)
+    list(POP_FRONT dirs current)
+    get_property(subdirs DIRECTORY "${current}" PROPERTY SUBDIRECTORIES)
+    foreach(sub IN LISTS subdirs)
+      string(FIND "${sub}/" "${dir}/" at)
+      if(at EQUAL 0)
+        list(APPEND dirs "${sub}")
+      endif()
+    endforeach()
+    get_property(targets DIRECTORY "${current}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(target IN LISTS targets)
+      get_target_property(type ${target} TYPE)
+      if(type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+        target_compile_definitions(${target} PRIVATE ${arg_DEFINITIONS})
+        target_include_directories(${target} PRIVATE ${arg_INCLUDES})
+        target_compile_options(${target} PRIVATE ${arg_OPTIONS})
+      endif()
+    endforeach()
+  endwhile()
+endfunction()
+
 # ##############################################################################
 # add all subdirs using add_subdirectory
 # ##############################################################################
