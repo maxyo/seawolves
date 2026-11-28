@@ -131,8 +131,10 @@ class COMPILER final : public VIRTUAL_COMPILER
         std::string error;
         require(storm::save::parseVariables(in, variables, error), "the saved variables do not parse");
         require(in.Remaining() == 0, "the saved stream has a different length than the reader consumed");
-        storm::save::applyVariables(bytes.data(), bytes.size(), variables, VarTab, &SCodec,
-                                    [this](const std::string &line) { errors.push_back(line); });
+        storm::save::applyVariables(
+            bytes.data(), bytes.size(), variables, VarTab, &SCodec,
+            [this](const std::string &line) { errors.push_back(line); },
+            []() -> DATA * { throw std::runtime_error("a new array in this state"); });
     }
 };
 

@@ -16,6 +16,11 @@
 // address, which is also what a script reading the reference would get); a pointer not found
 // is a reference to nothing that can be saved and is written as empty, with an error line.
 //
+// Arrays made by `new type[n]` belong to no variable: the ones a saved reference reaches
+// (directly, or through the references in another such array) are written after the globals as
+// entries of their own, named so that no script can declare them, and their places are numbered
+// from kNewArrayPlace on.
+//
 // The original engine walked up from the attribute through its parents instead
 // (TraceARoot) and relied on Windows structured exceptions for the dangling case. Elsewhere
 // that walk is a call through freed memory: the save crashed (Android, SIGSEGV in
@@ -25,14 +30,23 @@
 #include "s_vartab.h"
 
 #include <algorithm>
+#include <deque>
 #include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace storm::save
 {
 inline constexpr uint32_t kNoElement = 0xffffffff;
+// The place of the first saved `new` array; a program has fewer global variables.
+inline constexpr uint32_t kNewArrayPlace = 0x40000000;
+// The saved name of the `new` array at place kNewArrayPlace + n.
+inline std::string NewArrayName(uint32_t n)
+{
+    return "#new " + std::to_string(n);
+}
 
 // A global variable, or one element of a global array.
 struct VariablePlace
@@ -55,7 +69,9 @@ class ReferenceIndex
 {
   public:
     // `saved`: whether a variable enters the save; a reference to one that does not is saved empty.
-    explicit ReferenceIndex(const VarTable &variables, const std::function<bool(const VarInfo &)> &saved = {})
+    // `pool`: the arrays made by `new type[n]` (COMPILER::newArrays_).
+    explicit ReferenceIndex(const VarTable &variables, const std::function<bool(const VarInfo &)> &saved = {},
+                            std::deque<DATA> *pool = nullptr)
     {
         const auto count = static_cast<uint32_t>(variables.GetVarNum());
         for (uint32_t n = 0; n < count; ++n)
@@ -69,10 +85,12 @@ class ReferenceIndex
                 Add(value, VariablePlace{n, kNoElement});
                 continue;
             }
-            const auto elements = static_cast<uint32_t>(std::min<size_t>(info->elements, value->GetElementsNum()));
-            for (uint32_t i = 0; i < elements; ++i)
+            // The array as it is now: `@a = n` resizes it without its declaration.
+            for (uint32_t i = 0; i < value->GetArraySize(); ++i)
                 Add(value->GetArrayElement(i), VariablePlace{n, i});
         }
+        if (pool != nullptr)
+            IndexNewArrays(variables, saved, *pool);
 
         // Only attributes of global object variables can be saved as a reference target.
         unresolved_ = attributes_.size();
@@ -87,8 +105,7 @@ class ReferenceIndex
                 Visit(value->AttributesClass, VariablePlace{n, kNoElement});
                 continue;
             }
-            const auto elements = static_cast<uint32_t>(std::min<size_t>(info->elements, value->GetElementsNum()));
-            for (uint32_t i = 0; i < elements && unresolved_ != 0; ++i)
+            for (uint32_t i = 0; i < value->GetArraySize() && unresolved_ != 0; ++i)
                 Visit(value->GetArrayElement(i)->AttributesClass, VariablePlace{n, i});
         }
     }
@@ -110,7 +127,7 @@ class ReferenceIndex
                 return found == variables_.end() ? std::nullopt : std::optional(found->second);
             if (found == variables_.end())
                 return {};
-            if (next->GetType() != VAR_REFERENCE)
+            if (next->GetType() != VAR_REFERENCE || next->IsArray())
                 return found->second;
             current = next;
         }
@@ -124,7 +141,56 @@ class ReferenceIndex
         return found == attributes_.end() || !found->second ? nullptr : &*found->second;
     }
 
+    // The `new` arrays to save, in the order of their places.
+    const std::vector<DATA *> &NewArrays() const
+    {
+        return new_arrays_;
+    }
+
   private:
+    // The `new` arrays the saved references reach, breadth first from the global `ref` variables.
+    void IndexNewArrays(const VarTable &variables, const std::function<bool(const VarInfo &)> &saved,
+                        std::deque<DATA> &pool)
+    {
+        std::unordered_map<const DATA *, std::pair<DATA *, uint32_t>> in_pool; // element or array -> array, element
+        for (DATA &array : pool)
+        {
+            in_pool.try_emplace(&array, &array, kNoElement);
+            for (uint32_t i = 0; array.IsArray() && i < array.GetArraySize(); ++i)
+                in_pool.try_emplace(array.GetArrayElement(i), &array, i);
+        }
+        std::vector<DATA *> references;
+        const auto collect = [&](DATA *value) {
+            if (value->GetType() != VAR_REFERENCE)
+                return;
+            if (!value->IsArray())
+            {
+                references.push_back(value);
+                return;
+            }
+            for (uint32_t i = 0; i < value->GetArraySize(); ++i)
+                references.push_back(value->GetArrayElement(i));
+        };
+        for (uint32_t n = 0; n < static_cast<uint32_t>(variables.GetVarNum()); ++n)
+            if (const VarInfo *info = variables.GetVarX(n); info && info->value && (!saved || saved(*info)))
+                collect(info->value.get());
+        for (size_t next = 0; next < references.size(); ++next)
+        {
+            const auto found = in_pool.find(references[next]->GetReference());
+            if (found == in_pool.end())
+                continue;
+            DATA *array = found->second.first;
+            if (variables_.contains(array))
+                continue;
+            const auto place = kNewArrayPlace + static_cast<uint32_t>(new_arrays_.size());
+            new_arrays_.push_back(array);
+            variables_.try_emplace(array, VariablePlace{place, kNoElement});
+            for (uint32_t i = 0; array->IsArray() && i < array->GetArraySize(); ++i)
+                Add(array->GetArrayElement(i), VariablePlace{place, i});
+            collect(array);
+        }
+    }
+
     void Add(DATA *value, VariablePlace place)
     {
         variables_.try_emplace(value, place);
@@ -162,6 +228,7 @@ class ReferenceIndex
     }
 
     std::unordered_map<const DATA *, VariablePlace> variables_;
+    std::vector<DATA *> new_arrays_;
     // The targets of the global `aref` variables; a value once a global object owns the address.
     std::unordered_map<const ATTRIBUTES *, std::optional<AttributePlace>> attributes_;
     size_t unresolved_ = 0;

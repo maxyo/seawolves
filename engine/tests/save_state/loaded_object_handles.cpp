@@ -107,7 +107,8 @@ class SaveReader final : public VIRTUAL_COMPILER
         require(in.Remaining() == 0, "legacy stream alignment changed");
         storm::save::applyVariables(
             input.data(), input.size(), variables, VarTab, &SCodec,
-            [](const std::string &line) { throw std::runtime_error("reader reported: " + line); });
+            [](const std::string &line) { throw std::runtime_error("reader reported: " + line); },
+            []() -> DATA * { throw std::runtime_error("a new array in this state"); });
     }
 };
 

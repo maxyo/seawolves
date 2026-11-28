@@ -23,12 +23,14 @@
 //   string            vdword n (0 = null string), n bytes including the terminating zero
 //   state             string program directory, vdword n + n strings (name codec),
 //                     vdword n + n strings (segments), vdword n + n variables
-//   variable          string name, uint32 type, uint32 elements, `elements` values of `type`
+//   variable          string name, uint32 type, uint32 elements, `elements` values of `type` (an emptied array: 0)
 //   value             int32 | float | uintptr_t | string | object | ref | aref
 //   object            uint64 legacy entity handle, attribute
 //   attribute         vdword children, vdword name code, string value, `children` attributes
 //   ref               vdword variable (0xffffffff = empty), vdword element (0xffffffff = none)
 //   aref              vdword variable (0xffffffff = empty), vdword element, string path
+// The `new` arrays the references reach follow the globals as variables of their own (save_references.hpp); a
+// reference to one names its place, kNewArrayPlace + n.
 
 #include "attributes.h"
 #include "data.h"
@@ -318,7 +320,7 @@ inline bool parseVariables(StateReader &in, std::vector<SavedVariable> &variable
         const auto where = [&] { return "variable #" + std::to_string(n) + " '" + variable.name + "': "; };
         if (!in.Raw(variable.type) || !in.Raw(variable.elements))
             return detail::fail(error, where() + "truncated header", in);
-        if (variable.elements == 0 || variable.elements > in.Remaining())
+        if (variable.elements > in.Remaining())
             return detail::fail(error, where() + std::to_string(variable.elements) + " elements", in);
         variable.values = in.Position();
         for (uint32_t element = 0; element < variable.elements; ++element)
@@ -369,8 +371,10 @@ inline bool parseState(const char *data, size_t size, ParsedState &state, std::s
 // Puts the parsed variables into `table` (the program the state was saved from, just loaded).
 // `data` is the buffer that parseVariables / parseState accepted. Reports every saved value that
 // is left (see the top of this file); `report` receives one line each.
+// `newArray` makes an empty value in the program's pool of `new` arrays, for each one the state saved.
 inline void applyVariables(const char *data, size_t size, const std::vector<SavedVariable> &saved, VarTable &table,
-                           VSTRING_CODEC *codec, const std::function<void(const std::string &)> &report)
+                           VSTRING_CODEC *codec, const std::function<void(const std::string &)> &report,
+                           const std::function<DATA *()> &newArray)
 {
     const auto isScalar = [](uint32_t type) { return type == VAR_INTEGER || type == VAR_FLOAT || type == VAR_STRING; };
     struct Target
@@ -381,9 +385,25 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
     std::vector<Target> targets;
     targets.reserve(saved.size());
 
+    std::vector<DATA *> newArrays;
+
     // 1. Where each variable goes, and the saved array sizes.
     for (const auto &variable : saved)
     {
+        if (variable.name.starts_with('#'))
+        {
+            if (variable.name != NewArrayName(static_cast<uint32_t>(newArrays.size())))
+            {
+                report("Load: '" + variable.name + "' is no saved new array of this engine; its saved value is left");
+                continue;
+            }
+            DATA *value = newArray();
+            value->SetType(static_cast<S_TOKEN_TYPE>(variable.type));
+            value->SetArraySize(variable.elements);
+            newArrays.push_back(value);
+            targets.push_back({&variable, value});
+            continue;
+        }
         const size_t code = table.FindVar(variable.name);
         const VarInfo *info = code == INVALID_VAR_CODE ? nullptr : table.GetVarX(code);
         if (info == nullptr || info->value == nullptr)
@@ -429,20 +449,24 @@ inline void applyVariables(const char *data, size_t size, const std::vector<Save
 
     // A reference target: a global variable or one element of a global array, as it is now.
     const auto place = [&](const std::string &name, uint32_t variable, uint32_t element) -> DATA * {
-        const VarInfo *info = table.GetVarX(variable);
-        if (info == nullptr || info->value == nullptr)
+        const bool isNew = variable >= kNewArrayPlace;
+        const VarInfo *info = isNew ? nullptr : table.GetVarX(variable);
+        DATA *value =
+            isNew ? (variable - kNewArrayPlace < newArrays.size() ? newArrays[variable - kNewArrayPlace] : nullptr)
+                  : (info ? info->value.get() : nullptr);
+        if (value == nullptr)
         {
             report("Load: reference '" + name + "' names variable #" + std::to_string(variable) +
                    ", which the program does not have; it is left empty");
             return nullptr;
         }
-        DATA *value = info->value.get();
         if (element == kNoIndex)
             return value;
         if (!value->IsArray() || element >= value->GetArraySize())
         {
-            report("Load: reference '" + name + "' names element " + std::to_string(element) + " of '" + info->name +
-                   "', which has " + std::to_string(value->GetArraySize()) + "; it is left empty");
+            report("Load: reference '" + name + "' names element " + std::to_string(element) + " of '" +
+                   (isNew ? NewArrayName(variable - kNewArrayPlace) : info->name) + "', which has " +
+                   std::to_string(value->GetArraySize()) + "; it is left empty");
             return nullptr;
         }
         return value->GetArrayElement(element);
@@ -608,9 +632,7 @@ class StateWriter
         {
             const S_TOKEN_TYPE type = pV->GetType();
             data(&type, sizeof(type));
-            uint32_t n = pV->Number_of_elements;
-            if (n == 0)
-                n = 1; // for reference variables
+            const uint32_t n = pV->IsArray() ? pV->GetArraySize() : 1;
             data(&n, sizeof(n));
         }
         if (pV->IsArray())
@@ -748,6 +770,17 @@ class StateWriter
     const ReferenceIndex *references_ = nullptr;
     const char *name_ = "";
 };
+
+// The `new` arrays the references of the state reach, after its globals.
+inline void writeNewArrays(StateWriter &out, const ReferenceIndex &references)
+{
+    for (uint32_t n = 0; n < references.NewArrays().size(); ++n)
+    {
+        const std::string name = NewArrayName(n);
+        out.string(name.c_str());
+        out.variable(references.NewArrays()[n], name.c_str(), references);
+    }
+}
 
 // The head of the state, up to its variables: the program directory, the names of `codec` in the order its Get and
 // GetNext walk them (registered again in that order on load, every name gets its saved code back), the segment the

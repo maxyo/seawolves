@@ -61,3 +61,22 @@ int fail_nullptr_assigned_to_a_number()
 	number = nullptr;
 	return 0;
 }
+
+ref unbound;
+
+// expect-runtime-error: invalid ref
+int fail_index_an_unbound_global_reference()
+{
+	int at = 1;
+	int value = unbound[at];
+	return 0;
+}
+
+// expect-runtime-error: invalid ref
+int fail_index_an_unbound_local_reference()
+{
+	ref local;
+	int at = 1;
+	int value = local[at];
+	return 0;
+}

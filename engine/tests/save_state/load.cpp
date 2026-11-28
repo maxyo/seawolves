@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cstring>
+#include <deque>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -81,6 +82,7 @@ class COMPILER final : public VIRTUAL_COMPILER
   public:
     Codec SCodec;
     VarTable VarTab;
+    std::deque<DATA> newArrays; // COMPILER::newArrays_: the arrays of `new type[n]`
     std::vector<std::string> errors;
     COMPILER()
     {
@@ -113,15 +115,17 @@ class COMPILER final : public VIRTUAL_COMPILER
     // COMPILER::SerializeState: the head, then the variables.
     std::vector<char> save()
     {
+        const storm::save::ReferenceIndex references(VarTab, {}, &newArrays);
         storm::save::StateWriter out(*this);
-        storm::save::writeHead(out, "PROGRAM\\", SCodec, "seadogs.c", VarTab.GetVarNum());
-        const storm::save::ReferenceIndex references(VarTab);
+        storm::save::writeHead(out, "PROGRAM\\", SCodec, "seadogs.c",
+                               static_cast<uint32_t>(VarTab.GetVarNum() + references.NewArrays().size()));
         for (size_t n = 0; n < VarTab.GetVarNum(); ++n)
         {
             const VarInfo *variable = VarTab.GetVar(n);
             out.string(variable->name.c_str());
             out.variable(variable->value.get(), variable->name.c_str(), references);
         }
+        storm::save::writeNewArrays(out, references);
         return out.take();
     }
     // CoreImpl::ProcessStateLoading and COMPILER::LoadState: the whole state parses before
@@ -135,8 +139,14 @@ class COMPILER final : public VIRTUAL_COMPILER
         require(state.segments.size() == 1 && state.segments[0] == "seadogs.c", "the segment list was misread");
         for (const auto &name : state.codec)
             SCodec.Convert(name.c_str());
-        storm::save::applyVariables(bytes.data(), bytes.size(), state.variables, VarTab, &SCodec,
-                                    [this](const std::string &line) { errors.push_back(line); });
+        storm::save::applyVariables(
+            bytes.data(), bytes.size(), state.variables, VarTab, &SCodec,
+            [this](const std::string &line) { errors.push_back(line); },
+            [this] {
+                DATA &array = newArrays.emplace_back();
+                array.SetVCompiler(this);
+                return &array;
+            });
     }
 };
 
@@ -404,6 +414,70 @@ void damagedStates()
 }
 } // namespace
 
+// Caribbean Legend's weather: `ref WeatherState[]`, sized at run time (`@WeatherState = 24`), each element bound to an
+// array of `new string[16]`, which belongs to no variable; a reference to an element of a global array grown with `@`;
+// an array emptied with `@a = 0`. All of it comes back, the references bound to the loaded arrays.
+void newArraysAndRunTimeSizes()
+{
+    std::vector<char> image;
+    {
+        COMPILER game;
+        DATA &states = game.add("WeatherState", VAR_REFERENCE, 0);
+        DATA &grown = game.add("iGrown", VAR_INTEGER, 0);
+        DATA &emptied = game.add("iEmptied", VAR_INTEGER, 3);
+        DATA &cell = game.add("rCell", VAR_REFERENCE);
+        DATA &refs = game.add("rRefs", VAR_REFERENCE);
+        states.SetElementsNum(2); // `@`: the declaration keeps its size
+        for (uint32_t hour = 0; hour < 2; ++hour)
+        {
+            DATA &row = game.newArrays.emplace_back();
+            row.SetVCompiler(&game);
+            row.SetType(VAR_STRING);
+            row.SetArraySize(3);
+            row.GetArrayElement(2)->Set(hour == 0 ? "calm" : "storm");
+            states.GetArrayElement(hour)->SetReference(&row);
+        }
+        DATA &garbage = game.newArrays.emplace_back(); // no reference reaches it: not saved
+        garbage.SetVCompiler(&game);
+        garbage.SetType(VAR_INTEGER);
+        garbage.SetArraySize(4);
+        grown.SetElementsNum(5);
+        grown.GetArrayElement(4)->Set(static_cast<int32_t>(42));
+        cell.SetReference(grown.GetArrayElement(4));
+        DATA &links = game.newArrays.emplace_back(); // `new ref[1]`, its element bound to a global
+        links.SetVCompiler(&game);
+        links.SetType(VAR_REFERENCE);
+        links.SetArraySize(1);
+        links.GetArrayElement(0)->SetReference(grown.GetArrayElement(4));
+        refs.SetReference(&links);
+        emptied.SetElementsNum(0);
+        image = game.save();
+        require(game.errors.empty(), "the save reported: " + (game.errors.empty() ? "" : game.errors[0]));
+    }
+    COMPILER loaded;
+    DATA &states = loaded.add("WeatherState", VAR_REFERENCE, 0);
+    DATA &grown = loaded.add("iGrown", VAR_INTEGER, 0);
+    DATA &emptied = loaded.add("iEmptied", VAR_INTEGER, 3);
+    DATA &cell = loaded.add("rCell", VAR_REFERENCE);
+    DATA &refs = loaded.add("rRefs", VAR_REFERENCE);
+    loaded.load(image);
+    require(loaded.errors.empty(), "the load reported: " + (loaded.errors.empty() ? "" : loaded.errors[0]));
+    require(loaded.newArrays.size() == 3, "the unreachable new array was saved, or a reached one was not");
+    require(states.GetArraySize() == 2, "the run-time size of an array of references was lost");
+    for (uint32_t hour = 0; hour < 2; ++hour)
+    {
+        DATA *row = states.GetArrayElement(hour)->GetReference();
+        require(row && row->IsArray() && row->GetArraySize() == 3, "a reference to a new array was not bound");
+        require(text(*row->GetArrayElement(2)) == (hour == 0 ? "calm" : "storm"), "a new array's value was lost");
+    }
+    require(cell.GetReference() == grown.GetArrayElement(4) && integer(*grown.GetArrayElement(4)) == 42,
+            "a reference to an element of an array grown with @ was not bound");
+    DATA *links = refs.GetReference();
+    require(links && links->IsArray() && links->GetArrayElement(0)->GetReference() == grown.GetArrayElement(4),
+            "a new array of references was not bound, or its element");
+    require(emptied.IsArray() && emptied.GetArraySize() == 0, "an emptied array did not stay empty");
+}
+
 // The layout the original engine's saves have: a compact number is one byte below 0xfe, 0xfe and a 16-bit number below
 // 0xffff, else 0xff and a 32-bit one; a variable is its type and element count, at least 1 (an unset reference too).
 void compactLayout()
@@ -437,6 +511,7 @@ int main()
     arrayElementDrift();
     rootAttributeReference();
     damagedStates();
+    newArraysAndRunTimeSizes();
     std::cout << "PASS: a state is parsed whole before it is applied; drifted scalars and elements, resized arrays, "
                  "references into them and variables the program cannot take load without desynchronising the rest\n";
 }

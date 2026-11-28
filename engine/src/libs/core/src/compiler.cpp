@@ -6065,7 +6065,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                     if (bUseIndex)
                     {
                         pVV = pVV->GetVarPointer();
-                        pVV = pVV->GetArrayElement(dwBXIndex);
+                        pVV = pVV ? pVV->GetArrayElement(dwBXIndex) : nullptr;
                         if (!pVV)
                         {
                             SetError("invalid ref");
@@ -6109,7 +6109,7 @@ bool COMPILER::BC_Execute(uint32_t function_code, DATA *&pVReturnResult, const c
                     if (bUseIndex)
                     {
                         pVar = pVar->GetVarPointer();
-                        pVar = pVar->GetArrayElement(dwBXIndex);
+                        pVar = pVar ? pVar->GetArrayElement(dwBXIndex) : nullptr;
                         if (!pVar)
                         {
                             SetError("invalid ref");
@@ -7181,18 +7181,19 @@ std::vector<char> COMPILER::SerializeState()
         variables.push_back(real_var);
     }
 
+    // Built after OnSave has run: the script may still delete attributes there.
+    const storm::save::ReferenceIndex references(VarTab, saved, &newArrays_);
     storm::save::StateWriter out(*this);
     // The table has a first segment with a name: a save runs from a script, and a segment stays in the table only
     // when the file it names compiled.
     storm::save::writeHead(out, ProgramDirectory, SCodec, SegmentTable.front().name,
-                           static_cast<uint32_t>(variables.size()));
-    // Built after OnSave has run: the script may still delete attributes there.
-    const storm::save::ReferenceIndex references(VarTab, saved);
+                           static_cast<uint32_t>(variables.size() + references.NewArrays().size()));
     for (const VarInfo *variable : variables)
     {
         out.string(variable->name.c_str()); // ***
         out.variable(variable->value.get(), variable->name.c_str(), references);
     }
+    storm::save::writeNewArrays(out, references);
     return out.take();
 }
 
@@ -7284,8 +7285,14 @@ bool COMPILER::LoadState(const std::vector<char> &raw, const storm::save::Parsed
     }
 
     // 5. Variables table, all variables created during previous step, just read value
-    storm::save::applyVariables(raw.data(), raw.size(), state.variables, VarTab, &SCodec,
-                                [this](const std::string &line) { SetError("%s", line.c_str()); });
+    storm::save::applyVariables(
+        raw.data(), raw.size(), state.variables, VarTab, &SCodec,
+        [this](const std::string &line) { SetError("%s", line.c_str()); },
+        [this] {
+            DATA &array = newArrays_.emplace_back();
+            array.SetVCompiler(this);
+            return &array;
+        });
 #ifdef STORM_SCENE_SWEEP
     WriteStateDump("load"); // the state as loaded, before the game's OnLoad runs
 #endif
