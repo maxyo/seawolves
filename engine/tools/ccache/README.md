@@ -17,7 +17,9 @@ same result, only rebuilds take longer, and configuring a CMake project prints
   (a cache and a `ccache.conf` of their own, apart from the user's default ccache configuration),
   `CCACHE_BASEDIR` = the directory holding the repository, `CCACHE_NOHASHDIR=1`,
   `CCACHE_COMPILERCHECK=content`, sloppiness `include_file_ctime,include_file_mtime,time_macros,locale`,
-  `CCACHE_MAXSIZE=30G` and compression.
+  `CCACHE_MAXSIZE=30G` and compression. A `max_size` already written in that cache's `ccache.conf` wins over the
+  30G default: several checkouts and Android ABIs built on one machine need more, or rarely built trees lose
+  their entries.
 - Compile definitions hold no absolute paths (`-DX="/abs/path"`): they would differ between checkouts and miss
   every compile of the target. Text that differs per checkout or commit (the build stamp) goes into a generated
   header that one small file includes (`cmake/build_watermark.cpp`): only that file misses.
