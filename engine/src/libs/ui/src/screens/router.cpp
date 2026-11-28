@@ -23,8 +23,8 @@ std::string EngineCommand(const Action &action)
         return hud::to_string(*action.command);
     if (action.screen == "dialogue") // only a reply ends the game's dialogue: its back goes nowhere
         return {};
-    if (action.screen == "mainmenu") // the title screen's commands: "main:New", "main:Load", …
-        return action.verb == "back" ? "back" : "main:" + action.node;
+    if (action.verb == "title" && action.node.empty()) // Bindings::Title: "main:New", "main:Load", …
+        return "main:" + action.value;
     if (action.screen == "game_over" && !action.node.empty()) // the death screen's choice ends the death picture
         return "game_over:" + action.node;
     if (action.verb == "quick" && action.node.empty()) // Bindings::QuickGame
@@ -37,7 +37,7 @@ std::string EngineCommand(const Action &action)
 bool AnsweredAction(const Action &action)
 {
     return !action.screen.empty() && !action.node.empty() && action.screen != "sound" && action.screen != "hud" &&
-           action.screen != "mainmenu" && action.screen != "game_over" &&
+           action.screen != "game_over" &&
            action.screen.rfind("app:", 0) != 0; // the launcher's screens: the application's own host
 }
 
@@ -324,6 +324,16 @@ void Bindings::QuickGame(const std::string &which)
     action.opening = router_.model_.opening;
     action.verb = "quick";
     action.value = which;
+    router_.Emit(std::move(action));
+}
+
+void Bindings::Title(const std::string &command)
+{
+    Action action;
+    action.screen = router_.model_.screen;
+    action.opening = router_.model_.opening;
+    action.verb = "title";
+    action.value = command;
     router_.Emit(std::move(action));
 }
 

@@ -256,17 +256,14 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
             throw std::runtime_error("'" + command.which + "' is neither the quick save nor the quick load");
         bindings_->QuickGame(command.which);
     }
-    // The title's commands go out as presses of command widgets of the title interface (the router's "main:").
+    // The title's commands of the application's own title (Bindings::Title: the engine's "main:").
     void Run(const TitleCommand &command)
     {
         const std::string &name = command.command;
         if (name != "New" && name != "Load" && name != "Options" && name != "Credits" && name != "Exit" &&
             name != "Continue")
             throw std::runtime_error("'" + name + "' is not a title command");
-        Widget widget;
-        widget.node = name;
-        widget.type = "button";
-        bindings_->Send(widget, "press");
+        bindings_->Title(name);
     }
     void Run(const SettingsCommand &command)
     {

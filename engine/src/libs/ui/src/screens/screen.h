@@ -160,6 +160,9 @@ class Bindings
     // The game's quick save or quick load key ("save" / "load": controls QuickSave, QuickLoad), pressed by the
     // engine once no interface is open any more (engine command quick:<which>); the game's checks decide.
     void QuickGame(const std::string &which);
+    // A command of the application's own title, whose window has no buttons of the game ("New", "Load", …): the
+    // engine raises the menu event (engine command main:<command>). A game's own title window takes widget presses.
+    void Title(const std::string &command);
     // Opens the native text editor over the field; the accepted text is sent as `edit`.
     void EditText(const Event &event, const Widget &widget, const std::string &title, bool numeric,
                   bool secret = false);
