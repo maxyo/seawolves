@@ -1536,6 +1536,47 @@ int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shar
 
 // A launcher result with a detail (the reader's entry or file names) places it by {1} in every language; one
 // without has no {1}.
+// Every gallery page of the pack draws without a host error: its samples give what the components read, as the
+// screens do (a page nobody draws rots unseen).
+int CheckGallery(const fs::path &pack)
+{
+    int problems = 0;
+    std::vector<fs::path> pages;
+    for (const auto &entry : fs::directory_iterator(pack / "gallery"))
+        if (entry.path().extension() == ".rml")
+            pages.push_back(entry.path());
+    std::sort(pages.begin(), pages.end());
+    std::unique_ptr<FileSource> files = DirectoryFiles(pack.string());
+    NoBackend backend;
+    double clock = 0.0;
+    std::vector<std::string> errors;
+    Config config = CheckConfig(*files, backend, clock);
+    config.on_log = [&errors](LogLevel level, const std::string &line) {
+        if (level == LogLevel::Error)
+            errors.push_back(line);
+    };
+    std::string error;
+    std::unique_ptr<Host> host = Host::Create(config, &error);
+    if (!host)
+    {
+        std::printf("FAIL gallery: the runtime does not start: %s\n", error.c_str());
+        return 1;
+    }
+    for (const fs::path &page : pages)
+    {
+        errors.clear();
+        const std::string name = "gallery/" + page.filename().string();
+        if (!host->LoadDocument(name))
+            errors.push_back("does not load");
+        clock += 1.0 / 60.0;
+        host->Frame();
+        for (const std::string &line : errors)
+            std::printf("FAIL %s: %s\n", name.c_str(), line.c_str());
+        problems += errors.empty() ? 0 : 1;
+    }
+    return problems;
+}
+
 int CheckLauncherStrings(const fs::path &pack)
 {
     int problems = 0;
@@ -1726,7 +1767,10 @@ int main(int argc, char **argv)
     // A launcher result with a detail (the reader's entry or file names) places it by {1} in every language; one
     // without has no {1}.
     if (options.shard == 0)
+    {
         problems += CheckLauncherStrings(pack);
+        problems += CheckGallery(pack);
+    }
     std::vector<Flow> flows;
     if (!ReadFlows(manifest, fixtures, flows))
         return 2;

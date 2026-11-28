@@ -13,7 +13,7 @@
   <c-panel tone="parchment" title="Пергамент" style="flex: 0 0 300dp; width: auto"><div>Вторая панель</div></c-panel>
 </c-screen></div>
 <div class="g-title">layout column · заголовок с разделами, субъектом, вкладками (свойства шапки проходят насквозь)</div>
-<div class="s-cell"><c-screen id="s-col" key="s-col" title="Корабль" layout="column" sections="ship" subject='{"label":"Аделина","sub":"2 из 3"}' tabs='[{"label":"Обзор","selected":true},{"label":"Трюм"}]'>
+<div class="s-cell"><c-screen id="s-col" key="s-col" title="Корабль" layout="column" sections="ship" subject='{"label":"Аделина","sub":"2 из 3","prev":false,"next":false,"list":false}' tabs='[{"label":"Обзор","selected":true},{"label":"Трюм","selected":false}]'>
   <c-panel title="Верхняя" style="flex: 1 1 0; height: auto"><div>layout column</div></c-panel>
   <c-panel title="Нижняя" style="flex: 0 0 120dp; height: auto"><div>вторая панель</div></c-panel>
 </c-screen></div>

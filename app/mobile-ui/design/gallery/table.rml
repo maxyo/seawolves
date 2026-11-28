@@ -10,83 +10,43 @@
 <div class="g-row">
   <div class="g-wood" style="width: 100%; height: 280dp; padding: 0"><c-table id="tbl-wide" head="1" fade="0"
     columns='[{"label":"Товар","w":"1fr"},{"label":"Трюм","w":"56px","align":"right"},{"label":"Склад","w":"56px","align":"right"},{"label":"Цена","w":"84px","align":"right"}]'
-    rows='[{"cells":[{"text":"Ядра","icon":"ammo","sub":"пачка 20"},"200","0",{"text":"5"}]},
-           {"cells":[{"text":"Сахар","icon":"sack","tag":"demand"},"0","38",{"text":"52","tone":"gold","bold":true}],"selected":true},
-           {"cells":[{"text":"Шёлк","icon":"chest","tag":"contract"},"12","4",{"text":"190"}]},
-           {"cells":[{"text":"Табак","icon":"leaf"},"7","0",{"text":"110","tone":"danger"}]},
-           {"cells":[{"text":"Бомбы","icon":"bomb"},"0","0","14"],"disabled":true,"reason":"нужен перк «Бомбардир»"}]'/></div>
+    rows='[{"cells":[{"text":"Ядра","icon":"ammo","sub":"пачка 20","noLeft":false},"200","0",{"text":"5","noLeft":false}]},{"cells":[{"text":"Сахар","icon":"sack","tag":"demand","noLeft":false},"0","38",{"text":"52","tone":"gold","bold":true,"noLeft":false}],"selected":true},{"cells":[{"text":"Шёлк","icon":"chest","tag":"contract","noLeft":false},"12","4",{"text":"190","noLeft":false}]},{"cells":[{"text":"Табак","icon":"leaf","noLeft":false},"7","0",{"text":"110","tone":"danger","noLeft":false}]},{"cells":[{"text":"Бомбы","icon":"bomb","noLeft":false},"0","0","14"],"disabled":true,"reason":"нужен перк «Бомбардир»"}]'/></div>
 </div>
 <div class="g-note">Строки: выбранная, метка на значке, недоступная (причина — тостом); стрелки 44 dp; more = 6</div>
 <div class="g-row">
   <div class="g-wood" style="width: 520dp; height: 300dp; padding: 0"><c-table id="tbl-goods" more="6"
     columns='[{"label":"Товар","w":"1fr"},{"label":"У вас","w":"140px","align":"center"},{"label":"Цена","w":"70px","align":"right"}]'
-    rows='[{"cells":[{"text":"Ядра","icon":"ammo","tag":"export"},
-           {"text":"200","arrows":true},
-           {"text":"5"}],"selected":true},
-           {"cells":[{"text":"Картечь","icon":"grape"},
-           {"text":"100","arrows":true},"6"]},
-           {"cells":[{"text":"Бомбы","icon":"bomb"},
-           {"text":"0","tone":"dim","arrows":true,"noLeft":true},"14"],"disabled":true,"reason":"нужен перк «Бомбардир»"},
-           {"cells":[{"text":"Доски","icon":"planks","tag":"contraband"},
-           {"text":"40","arrows":true},"9"]},
-           {"cells":[{"text":"Ром","icon":"rum","tag":"import"},
-           {"text":"60","arrows":true},"12"]}]'/></div>
+    rows='[{"cells":[{"text":"Ядра","icon":"ammo","tag":"export","noLeft":false},{"text":"200","arrows":true,"noLeft":false},{"text":"5","noLeft":false}],"selected":true},{"cells":[{"text":"Картечь","icon":"grape","noLeft":false},{"text":"100","arrows":true,"noLeft":false},"6"]},{"cells":[{"text":"Бомбы","icon":"bomb","noLeft":false},{"text":"0","tone":"dim","arrows":true,"noLeft":true},"14"],"disabled":true,"reason":"нужен перк «Бомбардир»"},{"cells":[{"text":"Доски","icon":"planks","tag":"contraband","noLeft":false},{"text":"40","arrows":true,"noLeft":false},"9"]},{"cells":[{"text":"Ром","icon":"rum","tag":"import","noLeft":false},{"text":"60","arrows":true,"noLeft":false},"12"]}]'/></div>
   <div class="g-wood" style="width: 520dp; height: 280dp; padding: 0"><c-table id="tbl-head" head="1" fade="0"
     columns='[{"label":"Товар","w":"1fr"},{"label":"Трюм","w":"56px","align":"right"},{"label":"Склад","w":"56px","align":"right"},{"label":"Цена","w":"84px","align":"right"}]'
-    rows='[{"cells":[{"text":"Ядра","icon":"ammo","sub":"пачка 20"},"200","0",{"text":"5"}]},
-           {"cells":[{"text":"Сахар","icon":"sack","tag":"demand"},"0","38",{"text":"52","tone":"gold","bold":true}],"selected":true},
-           {"cells":[{"text":"Шёлк","icon":"chest","tag":"contract"},"12","4",{"text":"190"}]},
-           {"cells":[{"text":"Табак","icon":"leaf"},"7","0",{"text":"110","tone":"danger"}]},
-           {"cells":[{"text":"Бомбы","icon":"bomb"},"0","0","14"],"disabled":true,"reason":"нужен перк «Бомбардир»"}]'/></div>
+    rows='[{"cells":[{"text":"Ядра","icon":"ammo","sub":"пачка 20","noLeft":false},"200","0",{"text":"5","noLeft":false}]},{"cells":[{"text":"Сахар","icon":"sack","tag":"demand","noLeft":false},"0","38",{"text":"52","tone":"gold","bold":true,"noLeft":false}],"selected":true},{"cells":[{"text":"Шёлк","icon":"chest","tag":"contract","noLeft":false},"12","4",{"text":"190","noLeft":false}]},{"cells":[{"text":"Табак","icon":"leaf","noLeft":false},"7","0",{"text":"110","tone":"danger","noLeft":false}]},{"cells":[{"text":"Бомбы","icon":"bomb","noLeft":false},"0","0","14"],"disabled":true,"reason":"нужен перк «Бомбардир»"}]'/></div>
 </div>
 <div class="g-note">Пусто (empty + emptyIcon) · выбор (preset picker: путь, «подходит», кнопка внизу) · image: портрет, жетон, предмет; флаг, полоса, caps</div>
 <div class="g-row">
   <div class="g-wood" style="width: 220dp; height: 250dp; padding: 0"><c-table columns='[{"label":"Товар","w":"1fr"}]' rows='[]' empty="Склад пуст" empty-icon="store"/></div>
   <div class="g-wood" style="width: 280dp; height: 250dp; padding: 0"><c-table id="tbl-picker" preset="picker" path="Сен-Пьер › Верфь › Орудия" fade="0"
     columns='[{"label":"Орудие","w":"1fr"},{"label":"Цена","w":"64px","align":"right"}]'
-    rows='[{"cells":[{"text":"Кулеврины 12 ф.","icon":"cannon"},"1 200"],"selected":true},
-           {"cells":[{"text":"Пушки 16 ф.","icon":"cannon"},"1 800"]},
-           {"cells":[{"text":"Пушки 24 ф.","icon":"cannon"},"3 400"],"disabled":true,"reason":"слишком тяжёлые для люггера"}]'
-    primary='{"label":"Установить","sub":"−1 200"}'/></div>
+    rows='[{"cells":[{"text":"Кулеврины 12 ф.","icon":"cannon","noLeft":false},"1 200"],"selected":true},{"cells":[{"text":"Пушки 16 ф.","icon":"cannon","noLeft":false},"1 800"]},{"cells":[{"text":"Пушки 24 ф.","icon":"cannon","noLeft":false},"3 400"],"disabled":true,"reason":"слишком тяжёлые для люггера"}]'
+    primary='{"label":"Установить","sub":"−1 200","disabled":false}'/></div>
   <div class="g-wood" style="width: 340dp; height: 250dp; padding: 0"><c-table id="tbl-mixed" head="1" caps="1" fade="0" row-height="52"
     columns='[{"label":"Кто","w":"1fr"},{"label":"Нация","w":"48px","align":"center"},{"label":"Опыт","w":"110px"}]'
-    rows='[{"cells":[{"text":"Тичингиту","sub":"абордажник","image":{"kind":"portrait","texture":"INTERFACES/PORTRAITS/128/face_205"}},"",{"text":"840 / 1000","bar":84}]},
-           {"cells":[{"text":"Лонгвэй","sub":"штурман","image":{"kind":"token","icon":"hero","enamel":"teal"}},"",{"text":"120 / 1000","bar":12}]},
-           {"cells":[{"text":"Пистоль","sub":"оружие","image":{"kind":"item","texture":"INTERFACES/items6","cell":8,"icon":"pistol"}},
-           {"icon":"lock","iconOnly":true,"iconTone":"dim"},
-           {"text":"—","tone":"dim"}]}]'/></div>
+    rows='[{"cells":[{"text":"Тичингиту","sub":"абордажник","image":{"kind":"portrait","texture":"INTERFACES/PORTRAITS/128/face_205"},"noLeft":false},"",{"text":"840 / 1000","bar":84,"noLeft":false}]},{"cells":[{"text":"Лонгвэй","sub":"штурман","image":{"kind":"token","icon":"hero","enamel":"teal"},"noLeft":false},"",{"text":"120 / 1000","bar":12,"noLeft":false}]},{"cells":[{"text":"Пистоль","sub":"оружие","image":{"kind":"item","texture":"INTERFACES/items6","cell":8,"icon":"pistol"},"noLeft":false},{"icon":"lock","iconOnly":true,"iconTone":"dim","noLeft":false},{"text":"—","tone":"dim","noLeft":false}]}]'/></div>
 </div>
 <div class="g-note">На пергаменте: только чтение (interactive=false, строки 40), с заголовком; и интерактивная</div>
 <div class="g-row">
   <div class="g-paper" style="width: 330dp; height: 250dp; padding: 0"><c-table surface="parchment" interactive="0" fade="0"
     columns='[{"label":"Товар","w":"1fr"},{"label":"Цена","w":"70px","align":"right"}]'
-    rows='[{"cells":[{"text":"Сахар","icon":"sack","tag":"export"},
-           {"text":"38"}]},
-           {"cells":[{"text":"Кофе","icon":"sack","tag":"import"},"74"]},
-           {"cells":[{"text":"Табак","icon":"leaf","tag":"contraband"},
-           {"text":"110"}]},
-           {"cells":[{"text":"Шёлк","icon":"chest","tag":"demand"},"190"]},
-           {"cells":[{"text":"Письмо губернатора Тортуги о награде за голову капитана и о сроках выплаты","icon":"scroll","lines":2},"—"]}]'/></div>
+    rows='[{"cells":[{"text":"Сахар","icon":"sack","tag":"export","noLeft":false},{"text":"38","noLeft":false}]},{"cells":[{"text":"Кофе","icon":"sack","tag":"import","noLeft":false},"74"]},{"cells":[{"text":"Табак","icon":"leaf","tag":"contraband","noLeft":false},{"text":"110","noLeft":false}]},{"cells":[{"text":"Шёлк","icon":"chest","tag":"demand","noLeft":false},"190"]},{"cells":[{"text":"Письмо губернатора Тортуги о награде за голову капитана и о сроках выплаты","icon":"scroll","lines":2,"noLeft":false},"—"]}]'/></div>
   <div class="g-paper" style="width: 380dp; height: 250dp; padding: 0"><c-table id="tbl-paper" surface="parchment" head="1" more="3"
     columns='[{"label":"Товар","w":"1fr"},{"label":"У вас","w":"140px","align":"center"},{"label":"Цена","w":"60px","align":"right"}]'
-    rows='[{"cells":[{"text":"Ядра","icon":"ammo"},
-           {"text":"200","arrows":true},
-           {"text":"5","tone":"gold"}],"selected":true},
-           {"cells":[{"text":"Бомбы","icon":"bomb"},
-           {"text":"0","arrows":true,"noLeft":true},"14"],"disabled":true,"reason":"нужен перк «Бомбардир»"},
-           {"cells":[{"text":"Доски","icon":"planks"},
-           {"text":"40","arrows":true},
-           {"text":"0"}]},
-           {"cells":[{"text":"Ром","icon":"rum","sub":"бочки"},
-           {"text":"60","arrows":true},
-           {"text":"12","tone":"danger"}]}]'/></div>
+    rows='[{"cells":[{"text":"Ядра","icon":"ammo","noLeft":false},{"text":"200","arrows":true,"noLeft":false},{"text":"5","tone":"gold","noLeft":false}],"selected":true},{"cells":[{"text":"Бомбы","icon":"bomb","noLeft":false},{"text":"0","arrows":true,"noLeft":true},"14"],"disabled":true,"reason":"нужен перк «Бомбардир»"},{"cells":[{"text":"Доски","icon":"planks","noLeft":false},{"text":"40","arrows":true,"noLeft":false},{"text":"0","noLeft":false}]},{"cells":[{"text":"Ром","icon":"rum","sub":"бочки","noLeft":false},{"text":"60","arrows":true,"noLeft":false},{"text":"12","tone":"danger","noLeft":false}]}]'/></div>
   <div class="g-paper" style="width: 170dp; height: 190dp; padding: 0"><c-table surface="parchment" columns='[{"label":"Товар","w":"1fr"}]' rows='[]' empty="Записей нет" empty-icon="journal"/></div>
 </div>
 <div class="g-note">Выбранная строка прокручивается вместе со списком (не закрепляется)</div>
 <div class="g-row">
   <div class="g-wood" style="width: 300dp; height: 180dp; padding: 0"><c-table id="tbl-scroll" fade="0"
     columns='[{"label":"Товар","w":"1fr"},{"label":"Цена","w":"64px","align":"right"}]'
-    rows='[{"cells":[{"text":"Сахар","icon":"sack"},"52"]},{"cells":[{"text":"Кофе","icon":"sack"},"74"],"selected":true},{"cells":[{"text":"Табак","icon":"sack"},"110"]},{"cells":[{"text":"Шёлк","icon":"sack"},"190"]},{"cells":[{"text":"Ром","icon":"sack"},"12"]},{"cells":[{"text":"Порох","icon":"sack"},"9"]},{"cells":[{"text":"Доски","icon":"sack"},"8"]},{"cells":[{"text":"Парусина","icon":"sack"},"11"]},{"cells":[{"text":"Ядра","icon":"sack"},"5"]},{"cells":[{"text":"Картечь","icon":"sack"},"6"]},{"cells":[{"text":"Бомбы","icon":"sack"},"14"]},{"cells":[{"text":"Вино","icon":"sack"},"30"]}]'/></div>
+    rows='[{"cells":[{"text":"Сахар","icon":"sack","noLeft":false},"52"]},{"cells":[{"text":"Кофе","icon":"sack","noLeft":false},"74"],"selected":true},{"cells":[{"text":"Табак","icon":"sack","noLeft":false},"110"]},{"cells":[{"text":"Шёлк","icon":"sack","noLeft":false},"190"]},{"cells":[{"text":"Ром","icon":"sack","noLeft":false},"12"]},{"cells":[{"text":"Порох","icon":"sack","noLeft":false},"9"]},{"cells":[{"text":"Доски","icon":"sack","noLeft":false},"8"]},{"cells":[{"text":"Парусина","icon":"sack","noLeft":false},"11"]},{"cells":[{"text":"Ядра","icon":"sack","noLeft":false},"5"]},{"cells":[{"text":"Картечь","icon":"sack","noLeft":false},"6"]},{"cells":[{"text":"Бомбы","icon":"sack","noLeft":false},"14"]},{"cells":[{"text":"Вино","icon":"sack","noLeft":false},"30"]}]'/></div>
 </div>
 </div>
 </body>
