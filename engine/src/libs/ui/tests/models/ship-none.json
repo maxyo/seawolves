@@ -1,0 +1,423 @@
+{
+ "schemaVersion": 2,
+ "language": "english",
+ "revision": 30,
+ "screenRevision": 7,
+ "screen": "ship",
+ "widgets": [
+  {
+   "node": "TITLE",
+   "type": "heading",
+   "label": " Ship  ",
+   "index": -1
+  },
+  {
+   "node": "I_CHARACTER",
+   "type": "button",
+   "label": "Character",
+   "index": -1
+  },
+  {
+   "node": "I_CHARACTER_2",
+   "type": "button",
+   "label": "Character",
+   "index": -1
+  },
+  {
+   "node": "I_QUESTBOOK",
+   "type": "button",
+   "label": "Questbook",
+   "index": -1
+  },
+  {
+   "node": "I_QUESTBOOK_2",
+   "type": "button",
+   "label": "Questbook",
+   "index": -1
+  },
+  {
+   "node": "I_NATIONS",
+   "type": "button",
+   "label": "Nations",
+   "index": -1
+  },
+  {
+   "node": "I_NATIONS_2",
+   "type": "button",
+   "label": "Nations",
+   "index": -1
+  },
+  {
+   "node": "I_TRADEBOOK",
+   "type": "button",
+   "label": "Tradebook",
+   "index": -1
+  },
+  {
+   "node": "I_TRADEBOOK_2",
+   "type": "button",
+   "label": "Tradebook",
+   "index": -1
+  },
+  {
+   "node": "I_ITEMS",
+   "type": "button",
+   "label": "Items",
+   "index": -1
+  },
+  {
+   "node": "I_ITEMS_2",
+   "type": "button",
+   "label": "Items",
+   "index": -1
+  },
+  {
+   "node": "SHIP_BIG_PICTURE",
+   "type": "image",
+   "index": -1,
+   "images": [
+    {
+     "handle": 2,
+     "imageRevision": 2,
+     "source": {
+      "kind": "texture",
+      "image": "interfaces/ships/Sloop"
+     }
+    }
+   ],
+   "actions": [
+    "press"
+   ]
+  },
+  {
+   "node": "HERO_NAME",
+   "type": "text",
+   "label": "Peter Marsh",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "SHIP_RANK",
+   "type": "text",
+   "label": "6",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "EDIT_BOX",
+   "type": "edit",
+   "value": "Swallow",
+   "index": -1
+  },
+  {
+   "node": "SHIPS_SCROLL",
+   "type": "choice",
+   "label": "Adeline",
+   "value": "0",
+   "index": 0,
+   "rowId": "1:0",
+   "actions": [
+    "select"
+   ]
+  },
+  {
+   "node": "SHIPS_SCROLL",
+   "type": "choice",
+   "label": "Swallow",
+   "value": "1",
+   "index": 1,
+   "rowId": "1:1",
+   "actions": [
+    "select",
+    "activate"
+   ]
+  },
+  {
+   "node": "TABLE_LIST",
+   "type": "choice",
+   "label": "Cannonballs\t100\t10\t20\t2",
+   "value": "0",
+   "index": 0,
+   "rowId": "ship:good:0:owner:31",
+   "actions": [
+    "select",
+    "activate"
+   ],
+   "cells": [
+    {
+     "text": "Cannonballs",
+     "images": [
+      {
+       "handle": 1,
+       "imageRevision": 1,
+       "width": 32,
+       "height": 32,
+       "source": {
+        "kind": "atlas",
+        "group": "GOODS",
+        "image": "Balls"
+       }
+      }
+     ]
+    },
+    {
+     "text": "100"
+    },
+    {
+     "text": "10"
+    },
+    {
+     "text": "20"
+    },
+    {
+     "text": "2"
+    }
+   ],
+   "columnHeaders": [
+    "Goods in the hold",
+    "Qty",
+    "Weight",
+    "Pack",
+    "Pack weight"
+   ]
+  },
+  {
+   "node": "TABLE_LIST",
+   "type": "choice",
+   "label": "Gunpowder\t220\t11\t20\t1",
+   "value": "0",
+   "index": 1,
+   "rowId": "ship:good:5:owner:31",
+   "actions": [
+    "select",
+    "activate"
+   ],
+   "cells": [
+    {
+     "text": "Gunpowder",
+     "images": [
+      {
+       "handle": 1,
+       "imageRevision": 1,
+       "width": 32,
+       "height": 32,
+       "source": {
+        "kind": "atlas",
+        "group": "GOODS",
+        "image": "Powder"
+       }
+      }
+     ]
+    },
+    {
+     "text": "220"
+    },
+    {
+     "text": "11"
+    },
+    {
+     "text": "20"
+    },
+    {
+     "text": "1"
+    }
+   ],
+   "columnHeaders": [
+    "Goods in the hold",
+    "Qty",
+    "Weight",
+    "Pack",
+    "Pack weight"
+   ]
+  },
+  {
+   "node": "TABLE_LIST",
+   "type": "choice",
+   "label": "Rum\t10\t10\t1\t1",
+   "value": "0",
+   "index": 2,
+   "rowId": "ship:good:8:owner:31",
+   "actions": [
+    "select",
+    "activate"
+   ],
+   "cells": [
+    {
+     "text": "Rum",
+     "images": [
+      {
+       "handle": 1,
+       "imageRevision": 1,
+       "width": 32,
+       "height": 32,
+       "source": {
+        "kind": "atlas",
+        "group": "GOODS",
+        "image": "Rum"
+       }
+      }
+     ]
+    },
+    {
+     "text": "10"
+    },
+    {
+     "text": "10"
+    },
+    {
+     "text": "1"
+    },
+    {
+     "text": "1"
+    }
+   ],
+   "columnHeaders": [
+    "Goods in the hold",
+    "Qty",
+    "Weight",
+    "Pack",
+    "Pack weight"
+   ]
+  },
+  {
+   "node": "TABLE_CREW",
+   "type": "choice",
+   "label": "\tSailors\tSkilled\t",
+   "value": "0",
+   "index": 0,
+   "rowId": "Sailors",
+   "actions": [
+    "select"
+   ],
+   "cells": [
+    {},
+    {
+     "text": "Sailors"
+    },
+    {
+     "text": "Skilled"
+    },
+    {}
+   ],
+   "columnHeaders": [
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "node": "TABLE_CREW",
+   "type": "choice",
+   "label": "\tGunners\tGreen\t",
+   "value": "0",
+   "index": 1,
+   "rowId": "Cannoners",
+   "actions": [
+    "select"
+   ],
+   "cells": [
+    {},
+    {
+     "text": "Gunners"
+    },
+    {
+     "text": "Green"
+    },
+    {}
+   ],
+   "columnHeaders": [
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "node": "TABLE_CREW",
+   "type": "choice",
+   "label": "\tSoldiers\tRaw\t",
+   "value": "0",
+   "index": 2,
+   "rowId": "Soldiers",
+   "actions": [
+    "select"
+   ],
+   "cells": [
+    {},
+    {
+     "text": "Soldiers"
+    },
+    {
+     "text": "Raw"
+    },
+    {}
+   ],
+   "columnHeaders": [
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "node": "FOOD_SHIP",
+   "type": "text",
+   "label": "Food aboard for 12 days",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "FOOD",
+   "type": "text",
+   "label": "Food in the squadron for 9 days",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "MONEY_SHIP",
+   "type": "text",
+   "label": "Ship upkeep: \r 1 240 pesos",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "CREW_QTY",
+   "type": "text",
+   "label": "40",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "CREW_MORALE_TEXT",
+   "type": "text",
+   "label": "Crew morale: NORMAL",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "CREW_PARTITION",
+   "type": "button",
+   "label": "Debt",
+   "index": -1
+  },
+  {
+   "node": "CREW_MORALE_BUTTON",
+   "type": "button",
+   "label": "Raise morale",
+   "index": -1
+  },
+  {
+   "node": "Money_TEXT",
+   "type": "text",
+   "label": "500",
+   "value": "1",
+   "index": 0
+  },
+  {
+   "node": "TABLE_OTHER",
+   "type": "choice",
+   "index": -1
+  }
+ ]
+}
