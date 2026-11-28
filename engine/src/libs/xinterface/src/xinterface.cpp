@@ -77,11 +77,15 @@ std::optional<storm::mobile::SaveListSnapshot> storm::mobile::ReadSaveList()
     };
     auto *profile = static_cast<VDATA *>(core.GetScriptVariable("currentProfile"));
     auto *container = static_cast<VDATA *>(core.GetScriptVariable("g_oSaveContainer"));
-    const char *name = nullptr; int32_t count, selected, saving;
+    const char *name = nullptr; int32_t count, selected;
     if (!profile || !profile->Get(name) || !name || !container || !container->GetAClass() ||
         !number("g_nSaveQuantity", count) || !number("g_nCurrentSaveIndex", selected) ||
-        !number("bThisSave", saving) || count < 0 || count > 10000) return {};
-    storm::mobile::SaveListSnapshot result{storm::android::mobileScreenRevision, name, {}, selected, saving != 0, {}};
+        count < 0 || count > 10000) return {};
+    // Whether the window writes a record: its own title, which the game sets before it lists them.
+    const char *title = XINTERFACE::pThis ? XINTERFACE::pThis->AttributesPointer->GetAttribute("title") : nullptr;
+    if (!title) return {};
+    const bool saving = std::string_view(title) == "titleSave";
+    storm::mobile::SaveListSnapshot result{storm::android::mobileScreenRevision, name, {}, selected, saving, {}};
     for (int i = 0; i < count; ++i)
     {
         auto *entry = container->GetAClass()->GetAttributeClass(("s" + std::to_string(i)).c_str());
@@ -132,13 +136,21 @@ bool storm::mobile::ChooseSaveProfile(const std::string &profile)
         return false;
     }
     gameInterface->CreateSubAClass(gameInterface, "profile_window_list")->SetAttribute("select", std::to_string(index + 1));
-    core.Event("LoadProfile"); // ProcChooseProfile: SetCurrentProfile, the chooser closed
+    // The chooser's own button: ProcChooseProfile, SetCurrentProfile and the chooser closed.
+    core.Event("eProfileBtnAction", "ls", ACTION_ACTIVATE, "PROFILE_WINDOW_BTN_CHOOSE");
     const auto state = ReadSaveList();
     return state && storm::mobile::SameProfile(state->profile, profile);
 }
 #endif
 
 #ifdef STORM_TOUCH_UI
+// The slots of the open save window (mobile_save_list.hpp SaveSlots): frames that carry their own buttons, or pictures.
+static storm::mobile::SaveSlots OpenSaveSlots()
+{
+    return XINTERFACE::pThis && XINTERFACE::pThis->FindNode("DELETEBUTTON1", nullptr) ? storm::mobile::SaveSlots::Frames
+                                                                                       : storm::mobile::SaveSlots::Pictures;
+}
+
 // No profiles in this port. The game's profile chooser (save_load.c opens it
 // on a load from the main menu when there is more than one profile folder) never reaches the
 // player: it is answered at once (mobile_save_list.hpp ProfileToChoose). Whenever the list is
@@ -636,8 +648,8 @@ void XINTERFACE::MobileModelFrame()
     if (storm::android::mobileScreen == "save_load")
         MobileKeepSaveProfile();
     const auto saves = storm::mobile::ReadSaveList();
-    // The wait is bounded: a game whose save window keeps another list (Caribbean Legend has no bThisSave) would
-    // otherwise get no model at all, and its open window nobody would draw. Past it the model goes without the list.
+    // The wait is bounded: a save window whose list cannot be read would otherwise get no model at all, and nobody
+    // would draw it. Past it the model goes without the list.
     static uint64_t waitingRevision = 0;
     static uint32_t waitingSince = 0;
     bool waiting = false;
@@ -2673,7 +2685,7 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
         if (!window || window->m_nNodeType != NODETYPE_WINDOW || !static_cast<CXI_WINDOW *>(window)->GetActive() || !state) return refused("the save list is not shown");
         const auto target = storm::mobile::saveListCapability.accept(*state, action.index, action.verb, action.value);
         if (!target) return refused("the save record is no longer listed");
-        if (!storm::mobile::SelectSaveTarget(*target))
+        if (!storm::mobile::SelectSaveTarget(*target, OpenSaveSlots()))
         {
             // The original script populates thumbnails asynchronously and
             // temporarily makes newly paged slots unselectable. Retry the
@@ -2684,8 +2696,7 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
             return deferred;
         }
         storm::mobile::saveListCapability.pending = target;
-        if (target->verb == "delete") core.Event("eventBtnAction", "ls", ACTION_ACTIVATE, "BTN_DELETE");
-        else core.Event("eventSelecterActivate");
+        storm::mobile::ActOnSaveTarget(*target, OpenSaveSlots());
         return applied;
     }
     if (action.screen == "save_load" && (action.node == "CONFIRM_YES" || action.node == "CUSTOM_SAVE_BTN_OK"))
@@ -2693,7 +2704,7 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
         const auto &pending = storm::mobile::saveListCapability.pending;
         if (pending && pending->owner.revision == storm::android::mobileScreenRevision)
         {
-            if (!storm::mobile::RestoreSaveTarget(*pending))
+            if (!storm::mobile::RestoreSaveTarget(*pending, OpenSaveSlots()))
             {
                 spdlog::warn("save_load: {} refused: the chosen record is no longer where the game lists it", action.node);
                 return refused("the chosen record moved");
@@ -2881,15 +2892,14 @@ void XINTERFACE::DoControl()
             DropDeferredSave("the save list changed");
         else if (std::chrono::steady_clock::now() >= deferredSaveDeadline)
             DropDeferredSave("the save record stayed unselectable");
-        else if (storm::mobile::SelectSaveTarget(*deferredSaveAction))
+        else if (storm::mobile::SelectSaveTarget(*deferredSaveAction, OpenSaveSlots()))
         {
             const auto target = *deferredSaveAction;
             const uint64_t request = deferredSaveRequest;
             deferredSaveAction.reset();
             deferredSaveRequest = 0;
             storm::mobile::saveListCapability.pending = target;
-            if (target.verb == "delete") core.Event("eventBtnAction", "ls", ACTION_ACTIVATE, "BTN_DELETE");
-            else core.Event("eventSelecterActivate");
+            storm::mobile::ActOnSaveTarget(target, OpenSaveSlots());
             MobileAnswer(request, {}, true);
         }
     }

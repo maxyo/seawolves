@@ -842,12 +842,14 @@
         {
           "capability": "saves", "interface": "save_load",
           "nodes": [
-            ["BTN_EXIT", "button", true], ["ANDROID_SAVES", "list"], ["ANDROID_SAVE_LIST", "save"],
+            ["BTN_EXIT", "button"], ["ANDROID_SAVES", "list"], ["ANDROID_SAVE_LIST", "save"],
             ["TITLE", "heading|text"], ["BTN_SAVELOAD", "button"], ["BTN_DELETE", "button"], ["CONFIRM_TEXT", "text"],
-            ["CONFIRM_YES", "button"], ["CONFIRM_NO", "button"], ["CUSTOM_SAVE_NAME", "edit"], ["CUSTOM_SAVE_MSG", "text"],
+            ["CONFIRM_YES", "button"], ["CONFIRM_YES1", "button"], ["CONFIRM_NO", "button"], ["CUSTOM_SAVE_NAME", "edit"], ["CUSTOM_SAVE_MSG", "text"],
             ["CUSTOM_SAVE_BTN_OK", "button"], ["CUSTOM_SAVE_BTN_CANCEL", "button"], ["SAVE_SELECTER", "stepper"],
             ["SAVENOTES", "text"], ["SAVEINFO", "text"], ["BTN_PROFILE", "button"], ["PROFILE_*", "*"],
-            ["OFFICER*", "image|text"], ["MAIN_BACK", "image"]
+            ["OFFICER*", "image|text"], ["MAIN_BACK", "image"], ["SAVELIST_INFO", "text"], ["SAVE_INFO", "text"],
+            ["PROFILE_INFO", "text"], ["SAVE_LOCATION", "text"], ["SAVE_QUEST_*", "text"], ["SAVE_COMMIT", "text"],
+            ["TEXTLOG*", "text"], ["HERO_FACE", "image"], ["ICON_MONEY", "image"], ["SAVEIMG_BIG", "image"]
           ]
         }
       ]

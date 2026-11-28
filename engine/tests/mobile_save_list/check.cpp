@@ -207,8 +207,12 @@ SaveListSnapshot live;
 std::map<std::string, std::vector<std::string>> profiles; // the profile folders on disk
 int switches = 0;
 bool scrolls = true, clicks = true; // the script's events do what they should
+bool frames = false;                // the window's slots are frames carrying their buttons (SaveSlots::Frames)
+std::vector<std::string> commands;  // the frames window's ievnt_command events, "<command> <node>"
 DATA &page = fake.scripts.integer("g_nFirstSaveIndex", 0);
 DATA &selection = fake.scripts.integer("g_nCurrentSaveIndex", 0);
+DATA &shownSlots = fake.scripts.integer("g_SaveSlots", 10);
+DATA &currentSlot = fake.scripts.integer("g_nCurrentSaveSlot", -1);
 int32_t value(DATA &data)
 {
     int32_t v = -1;
@@ -229,8 +233,29 @@ const bool scripts = [] {
             REQUIRE(message.String() == "SAVESCROLL");
             if (!scrolls)
                 return nullptr;
+            if (frames)
+            {
+                // A page starts at any record: int(pages * position), pages = count - shown + 1.
+                const int pages = int(live.files.size()) - value(shownSlots) + 1;
+                page.Set(int32_t(std::min(int(float(pages) * position), pages - 1)));
+                return nullptr;
+            }
             page.Set(int32_t(int(float(live.files.size() / 5) * position) * 5));
             select(value(page));
+            return nullptr;
+        }
+        if (frames)
+        {
+            REQUIRE(name == "ievnt_command");
+            REQUIRE(message.GetFormat() == "ss");
+            const std::string command = message.String(), node = message.String();
+            commands.push_back(command + " " + node);
+            if (command == "click" && node.rfind("SAVEFRAME", 0) == 0 && clicks)
+            {
+                const int slot = node == "SAVEFRAME_NEW" ? -1 : std::stoi(node.substr(9)) - 1;
+                currentSlot.Set(int32_t(slot));
+                select(slot < 0 ? -1 : value(page) + slot);
+            }
             return nullptr;
         }
         REQUIRE(name == "eventSaveClick");
@@ -533,6 +558,16 @@ TEST_CASE("a description gives the hero, the location, the game's date and time 
     f = ParseSaveDescription("x@*@99:99  45.13.1654@1 hours 1 min.@russian");
     CHECK(f.gameDate.empty());
     CHECK(f.location == "x");
+    // One name=value line per attribute: the place, the game's time and the play time; no hero.
+    f = ParseSaveDescription("locname=Label\rfaceinfo=*,*\rtimestr=13:25  01.10.1654\rplaytime=1days- 26 hours "
+                             "5 min\rlocation=Place\rsavever=1");
+    CHECK(f.location == "Place");
+    CHECK(f.gameDate == "1654-10-01");
+    CHECK(f.gameTime == "13:25");
+    CHECK(f.playMinutes == 26 * 60 + 5);
+    CHECK(f.hero.empty());
+    CHECK(ParseSaveDescription("locName=Label\r\ntimeStr=x").location == "Label");
+    CHECK(ParseSaveDescription("name=value").location.empty());
 }
 
 TEST_CASE("the save list: stable rows, actions only for the list they were made for, slots chosen through the "
@@ -568,43 +603,43 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
     // A distant slot: the page scrolled, then the slot clicked.
     auto target = cap.accept(live, 31, "delete", rows[31].rowId);
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(value(page) == 30);
     CHECK(value(selection) == 31);
     select(34); // the script's delayed initial selection while the confirmation is open
-    CHECK(RestoreSaveTarget(*target));
+    CHECK(RestoreSaveTarget(*target, SaveSlots::Pictures));
     CHECK(value(selection) == 31);
     live.records[31].file = "replacement";
-    CHECK_FALSE(RestoreSaveTarget(*target));
+    CHECK_FALSE(RestoreSaveTarget(*target, SaveSlots::Pictures));
     CHECK_FALSE(cap.accept(live, 31, "delete", rows[31].rowId));
     own();
     live.revision = 5;
-    CHECK_FALSE(RestoreSaveTarget(*target));
+    CHECK_FALSE(RestoreSaveTarget(*target, SaveSlots::Pictures));
     live.revision = 4;
     page.Set(0);
-    CHECK_FALSE(RestoreSaveTarget(*target)); // the slot is not on the script's page
+    CHECK_FALSE(RestoreSaveTarget(*target, SaveSlots::Pictures)); // the slot is not on the script's page
     page.Set(30);
 
     target = cap.accept(live, 0, "activate", rows[0].rowId);
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(value(page) == 0);
     CHECK(value(selection) == 0);
     target = cap.accept(live, 37, "activate", rows[37].rowId); // the new slot
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(value(page) == 35);
     CHECK(value(selection) == 37);
     // The script did not get there: no target.
     target = cap.accept(live, 3, "activate", rows[3].rowId);
     REQUIRE(target);
     scrolls = false;
-    CHECK_FALSE(SelectSaveTarget(*target));
+    CHECK_FALSE(SelectSaveTarget(*target, SaveSlots::Pictures));
     scrolls = true;
     clicks = false;
-    CHECK_FALSE(SelectSaveTarget(*target));
+    CHECK_FALSE(SelectSaveTarget(*target, SaveSlots::Pictures));
     clicks = true;
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK_FALSE(cap.accept(live, 37, "delete", rows[37].rowId));
     CHECK_FALSE(cap.accept(live, 2, "delete", rows[1].rowId));
     CHECK(switches == 0);
@@ -620,6 +655,64 @@ TEST_CASE("the save list: stable rows, actions only for the list they were made 
         CHECK_FALSE(row.enabled);
         CHECK(row.actions.empty());
     }
+}
+
+TEST_CASE("a window of frames: the scroll puts the record on its page, its frame and its own buttons act on it")
+{
+    frames = true;
+    commands.clear();
+    SaveListCapability cap;
+    live = {};
+    live.revision = 9;
+    live.profile = "existing";
+    live.saving = true;
+    for (int i = 0; i < 23; ++i)
+        live.files.push_back("Save " + std::to_string(i));
+    profiles["existing"] = live.files;
+    for (const auto &file : live.files)
+        live.records.push_back({live.profile, file});
+    shownSlots.Set(int32_t(9));
+    page.Set(int32_t(0));
+    std::vector<MobileWidget> rows;
+    cap.collect(live, true, rows, rowFacts);
+    rows.erase(rows.begin());
+
+    auto target = cap.accept(live, 20, "delete", rows[20].rowId);
+    REQUIRE(target);
+    CHECK(SelectSaveTarget(*target, SaveSlots::Frames));
+    CHECK(value(page) == 14); // the last page: 23 - 9
+    CHECK(value(selection) == 20);
+    ActOnSaveTarget(*target, SaveSlots::Frames);
+    CHECK(commands.back() == "click DELETEBUTTON7");
+    CHECK(RestoreSaveTarget(*target, SaveSlots::Frames));
+
+    target = cap.accept(live, 15, "activate", rows[15].rowId); // on the page: no scroll
+    REQUIRE(target);
+    CHECK(SelectSaveTarget(*target, SaveSlots::Frames));
+    CHECK(value(page) == 14);
+    CHECK(commands.back() == "click SAVEFRAME2");
+    ActOnSaveTarget(*target, SaveSlots::Frames);
+    CHECK(commands.back() == "activate SAVEFRAME2");
+
+    target = cap.accept(live, 23, "activate", rows[23].rowId); // the new record, above the page
+    REQUIRE(target);
+    CHECK(SelectSaveTarget(*target, SaveSlots::Frames));
+    CHECK(value(selection) == -1);
+    ActOnSaveTarget(*target, SaveSlots::Frames);
+    CHECK(commands.back() == "activate SAVEFRAME_NEW");
+    CHECK(RestoreSaveTarget(*target, SaveSlots::Frames));
+    CHECK(value(selection) == -1);
+
+    target = cap.accept(live, 2, "activate", rows[2].rowId);
+    REQUIRE(target);
+    clicks = false; // the frame did not take the click: no target
+    CHECK_FALSE(SelectSaveTarget(*target, SaveSlots::Frames));
+    clicks = true;
+    CHECK(SelectSaveTarget(*target, SaveSlots::Frames));
+    CHECK(value(page) == 2);
+    CHECK(value(selection) == 2);
+    frames = false;
+    shownSlots.Set(int32_t(10));
 }
 
 TEST_CASE("loading lists every profile's records; a record of another profile makes that profile current first")
@@ -648,11 +741,11 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
 
     auto target = cap.accept(live, 2, "activate", rows[2].rowId);
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(switches == 1);
     CHECK(live.profile == "old build");
     CHECK(value(selection) == 1);
-    CHECK(RestoreSaveTarget(*target));
+    CHECK(RestoreSaveTarget(*target, SaveSlots::Pictures));
     CHECK(value(selection) == 1);
 
     // Its own profile current again: a record of it needs no switch.
@@ -660,7 +753,7 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     switches = 0;
     target = cap.accept(live, 3, "delete", rows[3].rowId);
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(switches == 0);
     CHECK(value(selection) == 1);
     CHECK(cap.accept(live, 4, "delete", rows[4].rowId));
@@ -673,10 +766,10 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     live.profile = "EXISTING";
     target = cap.accept(live, 3, "delete", rows[3].rowId);
     REQUIRE(target);
-    CHECK(SelectSaveTarget(*target));
+    CHECK(SelectSaveTarget(*target, SaveSlots::Pictures));
     CHECK(switches == 0);
     CHECK(value(selection) == 1);
-    CHECK(RestoreSaveTarget(*target));
+    CHECK(RestoreSaveTarget(*target, SaveSlots::Pictures));
     live.profile = "existing";
 
     // A record of the same name in another profile is not the current profile's record.
@@ -687,7 +780,7 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     rows.erase(rows.begin());
     target = cap.accept(live, 5, "delete", rows[5].rowId);
     REQUIRE(target);
-    CHECK_FALSE(RestoreSaveTarget(*target));
+    CHECK_FALSE(RestoreSaveTarget(*target, SaveSlots::Pictures));
     live.records.pop_back();
     profiles["old build"].pop_back();
 
@@ -698,7 +791,7 @@ TEST_CASE("loading lists every profile's records; a record of another profile ma
     rows.erase(rows.begin());
     target = cap.accept(live, 5, "activate", rows[5].rowId);
     REQUIRE(target);
-    CHECK_FALSE(SelectSaveTarget(*target));
+    CHECK_FALSE(SelectSaveTarget(*target, SaveSlots::Pictures));
 
     live.records.clear();
     live.files.clear();

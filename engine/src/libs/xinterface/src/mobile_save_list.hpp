@@ -3,6 +3,8 @@
 #include "mobile_widget.hpp"
 #include "shared/interface/messages.h"
 #include "v_data.h"
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -119,12 +121,43 @@ inline int SavePlayMinutes(const std::string &text)
 
 inline void SaveStamp(const std::string &stamp, SaveFacts &facts);
 
+// A description written as one `name=value` line per attribute (Caribbean Legend's SerializeAttributes; lines end in
+// '\r', names in any case): the save's label locName, the place location, the game's timeStr and playtime as above.
+// No hero.
+inline SaveFacts ParseSaveAttributes(const std::string &text)
+{
+    std::map<std::string, std::string> values;
+    size_t start = 0;
+    while (start < text.size())
+    {
+        size_t end = text.find_first_of("\r\n", start);
+        if (end == std::string::npos)
+            end = text.size();
+        const std::string line = text.substr(start, end - start);
+        if (const size_t equals = line.find('='); equals != std::string::npos && equals > 0)
+        {
+            std::string name = line.substr(0, equals);
+            for (char &c : name)
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            values[name] = line.substr(equals + 1);
+        }
+        start = end + 1;
+    }
+    SaveFacts facts;
+    if (!values.contains("timestr"))
+        return facts;
+    facts.location = !values["location"].empty() ? values["location"] : values["locname"];
+    SaveStamp(values["timestr"], facts);
+    facts.playMinutes = SavePlayMinutes(values["playtime"]);
+    return facts;
+}
+
 inline SaveFacts ParseSaveDescription(const std::string &text)
 {
     SaveFacts facts;
     const auto fields = SplitSaveDescription(text);
     if (fields.size() < 5)
-        return facts;
+        return ParseSaveAttributes(text);
     facts.location = fields.size() >= 7 && !fields[6].empty() ? fields[6] : fields[0];
     if (fields.size() >= 7)
         facts.hero = fields[5];
@@ -254,9 +287,27 @@ class SaveListCapability
 };
 inline SaveListCapability saveListCapability;
 
-// Select through the original script so its ten-slot cache and delete shifting
-// stay consistent, even when Android displays a row far beyond the native page.
-inline bool SelectSaveTarget(const SaveListCapability::Target &target)
+// How the game's save window picks a record: `Pictures`, a page of ten slot pictures SAVEIMG<n> clicked through
+// eventSaveClick, scrolled by lines of five, the new record after the last; `Frames`, slots SAVEFRAME<n> carrying their
+// own buttons (SAVEBUTTON<n>, DELETEBUTTON<n>) through the window's ievnt_command, g_SaveSlots of them shown from the
+// record the scroll puts first, the new record SAVEFRAME_NEW above them (index -1). The host tells them apart by the
+// window's nodes.
+enum class SaveSlots
+{
+    Pictures,
+    Frames
+};
+
+// The game's index of the target once selected: its place in the list, the new record's per kind.
+inline int SaveIndexOf(const SaveListCapability::Target &target, const SaveListSnapshot &state, SaveSlots slots)
+{
+    const int index = SaveListCapability::slot(target, state);
+    return slots == SaveSlots::Frames && index == static_cast<int>(state.files.size()) ? -1 : index;
+}
+
+// Select through the original script so its slot cache and delete shifting stay consistent, even when the touch UI
+// displays a row far beyond the native page.
+inline bool SelectSaveTarget(const SaveListCapability::Target &target, SaveSlots slots)
 {
     auto state = ReadSaveList();
     if (!state || !SaveListCapability::current(target, *state))
@@ -279,35 +330,89 @@ inline bool SelectSaveTarget(const SaveListCapability::Target &target)
     int32_t page = -1;
     if (!first || !first->Get(page) || !selected)
         return false;
-    const int wanted = (index / 5) * 5;
-    if (page != wanted)
+    std::string node;
+    if (slots == SaveSlots::Frames)
     {
-        const int lines = static_cast<int>(state->files.size()) / 5;
-        const float position = lines ? (wanted / 5 == lines ? 1.f : (wanted / 5 + .25f) / lines) : 0.f;
-        core.Event("ScrollPosChange", "fs", position, "SAVESCROLL");
-        if (!first->Get(page) || page != wanted)
-            return false;
+        node = "SAVEFRAME_NEW";
+        const int count = static_cast<int>(state->files.size());
+        if (index < count)
+        {
+            auto *shown = static_cast<VDATA *>(core.GetScriptVariable("g_SaveSlots"));
+            int32_t visible = 0;
+            if (!shown || !shown->Get(visible) || visible <= 0)
+                return false;
+            if (index < page || index >= page + visible)
+            {
+                // The script's page is int(pages * position) of the scroll's position.
+                const int pages = count - visible + 1, wanted = std::min(index, count - visible);
+                core.Event("ScrollPosChange", "fs", (wanted + .5f) / static_cast<float>(pages), "SAVESCROLL");
+                if (!first->Get(page) || index < page || index >= page + visible)
+                    return false;
+            }
+            node = "SAVEFRAME" + std::to_string(index - page + 1);
+        }
+        core.Event("ievnt_command", "ss", "click", node.c_str());
     }
-    // The delayed initial-selection event may have changed only this index.
-    // Restoring it before dispatch prevents confirmation from targeting another save.
-    const std::string node = "SAVEIMG" + std::to_string(index - page + 1);
-    core.Event("eventSaveClick", "ls", ACTION_MOUSECLICK, node.c_str());
-    int32_t actual = -1;
-    return selected->Get(actual) && actual == index;
+    else
+    {
+        const int wanted = (index / 5) * 5;
+        if (page != wanted)
+        {
+            const int lines = static_cast<int>(state->files.size()) / 5;
+            const float position = lines ? (wanted / 5 == lines ? 1.f : (wanted / 5 + .25f) / lines) : 0.f;
+            core.Event("ScrollPosChange", "fs", position, "SAVESCROLL");
+            if (!first->Get(page) || page != wanted)
+                return false;
+        }
+        // The delayed initial-selection event may have changed only this index.
+        // Restoring it before dispatch prevents confirmation from targeting another save.
+        node = "SAVEIMG" + std::to_string(index - page + 1);
+        core.Event("eventSaveClick", "ls", ACTION_MOUSECLICK, node.c_str());
+    }
+    int32_t actual = -2;
+    return selected->Get(actual) && actual == SaveIndexOf(target, *state, slots);
+}
+
+// The selected record's action in the game's window: "activate" loads, writes or writes over it (a question may
+// follow), "delete" asks to delete it.
+inline void ActOnSaveTarget(const SaveListCapability::Target &target, SaveSlots slots)
+{
+    if (slots == SaveSlots::Pictures)
+    {
+        if (target.verb == "delete")
+            core.Event("eventBtnAction", "ls", ACTION_ACTIVATE, "BTN_DELETE");
+        else
+            core.Event("eventSelecterActivate");
+        return;
+    }
+    auto *slot = static_cast<VDATA *>(core.GetScriptVariable("g_nCurrentSaveSlot"));
+    int32_t shown = -1;
+    if (!slot || !slot->Get(shown))
+    {
+        spdlog::error("save_load: the window's selected slot (g_nCurrentSaveSlot) is unreadable; '{}' not sent",
+                      target.verb);
+        return;
+    }
+    const std::string number = shown < 0 ? "_NEW" : std::to_string(shown + 1);
+    if (target.verb == "delete")
+        core.Event("ievnt_command", "ss", "click", ("DELETEBUTTON" + number).c_str());
+    else
+        core.Event("ievnt_command", "ss", "activate", ("SAVEFRAME" + number).c_str());
 }
 } // namespace storm::mobile
 namespace storm::mobile
 {
-inline bool RestoreSaveTarget(const SaveListCapability::Target &target)
+inline bool RestoreSaveTarget(const SaveListCapability::Target &target, SaveSlots slots)
 {
     auto state = ReadSaveList();
     if (!state || !SaveListCapability::current(target, *state))
         return false;
-    const int index = SaveListCapability::slot(target, *state);
+    const int place = SaveListCapability::slot(target, *state), index = SaveIndexOf(target, *state, slots);
     auto *selected = static_cast<VDATA *>(core.GetScriptVariable("g_nCurrentSaveIndex"));
     auto *first = static_cast<VDATA *>(core.GetScriptVariable("g_nFirstSaveIndex"));
     int32_t page = -1;
-    if (index < 0 || !selected || !first || !first->Get(page) || index < page || index >= page + 10)
+    // The new record of a window of frames stands above its page.
+    if (place < 0 || !selected || !first || !first->Get(page) || (index >= 0 && (index < page || index >= page + 10)))
         return false;
     // The list's delayed first selection (save_load.c posts eventSaveClick 350-500 ms after opening) can move
     // the game's choice after the player's tap; its click handler would also take focus from the open question,

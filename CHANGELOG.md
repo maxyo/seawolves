@@ -256,6 +256,9 @@
   вкладками, настройки и переключатели игры видны на её странице, оба начала игры — кнопками, окно имени профиля —
   с ответами игры и правкой имени. Подписи и тексты из текстовых полей игры видны без её разметки; стрелки,
   нарисованные картинкой, работают как кнопки.
+- Caribbean Legend: экран сохранений на сенсорном экране — список записей всех профилей с картинкой, датой и временем
+  в игре и временем игры из описания самой записи; новая запись, запись поверх, загрузка и удаление идут через окно
+  игры. Окно игры, переключённое с загрузки на сохранение, меняет свой заголовок, а не останавливает игру с ошибкой.
 
 **English**
 
@@ -515,6 +518,10 @@
   window's pages by tabs, the game's settings and switches show on its page, both ways to start are buttons, and the
   profile name window has the game's answers and a way to edit the name. Captions and texts of the game's text
   fields show without its markup; arrows drawn as a picture work as buttons.
+- Caribbean Legend: the save screen on the touch screen — the records of every profile with their picture, the game's
+  date and time and the play time from the record's own description; a new record, writing over one, loading and
+  deleting go through the game's window. The game's window switched from loading to saving renames itself instead of
+  stopping the game with an error.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

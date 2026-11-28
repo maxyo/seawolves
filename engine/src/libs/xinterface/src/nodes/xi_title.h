@@ -29,6 +29,8 @@ class CXI_TITLE : public CINODE
   protected:
     void LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const char *name2) override;
     void FillVertexBuffer() const;
+    void ReadTitle();
+    uint32_t MessageProc(int32_t msgcode, MESSAGE &message) override;
 
   protected:
     char *m_sGroupName;
@@ -47,6 +49,7 @@ class CXI_TITLE : public CINODE
     int32_t m_nIndx;  // index quantity
 
     int32_t m_nStringWidth;
+    bool m_bIniWidth = false; // the ini fixes the string's width
     XYRECT m_mRect, m_tRect;
     int32_t m_nTiledQuantity;
 };

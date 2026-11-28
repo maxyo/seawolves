@@ -111,21 +111,9 @@ void CXI_TITLE::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const c
     m_StringCenter.x = (m_rect.left + m_rect.right) / 2;
     m_StringCenter.y = m_rect.top + GetIniLong(ini1, name1, ini2, name2, "stringOffset", 0);
 
-    auto *const pChar = core.Entity_GetAttribute(g_idInterface, "title");
-    if (pChar != nullptr && pChar[0] != '#')
-        m_idString = pStringService->GetStringNum(pChar);
-    else
-        m_idString = -1;
-
     m_nStringWidth = GetIniLong(ini1, name1, ini2, name2, "stringWidth", 0);
-    if (m_nStringWidth == 0)
-    {
-        if (pChar != nullptr && pChar[0] == '#')
-            m_nStringWidth = m_rs->StringWidth(&pChar[1], m_fontID, m_fontScale, m_screenSize.x);
-        else
-            m_nStringWidth =
-                m_rs->StringWidth(pStringService->GetString(m_idString), m_fontID, m_fontScale, m_screenSize.x);
-    }
+    m_bIniWidth = m_nStringWidth != 0;
+    ReadTitle();
 
     if (ReadIniString(ini1, name1, ini2, name2, "imgGroupName", param, sizeof(param), ""))
     {
@@ -262,6 +250,33 @@ void CXI_TITLE::LoadIni(INIFILE *ini1, const char *name1, INIFILE *ini2, const c
         xpos += xposDelta;
     }
     m_rs->UnLockVertexBuffer(m_idVBuf);
+}
+
+// The interface's `title` attribute: a string id of the game's texts, or "#" and the text itself.
+void CXI_TITLE::ReadTitle()
+{
+    auto *const pChar = core.Entity_GetAttribute(g_idInterface, "title");
+    if (pChar != nullptr && pChar[0] != '#')
+        m_idString = pStringService->GetStringNum(pChar);
+    else
+        m_idString = -1;
+    if (m_bIniWidth)
+        return;
+    if (pChar != nullptr && pChar[0] == '#')
+        m_nStringWidth = m_rs->StringWidth(&pChar[1], m_fontID, m_fontScale, m_screenSize.x);
+    else
+        m_nStringWidth = m_rs->StringWidth(pStringService->GetString(m_idString), m_fontID, m_fontScale, m_screenSize.x);
+}
+
+// Message 0 without an argument: the title read again (a window that turns from loading to saving renames itself).
+// The other messages are every node's.
+uint32_t CXI_TITLE::MessageProc(int32_t msgcode, MESSAGE &message)
+{
+    if (msgcode != 0)
+        return CINODE::MessageProc(msgcode, message);
+    ReadTitle();
+    FillVertexBuffer();
+    return 0;
 }
 
 void CXI_TITLE::FillVertexBuffer() const

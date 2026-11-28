@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The save list of this lineage (save_load): the engine lists every record of every profile as ANDROID_SAVE_LIST rows
 // under ANDROID_SAVES (label: the file name; the new record's reason "new"; the row's context: its profile and what the
-// record says about itself, mobile_save_list.hpp SaveFacts) with the verbs activate and delete, each sent with the row's identity. The
-// game's questions are CONFIRM_TEXT / CONFIRM_YES / CONFIRM_NO, its name editor CUSTOM_SAVE_*. Implements
-// contracts/saves.c.
+// record says about itself, mobile_save_list.hpp SaveFacts) with the verbs activate and delete, each sent with the row's identity
+// (the engine picks the record in the game's window, of either kind of slots). The game's questions are
+// TouchLegLib_Question's CONFIRM_* (a notice with one answer included), its name editor CUSTOM_SAVE_*; the window's
+// exit is its BTN_EXIT, else the game's cancel. Implements contracts/saves.c.
 
 string TouchLegSaves_Fact(aref row, string key)
 {
@@ -55,21 +56,15 @@ void TouchAdpSaves_State(aref ui, aref out)
 		at.enabled = row.enabled;
 	}
 	out.naming = CheckAttribute(model, "CUSTOM_SAVE_BTN_OK") && UiOffers("CUSTOM_SAVE_BTN_OK", "press");
-	if (!CheckAttribute(model, "CONFIRM_YES")) return;
-	object lines;
-	TouchLegLib_Lines(model, "CONFIRM_TEXT", &lines, "l");
-	string text = "";
-	for (int l = 0; l < GetAttributesNum(&lines); l++)
-	{
-		aref line = GetAttributeN(&lines, l);
-		if (text != "") text += TouchLib_Newline();
-		text += line.text;
-	}
-	out.question.text = text;
-	out.question.yes = model.CONFIRM_YES.label;
-	out.question.canYes = UiOffers("CONFIRM_YES", "press");
-	out.question.no = TouchLegLib_Label(model, "CONFIRM_NO");
-	out.question.canNo = CheckAttribute(model, "CONFIRM_NO") && UiOffers("CONFIRM_NO", "press");
+	object set;
+	if (!TouchLegLib_Question(model, &set)) return;
+	object asked;
+	TouchLegLib_Asked(model, &asked);
+	out.question.text = asked.question;
+	out.question.yes = model.(set.yes).label;
+	out.question.canYes = UiOffers(set.yes, "press");
+	out.question.no = asked.no;
+	out.question.canNo = sti(asked.canNo) && UiOffers(set.no, "press");
 }
 
 // The engine accepts a row's verb only with the identity it gave that row.
@@ -99,9 +94,7 @@ void TouchAdpSaves_Delete(aref ui, string key)
 
 void TouchAdpSaves_Answer(aref ui, bool yes)
 {
-	string node = "CONFIRM_NO";
-	if (yes) node = "CONFIRM_YES";
-	UiSend(node, "press", "");
+	UiSend(TouchLegLib_Reply(TouchLegLib_Model(ui), yes), "press", "");
 }
 
 void TouchAdpSaves_Name(aref ui)

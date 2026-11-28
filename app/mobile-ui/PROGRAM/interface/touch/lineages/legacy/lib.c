@@ -38,12 +38,14 @@ void TouchLegLib_Button(aref model, string node, aref out)
 
 // The game's open question of a menu window, as its nodes {yes, no, text, names (its "no" has the answer's caption)}:
 // CONFIRM_WINDOW_MB_YES/NO with CONFIRM_WINDOW_STRINGS, CONFIRM_EXIT_YES/NO with CONFIRM_EXIT_TEXT (whose "no"
-// caption is not the answer's), CONFIRM_YES/NO with CONFIRM_TEXT. False while none is open.
+// caption is not the answer's), CONFIRM_YES/NO with CONFIRM_TEXT, a notice CONFIRM_YES1 with CONFIRM_TEXT (one answer,
+// no "no"). False while none is open.
 bool TouchLegLib_Question(aref model, aref out)
 {
 	if (TouchLegLib_QuestionOf(model, out, "CONFIRM_WINDOW_MB_YES", "CONFIRM_WINDOW_MB_NO", "CONFIRM_WINDOW_STRINGS", true)) return true;
 	if (TouchLegLib_QuestionOf(model, out, "CONFIRM_EXIT_YES", "CONFIRM_EXIT_NO", "CONFIRM_EXIT_TEXT", false)) return true;
-	return TouchLegLib_QuestionOf(model, out, "CONFIRM_YES", "CONFIRM_NO", "CONFIRM_TEXT", true);
+	if (TouchLegLib_QuestionOf(model, out, "CONFIRM_YES", "CONFIRM_NO", "CONFIRM_TEXT", true)) return true;
+	return TouchLegLib_QuestionOf(model, out, "CONFIRM_YES1", "", "CONFIRM_TEXT", true);
 }
 
 bool TouchLegLib_QuestionOf(aref model, aref out, string yes, string no, string text, bool names)
@@ -71,7 +73,7 @@ void TouchLegLib_Asked(aref model, aref out)
 		text += line.text;
 	}
 	out.question = text;
-	out.canNo = CheckAttribute(model, set.no);
+	out.canNo = set.no != "" && CheckAttribute(model, set.no);
 	out.no = "";
 	if (sti(set.names)) out.no = TouchLegLib_Label(model, set.no);
 }

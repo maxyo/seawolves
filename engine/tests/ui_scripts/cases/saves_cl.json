@@ -1,0 +1,1399 @@
+{
+ "$comment": "The save list of a game whose save window's slots carry their own buttons (fixture game-cl; models recorded on its window, every text a placeholder): the engine's list of records with the facts of the game's own descriptions; a record loaded and deleted, the new record written.",
+ "fixture": "game-cl",
+ "cases": [
+  {
+   "name": "loading from the title: the record with its facts, loaded and deleted",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 3,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 10,
+        "imageRevision": 10,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 11,
+        "imageRevision": 11,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "1",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "label": "xxxx-xxxxxxxxx - xxxx.xxxxxx",
+      "value": "1",
+      "index": 0,
+      "actions": [
+       "activate",
+       "delete"
+      ],
+      "rowId": "1",
+      "context": {
+       "created": "2026-11-28 21:10",
+       "createdWhen": "today",
+       "gameDate": "1654-09-23",
+       "gameTime": "19:30",
+       "location": "xxxx-xxxxxxxxx - xxxx",
+       "playMinutes": "1",
+       "profile": "xxxxx-xxxxxxx"
+      }
+     },
+     {
+      "node": "PAPER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 13,
+        "imageRevision": 13,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "HERO_FACE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 24,
+        "imageRevision": 24,
+        "source": {
+         "group": "FACE128_201",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxx xx xxx",
+      "index": 1
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxx",
+      "index": 4
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxxxx: xxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 12,
+        "imageRevision": 12,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  xxxxxxxx  ",
+      "index": -1
+     },
+     {
+      "node": "BUTTON_PROFILE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 16,
+        "imageRevision": 16,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "profile",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 2
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxx: xxxxx-xxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "xxxx-xxxxxxxxx - xxxx",
+      "index": 0
+     },
+     {
+      "node": "SAVEFRAME1",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 26,
+        "imageRevision": 26,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "frame_bronze",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxx-xxxxxxxxx - x�...",
+      "index": 0,
+      "rowId": "name1"
+     },
+     {
+      "node": "SAVEBUTTON1",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 27,
+        "imageRevision": 27,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "save",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "DELETEBUTTON1",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 28,
+        "imageRevision": 28,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "delete",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "21:10 28.11.2026",
+      "index": 1,
+      "rowId": "systemtime1"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "0 x 1 xxx",
+      "index": 2,
+      "rowId": "playtime1"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 3,
+      "rowId": "name2"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 4,
+      "rowId": "systemtime2"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 5,
+      "rowId": "playtime2"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 6,
+      "rowId": "name3"
+     },
+     {
+      "node": "BUTTON_1",
+      "type": "button",
+      "label": "xxxxx xxxx",
+      "index": -1
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 7,
+      "rowId": "systemtime3"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 8,
+      "rowId": "playtime3"
+     },
+     {
+      "node": "BUTTON_2",
+      "type": "button",
+      "label": "xxxxx",
+      "index": -1
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 9,
+      "rowId": "name4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 10,
+      "rowId": "systemtime4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 11,
+      "rowId": "playtime4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 12,
+      "rowId": "name5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 13,
+      "rowId": "systemtime5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 14,
+      "rowId": "playtime5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 15,
+      "rowId": "name6"
+     },
+     {
+      "node": "FADER_LEFT",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 14,
+        "imageRevision": 14,
+        "source": {
+         "image": "interfaces/le/paper_fader",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER_RIGHT",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 14,
+        "imageRevision": 14,
+        "source": {
+         "image": "interfaces/le/paper_fader",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 16,
+      "rowId": "systemtime6"
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "19:30  23.09.1654",
+      "index": 1
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "21:10 28.11.2026",
+      "index": 6
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 17,
+      "rowId": "playtime6"
+     },
+     {
+      "node": "SAVE_LOCATION",
+      "type": "text",
+      "label": "xxxx-xxxxxxxxx - xxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "FADER_LONG",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 15,
+        "imageRevision": 15,
+        "source": {
+         "image": "interfaces/le/battle_interface/info_fader_b",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 18,
+      "rowId": "name7"
+     },
+     {
+      "node": "ICON_MONEY",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 25,
+        "imageRevision": 25,
+        "source": {
+         "group": "PESODUBLON",
+         "image": "pesodublon",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "500 xxxx",
+      "index": 4
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 19,
+      "rowId": "systemtime7"
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "xxxx: 1",
+      "index": 2
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "xxxx xxxxxxx: 110",
+      "index": 3
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 20,
+      "rowId": "playtime7"
+     },
+     {
+      "node": "SAVE_INFO",
+      "type": "text",
+      "label": "0 xxxxxxxx",
+      "index": 5
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 21,
+      "rowId": "name8"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 22,
+      "rowId": "systemtime8"
+     },
+     {
+      "node": "OFFICER_1",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 17,
+        "imageRevision": 17,
+        "source": {
+         "group": "face128_fighter",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_2",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 17,
+        "imageRevision": 17,
+        "source": {
+         "group": "face128_fighter",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_3",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 17,
+        "imageRevision": 17,
+        "source": {
+         "group": "face128_fighter",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_4",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 18,
+        "imageRevision": 18,
+        "source": {
+         "group": "face128_navigator",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_5",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 19,
+        "imageRevision": 19,
+        "source": {
+         "group": "face128_boatswain",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_6",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 20,
+        "imageRevision": 20,
+        "source": {
+         "group": "face128_cannoner",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_7",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 21,
+        "imageRevision": 21,
+        "source": {
+         "group": "face128_doctor",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_8",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 22,
+        "imageRevision": 22,
+        "source": {
+         "group": "face128_treasurer",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "OFFICER_9",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 23,
+        "imageRevision": 23,
+        "source": {
+         "image": "interfaces/le/portraits/empty/carpenter",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 23,
+      "rowId": "playtime8"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 24,
+      "rowId": "name9"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 25,
+      "rowId": "systemtime9"
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 1
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 2
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxx",
+      "index": 4
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 5
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxx",
+      "index": 6
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 7
+     },
+     {
+      "node": "OFFICERSPROFESSION",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 8
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 26,
+      "rowId": "playtime9"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 27,
+      "rowId": "name10"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 28,
+      "rowId": "systemtime10"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 29,
+      "rowId": "playtime10"
+     },
+     {
+      "node": "SHOW_AUTOSAVES",
+      "type": "check",
+      "label": "xxxxxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SHOW_QUICKSAVES",
+      "type": "check",
+      "label": "xxxxxxx xxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "detail": {
+     "busy": false,
+     "delete": true,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.game_date>",
+       "v": "23 <common.month_9> 1654, 19:30"
+      },
+      {
+       "k": "<save.play_time>",
+       "v": "1 <save.minutes>"
+      },
+      {
+       "k": "<save.created>",
+       "v": "<save.today>, 21:10"
+      }
+     ],
+     "preview": "",
+     "primary": "<save.load>",
+     "reason": "",
+     "sub": "",
+     "title": "xxxx-xxxxxxxxx - xxxx"
+    },
+    "rows": [
+     {
+      "cells": [
+       {
+        "sub": "xxxx-xxxxxxxxx - xxxx",
+        "text": "xxxx-xxxxxxxxx - xxxx.xxxxxx"
+       },
+       {
+        "sub": "<save.today>, 21:10",
+        "text": "23 <common.month_9> 1654",
+        "tone": "dim"
+       },
+       ""
+      ],
+      "disabled": false,
+      "id": "file:xxxxx-xxxxxxx/xxxx-xxxxxxxxx - xxxx.xxxxxx",
+      "selected": true
+     }
+    ],
+    "title": "<save.title_load>"
+   },
+   "modals": [],
+   "notes": {
+    "saves": {
+     "from": "title"
+    }
+   },
+   "events": [
+    [
+     "primary",
+     "",
+     ""
+    ],
+    [
+     "delete",
+     "",
+     ""
+    ],
+    [
+     "header-back",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send ANDROID_SAVE_LIST#0 activate 1",
+    "hold",
+    "send ANDROID_SAVE_LIST#0 delete 1",
+    "hold",
+    "back "
+   ]
+  },
+  {
+   "name": "writing: the new record leads and is written",
+   "capability": "saves",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 9,
+    "screen": "save_load",
+    "widgets": [
+     {
+      "node": "16x9_BACKGROUND",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 32,
+        "imageRevision": 32,
+        "source": {
+         "image": "interfaces/le/backgrounds/bgr_black",
+         "kind": "texture",
+         "uv": [
+          0.0,
+          0.0,
+          1.0,
+          1.0
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "node": "FADER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 33,
+        "imageRevision": 33,
+        "source": {
+         "group": "fader",
+         "image": "fader",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "ANDROID_SAVES",
+      "type": "list",
+      "value": "0",
+      "index": -1
+     },
+     {
+      "node": "ANDROID_SAVE_LIST",
+      "type": "save",
+      "value": "0",
+      "index": 0,
+      "actions": [
+       "activate"
+      ],
+      "rowId": "1",
+      "unavailableReason": "new",
+      "context": {
+       "hero": "xxxxx xx xxx",
+       "location": "xxxx-xxxxxxxxx - xxxx",
+       "playMinutes": "1"
+      }
+     },
+     {
+      "node": "PAPER",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 35,
+        "imageRevision": 35,
+        "source": {
+         "group": "paper_menu",
+         "image": "paper",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "HERO_FACE",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 38,
+        "imageRevision": 38,
+        "source": {
+         "group": "face128_201",
+         "image": "face",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxx xx xxx",
+      "index": 1
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxx",
+      "index": 4
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxxxx: xxxxxxx",
+      "index": 3
+     },
+     {
+      "node": "LOGO",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 34,
+        "imageRevision": 34,
+        "source": {
+         "group": "logo",
+         "image": "en",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  xxxxxxxxxx  ",
+      "index": -1
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxx",
+      "index": 2
+     },
+     {
+      "node": "PROFILE_INFO",
+      "type": "text",
+      "label": "xxxxxxx: xxxxx-xxxxxxx",
+      "index": 0
+     },
+     {
+      "node": "SAVEFRAME_NEW",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 39,
+        "imageRevision": 39,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "frame_newsave",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxx xxxxxxxxxx",
+      "index": 27,
+      "rowId": "newsave"
+     },
+     {
+      "node": "SAVEBUTTON_NEW",
+      "type": "image",
+      "index": -1,
+      "enabled": false,
+      "images": [
+       {
+        "handle": 40,
+        "imageRevision": 40,
+        "source": {
+         "group": "SAVELOAD",
+         "image": "save",
+         "kind": "atlas"
+        }
+       }
+      ]
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 0,
+      "rowId": "name1"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 1,
+      "rowId": "systemtime1"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 2,
+      "rowId": "playtime1"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 3,
+      "rowId": "name2"
+     },
+     {
+      "node": "BUTTON_1",
+      "type": "button",
+      "label": "xxxxxxxxxx xxxx",
+      "index": -1
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 4,
+      "rowId": "systemtime2"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 5,
+      "rowId": "playtime2"
+     },
+     {
+      "node": "BUTTON_2",
+      "type": "button",
+      "label": "xxxxxxxxx",
+      "index": -1
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 6,
+      "rowId": "name3"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 7,
+      "rowId": "systemtime3"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 8,
+      "rowId": "playtime3"
+     },
+     {
+      "node": "BUTTON_3",
+      "type": "button",
+      "label": "xxxxx",
+      "index": -1
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 9,
+      "rowId": "name4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 10,
+      "rowId": "systemtime4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 11,
+      "rowId": "playtime4"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 12,
+      "rowId": "name5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 13,
+      "rowId": "systemtime5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 14,
+      "rowId": "playtime5"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 15,
+      "rowId": "name6"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 16,
+      "rowId": "systemtime6"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 17,
+      "rowId": "playtime6"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 18,
+      "rowId": "name7"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 19,
+      "rowId": "systemtime7"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 20,
+      "rowId": "playtime7"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 21,
+      "rowId": "name8"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 22,
+      "rowId": "systemtime8"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 23,
+      "rowId": "playtime8"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 24,
+      "rowId": "name9"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxxxx",
+      "index": 25,
+      "rowId": "systemtime9"
+     },
+     {
+      "node": "SAVELIST_INFO",
+      "type": "text",
+      "label": "xxxxxxxx",
+      "index": 26,
+      "rowId": "playtime9"
+     },
+     {
+      "node": "SHOW_AUTOSAVES",
+      "type": "check",
+      "label": "xxxxxxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SHOW_QUICKSAVES",
+      "type": "check",
+      "label": "xxxxxxx xxxxxxxxxx",
+      "value": "1",
+      "index": 0
+     }
+    ]
+   },
+   "props": {
+    "columns": [
+     {
+      "label": "<save.record>",
+      "w": "1"
+     },
+     {
+      "align": "right",
+      "label": "<save.game_date>",
+      "w": "120px"
+     },
+     {
+      "align": "center",
+      "label": "",
+      "w": "24px"
+     }
+    ],
+    "detail": {
+     "busy": false,
+     "delete": false,
+     "disabled": false,
+     "facts": [
+      {
+       "k": "<save.play_time>",
+       "v": "1 <save.minutes>"
+      }
+     ],
+     "preview": "",
+     "primary": "<save.save>",
+     "reason": "",
+     "sub": "xxxxx xx xxx",
+     "title": "xxxx-xxxxxxxxx - xxxx"
+    },
+    "rows": [
+     {
+      "cells": [
+       {
+        "icon": "plus",
+        "iconTone": "brass",
+        "sub": "xxxxx xx xxx · xxxx-xxxxxxxxx - xxxx",
+        "text": "<save.new>"
+       },
+       "",
+       ""
+      ],
+      "disabled": false,
+      "id": "new",
+      "selected": true
+     }
+    ],
+    "title": "<save.title_save>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "primary",
+     "",
+     ""
+    ]
+   ],
+   "calls": [
+    "send ANDROID_SAVE_LIST#0 activate 1",
+    "hold"
+   ]
+  }
+ ]
+}
