@@ -388,6 +388,14 @@ endforeach()
 storm_host_check(sea_turbidity SOURCES check.cpp ${src}/libs/renderer_bgfx/fx/src/settings.cpp
     INCLUDES ${glm_headers} ${src}/libs/renderer_bgfx/fx/include OPTIONS -O1 ${asan_strict})
 storm_host_check(sea_wave_focus INCLUDES ${glm_headers} OPTIONS -O1 -g ${asan} -fno-omit-frame-pointer STD 17 CATCH2)
+# The wave field links the engine's FFmpeg (its av_tx transform), built as the engine's host build builds it.
+include("${STORM_ROOT}/cmake/ffmpeg.cmake")
+storm_ffmpeg(host)
+storm_host_check(sea_ocean_field
+    SOURCES check.cpp ${src}/libs/sea/src/ocean_fft.cpp ${src}/libs/sea/src/ocean_spectrum.cpp
+            ${src}/libs/sea/src/ocean_field.cpp
+    INCLUDES ${glm_headers} ${src}/libs/sea/src OPTIONS -O1 -g ${asan_strict} -fno-omit-frame-pointer ${warnings}
+    LIBS storm_ffmpeg CATCH2)
 storm_host_check(sea_wave_sampling INCLUDES ${glm_headers} ${src}/libs/sea/include OPTIONS -O1 -g ${asan} -fno-omit-frame-pointer
     CATCH2)
 storm_host_check(ship_script_protocol SOURCES ${src}/libs/core/src/message.cpp check.cpp

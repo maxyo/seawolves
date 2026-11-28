@@ -1,0 +1,160 @@
+// The sea's wave spectrum and field (src/libs/sea/src/ocean_*): the physics of a single wave, the spectrum's
+// normalisation and bands, the transform's scale, the height query over choppy waves and determinism.
+#include "ocean_field.hpp"
+
+#include <catch2/catch.hpp>
+
+#include <cmath>
+#include <cstring>
+#include <numbers>
+
+using namespace storm::sea::ocean;
+
+namespace
+{
+constexpr float kPi = std::numbers::pi_v<float>;
+
+SeaState Weather(float amp1, float scale1, float amp2, float scale2, float pos_shift, float cap = 200.0f)
+{
+    return MapSea2({amp1, scale1, amp2, scale2, pos_shift, cap, 0.7f});
+}
+
+double FieldVariance(const Field &field)
+{
+    double variance = 0.0;
+    for (size_t c = 0; c < field.Layout().size(); c++)
+    {
+        double sum = 0.0;
+        for (const Displacement &d : field.Samples(c))
+            sum += static_cast<double>(d.h) * d.h;
+        variance += sum / static_cast<double>(field.Samples(c).size());
+    }
+    return variance;
+}
+} // namespace
+
+TEST_CASE("a single wave travels along k at the deep-water speed and leans towards its crest")
+{
+    // One wave of 16 m and amplitude 2 m along +x on a 64 m patch: h = 2 cos(k x - w t), w = sqrt(g k).
+    constexpr int n = 64;
+    const float k = 2.0f * kPi / 16.0f, omega = std::sqrt(kGravity * k), period = 2.0f * kPi / omega;
+    CascadeSpectrum spectrum;
+    spectrum.amplitude.assign(n * n, {});
+    spectrum.omega.assign(n * n, 0.0f);
+    spectrum.amplitude[4] = 1.0f; // a(k) = amplitude / 2: the opposite sample adds the conjugate
+    spectrum.omega[4] = spectrum.omega[n - 4] = omega;
+    Field field({{n, 64.0f, 0.0f, 100.0f}});
+    field.SetSpectra({spectrum}, 0.5f, 0.0f);
+
+    field.Update(0.0);
+    CHECK(field.Offset(0.0f, 3.0f, 1).y == Approx(2.0f).margin(1e-4));
+    CHECK(field.Offset(4.0f, 3.0f, 1).y == Approx(0.0f).margin(1e-4));
+    // Gerstner's lean: the water just past a crest moves back towards it, by choppiness * amplitude * sin.
+    CHECK(field.Offset(2.0f, 0.0f, 1).x == Approx(-0.5f * 2.0f * std::sin(kPi / 4.0f)).margin(1e-4));
+    CHECK(field.Offset(2.0f, 0.0f, 1).z == Approx(0.0f).margin(1e-4));
+
+    field.Update(period / 4.0f);
+    CHECK(field.Offset(4.0f, 9.0f, 1).y == Approx(2.0f).margin(1e-3));
+    CHECK(field.Offset(0.0f, 9.0f, 1).y == Approx(0.0f).margin(1e-3));
+
+    // The normal on the slope halfway down (no lean: the plain height field): its tilt is the slope, 2 k.
+    field.SetSpectra({spectrum}, 0.0f, 0.0f);
+    field.Update(0.0);
+    glm::vec3 normal;
+    field.Height(4.0f, 1.0f, 1, &normal);
+    CHECK(normal.x / normal.y == Approx(2.0f * k).epsilon(0.03));
+    CHECK(normal.z == Approx(0.0f).margin(1e-4));
+}
+
+TEST_CASE("each wave system has the game's height and every wave lives in one cascade")
+{
+    const SeaState states[] = {Weather(6.0f, 0.8f, 1.0f, 2.0f, 1.8f), Weather(100.0f, 0.08f, 3.0f, 1.3f, 0.3f),
+                               Weather(30.0f, 0.15f, 1.0f, 2.0f, 1.0f, 2.0f)};
+    for (const auto &[count, size] : {std::pair{2, 64}, std::pair{3, 64}, std::pair{3, 128}})
+    {
+        const std::vector<Cascade> layout = CascadeLayout(count, size);
+        for (size_t c = 0; c + 1 < layout.size(); c++)
+        {
+            CHECK(layout[c].k_high == layout[c + 1].k_low);
+            CHECK(layout[c].patch > layout[c + 1].patch);
+        }
+        for (const SeaState &state : states)
+        {
+            const auto spectra = BuildSpectrum(state, layout);
+            const double target = (state.swell.hs * state.swell.hs + state.wind.hs * state.wind.hs) / 16.0;
+            CHECK(HeightVariance(spectra) == Approx(target).epsilon(1e-4));
+            for (size_t c = 0; c < layout.size(); c++)
+            {
+                const int n = layout[c].size;
+                const double dk = 2.0 * std::numbers::pi / layout[c].patch;
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                        if (spectra[c].amplitude[static_cast<size_t>(y) * n + x] != std::complex<float>())
+                        {
+                            const double length = dk * std::hypot(x < n / 2 ? x : x - n, y < n / 2 ? y : y - n);
+                            REQUIRE(length >= layout[c].k_low);
+                            REQUIRE(length < layout[c].k_high);
+                        }
+            }
+        }
+    }
+    // The harbour's cap scales the heights and the raised still level alike.
+    const SeaState open = Weather(30.0f, 0.15f, 1.0f, 2.0f, 1.0f),
+                   harbour = Weather(30.0f, 0.15f, 1.0f, 2.0f, 1.0f, 2.0f);
+    CHECK(harbour.swell.hs / open.swell.hs == Approx(2.0f / 31.0f));
+    CHECK(harbour.mean_level / open.mean_level == Approx(2.0f / 31.0f));
+    CHECK(Weather(6.0f, 0.1f, 1.0f, 2.0f, 1.0f).swell.peak_wavelength >
+          Weather(6.0f, 0.8f, 1.0f, 2.0f, 1.0f).swell.peak_wavelength);
+}
+
+TEST_CASE("the transformed field carries the spectrum's energy")
+{
+    Field field(CascadeLayout(3, 128));
+    field.SetState(Weather(7.0f, 0.5f, 1.1f, 3.0f, 2.0f));
+    const double expected = HeightVariance(BuildSpectrum(Weather(7.0f, 0.5f, 1.1f, 3.0f, 2.0f), field.Layout()));
+    double mean = 0.0;
+    constexpr int kTimes = 16;
+    for (int i = 0; i < kTimes; i++)
+    {
+        field.Update(i * 7.3);
+        mean += FieldVariance(field) / kTimes;
+    }
+    CHECK(mean == Approx(expected).epsilon(0.15));
+}
+
+TEST_CASE("the height over a point is that of the displaced water that lands there")
+{
+    Field field(CascadeLayout(3, 128));
+    const SeaState state = Weather(25.0f, 0.17f, 1.0f, 4.0f, 2.5f);
+    REQUIRE(state.choppiness == Approx(0.8f)); // the most any weather asks
+    field.SetState(state);
+    field.Update(41.0);
+    float worst = 0.0f;
+    for (int i = 0; i < 200; i++)
+    {
+        const float x = -3000.0f + 31.7f * i, z = 1200.0f - 17.3f * i;
+        const glm::vec3 offset = field.Offset(x, z, 3);
+        const float height = field.Height(x + offset.x, z + offset.z, 3);
+        worst = std::max(worst, std::abs(height - (offset.y + state.mean_level)));
+    }
+    CHECK(worst < 0.002f);
+}
+
+TEST_CASE("equal inputs make the same field")
+{
+    const SeaState state = Weather(17.0f, 0.3f, 1.0f, 2.0f, 1.8f);
+    Field a(CascadeLayout(3, 64)), b(CascadeLayout(3, 64));
+    a.SetState(state);
+    b.SetState(state);
+    a.Update(1234.5);
+    b.Update(1234.5);
+    for (size_t c = 0; c < 3; c++)
+        CHECK(std::memcmp(a.Samples(c).data(), b.Samples(c).data(), a.Samples(c).size() * sizeof(Displacement)) == 0);
+    b.Update(1234.6);
+    CHECK(std::memcmp(a.Samples(0).data(), b.Samples(0).data(), a.Samples(0).size() * sizeof(Displacement)) != 0);
+
+    Field calm(CascadeLayout(2, 64));
+    calm.SetState(Weather(0.0f, 0.5f, 0.0f, 2.0f, 1.0f));
+    calm.Update(5.0);
+    CHECK(calm.Height(10.0f, 20.0f, 2) == 0.0f);
+}

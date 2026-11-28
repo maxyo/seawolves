@@ -9,7 +9,7 @@ function(storm_ffmpeg target)
     storm_pin(ffmpeg commit revision)
     set(STORM_FFMPEG_CACHE "${STORM_DEPS_CACHE}/ffmpeg-cache" CACHE PATH "FFmpeg build cache")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    set(command "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/ffmpeg/build.py" --source "${storm_ffmpeg_SOURCE_DIR}"
+    set(command "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../tools/ffmpeg/build.py" --source "${storm_ffmpeg_SOURCE_DIR}"
         --revision ${revision} --cache "${STORM_FFMPEG_CACHE}" --target ${target})
     if(target MATCHES "^android-")
         list(APPEND command --ndk "${STORM_ANDROID_NDK}")
@@ -19,7 +19,7 @@ function(storm_ffmpeg target)
         message(FATAL_ERROR "FFmpeg build failed (tools/ffmpeg/build.py)")
     endif()
     message(STATUS "FFmpeg: ${prefix}")
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/tools/ffmpeg/build.py")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../tools/ffmpeg/build.py")
     add_library(storm_ffmpeg INTERFACE)
     target_include_directories(storm_ffmpeg SYSTEM INTERFACE "${prefix}/include")
     # Packaged next to libengine.so (the application copies runtime/ffmpeg/*.so into the APK).
