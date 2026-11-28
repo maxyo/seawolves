@@ -61,5 +61,6 @@ Set before the game starts (`adb shell setprop log.tag.<tag> DEBUG`):
 
 - `StormUiInput`: per loop iteration every touch sample, action, model and frame with its CPU by stage;
 - `StormUiState`: every state channel update (a screen channel's JSON, a HUD channel by name);
-- `StormUiModels`: writes the newest model of each screen to `<external files>/ui-models/`;
+- `StormUiModels`: writes the newest model of each screen to `<external files>/ui-models/<screen>.json`, and the newest
+  active dialogue to `dialogue.json` there (the fixture format of the `dialogue` state channel);
 - `StormUiModelCheck`: collects the interface model every frame and logs a model that went stale.

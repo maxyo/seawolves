@@ -174,3 +174,28 @@ std::unique_ptr<StateConsumer> CreateDialogueConsumer()
 }
 
 } // namespace storm::ui::screens
+
+namespace storm::ui
+{
+
+std::string DialogueJson(const Dialogue &dialogue)
+{
+    Json state = {{"active", dialogue.active},     {"generation", dialogue.generation},
+                  {"language", dialogue.language}, {"speaker", dialogue.speaker},
+                  {"text", dialogue.text},         {"choices", Json::array()}};
+    for (const Dialogue::Choice &choice : dialogue.choices)
+    {
+        Json reply = {{"index", choice.index}, {"text", choice.text}};
+        if (choice.editable)
+            reply["editable"] = true;
+        state["choices"].push_back(std::move(reply));
+    }
+    if (dialogue.refusal)
+    {
+        state["editIndex"] = dialogue.refusal->index;
+        state["editError"] = dialogue.refusal->error;
+    }
+    return state.dump(1);
+}
+
+} // namespace storm::ui

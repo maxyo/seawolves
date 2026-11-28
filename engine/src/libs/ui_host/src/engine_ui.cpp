@@ -214,16 +214,20 @@ void EngineUi::Record(const storm::ui::InterfaceModel &model) const
 {
     if (screen_.empty() || !record_models_)
         return;
-    const std::string json = storm::ui::InterfaceModelJson(model);
+    WriteRecording(screen_, storm::ui::InterfaceModelJson(model));
+}
+
+void EngineUi::WriteRecording(const std::string &name, const std::string &json) const
+{
     const std::filesystem::path folder = ui_platform::ModelsFolder();
     if (folder.empty())
         return;
     std::error_code error;
     std::filesystem::create_directories(folder, error);
-    std::ofstream out(folder / (screen_ + ".json"), std::ios::binary);
+    std::ofstream out(folder / (name + ".json"), std::ios::binary);
     out.write(json.data(), std::streamsize(json.size()));
     if (!out)
-        Log().error("Cannot record the interface {} in {}", screen_, folder.string());
+        Log().error("Cannot record {} in {}", name, folder.string());
 }
 
 void state(std::string_view channel, std::string json)

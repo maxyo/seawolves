@@ -118,6 +118,8 @@ class EngineUi
         if (trace_states_)
             TraceStates().debug("dialogue generation {}{}", dialogue.generation,
                                 dialogue.refusal ? " refusal " + dialogue.refusal->error : std::string());
+        if (record_models_ && dialogue.active)
+            WriteRecording("dialogue", storm::ui::DialogueJson(dialogue));
         dialogue_.Send(host_.get(), std::move(dialogue));
     }
 
@@ -407,8 +409,10 @@ class EngineUi
     }
 
     // switch StormUiModels: the newest model of each screen goes to
-    // <external files>/ui-models/<screen>.json, to record real models for the screen tests.
+    // <external files>/ui-models/<screen>.json, to record real models for the screen tests; the newest active
+    // dialogue to dialogue.json (the "dialogue" channel's fixture format).
     void Record(const storm::ui::InterfaceModel &model) const;
+    void WriteRecording(const std::string &name, const std::string &json) const;
 
     std::unique_ptr<storm::ui::FileSource> files_;
     storm::ui_scripts::Attacher scripts_{

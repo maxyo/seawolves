@@ -36,4 +36,7 @@ struct Dialogue
     bool operator==(const Dialogue &) const = default;
 };
 
+// The dialogue in the fixture format of channel "dialogue" (StormUiModels records the game's real ones in it).
+std::string DialogueJson(const Dialogue &dialogue);
+
 } // namespace storm::ui
