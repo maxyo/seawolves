@@ -50,10 +50,7 @@ void TouchItems_Slots(aref game, aref view)
 		at.empty = !CheckAttribute(slot, "image");
 		if (!sti(at.empty))
 		{
-			aref image, from;
-			makearef(image, at.image);
-			makearef(from, slot.image);
-			CopyAttributes(image, from);
+			TouchLib_Copy(at, "image", slot, "image");
 		}
 	}
 }
@@ -76,10 +73,7 @@ void TouchItems_Rows(aref game, aref view)
 			aref name;
 			makearef(name, at.cells.c0);
 			name.text = row.label;
-			aref image, from;
-			makearef(image, name.image);
-			makearef(from, row.image);
-			CopyAttributes(image, from);
+			TouchLib_Copy(name, "image", row, "image");
 			if (sti(row.worn)) name.badge = "check";
 			else { if (sti(row.quest)) name.badge = "seal"; }
 			at.cells.c1 = "";
@@ -146,10 +140,7 @@ void TouchItems_Detail(aref game, aref view)
 		if (at.sub != "") at.sub = at.sub + " · ";
 		at.sub = at.sub + UiText("items.worn");
 	}
-	aref image, from;
-	makearef(image, at.image);
-	makearef(from, detail.image);
-	CopyAttributes(image, from);
+	TouchLib_Copy(at, "image", detail, "image");
 	aref facts;
 	makearef(facts, at.facts);
 	TouchItems_Figures(detail, facts);
@@ -188,10 +179,7 @@ void TouchItems_Show(aref game)
 		view.headerSection = "";
 		view.map.title = game.map.title;
 		view.map.text = game.map.text;
-		aref image, from;
-		makearef(image, view.map.image);
-		makearef(from, game.map.image);
-		CopyAttributes(image, from);
+		TouchLib_Copy(view, "map.image", game, "map.image");
 		return;
 	}
 	aref subject, people;
@@ -278,10 +266,7 @@ void TouchItems_Tap()
 	if (id == "header-back") { TouchAdpItems_Leave(ui); return; }
 	if (id == "header" && verb == "section")
 	{
-		if (!TouchLib_SectionAsk(&TouchItems_Header, "items", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchItems_View.headerSection = value;
-		UiPredict(&TouchItems_View);
+		if (!TouchLib_SectionTap(&TouchItems_Header, &TouchItems_View, "items", value)) return;
 		TouchAdpItems_Section(ui, value);
 		UiHold(TouchItems_Wait);
 		return;

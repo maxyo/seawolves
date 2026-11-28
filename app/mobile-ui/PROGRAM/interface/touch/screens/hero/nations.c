@@ -20,11 +20,7 @@ void TouchNations_Picture(aref at, aref nation)
 	at.icon = nation.icon;
 	at.image = "";
 	if (nation.icon != "") return;
-	aref image;
-	makearef(image, at.image);
-	aref from;
-	makearef(from, nation.image);
-	CopyAttributes(image, from);
+	TouchLib_Copy(at, "image", nation, "image");
 }
 
 void TouchNations_Matrix(aref game, aref view)
@@ -57,11 +53,7 @@ void TouchNations_Matrix(aref game, aref view)
 				cell.icon = "rel-" + relation.kind;
 				continue;
 			}
-			aref image;
-			makearef(image, cell.image);
-			aref from;
-			makearef(from, relation.image);
-			CopyAttributes(image, from);
+			TouchLib_Copy(cell, "image", relation, "image");
 		}
 	}
 	aref legend;
@@ -165,10 +157,7 @@ void TouchNations_Tap()
 	string id = GetEventData(), verb = GetEventData(), value = GetEventData();
 	if (id == "header")
 	{
-		if (!TouchLib_SectionAsk(&TouchNations_Header, "nations", value)) return;
-		// The section tapped is drawn chosen from this frame; the game opens it.
-		TouchNations_View.headerSection = value;
-		UiPredict(&TouchNations_View);
+		if (!TouchLib_SectionTap(&TouchNations_Header, &TouchNations_View, "nations", value)) return;
 		TouchAdpNations_Section(ui, value);
 		UiHold(TouchNations_Wait);
 		return;
