@@ -131,9 +131,7 @@ void TouchLegShipyard_Card(aref model, string name, bool isOffer, aref out)
 	card.tradeIn = "";
 	aref image;
 	makearef(image, card.image);
-	aref picture;
-	makearef(picture, model.SHIP_BIG_PICTURE);
-	if (CheckAttribute(model, "SHIP_BIG_PICTURE")) TouchLegLib_Image(picture, image);
+	TouchLegLib_NodeImage(model, "SHIP_BIG_PICTURE", image);
 	aref facts;
 	makearef(facts, card.facts);
 	for (int k = 0; k < TouchLib_Count(model, "TABLE_OTHER.rows"); k++)
@@ -244,9 +242,7 @@ void TouchLegShipyard_Window(aref model, aref out)
 		window.text = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_TEXT"));
 		aref plan;
 		makearef(plan, window.plan);
-		aref deck;
-		makearef(deck, model.CANNONS_SHIP);
-		if (CheckAttribute(model, "CANNONS_SHIP")) TouchLegLib_Image(deck, plan);
+		TouchLegLib_NodeImage(model, "CANNONS_SHIP", plan);
 		window.bow = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_QTY_F"));
 		window.stern = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_QTY_B"));
 		window.port = TouchLib_Trim(TouchLegLib_Label(model, "CANNONS_QTY_L"));

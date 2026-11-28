@@ -75,11 +75,10 @@ void TouchLegLib_Lines(aref model, string node, aref out, string prefix)
 bool TouchLegLib_NodeImage(aref model, string node, aref out)
 {
 	if (node == "") return false;
-	if (!CheckAttribute(model, node + ".images.i0")) return false;
-	aref image;
-	makearef(image, model.(node).images.i0);
-	CopyAttributes(out, image);
-	return true;
+	if (!CheckAttribute(model, node)) return false;
+	aref at;
+	makearef(at, model.(node));
+	return TouchLegLib_Image(at, out);
 }
 
 // The text of a row's column; -1 is a column the window does not have.
@@ -110,15 +109,13 @@ void TouchLegLib_Picture(aref row, int column, aref out)
 		if (TouchLegLib_Image(GetAttributeN(cells, i), out)) return;
 }
 
+// The first image of a node, row or cell whole, the part of a texture it shows included; false without one.
 bool TouchLegLib_Image(aref at, aref out)
 {
-	if (!CheckAttribute(at, "images")) return false;
-	aref images;
-	makearef(images, at.images);
-	aref first = GetAttributeN(images, 0);
-	out.kind = first.kind;
-	out.group = first.group;
-	out.image = first.image;
+	if (!CheckAttribute(at, "images.i0")) return false;
+	aref image;
+	makearef(image, at.images.i0);
+	CopyAttributes(out, image);
 	return true;
 }
 

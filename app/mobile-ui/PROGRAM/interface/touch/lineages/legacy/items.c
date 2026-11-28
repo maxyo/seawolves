@@ -232,12 +232,7 @@ void TouchLegItems_Detail(aref ui, ref chr, aref out, int k)
 	aref image;
 	makearef(image, detail.image);
 	TouchLegLib_Picture(TouchLib_Item(model, "TABLE_ITEMS.rows", k), 0, image);
-	if (CheckAttribute(model, "INFO_PIC.images.i0"))
-	{
-		aref picture;
-		makearef(picture, model.INFO_PIC);
-		TouchLegLib_Image(picture, image);
-	}
+	TouchLegLib_NodeImage(model, "INFO_PIC", image);
 	detail.slot = "";
 	for (int s = 0; s < TouchLib_Count(out, "slots"); s++)
 	{
@@ -307,12 +302,7 @@ void TouchAdpItems_State(aref ui, aref out)
 		aref image;
 		makearef(image, out.map.image);
 		out.map.image = "";
-		if (CheckAttribute(model, "MAP_PICTURE"))
-		{
-			aref picture;
-			makearef(picture, model.MAP_PICTURE);
-			TouchLegLib_Image(picture, image);
-		}
+		TouchLegLib_NodeImage(model, "MAP_PICTURE", image);
 	}
 }
 
