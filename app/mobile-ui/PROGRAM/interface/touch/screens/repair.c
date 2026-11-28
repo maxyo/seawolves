@@ -122,12 +122,9 @@ void TouchRepair_Subject(aref game, aref view)
 
 int TouchRepair_Current(aref game)
 {
-	for (int k = 0; k < TouchLib_Count(game, "ships"); k++)
-	{
-		aref ship = TouchLib_Item(game, "ships", k);
-		if (sti(ship.selected)) return k;
-	}
-	return 0;
+	int k = TouchLib_Selected(game, "ships");
+	if (k < 0) return 0;
+	return k;
 }
 
 // «Починить» with the game's time of the order and the materials it takes; nothing ordered, nothing to do.

@@ -56,13 +56,9 @@ void TouchCrew_Deal(aref game, aref deal)
 
 int TouchCrew_Current(aref game)
 {
-	for (int k = 0; k < TouchLib_Count(game, "ships"); k++)
-	{
-		aref ship = TouchLib_Item(game, "ships", k);
-		if (sti(ship.selected)) return k;
-	}
-	UiError("crew: no ship is chosen");
-	return 0;
+	int k = TouchLib_Selected(game, "ships");
+	if (k < 0) UiError("crew: no ship is chosen");
+	return k;
 }
 
 // Whose crew: the fleet's ships, none with one.

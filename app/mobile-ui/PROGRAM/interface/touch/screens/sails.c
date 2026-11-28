@@ -53,12 +53,9 @@ void TouchSails_Build()
 
 int TouchSails_Current(aref game)
 {
-	for (int k = 0; k < TouchLib_Count(game, "emblems"); k++)
-	{
-		aref emblem = TouchLib_Item(game, "emblems", k);
-		if (sti(emblem.selected)) return k;
-	}
-	return 0;
+	int k = TouchLib_Selected(game, "emblems");
+	if (k < 0) return 0;
+	return k;
 }
 
 // The game charges the price without asking for the money: nothing of ours stands before its work.

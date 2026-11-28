@@ -44,6 +44,17 @@ void TouchLib_Order(aref rows, string field, bool descending, aref out)
 	if (field != "") UiOrder(out, "by", descending);
 }
 
+// k of the entry of the list `path` of `at` whose `selected` is set, -1 none: what none means is the caller's.
+int TouchLib_Selected(aref at, string path)
+{
+	for (int k = 0; k < TouchLib_Count(at, path); k++)
+	{
+		aref entry = TouchLib_Item(at, path, k);
+		if (sti(entry.selected)) return k;
+	}
+	return -1;
+}
+
 // The number a tap carries for an entry of a list of `count`: anything else is the view's defect.
 int TouchLib_TapIndex(string value, int count, string what)
 {

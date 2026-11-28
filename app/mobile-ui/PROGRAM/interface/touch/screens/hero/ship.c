@@ -485,12 +485,9 @@ void TouchShip_Subject(aref game, aref view, int shown, bool open)
 
 int TouchShip_Shown(aref game)
 {
-	for (int k = 0; k < TouchLib_Count(game, "ships"); k++)
-	{
-		aref ship = TouchLib_Item(game, "ships", k);
-		if (sti(ship.selected)) return k;
-	}
-	return 0;
+	int k = TouchLib_Selected(game, "ships");
+	if (k < 0) return 0;
+	return k;
 }
 
 bool TouchShip_Window(aref game)

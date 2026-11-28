@@ -143,10 +143,10 @@ Look here before writing one; a helper earns its place with three sites (or two 
 keys), not flags that switch behaviours, and computes nothing the game computes.
 - `lib/text.c`: `TouchLib_Newline`, `Cut`, `StartsWith`, `EndsWith`, `Trim`, `AfterColon`, `Figure` (a caption's
   label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
-- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Order`, `TapIndex`, `Copy`: a sub-object when it is there), list
-  heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers, `Actions`,
-  `Action`), `Words`, the hero header (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`, `SubjectOn`,
-  `SubjectTap`), `ShipSkills`, `Command`.
+- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Order`, `TapIndex`, `Copy`: a sub-object when it is
+  there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
+  `Actions`, `Action`), `Words`, the hero header (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`,
+  `SubjectOn`, `SubjectTap`), `ShipSkills`, `Command`.
 - `lineages/legacy/lib.c`: `TouchLegLib_Model`, `Exit` (the window's exit button of candidates), `Button` (a button as
   the game offers it), captions (`Label`, `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`,
   `Image`), choices (`Choices`, `Choose`), the amount window (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`),
