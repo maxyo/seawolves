@@ -3570,6 +3570,7 @@
   },
   {
    "name": "the game's map window: back closes it",
+   "modals": ["items-map map-close"],
    "model": {
     "schemaVersion": 2,
     "language": "english",
