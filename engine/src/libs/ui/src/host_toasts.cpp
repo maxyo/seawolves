@@ -86,7 +86,7 @@ void HostImpl::Show(const std::string &source, const std::string &text, const st
 void HostImpl::ShowAlert(const std::string &source, const std::string &text)
 {
     Shown(source, "danger", text);
-    OverlayToast(text, "danger", Setting("alertMs", 6000.0) / 1000.0);
+    OverlayToast(text, "danger", Seconds("alertMs"));
 }
 
 // A toast whose text is in the log already.
@@ -178,7 +178,7 @@ void HostImpl::Toast(const std::string &text)
 // How long a toast animates out (pack time.toastLeave); the stack closes up meanwhile.
 double HostImpl::ToastLeaveSeconds() const
 {
-    return Setting("toastLeave", 0.22);
+    return Seconds("toastLeave");
 }
 
 void HostImpl::Leave(Toast_ &toast, double now)

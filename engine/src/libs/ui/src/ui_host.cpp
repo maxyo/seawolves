@@ -30,6 +30,10 @@ namespace storm::ui
 namespace
 {
 
+// The design tokens' times (tokens.json "time") the runtime reads through Seconds: a pack without one does not start.
+constexpr const char *kTimes[] = {"holdConfirmMs", "holdFlashMs", "tooltipMs",    "refuseMs",
+                                  "toastLeave",    "alertMs",     "pickerFoldMs", "hintHoldMs"};
+
 class DirectorySource final : public FileSource
 {
   public:
@@ -393,6 +397,13 @@ bool HostImpl::Start(const Config &config, std::string *error)
             return false;
     }
     settings_ = pack.value("settings", Json::object());
+    for (const char *token : kTimes)
+        if (!settings_.contains(token) || !settings_[token].is_number())
+        {
+            if (error)
+                *error = std::string("UI pack: the design tokens have no time ") + token;
+            return false;
+        }
     RegisterBuiltinBehaviors();
     RegisterShadows();
     RegisterDrawElements();
@@ -918,10 +929,12 @@ Json HostImpl::SafeArea() const
     return safe_;
 }
 
-double HostImpl::Setting(const std::string &name, double fallback) const
+double HostImpl::Seconds(const std::string &token) const
 {
-    const auto found = settings_.find(name);
-    return found != settings_.end() && found->is_number() ? found->get<double>() : fallback;
+    const auto found = settings_.find(token);
+    if (found == settings_.end() || !found->is_number())
+        throw std::logic_error("the time " + token + " is not one the host requires of the pack (kTimes)");
+    return found->get<double>() / (token.ends_with("Ms") ? 1000.0 : 1.0);
 }
 
 void HostImpl::Emit(ComponentElement &source, const std::string &verb, const std::string &value)

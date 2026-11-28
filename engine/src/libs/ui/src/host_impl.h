@@ -182,7 +182,6 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     bool Measure(const std::string &id, const std::string &selector, hud::Placement &out) const override;
     const ComponentSpec *PackComponent(const std::string &tag) const override;
     const hud::LayoutElement *HudElement(const std::string &layout, const std::string &element) const override;
-    double HudSeconds(const std::string &token) const override;
     void HideHud() override;
 
     // --- screens::Surface ---------------------------------------------------------
@@ -207,7 +206,7 @@ class HostImpl final : public Host, public Services, public screens::Surface, pu
     double Now() const override;
     float Density() const override;
     Json SafeArea() const override;
-    double Setting(const std::string &name, double fallback) const override;
+    double Seconds(const std::string &token) const override; // Services and hud::Mount
     void Emit(ComponentElement &source, const std::string &verb, const std::string &value) override;
     void Tooltip(Rml::Element *anchor, const std::string &text, bool below) override;
     void RequestTicks(ComponentElement &component, bool enable) override;

@@ -250,7 +250,7 @@ class Mount
     virtual const LayoutElement *HudElement(const std::string &layout, const std::string &element) const = 0;
     // A time of the pack's design tokens (pack.json "settings": "…Ms" in milliseconds, the others in seconds) in
     // seconds; throws for one it lacks.
-    virtual double HudSeconds(const std::string &token) const = 0;
+    virtual double Seconds(const std::string &token) const = 0;
 };
 
 // Where a script scene puts a reading (script_states.cpp): `readings` names one or more ("worldMap.course"), `as`
@@ -373,7 +373,7 @@ class Hud
     }
     double Seconds(const std::string &token) const
     {
-        return mount_.HudSeconds(token);
+        return mount_.Seconds(token);
     }
 
     // A scene sent what leads into a scene change (a fast-travel place chosen): the HUD stays
@@ -434,7 +434,7 @@ class Hud
         std::string base; // the message itself; `text` adds the repeat count
         int count = 1;
         unsigned key = 0;      // the line's own element in the log (its row key)
-        double leaving = -1.0; // when it started to animate out (-1 = shown); removed kLeaveSeconds later
+        double leaving = -1.0; // when it started to animate out (-1 = shown); removed time.toastLeave later
         double held = -1.0;    // the seconds it had left when a finger stopped it (-1 = running)
         std::string target;    // where a tap on it leads, "" = nowhere
     };

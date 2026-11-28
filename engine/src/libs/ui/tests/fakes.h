@@ -249,7 +249,7 @@ struct FakeMount final : storm::ui::hud::Mount
     }
     // The pack's times (tokens.json "time"), the ones the HUD reads.
     std::map<std::string, double> times{{"pickerFoldMs", 6000.0}, {"hintHoldMs", 500.0}, {"toastLeave", 0.22}};
-    double HudSeconds(const std::string &token) const override
+    double Seconds(const std::string &token) const override
     {
         return times.at(token) / (token.ends_with("Ms") ? 1000.0 : 1.0);
     }

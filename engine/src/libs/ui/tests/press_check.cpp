@@ -314,7 +314,6 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
     Json manifest = Json::parse(Read(pack / "pack.json"));
     manifest["fonts"] = Json::array({"font.ttf"});
     manifest["overlay"] = "overlay.rml";
-    manifest["settings"] = {{"toastMs", 500}, {"toastLeave", 0.22}};
     Write(pack / "pack.json", manifest.dump());
     Json components = Json::parse(Read(pack / "components.json"));
     AddRowComponents(components);

@@ -328,12 +328,4 @@ const hud::LayoutElement *HostImpl::HudElement(const std::string &layout, const 
     return hud::FindLayoutElement(layout_, layout, element);
 }
 
-double HostImpl::HudSeconds(const std::string &token) const
-{
-    const auto found = settings_.find(token);
-    if (found == settings_.end() || !found->is_number())
-        throw std::runtime_error("the pack's design tokens have no time " + token);
-    return found->get<double>() / (token.ends_with("Ms") ? 1000.0 : 1.0);
-}
-
 } // namespace storm::ui

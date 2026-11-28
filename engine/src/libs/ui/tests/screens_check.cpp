@@ -2524,7 +2524,7 @@ struct SubjectMount final : storm::ui::hud::Mount
     {
         return nullptr;
     }
-    double HudSeconds(const std::string &) const override
+    double Seconds(const std::string &) const override
     {
         return 0.0;
     }

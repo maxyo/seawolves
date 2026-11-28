@@ -91,6 +91,13 @@ int main(int argc, char **argv)
     frame();
     Expect(std::fabs(width() - 300.0f) < 0.5f, "back to 100 %, the HUD buttons' opacity changes nothing in the layout");
     host.reset();
+    // A time the runtime reads that the pack's design tokens lack stops the start; no C++ value stands in for it.
+    Json manifest = Json::parse(Read(pack / "pack.json"));
+    manifest["settings"].erase("alertMs");
+    Write(pack / "pack.json", manifest.dump());
+    error.clear();
+    Expect(Host::Create(config, &error) == nullptr && error == "UI pack: the design tokens have no time alertMs",
+           "a pack without a time the runtime reads does not start: " + error);
     fs::remove_all(pack);
     if (failures)
         std::fprintf(stderr, "%d display check(s) failed\n", failures);

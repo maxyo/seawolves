@@ -72,22 +72,21 @@ namespace storm::ui
 namespace
 {
 
-// Timings come from the design tokens (pack.json "settings"); these are the fallbacks.
 double HoldSeconds(ComponentElement &self)
 {
-    return self.Host().Setting("holdConfirmMs", 800.0) / 1000.0; // hold-to-confirm ring
+    return self.Host().Seconds("holdConfirmMs"); // hold-to-confirm ring
 }
 double DoneSeconds(ComponentElement &self)
 {
-    return self.Host().Setting("holdFlashMs", 280.0) / 1000.0; // completion flash
+    return self.Host().Seconds("holdFlashMs"); // completion flash
 }
 double TooltipSeconds(ComponentElement &self)
 {
-    return self.Host().Setting("tooltipMs", 400.0) / 1000.0; // long press before the tooltip opens
+    return self.Host().Seconds("tooltipMs"); // long press before the tooltip opens
 }
 double RefuseSeconds(ComponentElement &self)
 {
-    return self.Host().Setting("refuseMs", 720.0) / 1000.0; // the shake of a refused modal
+    return self.Host().Seconds("refuseMs"); // the shake of a refused modal
 }
 
 Rml::Element *ClosestWith(Rml::Element *from, Rml::Element *root, const char *attribute)

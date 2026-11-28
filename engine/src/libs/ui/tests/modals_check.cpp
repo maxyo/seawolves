@@ -330,7 +330,6 @@ static fs::path MakePack(const fs::path &base, const fs::path &font)
     fs::copy_file(font, pack / "font.ttf");
     Json manifest = Json::parse(ReadText(pack / "pack.json"));
     manifest["fonts"] = Json::array({"font.ttf"});
-    manifest["settings"] = {{"refuseMs", 720}};
     std::ofstream(pack / "pack.json") << manifest.dump();
     Json components = Json::parse(ReadText(pack / "components.json"));
     components["components"].push_back(Json::parse(R"({

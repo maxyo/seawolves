@@ -22,7 +22,6 @@ constexpr double kDialogueWait = 0.5; // s: a dialogue hides the HUD by then eve
 // the game's dialogue start in 0.1–0.6 s on the emulator (DialogMain, 3 frames, the dialogue file
 // compiled); 3 s leaves a slow phone's first dialogue load room.
 constexpr double kDialogueLost = 3.0;
-constexpr double kLeaveSeconds = 0.22; // a line animates out this long (pack time.toastLeave), then goes
 // The layout scene under the spyglass when no ported scene owns the mode (the platform still
 // draws the sea HUD): the overlay alone, no elements.
 constexpr const char *kSpyglassLayout = "sea";
@@ -733,9 +732,10 @@ double Hud::Tick()
             changed_ = true;
         }
     const size_t before = lines_.size();
+    const double leave = Seconds("toastLeave"); // a line animates out this long, then goes
     lines_.erase(
         std::remove_if(lines_.begin(), lines_.end(),
-                       [now](const Line &line) { return line.leaving >= 0.0 && now >= line.leaving + kLeaveSeconds; }),
+                       [now, leave](const Line &line) { return line.leaving >= 0.0 && now >= line.leaving + leave; }),
         lines_.end());
     if (lines_.size() != before)
         changed_ = true;
@@ -755,8 +755,7 @@ double Hud::Tick()
         next = 0.0;
     for (const Line &line : lines_)
         if (line.held < 0.0)
-            next =
-                std::min(next, std::max(0.0, (line.leaving >= 0.0 ? line.leaving + kLeaveSeconds : line.until) - now));
+            next = std::min(next, std::max(0.0, (line.leaving >= 0.0 ? line.leaving + leave : line.until) - now));
     next = std::min(next, WatchDialogue(now));
     if (transition_until_ >= 0.0)
     {

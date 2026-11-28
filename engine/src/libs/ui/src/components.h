@@ -35,8 +35,9 @@ class Services
     virtual float Density() const = 0;
     // Safe-area insets in dp: {left, top, right, bottom}.
     virtual Json SafeArea() const = 0;
-    // A number from pack.json "settings" (timings from the design tokens).
-    virtual double Setting(const std::string &name, double fallback) const = 0;
+    // A time of the design tokens (pack.json "settings"), in seconds; the host does not start without the ones it
+    // reads.
+    virtual double Seconds(const std::string &token) const = 0;
     virtual void Emit(ComponentElement &source, const std::string &verb, const std::string &value) = 0;
     virtual void Toast(const std::string &text, const std::string &tone) = 0;
     // Shows the long-press tooltip next to `anchor`; an empty text hides it.
