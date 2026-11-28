@@ -183,8 +183,9 @@ static void Saves(const std::string &models)
     ExpectEqual(surface.props["title"], "<save.title_load>", "load title");
     const Json rows = surface.props["rows"];
     Expect(rows.size() == 3 && rows[1]["selected"] == true, "records listed, the game's selection chosen");
-    ExpectEqual(rows[0]["cells"][0], "Герой Альфа · Порт Альфа", "a record is named «<hero> · <location>»");
-    ExpectEqual(rows[2]["cells"][0], "Остров Гамма", "a record written without the hero: its location");
+    ExpectEqual(rows[0]["cells"][0]["text"], "Порт Альфа", "a record is named as the game named it (its file)");
+    ExpectEqual(rows[0]["cells"][0]["sub"], "Герой Альфа · Порт Альфа", "under it «<hero> · <location>»");
+    ExpectEqual(rows[2]["cells"][0]["sub"], "", "a record without the hero named by its location: no line under it");
     ExpectEqual(rows[0]["cells"][1]["text"], "1 <common.month_10> 1654", "in-game date of the record");
     ExpectEqual(rows[0]["cells"][1]["sub"], "10 <common.month_3> 2001",
                 "creation date under it (another year: the year instead of the time)");

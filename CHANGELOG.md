@@ -219,6 +219,8 @@
 - Два морских приказа — команда спутнику и мгновенное уничтожение — получили свои значки вместо общего: раньше
   интерфейс не узнавал их по именам команд игры.
 - Здоровье, которое игра пишет заглавными буквами («ОТЛИЧНОЕ»), на экране персонажа снова показано строчными.
+- Список сохранений называет запись так, как её назвала игра (быстрые сохранения — «<профиль> QuickSave N»), а под
+  именем пишет героя и место: раньше несколько быстрых сохранений в одном месте выглядели одинаково.
 
 **English**
 
@@ -443,6 +445,8 @@
 - Two sea orders, the companion command and the instant kill, have their own icons instead of the plain one: the
   interface did not recognise them by the game's command names.
 - Health, which the game writes in capitals («EXCELLENT»), is shown in lower case again on the character screen.
+- The save list names a record as the game named it (quick saves are «<profile> QuickSave N») with the hero and the
+  place under the name: several quick saves made in one place used to look the same.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

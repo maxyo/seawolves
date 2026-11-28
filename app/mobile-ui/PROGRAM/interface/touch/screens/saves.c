@@ -12,7 +12,7 @@ object TouchSaves_Game;  // the adapter's state of the last build
 // What the screen keeps between builds: fromTitle; chosen (the record's key); asked, askedKey, askedName (what the player asked for last); watching (its answer is awaited); here (the
 // open question answers it); answered, named (the question, the name editor answered for the player).
 object TouchSaves_State;
-// What the player sees as the record's name: the new record, an autosave, «<hero> · <location>» or the location.
+// Where and whose a record is, under its name: «<hero> · <location>», the location, else its file.
 string TouchSaves_Identity(aref record)
 {
 	if (record.location == "")
@@ -31,11 +31,13 @@ string TouchSaves_RowId(string key)
 	return "file:" + key;
 }
 
+// What the player sees as the record's name: the new record, an autosave, else the name the game gave it (its file:
+// the location, «<profile> QuickSave <n>»).
 string TouchSaves_Name(aref record)
 {
 	if (sti(record.fresh)) return UiText("save.new");
 	if (sti(record.autosave)) return UiText("save.autosave");
-	return TouchSaves_Identity(record);
+	return record.file;
 }
 
 // "2 окт. 1654" of "1654-10-02"; "" for a date the record does not carry.
@@ -260,8 +262,9 @@ void TouchSaves_View(aref ui, aref game, aref state)
 			cells.c2 = "";
 			continue;
 		}
-		if (sti(record.autosave)) TouchSaves_Cell(cells, TouchSaves_Name(record), TouchSaves_Identity(record));
-		else cells.c0 = TouchSaves_Name(record);
+		string identity = TouchSaves_Identity(record);
+		if (identity == record.file) identity = "";
+		TouchSaves_Cell(cells, TouchSaves_Name(record), identity);
 		// the game date over when it was saved: one column, so the name keeps its room
 		TouchSaves_Cell(cells, TouchSaves_Date(record.gameDate), TouchSaves_Created(record));
 		cells.c1.tone = "dim";
