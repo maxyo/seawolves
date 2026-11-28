@@ -4,6 +4,11 @@
 
 **Русский**
 
+- Обмен с другим кораблём: ползунок груза и команды только выставляет количество, а перегружает кнопка «Взять N» /
+  «Отдать N» — случайное касание больше не перекладывает груз; столбцы товаров снова сортируются касанием по
+  заголовку.
+- Верфь: покупка и продажа корабля снова делаются удержанием кнопки — удержание отвечает «да» на вопрос игры о цене
+  одним жестом; любой другой вопрос игры показывается как раньше.
 - Окно игры без своего экрана (раскладка по умолчанию) теперь рисуется скриптом интерфейса: кнопки «‹ ›»
   листают, а не занимают место кнопок окна (на выборе героя кнопки начала игры больше не прячутся под «⋯»),
   вкладки-картинки нажимаются, таблица рядом с другими блоками не теряет строк после касания, а пустое окно
@@ -190,6 +195,10 @@
 
 **English**
 
+- Ship exchange: the cargo and crew sliders only set the amount and the «Take N» / «Give N» button moves it, so a
+  stray touch no longer moves cargo; the goods columns sort again by a tap on their head.
+- Shipyard: buying and selling a ship is again a hold of its button, which answers the game's price question with
+  yes in one gesture; any other question of the game is shown as before.
 - A game window without a screen of its own (the default layout) is drawn by the interface's script now: its ‹ ›
   buttons switch rather than take the window's buttons' places (the hero choice's start buttons no longer hide under
   «⋯»), picture tabs can be pressed, a table beside other blocks keeps its rows after a tap, and an empty window says
