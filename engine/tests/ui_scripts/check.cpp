@@ -815,6 +815,14 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
             CHECK(calls.modals == recorded.at("modals").get<std::vector<std::string>>());
         for (const Json &event : recorded.at("events"))
         {
+            // ["build"]: the screen built again, as the runtime does after a tap that asked for it (an amount set on
+            // the screen binds the button that sends it).
+            if (event.size() == 1 && event[0] == "build")
+            {
+                calls.first = false;
+                port.Build(screen, calls.Single(), calls);
+                continue;
+            }
             REQUIRE(calls.Binds(event[0], event[1]));
             port.Event(screen, event[0], event[1], event[2], calls);
         }
@@ -875,7 +883,7 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
         TapAfterRowGone("trade_store", "trade", "trade_store", "TABLE_LIST", 0, true, "/list/rows", 2, "goods", "row");
     REQUIRE(!store.empty());
     CHECK(store.front() == "send TABLE_LIST#1 activate goods:2:ship:0");
-    // The other trade windows: the engine's rows are the good or item, renumbered as rows go.
+    // The other trade windows and the ship exchange: the engine's rows are the good or item, renumbered as rows go.
     for (const auto &[family, id] :
          std::vector<std::pair<const char *, std::string>>{{"trade_cannons", "cannons:item:37"},
                                                            {"trade_items", "itemstrade:item:3"},
@@ -888,6 +896,9 @@ TEST_CASE("a row tapped before the list changes acts on the row tapped")
         REQUIRE(!row.empty());
         CHECK(row.front() == "send TABLE_LIST#1 activate commerce:" + id + ":owner:1:role:0");
     }
+    const auto cargo =
+        TapAfterRowGone("transfer", "transfer", "transfer", "TABLE_LIST", 1, true, "/list/rows", 2, "goods", "row");
+    CHECK(cargo == std::vector<std::string>{"send TABLE_LIST#1 select transfer:good:2", "hold"});
     const auto items = TapAfterRowGone("items", "items", "items", "TABLE_ITEMS", 0, false, "/rows", 2, "items", "row");
     REQUIRE(!items.empty());
     CHECK(items.front() == "send TABLE_ITEMS#2 select inventory:30:character:1:role:0");

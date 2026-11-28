@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The exchange with another ship (pack screen s-transfer): the cargo, crew and ships tabs (the ships: both ships'
 // figures side by side, the other's plainly better ones green, worse red), the other ship's card in the dock, the
-// game's questions as a modal and the captain choice as a side sheet. An amount moves the game's goods or men at once
-// and shows where the game stopped them. A dangerous answer is held, never asked twice; a question whose way out
-// decides something is answered by its buttons only.
+// game's questions as a modal and the captain choice as a side sheet. An amount is set on the screen first and the
+// bar's «Взять / Отдать N» sends it as the game's arrows; the build then shows where the game stopped them. A
+// dangerous answer is held, never asked twice; a question whose way out decides something is answered by its
+// buttons only.
 
 #event_handler("UiBuild", "TouchTransfer_Build");
 #event_handler("UiTap", "TouchTransfer_Tap");
 
-// The screen's state while its window is open: the ships tab chosen (.ships), the defectors seen (.hired) and the
+// The screen's state while its window is open: the ships tab chosen (.ships), the defectors seen (.hired), the goods'
+// order (.sort), the amount set and not yet sent (.draft: {key, amount} of a cargo row or key "crew") and the
 // adapter's state of the last build in .game.
 object TouchTransfer;
 object TouchTransfer_View;
+
+// The sort keys of the goods' columns.
+string TouchTransfer_Keys[2] = {"own", "other"};
 
 void TouchTransfer_Build()
 {
@@ -20,6 +25,10 @@ void TouchTransfer_Build()
 	if (UiFirst() || !CheckAttribute(&TouchTransfer, "ships"))
 	{
 		object fresh = {ships = false, hired = false};
+		fresh.sort.by = -1;
+		fresh.sort.descending = true;
+		fresh.draft.key = "";
+		fresh.draft.amount = 0;
 		DeleteAttribute(&TouchTransfer, "");
 		CopyAttributes(&TouchTransfer, &fresh);
 	}
@@ -108,28 +117,34 @@ void TouchTransfer_Stats(aref game, aref view)
 	if (GetAttributesNum(stats) == 0) view.stats = "";
 }
 
-// The cargo of the two holds, the columns named by the ships; the selected row's amount in the dock moves the game's
-// goods by its arrows, each way while the game shows that arrow.
+// The cargo of the two holds, the columns named by the ships and sortable; the selected row's amount in the dock is
+// set here and sent by the bar's button as the game's arrows, each way while the game shows that arrow.
 void TouchTransfer_Cargo(aref game, aref view)
 {
 	aref list;
 	makearef(list, view.list);
 	list.label = game.cargo.headers.name;
-	list.cols.c0.label = game.ours.name;
-	list.cols.c0.icon = "capacity";
-	list.cols.c1.label = game.theirs.name;
-	list.cols.c1.icon = "ship";
+	aref sorting;
+	makearef(sorting, TouchTransfer.sort);
+	TouchLib_Column(list, game.ours.name, "capacity", "brass", sorting);
+	TouchLib_Column(list, game.theirs.name, "ship", "brass", sorting);
 	list.quick = "hand";
 	aref rows;
 	makearef(rows, list.rows);
 	view.deal = "";
 	view.dealing = false;
-	for (int k = 0; k < TouchLib_Count(game, "cargo.rows"); k++)
+	string key = "";
+	if (sti(sorting.by) >= 0) key = TouchTransfer_Keys[sti(sorting.by)];
+	object order;
+	aref cargo;
+	makearef(cargo, game.cargo.rows);
+	TouchLib_Order(cargo, key, sti(sorting.descending), &order);
+	for (int n = 0; n < GetAttributesNum(&order); n++)
 	{
-		aref row = TouchLib_Item(game, "cargo.rows", k);
+		aref row = GetAttributeN(&order, n);
 		aref at = TouchLib_Add(rows, "r");
 		bool selected = sti(row.selected);
-		at.id = k;
+		at.id = row.key;
 		at.name = row.name;
 		aref image, from;
 		makearef(image, at.image);
@@ -145,6 +160,7 @@ void TouchTransfer_Cargo(aref game, aref view)
 		if (selected) TouchTransfer_Deal(game, row, at, view);
 	}
 	if (GetAttributesNum(rows) == 0) list.rows = "";
+	UiOn("goods", "sort");
 	UiOn("goods", "row");
 	UiOn("goods", "quick");
 	UiOn("goods", "change");
@@ -163,6 +179,7 @@ void TouchTransfer_Deal(aref game, aref row, aref at, aref view)
 	if (sti(game.cargo.move.give)) deal.min = 0;
 	if (sti(game.cargo.move.take)) deal.max = own + sti(row.other);
 	deal.disabled = deal.min == deal.max;
+	deal.value = TouchTransfer_Drafted(row.key, own);
 	deal.steps.s0 = pack;
 	deal.steps.s1 = pack * 10;
 	deal.steps.s2 = pack * 100;
@@ -293,7 +310,7 @@ void TouchTransfer_Crew(aref game, aref view)
 	TouchTransfer_Men(row, "c0", ours, minOurs);
 	TouchTransfer_Men(row, "c1", theirs, minTheirs);
 	row.selected = true;
-	object q = {value = ours, min = 0, max = ours + theirs, zones = true, origin = ours,
+	object q = {value = TouchTransfer_Drafted("crew", ours), min = 0, max = ours + theirs, zones = true, origin = ours,
 	            lessLabel = UiText("trade.give"), moreLabel = UiText("trade.take"), label = game.ours.name,
 	            unit = UiText("transfer.men"), summary = "-",
 	            disabled = !sti(game.crew.take) && !sti(game.crew.give)};
@@ -349,10 +366,53 @@ void TouchTransfer_Side(aref crew, string name, string morale, string facts, are
 	}
 }
 
-// «Перегрузить всё» of the cargo, while the other hold has something.
+// The amount set for `key` (a cargo row's or "crew"), else what the game holds now (`now`).
+int TouchTransfer_Drafted(string key, int now)
+{
+	if (TouchTransfer.draft.key != key) return now;
+	return sti(TouchTransfer.draft.amount);
+}
+
+// The amount set and not sent: what the game holds now for its row (the open row's or the crew), else none (-1, the
+// draft dropped: its row is no longer the open one or the game holds that amount already).
+int TouchTransfer_Pending(aref game, bool crew)
+{
+	string key = TouchTransfer.draft.key;
+	int now = -1;
+	if (crew && key == "crew") now = sti(game.crew.ours);
+	int open = TouchTransfer_Open(game);
+	if (!crew && open >= 0)
+	{
+		aref row = TouchLib_Item(game, "cargo.rows", open);
+		if (row.key == key) now = sti(row.own);
+	}
+	if (now < 0 || now == sti(TouchTransfer.draft.amount))
+	{
+		TouchTransfer.draft.key = "";
+		return -1;
+	}
+	return now;
+}
+
+// The bar: «Взять / Отдать N» of the amount set, else «Перегрузить всё» of the cargo while the other hold has
+// something.
 void TouchTransfer_Primary(aref game, aref view, bool crew)
 {
 	view.primary = "";
+	int now = TouchTransfer_Pending(game, crew);
+	if (now >= 0)
+	{
+		int change = sti(TouchTransfer.draft.amount) - now;
+		object send = {label = UiText("trade.take") + " " + abs(change), sub = "", disabled = false, reason = "",
+		               busy = UiPending("primary")};
+		if (change < 0) send.label = UiText("trade.give") + " " + abs(change);
+		if (crew) send.sub = UiText("transfer.men");
+		aref to;
+		makearef(to, view.primary);
+		CopyAttributes(to, &send);
+		UiOn("primary", "");
+		return;
+	}
 	if (crew || !CheckAttribute(game, "takeAll")) return;
 	bool there = false;
 	for (int k = 0; k < TouchLib_Count(game, "cargo.rows"); k++)
@@ -585,7 +645,7 @@ void TouchTransfer_Tap()
 	makearef(game, TouchTransfer.game);
 	if (id == "header-back") { TouchTransfer_Back(ui, game); return; }
 	if (id == "header") { TouchTransfer_TabTap(ui, game, value); return; }
-	if (id == "primary") { TouchAdpTransfer_TakeAll(ui); UiHold(); return; }
+	if (id == "primary") { TouchTransfer_Send(ui, game); UiHold(); return; }
 	if (TouchLib_Action(id) >= 0)
 	{
 		TouchAdpTransfer_Press(ui, TouchLib_Action(id));
@@ -619,8 +679,7 @@ void TouchTransfer_Tap()
 	if (id == "crew")
 	{
 		if (verb == "row") return;
-		TouchAdpTransfer_Men(ui, UiAmount(value, "our crew"));
-		UiHold();
+		TouchTransfer_Set("crew", UiAmount(value, "our crew"));
 		return;
 	}
 	if (id != "goods") UiError("transfer: no tap of " + id);
@@ -628,11 +687,21 @@ void TouchTransfer_Tap()
 	if (verb == "change" || verb == "commit")
 	{
 		if (open < 0) UiError("transfer: an amount is set with no cargo row selected");
-		TouchAdpTransfer_Move(ui, open, UiAmount(value, "the cargo amount"));
-		UiHold();
+		aref chosen = TouchLib_Item(game, "cargo.rows", open);
+		TouchTransfer_Set(chosen.key, UiAmount(value, "the cargo amount"));
 		return;
 	}
-	int k = TouchLib_TapIndex(value, TouchLib_Count(game, "cargo.rows"), "the cargo row");
+	if (verb == "sort")
+	{
+		aref sorting;
+		makearef(sorting, TouchTransfer.sort);
+		TouchLib_SortTap(sorting, TouchLib_TapIndex(value, 2, "the goods column"));
+		UiRebuild();
+		return;
+	}
+	// The row by its identity: the list may have changed since the frame the player tapped; a row gone ends the tap.
+	int k = TouchLib_Find(game, "cargo.rows", "key", value);
+	if (k < 0) return;
 	aref row = TouchLib_Item(game, "cargo.rows", k);
 	if (verb == "quick") TouchAdpTransfer_Take(ui, k);
 	if (verb == "row")
@@ -642,6 +711,31 @@ void TouchTransfer_Tap()
 		TouchAdpTransfer_Select(ui, k);
 	}
 	UiHold();
+}
+
+// An amount set on the screen (ours of a cargo row or the crew): shown until it is sent or its row is left.
+void TouchTransfer_Set(string key, int amount)
+{
+	TouchTransfer.draft.key = key;
+	TouchTransfer.draft.amount = amount;
+	UiRebuild();
+}
+
+// The bar's button: the amount set, as the game's arrows (the build shows where the game stopped them); else the
+// game's «take all».
+void TouchTransfer_Send(aref ui, aref game)
+{
+	bool crew = CheckAttribute(game, "crew");
+	if (TouchTransfer_Pending(game, crew) < 0)
+	{
+		if (crew || !CheckAttribute(game, "takeAll")) UiError("transfer: the bar's button tapped with nothing to send");
+		TouchAdpTransfer_TakeAll(ui);
+		return;
+	}
+	int amount = sti(TouchTransfer.draft.amount);
+	TouchTransfer.draft.key = "";
+	if (crew) { TouchAdpTransfer_Men(ui, amount); return; }
+	TouchAdpTransfer_Move(ui, TouchTransfer_Open(game), amount);
 }
 
 // Back answers the game's question by its way out, puts away the captains or the crew, else leaves.

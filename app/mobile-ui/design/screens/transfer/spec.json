@@ -9,7 +9,7 @@
     "stats": {"type": "json", "default": [],
              "shape": [{"label": "text", "value": "text", "icon": "text", "tone": "text"}]},
     "list": {"type": "json", "default": {},
-            "shape": {"label": "text", "quick": "text", "cols": [{"label": "text", "icon": "text"}], "rows": [{"id": "text", "name": "text", "image": "picture", "quick": "bool", "cells": ["text"], "selected": "bool", "disabled": "bool", "reason": "text", "facts": [{"icon": "text", "k": "text", "v": "text", "tone": "text"}]}]}},
+            "shape": {"label": "text", "quick": "text", "cols": [{"label": "text", "icon": "text", "iconTone": "text", "sortable": "bool", "sort": "text"}], "rows": [{"id": "text", "name": "text", "image": "picture", "quick": "bool", "cells": ["text"], "selected": "bool", "disabled": "bool", "reason": "text", "facts": [{"icon": "text", "k": "text", "v": "text", "tone": "text"}]}]}},
     "crew": {"type": "json", "default": null,
             "shape": {"$null": {"label": "text", "cols": [{"label": "text", "icon": "text"}], "rows": [{"id": "text", "name": "text", "image": {"kind": "text", "icon": "text"}, "cells": [{"text": "text", "sub": "text"}], "selected": "bool", "q": {"value": "int", "min": "int", "max": "int", "zones": "bool", "origin": "int", "lessLabel": "text", "moreLabel": "text", "label": "text", "unit": "text", "summary": "text", "steps": ["int"], "marks": [{"at": "int", "label": "text"}], "disabled": "bool"}}], "sides": [{"name": "text", "morale": "text", "facts": [{"k": "text", "v": "text"}]}]}}},
     "ships": {"type": "json", "default": null,

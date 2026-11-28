@@ -66,7 +66,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -101,12 +101,12 @@
     [
      "goods",
      "row",
-     "0"
+     "transfer:good:0"
     ],
     [
      "goods",
      "quick",
-     "1"
+     "transfer:good:1"
     ],
     [
      "header-back",
@@ -196,7 +196,7 @@
     "crew": null,
     "deal": {"disabled": false, "label": "Корабль 1", "lessLabel": "<trade.give>", "max": 595, "min": 0, "moreLabel": "<trade.take>", "origin": 100, "steps": [20, 200, 2000], "summary": "-", "value": 100, "zones": true},
     "dealing": true,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -214,25 +214,43 @@
      "145"
     ],
     [
+     "build"
+    ],
+    [
+     "primary",
+     "click",
+     ""
+    ],
+    [
      "goods",
      "commit",
      "0"
     ],
     [
+     "build"
+    ],
+    [
+     "primary",
+     "click",
+     ""
+    ],
+    [
      "goods",
      "quick",
-     "0"
+     "transfer:good:0"
     ],
     [
      "goods",
      "row",
-     "0"
+     "transfer:good:0"
     ]
    ],
    "calls": [
+    "rebuild",
     "send B_LEFT press ",
     "send B_LEFT press ",
     "hold",
+    "rebuild",
     "send B_RIGHT press ",
     "send B_RIGHT press ",
     "send B_RIGHT press ",
@@ -333,7 +351,7 @@
     "crew": null,
     "deal": {"disabled": false, "label": "Корабль 1", "lessLabel": "<trade.give>", "max": 100, "min": 0, "moreLabel": "<trade.take>", "origin": 100, "steps": [20, 200, 2000], "summary": "-", "value": 100, "zones": true},
     "dealing": true,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -349,9 +367,18 @@
      "goods",
      "commit",
      "45"
+    ],
+    [
+     "build"
+    ],
+    [
+     "primary",
+     "click",
+     ""
     ]
    ],
    "calls": [
+    "rebuild",
     "send B_RIGHT press ",
     "send B_RIGHT press ",
     "send B_RIGHT press ",
@@ -423,7 +450,7 @@
     "crew": null,
     "deal": {"disabled": true, "label": "Корабль 1", "lessLabel": "<trade.give>", "max": 100, "min": 100, "moreLabel": "<trade.take>", "origin": 100, "steps": [20, 200, 2000], "summary": "-", "value": 100, "zones": true},
     "dealing": true,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -438,7 +465,7 @@
     [
      "goods",
      "row",
-     "0"
+     "transfer:good:0"
     ]
    ],
    "calls": [
@@ -448,7 +475,7 @@
    ]
   },
   {
-   "name": "a companion: its captain heads the other ship's card",
+   "name": "a companion: its captain heads the other ship's card; the goods sorted by their amount on the other ship",
    "capability": "transfer",
    "game": {"sMessageMode": "", "bTransferMode": 1, "xi_refCharacter.chr_ai.hp": 100},
    "model": {
@@ -500,15 +527,15 @@
      {"index": -1, "label": "Перегрузить все товары", "node": "TAKE_GOODS", "type": "button"},
      {"enabled": false, "images": [{"source": {"group": "ICONS_CHAR", "image": "Money", "kind": "atlas"}}], "index": -1, "node": "Money_PIC", "type": "image"},
      {"index": 0, "label": "100 000", "node": "Money_TEXT", "type": "text", "value": "1"},
-     {"actions": ["select", "activate"], "cells": [{"text": "705"}, {"text": "72"}, {"images": [{"source": {"group": "GOODS", "image": "Balls", "kind": "atlas"}}], "text": "Ядра"}, {"text": "0"}, {"text": "0"}, {"text": "20 / 2"}], "columnHeaders": ["Кол-во", "Вес", "Товары", "Кол-во", "Вес", "Пачка\\n/Вес"], "headerCells": [{"text": "Кол-во"}, {"text": "Вес"}, {"text": "Товары"}, {"text": "Кол-во"}, {"text": "Вес"}, {"text": "Пачка\\n/Вес"}], "index": 0, "rowId": "transfer:good:0", "label": "705\t72\tЯдра\t0\t0\t20 / 2", "node": "TABLE_LIST", "type": "choice", "value": "1"},
-     {"actions": ["select", "activate"], "cells": [{"text": "181"}, {"text": "10"}, {"images": [{"source": {"group": "GOODS", "image": "Grapes", "kind": "atlas"}}], "text": "Картечь"}, {"text": "153"}, {"text": "8"}, {"text": "20 / 1"}], "index": 1, "rowId": "transfer:good:1", "label": "181\t10\tКартечь\t153\t8\t20 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "65"}, {"text": "8"}, {"images": [{"source": {"group": "GOODS", "image": "Knippels", "kind": "atlas"}}], "text": "Книппели"}, {"text": "96"}, {"text": "10"}, {"text": "20 / 2"}], "index": 2, "rowId": "transfer:good:2", "label": "65\t8\tКниппели\t96\t10\t20 / 2", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "34"}, {"text": "6"}, {"images": [{"source": {"group": "GOODS", "image": "Bombs", "kind": "atlas"}}], "text": "Бомбы"}, {"text": "184"}, {"text": "30"}, {"text": "20 / 3"}], "index": 3, "rowId": "transfer:good:3", "label": "34\t6\tБомбы\t184\t30\t20 / 3", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "300"}, {"text": "30"}, {"images": [{"source": {"group": "GOODS", "image": "Food", "kind": "atlas"}}], "text": "Провиант"}, {"text": "69"}, {"text": "7"}, {"text": "10 / 1"}], "index": 4, "rowId": "transfer:good:4", "label": "300\t30\tПровиант\t69\t7\t10 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "200"}, {"text": "400"}, {"images": [{"source": {"group": "GOODS", "image": "Sugar", "kind": "atlas"}}], "text": "Сахар"}, {"text": "0"}, {"text": "0"}, {"text": "1 / 2"}], "index": 5, "rowId": "transfer:good:14", "label": "200\t400\tСахар\t0\t0\t1 / 2", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "495"}, {"text": "25"}, {"images": [{"source": {"group": "GOODS", "image": "Powder", "kind": "atlas"}}], "text": "Порох"}, {"text": "468"}, {"text": "24"}, {"text": "20 / 1"}], "index": 6, "rowId": "transfer:good:22", "label": "495\t25\tПорох\t468\t24\t20 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "162"}, {"text": "17"}, {"images": [{"source": {"group": "GOODS", "image": "Weapon", "kind": "atlas"}}], "text": "Оружие"}, {"text": "46"}, {"text": "5"}, {"text": "10 / 1"}], "index": 7, "rowId": "transfer:good:23", "label": "162\t17\tОружие\t46\t5\t10 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
-     {"actions": ["select", "activate"], "cells": [{"text": "107"}, {"text": "4"}, {"images": [{"source": {"group": "GOODS", "image": "Medicament", "kind": "atlas"}}], "text": "Лекарства"}, {"text": "161"}, {"text": "6"}, {"text": "30 / 1"}], "index": 8, "rowId": "transfer:good:24", "label": "107\t4\tЛекарства\t161\t6\t30 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "705"}, {"text": "72"}, {"images": [{"source": {"group": "GOODS", "image": "Balls", "kind": "atlas"}}], "text": "Ядра"}, {"text": "0"}, {"text": "0"}, {"text": "20 / 2"}], "columnHeaders": ["Кол-во", "Вес", "Товары", "Кол-во", "Вес", "Пачка\\n/Вес"], "headerCells": [{"text": "Кол-во"}, {"text": "Вес"}, {"text": "Товары"}, {"text": "Кол-во"}, {"text": "Вес"}, {"text": "Пачка\\n/Вес"}], "index": 0, "label": "705\t72\tЯдра\t0\t0\t20 / 2", "node": "TABLE_LIST", "type": "choice", "value": "1"},
+     {"actions": ["select", "activate"], "cells": [{"text": "181"}, {"text": "10"}, {"images": [{"source": {"group": "GOODS", "image": "Grapes", "kind": "atlas"}}], "text": "Картечь"}, {"text": "153"}, {"text": "8"}, {"text": "20 / 1"}], "index": 1, "label": "181\t10\tКартечь\t153\t8\t20 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "65"}, {"text": "8"}, {"images": [{"source": {"group": "GOODS", "image": "Knippels", "kind": "atlas"}}], "text": "Книппели"}, {"text": "96"}, {"text": "10"}, {"text": "20 / 2"}], "index": 2, "label": "65\t8\tКниппели\t96\t10\t20 / 2", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "34"}, {"text": "6"}, {"images": [{"source": {"group": "GOODS", "image": "Bombs", "kind": "atlas"}}], "text": "Бомбы"}, {"text": "184"}, {"text": "30"}, {"text": "20 / 3"}], "index": 3, "label": "34\t6\tБомбы\t184\t30\t20 / 3", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "300"}, {"text": "30"}, {"images": [{"source": {"group": "GOODS", "image": "Food", "kind": "atlas"}}], "text": "Провиант"}, {"text": "69"}, {"text": "7"}, {"text": "10 / 1"}], "index": 4, "label": "300\t30\tПровиант\t69\t7\t10 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "200"}, {"text": "400"}, {"images": [{"source": {"group": "GOODS", "image": "Sugar", "kind": "atlas"}}], "text": "Сахар"}, {"text": "0"}, {"text": "0"}, {"text": "1 / 2"}], "index": 5, "label": "200\t400\tСахар\t0\t0\t1 / 2", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "495"}, {"text": "25"}, {"images": [{"source": {"group": "GOODS", "image": "Powder", "kind": "atlas"}}], "text": "Порох"}, {"text": "468"}, {"text": "24"}, {"text": "20 / 1"}], "index": 6, "label": "495\t25\tПорох\t468\t24\t20 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "162"}, {"text": "17"}, {"images": [{"source": {"group": "GOODS", "image": "Weapon", "kind": "atlas"}}], "text": "Оружие"}, {"text": "46"}, {"text": "5"}, {"text": "10 / 1"}], "index": 7, "label": "162\t17\tОружие\t46\t5\t10 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
+     {"actions": ["select", "activate"], "cells": [{"text": "107"}, {"text": "4"}, {"images": [{"source": {"group": "GOODS", "image": "Medicament", "kind": "atlas"}}], "text": "Лекарства"}, {"text": "161"}, {"text": "6"}, {"text": "30 / 1"}], "index": 8, "label": "107\t4\tЛекарства\t161\t6\t30 / 1", "node": "TABLE_LIST", "type": "choice", "value": "0"},
      {"index": 0, "label": "3", "node": "SHIP_RANK", "type": "text", "value": "1"},
      {"index": 0, "label": "4", "node": "SHIP_RANK2", "type": "text", "value": "1"},
      {"index": 0, "label": "Scenario", "node": "SHIP_NAME", "type": "text", "value": "1"},
@@ -537,11 +564,11 @@
    "props": {
     "actions": [{"busy": false, "disabled": false, "id": "action-0", "label": "Снять капитана", "reason": "", "variant": "secondary"}, {"busy": false, "disabled": false, "id": "action-1", "label": "Обменять корабль", "reason": "", "variant": "secondary"}],
     "crew": null,
-    "deal": {"disabled": false, "label": "Scenario", "lessLabel": "<trade.give>", "max": 705, "min": 0, "moreLabel": "<trade.take>", "origin": 705, "steps": [20, 200, 2000], "summary": "-", "value": 705, "zones": true},
+    "deal": {"disabled": false, "label": "Scenario", "lessLabel": "<trade.give>", "max": 705, "min": 0, "moreLabel": "<trade.take>", "origin": 705, "steps": [20, 200, 2000], "summary": "-", "value": 0, "zones": true},
     "dealing": true,
-    "list": {"cols": [{"icon": "capacity", "label": "Scenario"}, {"icon": "ship", "label": "Faucon"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["705", "0"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["181", "153"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["65", "96"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["34", "184"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["300", "69"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["200", "0"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sugar"}, "name": "Сахар", "quick": false, "reason": "", "selected": false}, {"cells": ["495", "468"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["162", "46"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["107", "161"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Scenario", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Faucon", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["705", "0"], "disabled": false, "facts": [{"icon": "weight", "v": "2 <transfer.cwt>"}, {"tone": "dim", "v": "<trade.per_units> 20"}], "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": true}, {"cells": ["181", "153"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["65", "96"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["34", "184"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["300", "69"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["200", "0"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Sugar"}, "name": "Сахар", "quick": false, "reason": "", "selected": false}, {"cells": ["495", "468"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["162", "46"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["107", "161"], "disabled": false, "id": "", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
-    "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
+    "primary": {"busy": false, "disabled": false, "label": "<trade.give> 705", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "126 / 101"}], "image": {"kind": "item", "texture": "interfaces/ships/brig"}, "sub": "Бриг · <yard.class> 4", "title": "Faucon"},
     "sheet": null,
     "ships": null,
@@ -550,8 +577,300 @@
     "title": "Обмен с кораблём"
    },
    "modals": [],
-   "events": [],
-   "calls": []
+   "events": [
+    [
+     "goods",
+     "sort",
+     "1"
+    ]
+   ],
+   "calls": [
+    "rebuild"
+   ],
+   "after": {
+    "actions": [
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "action-0",
+      "label": "Снять капитана",
+      "reason": "",
+      "variant": "secondary"
+     },
+     {
+      "busy": false,
+      "disabled": false,
+      "id": "action-1",
+      "label": "Обменять корабль",
+      "reason": "",
+      "variant": "secondary"
+     }
+    ],
+    "crew": null,
+    "deal": {
+     "disabled": false,
+     "label": "Scenario",
+     "lessLabel": "<trade.give>",
+     "max": 705,
+     "min": 0,
+     "moreLabel": "<trade.take>",
+     "origin": 705,
+     "steps": [
+      20,
+      200,
+      2000
+     ],
+     "summary": "-",
+     "value": 0,
+     "zones": true
+    },
+    "dealing": true,
+    "list": {
+     "cols": [
+      {
+       "icon": "capacity",
+       "iconTone": "brass",
+       "label": "Scenario",
+       "sort": "",
+       "sortable": true
+      },
+      {
+       "icon": "ship",
+       "iconTone": "brass",
+       "label": "Faucon",
+       "sort": "desc",
+       "sortable": true
+      }
+     ],
+     "label": "Товары",
+     "quick": "hand",
+     "rows": [
+      {
+       "cells": [
+        "495",
+        "468"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Powder"
+       },
+       "name": "Порох",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "34",
+        "184"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Bombs"
+       },
+       "name": "Бомбы",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "107",
+        "161"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Medicament"
+       },
+       "name": "Лекарства",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "181",
+        "153"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Grapes"
+       },
+       "name": "Картечь",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "65",
+        "96"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Knippels"
+       },
+       "name": "Книппели",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "300",
+        "69"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Food"
+       },
+       "name": "Провиант",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "162",
+        "46"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Weapon"
+       },
+       "name": "Оружие",
+       "quick": true,
+       "reason": "",
+       "selected": false
+      },
+      {
+       "cells": [
+        "705",
+        "0"
+       ],
+       "disabled": false,
+       "facts": [
+        {
+         "icon": "weight",
+         "v": "2 <transfer.cwt>"
+        },
+        {
+         "tone": "dim",
+         "v": "<trade.per_units> 20"
+        }
+       ],
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Balls"
+       },
+       "name": "Ядра",
+       "quick": false,
+       "reason": "",
+       "selected": true
+      },
+      {
+       "cells": [
+        "200",
+        "0"
+       ],
+       "disabled": false,
+       "id": "",
+       "image": {
+        "kind": "item",
+        "texture": "atlas:GOODS/Sugar"
+       },
+       "name": "Сахар",
+       "quick": false,
+       "reason": "",
+       "selected": false
+      }
+     ]
+    },
+    "modal": null,
+    "primary": {
+     "busy": false,
+     "disabled": false,
+     "label": "<trade.give> 705",
+     "reason": "",
+     "sub": ""
+    },
+    "prize": {
+     "facts": [
+      {
+       "k": "<transfer.captain>",
+       "v": "Клод Дюран"
+      },
+      {
+       "k": "Корпус",
+       "tone": "",
+       "v": "100 %"
+      },
+      {
+       "k": "Паруса",
+       "tone": "",
+       "v": "100 %"
+      },
+      {
+       "k": "Команда",
+       "tone": "",
+       "v": "126 / 101"
+      }
+     ],
+     "image": {
+      "kind": "item",
+      "texture": "interfaces/ships/brig"
+     },
+     "sub": "Бриг · <yard.class> 4",
+     "title": "Faucon"
+    },
+    "sheet": null,
+    "ships": null,
+    "stats": [
+     {
+      "label": "Scenario",
+      "value": "2149 <transfer.free>"
+     },
+     {
+      "label": "Faucon",
+      "value": "1293 <transfer.free>"
+     }
+    ],
+    "tabs": [
+     {
+      "id": "cargo",
+      "label": "<transfer.cargo>",
+      "selected": true
+     },
+     {
+      "disabled": false,
+      "id": "crew",
+      "label": "<transfer.crew>",
+      "reason": "",
+      "selected": false
+     },
+     {
+      "id": "ships",
+      "label": "<transfer.ships>",
+      "selected": false
+     }
+    ],
+    "title": "Обмен с кораблём"
+   }
   },
   {
    "name": "the defectors: the game's number, moved by its arrows; accepted; back refuses them",
@@ -648,7 +967,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": {"actions": [{"busy": false, "disabled": false, "hold": false, "id": "answer-0", "label": "<transfer.nobody>", "reason": "", "variant": "quiet"}, {"busy": false, "disabled": true, "hold": false, "id": "answer-1", "label": "<transfer.take> 0", "reason": "", "sub": "<transfer.crew> 40 › 40", "variant": "primary"}], "q": {"all": true, "disabled": false, "max": 8, "min": 0, "steps": [1, 10], "unit": "<transfer.men>", "value": 0}, "step": "1/2", "text": "", "title": "Желающих перейти к нам в команду"},
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -761,7 +1080,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": {"actions": [{"busy": false, "disabled": false, "hold": true, "id": "answer-0", "label": "За борт", "reason": "", "variant": "danger"}, {"busy": false, "disabled": false, "hold": false, "id": "answer-1", "label": "В трюм рабами", "reason": "", "variant": "secondary"}, {"busy": false, "disabled": false, "hold": false, "id": "answer-2", "label": "На шлюпках", "reason": "", "variant": "primary"}], "text": "", "title": "Участь 52 сдавшихся матросов"},
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -863,7 +1182,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": {"actions": [{"busy": false, "disabled": false, "hold": true, "id": "answer-0", "label": "Выкинуть за борт", "reason": "", "variant": "danger"}, {"busy": false, "disabled": false, "hold": false, "id": "answer-1", "label": "Взять пленником", "reason": "", "variant": "primary"}, {"busy": false, "disabled": false, "hold": false, "id": "answer-2", "label": "Отмена", "reason": "", "variant": "quiet"}], "image": {"kind": "portrait", "texture": "INTERFACES/PORTRAITS/128/face_100"}, "text": "Выберите участь сдавшегося капитана.", "title": "Решение по пленным"},
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -965,7 +1284,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": {"actions": [{"busy": false, "disabled": false, "hold": true, "id": "answer-0", "label": "<transfer.sink>", "reason": "", "variant": "danger"}, {"busy": false, "disabled": false, "hold": false, "id": "answer-1", "label": "<transfer.keep>", "reason": "", "variant": "primary"}], "text": "На судне нет командира. Пустить его ко дну?", "title": "«Корабль 2»: <transfer.fate>"},
     "primary": {"busy": false, "disabled": false, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -1080,7 +1399,7 @@
     "crew": {"cols": [{"icon": "hero", "label": "Корабль 1"}, {"icon": "exchange", "label": "Корабль 2"}], "label": "<transfer.crew>", "rows": [{"cells": [{"sub": "<transfer.min_mark> 9", "text": "96"}, {"sub": "<transfer.min_mark> 21", "text": "58"}], "id": "0", "image": {"icon": "crew", "kind": "icon"}, "name": "<transfer.sailors>", "q": {"disabled": false, "label": "Корабль 1", "lessLabel": "<trade.give>", "marks": [{"at": 9, "label": "Корабль 1 <transfer.min_mark> 9"}, {"at": 133, "label": "Корабль 2 <transfer.min_mark> 21"}], "max": 154, "min": 0, "moreLabel": "<trade.take>", "origin": 96, "steps": [1, 10], "summary": "-", "unit": "<transfer.men>", "value": 96, "zones": true}, "selected": true}], "sides": [{"facts": [{"k": "Матросы", "v": "Опытные"}, {"k": "Канониры", "v": "Средние"}, {"k": "Солдаты", "v": "Новички"}], "morale": "Мораль команды: Хорошая", "name": "Корабль 1"}, {"facts": [{"k": "Матросы", "v": "Средние"}, {"k": "Канониры", "v": "Новички"}, {"k": "Солдаты", "v": "Новички"}], "morale": "Мораль команды: Низкая", "name": "Корабль 2"}]},
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Корабль 1"}, {"icon": "ship", "label": "Корабль 2"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Корабль 1", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Корабль 2", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["100", "495"], "disabled": false, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "254"], "disabled": false, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "227"], "disabled": false, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "293"], "disabled": false, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": true, "reason": "", "selected": false}, {"cells": ["100", "324"], "disabled": false, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": true, "reason": "", "selected": false}, {"cells": ["4", "11"], "disabled": false, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": true, "reason": "", "selected": false}, {"cells": ["40", "46"], "disabled": false, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": true, "reason": "", "selected": false}, {"cells": ["220", "1215"], "disabled": false, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": true, "reason": "", "selected": false}, {"cells": ["50", "171"], "disabled": false, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": true, "reason": "", "selected": false}, {"cells": ["30", "104"], "disabled": false, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": true, "reason": "", "selected": false}, {"cells": ["10", "8"], "disabled": false, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": true, "reason": "", "selected": false}]},
     "modal": null,
     "primary": null,
     "prize": {"facts": [{"k": "<transfer.captain>", "v": "Клод Дюран"}, {"k": "Корпус", "tone": "", "v": "100 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "", "v": "165 / 132"}], "image": null, "sub": "Бриг · <yard.class> 4", "title": "Корабль 2"},
@@ -1098,9 +1417,25 @@
      "100"
     ],
     [
+     "build"
+    ],
+    [
+     "primary",
+     "click",
+     ""
+    ],
+    [
      "crew",
      "commit",
      "90"
+    ],
+    [
+     "build"
+    ],
+    [
+     "primary",
+     "click",
+     ""
     ],
     [
      "header",
@@ -1119,11 +1454,13 @@
     ]
    ],
    "calls": [
+    "rebuild",
     "send CREW_LEFT press ",
     "send CREW_LEFT press ",
     "send CREW_LEFT press ",
     "send CREW_LEFT press ",
     "hold",
+    "rebuild",
     "send CREW_RIGHT press ",
     "send CREW_RIGHT press ",
     "send CREW_RIGHT press ",
@@ -1252,7 +1589,7 @@
     "crew": null,
     "deal": null,
     "dealing": false,
-    "list": {"cols": [{"icon": "capacity", "label": "Аделина"}, {"icon": "ship", "label": "Almirante"}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["88", "205"], "disabled": true, "id": "0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "140"], "disabled": true, "id": "1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "151"], "disabled": true, "id": "2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "113"], "disabled": true, "id": "3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "146"], "disabled": true, "id": "4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": false, "reason": "", "selected": false}, {"cells": ["0", "9"], "disabled": true, "id": "5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": false, "reason": "", "selected": false}, {"cells": ["0", "20"], "disabled": true, "id": "6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": false, "reason": "", "selected": false}, {"cells": ["208", "704"], "disabled": true, "id": "7", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": false, "reason": "", "selected": false}, {"cells": ["50", "39"], "disabled": true, "id": "8", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": false, "reason": "", "selected": false}, {"cells": ["30", "47"], "disabled": true, "id": "9", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": false, "reason": "", "selected": false}, {"cells": ["10", "7"], "disabled": true, "id": "10", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": false, "reason": "", "selected": false}]},
+    "list": {"cols": [{"icon": "capacity", "iconTone": "brass", "label": "Аделина", "sort": "", "sortable": true}, {"icon": "ship", "iconTone": "brass", "label": "Almirante", "sort": "", "sortable": true}], "label": "Товары", "quick": "hand", "rows": [{"cells": ["88", "205"], "disabled": true, "id": "transfer:good:0", "image": {"kind": "item", "texture": "atlas:GOODS/Balls"}, "name": "Ядра", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "140"], "disabled": true, "id": "transfer:good:1", "image": {"kind": "item", "texture": "atlas:GOODS/Grapes"}, "name": "Картечь", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "151"], "disabled": true, "id": "transfer:good:2", "image": {"kind": "item", "texture": "atlas:GOODS/Knippels"}, "name": "Книппели", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "113"], "disabled": true, "id": "transfer:good:3", "image": {"kind": "item", "texture": "atlas:GOODS/Bombs"}, "name": "Бомбы", "quick": false, "reason": "", "selected": false}, {"cells": ["100", "146"], "disabled": true, "id": "transfer:good:4", "image": {"kind": "item", "texture": "atlas:GOODS/Food"}, "name": "Провиант", "quick": false, "reason": "", "selected": false}, {"cells": ["0", "9"], "disabled": true, "id": "transfer:good:5", "image": {"kind": "item", "texture": "atlas:GOODS/Sailcloth"}, "name": "Парусина", "quick": false, "reason": "", "selected": false}, {"cells": ["0", "20"], "disabled": true, "id": "transfer:good:6", "image": {"kind": "item", "texture": "atlas:GOODS/Planks"}, "name": "Доски", "quick": false, "reason": "", "selected": false}, {"cells": ["208", "704"], "disabled": true, "id": "transfer:good:22", "image": {"kind": "item", "texture": "atlas:GOODS/Powder"}, "name": "Порох", "quick": false, "reason": "", "selected": false}, {"cells": ["50", "39"], "disabled": true, "id": "transfer:good:23", "image": {"kind": "item", "texture": "atlas:GOODS/Weapon"}, "name": "Оружие", "quick": false, "reason": "", "selected": false}, {"cells": ["30", "47"], "disabled": true, "id": "transfer:good:24", "image": {"kind": "item", "texture": "atlas:GOODS/Medicament"}, "name": "Лекарства", "quick": false, "reason": "", "selected": false}, {"cells": ["10", "7"], "disabled": true, "id": "transfer:good:26", "image": {"kind": "item", "texture": "atlas:GOODS/Rum"}, "name": "Ром", "quick": false, "reason": "", "selected": false}]},
     "modal": null,
     "primary": {"busy": false, "disabled": true, "label": "<transfer.take_all>", "reason": "", "sub": ""},
     "prize": {"facts": [{"k": "Корпус", "tone": "", "v": "94 %"}, {"k": "Паруса", "tone": "", "v": "100 %"}, {"k": "Команда", "tone": "danger", "v": "0 / 45"}], "image": {"kind": "item", "texture": "interfaces/ships/lugger"}, "sub": "Люггер · <yard.class> 5", "title": "Almirante"},
