@@ -312,7 +312,9 @@ void TouchLegTrade_Loot(aref ui, aref model, aref out)
 		aref cells = TouchLegTrade_Row(ui, k);
 		string tr = "tr" + (sti(cells.index) + 1);
 		float pack = UiNumber(TouchLegLib_Cell(cells, sti(ui.data.packWeight)), "the pack weight column");
-		if (sti(row.other) <= 0 || pack <= 0.0 || !CheckAttribute(&costs, tr)) continue;
+		// android_hero.c AndroidLootValues gives every listed good its cost
+		if (!CheckAttribute(&costs, tr)) UiError("trade: the town's good of " + tr + " has no ANDROID_LOOT cost");
+		if (sti(row.other) <= 0 || pack <= 0.0) continue;
 		aref at = TouchLib_Add(&ranked, "r");
 		at.k = k;
 		at.worth = makeint(UiNumber(costs.(tr), "an ANDROID_LOOT cost") * 100.0 / pack);

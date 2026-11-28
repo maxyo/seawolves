@@ -1067,6 +1067,18 @@
     "send QTY_OK_BUTTON press  @commerce:colonycapture:item:14:owner:1:role:0",
     "hold"
    ]
+  },
+  {
+   "name": "a listed good without the cost the adapter gives every one: the build refuses it, the good is not left out of the plan",
+   "capability": "trade_loot",
+   "like": 0,
+   "without": [
+    [
+     "ANDROID_LOOT",
+     "tr2"
+    ]
+   ],
+   "fails": "trade: the town's good of tr2 has no ANDROID_LOOT cost"
   }
  ]
 }
