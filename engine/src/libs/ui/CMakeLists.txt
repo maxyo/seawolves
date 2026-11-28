@@ -117,7 +117,7 @@ add_library(storm_ui STATIC
     src/screens/registry.cpp
     src/screens/generic.cpp
     src/screens/dialogue.cpp
-    src/screens/menu_settings.cpp
+    src/screens/app_settings.cpp
     src/screens/extra_goods.cpp
     src/screens/menu_states.cpp
     src/screens/script_screen.cpp

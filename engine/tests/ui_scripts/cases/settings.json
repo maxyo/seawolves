@@ -1,0 +1,3118 @@
+{
+ "$comment": "The settings' script on recorded models: the game's options of the window and the engine's table of the application's settings (appOptions), the props its view gives and what its events send (the game's switches as the C++ screen sent them, the application's settings as engine commands); a page's view after its tab (the router's checks, menus_check, tap the rows of the other pages).",
+ "cases": [
+  {
+   "name": "the game page: the map's pirates, the game's switches; one set, a draft chosen, kept",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 12,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR",
+      "type": "text",
+      "label": "Гамма",
+      "index": 2
+     },
+     {
+      "node": "GAMMA_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "enabled": false,
+      "max": 100,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "ALWAYS_RUN_CHECKBOX",
+      "type": "check",
+      "label": "Бег",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "GLOW_SLIDE",
+      "type": "slider",
+      "value": "20",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "HMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEA_DETAILS_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "INVERT_MOUSE_CHECKBOX",
+      "type": "check",
+      "label": "Инверсия",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Нет",
+      "value": "0",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Мало",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Средне",
+      "value": "1",
+      "index": 2,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Много",
+      "value": "0",
+      "index": 3,
+      "exclusive": true
+     },
+     {
+      "node": "TABBTN_FIGHT_MODE",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_FIGHT_MODE",
+      "type": "text",
+      "label": "Бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_DESCRIP_TEXT",
+      "type": "text",
+      "label": "1080  / 900 : 1.2",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEACAMPERSP_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "MUSIC_SLIDE",
+      "type": "slider",
+      "value": "70",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SOUND_SLIDE",
+      "type": "slider",
+      "value": "80",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "DIALOG_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "BTN_CONTROLS_DEFAULT",
+      "type": "button",
+      "label": "По умолчанию",
+      "index": -1
+     },
+     {
+      "node": "SHIPMARK_CHECKBOX",
+      "type": "check",
+      "label": "Подсказки",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ENHANCEDSAILING_CHECKBOX",
+      "type": "check",
+      "label": "Навигация",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "AUTOSAVE_CHECKBOX",
+      "type": "check",
+      "label": "Автозапись",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ROTATESKY_CHECKBOX",
+      "type": "check",
+      "label": "Небо",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BATTLE_MODE_CHECKBOX",
+      "type": "check",
+      "label": "Рамка",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "DYNAMICLIGHTS_CHECKBOX",
+      "type": "check",
+      "label": "Свет",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "DIRECTSAIL_CHECKBOX",
+      "type": "check",
+      "label": "Директсейл",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CAMERASWING_CHECKBOX",
+      "type": "check",
+      "label": "Камера",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "CREWONDECK_CHECKBOX",
+      "type": "check",
+      "label": "Матросы",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SIMPLESEA_CHECKBOX",
+      "type": "check",
+      "label": "Простое море",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_LIST",
+      "type": "choice",
+      "label": "Вперёд\tW",
+      "index": 0,
+      "rowId": "k0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHANGEKEY_TEXT",
+      "type": "text",
+      "label": "Нажмите клавишу",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "id": "DIRECTSAIL_CHECKBOX",
+          "key": "DIRECTSAIL_CHECKBOX",
+          "kind": "toggle",
+          "label": "Директсейл",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "ENHANCEDSAILING_CHECKBOX",
+          "key": "ENHANCEDSAILING_CHECKBOX",
+          "kind": "toggle",
+          "label": "Навигация",
+          "on": false,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "AUTOSAVE_CHECKBOX",
+          "key": "AUTOSAVE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Автозапись",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "SHIPMARK_CHECKBOX",
+          "key": "SHIPMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "Подсказки",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "BATTLE_MODE_CHECKBOX",
+          "key": "BATTLE_MODE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Рамка",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "ENHANCEDSAILING_CHECKBOX",
+     "change",
+     "1"
+    ],
+    [
+     "app-pirate_frequency",
+     "change",
+     "2"
+    ],
+    [
+     "done",
+     "click",
+     ""
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "send ENHANCEDSAILING_CHECKBOX#0 toggle 1",
+    "setting pirate_frequency=100",
+    "settings keep",
+    "send BTN_OK press "
+   ]
+  },
+  {
+   "name": "the controls page: the game's camera with one sensitivity for both of its own, the screen's settings",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 12,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR",
+      "type": "text",
+      "label": "Гамма",
+      "index": 2
+     },
+     {
+      "node": "GAMMA_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "enabled": false,
+      "max": 100,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "ALWAYS_RUN_CHECKBOX",
+      "type": "check",
+      "label": "Бег",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "GLOW_SLIDE",
+      "type": "slider",
+      "value": "20",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "HMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEA_DETAILS_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "INVERT_MOUSE_CHECKBOX",
+      "type": "check",
+      "label": "Инверсия",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Нет",
+      "value": "0",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Мало",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Средне",
+      "value": "1",
+      "index": 2,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Много",
+      "value": "0",
+      "index": 3,
+      "exclusive": true
+     },
+     {
+      "node": "TABBTN_FIGHT_MODE",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_FIGHT_MODE",
+      "type": "text",
+      "label": "Бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_DESCRIP_TEXT",
+      "type": "text",
+      "label": "1080  / 900 : 1.2",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEACAMPERSP_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "MUSIC_SLIDE",
+      "type": "slider",
+      "value": "70",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SOUND_SLIDE",
+      "type": "slider",
+      "value": "80",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "DIALOG_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "BTN_CONTROLS_DEFAULT",
+      "type": "button",
+      "label": "По умолчанию",
+      "index": -1
+     },
+     {
+      "node": "SHIPMARK_CHECKBOX",
+      "type": "check",
+      "label": "Подсказки",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ENHANCEDSAILING_CHECKBOX",
+      "type": "check",
+      "label": "Навигация",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "AUTOSAVE_CHECKBOX",
+      "type": "check",
+      "label": "Автозапись",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ROTATESKY_CHECKBOX",
+      "type": "check",
+      "label": "Небо",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BATTLE_MODE_CHECKBOX",
+      "type": "check",
+      "label": "Рамка",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "DYNAMICLIGHTS_CHECKBOX",
+      "type": "check",
+      "label": "Свет",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "DIRECTSAIL_CHECKBOX",
+      "type": "check",
+      "label": "Директсейл",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CAMERASWING_CHECKBOX",
+      "type": "check",
+      "label": "Камера",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "CREWONDECK_CHECKBOX",
+      "type": "check",
+      "label": "Матросы",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SIMPLESEA_CHECKBOX",
+      "type": "check",
+      "label": "Простое море",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_LIST",
+      "type": "choice",
+      "label": "Вперёд\tW",
+      "index": 0,
+      "rowId": "k0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHANGEKEY_TEXT",
+      "type": "text",
+      "label": "Нажмите клавишу",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "id": "DIRECTSAIL_CHECKBOX",
+          "key": "DIRECTSAIL_CHECKBOX",
+          "kind": "toggle",
+          "label": "Директсейл",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "ENHANCEDSAILING_CHECKBOX",
+          "key": "ENHANCEDSAILING_CHECKBOX",
+          "kind": "toggle",
+          "label": "Навигация",
+          "on": false,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "AUTOSAVE_CHECKBOX",
+          "key": "AUTOSAVE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Автозапись",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "SHIPMARK_CHECKBOX",
+          "key": "SHIPMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "Подсказки",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "BATTLE_MODE_CHECKBOX",
+          "key": "BATTLE_MODE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Рамка",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "tabs",
+     "select",
+     "1"
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "rebuild"
+   ],
+   "after": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "sensitivity",
+          "key": "sensitivity",
+          "kind": "slider",
+          "label": "<settings.camera_sensitivity>",
+          "reason": "",
+          "value": 50
+         },
+         {
+          "disabled": false,
+          "id": "INVERT_MOUSE_CHECKBOX",
+          "key": "INVERT_MOUSE_CHECKBOX",
+          "kind": "toggle",
+          "label": "<settings.invert_vertical>",
+          "on": false,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "SEACAMPERSP_SLIDE",
+          "key": "SEACAMPERSP_SLIDE",
+          "kind": "slider",
+          "label": "<settings.sea_camera>",
+          "reason": "",
+          "value": 25
+         },
+         {
+          "disabled": false,
+          "id": "CAMERASWING_CHECKBOX",
+          "key": "CAMERASWING_CHECKBOX",
+          "kind": "toggle",
+          "label": "<settings.door_camera_turn>",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.camera>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-ui_scale",
+          "key": "ui_scale",
+          "kind": "segment",
+          "label": "Размер интерфейса",
+          "on": false,
+          "options": [
+           "100%",
+           "115%"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-hud_transparency",
+          "key": "hud_transparency",
+          "kind": "segment",
+          "label": "Прозрачность кнопок",
+          "on": false,
+          "options": [
+           "Нет",
+           "35%",
+           "60%"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-left_handed",
+          "key": "left_handed",
+          "kind": "toggle",
+          "label": "Под левую руку",
+          "on": false,
+          "options": [],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": false
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-haptics",
+          "key": "haptics",
+          "kind": "toggle",
+          "label": "Вибрация",
+          "on": true,
+          "options": [],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": false
+         }
+        ],
+        "title": "<settings.screen_touch>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   }
+  },
+  {
+   "name": "the sound and graphics page: the game's volumes, the graphics, the cache, the texture processing",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 12,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR",
+      "type": "text",
+      "label": "Гамма",
+      "index": 2
+     },
+     {
+      "node": "GAMMA_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "enabled": false,
+      "max": 100,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "ALWAYS_RUN_CHECKBOX",
+      "type": "check",
+      "label": "Бег",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "GLOW_SLIDE",
+      "type": "slider",
+      "value": "20",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "HMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEA_DETAILS_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "INVERT_MOUSE_CHECKBOX",
+      "type": "check",
+      "label": "Инверсия",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Нет",
+      "value": "0",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Мало",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Средне",
+      "value": "1",
+      "index": 2,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Много",
+      "value": "0",
+      "index": 3,
+      "exclusive": true
+     },
+     {
+      "node": "TABBTN_FIGHT_MODE",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_FIGHT_MODE",
+      "type": "text",
+      "label": "Бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_DESCRIP_TEXT",
+      "type": "text",
+      "label": "1080  / 900 : 1.2",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEACAMPERSP_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "MUSIC_SLIDE",
+      "type": "slider",
+      "value": "70",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SOUND_SLIDE",
+      "type": "slider",
+      "value": "80",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "DIALOG_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "BTN_CONTROLS_DEFAULT",
+      "type": "button",
+      "label": "По умолчанию",
+      "index": -1
+     },
+     {
+      "node": "SHIPMARK_CHECKBOX",
+      "type": "check",
+      "label": "Подсказки",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ENHANCEDSAILING_CHECKBOX",
+      "type": "check",
+      "label": "Навигация",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "AUTOSAVE_CHECKBOX",
+      "type": "check",
+      "label": "Автозапись",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ROTATESKY_CHECKBOX",
+      "type": "check",
+      "label": "Небо",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BATTLE_MODE_CHECKBOX",
+      "type": "check",
+      "label": "Рамка",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "DYNAMICLIGHTS_CHECKBOX",
+      "type": "check",
+      "label": "Свет",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "DIRECTSAIL_CHECKBOX",
+      "type": "check",
+      "label": "Директсейл",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CAMERASWING_CHECKBOX",
+      "type": "check",
+      "label": "Камера",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "CREWONDECK_CHECKBOX",
+      "type": "check",
+      "label": "Матросы",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SIMPLESEA_CHECKBOX",
+      "type": "check",
+      "label": "Простое море",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_LIST",
+      "type": "choice",
+      "label": "Вперёд\tW",
+      "index": 0,
+      "rowId": "k0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHANGEKEY_TEXT",
+      "type": "text",
+      "label": "Нажмите клавишу",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "id": "DIRECTSAIL_CHECKBOX",
+          "key": "DIRECTSAIL_CHECKBOX",
+          "kind": "toggle",
+          "label": "Директсейл",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "ENHANCEDSAILING_CHECKBOX",
+          "key": "ENHANCEDSAILING_CHECKBOX",
+          "kind": "toggle",
+          "label": "Навигация",
+          "on": false,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "AUTOSAVE_CHECKBOX",
+          "key": "AUTOSAVE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Автозапись",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "SHIPMARK_CHECKBOX",
+          "key": "SHIPMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "Подсказки",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "BATTLE_MODE_CHECKBOX",
+          "key": "BATTLE_MODE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Рамка",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "tabs",
+     "select",
+     "2"
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "rebuild"
+   ],
+   "after": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "MUSIC_SLIDE",
+          "key": "MUSIC_SLIDE",
+          "kind": "slider",
+          "label": "<settings.music>",
+          "reason": "",
+          "value": 70
+         },
+         {
+          "disabled": false,
+          "id": "SOUND_SLIDE",
+          "key": "SOUND_SLIDE",
+          "kind": "slider",
+          "label": "<settings.sound_effects>",
+          "reason": "",
+          "value": 80
+         },
+         {
+          "disabled": false,
+          "id": "DIALOG_SLIDE",
+          "key": "DIALOG_SLIDE",
+          "kind": "slider",
+          "label": "<settings.voices>",
+          "reason": "",
+          "value": 100
+         }
+        ],
+        "title": "<settings.volume>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "Сцена 720 строк",
+          "id": "app-fx_preset",
+          "key": "fx_preset",
+          "kind": "segment",
+          "label": "",
+          "on": false,
+          "options": [
+           "Низкая",
+           "Средняя",
+           "Высокая"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-frame_rate",
+          "key": "frame_rate",
+          "kind": "segment",
+          "label": "Частота кадров",
+          "on": false,
+          "options": [
+           "30",
+           "60"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 1,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-texture_quality",
+          "key": "texture_quality",
+          "kind": "segment",
+          "label": "Качество текстур",
+          "on": false,
+          "options": [
+           "Низкое",
+           "Среднее",
+           "Высокое"
+          ],
+          "reason": "",
+          "restart": true,
+          "selected": 1,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "display": "Очистить",
+          "hint": "",
+          "id": "app-cache-clear",
+          "key": "cache",
+          "kind": "button",
+          "label": "Кэш · 1,4 ГБ",
+          "reason": "Кэш пуст"
+         },
+         {
+          "disabled": false,
+          "id": "texture-processing",
+          "key": "textures",
+          "kind": "heading",
+          "label": "Обработка текстур",
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-texture_normal_maps",
+          "key": "texture_normal_maps",
+          "kind": "toggle",
+          "label": "Карты нормалей",
+          "on": false,
+          "options": [],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": false
+         },
+         {
+          "disabled": true,
+          "hint": "",
+          "id": "app-texture_height_maps",
+          "key": "texture_height_maps",
+          "kind": "toggle",
+          "label": "Параллакс",
+          "on": true,
+          "options": [],
+          "reason": "Параллаксу нужны карты нормалей",
+          "restart": false,
+          "selected": 0,
+          "stack": false
+         },
+         {
+          "disabled": true,
+          "hint": "",
+          "id": "app-texture_upscale",
+          "key": "texture_upscale",
+          "kind": "toggle",
+          "label": "Апскейл текстур ×2",
+          "on": false,
+          "options": [],
+          "reason": "Апскейл ×2: устройство ещё проверяется",
+          "restart": false,
+          "selected": 0,
+          "stack": false
+         }
+        ],
+        "title": "<settings.graphics>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": true
+     }
+    ],
+    "title": "<settings.title>"
+   }
+  },
+  {
+   "name": "a debuggable application's page",
+   "capability": "settings",
+   "model": {
+    "schemaVersion": 2,
+    "language": "russian",
+    "revision": 1,
+    "screenRevision": 12,
+    "screen": "option_screen",
+    "widgets": [
+     {
+      "node": "MAIN_BACK",
+      "type": "image",
+      "index": -1,
+      "enabled": false
+     },
+     {
+      "node": "TITLE",
+      "type": "heading",
+      "label": "  Настройки  ",
+      "index": -1
+     },
+     {
+      "node": "TITLES_STR",
+      "type": "text",
+      "label": "Гамма",
+      "index": 2
+     },
+     {
+      "node": "GAMMA_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "enabled": false,
+      "max": 100,
+      "unavailableReason": "android_color_correction"
+     },
+     {
+      "node": "ALWAYS_RUN_CHECKBOX",
+      "type": "check",
+      "label": "Бег",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "VMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "GLOW_SLIDE",
+      "type": "slider",
+      "value": "20",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "HMOUSE_SENSITIVITY_SLIDE",
+      "type": "slider",
+      "value": "50",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEA_DETAILS_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "INVERT_MOUSE_CHECKBOX",
+      "type": "check",
+      "label": "Инверсия",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Нет",
+      "value": "0",
+      "index": 0,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Мало",
+      "value": "0",
+      "index": 1,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Средне",
+      "value": "1",
+      "index": 2,
+      "exclusive": true
+     },
+     {
+      "node": "HERB_CHECKBOX",
+      "type": "check",
+      "label": "Много",
+      "value": "0",
+      "index": 3,
+      "exclusive": true
+     },
+     {
+      "node": "TABBTN_FIGHT_MODE",
+      "type": "image",
+      "index": -1,
+      "actions": [
+       "press"
+      ]
+     },
+     {
+      "node": "TABSTR_FIGHT_MODE",
+      "type": "text",
+      "label": "Бой",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_DESCRIP_TEXT",
+      "type": "text",
+      "label": "1080  / 900 : 1.2",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "HUD_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SEACAMPERSP_SLIDE",
+      "type": "slider",
+      "value": "25",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "MUSIC_SLIDE",
+      "type": "slider",
+      "value": "70",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "SOUND_SLIDE",
+      "type": "slider",
+      "value": "80",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "DIALOG_SLIDE",
+      "type": "slider",
+      "value": "100",
+      "index": -1,
+      "actions": [
+       "set"
+      ],
+      "max": 100
+     },
+     {
+      "node": "BTN_CONTROLS_DEFAULT",
+      "type": "button",
+      "label": "По умолчанию",
+      "index": -1
+     },
+     {
+      "node": "SHIPMARK_CHECKBOX",
+      "type": "check",
+      "label": "Подсказки",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ENHANCEDSAILING_CHECKBOX",
+      "type": "check",
+      "label": "Навигация",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "AUTOSAVE_CHECKBOX",
+      "type": "check",
+      "label": "Автозапись",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "ROTATESKY_CHECKBOX",
+      "type": "check",
+      "label": "Небо",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BATTLE_MODE_CHECKBOX",
+      "type": "check",
+      "label": "Рамка",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "DYNAMICLIGHTS_CHECKBOX",
+      "type": "check",
+      "label": "Свет",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "DIRECTSAIL_CHECKBOX",
+      "type": "check",
+      "label": "Директсейл",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "CAMERASWING_CHECKBOX",
+      "type": "check",
+      "label": "Камера",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "BTN_OK",
+      "type": "button",
+      "label": "Ок",
+      "index": -1
+     },
+     {
+      "node": "BTN_CANCEL",
+      "type": "button",
+      "label": "Отмена",
+      "index": -1
+     },
+     {
+      "node": "CREWONDECK_CHECKBOX",
+      "type": "check",
+      "label": "Матросы",
+      "value": "1",
+      "index": 0
+     },
+     {
+      "node": "SIMPLESEA_CHECKBOX",
+      "type": "check",
+      "label": "Простое море",
+      "value": "0",
+      "index": 0
+     },
+     {
+      "node": "CONTROLS_LIST",
+      "type": "choice",
+      "label": "Вперёд\tW",
+      "index": 0,
+      "rowId": "k0",
+      "actions": [
+       "select"
+      ]
+     },
+     {
+      "node": "CHANGEKEY_TEXT",
+      "type": "text",
+      "label": "Нажмите клавишу",
+      "index": -1
+     }
+    ]
+   },
+   "states": {
+    "appOptions": {
+     "groups": [
+      {
+       "id": "map",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "pirate_frequency",
+         "kind": "segment",
+         "label": "Пираты на карте",
+         "options": [
+          "Редко",
+          "Иногда",
+          "Часто"
+         ],
+         "values": [
+          20,
+          50,
+          100
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "screen",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "ui_scale",
+         "kind": "segment",
+         "label": "Размер интерфейса",
+         "options": [
+          "100%",
+          "115%"
+         ],
+         "values": [
+          100,
+          115
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "hud_transparency",
+         "kind": "segment",
+         "label": "Прозрачность кнопок",
+         "options": [
+          "Нет",
+          "35%",
+          "60%"
+         ],
+         "values": [
+          0,
+          35,
+          60
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "left_handed",
+         "kind": "toggle",
+         "label": "Под левую руку",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "haptics",
+         "kind": "toggle",
+         "label": "Вибрация",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "graphics",
+       "title": "",
+       "tab": "",
+       "options": [
+        {
+         "key": "fx_preset",
+         "kind": "segment",
+         "label": "<settings.graphics>",
+         "options": [
+          "Низкая",
+          "Средняя",
+          "Высокая"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": "Сцена 720 строк"
+        },
+        {
+         "key": "frame_rate",
+         "kind": "segment",
+         "label": "Частота кадров",
+         "options": [
+          "30",
+          "60"
+         ],
+         "values": [
+          30,
+          60
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_quality",
+         "kind": "segment",
+         "label": "Качество текстур",
+         "options": [
+          "Низкое",
+          "Среднее",
+          "Высокое"
+         ],
+         "values": [
+          0,
+          1,
+          2
+         ],
+         "selected": 1,
+         "on": false,
+         "stack": true,
+         "restart": true,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "textures",
+       "title": "Обработка текстур",
+       "tab": "",
+       "options": [
+        {
+         "key": "texture_normal_maps",
+         "kind": "toggle",
+         "label": "Карты нормалей",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        },
+        {
+         "key": "texture_height_maps",
+         "kind": "toggle",
+         "label": "Параллакс",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": true,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Параллаксу нужны карты нормалей",
+         "hint": ""
+        },
+        {
+         "key": "texture_upscale",
+         "kind": "toggle",
+         "label": "Апскейл текстур ×2",
+         "options": [],
+         "values": [
+          0,
+          1
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": false,
+         "restart": false,
+         "disabled": true,
+         "reason": "Апскейл ×2: устройство ещё проверяется",
+         "hint": ""
+        }
+       ]
+      },
+      {
+       "id": "debug",
+       "title": "Отладка эффектов",
+       "tab": "Отладка",
+       "options": [
+        {
+         "key": "fx_msaa",
+         "kind": "segment",
+         "label": "MSAA",
+         "options": [
+          "пресет",
+          "выкл",
+          "2x",
+          "4x"
+         ],
+         "values": [
+          -1,
+          1,
+          2,
+          4
+         ],
+         "selected": 0,
+         "on": false,
+         "stack": true,
+         "restart": false,
+         "disabled": false,
+         "reason": "",
+         "hint": ""
+        }
+       ]
+      }
+     ],
+     "cache": {
+      "label": "Кэш · 1,4 ГБ",
+      "hint": "",
+      "display": "Очистить",
+      "disabled": false,
+      "reason": "Кэш пуст",
+      "clear": true
+     }
+    }
+   },
+   "props": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-pirate_frequency",
+          "key": "pirate_frequency",
+          "kind": "segment",
+          "label": "Пираты на карте",
+          "on": false,
+          "options": [
+           "Редко",
+           "Иногда",
+           "Часто"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         },
+         {
+          "disabled": false,
+          "id": "DIRECTSAIL_CHECKBOX",
+          "key": "DIRECTSAIL_CHECKBOX",
+          "kind": "toggle",
+          "label": "Директсейл",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "ENHANCEDSAILING_CHECKBOX",
+          "key": "ENHANCEDSAILING_CHECKBOX",
+          "kind": "toggle",
+          "label": "Навигация",
+          "on": false,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "AUTOSAVE_CHECKBOX",
+          "key": "AUTOSAVE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Автозапись",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.sea_and_map>"
+       },
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "id": "SHIPMARK_CHECKBOX",
+          "key": "SHIPMARK_CHECKBOX",
+          "kind": "toggle",
+          "label": "Подсказки",
+          "on": true,
+          "reason": ""
+         },
+         {
+          "disabled": false,
+          "id": "BATTLE_MODE_CHECKBOX",
+          "key": "BATTLE_MODE_CHECKBOX",
+          "kind": "toggle",
+          "label": "Рамка",
+          "on": true,
+          "reason": ""
+         }
+        ],
+        "title": "<settings.markers>"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": true
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     },
+     {
+      "label": "Отладка",
+      "selected": false
+     }
+    ],
+    "title": "<settings.title>"
+   },
+   "modals": [],
+   "events": [
+    [
+     "tabs",
+     "select",
+     "3"
+    ]
+   ],
+   "calls": [
+    "settings open",
+    "rebuild"
+   ],
+   "after": {
+    "done": {
+     "busy": false,
+     "disabled": false,
+     "label": "<settings.done>",
+     "reason": ""
+    },
+    "sections": [
+     {
+      "columns": [
+       {
+        "rows": [
+         {
+          "disabled": false,
+          "hint": "",
+          "id": "app-fx_msaa",
+          "key": "fx_msaa",
+          "kind": "segment",
+          "label": "MSAA",
+          "on": false,
+          "options": [
+           "пресет",
+           "выкл",
+           "2x",
+           "4x"
+          ],
+          "reason": "",
+          "restart": false,
+          "selected": 0,
+          "stack": true
+         }
+        ],
+        "title": "Отладка эффектов"
+       }
+      ],
+      "title": ""
+     }
+    ],
+    "tabs": [
+     {
+      "label": "<settings.tab_game>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_controls>",
+      "selected": false
+     },
+     {
+      "label": "<settings.tab_sound_graphics>",
+      "selected": false
+     },
+     {
+      "label": "Отладка",
+      "selected": true
+     }
+    ],
+    "title": "<settings.title>"
+   }
+  }
+ ]
+}

@@ -11,4 +11,7 @@ namespace storm::ui::screens
 // values are checked where the props are set, as for every screen. A value the spec does not describe, or one that does
 // not read as its type, throws naming its path.
 Json ScriptProps(const ViewTree &view, const ComponentSpec &spec);
+// A state channel's JSON as a script reads it (UiState): an array's items named by their place, true and false as 1
+// and 0, null as an empty text.
+ViewTree StateTree(const std::string &name, const Json &json);
 } // namespace storm::ui::screens

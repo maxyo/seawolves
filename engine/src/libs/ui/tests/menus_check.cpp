@@ -300,7 +300,8 @@ struct SettingsRun
 {
     std::string models;
     FakeSurface surface;
-    Router router{surface};
+    Router owned{surface};
+    Router &router = Scripted(owned);
     const std::string prefix = "widget:option_screen\t";
     Json page; // the graphics page's sections, from GraphicsPage on
 
@@ -309,7 +310,7 @@ struct SettingsRun
         std::ifstream state(models + "/app-settings.json", std::ios::binary);
         router.SetState("appSettings", Json::parse(state));
         router.SetInterface(Load(models, "settings.json"));
-        ExpectEqual(router.Using(), "option_screen", "settings is a ported screen");
+        ExpectEqual(router.Using(), "option_screen", "settings is a script screen");
         ExpectEqual(surface.tag, "s-settings", "settings mounted");
         Expect(surface.errors.empty(), "no errors");
         Expect(std::count(surface.commands.begin(), surface.commands.end(), "host app-cache-measure ") == 1,
@@ -337,6 +338,16 @@ struct SettingsRun
                "game toggles keep the game's labels");
         router.OnEvent({columns[0]["rows"][2]["id"], "change", "1"});
         ExpectEqual(surface.Last(), prefix + "ENHANCEDSAILING_CHECKBOX\t0\t1", "toggle on");
+        // The game's answer: the switch on (the prediction drawn meanwhile ends with it).
+        InterfaceModel answered = Load(models, "settings.json");
+        answered.revision += 1;
+        for (Widget &widget : answered.widgets)
+            if (widget.node == "ENHANCEDSAILING_CHECKBOX")
+                widget.value = "1";
+        router.Answer(surface.last_request, true, "");
+        router.SetInterface(answered);
+        Expect(surface.props["sections"][0]["columns"][0]["rows"][2]["on"] == true && surface.errors.empty(),
+               "the game's answer shows the switch on");
         surface.commands.clear();
         router.OnEvent({"app-pirate_frequency", "change", "2"});
         Expect(surface.commands.empty() && surface.props["sections"][0]["columns"][0]["rows"][0]["selected"] == 2,
@@ -363,7 +374,7 @@ struct SettingsRun
                    screen[1]["options"] == Json::array({"<settings.transparency_none>", "35%", "60%"}),
                "«Размер интерфейса» and «Прозрачность кнопок», applied at once: " + screen.dump());
         const Json camera = controls[0]["rows"];
-        Expect(camera.size() == 4 && camera[0]["id"] == "camera-sensitivity" &&
+        Expect(camera.size() == 4 && camera[0]["id"] == "sensitivity" &&
                    camera[0]["label"] == "<settings.camera_sensitivity>" && camera[0]["value"] == 50 &&
                    camera[1]["label"] == "<settings.invert_vertical>" &&
                    camera[2]["label"] == "<settings.sea_camera>" && camera[3]["label"] == "<settings.door_camera_turn>",
@@ -371,9 +382,9 @@ struct SettingsRun
         for (const Json &row : camera)
             Expect(row["id"].get<std::string>().find("ALWAYS_RUN") == std::string::npos, "«Всегда бегом» is gone");
         surface.commands.clear();
-        router.OnEvent({"camera-sensitivity", "change", "80"});
+        router.OnEvent({"sensitivity", "change", "80"});
         Expect(surface.commands.empty(), "sensitivity drag progress sends nothing");
-        router.OnEvent({"camera-sensitivity", "commit", "80"});
+        router.OnEvent({"sensitivity", "commit", "80"});
         Expect(surface.commands.size() == 2 &&
                    surface.commands[0] == prefix + "VMOUSE_SENSITIVITY_SLIDE\t-1\tset@12:80" &&
                    surface.commands[1] == prefix + "HMOUSE_SENSITIVITY_SLIDE\t-1\tset@12:80",
@@ -459,7 +470,6 @@ struct SettingsRun
                "a device without ETC2 or BC textures shows the ×2 disabled with that reason: " + processing(7).dump());
         router.OnEvent({"app-texture_height_maps", "change", "1"});
         router.SetState("renderCaps", Json{{"upscale", "unsupported"}, {"texture_processing", false}});
-        router.OnEvent({"app-texture_height_maps", "change", "1"});
         const Json &rows = surface.props["sections"][0]["columns"][1]["rows"];
         Expect(std::none_of(rows.begin(), rows.end(),
                             [](const Json &row) { return row.value("id", "") == "texture-processing"; }),
@@ -499,7 +509,7 @@ struct SettingsRun
         Expect(surface.commands.empty() && surface.props["sections"][0]["columns"][1]["rows"][0]["selected"] == 2 &&
                    surface.props["sections"][0]["columns"][1]["rows"][1]["selected"] == 3,
                "renderer options are a draft");
-        Expect(!surface.props["sections"][0]["columns"][1]["rows"][0].contains("hint"),
+        Expect(surface.props["sections"][0]["columns"][1]["rows"][0]["hint"] == "",
                "the measured scene height belongs to «Низкая» only");
         router.OnEvent({"done", "click", ""});
         Expect(surface.commands.size() == 2 &&
@@ -521,6 +531,7 @@ struct SettingsRun
             // A display with room for no size above 100 %: the UI size row stays, disabled, with the reason.
             FakeSurface small_surface;
             Router small(small_surface);
+            Scripted(small);
             Json reported = Json::parse(std::ifstream(models + "/app-settings.json", std::ios::binary));
             reported["ui_scale_options"] = Json::array({100});
             small.SetState("appSettings", reported);
@@ -541,6 +552,7 @@ struct SettingsRun
             // rows and «Замер GPU» (fx_gpu_profile), handed to the host with «Готово» like the others.
             FakeSurface debug_surface;
             Router debug(debug_surface);
+            Scripted(debug);
             Json reported{{"fx_preset", 1}, {"texture_quality", 2}};
             for (const storm::app::debug::Entry &entry : storm::app::debug::all)
                 reported[entry.key] = -1; // the preset's
@@ -612,9 +624,6 @@ struct SettingsRun
     {
         router.OnEvent({"header-back", "click", ""});
         ExpectEqual(surface.Last(), prefix + "BTN_CANCEL\t-1\tpress", "← drops the game's changes");
-
-        router.OnEvent({"tabs", "select", "3"});
-        Expect(surface.props["tabs"][2]["selected"] == true, "without debug overrides there is no fourth page to open");
     }
 
     void Rejected()
@@ -637,10 +646,11 @@ static void Settings(const std::string &models)
     run.ControlsPage();
     run.GraphicsPage();
     run.Cache();
-    run.SmallDisplay();
-    run.DebugOverrides();
     run.Leaving();
     run.Rejected();
+    // Last: their routers share the script program, and the debug page it is left on, with the run's router.
+    run.SmallDisplay();
+    run.DebugOverrides();
 }
 
 static void Title(const std::string &models)

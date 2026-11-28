@@ -65,7 +65,8 @@ struct DealSpec
 // (no children while there is none to press: the amount unchanged).
 // What a script asks of the engine or the platform host that is not a node of the game's window (UiCommand), one
 // struct per kind: an action of the application's contract (app_ui_names.hpp host_action), the game's quick save or
-// load once the menu has resumed ("save", "load"), a command of the title interface ("New", "Load", …).
+// load once the menu has resumed ("save", "load"), a command of the title interface ("New", "Load", …), the
+// application's settings.
 struct HostCommand
 {
     std::string action;
@@ -78,7 +79,18 @@ struct TitleCommand
 {
     std::string command;
 };
-using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand>;
+// The application's settings of the settings screen (screens/app_settings.h): "open" starts the draft of an opening,
+// "keep" hands it to the host; a setting of the draft set to one of the values its option offers.
+struct SettingsCommand
+{
+    std::string verb;
+};
+struct SettingCommand
+{
+    std::string key;
+    int value = 0;
+};
+using ScriptCommand = std::variant<HostCommand, QuickCommand, TitleCommand, SettingsCommand, SettingCommand>;
 
 struct DealView
 {

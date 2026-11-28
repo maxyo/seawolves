@@ -65,6 +65,17 @@ int TouchLib_Current(aref at, string path, string what)
 	return k;
 }
 
+// k of the first entry of the list `path` of `at` whose `field` is `value`, -1 none: what none means is the caller's.
+int TouchLib_Find(aref at, string path, string field, string value)
+{
+	for (int k = 0; k < TouchLib_Count(at, path); k++)
+	{
+		aref entry = TouchLib_Item(at, path, k);
+		if (CheckAttribute(entry, field) && entry.(field) == value) return k;
+	}
+	return -1;
+}
+
 // The number a tap carries for an entry of a list of `count`: anything else is the view's defect.
 int TouchLib_TapIndex(string value, int count, string what)
 {

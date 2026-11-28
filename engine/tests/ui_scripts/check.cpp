@@ -252,8 +252,12 @@ struct Calls final : storm::ui::ScriptCall
                     return "host " + asked.action;
                 else if constexpr (std::is_same_v<Kind, storm::ui::QuickCommand>)
                     return "quick " + asked.which;
-                else
+                else if constexpr (std::is_same_v<Kind, storm::ui::TitleCommand>)
                     return "title " + asked.command;
+                else if constexpr (std::is_same_v<Kind, storm::ui::SettingsCommand>)
+                    return "settings " + asked.verb;
+                else
+                    return "setting " + asked.key + "=" + std::to_string(asked.value);
             },
             command));
     }
@@ -279,10 +283,7 @@ struct Calls final : storm::ui::ScriptCall
         const auto found = states.find(channel);
         if (found == states.end())
             return std::nullopt;
-        storm::ui::ViewTree tree{channel, "", {}};
-        for (const auto &[key, value] : found->second.items())
-            tree.children.push_back({key, value.is_string() ? value.get<std::string>() : value.dump(), {}});
-        return tree;
+        return storm::ui::screens::StateTree(channel, found->second);
     }
     void Toast(const std::string &text) override
     {
@@ -888,6 +889,11 @@ TEST_CASE("the new game's script gives the pack screen the props and actions of 
 TEST_CASE("the save list's script gives the pack screen the props and actions of the recorded models")
 {
     CheckCases("saves", "saves");
+}
+
+TEST_CASE("the settings' script gives the pack screen the props and actions of the recorded models")
+{
+    CheckCases("settings", "settings");
 }
 
 TEST_CASE("the items screen's script gives the pack screen the props and actions of the recorded models")

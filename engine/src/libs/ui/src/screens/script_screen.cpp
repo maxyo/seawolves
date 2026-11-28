@@ -1,5 +1,6 @@
 #include "script_screen.h"
 
+#include "app_settings.h"
 #include "controls.h"
 #include "script_props.h"
 #include "amount.h"
@@ -258,6 +259,18 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         widget.type = "button";
         bindings_->Send(widget, "press");
     }
+    void Run(const SettingsCommand &command)
+    {
+        if (command.verb == "open")
+            return OpenAppSettings(*bindings_);
+        if (command.verb == "keep")
+            return KeepAppSettings(*bindings_);
+        throw std::runtime_error("'" + command.verb + "' is neither open nor keep of the settings");
+    }
+    void Run(const SettingCommand &command)
+    {
+        SetAppSetting(*bindings_, command.key, command.value);
+    }
     void Pass(const std::string &screen, const ViewTree &note) override
     {
         bindings_->Pass(screen, note);
@@ -268,29 +281,13 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     }
     std::optional<ViewTree> State(const std::string &channel) const override
     {
+        // The engine's own table of the application's settings, made from the host's and the renderer's channels.
+        if (channel == kAppOptionsChannel)
+            return StateTree(channel, AppOptions(*bindings_));
         const Json &state = bindings_->State(channel);
         if (state.is_null())
             return std::nullopt;
-        return Tree(channel, state);
-    }
-    // A channel's JSON as the VM's attributes hold it: an array's items named by their place, true and false as 1
-    // and 0, null as an empty text.
-    static ViewTree Tree(const std::string &name, const Json &json)
-    {
-        ViewTree tree{name, {}, {}};
-        if (json.is_object())
-            for (const auto &[key, value] : json.items())
-                tree.children.push_back(Tree(key, value));
-        else if (json.is_array())
-            for (size_t n = 0; n < json.size(); n++)
-                tree.children.push_back(Tree(std::to_string(n), json[n]));
-        else if (json.is_string())
-            tree.value = json.get<std::string>();
-        else if (json.is_boolean())
-            tree.value = json.get<bool>() ? "1" : "0";
-        else if (!json.is_null())
-            tree.value = json.dump();
-        return tree;
+        return StateTree(channel, state);
     }
     void Toast(const std::string &text) override
     {

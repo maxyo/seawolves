@@ -83,7 +83,7 @@ not send are string keys (`UiText`) of `../../../design/strings/<lang>.json`, ev
 ## The runtime
 
 Each capability has its object `ui` = `UiScreens.<capability>`: `capability`, `screen` (the screen file's stem), `look`,
-`data`, `model` (the admitted widgets of its last build: `<NODE>.{type, label, value, min, max, reason, offers.<verb>,
+`data`, `model` (the admitted widgets of its last build: `<NODE>.{type, label, value, min, max, step, reason, offers.<verb>,
 context, headers, images (a node without rows), rows.r<index>.{index, id, label, value, reason, offers, images,
 cells.c<n>.{text, color, images}}}`; an image is `i<n>.{kind, group, image, uv}`, copied whole into a view's
 `picture` or `texture`). The
@@ -119,7 +119,8 @@ The natives (`core/core.c`):
   object of named fields per kind (`TouchLib_Command(kind, field, value)` for one field): `"host"` {action} (a host
   action of the application's contract: `app-about`, `app-exit-to-main-menu`, …), `"quick"` {which: `save` | `load`}
   (the engine presses the game's quick key once the menu has resumed), `"title"` {command: `New`, `Load`, `Options`,
-  `Credits`, `Exit`, `Continue`}. An unknown kind, a missing or unknown field or a value the engine does not know
+  `Credits`, `Exit`, `Continue`}, `"settings"` {verb: `open` (a new draft of the application's settings) | `keep`
+  (the draft to the phone)}, `"setting"` {key, value} (one of the values the engine's table offers for it). An unknown kind, a missing or unknown field or a value the engine does not know
   fails the tap. A new engine or host command is a new kind (the table in `ui_host/src/scripts/script_port.cpp` and
   its struct in `storm_ui/script_screens.h`), never a new native;
 - a note for a screen that opens later, which outlives the script program (a load resets it): `UiPass(screen,
@@ -128,7 +129,9 @@ The natives (`core/core.c`):
   `"character"`, `"ship"`, `"journal"` {character, position, tab, quest} (a HUD tap's subject; it lapses if the
   screen does not open soon);
 - `UiState(channel, &out)`: the last state the engine or the phone published on a state channel (`appSettings`,
-  `renderCaps`, …), 0 before the first; a channel nothing reads fails;
+  `renderCaps`, …), 0 before the first; a channel nothing reads fails. `appOptions` is the engine's table of the
+  application's settings as the draft has them (screens/app_settings.h: each option's values and their names, its
+  restart mark, why it cannot be set);
 - `UiToast`, `UiRead`, `UiError(text)`;
 - `UiEditText(node, title)` in a tap: the phone's text editor over the game's field `node` with its text; the text
   the player accepts goes to the field as its `edit` (the game's own handler takes it), nothing when he cancels.
@@ -144,7 +147,7 @@ Look here before writing one; a helper earns its place with three sites (or two 
 keys), not flags that switch behaviours, and computes nothing the game computes.
 - `lib/text.c`: `TouchLib_Newline`, `Cut`, `StartsWith`, `EndsWith`, `Trim`, `AfterColon`, `Figure` (a caption's
   label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
-- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Current`: of a list the game always marks one of,
+- `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Find` (by a field's value), `Current`: of a list the game always marks one of,
   `Order`, `TapIndex`, `Copy`: a sub-object when it is there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
   `Actions`, `Action`), `Words`, the header's arrows over one of a list (`Stepper`, `StepTap`), the hero header
   (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`, `SubjectOn`, `SubjectTap`), `ShipSkills`,

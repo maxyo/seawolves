@@ -67,6 +67,7 @@
     {"file": "interface/touch/contracts/musket.c"},
     {"file": "interface/touch/contracts/saves.c"},
     {"file": "interface/touch/contracts/goods_sections.c"},
+    {"file": "interface/touch/contracts/settings.c"},
     {"file": "interface/android_ui_bootstrap.c"},
     {"file": "interface/touch/lineages/legacy/lib.c", "requires": ["var:GameInterface", "var:Characters"]},
     {
@@ -802,6 +803,30 @@
       ]
     },
     {
+      "file": "interface/touch/lineages/legacy/settings.c",
+      "provides": ["adapter:settings"],
+      "binds": [
+        {
+          "capability": "settings", "interface": "option_screen",
+          "nodes": [
+            ["BTN_OK", "button", true], ["BTN_CANCEL", "button", true], ["MUSIC_SLIDE", "slider"], ["SOUND_SLIDE", "slider"],
+            ["DIALOG_SLIDE", "slider"], ["VMOUSE_SENSITIVITY_SLIDE", "slider"], ["HMOUSE_SENSITIVITY_SLIDE", "slider"],
+            ["SEACAMPERSP_SLIDE", "slider"], ["AUTOSAVE_CHECKBOX", "check"], ["DIRECTSAIL_CHECKBOX", "check"],
+            ["ENHANCEDSAILING_CHECKBOX", "check"], ["INVERT_MOUSE_CHECKBOX", "check"], ["CAMERASWING_CHECKBOX", "check"],
+            ["QUESTMARK_CHECKBOX", "check"], ["SHIPMARK_CHECKBOX", "check"], ["BATTLE_MODE_CHECKBOX", "check"],
+            ["HERB_CHECKBOX", "check"], ["SEA_DETAILS_SLIDE", "slider"], ["ALWAYS_RUN_CHECKBOX", "check"],
+            ["HUD_SLIDE", "slider"], ["HUD_DESCRIP_TEXT", "text"], ["BTN_CONTROLS_DEFAULT", "button"],
+            ["GLOW_SLIDE", "slider"], ["ROTATESKY_CHECKBOX", "check"], ["DYNAMICLIGHTS_CHECKBOX", "check"],
+            ["SIMPLESEA_CHECKBOX", "check"], ["CREWONDECK_CHECKBOX", "check"], ["GAMMA_SLIDE", "slider"],
+            ["BRIGHT_SLIDE", "slider"], ["CONTRAST_SLIDE", "slider"], ["CONTROLS_LIST", "choice"], ["CHANGEKEY_*", "*"],
+            ["KEY_CHOOSER", "*"], ["TABBTN_*", "image|button"], ["TABSTR_*", "text"], ["TITLE", "heading|text"],
+            ["TITLES_STR", "text"], ["TITLES_IMAGES", "image"], ["HARDWARE_SETTINGS", "text"],
+            ["SOFTWARE_SETTINGS", "text"], ["MAIN_BACK", "image"]
+          ]
+        }
+      ]
+    },
+    {
       "file": "interface/touch/screens/rest.c",
       "uses": ["adapter:rest"],
       "screens": [{"capability": "rest", "component": "s-rest"}]
@@ -1003,6 +1028,11 @@
       "file": "interface/touch/screens/saves.c",
       "uses": ["adapter:saves"],
       "screens": [{"capability": "saves", "component": "s-saves"}]
+    },
+    {
+      "file": "interface/touch/screens/settings.c",
+      "uses": ["adapter:settings"],
+      "screens": [{"capability": "settings", "component": "s-settings"}]
     }
   ]
 }

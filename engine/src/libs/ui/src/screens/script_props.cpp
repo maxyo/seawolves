@@ -218,4 +218,22 @@ Json ScriptProps(const ViewTree &view, const ComponentSpec &spec)
     return props;
 }
 
+ViewTree StateTree(const std::string &name, const Json &json)
+{
+    ViewTree tree{name, {}, {}};
+    if (json.is_object())
+        for (const auto &[key, value] : json.items())
+            tree.children.push_back(StateTree(key, value));
+    else if (json.is_array())
+        for (size_t n = 0; n < json.size(); n++)
+            tree.children.push_back(StateTree(std::to_string(n), json[n]));
+    else if (json.is_string())
+        tree.value = json.get<std::string>();
+    else if (json.is_boolean())
+        tree.value = json.get<bool>() ? "1" : "0";
+    else if (!json.is_null())
+        tree.value = json.dump();
+    return tree;
+}
+
 } // namespace storm::ui::screens

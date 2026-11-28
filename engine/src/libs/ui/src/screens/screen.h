@@ -108,6 +108,9 @@ struct SharedState
     std::unordered_map<std::string, Note> notes;
     // The application's last state of its own screens (channel launcher).
     Json app = Json::object();
+    // The application's settings as the player set them on this opening of the settings screen (null: as the host
+    // reported them), and the ones last handed to the host from it (null: none) (app_settings.h).
+    Json settings_draft, settings_sent;
 };
 
 // Given to Screen::Build: connects element ids of the view to what happens on their events.

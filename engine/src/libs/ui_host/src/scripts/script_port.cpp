@@ -266,6 +266,8 @@ storm::ui::ScriptCommand Command(const std::string &kind, Fields &fields)
         {"host", [](Fields &f) -> ScriptCommand { return HostCommand{f.Text("action")}; }},
         {"quick", [](Fields &f) -> ScriptCommand { return QuickCommand{f.Text("which")}; }},
         {"title", [](Fields &f) -> ScriptCommand { return TitleCommand{f.Text("command")}; }},
+        {"settings", [](Fields &f) -> ScriptCommand { return SettingsCommand{f.Text("verb")}; }},
+        {"setting", [](Fields &f) -> ScriptCommand { return SettingCommand{f.Text("key"), f.Int("value")}; }},
     };
     for (const auto &[name, make] : kinds)
         if (kind == name)
@@ -662,7 +664,7 @@ void FillRow(ATTRIBUTES &rows, const storm::ui::Widget &widget)
         Child(row, "context").SetAttribute(key, value);
 }
 
-// The admitted widgets as <model>.<node>.{type, label, value, min, max, reason, offers.<verb>, context.<key>,
+// The admitted widgets as <model>.<node>.{type, label, value, min, max, step, reason, offers.<verb>, context.<key>,
 // headers.c<column>, images (a node's own), rows}: a node's first widget stands for it, its widgets with an index are
 // its rows (FillRow).
 void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &widgets)
@@ -681,6 +683,7 @@ void FillModel(ATTRIBUTES &model, const std::vector<const storm::ui::Widget *> &
             {
                 node->SetAttribute("min", std::to_string(widget->min));
                 node->SetAttribute("max", std::to_string(widget->max));
+                node->SetAttribute("step", std::to_string(widget->step));
             }
             FillOffers(*node, *widget);
             for (const auto &[key, value] : widget->context)

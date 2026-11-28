@@ -110,7 +110,7 @@ result. Three rules keep that free of flicker:
   corrected: …" and the game's state is shown. Capture values only (the function outlives the model it was
   declared for), and predict only what the game cannot quietly decide otherwise. An event without `Predict` is
   not predicted. A handler that alone knows the result says `bindings.PredictThis(…)`: a script screen's `UiPredict`
-  gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (settings, the generic layout, Other).
+  gives the view the tap leads to, and its change from the last build is laid over the builds until the answer. Predicted today: the toggles and segments of `ControlRows` (the generic layout, Other) and the game's switches of the settings script.
 - **Do not draw a step.** A model the screen knows to be a step of the game's answer (the store's row selected
   before its amount window, a confirmed deal closed before it reopens) is not drawn: the build returns the view
   it had and says `bindings.Await()` (a script screen: `UiAwait()`). A rule about models, never about time; a
