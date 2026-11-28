@@ -151,3 +151,41 @@ TEST_CASE("locomotion.stride")
     REQUIRE(s.phase == StridePhase::starting);
     REQUIRE(s.dir == MoveDir::right);
 }
+
+TEST_CASE("locomotion.sprint")
+{
+    REQUIRE(gaitFor(MoveDir::forward, false, true) == Gait::sprint); // a sprint outpaces the walk toggle
+    REQUIRE(gaitFor(MoveDir::forwardLeft, true, true) == Gait::sprint);
+    REQUIRE(gaitFor(MoveDir::left, true, true) == Gait::run);
+    REQUIRE(gaitFor(MoveDir::back, false, true) == Gait::walk);
+    REQUIRE(gaitFor(MoveDir::forward, true, false) == Gait::run);
+
+    SprintKey key;
+    key.update(true, false, 0.3f, 0.016f);
+    REQUIRE(key.held);
+    key.update(false, false, 0.3f, 0.2f);
+    REQUIRE(key.held); // a short release between strides keeps the sprint
+    key.update(true, false, 0.3f, 0.016f);
+    key.update(false, false, 0.3f, 0.2f);
+    REQUIRE(key.held); // the lag counts from the last release
+    key.update(false, false, 0.3f, 0.2f);
+    REQUIRE_FALSE(key.held);
+    key.update(true, true, 0.3f, 0.016f);
+    key.update(false, true, 0.3f, 0.016f);
+    REQUIRE_FALSE(key.held); // in a fight a release counts at once
+    key.update(true, false, 0.0f, 0.016f);
+    key.update(false, false, 0.0f, 0.016f);
+    REQUIRE_FALSE(key.held); // no lag
+}
+
+TEST_CASE("locomotion.dodge")
+{
+    REQUIRE(dodgeFor(true, true, false, true, false, false) == Dodge::back);
+    REQUIRE(dodgeFor(true, true, false, true, true, true) == Dodge::back);
+    REQUIRE(dodgeFor(true, true, false, false, true, true) == Dodge::right);
+    REQUIRE(dodgeFor(true, true, false, false, false, true) == Dodge::left);
+    REQUIRE(dodgeFor(true, true, true, true, false, false) == Dodge::none);   // forward sprints, no dodge
+    REQUIRE(dodgeFor(false, true, false, true, false, false) == Dodge::none); // out of a fight it walks back
+    REQUIRE(dodgeFor(true, false, false, true, false, false) == Dodge::none); // without the sprint key it walks
+    REQUIRE(dodgeFor(true, true, false, false, false, false) == Dodge::none);
+}

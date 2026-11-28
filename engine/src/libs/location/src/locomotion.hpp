@@ -76,6 +76,56 @@ constexpr MoveIntent intentFromStick(float x, float y)
             magnitude(x) > kStickRun || magnitude(y) > kStickRun};
 }
 
+// The gait of a step: a sprint goes forward or forward-diagonally only (the games' scripts give no other sprint), a
+// sprint wanted in another direction runs.
+constexpr Gait gaitFor(MoveDir dir, bool run, bool sprint)
+{
+    if (sprint && (dir == MoveDir::forward || dir == MoveDir::forwardRight || dir == MoveDir::forwardLeft))
+        return Gait::sprint;
+    return run ? Gait::run : Gait::walk;
+}
+
+// In a fight the sprint key with back, right or left (and not forward) dodges instead of walking: a backstep, a
+// sidestep. Back wins over the sides, right over left.
+enum class Dodge : uint8_t
+{
+    none,
+    back,
+    right,
+    left,
+};
+constexpr Dodge dodgeFor(bool fight, bool sprintKey, bool forward, bool back, bool right, bool left)
+{
+    if (!fight || !sprintKey || forward)
+        return Dodge::none;
+    return back ? Dodge::back : right ? Dodge::right : left ? Dodge::left : Dodge::none;
+}
+
+// The sprint key's hold: out of a fight a release counts only after `lag` seconds (the character's
+// "input_lag_shift"), so a tap between strides does not drop the sprint; in a fight at once.
+struct SprintKey
+{
+    bool held = false;
+    float released = 0.0f;
+    void update(bool down, bool fight, float lag, float dltTime)
+    {
+        if (down)
+        {
+            held = true;
+            released = 0.0f;
+        }
+        else if (held)
+        {
+            released += dltTime;
+            if (released > lag || fight)
+            {
+                held = false;
+                released = 0.0f;
+            }
+        }
+    }
+};
+
 // A travel vector in the mover's own frame (right, forward): the nearest of the eight directions (none for zero).
 MoveDir directionFromLocal(float right, float forward);
 

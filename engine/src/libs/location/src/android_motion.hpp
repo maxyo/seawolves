@@ -201,17 +201,30 @@ struct PlayerMotion
 
     // Directional locomotion: the held keys' direction relative to the heading, which the mouse turns; a run unless
     // the walk toggle flips the character's "alwaysrun".
-    template <class P> static void directionalGait(P &self)
+    template <class P> static void directionalGait(P &self, float dltTime)
     {
         CONTROL_STATE cs;
         const auto held = [&cs](const char *control) {
             return core.Controls->GetControlState(control, cs) && cs.lValue != 0;
         };
-        const auto dir = directionFromKeys(held("ChrForward") || held("ChrForward2"), held("ChrBackward"),
-                                           held("ChrStrafeRight"), held("ChrStrafeLeft"));
+        const bool forward = held("ChrForward") || held("ChrForward2"), back = held("ChrBackward"),
+                   right = held("ChrStrafeRight"), left = held("ChrStrafeLeft"), sprintKey = held("ChrSprint");
+        self.sprintKey.update(sprintKey, self.IsFight(), self.inputLagShift(), dltTime);
+        switch (dodgeFor(self.IsFight(), sprintKey, forward, back, right, left))
+        {
+        case Dodge::back:
+            return self.Recoil();
+        case Dodge::right:
+            return self.StrafeRight();
+        case Dodge::left:
+            return self.StrafeLeft();
+        case Dodge::none:
+            break;
+        }
         if (core.Controls->GetControlState("ChrSwitchWalk", cs) && cs.state == CST_ACTIVATED)
             self.walkToggled = !self.walkToggled;
-        directionalIntent(self, {dir, self.alwaysRun() != self.walkToggled});
+        self.SetSprint(self.sprintKey.held);
+        directionalIntent(self, {directionFromKeys(forward, back, right, left), self.alwaysRun() != self.walkToggled});
     }
 
     template <class P> static void directionalIntent(P &self, const MoveIntent &intent)

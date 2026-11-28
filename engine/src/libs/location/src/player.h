@@ -68,6 +68,8 @@ class Player : public NPCharacter
     float GetRotateH();
     // The character's "alwaysrun" (the scripts' option, run by default).
     bool alwaysRun() const;
+    // The character's "input_lag_shift": how long a released sprint key still counts, seconds.
+    float inputLagShift() const;
 
   private:
 #ifdef STORM_TOUCH_UI
@@ -85,4 +87,5 @@ class Player : public NPCharacter
     float kSMReload;
     LocationCamera *locCam;
     bool walkToggled = false; // ChrSwitchWalk flips "alwaysrun"
+    storm::location::SprintKey sprintKey;
 };

@@ -141,7 +141,7 @@ void Player::Move(float dltTime)
 #endif
             {
                 if (directional)
-                    storm::location::PlayerMotion::directionalGait(*this);
+                    storm::location::PlayerMotion::directionalGait(*this, dltTime);
                 else
                     storm::location::PlayerMotion::controlsGait(*this, dltTime);
             }
@@ -813,6 +813,11 @@ void Player::FireFromShootgun()
 bool Player::alwaysRun() const
 {
     return AttributesPointer->GetAttributeAsDword("alwaysrun", 1) != 0;
+}
+
+float Player::inputLagShift() const
+{
+    return AttributesPointer->GetAttributeAsFloat("input_lag_shift", 0.0f);
 }
 
 float Player::GetRotateH()

@@ -3724,11 +3724,13 @@ std::optional<uint32_t> Character::zExMessageCaribbeanLegend(const std::string &
         message.ScriptVariablePointer()->Set(std::string("none"));
         return 1;
     }
-    // Nor is sprint: a character never sprints.
     if (storm::iEquals(msg, "IsSprint"))
-        return 0;
+        return IsSprint();
     if (storm::iEquals(msg, "StopSprint"))
+    {
+        SetSprint(false);
         return 1;
+    }
     if (storm::iEquals(msg, "SetOverload"))
     {
         overload = message.Long() > 0;

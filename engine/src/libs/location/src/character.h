@@ -268,6 +268,9 @@ class Character : public Entity
     void StartMove(bool isBack = false);
     // Directional locomotion: walk in this direction relative to the heading.
     void StartMove(storm::location::MoveDir dir);
+    // Directional locomotion: sprint while wanted, if the game's energy check allows it when the sprint starts.
+    void SetSprint(bool want);
+    bool IsSprint() const;
     // Stay
     void StopMove();
     // Guide the character using the vector
@@ -429,7 +432,7 @@ class Character : public Entity
     void UpdateActionsData();
     void ReadDirectionalActions(ATTRIBUTES *actions);
     void UpdateDirectionalData(Animation *a);
-    storm::location::Gait DirectionalGait() const;
+    storm::location::Gait DirectionalGait(storm::location::MoveDir dir) const;
     ActionMove *DirectionalClip();
     bool StepStride();
     void PlayDirectionalClip();
@@ -615,6 +618,7 @@ class Character : public Entity
     std::unique_ptr<DirectionalActions> directional;
     storm::location::MoveDir wantDir = storm::location::MoveDir::none;
     storm::location::Stride stride;
+    bool sprinting = false; // granted by SetSprint
     // Attacks
     ActionCharacter attackFast[4];   // Rapid attacks
     int32_t numAttackFast;           // Number of quick attacks

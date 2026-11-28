@@ -63,17 +63,41 @@ void Character::UpdateDirectionalData(Animation *a)
                 UpdateActionMoveData(am, a);
 }
 
-Gait Character::DirectionalGait() const
+void Character::SetSprint(bool want)
 {
-    return IsRun() ? Gait::run : Gait::walk;
+    if (!want || overload)
+    {
+        sprinting = false;
+        return;
+    }
+    if (sprinting)
+        return;
+    int32_t possible = 1;
+    if (VDATA *res = core.Event("ChrCheckEnergy", "is", GetId(), "sprint"))
+        res->Get(possible);
+    sprinting = possible != 0;
+}
+
+bool Character::IsSprint() const
+{
+    return directional && stride.phase != StridePhase::still && DirectionalGait(stride.dir) == Gait::sprint;
+}
+
+Gait Character::DirectionalGait(MoveDir dir) const
+{
+    return gaitFor(dir, IsRun(), sprinting && !overload);
 }
 
 Character::ActionMove *Character::DirectionalClip()
 {
     auto &t = *directional;
-    const size_t f = isFight ? 1 : 0, g = static_cast<size_t>(DirectionalGait()), d = dirIndex(stride.dir);
+    const size_t f = isFight ? 1 : 0, d = dirIndex(stride.dir);
+    size_t g = static_cast<size_t>(DirectionalGait(stride.dir));
     if (movecs <= CHARACTER_COS_STAIR && stride.phase != StridePhase::stopping)
         return &t.stairs[f][stairsIndex(stride.dir)][isUp ? 0 : 1];
+    // The scripts name a forward-diagonal sprint that the animation sets do not have: that diagonal runs.
+    if (g == static_cast<size_t>(Gait::sprint) && !t.move[f][g][d].inAnimation)
+        g = static_cast<size_t>(Gait::run);
     switch (stride.phase)
     {
     case StridePhase::starting:
@@ -89,7 +113,8 @@ bool Character::StepStride()
 {
     auto &t = *directional;
     const MoveDir wanted = isMove ? wantDir : MoveDir::none;
-    const size_t f = isFight ? 1 : 0, g = static_cast<size_t>(DirectionalGait());
+    const size_t f = isFight ? 1 : 0;
+    const size_t g = static_cast<size_t>(DirectionalGait(wanted != MoveDir::none ? wanted : stride.dir));
     // Walking starts and stops at once, and a fight has no stop clips: the games' animation sets have none.
     const bool clips = g != static_cast<size_t>(Gait::walk);
     const bool hasStart = clips && wanted != MoveDir::none && t.start[f][g][dirIndex(wanted)].inAnimation;
