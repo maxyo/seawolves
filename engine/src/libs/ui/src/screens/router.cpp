@@ -997,10 +997,15 @@ void Router::BuildView()
                          ", generic layout; nodes=" + (list.empty() ? std::string("none") : list));
     }
     Json view = screen_->Build(admitted, bindings_);
-    // The generic layout places every widget itself and hands over only its overflow rows.
-    Json rows = view.contains("extras") && view["extras"].contains("rows") ? view["extras"]["rows"] : Json::array();
-    view["extras"] = ExtrasView(admitted, std::move(rows));
-    built_ = view;
+    if (view.is_null())
+        view = built_; // the screen keeps what it drew, its extras with it
+    else
+    {
+        // The generic layout places every widget itself and hands over only its overflow rows.
+        Json rows = view.contains("extras") && view["extras"].contains("rows") ? view["extras"]["rows"] : Json::array();
+        view["extras"] = ExtrasView(admitted, std::move(rows));
+        built_ = view;
+    }
     Predict(view);
     surface_.Show(screen_->Component(), view);
 }

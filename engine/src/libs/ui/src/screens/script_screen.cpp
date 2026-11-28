@@ -97,13 +97,13 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
                 awaited_since_ = bindings.Now();
             bindings.RebuildAfter(*awaited_since_ + kAwaitedSeconds - bindings.Now());
         }
-        if (waiting && awaited_ && !shown_.is_null())
+        if (waiting && awaited_ && shown_)
         {
             // What the kept view shows of what this model has closed (an amount window) takes no input.
             for (const std::string &bound : shown_bound_)
                 if (!bound_.contains(bound))
                     bindings.Ignore(bound.substr(0, bound.find('\x1f')), bound.substr(bound.find('\x1f') + 1));
-            return shown_;
+            return Json(); // the router keeps the view it drew
         }
         if (hold_ && answer_ == "late" && awaited_)
             bindings.Error("script screen " + screen_.capability + ": the game did not complete its answer in " +
@@ -111,7 +111,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
         hold_ = waiting;
         if (!hold_)
             awaited_since_.reset();
-        shown_ = *view_;
+        shown_ = true;
         shown_bound_ = bound_;
         return std::move(*view_);
     }
@@ -412,7 +412,7 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     Bindings *bindings_ = nullptr;
     std::vector<Widget> widgets_; // the admitted widgets of the last build: the handlers act on them
     std::optional<Json> view_;
-    Json shown_; // the view of the last build shown
+    bool shown_ = false; // a build of this screen was shown
     bool building_ = false;
     bool first_ = true;
     std::string language_;

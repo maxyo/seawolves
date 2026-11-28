@@ -260,6 +260,7 @@ class Screen
     // Maps the admitted widgets to the props of the pack screen and binds its elements.
     // Called for every model revision and after Bindings::Rebuild(); the instance lives
     // while the same screen stays open, so members hold local state (filters, open sheets).
+    // Null: the view it built last stays as drawn (a build awaiting the rest of the game's answer).
     virtual Json Build(const Admission &admitted, Bindings &bindings) = 0;
     // True while the screen shows something of its own that the back key closes (a local
     // modal); Back is then called instead of the engine's back.
