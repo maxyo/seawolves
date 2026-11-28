@@ -145,8 +145,9 @@ keys), not flags that switch behaviours, and computes nothing the game computes.
   label and value), `FindDigit`, `Thousands`, `FillTwo`, `Counted` (a count with its word).
 - `lib/list.c`: entries (`Add`, `Count`, `Item`, `Selected`, `Order`, `TapIndex`, `Copy`: a sub-object when it is
   there), list heads (`Column`, `SortTap`, `Filter`), `Fact`, `Stat`, buttons (`Button`: one the adapter offers,
-  `Actions`, `Action`), `Words`, the hero header (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`,
-  `SubjectOn`, `SubjectTap`), `ShipSkills`, `Command`.
+  `Actions`, `Action`), `Words`, the header's arrows over one of a list (`Stepper`, `StepTap`), the hero header
+  (`SectionHead`, `SectionTap`, `Section`, `SectionAsk`, `Subject`, `SubjectOn`, `SubjectTap`), `ShipSkills`,
+  `Command`.
 - `lineages/legacy/lib.c`: `TouchLegLib_Model`, `Exit` (the window's exit button of candidates), `Button` (a button as
   the game offers it), captions (`Label`, `Lines`, `NodeImage`, `Purse`), tables (`Cell`, `Amount`, `Picture`,
   `Image`), choices (`Choices`, `Choose`), the amount window (`Edit`, `Window`, `Open`, `Cancel`, `Offer`, `Confirm`),

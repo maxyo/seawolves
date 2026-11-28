@@ -27,7 +27,9 @@ void TouchCrew_Build()
 	if (view.title == "") view.title = UiText("crew.title");
 	object deal;
 	TouchCrew_Deal(game, &deal);
-	TouchCrew_Subject(game, view);
+	aref ships;
+	makearef(ships, game.ships);
+	TouchLib_Stepper(view, ships, TouchCrew_Current(game), true);
 	TouchCrew_Stats(game, view);
 	TouchCrew_List(game, &deal, view);
 	view.shipLabel = UiText("crew.on_ship");
@@ -59,23 +61,6 @@ int TouchCrew_Current(aref game)
 	int k = TouchLib_Selected(game, "ships");
 	if (k < 0) UiError("crew: no ship is chosen");
 	return k;
-}
-
-// Whose crew: the fleet's ships, none with one.
-void TouchCrew_Subject(aref game, aref view)
-{
-	int ships = TouchLib_Count(game, "ships");
-	view.subject = "";
-	if (ships <= 1) return;
-	int current = TouchCrew_Current(game);
-	aref ship = TouchLib_Item(game, "ships", current);
-	object subject = {label = ship.label, sub = (current + 1) + " " + UiText("common.of") + " " + ships,
-	                  prev = current > 0, next = current + 1 < ships, list = false};
-	aref at;
-	makearef(at, view.subject);
-	CopyAttributes(at, &subject);
-	UiOn("header", "subject-prev");
-	UiOn("header", "subject-next");
 }
 
 // The crew the window started from with the game's crew now as its preview, and our money.
@@ -163,8 +148,6 @@ void TouchCrew_Tap()
 	if (id == "crew-commit") { TouchAdpCrew_Commit(ui, sti(value)); UiHold(TouchCrew_Wait); return; }
 	if (id == "crew") return;
 	if (id != "header") UiError("crew: no tap of " + id);
-	int ship = TouchCrew_Current(game) + 1;
-	if (verb == "subject-prev") ship = TouchCrew_Current(game) - 1;
-	TouchAdpCrew_Ship(ui, TouchLib_TapIndex("" + ship, TouchLib_Count(game, "ships"), "the ship"));
+	TouchAdpCrew_Ship(ui, TouchLib_StepTap(verb, TouchCrew_Current(game), TouchLib_Count(game, "ships"), "the ship"));
 	UiHold(TouchCrew_Wait);
 }

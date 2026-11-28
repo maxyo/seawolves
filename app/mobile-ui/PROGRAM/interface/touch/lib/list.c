@@ -229,6 +229,32 @@ bool TouchLib_SectionTap(aref state, aref view, string own, string tapped)
 	return true;
 }
 
+// The header's arrows over the entries of `entries` a screen shows one of without a list of them (the ship of a crew
+// or of a repair): k `shown` with its label and "k of n", each arrow where it leads somewhere and `can`; none for one
+// entry. Bound; a tap is TouchLib_StepTap.
+void TouchLib_Stepper(aref view, aref entries, int shown, bool can)
+{
+	int count = GetAttributesNum(entries);
+	view.subject = "";
+	if (count <= 1) return;
+	aref entry = GetAttributeN(entries, shown);
+	object subject = {label = entry.label, sub = (shown + 1) + " " + UiText("common.of") + " " + count,
+	                  prev = shown > 0 && can, next = shown + 1 < count && can, list = false};
+	aref at;
+	makearef(at, view.subject);
+	CopyAttributes(at, &subject);
+	UiOn("header", "subject-prev");
+	UiOn("header", "subject-next");
+}
+
+// k of the entry an arrow of TouchLib_Stepper leads to; past an end is the view's defect.
+int TouchLib_StepTap(string verb, int shown, int count, string what)
+{
+	int k = shown + 1;
+	if (verb == "subject-prev") k = shown - 1;
+	return TouchLib_TapIndex("" + k, count, what);
+}
+
 // The header's switch over the people a screen shows one of: `people` entries {label, meta, image ("" none: a picture
 // {kind, group, image})}, k `shown`, its list open or not. Its events (TouchLib_SubjectOn in a build): header
 // subject-prev, subject-next, subject-list, header-subject-<k>, the list's ✕ header-subjects-close and its dismissal.

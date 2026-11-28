@@ -34,7 +34,9 @@ void TouchRepair_Build()
 	makearef(stock, view.stock);
 	TouchRepair_Stock(stock, "planks", "repair.planks", game.stock.planks);
 	TouchRepair_Stock(stock, "sailcloth", "repair.sailcloth", game.stock.sailcloth);
-	TouchRepair_Subject(game, view);
+	aref ships;
+	makearef(ships, game.ships);
+	TouchLib_Stepper(view, ships, TouchRepair_Current(game), true);
 	view.actions = "";
 	if (CheckAttribute(game, "all"))
 	{
@@ -103,23 +105,6 @@ void TouchRepair_Stock(aref stock, string icon, string label, string value)
 	at.value = value;
 }
 
-// The ship being repaired, with arrows to the squadron's others.
-void TouchRepair_Subject(aref game, aref view)
-{
-	int ships = TouchLib_Count(game, "ships");
-	view.subject = "";
-	if (ships <= 1) return;
-	int current = TouchRepair_Current(game);
-	aref ship = TouchLib_Item(game, "ships", current);
-	object subject = {label = ship.label, sub = (current + 1) + " " + UiText("common.of") + " " + ships,
-	                  prev = current > 0, next = current + 1 < ships, list = false};
-	aref at;
-	makearef(at, view.subject);
-	CopyAttributes(at, &subject);
-	UiOn("header", "subject-prev");
-	UiOn("header", "subject-next");
-}
-
 int TouchRepair_Current(aref game)
 {
 	int k = TouchLib_Selected(game, "ships");
@@ -162,9 +147,8 @@ void TouchRepair_Tap()
 	if (id == "all-ships") { TouchAdpRepair_All(ui); UiHold(TouchRepair_Wait); return; }
 	if (id == "header")
 	{
-		int ship = TouchRepair_Current(game) + 1;
-		if (verb == "subject-prev") ship = TouchRepair_Current(game) - 1;
-		TouchAdpRepair_Ship(ui, TouchLib_TapIndex("" + ship, TouchLib_Count(game, "ships"), "the ship"));
+		TouchAdpRepair_Ship(ui, TouchLib_StepTap(verb, TouchRepair_Current(game), TouchLib_Count(game, "ships"),
+		                                         "the ship"));
 		UiHold(TouchRepair_Wait);
 		return;
 	}

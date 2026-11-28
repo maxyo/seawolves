@@ -46,7 +46,12 @@ void TouchTrade_Build()
 	object deal;
 	TouchTrade_Deal(ui, game, &deal);
 	TouchTrade_List(game, look, &captions, &deal, view);
-	TouchTrade_Subject(game, view);
+	// Whose side: the ship or character selector; the first where the game marks none.
+	TouchTrade.current = TouchLib_Selected(game, "sides");
+	if (sti(TouchTrade.current) < 0) TouchTrade.current = 0;
+	aref sides;
+	makearef(sides, game.sides);
+	TouchLib_Stepper(view, sides, sti(TouchTrade.current), sti(game.switch));
 	TouchTrade_Stats(game, look, view);
 	TouchTrade_Info(game, view);
 	TouchTrade_Place(game, view);
@@ -303,29 +308,6 @@ void TouchTrade_Filters(aref game, aref look, aref captions, aref list)
 	TouchLib_Filter(list, other, filter == 2);
 }
 
-// Whose side: the ship or character selector, none with one side.
-void TouchTrade_Subject(aref game, aref view)
-{
-	int sides = TouchLib_Count(game, "sides");
-	view.subject = "";
-	if (sides <= 1) return;
-	int current = 0;
-	for (int k = 0; k < sides; k++)
-	{
-		aref side = TouchLib_Item(game, "sides", k);
-		if (sti(side.selected)) current = k;
-	}
-	side = TouchLib_Item(game, "sides", current);
-	object subject = {label = side.label, sub = (current + 1) + " " + UiText("common.of") + " " + sides,
-	                  prev = current > 0 && sti(game.switch), next = current + 1 < sides && sti(game.switch), list = false};
-	aref at;
-	makearef(at, view.subject);
-	CopyAttributes(at, &subject);
-	TouchTrade.current = current;
-	UiOn("header", "subject-prev");
-	UiOn("header", "subject-next");
-}
-
 // The header's figures, the adapter's: what we carry, the place's load, the purse. While a deal is open the load
 // figures show what they were with no amount set and, as their preview, the game's figures now, from the moment it
 // opens, so the header does not reflow at the first step. The purse is the game's: it changes when the deal is made.
@@ -478,9 +460,8 @@ void TouchTrade_Tap()
 	if (id == "deal-commit") { TouchAdpTrade_Commit(ui, sti(value), sti(game.money)); UiHold(TouchTrade_Wait); return; }
 	if (id == "header")
 	{
-		int side = sti(TouchTrade.current) + 1;
-		if (verb == "subject-prev") side = sti(TouchTrade.current) - 1;
-		TouchAdpTrade_Side(ui, TouchLib_TapIndex("" + side, TouchLib_Count(game, "sides"), "the side"));
+		int sides = TouchLib_Count(game, "sides");
+		TouchAdpTrade_Side(ui, TouchLib_StepTap(verb, sti(TouchTrade.current), sides, "the side"));
 		UiHold(TouchTrade_Wait);
 		return;
 	}
