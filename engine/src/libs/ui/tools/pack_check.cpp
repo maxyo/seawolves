@@ -1482,7 +1482,7 @@ int AddModelCases(const fs::path &fixtures, const std::set<fs::path> &used, std:
     return problems;
 }
 
-// Coverage: every ported screen and every script screen is drawn by a case, or listed with its reason.
+// Coverage: every application screen and every script screen is drawn by a case, or listed with its reason.
 int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shard)
 {
     int problems = 0;
@@ -1498,10 +1498,10 @@ int CheckCoverage(const std::vector<Case> &cases, const Json &manifest, int shar
         }
     }
     const Json &uncovered = manifest["uncovered"];
-    std::vector<std::string> screens; // the ported screens and those of the scripts, by interface
+    std::vector<std::string> screens; // the application's screens and those of the scripts
     if (shard == 0)
     {
-        for (const screens::ScreenEntry &entry : screens::PortedScreens())
+        for (const screens::ScreenEntry &entry : screens::AppScreens())
             screens.push_back(entry.id);
         // A HUD scene has no interface of the game, the generic layout and the Other sheet stand for any: each is
         // covered by its capability (a case of its states, of a window no screen draws, of one with an Other sheet).

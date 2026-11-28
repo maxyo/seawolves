@@ -3,7 +3,7 @@
 // course, the clock): it is never handed to a script, which only says where it goes; the script's states carry
 // `readings.<name>` = 1 for each one the engine knows now.
 #include "hud.h"
-#include "../screens/format.h"
+#include "../format.h"
 
 #include <charconv>
 #include <cmath>
@@ -678,7 +678,7 @@ Json ReadingRef::Resolve(const States &states, Hud &hud) const
             throw std::runtime_error("reading '" + readings + "': several readings go into a fill text");
         return single;
     }
-    return screens::Fill(fill, std::span<const std::string>(parts));
+    return ui::Fill(fill, std::span<const std::string>(parts));
 }
 
 } // namespace storm::ui::hud

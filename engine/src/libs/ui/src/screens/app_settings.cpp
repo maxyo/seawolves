@@ -2,7 +2,8 @@
 // ("appSettings") and of the renderer's device caps ("renderCaps"), which rebuild an open screen.
 #include "app_settings.h"
 
-#include "format.h"
+#include "../format.h"
+#include "screen.h"
 #include "app_ui_names.hpp"
 
 #include <platform/display_options.hpp>

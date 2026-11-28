@@ -107,7 +107,7 @@ add_library(storm_ui STATIC
     src/interface_model.cpp
     src/screens/router.cpp
     src/screens/deal.cpp
-    src/screens/format.cpp
+    src/format.cpp
     src/numbers.cpp
     src/screens/registry.cpp
     src/screens/dialogue.cpp

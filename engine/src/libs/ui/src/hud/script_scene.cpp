@@ -12,7 +12,7 @@
 #include "app_ui_names.hpp"
 #include "../component_spec.h"
 #include "../numbers.h"
-#include "../screens/format.h"
+#include "../format.h"
 #include "../screens/script_props.h"
 
 #include <algorithm>
@@ -1315,11 +1315,11 @@ class ScriptScene final : public Scene, private ScriptCall
     }
     std::string Fill(const std::string &text, const std::string &argument) const override
     {
-        return screens::Fill(text, {argument});
+        return ui::Fill(text, {argument});
     }
     std::string OneLine(const std::string &text) const override
     {
-        return screens::OneLine(text);
+        return ui::OneLine(text);
     }
     void Error(const std::string &text) override
     {

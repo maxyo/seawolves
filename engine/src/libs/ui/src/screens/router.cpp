@@ -1,4 +1,5 @@
-#include "format.h"
+#include "../format.h"
+#include "screen.h"
 
 #include "../hud/hud.h"
 
@@ -70,7 +71,7 @@ constexpr double kAnswerSeconds = 5.0;  // a widget action the engine has not an
 constexpr double kFlushSeconds = 0.12;  // drags reach the engine at most this often
 // The game publishes an interface while its script is still filling it (the store's first
 // revision has no goods yet). For this long after an opening a rejected model is not drawn
-// and not reported; a newer revision that passes admission shows the ported screen.
+// and not reported; a newer revision that passes admission shows the screen registered for it.
 constexpr double kSettle = 1.0;
 
 bool Contains(const std::string &text, const char *part)
@@ -883,15 +884,15 @@ void Router::BuildView()
     // for it while these screens stay; one that failed in this opening (a throw, a required node gone) is not used
     // until the next opening. The generic layout draws the window instead; for an engine-made model that is a defect
     // and the interface closes (CloseOnDefect).
-    std::string ported;
+    std::string registered;
     std::function<std::unique_ptr<Screen>()> create;
     const bool fell_back = fell_back_ == std::pair(model_.screen, model_.opening);
     for (const auto &[id, make] : script_screens_)
         if (model_.screen == id)
-            ported = id, create = make;
+            registered = id, create = make;
     for (const ScreenEntry &entry : screens_)
         if (!create && model_.screen == entry.id)
-            ported = entry.id, create = entry.create;
+            registered = entry.id, create = entry.create;
     const auto unfit = unfit_.find(model_.screen);
     if (fell_back || unfit != unfit_.end())
         create = nullptr;
@@ -911,10 +912,10 @@ void Router::BuildView()
     Admission admitted;
     if (create)
     {
-        if (using_ != ported || !screen_)
+        if (using_ != registered || !screen_)
         {
             screen_ = create();
-            using_ = ported;
+            using_ = registered;
         }
         admitted = Admit(model_, screen_->Nodes());
         if (!admitted.accepted)
@@ -985,7 +986,7 @@ void Router::BuildView()
                 admitted.known.push_back(&widget);
         if (const std::string list = nodes(); logged_.insert("generic:" + model_.screen + ":" + list).second)
             surface_.Log("screen " + model_.screen + ": " +
-                         (ported.empty() ? "no ported screen" : "its screen is not used") +
+                         (registered.empty() ? "no screen of its own" : "its screen is not used") +
                          ", generic layout; nodes=" + (list.empty() ? std::string("none") : list));
     }
     Json view = screen_->Build(admitted, bindings_);

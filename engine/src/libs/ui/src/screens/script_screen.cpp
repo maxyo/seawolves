@@ -2,7 +2,8 @@
 
 #include "app_settings.h"
 #include "deal.h"
-#include "format.h"
+#include "../format.h"
+#include "screen.h"
 #include "script_props.h"
 #include "../numbers.h"
 #include "../text_utf8.h"
@@ -337,15 +338,15 @@ class ScriptScreenImpl final : public Screen, private ScriptCall
     }
     std::string Decimal(const std::string &text) const override
     {
-        return screens::Decimal(text, language_);
+        return ui::Decimal(text, language_);
     }
     std::string OneLine(const std::string &text) const override
     {
-        return screens::OneLine(text);
+        return ui::OneLine(text);
     }
     std::string Fill(const std::string &text, const std::string &argument) const override
     {
-        return screens::Fill(text, {argument});
+        return ui::Fill(text, {argument});
     }
     DealView Deal(const DealSpec &spec) override
     {

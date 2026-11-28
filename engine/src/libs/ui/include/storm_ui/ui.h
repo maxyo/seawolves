@@ -238,12 +238,11 @@ class Host
     virtual void GameMessage(const std::string &text, const std::string &target) = 0;
 
     // --- game interfaces -----------------------------------------------------------
-    // Routes a game interface to its screen: the ported screen registered for the id (a model
-    // it cannot admit closes the interface as a defect), the generic layout for an id with no
-    // ported screen. Call again for every model revision.
+    // Routes a game interface to its screen: the script screen registered for the id, the generic layout for an id
+    // with none or for a window that screen cannot draw. Call again for every model revision.
     virtual void SetInterface(const InterfaceModel &model) = 0;
-    // The screens the attached scripts provide, run through `port` (script_screens.h); they replace a ported screen
-    // of the same interface. A screen whose pack component is missing is an error line and is left out.
+    // The screens the attached scripts provide, run through `port` (script_screens.h); they replace a C++ screen
+    // of the same id. A screen whose pack component is missing is an error line and is left out.
     virtual void SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port) = 0;
     virtual void CloseInterface() = 0;
     // The game's script ended the open interface (its next one, if any, opens some frames later): its screen stays as

@@ -7,7 +7,7 @@
 #include "../src/picture_atlas.h"
 #include "../src/numbers.h"
 #include "../src/screens/deal.h"
-#include "../src/screens/format.h"
+#include "../src/format.h"
 #include "storm_ui/dialogue_state.h"
 
 #include <algorithm>
@@ -294,7 +294,7 @@ static void Generic(const std::string &models)
                (surface.errors.empty() ? std::string("none") : surface.errors[0]));
     Expect(std::count_if(surface.logs.begin(), surface.logs.end(),
                          [](const std::string &line) {
-                             return line.rfind("screen mod_bounty: no ported screen, generic layout; nodes=TITLE,"
+                             return line.rfind("screen mod_bounty: no screen of its own, generic layout; nodes=TITLE,"
                                                "TABLE_TARGETS",
                                                0) == 0;
                          }) == 1,
@@ -443,7 +443,7 @@ static void Generic(const std::string &models)
                surface.errors.empty(),
            "an empty window is not blank");
 
-    // Section buttons of an interface with no ported screen are rows of «Прочее»; their
+    // Section buttons of an interface with no screen of its own are rows of «Прочее»; their
     // captions leave the content.
     InterfaceModel book;
     book.screen = "mod_journal";
@@ -3568,7 +3568,7 @@ struct LauncherRun
 
         // Game interface ids are ini stems: the game's credits (about.ini) are "about" and must
         // never reach the application's about screen.
-        for (const auto &entry : PortedScreens())
+        for (const auto &entry : AppScreens())
             Expect(std::string_view(entry.id).find(':') == std::string_view::npos ||
                        std::string_view(entry.id).starts_with("app:"),
                    std::string("only application screens use a ':' id: ") + entry.id);

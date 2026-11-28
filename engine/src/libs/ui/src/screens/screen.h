@@ -282,8 +282,8 @@ struct ScreenEntry
     const char *id; // interface id
     std::unique_ptr<Screen> (*create)();
 };
-// Screens ported to C++, keyed by interface id (registry.cpp).
-std::span<const ScreenEntry> PortedScreens();
+// The application's own screens in C++ (launcher, downloads, about), keyed by their "app:" id (registry.cpp).
+std::span<const ScreenEntry> AppScreens();
 
 // The launcher's results ("launcher.result.<key>" of the string tables, launcher.cpp) and whether the application
 // sends a detail with it (the reader's entry or file names), which its text places by {1}.
@@ -372,12 +372,12 @@ struct PredictedField
 class Router
 {
   public:
-    // `screens`: the ported screens by interface id; unit tests give their own.
-    explicit Router(Surface &surface, std::span<const ScreenEntry> screens = PortedScreens());
+    // `screens`: the C++ screens by id; unit tests give their own.
+    explicit Router(Surface &surface, std::span<const ScreenEntry> screens = AppScreens());
     ~Router();
 
     void SetInterface(const InterfaceModel &model);
-    // Screens of scripts by interface id, preferred to the ported ones; a model open now is built again. The entries of
+    // Screens of scripts by interface id, preferred to the C++ ones; a model open now is built again. The entries of
     // kAnyInterface and kOtherInterface are the generic layout and the Other sheet.
     using ScriptScreens = std::vector<std::pair<std::string, std::function<std::unique_ptr<Screen>()>>>;
     void SetScriptScreens(ScriptScreens screens);

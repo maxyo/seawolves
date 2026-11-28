@@ -21,7 +21,7 @@ std::unique_ptr<StateConsumer> CreateLauncherConsumer();
 namespace
 {
 
-const ScreenEntry kPorted[] = {
+const ScreenEntry kAppScreens[] = {
     // Routed from the platform host's "launcher" channel; the "app:" prefix keeps them apart from game interfaces
     // (ids are ini stems, e.g. "about").
     {"app:launcher", CreateLauncherScreen},
@@ -37,9 +37,9 @@ const ScreenEntry kPorted[] = {
 
 } // namespace
 
-std::span<const ScreenEntry> PortedScreens()
+std::span<const ScreenEntry> AppScreens()
 {
-    return kPorted;
+    return kAppScreens;
 }
 
 std::vector<std::unique_ptr<StateConsumer>> CreateStateConsumers()

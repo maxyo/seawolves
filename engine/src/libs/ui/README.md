@@ -33,7 +33,7 @@ Pack contract check: draws a real pack (the application's `mobile-ui/design/buil
 real screen and HUD adapters on every recorded model and state of `tests/` (cases and exemptions:
 `tests/pack-contract.json`), without a GL context:
 `build/ui-host/storm_ui_pack_check --pack DIR --fixtures src/libs/ui/tests`. A case fails on any error line
-and any element marked `ui-error`; a ported screen or a script screen with no case and no listed reason fails too.
+and any element marked `ui-error`; an application screen or a script screen with no case and no listed reason fails too.
 
 Script screens are checked like the C++ ones: `tools/script_game.h` runs the application's interface scripts (its
 mobile-ui layer as the APK ships it, `STORM_MOBILE_UI`) over the fixture game of the engine's `tests/ui_scripts/game`
@@ -46,7 +46,7 @@ every state draws, which `Host::Prewarm` makes ahead of a screen's first opening
 states drew; `--prewarm FILE` writes the list for the application's `mobile-ui/design/prewarm.json`.
 
 Every `models/*.json` interface model is a case; `pack-contract.json` adds the cases that need state channels or
-the game's answer to what a screen asks for on opening (`answer`), and lists the ported screens without a case,
+the game's answer to what a screen asks for on opening (`answer`), and lists the screens without a case,
 each with its reason (a listed screen that a case draws fails too: the entry is stale). A case feeds `states`
 (channel=file, in order), then its `interface`, then `answer`; `covers` names the screens it draws that its interface
 does not (a HUD scene of the scripts by its capability, `hud_world_map`); `taps` are element ids (or selectors) tapped after all that (a HUD state a tap opens, a sheet). A case is laid out on a 914 × 411 dp

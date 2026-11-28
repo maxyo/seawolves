@@ -1,8 +1,10 @@
 #include "format.h"
 
+#include "screens/screen.h"
+
 #include <cstdio>
 
-namespace storm::ui::screens
+namespace storm::ui
 {
 
 std::string Fill(std::string text, std::span<const std::string> args)
@@ -18,7 +20,7 @@ std::string Fill(std::string text, std::span<const std::string> args)
 }
 
 // One decimal with the decimal mark of the language ("2,3").
-std::string Decimal(const Bindings &bindings, double value)
+std::string Decimal(const screens::Bindings &bindings, double value)
 {
     char buffer[32];
     std::snprintf(buffer, sizeof buffer, "%.1f", value);
@@ -42,7 +44,7 @@ std::string Decimal(const std::string &text, const std::string &language)
 
 // A size in GB from a tenth of a GB, else in MB; `scale` (when given) picks the unit, so
 // that "done of total" share one.
-std::string Size(const Bindings &bindings, double bytes, double scale)
+std::string Size(const screens::Bindings &bindings, double bytes, double scale)
 {
     if ((scale < 0 ? bytes : scale) >= kGiB / 10)
         return Fill(bindings.Text("launcher.gb"), {Decimal(bindings, bytes / kGiB)});
@@ -63,4 +65,4 @@ std::string OneLine(const std::string &text)
     return first == std::string::npos ? std::string() : out.substr(first, out.find_last_not_of(' ') - first + 1);
 }
 
-} // namespace storm::ui::screens
+} // namespace storm::ui

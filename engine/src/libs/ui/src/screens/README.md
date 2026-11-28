@@ -27,7 +27,6 @@ engine ◀──────Action {screen, opening, node, index, verb, value}�
 | `registry.cpp` | the C++ screens by id (the `app:` screens) and the state consumers |
 | `script_screen.*`, `script_props.*` | a script screen on the router; its view to props, the game's pictures as the pack draws them |
 | `deal.*` | the amount draft behind the `UiDeal` native |
-| `format.*` | texts of the natives, the HUD and the launcher: a game text on one line, `{1}` filled, decimals, sizes |
 | `app_settings.*` | the application's settings: the options' table (`UiState("appOptions")`), the draft, the consumers of `appSettings` and `renderCaps` |
 | `menu_states.cpp` | the menus' state consumers: the death picture as the `game_over` model, the title's intent note, the load and save failure alerts |
 | `dialogue.cpp` | the dialogue's fixture JSON (`Host::SetDialogue` takes the typed state) |
@@ -38,7 +37,7 @@ engine ◀──────Action {screen, opening, node, index, verb, value}�
 Only an application screen is C++. A class derived from `Screen` (`screen.h`): `Component()` → `"s-<name>"`;
 `Nodes()` → the nodes it draws with their types (`"a|b"` alternatives, `NAME*` prefix, `required`); `Build(admitted,
 bindings)` → the props, reading widgets with `admitted.One/All/Rows/Label` and binding every interactive element by
-its id (`bindings.Forward`, `On`, `Send`, `Back`, `Modal(id, cancel)`, `Ignore`, `SendHost`). Registered in `kPorted`
+its id (`bindings.Forward`, `On`, `Send`, `Back`, `Modal(id, cancel)`, `Ignore`, `SendHost`). Registered in `kAppScreens`
 (`registry.cpp`) with its `app:` id; checked in `tests/` with a synthetic model. A game interface is a script screen:
 "Adding a screen" in the touch interface's README.
 

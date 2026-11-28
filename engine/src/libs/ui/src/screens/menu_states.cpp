@@ -1,7 +1,8 @@
 // The menus' state channels: the engine's death picture as the game-over interface the menus' script draws
 // ("gameOver"), the host's «Продолжить» at the title ("titleIntent"), and the loads and saves that failed
 // ("loadFailure", "saveFailure").
-#include "format.h"
+#include "../format.h"
+#include "screen.h"
 
 namespace storm::ui::screens
 {
