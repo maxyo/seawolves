@@ -268,9 +268,13 @@ class Character : public Entity
     void StartMove(bool isBack = false);
     // Directional locomotion: walk in this direction relative to the heading.
     void StartMove(storm::location::MoveDir dir);
-    // Directional locomotion: sprint while wanted, if the game's energy check allows it when the sprint starts.
-    void SetSprint(bool want);
+    // Directional locomotion: the intent's direction (none: stop), gait and sprint, for the player and NPCs alike.
+    void StartMove(const storm::location::MoveIntent &intent);
+    // Sprint while wanted, if the game's energy check allows it when the sprint starts; answers whether it sprints.
+    bool SetSprint(bool want);
     bool IsSprint() const;
+    // A fight dodge: backstep or sidestep, energy-checked (Recoil, StrafeRight, StrafeLeft).
+    void Dodge(storm::location::Dodge dodge);
     // Stay
     void StopMove();
     // Guide the character using the vector

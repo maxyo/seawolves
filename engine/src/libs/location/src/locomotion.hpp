@@ -41,6 +41,7 @@ struct MoveIntent
 {
     MoveDir dir = MoveDir::none;
     bool run = false;
+    bool sprint = false;
 };
 
 constexpr size_t dirIndex(MoveDir dir)

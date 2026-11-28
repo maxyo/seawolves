@@ -63,19 +63,43 @@ void Character::UpdateDirectionalData(Animation *a)
                 UpdateActionMoveData(am, a);
 }
 
-void Character::SetSprint(bool want)
+void Character::StartMove(const MoveIntent &intent)
+{
+    SetRunMode(intent.run);
+    SetSprint(intent.sprint);
+    if (intent.dir == MoveDir::none)
+        StopMove();
+    else
+        StartMove(intent.dir);
+}
+
+bool Character::SetSprint(bool want)
 {
     if (!want || overload)
-    {
         sprinting = false;
-        return;
+    else if (!sprinting)
+    {
+        int32_t possible = 1;
+        if (VDATA *res = core.Event("ChrCheckEnergy", "is", GetId(), "sprint"))
+            res->Get(possible);
+        sprinting = possible != 0;
     }
-    if (sprinting)
-        return;
-    int32_t possible = 1;
-    if (VDATA *res = core.Event("ChrCheckEnergy", "is", GetId(), "sprint"))
-        res->Get(possible);
-    sprinting = possible != 0;
+    return sprinting;
+}
+
+void Character::Dodge(storm::location::Dodge dodge)
+{
+    switch (dodge)
+    {
+    case storm::location::Dodge::back:
+        return Recoil();
+    case storm::location::Dodge::right:
+        return StrafeRight();
+    case storm::location::Dodge::left:
+        return StrafeLeft();
+    case storm::location::Dodge::none:
+        break;
+    }
 }
 
 bool Character::IsSprint() const

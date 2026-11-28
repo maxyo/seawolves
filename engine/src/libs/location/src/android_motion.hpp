@@ -210,30 +210,12 @@ struct PlayerMotion
         const bool forward = held("ChrForward") || held("ChrForward2"), back = held("ChrBackward"),
                    right = held("ChrStrafeRight"), left = held("ChrStrafeLeft"), sprintKey = held("ChrSprint");
         self.sprintKey.update(sprintKey, self.IsFight(), self.inputLagShift(), dltTime);
-        switch (dodgeFor(self.IsFight(), sprintKey, forward, back, right, left))
-        {
-        case Dodge::back:
-            return self.Recoil();
-        case Dodge::right:
-            return self.StrafeRight();
-        case Dodge::left:
-            return self.StrafeLeft();
-        case Dodge::none:
-            break;
-        }
+        if (const auto dodge = dodgeFor(self.IsFight(), sprintKey, forward, back, right, left); dodge != Dodge::none)
+            return self.Dodge(dodge);
         if (core.Controls->GetControlState("ChrSwitchWalk", cs) && cs.state == CST_ACTIVATED)
             self.walkToggled = !self.walkToggled;
-        self.SetSprint(self.sprintKey.held);
-        directionalIntent(self, {directionFromKeys(forward, back, right, left), self.alwaysRun() != self.walkToggled});
-    }
-
-    template <class P> static void directionalIntent(P &self, const MoveIntent &intent)
-    {
-        self.SetRunMode(intent.run);
-        if (intent.dir == MoveDir::none)
-            self.StopMove();
-        else
-            self.StartMove(intent.dir);
+        self.StartMove(MoveIntent{directionFromKeys(forward, back, right, left), self.alwaysRun() != self.walkToggled,
+                                  self.sprintKey.held});
     }
 
 #ifdef STORM_TOUCH_UI
@@ -249,7 +231,7 @@ struct PlayerMotion
             const glm::vec3 view = self.locCam->MovementViewDirection();
             self.Turn(view.x, view.z);
         }
-        directionalIntent(self, intent);
+        self.StartMove(intent);
     }
 
     template <class P> static void StopAndroidMovement(P &self)
