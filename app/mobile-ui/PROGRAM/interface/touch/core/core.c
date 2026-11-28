@@ -72,6 +72,10 @@ native void UiDeal(aref spec, aref out);
 // attached before it cannot name. Fails when absent or not a whole number.
 native int UiGameInt(string path);
 
+// The text the game's scripts hold, by the same paths as UiGameInt: a string global ("sMessageMode") or any
+// attribute's value; "" when the game holds an empty value (a dice not thrown yet), failing when it is absent.
+native string UiGameText(string path);
+
 // The entries of `list` in the order of their whole number `field`, stable.
 native void UiOrder(aref list, string field, int descending);
 

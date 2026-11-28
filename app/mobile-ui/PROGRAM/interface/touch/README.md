@@ -113,7 +113,8 @@ The natives (`core/core.c`):
 - the game's state that no model shows: `UiGameInt(path)`, a whole number of a global ("iHourWait") or of an
   attribute of a global object or reference ("refStore.Goods.Sugar.TradeType"); it reaches the globals of the game's
   open interface, which a segment attached before that interface cannot name. Absent or not a whole number, it fails.
-  The checks give such globals per recorded state (a case's `game`);
+  `UiGameText(path)` reads a string global or any attribute's value the same way: an empty value the game holds is
+  "", an absent one fails. The checks give such globals per recorded state (a case's `game`);
 - what is asked of the engine or the phone that is no node of the game's window: `UiCommand(kind, &fields)`, one
   object of named fields per kind (`TouchLib_Command(kind, field, value)` for one field): `"host"` {action} (a host
   action of the application's contract: `app-about`, `app-exit-to-main-menu`, …), `"quick"` {which: `save` | `load`}

@@ -371,10 +371,17 @@ uint32_t UiOneLine(VS_STACK *stack)
     return ReturnText(stack, "UiOneLine", [&](storm::ui::ScriptCall &call) { return call.OneLine(text); });
 }
 
-// A whole number the game's scripts hold: `path` is "global" (an int) or "global.attribute.…" (of an object or a
-// reference to one). It reaches a global of the game's open interface, which a segment attached before that
-// interface was compiled cannot name. Absent, another type or not a whole number: the native fails.
-int GameInt(const std::string &path)
+// A value the game's scripts hold, by `path`: "global" or "global.attribute.…" (of an object or a reference to one).
+// It reaches a global of the game's open interface, which a segment attached before that interface was compiled
+// cannot name. The global's own value is checked by the reader; an attribute must exist and hold a value (an empty
+// one is a value: it is how the game writes "nothing yet").
+struct GameValue
+{
+    VDATA *global = nullptr;               // the global itself (no attribute in the path)
+    const ATTRIBUTES *attribute = nullptr; // or the attribute it names
+};
+
+GameValue FindGameValue(const std::string &path)
 {
     const size_t dot = path.find('.');
     const std::string name = path.substr(0, dot);
@@ -383,13 +390,9 @@ int GameInt(const std::string &path)
         throw std::runtime_error("the game has no global " + name);
     if (variable->IsArray())
         throw std::runtime_error("the game's " + name + " is an array");
-    int32_t number = 0;
     if (dot == std::string::npos)
-    {
-        if (!variable->Get(number))
-            throw std::runtime_error("the game's " + name + " is not an int");
-        return number;
-    }
+        return {.global = variable};
+    int32_t number = 0;
     float real = 0.0f;
     const char *text = nullptr;
     if (variable->Get(number) || variable->Get(real) || variable->Get(text))
@@ -398,17 +401,49 @@ int GameInt(const std::string &path)
     const ATTRIBUTES *at = root ? root->FindAClass(root, path.c_str() + dot + 1) : nullptr;
     if (!at || !at->HasValue())
         throw std::runtime_error("the game has no " + path);
-    const std::string value(at->GetValue());
+    return {.attribute = at};
+}
+
+// A whole number: an int global or an attribute whose whole text is one.
+int GameInt(const std::string &path)
+{
+    const GameValue found = FindGameValue(path);
+    int32_t number = 0;
+    if (found.global)
+    {
+        if (!found.global->Get(number))
+            throw std::runtime_error("the game's " + path + " is not an int");
+        return number;
+    }
+    const std::string &value = found.attribute->GetValue();
     const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), number);
     if (error != std::errc() || end != value.data() + value.size() || value.empty())
         throw std::runtime_error("the game's " + path + " is '" + value + "', not a whole number");
     return number;
 }
 
+// A text: a string global or any attribute's value, "" when the game holds an empty one.
+std::string GameText(const std::string &path)
+{
+    const GameValue found = FindGameValue(path);
+    if (found.attribute)
+        return found.attribute->GetValue();
+    const char *text = nullptr;
+    if (!found.global->Get(text))
+        throw std::runtime_error("the game's " + path + " is not a string");
+    return text;
+}
+
 uint32_t UiGameInt(VS_STACK *stack)
 {
     const std::string path = PopText(stack);
     return ReturnInt(stack, "UiGameInt", [&](storm::ui::ScriptCall &) { return GameInt(path); });
+}
+
+uint32_t UiGameText(VS_STACK *stack)
+{
+    const std::string path = PopText(stack);
+    return ReturnText(stack, "UiGameText", [&](storm::ui::ScriptCall &) { return GameText(path); });
 }
 
 uint32_t UiFill(VS_STACK *stack)
@@ -789,6 +824,7 @@ class UiScripts : public SCRIPT_LIBRIARY
             {"UiDeal", "void", 2, UiDeal},
             {"UiOrder", "void", 3, UiOrder},
             {"UiGameInt", "int", 1, UiGameInt},
+            {"UiGameText", "string", 1, UiGameText},
             {"UiTreeLayout", "void", 3, UiTreeLayout},
         };
         for (const auto &native : natives)

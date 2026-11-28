@@ -20,6 +20,8 @@ object BadView;
 // What UiGameInt read of the game: through a global, an object's attribute and a reference's.
 int InsideRead;
 ref InsideRef;
+// What UiGameText read: a string global, an attribute's text and an attribute holding an empty value.
+string InsideText;
 
 void BadBuild()
 {
@@ -37,6 +39,15 @@ void BadBuild()
 		InsideRead = UiGameInt("iHourWait") * 100 + UiGameInt("InsideRef.TABLE_LIST.tr2.index") * 10 +
 		             UiGameInt("GameInterface.TABLE_LIST.tr3.index");
 	}
+	if (ui.capability == "gametexts")
+	{
+		makeref(InsideRef, GameInterface);
+		GameInterface.TABLE_LIST.blank = "";
+		InsideText = UiGameText("GameName") + "|" + UiGameText("InsideRef.TABLE_LIST.tr2.index") + "|" +
+		             UiGameText("GameInterface.TABLE_LIST.blank") + "|";
+	}
+	if (ui.capability == "textint") UiGameText("iHourWait");
+	if (ui.capability == "textpath") UiGameText("GameInterface.TABLE_LIST.nothing");
 	if (ui.capability == "nogame") UiGameInt("NoSuchGlobal");
 	if (ui.capability == "gametext") UiGameInt("GameName");
 	if (ui.capability == "gamepath") UiGameInt("GameInterface.TABLE_LIST.nothing");

@@ -137,8 +137,8 @@ struct Vm
     }
 };
 
-// The globals of the game's interface in a recorded state: "game": {name: whole number}, or {"Global.attribute.…":
-// whole number} for an attribute of a global object.
+// The globals of the game's interface in a recorded state: "game": {name: whole number or text}, or
+// {"Global.attribute.…": whole number or text} for an attribute of a global object, made when the fixture lacks it.
 void SetGame(const Json &recorded)
 {
     if (!recorded.contains("game"))
@@ -150,13 +150,17 @@ void SetGame(const Json &recorded)
         REQUIRE(variable != nullptr);
         if (dot == std::string::npos)
         {
-            variable->Set(static_cast<int32_t>(value.get<int>()));
+            if (value.is_string())
+                variable->Set(value.get<std::string>());
+            else
+                variable->Set(static_cast<int32_t>(value.get<int>()));
             continue;
         }
         ATTRIBUTES *root = variable->GetAClass();
-        ATTRIBUTES *at = root ? root->FindAClass(root, name.c_str() + dot + 1) : nullptr;
+        REQUIRE(root != nullptr);
+        ATTRIBUTES *at = root->CreateSubAClass(root, name.c_str() + dot + 1);
         REQUIRE(at != nullptr);
-        at->SetValue(std::to_string(value.get<int>()));
+        at->SetValue(value.is_string() ? value.get<std::string>() : std::to_string(value.get<int>()));
     }
 }
 
@@ -979,8 +983,15 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
     port.Build({.capability = "gameint", .interface = "gameint", .component = "s-rest"}, {}, calls);
     CHECK(vm.Integer("InsideRead") == 412);
     static_cast<VDATA *>(core.GetScriptVariable("iHourWait"))->Set(static_cast<int32_t>(0));
+    // Its texts the same way; an empty value is "", told apart from an absent attribute, which fails.
+    port.Build({.capability = "gametexts", .interface = "gametexts", .component = "s-rest"}, {}, calls);
+    const char *text = nullptr;
+    REQUIRE(static_cast<VDATA *>(core.GetScriptVariable("InsideText"))->Get(text));
+    CHECK(std::string(text) == "kept|1||");
     for (const auto &[capability, failure] :
-         {std::pair{"nogame", "UiGameInt: the game has no global NoSuchGlobal"},
+         {std::pair{"textint", "UiGameText: the game's iHourWait is not a string"},
+          std::pair{"textpath", "UiGameText: the game has no GameInterface.TABLE_LIST.nothing"},
+          std::pair{"nogame", "UiGameInt: the game has no global NoSuchGlobal"},
           std::pair{"gametext", "UiGameInt: the game's GameName is not an int"},
           std::pair{"gamepath", "UiGameInt: the game has no GameInterface.TABLE_LIST.nothing"},
           // A command the engine has no kind for, or with a field its kind does not read.
