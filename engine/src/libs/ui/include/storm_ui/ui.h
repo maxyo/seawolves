@@ -250,6 +250,9 @@ class Host
     // of the same interface. A screen whose pack component is missing is an error line and is left out.
     virtual void SetScriptScreens(const std::vector<ScriptScreen> &screens, ScriptPort *port) = 0;
     virtual void CloseInterface() = 0;
+    // The game's script ended the open interface (its next one, if any, opens some frames later): its screen stays as
+    // drawn until SetInterface of the next or CloseInterface, and is no longer built or tapped.
+    virtual void InterfaceLeft() = 0;
     // The game opens an interface whose model is still to come (it can take seconds: the
     // interface loads first). From now the UI covers the game: WantsTouch is true everywhere
     // and touches are held until the interface's first frame, then applied to it, so the

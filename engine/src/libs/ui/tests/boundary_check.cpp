@@ -121,6 +121,31 @@ static void CheckScreenBuild()
     Expect(router.Using() == "throwing" && surface.tag == "s-throwing", "a new opening draws the ported screen again");
 }
 
+// The game's script ended the interface (its segment unloaded, the next interface frames later): the screen stays as
+// drawn and is not built again, though its build would now fail on the script state that went with it.
+static void CheckLeft()
+{
+    FakeSurface surface;
+    surface.now = 5.0;
+    generic_created = 0;
+    Router router(surface, kScreens, CountingGeneric);
+    throw_in_build = false;
+    throw_in_handler = true;
+    router.SetInterface(Model(1, 1));
+    router.LeaveInterface();
+    throw_in_build = true;
+    router.RebuildActive();
+    surface.now = 50.0;
+    router.Tick();
+    Expect(surface.errors.empty() && surface.commands.empty() && surface.tag == "s-throwing",
+           "a left interface's screen stays drawn and is not built again");
+    Expect(router.OnEvent({"ok", "click", ""}) && surface.errors.empty(), "a tap on a left interface is dropped");
+    throw_in_build = false;
+    throw_in_handler = false;
+    router.SetInterface(Model(2, 1));
+    Expect(router.Using() == "throwing" && surface.errors.empty(), "the next opening is built");
+}
+
 static void CheckHandler()
 {
     FakeSurface surface;
@@ -327,6 +352,7 @@ static void CheckHudComponent(const char *where, bool &flag, bool event)
 int main()
 {
     CheckScreenBuild();
+    CheckLeft();
     CheckHandler();
     CheckBack();
     CheckTextAnswer();

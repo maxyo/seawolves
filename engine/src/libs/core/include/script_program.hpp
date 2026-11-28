@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <string_view>
 
 namespace storm::script
@@ -22,6 +23,12 @@ class Program
     virtual bool Attach(const char *segment) = 0;
     // A script is running now: engine code called from inside it must not raise script events.
     virtual bool Executing() const = 0;
+    // The file of the segment whose function runs now ("" outside scripts): engine code a script calls learns which
+    // segment called it.
+    virtual std::string RunningSegment() const = 0;
+    // From a native the running script called: every script frame of the call returns at once, no further statement
+    // runs.
+    virtual void Abort() = 0;
     virtual void ForEachFunction(const std::function<void(const Function &)> &visit) const = 0;
     virtual void ForEachGlobal(const std::function<void(std::string_view name)> &visit) const = 0;
     virtual void ForEachEvent(const std::function<void(std::string_view name)> &visit) const = 0;
@@ -39,6 +46,8 @@ class Attacher
     virtual void Attach(Program &program) = 0;
     // The program and its segments are gone (a save is loaded, the game ends): `program` must not be used again.
     virtual void Released() = 0;
+    // A script unloaded `segment` (UnloadSegment, inside that script): its functions, globals and events are gone.
+    virtual void Unloaded(const std::string &segment) = 0;
 };
 
 // Set before the game's program starts, by the module that attaches; nullptr removes it.

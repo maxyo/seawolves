@@ -70,6 +70,11 @@ void HostImpl::CloseInterface()
     PublishTouchMap();
 }
 
+void HostImpl::InterfaceLeft()
+{
+    router_->LeaveInterface();
+}
+
 void HostImpl::ExpectInterface()
 {
     if (!switch_.open)

@@ -108,7 +108,8 @@ struct Vm
                     [this] {
                         screens.clear();
                         ++released;
-                    }})
+                    },
+                    [](const std::string &) {}})
     {
         core_internal.Compiler = &compiler;
         storm::script::SetAttacher(&attacher);
@@ -1054,6 +1055,7 @@ TEST_CASE("script screen events are refused while a script runs; natives outside
         CHECK_THROWS_WITH(
             port.Build({.capability = capability, .interface = capability, .component = "s-rest"}, {}, calls),
             Catch::Contains(failure));
+    CHECK(vm.Integer("InsideRead") == 412);
 
     vm.compiler.Release();
     CHECK(vm.attacher.Running() == nullptr);

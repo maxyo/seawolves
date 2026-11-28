@@ -512,6 +512,16 @@ bool COMPILER::Attach(const char *segment)
     return true;
 }
 
+std::string COMPILER::RunningSegment() const
+{
+    if (!execute_depth_)
+        return {};
+    for (const SEGMENT_DESC &segment : SegmentTable)
+        if (segment.id == RunningSegmentID)
+            return segment.name;
+    return {};
+}
+
 void COMPILER::ForEachFunction(const std::function<void(const storm::script::Function &)> &visit) const
 {
     for (size_t n = 0; n < FuncTab.FuncsNum(); n++)
@@ -896,6 +906,8 @@ void COMPILER::UnloadSegment(const char *segment_name)
             {
                 SegmentTable[n].Files_list->Release();
             }
+            if (attacher)
+                attacher->Unloaded(SegmentTable[n].name);
             break;
         }
     }

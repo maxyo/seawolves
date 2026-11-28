@@ -299,6 +299,11 @@ class COMPILER : public VIRTUAL_COMPILER, public storm::script::Program
     {
         return execute_depth_ != 0;
     }
+    std::string RunningSegment() const override;
+    void Abort() override
+    {
+        AbortExecution();
+    }
     void ForEachFunction(const std::function<void(const storm::script::Function &)> &visit) const override;
     void ForEachGlobal(const std::function<void(std::string_view name)> &visit) const override;
     void ForEachEvent(const std::function<void(std::string_view name)> &visit) const override;

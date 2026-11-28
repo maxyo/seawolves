@@ -145,6 +145,8 @@
 - Экраны интерфейса обновляют только то, что изменилось: строка списка сохраняет свой элемент, пока она в списке.
   Кнопка покупки и всё под списком в сделке больше не пропадают после смены фильтра, а значок предмета в ячейке
   больше не остаётся цвета прежнего значка.
+- Переход из окна корабля в другой раздел (журнал, предметы и другие) больше не закрывает окно с ошибкой: экран
+  раздела, который игра уже закрыла, остаётся как есть до открытия следующего и больше не перестраивается.
 
 **English**
 
@@ -296,6 +298,8 @@
 - Interface screens update only what changed: a list row keeps its element while it is in the list. The buy button
   and everything under the list in a deal no longer vanish after a filter change, and an item's placeholder icon in
   a slot no longer keeps the colour of the icon shown there before.
+- Going from the ship window to another section (the journal, items and others) no longer closes the window with an
+  error: the screen of a section the game has already closed stays as it is until the next opens and is not rebuilt.
 
 ## 1.0.0-alpha.1 — 2026-11-26
 

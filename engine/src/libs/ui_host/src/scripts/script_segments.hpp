@@ -82,7 +82,8 @@ class Attacher final : public storm::script::Attacher
         std::function<std::string()> read_list;                                     // scripts.json of the pack
         std::function<bool(const std::string &)> file_exists;                       // a game file (file: requirements)
         std::function<void(const std::vector<storm::ui::ScriptScreen> &)> attached; // the screens of this program
-        std::function<void()> released; // the program and its screens are gone
+        std::function<void()> released;                    // the program and its screens are gone
+        std::function<void(const std::string &)> unloaded; // a script unloaded a segment of the game's
     };
     explicit Attacher(Hooks hooks) : hooks_(std::move(hooks))
     {
@@ -90,6 +91,10 @@ class Attacher final : public storm::script::Attacher
 
     void Attach(storm::script::Program &program) override;
     void Released() override;
+    void Unloaded(const std::string &segment) override
+    {
+        hooks_.unloaded(segment);
+    }
     // The program the segments are attached to, nullptr between programs.
     storm::script::Program *Running() const
     {

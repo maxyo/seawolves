@@ -119,7 +119,10 @@ class EngineUi
     void Screen(const std::string &screen, uint64_t revision, double release_ms, double load_ms)
     {
         if (screen.empty())
-            Log().info("interface {} closed (revision {})", screen_, revision);
+        {
+            if (!screen_.empty()) // not left already (Unloaded)
+                Log().info("interface {} closed (revision {})", screen_, revision);
+        }
         else // the game's part of a screen switch ("UI switch" follows with the UI's)
             Log().info("interface {} opened (revision {}) {} engine frames after the last tap, release {:.0f} ms, load "
                        "{:.0f} ms",
@@ -127,6 +130,9 @@ class EngineUi
         screen_ = screen;
         if (!screen.empty())
         {
+            // Sent from the interface's own script (its init function): the segment that has to stay loaded for it.
+            const auto *program = scripts_.Running();
+            segment_ = program ? program->RunningSegment() : std::string();
             closing_ = false;
             presentation_.screen = screen;
             PublishPresentation();
@@ -138,7 +144,23 @@ class EngineUi
         }
         // Interface screens close one menu some frames before they open the next: the closed one stays until the
         // game says nothing follows it (InterfaceGone), so the game does not flash between them.
+        segment_.clear();
         closing_ = true;
+    }
+
+    // The open interface's script unloaded the segment that opened it: the interface has ended for the game (its event
+    // handlers are gone; the next one, if any, opens some frames later). Its models and actions are a closed
+    // interface's from now, and its screen stays as drawn without being built again (Host::InterfaceLeft).
+    void Unloaded(const std::string &segment)
+    {
+        if (segment_.empty() || segment != segment_)
+            return;
+        Log().info("interface {} left: its script unloaded {}", screen_, segment_);
+        segment_.clear();
+        screen_.clear();
+        closing_ = true;
+        if (host_)
+            host_->InterfaceLeft();
     }
 
     void Language(std::string game_language)
@@ -387,7 +409,8 @@ class EngineUi
     storm::ui_scripts::Attacher scripts_{
         {[this] { return ReadScriptList(); },
          [](const std::string &path) { return fio->_FileOrDirectoryExists(path.c_str()); },
-         [this](const auto &screens) { ScriptsAttached(screens); }, [this] { ScriptsReleased(); }}};
+         [this](const auto &screens) { ScriptsAttached(screens); }, [this] { ScriptsReleased(); },
+         [this](const std::string &segment) { Unloaded(segment); }}};
     storm::ui_scripts::VmPort port_{scripts_};
     std::vector<storm::ui::ScriptScreen> script_screens_; // of the running program (replayed to a new host)
     std::optional<storm::ui::InterfaceModel> deferred_;   // a script screen's model published inside a script
@@ -398,6 +421,7 @@ class EngineUi
     uint64_t generation_ = 0;
     uint64_t loop_ = 0;     // engine loop iterations (Tick)
     uint64_t tap_loop_ = 0; // the iteration that applied the newest touch end
+    std::string segment_;   // the script segment that opened the interface open now ("" unknown)
     // The debug log tags (Loggable), read once.
     const bool trace_input_ = storm::platform::debugSwitch("StormUiInput");
     const bool trace_states_ = storm::platform::debugSwitch("StormUiState");

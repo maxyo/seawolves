@@ -29,6 +29,7 @@ namespace
 struct Running
 {
     storm::ui::ScriptCall &call;
+    storm::script::Program &program;
     std::string failure; // the first native that failed
 };
 Running *running = nullptr;
@@ -37,7 +38,7 @@ struct Scope
 {
     Running state;
     Running *outer;
-    explicit Scope(storm::ui::ScriptCall &call) : state{call, {}}, outer(running)
+    Scope(storm::ui::ScriptCall &call, storm::script::Program &program) : state{call, program, {}}, outer(running)
     {
         running = &state;
     }
@@ -124,7 +125,8 @@ class Fields
 };
 
 // Runs `act` on the running screen call. Outside one, with an argument of the wrong type, or when it throws, the
-// native fails: an error line, no result, and the build or event that ran the script fails with it.
+// native fails: an error line, no result, and the build or event that ran the script fails with it, stopping there (no
+// statement after the call runs on what it did not return).
 template <class Act> uint32_t Native(const char *native, Act &&act)
 {
     if (!running)
@@ -145,6 +147,7 @@ template <class Act> uint32_t Native(const char *native, Act &&act)
         spdlog::error("{}: {}", native, error.what());
         if (running->failure.empty())
             running->failure = std::string(native) + ": " + error.what();
+        running->program.Abort();
         return IFUNCRESULT_FAILED;
     }
 }
@@ -747,9 +750,9 @@ storm::script::Program &VmPort::Between(const storm::ui::ScriptScreen &screen, c
 void VmPort::Build(const storm::ui::ScriptScreen &screen, const std::vector<const storm::ui::Widget *> &widgets,
                    storm::ui::ScriptCall &call)
 {
-    Between(screen, "build");
+    storm::script::Program &program = Between(screen, "build");
     ATTRIBUTES &ui = FillUi(screen, widgets);
-    Scope scope(call);
+    Scope scope(call, program);
     const uint64_t errors = storm::android::scriptErrorEpoch;
     core.Event("UiBuild", "a", &ui);
     Failed(screen, scope, errors, "UiBuild");
@@ -758,11 +761,11 @@ void VmPort::Build(const storm::ui::ScriptScreen &screen, const std::vector<cons
 void VmPort::Event(const storm::ui::ScriptScreen &screen, const std::string &id, const std::string &verb,
                    const std::string &value, storm::ui::ScriptCall &call)
 {
-    Between(screen, "event " + id);
+    storm::script::Program &program = Between(screen, "event " + id);
     ATTRIBUTES &ui = Ui(screen);
     if (!ui.GetAttributeClass("model"))
         throw std::logic_error("script screen " + screen.capability + " event " + id + " before its first build");
-    Scope scope(call);
+    Scope scope(call, program);
     const uint64_t errors = storm::android::scriptErrorEpoch;
     core.Event("UiTap", "assss", &ui, id.c_str(), verb.c_str(), value.c_str());
     Failed(screen, scope, errors, "UiTap " + id);

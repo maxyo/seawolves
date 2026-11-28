@@ -48,7 +48,11 @@ void BadBuild()
 	}
 	if (ui.capability == "textint") UiGameText("iHourWait");
 	if (ui.capability == "textpath") UiGameText("GameInterface.TABLE_LIST.nothing");
-	if (ui.capability == "nogame") UiGameInt("NoSuchGlobal");
+	if (ui.capability == "nogame")
+	{
+		UiGameInt("NoSuchGlobal");
+		InsideRead = -1; // never runs: the build stops at the native that failed
+	}
 	if (ui.capability == "gametext") UiGameInt("GameName");
 	if (ui.capability == "gamepath") UiGameInt("GameInterface.TABLE_LIST.nothing");
 	if (ui.capability != "bad") return;

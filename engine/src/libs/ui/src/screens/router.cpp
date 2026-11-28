@@ -736,6 +736,7 @@ void Router::SetInterface(const InterfaceModel &model)
         pending_.end());
     if (reopened)
     {
+        left_ = false;
         opened_at_ = surface_.Now();
         screen_.reset();
         extras_open_ = false;
@@ -759,6 +760,7 @@ void Router::CloseInterface()
     if (!screen_ && settle_until_ == 0.0)
         return;
     settle_until_ = 0.0;
+    left_ = false;
     screen_.reset();
     using_.clear();
     rejection_.clear();
@@ -786,6 +788,23 @@ void Router::CloseGameInterface(const std::string &screen)
     CloseInterface();
     for (const auto &consumer : consumers_)
         Consume(consumer->Channel(), "Resume", [&] { consumer->Resume(*this); });
+}
+
+void Router::LeaveInterface()
+{
+    if (!screen_ || left_)
+        return;
+    left_ = true;
+    surface_.Log("screen " + using_ + ": its interface ended in the game; shown as it is until the next");
+    // The press that ended it is drawn as predicted: the build it left for its answer does not come (the answer is the
+    // next interface), and no answer of this one ends the prediction.
+    if (!later_ || predicting_.empty())
+        return;
+    later_ = false;
+    awaiting_ = true;
+    Json view = built_;
+    Predict(view);
+    surface_.Show(screen_->Component(), view);
 }
 
 void Router::SetState(const std::string &channel, const Json &state)
@@ -830,6 +849,8 @@ void Router::Alert(const std::string &key, const std::string &subject)
 
 void Router::Build()
 {
+    if (left_)
+        return;
     Guarded("Build", [this] { BuildView(); });
 }
 
@@ -1192,6 +1213,11 @@ bool Router::OnEvent(const Event &event)
 {
     if (!screen_)
         return false;
+    if (left_)
+    {
+        surface_.Log("screen " + using_ + ": " + event.id + " " + event.verb + " dropped: its interface ended");
+        return true;
+    }
     auto found = bindings_.handlers_.find(event.id + '\x1f' + event.verb);
     if (found == bindings_.handlers_.end() && event.verb == "refused")
         return true; // the control's shake answered it (Maps)
@@ -1275,6 +1301,8 @@ void Router::Back()
         surface_.Send(engine_back);
         return;
     }
+    if (left_)
+        return; // the game has no interface to go back from; the next one or the close follows
     if (!modals_.empty())
     {
         OnEvent({modals_.back().first, "back", ""});

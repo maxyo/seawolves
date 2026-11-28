@@ -373,6 +373,9 @@ class Router
     // The game closed its interface `screen`: it goes, unless a state channel's screen replaced
     // it (a dialogue the closing interface's script started); a channel screen it covered comes back.
     void CloseGameInterface(const std::string &screen);
+    // The game's script ended the open interface (Host::InterfaceLeft): its screen stays as drawn until the next
+    // interface or the close, and is neither built nor tapped (its script's state is gone).
+    void LeaveInterface();
     void SetState(const std::string &channel, const Json &state);
     void SetDialogue(const Dialogue &dialogue);
     // Builds the screen in use again now (a state consumer whose state the screen reads, e.g. titleIntent).
@@ -553,6 +556,7 @@ class Router
     bool awaiting_ = false;    // Bindings::Await in the current build
     bool build_later_ = false; // Bindings::BuildLater in the current event
     bool later_ = false;       // a build an event left for the model of its answer or the next tick
+    bool left_ = false;        // LeaveInterface: the screen shown belongs to an interface that has ended
     double last_flush_ = -1.0;
     double rebuild_at_ = 0.0;   // Bindings::RebuildAfter
     double opened_at_ = 0.0;    // when the open interface was opened
