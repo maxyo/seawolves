@@ -239,5 +239,6 @@ void TouchMenu_Tap()
 	if (id == "load") { TouchMenu_TitleCommand("Load"); return; }
 	if (id == "options") { TouchMenu_TitleCommand("Options"); return; }
 	if (id == "credits") { TouchMenu_TitleCommand("Credits"); return; }
-	if (id == "exit") TouchMenu_TitleCommand("Exit");
+	if (id == "exit") { TouchMenu_TitleCommand("Exit"); return; }
+	UiError("menu: no tap of " + id);
 }

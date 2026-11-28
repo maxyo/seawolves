@@ -12355,6 +12355,12 @@
    "like": 0,
    "without": [["TABLE_OTHER", "Energy"]],
    "fails": "character: the game's TABLE_OTHER has no Energy row"
+  },
+  {
+   "name": "a tap no handler knows fails aloud",
+   "capability": "character",
+   "like": 0,
+   "stray": "stray-id"
   }
  ]
 }

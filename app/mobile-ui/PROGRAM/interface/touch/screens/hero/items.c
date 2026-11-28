@@ -342,5 +342,7 @@ void TouchItems_Tap()
 		if (!sti(game.detail.action.can)) return;
 		TouchAdpItems_Act(ui);
 		UiHold();
+		return;
 	}
+	UiError("items: no tap of " + id);
 }

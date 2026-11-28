@@ -881,6 +881,13 @@ void CheckCases(const char *folder, const std::string &file, const std::string &
             continue;
         }
         port.Build(screen, calls.Single(), calls);
+        // "stray": a tap of an id the build bound nothing to (a template's id the handler forgot) fails aloud.
+        if (recorded.contains("stray"))
+        {
+            const std::string stray = recorded.at("stray").get<std::string>();
+            CHECK_THROWS_WITH(port.Event(screen, stray, "click", "", calls), Catch::Contains("no tap of " + stray));
+            continue;
+        }
         CHECK(calls.props == recorded.at("props"));
         if (capability.empty() || recorded.contains("modals"))
             CHECK(calls.modals == recorded.at("modals").get<std::vector<std::string>>());

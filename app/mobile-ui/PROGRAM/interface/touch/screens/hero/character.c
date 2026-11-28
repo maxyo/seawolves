@@ -901,4 +901,5 @@ void TouchCharacter_Tap()
 	}
 	if (id == "dialog-close" || id == "msg-ok") { TouchAdpCharacter_Close(ui); UiHold(); return; }
 	if (id == "game-accept" || id == "game-cancel") { TouchAdpCharacter_Act(ui, id); UiHold(); return; }
+	UiError("character: no tap of " + id);
 }
