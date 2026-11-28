@@ -4,6 +4,8 @@
 
 **Русский**
 
+- Загрузка записи и «Продолжить» оставляют на экране меню, пока не появится экран загрузки: раньше между ними на
+  долю секунды мелькали кнопки игры поверх старой сцены.
 - Автосохранение при сворачивании игры, сделанное, пока открыт экран сохранений или другое меню, получает картинку
   последней показанной сцены: раньше его картинка могла быть чёрной.
 - Сохранение, прерванное закрытием игры, не оставляет в папке сохранений скрытого недописанного файла: при следующем
@@ -240,6 +242,8 @@
 
 **English**
 
+- Loading a record and «Continue» keep the menu on the screen until the loading screen is up: the game's buttons
+  flashed over the old scene for a moment between them.
 - An autosave made as the game goes to the background while the save screen or another menu is open shows the
   last scene that was on screen: its picture could be black.
 - A save cut off by the game being closed no longer leaves a hidden unfinished file in the saves folder: the next

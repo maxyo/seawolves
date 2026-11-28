@@ -2807,11 +2807,13 @@ storm::mobile::ActionOutcome XINTERFACE::MobileApplyAction(const storm::ui::Acti
 // No interface is open. The touch UI still draws the one that closed until it hears that no other follows: the
 // scripts open the next section or menu some frames after they closed the last (interface.c ILaunchAfterFrame:
 // the posted event LaunchIAfterFrame counts frames down and then launches it). Without that event posted nothing
-// follows, and the UI shows the game again in this frame.
+// follows, and the UI shows the game again in this frame. A load the player asked for follows too (save_load.c
+// ProcessLoad closes the interface and posts evntLoad for the next frame): the screen stays until the load's cover is
+// up (EngineUi::Loading) or the load fails, else the HUD flashed over the old scene for that frame.
 void XINTERFACE::MobileInterfaceGone()
 {
 #ifdef STORM_TOUCH_UI
-    if (!m_bUse && !core.EventPosted("LaunchIAfterFrame"))
+    if (!m_bUse && !core.EventPosted("LaunchIAfterFrame") && !storm::loadWatch().Armed())
         storm::android::ui::interfaceGone();
 #endif
 }
