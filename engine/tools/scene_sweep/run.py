@@ -662,6 +662,7 @@ class Shard(threading.Thread):
                 self.context['save_identity'], own(f'{program.relative_to(game)}/interface/android_save_identity.c')
             )
         check_own_file(sweep_script)
+        check_own_file(game_calls)
         control = run / 'control'
         control.mkdir()
         (control / 'scenes.txt').write_text(''.join(scene + '\n' for scene in self.queue))

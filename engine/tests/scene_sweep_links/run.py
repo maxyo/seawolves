@@ -25,7 +25,11 @@ def make_game(game, resource=None):
     game.mkdir()
     (game / 'engine.ini').write_text('screen_x = 1\n')
     (game / 'options').write_text('options\n')
-    (game / 'PROGRAM').mkdir()
+    # The scripts the sweep picks its per-game calls by (inventory.game_calls).
+    (game / 'PROGRAM' / 'interface').mkdir(parents=True)
+    (game / 'PROGRAM' / 'interface' / 'mainmenu.c').write_text('void ProcCommand()\n{\n}\n')
+    (game / 'PROGRAM' / 'weather').mkdir()
+    (game / 'PROGRAM' / 'weather' / 'WhrWeather.c').write_text('void SetNextWeather(string id)\n{\n}\n')
     (game / 'SAVE').mkdir()
     (game / 'SAVE' / 'profile').write_text('save\n')
     if resource:
@@ -130,6 +134,7 @@ with tempfile.TemporaryDirectory(prefix='sweep-links-') as directory:
     # The sweep's script is the copy's own inode, never written through a hard link (the read-only source would
     # refuse it with EACCES, a writable one would be changed); the game's own files stay links of the player's.
     assert os.stat(game / 'PROGRAM/scene_sweep.c').st_nlink == 1
+    assert os.stat(game / 'PROGRAM/scene_sweep_game.c').st_nlink == 1
     for kept in ('engine.ini', 'options', 'RESOURCE/techniques/game.fx'):
         assert os.stat(game / kept).st_nlink > 1, f'{kept} of the copy was rewritten'
     folders = {name: run / name for name in ('settings', 'saves', 'cache')}
