@@ -7146,9 +7146,10 @@ bool COMPILER::SaveState(std::vector<char> &image)
 }
 
 // Whether a saved state is of the running program, asked before the running game is erased: "" when its program
-// directory is this one and every segment it names is loaded now, else why not. A load compiles the program again
-// from what the running one was compiled from, never from a place a file names: the state's segments become the
-// running program's own names for them.
+// directory is this one and its only segment is the running main program, else why not. A save names what
+// SerializeState writes, the first segment of the table, and a load runs that segment alone: any other list would
+// leave the erased game without its program. The program compiles again from what the running one was compiled
+// from, never from a place a file names: the state's segment becomes the running program's own name for it.
 std::string COMPILER::BindStateProgram(storm::save::ParsedState &state) const
 {
     // The game's paths take either slash and any case of ASCII letters.
@@ -7163,15 +7164,13 @@ std::string COMPILER::BindStateProgram(storm::save::ParsedState &state) const
                (ProgramDirectory ? ProgramDirectory : "") + "'";
     if (state.segments.empty())
         return "the save names no script segment";
-    for (std::string &segment : state.segments)
-    {
-        const auto running = std::ranges::find_if(SegmentTable, [&](const SEGMENT_DESC &loaded) {
-            return !loaded.bUnload && folded(loaded.name) == folded(segment);
-        });
-        if (running == SegmentTable.end())
-            return "the save is of another program: it names a script segment this game does not run";
-        segment = running->name;
-    }
+    if (SegmentTable.empty() || SegmentTable.front().bUnload)
+        return "no program is running to take the save";
+    const std::string &main = SegmentTable.front().name;
+    if (state.segments.size() != 1 || folded(state.segments.front()) != folded(main))
+        return "the save is of another program: its script segments are not this game's main program '" + main +
+               "' alone";
+    state.segments.front() = main;
     return {};
 }
 

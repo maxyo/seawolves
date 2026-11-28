@@ -83,6 +83,7 @@ void ChooseGame()
     const fs::path game = fs::temp_directory_path() / "game";
     fs::create_directories(game / "PROGRAM");
     std::ofstream(game / "PROGRAM" / "main.c") << kProgram;
+    std::ofstream(game / "PROGRAM" / "library.c") << "int gLibrary = 1;\n";
     fs::current_path(game);
     storm::setGameProfile(storm::GameProfile::Legacy);
     storm::storage::select({.game = game, .saves = SavesFolder()});
@@ -418,6 +419,22 @@ TEST_CASE("a save the running program cannot take is refused with the game still
     {
         RewriteProgram("PROGRAM\\", {});
     }
+    // A segment the game runs beside its main program: loading only it would leave no program to run.
+    SECTION("a loaded segment that is not the main program")
+    {
+        REQUIRE(game.compiler.BC_LoadSegment("library.c"));
+        RewriteProgram("PROGRAM\\", {"library.c"});
+    }
+    SECTION("a loaded segment before the main program")
+    {
+        REQUIRE(game.compiler.BC_LoadSegment("library.c"));
+        RewriteProgram("PROGRAM\\", {"library.c", "main.c"});
+    }
+    SECTION("the main program and a loaded segment after it")
+    {
+        REQUIRE(game.compiler.BC_LoadSegment("library.c"));
+        RewriteProgram("PROGRAM\\", {"main.c", "library.c"});
+    }
     SECTION("a state cut inside its head")
     {
         CutState(40);
@@ -449,6 +466,7 @@ TEST_CASE("a save the running program cannot take is refused with the game still
     }
     CHECK(game.Text("gLoadFailedRecord") == kSlot);
     CHECK(!game.Text("gLoadFailedReason").empty());
+    CHECK(game.compiler.BC_SegmentIsLoaded("main.c"));
     CHECK(game.Run("Bump") == 9); // the program and its state are as they were
 }
 
