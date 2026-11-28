@@ -120,6 +120,8 @@
 #define MSG_LOCATION_SETCHRPOSITIONS 30152 // "l" save positions to restore
 #define MSG_LOCATION_TLPCHRPOSITIONS 30153 // "l" move and delete positions to restore
 #define MSG_LOCATION_CLRCHRPOSITIONS 30154 // "l" delete positions to restore
+// "lsa" Caribbean Legend's dynamic objects (benches, mannequins, item placement): an action and its attributes
+#define MSG_LOCATION_DYNAMIC_OBJECT 30104
 #define MSG_LOCATION_EX_MSG 30155          // "ls" extended s command, ...
 #define MSG_LOCATION_VIEWSTATEBARS 30156   // "ll" display of enemy state (HP, energy) <-- ugeen 05.24.12
 // Debug

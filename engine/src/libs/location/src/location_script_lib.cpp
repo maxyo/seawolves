@@ -2,8 +2,10 @@
 
 #include <thread>
 
+#include "character.h"
 #include "entity.h"
 #include "fader.h"
+#include "land_protocol.hpp"
 #include "reload_progress.hpp"
 #include "core.h"
 #include "string_compare.hpp"
@@ -306,8 +308,37 @@ uint32_t slNativeSetReloadNextTipsImage(VS_STACK *pS)
     return IFUNCRESULT_OK;
 }
 
+namespace
+{
+// The DynamicObject_*Native natives serve the engine's dynamic objects, which this engine does not have: false, the
+// scripts' answer for an object or actor that is not available.
+template <uint32_t Arguments> uint32_t DynamicObjectNative(VS_STACK *stack, const char *name)
+{
+    for (uint32_t n = 0; n < Arguments; n++)
+        stack->Pop();
+    storm::location::ReportNotImplemented(name, storm::location::kWithoutDynamicObjects);
+    static_cast<VDATA *>(stack->Push())->Set(int32_t{0});
+    return IFUNCRESULT_OK;
+}
+} // namespace
+
 bool ScriptLocationLibrary::Init()
 {
+    IFUNCINFO native;
+    native.pReturnValueName = "int";
+    native.nArguments = 2;
+    native.pFuncName = "DynamicObject_ConfigureComponentsNative";
+    native.pFuncAddress = [](VS_STACK *s) { return DynamicObjectNative<2>(s, "DynamicObject_ConfigureComponentsNative"); };
+    core.SetScriptFunction(&native);
+    native.nArguments = 3;
+    native.pFuncName = "DynamicObject_BehaviorCommandNative";
+    native.pFuncAddress = [](VS_STACK *s) { return DynamicObjectNative<3>(s, "DynamicObject_BehaviorCommandNative"); };
+    core.SetScriptFunction(&native);
+    native.nArguments = 2;
+    native.pFuncName = "DynamicObject_SetActorNative";
+    native.pFuncAddress = [](VS_STACK *s) { return DynamicObjectNative<2>(s, "DynamicObject_SetActorNative"); };
+    core.SetScriptFunction(&native);
+
     IFUNCINFO sIFuncInfo;
     sIFuncInfo.nArguments = 2;
     sIFuncInfo.pFuncName = "NativeFindCharacter";
@@ -375,5 +406,34 @@ bool ScriptLocationLibrary::Init()
     sIFuncInfo.pFuncAddress = slGetNextLineString;
     core.SetScriptFunction(&sIFuncInfo);
 
+    return true;
+}
+
+namespace
+{
+uint32_t FadeCharacter(VS_STACK *stack, float alpha)
+{
+    float seconds = 0.0f;
+    static_cast<VDATA *>(stack->Pop())->Get(seconds);
+    auto *character = (VDATA *)static_cast<VDATA *>(stack->Pop())->GetVarPointer(); // the character object
+    auto *model = character ? dynamic_cast<Character *>(core.GetEntityPointer(character->GetEntityID())) : nullptr;
+    if (model)
+        model->FadeVisual(alpha, seconds);
+    static_cast<VDATA *>(stack->Push())->Set(int32_t{model != nullptr});
+    return IFUNCRESULT_OK;
+}
+} // namespace
+
+bool ScriptCharacterVisualLibrary::Init()
+{
+    IFUNCINFO info;
+    info.nArguments = 2;
+    info.pReturnValueName = "int";
+    info.pFuncName = "CharacterVisual_FadeOut";
+    info.pFuncAddress = [](VS_STACK *stack) { return FadeCharacter(stack, 0.0f); };
+    core.SetScriptFunction(&info);
+    info.pFuncName = "CharacterVisual_FadeIn";
+    info.pFuncAddress = [](VS_STACK *stack) { return FadeCharacter(stack, 1.0f); };
+    core.SetScriptFunction(&info);
     return true;
 }

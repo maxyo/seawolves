@@ -729,6 +729,9 @@ uint64_t Location::ProcessMessage(MESSAGE &message)
     case MSG_LOCATION_VIEWSTATEBARS:
         bDrawBars = message.Long() != 0;
         return 1;
+    case MSG_LOCATION_DYNAMIC_OBJECT:
+        storm::location::ReportNotImplemented("MSG_LOCATION_DYNAMIC_OBJECT", storm::location::kWithoutDynamicObjects);
+        return 0;
     default:
         storm::location::ReportUnknownCommand("location message", std::to_string(code));
     }

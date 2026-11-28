@@ -32,4 +32,10 @@ void ReportWithoutEffect(std::string_view command, std::string_view what)
         spdlog::warn("{}: accepted; {} by this engine", command, what);
 }
 
+void ReportNotImplemented(std::string_view name, std::string_view without)
+{
+    if (FirstTime(fmt::format("not implemented {}", name)))
+        spdlog::error("not implemented: {}; the game continues without {}", name, without);
+}
+
 } // namespace storm::location

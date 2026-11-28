@@ -53,3 +53,5 @@ CREATE_CLASS(LocModelRealizer)
 CREATE_CLASS(Blood)
 
 CREATE_SCRIPTLIBRIARY(ScriptLocationLibrary)
+
+CREATE_SCRIPTLIBRIARY(ScriptCharacterVisualLibrary)

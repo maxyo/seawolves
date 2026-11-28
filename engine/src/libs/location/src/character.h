@@ -116,6 +116,7 @@ class Character : public Entity
         float alpha;
         float chrAlpha;
         float camAlpha;
+        float scriptAlpha = 1.0f; // the scripts' fade (FadeVisual)
         float selected;
         Character *character;
         bool isVisible;
@@ -336,6 +337,8 @@ class Character : public Entity
 
     // Set transparency of character
     void SetCameraAlpha(float alpha);
+    // The scripts' fade of the whole character towards alpha (0 hidden, 1 shown) over seconds (0: at once)
+    void FadeVisual(float alpha, float seconds);
     // Block selection of idle animation
     void LockIdle(bool isLock);
     // Highlight character
@@ -686,6 +689,8 @@ class Character : public Entity
     // Dynamic appearance and removal
     RTuner tuner;
     float liveValue; // >0 appears, <0 disappears, 0 does not change
+    float visualFadeTarget = 1.0f; // FadeVisual: tuner.scriptAlpha moves to it by visualFadeRate per second
+    float visualFadeRate = 0.0f;
 
     // Animation events
     EventListener eventListener;

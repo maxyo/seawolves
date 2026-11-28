@@ -308,7 +308,7 @@ void Character::RTuner::Set(MODEL *model, VRenderer *rs)
         camAlpha = 0.0f;
     if (camAlpha > 1.0f)
         camAlpha = 1.0f;
-    auto a = camAlpha * chrAlpha * alpha;
+    auto a = camAlpha * chrAlpha * alpha * scriptAlpha;
     if (!isVisible)
         a = 0.0f;
     if (a < 0.5f)
@@ -371,9 +371,18 @@ void Character::RTuner::Restore(MODEL *model, VRenderer *rs)
     rs->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
 }
 
+void Character::FadeVisual(float alpha, float seconds)
+{
+    visualFadeTarget = alpha;
+    if (seconds > 0.0f)
+        visualFadeRate = 1.0f / seconds;
+    else
+        tuner.scriptAlpha = alpha;
+}
+
 float Character::RTuner::GetAlpha() const
 {
-    auto a = camAlpha * chrAlpha * alpha;
+    auto a = camAlpha * chrAlpha * alpha * scriptAlpha;
     if (a > 1.0f)
         a = 1.0f;
     if (a < 0.0f)
@@ -2560,6 +2569,13 @@ void Character::Update(float dltTime)
                 core.EraseEntity(GetId());
             }
         }
+    }
+    if (tuner.scriptAlpha != visualFadeTarget)
+    {
+        const float step = visualFadeRate * dltTime;
+        tuner.scriptAlpha = tuner.scriptAlpha < visualFadeTarget
+                                ? std::min(tuner.scriptAlpha + step, visualFadeTarget)
+                                : std::max(tuner.scriptAlpha - step, visualFadeTarget);
     }
     glm::vec3 camPos, camAng;
     float perspective;

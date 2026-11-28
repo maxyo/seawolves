@@ -46,5 +46,10 @@ inline const LandFacts &landFacts()
 void ReportUnknownCommand(std::string_view receiver, std::string_view name);
 // A command accepted whose effect this engine does not have yet: a warning, once per command.
 void ReportWithoutEffect(std::string_view command, std::string_view what);
+// A part of the game this engine does not have: an error, once per name.
+void ReportNotImplemented(std::string_view name, std::string_view without);
+// Caribbean Legend's dynamic objects (MSG_LOCATION_DYNAMIC_OBJECT and the DynamicObject_*Native natives)
+inline constexpr std::string_view kWithoutDynamicObjects =
+    "dynamic objects: no benches or seats to sit on, no mannequins, no placing items on furniture";
 
 } // namespace storm::location
